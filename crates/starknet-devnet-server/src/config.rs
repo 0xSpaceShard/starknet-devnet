@@ -1,19 +1,15 @@
+use std::net::IpAddr;
 use std::str::FromStr;
 
 use hyper::header::HeaderValue;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-/// Additional server options.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct ServerConfig {
-    /// The cors `allow_origin` header
-    pub allow_origin: HeaderValueWrapper,
-}
-
-impl Default for ServerConfig {
-    fn default() -> Self {
-        Self { allow_origin: "*".parse::<HeaderValue>().unwrap().into() }
-    }
+    pub host: IpAddr,
+    pub port: u16,
+    pub timeout: u16,
+    pub request_body_size_limit: usize,
 }
 
 #[derive(Debug, Clone)]

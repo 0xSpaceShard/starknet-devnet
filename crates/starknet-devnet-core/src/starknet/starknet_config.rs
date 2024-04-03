@@ -1,4 +1,3 @@
-use std::net::IpAddr;
 use std::num::NonZeroU128;
 
 use starknet_types::chain_id::ChainId;
@@ -10,9 +9,8 @@ use url::Url;
 
 use crate::constants::{
     CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_DATA_GAS_PRICE,
-    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_INITIAL_BALANCE,
-    DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT, DEVNET_DEFAULT_TEST_SEED,
-    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_TEST_SEED,
+    DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum)]
@@ -43,10 +41,7 @@ pub struct StarknetConfig {
     pub account_contract_class: ContractClass,
     pub account_contract_class_hash: Felt,
     pub predeployed_accounts_initial_balance: Balance,
-    pub host: IpAddr,
-    pub port: u16,
     pub start_time: Option<u64>,
-    pub timeout: u16,
     pub gas_price: NonZeroU128,
     pub data_gas_price: NonZeroU128,
     pub chain_id: ChainId,
@@ -56,7 +51,6 @@ pub struct StarknetConfig {
     pub re_execute_on_init: bool,
     pub state_archive: StateArchiveCapacity,
     pub fork_config: ForkConfig,
-    pub request_body_size_limit: usize,
 }
 
 impl Default for StarknetConfig {
@@ -69,10 +63,7 @@ impl Default for StarknetConfig {
             account_contract_class_hash: account_contract_class.generate_hash().unwrap(),
             account_contract_class,
             predeployed_accounts_initial_balance: DEVNET_DEFAULT_INITIAL_BALANCE.into(),
-            host: DEVNET_DEFAULT_HOST,
-            port: DEVNET_DEFAULT_PORT,
             start_time: None,
-            timeout: DEVNET_DEFAULT_TIMEOUT,
             gas_price: DEVNET_DEFAULT_GAS_PRICE,
             data_gas_price: DEVNET_DEFAULT_DATA_GAS_PRICE,
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
@@ -81,7 +72,6 @@ impl Default for StarknetConfig {
             re_execute_on_init: true,
             state_archive: StateArchiveCapacity::default(),
             fork_config: ForkConfig::default(),
-            request_body_size_limit: DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT,
         }
     }
 }

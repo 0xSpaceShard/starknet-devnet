@@ -1,6 +1,7 @@
 use std::num::NonZeroU128;
 
 use clap::Parser;
+use server::ServerConfig;
 use starknet_core::constants::{
     DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT,
     DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
@@ -139,14 +140,14 @@ pub(crate) struct Args {
 }
 
 impl Args {
-    pub(crate) fn to_starknet_config(&self) -> Result<StarknetConfig, anyhow::Error> {
+    pub(crate) fn to_config(&self) -> Result<(StarknetConfig, ServerConfig), anyhow::Error> {
         // use account-class-custom if specified; otherwise default to predefined account-class
         let account_class_wrapper = match &self.account_class_custom {
             Some(account_class_custom) => account_class_custom.clone(),
             None => self.account_class_choice.get_class_wrapper()?,
         };
 
-        Ok(StarknetConfig {
+        let starknet_config = StarknetConfig {
             seed: match self.seed {
                 Some(seed) => seed,
                 None => generate_u32_random_number(),
@@ -155,10 +156,7 @@ impl Args {
             account_contract_class: account_class_wrapper.contract_class,
             account_contract_class_hash: account_class_wrapper.class_hash,
             predeployed_accounts_initial_balance: self.initial_balance.0.clone(),
-            host: self.host.inner,
-            port: self.port,
             start_time: self.start_time,
-            timeout: self.timeout,
             gas_price: self.gas_price,
             data_gas_price: self.data_gas_price,
             chain_id: self.chain_id,
@@ -170,8 +168,16 @@ impl Args {
                 url: self.fork_network.clone(),
                 block_number: self.fork_block,
             },
+        };
+
+        let server_config = ServerConfig {
+            host: self.host.inner,
+            port: self.port,
+            timeout: self.timeout,
             request_body_size_limit: self.request_body_size_limit,
-        })
+        };
+
+        Ok((starknet_config, server_config))
     }
 }
 
@@ -217,19 +223,22 @@ mod tests {
     #[test]
     fn state_archive_default_none() {
         let args = Args::parse_from(["--"]);
-        assert_eq!(args.to_starknet_config().unwrap().state_archive, StateArchiveCapacity::None);
+        let (starknet_config, _) = args.to_config().unwrap();
+        assert_eq!(starknet_config.state_archive, StateArchiveCapacity::None);
     }
 
     #[test]
     fn state_archive_none() {
         let args = Args::parse_from(["--", "--state-archive-capacity", "none"]);
-        assert_eq!(args.to_starknet_config().unwrap().state_archive, StateArchiveCapacity::None);
+        let (starknet_config, _) = args.to_config().unwrap();
+        assert_eq!(starknet_config.state_archive, StateArchiveCapacity::None);
     }
 
     #[test]
     fn state_archive_full() {
         let args = Args::parse_from(["--", "--state-archive-capacity", "full"]);
-        assert_eq!(args.to_starknet_config().unwrap().state_archive, StateArchiveCapacity::Full);
+        let (starknet_config, _) = args.to_config().unwrap();
+        assert_eq!(starknet_config.state_archive, StateArchiveCapacity::Full);
     }
 
     fn get_first_line(text: &str) -> &str {
@@ -373,6 +382,23 @@ mod tests {
                 Ok(args) => assert_eq!(args.fork_block, Some(number)),
                 Err(e) => panic!("Should have passed; got: {e}"),
             }
+        }
+    }
+
+    #[test]
+    fn allowing_big_positive_request_body_size() {
+        let value = 1_000_000_000;
+        match Args::try_parse_from(["--", "--request-body-size-limit", &value.to_string()]) {
+            Ok(args) => assert_eq!(args.request_body_size_limit, value),
+            Err(e) => panic!("Should have passed; got: {e}"),
+        }
+    }
+
+    #[test]
+    fn not_allowing_negative_request_body_size() {
+        match Args::try_parse_from(["--", "--request-body-size-limit", "-1"]) {
+            Err(_) => (),
+            Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
         }
     }
 }
