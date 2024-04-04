@@ -3,9 +3,7 @@ use starknet_api::transaction::Fee;
 
 use super::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use crate::contract_address::ContractAddress;
-use crate::felt::{
-    ClassHash, CompiledClassHash, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
-};
+use crate::felt::{ClassHash, CompiledClassHash, Nonce, TransactionSignature, TransactionVersion};
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]

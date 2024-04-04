@@ -5,9 +5,7 @@ use starknet_api::transaction::Tip;
 use super::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use super::{BroadcastedTransactionCommonV3, ResourceBoundsWrapper};
 use crate::contract_address::ContractAddress;
-use crate::felt::{
-    Calldata, Felt, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
-};
+use crate::felt::{Calldata, Felt, Nonce, TransactionSignature, TransactionVersion};
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]

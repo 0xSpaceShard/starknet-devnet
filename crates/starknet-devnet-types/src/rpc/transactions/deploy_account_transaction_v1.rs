@@ -1,15 +1,11 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
-use starknet_rs_core::types::BroadcastedDeployAccountTransaction;
 
 use super::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
 use crate::contract_address::ContractAddress;
-use crate::error::{DevnetResult, Error};
 use crate::felt::{
-    Calldata, ClassHash, ContractAddressSalt, Felt, Nonce, TransactionHash, TransactionSignature,
-    TransactionVersion,
+    Calldata, ClassHash, ContractAddressSalt, Nonce, TransactionSignature, TransactionVersion,
 };
-use crate::traits::HashProducer;
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct DeployAccountTransactionV1 {

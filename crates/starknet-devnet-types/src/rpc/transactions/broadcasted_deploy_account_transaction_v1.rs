@@ -6,12 +6,10 @@ use starknet_api::transaction::Fee;
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_ff::FieldElement;
 
-use super::deploy_account_transaction_v1::DeployAccountTransactionV1;
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
 use crate::felt::{
-    Calldata, ClassHash, ContractAddressSalt, Felt, Nonce, TransactionHash, TransactionSignature,
-    TransactionVersion,
+    Calldata, ClassHash, ContractAddressSalt, Felt, Nonce, TransactionSignature, TransactionVersion,
 };
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 

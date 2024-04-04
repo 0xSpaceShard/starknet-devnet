@@ -19,7 +19,6 @@ use crate::error::DevnetResult;
 use crate::felt::{
     ClassHash, Felt, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
 };
-use crate::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 use crate::traits::HashProducer;
 

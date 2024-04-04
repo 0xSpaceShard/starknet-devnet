@@ -1257,7 +1257,7 @@ mod tests {
         let tx = dummy_declare_transaction_v1();
 
         // add transaction hash to pending block
-        starknet.blocks.pending_block.add_transaction(tx.transaction_hash);
+        starknet.blocks.pending_block.add_transaction(*tx.get_transaction_hash());
 
         // pending block has some transactions
         assert!(!starknet.pending_block().get_transactions().is_empty());
@@ -1273,7 +1273,7 @@ mod tests {
             starknet.blocks.get_by_hash(starknet.blocks.last_block_hash.unwrap()).unwrap();
 
         assert!(added_block.get_transactions().len() == 1);
-        assert_eq!(*added_block.get_transactions().first().unwrap(), tx.transaction_hash);
+        assert_eq!(*added_block.get_transactions().first().unwrap(), *tx.get_transaction_hash());
     }
 
     #[test]
@@ -1526,7 +1526,7 @@ mod tests {
         let tx = dummy_declare_transaction_v1();
 
         // add transaction hash to pending block
-        starknet.blocks.pending_block.add_transaction(tx.transaction_hash);
+        starknet.blocks.pending_block.add_transaction(*tx.get_transaction_hash());
 
         starknet.generate_new_block(StateDiff::default()).unwrap();
 

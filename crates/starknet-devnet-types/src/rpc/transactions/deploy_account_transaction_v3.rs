@@ -6,8 +6,7 @@ use super::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTr
 use super::{BroadcastedTransactionCommonV3, ResourceBoundsWrapper};
 use crate::contract_address::ContractAddress;
 use crate::felt::{
-    Calldata, ClassHash, ContractAddressSalt, Felt, Nonce, TransactionHash, TransactionSignature,
-    TransactionVersion,
+    Calldata, ClassHash, ContractAddressSalt, Felt, Nonce, TransactionSignature, TransactionVersion,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]

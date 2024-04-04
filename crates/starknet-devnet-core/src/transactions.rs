@@ -299,12 +299,7 @@ mod tests {
 
     #[test]
     fn get_transaction_by_hash() {
-        let declare_transaction = dummy_declare_transaction_v1();
-        let hash = declare_transaction.generate_hash().unwrap();
-        let tx = TransactionWithHash::new(
-            hash,
-            Transaction::Declare(DeclareTransaction::Version1(declare_transaction)),
-        );
+        let tx = dummy_declare_transaction_v1();
 
         let trace = dummy_trace(&tx);
         let sn_tx = StarknetTransaction::create_accepted(
@@ -314,11 +309,11 @@ mod tests {
         );
         let mut sn_txs = StarknetTransactions::default();
         sn_txs.insert(
-            &hash,
+            tx.get_transaction_hash(),
             StarknetTransaction::create_accepted(&tx, TransactionExecutionInfo::default(), trace),
         );
 
-        let extracted_tran = sn_txs.get_by_hash_mut(&hash).unwrap();
+        let extracted_tran = sn_txs.get_by_hash_mut(tx.get_transaction_hash()).unwrap();
 
         assert_eq!(sn_tx.block_hash, extracted_tran.block_hash);
         assert_eq!(sn_tx.block_number, extracted_tran.block_number);
@@ -329,11 +324,7 @@ mod tests {
 
     #[test]
     fn check_correct_successful_transaction_creation() {
-        let declare_txn = dummy_declare_transaction_v1();
-        let tx = TransactionWithHash::new(
-            declare_txn.transaction_hash,
-            Transaction::Declare(DeclareTransaction::Version1(dummy_declare_transaction_v1())),
-        );
+        let tx = dummy_declare_transaction_v1();
         let trace = dummy_trace(&tx);
         let sn_tran =
             StarknetTransaction::create_accepted(&tx, TransactionExecutionInfo::default(), trace);

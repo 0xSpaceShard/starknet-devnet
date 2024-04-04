@@ -67,7 +67,8 @@ pub(crate) mod test_utils {
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
     use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
     use starknet_types::rpc::transactions::{
-        BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
+        BroadcastedTransactionCommonV3, DeclareTransaction, ResourceBoundsWrapper, Transaction,
+        TransactionWithHash,
     };
     use starknet_types::traits::HashProducer;
 
@@ -97,7 +98,7 @@ pub(crate) mod test_utils {
         ContractAddress::new(Felt::from_prefixed_hex_str("0xADD4E55").unwrap()).unwrap()
     }
 
-    pub(crate) fn dummy_declare_transaction_v1() -> DeclareTransactionV0V1 {
+    pub(crate) fn dummy_declare_transaction_v1() -> TransactionWithHash {
         let chain_id = DEVNET_DEFAULT_CHAIN_ID.to_felt();
         let contract_class = dummy_cairo_0_contract_class();
         let broadcasted_tx = BroadcastedDeclareTransactionV1::new(
@@ -112,7 +113,13 @@ pub(crate) mod test_utils {
         let transaction_hash =
             broadcasted_tx.calculate_transaction_hash(&chain_id, &class_hash).unwrap();
 
-        broadcasted_tx.create_declare(class_hash, transaction_hash)
+        TransactionWithHash::new(
+            transaction_hash,
+            Transaction::Declare(DeclareTransaction::Version1(DeclareTransactionV0V1::new(
+                &broadcasted_tx,
+                class_hash,
+            ))),
+        )
     }
 
     pub(crate) fn dummy_broadcasted_declare_transaction_v2(

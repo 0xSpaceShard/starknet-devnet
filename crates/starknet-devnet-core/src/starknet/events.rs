@@ -394,14 +394,9 @@ mod tests {
         // each transaction should have events count equal to the order of the transaction
         let mut starknet = Starknet::new(&StarknetConfig::default()).unwrap();
 
-        let declare_txn = dummy_declare_transaction_v1();
+        let transaction = dummy_declare_transaction_v1();
 
         for idx in 0..5 {
-            let transaction = TransactionWithHash::new(
-                *declare_txn.get_transaction_hash(),
-                Transaction::Declare(DeclareTransaction::Version1(declare_txn.clone())),
-            );
-
             let txn_info = blockifier::transaction::objects::TransactionExecutionInfo {
                 execute_call_info: Some(dummy_call_info(idx + 1)),
                 ..Default::default()
