@@ -6,12 +6,10 @@ use starknet_api::transaction::Fee;
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_ff::FieldElement;
 
-use super::deploy_account_transaction_v1::DeployAccountTransactionV1;
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
 use crate::felt::{
-    Calldata, ClassHash, ContractAddressSalt, Felt, Nonce, TransactionHash, TransactionSignature,
-    TransactionVersion,
+    Calldata, ClassHash, ContractAddressSalt, Felt, Nonce, TransactionSignature, TransactionVersion,
 };
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 
@@ -109,24 +107,6 @@ impl BroadcastedDeployAccountTransactionV1 {
             contract_address,
             only_query,
         })
-    }
-
-    pub fn compile_deploy_account_transaction_v1(
-        &self,
-        transaction_hash: &TransactionHash,
-        contract_address: ContractAddress,
-    ) -> DeployAccountTransactionV1 {
-        DeployAccountTransactionV1 {
-            transaction_hash: *transaction_hash,
-            max_fee: self.common.max_fee,
-            version: self.common.version,
-            signature: self.common.signature.clone(),
-            nonce: self.common.nonce,
-            class_hash: self.class_hash,
-            contract_address_salt: self.contract_address_salt,
-            constructor_calldata: self.constructor_calldata.clone(),
-            contract_address,
-        }
     }
 }
 

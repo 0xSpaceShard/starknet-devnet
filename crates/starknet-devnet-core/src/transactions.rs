@@ -15,7 +15,7 @@ use starknet_types::rpc::transaction_receipt::{
 };
 use starknet_types::rpc::transactions::{
     DeclareTransaction, DeployAccountTransaction, InvokeTransaction, Transaction, TransactionTrace,
-    TransactionType,
+    TransactionType, TransactionWithHash,
 };
 
 use crate::constants::UDC_CONTRACT_ADDRESS;
@@ -58,7 +58,7 @@ impl HashIdentified for StarknetTransactions {
 #[allow(unused)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StarknetTransaction {
-    pub inner: Transaction,
+    pub inner: TransactionWithHash,
     pub(crate) finality_status: TransactionFinalityStatus,
     pub(crate) execution_result: ExecutionResult,
     pub(crate) block_hash: Option<BlockHash>,
@@ -71,7 +71,7 @@ pub struct StarknetTransaction {
 
 impl StarknetTransaction {
     pub fn create_accepted(
-        transaction: &Transaction,
+        transaction: &TransactionWithHash,
         execution_info: TransactionExecutionInfo,
         trace: TransactionTrace,
     ) -> Self {
@@ -173,11 +173,11 @@ impl StarknetTransaction {
         // V3 transactions are in STRK(FRI)
         // Other transactions versions are in ETH(WEI)
         let fee_amount = FeeAmount { amount: self.execution_info.actual_fee };
-        let actual_fee_in_units = match self.inner {
+        let actual_fee_in_units = match self.inner.transaction {
             Transaction::L1Handler(_) => FeeInUnits::WEI(fee_amount),
-            Transaction::Declare(DeclareTransaction::Version3(_))
-            | Transaction::DeployAccount(DeployAccountTransaction::Version3(_))
-            | Transaction::Invoke(InvokeTransaction::Version3(_)) => FeeInUnits::FRI(fee_amount),
+            Transaction::Declare(DeclareTransaction::V3(_))
+            | Transaction::DeployAccount(DeployAccountTransaction::V3(_))
+            | Transaction::Invoke(InvokeTransaction::V3(_)) => FeeInUnits::FRI(fee_amount),
             _ => FeeInUnits::WEI(fee_amount),
         };
 
@@ -192,7 +192,7 @@ impl StarknetTransaction {
             &self.execution_info,
         );
 
-        match &self.inner {
+        match &self.inner.transaction {
             Transaction::DeployAccount(deploy_account_txn) => {
                 Ok(TransactionReceipt::Deploy(DeployTransactionReceipt {
                     common: common_receipt,
@@ -277,15 +277,14 @@ impl StarknetTransaction {
 mod tests {
     use blockifier::transaction::objects::TransactionExecutionInfo;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
-    use starknet_types::rpc::transactions::{DeclareTransaction, Transaction, TransactionTrace};
-    use starknet_types::traits::HashProducer;
+    use starknet_types::rpc::transactions::{TransactionTrace, TransactionWithHash};
 
     use super::{StarknetTransaction, StarknetTransactions};
     use crate::starknet::transaction_trace::create_trace;
     use crate::traits::HashIdentifiedMut;
     use crate::utils::test_utils::dummy_declare_transaction_v1;
 
-    fn dummy_trace(tx: &Transaction) -> TransactionTrace {
+    fn dummy_trace(tx: &TransactionWithHash) -> TransactionTrace {
         create_trace(
             &mut Default::default(),
             tx.get_type(),
@@ -297,9 +296,7 @@ mod tests {
 
     #[test]
     fn get_transaction_by_hash() {
-        let declare_transaction = dummy_declare_transaction_v1();
-        let hash = declare_transaction.generate_hash().unwrap();
-        let tx = Transaction::Declare(DeclareTransaction::Version1(declare_transaction));
+        let tx = dummy_declare_transaction_v1();
 
         let trace = dummy_trace(&tx);
         let sn_tx = StarknetTransaction::create_accepted(
@@ -309,11 +306,11 @@ mod tests {
         );
         let mut sn_txs = StarknetTransactions::default();
         sn_txs.insert(
-            &hash,
+            tx.get_transaction_hash(),
             StarknetTransaction::create_accepted(&tx, TransactionExecutionInfo::default(), trace),
         );
 
-        let extracted_tran = sn_txs.get_by_hash_mut(&hash).unwrap();
+        let extracted_tran = sn_txs.get_by_hash_mut(tx.get_transaction_hash()).unwrap();
 
         assert_eq!(sn_tx.block_hash, extracted_tran.block_hash);
         assert_eq!(sn_tx.block_number, extracted_tran.block_number);
@@ -324,7 +321,7 @@ mod tests {
 
     #[test]
     fn check_correct_successful_transaction_creation() {
-        let tx = Transaction::Declare(DeclareTransaction::Version1(dummy_declare_transaction_v1()));
+        let tx = dummy_declare_transaction_v1();
         let trace = dummy_trace(&tx);
         let sn_tran =
             StarknetTransaction::create_accepted(&tx, TransactionExecutionInfo::default(), trace);

@@ -9,10 +9,7 @@ use starknet_rs_ff::FieldElement;
 
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
-use crate::felt::{
-    Calldata, Felt, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
-};
-use crate::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1;
+use crate::felt::{Calldata, Felt, Nonce, TransactionSignature, TransactionVersion};
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 
 /// Cairo string for "invoke" from starknet-rs
@@ -93,21 +90,6 @@ impl BroadcastedInvokeTransactionV1 {
             tx_hash: starknet_api::transaction::TransactionHash(txn_hash.into()),
             only_query,
         })
-    }
-
-    pub fn create_invoke_transaction(
-        &self,
-        transaction_hash: TransactionHash,
-    ) -> InvokeTransactionV1 {
-        InvokeTransactionV1 {
-            transaction_hash,
-            max_fee: self.common.max_fee,
-            version: self.common.version,
-            signature: self.common.signature.clone(),
-            nonce: self.common.nonce,
-            sender_address: self.sender_address,
-            calldata: self.calldata.clone(),
-        }
     }
 }
 

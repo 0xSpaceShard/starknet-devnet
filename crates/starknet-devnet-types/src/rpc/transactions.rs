@@ -29,6 +29,7 @@ use self::declare_transaction_v3::DeclareTransactionV3;
 use self::deploy_account_transaction_v1::DeployAccountTransactionV1;
 use self::deploy_account_transaction_v3::DeployAccountTransactionV3;
 use self::invoke_transaction_v3::InvokeTransactionV3;
+use self::l1_handler_transaction::L1HandlerTransaction;
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::messaging::{MessageToL1, OrderedMessageToL1};
 use super::state::ThinStateDiff;
@@ -71,7 +72,7 @@ pub mod l1_handler_transaction;
 #[serde(untagged)]
 pub enum Transactions {
     Hashes(Vec<TransactionHash>),
-    Full(Vec<Transaction>),
+    Full(Vec<TransactionWithHash>),
     FullWithReceipts(Vec<TransactionWithReceipt>),
 }
 
@@ -91,7 +92,7 @@ pub enum TransactionType {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "type")]
+#[serde(tag = "type", deny_unknown_fields)]
 pub enum Transaction {
     #[serde(rename = "DECLARE")]
     Declare(DeclareTransaction),
@@ -105,30 +106,29 @@ pub enum Transaction {
     L1Handler(L1HandlerTransaction),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TransactionWithReceipt {
-    pub receipt: TransactionReceipt,
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TransactionWithHash {
+    transaction_hash: TransactionHash,
+    #[serde(flatten)]
     pub transaction: Transaction,
 }
 
-impl Transaction {
+impl TransactionWithHash {
+    pub fn new(transaction_hash: TransactionHash, transaction: Transaction) -> Self {
+        Self { transaction_hash, transaction }
+    }
+
+    pub fn get_transaction_hash(&self) -> &TransactionHash {
+        &self.transaction_hash
+    }
+
     pub fn get_type(&self) -> TransactionType {
-        match self {
+        match self.transaction {
             Transaction::Declare(_) => TransactionType::Declare,
             Transaction::DeployAccount(_) => TransactionType::DeployAccount,
             Transaction::Deploy(_) => TransactionType::Deploy,
             Transaction::Invoke(_) => TransactionType::Invoke,
             Transaction::L1Handler(_) => TransactionType::L1Handler,
-        }
-    }
-
-    pub fn get_transaction_hash(&self) -> &TransactionHash {
-        match self {
-            Transaction::Declare(tx) => tx.get_transaction_hash(),
-            Transaction::L1Handler(tx) => tx.get_transaction_hash(),
-            Transaction::DeployAccount(tx) => tx.get_transaction_hash(),
-            Transaction::Invoke(tx) => tx.get_transaction_hash(),
-            Transaction::Deploy(tx) => tx.get_transaction_hash(),
         }
     }
 
@@ -163,59 +163,40 @@ impl Transaction {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TransactionWithReceipt {
+    pub receipt: TransactionReceipt,
+    pub transaction: Transaction,
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum DeclareTransaction {
-    Version1(DeclareTransactionV0V1),
-    Version2(DeclareTransactionV2),
-    Version3(DeclareTransactionV3),
-}
-
-impl DeclareTransaction {
-    pub fn get_transaction_hash(&self) -> &TransactionHash {
-        match self {
-            DeclareTransaction::Version1(tx) => tx.get_transaction_hash(),
-            DeclareTransaction::Version2(tx) => tx.get_transaction_hash(),
-            DeclareTransaction::Version3(tx) => tx.get_transaction_hash(),
-        }
-    }
+    V1(DeclareTransactionV0V1),
+    V2(DeclareTransactionV2),
+    V3(DeclareTransactionV3),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum InvokeTransaction {
-    Version1(InvokeTransactionV1),
-    Version3(InvokeTransactionV3),
-}
-
-impl InvokeTransaction {
-    pub fn get_transaction_hash(&self) -> &TransactionHash {
-        match self {
-            InvokeTransaction::Version1(tx) => tx.get_transaction_hash(),
-            InvokeTransaction::Version3(tx) => tx.get_transaction_hash(),
-        }
-    }
+    V1(InvokeTransactionV1),
+    V3(InvokeTransactionV3),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum DeployAccountTransaction {
-    Version1(Box<DeployAccountTransactionV1>),
-    Version3(Box<DeployAccountTransactionV3>),
+    V1(Box<DeployAccountTransactionV1>),
+    V3(Box<DeployAccountTransactionV3>),
 }
 
 impl DeployAccountTransaction {
     pub fn get_contract_address(&self) -> &ContractAddress {
         match self {
-            DeployAccountTransaction::Version1(tx) => &tx.contract_address,
-            DeployAccountTransaction::Version3(tx) => tx.get_contract_address(),
-        }
-    }
-
-    pub fn get_transaction_hash(&self) -> &TransactionHash {
-        match self {
-            DeployAccountTransaction::Version1(tx) => tx.get_transaction_hash(),
-            DeployAccountTransaction::Version3(tx) => tx.get_transaction_hash(),
+            DeployAccountTransaction::V1(tx) => tx.get_contract_address(),
+            DeployAccountTransaction::V3(tx) => tx.get_contract_address(),
         }
     }
 }
@@ -237,27 +218,6 @@ where
     S: Serializer,
 {
     s.serialize_str(&format!("{paid_fee_on_l1:#x}"))
-}
-
-#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
-pub struct L1HandlerTransaction {
-    pub transaction_hash: TransactionHash,
-    pub version: TransactionVersion,
-    pub nonce: Nonce,
-    pub contract_address: ContractAddress,
-    pub entry_point_selector: EntryPointSelector,
-    pub calldata: Calldata,
-    #[serde(
-        serialize_with = "serialize_paid_fee_on_l1",
-        deserialize_with = "deserialize_paid_fee_on_l1"
-    )]
-    pub paid_fee_on_l1: u128,
-}
-
-impl L1HandlerTransaction {
-    pub fn get_transaction_hash(&self) -> &TransactionHash {
-        &self.transaction_hash
-    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

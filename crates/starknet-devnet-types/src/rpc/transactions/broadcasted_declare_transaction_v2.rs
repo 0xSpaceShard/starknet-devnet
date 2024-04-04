@@ -9,11 +9,7 @@ use super::broadcasted_declare_transaction_v1::PREFIX_DECLARE;
 use crate::contract_address::ContractAddress;
 use crate::contract_class::{compute_sierra_class_hash, ContractClass};
 use crate::error::DevnetResult;
-use crate::felt::{
-    ClassHash, CompiledClassHash, Felt, Nonce, TransactionHash, TransactionSignature,
-    TransactionVersion,
-};
-use crate::rpc::transactions::declare_transaction_v2::DeclareTransactionV2;
+use crate::felt::{CompiledClassHash, Felt, Nonce, TransactionSignature, TransactionVersion};
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 
@@ -48,23 +44,6 @@ impl BroadcastedDeclareTransactionV2 {
                 signature: signature.clone(),
                 nonce,
             },
-        }
-    }
-
-    pub fn create_declare(
-        &self,
-        class_hash: ClassHash,
-        transaction_hash: TransactionHash,
-    ) -> DeclareTransactionV2 {
-        DeclareTransactionV2 {
-            class_hash,
-            compiled_class_hash: self.compiled_class_hash,
-            sender_address: self.sender_address,
-            nonce: self.common.nonce,
-            max_fee: self.common.max_fee,
-            version: self.common.version,
-            transaction_hash,
-            signature: self.common.signature.clone(),
         }
     }
 

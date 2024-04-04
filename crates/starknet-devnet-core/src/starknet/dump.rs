@@ -3,9 +3,10 @@ use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
+use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
-    BroadcastedInvokeTransaction, L1HandlerTransaction,
+    BroadcastedInvokeTransaction,
 };
 
 use super::{DumpOn, Starknet};

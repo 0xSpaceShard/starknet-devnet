@@ -3,9 +3,10 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
+use starknet_types::rpc::transactions::deploy_account_transaction_v1::DeployAccountTransactionV1;
 use starknet_types::rpc::transactions::deploy_account_transaction_v3::DeployAccountTransactionV3;
 use starknet_types::rpc::transactions::{
-    BroadcastedDeployAccountTransaction, DeployAccountTransaction, Transaction,
+    BroadcastedDeployAccountTransaction, DeployAccountTransaction, Transaction, TransactionWithHash,
 };
 
 use super::dump::DumpEvent;
@@ -32,15 +33,15 @@ pub fn add_deploy_account_transaction_v3(
 
     let transaction_hash = blockifier_deploy_account_transaction.tx_hash.0.into();
     let address: ContractAddress = blockifier_deploy_account_transaction.contract_address.into();
-    let deploy_account_transaction_v3 = DeployAccountTransactionV3::new(
-        broadcasted_deploy_account_transaction.clone(),
-        address,
-        transaction_hash,
-    );
+    let deploy_account_transaction_v3 =
+        DeployAccountTransactionV3::new(&broadcasted_deploy_account_transaction, address);
 
-    let transaction = Transaction::DeployAccount(DeployAccountTransaction::Version3(Box::new(
-        deploy_account_transaction_v3,
-    )));
+    let transaction = TransactionWithHash::new(
+        transaction_hash,
+        Transaction::DeployAccount(DeployAccountTransaction::V3(Box::new(
+            deploy_account_transaction_v3,
+        ))),
+    );
 
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(
@@ -75,12 +76,15 @@ pub fn add_deploy_account_transaction_v1(
 
     let transaction_hash = blockifier_deploy_account_transaction.tx_hash.0.into();
     let address: ContractAddress = blockifier_deploy_account_transaction.contract_address.into();
-    let deploy_account_transaction_v1 = broadcasted_deploy_account_transaction
-        .compile_deploy_account_transaction_v1(&transaction_hash, address);
+    let deploy_account_transaction_v1 =
+        DeployAccountTransactionV1::new(&broadcasted_deploy_account_transaction, address);
 
-    let transaction = Transaction::DeployAccount(DeployAccountTransaction::Version1(Box::new(
-        deploy_account_transaction_v1,
-    )));
+    let transaction = TransactionWithHash::new(
+        transaction_hash,
+        Transaction::DeployAccount(DeployAccountTransaction::V1(Box::new(
+            deploy_account_transaction_v1,
+        ))),
+    );
 
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(

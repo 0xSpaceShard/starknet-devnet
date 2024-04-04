@@ -3,9 +3,11 @@ use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
+use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
+use starknet_types::rpc::transactions::declare_transaction_v2::DeclareTransactionV2;
 use starknet_types::rpc::transactions::declare_transaction_v3::DeclareTransactionV3;
 use starknet_types::rpc::transactions::{
-    BroadcastedDeclareTransaction, DeclareTransaction, Transaction,
+    BroadcastedDeclareTransaction, DeclareTransaction, Transaction, TransactionWithHash,
 };
 
 use super::dump::DumpEvent;
@@ -26,12 +28,13 @@ pub fn add_declare_transaction_v3(
     let transaction_hash = blockifier_declare_transaction.tx_hash().0.into();
     let class_hash = blockifier_declare_transaction.class_hash().0.into();
 
-    let transaction =
-        Transaction::Declare(DeclareTransaction::Version3(DeclareTransactionV3::new(
-            broadcasted_declare_transaction.clone(),
+    let transaction = TransactionWithHash::new(
+        transaction_hash,
+        Transaction::Declare(DeclareTransaction::V3(DeclareTransactionV3::new(
+            &broadcasted_declare_transaction,
             class_hash,
-            transaction_hash,
-        )));
+        ))),
+    );
 
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::Declare(
@@ -65,9 +68,13 @@ pub fn add_declare_transaction_v2(
     let transaction_hash = blockifier_declare_transaction.tx_hash().0.into();
     let class_hash = blockifier_declare_transaction.class_hash().0.into();
 
-    let transaction = Transaction::Declare(DeclareTransaction::Version2(
-        broadcasted_declare_transaction.create_declare(class_hash, transaction_hash),
-    ));
+    let transaction = TransactionWithHash::new(
+        transaction_hash,
+        Transaction::Declare(DeclareTransaction::V2(DeclareTransactionV2::new(
+            &broadcasted_declare_transaction,
+            class_hash,
+        ))),
+    );
 
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::Declare(
@@ -100,8 +107,12 @@ pub fn add_declare_transaction_v1(
         .calculate_transaction_hash(&starknet.config.chain_id.to_felt(), &class_hash)?;
 
     let declare_transaction =
-        broadcasted_declare_transaction.create_declare(class_hash, transaction_hash);
-    let transaction = Transaction::Declare(DeclareTransaction::Version1(declare_transaction));
+        DeclareTransactionV0V1::new(&broadcasted_declare_transaction, class_hash);
+
+    let transaction = TransactionWithHash::new(
+        transaction_hash,
+        Transaction::Declare(DeclareTransaction::V1(declare_transaction)),
+    );
 
     let blockifier_declare_transaction =
         broadcasted_declare_transaction.create_blockifier_declare(class_hash, transaction_hash)?;

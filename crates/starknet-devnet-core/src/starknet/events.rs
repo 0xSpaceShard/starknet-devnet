@@ -130,7 +130,6 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::emitted_event::Event;
     use starknet_types::felt::Felt;
-    use starknet_types::rpc::transactions::{DeclareTransaction, Transaction};
 
     use super::{check_if_filter_applies_for_event, get_events};
     use crate::starknet::events::check_if_filter_applies_for_event_keys;
@@ -394,10 +393,9 @@ mod tests {
         // each transaction should have events count equal to the order of the transaction
         let mut starknet = Starknet::new(&StarknetConfig::default()).unwrap();
 
-        for idx in 0..5 {
-            let transaction =
-                Transaction::Declare(DeclareTransaction::Version1(dummy_declare_transaction_v1()));
+        let transaction = dummy_declare_transaction_v1();
 
+        for idx in 0..5 {
             let txn_info = blockifier::transaction::objects::TransactionExecutionInfo {
                 execute_call_info: Some(dummy_call_info(idx + 1)),
                 ..Default::default()
