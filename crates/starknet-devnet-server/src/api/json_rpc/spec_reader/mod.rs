@@ -243,18 +243,20 @@ mod tests {
                                 StarknetResponse::TransactionReceiptByTransactionHash(_)
                             ));
                         }
-                        StarknetRequest::BlockWithTransactionHashes(_) => {
+                        StarknetRequest::BlockWithTransactionHashes(_)
+                        | StarknetRequest::BlockWithFullTransactions(_)
+                        | StarknetRequest::BlockWithReceipts(_) => {
                             assert!(matches!(sn_response, StarknetResponse::Block(_)));
                         }
                         StarknetRequest::BlockHashAndNumber => {
                             assert!(matches!(sn_response, StarknetResponse::BlockHashAndNumber(_)));
                         }
-                        StarknetRequest::BlockNumber
-                        | StarknetRequest::BlockTransactionCount(_) => {
+                        StarknetRequest::BlockTransactionCount(_)
+                        | StarknetRequest::BlockNumber => {
                             assert!(matches!(
                                 sn_response,
-                                StarknetResponse::BlockNumber(_)
-                                    | StarknetResponse::BlockTransactionCount(_)
+                                StarknetResponse::BlockTransactionCount(_)
+                                    | StarknetResponse::BlockNumber(_)
                             ));
                         }
                         StarknetRequest::Call(_) => {
@@ -309,13 +311,29 @@ mod tests {
                                 StarknetResponse::AddInvokeTransaction(_)
                             ));
                         }
-                        _ => {
-                            // Remaining responses are not implemented, because
-                            // multiple requests return the same response format either u64, Felt,
-                            // etc. so its impossible to know which
-                            // response variant is generated based on
-                            // serde untagged deserialization. This is due to the fact that the
-                            // first variant which complies with the response format is returned
+                        StarknetRequest::SpecVersion | StarknetRequest::ChainId => {
+                            assert!(matches!(
+                                sn_response,
+                                StarknetResponse::String(_) | StarknetResponse::Felt(_)
+                            ));
+                        }
+                        StarknetRequest::TransactionByHash(_)
+                        | StarknetRequest::TransactionByBlockAndIndex(_) => {
+                            assert!(matches!(sn_response, StarknetResponse::Transaction(_)));
+                        }
+                        StarknetRequest::ContractNonce(_)
+                        | StarknetRequest::ClassHashAtContractAddress(_)
+                        | StarknetRequest::StorageAt(_) => {
+                            assert!(matches!(sn_response, StarknetResponse::Felt(_)));
+                        }
+                        StarknetRequest::TraceTransaction(_) => {
+                            assert!(matches!(sn_response, StarknetResponse::TraceTransaction(_)));
+                        }
+                        StarknetRequest::BlockTransactionTraces(_) => {
+                            assert!(matches!(
+                                sn_response,
+                                StarknetResponse::BlockTransactionTraces(_)
+                            ));
                         }
                     }
                 }
