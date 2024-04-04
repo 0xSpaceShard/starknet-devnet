@@ -28,6 +28,7 @@ const PREFIX_L1_HANDLER: FieldElement = FieldElement::from_mont([
 ]);
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct L1HandlerTransaction {
     pub version: TransactionVersion,
     pub nonce: Nonce,

@@ -922,7 +922,8 @@ impl Starknet {
             common_field.maybe_pending_properties.block_hash = None;
             common_field.maybe_pending_properties.block_number = None;
 
-            transaction_receipts.push(TransactionWithReceipt { receipt, transaction });
+            transaction_receipts
+                .push(TransactionWithReceipt { receipt, transaction: transaction.transaction });
         }
 
         Ok(Block {

@@ -130,7 +130,6 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::emitted_event::Event;
     use starknet_types::felt::Felt;
-    
 
     use super::{check_if_filter_applies_for_event, get_events};
     use crate::starknet::events::check_if_filter_applies_for_event_keys;

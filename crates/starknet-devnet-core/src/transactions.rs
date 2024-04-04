@@ -277,10 +277,7 @@ impl StarknetTransaction {
 mod tests {
     use blockifier::transaction::objects::TransactionExecutionInfo;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
-    use starknet_types::rpc::transactions::{
-        TransactionTrace, TransactionWithHash,
-    };
-    
+    use starknet_types::rpc::transactions::{TransactionTrace, TransactionWithHash};
 
     use super::{StarknetTransaction, StarknetTransactions};
     use crate::starknet::transaction_trace::create_trace;

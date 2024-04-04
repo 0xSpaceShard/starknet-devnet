@@ -203,9 +203,7 @@ mod tests {
         for _ in 0..1000 {
             for spec in specs.iter() {
                 // Iterate over the methods in the spec
-                for method in
-                    spec.methods.iter().filter(|m| m.name != "starknet_getBlockWithReceipts")
-                {
+                for method in spec.methods.iter() {
                     // Create a JSON-RPC request for each method
                     let request = generate_json_rpc_request(method, &combined_schema)
                         .expect("Could not generate the JSON-RPC request");
@@ -246,10 +244,7 @@ mod tests {
                             ));
                         }
                         StarknetRequest::BlockWithTransactionHashes(_) => {
-                            assert!(matches!(
-                                sn_response,
-                                StarknetResponse::BlockWithTransactionHashes(_)
-                            ));
+                            assert!(matches!(sn_response, StarknetResponse::Block(_)));
                         }
                         StarknetRequest::BlockHashAndNumber => {
                             assert!(matches!(sn_response, StarknetResponse::BlockHashAndNumber(_)));
@@ -267,11 +262,7 @@ mod tests {
                         }
                         StarknetRequest::ClassAtContractAddress(_)
                         | StarknetRequest::ClassByHash(_) => {
-                            assert!(matches!(
-                                sn_response,
-                                StarknetResponse::ClassAtContractAddress(_)
-                                    | StarknetResponse::ClassByHash(_)
-                            ));
+                            assert!(matches!(sn_response, StarknetResponse::ContractClass(_)));
                         }
                         StarknetRequest::EsimateFee(_) => {
                             assert!(matches!(sn_response, StarknetResponse::EstimateFee(_)));

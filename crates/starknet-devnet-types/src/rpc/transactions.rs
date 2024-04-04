@@ -164,9 +164,10 @@ impl TransactionWithHash {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TransactionWithReceipt {
     pub receipt: TransactionReceipt,
-    pub transaction: TransactionWithHash,
+    pub transaction: Transaction,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
