@@ -6,7 +6,6 @@ use cli::Args;
 use server::api::json_rpc::RPC_SPEC_VERSION;
 use server::api::Api;
 use server::server::serve_http_api_json_rpc;
-use server::ServerConfig;
 use starknet_core::account::Account;
 use starknet_core::constants::{
     CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
@@ -149,11 +148,11 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // parse arguments
     let args = Args::parse();
-    let mut starknet_config = args.to_starknet_config()?;
+    let (mut starknet_config, server_config) = args.to_config()?;
 
     set_and_log_fork_config(&mut starknet_config.fork_config, starknet_config.chain_id).await?;
 
-    let mut addr: SocketAddr = SocketAddr::new(starknet_config.host, starknet_config.port);
+    let mut addr: SocketAddr = SocketAddr::new(server_config.host, server_config.port);
 
     let api = Api::new(Starknet::new(&starknet_config)?);
 
@@ -174,8 +173,7 @@ async fn main() -> Result<(), anyhow::Error> {
         starknet_config.predeployed_accounts_initial_balance.clone(),
     );
 
-    let server =
-        serve_http_api_json_rpc(addr, ServerConfig::default(), api.clone(), &starknet_config)?;
+    let server = serve_http_api_json_rpc(addr, api.clone(), &starknet_config, &server_config)?;
     addr = server.local_addr();
 
     info!("Starknet Devnet listening on {}", addr);

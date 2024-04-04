@@ -2,12 +2,13 @@ use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::time::Duration;
 
+use axum::extract::DefaultBodyLimit;
+use axum::http::HeaderValue;
 use axum::response::Response;
 use axum::routing::{post, IntoMakeService};
 use axum::{Extension, Router};
 use hyper::server::conn::AddrIncoming;
 use hyper::{header, Method, Request, Server};
-use starknet_core::starknet::starknet_config::StarknetConfig;
 use tower::Service;
 use tower_http::cors::CorsLayer;
 use tower_http::timeout::TimeoutLayer;
@@ -33,7 +34,6 @@ pub struct Builder<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + 
     routes: Router,
     json_rpc_handler: TJsonRpcHandler,
     http_api_handler: THttpApiHandler,
-    config: Option<ServerConfig>,
 }
 
 impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static>
@@ -49,7 +49,6 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
             routes: Router::<hyper::Body>::new(),
             json_rpc_handler,
             http_api_handler,
-            config: None,
         }
     }
 
@@ -83,34 +82,26 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
         }
     }
 
-    /// Sets additional configuration for the [`StarknetDevnetServer`]
-    pub fn set_config(self, config: ServerConfig) -> Self {
-        Self { config: Some(config), ..self }
-    }
-
     /// Creates the http server - [`StarknetDevnetServer`] from all the configured routes, provided
     /// [`ServerConfig`] and all handlers that have Some value. If TJsonRpcHandler and/or
     /// THttpApiHandler are set each methods that serves the route will be able to use it.
     /// https://docs.rs/axum/latest/axum/#using-request-extensions
-    pub fn build(self, starknet_config: &StarknetConfig) -> ServerResult<StarknetDevnetServer> {
+    pub fn build(self, config: &ServerConfig) -> ServerResult<StarknetDevnetServer> {
         let mut svc = self.routes;
 
         svc = svc
             .layer(Extension(self.json_rpc_handler))
             .layer(Extension(self.http_api_handler))
             .layer(TraceLayer::new_for_http())
-            .layer(TimeoutLayer::new(Duration::from_secs(starknet_config.timeout.into())));
-
-        if let Some(ServerConfig { allow_origin }) = self.config {
-            svc = svc.layer(
-                // see https://docs.rs/tower-http/latest/tower_http/cors/index.html
-                // for more details
+            .layer(TimeoutLayer::new(Duration::from_secs(config.timeout.into())))
+            .layer(DefaultBodyLimit::max(config.request_body_size_limit))
+            .layer(
                 CorsLayer::new()
-                    .allow_origin(allow_origin.0)
+                    // More details: https://docs.rs/tower-http/latest/tower_http/cors/index.html
+                    .allow_origin("*".parse::<HeaderValue>().unwrap())
                     .allow_headers(vec![header::CONTENT_TYPE])
                     .allow_methods(vec![Method::GET, Method::POST]),
-            )
-        }
+            );
 
         Ok(Server::try_bind(&self.address)?.serve(svc.into_make_service()))
     }

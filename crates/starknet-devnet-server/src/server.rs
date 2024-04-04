@@ -15,9 +15,9 @@ use crate::ServerConfig;
 /// Configures an [axum::Server] that handles related JSON-RPC calls and WEB API calls via HTTP
 pub fn serve_http_api_json_rpc(
     addr: SocketAddr,
-    config: ServerConfig,
     api: Api,
     starknet_config: &StarknetConfig,
+    server_config: &ServerConfig,
 ) -> ServerResult<StarknetDevnetServer> {
     let http = HttpApiHandler { api: api.clone() };
     let origin_caller = if let (Some(url), Some(block_number)) =
@@ -31,7 +31,6 @@ pub fn serve_http_api_json_rpc(
     let json_rpc = JsonRpcHandler { api, origin_caller };
 
     crate::builder::Builder::<JsonRpcHandler, HttpApiHandler>::new(addr, json_rpc, http)
-        .set_config(config)
         .json_rpc_route("/")
         .json_rpc_route("/rpc")
         .http_api_route("/is_alive", get(http::is_alive))
@@ -56,5 +55,5 @@ pub fn serve_http_api_json_rpc(
         .http_api_route("/account_balance", get(http::accounts::get_account_balance))
         .http_api_route("/mint", post(http::mint_token::mint))
         .http_api_route("/fork_status", get(http::get_fork_status))
-        .build(starknet_config)
+        .build(server_config)
 }
