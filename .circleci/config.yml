@@ -64,15 +64,10 @@ jobs:
           key: << parameters.cargo_cache_key >>
       - run:
           name: Unit tests
-          # if jobs not limited - fails
-          # problem: https://app.circleci.com/pipelines/github/0xSpaceShard/starknet-devnet-rs/339/workflows/97e98c29-1563-4aa0-b716-4bfd023c563e/jobs/335/steps
-          # solution: https://stackoverflow.com/questions/71962406/how-to-use-less-memory-when-compiling-to-avoid-killing-the-build
           command: cargo test --jobs 7 --lib --bins --no-fail-fast
       - run:
           name: Integration tests
-          # if jobs not limited - fails
-          # problem: https://app.circleci.com/pipelines/github/0xSpaceShard/starknet-devnet-rs/339/workflows/97e98c29-1563-4aa0-b716-4bfd023c563e/jobs/335/steps
-          # solution: https://stackoverflow.com/questions/71962406/how-to-use-less-memory-when-compiling-to-avoid-killing-the-build
+          # fails if jobs not limited; read more in https://github.com/0xSpaceShard/starknet-devnet-rs/issues/378
           command: cargo test --jobs 3 --test '*' --no-fail-fast
 
   image-build-amd:

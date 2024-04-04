@@ -66,6 +66,6 @@ pub trait AccountGenerator {
         &mut self,
         number_of_accounts: u8,
         class_hash: ClassHash,
-        contract_class: ContractClass,
+        contract_class: &ContractClass,
     ) -> DevnetResult<&Vec<Self::Acc>>;
 }

@@ -1,17 +1,18 @@
 use std::num::NonZeroU128;
 
 use clap::Parser;
+use server::ServerConfig;
 use starknet_core::constants::{
     DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT,
-    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
+use starknet_core::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use starknet_core::random_number_generator::generate_u32_random_number;
 use starknet_core::starknet::starknet_config::{
     DumpOn, ForkConfig, StarknetConfig, StateArchiveCapacity,
 };
 use starknet_types::chain_id::ChainId;
 
-use crate::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use crate::initial_balance_wrapper::InitialBalanceWrapper;
 use crate::ip_addr_wrapper::IpAddrWrapper;
 
@@ -130,17 +131,23 @@ pub(crate) struct Args {
     #[arg(help = "Specify the number of the block to fork at;")]
     #[arg(requires = "fork_network")]
     fork_block: Option<u64>,
+
+    #[arg(long = "request-body-size-limit")]
+    #[arg(value_name = "BYTES")]
+    #[arg(help = "Specify the maximum HTTP request body size;")]
+    #[arg(default_value_t = DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT)]
+    request_body_size_limit: usize,
 }
 
 impl Args {
-    pub(crate) fn to_starknet_config(&self) -> Result<StarknetConfig, anyhow::Error> {
+    pub(crate) fn to_config(&self) -> Result<(StarknetConfig, ServerConfig), anyhow::Error> {
         // use account-class-custom if specified; otherwise default to predefined account-class
         let account_class_wrapper = match &self.account_class_custom {
             Some(account_class_custom) => account_class_custom.clone(),
             None => self.account_class_choice.get_class_wrapper()?,
         };
 
-        Ok(StarknetConfig {
+        let starknet_config = StarknetConfig {
             seed: match self.seed {
                 Some(seed) => seed,
                 None => generate_u32_random_number(),
@@ -149,10 +156,7 @@ impl Args {
             account_contract_class: account_class_wrapper.contract_class,
             account_contract_class_hash: account_class_wrapper.class_hash,
             predeployed_accounts_initial_balance: self.initial_balance.0.clone(),
-            host: self.host.inner,
-            port: self.port,
             start_time: self.start_time,
-            timeout: self.timeout,
             gas_price: self.gas_price,
             data_gas_price: self.data_gas_price,
             chain_id: self.chain_id,
@@ -164,7 +168,16 @@ impl Args {
                 url: self.fork_network.clone(),
                 block_number: self.fork_block,
             },
-        })
+        };
+
+        let server_config = ServerConfig {
+            host: self.host.inner,
+            port: self.port,
+            timeout: self.timeout,
+            request_body_size_limit: self.request_body_size_limit,
+        };
+
+        Ok((starknet_config, server_config))
     }
 }
 
@@ -210,19 +223,22 @@ mod tests {
     #[test]
     fn state_archive_default_none() {
         let args = Args::parse_from(["--"]);
-        assert_eq!(args.to_starknet_config().unwrap().state_archive, StateArchiveCapacity::None);
+        let (starknet_config, _) = args.to_config().unwrap();
+        assert_eq!(starknet_config.state_archive, StateArchiveCapacity::None);
     }
 
     #[test]
     fn state_archive_none() {
         let args = Args::parse_from(["--", "--state-archive-capacity", "none"]);
-        assert_eq!(args.to_starknet_config().unwrap().state_archive, StateArchiveCapacity::None);
+        let (starknet_config, _) = args.to_config().unwrap();
+        assert_eq!(starknet_config.state_archive, StateArchiveCapacity::None);
     }
 
     #[test]
     fn state_archive_full() {
         let args = Args::parse_from(["--", "--state-archive-capacity", "full"]);
-        assert_eq!(args.to_starknet_config().unwrap().state_archive, StateArchiveCapacity::Full);
+        let (starknet_config, _) = args.to_config().unwrap();
+        assert_eq!(starknet_config.state_archive, StateArchiveCapacity::Full);
     }
 
     fn get_first_line(text: &str) -> &str {
@@ -277,7 +293,7 @@ mod tests {
                 get_first_line(&err.to_string()),
                 format!(
                     "error: invalid value '{custom_path}' for '--account-class-custom <PATH>': \
-                     missing field `kind` at line 1 column 292"
+                     Types error: missing field `kind` at line 1 column 292"
                 )
             ),
             Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
@@ -293,8 +309,8 @@ mod tests {
                 get_first_line(&err.to_string()),
                 format!(
                     "error: invalid value '{custom_path}' for '--account-class-custom <PATH>': \
-                     Not a valid Sierra account artifact; has __execute__: false; has \
-                     __validate__: false"
+                     Failed to load ContractClass: Not a valid Sierra account artifact; has \
+                     __execute__: false; has __validate__: false"
                 )
             ),
             Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
@@ -366,6 +382,23 @@ mod tests {
                 Ok(args) => assert_eq!(args.fork_block, Some(number)),
                 Err(e) => panic!("Should have passed; got: {e}"),
             }
+        }
+    }
+
+    #[test]
+    fn allowing_big_positive_request_body_size() {
+        let value = 1_000_000_000;
+        match Args::try_parse_from(["--", "--request-body-size-limit", &value.to_string()]) {
+            Ok(args) => assert_eq!(args.request_body_size_limit, value),
+            Err(e) => panic!("Should have passed; got: {e}"),
+        }
+    }
+
+    #[test]
+    fn not_allowing_negative_request_body_size() {
+        match Args::try_parse_from(["--", "--request-body-size-limit", "-1"]) {
+            Err(_) => (),
+            Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
         }
     }
 }

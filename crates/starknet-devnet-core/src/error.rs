@@ -49,8 +49,8 @@ pub enum Error {
     UnsupportedAction { msg: String },
     #[error("Unexpected internal error: {msg}")]
     UnexpectedInternalError { msg: String },
-    #[error("Failed to load ContractClass")]
-    ContractClassLoadError,
+    #[error("Failed to load ContractClass: {0}")]
+    ContractClassLoadError(String),
     #[error("Deserialization error: {origin}")]
     DeserializationError { origin: String },
     #[error("Serialization error: {origin}")]

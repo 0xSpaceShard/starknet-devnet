@@ -62,6 +62,7 @@ use crate::constants::{
     ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS,
     STRK_ERC20_NAME, STRK_ERC20_SYMBOL,
 };
+use crate::contract_class_choice::AccountContractClassChoice;
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
@@ -133,6 +134,18 @@ impl Starknet {
     pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
         let defaulter = StarknetDefaulter::new(config.fork_config.clone());
         let mut state = StarknetState::new(defaulter);
+
+        // predeclare account classes
+        for account_class_choice in
+            [AccountContractClassChoice::Cairo0, AccountContractClassChoice::Cairo1]
+        {
+            let class_wrapper = account_class_choice.get_class_wrapper()?;
+            state.predeclare_contract_class(
+                class_wrapper.class_hash,
+                class_wrapper.contract_class,
+            )?;
+        }
+
         // deploy udc, eth erc20 and strk erc20 contracts
         let eth_erc20_fee_contract =
             predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS)?;
@@ -168,7 +181,7 @@ impl Starknet {
         let accounts = predeployed_accounts.generate_accounts(
             config.total_accounts,
             config.account_contract_class_hash,
-            config.account_contract_class.clone(),
+            &config.account_contract_class,
         )?;
         for account in accounts {
             account.deploy(&mut state)?;
