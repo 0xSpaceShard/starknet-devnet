@@ -51,23 +51,6 @@ impl BroadcastedDeclareTransactionV2 {
         }
     }
 
-    pub fn create_declare(
-        &self,
-        class_hash: ClassHash,
-        transaction_hash: TransactionHash,
-    ) -> DeclareTransactionV2 {
-        DeclareTransactionV2 {
-            class_hash,
-            compiled_class_hash: self.compiled_class_hash,
-            sender_address: self.sender_address,
-            nonce: self.common.nonce,
-            max_fee: self.common.max_fee,
-            version: self.common.version,
-            transaction_hash,
-            signature: self.common.signature.clone(),
-        }
-    }
-
     pub fn create_blockifier_declare(&self, chain_id: Felt) -> DevnetResult<DeclareTransaction> {
         let sierra_class_hash: Felt = compute_sierra_class_hash(&self.contract_class)?;
 

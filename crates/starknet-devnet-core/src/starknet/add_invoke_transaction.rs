@@ -2,6 +2,7 @@ use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
+use starknet_types::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1;
 use starknet_types::rpc::transactions::invoke_transaction_v3::InvokeTransactionV3;
 use starknet_types::rpc::transactions::{
     BroadcastedInvokeTransaction, InvokeTransaction, Transaction, TransactionWithHash,
@@ -23,8 +24,7 @@ pub fn add_invoke_transaction_v1(
         .create_blockifier_invoke_transaction(starknet.chain_id().to_felt(), false)?;
     let transaction_hash = blockifier_invoke_transaction.tx_hash.0.into();
 
-    let invoke_transaction =
-        broadcasted_invoke_transaction.create_invoke_transaction(transaction_hash);
+    let invoke_transaction = InvokeTransactionV1::new(&broadcasted_invoke_transaction);
     let transaction = TransactionWithHash::new(
         transaction_hash,
         Transaction::Invoke(InvokeTransaction::Version1(invoke_transaction)),
@@ -66,8 +66,7 @@ pub fn add_invoke_transaction_v3(
     let transaction = TransactionWithHash::new(
         transaction_hash,
         Transaction::Invoke(InvokeTransaction::Version3(InvokeTransactionV3::new(
-            broadcasted_invoke_transaction.clone(),
-            transaction_hash,
+            &broadcasted_invoke_transaction,
         ))),
     );
 

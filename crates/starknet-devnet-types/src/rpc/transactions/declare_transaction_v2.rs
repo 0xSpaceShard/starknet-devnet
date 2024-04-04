@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
 
+use super::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use crate::contract_address::ContractAddress;
 use crate::felt::{
     ClassHash, CompiledClassHash, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
@@ -15,12 +16,19 @@ pub struct DeclareTransactionV2 {
     pub nonce: Nonce,
     pub max_fee: Fee,
     pub version: TransactionVersion,
-    pub transaction_hash: TransactionHash,
     pub signature: TransactionSignature,
 }
 
 impl DeclareTransactionV2 {
-    pub fn get_transaction_hash(&self) -> &TransactionHash {
-        &self.transaction_hash
+    pub fn new(broadcasted_txn: &BroadcastedDeclareTransactionV2, class_hash: ClassHash) -> Self {
+        Self {
+            class_hash,
+            compiled_class_hash: broadcasted_txn.compiled_class_hash,
+            sender_address: broadcasted_txn.sender_address,
+            nonce: broadcasted_txn.common.nonce,
+            max_fee: broadcasted_txn.common.max_fee,
+            version: broadcasted_txn.common.version,
+            signature: broadcasted_txn.common.signature.clone(),
+        }
     }
 }

@@ -3,6 +3,8 @@ use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
+use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
+use starknet_types::rpc::transactions::declare_transaction_v2::DeclareTransactionV2;
 use starknet_types::rpc::transactions::declare_transaction_v3::DeclareTransactionV3;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, DeclareTransaction, Transaction, TransactionWithHash,
@@ -29,9 +31,8 @@ pub fn add_declare_transaction_v3(
     let transaction = TransactionWithHash::new(
         transaction_hash,
         Transaction::Declare(DeclareTransaction::Version3(DeclareTransactionV3::new(
-            broadcasted_declare_transaction.clone(),
+            &broadcasted_declare_transaction,
             class_hash,
-            transaction_hash,
         ))),
     );
 
@@ -69,9 +70,10 @@ pub fn add_declare_transaction_v2(
 
     let transaction = TransactionWithHash::new(
         transaction_hash,
-        Transaction::Declare(DeclareTransaction::Version2(
-            broadcasted_declare_transaction.create_declare(class_hash, transaction_hash),
-        )),
+        Transaction::Declare(DeclareTransaction::Version2(DeclareTransactionV2::new(
+            &broadcasted_declare_transaction,
+            class_hash,
+        ))),
     );
 
     let blockifier_execution_result =
@@ -105,7 +107,8 @@ pub fn add_declare_transaction_v1(
         .calculate_transaction_hash(&starknet.config.chain_id.to_felt(), &class_hash)?;
 
     let declare_transaction =
-        broadcasted_declare_transaction.create_declare(class_hash, transaction_hash);
+        DeclareTransactionV0V1::new(&broadcasted_declare_transaction, class_hash);
+
     let transaction = TransactionWithHash::new(
         transaction_hash,
         Transaction::Declare(DeclareTransaction::Version1(declare_transaction)),

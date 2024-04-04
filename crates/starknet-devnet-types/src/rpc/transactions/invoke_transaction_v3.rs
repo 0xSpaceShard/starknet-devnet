@@ -23,31 +23,23 @@ pub struct InvokeTransactionV3 {
     account_deployment_data: Vec<Felt>,
     sender_address: ContractAddress,
     calldata: Calldata,
-    transaction_hash: TransactionHash,
 }
 
 impl InvokeTransactionV3 {
-    pub fn new(
-        broadcasted_txn: BroadcastedInvokeTransactionV3,
-        transaction_hash: TransactionHash,
-    ) -> Self {
+    pub fn new(broadcasted_txn: &BroadcastedInvokeTransactionV3) -> Self {
         Self {
             version: broadcasted_txn.common.version,
-            signature: broadcasted_txn.common.signature,
+            signature: broadcasted_txn.common.signature.clone(),
             nonce: broadcasted_txn.common.nonce,
-            resource_bounds: broadcasted_txn.common.resource_bounds,
+            resource_bounds: broadcasted_txn.common.resource_bounds.clone(),
             tip: broadcasted_txn.common.tip,
-            paymaster_data: broadcasted_txn.common.paymaster_data,
+            paymaster_data: broadcasted_txn.common.paymaster_data.clone(),
             nonce_data_availability_mode: broadcasted_txn.common.nonce_data_availability_mode,
             fee_data_availability_mode: broadcasted_txn.common.fee_data_availability_mode,
             sender_address: broadcasted_txn.sender_address,
-            calldata: broadcasted_txn.calldata,
-            account_deployment_data: broadcasted_txn.account_deployment_data,
-            transaction_hash,
+            calldata: broadcasted_txn.calldata.clone(),
+            account_deployment_data: broadcasted_txn.account_deployment_data.clone(),
         }
-    }
-    pub fn get_transaction_hash(&self) -> &TransactionHash {
-        &self.transaction_hash
     }
 }
 

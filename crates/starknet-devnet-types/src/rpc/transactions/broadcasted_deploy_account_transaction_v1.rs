@@ -110,24 +110,6 @@ impl BroadcastedDeployAccountTransactionV1 {
             only_query,
         })
     }
-
-    pub fn compile_deploy_account_transaction_v1(
-        &self,
-        transaction_hash: &TransactionHash,
-        contract_address: ContractAddress,
-    ) -> DeployAccountTransactionV1 {
-        DeployAccountTransactionV1 {
-            transaction_hash: *transaction_hash,
-            max_fee: self.common.max_fee,
-            version: self.common.version,
-            signature: self.common.signature.clone(),
-            nonce: self.common.nonce,
-            class_hash: self.class_hash,
-            contract_address_salt: self.contract_address_salt,
-            constructor_calldata: self.constructor_calldata.clone(),
-            contract_address,
-        }
-    }
 }
 
 #[cfg(test)]

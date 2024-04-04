@@ -80,22 +80,6 @@ impl BroadcastedDeclareTransactionV1 {
         )?)
     }
 
-    pub fn create_declare(
-        &self,
-        class_hash: ClassHash,
-        transaction_hash: TransactionHash,
-    ) -> DeclareTransactionV0V1 {
-        DeclareTransactionV0V1 {
-            class_hash,
-            sender_address: self.sender_address,
-            nonce: self.common.nonce,
-            max_fee: self.common.max_fee,
-            version: self.common.version,
-            transaction_hash,
-            signature: self.common.signature.clone(),
-        }
-    }
-
     pub fn generate_class_hash(&self) -> DevnetResult<Felt> {
         self.contract_class.generate_hash()
     }

@@ -26,33 +26,27 @@ pub struct DeployAccountTransactionV3 {
     class_hash: ClassHash,
     #[serde(skip)]
     contract_address: ContractAddress,
-    transaction_hash: TransactionHash,
 }
 
 impl DeployAccountTransactionV3 {
     pub fn new(
-        broadcasted_txn: BroadcastedDeployAccountTransactionV3,
+        broadcasted_txn: &BroadcastedDeployAccountTransactionV3,
         contract_address: ContractAddress,
-        transaction_hash: TransactionHash,
     ) -> Self {
         Self {
             version: broadcasted_txn.common.version,
-            signature: broadcasted_txn.common.signature,
+            signature: broadcasted_txn.common.signature.clone(),
             nonce: broadcasted_txn.common.nonce,
-            resource_bounds: broadcasted_txn.common.resource_bounds,
+            resource_bounds: broadcasted_txn.common.resource_bounds.clone(),
             tip: broadcasted_txn.common.tip,
-            paymaster_data: broadcasted_txn.common.paymaster_data,
+            paymaster_data: broadcasted_txn.common.paymaster_data.clone(),
             nonce_data_availability_mode: broadcasted_txn.common.nonce_data_availability_mode,
             fee_data_availability_mode: broadcasted_txn.common.fee_data_availability_mode,
             contract_address_salt: broadcasted_txn.contract_address_salt,
-            constructor_calldata: broadcasted_txn.constructor_calldata,
+            constructor_calldata: broadcasted_txn.constructor_calldata.clone(),
             class_hash: broadcasted_txn.class_hash,
             contract_address,
-            transaction_hash,
         }
-    }
-    pub fn get_transaction_hash(&self) -> &TransactionHash {
-        &self.transaction_hash
     }
 
     pub fn get_contract_address(&self) -> &ContractAddress {

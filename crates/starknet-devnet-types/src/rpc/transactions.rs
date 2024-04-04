@@ -176,30 +176,11 @@ pub enum DeclareTransaction {
     Version3(DeclareTransactionV3),
 }
 
-impl DeclareTransaction {
-    pub fn get_transaction_hash(&self) -> &TransactionHash {
-        match self {
-            DeclareTransaction::Version1(tx) => tx.get_transaction_hash(),
-            DeclareTransaction::Version2(tx) => tx.get_transaction_hash(),
-            DeclareTransaction::Version3(tx) => tx.get_transaction_hash(),
-        }
-    }
-}
-
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum InvokeTransaction {
     Version1(InvokeTransactionV1),
     Version3(InvokeTransactionV3),
-}
-
-impl InvokeTransaction {
-    pub fn get_transaction_hash(&self) -> &TransactionHash {
-        match self {
-            InvokeTransaction::Version1(tx) => tx.get_transaction_hash(),
-            InvokeTransaction::Version3(tx) => tx.get_transaction_hash(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
@@ -212,15 +193,8 @@ pub enum DeployAccountTransaction {
 impl DeployAccountTransaction {
     pub fn get_contract_address(&self) -> &ContractAddress {
         match self {
-            DeployAccountTransaction::Version1(tx) => &tx.contract_address,
+            DeployAccountTransaction::Version1(tx) => tx.get_contract_address(),
             DeployAccountTransaction::Version3(tx) => tx.get_contract_address(),
-        }
-    }
-
-    pub fn get_transaction_hash(&self) -> &TransactionHash {
-        match self {
-            DeployAccountTransaction::Version1(tx) => tx.get_transaction_hash(),
-            DeployAccountTransaction::Version3(tx) => tx.get_transaction_hash(),
         }
     }
 }
@@ -257,12 +231,6 @@ pub struct L1HandlerTransaction {
         deserialize_with = "deserialize_paid_fee_on_l1"
     )]
     pub paid_fee_on_l1: u128,
-}
-
-impl L1HandlerTransaction {
-    pub fn get_transaction_hash(&self) -> &TransactionHash {
-        &self.transaction_hash
-    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
