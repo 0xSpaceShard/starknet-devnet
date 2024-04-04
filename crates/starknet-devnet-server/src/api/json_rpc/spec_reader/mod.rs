@@ -311,17 +311,15 @@ mod tests {
                                 StarknetResponse::AddInvokeTransaction(_)
                             ));
                         }
-                        StarknetRequest::SpecVersion | StarknetRequest::ChainId => {
-                            assert!(matches!(
-                                sn_response,
-                                StarknetResponse::String(_) | StarknetResponse::Felt(_)
-                            ));
+                        StarknetRequest::SpecVersion => {
+                            assert!(matches!(sn_response, StarknetResponse::String(_)));
                         }
                         StarknetRequest::TransactionByHash(_)
                         | StarknetRequest::TransactionByBlockAndIndex(_) => {
                             assert!(matches!(sn_response, StarknetResponse::Transaction(_)));
                         }
                         StarknetRequest::ContractNonce(_)
+                        | StarknetRequest::ChainId
                         | StarknetRequest::ClassHashAtContractAddress(_)
                         | StarknetRequest::StorageAt(_) => {
                             assert!(matches!(sn_response, StarknetResponse::Felt(_)));

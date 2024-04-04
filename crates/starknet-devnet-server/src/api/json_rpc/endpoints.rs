@@ -325,7 +325,7 @@ impl JsonRpcHandler {
     pub async fn chain_id(&self) -> StrictRpcResult {
         let chain_id = self.api.starknet.read().await.chain_id();
 
-        Ok(StarknetResponse::String(chain_id.to_felt().to_prefixed_hex_str()))
+        Ok(StarknetResponse::Felt(chain_id.to_felt()))
     }
 
     /// starknet_syncing
