@@ -175,9 +175,9 @@ impl StarknetTransaction {
         let fee_amount = FeeAmount { amount: self.execution_info.actual_fee };
         let actual_fee_in_units = match self.inner.transaction {
             Transaction::L1Handler(_) => FeeInUnits::WEI(fee_amount),
-            Transaction::Declare(DeclareTransaction::Version3(_))
-            | Transaction::DeployAccount(DeployAccountTransaction::Version3(_))
-            | Transaction::Invoke(InvokeTransaction::Version3(_)) => FeeInUnits::FRI(fee_amount),
+            Transaction::Declare(DeclareTransaction::V3(_))
+            | Transaction::DeployAccount(DeployAccountTransaction::V3(_))
+            | Transaction::Invoke(InvokeTransaction::V3(_)) => FeeInUnits::FRI(fee_amount),
             _ => FeeInUnits::WEI(fee_amount),
         };
 

@@ -343,21 +343,21 @@ impl Starknet {
                 // then save the contract class in the state cache for Declare transactions
                 if !tx_info.is_reverted() {
                     match &transaction.transaction {
-                        Transaction::Declare(DeclareTransaction::Version1(declare_v1)) => {
+                        Transaction::Declare(DeclareTransaction::V1(declare_v1)) => {
                             declare_contract_class(
                                 &declare_v1.class_hash,
                                 contract_class,
                                 &mut self.state,
                             )?
                         }
-                        Transaction::Declare(DeclareTransaction::Version2(declare_v2)) => {
+                        Transaction::Declare(DeclareTransaction::V2(declare_v2)) => {
                             declare_contract_class(
                                 &declare_v2.class_hash,
                                 contract_class,
                                 &mut self.state,
                             )?
                         }
-                        Transaction::Declare(DeclareTransaction::Version3(declare_v3)) => {
+                        Transaction::Declare(DeclareTransaction::V3(declare_v3)) => {
                             declare_contract_class(
                                 declare_v3.get_class_hash(),
                                 contract_class,

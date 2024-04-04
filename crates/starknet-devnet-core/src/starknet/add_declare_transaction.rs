@@ -30,7 +30,7 @@ pub fn add_declare_transaction_v3(
 
     let transaction = TransactionWithHash::new(
         transaction_hash,
-        Transaction::Declare(DeclareTransaction::Version3(DeclareTransactionV3::new(
+        Transaction::Declare(DeclareTransaction::V3(DeclareTransactionV3::new(
             &broadcasted_declare_transaction,
             class_hash,
         ))),
@@ -70,7 +70,7 @@ pub fn add_declare_transaction_v2(
 
     let transaction = TransactionWithHash::new(
         transaction_hash,
-        Transaction::Declare(DeclareTransaction::Version2(DeclareTransactionV2::new(
+        Transaction::Declare(DeclareTransaction::V2(DeclareTransactionV2::new(
             &broadcasted_declare_transaction,
             class_hash,
         ))),
@@ -111,7 +111,7 @@ pub fn add_declare_transaction_v1(
 
     let transaction = TransactionWithHash::new(
         transaction_hash,
-        Transaction::Declare(DeclareTransaction::Version1(declare_transaction)),
+        Transaction::Declare(DeclareTransaction::V1(declare_transaction)),
     );
 
     let blockifier_declare_transaction =

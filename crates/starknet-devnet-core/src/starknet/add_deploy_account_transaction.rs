@@ -38,7 +38,7 @@ pub fn add_deploy_account_transaction_v3(
 
     let transaction = TransactionWithHash::new(
         transaction_hash,
-        Transaction::DeployAccount(DeployAccountTransaction::Version3(Box::new(
+        Transaction::DeployAccount(DeployAccountTransaction::V3(Box::new(
             deploy_account_transaction_v3,
         ))),
     );
@@ -81,7 +81,7 @@ pub fn add_deploy_account_transaction_v1(
 
     let transaction = TransactionWithHash::new(
         transaction_hash,
-        Transaction::DeployAccount(DeployAccountTransaction::Version1(Box::new(
+        Transaction::DeployAccount(DeployAccountTransaction::V1(Box::new(
             deploy_account_transaction_v1,
         ))),
     );

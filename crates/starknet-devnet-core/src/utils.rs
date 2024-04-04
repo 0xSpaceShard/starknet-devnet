@@ -115,7 +115,7 @@ pub(crate) mod test_utils {
 
         TransactionWithHash::new(
             transaction_hash,
-            Transaction::Declare(DeclareTransaction::Version1(DeclareTransactionV0V1::new(
+            Transaction::Declare(DeclareTransaction::V1(DeclareTransactionV0V1::new(
                 &broadcasted_tx,
                 class_hash,
             ))),

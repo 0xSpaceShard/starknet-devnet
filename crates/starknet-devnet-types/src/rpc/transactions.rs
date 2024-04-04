@@ -173,30 +173,30 @@ pub struct TransactionWithReceipt {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum DeclareTransaction {
-    Version1(DeclareTransactionV0V1),
-    Version2(DeclareTransactionV2),
-    Version3(DeclareTransactionV3),
+    V1(DeclareTransactionV0V1),
+    V2(DeclareTransactionV2),
+    V3(DeclareTransactionV3),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum InvokeTransaction {
-    Version1(InvokeTransactionV1),
-    Version3(InvokeTransactionV3),
+    V1(InvokeTransactionV1),
+    V3(InvokeTransactionV3),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum DeployAccountTransaction {
-    Version1(Box<DeployAccountTransactionV1>),
-    Version3(Box<DeployAccountTransactionV3>),
+    V1(Box<DeployAccountTransactionV1>),
+    V3(Box<DeployAccountTransactionV3>),
 }
 
 impl DeployAccountTransaction {
     pub fn get_contract_address(&self) -> &ContractAddress {
         match self {
-            DeployAccountTransaction::Version1(tx) => tx.get_contract_address(),
-            DeployAccountTransaction::Version3(tx) => tx.get_contract_address(),
+            DeployAccountTransaction::V1(tx) => tx.get_contract_address(),
+            DeployAccountTransaction::V3(tx) => tx.get_contract_address(),
         }
     }
 }

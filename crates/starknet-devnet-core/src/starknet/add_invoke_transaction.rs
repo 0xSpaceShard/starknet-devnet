@@ -27,7 +27,7 @@ pub fn add_invoke_transaction_v1(
     let invoke_transaction = InvokeTransactionV1::new(&broadcasted_invoke_transaction);
     let transaction = TransactionWithHash::new(
         transaction_hash,
-        Transaction::Invoke(InvokeTransaction::Version1(invoke_transaction)),
+        Transaction::Invoke(InvokeTransaction::V1(invoke_transaction)),
     );
 
     let blockifier_execution_result =
@@ -65,7 +65,7 @@ pub fn add_invoke_transaction_v3(
 
     let transaction = TransactionWithHash::new(
         transaction_hash,
-        Transaction::Invoke(InvokeTransaction::Version3(InvokeTransactionV3::new(
+        Transaction::Invoke(InvokeTransaction::V3(InvokeTransactionV3::new(
             &broadcasted_invoke_transaction,
         ))),
     );
