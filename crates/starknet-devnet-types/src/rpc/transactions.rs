@@ -29,6 +29,7 @@ use self::declare_transaction_v3::DeclareTransactionV3;
 use self::deploy_account_transaction_v1::DeployAccountTransactionV1;
 use self::deploy_account_transaction_v3::DeployAccountTransactionV3;
 use self::invoke_transaction_v3::InvokeTransactionV3;
+use self::l1_handler_transaction::L1HandlerTransaction;
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::messaging::{MessageToL1, OrderedMessageToL1};
 use super::state::ThinStateDiff;
@@ -216,21 +217,6 @@ where
     S: Serializer,
 {
     s.serialize_str(&format!("{paid_fee_on_l1:#x}"))
-}
-
-#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
-pub struct L1HandlerTransaction {
-    pub transaction_hash: TransactionHash,
-    pub version: TransactionVersion,
-    pub nonce: Nonce,
-    pub contract_address: ContractAddress,
-    pub entry_point_selector: EntryPointSelector,
-    pub calldata: Calldata,
-    #[serde(
-        serialize_with = "serialize_paid_fee_on_l1",
-        deserialize_with = "deserialize_paid_fee_on_l1"
-    )]
-    pub paid_fee_on_l1: u128,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

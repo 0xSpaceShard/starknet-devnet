@@ -6,7 +6,6 @@ use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::eth_address::EthAddressWrapper;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transaction_receipt::FeeUnit;
-use starknet_types::rpc::transactions::L1HandlerTransaction;
 use starknet_types::serde_helpers::dec_string::deserialize_biguint;
 
 use crate::api::http::error::HttpApiError;
