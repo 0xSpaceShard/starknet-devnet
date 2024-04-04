@@ -4,7 +4,8 @@ mod abort_blocks_tests {
     use hyper::Body;
     use serde_json::json;
     use server::api::json_rpc::error::ApiError;
-    use starknet_rs_core::types::FieldElement;
+    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, MaybePendingBlockWithTxHashes};
+    use starknet_rs_providers::Provider;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -58,23 +59,30 @@ mod abort_blocks_tests {
                 .await
                 .expect("Could not start Devnet");
 
-        let first_block_hash = devnet.create_block().await.unwrap();
-        let second_block_hash = devnet.create_block().await.unwrap();
+        let genesis_block =
+            devnet.json_rpc_client.get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest)).await;
+        let genesis_block_hash = match genesis_block {
+            Ok(MaybePendingBlockWithTxHashes::Block(b)) => b.block_hash,
+            _ => panic!("Unexpected resp: {genesis_block:?}"),
+        };
 
-        let aborted_blocks = abort_blocks(&devnet, &second_block_hash).await;
-        assert_eq!(aborted_blocks, vec![second_block_hash]);
+        let new_block_hash = devnet.create_block().await.unwrap();
+        let aborted_blocks = abort_blocks(&devnet, &new_block_hash).await;
+        assert_eq!(aborted_blocks, vec![new_block_hash]);
 
-        let first_block_after_abort = &devnet
+        let new_block_after_abort = &devnet
             .send_custom_rpc(
                 "starknet_getBlockWithTxHashes",
                 json!({
-                    "block_id": {"block_hash": to_hex_felt(&first_block_hash)},
+                    "block_id": {"block_hash": to_hex_felt(&genesis_block_hash)},
                 }),
             )
             .await["result"];
-        assert_eq!(first_block_after_abort["status"], "ACCEPTED_ON_L2".to_string());
+        assert_eq!(new_block_after_abort["status"], "ACCEPTED_ON_L2".to_string());
 
-        assert_block_rejected(&devnet, &second_block_hash).await;
+        assert_block_rejected(&devnet, &new_block_hash).await;
+
+        abort_blocks_error(&devnet, &genesis_block_hash).await;
     }
 
     #[tokio::test]
@@ -118,14 +126,12 @@ mod abort_blocks_tests {
                 .await
                 .expect("Could not start Devnet");
 
-        devnet.create_block().await.unwrap();
-        let second_block_hash = devnet.create_block().await.unwrap();
+        let new_block_hash = devnet.create_block().await.unwrap();
+        let aborted_blocks = abort_blocks(&devnet, &new_block_hash).await;
+        assert_eq!(aborted_blocks, vec![new_block_hash]);
+        assert_block_rejected(&devnet, &new_block_hash).await;
 
-        let aborted_blocks = abort_blocks(&devnet, &second_block_hash).await;
-        assert_eq!(aborted_blocks, vec![second_block_hash]);
-        assert_block_rejected(&devnet, &second_block_hash).await;
-
-        let second_block_after_abort_by_number = &devnet
+        let new_block_after_abort_by_number = &devnet
             .send_custom_rpc(
                 "starknet_getBlockWithTxHashes",
                 json!({
@@ -134,7 +140,7 @@ mod abort_blocks_tests {
             )
             .await;
         assert_eq!(
-            second_block_after_abort_by_number["error"]["message"],
+            new_block_after_abort_by_number["error"]["message"],
             ApiError::BlockNotFound.to_string()
         )
     }
@@ -188,7 +194,7 @@ mod abort_blocks_tests {
         assert_eq!(balance.to_string(), DUMMY_AMOUNT.to_string());
 
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
-        assert_eq!(latest_block.block_number, 1);
+        assert_eq!(latest_block.block_number, 2);
     }
 
     #[tokio::test]
@@ -196,8 +202,8 @@ mod abort_blocks_tests {
         let devnet: BackgroundDevnet =
             BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        let first_block_hash = devnet.create_block().await.unwrap();
-        abort_blocks_error(&devnet, &first_block_hash).await;
+        let new_block_hash = devnet.create_block().await.unwrap();
+        abort_blocks_error(&devnet, &new_block_hash).await;
     }
 
     #[tokio::test]
@@ -207,15 +213,13 @@ mod abort_blocks_tests {
                 .await
                 .expect("Could not start Devnet");
 
-        devnet.create_block().await.unwrap();
-
+        let first_block_hash = devnet.create_block().await.unwrap();
         let second_block_hash = devnet.create_block().await.unwrap();
-        let third_block_hash = devnet.create_block().await.unwrap();
 
-        let aborted_blocks = abort_blocks(&devnet, &second_block_hash).await;
-        assert_eq!(aborted_blocks, vec![third_block_hash, second_block_hash]);
+        let aborted_blocks = abort_blocks(&devnet, &first_block_hash).await;
+        assert_eq!(aborted_blocks, vec![second_block_hash, first_block_hash]);
 
+        abort_blocks_error(&devnet, &first_block_hash).await;
         abort_blocks_error(&devnet, &second_block_hash).await;
-        abort_blocks_error(&devnet, &third_block_hash).await;
     }
 }

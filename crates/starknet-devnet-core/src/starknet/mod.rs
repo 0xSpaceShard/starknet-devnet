@@ -89,8 +89,6 @@ pub(crate) mod transaction_trace;
 
 pub struct Starknet {
     pub(in crate::starknet) state: StarknetState,
-    pub(in crate::starknet) init_state: StarknetState, /* This will be refactored during the
-                                                        * genesis block PR */
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
     // To avoid repeating some logic related to blocks,
@@ -116,7 +114,6 @@ impl Default for Starknet {
                 DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
             ),
             state: Default::default(),
-            init_state: Default::default(),
             predeployed_accounts: Default::default(),
             blocks: Default::default(),
             transactions: Default::default(),
@@ -200,7 +197,6 @@ impl Starknet {
             config.fork_config.block_number.map_or(DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, |n| n + 1);
         let mut this = Self {
             state,
-            init_state: StarknetState::default(),
             predeployed_accounts,
             block_context: Self::init_block_context(
                 config.gas_price,
@@ -221,9 +217,8 @@ impl Starknet {
 
         this.restart_pending_block()?;
 
-        // Set init_state for abort blocks functionality
-        // This will be refactored during the genesis block PR
-        this.init_state = this.state.clone_historic();
+        // Create empty genesis block
+        this.create_block()?;
 
         // Load starknet transactions
         if this.config.dump_path.is_some() && this.config.re_execute_on_init {
@@ -803,6 +798,11 @@ impl Starknet {
             return Err(Error::UnsupportedAction { msg: "Block is already aborted".into() });
         }
 
+        let genesis_block = self.blocks.get_by_block_id(&BlockId::Number(0)).unwrap();
+        if starting_block_hash == genesis_block.block_hash() {
+            return Err(Error::UnsupportedAction { msg: "Genesis block can't be aborted".into() });
+        }
+
         let mut next_block_to_abort_hash = self
             .blocks
             .last_block_hash
@@ -837,10 +837,7 @@ impl Starknet {
 
         // Update last_block_hash based on last reached block and revert state only if
         // starting block is reached in while loop.
-        if last_reached_block_hash == Felt::from(0) && reached_starting_block {
-            self.blocks.last_block_hash = None;
-            self.state = self.init_state.clone_historic(); // This will be refactored during the genesis block PR
-        } else if reached_starting_block {
+        if reached_starting_block {
             let current_block =
                 self.blocks.hash_to_block.get(&last_reached_block_hash).ok_or(Error::NoBlock)?;
             self.blocks.last_block_hash = Some(current_block.block_hash());
