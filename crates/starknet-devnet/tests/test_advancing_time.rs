@@ -542,7 +542,7 @@ mod advancing_time_tests {
         devnet.create_block().await.unwrap();
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
-        assert_eq!(latest_block.block_number, 0);
+        assert_eq!(latest_block.block_number, 1);
         assert_eq!(latest_block.timestamp, past_time);
     }
 }
