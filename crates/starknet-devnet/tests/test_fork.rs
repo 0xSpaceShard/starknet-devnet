@@ -38,7 +38,6 @@ mod fork_tests {
     async fn spawn_forkable_devnet() -> Result<BackgroundDevnet, anyhow::Error> {
         let args = ["--state-archive-capacity", "full"];
         let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await?;
-        devnet.create_block().await?;
         Ok(devnet)
     }
 
