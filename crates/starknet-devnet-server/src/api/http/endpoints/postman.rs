@@ -1,6 +1,6 @@
 use axum::{Extension, Json};
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::transactions::L1HandlerTransaction;
+use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
@@ -87,17 +87,13 @@ pub async fn postman_send_message_to_l2(
 ) -> HttpApiResult<Json<TxHash>> {
     let mut starknet = state.api.starknet.write().await;
 
-    let chain_id = starknet.chain_id().to_felt();
-
-    let transaction = L1HandlerTransaction::try_from_message_to_l2(message)
-        .map_err(|_| HttpApiError::InvalidValueError {
+    let transaction = L1HandlerTransaction::try_from_message_to_l2(message).map_err(|_| {
+        HttpApiError::InvalidValueError {
             msg: "The `paid_fee_on_l1` is out of range, expecting u128 value".to_string(),
-        })?
-        .with_hash(chain_id);
+        }
+    })?;
 
-    let transaction_hash = transaction.transaction_hash;
-
-    starknet
+    let transaction_hash = starknet
         .add_l1_handler_transaction(transaction)
         .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
 

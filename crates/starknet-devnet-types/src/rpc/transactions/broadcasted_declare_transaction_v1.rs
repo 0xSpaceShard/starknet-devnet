@@ -19,7 +19,6 @@ use crate::error::DevnetResult;
 use crate::felt::{
     ClassHash, Felt, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
 };
-use crate::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 use crate::traits::HashProducer;
 
@@ -78,22 +77,6 @@ impl BroadcastedDeclareTransactionV1 {
             starknet_api::transaction::TransactionHash(transaction_hash.into()),
             class_info,
         )?)
-    }
-
-    pub fn create_declare(
-        &self,
-        class_hash: ClassHash,
-        transaction_hash: TransactionHash,
-    ) -> DeclareTransactionV0V1 {
-        DeclareTransactionV0V1 {
-            class_hash,
-            sender_address: self.sender_address,
-            nonce: self.common.nonce,
-            max_fee: self.common.max_fee,
-            version: self.common.version,
-            transaction_hash,
-            signature: self.common.signature.clone(),
-        }
     }
 
     pub fn generate_class_hash(&self) -> DevnetResult<Felt> {
