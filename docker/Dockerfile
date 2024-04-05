@@ -1,27 +1,30 @@
 FROM rust:1.74.0-slim-buster as builder
 
+ARG TARGET
+
 COPY . .
 
-RUN apt-get -y update && \
-    apt-get install pkg-config -y && \
-    apt-get install libssl-dev -y
+# TODO this won't work on main, but perhaps we can change the whole image building scheme
+# by building a binary outside, publishing it on github, and copying it into an image
+# Alternatively just return the libssl dependency - if that will be compatible with other targets
+RUN apt-get update && \
+    apt-get install make -y
 
-RUN cargo build --bin starknet-devnet --release
+RUN cargo build --bin starknet-devnet --release --target=${TARGET}
 
 FROM debian:buster-slim
+
+ARG TARGET
 
 # Use tini to avoid hanging process on Ctrl+C
 # Use ca-certificates to allow forking from URLs using https scheme
 RUN apt-get -y update && \
     apt-get install tini && \
-    apt-get install libssl-dev -y && \
     apt-get install ca-certificates -y && \
     apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Necessary for predeployed contracts
-COPY crates/starknet-devnet-core/accounts_artifacts/ /crates/starknet-devnet-core/accounts_artifacts/
-COPY --from=builder /target/release/starknet-devnet /usr/local/bin/starknet-devnet
+COPY --from=builder /target/${TARGET}/release/starknet-devnet /usr/local/bin/starknet-devnet
 
 ENTRYPOINT [ "tini", "--", "starknet-devnet", "--host", "0.0.0.0" ]
