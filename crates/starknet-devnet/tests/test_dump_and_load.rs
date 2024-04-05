@@ -419,7 +419,7 @@ mod dump_and_load_tests {
         devnet_dump.post_json("/set_time".into(), set_time_body).await.unwrap();
 
         // wait 1 second
-        thread::sleep(time::Duration::from_secs(1));
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
 
         devnet_dump.create_block().await.unwrap();
         devnet_dump.get_latest_block_with_tx_hashes().await.unwrap();

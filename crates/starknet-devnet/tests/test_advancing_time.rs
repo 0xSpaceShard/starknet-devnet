@@ -153,7 +153,7 @@ mod advancing_time_tests {
         assert_ge_with_buffer(current_timestamp, now + increase_time);
 
         // wait 1 second, mine block
-        thread::sleep(time::Duration::from_secs(1));
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
         devnet.create_block().await.unwrap();
 
         // check if timestamp is greater
@@ -171,7 +171,7 @@ mod advancing_time_tests {
         let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
 
         // wait 1 second
-        thread::sleep(time::Duration::from_secs(1));
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
 
         // check constructor set of timestamp
         let call_storage_timestamp = FunctionCall {
@@ -190,7 +190,7 @@ mod advancing_time_tests {
         assert_gt_with_buffer(storage_timestamp, now);
 
         // wait 1 second and mine block
-        thread::sleep(time::Duration::from_secs(1));
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
         devnet.create_block().await.unwrap();
 
         // check if current timestamp > storage timestamp and now
@@ -249,7 +249,7 @@ mod advancing_time_tests {
         assert_ge_with_buffer(set_time_block.timestamp, past_time);
 
         // wait 1 second
-        thread::sleep(time::Duration::from_secs(1));
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
 
         // create block and check if block_timestamp > past_time, check if inside buffer limit
         devnet.create_block().await.unwrap();
@@ -257,7 +257,7 @@ mod advancing_time_tests {
         assert_gt_with_buffer(empty_block.timestamp, past_time);
 
         // wait 1 second
-        thread::sleep(time::Duration::from_secs(1));
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
 
         // check if after mint timestamp > last block, check if inside buffer limit
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
@@ -279,7 +279,7 @@ mod advancing_time_tests {
         assert_ge_with_buffer(set_time_block.timestamp, future_time);
 
         // wait 1 second
-        thread::sleep(time::Duration::from_secs(1));
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
 
         // create block and check if block_timestamp > future_time, check if inside buffer limit
         devnet.create_block().await.unwrap();
@@ -287,7 +287,7 @@ mod advancing_time_tests {
         assert_gt_with_buffer(empty_block.timestamp, future_time);
 
         // wait 1 second
-        thread::sleep(time::Duration::from_secs(1));
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
 
         // check if after mint timestamp > last empty block, check if inside buffer limit
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
@@ -341,7 +341,7 @@ mod advancing_time_tests {
         );
 
         // wait 1 second
-        thread::sleep(time::Duration::from_secs(1));
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
 
         // create block and check again if block_timestamp > last block, check if
         // inside buffer limit
@@ -350,7 +350,7 @@ mod advancing_time_tests {
         assert_gt_with_buffer(empty_block.timestamp, second_increase_time_block.timestamp);
 
         // wait 1 second
-        thread::sleep(time::Duration::from_secs(1));
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
 
         // check if after mint timestamp > last block, check if inside buffer limit
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
@@ -465,7 +465,7 @@ mod advancing_time_tests {
         assert_ge_with_buffer(set_time_block.timestamp, now);
 
         // wait 1 second
-        thread::sleep(time::Duration::from_secs(1));
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
 
         // create a new empty block and check again if block timestamp > set_time_block, check if
         // inside buffer limit
@@ -486,7 +486,7 @@ mod advancing_time_tests {
         );
 
         // wait 1 second
-        thread::sleep(time::Duration::from_secs(1));
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
 
         // check if the last block timestamp is > previous block, check if inside buffer limit
         devnet.create_block().await.unwrap();
@@ -536,7 +536,7 @@ mod advancing_time_tests {
         assert!(resp_body_set_time["block_hash"].is_null());
 
         // wait 1 second
-        thread::sleep(time::Duration::from_secs(1));
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
 
         // create block and assert
         devnet.create_block().await.unwrap();

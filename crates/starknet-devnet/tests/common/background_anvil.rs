@@ -62,7 +62,7 @@ impl BackgroundAnvil {
             }
 
             retries += 1;
-            thread::sleep(time::Duration::from_millis(500));
+            tokio::time::sleep(time::Duration::from_millis(500)).await;
         }
 
         Err(TestError::AnvilNotStartable)
