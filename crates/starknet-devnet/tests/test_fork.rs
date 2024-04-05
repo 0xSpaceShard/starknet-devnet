@@ -517,14 +517,12 @@ mod fork_tests {
         // create another block on origin - shouldn't affect fork - asserted later
         origin_devnet.create_block().await.unwrap();
 
-        let block_after_fork = fork_devnet
-            .json_rpc_client
-            .get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest))
-            .await;
+        let block_after_fork =
+            fork_devnet.json_rpc_client.get_block_with_tx_hashes(BlockId::Number(2)).await;
 
         match block_after_fork {
             Ok(MaybePendingBlockWithTxHashes::Block(b)) => {
-                assert_eq!((b.block_hash, b.block_number), (forking_block_hash, 3))
+                assert_eq!((b.block_hash, b.block_number), (forking_block_hash, 2))
             }
             _ => panic!("Unexpected resp: {block_after_fork:?}"),
         };
@@ -537,7 +535,7 @@ mod fork_tests {
 
         match new_fork_block {
             Ok(MaybePendingBlockWithTxHashes::Block(b)) => {
-                assert_eq!((b.block_hash, b.block_number), (new_fork_block_hash, 3));
+                assert_eq!((b.block_hash, b.block_number), (new_fork_block_hash, 4));
             }
             _ => panic!("Unexpected resp: {new_fork_block:?}"),
         };
@@ -574,7 +572,7 @@ mod fork_tests {
             .call(contract_call.clone(), BlockId::Tag(BlockTag::Latest))
             .await
             .unwrap();
-        assert_eq!(first_fork_block_number, [FieldElement::THREE]); // origin block + declare + deploy
+        assert_eq!(first_fork_block_number, [FieldElement::from(4_u8)]); // origin block + declare + deploy
 
         fork_devnet.create_block().await.unwrap();
 
@@ -583,6 +581,6 @@ mod fork_tests {
             .call(contract_call, BlockId::Tag(BlockTag::Latest))
             .await
             .unwrap();
-        assert_eq!(second_fork_block_number, [FieldElement::from(4_u8)]); // origin block + declare + deploy
+        assert_eq!(second_fork_block_number, [FieldElement::from(5_u8)]); // origin block + declare + deploy
     }
 }
