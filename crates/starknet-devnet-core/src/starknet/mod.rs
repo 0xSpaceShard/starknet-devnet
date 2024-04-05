@@ -217,7 +217,10 @@ impl Starknet {
 
         this.restart_pending_block()?;
 
-        // Create empty genesis block
+        // Create empty genesis block, set start_time before if it's set
+        if let Some(start_time) = config.start_time {
+            this.set_next_block_timestamp(start_time);
+        };
         this.create_block()?;
 
         // Load starknet transactions
@@ -1268,8 +1271,8 @@ mod tests {
 
         // pending block has some transactions
         assert!(!starknet.pending_block().get_transactions().is_empty());
-        // blocks collection is empty
-        assert!(starknet.blocks.hash_to_block.is_empty());
+        // blocks collection should not be empty
+        assert!(!starknet.blocks.hash_to_block.is_empty());
 
         starknet.generate_new_block(StateDiff::default()).unwrap();
         // blocks collection should not be empty
@@ -1285,7 +1288,7 @@ mod tests {
 
     #[test]
     fn successful_emptying_of_pending_block() {
-        let config = StarknetConfig::default();
+        let config = StarknetConfig { start_time: Some(0), ..Default::default() };
         let mut starknet = Starknet::new(&config).unwrap();
 
         let initial_block_number = starknet.block_context.block_info().block_number;
@@ -1387,7 +1390,7 @@ mod tests {
         let block_hash = starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet.blocks.hash_to_state.remove(&block_hash);
 
-        match starknet.get_mut_state_at(&BlockId::Number(0)) {
+        match starknet.get_mut_state_at(&BlockId::Number(1)) {
             Err(Error::NoStateAtBlock { block_id: _ }) => (),
             _ => panic!("Should fail with NoStateAtBlock"),
         }
@@ -1498,10 +1501,6 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        starknet.get_latest_block().err().unwrap();
-
-        starknet.generate_new_block(StateDiff::default()).unwrap();
-
         // last added block number -> 0
         let added_block =
             starknet.blocks.get_by_hash(starknet.blocks.last_block_hash.unwrap()).unwrap();
@@ -1526,7 +1525,7 @@ mod tests {
 
         starknet.generate_new_block(StateDiff::default()).unwrap();
 
-        let num_no_transactions = starknet.get_block_txs_count(&BlockId::Number(0));
+        let num_no_transactions = starknet.get_block_txs_count(&BlockId::Number(1));
 
         assert_eq!(num_no_transactions.unwrap(), 0);
 
@@ -1537,7 +1536,7 @@ mod tests {
 
         starknet.generate_new_block(StateDiff::default()).unwrap();
 
-        let num_one_transaction = starknet.get_block_txs_count(&BlockId::Number(1));
+        let num_one_transaction = starknet.get_block_txs_count(&BlockId::Number(2));
 
         assert_eq!(num_one_transaction.unwrap(), 1);
     }
@@ -1611,7 +1610,7 @@ mod tests {
 
         let latest_block = starknet.get_latest_block();
 
-        assert_eq!(latest_block.unwrap().block_number(), BlockNumber(2));
+        assert_eq!(latest_block.unwrap().block_number(), BlockNumber(3));
     }
     #[test]
     fn check_timestamp_of_newly_generated_block() {

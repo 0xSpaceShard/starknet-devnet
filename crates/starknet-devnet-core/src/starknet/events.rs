@@ -347,14 +347,14 @@ mod tests {
 
         // returns all events from the first 2 blocks, skip 3, but limit the result to 1
         let (events, has_more) =
-            get_events(&starknet, None, Some(BlockId::Number(1)), None, None, 3, Some(1)).unwrap();
+            get_events(&starknet, None, Some(BlockId::Number(2)), None, None, 3, Some(1)).unwrap();
         assert_eq!(events.len(), 0);
         assert!(!has_more);
 
         // returns all events from the first 2 blocks, skip 1, but limit the result to 1, it should
         // return 1 event and should be more
         let (events, has_more) =
-            get_events(&starknet, None, Some(BlockId::Number(1)), None, None, 1, Some(1)).unwrap();
+            get_events(&starknet, None, Some(BlockId::Number(2)), None, None, 1, Some(1)).unwrap();
         assert_eq!(events.len(), 1);
         assert!(has_more);
     }
@@ -409,7 +409,7 @@ mod tests {
                 .unwrap();
         }
 
-        assert_eq!(starknet.blocks.get_blocks(None, None).unwrap().len(), 5);
+        assert_eq!(starknet.blocks.get_blocks(None, None).unwrap().len(), 6);
         for idx in 0..5 {
             starknet.transactions.get_by_hash(Felt::from(idx as u128 + 100)).unwrap();
         }
