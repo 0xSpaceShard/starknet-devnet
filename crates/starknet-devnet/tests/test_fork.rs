@@ -115,7 +115,7 @@ mod fork_tests {
             &fork_devnet.json_rpc_client.get_block_with_tx_hashes(BlockId::Hash(block_hash)).await;
 
         match resp {
-            Ok(MaybePendingBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 0),
+            Ok(MaybePendingBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 1),
             _ => panic!("Unexpected resp: {resp:?}"),
         };
     }
@@ -524,7 +524,7 @@ mod fork_tests {
 
         match block_after_fork {
             Ok(MaybePendingBlockWithTxHashes::Block(b)) => {
-                assert_eq!((b.block_hash, b.block_number), (forking_block_hash, 2))
+                assert_eq!((b.block_hash, b.block_number), (forking_block_hash, 3))
             }
             _ => panic!("Unexpected resp: {block_after_fork:?}"),
         };

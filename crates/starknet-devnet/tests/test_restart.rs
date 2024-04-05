@@ -46,7 +46,7 @@ mod test_restart {
             other => panic!("Unexpected result: {other:?}"),
         }
 
-        match devnet.json_rpc_client.get_block_with_txs(BlockId::Tag(BlockTag::Latest)).await {
+        match devnet.json_rpc_client.get_block_with_txs(BlockId::Number(1)).await {
             Err(ProviderError::StarknetError(StarknetError::BlockNotFound)) => (),
             other => panic!("Unexpected result: {other:?}"),
         }

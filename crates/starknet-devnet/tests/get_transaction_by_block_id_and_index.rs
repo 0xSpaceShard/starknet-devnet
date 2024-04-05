@@ -71,7 +71,7 @@ mod get_transaction_by_block_id_and_index_integration_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let result = devnet
             .json_rpc_client
-            .get_transaction_by_block_id_and_index(BlockId::Tag(BlockTag::Latest), 1)
+            .get_transaction_by_block_id_and_index(BlockId::Number(1), 1)
             .await
             .unwrap_err();
 

@@ -50,10 +50,8 @@ mod get_class_hash_at_integration_tests {
                 .expect("Could not start Devnet");
         let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
 
-        let result = devnet
-            .json_rpc_client
-            .get_class_hash_at(BlockId::Number(0), contract_address)
-            .await;
+        let result =
+            devnet.json_rpc_client.get_class_hash_at(BlockId::Number(0), contract_address).await;
         assert!(result.is_ok());
     }
 
