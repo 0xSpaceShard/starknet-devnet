@@ -2,7 +2,7 @@ pub mod common;
 
 mod dump_and_load_tests {
     use std::path::Path;
-    use std::{time};
+    use std::time;
 
     use hyper::Body;
     use serde_json::json;

@@ -42,9 +42,9 @@ use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::Broadc
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 use starknet_types::rpc::transactions::{
-    BlockTransactionTrace, BroadcastedTransaction, BroadcastedTransactionCommon,
-    DeclareTransaction, SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace,
-    TransactionWithHash, TransactionWithReceipt, Transactions,
+    BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedTransaction,
+    BroadcastedTransactionCommon, DeclareTransaction, SimulatedTransaction, SimulationFlag,
+    Transaction, TransactionTrace, TransactionWithHash, TransactionWithReceipt, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
@@ -666,11 +666,23 @@ impl Starknet {
         estimations::estimate_message_fee(self, block_id, message)
     }
 
+    pub fn add_declare_transaction(
+        &mut self,
+        declare_transaction: BroadcastedDeclareTransaction,
+    ) -> DevnetResult<(TransactionHash, ClassHash)> {
+        add_declare_transaction::add_declare_tranaction(self, declare_transaction)
+    }
+
     pub fn add_declare_transaction_v1(
         &mut self,
         declare_transaction: BroadcastedDeclareTransactionV1,
     ) -> DevnetResult<(TransactionHash, ClassHash)> {
-        add_declare_transaction::add_declare_transaction_v1(self, declare_transaction)
+        add_declare_transaction::add_declare_tranaction(
+            self,
+            starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V1(Box::new(
+                declare_transaction,
+            )),
+        )
     }
 
     pub fn add_declare_transaction_v2(

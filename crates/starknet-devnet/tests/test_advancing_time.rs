@@ -3,7 +3,7 @@ pub mod common;
 mod advancing_time_tests {
 
     use std::sync::Arc;
-    use std::{time};
+    use std::time;
 
     use hyper::Body;
     use serde_json::json;
