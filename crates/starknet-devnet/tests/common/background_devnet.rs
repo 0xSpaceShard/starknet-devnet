@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt::LowerHex;
 use std::net::TcpListener;
 use std::process::{Child, Command, Stdio};
-use std::{thread, time};
+use std::{time};
 
 use hyper::client::HttpConnector;
 use hyper::http::request;

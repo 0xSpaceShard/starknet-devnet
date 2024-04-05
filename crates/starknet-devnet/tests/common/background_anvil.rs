@@ -1,6 +1,6 @@
 use std::process::{Child, Command};
 use std::sync::Arc;
-use std::{thread, time};
+use std::{time};
 
 use ethers::prelude::*;
 use ethers::providers::{Http, Provider};
