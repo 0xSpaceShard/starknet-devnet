@@ -6,6 +6,7 @@ use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_ff::FieldElement;
 
 use super::broadcasted_declare_transaction_v1::PREFIX_DECLARE;
+use crate::constants::QUERY_VERSION_OFFSET;
 use crate::contract_address::ContractAddress;
 use crate::contract_class::{compute_sierra_class_hash, ContractClass};
 use crate::error::DevnetResult;
@@ -76,11 +77,19 @@ impl BroadcastedDeclareTransactionV2 {
         ])
         .into();
 
-        Ok(DeclareTransaction::new(
-            sn_api_declare,
-            starknet_api::transaction::TransactionHash(txn_hash.into()),
-            ContractClass::Cairo1(self.contract_class.clone()).try_into()?,
-        )?)
+        if FieldElement::from(self.common.version) > QUERY_VERSION_OFFSET {
+            Ok(DeclareTransaction::new_for_query(
+                sn_api_declare,
+                starknet_api::transaction::TransactionHash(txn_hash.into()),
+                ContractClass::Cairo1(self.contract_class.clone()).try_into()?,
+            )?)
+        } else {
+            Ok(DeclareTransaction::new(
+                sn_api_declare,
+                starknet_api::transaction::TransactionHash(txn_hash.into()),
+                ContractClass::Cairo1(self.contract_class.clone()).try_into()?,
+            )?)
+        }
     }
 }
 

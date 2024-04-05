@@ -7,6 +7,7 @@ use starknet_rs_ff::FieldElement;
 
 use super::broadcasted_declare_transaction_v1::PREFIX_DECLARE;
 use super::BroadcastedTransactionCommonV3;
+use crate::constants::QUERY_VERSION_OFFSET;
 use crate::contract_address::ContractAddress;
 use crate::contract_class::{compute_sierra_class_hash, ContractClass};
 use crate::error::DevnetResult;
@@ -72,12 +73,7 @@ impl BroadcastedDeclareTransactionV3 {
     ///
     /// # Arguments
     /// `chain_id` - the chain id to use for the transaction hash computation
-    /// `only_query` - whether the transaction is a query or not
-    pub fn create_blockifier_declare(
-        &self,
-        chain_id: Felt,
-        only_query: bool,
-    ) -> DevnetResult<DeclareTransaction> {
+    pub fn create_blockifier_declare(&self, chain_id: Felt) -> DevnetResult<DeclareTransaction> {
         let sierra_class_hash = compute_sierra_class_hash(&self.contract_class)?;
         let transaction_hash = self.calculate_transaction_hash(chain_id, sierra_class_hash)?;
 
@@ -106,7 +102,8 @@ impl BroadcastedDeclareTransactionV3 {
 
         let contract_class = ContractClass::Cairo1(self.contract_class.clone()).try_into()?;
         let transaction_hash = starknet_api::transaction::TransactionHash(transaction_hash.into());
-        if only_query {
+
+        if FieldElement::from(self.common.version) > QUERY_VERSION_OFFSET {
             Ok(DeclareTransaction::new_for_query(sn_api_declare, transaction_hash, contract_class)?)
         } else {
             Ok(DeclareTransaction::new(sn_api_declare, transaction_hash, contract_class)?)

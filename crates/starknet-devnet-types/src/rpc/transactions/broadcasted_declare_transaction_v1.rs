@@ -13,6 +13,7 @@ pub(crate) const PREFIX_DECLARE: FieldElement = FieldElement::from_mont([
     191557713328401194,
 ]);
 
+use crate::constants::QUERY_VERSION_OFFSET;
 use crate::contract_address::ContractAddress;
 use crate::contract_class::{Cairo0ContractClass, ContractClass};
 use crate::error::DevnetResult;
@@ -72,11 +73,19 @@ impl BroadcastedDeclareTransactionV1 {
         let class_info: ClassInfo =
             ContractClass::Cairo0(self.contract_class.clone()).try_into()?;
 
-        Ok(DeclareTransaction::new(
-            sn_api_declare,
-            starknet_api::transaction::TransactionHash(transaction_hash.into()),
-            class_info,
-        )?)
+        if FieldElement::from(self.common.version) > QUERY_VERSION_OFFSET {
+            Ok(DeclareTransaction::new_for_query(
+                sn_api_declare,
+                starknet_api::transaction::TransactionHash(transaction_hash.into()),
+                class_info,
+            )?)
+        } else {
+            Ok(DeclareTransaction::new(
+                sn_api_declare,
+                starknet_api::transaction::TransactionHash(transaction_hash.into()),
+                class_info,
+            )?)
+        }
     }
 
     pub fn generate_class_hash(&self) -> DevnetResult<Felt> {

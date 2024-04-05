@@ -439,17 +439,16 @@ impl BroadcastedTransaction {
     pub fn to_blockifier_account_transaction(
         &self,
         chain_id: Felt,
-        only_query: bool,
     ) -> DevnetResult<blockifier::transaction::account_transaction::AccountTransaction> {
         let blockifier_transaction = match self {
             BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(invoke_txn)) => {
                 let blockifier_invoke_txn =
-                    invoke_txn.create_blockifier_invoke_transaction(chain_id, only_query)?;
+                    invoke_txn.create_blockifier_invoke_transaction(chain_id)?;
                 AccountTransaction::Invoke(blockifier_invoke_txn)
             }
             BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V3(invoke_txn)) => {
                 let blockifier_invoke_txn =
-                    invoke_txn.create_blockifier_invoke_transaction(chain_id, only_query)?;
+                    invoke_txn.create_blockifier_invoke_transaction(chain_id)?;
                 AccountTransaction::Invoke(blockifier_invoke_txn)
             }
             BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(declare_v1)) => {
@@ -464,19 +463,17 @@ impl BroadcastedTransaction {
                 AccountTransaction::Declare(declare_v2.create_blockifier_declare(chain_id)?)
             }
             BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V3(declare_v3)) => {
-                AccountTransaction::Declare(
-                    declare_v3.create_blockifier_declare(chain_id, only_query)?,
-                )
+                AccountTransaction::Declare(declare_v3.create_blockifier_declare(chain_id)?)
             }
             BroadcastedTransaction::DeployAccount(BroadcastedDeployAccountTransaction::V1(
                 deploy_account_v1,
             )) => AccountTransaction::DeployAccount(
-                deploy_account_v1.create_blockifier_deploy_account(chain_id, only_query)?,
+                deploy_account_v1.create_blockifier_deploy_account(chain_id)?,
             ),
             BroadcastedTransaction::DeployAccount(BroadcastedDeployAccountTransaction::V3(
                 deploy_account_v3,
             )) => AccountTransaction::DeployAccount(
-                deploy_account_v3.create_blockifier_deploy_account(chain_id, only_query)?,
+                deploy_account_v3.create_blockifier_deploy_account(chain_id)?,
             ),
         };
 

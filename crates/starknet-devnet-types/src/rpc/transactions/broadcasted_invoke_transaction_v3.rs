@@ -8,6 +8,7 @@ use starknet_rs_ff::FieldElement;
 
 use super::broadcasted_invoke_transaction_v1::PREFIX_INVOKE;
 use super::BroadcastedTransactionCommonV3;
+use crate::constants::QUERY_VERSION_OFFSET;
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
 use crate::felt::{Calldata, Felt};
@@ -61,11 +62,9 @@ impl BroadcastedInvokeTransactionV3 {
     ///
     /// # Arguments
     /// `chain_id` - the chain id to use for the transaction hash computation
-    /// `only_query` - whether the transaction is a query or not
     pub fn create_blockifier_invoke_transaction(
         &self,
         chain_id: Felt,
-        only_query: bool,
     ) -> DevnetResult<InvokeTransaction> {
         let txn_hash = self.calculate_transaction_hash(chain_id)?;
 
@@ -89,6 +88,8 @@ impl BroadcastedInvokeTransactionV3 {
                 self.account_deployment_data.iter().map(|f| f.into()).collect(),
             ),
         };
+
+        let only_query = FieldElement::from(self.common.version) > QUERY_VERSION_OFFSET;
 
         Ok(InvokeTransaction {
             tx: starknet_api::transaction::InvokeTransaction::V3(sn_api_transaction),

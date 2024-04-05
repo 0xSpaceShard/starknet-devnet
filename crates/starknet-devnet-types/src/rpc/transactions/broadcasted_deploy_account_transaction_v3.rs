@@ -4,9 +4,11 @@ use serde::{Deserialize, Serialize};
 use starknet_api::core::calculate_contract_address;
 use starknet_api::transaction::DeployAccountTransactionV3;
 use starknet_rs_crypto::poseidon_hash_many;
+use starknet_rs_ff::FieldElement;
 
 use super::broadcasted_deploy_account_transaction_v1::PREFIX_DEPLOY_ACCOUNT;
 use super::BroadcastedTransactionCommonV3;
+use crate::constants::QUERY_VERSION_OFFSET;
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
 use crate::felt::{Calldata, ClassHash, ContractAddressSalt, Felt};
@@ -69,7 +71,6 @@ impl BroadcastedDeployAccountTransactionV3 {
     pub fn create_blockifier_deploy_account(
         &self,
         chain_id: Felt,
-        only_query: bool,
     ) -> DevnetResult<blockifier::transaction::transactions::DeployAccountTransaction> {
         let contract_address = Self::calculate_contract_address(
             &self.contract_address_salt,
@@ -100,6 +101,8 @@ impl BroadcastedDeployAccountTransactionV3 {
                     &self.constructor_calldata,
                 ))),
             });
+
+        let only_query = FieldElement::from(self.common.version) > QUERY_VERSION_OFFSET;
 
         Ok(blockifier::transaction::transactions::DeployAccountTransaction {
             tx: sn_api_deploy_account,

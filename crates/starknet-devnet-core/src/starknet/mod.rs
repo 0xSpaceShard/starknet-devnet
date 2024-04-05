@@ -1068,7 +1068,7 @@ impl Starknet {
         );
         for broadcasted_transaction in transactions.iter() {
             let blockifier_transaction =
-                broadcasted_transaction.to_blockifier_account_transaction(chain_id, true)?;
+                broadcasted_transaction.to_blockifier_account_transaction(chain_id)?;
             let tx_execution_info = blockifier_transaction.execute(
                 &mut transactional_state,
                 &block_context,

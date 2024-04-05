@@ -22,8 +22,8 @@ pub fn add_declare_transaction_v3(
         return Err(Error::MaxFeeZeroError { tx_type: "declare transaction v3".to_string() });
     }
 
-    let blockifier_declare_transaction = broadcasted_declare_transaction
-        .create_blockifier_declare(starknet.chain_id().to_felt(), false)?;
+    let blockifier_declare_transaction =
+        broadcasted_declare_transaction.create_blockifier_declare(starknet.chain_id().to_felt())?;
 
     let transaction_hash = blockifier_declare_transaction.tx_hash().0.into();
     let class_hash = blockifier_declare_transaction.class_hash().0.into();

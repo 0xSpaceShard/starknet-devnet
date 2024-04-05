@@ -6,6 +6,7 @@ use starknet_api::transaction::Fee;
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_ff::FieldElement;
 
+use crate::constants::QUERY_VERSION_OFFSET;
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
 use crate::felt::{
@@ -57,7 +58,6 @@ impl BroadcastedDeployAccountTransactionV1 {
     pub fn create_blockifier_deploy_account(
         &self,
         chain_id: Felt,
-        only_query: bool,
     ) -> DevnetResult<blockifier::transaction::transactions::DeployAccountTransaction> {
         let contract_address = calculate_contract_address(
             starknet_api::transaction::ContractAddressSalt(self.contract_address_salt.into()),
@@ -100,6 +100,8 @@ impl BroadcastedDeployAccountTransactionV1 {
                 self.constructor_calldata.iter().map(|felt| felt.into()).collect(),
             )),
         };
+
+        let only_query = FieldElement::from(self.common.version) > QUERY_VERSION_OFFSET;
 
         Ok(blockifier::transaction::transactions::DeployAccountTransaction {
             tx: starknet_api::transaction::DeployAccountTransaction::V1(sn_api_transaction),
@@ -164,7 +166,7 @@ mod tests {
         let chain_id = ChainId::goerli_legacy_id();
 
         let blockifier_deploy_account_transaction =
-            broadcasted_tx.create_blockifier_deploy_account(chain_id, false).unwrap();
+            broadcasted_tx.create_blockifier_deploy_account(chain_id).unwrap();
 
         assert_eq!(
             ContractAddress::new(feeder_gateway_transaction.contract_address).unwrap(),

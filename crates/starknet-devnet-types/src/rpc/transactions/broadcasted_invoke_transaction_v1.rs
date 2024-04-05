@@ -7,6 +7,7 @@ use starknet_api::transaction::Fee;
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_ff::FieldElement;
 
+use crate::constants::QUERY_VERSION_OFFSET;
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
 use crate::felt::{Calldata, Felt, Nonce, TransactionSignature, TransactionVersion};
@@ -53,7 +54,6 @@ impl BroadcastedInvokeTransactionV1 {
     pub fn create_blockifier_invoke_transaction(
         &self,
         chain_id: Felt,
-        only_query: bool,
     ) -> DevnetResult<InvokeTransaction> {
         let txn_hash: Felt = compute_hash_on_elements(&[
             PREFIX_INVOKE,
@@ -84,6 +84,8 @@ impl BroadcastedInvokeTransactionV1 {
                 self.calldata.iter().map(StarkFelt::from).collect::<Vec<StarkFelt>>(),
             )),
         };
+
+        let only_query = FieldElement::from(self.common.version) > QUERY_VERSION_OFFSET;
 
         Ok(InvokeTransaction {
             tx: starknet_api::transaction::InvokeTransaction::V1(sn_api_transaction),
@@ -145,7 +147,7 @@ mod tests {
 
         let chain_id = ChainId::goerli_legacy_id();
         let blockifier_transaction =
-            transaction.create_blockifier_invoke_transaction(chain_id, false).unwrap();
+            transaction.create_blockifier_invoke_transaction(chain_id).unwrap();
 
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,
