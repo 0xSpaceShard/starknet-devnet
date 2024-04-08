@@ -71,15 +71,11 @@ jobs:
           command: cargo test --jobs 3 --test '*' --no-fail-fast
 
   x86_64-unknown-linux-gnu: &linux-binary-build
-    docker:
-      - image: cimg/rust:1.74.0
+    machine:
+      image: ubuntu-2204:2024.01.2
     resource_class: large
-    environment:
-      CROSS_CONTAINER_IN_CONTAINER: true
     steps:
       - checkout
-      - setup_remote_docker:
-          version: docker23
       - run:
           name: Install cross
           command: |
@@ -89,8 +85,8 @@ jobs:
           name: Build
           command: cross build --release --target=${CIRCLE_JOB}
 
-  aarch64-unknown-linux-gnu:
-    <<: *linux-binary-build
+  # aarch64-unknown-linux-gnu:
+  #   <<: *linux-binary-build
 
   # x86_64-unknown-linux-musl
 
