@@ -74,6 +74,8 @@ jobs:
     docker:
       - image: cimg/rust:1.74.0
     resource_class: large
+    environment:
+      CROSS_CONTAINER_IN_CONTAINER: true
     steps:
       - checkout
       - setup_remote_docker:
