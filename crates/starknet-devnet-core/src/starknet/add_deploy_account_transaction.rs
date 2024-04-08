@@ -114,6 +114,8 @@ mod tests {
     use starknet_rs_core::types::{
         BlockId, BlockTag, TransactionExecutionStatus, TransactionFinalityStatus,
     };
+    use starknet_rs_ff::FieldElement;
+    use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::Cairo0Json;
     use starknet_types::felt::{ClassHash, Felt};
@@ -155,6 +157,29 @@ mod tests {
             contract_address_salt: 0.into(),
             constructor_calldata: vec![],
             class_hash,
+        }
+    }
+
+    #[test]
+    fn acount_deploy_transaction_v3_with_query_version_should_return_an_error() {
+        let mut deploy_account_transaction =
+            test_deploy_account_transaction_v3(Felt::default(), 0, 10);
+        deploy_account_transaction.common.version =
+            (FieldElement::from(3u8) + QUERY_VERSION_OFFSET).into();
+
+        let txn_err = Starknet::default()
+            .add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(
+                deploy_account_transaction,
+            ))
+            .unwrap_err();
+
+        println!("{:?}", txn_err);
+
+        match txn_err {
+            Error::UnsupportedAction { msg } => {
+                assert_eq!(msg, "Only query transactions are not supported")
+            }
+            _ => panic!("Wrong error type"),
         }
     }
 

@@ -46,7 +46,6 @@ pub fn add_declare_transaction(
                 v1.contract_class.clone().into(),
             )
         }
-
         BroadcastedDeclareTransaction::V2(ref v2) => {
             if v2.common.max_fee.0 == 0 {
                 return Err(Error::MaxFeeZeroError { tx_type: "declare transaction v2".into() });
@@ -132,6 +131,8 @@ mod tests {
     use starknet_rs_core::types::{
         BlockId, BlockTag, TransactionExecutionStatus, TransactionFinalityStatus,
     };
+    use starknet_rs_ff::FieldElement;
+    use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
@@ -169,6 +170,37 @@ mod tests {
             &contract_class.into(),
             Felt::from(1),
         )))
+    }
+
+    #[test]
+    fn declare_transaction_v3_with_query_version_should_return_an_error() {
+        let declare_transaction = BroadcastedDeclareTransactionV2::new(
+            &dummy_cairo_1_contract_class(),
+            dummy_felt(),
+            dummy_contract_address(),
+            Fee(10000),
+            &vec![],
+            dummy_felt(),
+            dummy_felt(),
+        );
+
+        let mut declare_transaction = convert_broadcasted_declare_v2_to_v3(declare_transaction);
+        declare_transaction.common.version =
+            (FieldElement::from(3u8) + QUERY_VERSION_OFFSET).into();
+
+        let result = Starknet::default().add_declare_transaction(
+            BroadcastedDeclareTransaction::V3(Box::new(declare_transaction)),
+        );
+
+        assert!(result.is_err());
+        match result.err().unwrap() {
+            err @ crate::error::Error::UnsupportedAction { .. } => {
+                assert_eq!(err.to_string(), "Only query transactions are not supported")
+            }
+            _ => {
+                panic!("Wrong error type")
+            }
+        }
     }
 
     #[test]

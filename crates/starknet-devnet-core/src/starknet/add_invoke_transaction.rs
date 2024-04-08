@@ -68,6 +68,8 @@ pub fn add_invoke_transaction(
 #[cfg(test)]
 mod tests {
 
+    use core::panic;
+
     use blockifier::state::state_api::StateReader;
     use nonzero_ext::nonzero;
     use starknet_api::core::Nonce;
@@ -75,6 +77,8 @@ mod tests {
     use starknet_api::transaction::{Fee, Tip};
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_rs_core::utils::get_selector_from_name;
+    use starknet_rs_ff::FieldElement;
+    use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::contract_storage_key::ContractStorageKey;
@@ -157,6 +161,35 @@ mod tests {
             calldata,
             account_deployment_data: vec![],
         })
+    }
+
+    #[test]
+    fn invoke_transaction_v3_with_only_query_version_should_return_an_error() {
+        let mut invoke_transaction = test_invoke_transaction_v3(
+            dummy_contract_address(),
+            dummy_contract_address(),
+            dummy_felt(),
+            Felt::from(10),
+            0,
+            1,
+        );
+        match invoke_transaction {
+            BroadcastedInvokeTransaction::V3(ref mut v3) => {
+                v3.common.version = (FieldElement::from(3u8) + QUERY_VERSION_OFFSET).into();
+            }
+            _ => {
+                panic!("Wrong transaction type");
+            }
+        }
+
+        let txn_err = Starknet::default().add_invoke_transaction(invoke_transaction).unwrap_err();
+        println!("{:?}", txn_err);
+        match txn_err {
+            crate::error::Error::UnsupportedAction { msg } => {
+                assert_eq!(msg, "Only query transactions are not supported".to_string());
+            }
+            _ => panic!("Wrong error type"),
+        }
     }
 
     #[test]
