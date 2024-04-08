@@ -17,6 +17,32 @@ aliases:
       - image-build-amd
       - image-build-arm
 
+  - &binary_build
+    steps:
+      - checkout
+      - run:
+          name: Install Rust
+          command: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain=1.74.0
+      - run:
+          name: Install Cross
+          command: |
+            curl -SsL https://github.com/cross-rs/cross/releases/download/v0.2.5/cross-x86_64-unknown-linux-gnu.tar.gz |
+            tar -xvz -C /home/circleci/bin/
+      - run:
+          name: Build
+          command: cross build --release --target=${CIRCLE_JOB}
+  
+  - &linux_binary_build
+    <<: *binary_build
+    machine:
+      image: ubuntu-2204:2024.01.2
+    resource_class: large
+
+  - &mac_binary_build
+    <<: *binary_build
+    macos:
+      xcode: 15.3.0
+
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
@@ -70,36 +96,23 @@ jobs:
           # fails if jobs not limited; read more in https://github.com/0xSpaceShard/starknet-devnet-rs/issues/378
           command: cargo test --jobs 3 --test '*' --no-fail-fast
 
-  x86_64-unknown-linux-gnu: &linux-binary-build
-    machine:
-      image: ubuntu-2204:2024.01.2
-    resource_class: large
-    steps:
-      - checkout
-      - run:
-          name: Install Rust
-          command: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-      - run:
-          name: Install Cross
-          command: |
-            curl -SsL https://github.com/cross-rs/cross/releases/download/v0.2.5/cross-x86_64-unknown-linux-gnu.tar.gz |
-            tar -xvz -C /home/circleci/bin/
-      - run:
-          name: Build
-          command: cross build --release --target=${CIRCLE_JOB}
+  x86_64-unknown-linux-gnu:
+    <<: *linux_binary_build
 
   aarch64-unknown-linux-gnu:
-    <<: *linux-binary-build
+    <<: *linux_binary_build
 
   x86_64-unknown-linux-musl:
-    <<: *linux-binary-build
+    <<: *linux_binary_build
 
   aarch64-unknown-linux-musl:
-    <<: *linux-binary-build
+    <<: *linux_binary_build
 
-  # aarch64-apple-darwin
+  aarch64-apple-darwin:
+    <<: *mac_binary_build
 
-  # x86_64-apple-darwin
+  x86_64-apple-darwin:
+    <<: *mac_binary_build
 
   image-build-amd:
     docker:
