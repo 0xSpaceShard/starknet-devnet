@@ -70,6 +70,34 @@ jobs:
           # fails if jobs not limited; read more in https://github.com/0xSpaceShard/starknet-devnet-rs/issues/378
           command: cargo test --jobs 3 --test '*' --no-fail-fast
 
+  x86_64-unknown-linux-gnu: &linux-binary-build
+    docker:
+      - image: cimg/rust:1.74.0
+    resource_class: large
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: docker23
+      - run:
+          name: Install cross
+          command: |
+            curl -SsL https://github.com/cross-rs/cross/releases/download/v0.2.5/cross-x86_64-unknown-linux-gnu.tar.gz |
+            tar -xvz -C /home/circleci/bin/
+      - run:
+          name: Build
+          command: cross build --release --target=${CIRCLE_JOB}
+
+  aarch64-unknown-linux-gnu:
+    <<: *linux-binary-build
+
+  # x86_64-unknown-linux-musl
+
+  # aarch64-unknown-linux-musl
+
+  # aarch64-apple-darwin
+
+  # x86_64-apple-darwin
+
   image-build-amd:
     docker:
       - image: cimg/base:2021.04
@@ -109,7 +137,6 @@ jobs:
       - run:
           name: Publish new versions to crates.io
           command: ./scripts/publish_cratesio_new_versions.sh
-
       - run:
           name: Create tags and push joint image manifests
           command: ./docker/tag_images_and_create_joint_image_manifests.sh
@@ -119,11 +146,19 @@ jobs:
 workflows:
   main:
     jobs:
-      - build-and-test:
-          cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
-      - image-build-amd:
-          <<: *on_main
-      - image-build-arm:
-          <<: *on_main
-      - publish:
-          <<: *on_main_after_test_and_build
+      # TODO disabled testing
+      # - build-and-test:
+      #     cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
+      - x86_64-unknown-linux-gnu
+        # TODO disabled to test binary building
+        # <<: *on_main
+
+      - aarch64-unknown-linux-gnu
+
+      # TODO disabled image building; re-enable as part of binary-building jobs
+      # - image-build-amd:
+      #     <<: *on_main
+      # - image-build-arm:
+      #     <<: *on_main
+      # - publish:
+      #     <<: *on_main_after_test_and_build
