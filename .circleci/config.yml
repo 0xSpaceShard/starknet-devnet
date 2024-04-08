@@ -88,12 +88,14 @@ jobs:
           name: Build
           command: cross build --release --target=${CIRCLE_JOB}
 
-  # aarch64-unknown-linux-gnu:
-  #   <<: *linux-binary-build
+  aarch64-unknown-linux-gnu:
+    <<: *linux-binary-build
 
-  # x86_64-unknown-linux-musl
+  x86_64-unknown-linux-musl:
+    <<: *linux-binary-build
 
-  # aarch64-unknown-linux-musl
+  aarch64-unknown-linux-musl:
+    <<: *linux-binary-build
 
   # aarch64-apple-darwin
 
@@ -154,7 +156,7 @@ workflows:
         # TODO disabled to test binary building
         # <<: *on_main
 
-      - aarch64-unknown-linux-gnu
+      # - aarch64-unknown-linux-gnu
 
       # TODO disabled image building; re-enable as part of binary-building jobs
       # - image-build-amd:
