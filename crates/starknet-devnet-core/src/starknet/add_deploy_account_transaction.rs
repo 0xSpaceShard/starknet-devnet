@@ -37,16 +37,17 @@ pub fn add_deploy_account_transaction(
             let address: ContractAddress =
                 blockifier_deploy_account_transaction.contract_address.into();
 
-            let transaction = Transaction::DeployAccount(DeployAccountTransaction::V1(Box::new(
-                DeployAccountTransactionV1::new(&v1, address),
-            )));
+            let deploy_account_transaction =
+                Transaction::DeployAccount(DeployAccountTransaction::V1(Box::new(
+                    DeployAccountTransactionV1::new(v1, address),
+                )));
 
             (
                 transaction_hash,
                 v1.class_hash,
                 address,
                 blockifier_deploy_account_transaction,
-                transaction,
+                deploy_account_transaction,
             )
         }
         BroadcastedDeployAccountTransaction::V3(ref v3) => {
@@ -63,16 +64,17 @@ pub fn add_deploy_account_transaction(
             let address: ContractAddress =
                 blockifier_deploy_account_transaction.contract_address.into();
 
-            let transaction = Transaction::DeployAccount(DeployAccountTransaction::V3(Box::new(
-                DeployAccountTransactionV3::new(&v3, address),
-            )));
+            let deploy_account_transaction =
+                Transaction::DeployAccount(DeployAccountTransaction::V3(Box::new(
+                    DeployAccountTransactionV3::new(v3, address),
+                )));
 
             (
                 transaction_hash,
                 v3.class_hash,
                 address,
                 blockifier_deploy_account_transaction,
-                transaction,
+                deploy_account_transaction,
             )
         }
     };

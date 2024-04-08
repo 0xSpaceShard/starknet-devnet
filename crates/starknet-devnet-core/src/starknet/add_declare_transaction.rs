@@ -32,7 +32,7 @@ pub fn add_declare_transaction(
                 v1.calculate_transaction_hash(&starknet.config.chain_id.to_felt(), &class_hash)?;
 
             let declare_transaction = Transaction::Declare(DeclareTransaction::V1(
-                DeclareTransactionV0V1::new(&v1, class_hash),
+                DeclareTransactionV0V1::new(v1, class_hash),
             ));
 
             let blockifier_declare_transaction =
@@ -60,7 +60,7 @@ pub fn add_declare_transaction(
             let class_hash = blockifier_declare_transaction.class_hash().0.into();
 
             let declare_transaction = Transaction::Declare(DeclareTransaction::V2(
-                DeclareTransactionV2::new(&v2, class_hash),
+                DeclareTransactionV2::new(v2, class_hash),
             ));
 
             (
@@ -85,7 +85,7 @@ pub fn add_declare_transaction(
             let class_hash = blockifier_declare_transaction.class_hash().0.into();
 
             let declare_transaction = Transaction::Declare(DeclareTransaction::V3(
-                DeclareTransactionV3::new(&v3, class_hash),
+                DeclareTransactionV3::new(v3, class_hash),
             ));
 
             (

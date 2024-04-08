@@ -34,13 +34,12 @@ use starknet_types::rpc::transaction_receipt::{
     DeployTransactionReceipt, L1HandlerTransactionReceipt, TransactionReceipt,
 };
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
-use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
-    BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransaction, SimulatedTransaction,
-    SimulationFlag, Transaction, TransactionTrace, TransactionWithHash, TransactionWithReceipt,
-    Transactions,
+    BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionCommon,
+    DeclareTransaction, SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace,
+    TransactionWithHash, TransactionWithReceipt, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
@@ -684,18 +683,11 @@ impl Starknet {
         )
     }
 
-    pub fn add_invoke_transaction_v1(
+    pub fn add_invoke_transaction(
         &mut self,
-        invoke_transaction: BroadcastedInvokeTransactionV1,
+        invoke_transaction: BroadcastedInvokeTransaction,
     ) -> DevnetResult<TransactionHash> {
-        add_invoke_transaction::add_invoke_transaction_v1(self, invoke_transaction)
-    }
-
-    pub fn add_invoke_transaction_v3(
-        &mut self,
-        invoke_transaction: BroadcastedInvokeTransactionV3,
-    ) -> DevnetResult<TransactionHash> {
-        add_invoke_transaction::add_invoke_transaction_v3(self, invoke_transaction)
+        add_invoke_transaction::add_invoke_transaction(self, invoke_transaction)
     }
 
     pub fn add_l1_handler_transaction(
@@ -757,7 +749,10 @@ impl Starknet {
         };
 
         // apply the invoke tx
-        add_invoke_transaction::add_invoke_transaction_v1(self, invoke_tx)
+        add_invoke_transaction::add_invoke_transaction(
+            self,
+            BroadcastedInvokeTransaction::V1(invoke_tx),
+        )
     }
 
     pub fn block_state_update(&self, block_id: &BlockId) -> DevnetResult<StateUpdate> {
