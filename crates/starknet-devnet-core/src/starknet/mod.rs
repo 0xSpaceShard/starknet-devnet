@@ -33,15 +33,14 @@ use starknet_types::rpc::state::ThinStateDiff;
 use starknet_types::rpc::transaction_receipt::{
     DeployTransactionReceipt, L1HandlerTransactionReceipt, TransactionReceipt,
 };
-use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
-use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 use starknet_types::rpc::transactions::{
-    BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedTransaction,
-    BroadcastedTransactionCommon, DeclareTransaction, SimulatedTransaction, SimulationFlag,
-    Transaction, TransactionTrace, TransactionWithHash, TransactionWithReceipt, Transactions,
+    BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
+    BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransaction, SimulatedTransaction,
+    SimulationFlag, Transaction, TransactionTrace, TransactionWithHash, TransactionWithReceipt,
+    Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
@@ -675,21 +674,11 @@ impl Starknet {
         self.config.chain_id
     }
 
-    pub fn add_deploy_account_transaction_v1(
+    pub fn add_deploy_account_transaction(
         &mut self,
-        deploy_account_transaction: BroadcastedDeployAccountTransactionV1,
+        deploy_account_transaction: BroadcastedDeployAccountTransaction,
     ) -> DevnetResult<(TransactionHash, ContractAddress)> {
-        add_deploy_account_transaction::add_deploy_account_transaction_v1(
-            self,
-            deploy_account_transaction,
-        )
-    }
-
-    pub fn add_deploy_account_transaction_v3(
-        &mut self,
-        deploy_account_transaction: BroadcastedDeployAccountTransactionV3,
-    ) -> DevnetResult<(TransactionHash, ContractAddress)> {
-        add_deploy_account_transaction::add_deploy_account_transaction_v3(
+        add_deploy_account_transaction::add_deploy_account_transaction(
             self,
             deploy_account_transaction,
         )

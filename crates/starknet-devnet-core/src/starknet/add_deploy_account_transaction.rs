@@ -1,8 +1,6 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::TransactionHash;
-use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
-use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
+use starknet_types::felt::{Felt, TransactionHash};
 use starknet_types::rpc::transactions::deploy_account_transaction_v1::DeployAccountTransactionV1;
 use starknet_types::rpc::transactions::deploy_account_transaction_v3::DeployAccountTransactionV3;
 use starknet_types::rpc::transactions::{
@@ -14,34 +12,76 @@ use super::Starknet;
 use crate::error::{DevnetResult, Error};
 use crate::state::CustomStateReader;
 
-pub fn add_deploy_account_transaction_v3(
+pub fn add_deploy_account_transaction(
     starknet: &mut Starknet,
-    broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransactionV3,
+    broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransaction,
 ) -> DevnetResult<(TransactionHash, ContractAddress)> {
-    if broadcasted_deploy_account_transaction.common.is_max_fee_zero_value() {
-        return Err(Error::MaxFeeZeroError { tx_type: "deploy account transaction v3".into() });
-    }
-
-    if !starknet.state.is_contract_declared(broadcasted_deploy_account_transaction.class_hash) {
-        return Err(Error::StateError(crate::error::StateError::NoneClassHash(
-            broadcasted_deploy_account_transaction.class_hash,
-        )));
-    }
-
-    let blockifier_deploy_account_transaction = broadcasted_deploy_account_transaction
-        .create_blockifier_deploy_account(starknet.chain_id().to_felt())?;
-
-    let transaction_hash = blockifier_deploy_account_transaction.tx_hash.0.into();
-    let address: ContractAddress = blockifier_deploy_account_transaction.contract_address.into();
-    let deploy_account_transaction_v3 =
-        DeployAccountTransactionV3::new(&broadcasted_deploy_account_transaction, address);
-
-    let transaction = TransactionWithHash::new(
+    let (
         transaction_hash,
-        Transaction::DeployAccount(DeployAccountTransaction::V3(Box::new(
-            deploy_account_transaction_v3,
-        ))),
-    );
+        class_hash,
+        address,
+        blockifier_deploy_account_transaction,
+        deploy_account_transaction,
+    ) = match broadcasted_deploy_account_transaction {
+        BroadcastedDeployAccountTransaction::V1(ref v1) => {
+            if v1.common.max_fee.0 == 0 {
+                return Err(Error::MaxFeeZeroError {
+                    tx_type: "deploy account transaction".into(),
+                });
+            }
+
+            let blockifier_deploy_account_transaction =
+                v1.create_blockifier_deploy_account(starknet.chain_id().to_felt())?;
+
+            let transaction_hash: Felt = blockifier_deploy_account_transaction.tx_hash.0.into();
+            let address: ContractAddress =
+                blockifier_deploy_account_transaction.contract_address.into();
+
+            let transaction = Transaction::DeployAccount(DeployAccountTransaction::V1(Box::new(
+                DeployAccountTransactionV1::new(&v1, address),
+            )));
+
+            (
+                transaction_hash,
+                v1.class_hash,
+                address,
+                blockifier_deploy_account_transaction,
+                transaction,
+            )
+        }
+        BroadcastedDeployAccountTransaction::V3(ref v3) => {
+            if v3.common.is_max_fee_zero_value() {
+                return Err(Error::MaxFeeZeroError {
+                    tx_type: "deploy account transaction v3".into(),
+                });
+            }
+
+            let blockifier_deploy_account_transaction =
+                v3.create_blockifier_deploy_account(starknet.chain_id().to_felt())?;
+
+            let transaction_hash: Felt = blockifier_deploy_account_transaction.tx_hash.0.into();
+            let address: ContractAddress =
+                blockifier_deploy_account_transaction.contract_address.into();
+
+            let transaction = Transaction::DeployAccount(DeployAccountTransaction::V3(Box::new(
+                DeployAccountTransactionV3::new(&v3, address),
+            )));
+
+            (
+                transaction_hash,
+                v3.class_hash,
+                address,
+                blockifier_deploy_account_transaction,
+                transaction,
+            )
+        }
+    };
+
+    if !starknet.state.is_contract_declared(class_hash) {
+        return Err(Error::StateError(crate::error::StateError::NoneClassHash(class_hash)));
+    }
+
+    let transaction = TransactionWithHash::new(transaction_hash, deploy_account_transaction);
 
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(
@@ -51,55 +91,11 @@ pub fn add_deploy_account_transaction_v3(
 
     starknet.handle_transaction_result(transaction, None, blockifier_execution_result)?;
     starknet.handle_dump_event(DumpEvent::AddDeployAccountTransaction(
-        BroadcastedDeployAccountTransaction::V3(broadcasted_deploy_account_transaction),
+        broadcasted_deploy_account_transaction,
     ))?;
 
     Ok((transaction_hash, address))
 }
-
-pub fn add_deploy_account_transaction_v1(
-    starknet: &mut Starknet,
-    broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransactionV1,
-) -> DevnetResult<(TransactionHash, ContractAddress)> {
-    if broadcasted_deploy_account_transaction.common.max_fee.0 == 0 {
-        return Err(Error::MaxFeeZeroError { tx_type: "deploy account transaction".into() });
-    }
-
-    if !starknet.state.is_contract_declared(broadcasted_deploy_account_transaction.class_hash) {
-        return Err(Error::StateError(crate::error::StateError::NoneClassHash(
-            broadcasted_deploy_account_transaction.class_hash,
-        )));
-    }
-
-    let blockifier_deploy_account_transaction = broadcasted_deploy_account_transaction
-        .create_blockifier_deploy_account(starknet.chain_id().to_felt())?;
-
-    let transaction_hash = blockifier_deploy_account_transaction.tx_hash.0.into();
-    let address: ContractAddress = blockifier_deploy_account_transaction.contract_address.into();
-    let deploy_account_transaction_v1 =
-        DeployAccountTransactionV1::new(&broadcasted_deploy_account_transaction, address);
-
-    let transaction = TransactionWithHash::new(
-        transaction_hash,
-        Transaction::DeployAccount(DeployAccountTransaction::V1(Box::new(
-            deploy_account_transaction_v1,
-        ))),
-    );
-
-    let blockifier_execution_result =
-        blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(
-            blockifier_deploy_account_transaction,
-        )
-        .execute(&mut starknet.state.state, &starknet.block_context, true, true);
-
-    starknet.handle_transaction_result(transaction, None, blockifier_execution_result)?;
-    starknet.handle_dump_event(DumpEvent::AddDeployAccountTransaction(
-        BroadcastedDeployAccountTransaction::V1(broadcasted_deploy_account_transaction),
-    ))?;
-
-    Ok((transaction_hash, address))
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -116,7 +112,7 @@ mod tests {
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
     use starknet_types::rpc::transactions::{
-        BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
+        BroadcastedDeployAccountTransaction, BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
     };
     use starknet_types::traits::HashProducer;
 
@@ -166,8 +162,9 @@ mod tests {
             0.into(),
         );
 
-        let result =
-            Starknet::default().add_deploy_account_transaction_v1(deploy_account_transaction);
+        let result = Starknet::default().add_deploy_account_transaction(
+            BroadcastedDeployAccountTransaction::V1(deploy_account_transaction),
+        );
 
         assert!(result.is_err());
         match result.err().unwrap() {
@@ -184,8 +181,11 @@ mod tests {
         let deploy_account_transaction =
             test_deploy_account_transaction_v3(account_class_hash, 0, 0);
 
-        let txn_err =
-            starknet.add_deploy_account_transaction_v3(deploy_account_transaction).unwrap_err();
+        let txn_err = starknet
+            .add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(
+                deploy_account_transaction,
+            ))
+            .unwrap_err();
         match txn_err {
             err @ crate::error::Error::MaxFeeZeroError { .. } => {
                 assert_eq!(err.to_string(), "deploy account transaction v3: max_fee cannot be zero")
@@ -209,7 +209,10 @@ mod tests {
             Felt::from(1),
         );
 
-        match starknet.add_deploy_account_transaction_v1(transaction).unwrap_err() {
+        match starknet
+            .add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V1(transaction))
+            .unwrap_err()
+        {
             Error::TransactionValidationError(
                 crate::error::TransactionValidationError::InsufficientAccountBalance,
             ) => {}
@@ -224,7 +227,10 @@ mod tests {
         let (mut starknet, account_class_hash, _, _) = setup();
         let transaction = test_deploy_account_transaction_v3(account_class_hash, 0, 4000);
 
-        match starknet.add_deploy_account_transaction_v3(transaction).unwrap_err() {
+        match starknet
+            .add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(transaction))
+            .unwrap_err()
+        {
             Error::TransactionValidationError(
                 crate::error::TransactionValidationError::InsufficientAccountBalance,
             ) => {}
@@ -273,7 +279,10 @@ mod tests {
             )
             .unwrap();
 
-        match starknet.add_deploy_account_transaction_v1(transaction).unwrap_err() {
+        match starknet
+            .add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V1(transaction))
+            .unwrap_err()
+        {
             Error::TransactionValidationError(
                 crate::error::TransactionValidationError::InsufficientMaxFee,
             ) => {}
@@ -312,7 +321,9 @@ mod tests {
             )
             .unwrap();
 
-        let (txn_hash, _) = starknet.add_deploy_account_transaction_v3(transaction).unwrap();
+        let (txn_hash, _) = starknet
+            .add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(transaction))
+            .unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
         assert_eq!(txn.finality_status, TransactionFinalityStatus::AcceptedOnL2);
@@ -366,7 +377,9 @@ mod tests {
             )
             .unwrap();
 
-        let (txn_hash, _) = starknet.add_deploy_account_transaction_v1(transaction).unwrap();
+        let (txn_hash, _) = starknet
+            .add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V1(transaction))
+            .unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
         assert_eq!(txn.finality_status, TransactionFinalityStatus::AcceptedOnL2);

@@ -30,15 +30,8 @@ impl Starknet {
                 DumpEvent::AddDeclareTransaction(tx) => {
                     self.add_declare_transaction(tx)?;
                 }
-                DumpEvent::AddDeployAccountTransaction(
-                    BroadcastedDeployAccountTransaction::V1(tx),
-                ) => {
-                    self.add_deploy_account_transaction_v1(tx)?;
-                }
-                DumpEvent::AddDeployAccountTransaction(
-                    BroadcastedDeployAccountTransaction::V3(tx),
-                ) => {
-                    self.add_deploy_account_transaction_v3(tx)?;
+                DumpEvent::AddDeployAccountTransaction(tx) => {
+                    self.add_deploy_account_transaction(tx)?;
                 }
                 DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V1(tx)) => {
                     self.add_invoke_transaction_v1(tx)?;
