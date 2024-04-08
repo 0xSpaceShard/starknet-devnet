@@ -77,7 +77,10 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install cross
+          name: Install Rust
+          command: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+      - run:
+          name: Install Cross
           command: |
             curl -SsL https://github.com/cross-rs/cross/releases/download/v0.2.5/cross-x86_64-unknown-linux-gnu.tar.gz |
             tar -xvz -C /home/circleci/bin/
