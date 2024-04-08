@@ -33,9 +33,6 @@ use starknet_types::rpc::state::ThinStateDiff;
 use starknet_types::rpc::transaction_receipt::{
     DeployTransactionReceipt, L1HandlerTransactionReceipt, TransactionReceipt,
 };
-use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
-use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
@@ -670,33 +667,7 @@ impl Starknet {
         &mut self,
         declare_transaction: BroadcastedDeclareTransaction,
     ) -> DevnetResult<(TransactionHash, ClassHash)> {
-        add_declare_transaction::add_declare_tranaction(self, declare_transaction)
-    }
-
-    pub fn add_declare_transaction_v1(
-        &mut self,
-        declare_transaction: BroadcastedDeclareTransactionV1,
-    ) -> DevnetResult<(TransactionHash, ClassHash)> {
-        add_declare_transaction::add_declare_tranaction(
-            self,
-            starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V1(Box::new(
-                declare_transaction,
-            )),
-        )
-    }
-
-    pub fn add_declare_transaction_v2(
-        &mut self,
-        declare_transaction: BroadcastedDeclareTransactionV2,
-    ) -> DevnetResult<(TransactionHash, ClassHash)> {
-        add_declare_transaction::add_declare_transaction_v2(self, declare_transaction)
-    }
-
-    pub fn add_declare_transaction_v3(
-        &mut self,
-        declare_transaction: BroadcastedDeclareTransactionV3,
-    ) -> DevnetResult<(TransactionHash, ClassHash)> {
-        add_declare_transaction::add_declare_transaction_v3(self, declare_transaction)
+        add_declare_transaction::add_declare_transaction(self, declare_transaction)
     }
 
     /// returning the chain id as object

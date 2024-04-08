@@ -15,27 +15,8 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedDeclareTransaction,
     ) -> StrictRpcResult {
-        let (transaction_hash, class_hash) = match request {
-            BroadcastedDeclareTransaction::V1(broadcasted_declare_txn) => self
-                .api
-                .starknet
-                .write()
-                .await
-                .add_declare_transaction_v1(*broadcasted_declare_txn)?,
-            BroadcastedDeclareTransaction::V2(broadcasted_declare_txn) => self
-                .api
-                .starknet
-                .write()
-                .await
-                .add_declare_transaction_v2(*broadcasted_declare_txn)?,
-
-            BroadcastedDeclareTransaction::V3(broadcasted_declare_txn) => self
-                .api
-                .starknet
-                .write()
-                .await
-                .add_declare_transaction_v3(*broadcasted_declare_txn)?,
-        };
+        let (transaction_hash, class_hash) =
+            self.api.starknet.write().await.add_declare_transaction(request)?;
 
         Ok(StarknetResponse::AddDeclareTransaction(DeclareTransactionOutput {
             transaction_hash,

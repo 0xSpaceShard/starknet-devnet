@@ -27,14 +27,8 @@ impl Starknet {
     pub fn re_execute(&mut self, events: Vec<DumpEvent>) -> DevnetResult<()> {
         for event in events.into_iter() {
             match event {
-                DumpEvent::AddDeclareTransaction(BroadcastedDeclareTransaction::V1(tx)) => {
-                    self.add_declare_transaction_v1(*tx)?;
-                }
-                DumpEvent::AddDeclareTransaction(BroadcastedDeclareTransaction::V2(tx)) => {
-                    self.add_declare_transaction_v2(*tx)?;
-                }
-                DumpEvent::AddDeclareTransaction(BroadcastedDeclareTransaction::V3(tx)) => {
-                    self.add_declare_transaction_v3(*tx)?;
+                DumpEvent::AddDeclareTransaction(tx) => {
+                    self.add_declare_transaction(tx)?;
                 }
                 DumpEvent::AddDeployAccountTransaction(
                     BroadcastedDeployAccountTransaction::V1(tx),

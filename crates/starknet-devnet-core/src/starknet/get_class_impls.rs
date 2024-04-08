@@ -116,7 +116,13 @@ mod tests {
         let declare_txn = dummy_broadcasted_declare_transaction_v2(&account.account_address);
 
         let expected: ContractClass = declare_txn.contract_class.clone().into();
-        let (_, class_hash) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
+        let (_, class_hash) = starknet
+            .add_declare_transaction(
+                starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V2(Box::new(
+                    declare_txn,
+                )),
+            )
+            .unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let contract_class =
