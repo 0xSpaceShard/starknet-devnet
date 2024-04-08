@@ -98,6 +98,12 @@ pub fn add_declare_transaction(
         }
     };
 
+    if blockifier_declare_transaction.only_query() {
+        return Err(Error::UnsupportedAction {
+            msg: "Only query transactions are not supported".to_string(),
+        });
+    }
+
     let transaction = TransactionWithHash::new(transaction_hash, declare_transaction);
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::Declare(

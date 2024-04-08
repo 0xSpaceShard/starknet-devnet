@@ -79,6 +79,12 @@ pub fn add_deploy_account_transaction(
         }
     };
 
+    if blockifier_deploy_account_transaction.only_query {
+        return Err(Error::UnsupportedAction {
+            msg: "Only query transactions are not supported".to_string(),
+        });
+    }
+
     if !starknet.state.is_contract_declared(class_hash) {
         return Err(Error::StateError(crate::error::StateError::NoneClassHash(class_hash)));
     }

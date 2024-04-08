@@ -46,6 +46,12 @@ pub fn add_invoke_transaction(
             }
         };
 
+    if blockifier_invoke_transaction.only_query {
+        return Err(Error::UnsupportedAction {
+            msg: "Only query transactions are not supported".to_string(),
+        });
+    }
+
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::Invoke(
             blockifier_invoke_transaction,
