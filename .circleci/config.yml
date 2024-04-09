@@ -96,9 +96,9 @@ jobs:
         type: string
       platform:
         type: executor
+      target_triplet:
+        type: string
     executor: << parameters.platform >>
-    environment:
-      TARGET_TRIPLET: ${CIRCLE_JOB}
 
     steps:
       - checkout
@@ -107,7 +107,7 @@ jobs:
           # CIRCLE_JOB contains job name, which we define to be the target triplet
           command: |
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain=1.74.0
-            rustup target add ${CIRCLE_JOB}
+      - run: rustup target add << parameters.target_triplet >>
       - run:
           name: Install Cross
           command: |
@@ -115,7 +115,7 @@ jobs:
               tar -xvz -C /tmp
       - run:
           name: Build
-          command: /tmp/cross build --release --target=${CIRCLE_JOB}
+          command: /tmp/cross build --release --target=<< parameters.target_triplet >>
 
   image-build-amd:
     docker:
@@ -174,6 +174,7 @@ workflows:
             parameters:
               arch: [x86_64, aarch64]
               platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
+          target_triplet: << matrix.arch >>-<< matrix.platform >>
 
       # TODO disabled image building; re-enable as part of binary-building jobs
       # - image-build-amd:
