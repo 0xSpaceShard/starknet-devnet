@@ -81,7 +81,7 @@ pub fn add_deploy_account_transaction(
 
     if blockifier_deploy_account_transaction.only_query {
         return Err(Error::UnsupportedAction {
-            msg: "Only query transactions are not supported".to_string(),
+            msg: "query-only transactions are not supported".to_string(),
         });
     }
 
@@ -175,7 +175,7 @@ mod tests {
 
         match txn_err {
             Error::UnsupportedAction { msg } => {
-                assert_eq!(msg, "Only query transactions are not supported")
+                assert_eq!(msg, "query-only transactions are not supported")
             }
             _ => panic!("Wrong error type"),
         }

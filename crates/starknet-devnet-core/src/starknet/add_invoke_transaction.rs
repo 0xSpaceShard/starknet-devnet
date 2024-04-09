@@ -48,7 +48,7 @@ pub fn add_invoke_transaction(
 
     if blockifier_invoke_transaction.only_query {
         return Err(Error::UnsupportedAction {
-            msg: "Only query transactions are not supported".to_string(),
+            msg: "query-only transactions are not supported".to_string(),
         });
     }
 
@@ -185,7 +185,7 @@ mod tests {
         let txn_err = Starknet::default().add_invoke_transaction(invoke_transaction).unwrap_err();
         match txn_err {
             crate::error::Error::UnsupportedAction { msg } => {
-                assert_eq!(msg, "Only query transactions are not supported".to_string());
+                assert_eq!(msg, "query-only transactions are not supported".to_string());
             }
             _ => panic!("Wrong error type"),
         }

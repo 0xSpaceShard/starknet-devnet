@@ -99,7 +99,7 @@ pub fn add_declare_transaction(
 
     if blockifier_declare_transaction.only_query() {
         return Err(Error::UnsupportedAction {
-            msg: "Only query transactions are not supported".to_string(),
+            msg: "query-only transactions are not supported".to_string(),
         });
     }
 
@@ -195,7 +195,7 @@ mod tests {
         assert!(result.is_err());
         match result.err().unwrap() {
             err @ crate::error::Error::UnsupportedAction { .. } => {
-                assert_eq!(err.to_string(), "Only query transactions are not supported")
+                assert_eq!(err.to_string(), "query-only transactions are not supported")
             }
             _ => {
                 panic!("Wrong error type")
