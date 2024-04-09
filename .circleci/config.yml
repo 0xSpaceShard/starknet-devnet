@@ -14,8 +14,7 @@ aliases:
     <<: *on_main
     requires:
       - build-and-test
-      - image-build-amd
-      - image-build-arm
+      - build-binaries
 
   - &linux_build
     machine:
@@ -98,7 +97,19 @@ jobs:
         type: executor
       target_triplet:
         type: string
+
     executor: << parameters.platform >>
+
+    environment:
+      BIN_PATH: target/<< parameters.target_triplet >>/release/starknet-devnet
+      ARCHIVE_NAME: starknet-devnet-<< parameters.target_triplet >>.tar.gz
+      ARCHIVE_PATH: /tmp/${ARCHIVE_NAME}
+
+      # for Docker verification in image_build.sh
+      REMOTE: true
+
+      # for Docker image naming
+      ARCH_SUFFIX: << parameters.arch >>
 
     steps:
       - checkout
@@ -116,34 +127,23 @@ jobs:
       - run:
           name: Build
           command: /tmp/cross build --release --target=<< parameters.target_triplet >>
-
-  image-build-amd:
-    docker:
-      - image: cimg/base:2021.04
-    resource_class: large
-    steps:
-      - checkout
-      - setup_remote_docker:
-          version: docker23
       - run:
-          name: Build amd images
-          command: ./docker/image_build.sh
-          environment:
-            ARCH_SUFFIX: "-amd"
-            REMOTE: true
-
-  image-build-arm:
-    machine:
-      image: ubuntu-2004:202111-02
-    resource_class: arm.large
-    steps:
-      - checkout
-      - run:
-          name: Build arm images
-          command: ./docker/image_build.sh
-          environment:
-            ARCH_SUFFIX: -arm
-            REMOTE: ""
+          name: Archive and compress artifact
+          command: tar -czvf ${BIN_PATH} ${ARCHIVE_PATH}
+      - store_artifacts:
+          path: ${ARCHIVE_PATH}
+          destination: ${ARCHIVE_NAME}
+      - when:
+          condition:
+            or:
+              - equal:
+                  [<< parameters.target_triplet >>, x86_64-unknown-linux-gnu]
+              - equal:
+                  [<< parameters.target_triplet >>, aarch64-unknown-linux-gnu]
+          steps:
+            - run:
+                name: Build Docker image
+                command: ./docker/image_build.sh
 
   publish:
     docker:
@@ -165,9 +165,8 @@ jobs:
 workflows:
   main:
     jobs:
-      # TODO disabled testing
-      # - build-and-test:
-      #     cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
+      - build-and-test:
+          cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
 
       - build-binaries:
           matrix:
@@ -175,11 +174,8 @@ workflows:
               arch: [x86_64, aarch64]
               platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
           target_triplet: << matrix.arch >>-<< matrix.platform >>
+          # TODO uncomment before merge into main
+          # <<: *on_main
 
-      # TODO disabled image building; re-enable as part of binary-building jobs
-      # - image-build-amd:
-      #     <<: *on_main
-      # - image-build-arm:
-      #     <<: *on_main
-      # - publish:
-      #     <<: *on_main_after_test_and_build
+      - publish:
+          <<: *on_main_after_test_and_build

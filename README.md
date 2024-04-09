@@ -486,8 +486,8 @@ Due to internal needs, images with arch suffix are built and pushed to Docker Hu
 
 This is what happens under the hood on `main`:
 
-- build `shardlabs/starknet-devnet-rs-<COMMIT_SHA1>-amd`
-- build `shardlabs/starknet-devnet-rs-<COMMIT_SHA1>-arm`
+- build `shardlabs/starknet-devnet-rs-<COMMIT_SHA1>-x86_64`
+- build `shardlabs/starknet-devnet-rs-<COMMIT_SHA1>-aarch64`
 - create and push joint docker manifest called `shardlabs/starknet-devnet-rs-<COMMIT_SHA1>`
   - same for `latest`
 
