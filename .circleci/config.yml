@@ -30,7 +30,9 @@ aliases:
               tar -xvz -C /tmp
       - run:
           name: Build
-          command: /tmp/cross build --release --target=${CIRCLE_JOB}
+          command: |
+            rustup target add ${CIRCLE_JOB}
+            /tmp/cross build --release --target=${CIRCLE_JOB}
 
   - &linux_binary_build
     <<: *binary_build
@@ -114,7 +116,6 @@ jobs:
 
   aarch64-apple-darwin:
     <<: *mac_binary_build
-    resource_class: macos.m1.medium.gen1
 
   x86_64-apple-darwin:
     <<: *mac_binary_build
