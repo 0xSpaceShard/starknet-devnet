@@ -169,11 +169,11 @@ workflows:
           cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
 
       - build-binaries:
-          <<: *on_main
+          # <<: *on_main TODO
           matrix:
             parameters:
               arch: [x86_64, aarch64]
-              platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
+              platform: [unknown-linux-gnu] # TODO, unknown-linux-musl, apple-darwin]
           target_triplet: << matrix.arch >>-<< matrix.platform >>
 
       - publish:
