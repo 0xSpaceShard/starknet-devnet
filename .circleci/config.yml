@@ -23,25 +23,31 @@ aliases:
       - run:
           name: Install Rust
           command: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain=1.74.0
+      - run: echo "$PATH"
       - run:
           name: Install Cross
           command: |
-            curl -SsL https://github.com/cross-rs/cross/releases/download/v0.2.5/cross-x86_64-unknown-linux-gnu.tar.gz |
-            tar -xvz -C /home/circleci/bin/
+            mkdir -p /home/tmp/
+            curl -SsL https://github.com/cross-rs/cross/releases/download/v0.2.5/${COMPILER_ARCHIVE} |
+              tar -xvz -C /home/tmp
       - run:
           name: Build
-          command: cross build --release --target=${CIRCLE_JOB}
+          command: /home/tmp/cross build --release --target=${CIRCLE_JOB}
 
   - &linux_binary_build
     <<: *binary_build
     machine:
       image: ubuntu-2204:2024.01.2
     resource_class: large
+    environment:
+      COMPILER_ARCHIVE: cross-x86_64-unknown-linux-gnu.tar.gz
 
   - &mac_binary_build
     <<: *binary_build
     macos:
       xcode: 15.3.0
+    environment:
+      COMPILER_ARCHIVE: cross-x86_64-apple-darwin.tar.gz
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
@@ -166,13 +172,13 @@ workflows:
       # - build-and-test:
       #     cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
 
-      - x86_64-unknown-linux-gnu
+      # - x86_64-unknown-linux-gnu
 
-      - aarch64-unknown-linux-gnu
+      # - aarch64-unknown-linux-gnu
 
-      - x86_64-unknown-linux-musl
+      # - x86_64-unknown-linux-musl
 
-      - aarch64-unknown-linux-musl
+      # - aarch64-unknown-linux-musl
 
       - aarch64-apple-darwin
 
