@@ -166,7 +166,7 @@ mod tests {
         assert!(result.is_err());
         match result.err().unwrap() {
             err @ crate::error::Error::MaxFeeZeroError { .. } => {
-                assert_eq!(err.to_string(), "deploy account transaction: max_fee cannot be zero")
+                assert_eq!(err.to_string(), "Deploy account transaction V1: max_fee cannot be zero")
             }
             _ => panic!("Wrong error type"),
         }
@@ -185,7 +185,7 @@ mod tests {
             .unwrap_err();
         match txn_err {
             err @ crate::error::Error::MaxFeeZeroError { .. } => {
-                assert_eq!(err.to_string(), "deploy account transaction v3: max_fee cannot be zero")
+                assert_eq!(err.to_string(), "Deploy account transaction V3: max_fee cannot be zero")
             }
             _ => panic!("Wrong error type"),
         }
