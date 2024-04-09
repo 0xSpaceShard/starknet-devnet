@@ -173,8 +173,6 @@ mod tests {
             ))
             .unwrap_err();
 
-        println!("{:?}", txn_err);
-
         match txn_err {
             Error::UnsupportedAction { msg } => {
                 assert_eq!(msg, "Only query transactions are not supported")

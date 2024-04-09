@@ -183,7 +183,6 @@ mod tests {
         }
 
         let txn_err = Starknet::default().add_invoke_transaction(invoke_transaction).unwrap_err();
-        println!("{:?}", txn_err);
         match txn_err {
             crate::error::Error::UnsupportedAction { msg } => {
                 assert_eq!(msg, "Only query transactions are not supported".to_string());
