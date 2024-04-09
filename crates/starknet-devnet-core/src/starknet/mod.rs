@@ -40,10 +40,11 @@ use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
+use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, BroadcastedTransaction, BroadcastedTransactionCommon,
-    DeclareTransaction, L1HandlerTransaction, SimulatedTransaction, SimulationFlag, Transaction,
-    TransactionTrace, TransactionWithReceipt, Transactions,
+    DeclareTransaction, SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace,
+    TransactionWithHash, TransactionWithReceipt, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
@@ -327,7 +328,7 @@ impl Starknet {
     /// * `transaction_result` - Result with transaction_execution_info
     pub(crate) fn handle_transaction_result(
         &mut self,
-        transaction: Transaction,
+        transaction: TransactionWithHash,
         contract_class: Option<ContractClass>,
         transaction_result: Result<
             TransactionExecutionInfo,
@@ -354,22 +355,22 @@ impl Starknet {
                 // If transaction is not reverted
                 // then save the contract class in the state cache for Declare transactions
                 if !tx_info.is_reverted() {
-                    match &transaction {
-                        Transaction::Declare(DeclareTransaction::Version1(declare_v1)) => {
+                    match &transaction.transaction {
+                        Transaction::Declare(DeclareTransaction::V1(declare_v1)) => {
                             declare_contract_class(
                                 &declare_v1.class_hash,
                                 contract_class,
                                 &mut self.state,
                             )?
                         }
-                        Transaction::Declare(DeclareTransaction::Version2(declare_v2)) => {
+                        Transaction::Declare(DeclareTransaction::V2(declare_v2)) => {
                             declare_contract_class(
                                 &declare_v2.class_hash,
                                 contract_class,
                                 &mut self.state,
                             )?
                         }
-                        Transaction::Declare(DeclareTransaction::Version3(declare_v3)) => {
+                        Transaction::Declare(DeclareTransaction::V3(declare_v3)) => {
                             declare_contract_class(
                                 declare_v3.get_class_hash(),
                                 contract_class,
@@ -426,7 +427,7 @@ impl Starknet {
     pub(crate) fn handle_accepted_transaction(
         &mut self,
         transaction_hash: &TransactionHash,
-        transaction: &Transaction,
+        transaction: &TransactionWithHash,
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
         let state_diff = self.state.commit_with_diff()?;
@@ -839,7 +840,7 @@ impl Starknet {
         // starting block is reached in while loop.
         if last_reached_block_hash == Felt::from(0) && reached_starting_block {
             self.blocks.last_block_hash = None;
-            self.state = self.init_state.clone_historic(); // This will be refactored during the genesis block PR
+            self.state = self.init_state.clone_historic(); // TODO: This will be refactored during the genesis block PR
         } else if reached_starting_block {
             let current_block =
                 self.blocks.hash_to_block.get(&last_reached_block_hash).ok_or(Error::NoBlock)?;
@@ -899,7 +900,7 @@ impl Starknet {
                     .ok_or(Error::NoTransaction)
                     .map(|transaction| transaction.inner.clone())
             })
-            .collect::<DevnetResult<Vec<Transaction>>>()?;
+            .collect::<DevnetResult<Vec<TransactionWithHash>>>()?;
 
         Ok(Block {
             status: *block.status(),
@@ -934,7 +935,8 @@ impl Starknet {
             common_field.maybe_pending_properties.block_hash = None;
             common_field.maybe_pending_properties.block_number = None;
 
-            transaction_receipts.push(TransactionWithReceipt { receipt, transaction });
+            transaction_receipts
+                .push(TransactionWithReceipt { receipt, transaction: transaction.transaction });
         }
 
         Ok(Block {
@@ -948,7 +950,7 @@ impl Starknet {
         &self,
         block_id: &BlockId,
         index: u64,
-    ) -> DevnetResult<&Transaction> {
+    ) -> DevnetResult<&TransactionWithHash> {
         let block = self.get_block(block_id)?;
         let transaction_hash = block
             .get_transactions()
@@ -967,7 +969,10 @@ impl Starknet {
         Ok(block.clone())
     }
 
-    pub fn get_transaction_by_hash(&self, transaction_hash: Felt) -> DevnetResult<&Transaction> {
+    pub fn get_transaction_by_hash(
+        &self,
+        transaction_hash: Felt,
+    ) -> DevnetResult<&TransactionWithHash> {
         self.transactions
             .get_by_hash(transaction_hash)
             .map(|starknet_transaction| &starknet_transaction.inner)
@@ -1267,7 +1272,7 @@ mod tests {
         let tx = dummy_declare_transaction_v1();
 
         // add transaction hash to pending block
-        starknet.blocks.pending_block.add_transaction(tx.transaction_hash);
+        starknet.blocks.pending_block.add_transaction(*tx.get_transaction_hash());
 
         // pending block has some transactions
         assert!(!starknet.pending_block().get_transactions().is_empty());
@@ -1283,7 +1288,7 @@ mod tests {
             starknet.blocks.get_by_hash(starknet.blocks.last_block_hash.unwrap()).unwrap();
 
         assert!(added_block.get_transactions().len() == 1);
-        assert_eq!(*added_block.get_transactions().first().unwrap(), tx.transaction_hash);
+        assert_eq!(*added_block.get_transactions().first().unwrap(), *tx.get_transaction_hash());
     }
 
     #[test]
@@ -1536,7 +1541,7 @@ mod tests {
         let tx = dummy_declare_transaction_v1();
 
         // add transaction hash to pending block
-        starknet.blocks.pending_block.add_transaction(tx.transaction_hash);
+        starknet.blocks.pending_block.add_transaction(*tx.get_transaction_hash());
 
         starknet.generate_new_block(StateDiff::default()).unwrap();
 

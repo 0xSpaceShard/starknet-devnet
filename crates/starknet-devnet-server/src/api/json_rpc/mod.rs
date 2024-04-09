@@ -14,7 +14,7 @@ use models::{
 };
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::ContractClass as CodegenContractClass;
-use starknet_types::felt::{ClassHash, Felt};
+use starknet_types::felt::Felt;
 use starknet_types::rpc::block::Block;
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
@@ -22,7 +22,7 @@ use starknet_types::rpc::estimate_message_fee::{
 use starknet_types::rpc::state::StateUpdate;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
-    BlockTransactionTrace, EventsChunk, SimulatedTransaction, Transaction, TransactionTrace,
+    BlockTransactionTrace, EventsChunk, SimulatedTransaction, TransactionTrace, TransactionWithHash,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 use tracing::{error, info, trace};
@@ -351,33 +351,26 @@ impl std::fmt::Display for StarknetRequest {
 #[cfg_attr(test, derive(Deserialize))]
 #[serde(untagged)]
 pub enum StarknetResponse {
-    BlockWithTransactionHashes(Block),
-    BlockWithFullTransactions(Block),
-    BlockWithReceipts(Block),
+    Block(Block),
     StateUpdate(StateUpdate),
-    StorageAt(Felt),
-    TransactionByHash(Transaction),
-    TransactionByBlockAndIndex(Transaction),
+    Felt(Felt),
+    Transaction(TransactionWithHash),
     TransactionReceiptByTransactionHash(Box<TransactionReceipt>),
     TransactionStatusByHash(TransactionStatusOutput),
-    ClassByHash(CodegenContractClass),
-    ClassHashAtContractAddress(ClassHash),
-    ClassAtContractAddress(CodegenContractClass),
+    ContractClass(CodegenContractClass),
     BlockTransactionCount(u64),
     Call(Vec<Felt>),
     EstimateFee(Vec<FeeEstimateWrapper>),
     BlockNumber(BlockNumber),
     BlockHashAndNumber(BlockHashAndNumberOutput),
-    ChainId(String),
+    String(String),
     Syncing(SyncingOutput),
     Events(EventsChunk),
-    ContractNonce(Felt),
     AddDeclareTransaction(DeclareTransactionOutput),
     AddDeployAccountTransaction(DeployAccountTransactionOutput),
     AddInvokeTransaction(InvokeTransactionOutput),
     EstimateMessageFee(FeeEstimateWrapper),
     SimulateTransactions(Vec<SimulatedTransaction>),
-    SpecVersion(String),
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
 }

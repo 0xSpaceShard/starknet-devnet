@@ -35,7 +35,7 @@ use std::collections::HashMap;
 use starknet_rs_core::types::{BlockId, ExecutionResult, Hash256};
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::transactions::L1HandlerTransaction;
+use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 
 use crate::error::{DevnetResult, Error, MessagingError};
 use crate::starknet::Starknet;
@@ -225,15 +225,13 @@ impl Starknet {
         &mut self,
         messages: &[MessageToL2],
     ) -> DevnetResult<Vec<TransactionHash>> {
-        let chain_id = self.chain_id().to_felt();
         let mut transactions_hashes = vec![];
 
         for message in messages {
-            let transaction =
-                L1HandlerTransaction::try_from_message_to_l2(message.clone())?.with_hash(chain_id);
-            transactions_hashes.push(transaction.transaction_hash);
+            let transaction = L1HandlerTransaction::try_from_message_to_l2(message.clone())?;
 
-            self.add_l1_handler_transaction(transaction)?;
+            let transaction_hash = self.add_l1_handler_transaction(transaction)?;
+            transactions_hashes.push(transaction_hash);
         }
 
         Ok(transactions_hashes)

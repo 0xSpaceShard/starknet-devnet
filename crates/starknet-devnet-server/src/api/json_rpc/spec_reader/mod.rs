@@ -203,9 +203,7 @@ mod tests {
         for _ in 0..1000 {
             for spec in specs.iter() {
                 // Iterate over the methods in the spec
-                for method in
-                    spec.methods.iter().filter(|m| m.name != "starknet_getBlockWithReceipts")
-                {
+                for method in spec.methods.iter() {
                     // Create a JSON-RPC request for each method
                     let request = generate_json_rpc_request(method, &combined_schema)
                         .expect("Could not generate the JSON-RPC request");
@@ -245,21 +243,20 @@ mod tests {
                                 StarknetResponse::TransactionReceiptByTransactionHash(_)
                             ));
                         }
-                        StarknetRequest::BlockWithTransactionHashes(_) => {
-                            assert!(matches!(
-                                sn_response,
-                                StarknetResponse::BlockWithTransactionHashes(_)
-                            ));
+                        StarknetRequest::BlockWithTransactionHashes(_)
+                        | StarknetRequest::BlockWithFullTransactions(_)
+                        | StarknetRequest::BlockWithReceipts(_) => {
+                            assert!(matches!(sn_response, StarknetResponse::Block(_)));
                         }
                         StarknetRequest::BlockHashAndNumber => {
                             assert!(matches!(sn_response, StarknetResponse::BlockHashAndNumber(_)));
                         }
-                        StarknetRequest::BlockNumber
-                        | StarknetRequest::BlockTransactionCount(_) => {
+                        StarknetRequest::BlockTransactionCount(_)
+                        | StarknetRequest::BlockNumber => {
                             assert!(matches!(
                                 sn_response,
-                                StarknetResponse::BlockNumber(_)
-                                    | StarknetResponse::BlockTransactionCount(_)
+                                StarknetResponse::BlockTransactionCount(_)
+                                    | StarknetResponse::BlockNumber(_)
                             ));
                         }
                         StarknetRequest::Call(_) => {
@@ -267,11 +264,7 @@ mod tests {
                         }
                         StarknetRequest::ClassAtContractAddress(_)
                         | StarknetRequest::ClassByHash(_) => {
-                            assert!(matches!(
-                                sn_response,
-                                StarknetResponse::ClassAtContractAddress(_)
-                                    | StarknetResponse::ClassByHash(_)
-                            ));
+                            assert!(matches!(sn_response, StarknetResponse::ContractClass(_)));
                         }
                         StarknetRequest::EsimateFee(_) => {
                             assert!(matches!(sn_response, StarknetResponse::EstimateFee(_)));
@@ -318,13 +311,27 @@ mod tests {
                                 StarknetResponse::AddInvokeTransaction(_)
                             ));
                         }
-                        _ => {
-                            // Remaining responses are not implemented, because
-                            // multiple requests return the same response format either u64, Felt,
-                            // etc. so its impossible to know which
-                            // response variant is generated based on
-                            // serde untagged deserialization. This is due to the fact that the
-                            // first variant which complies with the response format is returned
+                        StarknetRequest::SpecVersion => {
+                            assert!(matches!(sn_response, StarknetResponse::String(_)));
+                        }
+                        StarknetRequest::TransactionByHash(_)
+                        | StarknetRequest::TransactionByBlockAndIndex(_) => {
+                            assert!(matches!(sn_response, StarknetResponse::Transaction(_)));
+                        }
+                        StarknetRequest::ContractNonce(_)
+                        | StarknetRequest::ChainId
+                        | StarknetRequest::ClassHashAtContractAddress(_)
+                        | StarknetRequest::StorageAt(_) => {
+                            assert!(matches!(sn_response, StarknetResponse::Felt(_)));
+                        }
+                        StarknetRequest::TraceTransaction(_) => {
+                            assert!(matches!(sn_response, StarknetResponse::TraceTransaction(_)));
+                        }
+                        StarknetRequest::BlockTransactionTraces(_) => {
+                            assert!(matches!(
+                                sn_response,
+                                StarknetResponse::BlockTransactionTraces(_)
+                            ));
                         }
                     }
                 }
