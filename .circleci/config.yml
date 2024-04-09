@@ -23,16 +23,14 @@ aliases:
       - run:
           name: Install Rust
           command: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain=1.74.0
-      - run: echo "$PATH"
       - run:
           name: Install Cross
           command: |
-            mkdir -p /home/tmp/
             curl -SsL https://github.com/cross-rs/cross/releases/download/v0.2.5/${COMPILER_ARCHIVE} |
-              tar -xvz -C /home/tmp
+              tar -xvz -C /tmp
       - run:
           name: Build
-          command: /home/tmp/cross build --release --target=${CIRCLE_JOB}
+          command: /tmp/cross build --release --target=${CIRCLE_JOB}
 
   - &linux_binary_build
     <<: *binary_build
