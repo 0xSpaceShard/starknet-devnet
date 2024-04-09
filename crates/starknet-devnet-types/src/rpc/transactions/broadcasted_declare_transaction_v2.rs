@@ -1,15 +1,15 @@
-use blockifier::transaction::transactions::DeclareTransaction;
+
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
-use starknet_rs_core::crypto::compute_hash_on_elements;
-use starknet_rs_ff::FieldElement;
 
-use crate::constants::{PREFIX_DECLARE, QUERY_VERSION_OFFSET};
+
+
+
 use crate::contract_address::ContractAddress;
-use crate::contract_class::{compute_sierra_class_hash, ContractClass};
-use crate::error::DevnetResult;
-use crate::felt::{CompiledClassHash, Felt, Nonce, TransactionSignature, TransactionVersion};
+
+
+use crate::felt::{CompiledClassHash, Nonce, TransactionSignature, TransactionVersion};
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 

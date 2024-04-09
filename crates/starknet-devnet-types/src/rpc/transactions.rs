@@ -501,7 +501,7 @@ impl BroadcastedDeclareTransaction {
         let (transaction_hash, sn_api_transaction, class_info, version) = match self {
             BroadcastedDeclareTransaction::V1(v1) => {
                 let class_hash = v1.generate_class_hash()?;
-                let transaction_hash = v1.calculate_transaction_hash(&chain_id, &class_hash)?;
+                let transaction_hash = v1.calculate_transaction_hash(chain_id, &class_hash)?;
 
                 let sn_api_declare = starknet_api::transaction::DeclareTransaction::V1(
                     starknet_api::transaction::DeclareTransactionV0V1 {

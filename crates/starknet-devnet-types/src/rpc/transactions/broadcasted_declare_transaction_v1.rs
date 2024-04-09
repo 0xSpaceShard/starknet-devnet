@@ -1,13 +1,13 @@
-use blockifier::execution::contract_class::ClassInfo;
-use blockifier::transaction::transactions::DeclareTransaction;
+
+
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_ff::FieldElement;
 
-use crate::constants::{PREFIX_DECLARE, QUERY_VERSION_OFFSET};
+use crate::constants::{PREFIX_DECLARE};
 use crate::contract_address::ContractAddress;
-use crate::contract_class::{Cairo0ContractClass, ContractClass};
+use crate::contract_class::{Cairo0ContractClass};
 use crate::error::DevnetResult;
 use crate::felt::{ClassHash, Felt, Nonce, TransactionSignature, TransactionVersion};
 use crate::rpc::transactions::BroadcastedTransactionCommon;
@@ -76,7 +76,7 @@ mod tests {
     use crate::contract_class::Cairo0Json;
     use crate::felt::Felt;
     use crate::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
-    use crate::rpc::transactions::{BroadcastedDeclareTransaction, BroadcastedTransaction};
+    use crate::rpc::transactions::{BroadcastedDeclareTransaction};
     use crate::traits::{HashProducer, ToHexString};
 
     #[derive(Deserialize)]
