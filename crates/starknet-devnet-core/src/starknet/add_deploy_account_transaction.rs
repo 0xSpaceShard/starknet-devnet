@@ -1,6 +1,6 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{Felt, TransactionHash};
+use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::deploy_account_transaction_v1::DeployAccountTransactionV1;
 use starknet_types::rpc::transactions::deploy_account_transaction_v3::DeployAccountTransactionV3;
 use starknet_types::rpc::transactions::{
@@ -16,13 +16,18 @@ pub fn add_deploy_account_transaction(
     starknet: &mut Starknet,
     broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransaction,
 ) -> DevnetResult<(TransactionHash, ContractAddress)> {
-    let (
-        transaction_hash,
-        class_hash,
-        address,
-        blockifier_deploy_account_transaction,
-        deploy_account_transaction,
-    ) = match broadcasted_deploy_account_transaction {
+    let blockifier_deploy_account_transaction = broadcasted_deploy_account_transaction
+        .create_blockifier_deploy_account(starknet.chain_id().to_felt())?;
+
+    let address = blockifier_deploy_account_transaction.contract_address.into();
+
+    if blockifier_deploy_account_transaction.only_query {
+        return Err(Error::UnsupportedAction {
+            msg: "query-only transactions are not supported".to_string(),
+        });
+    }
+
+    let (class_hash, deploy_account_transaction) = match broadcasted_deploy_account_transaction {
         BroadcastedDeployAccountTransaction::V1(ref v1) => {
             if v1.common.max_fee.0 == 0 {
                 return Err(Error::MaxFeeZeroError {
@@ -30,25 +35,12 @@ pub fn add_deploy_account_transaction(
                 });
             }
 
-            let blockifier_deploy_account_transaction =
-                v1.create_blockifier_deploy_account(starknet.chain_id().to_felt())?;
-
-            let transaction_hash: Felt = blockifier_deploy_account_transaction.tx_hash.0.into();
-            let address: ContractAddress =
-                blockifier_deploy_account_transaction.contract_address.into();
-
             let deploy_account_transaction =
                 Transaction::DeployAccount(DeployAccountTransaction::V1(Box::new(
                     DeployAccountTransactionV1::new(v1, address),
                 )));
 
-            (
-                transaction_hash,
-                v1.class_hash,
-                address,
-                blockifier_deploy_account_transaction,
-                deploy_account_transaction,
-            )
+            (v1.class_hash, deploy_account_transaction)
         }
         BroadcastedDeployAccountTransaction::V3(ref v3) => {
             if v3.common.is_max_fee_zero_value() {
@@ -57,38 +49,19 @@ pub fn add_deploy_account_transaction(
                 });
             }
 
-            let blockifier_deploy_account_transaction =
-                v3.create_blockifier_deploy_account(starknet.chain_id().to_felt())?;
-
-            let transaction_hash: Felt = blockifier_deploy_account_transaction.tx_hash.0.into();
-            let address: ContractAddress =
-                blockifier_deploy_account_transaction.contract_address.into();
-
             let deploy_account_transaction =
                 Transaction::DeployAccount(DeployAccountTransaction::V3(Box::new(
                     DeployAccountTransactionV3::new(v3, address),
                 )));
 
-            (
-                transaction_hash,
-                v3.class_hash,
-                address,
-                blockifier_deploy_account_transaction,
-                deploy_account_transaction,
-            )
+            (v3.class_hash, deploy_account_transaction)
         }
     };
-
-    if blockifier_deploy_account_transaction.only_query {
-        return Err(Error::UnsupportedAction {
-            msg: "query-only transactions are not supported".to_string(),
-        });
-    }
 
     if !starknet.state.is_contract_declared(class_hash) {
         return Err(Error::StateError(crate::error::StateError::NoneClassHash(class_hash)));
     }
-
+    let transaction_hash = blockifier_deploy_account_transaction.tx_hash.0.into();
     let transaction = TransactionWithHash::new(transaction_hash, deploy_account_transaction);
 
     let blockifier_execution_result =
@@ -286,7 +259,7 @@ mod tests {
             Felt::from(1),
         );
 
-        let blockifier_transaction = transaction
+        let blockifier_transaction = BroadcastedDeployAccountTransaction::V1(transaction.clone())
             .create_blockifier_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt())
             .unwrap();
 
@@ -328,7 +301,7 @@ mod tests {
         let (mut starknet, account_class_hash, _, strk_fee_token_address) = setup();
         let transaction = test_deploy_account_transaction_v3(account_class_hash, 0, 4000);
 
-        let blockifier_transaction = transaction
+        let blockifier_transaction = BroadcastedDeployAccountTransaction::V3(transaction.clone())
             .create_blockifier_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt())
             .unwrap();
 
@@ -384,7 +357,7 @@ mod tests {
             Felt::from(13),
             Felt::from(1),
         );
-        let blockifier_transaction = transaction
+        let blockifier_transaction = BroadcastedDeployAccountTransaction::V1(transaction.clone())
             .create_blockifier_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt())
             .unwrap();
 

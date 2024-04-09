@@ -1,18 +1,9 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
-use starknet_rs_ff::FieldElement;
 
 use crate::contract_address::ContractAddress;
 use crate::felt::{Calldata, Nonce, TransactionSignature, TransactionVersion};
 use crate::rpc::transactions::BroadcastedTransactionCommon;
-
-/// Cairo string for "invoke" from starknet-rs
-pub(crate) const PREFIX_INVOKE: FieldElement = FieldElement::from_mont([
-    18443034532770911073,
-    18446744073709551615,
-    18446744073709551615,
-    513398556346534256,
-]);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]

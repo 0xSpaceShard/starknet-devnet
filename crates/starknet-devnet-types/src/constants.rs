@@ -18,3 +18,19 @@ pub const QUERY_VERSION_OFFSET: FieldElement = FieldElement::from_mont([
     18446744073709551584,
     576460752142434320,
 ]);
+
+/// Cairo string for "invoke" from starknet-rs
+pub(crate) const PREFIX_INVOKE: FieldElement = FieldElement::from_mont([
+    18443034532770911073,
+    18446744073709551615,
+    18446744073709551615,
+    513398556346534256,
+]);
+
+/// Cairo string for "deploy_account" from starknet-rs
+pub(crate) const PREFIX_DEPLOY_ACCOUNT: FieldElement = FieldElement::from_mont([
+    3350261884043292318,
+    18443211694809419988,
+    18446744073709551615,
+    461298303000467581,
+]);

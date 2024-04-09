@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use starknet_rs_crypto::poseidon_hash_many;
 use starknet_rs_ff::FieldElement;
 
-use super::broadcasted_invoke_transaction_v1::PREFIX_INVOKE;
 use super::BroadcastedTransactionCommonV3;
+use crate::constants::PREFIX_INVOKE;
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
 use crate::felt::{Calldata, Felt};
