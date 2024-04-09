@@ -114,6 +114,7 @@ jobs:
 
   aarch64-apple-darwin:
     <<: *mac_binary_build
+    resource_class: macos.m1.medium.gen1
 
   x86_64-apple-darwin:
     <<: *mac_binary_build
