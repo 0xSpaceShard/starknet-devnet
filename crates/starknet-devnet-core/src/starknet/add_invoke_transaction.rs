@@ -20,20 +20,14 @@ pub fn add_invoke_transaction(
                 return Err(Error::MaxFeeZeroError { tx_type: "invoke transaction".into() });
             }
 
-            let invoke_transaction =
-                Transaction::Invoke(InvokeTransaction::V1(InvokeTransactionV1::new(v1)));
-
-            invoke_transaction
+            Transaction::Invoke(InvokeTransaction::V1(InvokeTransactionV1::new(v1)))
         }
         BroadcastedInvokeTransaction::V3(ref v3) => {
             if v3.common.is_max_fee_zero_value() {
                 return Err(Error::MaxFeeZeroError { tx_type: "invoke transaction v3".into() });
             }
 
-            let invoke_transaction =
-                Transaction::Invoke(InvokeTransaction::V3(InvokeTransactionV3::new(v3)));
-
-            invoke_transaction
+            Transaction::Invoke(InvokeTransaction::V3(InvokeTransactionV3::new(v3)))
         }
     };
 
