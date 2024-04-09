@@ -14,37 +14,32 @@ pub fn add_invoke_transaction(
     starknet: &mut Starknet,
     broadcasted_invoke_transaction: BroadcastedInvokeTransaction,
 ) -> DevnetResult<TransactionHash> {
-    let (transaction_hash, blockifier_invoke_transaction, invoke_transaction) =
-        match broadcasted_invoke_transaction {
-            BroadcastedInvokeTransaction::V1(ref v1) => {
-                if v1.common.max_fee.0 == 0 {
-                    return Err(Error::MaxFeeZeroError { tx_type: "invoke transaction".into() });
-                }
-
-                let blockifier_invoke_transaction =
-                    v1.create_blockifier_invoke_transaction(starknet.chain_id().to_felt())?;
-                let transaction_hash = blockifier_invoke_transaction.tx_hash.0.into();
-
-                let invoke_transaction =
-                    Transaction::Invoke(InvokeTransaction::V1(InvokeTransactionV1::new(v1)));
-
-                (transaction_hash, blockifier_invoke_transaction, invoke_transaction)
+    let invoke_transaction = match broadcasted_invoke_transaction {
+        BroadcastedInvokeTransaction::V1(ref v1) => {
+            if v1.common.max_fee.0 == 0 {
+                return Err(Error::MaxFeeZeroError { tx_type: "invoke transaction".into() });
             }
-            BroadcastedInvokeTransaction::V3(ref v3) => {
-                if v3.common.is_max_fee_zero_value() {
-                    return Err(Error::MaxFeeZeroError { tx_type: "invoke transaction v3".into() });
-                }
 
-                let blockifier_invoke_transaction =
-                    v3.create_blockifier_invoke_transaction(starknet.chain_id().to_felt())?;
-                let transaction_hash = blockifier_invoke_transaction.tx_hash.0.into();
+            let invoke_transaction =
+                Transaction::Invoke(InvokeTransaction::V1(InvokeTransactionV1::new(v1)));
 
-                let invoke_transaction =
-                    Transaction::Invoke(InvokeTransaction::V3(InvokeTransactionV3::new(v3)));
-
-                (transaction_hash, blockifier_invoke_transaction, invoke_transaction)
+            invoke_transaction
+        }
+        BroadcastedInvokeTransaction::V3(ref v3) => {
+            if v3.common.is_max_fee_zero_value() {
+                return Err(Error::MaxFeeZeroError { tx_type: "invoke transaction v3".into() });
             }
-        };
+
+            let invoke_transaction =
+                Transaction::Invoke(InvokeTransaction::V3(InvokeTransactionV3::new(v3)));
+
+            invoke_transaction
+        }
+    };
+
+    let blockifier_invoke_transaction = broadcasted_invoke_transaction
+        .create_blockifier_invoke_transaction(starknet.chain_id().to_felt())?;
+    let transaction_hash = blockifier_invoke_transaction.tx_hash.0.into();
 
     if blockifier_invoke_transaction.only_query {
         return Err(Error::UnsupportedAction {

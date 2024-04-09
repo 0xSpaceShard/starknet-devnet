@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
@@ -13,7 +14,9 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::block::BlockNumber;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::deprecated_contract_class::EntryPointType;
+use starknet_api::hash::StarkFelt;
 use starknet_api::transaction::{Fee, Resource, Tip};
+use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_core::types::{
     BlockId, ExecutionResult, ResourceBounds, ResourceBoundsMapping, TransactionFinalityStatus,
 };
@@ -23,7 +26,7 @@ use starknet_rs_ff::FieldElement;
 use self::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use self::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
 use self::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
-use self::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use self::broadcasted_invoke_transaction_v1::{BroadcastedInvokeTransactionV1, PREFIX_INVOKE};
 use self::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use self::declare_transaction_v3::DeclareTransactionV3;
 use self::deploy_account_transaction_v1::DeployAccountTransactionV1;
@@ -36,6 +39,7 @@ use super::state::ThinStateDiff;
 use super::transaction_receipt::{
     ComputationResources, ExecutionResources, FeeInUnits, TransactionReceipt,
 };
+use crate::constants::QUERY_VERSION_OFFSET;
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
@@ -44,6 +48,7 @@ use crate::felt::{
     TransactionVersion,
 };
 use crate::rpc::transaction_receipt::{CommonTransactionReceipt, MaybePendingProperties};
+use crate::utils::into_vec;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
 pub mod broadcasted_declare_transaction_v1;
@@ -441,16 +446,9 @@ impl BroadcastedTransaction {
         chain_id: Felt,
     ) -> DevnetResult<blockifier::transaction::account_transaction::AccountTransaction> {
         let blockifier_transaction = match self {
-            BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(invoke_txn)) => {
-                let blockifier_invoke_txn =
-                    invoke_txn.create_blockifier_invoke_transaction(chain_id)?;
-                AccountTransaction::Invoke(blockifier_invoke_txn)
-            }
-            BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V3(invoke_txn)) => {
-                let blockifier_invoke_txn =
-                    invoke_txn.create_blockifier_invoke_transaction(chain_id)?;
-                AccountTransaction::Invoke(blockifier_invoke_txn)
-            }
+            BroadcastedTransaction::Invoke(invoke_txn) => AccountTransaction::Invoke(
+                invoke_txn.create_blockifier_invoke_transaction(chain_id)?,
+            ),
             BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(declare_v1)) => {
                 let class_hash = declare_v1.generate_class_hash()?;
                 let transaction_hash =
@@ -487,6 +485,10 @@ impl BroadcastedTransaction {
             BroadcastedTransaction::DeployAccount(_) => TransactionType::DeployAccount,
         }
     }
+
+    pub(crate) fn is_query_only_version(version: Felt) -> bool {
+        FieldElement::from(version) > QUERY_VERSION_OFFSET
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -508,6 +510,95 @@ pub enum BroadcastedDeployAccountTransaction {
 pub enum BroadcastedInvokeTransaction {
     V1(BroadcastedInvokeTransactionV1),
     V3(BroadcastedInvokeTransactionV3),
+}
+
+impl BroadcastedInvokeTransaction {
+    /// Creates a blockifier invoke transaction from the current transaction.
+    /// The transaction hash is computed using the given chain id.
+    ///
+    /// # Arguments
+    /// `chain_id` - the chain id to use for the transaction hash computation
+    pub fn create_blockifier_invoke_transaction(
+        &self,
+        chain_id: Felt,
+    ) -> DevnetResult<blockifier::transaction::transactions::InvokeTransaction> {
+        let (transaction_hash, sn_api_transaction, version) = match self {
+            BroadcastedInvokeTransaction::V1(v1) => {
+                let txn_hash: Felt = compute_hash_on_elements(&[
+                    PREFIX_INVOKE,
+                    v1.common.version.into(), // version
+                    v1.sender_address.into(),
+                    FieldElement::ZERO, // entry_point_selector
+                    compute_hash_on_elements(
+                        &v1.calldata
+                            .iter()
+                            .map(|felt| FieldElement::from(*felt))
+                            .collect::<Vec<FieldElement>>(),
+                    ),
+                    v1.common.max_fee.0.into(),
+                    chain_id.into(),
+                    v1.common.nonce.into(),
+                ])
+                .into();
+
+                let sn_api_transaction = starknet_api::transaction::InvokeTransactionV1 {
+                    max_fee: v1.common.max_fee,
+                    signature: starknet_api::transaction::TransactionSignature(
+                        v1.common.signature.iter().map(|f| f.into()).collect(),
+                    ),
+                    nonce: starknet_api::core::Nonce(v1.common.nonce.into()),
+                    sender_address: v1.sender_address.try_into()?,
+                    calldata: starknet_api::transaction::Calldata(Arc::new(
+                        v1.calldata.iter().map(StarkFelt::from).collect::<Vec<StarkFelt>>(),
+                    )),
+                };
+
+                (
+                    txn_hash,
+                    starknet_api::transaction::InvokeTransaction::V1(sn_api_transaction),
+                    v1.common.version,
+                )
+            }
+            BroadcastedInvokeTransaction::V3(v3) => {
+                let txn_hash = v3.calculate_transaction_hash(chain_id)?;
+
+                let sn_api_transaction = starknet_api::transaction::InvokeTransactionV3 {
+                    resource_bounds: (&v3.common.resource_bounds).into(),
+                    tip: v3.common.tip,
+                    signature: starknet_api::transaction::TransactionSignature(into_vec(
+                        &v3.common.signature,
+                    )),
+                    nonce: starknet_api::core::Nonce(v3.common.nonce.into()),
+                    sender_address: v3.sender_address.try_into()?,
+                    calldata: starknet_api::transaction::Calldata(Arc::new(
+                        v3.calldata.iter().map(StarkFelt::from).collect::<Vec<StarkFelt>>(),
+                    )),
+                    nonce_data_availability_mode: v3.common.nonce_data_availability_mode,
+                    fee_data_availability_mode: v3.common.fee_data_availability_mode,
+                    paymaster_data: starknet_api::transaction::PaymasterData(
+                        v3.common.paymaster_data.iter().map(|f| f.into()).collect(),
+                    ),
+                    account_deployment_data: starknet_api::transaction::AccountDeploymentData(
+                        v3.account_deployment_data.iter().map(|f| f.into()).collect(),
+                    ),
+                };
+
+                (
+                    txn_hash,
+                    starknet_api::transaction::InvokeTransaction::V3(sn_api_transaction),
+                    v3.common.version,
+                )
+            }
+        };
+
+        let only_query = BroadcastedTransaction::is_query_only_version(version);
+
+        Ok(blockifier::transaction::transactions::InvokeTransaction {
+            tx: sn_api_transaction,
+            tx_hash: starknet_api::transaction::TransactionHash(transaction_hash.into()),
+            only_query,
+        })
+    }
 }
 
 impl<'de> Deserialize<'de> for BroadcastedDeclareTransaction {
