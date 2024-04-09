@@ -15,60 +15,40 @@ pub fn add_declare_transaction(
     starknet: &mut Starknet,
     broadcasted_declare_transaction: BroadcastedDeclareTransaction,
 ) -> DevnetResult<(TransactionHash, ClassHash)> {
-    let (
-        class_hash,
-        transaction_hash,
-        declare_transaction,
-        blockifier_declare_transaction,
-        contract_class,
-    ) = match broadcasted_declare_transaction {
+    let blockifier_declare_transaction = broadcasted_declare_transaction
+        .create_blockifier_declare(&starknet.chain_id().to_felt())?;
+
+    if blockifier_declare_transaction.only_query() {
+        return Err(Error::UnsupportedAction {
+            msg: "query-only transactions are not supported".to_string(),
+        });
+    }
+
+    let transaction_hash = blockifier_declare_transaction.tx_hash().0.into();
+    let class_hash = blockifier_declare_transaction.class_hash().0.into();
+
+    let (declare_transaction, contract_class) = match broadcasted_declare_transaction {
         BroadcastedDeclareTransaction::V1(ref v1) => {
             if v1.common.max_fee.0 == 0 {
                 return Err(Error::MaxFeeZeroError { tx_type: "declare transaction v1".into() });
             }
 
-            let class_hash = v1.generate_class_hash()?;
-            let transaction_hash =
-                v1.calculate_transaction_hash(&starknet.config.chain_id.to_felt(), &class_hash)?;
-
             let declare_transaction = Transaction::Declare(DeclareTransaction::V1(
                 DeclareTransactionV0V1::new(v1, class_hash),
             ));
 
-            let blockifier_declare_transaction =
-                v1.create_blockifier_declare(class_hash, transaction_hash)?;
-
-            (
-                class_hash,
-                transaction_hash,
-                declare_transaction,
-                blockifier_declare_transaction,
-                v1.contract_class.clone().into(),
-            )
+            (declare_transaction, v1.contract_class.clone().into())
         }
         BroadcastedDeclareTransaction::V2(ref v2) => {
             if v2.common.max_fee.0 == 0 {
                 return Err(Error::MaxFeeZeroError { tx_type: "declare transaction v2".into() });
             }
 
-            let blockifier_declare_transaction =
-                v2.create_blockifier_declare(starknet.chain_id().to_felt())?;
-
-            let transaction_hash = blockifier_declare_transaction.tx_hash().0.into();
-
-            let class_hash = blockifier_declare_transaction.class_hash().0.into();
-
             let declare_transaction = Transaction::Declare(DeclareTransaction::V2(
                 DeclareTransactionV2::new(v2, class_hash),
             ));
 
-            (
-                class_hash,
-                transaction_hash,
-                declare_transaction,
-                blockifier_declare_transaction,
-                v2.contract_class.clone().into(),
-            )
+            (declare_transaction, v2.contract_class.clone().into())
         }
         BroadcastedDeclareTransaction::V3(ref v3) => {
             if v3.common.is_max_fee_zero_value() {
@@ -77,31 +57,13 @@ pub fn add_declare_transaction(
                 });
             }
 
-            let blockifier_declare_transaction =
-                v3.create_blockifier_declare(starknet.chain_id().to_felt())?;
-
-            let transaction_hash = blockifier_declare_transaction.tx_hash().0.into();
-            let class_hash = blockifier_declare_transaction.class_hash().0.into();
-
             let declare_transaction = Transaction::Declare(DeclareTransaction::V3(
                 DeclareTransactionV3::new(v3, class_hash),
             ));
 
-            (
-                class_hash,
-                transaction_hash,
-                declare_transaction,
-                blockifier_declare_transaction,
-                v3.contract_class.clone().into(),
-            )
+            (declare_transaction, v3.contract_class.clone().into())
         }
     };
-
-    if blockifier_declare_transaction.only_query() {
-        return Err(Error::UnsupportedAction {
-            msg: "query-only transactions are not supported".to_string(),
-        });
-    }
 
     let transaction = TransactionWithHash::new(transaction_hash, declare_transaction);
     let blockifier_execution_result =

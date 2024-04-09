@@ -5,9 +5,8 @@ use starknet_api::transaction::DeclareTransactionV3;
 use starknet_rs_crypto::poseidon_hash_many;
 use starknet_rs_ff::FieldElement;
 
-use super::broadcasted_declare_transaction_v1::PREFIX_DECLARE;
 use super::BroadcastedTransactionCommonV3;
-use crate::constants::QUERY_VERSION_OFFSET;
+use crate::constants::{PREFIX_DECLARE, QUERY_VERSION_OFFSET};
 use crate::contract_address::ContractAddress;
 use crate::contract_class::{compute_sierra_class_hash, ContractClass};
 use crate::error::DevnetResult;
@@ -36,9 +35,9 @@ impl BroadcastedDeclareTransactionV3 {
     /// `chain_id` - the chain id to use for the transaction hash computation
     /// `class_hash` - the class hash to use for the transaction hash computation,
     /// computed from the contract class
-    fn calculate_transaction_hash(
+    pub(crate) fn calculate_transaction_hash(
         &self,
-        chain_id: Felt,
+        chain_id: &Felt,
         class_hash: ClassHash,
     ) -> DevnetResult<Felt> {
         let common_fields = self.common.common_fields_for_hash(
@@ -66,48 +65,6 @@ impl BroadcastedDeclareTransactionV3 {
         let txn_hash = poseidon_hash_many(fields_to_hash.as_slice());
 
         Ok(txn_hash.into())
-    }
-
-    /// Creates a blockifier declare transaction from the current transaction.
-    /// The transaction hash is computed using the given chain id.
-    ///
-    /// # Arguments
-    /// `chain_id` - the chain id to use for the transaction hash computation
-    pub fn create_blockifier_declare(&self, chain_id: Felt) -> DevnetResult<DeclareTransaction> {
-        let sierra_class_hash = compute_sierra_class_hash(&self.contract_class)?;
-        let transaction_hash = self.calculate_transaction_hash(chain_id, sierra_class_hash)?;
-
-        let sn_api_declare =
-            starknet_api::transaction::DeclareTransaction::V3(DeclareTransactionV3 {
-                resource_bounds: (&self.common.resource_bounds).into(),
-                tip: self.common.tip,
-                signature: starknet_api::transaction::TransactionSignature(into_vec(
-                    &self.common.signature,
-                )),
-                nonce: starknet_api::core::Nonce(self.common.nonce.into()),
-                class_hash: starknet_api::core::ClassHash(sierra_class_hash.into()),
-                compiled_class_hash: starknet_api::core::CompiledClassHash(
-                    self.compiled_class_hash.into(),
-                ),
-                sender_address: self.sender_address.try_into()?,
-                nonce_data_availability_mode: self.common.nonce_data_availability_mode,
-                fee_data_availability_mode: self.common.fee_data_availability_mode,
-                paymaster_data: starknet_api::transaction::PaymasterData(into_vec(
-                    &self.common.paymaster_data,
-                )),
-                account_deployment_data: starknet_api::transaction::AccountDeploymentData(
-                    into_vec(&self.account_deployment_data),
-                ),
-            });
-
-        let contract_class = ContractClass::Cairo1(self.contract_class.clone()).try_into()?;
-        let transaction_hash = starknet_api::transaction::TransactionHash(transaction_hash.into());
-
-        if FieldElement::from(self.common.version) > QUERY_VERSION_OFFSET {
-            Ok(DeclareTransaction::new_for_query(sn_api_declare, transaction_hash, contract_class)?)
-        } else {
-            Ok(DeclareTransaction::new(sn_api_declare, transaction_hash, contract_class)?)
-        }
     }
 }
 
@@ -198,7 +155,7 @@ mod tests {
         assert_eq!(
             broadcasted_txn
                 .calculate_transaction_hash(
-                    ChainId::goerli_legacy_id(),
+                    &ChainId::goerli_legacy_id(),
                     feeder_gateway_transaction.class_hash
                 )
                 .unwrap(),

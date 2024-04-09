@@ -34,3 +34,11 @@ pub(crate) const PREFIX_DEPLOY_ACCOUNT: FieldElement = FieldElement::from_mont([
     18446744073709551615,
     461298303000467581,
 ]);
+
+/// Cairo string for "declare" from starknet-rs
+pub(crate) const PREFIX_DECLARE: FieldElement = FieldElement::from_mont([
+    17542456862011667323,
+    18446744073709551615,
+    18446744073709551615,
+    191557713328401194,
+]);

@@ -24,7 +24,7 @@ impl BroadcastedInvokeTransactionV3 {
     ///
     /// # Arguments
     /// `chain_id` - the chain id to use for the transaction hash computation
-    pub(crate) fn calculate_transaction_hash(&self, chain_id: Felt) -> DevnetResult<Felt> {
+    pub(crate) fn calculate_transaction_hash(&self, chain_id: &Felt) -> DevnetResult<Felt> {
         let common_fields = self.common.common_fields_for_hash(
             PREFIX_INVOKE,
             chain_id.into(),
@@ -126,7 +126,7 @@ mod tests {
 
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,
-            broadcasted_txn.calculate_transaction_hash(ChainId::goerli_legacy_id()).unwrap()
+            broadcasted_txn.calculate_transaction_hash(&ChainId::goerli_legacy_id()).unwrap()
         );
     }
 }

@@ -1,13 +1,5 @@
-
-
 use serde::{Deserialize, Serialize};
-
 use starknet_api::transaction::Fee;
-
-
-
-
-
 
 use crate::felt::{
     Calldata, ClassHash, ContractAddressSalt, Nonce, TransactionSignature, TransactionVersion,
@@ -104,7 +96,7 @@ mod tests {
 
         let blockifier_deploy_account_transaction =
             BroadcastedDeployAccountTransaction::V1(broadcasted_tx)
-                .create_blockifier_deploy_account(chain_id)
+                .create_blockifier_deploy_account(&chain_id)
                 .unwrap();
 
         assert_eq!(
