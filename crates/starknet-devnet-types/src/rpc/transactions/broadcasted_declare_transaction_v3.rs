@@ -1,18 +1,14 @@
-
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::{Deserialize, Serialize};
-
 use starknet_rs_crypto::poseidon_hash_many;
 use starknet_rs_ff::FieldElement;
 
 use super::BroadcastedTransactionCommonV3;
-use crate::constants::{PREFIX_DECLARE};
+use crate::constants::PREFIX_DECLARE;
 use crate::contract_address::ContractAddress;
-
 use crate::error::DevnetResult;
 use crate::felt::{ClassHash, CompiledClassHash, Felt};
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
-
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]

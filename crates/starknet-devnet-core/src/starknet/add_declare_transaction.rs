@@ -15,6 +15,12 @@ pub fn add_declare_transaction(
     starknet: &mut Starknet,
     broadcasted_declare_transaction: BroadcastedDeclareTransaction,
 ) -> DevnetResult<(TransactionHash, ClassHash)> {
+    if broadcasted_declare_transaction.is_max_fee_zero_value() {
+        return Err(Error::MaxFeeZeroError {
+            tx_type: broadcasted_declare_transaction.to_string(),
+        });
+    }
+
     let blockifier_declare_transaction = broadcasted_declare_transaction
         .create_blockifier_declare(&starknet.chain_id().to_felt())?;
 
@@ -29,10 +35,6 @@ pub fn add_declare_transaction(
 
     let (declare_transaction, contract_class) = match broadcasted_declare_transaction {
         BroadcastedDeclareTransaction::V1(ref v1) => {
-            if v1.common.max_fee.0 == 0 {
-                return Err(Error::MaxFeeZeroError { tx_type: "declare transaction v1".into() });
-            }
-
             let declare_transaction = Transaction::Declare(DeclareTransaction::V1(
                 DeclareTransactionV0V1::new(v1, class_hash),
             ));
@@ -40,10 +42,6 @@ pub fn add_declare_transaction(
             (declare_transaction, v1.contract_class.clone().into())
         }
         BroadcastedDeclareTransaction::V2(ref v2) => {
-            if v2.common.max_fee.0 == 0 {
-                return Err(Error::MaxFeeZeroError { tx_type: "declare transaction v2".into() });
-            }
-
             let declare_transaction = Transaction::Declare(DeclareTransaction::V2(
                 DeclareTransactionV2::new(v2, class_hash),
             ));
@@ -51,12 +49,6 @@ pub fn add_declare_transaction(
             (declare_transaction, v2.contract_class.clone().into())
         }
         BroadcastedDeclareTransaction::V3(ref v3) => {
-            if v3.common.is_max_fee_zero_value() {
-                return Err(Error::MaxFeeZeroError {
-                    tx_type: "declare transaction v3".to_string(),
-                });
-            }
-
             let declare_transaction = Transaction::Declare(DeclareTransaction::V3(
                 DeclareTransactionV3::new(v3, class_hash),
             ));

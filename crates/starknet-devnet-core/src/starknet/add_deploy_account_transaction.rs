@@ -16,10 +16,13 @@ pub fn add_deploy_account_transaction(
     starknet: &mut Starknet,
     broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransaction,
 ) -> DevnetResult<(TransactionHash, ContractAddress)> {
+    if broadcasted_deploy_account_transaction.is_max_fee_zero_value() {
+        return Err(Error::MaxFeeZeroError {
+            tx_type: broadcasted_deploy_account_transaction.to_string(),
+        });
+    }
     let blockifier_deploy_account_transaction = broadcasted_deploy_account_transaction
         .create_blockifier_deploy_account(&starknet.chain_id().to_felt())?;
-
-    let address = blockifier_deploy_account_transaction.contract_address.into();
 
     if blockifier_deploy_account_transaction.only_query {
         return Err(Error::UnsupportedAction {
@@ -27,14 +30,10 @@ pub fn add_deploy_account_transaction(
         });
     }
 
+    let address = blockifier_deploy_account_transaction.contract_address.into();
+
     let (class_hash, deploy_account_transaction) = match broadcasted_deploy_account_transaction {
         BroadcastedDeployAccountTransaction::V1(ref v1) => {
-            if v1.common.max_fee.0 == 0 {
-                return Err(Error::MaxFeeZeroError {
-                    tx_type: "deploy account transaction".into(),
-                });
-            }
-
             let deploy_account_transaction =
                 Transaction::DeployAccount(DeployAccountTransaction::V1(Box::new(
                     DeployAccountTransactionV1::new(v1, address),
@@ -43,12 +42,6 @@ pub fn add_deploy_account_transaction(
             (v1.class_hash, deploy_account_transaction)
         }
         BroadcastedDeployAccountTransaction::V3(ref v3) => {
-            if v3.common.is_max_fee_zero_value() {
-                return Err(Error::MaxFeeZeroError {
-                    tx_type: "deploy account transaction v3".into(),
-                });
-            }
-
             let deploy_account_transaction =
                 Transaction::DeployAccount(DeployAccountTransaction::V3(Box::new(
                     DeployAccountTransactionV3::new(v3, address),

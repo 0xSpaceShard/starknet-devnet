@@ -1,3 +1,4 @@
+use core::fmt;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -99,6 +100,18 @@ pub enum TransactionType {
     Invoke,
     #[serde(rename(deserialize = "L1_HANDLER", serialize = "L1_HANDLER"))]
     L1Handler,
+}
+
+impl fmt::Display for TransactionType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TransactionType::Declare => write!(f, "Declare transaction"),
+            TransactionType::Deploy => write!(f, "Deploy transaction"),
+            TransactionType::DeployAccount => write!(f, "Deploy account transaction"),
+            TransactionType::Invoke => write!(f, "Invoke transaction"),
+            TransactionType::L1Handler => write!(f, "L1 handler transaction"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -261,6 +274,12 @@ pub struct BroadcastedTransactionCommon {
     pub version: TransactionVersion,
     pub signature: TransactionSignature,
     pub nonce: Nonce,
+}
+
+impl BroadcastedTransactionCommon {
+    pub fn is_max_fee_zero_value(&self) -> bool {
+        self.max_fee.0 == 0
+    }
 }
 
 /// Common fields for all transaction type of version 3
@@ -488,7 +507,25 @@ pub enum BroadcastedDeclareTransaction {
     V3(Box<BroadcastedDeclareTransactionV3>),
 }
 
+impl fmt::Display for BroadcastedDeclareTransaction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let txn_type = TransactionType::Declare;
+        match self {
+            BroadcastedDeclareTransaction::V1(_) => write!(f, "{} V1", txn_type),
+            BroadcastedDeclareTransaction::V2(_) => write!(f, "{} V2", txn_type),
+            BroadcastedDeclareTransaction::V3(_) => write!(f, "{} V3", txn_type),
+        }
+    }
+}
+
 impl BroadcastedDeclareTransaction {
+    pub fn is_max_fee_zero_value(&self) -> bool {
+        match self {
+            BroadcastedDeclareTransaction::V1(v1) => v1.common.is_max_fee_zero_value(),
+            BroadcastedDeclareTransaction::V2(v2) => v2.common.is_max_fee_zero_value(),
+            BroadcastedDeclareTransaction::V3(v3) => v3.common.is_max_fee_zero_value(),
+        }
+    }
     /// Creates a blockifier declare transaction from the current transaction.
     /// The transaction hash is computed using the given chain id.
     ///
@@ -615,7 +652,23 @@ pub enum BroadcastedDeployAccountTransaction {
     V3(BroadcastedDeployAccountTransactionV3),
 }
 
+impl fmt::Display for BroadcastedDeployAccountTransaction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let txn_type = TransactionType::DeployAccount;
+        match self {
+            BroadcastedDeployAccountTransaction::V1(_) => write!(f, "{} V1", txn_type),
+            BroadcastedDeployAccountTransaction::V3(_) => write!(f, "{} V3", txn_type),
+        }
+    }
+}
+
 impl BroadcastedDeployAccountTransaction {
+    pub fn is_max_fee_zero_value(&self) -> bool {
+        match self {
+            BroadcastedDeployAccountTransaction::V1(v1) => v1.common.is_max_fee_zero_value(),
+            BroadcastedDeployAccountTransaction::V3(v3) => v3.common.is_max_fee_zero_value(),
+        }
+    }
     /// Creates a blockifier deploy account transaction from the current transaction.
     /// The transaction hash is computed using the given chain id.
     ///
@@ -734,7 +787,23 @@ pub enum BroadcastedInvokeTransaction {
     V3(BroadcastedInvokeTransactionV3),
 }
 
+impl fmt::Display for BroadcastedInvokeTransaction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let txn_type = TransactionType::Invoke;
+        match self {
+            BroadcastedInvokeTransaction::V1(_) => write!(f, "{} V1", txn_type),
+            BroadcastedInvokeTransaction::V3(_) => write!(f, "{} V3", txn_type),
+        }
+    }
+}
+
 impl BroadcastedInvokeTransaction {
+    pub fn is_max_fee_zero_value(&self) -> bool {
+        match self {
+            BroadcastedInvokeTransaction::V1(v1) => v1.common.is_max_fee_zero_value(),
+            BroadcastedInvokeTransaction::V3(v3) => v3.common.is_max_fee_zero_value(),
+        }
+    }
     /// Creates a blockifier invoke transaction from the current transaction.
     /// The transaction hash is computed using the given chain id.
     ///

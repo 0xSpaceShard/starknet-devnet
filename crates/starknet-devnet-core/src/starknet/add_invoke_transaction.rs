@@ -14,32 +14,29 @@ pub fn add_invoke_transaction(
     starknet: &mut Starknet,
     broadcasted_invoke_transaction: BroadcastedInvokeTransaction,
 ) -> DevnetResult<TransactionHash> {
-    let invoke_transaction = match broadcasted_invoke_transaction {
-        BroadcastedInvokeTransaction::V1(ref v1) => {
-            if v1.common.max_fee.0 == 0 {
-                return Err(Error::MaxFeeZeroError { tx_type: "invoke transaction".into() });
-            }
-
-            Transaction::Invoke(InvokeTransaction::V1(InvokeTransactionV1::new(v1)))
-        }
-        BroadcastedInvokeTransaction::V3(ref v3) => {
-            if v3.common.is_max_fee_zero_value() {
-                return Err(Error::MaxFeeZeroError { tx_type: "invoke transaction v3".into() });
-            }
-
-            Transaction::Invoke(InvokeTransaction::V3(InvokeTransactionV3::new(v3)))
-        }
-    };
+    if broadcasted_invoke_transaction.is_max_fee_zero_value() {
+        return Err(Error::MaxFeeZeroError { tx_type: broadcasted_invoke_transaction.to_string() });
+    }
 
     let blockifier_invoke_transaction = broadcasted_invoke_transaction
         .create_blockifier_invoke_transaction(&starknet.chain_id().to_felt())?;
-    let transaction_hash = blockifier_invoke_transaction.tx_hash.0.into();
 
     if blockifier_invoke_transaction.only_query {
         return Err(Error::UnsupportedAction {
             msg: "query-only transactions are not supported".to_string(),
         });
     }
+
+    let transaction_hash = blockifier_invoke_transaction.tx_hash.0.into();
+
+    let invoke_transaction = match broadcasted_invoke_transaction {
+        BroadcastedInvokeTransaction::V1(ref v1) => {
+            Transaction::Invoke(InvokeTransaction::V1(InvokeTransactionV1::new(v1)))
+        }
+        BroadcastedInvokeTransaction::V3(ref v3) => {
+            Transaction::Invoke(InvokeTransaction::V3(InvokeTransactionV3::new(v3)))
+        }
+    };
 
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::Invoke(
