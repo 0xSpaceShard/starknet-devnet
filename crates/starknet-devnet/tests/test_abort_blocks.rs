@@ -64,7 +64,8 @@ mod abort_blocks_tests {
         let aborted_blocks = abort_blocks(&devnet, &new_block_hash).await;
         assert_eq!(aborted_blocks, vec![new_block_hash]);
 
-        let new_block_after_abort = &devnet
+        // Check if the genesis block still has ACCEPTED_ON_L2 status
+        let genesis_block_after_abort = &devnet
             .send_custom_rpc(
                 "starknet_getBlockWithTxHashes",
                 json!({
@@ -72,7 +73,7 @@ mod abort_blocks_tests {
                 }),
             )
             .await["result"];
-        assert_eq!(new_block_after_abort["status"], "ACCEPTED_ON_L2".to_string());
+        assert_eq!(genesis_block_after_abort["status"], "ACCEPTED_ON_L2".to_string());
 
         assert_block_rejected(&devnet, &new_block_hash).await;
 
@@ -215,5 +216,22 @@ mod abort_blocks_tests {
 
         abort_blocks_error(&devnet, &first_block_hash).await;
         abort_blocks_error(&devnet, &second_block_hash).await;
+    }
+
+    #[tokio::test]
+    async fn abort_block_after_fork() {
+        let origin_devnet: BackgroundDevnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .expect("Could not start Devnet");
+
+        let fork_devnet = origin_devnet.fork_with_full_state_archive().await.unwrap();
+
+        let fork_block_hash = fork_devnet.create_block().await.unwrap();
+
+        let aborted_blocks = abort_blocks(&fork_devnet, &fork_block_hash).await;
+        assert_eq!(aborted_blocks, vec![fork_block_hash]);
+
+        abort_blocks_error(&fork_devnet, &fork_block_hash).await;
     }
 }

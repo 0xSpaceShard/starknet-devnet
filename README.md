@@ -278,7 +278,7 @@ If you're using [**the Hardhat plugin**](https://github.com/0xSpaceShard/starkne
 
 ## Blocks
 
-Devnet starts with a genesis block (with a block number equal to 0).
+Devnet starts with a genesis block (with a block number equal to 0). In forking mode, the genesis block number will be equal to forked block number plus one.
 
 A new block is generated with each new transaction, and you can create an empty block by yourself.
 

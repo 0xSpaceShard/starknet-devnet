@@ -278,6 +278,18 @@ impl BackgroundDevnet {
         BackgroundDevnet::spawn_with_additional_args(&args).await
     }
 
+    pub async fn fork_with_full_state_archive(&self) -> Result<Self, TestError> {
+        let args = [
+            "--fork-network",
+            self.url.as_str(),
+            "--accounts",
+            "0",
+            "--state-archive-capacity",
+            "full",
+        ];
+        BackgroundDevnet::spawn_with_additional_args(&args).await
+    }
+
     /// Mines a new block and returns its hash
     pub async fn create_block(&self) -> Result<FieldElement, anyhow::Error> {
         let block_creation_resp =

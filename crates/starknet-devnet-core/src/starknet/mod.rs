@@ -218,7 +218,7 @@ impl Starknet {
 
         this.restart_pending_block()?;
 
-        // Create empty genesis block, set start_time before if it's set
+        // Create an empty genesis block, set start_time before if it's set
         if let Some(start_time) = config.start_time {
             this.set_next_block_timestamp(start_time);
         };
@@ -802,7 +802,15 @@ impl Starknet {
             return Err(Error::UnsupportedAction { msg: "Block is already aborted".into() });
         }
 
-        let genesis_block = self.blocks.get_by_block_id(&BlockId::Number(0)).unwrap();
+        let genesis_block_number = if let Some(block_number) = self.config.fork_config.block_number
+        {
+            block_number + 1
+        } else {
+            0
+        };
+        let genesis_block =
+            self.blocks.get_by_block_id(&BlockId::Number(genesis_block_number)).unwrap();
+
         if starting_block_hash == genesis_block.block_hash() {
             return Err(Error::UnsupportedAction { msg: "Genesis block can't be aborted".into() });
         }
