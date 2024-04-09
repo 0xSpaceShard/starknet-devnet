@@ -1277,11 +1277,11 @@ mod tests {
         // pending block has some transactions
         assert!(!starknet.pending_block().get_transactions().is_empty());
         // blocks collection should not be empty
-        assert!(!starknet.blocks.hash_to_block.is_empty());
+        assert_eq!(starknet.blocks.hash_to_block.len(), 1);
 
         starknet.generate_new_block(StateDiff::default()).unwrap();
         // blocks collection should not be empty
-        assert!(!starknet.blocks.hash_to_block.is_empty());
+        assert_eq!(starknet.blocks.hash_to_block.len(), 2);
 
         // get latest block and check that the transactions in the block are correct
         let added_block =
