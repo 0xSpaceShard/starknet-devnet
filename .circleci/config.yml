@@ -129,7 +129,7 @@ jobs:
           command: /tmp/cross build --release --target=<< parameters.target_triplet >>
       - run:
           name: Archive and compress artifact
-          command: tar -czvf ${BIN_PATH} ${ARCHIVE_PATH}
+          command: tar -czvf ${ARCHIVE_PATH} ${BIN_PATH}
       - store_artifacts:
           path: ${ARCHIVE_PATH}
           destination: ${ARCHIVE_NAME}
