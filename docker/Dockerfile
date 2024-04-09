@@ -11,6 +11,7 @@ RUN apt-get -y update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Binary expected to have been built
 COPY ${BIN_PATH} /usr/local/bin/starknet-devnet
 
 ENTRYPOINT [ "tini", "--", "starknet-devnet", "--host", "0.0.0.0" ]
