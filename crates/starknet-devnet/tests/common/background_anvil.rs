@@ -1,6 +1,6 @@
 use std::process::{Child, Command};
 use std::sync::Arc;
-use std::{thread, time};
+use std::time;
 
 use ethers::prelude::*;
 use ethers::providers::{Http, Provider};
@@ -62,7 +62,7 @@ impl BackgroundAnvil {
             }
 
             retries += 1;
-            thread::sleep(time::Duration::from_millis(500));
+            tokio::time::sleep(time::Duration::from_millis(500)).await;
         }
 
         Err(TestError::AnvilNotStartable)

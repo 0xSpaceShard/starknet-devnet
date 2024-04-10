@@ -148,7 +148,7 @@ pub fn get_unix_timestamp_as_seconds() -> u64 {
 
 pub async fn send_ctrl_c_signal_and_wait(process: &Child) {
     send_ctrl_c_signal(process).await;
-    std::thread::sleep(std::time::Duration::from_secs(1));
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 }
 
 async fn send_ctrl_c_signal(process: &Child) {

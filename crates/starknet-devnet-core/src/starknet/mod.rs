@@ -33,16 +33,11 @@ use starknet_types::rpc::state::ThinStateDiff;
 use starknet_types::rpc::transaction_receipt::{
     DeployTransactionReceipt, L1HandlerTransactionReceipt, TransactionReceipt,
 };
-use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
-use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
-use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
-use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
-use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 use starknet_types::rpc::transactions::{
-    BlockTransactionTrace, BroadcastedTransaction, BroadcastedTransactionCommon,
+    BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
+    BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionCommon,
     DeclareTransaction, SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace,
     TransactionWithHash, TransactionWithReceipt, Transactions,
 };
@@ -666,25 +661,11 @@ impl Starknet {
         estimations::estimate_message_fee(self, block_id, message)
     }
 
-    pub fn add_declare_transaction_v1(
+    pub fn add_declare_transaction(
         &mut self,
-        declare_transaction: BroadcastedDeclareTransactionV1,
+        declare_transaction: BroadcastedDeclareTransaction,
     ) -> DevnetResult<(TransactionHash, ClassHash)> {
-        add_declare_transaction::add_declare_transaction_v1(self, declare_transaction)
-    }
-
-    pub fn add_declare_transaction_v2(
-        &mut self,
-        declare_transaction: BroadcastedDeclareTransactionV2,
-    ) -> DevnetResult<(TransactionHash, ClassHash)> {
-        add_declare_transaction::add_declare_transaction_v2(self, declare_transaction)
-    }
-
-    pub fn add_declare_transaction_v3(
-        &mut self,
-        declare_transaction: BroadcastedDeclareTransactionV3,
-    ) -> DevnetResult<(TransactionHash, ClassHash)> {
-        add_declare_transaction::add_declare_transaction_v3(self, declare_transaction)
+        add_declare_transaction::add_declare_transaction(self, declare_transaction)
     }
 
     /// returning the chain id as object
@@ -692,38 +673,21 @@ impl Starknet {
         self.config.chain_id
     }
 
-    pub fn add_deploy_account_transaction_v1(
+    pub fn add_deploy_account_transaction(
         &mut self,
-        deploy_account_transaction: BroadcastedDeployAccountTransactionV1,
+        deploy_account_transaction: BroadcastedDeployAccountTransaction,
     ) -> DevnetResult<(TransactionHash, ContractAddress)> {
-        add_deploy_account_transaction::add_deploy_account_transaction_v1(
+        add_deploy_account_transaction::add_deploy_account_transaction(
             self,
             deploy_account_transaction,
         )
     }
 
-    pub fn add_deploy_account_transaction_v3(
+    pub fn add_invoke_transaction(
         &mut self,
-        deploy_account_transaction: BroadcastedDeployAccountTransactionV3,
-    ) -> DevnetResult<(TransactionHash, ContractAddress)> {
-        add_deploy_account_transaction::add_deploy_account_transaction_v3(
-            self,
-            deploy_account_transaction,
-        )
-    }
-
-    pub fn add_invoke_transaction_v1(
-        &mut self,
-        invoke_transaction: BroadcastedInvokeTransactionV1,
+        invoke_transaction: BroadcastedInvokeTransaction,
     ) -> DevnetResult<TransactionHash> {
-        add_invoke_transaction::add_invoke_transaction_v1(self, invoke_transaction)
-    }
-
-    pub fn add_invoke_transaction_v3(
-        &mut self,
-        invoke_transaction: BroadcastedInvokeTransactionV3,
-    ) -> DevnetResult<TransactionHash> {
-        add_invoke_transaction::add_invoke_transaction_v3(self, invoke_transaction)
+        add_invoke_transaction::add_invoke_transaction(self, invoke_transaction)
     }
 
     pub fn add_l1_handler_transaction(
@@ -785,7 +749,10 @@ impl Starknet {
         };
 
         // apply the invoke tx
-        add_invoke_transaction::add_invoke_transaction_v1(self, invoke_tx)
+        add_invoke_transaction::add_invoke_transaction(
+            self,
+            BroadcastedInvokeTransaction::V1(invoke_tx),
+        )
     }
 
     pub fn block_state_update(&self, block_id: &BlockId) -> DevnetResult<StateUpdate> {
@@ -1068,7 +1035,7 @@ impl Starknet {
         );
         for broadcasted_transaction in transactions.iter() {
             let blockifier_transaction =
-                broadcasted_transaction.to_blockifier_account_transaction(chain_id, true)?;
+                broadcasted_transaction.to_blockifier_account_transaction(&chain_id)?;
             let tx_execution_info = blockifier_transaction.execute(
                 &mut transactional_state,
                 &block_context,

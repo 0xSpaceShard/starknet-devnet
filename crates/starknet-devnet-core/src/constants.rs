@@ -2,7 +2,6 @@ use std::net::{IpAddr, Ipv4Addr};
 use std::num::NonZeroU128;
 
 use nonzero_ext::nonzero;
-use starknet_rs_ff::FieldElement;
 use starknet_types::chain_id::ChainId;
 
 pub const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str = concat!(
@@ -76,12 +75,6 @@ pub const DEVNET_DEFAULT_STARTING_BLOCK_NUMBER: u64 = 0;
 pub const DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT: usize = 2_000_000;
 
 pub const SUPPORTED_TX_VERSION: u32 = 1;
-pub const QUERY_VERSION_BASE: FieldElement = FieldElement::from_mont([
-    18446744073700081665,
-    17407,
-    18446744073709551584,
-    576460752142434320,
-]); // 2 ** 128
 
 // chargeable account
 pub const CHARGEABLE_ACCOUNT_PUBLIC_KEY: &str =

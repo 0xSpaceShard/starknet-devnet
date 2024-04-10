@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt::LowerHex;
 use std::net::TcpListener;
 use std::process::{Child, Command, Stdio};
-use std::{thread, time};
+use std::time;
 
 use hyper::client::HttpConnector;
 use hyper::http::request;
@@ -145,7 +145,7 @@ impl BackgroundDevnet {
             // otherwise there is an error, probably a ConnectError if Devnet is not yet up
             // so we retry after some sleep
             retries += 1;
-            thread::sleep(time::Duration::from_millis(500));
+            tokio::time::sleep(time::Duration::from_millis(500)).await;
         }
 
         Err(TestError::DevnetNotStartable)

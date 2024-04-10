@@ -1,24 +1,9 @@
-use std::sync::Arc;
-
-use blockifier::transaction::transactions::InvokeTransaction;
 use serde::{Deserialize, Serialize};
-use starknet_api::hash::StarkFelt;
 use starknet_api::transaction::Fee;
-use starknet_rs_core::crypto::compute_hash_on_elements;
-use starknet_rs_ff::FieldElement;
 
 use crate::contract_address::ContractAddress;
-use crate::error::DevnetResult;
-use crate::felt::{Calldata, Felt, Nonce, TransactionSignature, TransactionVersion};
+use crate::felt::{Calldata, Nonce, TransactionSignature, TransactionVersion};
 use crate::rpc::transactions::BroadcastedTransactionCommon;
-
-/// Cairo string for "invoke" from starknet-rs
-pub(crate) const PREFIX_INVOKE: FieldElement = FieldElement::from_mont([
-    18443034532770911073,
-    18446744073709551615,
-    18446744073709551615,
-    513398556346534256,
-]);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -49,48 +34,6 @@ impl BroadcastedInvokeTransactionV1 {
             },
         }
     }
-
-    pub fn create_blockifier_invoke_transaction(
-        &self,
-        chain_id: Felt,
-        only_query: bool,
-    ) -> DevnetResult<InvokeTransaction> {
-        let txn_hash: Felt = compute_hash_on_elements(&[
-            PREFIX_INVOKE,
-            self.common.version.into(), // version
-            self.sender_address.into(),
-            FieldElement::ZERO, // entry_point_selector
-            compute_hash_on_elements(
-                &self
-                    .calldata
-                    .iter()
-                    .map(|felt| FieldElement::from(*felt))
-                    .collect::<Vec<FieldElement>>(),
-            ),
-            self.common.max_fee.0.into(),
-            chain_id.into(),
-            self.common.nonce.into(),
-        ])
-        .into();
-
-        let sn_api_transaction = starknet_api::transaction::InvokeTransactionV1 {
-            max_fee: self.common.max_fee,
-            signature: starknet_api::transaction::TransactionSignature(
-                self.common.signature.iter().map(|f| f.into()).collect(),
-            ),
-            nonce: starknet_api::core::Nonce(self.common.nonce.into()),
-            sender_address: self.sender_address.try_into()?,
-            calldata: starknet_api::transaction::Calldata(Arc::new(
-                self.calldata.iter().map(StarkFelt::from).collect::<Vec<StarkFelt>>(),
-            )),
-        };
-
-        Ok(InvokeTransaction {
-            tx: starknet_api::transaction::InvokeTransaction::V1(sn_api_transaction),
-            tx_hash: starknet_api::transaction::TransactionHash(txn_hash.into()),
-            only_query,
-        })
-    }
 }
 
 #[cfg(test)]
@@ -102,6 +45,7 @@ mod tests {
     use crate::contract_address::ContractAddress;
     use crate::felt::Felt;
     use crate::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+    use crate::rpc::transactions::BroadcastedInvokeTransaction;
     use crate::traits::ToHexString;
 
     #[derive(Deserialize)]
@@ -144,8 +88,9 @@ mod tests {
         );
 
         let chain_id = ChainId::goerli_legacy_id();
-        let blockifier_transaction =
-            transaction.create_blockifier_invoke_transaction(chain_id, false).unwrap();
+        let blockifier_transaction = BroadcastedInvokeTransaction::V1(transaction)
+            .create_blockifier_invoke_transaction(&chain_id)
+            .unwrap();
 
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,
