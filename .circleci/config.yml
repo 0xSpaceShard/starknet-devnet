@@ -109,7 +109,7 @@ jobs:
       REMOTE: ""
 
       # For Docker image naming
-      ARCH_SUFFIX: << parameters.arch >>
+      ARCH_SUFFIX: -<< parameters.arch >>
 
     steps:
       - checkout
