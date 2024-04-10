@@ -69,5 +69,6 @@ echo "Images built. Validating and pushing."
 docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
 
 for image_tag in "$SHA1_TAG" "$SHA1_SEEDED_TAG"; do
-    validate_and_push "$image_tag"
+    echo "DEBUG: Not validating or pushing"
+    # TODO validate_and_push "$image_tag"
 done

@@ -104,7 +104,6 @@ jobs:
 
     environment:
       BIN_DIR: target/<< parameters.target_triplet >>/release
-      BIN_PATH: ${BIN_DIR}/starknet-devnet
 
       # for Docker image naming
       ARCH_SUFFIX: << parameters.arch >>
@@ -124,10 +123,11 @@ jobs:
               tar -xvz -C /tmp
       - run:
           name: Build
-          command: /tmp/cross build --release --target=<< parameters.target_triplet >>
+          # command: /tmp/cross build --release --target=<< parameters.target_triplet >>
+          command: mkdir -p ${BIN_DIR} && touch ${BIN_DIR}/starknet-devnet
       - run:
           name: Archive and compress artifact
-          command: tar -czvf << parameters.archive_path >> --directory ${BIN_DIR} ${BIN_PATH}
+          command: tar -czvf << parameters.archive_path >> --directory ${BIN_DIR} starknet-devnet
       - store_artifacts: # to later include them in github release
           path: << parameters.archive_path >>
       - when:
@@ -169,7 +169,7 @@ workflows:
           # <<: *on_main TODO
           matrix:
             parameters:
-              arch: [x86_64, aarch64]
+              arch: [x86_64] # TODO aarch64]
               platform: [unknown-linux-gnu] # TODO, unknown-linux-musl, apple-darwin]
           target_triplet: << matrix.arch >>-<< matrix.platform >>
           archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
