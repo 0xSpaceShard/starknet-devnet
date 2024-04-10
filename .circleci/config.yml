@@ -101,12 +101,9 @@ jobs:
     executor: << parameters.platform >>
 
     environment:
-      BIN_PATH: target/<< parameters.target_triplet >>/release/starknet-devnet
-      ARCHIVE_NAME: starknet-devnet-<< parameters.target_triplet >>.tar.gz
-      ARCHIVE_PATH: /tmp/${ARCHIVE_NAME}
-
-      # for Docker verification in image_build.sh
-      REMOTE: true
+      BIN_DIR: target/<< parameters.target_triplet >>/release
+      BIN_PATH: ${BIN_DIR}/starknet-devnet
+      ARCHIVE_PATH: starknet-devnet-<< parameters.target_triplet >>.tar.gz
 
       # for Docker image naming
       ARCH_SUFFIX: << parameters.arch >>
@@ -129,10 +126,9 @@ jobs:
           command: /tmp/cross build --release --target=<< parameters.target_triplet >>
       - run:
           name: Archive and compress artifact
-          command: tar -czvf ${ARCHIVE_PATH} ${BIN_PATH}
-      - store_artifacts:
+          command: tar -czvf ${ARCHIVE_PATH} --directory ${BIN_DIR} ${BIN_PATH}
+      - store_artifacts: # to later include them in github release
           path: ${ARCHIVE_PATH}
-          destination: ${ARCHIVE_NAME}
       - when:
           condition:
             or:
