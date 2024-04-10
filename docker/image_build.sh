@@ -43,8 +43,10 @@ function validate_and_push() {
 
 echo "Building ${ARCH_SUFFIX} images tagged with sha1 commit digest"
 
-# BIN_PATH is in target/, which is ignored by Dockerfile, so it's copied somewhere visible
-VISIBLE_BIN_PATH="/tmp/starknet-devnet"
+# BIN_PATH is in target/, which is ignored by Dockerfile
+# Not to make .dockerignore unintuitive, we just copy it somewhere visible (tmp)
+mkdir tmp
+VISIBLE_BIN_PATH="tmp/starknet-devnet"
 cp "$BIN_PATH" "$VISIBLE_BIN_PATH"
 
 SHA1_TAG="${CIRCLE_SHA1}${ARCH_SUFFIX}"
