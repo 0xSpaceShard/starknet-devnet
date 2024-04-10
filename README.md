@@ -491,8 +491,6 @@ This is what happens under the hood on `main`:
 - create and push joint docker manifest called `shardlabs/starknet-devnet-rs-<COMMIT_SHA1>`
   - same for `latest`
 
-In the image, `tini` is used to properly handle killing of dockerized Devnet with Ctrl+C
-
 ### Development - L1 / L2 (postman)
 
 To test Starknet messaging, Devnet exposes endpoints prefixed with `postman/` which are dedicated to the messaging feature.
@@ -505,9 +503,17 @@ Devnet exposes the following endpoints:
 - `/postman/send_message_to_l2`: sends and executes a message on L2 (L1 node **not** required).
 - `/postman/consume_message_from_l2`: consumes a message on L1 node from the L2 (requires L1 node to be running).
 
-### Development - Update of OpenZeppelin contracts
+### Development - Updating OpenZeppelin contracts
 
 Tests in devnet require an erc20 contract with the `Mintable` feature, keep in mind that before the compilation process of [cairo-contracts](https://github.com/OpenZeppelin/cairo-contracts/) you need to mark the `Mintable` check box in this [wizard](https://wizard.openzeppelin.com/cairo) and copy this implementation to `/src/presets/erc20.cairo`.
+
+### Development - Updating Starknet
+
+Updating the underlying Starknet is done by updating the `blockifier` dependency. It also requires updating the `STARKNET_VERSION` constant.
+
+### Development - Updating JSON-RPC API
+
+Updating the RPC requires following the specification files in the [starknet-specs repository](https://github.com/starkware-libs/starknet-specs). The spec_reader testing utility requires these files to be copied into the Devnet repository. The `RPC_SPEC_VERSION` constant needs to be updated accordingly.
 
 ## ✏️ Contributing
 

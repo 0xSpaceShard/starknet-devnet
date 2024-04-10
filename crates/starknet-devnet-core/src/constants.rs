@@ -2,7 +2,6 @@ use std::net::{IpAddr, Ipv4Addr};
 use std::num::NonZeroU128;
 
 use nonzero_ext::nonzero;
-use starknet_rs_ff::FieldElement;
 use starknet_types::chain_id::ChainId;
 
 pub const CAIRO_0_ACCOUNT_CONTRACT: &str =
@@ -52,7 +51,7 @@ pub const UDC_CONTRACT_CLASS_HASH: &str =
 pub const UDC_CONTRACT_ADDRESS: &str =
     "0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF";
 
-pub const STARKNET_VERSION: &str = "0.13.1";
+pub const STARKNET_VERSION: &str = "0.13.1.1";
 
 /// ERC20 contracts storage variables
 /// taken from starkcan urls:
@@ -77,12 +76,6 @@ pub const DEVNET_DEFAULT_STARTING_BLOCK_NUMBER: u64 = 0;
 pub const DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT: usize = 2_000_000;
 
 pub const SUPPORTED_TX_VERSION: u32 = 1;
-pub const QUERY_VERSION_BASE: FieldElement = FieldElement::from_mont([
-    18446744073700081665,
-    17407,
-    18446744073709551584,
-    576460752142434320,
-]); // 2 ** 128
 
 // chargeable account
 pub const CHARGEABLE_ACCOUNT_PUBLIC_KEY: &str =

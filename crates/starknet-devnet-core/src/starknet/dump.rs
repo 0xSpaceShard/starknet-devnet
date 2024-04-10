@@ -27,30 +27,14 @@ impl Starknet {
     pub fn re_execute(&mut self, events: Vec<DumpEvent>) -> DevnetResult<()> {
         for event in events.into_iter() {
             match event {
-                DumpEvent::AddDeclareTransaction(BroadcastedDeclareTransaction::V1(tx)) => {
-                    self.add_declare_transaction_v1(*tx)?;
+                DumpEvent::AddDeclareTransaction(tx) => {
+                    self.add_declare_transaction(tx)?;
                 }
-                DumpEvent::AddDeclareTransaction(BroadcastedDeclareTransaction::V2(tx)) => {
-                    self.add_declare_transaction_v2(*tx)?;
+                DumpEvent::AddDeployAccountTransaction(tx) => {
+                    self.add_deploy_account_transaction(tx)?;
                 }
-                DumpEvent::AddDeclareTransaction(BroadcastedDeclareTransaction::V3(tx)) => {
-                    self.add_declare_transaction_v3(*tx)?;
-                }
-                DumpEvent::AddDeployAccountTransaction(
-                    BroadcastedDeployAccountTransaction::V1(tx),
-                ) => {
-                    self.add_deploy_account_transaction_v1(tx)?;
-                }
-                DumpEvent::AddDeployAccountTransaction(
-                    BroadcastedDeployAccountTransaction::V3(tx),
-                ) => {
-                    self.add_deploy_account_transaction_v3(tx)?;
-                }
-                DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V1(tx)) => {
-                    self.add_invoke_transaction_v1(tx)?;
-                }
-                DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V3(tx)) => {
-                    self.add_invoke_transaction_v3(tx)?;
+                DumpEvent::AddInvokeTransaction(tx) => {
+                    self.add_invoke_transaction(tx)?;
                 }
                 DumpEvent::AddL1HandlerTransaction(tx) => {
                     self.add_l1_handler_transaction(tx)?;

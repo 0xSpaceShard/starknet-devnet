@@ -1,25 +1,10 @@
-use std::sync::Arc;
-
 use serde::{Deserialize, Serialize};
-use starknet_api::core::calculate_contract_address;
 use starknet_api::transaction::Fee;
-use starknet_rs_core::crypto::compute_hash_on_elements;
-use starknet_rs_ff::FieldElement;
 
-use crate::contract_address::ContractAddress;
-use crate::error::DevnetResult;
 use crate::felt::{
-    Calldata, ClassHash, ContractAddressSalt, Felt, Nonce, TransactionSignature, TransactionVersion,
+    Calldata, ClassHash, ContractAddressSalt, Nonce, TransactionSignature, TransactionVersion,
 };
 use crate::rpc::transactions::BroadcastedTransactionCommon;
-
-/// Cairo string for "deploy_account" from starknet-rs
-pub(crate) const PREFIX_DEPLOY_ACCOUNT: FieldElement = FieldElement::from_mont([
-    3350261884043292318,
-    18443211694809419988,
-    18446744073709551615,
-    461298303000467581,
-]);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -53,61 +38,6 @@ impl BroadcastedDeployAccountTransactionV1 {
             },
         }
     }
-
-    pub fn create_blockifier_deploy_account(
-        &self,
-        chain_id: Felt,
-        only_query: bool,
-    ) -> DevnetResult<blockifier::transaction::transactions::DeployAccountTransaction> {
-        let contract_address = calculate_contract_address(
-            starknet_api::transaction::ContractAddressSalt(self.contract_address_salt.into()),
-            starknet_api::core::ClassHash(self.class_hash.into()),
-            &starknet_api::transaction::Calldata(Arc::new(
-                self.constructor_calldata.iter().map(|felt| felt.into()).collect(),
-            )),
-            starknet_api::core::ContractAddress::from(0u8),
-        )?;
-
-        let mut calldata_to_hash = vec![self.class_hash, self.contract_address_salt];
-        calldata_to_hash.extend(self.constructor_calldata.iter());
-
-        let calldata_to_hash: Vec<FieldElement> =
-            calldata_to_hash.into_iter().map(FieldElement::from).collect();
-
-        let transaction_hash: Felt = compute_hash_on_elements(&[
-            PREFIX_DEPLOY_ACCOUNT,
-            self.common.version.into(),
-            ContractAddress::from(contract_address).into(),
-            FieldElement::ZERO, // entry_point_selector
-            compute_hash_on_elements(&calldata_to_hash),
-            self.common.max_fee.0.into(),
-            chain_id.into(),
-            self.common.nonce.into(),
-        ])
-        .into();
-
-        let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV1 {
-            max_fee: self.common.max_fee,
-            signature: starknet_api::transaction::TransactionSignature(
-                self.common.signature.iter().map(|felt| felt.into()).collect(),
-            ),
-            nonce: starknet_api::core::Nonce(self.common.nonce.into()),
-            class_hash: self.class_hash.into(),
-            contract_address_salt: starknet_api::transaction::ContractAddressSalt(
-                self.contract_address_salt.into(),
-            ),
-            constructor_calldata: starknet_api::transaction::Calldata(Arc::new(
-                self.constructor_calldata.iter().map(|felt| felt.into()).collect(),
-            )),
-        };
-
-        Ok(blockifier::transaction::transactions::DeployAccountTransaction {
-            tx: starknet_api::transaction::DeployAccountTransaction::V1(sn_api_transaction),
-            tx_hash: starknet_api::transaction::TransactionHash(transaction_hash.into()),
-            contract_address,
-            only_query,
-        })
-    }
 }
 
 #[cfg(test)]
@@ -119,6 +49,7 @@ mod tests {
     use crate::contract_address::ContractAddress;
     use crate::felt::Felt;
     use crate::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
+    use crate::rpc::transactions::BroadcastedDeployAccountTransaction;
     use crate::traits::ToHexString;
 
     #[derive(Deserialize)]
@@ -164,7 +95,9 @@ mod tests {
         let chain_id = ChainId::goerli_legacy_id();
 
         let blockifier_deploy_account_transaction =
-            broadcasted_tx.create_blockifier_deploy_account(chain_id, false).unwrap();
+            BroadcastedDeployAccountTransaction::V1(broadcasted_tx)
+                .create_blockifier_deploy_account(&chain_id)
+                .unwrap();
 
         assert_eq!(
             ContractAddress::new(feeder_gateway_transaction.contract_address).unwrap(),
