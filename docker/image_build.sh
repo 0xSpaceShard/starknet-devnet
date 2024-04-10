@@ -43,8 +43,8 @@ function validate_and_push() {
 
 echo "Building ${ARCH_SUFFIX} images tagged with sha1 commit digest"
 
-# BIN_PATH is in target/, which is ignored by Dockerfile
-# Not to make .dockerignore unintuitive, we just copy it somewhere visible (tmp)
+# BIN_PATH is in target/, which is ignored by Dockerfile. Not to make .dockerignore unintuitive
+# by allowing target/, we just copy the binary some place visible (tmp).
 mkdir tmp
 VISIBLE_BIN_PATH="tmp/starknet-devnet"
 cp "$BIN_DIR/starknet-devnet" "$VISIBLE_BIN_PATH"
@@ -69,6 +69,5 @@ echo "Images built. Validating and pushing."
 docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
 
 for image_tag in "$SHA1_TAG" "$SHA1_SEEDED_TAG"; do
-    echo "DEBUG: Not validating or pushing"
-    # TODO validate_and_push "$image_tag"
+    validate_and_push "$image_tag"
 done
