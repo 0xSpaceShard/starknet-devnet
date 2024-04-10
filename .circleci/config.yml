@@ -125,7 +125,6 @@ jobs:
       - run:
           name: Build
           command: /tmp/cross build --release --target=<< parameters.target_triplet >>
-      - run: tree target # TODO DEBUG
       - run:
           name: Archive and compress artifact
           command: tar -czvf << parameters.archive_path >> --directory ${BIN_DIR} ${BIN_PATH}
