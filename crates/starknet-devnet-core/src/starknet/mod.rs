@@ -806,7 +806,7 @@ impl Starknet {
         {
             block_number + 1
         } else {
-            0
+            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER
         };
         let genesis_block =
             self.blocks.get_by_block_id(&BlockId::Number(genesis_block_number)).unwrap();
