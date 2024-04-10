@@ -36,7 +36,7 @@ function validate_and_push() {
         curl "$external_address/is_alive" -w "\n"
     fi
 
-    docker push "$tagged_image"
+    # TODO docker push "$tagged_image"
 
     docker rm -f "$container_name"
 }
@@ -66,7 +66,7 @@ docker build . \
     --build-arg BASE_IMAGE="$BASE_IMAGE"
 
 echo "Images built. Validating and pushing."
-docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
+# TODO docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
 
 for image_tag in "$SHA1_TAG" "$SHA1_SEEDED_TAG"; do
     validate_and_push "$image_tag"
