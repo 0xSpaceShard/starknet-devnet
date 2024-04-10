@@ -38,7 +38,6 @@ mod fork_tests {
     async fn spawn_forkable_devnet() -> Result<BackgroundDevnet, anyhow::Error> {
         let args = ["--state-archive-capacity", "full"];
         let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await?;
-        devnet.create_block().await?;
         Ok(devnet)
     }
 
@@ -107,17 +106,27 @@ mod fork_tests {
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
                 .unwrap();
+        let origin_devnet_genesis_block =
+            &origin_devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
         let block_hash = origin_devnet.create_block().await.unwrap();
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
-        let resp =
+        let resp_block_by_hash =
             &fork_devnet.json_rpc_client.get_block_with_tx_hashes(BlockId::Hash(block_hash)).await;
+        match resp_block_by_hash {
+            Ok(MaybePendingBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 1),
+            _ => panic!("Unexpected resp: {resp_block_by_hash:?}"),
+        };
 
-        match resp {
-            Ok(MaybePendingBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 0),
-            _ => panic!("Unexpected resp: {resp:?}"),
+        let resp_latest_block = &fork_devnet.get_latest_block_with_tx_hashes().await;
+        match resp_latest_block {
+            Ok(b) => {
+                assert_eq!(b.block_number, 2);
+                assert_ne!(b.block_hash, origin_devnet_genesis_block.block_hash);
+            }
+            _ => panic!("Unexpected resp: {resp_latest_block:?}"),
         };
     }
 
@@ -518,10 +527,8 @@ mod fork_tests {
         // create another block on origin - shouldn't affect fork - asserted later
         origin_devnet.create_block().await.unwrap();
 
-        let block_after_fork = fork_devnet
-            .json_rpc_client
-            .get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest))
-            .await;
+        let block_after_fork =
+            fork_devnet.json_rpc_client.get_block_with_tx_hashes(BlockId::Number(2)).await;
 
         match block_after_fork {
             Ok(MaybePendingBlockWithTxHashes::Block(b)) => {
@@ -538,7 +545,7 @@ mod fork_tests {
 
         match new_fork_block {
             Ok(MaybePendingBlockWithTxHashes::Block(b)) => {
-                assert_eq!((b.block_hash, b.block_number), (new_fork_block_hash, 3));
+                assert_eq!((b.block_hash, b.block_number), (new_fork_block_hash, 4));
             }
             _ => panic!("Unexpected resp: {new_fork_block:?}"),
         };
@@ -575,7 +582,7 @@ mod fork_tests {
             .call(contract_call.clone(), BlockId::Tag(BlockTag::Latest))
             .await
             .unwrap();
-        assert_eq!(first_fork_block_number, [FieldElement::THREE]); // origin block + declare + deploy
+        assert_eq!(first_fork_block_number, [FieldElement::from(4_u8)]); // origin block + declare + deploy
 
         fork_devnet.create_block().await.unwrap();
 
@@ -584,6 +591,6 @@ mod fork_tests {
             .call(contract_call, BlockId::Tag(BlockTag::Latest))
             .await
             .unwrap();
-        assert_eq!(second_fork_block_number, [FieldElement::from(4_u8)]); // origin block + declare + deploy
+        assert_eq!(second_fork_block_number, [FieldElement::from(5_u8)]); // origin block + declare + deploy
     }
 }

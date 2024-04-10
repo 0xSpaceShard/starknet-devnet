@@ -50,16 +50,9 @@ mod get_class_hash_at_integration_tests {
                 .expect("Could not start Devnet");
         let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
 
-        let err = devnet
-            .json_rpc_client
-            .get_class_hash_at(BlockId::Number(0), contract_address)
-            .await
-            .expect_err("Should have failed");
-
-        match err {
-            ProviderError::StarknetError(StarknetError::BlockNotFound) => (),
-            _ => panic!("Invalid error: {err:?}"),
-        }
+        let result =
+            devnet.json_rpc_client.get_class_hash_at(BlockId::Number(0), contract_address).await;
+        assert!(result.is_ok());
     }
 
     #[tokio::test]
