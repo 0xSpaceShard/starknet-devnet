@@ -54,7 +54,7 @@ mod dump_and_load_tests {
         .expect("Could not start Devnet");
 
         let last_block = devnet_load.get_latest_block_with_tx_hashes().await.unwrap();
-        assert_eq!(last_block.block_number, 3);
+        assert_eq!(last_block.block_number, 4);
     }
 
     #[tokio::test]
@@ -435,7 +435,7 @@ mod dump_and_load_tests {
 
         let latest_block = devnet_load.get_latest_block_with_tx_hashes().await.unwrap();
 
-        assert_eq!(latest_block.block_number, 0);
+        assert_eq!(latest_block.block_number, 1);
         assert_eq!(latest_block.timestamp, past_time);
     }
 }
