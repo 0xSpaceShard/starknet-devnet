@@ -111,19 +111,16 @@ mod fork_tests {
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
-        let resp_block_hash =
+        let resp_block_by_hash =
             &fork_devnet.json_rpc_client.get_block_with_tx_hashes(BlockId::Hash(block_hash)).await;
-        match resp_block_hash {
+        match resp_block_by_hash {
             Ok(MaybePendingBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 1),
-            _ => panic!("Unexpected resp: {resp_block_hash:?}"),
+            _ => panic!("Unexpected resp: {resp_block_by_hash:?}"),
         };
 
-        let resp_latest_block = &fork_devnet
-            .json_rpc_client
-            .get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest))
-            .await;
+        let resp_latest_block = &fork_devnet.get_latest_block_with_tx_hashes().await;
         match resp_latest_block {
-            Ok(MaybePendingBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 2),
+            Ok(b) => assert_eq!(b.block_number, 2),
             _ => panic!("Unexpected resp: {resp_latest_block:?}"),
         };
     }
