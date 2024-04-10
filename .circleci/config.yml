@@ -171,8 +171,8 @@ workflows:
           # TODO <<: *on_main
           matrix:
             parameters:
-              arch: [x86_64] # TODO, aarch64]
-              platform: [unknown-linux-gnu] # TODO, unknown-linux-musl, apple-darwin]
+              arch: [x86_64, aarch64]
+              platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
           target_triplet: << matrix.arch >>-<< matrix.platform >>
           archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
 
