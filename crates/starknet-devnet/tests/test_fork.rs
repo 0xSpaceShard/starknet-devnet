@@ -106,6 +106,8 @@ mod fork_tests {
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
                 .unwrap();
+        let origin_devnet_genesis_block =
+            &origin_devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
         let block_hash = origin_devnet.create_block().await.unwrap();
 
@@ -120,7 +122,10 @@ mod fork_tests {
 
         let resp_latest_block = &fork_devnet.get_latest_block_with_tx_hashes().await;
         match resp_latest_block {
-            Ok(b) => assert_eq!(b.block_number, 2),
+            Ok(b) => {
+                assert_eq!(b.block_number, 2);
+                assert_ne!(b.block_hash, origin_devnet_genesis_block.block_hash);
+            }
             _ => panic!("Unexpected resp: {resp_latest_block:?}"),
         };
     }
