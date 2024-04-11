@@ -540,7 +540,7 @@ Updating the RPC requires following the specification files in the [starknet-spe
 
 ### Development - New Devnet version release
 
-To release a new version, increment the semver in Cargo.toml of those Devnet crates that have changed. Preferably create a separate PR for this, such as [this one](https://github.com/0xSpaceShard/starknet-devnet-rs/pull/398).
+To release a new version, increment the semver in Cargo.toml of those Devnet crates that have changed. Use `scripts/check_crate_changes.sh` for this. Preferably create a separate PR for the increment, such as [this one](https://github.com/0xSpaceShard/starknet-devnet-rs/pull/398).
 
 The publishing of crates and Docker images is done automatically in CI when merged into the main branch.
 
