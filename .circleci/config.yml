@@ -14,8 +14,8 @@ aliases:
     <<: *on_main
     requires:
       - build-and-test
-      - image-build-amd
-      - image-build-arm
+      # - image-build-amd
+      # - image-build-arm
       - binary-build
 
   - &linux_build
@@ -122,8 +122,7 @@ jobs:
           command: /tmp/cross build --release --target=<< parameters.target_triplet >>
       - run:
           name: Archive and compress binary artifact # only the file, not the whole dir structure
-          command: tar -czvf << parameters.archive_path >> \
-            --directory target/<< parameters.target_triplet >>/release starknet-devnet
+          command: tar -czvf << parameters.archive_path >> --directory target/<< parameters.target_triplet >>/release starknet-devnet
       - store_artifacts: # to later include them in github release
           path: << parameters.archive_path >>
 
@@ -171,7 +170,7 @@ jobs:
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
-  build-test-publish:
+  build-test-maybe-publish:
     jobs:
       - build-and-test:
           cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
@@ -183,10 +182,10 @@ workflows:
               platform: [unknown-linux-gnu] # TODO, unknown-linux-musl, apple-darwin]
           target_triplet: << matrix.arch >>-<< matrix.platform >>
           archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
-      - image-build-amd:
-          <<: *on_main
-      - image-build-arm:
-          <<: *on_main
+      # - image-build-amd:
+      #     <<: *on_main
+      # - image-build-arm:
+      #     <<: *on_main
       # TODO uncomment
       #- publish:
       #    <<: *on_main_after_test_and_build
