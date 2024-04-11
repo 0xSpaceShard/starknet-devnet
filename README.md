@@ -70,7 +70,7 @@ $ cargo install starknet-devnet
 ### Installing from github
 
 - Use the `--locked` flag to ensure using the dependencies listed in [the lock file](/Cargo.lock)
-- Preferrably familiarize yourself with the `cargo install` command ([docs](https://doc.rust-lang.org/cargo/commands/cargo-install.html#dealing-with-the-lockfile))
+- Preferably familiarize yourself with the `cargo install` command ([docs](https://doc.rust-lang.org/cargo/commands/cargo-install.html#dealing-with-the-lockfile))
 
 ```
 $ cargo install --git https://github.com/0xSpaceShard/starknet-devnet-rs.git --locked
