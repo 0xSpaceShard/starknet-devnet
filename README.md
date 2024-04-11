@@ -20,7 +20,7 @@ This repository is work in progress, please be patient. Please check below the s
 
 ### Supported Features
 
-- [x] RPC v0.7.0
+- [x] [RPC support](#api)
 - [x] [Dump & Load](#dumping--loading)
 - [x] [Mint token - Local faucet](#mint-token)
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
@@ -39,7 +39,7 @@ This repository is work in progress, please be patient. Please check below the s
 
 ## Installation and running
 
-There are several approaches to installing and/or running Devnet.
+There are several approaches to installing and running Devnet.
 
 ### Requirements
 
@@ -49,7 +49,7 @@ The required Rust version is specified in [rust-toolchain.toml](rust-toolchain.t
 
 ### Install an executable binary
 
-Installing and running as a binary is achievable via `cargo install`. The project can be installed from crates.io and github.com.
+Installing and running as a binary is achievable with `cargo install` via crates.io or github.com.
 
 If in the past you installed [Pythonic Devnet](https://github.com/0xSpaceShard/starknet-devnet), be sure to have removed it to avoid name collision of the old and the new executable - if by no other means, then by `rm $(which starknet-devnet)`.
 
