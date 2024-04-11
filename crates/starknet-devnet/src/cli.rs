@@ -115,6 +115,12 @@ pub(crate) struct Args {
     #[arg(help = "Specify the path to dump to;")]
     dump_path: Option<String>,
 
+    #[arg(long = "blocks-on-demand")]
+    #[arg(value_name = "WHEN")]
+    #[arg(help = "Introduces block generation on demand via /create_block_on_demand endpoint;")]
+    #[arg(requires = "dump_path")]
+    blocks_on_demand: Option<bool>,
+
     #[arg(long = "state-archive-capacity")]
     #[arg(value_name = "STATE_ARCHIVE_CAPACITY")]
     #[arg(default_value = "none")]
