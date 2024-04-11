@@ -8,7 +8,7 @@ aliases:
     filters:
       branches:
         only:
-          - main
+          - github-binary # TODO: restore to main
 
   - &on_main_after_test_and_build
     <<: *on_main
@@ -101,53 +101,55 @@ jobs:
         type: string
 
     executor: << parameters.platform >>
-
     environment:
       BIN_DIR: target/<< parameters.target_triplet >>/release
 
-      # For validating Docker build
-      REMOTE: ""
-
-      # For Docker image naming
-      ARCH_SUFFIX: -<< parameters.arch >>
-
     steps:
-      - run:
-          name: DEBUG docker buildx
-          command: docker buildx ls && exit 1
       - checkout
       - run:
           name: Install Rust
-          # CIRCLE_JOB contains job name, which we define to be the target triplet
           command: |
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain=1.74.0
       - run: rustup target add << parameters.target_triplet >>
       - run:
           name: Install Cross
           command: |
-            # curl -SsL https://github.com/cross-rs/cross/releases/download/v0.2.5/${COMPILER_ARCHIVE} |
-            #   tar -xvz -C /tmp
-            cargo install cross --git https://github.com/cross-rs/cross
+            curl -SsL https://github.com/cross-rs/cross/releases/download/v0.2.5/${COMPILER_ARCHIVE} |
+              tar -xvz -C /tmp
       - run:
-          name: Build
-          command: cross build --release --target=<< parameters.target_triplet >>
-          # command: /tmp/cross build --release --target=<< parameters.target_triplet >>
+          name: Compile binary
+          command: /tmp/cross build --release --target=<< parameters.target_triplet >>
       - run:
-          name: Archive and compress artifact
+          name: Archive and compress binary artifact
           command: tar -czvf << parameters.archive_path >> --directory ${BIN_DIR} starknet-devnet
       - store_artifacts: # to later include them in github release
           path: << parameters.archive_path >>
-      - when:
-          condition:
-            or:
-              - equal:
-                  [<< parameters.target_triplet >>, x86_64-unknown-linux-gnu]
-              - equal:
-                  [<< parameters.target_triplet >>, aarch64-unknown-linux-gnu]
-          steps:
-            - run:
-                name: Build Docker image
-                command: ./docker/image_build.sh
+
+  image-build-amd:
+    docker:
+      - image: cimg/base:2021.04
+    resource_class: large
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: docker23
+      - run:
+          name: Build amd images
+          command: ./docker/image_build.sh
+          environment:
+            ARCH_SUFFIX: -amd
+
+  image-build-arm:
+    machine:
+      image: ubuntu-2204:2024.01.2
+    resource_class: arm.large
+    steps:
+      - checkout
+      - run:
+          name: Build arm images
+          command: ./docker/image_build.sh
+          environment:
+            ARCH_SUFFIX: -arm
 
   publish:
     docker:
@@ -171,15 +173,17 @@ workflows:
     jobs:
       - build-and-test:
           cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
-
       - build-binaries:
-          # TODO <<: *on_main
+          <<: *on_main
           matrix:
             parameters:
               arch: [x86_64, aarch64]
               platform: [unknown-linux-gnu] # TODO, unknown-linux-musl, apple-darwin]
           target_triplet: << matrix.arch >>-<< matrix.platform >>
           archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
-
+      - image-build-amd:
+          <<: *on_main
+      - image-build-arm:
+          <<: *on_main
       - publish:
           <<: *on_main_after_test_and_build

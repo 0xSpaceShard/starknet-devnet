@@ -24,7 +24,7 @@ function validate_and_push() {
         "$tagged_image" \
         --port "$internal_port"
 
-    sleep 10 # alternatively check in a loop
+    sleep 10 # allow some time to spawn; alternatively check in a loop
 
     # logging can be helpful if Devnet exited early
     docker logs "$container_name"
@@ -42,12 +42,6 @@ function validate_and_push() {
 }
 
 echo "Building ${ARCH_SUFFIX} images tagged with sha1 commit digest"
-
-# BIN_PATH is in target/, which is ignored by Dockerfile. Not to make .dockerignore unintuitive
-# by allowing target/, we just copy the binary some place visible (tmp).
-mkdir tmp
-VISIBLE_BIN_PATH="tmp/starknet-devnet"
-cp "$BIN_DIR/starknet-devnet" "$VISIBLE_BIN_PATH"
 
 SHA1_TAG="${CIRCLE_SHA1}${ARCH_SUFFIX}"
 BASE_IMAGE="${IMAGE}:${SHA1_TAG}"

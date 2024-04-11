@@ -22,13 +22,13 @@ function create_and_push_manifest() {
     local joint_manifest="$IMAGE:${manifest_prefix}${seed_suffix}"
 
     docker manifest create $joint_manifest \
-        "$IMAGE:${CIRCLE_SHA1}-aarch64${seed_suffix}" \
-        "$IMAGE:${CIRCLE_SHA1}-x86_64${seed_suffix}"
+        "$IMAGE:${CIRCLE_SHA1}-arm${seed_suffix}" \
+        "$IMAGE:${CIRCLE_SHA1}-amd${seed_suffix}"
 
     docker manifest push "$joint_manifest"
 }
 
-echo "Creating a joint docker manifest for each pair of -aarch64 and -x86_64 images."
+echo "Creating a joint docker manifest for each pair of -arm and -amd images."
 
 # construct the image tag from the version
 # check if the image tag exists in docker registry
@@ -36,7 +36,7 @@ echo "Creating a joint docker manifest for each pair of -aarch64 and -x86_64 ima
 for seed_suffix in "" "-seed0"; do
     # Pull the pair
     # and tag the image with the crate version if not done yet
-    for image_suffix in "-aarch64" "-x86_64"; do
+    for image_suffix in "-arm" "-amd"; do
         image_tag_with_commit_hash="$IMAGE:${CIRCLE_SHA1}${image_suffix}${seed_suffix}"
         docker pull "$image_tag_with_commit_hash"
 
