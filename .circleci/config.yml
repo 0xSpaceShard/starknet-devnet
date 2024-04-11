@@ -122,11 +122,13 @@ jobs:
       - run:
           name: Install Cross
           command: |
-            curl -SsL https://github.com/cross-rs/cross/releases/download/v0.2.5/${COMPILER_ARCHIVE} |
-              tar -xvz -C /tmp
+            # curl -SsL https://github.com/cross-rs/cross/releases/download/v0.2.5/${COMPILER_ARCHIVE} |
+            #   tar -xvz -C /tmp
+            cargo install cross --git https://github.com/cross-rs/cross
       - run:
           name: Build
-          command: /tmp/cross build --release --target=<< parameters.target_triplet >>
+          command: cross build --release --target=<< parameters.target_triplet >>
+          # command: /tmp/cross build --release --target=<< parameters.target_triplet >>
       - run:
           name: Archive and compress artifact
           command: tar -czvf << parameters.archive_path >> --directory ${BIN_DIR} starknet-devnet
