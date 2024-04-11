@@ -4,28 +4,34 @@ mod blocks_on_demand_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     
+    static DUMMY_ADDRESS: u128 = 1;
+    static DUMMY_AMOUNT: u128 = 1;
+
     #[tokio::test]
     async fn blocks_on_demand() {
         let devnet: BackgroundDevnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
                 .await
                 .expect("Could not start Devnet");
+        
+        let x1 = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        println!("x1: {:?}", x1);
 
-        // TODO: add blocks-on-demand endpoint
-    }
+        let x2 = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        println!("x2: {:?}", x2);
+        
+        let x3 = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        println!("x3: {:?}", x3);
 
-    #[tokio::test]
-    async fn pending_block() {
-        let devnet: BackgroundDevnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
-                .await
-                .expect("Could not start Devnet");
-        let genesis_block_hash = devnet.get_latest_block_with_tx_hashes().await.unwrap().block_hash;
-        let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
+        let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+        println!("latest_block: {:?}", latest_block);
 
-        println!("genesis_block_hash: {:?}", genesis_block_hash);
-        println!("pending_block: {:?}", pending_block);
+        let new_block_hash = devnet.create_block().await.unwrap();
+        println!("new_block_hash: {:?}", new_block_hash);
 
-        // devnet.create_block();
+        let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+        println!("latest_block: {:?}", latest_block);
+        println!("latest_block.block_number: {:?}", latest_block.block_number);
+        println!("latest_block.transactions.len(): {:?}", latest_block.transactions.len());
     }
 }

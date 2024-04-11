@@ -439,7 +439,7 @@ impl Starknet {
         self.transactions.insert(transaction_hash, transaction_to_add);
 
         // create new block from pending one
-        self.generate_new_block(state_diff)?;
+        // self.generate_new_block(state_diff)?;
 
         Ok(())
     }
@@ -1099,7 +1099,11 @@ impl Starknet {
 
     /// create new block from pending one
     pub fn create_block(&mut self) -> DevnetResult<(), Error> {
+        let blocks_on_demand = self.config.blocks_on_demand;
+        println!("blocks_on_demand: {:?}", blocks_on_demand);
+
         self.generate_new_block(StateDiff::default())?;
+
         Ok(())
     }
 
