@@ -19,7 +19,7 @@ aliases:
   - &linux_build
     machine:
       image: ubuntu-2204:2024.01.2
-    resource_class: large
+    resource_class: arm.large
     environment:
       COMPILER_ARCHIVE: cross-x86_64-unknown-linux-gnu.tar.gz
 
@@ -172,7 +172,7 @@ workflows:
           matrix:
             parameters:
               arch: [x86_64, aarch64]
-              platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
+              platform: [unknown-linux-gnu] # TODO, unknown-linux-musl, apple-darwin]
           target_triplet: << matrix.arch >>-<< matrix.platform >>
           archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
 
