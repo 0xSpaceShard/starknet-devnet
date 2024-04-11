@@ -21,7 +21,7 @@ aliases:
       image: ubuntu-2204:2024.01.2
     resource_class: large
     environment:
-      COMPILER_ARCHIVE: cross-aarch64-unknown-linux-gnu.tar.gz
+      COMPILER_ARCHIVE: cross-x86_64-unknown-linux-gnu.tar.gz
 
 executors:
   unknown-linux-gnu:
