@@ -112,6 +112,9 @@ jobs:
       ARCH_SUFFIX: -<< parameters.arch >>
 
     steps:
+      - run:
+          name: DEBUG docker buildx
+          command: docker buildx ls && exit 1
       - checkout
       - run:
           name: Install Rust
