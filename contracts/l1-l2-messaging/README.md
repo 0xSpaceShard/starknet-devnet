@@ -1,6 +1,6 @@
 # Devnet contracts for development
 
-This folder contains Cairo and Solidity contracts for Devnet developement.
+This folder contains Cairo and Solidity contracts for Devnet development.
 If you wish to check specifically one of the two chains README, please refer to the corresponding README:
 1. `solidity` folder for Ethereum related contracts with the [README](./solidity/README.md).
 2. `cairo` folder for Starknet related contracts, and example of how to work with starknet without running an L1 node in the [README](./cairo/README.md).
@@ -28,7 +28,7 @@ Now both nodes are running, Devnet for Starknet and Anvil for Ethereum.
 
 Then, open a third terminal **in the same directory of this README**, from which we will operate on the running nodes:
 ```bash
-# This .env file combines variables for both chain.
+# This .env file combines variables for both chains.
 source ./.env
 
 # Compile cairo contracts.
@@ -130,9 +130,9 @@ curl -H 'Content-Type: application/json' -X POST http://127.0.0.1:5050/postman/f
 }
 ```
 
-### Etherum receive message and send message to L2
-1. Now the message is received, we can consume it. You can try to run this command several time,
-   you'll see the transaction reverting with `INVALID_MESSAGE_TO_CONSUME` once the message is consumed once. To consume the message, we have to provide it's content (balance of 1 to user 1).
+### Ethereum receive message and send message to L2
+1. Now the message is received, we can consume it. You can try to run this command several times,
+   you'll see the transaction reverting with `INVALID_MESSAGE_TO_CONSUME` once the message is consumed once. To consume the message, we have to provide its content (balance of 1 to user 1).
 ```bash
 cast send 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "withdraw(uint256, uint256, uint256)" \
      0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba 0x1 0x1 \
@@ -251,4 +251,4 @@ To quickly setup the nodes for testing and re-run this exact sequence after rest
 ```bash
 bash run_e2e.sh
 ```
-It's important to note that those operations must be done in this exact order to ensure that hard-coded addresses used in this guide are stil valid.
+It's important to note that those operations must be done in this exact order to ensure that hard-coded addresses used in this guide are still valid.
