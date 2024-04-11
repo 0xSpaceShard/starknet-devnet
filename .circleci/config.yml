@@ -14,7 +14,7 @@ aliases:
     <<: *on_main
     requires:
       - build-and-test
-      - build-binaries
+      - binary-build
 
   - &linux_build
     machine:
@@ -89,7 +89,7 @@ jobs:
           # fails if jobs not limited; read more in https://github.com/0xSpaceShard/starknet-devnet-rs/issues/378
           command: cargo test --jobs 3 --test '*' --no-fail-fast
 
-  build-binaries:
+  binary-build:
     parameters:
       arch:
         type: string
@@ -101,15 +101,14 @@ jobs:
         type: string
 
     executor: << parameters.platform >>
-    environment:
-      BIN_DIR: target/<< parameters.target_triplet >>/release
 
     steps:
       - checkout
       - run:
           name: Install Rust
           command: |
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain=1.74.0
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
+              sh -s -- -y --default-toolchain=1.74.0
       - run: rustup target add << parameters.target_triplet >>
       - run:
           name: Install Cross
@@ -120,8 +119,9 @@ jobs:
           name: Compile binary
           command: /tmp/cross build --release --target=<< parameters.target_triplet >>
       - run:
-          name: Archive and compress binary artifact
-          command: tar -czvf << parameters.archive_path >> --directory ${BIN_DIR} starknet-devnet
+          name: Archive and compress binary artifact # only the file, not the whole dir structure
+          command: tar -czvf << parameters.archive_path >> \
+            --directory target/<< parameters.target_triplet >>/release starknet-devnet
       - store_artifacts: # to later include them in github release
           path: << parameters.archive_path >>
 
@@ -169,11 +169,11 @@ jobs:
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
-  main:
+  build-test-publish:
     jobs:
       - build-and-test:
           cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
-      - build-binaries:
+      - binary-build:
           <<: *on_main
           matrix:
             parameters:

@@ -48,8 +48,7 @@ BASE_IMAGE="${IMAGE}:${SHA1_TAG}"
 echo "Building regular (unseeded) image: $SHA1_TAG"
 docker build . \
     -f docker/Dockerfile \
-    -t "$BASE_IMAGE" \
-    --build-arg BIN_PATH="$VISIBLE_BIN_PATH"
+    -t "$BASE_IMAGE"
 
 SEED_SUFFIX="-seed0"
 SHA1_SEEDED_TAG="${SHA1_TAG}${SEED_SUFFIX}"
