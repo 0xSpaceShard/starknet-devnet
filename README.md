@@ -26,7 +26,7 @@ This repository is work in progress, please be patient. Please check below the s
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
 - [x] [Starknet.js test suite passes 100%](https://github.com/starknet-io/starknet.js/actions)
 - [x] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
-- [x] [Availability as a package (crate)](#installing-from-cratesio)
+- [x] [Availability as a package (crate)](#install-an-executable-binary)
 - [x] [Forking](#forking)
 - [x] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
 - [x] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
@@ -37,37 +37,29 @@ This repository is work in progress, please be patient. Please check below the s
 
 - [ ] Creating blocks on demand
 
-## Requirements
+## Installation and running
 
-Make sure to have installed [Rust](https://www.rust-lang.org/tools/install).
+There are several approaches to installing and/or running Devnet.
+
+### Requirements
+
+Any of the approaches below that mention `cargo` require you to have installed [Rust](https://www.rust-lang.org/tools/install).
 
 The required Rust version is specified in [rust-toolchain.toml](rust-toolchain.toml) and handled automatically by `cargo`.
 
-## Run from source
-
-After git-cloning this repository, install and run the project with:
-
-```
-$ cargo run
-```
-
-For a more optimized and faster performance (though with a longer compilation time), run with:
-
-```
-$ cargo run --release
-```
-
-## Run as a binary
+### Install an executable binary
 
 Installing and running as a binary is achievable via `cargo install`. The project can be installed from crates.io and github.com.
 
-### Installing from crates.io
+If in the past you installed [Pythonic Devnet](https://github.com/0xSpaceShard/starknet-devnet), be sure to have removed it to avoid name collision of the old and the new executable - if by no other means, then by `rm $(which starknet-devnet)`.
+
+#### Install from crates.io
 
 ```
 $ cargo install starknet-devnet
 ```
 
-### Installing from github
+#### Install from GitHub
 
 - Use the `--locked` flag to ensure using the dependencies listed in [the lock file](/Cargo.lock)
 - Preferably familiarize yourself with the `cargo install` command ([docs](https://doc.rust-lang.org/cargo/commands/cargo-install.html#dealing-with-the-lockfile))
@@ -76,17 +68,46 @@ $ cargo install starknet-devnet
 $ cargo install --git https://github.com/0xSpaceShard/starknet-devnet-rs.git --locked
 ```
 
-When the installation finishes, follow the output in your terminal.
+#### Run the installed executable
 
-## Run with Docker
+When `cargo install` finishes, follow the output in your terminal. If properly configured, you should be able to run Devnet with:
 
-This application is available as a Docker image ([Docker Hub link](https://hub.docker.com/r/shardlabs/starknet-devnet-rs/)). To download the `latest` image, run:
+```
+$ starknet-devnet
+```
+
+### Run from source
+
+After [git-cloning](https://github.com/git-guides/git-clone) this repository, running the following command will install, build and start Devnet:
+
+```
+$ cargo run
+```
+
+For a more optimized and faster performance (though with a longer compilation time), run:
+
+```
+$ cargo run --release
+```
+
+### Fetch a pre-compiled binary executable
+
+Since Devnet v0.0.5, the Assets section of each [GitHub release](https://github.com/0xSpaceShard/starknet-devnet-rs/releases) contains a set of platform-specific pre-compiled binary executables. Extract and run with:
+
+```
+$ curl https://github.com/0xSpaceShard/starknet-devnet-rs/releases/download/<VERSION>/<COMPRESSED_ARCHIVE> | tar -xvzf -C <TARGET_DIR>
+$ <TARGET_DIR>/starknet-devnet
+```
+
+### Run with Docker
+
+Devnet is available as a Docker image ([Docker Hub link](https://hub.docker.com/r/shardlabs/starknet-devnet-rs/)). To download the `latest` image, run:
 
 ```text
 $ docker pull shardlabs/starknet-devnet-rs
 ```
 
-Supported architectures: arm64 and amd64.
+Supported platforms: linux/amd64 and linux/arm64 (also executable on darwin/arm64).
 
 Running a container is done like this (see [port publishing](#container-port-publishing) for more info):
 
@@ -150,7 +171,7 @@ If you don't specify the `HOST` part, the server will indeed be available on all
 Check out the CLI options with:
 
 ```
-$ cargo run -- --help
+$ starknet-devnet --help
 ```
 
 Or if using dockerized Devnet:
@@ -168,7 +189,7 @@ All logging levels: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`
 To specify the logging level and run Devnet on the same line:
 
 ```
-$ RUST_LOG=<LEVEL> cargo run
+$ RUST_LOG=<LEVEL> starknet-devnet
 ```
 
 or if using dockerized Devnet:
@@ -229,20 +250,20 @@ To preserve your Devnet instance for future use, these are the options:
 - Dumping on exit (handles Ctrl+C, i.e. SIGINT, doesn't handle SIGKILL):
 
 ```
-cargo run -- --dump-on exit --dump-path <PATH>
+$ starknet-devnet --dump-on exit --dump-path <PATH>
 ```
 
 - Dumping after each transaction:
 
 ```
-cargo run -- --dump-on transaction --dump-path <PATH>
+$ starknet-devnet --dump-on transaction --dump-path <PATH>
 ```
 
 - Dumping on request requires providing --dump-on mode on the startup. Example usage in `exit` mode (replace `<HOST>`, `<PORT>` and `<PATH>` with your own):
 
 ```
-cargo run -- --dump-on exit --dump-path <PATH>
-curl -X POST http://<HOST>:<PORT>/dump -d '{ "path": <PATH> }' -H "Content-Type: application/json"
+$ starknet-devnet --dump-on exit --dump-path <PATH>
+$ curl -X POST http://<HOST>:<PORT>/dump -d '{ "path": <PATH> }' -H "Content-Type: application/json"
 ```
 
 ### Loading
@@ -252,7 +273,7 @@ To load a preserved Devnet instance, the options are:
 - Loading on startup (note the argument name is not `--load-path` as it was in Devnet-py):
 
 ```
-cargo run -- --dump-path <PATH>
+$ starknet-devnet --dump-path <PATH>
 ```
 
 - Loading on request:
@@ -368,7 +389,7 @@ POST /increase_time
 Devnet can be started with the `--start-time` argument, where `START_TIME_IN_SECONDS` should be greater than 0.
 
 ```
-cargo run -- --start-time <START_TIME_IN_SECONDS>
+$ starknet-devnet --start-time <START_TIME_IN_SECONDS>
 ```
 
 ## Timeout
@@ -376,7 +397,7 @@ cargo run -- --start-time <START_TIME_IN_SECONDS>
 Timeout can be passed to Devnet's HTTP server. This makes it easier to deploy and manage large contracts that take longer to execute.
 
 ```
-cargo run -- --timeout <TIMEOUT>
+$ starknet-devnet --timeout <TIMEOUT>
 ```
 
 ## Forking
@@ -384,7 +405,7 @@ cargo run -- --timeout <TIMEOUT>
 To interact with contracts deployed on mainnet or testnet, you can use the forking to simulate the origin and experiment with it locally, making no changes to the origin itself.
 
 ```
-cargo run -- --fork-network <URL> [--fork-block <BLOCK_NUMBER>]
+$ starknet-devnet --fork-network <URL> [--fork-block <BLOCK_NUMBER>]
 ```
 
 The value passed to `--fork-network` should be the URL to a Starknet JSON-RPC API provider. Specifying a `--fork-block` is optional; it defaults to the `"latest"` block at the time of Devnet's start-up. All calls will first try Devnet's state and then fall back to the forking block.
@@ -411,7 +432,7 @@ Response when not forking: `{}`
 With state archive capacity set to `full`, Devnet will store full state history. The default mode is `none`, where no old states are stored.
 
 ```
-cargo run -- --state-archive-capacity <CAPACITY>
+$ starknet-devnet --state-archive-capacity <CAPACITY>
 ```
 
 All RPC endpoints that support querying the state at an old (non-latest) block only work with state archive capacity set to `full`.
@@ -473,13 +494,13 @@ To ensure that integration tests pass, be sure to have run `cargo build --releas
 Run all tests using all available CPUs with:
 
 ```
-cargo test
+$ cargo test
 ```
 
 The previous command might cause your testing to die along the way due to memory issues. In that case, limiting the number of jobs helps, but depends on your machine (rule of thumb: N=6):
 
 ```
-cargo test --jobs <N>
+$ cargo test --jobs <N>
 ```
 
 ### Development - Docker
@@ -516,6 +537,16 @@ Updating the underlying Starknet is done by updating the `blockifier` dependency
 ### Development - Updating JSON-RPC API
 
 Updating the RPC requires following the specification files in the [starknet-specs repository](https://github.com/starkware-libs/starknet-specs). The spec_reader testing utility requires these files to be copied into the Devnet repository. The `RPC_SPEC_VERSION` constant needs to be updated accordingly.
+
+### Development - New Devnet version release
+
+To release a new version, increment the semver in Cargo.toml of those Devnet crates that have changed. Preferably create a separate PR for this, such as [this one](https://github.com/0xSpaceShard/starknet-devnet-rs/pull/398).
+
+The publishing of crates and Docker images is done automatically in CI when merged into the main branch.
+
+When the CI workflow is done, create a git tag of the form `vX.Y.Z`, push it and create a GitHub release with notes describing changes since the last release.
+
+Attach the [binary artifacts built in CI](https://circleci.com/docs/artifacts/#artifacts-overview) to the release. The download of binaries can be done manually or with [this approach](https://circleci.com/docs/artifacts/#downloading-all-artifacts-for-a-build-on-circleci).
 
 ## ✏️ Contributing
 
