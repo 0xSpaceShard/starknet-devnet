@@ -8,14 +8,14 @@ aliases:
     filters:
       branches:
         only:
-          - github-binary # TODO: restore to main
+          - main
 
   - &on_main_after_test_and_build
     <<: *on_main
     requires:
       - build-and-test
-      # - image-build-amd
-      # - image-build-arm
+      - image-build-amd
+      - image-build-arm
       - binary-build
 
   - &linux_build
@@ -179,13 +179,12 @@ workflows:
           matrix:
             parameters:
               arch: [x86_64, aarch64]
-              platform: [unknown-linux-gnu] # TODO, unknown-linux-musl, apple-darwin]
+              platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
           target_triplet: << matrix.arch >>-<< matrix.platform >>
           archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
-      # - image-build-amd:
-      #     <<: *on_main
-      # - image-build-arm:
-      #     <<: *on_main
-      # TODO uncomment
-      #- publish:
-      #    <<: *on_main_after_test_and_build
+      - image-build-amd:
+          <<: *on_main
+      - image-build-arm:
+          <<: *on_main
+      - publish:
+          <<: *on_main_after_test_and_build
