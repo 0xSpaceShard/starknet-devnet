@@ -104,7 +104,7 @@ pub(crate) struct Args {
     chain_id: ChainId,
 
     #[arg(long = "dump-on")]
-    #[arg(value_name = "WHEN")]
+    #[arg(value_name = "EVENT")]
     #[arg(help = "Specify when to dump the state of Devnet;")]
     #[arg(requires = "dump_path")]
     dump_on: Option<DumpOn>,
