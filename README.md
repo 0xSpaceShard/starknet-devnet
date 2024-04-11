@@ -43,7 +43,7 @@ There are several approaches to installing and running Devnet.
 
 ### Requirements
 
-Any of the approaches below that mention `cargo` require you to have installed [Rust](https://www.rust-lang.org/tools/install).
+Any of the approaches below that mention `cargo` require you to have installed [Rust](https://www.rust-lang.org/tools/install). You might also need to install `pkg-config` and `make`.
 
 The required Rust version is specified in [rust-toolchain.toml](rust-toolchain.toml) and handled automatically by `cargo`.
 

@@ -31,7 +31,7 @@ function validate_and_push() {
 
     echo "Checking if devnet instance is alive"
     if [ -f /.dockerenv ]; then
-        # inside a container - need to check on docker host
+        # workflow inside a container - Devnet container spawned on a remote Docker host
         ssh remote-docker curl "$external_address/is_alive" -w "\n"
     else
         curl "$external_address/is_alive" -w "\n"

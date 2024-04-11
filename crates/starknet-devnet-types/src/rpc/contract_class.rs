@@ -47,11 +47,6 @@ impl ContractClass {
 
         Ok(sierra_contract_class)
     }
-
-    pub fn cairo_1_from_path(path: &str) -> DevnetResult<ContractClass> {
-        let json_str = std::fs::read_to_string(path)?;
-        Ok(ContractClass::Cairo1(ContractClass::cairo_1_from_sierra_json_str(&json_str)?))
-    }
 }
 
 impl From<Cairo0ContractClass> for ContractClass {
