@@ -438,8 +438,11 @@ impl Starknet {
 
         self.transactions.insert(transaction_hash, transaction_to_add);
 
-        // create new block from pending one
-        // self.generate_new_block(state_diff)?;
+        // create new block from pending one, only if block on-demand mode is disabled 
+        if !self.config.blocks_on_demand
+        {
+            self.generate_new_block(state_diff)?;
+        }
 
         Ok(())
     }
