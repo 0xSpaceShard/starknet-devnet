@@ -202,13 +202,11 @@ $ docker run -e RUST_LOG=<LEVEL> shardlabs/starknet-devnet-rs
 
 Unlike Pythonic Devnet, which supported the gateway and feeder gateway API, Devnet in Rust only supports JSON-RPC. Since JSON-RPC v0.6.0, to find out which JSON-RPC version is supported by which Devnet version, check out the [releases page](https://github.com/0xspaceshard/starknet-devnet-rs/releases).
 
-Below is the list of old RPC versions supported by Devnet, usable as git tags or branches.
+Below is the list of old RPC versions supported by Devnet, usable as git tags or branches. They should be used with `git checkout <REVISION>`.
 
 - `json-rpc-v0.4.0`
 - `json-rpc-v0.5.0`
 - `json-rpc-v0.5.1`
-
-These revisions should be used with `git checkout <REVISION>`.
 
 The JSON-RPC API is reachable via `/rpc` and `/` (e.g. if spawning Devnet with default settings, these URLs have the equivalent functionality: `http://127.0.0.1:5050/rpc` and `http://127.0.0.1:5050/`)
 
