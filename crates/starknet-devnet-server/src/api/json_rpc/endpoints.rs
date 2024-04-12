@@ -207,6 +207,11 @@ impl JsonRpcHandler {
         match self.api.starknet.write().await.get_class_at(block_id.as_ref(), contract_address) {
             Ok(contract_class) => Ok(StarknetResponse::ContractClass(contract_class.try_into()?)),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(Error::StateError(StateError::NoneClassHash(_))) => {
+                // NoneClassHash can be returned only when forking, otherwise it means that
+                // address locally is present, but class hash isn't, which is a bug.
+                Err(ApiError::ClassHashNotFound)
+            }
             Err(Error::ContractNotFound | Error::StateError(_)) => Err(ApiError::ContractNotFound),
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
