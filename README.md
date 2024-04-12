@@ -538,13 +538,15 @@ Updating the RPC requires following the specification files in the [starknet-spe
 
 ### Development - New Devnet version release
 
-To release a new version, increment the semver in Cargo.toml of those Devnet crates that have changed. Use `scripts/check_crate_changes.sh` for this. Preferably create a separate PR for the increment, such as [this one](https://github.com/0xSpaceShard/starknet-devnet-rs/pull/398).
+To release a new version, follow these steps:
 
-The publishing of crates and Docker images is done automatically in CI when merged into the main branch.
+1. Increment the semver in Cargo.toml of those Devnet crates that have changed. Use `scripts/check_crate_changes.sh` for this. Preferably create a separate PR for the increment, such as [this one](https://github.com/0xSpaceShard/starknet-devnet-rs/pull/398).
 
-When the CI workflow is done, create a git tag of the form `vX.Y.Z`, push it and create a GitHub release with notes describing changes since the last release.
+2. The publishing of crates and Docker images is done automatically in CI when merged into the main branch.
 
-Attach the [binary artifacts built in CI](https://circleci.com/docs/artifacts/#artifacts-overview) to the release. The download of binaries can be done manually or with [this approach](https://circleci.com/docs/artifacts/#downloading-all-artifacts-for-a-build-on-circleci).
+3. When the CI workflow is done, create a git tag of the form `vX.Y.Z`, push it and create a GitHub release with notes describing changes since the last release.
+
+4. Attach the [binary artifacts built in CI](https://circleci.com/docs/artifacts/#artifacts-overview) to the release. You can use `scripts/fetch_ci_binaries.py`
 
 ## ✏️ Contributing
 
