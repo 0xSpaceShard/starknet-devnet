@@ -6,7 +6,7 @@ use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractCl
 use starknet_types::felt::Felt;
 use starknet_types::traits::HashProducer;
 
-use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_PATH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH};
+use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT, CAIRO_1_ACCOUNT_CONTRACT_SIERRA};
 use crate::error::DevnetResult;
 
 #[derive(clap::ValueEnum, Debug, Clone)]
@@ -19,19 +19,16 @@ impl AccountContractClassChoice {
     pub fn get_class_wrapper(&self) -> DevnetResult<AccountClassWrapper> {
         Ok(match self {
             AccountContractClassChoice::Cairo0 => {
-                let contract_class = Cairo0ContractClass::RawJson(Cairo0Json::raw_json_from_path(
-                    CAIRO_0_ACCOUNT_CONTRACT_PATH,
-                )?);
+                let contract_json = Cairo0Json::raw_json_from_json_str(CAIRO_0_ACCOUNT_CONTRACT)?;
+                let contract_class = Cairo0ContractClass::RawJson(contract_json);
                 AccountClassWrapper {
                     class_hash: contract_class.generate_hash()?,
                     contract_class: ContractClass::Cairo0(contract_class),
                 }
             }
             AccountContractClassChoice::Cairo1 => {
-                let contract_class_str =
-                    std::fs::read_to_string(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH)?;
                 let contract_class = ContractClass::Cairo1(
-                    ContractClass::cairo_1_from_sierra_json_str(&contract_class_str)?,
+                    ContractClass::cairo_1_from_sierra_json_str(CAIRO_1_ACCOUNT_CONTRACT_SIERRA)?,
                 );
                 AccountClassWrapper { class_hash: contract_class.generate_hash()?, contract_class }
             }

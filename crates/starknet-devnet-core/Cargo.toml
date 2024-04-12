@@ -30,8 +30,17 @@ url = { workspace = true }
 nonzero_ext = { workspace = true }
 usc = { workspace = true }
 
+# necessary for installing reqwest in Docker
+openssl = { workspace = true }
+
 [dev-dependencies]
 hex = "0.4.3"
 
 [features]
 test_utils = []
+
+[package.metadata.cargo-machete]
+ignored = [
+    # read note above
+    "openssl"
+]
