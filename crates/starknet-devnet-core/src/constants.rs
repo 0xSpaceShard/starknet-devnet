@@ -31,6 +31,7 @@ pub const CAIRO_1_ERC20_CONTRACT: &str =
 pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: &str =
     "0x046ded64ae2dead6448e247234bab192a9c483644395b66f2155f2614e5804b0";
 
+/// only used in tests; if artifact needed in production, add a new constant that uses include_str!
 pub const CAIRO_0_ERC20_CONTRACT_PATH: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/ERC20_Mintable_OZ_0.2.0.json");
 
