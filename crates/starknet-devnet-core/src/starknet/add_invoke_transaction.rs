@@ -1,4 +1,5 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
+use starknet_api::state;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1;
 use starknet_types::rpc::transactions::invoke_transaction_v3::InvokeTransactionV3;
@@ -38,11 +39,18 @@ pub fn add_invoke_transaction(
         }
     };
 
+    println!("try execute on pending_state.state if blocks_on_demand");
+    let state = if starknet.config.blocks_on_demand {
+        &mut starknet.pending_state.state
+    } else {
+        &mut starknet.state.state
+    };
+
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::Invoke(
             blockifier_invoke_transaction,
         )
-        .execute(&mut starknet.state.state, &starknet.block_context, true, true);
+        .execute(state, &starknet.block_context, true, true);
 
     let transaction = TransactionWithHash::new(transaction_hash, invoke_transaction);
 

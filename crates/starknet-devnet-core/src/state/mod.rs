@@ -73,6 +73,7 @@ impl CommittedClassStorage {
 
 pub(crate) struct StarknetState {
     pub(crate) state: CachedState<DictState>,
+    // pub(crate) pending_state: CachedState<DictState>,
     rpc_contract_classes: CommittedClassStorage,
     /// - initially `None`
     /// - indicates the state hasn't yet been cloned for old-state preservation purpose

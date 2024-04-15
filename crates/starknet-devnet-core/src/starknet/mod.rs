@@ -15,7 +15,7 @@ use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, Ga
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{
-    BlockId, ExecutionResult, MsgFromL1, TransactionExecutionStatus, TransactionFinalityStatus,
+    BlockId, BlockTag, ExecutionResult, MsgFromL1, TransactionExecutionStatus, TransactionFinalityStatus
 };
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
@@ -85,6 +85,7 @@ pub(crate) mod transaction_trace;
 
 pub struct Starknet {
     pub(in crate::starknet) state: StarknetState,
+    pub pending_state: StarknetState, // is it needed?
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
     // To avoid repeating some logic related to blocks,
@@ -110,6 +111,7 @@ impl Default for Starknet {
                 DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
             ),
             state: Default::default(),
+            pending_state: Default::default(),
             predeployed_accounts: Default::default(),
             blocks: Default::default(),
             transactions: Default::default(),
@@ -193,6 +195,7 @@ impl Starknet {
             config.fork_config.block_number.map_or(DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, |n| n + 1);
         let mut this = Self {
             state,
+            pending_state: Default::default(),
             predeployed_accounts,
             block_context: Self::init_block_context(
                 config.gas_price,
@@ -218,6 +221,10 @@ impl Starknet {
             this.set_next_block_timestamp(start_time);
         };
         this.create_block()?;
+
+        // clone state after genesis block
+        this.pending_state = this.state.clone_historic();
+        // TODO: should it be reverse action for that?
 
         // Load starknet transactions
         if this.config.dump_path.is_some() && this.config.re_execute_on_init {
@@ -307,6 +314,13 @@ impl Starknet {
         }
 
         self.generate_pending_block()?;
+        
+        if self.config.blocks_on_demand {
+            // TODO: Why this doesn't work?
+            // TODO: is it needed? If yes where to put it?
+            // self.state.state.state = self.pending_state.state.state.clone();
+            self.state = self.pending_state.clone_historic();
+        }
 
         Ok(new_block_hash)
     }
@@ -343,6 +357,8 @@ impl Starknet {
             )
         }
 
+        let state = &mut self.state; // or &mut self.pending_state;
+
         match transaction_result {
             Ok(tx_info) => {
                 // If transaction is not reverted
@@ -353,21 +369,21 @@ impl Starknet {
                             declare_contract_class(
                                 &declare_v1.class_hash,
                                 contract_class,
-                                &mut self.state,
+                                state,
                             )?
                         }
                         Transaction::Declare(DeclareTransaction::V2(declare_v2)) => {
                             declare_contract_class(
                                 &declare_v2.class_hash,
                                 contract_class,
-                                &mut self.state,
+                                state,
                             )?
                         }
                         Transaction::Declare(DeclareTransaction::V3(declare_v3)) => {
                             declare_contract_class(
                                 declare_v3.get_class_hash(),
                                 contract_class,
-                                &mut self.state,
+                                state,
                             )?
                         }
                         _ => {}
@@ -549,7 +565,16 @@ impl Starknet {
 
     fn get_mut_state_at(&mut self, block_id: &BlockId) -> DevnetResult<&mut StarknetState> {
         match block_id {
-            BlockId::Tag(_) => Ok(&mut self.state),
+            BlockId::Tag(BlockTag::Latest) => {
+                println!("get_mut_state_at BlockTag::Latest");
+
+                Ok(&mut self.state)
+            },
+            BlockId::Tag(BlockTag::Pending) => {
+                println!("get_mut_state_at BlockTag::Pending");
+
+                Ok(&mut self.pending_state)
+            },
             _ => {
                 if self.config.state_archive == StateArchiveCapacity::None {
                     return Err(Error::NoStateAtBlock { block_id: *block_id });
@@ -599,7 +624,16 @@ impl Starknet {
         calldata: Vec<Felt>,
     ) -> DevnetResult<Vec<Felt>> {
         let block_context = self.block_context.clone();
+
+        let blocks_on_demand = self.config.blocks_on_demand;
+        
         let state = self.get_mut_state_at(block_id)?;
+
+        // let transactional_state = if blocks_on_demand {
+        //     &mut self.pending_state.state
+        // } else {
+        //     &mut state.state
+        // };
 
         state.assert_contract_deployed(ContractAddress::new(contract_address)?)?;
 
@@ -710,6 +744,8 @@ impl Starknet {
         let nonce = self.state.get_nonce_at(starknet_api::core::ContractAddress::try_from(
             starknet_api::hash::StarkFelt::from(chargeable_address_felt),
         )?)?;
+        
+        println!("mint mint mint!!!");
 
         let (high, low) = split_biguint(amount)?;
 
