@@ -47,26 +47,31 @@ def write_artifacts(workflow_id: str, artifact_infos: List[Tuple[str, str]]):
             print(target_path)
 
 
+def log_pipeline(workflow_id: str, pipeline: dict):
+    """Log pipeline info"""
+    print("ID:", workflow_id)
+    print("Time finished:", pipeline["stop_time"])
+    print("Status:", pipeline["status"])
+
+    commit_details = pipeline["all_commit_details"]
+    assert len(commit_details) == 1  # seems to always be one
+    print("Commit SHA:", commit_details[0]["commit"])
+
+
 def main():
     """Main functionality"""
+
+    print("Fetching binaries from the latest main workflow")
 
     pipelines = requests.get(DEVNET_CI_URL, timeout=HTTP_TIMEOUT).json()
     for pipeline in pipelines:
         # break from the latest workflow on main; assuming descending order
         if pipeline["branch"] == "main":
             workflow_id = pipeline["workflows"]["workflow_id"]
-
-            commit_details = pipeline["all_commit_details"]
-            assert len(commit_details) == 1
-            commit_sha = commit_details[0]["commit"]
-
+            log_pipeline(workflow_id, pipeline)
             break
     else:
         sys.exit("Error: Could not locate workflow ID")
-
-    print(
-        f"Fetching binaries from the latest main workflow: ID={workflow_id}, commit={commit_sha}"
-    )
 
     jobs = [
         pipeline["workflows"]
