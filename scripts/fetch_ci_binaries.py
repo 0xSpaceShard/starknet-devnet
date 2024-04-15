@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-"""Fetch executable binary artifacts from the latest Circle CI workflow on main"""
+"""Fetch executable binary artifacts from a Circle CI workflow"""
 
+import argparse
 import os
 import sys
 from typing import List, Optional, Tuple
@@ -62,23 +63,52 @@ def write_artifacts(workflow_id: str, artifact_infos: List[Tuple[str, str]]):
 def log_pipeline(workflow_id: str, pipeline: dict):
     """Log pipeline info"""
     print("ID:", workflow_id)
-    print("Time finished:", pipeline["stop_time"])
-    print("Status:", pipeline["status"])
+    print("Workflow finished at:", pipeline["stop_time"])
+    print("Workflow status:", pipeline["status"])
 
     commit_details = pipeline["all_commit_details"]
     assert len(commit_details) == 1  # seems to always be one
     print("Commit SHA:", commit_details[0]["commit"])
 
 
+PARSER = argparse.ArgumentParser(prog=__file__, description=__doc__)
+PARSER.add_argument(
+    "-w",
+    "--workflow",
+    metavar="ID",
+    help="""Specify the ID of the workflow whose artifacts you want to fetch. \
+The ID can be found in the CircleCI URL: \
+https://app.circleci.com/pipelines/github/0xSpaceShard/starknet-devnet-rs/1742/workflows/2c521658-35a7-4f15-a760-af5042491d35. \
+If omitted, defaults to the latest successful workflow on main""",
+)
+
+
+def get_workflow_predicate(workflow_arg: Optional[str]):
+    """
+    Get predicate for identifying the desired workflow.
+    If no user arg, defaults to the latest successful main workflow.
+    """
+    if workflow_arg:
+        print("Fetching binaries from workflow with ID:", workflow_arg)
+        return lambda pipeline: pipeline["workflows"]["workflow_id"] == workflow_arg
+
+    print("Fetching binaries from the latest successful workflow on main")
+    return (
+        lambda pipeline: pipeline["branch"] == "main"
+        and pipeline["status"] == "success"
+    )
+
+
 def main():
     """Main functionality"""
 
-    print("Fetching binaries from the latest main workflow")
+    args = PARSER.parse_args()
+    workflow_predicate = get_workflow_predicate(args.workflow)
 
     pipelines = requests.get(DEVNET_CI_URL, timeout=HTTP_TIMEOUT).json()
     for pipeline in pipelines:
-        # break from the latest workflow on main; assuming descending order
-        if pipeline["branch"] == "main":
+        # assuming a chronologically descending order
+        if workflow_predicate(pipeline):
             workflow_id = pipeline["workflows"]["workflow_id"]
             log_pipeline(workflow_id, pipeline)
             break
