@@ -19,6 +19,9 @@ ARTIFACT_URL_TEMPLATE = (
 
 BINARY_BUILD_JOB_PREFIX = "binary-build-"
 
+WARNING_COLOR = "\033[93m"
+END_COLOR = "\033[0m"
+
 
 def get_artifact_info(job: dict) -> Optional[Tuple[str, str]]:
     """
@@ -38,7 +41,15 @@ def get_artifact_info(job: dict) -> Optional[Tuple[str, str]]:
 
 def write_artifacts(workflow_id: str, artifact_infos: List[Tuple[str, str]]):
     """Write artifacts on disk"""
-    os.mkdir(workflow_id)
+    if os.path.exists(workflow_id):
+        print(
+            WARNING_COLOR
+            + f"Warning: Directory {workflow_id} already exists, overwriting its content"
+            + END_COLOR,
+            file=sys.stderr,
+        )
+    else:
+        os.mkdir(workflow_id)
 
     for artifact_url, artifact_name in artifact_infos:
         artifact_resp = requests.get(artifact_url, timeout=HTTP_TIMEOUT)
