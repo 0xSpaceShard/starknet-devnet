@@ -21,7 +21,7 @@ BINARY_BUILD_JOB_PREFIX = "binary-build-"
 def get_artifact_info(job: dict) -> Optional[Tuple[str, str]]:
     """
     Returns the artifact (URL, name) corresponding to job object.
-    Returns None if job not a binary build.
+    Returns None if job is not a binary build.
     """
     if job["job_name"].startswith("binary-build-"):
         job_id = job["job_id"]
