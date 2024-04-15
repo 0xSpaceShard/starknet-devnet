@@ -13,6 +13,8 @@ DEVNET_CI_URL = (
     "https://circleci.com/api/v1.1/project/github/0xSpaceShard/starknet-devnet-rs"
 )
 
+ARTIFACT_URL_TEMPLATE = "https://output.circle-artifacts.com/output/job/{}/{}"
+
 BINARY_BUILD_JOB_PREFIX = "binary-build-"
 
 
@@ -27,10 +29,7 @@ def get_artifact_info(job: dict) -> Optional[Tuple[str, str]]:
         artifact_name = (
             job_name.replace(BINARY_BUILD_JOB_PREFIX, "starknet-devnet-") + ".tar.gz"
         )
-        return (
-            f"https://output.circle-artifacts.com/output/job/{job_id}/{artifact_name}",
-            artifact_name,
-        )
+        return ARTIFACT_URL_TEMPLATE.format(job_id, artifact_name), artifact_name
 
     raise ValueError(f"Invalid job: {job}")
 
