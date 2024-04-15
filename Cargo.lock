@@ -5519,6 +5519,7 @@ dependencies = [
  "rand",
  "rand_chacha",
  "regex_generate",
+ "reqwest 0.10.10",
  "serde",
  "serde_json",
  "serde_yaml",

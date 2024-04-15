@@ -1,5 +1,4 @@
 use std::net::SocketAddr;
-use std::str::FromStr;
 
 use axum::routing::{get, post};
 use starknet_core::starknet::starknet_config::StarknetConfig;
@@ -23,7 +22,7 @@ pub fn serve_http_api_json_rpc(
     let origin_caller = if let (Some(url), Some(block_number)) =
         (&starknet_config.fork_config.url, starknet_config.fork_config.block_number)
     {
-        Some(OriginForwarder::new(hyper::Uri::from_str(url.as_str()).unwrap(), block_number))
+        Some(OriginForwarder::new(reqwest::Url::parse(url.as_str()).unwrap(), block_number))
     } else {
         None
     };
