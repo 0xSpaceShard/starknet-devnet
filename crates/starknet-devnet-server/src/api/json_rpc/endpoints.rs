@@ -209,7 +209,9 @@ impl JsonRpcHandler {
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(Error::StateError(StateError::NoneClassHash(_))) => {
                 // NoneClassHash can be returned only when forking, otherwise it means that
-                // address locally is present, but class hash isn't, which is a bug.
+                // contract_address is locally present, but its class hash isn't, which is a bug.
+                // ClassHashNotFound is not expected to be returned by the server, but to be handled
+                // by the forking logic as a signal to forward the request to the origin.
                 Err(ApiError::ClassHashNotFound)
             }
             Err(Error::ContractNotFound | Error::StateError(_)) => Err(ApiError::ContractNotFound),
