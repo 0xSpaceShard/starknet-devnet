@@ -249,13 +249,20 @@ mod fork_tests {
             .unwrap();
         assert_eq!(retrieved_class_hash, class_hash);
 
-        let retrieved_class = fork_devnet
+        let expected_sierra = ContractClass::Sierra(contract_class);
+        let retrieved_class_by_hash = fork_devnet
             .json_rpc_client
             .get_class(BlockId::Tag(BlockTag::Latest), class_hash)
             .await
             .unwrap();
-        assert_cairo1_classes_equal(retrieved_class, ContractClass::Sierra(contract_class))
+        assert_cairo1_classes_equal(retrieved_class_by_hash, expected_sierra.clone()).unwrap();
+
+        let retrieved_class_by_address = fork_devnet
+            .json_rpc_client
+            .get_class_at(BlockId::Tag(BlockTag::Latest), contract_address)
+            .await
             .unwrap();
+        assert_cairo1_classes_equal(retrieved_class_by_address, expected_sierra).unwrap();
     }
 
     #[tokio::test]
