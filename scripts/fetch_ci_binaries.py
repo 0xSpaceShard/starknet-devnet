@@ -13,7 +13,9 @@ DEVNET_CI_URL = (
     "https://circleci.com/api/v1.1/project/github/0xSpaceShard/starknet-devnet-rs"
 )
 
-ARTIFACT_URL_TEMPLATE = "https://output.circle-artifacts.com/output/job/{}/{}"
+ARTIFACT_URL_TEMPLATE = (
+    "https://output.circle-artifacts.com/output/job/{}/artifacts/0/{}"
+)
 
 BINARY_BUILD_JOB_PREFIX = "binary-build-"
 
