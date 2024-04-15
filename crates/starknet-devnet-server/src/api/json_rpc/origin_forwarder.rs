@@ -18,8 +18,7 @@ pub struct OriginForwarder {
     block_number: u64,
 }
 
-#[derive(Debug, thiserror::Error)]
-enum OriginInteractionError {}
+// TODO perhaps test with a forking origin using https scheme
 
 impl OriginForwarder {
     pub fn new(url: reqwest::Url, block_number: u64) -> Self {
