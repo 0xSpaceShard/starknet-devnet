@@ -16,7 +16,7 @@ mod test_account_selection {
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
         BlockId, BlockTag, FieldElement, FunctionCall, MaybePendingTransactionReceipt,
-        TransactionReceipt,
+        TransactionFinalityStatus, TransactionReceipt,
     };
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
@@ -113,11 +113,10 @@ mod test_account_selection {
 
         match deploy_account_receipt {
             MaybePendingTransactionReceipt::Receipt(TransactionReceipt::DeployAccount(receipt)) => {
+                assert_eq!(receipt.finality_status, TransactionFinalityStatus::AcceptedOnL2);
                 assert_eq!(receipt.contract_address, new_account_address);
             }
-            _ => {
-                panic!("Invalid receipt {:?}", deploy_account_receipt);
-            }
+            _ => panic!("Invalid receipt {:?}", deploy_account_receipt),
         }
     }
 
@@ -133,11 +132,8 @@ mod test_account_selection {
 
     #[tokio::test]
     async fn can_deploy_new_custom_account() {
-        can_deploy_new_account_test_body(&[
-            "--account-class-custom",
-            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
-        ])
-        .await;
+        let args = ["--account-class-custom", CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH];
+        can_deploy_new_account_test_body(&args).await;
     }
 
     /// Common body for tests defined below
@@ -220,10 +216,7 @@ mod test_account_selection {
 
     #[tokio::test]
     async fn can_declare_deploy_invoke_using_predeployed_custom() {
-        can_declare_deploy_invoke_using_predeployed_test_body(&[
-            "--account-class-custom",
-            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
-        ])
-        .await;
+        let args = ["--account-class-custom", CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH];
+        can_declare_deploy_invoke_using_predeployed_test_body(&args).await;
     }
 }
