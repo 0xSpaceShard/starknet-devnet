@@ -219,4 +219,66 @@ mod test_account_selection {
         let args = ["--account-class-custom", CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH];
         can_declare_deploy_invoke_using_predeployed_test_body(&args).await;
     }
+
+    static ISRC6_ID_HEX: &str = "0x2ceccef7f994940b3962a6c67e0ba4fcd37df7d131417c604f91e03caecc1cd";
+
+    #[tokio::test]
+    async fn test_interface_support_of_predeployed_account() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (_, account_address) = devnet.get_first_predeployed_account().await;
+
+        let interface_id = FieldElement::from_hex_be(ISRC6_ID_HEX).unwrap();
+        let call = FunctionCall {
+            contract_address: account_address,
+            entry_point_selector: get_selector_from_name("supports_interface").unwrap(),
+            calldata: vec![interface_id],
+        };
+
+        let resp = devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await;
+        match resp {
+            // TODO currently fails
+            Ok(supports) => assert_eq!(supports, vec![FieldElement::ONE]),
+            err => panic!("Unexpected resp: {err:?}"),
+        };
+    }
+
+    #[tokio::test]
+    async fn test_interface_support_of_newly_deployed_account() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        // TODO extract logic common to this and another test
+        let signer = get_deployable_account_signer();
+
+        let account_factory = OpenZeppelinAccountFactory::new(
+            FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap(),
+            CHAIN_ID,
+            signer,
+            devnet.clone_provider(),
+        )
+        .await
+        .unwrap();
+
+        let salt = FieldElement::THREE;
+        let deployment = account_factory
+            .deploy(salt)
+            .max_fee(FieldElement::from(1e18 as u128))
+            .nonce(FieldElement::ZERO);
+        let account_address = deployment.address();
+        devnet.mint(account_address, 1e18 as u128).await;
+
+        deployment.send().await.unwrap();
+
+        let interface_id = FieldElement::from_hex_be(ISRC6_ID_HEX).unwrap();
+        let call = FunctionCall {
+            contract_address: account_address,
+            entry_point_selector: get_selector_from_name("supports_interface").unwrap(),
+            calldata: vec![interface_id],
+        };
+
+        let resp = devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await;
+        match resp {
+            Ok(supports) => assert_eq!(supports, vec![FieldElement::ONE]),
+            err => panic!("Unexpected resp: {err:?}"),
+        };
+    }
 }
