@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::LowerHex;
 use std::net::TcpListener;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Command};
 use std::time;
 
 use hyper::client::HttpConnector;
@@ -198,8 +198,7 @@ impl BackgroundDevnet {
         let resp = self.post_json("/mint".into(), req_body).await.unwrap();
         let resp_status = resp.status();
         let resp_body = get_json_body(resp).await;
-        // assert_eq!(resp_status, StatusCode::OK, "Checking status of {resp_body:?}");
-        println!("Checking status of {resp_body:?}");
+        assert_eq!(resp_status, StatusCode::OK, "Checking status of {resp_body:?}");
 
         FieldElement::from_hex_be(resp_body["tx_hash"].as_str().unwrap()).unwrap()
     }
@@ -224,14 +223,25 @@ impl BackgroundDevnet {
     }
 
     /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`
+    /// from latest state
     pub async fn get_balance(
         &self,
         address: &FieldElement,
         unit: FeeUnit,
-        pending_block: bool,
     ) -> Result<FieldElement, anyhow::Error> {
-        let params = format!("address={:#x}&unit={}&pending_block={}", address, unit, pending_block);
-        println!("params: {:?}", params);
+        Self::get_balance_pending_block(self, address, unit, false).await
+    }
+
+    /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`
+    /// from pending state or latest state
+    pub async fn get_balance_pending_block(
+        &self,
+        address: &FieldElement,
+        unit: FeeUnit,
+        pending_state: bool,
+    ) -> Result<FieldElement, anyhow::Error> {
+        let params =
+            format!("address={:#x}&unit={}&pending_block={}", address, unit, pending_state);
 
         let resp = self.get("/account_balance", Some(params)).await?;
         let json_resp = get_json_body(resp).await;

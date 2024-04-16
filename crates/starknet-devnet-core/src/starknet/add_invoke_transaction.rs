@@ -1,5 +1,4 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
-use starknet_api::state;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1;
 use starknet_types::rpc::transactions::invoke_transaction_v3::InvokeTransactionV3;
