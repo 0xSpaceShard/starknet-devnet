@@ -38,13 +38,11 @@ pub fn add_invoke_transaction(
         }
     };
 
-    // TODO: so is it needed? Test is still passing
-    // let state = if starknet.config.blocks_on_demand {
-    //     &mut starknet.pending_state.state
-    // } else {
-    //     &mut starknet.state.state
-    // };
-    let state = &mut starknet.state.state;
+    let state = if starknet.config.blocks_on_demand {
+        &mut starknet.pending_state.state
+    } else {
+        &mut starknet.state.state
+    };
 
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::Invoke(

@@ -19,6 +19,8 @@ mod blocks_on_demand_tests {
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
         assert_eq!(latest_block.block_number, block_number);
         assert_eq!(latest_block.transactions.len() as u128, transactions_count);
+
+        // TODO: add status tx assert
     }
 
     async fn assert_balance(
@@ -38,7 +40,7 @@ mod blocks_on_demand_tests {
     }
 
     #[tokio::test]
-    async fn blocks_on_demand_mint() {
+    async fn blocks_on_demand_states_and_blocks() {
         let devnet: BackgroundDevnet =
             BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
                 .await
@@ -59,6 +61,10 @@ mod blocks_on_demand_tests {
         assert_latest_block(&devnet, 1, TX_COUNT).await;
     }
 
+    // TODO: fee estimation
+    // TODO: add status checks for blocks and txs
     // TODO: add invoke/call test?
-    // TODO: add dump/load test with block on demand mode
+    // TODO: set_time and increase_time
+    // TODO: no pending after creation?
+    // TODO: events and traces with blocks-on-demand?
 }

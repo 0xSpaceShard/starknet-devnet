@@ -436,6 +436,7 @@ impl Starknet {
     ) -> DevnetResult<()> {
         let state_diff = self.state.commit_with_diff()?;
         // TODO: so is it needed or not?
+        // TODO: extract this to function
         // let state_diff = if self.config.blocks_on_demand {
         //     self.pending_state.commit_with_diff()?
         // } else {
