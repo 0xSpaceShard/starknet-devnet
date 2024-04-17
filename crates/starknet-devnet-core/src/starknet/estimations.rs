@@ -55,9 +55,9 @@ pub fn estimate_fee(
                 ),
                 charge_fee,
                 skip_validate.then_some(false).or(validate), /* if skip validate is true, then
-                                                            * this means that this transaction
-                                                            * have to skip validation, because
-                                                            * the sender is impersonated */
+                                                              * this means that this transaction
+                                                              * have to skip validation, because
+                                                              * the sender is impersonated */
             )
         })
         .collect()

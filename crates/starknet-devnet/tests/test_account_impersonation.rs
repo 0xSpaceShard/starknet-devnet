@@ -1,35 +1,19 @@
 pub mod common;
 
 mod impersonated_account_tests {
-    
-    
 
     use serde_json::json;
-    
     use starknet_core::constants::STRK_ERC20_CONTRACT_ADDRESS;
-    use starknet_rs_accounts::{
-        Account, Call, ExecutionEncoding, SingleOwnerAccount,
-    };
-    
-    
+    use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedInvokeTransaction, ExecutionResult,
-        FieldElement,
+        BlockId, BlockTag, BroadcastedInvokeTransaction, ExecutionResult, FieldElement,
     };
-    use starknet_rs_core::utils::{
-        get_selector_from_name,
-    };
-    use starknet_rs_providers::{Provider};
-    
-    
+    use starknet_rs_core::utils::get_selector_from_name;
+    use starknet_rs_providers::Provider;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
-    
 
-    
     use crate::common::constants;
-    use crate::common::utils::{
-        spawn_forkable_devnet,
-    };
+    use crate::common::utils::spawn_forkable_devnet;
 
     const SEPOLIA_URL: &str = "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7";
     const SEPOLIA_GENESIS_BLOCK_HASH: &str =

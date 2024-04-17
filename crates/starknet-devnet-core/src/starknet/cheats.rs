@@ -2,7 +2,6 @@ use std::collections::HashSet;
 
 use starknet_types::contract_address::ContractAddress;
 
-
 #[derive(Default, Clone)]
 pub(crate) struct Cheats {
     impersonated_accounts: HashSet<ContractAddress>,
