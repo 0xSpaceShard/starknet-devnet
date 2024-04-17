@@ -35,20 +35,18 @@ pub async fn get_predeployed_accounts(
 pub struct BalanceQuery {
     address: Felt,
     unit: Option<FeeUnit>,
-    pending_block: bool,
+    pending_state: bool,
 }
 
 pub async fn get_account_balance(
     Extension(state): Extension<HttpApiHandler>,
     Query(params): Query<BalanceQuery>,
 ) -> HttpApiResult<Json<Balance>> {
-    // TODO: check here!!!
     let account_address = ContractAddress::new(params.address)
         .map_err(|e| HttpApiError::InvalidValueError { msg: e.to_string() })?;
     let unit = params.unit.unwrap_or(FeeUnit::WEI);
     let erc20_address = get_erc20_address(&unit);
-    let block_tag = if params.pending_block { BlockTag::Pending } else { BlockTag::Latest };
-    println!("block_tag: {:?}", block_tag);
+    let block_tag = if params.pending_state { BlockTag::Pending } else { BlockTag::Latest };
 
     let mut starknet = state.api.starknet.write().await;
 

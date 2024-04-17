@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::LowerHex;
 use std::net::TcpListener;
-use std::process::{Child, Command};
+use std::process::{Child, Command, Stdio};
 use std::time;
 
 use hyper::client::HttpConnector;
@@ -119,7 +119,7 @@ impl BackgroundDevnet {
                 .arg("--port")
                 .arg(free_port.to_string())
                 .args(Self::add_default_args(args))
-                // .stdout(Stdio::piped()) // comment this out for complete devnet stdout
+                .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
 
@@ -229,19 +229,19 @@ impl BackgroundDevnet {
         address: &FieldElement,
         unit: FeeUnit,
     ) -> Result<FieldElement, anyhow::Error> {
-        Self::get_balance_pending_block(self, address, unit, false).await
+        Self::get_balance_pending_state(self, address, unit, false).await
     }
 
     /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`
     /// from pending state or latest state
-    pub async fn get_balance_pending_block(
+    pub async fn get_balance_pending_state(
         &self,
         address: &FieldElement,
         unit: FeeUnit,
         pending_state: bool,
     ) -> Result<FieldElement, anyhow::Error> {
         let params =
-            format!("address={:#x}&unit={}&pending_block={}", address, unit, pending_state);
+            format!("address={:#x}&unit={}&pending_state={}", address, unit, pending_state);
 
         let resp = self.get("/account_balance", Some(params)).await?;
         let json_resp = get_json_body(resp).await;
@@ -322,14 +322,14 @@ impl BackgroundDevnet {
         }
     }
 
-    pub async fn get_pending_block_with_tx_hashes(
-        &self,
-    ) -> Result<BlockWithTxHashes, anyhow::Error> {
-        match self.json_rpc_client.get_block_with_tx_hashes(BlockId::Tag(BlockTag::Pending)).await {
-            Ok(MaybePendingBlockWithTxHashes::Block(b)) => Ok(b),
-            other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
-        }
-    }
+    // pub async fn get_pending_block_with_tx_hashes(
+    //     &self,
+    // ) -> Result<BlockWithTxHashes, anyhow::Error> {
+    //     match self.json_rpc_client.get_block_with_tx_hashes(BlockId::Tag(BlockTag::Pending)).
+    // await {         Ok(MaybePendingBlockWithTxHashes::Block(b)) => Ok(b),
+    //         other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
+    //     }
+    // }
 }
 
 /// By implementing Drop, we ensure there are no zombie background Devnet processes

@@ -86,7 +86,7 @@ pub(crate) mod transaction_trace;
 
 pub struct Starknet {
     pub(in crate::starknet) state: StarknetState,
-    pub(in crate::starknet) pending_state: StarknetState, // is it needed?
+    pub(in crate::starknet) pending_state: StarknetState,
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
     // To avoid repeating some logic related to blocks,
@@ -217,9 +217,9 @@ impl Starknet {
 
         this.restart_pending_block()?;
 
-        // clone state before genesis block
-        this.pending_state = this.state.clone_historic();
-        // TODO: should it be reverse action for that?
+        if this.config.blocks_on_demand {
+            this.pending_state = this.state.clone_historic();
+        }
 
         // Create an empty genesis block, set start_time before if it's set
         if let Some(start_time) = config.start_time {
@@ -319,10 +319,9 @@ impl Starknet {
         if self.config.blocks_on_demand {
             // clone_historic() requires self.historic_state, self.historic_state is set in
             // expand_historic(), expand_historic() can be executed from commit_with_diff() - this
-            // is why self.pending_state.commit_with_diff()? is here but maybe there is a better way
-            // to do it?
+            // is why self.pending_state.commit_with_diff() is here
+            // TODO during PR: maybe there is a better way to do it?
             self.pending_state.commit_with_diff()?;
-
             self.state = self.pending_state.clone_historic();
         }
 
@@ -361,7 +360,7 @@ impl Starknet {
             )
         }
 
-        let state = &mut self.state; // or &mut self.pending_state;
+        let state = &mut self.state; // TOOD: or &mut self.pending_state;?
 
         match transaction_result {
             Ok(tx_info) => {
@@ -565,16 +564,8 @@ impl Starknet {
 
     fn get_mut_state_at(&mut self, block_id: &BlockId) -> DevnetResult<&mut StarknetState> {
         match block_id {
-            BlockId::Tag(BlockTag::Latest) => {
-                println!("get_mut_state_at BlockTag::Latest");
-
-                Ok(&mut self.state)
-            }
-            BlockId::Tag(BlockTag::Pending) => {
-                println!("get_mut_state_at BlockTag::Pending");
-
-                Ok(&mut self.pending_state)
-            }
+            BlockId::Tag(BlockTag::Latest) => Ok(&mut self.state),
+            BlockId::Tag(BlockTag::Pending) => Ok(&mut self.pending_state),
             _ => {
                 if self.config.state_archive == StateArchiveCapacity::None {
                     return Err(Error::NoStateAtBlock { block_id: *block_id });
@@ -735,8 +726,6 @@ impl Starknet {
         let nonce = self.state.get_nonce_at(starknet_api::core::ContractAddress::try_from(
             starknet_api::hash::StarkFelt::from(chargeable_address_felt),
         )?)?;
-
-        println!("mint mint mint!!!");
 
         let (high, low) = split_biguint(amount)?;
 
@@ -1129,9 +1118,6 @@ impl Starknet {
 
     /// create new block from pending one
     pub fn create_block(&mut self) -> DevnetResult<(), Error> {
-        let blocks_on_demand = self.config.blocks_on_demand;
-        println!("blocks_on_demand: {:?}", blocks_on_demand);
-
         self.generate_new_block(StateDiff::default())?;
 
         Ok(())

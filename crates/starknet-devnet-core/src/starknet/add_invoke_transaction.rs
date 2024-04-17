@@ -38,7 +38,6 @@ pub fn add_invoke_transaction(
         }
     };
 
-    println!("try execute on pending_state.state if blocks_on_demand");
     let state = if starknet.config.blocks_on_demand {
         &mut starknet.pending_state.state
     } else {
