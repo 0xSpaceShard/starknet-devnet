@@ -1052,7 +1052,7 @@ impl Starknet {
                         txn.to_blockifier_account_transaction(&chain_id)?,
                         txn.get_type(),
                         Starknet::should_transaction_skip_validation_if_sender_is_impersonated(
-                            state, &cheats, &txn,
+                            state, &cheats, txn,
                         )?,
                     ))
                 })
@@ -1208,7 +1208,7 @@ impl Starknet {
     /// # Arguments
     /// * `account` - Account to stop impersonating
     pub fn stop_impersonating_account(&mut self, account: &ContractAddress) {
-        self.cheats.stop_impersonating_account(&account);
+        self.cheats.stop_impersonating_account(account);
     }
 
     /// Returns true if the account is not part of the state and is impersonated
@@ -1260,7 +1260,7 @@ impl Starknet {
         };
 
         if let Some(sender_address) = sender_address {
-            return Starknet::is_account_impersonated(state, cheats, sender_address);
+            Starknet::is_account_impersonated(state, cheats, sender_address)
         } else {
             Ok(false)
         }

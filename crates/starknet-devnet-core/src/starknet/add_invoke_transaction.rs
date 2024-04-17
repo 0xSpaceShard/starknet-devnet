@@ -39,15 +39,11 @@ pub fn add_invoke_transaction(
         }
     };
 
-    let validate = if Starknet::is_account_impersonated(
+    let validate = !(Starknet::is_account_impersonated(
         &mut starknet.state,
         &starknet.cheats,
         &ContractAddress::from(blockifier_invoke_transaction.sender_address()),
-    )? {
-        false
-    } else {
-        true
-    };
+    )?);
 
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::Invoke(

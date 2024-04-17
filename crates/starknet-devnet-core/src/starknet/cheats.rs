@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::traits::ToHexString;
+
 
 #[derive(Default, Clone)]
 pub(crate) struct Cheats {

@@ -35,7 +35,7 @@ pub fn estimate_fee(
                 Ok((
                     txn.to_blockifier_account_transaction(&chain_id)?,
                     Starknet::should_transaction_skip_validation_if_sender_is_impersonated(
-                        state, &cheats, &txn,
+                        state, &cheats, txn,
                     )?,
                 ))
             })
@@ -54,7 +54,7 @@ pub fn estimate_fee(
                     transaction,
                 ),
                 charge_fee,
-                skip_validate.then(|| false).or(validate), /* if skip validate is true, then
+                skip_validate.then_some(false).or(validate), /* if skip validate is true, then
                                                             * this means that this transaction
                                                             * have to skip validation, because
                                                             * the sender is impersonated */

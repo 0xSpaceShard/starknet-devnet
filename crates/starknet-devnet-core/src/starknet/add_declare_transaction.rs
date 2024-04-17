@@ -58,15 +58,11 @@ pub fn add_declare_transaction(
             }
         };
 
-    let validate = if Starknet::is_account_impersonated(
+    let validate = !(Starknet::is_account_impersonated(
         &mut starknet.state,
         &starknet.cheats,
         sender_address,
-    )? {
-        false
-    } else {
-        true
-    };
+    )?);
 
     let transaction = TransactionWithHash::new(transaction_hash, declare_transaction);
     let blockifier_execution_result =
