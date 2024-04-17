@@ -28,18 +28,12 @@ mod fork_tests {
         assert_cairo1_classes_equal, assert_tx_successful, declare_deploy,
         get_block_reader_contract_in_sierra_and_compiled_class_hash, get_json_body,
         get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
-        send_ctrl_c_signal_and_wait,
+        send_ctrl_c_signal_and_wait, spawn_forkable_devnet,
     };
 
     const SEPOLIA_URL: &str = "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7";
     const SEPOLIA_GENESIS_BLOCK_HASH: &str =
         "0x19f675d3fb226821493a6ab9a1955e384bba80f130de625621a418e9a7c0ca3";
-
-    async fn spawn_forkable_devnet() -> Result<BackgroundDevnet, anyhow::Error> {
-        let args = ["--state-archive-capacity", "full"];
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await?;
-        Ok(devnet)
-    }
 
     #[tokio::test]
     async fn test_fork_status() {

@@ -422,4 +422,17 @@ impl JsonRpcHandler {
             Err(err) => Err(err.into()),
         }
     }
+
+    // devnet_impersonateAccount
+    pub async fn impersonate_account(&self, address: ContractAddress) -> StrictRpcResult {
+        let mut starknet = self.api.starknet.write().await;
+        starknet.impersonate_account(address)?;
+        Ok(StarknetResponse::Empty)
+    }
+
+    pub async fn stop_impersonating_account(&self, address: ContractAddress) -> StrictRpcResult {
+        let mut starknet = self.api.starknet.write().await;
+        starknet.stop_impersonating_account(&address);
+        Ok(StarknetResponse::Empty)
+    }
 }

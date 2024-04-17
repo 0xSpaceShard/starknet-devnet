@@ -31,8 +31,8 @@ use self::error::StrictRpcResult;
 use self::models::{
     BlockHashAndNumberOutput, BlockIdInput, BroadcastedDeclareTransactionInput,
     BroadcastedDeployAccountTransactionInput, BroadcastedInvokeTransactionInput,
-    DeclareTransactionOutput, DeployAccountTransactionOutput, InvokeTransactionOutput,
-    SyncingOutput, TransactionStatusOutput,
+    ContractAddressInput, DeclareTransactionOutput, DeployAccountTransactionOutput,
+    InvokeTransactionOutput, SyncingOutput, TransactionStatusOutput,
 };
 use self::origin_forwarder::OriginForwarder;
 use super::Api;
@@ -205,6 +205,12 @@ impl JsonRpcHandler {
             StarknetRequest::BlockTransactionTraces(BlockIdInput { block_id }) => {
                 self.get_trace_block_transactions(block_id).await
             }
+            StarknetRequest::ImpersonateAccount(ContractAddressInput { contract_address }) => {
+                self.impersonate_account(contract_address).await
+            }
+            StarknetRequest::StopImpersonateAccount(ContractAddressInput { contract_address }) => {
+                self.stop_impersonating_account(contract_address).await
+            }
         };
 
         if let (Err(err), Some(forwarder)) = (&starknet_resp, &self.origin_caller) {
@@ -293,6 +299,10 @@ pub enum StarknetRequest {
     TraceTransaction(TransactionHashInput),
     #[serde(rename = "starknet_traceBlockTransactions")]
     BlockTransactionTraces(BlockIdInput),
+    #[serde(rename = "devnet_impersonateAccount")]
+    ImpersonateAccount(ContractAddressInput),
+    #[serde(rename = "devnet_stopImpersonateAccount")]
+    StopImpersonateAccount(ContractAddressInput),
 }
 
 impl std::fmt::Display for StarknetRequest {
@@ -343,6 +353,10 @@ impl std::fmt::Display for StarknetRequest {
             StarknetRequest::BlockTransactionTraces(_) => {
                 write!(f, "starknet_traceBlockTransactions")
             }
+            StarknetRequest::ImpersonateAccount(_) => write!(f, "devnet_impersonateAccount"),
+            StarknetRequest::StopImpersonateAccount(_) => {
+                write!(f, "devnet_stopImpersonateAccount")
+            }
         }
     }
 }
@@ -373,6 +387,7 @@ pub enum StarknetResponse {
     SimulateTransactions(Vec<SimulatedTransaction>),
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
+    Empty,
 }
 
 #[cfg(test)]

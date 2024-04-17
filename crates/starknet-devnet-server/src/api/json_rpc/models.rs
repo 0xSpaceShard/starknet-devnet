@@ -53,6 +53,12 @@ pub struct BlockAndContractAddressInput {
     pub contract_address: ContractAddress,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct ContractAddressInput {
+    pub contract_address: ContractAddress,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(deny_unknown_fields)]

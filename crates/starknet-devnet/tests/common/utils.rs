@@ -17,6 +17,7 @@ use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::LocalWallet;
 
+use super::background_devnet::BackgroundDevnet;
 use super::constants::CAIRO_1_CONTRACT_PATH;
 
 pub async fn get_json_body(resp: Response<Body>) -> serde_json::Value {
@@ -253,6 +254,12 @@ pub async fn declare_deploy(
     );
 
     Ok((declaration_result.class_hash, contract_address))
+}
+
+pub async fn spawn_forkable_devnet() -> Result<BackgroundDevnet, anyhow::Error> {
+    let args = ["--state-archive-capacity", "full"];
+    let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await?;
+    Ok(devnet)
 }
 
 #[cfg(test)]

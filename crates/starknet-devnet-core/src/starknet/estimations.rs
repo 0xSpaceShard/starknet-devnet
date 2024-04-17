@@ -25,17 +25,28 @@ pub fn estimate_fee(
 ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
     let chain_id = starknet.chain_id().to_felt();
     let block_context = starknet.block_context.clone();
+    let cheats = starknet.cheats.clone();
     let state = starknet.get_mut_state_at(block_id)?;
-    let mut transactional_state = CachedState::create_transactional(&mut state.state);
 
-    let transactions = transactions
-        .iter()
-        .map(|txn| Ok(txn.to_blockifier_account_transaction(&chain_id)?))
-        .collect::<DevnetResult<Vec<AccountTransaction>>>()?;
+    let transactions = {
+        transactions
+            .iter()
+            .map(|txn| {
+                Ok((
+                    txn.to_blockifier_account_transaction(&chain_id)?,
+                    Starknet::should_transaction_skip_validation_if_sender_is_impersonated(
+                        state, &cheats, &txn,
+                    )?,
+                ))
+            })
+            .collect::<DevnetResult<Vec<(AccountTransaction, bool)>>>()?
+    };
+
+    let mut transactional_state = CachedState::create_transactional(&mut state.state);
 
     transactions
         .into_iter()
-        .map(|transaction| {
+        .map(|(transaction, skip_validate)| {
             estimate_transaction_fee(
                 &mut transactional_state,
                 &block_context,
@@ -43,7 +54,10 @@ pub fn estimate_fee(
                     transaction,
                 ),
                 charge_fee,
-                validate,
+                skip_validate.then(|| false).or(validate), /* if skip validate is true, then
+                                                            * this means that this transaction
+                                                            * have to skip validation, because
+                                                            * the sender is impersonated */
             )
         })
         .collect()

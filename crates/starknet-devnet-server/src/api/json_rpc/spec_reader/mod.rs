@@ -333,6 +333,11 @@ mod tests {
                                 StarknetResponse::BlockTransactionTraces(_)
                             ));
                         }
+                        _ => panic!(
+                            "Unhandled cases. Usually devnet specific methods. This match case \
+                             must not be reached, because this method covers starknet RPC method \
+                             (starknet_.....)"
+                        ),
                     }
                 }
             }

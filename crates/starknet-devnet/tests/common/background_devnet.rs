@@ -308,6 +308,23 @@ impl BackgroundDevnet {
             other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
         }
     }
+
+    pub async fn impersonate_account(&self, account: FieldElement) -> Result<(), anyhow::Error> {
+        let result = self
+            .send_custom_rpc(
+                "devnet_impersonateAccount",
+                json!({
+                    "contract_address": format!("0x{:x}", account)
+                }),
+            )
+            .await;
+
+        result
+            .get("error")
+            .and_then(|error_json| error_json.get("message"))
+            .and_then(|message_json| message_json.as_str())
+            .map_or(Ok(()), |message| Err(anyhow::Error::msg(message.to_string())))
+    }
 }
 
 /// By implementing Drop, we ensure there are no zombie background Devnet processes
