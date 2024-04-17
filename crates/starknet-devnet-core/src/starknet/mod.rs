@@ -435,6 +435,7 @@ impl Starknet {
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
         let state_diff = self.state.commit_with_diff()?;
+        // TODO: so is it needed or not?
         // let state_diff = if self.config.blocks_on_demand {
         //     self.pending_state.commit_with_diff()?
         // } else {
@@ -1119,7 +1120,6 @@ impl Starknet {
     /// create new block from pending one
     pub fn create_block(&mut self) -> DevnetResult<(), Error> {
         self.generate_new_block(StateDiff::default())?;
-
         Ok(())
     }
 
