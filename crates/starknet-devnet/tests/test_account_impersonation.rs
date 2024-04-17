@@ -21,11 +21,9 @@ mod impersonated_account_tests {
 
     #[tokio::test]
     async fn test_impersonated_account_of_a_predeployed_account_can_create_transfer() {
-        println!("Origin devnet is being spawned");
         let origin_devnet = spawn_forkable_devnet().await.unwrap();
         let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
 
-        println!("Forked devnet is being spawned");
         let forked_devnet = origin_devnet.fork().await.unwrap();
         forked_devnet.impersonate_account(account_address).await.unwrap();
 

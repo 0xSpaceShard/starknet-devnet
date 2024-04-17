@@ -1220,11 +1220,8 @@ impl Starknet {
         cheats: &Cheats,
         account: &ContractAddress,
     ) -> DevnetResult<bool> {
-        println!("{}", account.to_prefixed_hex_str());
-
         let is_contract_already_in_state = state.is_contract_deployed_locally(*account)?;
         if is_contract_already_in_state {
-            println!("Contract already in state");
             return Ok(false);
         }
 
