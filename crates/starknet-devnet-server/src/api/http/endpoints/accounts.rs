@@ -49,7 +49,5 @@ pub async fn get_account_balance(
 
     let amount = get_balance(&mut starknet, account_address, erc20_address)
         .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
-    let amount_str = amount.to_string();
-    println!("DEBUG amount_str: {amount_str}");
-    Ok(Json(AccountBalanceResponse { amount: amount_str, unit }))
+    Ok(Json(AccountBalanceResponse { amount: amount.to_string(), unit }))
 }
