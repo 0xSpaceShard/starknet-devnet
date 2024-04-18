@@ -1,5 +1,6 @@
 use std::num::NonZeroU128;
 
+use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_class::ContractClass;
@@ -29,11 +30,26 @@ pub enum StateArchiveCapacity {
     Full,
 }
 
-#[derive(Debug, Clone, Default, Serialize)]
+#[derive(Debug, Clone, Default)]
 pub struct ForkConfig {
-    #[serde(serialize_with = "serialize_config_url")]
     pub url: Option<Url>,
     pub block_number: Option<u64>,
+}
+
+pub fn serialize_fork_config<S>(fork_config: &ForkConfig, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    match &fork_config.url {
+        Some(url) => {
+            let mut fork_config_serializer = serializer.serialize_struct("fork_config", 2)?;
+            fork_config_serializer.serialize_field("url", &url.to_string())?;
+            let block_number = fork_config.block_number.unwrap();
+            fork_config_serializer.serialize_field("block", &block_number)?;
+            fork_config_serializer.end()
+        }
+        None => serializer.serialize_none(),
+    }
 }
 
 pub fn serialize_config_url<S>(url: &Option<Url>, serializer: S) -> Result<S::Ok, S::Error>
@@ -80,6 +96,7 @@ pub struct StarknetConfig {
     #[serde(skip_serializing)]
     pub re_execute_on_init: bool,
     pub state_archive: StateArchiveCapacity,
+    #[serde(serialize_with = "serialize_fork_config")]
     pub fork_config: ForkConfig,
 }
 

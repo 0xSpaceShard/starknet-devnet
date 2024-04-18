@@ -3,7 +3,6 @@ use serde::Serialize;
 use starknet_core::starknet::starknet_config::StarknetConfig;
 
 use super::error::HttpApiError;
-use super::models::ForkStatus;
 use super::{HttpApiHandler, HttpApiResult};
 use crate::ServerConfig;
 
@@ -42,23 +41,10 @@ pub async fn restart(Extension(state): Extension<HttpApiHandler>) -> HttpApiResu
     Ok(())
 }
 
-/// Fork
-/// TODO remove this - redundant if introducing config endpoint
-pub async fn get_fork_status(
-    Extension(state): Extension<HttpApiHandler>,
-) -> HttpApiResult<Json<ForkStatus>> {
-    let fork_config = &state.api.starknet.read().await.config.fork_config;
-    Ok(Json(ForkStatus {
-        url: fork_config.url.as_ref().map(|url| url.to_string()),
-        block: fork_config.block_number,
-    }))
-}
-
 #[derive(Serialize)]
 pub struct DevnetConfig {
     #[serde(flatten)]
     starknet_config: StarknetConfig,
-    #[serde(flatten)]
     server_config: ServerConfig,
 }
 

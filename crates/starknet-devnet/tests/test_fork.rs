@@ -45,18 +45,20 @@ mod fork_tests {
     async fn test_fork_status() {
         let origin_devnet = spawn_forkable_devnet().await.unwrap();
 
-        let origin_status =
-            get_json_body(origin_devnet.get("/fork_status", None).await.unwrap()).await;
-        assert_eq!(origin_status, serde_json::json!({}));
+        let origin_devnet_config =
+            get_json_body(origin_devnet.get("/config", None).await.unwrap()).await;
+        assert_eq!(origin_devnet_config["fork_config"], serde_json::json!(null));
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
-        let fork_status = get_json_body(fork_devnet.get("/fork_status", None).await.unwrap()).await;
+        let fork_devnet_config =
+            get_json_body(fork_devnet.get("/config", None).await.unwrap()).await;
+        let fork_devnet_fork_config = &fork_devnet_config["fork_config"];
         assert_eq!(
-            url::Url::from_str(fork_status["url"].as_str().unwrap()).unwrap(),
+            url::Url::from_str(fork_devnet_fork_config["url"].as_str().unwrap()).unwrap(),
             url::Url::from_str(&origin_devnet.url).unwrap()
         );
-        assert_eq!(fork_status["block"].as_i64().unwrap(), 0);
+        assert_eq!(fork_devnet_fork_config["block"].as_i64().unwrap(), 0);
     }
 
     #[tokio::test]
