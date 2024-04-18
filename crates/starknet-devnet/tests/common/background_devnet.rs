@@ -231,14 +231,11 @@ impl BackgroundDevnet {
         let params = format!("address={:#x}&unit={}", address, unit);
 
         let resp = self.get("/account_balance", Some(params)).await?;
+        // response validity asserted in test_balance.rs::assert_balance_endpoint_response
+
         let json_resp = get_json_body(resp).await;
-
-        let amount: BigUint = serde_json::from_value(json_resp["amount"].clone()).unwrap();
-        let received_unit: FeeUnit = serde_json::from_value(json_resp["unit"].clone()).unwrap();
-        assert_eq!(received_unit, unit);
-
-        let felt_amount = FieldElement::from_hex_be(&amount.to_str_radix(16))?;
-        Ok(felt_amount)
+        let amount_raw = json_resp["amount"].as_str().unwrap();
+        Ok(FieldElement::from_dec_str(amount_raw)?)
     }
 
     /// Performs GET request on devnet; path should have a leading slash
