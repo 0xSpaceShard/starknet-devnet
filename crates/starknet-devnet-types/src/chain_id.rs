@@ -1,13 +1,12 @@
 use std::fmt::Display;
 
-use serde::Serialize;
 use starknet_rs_core::chain_id::{MAINNET, SEPOLIA, TESTNET};
 use starknet_rs_core::utils::parse_cairo_short_string;
 use starknet_rs_ff::FieldElement;
 
 use crate::felt::Felt;
 
-#[derive(Clone, Copy, Debug, clap::ValueEnum, Serialize)]
+#[derive(Clone, Copy, Debug, clap::ValueEnum)]
 pub enum ChainId {
     #[clap(name = "MAINNET")]
     Mainnet,

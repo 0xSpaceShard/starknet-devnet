@@ -1,9 +1,11 @@
 use axum::{Extension, Json};
+use serde::Serialize;
 use starknet_core::starknet::starknet_config::StarknetConfig;
 
 use super::error::HttpApiError;
 use super::models::ForkStatus;
 use super::{HttpApiHandler, HttpApiResult};
+use crate::ServerConfig;
 
 /// Dumping and loading
 pub mod dump_load;
@@ -52,9 +54,20 @@ pub async fn get_fork_status(
     }))
 }
 
+#[derive(Serialize)]
+pub struct DevnetConfig {
+    #[serde(flatten)]
+    starknet_config: StarknetConfig,
+    #[serde(flatten)]
+    server_config: ServerConfig,
+}
+
 /// Devnet config
 pub async fn get_devnet_config(
     Extension(state): Extension<HttpApiHandler>,
-) -> HttpApiResult<Json<StarknetConfig>> {
-    Ok(Json(state.api.starknet.read().await.config.clone()))
+) -> HttpApiResult<Json<DevnetConfig>> {
+    Ok(Json(DevnetConfig {
+        starknet_config: state.api.starknet.read().await.config.clone(),
+        server_config: state.server_config.clone(),
+    }))
 }

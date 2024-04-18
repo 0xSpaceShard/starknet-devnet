@@ -19,7 +19,7 @@ pub fn serve_http_api_json_rpc(
     starknet_config: &StarknetConfig,
     server_config: &ServerConfig,
 ) -> ServerResult<StarknetDevnetServer> {
-    let http = HttpApiHandler { api: api.clone() };
+    let http = HttpApiHandler { api: api.clone(), server_config: server_config.clone() };
     let origin_caller = if let (Some(url), Some(block_number)) =
         (&starknet_config.fork_config.url, starknet_config.fork_config.block_number)
     {

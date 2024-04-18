@@ -46,20 +46,38 @@ where
     }
 }
 
+pub fn serialize_initial_balance<S>(balance: &Balance, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(&balance.to_str_radix(10))
+}
+
+pub fn serialize_chain_id<S>(chain_id: &ChainId, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(&format!("{chain_id}"))
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct StarknetConfig {
     pub seed: u32,
     pub total_accounts: u8,
+    #[serde(skip_serializing)]
     pub account_contract_class: ContractClass,
     pub account_contract_class_hash: Felt,
+    #[serde(serialize_with = "serialize_initial_balance")]
     pub predeployed_accounts_initial_balance: Balance,
     pub start_time: Option<u64>,
     pub gas_price: NonZeroU128,
     pub data_gas_price: NonZeroU128,
+    #[serde(serialize_with = "serialize_chain_id")]
     pub chain_id: ChainId,
     pub dump_on: Option<DumpOn>,
     pub dump_path: Option<String>,
     /// on initialization, re-execute loaded txs (if any)
+    #[serde(skip_serializing)]
     pub re_execute_on_init: bool,
     pub state_archive: StateArchiveCapacity,
     pub fork_config: ForkConfig,
