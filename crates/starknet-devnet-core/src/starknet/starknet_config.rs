@@ -1,5 +1,6 @@
 use std::num::NonZeroU128;
 
+use serde::{Serialize, Serializer};
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::Felt;
@@ -13,13 +14,13 @@ use crate::constants::{
     DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum, Serialize)]
 pub enum DumpOn {
     Exit,
     Transaction,
 }
 
-#[derive(Default, Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum)]
+#[derive(Default, Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum, Serialize)]
 pub enum StateArchiveCapacity {
     #[default]
     #[clap(name = "none")]
@@ -28,13 +29,24 @@ pub enum StateArchiveCapacity {
     Full,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize)]
 pub struct ForkConfig {
+    #[serde(serialize_with = "serialize_config_url")]
     pub url: Option<Url>,
     pub block_number: Option<u64>,
 }
 
-#[derive(Clone, Debug)]
+pub fn serialize_config_url<S>(url: &Option<Url>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    match url {
+        Some(url) => serializer.serialize_str(url.as_ref()),
+        None => serializer.serialize_none(),
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
 pub struct StarknetConfig {
     pub seed: u32,
     pub total_accounts: u8,

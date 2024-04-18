@@ -1,4 +1,5 @@
 use axum::{Extension, Json};
+use starknet_core::starknet::starknet_config::StarknetConfig;
 
 use super::error::HttpApiError;
 use super::models::ForkStatus;
@@ -40,6 +41,7 @@ pub async fn restart(Extension(state): Extension<HttpApiHandler>) -> HttpApiResu
 }
 
 /// Fork
+/// TODO remove this - redundant if introducing config endpoint
 pub async fn get_fork_status(
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<ForkStatus>> {
@@ -48,4 +50,11 @@ pub async fn get_fork_status(
         url: fork_config.url.as_ref().map(|url| url.to_string()),
         block: fork_config.block_number,
     }))
+}
+
+/// Devnet config
+pub async fn get_devnet_config(
+    Extension(state): Extension<HttpApiHandler>,
+) -> HttpApiResult<Json<StarknetConfig>> {
+    Ok(Json(state.api.starknet.read().await.config.clone()))
 }

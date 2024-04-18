@@ -55,5 +55,6 @@ pub fn serve_http_api_json_rpc(
         .http_api_route("/account_balance", get(http::accounts::get_account_balance))
         .http_api_route("/mint", post(http::mint_token::mint))
         .http_api_route("/fork_status", get(http::get_fork_status))
+        .http_api_route("/config", get(http::get_devnet_config))
         .build(server_config)
 }
