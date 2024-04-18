@@ -241,7 +241,6 @@ mod test_account_selection {
 
         let resp = devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await;
         match resp {
-            // TODO currently fails
             Ok(supports) => assert_eq!(supports, vec![FieldElement::ONE]),
             err => panic!("Unexpected resp: {err:?}"),
         };

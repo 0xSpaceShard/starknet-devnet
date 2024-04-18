@@ -52,6 +52,9 @@ pub const UDC_CONTRACT_CLASS_HASH: &str =
 pub const UDC_CONTRACT_ADDRESS: &str =
     "0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF";
 
+/// https://github.com/OpenZeppelin/cairo-contracts/blob/89a450a88628ec3b86273f261b2d8d1ca9b1522b/src/account/interface.cairo#L7
+pub const ISRC6_ID_HEX: &str = "0x2ceccef7f994940b3962a6c67e0ba4fcd37df7d131417c604f91e03caecc1cd";
+
 pub const STARKNET_VERSION: &str = "0.13.1.1";
 
 /// ERC20 contracts storage variables
