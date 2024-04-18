@@ -231,8 +231,9 @@ impl BackgroundDevnet {
         let params = format!("address={:#x}&unit={}", address, unit);
 
         let resp = self.get("/account_balance", Some(params)).await?;
-        let json_resp = get_json_body(resp).await;
+        // response validity asserted in test_balance.rs::assert_balance_endpoint_response
 
+        let json_resp = get_json_body(resp).await;
         let amount_raw = json_resp["amount"].as_str().unwrap();
         Ok(FieldElement::from_dec_str(amount_raw)?)
     }

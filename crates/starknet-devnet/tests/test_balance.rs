@@ -28,7 +28,7 @@ mod balance_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         for (address, expected_balance) in [
-            ("0x123", "0"),
+            ("0x123", "0"), // dummy address expected to have no balance
             (PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string().as_str()),
         ] {
             for unit in ["WEI", "FRI"] {
