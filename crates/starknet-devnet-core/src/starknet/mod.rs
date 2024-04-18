@@ -725,7 +725,12 @@ impl Starknet {
     ) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee = self.config.gas_price.get() * 1_000_000;
         let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
-        let nonce = self.state.get_nonce_at(starknet_api::core::ContractAddress::try_from(
+        let state = if self.config.blocks_on_demand {
+            &mut self.pending_state.state
+        } else {
+            &mut self.state.state
+        };
+        let nonce = state.get_nonce_at(starknet_api::core::ContractAddress::try_from(
             starknet_api::hash::StarkFelt::from(chargeable_address_felt),
         )?)?;
 

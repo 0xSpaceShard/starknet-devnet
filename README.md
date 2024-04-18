@@ -32,10 +32,7 @@ This repository is work in progress, please be patient. Please check below the s
 - [x] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
   - [x] [Aborting blocks](#abort-blocks)
   - [x] [Creating an empty block](#create-an-empty-block)
-
-### TODO to reach feature parity with the Pythonic Devnet
-
-- [ ] Creating blocks on demand
+  - [x] [Creating blocks on demand](#creating-blocks-on-demand)
 
 ## Requirements
 
@@ -232,10 +229,10 @@ To preserve your Devnet instance for future use, these are the options:
 cargo run -- --dump-on exit --dump-path <PATH>
 ```
 
-- Dumping after each transaction:
+- Dumping after each block:
 
 ```
-cargo run -- --dump-on transaction --dump-path <PATH>
+cargo run -- --dump-on block --dump-path <PATH>
 ```
 
 - Dumping on request requires providing --dump-on mode on the startup. Example usage in `exit` mode (replace `<HOST>`, `<PORT>` and `<PATH>` with your own):
@@ -261,14 +258,14 @@ cargo run -- --dump-path <PATH>
 curl -X POST http://<HOST>:<PORT>/load -d '{ "path": <PATH> }' -H "Content-Type: application/json"
 ```
 
-Currently, dumping produces a list of received transactions that is stored on disk.
+Currently, dumping produces a list of received transactions that are stored on disk.
 Conversely, loading is implemented as the re-execution of transactions from a dump.
 This means that timestamps of `StarknetBlock` will be different.
 
 ### Loading disclaimer
 
-Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
-If you dumped a Devnet utilizing one class for account predeployment (e.g. the default `--account-class cairo0`), you should use the same option when loading.
+Dumping and loading are not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
+If you dumped a Devnet utilizing one class for account predeployment or with blocks-on-demand mode (e.g. the default `--account-class cairo0` and/or `--blocks-on-demand`), you should use the same options when loading.
 
 ## Restarting
 
@@ -281,6 +278,10 @@ If you're using [**the Hardhat plugin**](https://github.com/0xSpaceShard/starkne
 Devnet starts with a genesis block (with a block number equal to 0). In forking mode, the genesis block number will be equal to forked block number plus one.
 
 A new block is generated with each new transaction, and you can create an empty block by yourself.
+
+### Creating blocks on demand
+
+TODO: add doc from old devnet here
 
 ### Create an empty block
 

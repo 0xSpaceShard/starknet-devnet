@@ -16,7 +16,7 @@ use crate::constants::{
 #[derive(Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum)]
 pub enum DumpOn {
     Exit,
-    Transaction,
+    Block,
 }
 
 #[derive(Default, Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum)]

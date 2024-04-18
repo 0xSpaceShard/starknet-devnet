@@ -2,16 +2,17 @@ pub mod common;
 
 mod blocks_on_demand_tests {
 
-    use starknet_rs_core::types::FieldElement;
+    use starknet_rs_core::types::{BlockStatus, FieldElement};
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
+    use crate::common::utils::assert_tx_successful;
 
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
-    const TX_COUNT: u128 = 1; // TODO: fix nonce and change back to 5
+    const TX_COUNT: u128 = 5;
 
-    async fn assert_latest_block(
+    async fn assert_latest_block_with_transactions(
         devnet: &BackgroundDevnet,
         block_number: u64,
         transactions_count: u128,
@@ -19,8 +20,11 @@ mod blocks_on_demand_tests {
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
         assert_eq!(latest_block.block_number, block_number);
         assert_eq!(latest_block.transactions.len() as u128, transactions_count);
+        assert_eq!(latest_block.status, BlockStatus::AcceptedOnL2);
 
-        // TODO: add status tx assert
+        for tx_hash in latest_block.transactions {
+            assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
+        }
     }
 
     async fn assert_balance(
@@ -58,13 +62,12 @@ mod blocks_on_demand_tests {
         assert_balance(&devnet, FieldElement::from(TX_COUNT * DUMMY_AMOUNT), true).await;
         assert_balance(&devnet, FieldElement::from(TX_COUNT * DUMMY_AMOUNT), false).await;
 
-        assert_latest_block(&devnet, 1, TX_COUNT).await;
+        assert_latest_block_with_transactions(&devnet, 1, TX_COUNT).await;
     }
 
-    // TODO: fee estimation
-    // TODO: add status checks for blocks and txs
-    // TODO: add invoke/call test?
+    // TODO: Add invoke/call test?
+    // TODO: Fee estimation
     // TODO: set_time and increase_time
-    // TODO: no pending after creation?
-    // TODO: events and traces with blocks-on-demand?
+    // TODO: No pending after creation?
+    // TODO: Events and traces with blocks-on-demand?
 }

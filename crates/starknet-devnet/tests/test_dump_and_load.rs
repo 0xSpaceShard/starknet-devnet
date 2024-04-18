@@ -64,7 +64,7 @@ mod dump_and_load_tests {
 
     #[tokio::test]
     async fn dump_load_dump_load_on_transaction() {
-        dump_load_dump_load("transaction").await;
+        dump_load_dump_load("block").await;
     }
 
     #[tokio::test]
@@ -80,7 +80,7 @@ mod dump_and_load_tests {
             "--dump-path",
             "///",
             "--dump-on",
-            "transaction",
+            "block",
         ])
         .await;
 
@@ -101,6 +101,49 @@ mod dump_and_load_tests {
     }
 
     #[tokio::test]
+    async fn dump_and_load_blocks_on_demand() {
+        let modes = vec!["exit", "block"];
+
+        for mode in modes {
+            let dump_file = UniqueAutoDeletableFile::new(
+                ("dump_load_dump_load_on_".to_owned() + mode).as_str(),
+            );
+
+            for _ in 0..2 {
+                let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
+                    "--dump-path",
+                    &dump_file.path,
+                    "--dump-on",
+                    mode,
+                    "--blocks-on-demand",
+                ])
+                .await
+                .expect("Could not start Devnet");
+
+                devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+                devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+                devnet_dump.create_block().await.unwrap();
+
+                send_ctrl_c_signal_and_wait(&devnet_dump.process).await;
+            }
+
+            let devnet_load = BackgroundDevnet::spawn_with_additional_args(&[
+                "--dump-path",
+                &dump_file.path,
+                "--dump-on",
+                mode,
+                "--blocks-on-demand",
+            ])
+            .await
+            .expect("Could not start Devnet");
+
+            let last_block = devnet_load.get_latest_block_with_tx_hashes().await.unwrap();
+            assert_eq!(last_block.block_number, 2);
+            assert_eq!(last_block.transactions.len(), 2);
+        }
+    }
+
+    #[tokio::test]
     async fn mint_dump_on_transaction_and_load() {
         // dump after transaction
         let dump_file = UniqueAutoDeletableFile::new("dump_on_transaction");
@@ -108,7 +151,7 @@ mod dump_and_load_tests {
             "--dump-path",
             &dump_file.path,
             "--dump-on",
-            "transaction",
+            "block",
         ])
         .await
         .expect("Could not start Devnet");
@@ -186,7 +229,7 @@ mod dump_and_load_tests {
             "--dump-path",
             &dump_file.path,
             "--dump-on",
-            "transaction",
+            "block",
         ])
         .await
         .expect("Could not start Devnet");
