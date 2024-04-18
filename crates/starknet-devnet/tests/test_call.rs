@@ -4,12 +4,9 @@ mod call {
     use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall, StarknetError};
     use starknet_rs_providers::{Provider, ProviderError};
-    use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::{
-        PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
-    };
+    use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
 
     #[tokio::test]
     /// This test doesn't rely on devnet.get_balance because it's not supposed to call ERC20
@@ -64,17 +61,5 @@ mod call {
             ProviderError::StarknetError(StarknetError::ContractError(_)) => (),
             _ => panic!("Invalid error: {err:?}"),
         }
-    }
-
-    #[tokio::test]
-    async fn getting_balance_of_predeployed_contract() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
-
-        let retrieved_result = devnet.get_balance(&contract_address, FeeUnit::WEI).await.unwrap();
-
-        let expected_hex_balance = format!("0x{PREDEPLOYED_ACCOUNT_INITIAL_BALANCE:x}");
-        let expected_balance = FieldElement::from_hex_be(expected_hex_balance.as_str()).unwrap();
-        assert_eq!(retrieved_result, expected_balance);
     }
 }
