@@ -102,19 +102,10 @@ impl Account {
 
         Ok(ContractAddress::from(account_address))
     }
-}
 
-impl Deployed for Account {
-    fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()> {
-        self.declare_if_undeclared(state, self.class_hash, &self.contract_class)?;
-
-        state.predeploy_contract(self.account_address, self.class_hash)?;
-
-        // set balance directly in the most underlying state
-        self.set_initial_balance(&mut state.state.state)?;
-
-        // simulate constructor logic (register interfaces and set public key), as done in
-        // https://github.com/OpenZeppelin/cairo-contracts/blob/89a450a88628ec3b86273f261b2d8d1ca9b1522b/src/account/account.cairo#L207-L211
+    // simulate constructor logic (register interfaces and set public key), as done in
+    // https://github.com/OpenZeppelin/cairo-contracts/blob/89a450a88628ec3b86273f261b2d8d1ca9b1522b/src/account/account.cairo#L207-L211
+    fn simulate_constructor(&self, state: &mut StarknetState) -> DevnetResult<()> {
         let core_address = self.account_address.try_into()?;
 
         let interface_storage_var = get_storage_var_address(
@@ -133,6 +124,21 @@ impl Deployed for Account {
             public_key_storage_var.try_into()?,
             self.public_key.into(),
         )?;
+
+        Ok(())
+    }
+}
+
+impl Deployed for Account {
+    fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()> {
+        self.declare_if_undeclared(state, self.class_hash, &self.contract_class)?;
+
+        state.predeploy_contract(self.account_address, self.class_hash)?;
+
+        // set balance directly in the most underlying state
+        self.set_initial_balance(&mut state.state.state)?;
+
+        self.simulate_constructor(state)?;
 
         Ok(())
     }
