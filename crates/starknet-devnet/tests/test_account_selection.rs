@@ -225,25 +225,28 @@ mod test_account_selection {
         can_declare_deploy_invoke_using_predeployed_test_body(&args).await;
     }
 
-    static ISRC6_ID_HEX: &str = "0x2ceccef7f994940b3962a6c67e0ba4fcd37df7d131417c604f91e03caecc1cd";
+    async fn assert_supports_isrc6(devnet: &BackgroundDevnet, account_address: FieldElement) {
+        // https://github.com/OpenZeppelin/cairo-contracts/blob/89a450a88628ec3b86273f261b2d8d1ca9b1522b/src/account/interface.cairo#L7
+        let interface_id_hex = "0x2ceccef7f994940b3962a6c67e0ba4fcd37df7d131417c604f91e03caecc1cd";
+        let interface_id = FieldElement::from_hex_be(interface_id_hex).unwrap();
 
-    #[tokio::test]
-    async fn test_interface_support_of_predeployed_account() {
-        let devnet = BackgroundDevnet::spawn().await.unwrap();
-        let (_, account_address) = devnet.get_first_predeployed_account().await;
-
-        let interface_id = FieldElement::from_hex_be(ISRC6_ID_HEX).unwrap();
         let call = FunctionCall {
             contract_address: account_address,
             entry_point_selector: get_selector_from_name("supports_interface").unwrap(),
             calldata: vec![interface_id],
         };
 
-        let resp = devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await;
-        match resp {
-            Ok(supports) => assert_eq!(supports, vec![FieldElement::ONE]),
-            err => panic!("Unexpected resp: {err:?}"),
-        };
+        let supports =
+            devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap();
+        assert_eq!(supports, vec![FieldElement::ONE]);
+    }
+
+    #[tokio::test]
+    async fn test_interface_support_of_predeployed_account() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (_, account_address) = devnet.get_first_predeployed_account().await;
+
+        assert_supports_isrc6(&devnet, account_address).await;
     }
 
     #[tokio::test]
@@ -253,17 +256,6 @@ mod test_account_selection {
         let class_hash = FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap();
         let account_deployment = deploy_account(&devnet, class_hash).await;
 
-        let interface_id = FieldElement::from_hex_be(ISRC6_ID_HEX).unwrap();
-        let call = FunctionCall {
-            contract_address: account_deployment.contract_address,
-            entry_point_selector: get_selector_from_name("supports_interface").unwrap(),
-            calldata: vec![interface_id],
-        };
-
-        let resp = devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await;
-        match resp {
-            Ok(supports) => assert_eq!(supports, vec![FieldElement::ONE]),
-            err => panic!("Unexpected resp: {err:?}"),
-        };
+        assert_supports_isrc6(&devnet, account_deployment.contract_address).await;
     }
 }
