@@ -408,24 +408,7 @@ $ starknet-devnet --fork-network <URL> [--fork-block <BLOCK_NUMBER>]
 
 The value passed to `--fork-network` should be the URL to a Starknet JSON-RPC API provider. Specifying a `--fork-block` is optional; it defaults to the `"latest"` block at the time of Devnet's start-up. All calls will first try Devnet's state and then fall back to the forking block.
 
-### Forking status
-
-```
-GET /fork_status
-```
-
-Response when Devnet is a fork of an origin:
-
-```js
-{
-  "url": "https://your.origin.io",
-  "block": 42 // the block from which origin was forked
-}
-```
-
-Response when not forking: `{}`
-
-### Querying old state by specifying block hash or number
+## Querying old state by specifying block hash or number
 
 With state archive capacity set to `full`, Devnet will store full state history. The default mode is `none`, where no old states are stored.
 
@@ -434,6 +417,36 @@ $ starknet-devnet --state-archive-capacity <CAPACITY>
 ```
 
 All RPC endpoints that support querying the state at an old (non-latest) block only work with state archive capacity set to `full`.
+
+## Fetch Devnet configuration
+
+To retrieve the current configuration of Devnet, send a GET request to `/config`. Example response is attached below. It can be interpreted as a JSON mapping of CLI input parameters, both specified and default ones, with some irrelevant parameters omitted. So use `starknet-devnet --help` to better understand the meaning of each value.
+
+```json
+{
+  "seed": 4063802897,
+  "total_accounts": 10,
+  "account_contract_class_hash": "0x61dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f",
+  "predeployed_accounts_initial_balance": "1000000000000000000000",
+  "start_time": null,
+  "gas_price": 100000000000,
+  "data_gas_price": 100000000000,
+  "chain_id": "SN_SEPOLIA",
+  "dump_on": null,
+  "dump_path": null,
+  "state_archive": "None",
+  "fork_config": {
+    "url": "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7",
+    "block": 26429
+  },
+  "server_config": {
+    "host": "127.0.0.1",
+    "port": 5050,
+    "timeout": 120,
+    "request_body_size_limit": 2000000
+  }
+}
+```
 
 ## Development
 
