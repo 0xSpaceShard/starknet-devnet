@@ -59,6 +59,9 @@ mod test_account_selection {
             .unwrap();
         let expected_class_hash = FieldElement::from_hex_be(expected_hash).unwrap();
         assert_eq!(retrieved_class_hash, expected_class_hash);
+
+        let config = devnet.get_config().await.unwrap();
+        assert_eq!(config["account_contract_class_hash"], expected_hash);
     }
 
     #[tokio::test]

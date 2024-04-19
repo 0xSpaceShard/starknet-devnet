@@ -26,7 +26,7 @@ mod fork_tests {
     use crate::common::constants;
     use crate::common::utils::{
         assert_cairo1_classes_equal, assert_tx_successful, declare_deploy,
-        get_block_reader_contract_in_sierra_and_compiled_class_hash, get_json_body,
+        get_block_reader_contract_in_sierra_and_compiled_class_hash,
         get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
         send_ctrl_c_signal_and_wait,
     };
@@ -45,14 +45,12 @@ mod fork_tests {
     async fn test_fork_status() {
         let origin_devnet = spawn_forkable_devnet().await.unwrap();
 
-        let origin_devnet_config =
-            get_json_body(origin_devnet.get("/config", None).await.unwrap()).await;
+        let origin_devnet_config = origin_devnet.get_config().await.unwrap();
         assert_eq!(origin_devnet_config["fork_config"], serde_json::json!(null));
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
-        let fork_devnet_config =
-            get_json_body(fork_devnet.get("/config", None).await.unwrap()).await;
+        let fork_devnet_config = fork_devnet.get_config().await.unwrap();
         let fork_devnet_fork_config = &fork_devnet_config["fork_config"];
         assert_eq!(
             url::Url::from_str(fork_devnet_fork_config["url"].as_str().unwrap()).unwrap(),
