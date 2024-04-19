@@ -48,7 +48,7 @@ mod test_account_selection {
     }
 
     /// Common body for tests defined below
-    async fn correct_artifact_test_body(devnet_args: &[&str], expected_hash: &str) {
+    async fn correct_artifact_test_body(devnet_args: &[&str], expected_hash_hex: &str) {
         let devnet = BackgroundDevnet::spawn_with_additional_args(devnet_args).await.unwrap();
 
         let (_, account_address) = devnet.get_first_predeployed_account().await;
@@ -57,11 +57,12 @@ mod test_account_selection {
             .get_class_hash_at(BlockId::Tag(BlockTag::Latest), account_address)
             .await
             .unwrap();
-        let expected_class_hash = FieldElement::from_hex_be(expected_hash).unwrap();
-        assert_eq!(retrieved_class_hash, expected_class_hash);
+        let expected_hash = FieldElement::from_hex_be(expected_hash_hex).unwrap();
+        assert_eq!(retrieved_class_hash, expected_hash);
 
         let config = devnet.get_config().await.unwrap();
-        assert_eq!(config["account_contract_class_hash"], expected_hash);
+        let config_class_hash_hex = config["account_contract_class_hash"].as_str().unwrap();
+        assert_eq!(FieldElement::from_hex_be(config_class_hash_hex).unwrap(), expected_hash);
     }
 
     #[tokio::test]
