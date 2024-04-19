@@ -322,14 +322,14 @@ impl BackgroundDevnet {
         }
     }
 
-    // pub async fn get_pending_block_with_tx_hashes(
-    //     &self,
-    // ) -> Result<BlockWithTxHashes, anyhow::Error> {
-    //     match self.json_rpc_client.get_block_with_tx_hashes(BlockId::Tag(BlockTag::Pending)).
-    // await {         Ok(MaybePendingBlockWithTxHashes::Block(b)) => Ok(b),
-    //         other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
-    //     }
-    // }
+    pub async fn get_pending_block_with_tx_hashes(
+        &self,
+    ) -> Result<BlockWithTxHashes, anyhow::Error> {
+        match self.json_rpc_client.get_block_with_tx_hashes(BlockId::Tag(BlockTag::Pending)).await {
+            Ok(MaybePendingBlockWithTxHashes::Block(b)) => Ok(b),
+            other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
+        }
+    }
 }
 
 /// By implementing Drop, we ensure there are no zombie background Devnet processes

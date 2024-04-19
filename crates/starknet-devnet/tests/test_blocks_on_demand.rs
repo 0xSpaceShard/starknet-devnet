@@ -63,6 +63,10 @@ mod blocks_on_demand_tests {
         assert_balance(&devnet, FieldElement::from(TX_COUNT * DUMMY_AMOUNT), false).await;
 
         assert_latest_block_with_transactions(&devnet, 1, TX_COUNT).await;
+
+        let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
+        assert_eq!(pending_block.block_number, 2);
+        assert_eq!(pending_block.transactions.len(), 0);
     }
 
     // TODO: Add invoke/call test?
