@@ -64,14 +64,12 @@ mod blocks_on_demand_tests {
 
         assert_latest_block_with_transactions(&devnet, 1, TX_COUNT).await;
 
+        // check if pending_block was restarted
         let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
         assert_eq!(pending_block.block_number, 2);
         assert_eq!(pending_block.transactions.len(), 0);
     }
 
     // TODO: Add invoke/call test?
-    // TODO: Fee estimation
     // TODO: set_time and increase_time
-    // TODO: No pending after creation?
-    // TODO: Events and traces with blocks-on-demand?
 }

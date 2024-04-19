@@ -70,8 +70,6 @@ pub fn add_declare_transaction(
         blockifier_execution_result,
     )?;
 
-    // TODO: handle_dump_event should be inside handle_transaction_result? Block on demand and
-    // dump/load works?
     starknet
         .handle_dump_event(DumpEvent::AddDeclareTransaction(broadcasted_declare_transaction))?;
 

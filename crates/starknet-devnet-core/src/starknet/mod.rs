@@ -85,8 +85,8 @@ mod state_update;
 pub(crate) mod transaction_trace;
 
 pub struct Starknet {
-    pub(in crate::starknet) state: StarknetState,
-    pub(in crate::starknet) pending_state: StarknetState,
+    pub state: StarknetState,
+    pub pending_state: StarknetState,
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
     // To avoid repeating some logic related to blocks,
@@ -240,6 +240,10 @@ impl Starknet {
         Ok(this)
     }
 
+    pub fn get_state(&mut self) -> &mut StarknetState {
+        if self.config.blocks_on_demand { &mut self.pending_state } else { &mut self.state }
+    }
+
     pub fn restart(&mut self) -> DevnetResult<()> {
         self.config.re_execute_on_init = false;
         *self = Starknet::new(&self.config)?;
@@ -360,7 +364,7 @@ impl Starknet {
             )
         }
 
-        let state = &mut self.state; // TOOD: or &mut self.pending_state;?
+        let state = self.get_state();
 
         match transaction_result {
             Ok(tx_info) => {
@@ -725,11 +729,7 @@ impl Starknet {
     ) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee = self.config.gas_price.get() * 1_000_000;
         let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
-        let state = if self.config.blocks_on_demand {
-            &mut self.pending_state.state
-        } else {
-            &mut self.state.state
-        };
+        let state = self.get_state();
         let nonce = state.get_nonce_at(starknet_api::core::ContractAddress::try_from(
             starknet_api::hash::StarkFelt::from(chargeable_address_felt),
         )?)?;
