@@ -20,6 +20,13 @@ use starknet_rs_signers::LocalWallet;
 use super::background_devnet::BackgroundDevnet;
 use super::constants::CAIRO_1_CONTRACT_PATH;
 
+pub(crate) enum ImpersonationAction {
+    ImpersonateAccount(FieldElement),
+    StopImpersonatingAccount(FieldElement),
+    AutoImpersonate,
+    StopAutoImpersonate,
+}
+
 pub async fn get_json_body(resp: Response<Body>) -> serde_json::Value {
     let resp_body = resp.into_body();
     let resp_body_bytes = hyper::body::to_bytes(resp_body).await.unwrap();

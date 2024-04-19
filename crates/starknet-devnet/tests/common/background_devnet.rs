@@ -28,6 +28,7 @@ use super::constants::{
     PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, RPC_PATH, SEED,
 };
 use super::errors::TestError;
+use super::utils::ImpersonationAction;
 use crate::common::utils::get_json_body;
 
 lazy_static! {
@@ -309,15 +310,28 @@ impl BackgroundDevnet {
         }
     }
 
-    pub async fn impersonate_account(&self, account: FieldElement) -> Result<(), anyhow::Error> {
-        let result = self
-            .send_custom_rpc(
+    pub(crate) async fn impersonate_account(
+        &self,
+        action: ImpersonationAction,
+    ) -> Result<(), anyhow::Error> {
+        let (method_name, params) = match action {
+            ImpersonationAction::ImpersonateAccount(account) => (
                 "devnet_impersonateAccount",
                 json!({
                     "contract_address": format!("0x{:x}", account)
                 }),
-            )
-            .await;
+            ),
+            ImpersonationAction::StopImpersonatingAccount(account) => (
+                "devnet_stopImpersonateAccount",
+                json!({
+                    "contract_address": format!("0x{:x}", account)
+                }),
+            ),
+            ImpersonationAction::AutoImpersonate => ("devnet_autoImpersonate", json!({})),
+            ImpersonationAction::StopAutoImpersonate => ("devnet_stopAutoImpersonate", json!({})),
+        };
+
+        let result = self.send_custom_rpc(method_name, params).await;
 
         result
             .get("error")

@@ -1,3 +1,4 @@
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction,
@@ -51,6 +52,27 @@ impl JsonRpcHandler {
         let transaction_hash = self.api.starknet.write().await.add_invoke_transaction(request)?;
 
         Ok(StarknetResponse::AddInvokeTransaction(InvokeTransactionOutput { transaction_hash }))
+    }
+
+    // devnet_impersonateAccount
+    pub async fn impersonate_account(&self, address: ContractAddress) -> StrictRpcResult {
+        let mut starknet = self.api.starknet.write().await;
+        starknet.impersonate_account(address)?;
+        Ok(StarknetResponse::Empty)
+    }
+
+    // devnet_stopImpersonatingAccount
+    pub async fn stop_impersonating_account(&self, address: ContractAddress) -> StrictRpcResult {
+        let mut starknet = self.api.starknet.write().await;
+        starknet.stop_impersonating_account(&address);
+        Ok(StarknetResponse::Empty)
+    }
+
+    // devnet_autoImpersonate | devnet_stopAutoImpersonate
+    pub async fn auto_impersonate(&self, auto_impersonation: bool) -> StrictRpcResult {
+        let mut starknet = self.api.starknet.write().await;
+        starknet.auto_impersonate_account(auto_impersonation);
+        Ok(StarknetResponse::Empty)
     }
 }
 

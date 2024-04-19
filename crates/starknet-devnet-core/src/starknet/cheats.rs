@@ -18,10 +18,7 @@ impl Cheats {
     pub(crate) fn is_impersonated(&self, account: &ContractAddress) -> bool {
         self.auto_impersonate || self.impersonated_accounts.contains(account)
     }
-    // pub(crate) fn auto_impersonate(&mut self) {
-    //     self.auto_impersonate = true;
-    // }
-    // pub(crate) fn stop_auto_impersonate(&mut self) {
-    //     self.auto_impersonate = false;
-    // }
+    pub(crate) fn auto_impersonate(&mut self, auto_impersonation: bool) {
+        self.auto_impersonate = auto_impersonation;
+    }
 }

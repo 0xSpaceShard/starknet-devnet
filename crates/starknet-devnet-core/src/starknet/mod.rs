@@ -42,7 +42,7 @@ use starknet_types::rpc::transactions::{
     DeclareTransaction, SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace,
     TransactionType, TransactionWithHash, TransactionWithReceipt, Transactions,
 };
-use starknet_types::traits::{HashProducer, ToHexString};
+use starknet_types::traits::HashProducer;
 use tracing::{error, info};
 
 use self::cheats::Cheats;
@@ -1209,6 +1209,15 @@ impl Starknet {
     /// * `account` - Account to stop impersonating
     pub fn stop_impersonating_account(&mut self, account: &ContractAddress) {
         self.cheats.stop_impersonating_account(account);
+    }
+
+    /// Turn on/off auto impersonation of accounts that are not part of the state
+    ///
+    /// # Arguments
+    /// * `auto_impersonation` - If true, auto impersonate every account that is not part of the
+    ///   state, otherwise dont auto impersonate
+    pub fn auto_impersonate_account(&mut self, auto_impersonation: bool) {
+        self.cheats.auto_impersonate(auto_impersonation);
     }
 
     /// Returns true if the account is not part of the state and is impersonated
