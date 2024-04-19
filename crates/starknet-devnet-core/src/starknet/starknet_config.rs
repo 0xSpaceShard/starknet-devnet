@@ -16,12 +16,14 @@ use crate::constants::{
 };
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum DumpOn {
     Exit,
     Transaction,
 }
 
 #[derive(Default, Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum StateArchiveCapacity {
     #[default]
     #[clap(name = "none")]

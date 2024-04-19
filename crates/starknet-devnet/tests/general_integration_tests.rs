@@ -66,12 +66,13 @@ mod general_integration_tests {
             "gas_price": 5,
             "data_gas_price": 6,
             "chain_id": "SN_MAIN",
-            "dump_on": "Exit",
+            "dump_on": "exit",
             "dump_path": dump_file.path,
-            "state_archive": "Full",
+            "state_archive": "full",
             "fork_config": null,
             "server_config": {
                 "host": "0.0.0.0",
+                // expected port added after spawning; determined by port-acquiring logic
                 "timeout": 121,
                 "request_body_size_limit": 1000
             }
@@ -93,14 +94,13 @@ mod general_integration_tests {
             "--chain-id",
             "MAINNET",
             "--dump-on",
-            "exit",
+            &expected_config["dump_on"].as_str().unwrap(),
             "--dump-path",
             &expected_config["dump_path"].as_str().unwrap(),
             "--state-archive-capacity",
-            "full",
+            &expected_config["state_archive"].as_str().unwrap(),
             "--host",
             expected_config["server_config"]["host"].as_str().unwrap(),
-            // not specifying --port as it is determined by port acquiring logic
             "--timeout",
             &serde_json::to_string(&expected_config["server_config"]["timeout"]).unwrap(),
             "--request-body-size-limit",
