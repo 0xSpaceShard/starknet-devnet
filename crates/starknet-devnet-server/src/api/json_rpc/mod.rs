@@ -215,10 +215,11 @@ impl JsonRpcHandler {
                 | error::ApiError::TransactionNotFound
                 | error::ApiError::NoStateAtBlock { .. }
                 | error::ApiError::ClassHashNotFound => {
-                    // ClassHashNotFound can be thrown from starknet_getClass or
-                    // starknet_deployAccount, but only starknet_getClass should be retried from
-                    // here; starknet_deployAccount already fetches from origin internally. This is
-                    // handled by (un)setting the `forwardable` flag
+                    // ClassHashNotFound can be thrown from starknet_getClass, starknet_getClassAt
+                    // or starknet_deployAccount, but starknet_deployAccount
+                    // doesn't need to be retried from here as it already attempted fetching from
+                    // the origin internally. This distinction is handled by (un)setting the
+                    // `forwardable` flag
 
                     if forwardable {
                         return forwarder.call(&original_call).await;

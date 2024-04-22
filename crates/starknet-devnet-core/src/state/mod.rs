@@ -38,6 +38,8 @@ pub trait CustomState {
         class_hash: ClassHash,
         contract_class: ContractClass,
     ) -> DevnetResult<()>;
+
+    /// Link contract address to class hash
     fn predeploy_contract(
         &mut self,
         contract_address: ContractAddress,

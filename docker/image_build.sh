@@ -24,13 +24,14 @@ function validate_and_push() {
         "$tagged_image" \
         --port "$internal_port"
 
-    sleep 10 # alternatively check in a loop
+    sleep 10 # allow some time to spawn; alternatively check in a loop
 
     # logging can be helpful if Devnet exited early
     docker logs "$container_name"
 
     echo "Checking if devnet instance is alive"
-    if [ ! -z $REMOTE ]; then
+    if [ -f /.dockerenv ]; then
+        # workflow inside a container - Devnet container spawned on a remote Docker host
         ssh remote-docker curl "$external_address/is_alive" -w "\n"
     else
         curl "$external_address/is_alive" -w "\n"
@@ -44,11 +45,11 @@ function validate_and_push() {
 echo "Building ${ARCH_SUFFIX} images tagged with sha1 commit digest"
 
 SHA1_TAG="${CIRCLE_SHA1}${ARCH_SUFFIX}"
-BASE_IMAGE="${IMAGE}:${SHA1_TAG}";
+BASE_IMAGE="${IMAGE}:${SHA1_TAG}"
 echo "Building regular (unseeded) image: $SHA1_TAG"
 docker build . \
     -f docker/Dockerfile \
-    -t $BASE_IMAGE
+    -t "$BASE_IMAGE"
 
 SEED_SUFFIX="-seed0"
 SHA1_SEEDED_TAG="${SHA1_TAG}${SEED_SUFFIX}"
@@ -56,11 +57,11 @@ echo "Building seeded image: $SHA1_SEEDED_TAG"
 docker build . \
     -f docker/seed0.Dockerfile \
     -t "$IMAGE:$SHA1_SEEDED_TAG" \
-    --build-arg BASE_IMAGE=$BASE_IMAGE
+    --build-arg BASE_IMAGE="$BASE_IMAGE"
 
 echo "Images built. Validating and pushing."
 docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
 
-for image_tag in $SHA1_TAG $SHA1_SEEDED_TAG; do
-    validate_and_push $image_tag
+for image_tag in "$SHA1_TAG" "$SHA1_SEEDED_TAG"; do
+    validate_and_push "$image_tag"
 done
