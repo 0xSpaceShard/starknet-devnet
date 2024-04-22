@@ -236,11 +236,9 @@ mod advancing_time_tests {
         assert_ge_with_buffer(current_timestamp, future_time);
     }
 
-    #[tokio::test]
-    async fn set_time_in_past() {
+    async fn set_time_in_past(devnet: &BackgroundDevnet) {
         // set time and assert if >= past_time, check if inside buffer limit
         let past_time = 1;
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let set_time_body = Body::from(json!({ "time": past_time }).to_string());
         let resp_set_time = devnet.post_json("/set_time".into(), set_time_body).await.unwrap();
         let resp_body_set_time = get_json_body(resp_set_time).await;
@@ -259,18 +257,33 @@ mod advancing_time_tests {
         // wait 1 second
         tokio::time::sleep(time::Duration::from_secs(1)).await;
 
-        // check if after mint timestamp > last block, check if inside buffer limit
-        devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-        let mint_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
-        assert_gt_with_buffer(mint_block.timestamp, empty_block.timestamp);
+        // check if after create block timestamp > last block, check if inside buffer limit
+        devnet.create_block().await.unwrap();
+        let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+        assert_gt_with_buffer(latest_block.timestamp, empty_block.timestamp);
     }
 
     #[tokio::test]
-    async fn set_time_in_future() {
+    async fn set_time_in_past_normal_mode() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        set_time_in_past(&devnet).await;
+    }
+
+    #[tokio::test]
+    async fn set_time_in_past_block_on_demand_mode() {
+        let devnet: BackgroundDevnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
+                .await
+                .expect("Could not start Devnet");
+
+        set_time_in_past(&devnet).await;
+    }
+
+    async fn set_time_in_future(devnet: &BackgroundDevnet) {
         // set time and assert if >= future_time, check if inside buffer limit
         let now = get_unix_timestamp_as_seconds();
         let future_time = now + 1000;
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let set_time_body = Body::from(json!({ "time": future_time }).to_string());
         let resp = devnet.post_json("/set_time".into(), set_time_body).await.unwrap();
         let resp_body = get_json_body(resp).await;
@@ -289,10 +302,27 @@ mod advancing_time_tests {
         // wait 1 second
         tokio::time::sleep(time::Duration::from_secs(1)).await;
 
-        // check if after mint timestamp > last empty block, check if inside buffer limit
-        devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-        let mint_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
-        assert_gt_with_buffer(mint_block.timestamp, future_time);
+        // check if after create block timestamp > last empty block, check if inside buffer limit
+        devnet.create_block().await.unwrap();
+        let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+        assert_gt_with_buffer(latest_block.timestamp, future_time);
+    }
+
+    #[tokio::test]
+    async fn set_time_in_future_normal_mode() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        set_time_in_future(&devnet).await;
+    }
+
+    #[tokio::test]
+    async fn set_time_in_future_block_on_demand_mode() {
+        let devnet: BackgroundDevnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
+                .await
+                .expect("Could not start Devnet");
+
+        set_time_in_future(&devnet).await;
     }
 
     #[tokio::test]
