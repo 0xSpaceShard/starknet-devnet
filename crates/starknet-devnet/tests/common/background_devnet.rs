@@ -312,7 +312,7 @@ impl BackgroundDevnet {
 
     pub(crate) async fn impersonate_account(
         &self,
-        action: ImpersonationAction,
+        action: &ImpersonationAction,
     ) -> Result<(), anyhow::Error> {
         let (method_name, params) = match action {
             ImpersonationAction::ImpersonateAccount(account) => (

@@ -2,6 +2,8 @@ pub mod common;
 
 mod impersonated_account_tests {
 
+    use std::future::Future;
+    use std::pin::Pin;
     use std::sync::Arc;
 
     use starknet_core::constants::STRK_ERC20_CONTRACT_ADDRESS;
@@ -13,7 +15,8 @@ mod impersonated_account_tests {
         BlockId, BlockTag, ContractErrorData, ExecutionResult, FieldElement, StarknetError,
     };
     use starknet_rs_core::utils::get_selector_from_name;
-    use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_rs_providers::jsonrpc::HttpTransport;
+    use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
     use starknet_rs_signers::{LocalWallet, SigningKey};
     use starknet_types::felt::Felt;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
@@ -23,9 +26,22 @@ mod impersonated_account_tests {
     use crate::common::constants::{
         self, CAIRO_1_CASM_PATH, CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH,
     };
-    use crate::common::utils::spawn_forkable_devnet;
+    use crate::common::utils::{spawn_forkable_devnet, ImpersonationAction};
 
     const IMPERSONATED_ACCOUNT_PRIVATE_KEY: FieldElement = FieldElement::ONE;
+    // FieldElement::from_dec_str("100000000000")
+    const AMOUNT_TO_TRANSFER: FieldElement = FieldElement::from_mont([
+        18446740873709551617,
+        18446744073709551615,
+        18446744073709551615,
+        576406352303423504,
+    ]);
+
+    #[derive(Clone)]
+    enum TestCaseResult {
+        Success,
+        Failure { msg: String },
+    }
 
     async fn get_account_for_impersonation_and_private_key(
         devnet: &BackgroundDevnet,
@@ -39,101 +55,144 @@ mod impersonated_account_tests {
         )
     }
 
+    fn get_invoke_transaction_request(amount_to_transfer: FieldElement) -> Call {
+        Call {
+            to: FieldElement::from_hex_be(STRK_ERC20_CONTRACT_ADDRESS).unwrap(),
+            selector: get_selector_from_name("transfer").unwrap(),
+            calldata: vec![
+                FieldElement::ONE,  // recipient
+                amount_to_transfer, // low part of uint256
+                FieldElement::ZERO, // high part of uint256
+            ],
+        }
+    }
+
+    async fn get_account_interacting_with_forked_devnet<'a>(
+        origin_devnet: &'a BackgroundDevnet,
+        forked_devnet: &'a BackgroundDevnet,
+    ) -> SingleOwnerAccount<&'a JsonRpcClient<HttpTransport>, LocalWallet> {
+        let (account_address, private_key) =
+            get_account_for_impersonation_and_private_key(origin_devnet).await;
+
+        SingleOwnerAccount::new(
+            &forked_devnet.json_rpc_client,
+            private_key,
+            account_address,
+            constants::CHAIN_ID,
+            ExecutionEncoding::New,
+        )
+    }
+
+    #[tokio::test]
+    async fn test_impersonated_of_a_predeployed_account_account_can_send_transaction() {
+        let devnet = spawn_forkable_devnet().await.expect("Could not start Devnet");
+        let (_, account_address) = devnet.get_first_predeployed_account().await;
+
+        test_invoke_transaction(
+            &devnet,
+            &[ImpersonationAction::ImpersonateAccount(account_address)],
+            TestCaseResult::Success,
+        )
+        .await;
+
+        test_declare_transaction(
+            &devnet,
+            &[ImpersonationAction::ImpersonateAccount(account_address)],
+            TestCaseResult::Success,
+        )
+        .await;
+    }
+
     #[tokio::test]
     async fn non_impersonated_account_fails_to_make_a_transaction_and_receives_an_error_of_invalid_signature()
      {
         let origin_devnet = spawn_forkable_devnet().await.unwrap();
-        let forked_devnet = origin_devnet.fork().await.unwrap();
-        let (account_address, private_key) =
-            get_account_for_impersonation_and_private_key(&origin_devnet).await;
+        let expected_result = TestCaseResult::Failure { msg: "invalid signature".to_string() };
 
-        let amount_to_transfer = FieldElement::from_dec_str("100000000000").unwrap();
+        test_invoke_transaction(&origin_devnet, &[], expected_result.clone()).await;
 
-        let account = SingleOwnerAccount::new(
-            &forked_devnet.json_rpc_client,
-            private_key,
-            account_address,
-            constants::CHAIN_ID,
-            ExecutionEncoding::New,
-        );
+        test_declare_transaction(&origin_devnet, &[], expected_result).await;
+    }
 
-        let invoke_call = Call {
-            to: FieldElement::from_hex_be(STRK_ERC20_CONTRACT_ADDRESS).unwrap(),
-            selector: get_selector_from_name("transfer").unwrap(),
-            calldata: vec![
-                FieldElement::ONE,  // recipient
-                amount_to_transfer, // low part of uint256
-                FieldElement::ZERO, // high part of uint256
+    #[tokio::test]
+    async fn test_auto_impersonate_allows_user_to_send_transactions() {
+        let devnet = spawn_forkable_devnet().await.unwrap();
+        test_invoke_transaction(
+            &devnet,
+            &[ImpersonationAction::AutoImpersonate],
+            TestCaseResult::Success,
+        )
+        .await;
+
+        test_declare_transaction(
+            &devnet,
+            &[ImpersonationAction::AutoImpersonate],
+            TestCaseResult::Success,
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn test_impersonate_account_and_then_stop_impersonate_have_to_return_an_error_of_invalid_signature()
+     {
+        let origin_devnet = &spawn_forkable_devnet().await.unwrap();
+        let (_, account_address) = origin_devnet.get_first_predeployed_account().await;
+        let expected_result = TestCaseResult::Failure { msg: "invalid signature".to_string() };
+        test_invoke_transaction(
+            &origin_devnet,
+            &[
+                ImpersonationAction::ImpersonateAccount(account_address),
+                ImpersonationAction::StopImpersonatingAccount(account_address),
             ],
-        };
+            expected_result.clone(),
+        )
+        .await;
 
-        let error = account.execute(vec![invoke_call]).send().await.err().unwrap();
-        match error {
-            AccountError::Provider(ProviderError::StarknetError(StarknetError::ContractError(
-                ContractErrorData { revert_error },
-            ))) => {
-                assert!(revert_error.to_lowercase().contains("invalid signature"));
-            }
-            _ => panic!("Expected an error of invalid signature"),
+        test_declare_transaction(
+            &origin_devnet,
+            &[
+                ImpersonationAction::ImpersonateAccount(account_address),
+                ImpersonationAction::StopImpersonatingAccount(account_address),
+            ],
+            expected_result.clone(),
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn test_auto_impersonate_then_stop_and_send_transaction_fails_with_invalid_signature_error()
+     {
+        let origin_devnet = &spawn_forkable_devnet().await.unwrap();
+        let expected_result = TestCaseResult::Failure { msg: "invalid signature".to_string() };
+        test_invoke_transaction(
+            &origin_devnet,
+            &[ImpersonationAction::AutoImpersonate, ImpersonationAction::StopAutoImpersonate],
+            expected_result.clone(),
+        )
+        .await;
+
+        test_declare_transaction(
+            &origin_devnet,
+            &[ImpersonationAction::AutoImpersonate, ImpersonationAction::StopAutoImpersonate],
+            expected_result,
+        )
+        .await;
+    }
+
+    async fn test_declare_transaction(
+        origin_devnet: &BackgroundDevnet,
+        impersonation_actions: &[ImpersonationAction],
+        expected_result: TestCaseResult,
+    ) {
+        let forked_devnet = origin_devnet.fork().await.unwrap();
+
+        let mut account =
+            get_account_interacting_with_forked_devnet(&origin_devnet, &forked_devnet).await;
+
+        for action in impersonation_actions.iter() {
+            forked_devnet.impersonate_account(action).await.unwrap();
         }
-    }
 
-    #[tokio::test]
-    async fn test_impersonated_account_of_a_predeployed_account_can_create_transfer() {
-        let origin_devnet = spawn_forkable_devnet().await.unwrap();
-        let (account_address, private_key) =
-            get_account_for_impersonation_and_private_key(&origin_devnet).await;
-
-        let forked_devnet = origin_devnet.fork().await.unwrap();
-        forked_devnet
-            .impersonate_account(crate::common::utils::ImpersonationAction::ImpersonateAccount(
-                account_address,
-            ))
-            .await
-            .unwrap();
-
-        let forked_account_initial_balance =
-            forked_devnet.get_balance(&account_address, FeeUnit::FRI).await.unwrap();
-
-        let amount_to_transfer = FieldElement::from_dec_str("100000000000").unwrap();
-
-        let account = SingleOwnerAccount::new(
-            &forked_devnet.json_rpc_client,
-            private_key,
-            account_address,
-            constants::CHAIN_ID,
-            ExecutionEncoding::New,
-        );
-
-        let invoke_call = Call {
-            to: FieldElement::from_hex_be(STRK_ERC20_CONTRACT_ADDRESS).unwrap(),
-            selector: get_selector_from_name("transfer").unwrap(),
-            calldata: vec![
-                FieldElement::ONE,  // recipient
-                amount_to_transfer, // low part of uint256
-                FieldElement::ZERO, // high part of uint256
-            ],
-        };
-
-        let result = account.execute(vec![invoke_call]).send().await.unwrap();
-
-        let receipt = forked_devnet
-            .json_rpc_client
-            .get_transaction_receipt(result.transaction_hash)
-            .await
-            .unwrap();
-
-        assert_eq!(receipt.execution_result(), &ExecutionResult::Succeeded);
-
-        let forked_account_balance =
-            forked_devnet.get_balance(&account_address, FeeUnit::FRI).await.unwrap();
-        assert!(forked_account_initial_balance >= amount_to_transfer + forked_account_balance);
-    }
-
-    #[tokio::test]
-    async fn test_impersonated_of_a_predeployed_account_account_can_send_declare_transaction() {
-        let devnet = spawn_forkable_devnet().await.expect("Could not start Devnet");
-        let forked_devnet = devnet.fork().await.unwrap();
         let sierra_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), CAIRO_1_CONTRACT_PATH);
         let contract_artifact: SierraClass =
             serde_json::from_reader(std::fs::File::open(sierra_path).unwrap()).unwrap();
@@ -144,83 +203,71 @@ mod impersonated_account_tests {
         let compiled_class_hash = (casm_contract_definition.class_hash()).unwrap();
         assert_eq!(Felt::from(compiled_class_hash).to_prefixed_hex_str(), CASM_COMPILED_CLASS_HASH);
 
-        let (_, address) = devnet.get_first_predeployed_account().await;
-        forked_devnet
-            .impersonate_account(crate::common::utils::ImpersonationAction::ImpersonateAccount(
-                address,
-            ))
-            .await
-            .unwrap();
-
-        let mut account = SingleOwnerAccount::new(
-            &forked_devnet.json_rpc_client,
-            LocalWallet::from_signing_key(SigningKey::from_secret_scalar(
-                IMPERSONATED_ACCOUNT_PRIVATE_KEY,
-            )),
-            address,
-            constants::CHAIN_ID,
-            ExecutionEncoding::Legacy,
-        );
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
 
         // We need to flatten the ABI into a string first
         let flattened_class = contract_artifact.flatten().unwrap();
 
         let declare_result =
-            account.declare(Arc::new(flattened_class), compiled_class_hash).send().await.unwrap();
+            account.declare(Arc::new(flattened_class), compiled_class_hash).send().await;
 
-        crate::common::utils::assert_tx_successful(
-            &declare_result.transaction_hash,
-            &forked_devnet.json_rpc_client,
-        )
-        .await;
+        match expected_result {
+            TestCaseResult::Success => {
+                crate::common::utils::assert_tx_successful(
+                    &declare_result.unwrap().transaction_hash,
+                    &forked_devnet.json_rpc_client,
+                )
+                .await;
+            }
+            TestCaseResult::Failure { msg } => {
+                let err = declare_result.err().unwrap();
+                assert!(format!("{:?}", err).to_lowercase().contains(&msg));
+            }
+        }
     }
 
-    #[tokio::test]
-    async fn test_auto_impersonate_and_send_invoke_transaction() {
-        // Test scenario 1: Auto impersonate account and send invoke transaction
-        // Your test code here...
-    }
+    async fn test_invoke_transaction(
+        origin_devnet: &BackgroundDevnet,
+        impersonation_actions: &[ImpersonationAction],
+        expected_result: TestCaseResult,
+    ) {
+        let forked_devnet = origin_devnet.fork().await.unwrap();
 
-    #[tokio::test]
-    async fn test_auto_impersonate_and_send_declare_transaction() {
-        // Test scenario 2: Auto impersonate account and send declare transaction
-        // Your test code here...
-    }
+        let account =
+            get_account_interacting_with_forked_devnet(&origin_devnet, &forked_devnet).await;
 
-    #[tokio::test]
-    async fn test_auto_impersonate_then_stop_and_send_invoke_transaction() {
-        // Test scenario 3: Auto impersonate account then stop impersonating and send invoke
-        // transaction Your test code here...
-    }
+        for action in impersonation_actions.iter() {
+            forked_devnet.impersonate_account(action).await.unwrap();
+        }
 
-    #[tokio::test]
-    async fn test_auto_impersonate_then_stop_and_send_declare_transaction() {
-        // Test scenario 4: Auto impersonate account then stop impersonating and send declare
-        // transaction Your test code here...
-    }
+        let forked_account_initial_balance =
+            forked_devnet.get_balance(&account.address(), FeeUnit::FRI).await.unwrap();
 
-    #[tokio::test]
-    async fn test_auto_impersonate_then_impersonate_and_send_invoke_transaction() {
-        // Test scenario 5: Auto impersonate account then impersonate account and send invoke
-        // transaction Your test code here...
-    }
+        let invoke_call = get_invoke_transaction_request(AMOUNT_TO_TRANSFER);
 
-    #[tokio::test]
-    async fn test_auto_impersonate_then_impersonate_and_send_declare_transaction() {
-        // Test scenario 6: Auto impersonate account then impersonate account and send declare
-        // transaction Your test code here...
-    }
+        let result = account.execute(vec![invoke_call]).send().await;
 
-    #[tokio::test]
-    async fn test_auto_impersonate_then_impersonate_then_stop_and_send_invoke_transaction() {
-        // Test scenario 7: Auto impersonate account then impersonate account then stop
-        // impersonating and send invoke transaction Your test code here...
-    }
+        match expected_result {
+            TestCaseResult::Success => {
+                let result = result.unwrap();
 
-    #[tokio::test]
-    async fn test_auto_impersonate_then_impersonate_then_stop_and_send_declare_transaction() {
-        // Test scenario 8: Auto impersonate account then impersonate account then stop
-        // impersonating and send declare transaction Your test code here...
+                let receipt = forked_devnet
+                    .json_rpc_client
+                    .get_transaction_receipt(result.transaction_hash)
+                    .await
+                    .unwrap();
+
+                assert_eq!(receipt.execution_result(), &ExecutionResult::Succeeded);
+                let forked_account_balance =
+                    forked_devnet.get_balance(&account.address(), FeeUnit::FRI).await.unwrap();
+                assert!(
+                    forked_account_initial_balance >= AMOUNT_TO_TRANSFER + forked_account_balance
+                );
+            }
+            TestCaseResult::Failure { msg } => {
+                let err = result.err().unwrap();
+                assert!(format!("{:?}", err).to_lowercase().contains(&msg));
+            }
+        }
     }
 }
