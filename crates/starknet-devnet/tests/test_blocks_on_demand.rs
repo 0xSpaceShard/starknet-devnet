@@ -27,6 +27,17 @@ mod blocks_on_demand_tests {
         }
     }
 
+    async fn assert_pending_block_with_transactions(
+        devnet: &BackgroundDevnet,
+        block_number: u64,
+        transactions_count: u128,
+    ) {
+        let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
+        assert_eq!(pending_block.block_number, block_number);
+        assert_eq!(pending_block.transactions.len() as u128, transactions_count);
+        assert_eq!(pending_block.status, BlockStatus::Pending);
+    }
+
     async fn assert_balance(
         devnet: &BackgroundDevnet,
         expected: FieldElement,
@@ -68,8 +79,7 @@ mod blocks_on_demand_tests {
         let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
         assert_eq!(pending_block.block_number, 2);
         assert_eq!(pending_block.transactions.len(), 0);
-    }
 
-    // TODO: Add invoke/call test?
-    // TODO: set_time and increase_time
+        assert_pending_block_with_transactions(&devnet, 2, 0).await;
+    }
 }

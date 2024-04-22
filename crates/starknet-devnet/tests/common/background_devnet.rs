@@ -233,7 +233,7 @@ impl BackgroundDevnet {
     }
 
     /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`
-    /// from pending block state or latest block state
+    /// from pending state or latest state
     pub async fn get_balance_pending_state(
         &self,
         address: &FieldElement,
