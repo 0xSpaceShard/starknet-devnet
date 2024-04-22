@@ -420,7 +420,7 @@ All RPC endpoints that support querying the state at an old (non-latest) block o
 
 ## Fetch Devnet configuration
 
-To retrieve the current configuration of Devnet, send a GET request to `/config`. Example response is attached below. It can be interpreted as a JSON mapping of CLI input parameters, both specified and default ones, with some irrelevant parameters omitted. So use `starknet-devnet --help` to better understand the meaning of each value.
+To retrieve the current configuration of Devnet, send a GET request to `/config`. Example response is attached below. It can be interpreted as a JSON mapping of CLI input parameters, both specified and default ones, with some irrelevant parameters omitted. So use `starknet-devnet --help` to better understand the meaning of each value, though keep in mind that some of the parameters have slightly modified names.
 
 ```json
 {
@@ -432,9 +432,9 @@ To retrieve the current configuration of Devnet, send a GET request to `/config`
   "gas_price": 100000000000,
   "data_gas_price": 100000000000,
   "chain_id": "SN_SEPOLIA",
-  "dump_on": null,
-  "dump_path": null,
-  "state_archive": "None",
+  "dump_on": "exit",
+  "dump_path": "dump_path.json",
+  "state_archive": "none",
   "fork_config": {
     "url": "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7",
     "block": 26429
