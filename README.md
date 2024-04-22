@@ -281,7 +281,23 @@ A new block is generated with each new transaction, and you can create an empty 
 
 ### Creating blocks on demand
 
-TODO: add doc from old devnet here
+If you start Devnet with the `--blocks-on-demand` CLI option, all valid transactions will be stored in a pending block (targetable via block `"BlockId::Tag(BlockTag::Pending)"`).
+
+To create a block on demand, send a `POST` request to `/create_block`. This will convert the pending block to the latest block (targetable via block `"BlockId::Tag(BlockTag::Latest)"`), giving it a block hash and a block number. All subsequent transactions will be stored in a new pending block.
+
+In case of demanding block creation with no pending transactions, a new empty block will be generated.
+
+The creation of the genesis block is not affected by this feature.
+
+```
+POST /create_block
+```
+
+Response:
+
+```
+{'block_hash': '0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67'}
+```
 
 ### Create an empty block
 
