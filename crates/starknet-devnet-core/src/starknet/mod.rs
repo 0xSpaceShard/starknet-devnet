@@ -1197,6 +1197,11 @@ impl Starknet {
                 msg: "Account impersonation is supported when forking mode is enabled.".to_string(),
             });
         }
+        if self.state.is_contract_deployed_locally(account)? {
+            return Err(Error::UnsupportedAction {
+                msg: "Account is in local state, cannot be impersonated".to_string(),
+            });
+        }
         self.cheats.impersonate_account(account);
         Ok(())
     }
