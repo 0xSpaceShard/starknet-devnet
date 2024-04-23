@@ -2,7 +2,7 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
@@ -12,7 +12,7 @@ use starknet_types::rpc::transactions::{
 use super::{DumpOn, Starknet};
 use crate::error::{DevnetResult, Error};
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub enum DumpEvent {
     CreateBlock,
     SetTime(u64),
