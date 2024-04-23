@@ -76,6 +76,12 @@ impl BackgroundDevnet {
         BackgroundDevnet::spawn_with_additional_args(&[]).await
     }
 
+    pub async fn spawn_with_forking() -> Result<BackgroundDevnet, anyhow::Error> {
+        let args = ["--state-archive-capacity", "full"];
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await?;
+        Ok(devnet)
+    }
+
     /// Takes specified args and adds default values for args that are missing
     fn add_default_args<'a>(specified_args: &[&'a str]) -> Vec<&'a str> {
         let mut specified_args_vec: Vec<&str> = specified_args.to_vec();
