@@ -20,7 +20,7 @@ use starknet_rs_signers::LocalWallet;
 use super::background_devnet::BackgroundDevnet;
 use super::constants::CAIRO_1_CONTRACT_PATH;
 
-pub(crate) enum ImpersonationAction {
+pub enum ImpersonationAction {
     ImpersonateAccount(FieldElement),
     StopImpersonatingAccount(FieldElement),
     AutoImpersonate,
