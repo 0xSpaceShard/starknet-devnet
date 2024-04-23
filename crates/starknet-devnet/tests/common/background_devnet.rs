@@ -28,7 +28,7 @@ use super::constants::{
     PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, RPC_PATH, SEED,
 };
 use super::errors::TestError;
-use super::utils::ImpersonationAction;
+use super::utils::{to_hex_felt, ImpersonationAction};
 use crate::common::utils::get_json_body;
 
 lazy_static! {
@@ -324,13 +324,13 @@ impl BackgroundDevnet {
             ImpersonationAction::ImpersonateAccount(account) => (
                 "devnet_impersonateAccount",
                 json!({
-                    "account_address": format!("0x{:x}", account)
+                    "account_address": to_hex_felt(account)
                 }),
             ),
             ImpersonationAction::StopImpersonatingAccount(account) => (
                 "devnet_stopImpersonateAccount",
                 json!({
-                    "account_address": format!("0x{:x}", account)
+                    "account_address": to_hex_felt(account)
                 }),
             ),
             ImpersonationAction::AutoImpersonate => ("devnet_autoImpersonate", json!({})),
