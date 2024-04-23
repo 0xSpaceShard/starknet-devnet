@@ -235,7 +235,7 @@ POST /mint
 Check the balance of an address by sending a GET request to `/account_balance`. The address should be a 0x-prefixed hex string; the unit defaults to `WEI`.
 
 ```
-GET /account_balance?address=<ADDRESS>&[unit=<FRI|WEI>]
+GET /account_balance?address=<ADDRESS>&[unit=<FRI|WEI>]&[pending_state=<true|false>]
 ```
 
 ## Dumping & Loading
