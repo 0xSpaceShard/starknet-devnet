@@ -69,12 +69,15 @@ mod general_integration_tests {
             "dump_on": "exit",
             "dump_path": dump_file.path,
             "state_archive": "full",
-            "fork_config": null,
+            "fork_config": {
+                "url": null,
+                "block_number": null,
+            },
             "server_config": {
                 "host": "0.0.0.0",
                 // expected port added after spawning; determined by port-acquiring logic
                 "timeout": 121,
-                "request_body_size_limit": 1000
+                "request_body_size_limit": 1000,
             }
         });
 

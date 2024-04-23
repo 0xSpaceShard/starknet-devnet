@@ -443,7 +443,7 @@ To retrieve the current configuration of Devnet, send a GET request to `/config`
   "state_archive": "none",
   "fork_config": {
     "url": "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7",
-    "block": 26429
+    "block_number": 26429
   },
   "server_config": {
     "host": "127.0.0.1",
