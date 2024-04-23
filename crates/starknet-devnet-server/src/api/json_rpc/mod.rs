@@ -30,9 +30,9 @@ use tracing::{error, info, trace};
 
 use self::error::StrictRpcResult;
 use self::models::{
-    BlockHashAndNumberOutput, BlockIdInput, BroadcastedDeclareTransactionInput,
-    BroadcastedDeployAccountTransactionInput, BroadcastedInvokeTransactionInput,
-    ContractAddressInput, DeclareTransactionOutput, DeployAccountTransactionOutput,
+    AccountAddressInput, BlockHashAndNumberOutput, BlockIdInput,
+    BroadcastedDeclareTransactionInput, BroadcastedDeployAccountTransactionInput,
+    BroadcastedInvokeTransactionInput, DeclareTransactionOutput, DeployAccountTransactionOutput,
     InvokeTransactionOutput, SyncingOutput, TransactionStatusOutput,
 };
 use self::origin_forwarder::OriginForwarder;
@@ -207,11 +207,11 @@ impl JsonRpcHandler {
             StarknetRequest::BlockTransactionTraces(BlockIdInput { block_id }) => {
                 self.get_trace_block_transactions(block_id).await
             }
-            StarknetRequest::ImpersonateAccount(ContractAddressInput { contract_address }) => {
-                self.impersonate_account(contract_address).await
+            StarknetRequest::ImpersonateAccount(AccountAddressInput { account_address }) => {
+                self.impersonate_account(account_address).await
             }
-            StarknetRequest::StopImpersonateAccount(ContractAddressInput { contract_address }) => {
-                self.stop_impersonating_account(contract_address).await
+            StarknetRequest::StopImpersonateAccount(AccountAddressInput { account_address }) => {
+                self.stop_impersonating_account(account_address).await
             }
             StarknetRequest::AutoImpersonate => self.auto_impersonate(true).await,
             StarknetRequest::StopAutoImpersonate => self.auto_impersonate(false).await,
@@ -304,9 +304,9 @@ pub enum StarknetRequest {
     #[serde(rename = "starknet_traceBlockTransactions")]
     BlockTransactionTraces(BlockIdInput),
     #[serde(rename = "devnet_impersonateAccount")]
-    ImpersonateAccount(ContractAddressInput),
+    ImpersonateAccount(AccountAddressInput),
     #[serde(rename = "devnet_stopImpersonateAccount")]
-    StopImpersonateAccount(ContractAddressInput),
+    StopImpersonateAccount(AccountAddressInput),
     #[serde(rename = "devnet_autoImpersonate", with = "empty_params")]
     AutoImpersonate,
     #[serde(rename = "devnet_stopAutoImpersonate", with = "empty_params")]

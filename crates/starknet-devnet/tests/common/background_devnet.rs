@@ -318,13 +318,13 @@ impl BackgroundDevnet {
             ImpersonationAction::ImpersonateAccount(account) => (
                 "devnet_impersonateAccount",
                 json!({
-                    "contract_address": format!("0x{:x}", account)
+                    "account_address": format!("0x{:x}", account)
                 }),
             ),
             ImpersonationAction::StopImpersonatingAccount(account) => (
                 "devnet_stopImpersonateAccount",
                 json!({
-                    "contract_address": format!("0x{:x}", account)
+                    "account_address": format!("0x{:x}", account)
                 }),
             ),
             ImpersonationAction::AutoImpersonate => ("devnet_autoImpersonate", json!({})),

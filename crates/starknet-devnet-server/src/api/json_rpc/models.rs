@@ -55,8 +55,8 @@ pub struct BlockAndContractAddressInput {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
-pub struct ContractAddressInput {
-    pub contract_address: ContractAddress,
+pub struct AccountAddressInput {
+    pub account_address: ContractAddress,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
