@@ -172,6 +172,55 @@ mod impersonated_account_tests {
         .await;
     }
 
+    #[tokio::test]
+    async fn test_simulate_transaction() {
+        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let forked_devnet = origin_devnet.fork().await.unwrap();
+
+        let account =
+            get_account_interacting_with_forked_devnet(&origin_devnet, &forked_devnet).await;
+
+        let invoke_calls = vec![get_invoke_transaction_request(AMOUNT_TO_TRANSFER)];
+
+        // vector of tuples of steps (impersonation action, do validation, expected_result)
+        let steps = vec![
+            (
+                Some(ImpersonationAction::ImpersonateAccount(account.address())),
+                true,
+                TestCaseResult::Success,
+            ),
+            (
+                Some(ImpersonationAction::ImpersonateAccount(account.address())),
+                false,
+                TestCaseResult::Success,
+            ),
+            (None, false, TestCaseResult::Success),
+            (None, true, TestCaseResult::Failure { msg: "invalid signature".to_string() }),
+            (Some(ImpersonationAction::AutoImpersonate), true, TestCaseResult::Success),
+            (Some(ImpersonationAction::AutoImpersonate), false, TestCaseResult::Success),
+        ];
+
+        for (impersonation_action_option, do_validate, expected_result) in steps {
+            if let Some(impersonation_action) = impersonation_action_option {
+                forked_devnet.impersonate_account(&impersonation_action).await.unwrap();
+            }
+
+            let simulation_result =
+                account.execute(invoke_calls.clone()).simulate(!do_validate, false).await;
+            match expected_result {
+                TestCaseResult::Success => {
+                    simulation_result.expect("Expected simulation to succeed");
+                }
+                TestCaseResult::Failure { msg } => {
+                    let err = simulation_result.err().unwrap();
+                    assert!(format!("{:?}", err).to_lowercase().contains(&msg));
+                }
+            }
+
+            forked_devnet.restart().await.unwrap();
+        }
+    }
+
     async fn test_declare_transaction(
         origin_devnet: &BackgroundDevnet,
         impersonation_actions: &[ImpersonationAction],
