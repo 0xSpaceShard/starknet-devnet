@@ -416,6 +416,64 @@ cargo run -- --state-archive-capacity <CAPACITY>
 
 All RPC endpoints that support querying the state at an old (non-latest) block only work with state archive capacity set to `full`.
 
+## Account impersonation
+
+Devnet allows you to use impersonated account from mainnet/testnet. To use the feature it is required to start devnet in forked mode.
+Account impersonation supports 4 methods:
+ - Impersonate specific account address, non existing in the local state  (devnet_impersonateAccount)
+ - Automatic impersonation of an account, non existing in the local state (devnet_stopImpersonateAccount)
+ - Stop impersonation of an account (devnet_autoImpersonate)
+ - Stop auto impersonation (devnet_stopAutoImpersonate)
+
+Notes: only INVOKE and DECLARE transactions are supported. DEPLOY_ACCOUNT transaction is not supported, but you can create an INVOKE transaction to UDC.
+
+Account impersonation feature follows JSON-RPC method specification:
+
+devnet_impersonateAccount
+```js
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_impersonateAccount",
+    "params": {
+        "account_address": "0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7"
+    }
+}
+```
+
+devnet_stopImpersonateAccount
+```js
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_stopImpersonateAccount",
+    "params": {
+        "account_address": "0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7"
+    }
+}
+```
+
+devnet_autoImpersonate
+```js
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_autoImpersonate",
+    "params": {}
+}
+```
+
+devnet_stopAutoImpersonate
+```js
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_stopAutoImpersonate",
+    "params": {}
+}
+```
+
+
 ## Development
 
 ### Development - Visual Studio Code
