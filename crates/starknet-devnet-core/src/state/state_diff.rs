@@ -13,7 +13,7 @@ use super::CommittedClassStorage;
 use crate::error::DevnetResult;
 
 /// This struct is used to store the difference between state modifications
-#[derive(PartialEq, Default, Debug, Clone)]
+#[derive(PartialEq, Debug)]
 pub struct StateDiff {
     pub(crate) storage_updates: HashMap<ContractAddress, HashMap<StorageKey, Felt>>,
     pub(crate) address_to_nonce: HashMap<ContractAddress, Felt>,

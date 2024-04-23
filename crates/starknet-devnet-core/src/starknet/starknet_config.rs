@@ -28,7 +28,7 @@ pub enum StateArchiveCapacity {
     Full,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct ForkConfig {
     pub url: Option<Url>,
     pub block_number: Option<u64>,

@@ -32,7 +32,7 @@ pub struct GetStorageInput {
     pub block_id: BlockId,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BlockAndIndexInput {
     pub block_id: BlockId,
@@ -89,20 +89,20 @@ pub struct EventsInput {
     pub filter: EventFilter,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum BroadcastedDeclareTransactionEnumWrapper {
     #[serde(rename = "DECLARE")]
     Declare(BroadcastedDeclareTransaction),
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedDeclareTransactionInput {
     pub declare_transaction: BroadcastedDeclareTransactionEnumWrapper,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Serialize)]
 #[cfg_attr(test, derive(Deserialize))]
 #[serde(deny_unknown_fields)]
 pub struct DeclareTransactionOutput {

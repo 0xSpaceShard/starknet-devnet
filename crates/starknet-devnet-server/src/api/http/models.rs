@@ -10,17 +10,17 @@ use starknet_types::serde_helpers::dec_string::deserialize_biguint;
 
 use crate::api::http::error::HttpApiError;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct DumpPath {
     pub path: Option<String>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct LoadPath {
     pub path: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct PostmanLoadL1MessagingContract {
     pub network_url: String,
     pub address: Option<String>,

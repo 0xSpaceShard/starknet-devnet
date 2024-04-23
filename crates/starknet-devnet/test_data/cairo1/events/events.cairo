@@ -23,16 +23,16 @@ mod contract_with_event {
         value: u128,
     }
 
-    #[derive(Copy, Drop, PartialEq, starknet::Event)]
+    #[derive(Drop, starknet::Event)]
     struct IncrementalEvent {
         value: u128,
     }
 
-    #[derive(Copy, Drop, PartialEq, starknet::Event)]
+    #[derive(Copy, Drop, starknet::Event)]
     struct StaticEvent {}
 
     #[event]
-    #[derive(Copy, Drop, PartialEq, starknet::Event)]
+    #[derive(Copy, Drop, starknet::Event)]
     enum Event {
         IncrementalEvent: IncrementalEvent,
         StaticEvent: StaticEvent,
