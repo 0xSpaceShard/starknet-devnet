@@ -53,16 +53,6 @@ where
     }
 }
 
-pub fn serialize_config_url<S>(url: &Option<Url>, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    match url {
-        Some(url) => serializer.serialize_str(url.as_ref()),
-        None => serializer.serialize_none(),
-    }
-}
-
 pub fn serialize_initial_balance<S>(balance: &Balance, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
