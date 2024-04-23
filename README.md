@@ -419,14 +419,17 @@ All RPC endpoints that support querying the state at an old (non-latest) block o
 
 ## Account impersonation
 
-Devnet allows you to use impersonated account from mainnet/testnet. To use the feature it is required to start Devnet in [forked mode](#forking).
+Devnet allows you to use impersonated account from mainnet/testnet. This means that a transaction sent from an impersonated account, will not fail with an invalid signature error. In the general case a transaction send via an account that is not in the local state, fails with `invalid signature` error. To use the feature it is required to start Devnet in [forked mode](#forking).
+
 Account impersonation supports 4 methods:
- - Impersonate specific account address, non existing in the local state  (devnet_impersonateAccount)
- - Automatic impersonation of an account, non existing in the local state (devnet_stopImpersonateAccount)
- - Stop impersonation of an account (devnet_autoImpersonate)
+ - Impersonate specific account address, not existing in the local state  (devnet_impersonateAccount)
+ - Stop impersonation of an account (devnet_stopImpersonateAccount)
+ - Automatic impersonation of an account. Every account that does not exist in the local state, will be considered as impersonated(devnet_autoImpersonate)
  - Stop auto impersonation (devnet_stopAutoImpersonate)
 
-Notes: only INVOKE and DECLARE transactions are supported. DEPLOY_ACCOUNT transaction is not supported, but you can create an INVOKE transaction to UDC.
+Notes:
+- Only INVOKE and DECLARE transactions are supported. DEPLOY_ACCOUNT transaction is not supported, but you can create an INVOKE transaction to UDC.
+- Overall fee, for transactions sent via impersonated account, will be lower compared to normal transactions. The reason is that validation part is skipped.
 
 Account impersonation feature follows JSON-RPC method specification and each method returns an empty response:
 
