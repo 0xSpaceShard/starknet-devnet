@@ -46,7 +46,8 @@ pub async fn get_account_balance(
         .map_err(|e| HttpApiError::InvalidValueError { msg: e.to_string() })?;
     let unit = params.unit.unwrap_or(FeeUnit::WEI);
     let erc20_address = get_erc20_address(&unit);
-    let block_tag = if let Some(true) = params.pending_state { BlockTag::Pending } else { BlockTag::Latest };
+    let block_tag =
+        if let Some(true) = params.pending_state { BlockTag::Pending } else { BlockTag::Latest };
 
     let mut starknet = state.api.starknet.write().await;
 
