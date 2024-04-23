@@ -2,6 +2,7 @@ use blockifier::state::state_api::State;
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
+use starknet_rs_core::utils::get_storage_var_address;
 
 use crate::constants::{
     CAIRO_1_ERC20_CONTRACT, CAIRO_1_ERC20_CONTRACT_CLASS_HASH, CHARGEABLE_ACCOUNT_ADDRESS,
@@ -10,7 +11,6 @@ use crate::constants::{
 use crate::error::{DevnetResult, Error};
 use crate::state::StarknetState;
 use crate::system_contract::SystemContract;
-use crate::utils::get_storage_var_address;
 
 pub(crate) fn create_erc20_at_address(contract_address: &str) -> DevnetResult<SystemContract> {
     let erc20_fee_contract = SystemContract::new_cairo1(

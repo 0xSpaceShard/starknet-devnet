@@ -13,6 +13,7 @@ use starknet_types::felt::{split_biguint, ClassHash, Felt, Key};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
+use starknet_rs_core::utils::get_storage_var_address;
 
 use crate::constants::{
     CAIRO_0_ACCOUNT_CONTRACT, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
@@ -22,7 +23,6 @@ use crate::error::DevnetResult;
 use crate::state::state_readers::DictState;
 use crate::state::{CustomState, StarknetState};
 use crate::traits::{Accounted, Deployed};
-use crate::utils::get_storage_var_address;
 
 /// data taken from https://github.com/0xSpaceShard/starknet-devnet/blob/fb96e0cc3c1c31fb29892ecefd2a670cf8a32b51/starknet_devnet/account.py
 const ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION: &str =
