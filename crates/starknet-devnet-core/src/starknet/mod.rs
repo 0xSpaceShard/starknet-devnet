@@ -1217,7 +1217,7 @@ impl Starknet {
     /// * `auto_impersonation` - If true, auto impersonate every account that is not part of the
     ///   state, otherwise dont auto impersonate
     pub fn auto_impersonate_account(&mut self, auto_impersonation: bool) {
-        self.cheats.auto_impersonate(auto_impersonation);
+        self.cheats.set_auto_impersonate(auto_impersonation);
     }
 
     /// Returns true if the account is not part of the state and is impersonated
