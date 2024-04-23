@@ -3,6 +3,7 @@ pub mod common;
 mod impersonated_account_tests {
     use std::sync::Arc;
 
+    use server::test_utils::exported_test_utils::assert_contains;
     use starknet_core::constants::STRK_ERC20_CONTRACT_ADDRESS;
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
@@ -213,7 +214,7 @@ mod impersonated_account_tests {
                 }
                 TestCaseResult::Failure { msg } => {
                     let err = simulation_result.err().unwrap();
-                    assert!(format!("{:?}", err).to_lowercase().contains(&msg));
+                    assert_contains(&format!("{:?}", err).to_lowercase(), &msg);
                 }
             }
 
@@ -263,7 +264,7 @@ mod impersonated_account_tests {
             }
             TestCaseResult::Failure { msg } => {
                 let err = declare_result.err().unwrap();
-                assert!(format!("{:?}", err).to_lowercase().contains(&msg));
+                assert_contains(&format!("{:?}", err).to_lowercase(), &msg);
             }
         }
     }
@@ -308,7 +309,7 @@ mod impersonated_account_tests {
             }
             TestCaseResult::Failure { msg } => {
                 let err = result.err().unwrap();
-                assert!(format!("{:?}", err).to_lowercase().contains(&msg));
+                assert_contains(&format!("{:?}", err).to_lowercase(), &msg);
             }
         }
     }
