@@ -32,6 +32,7 @@ This repository is work in progress, please be patient. Please check below the s
 - [x] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
   - [x] [Aborting blocks](#abort-blocks)
   - [x] [Creating an empty block](#create-an-empty-block)
+- [x] [Account impersonation](#account-impersonation)
 
 ### TODO to reach feature parity with the Pythonic Devnet
 
