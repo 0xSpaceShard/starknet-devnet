@@ -93,6 +93,12 @@ After [git-cloning](https://github.com/git-guides/git-clone) this repository, ru
 $ cargo run
 ```
 
+Specify optional CLI params like this:
+
+```
+$ cargo run -- [ARGS]
+```
+
 For a more optimized performance (though with a longer compilation time), run:
 
 ```
