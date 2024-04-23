@@ -1,22 +1,15 @@
 pub mod common;
 
 mod impersonated_account_tests {
-
-    use std::future::Future;
-    use std::pin::Pin;
     use std::sync::Arc;
 
     use starknet_core::constants::STRK_ERC20_CONTRACT_ADDRESS;
-    use starknet_rs_accounts::{
-        Account, AccountError, Call, ExecutionEncoding, SingleOwnerAccount,
-    };
+    use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
-    use starknet_rs_core::types::{
-        BlockId, BlockTag, ContractErrorData, ExecutionResult, FieldElement, StarknetError,
-    };
+    use starknet_rs_core::types::{BlockId, BlockTag, ExecutionResult, FieldElement};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::jsonrpc::HttpTransport;
-    use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
+    use starknet_rs_providers::{JsonRpcClient, Provider};
     use starknet_rs_signers::{LocalWallet, SigningKey};
     use starknet_types::felt::Felt;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
@@ -139,7 +132,7 @@ mod impersonated_account_tests {
         let (_, account_address) = origin_devnet.get_first_predeployed_account().await;
         let expected_result = TestCaseResult::Failure { msg: "invalid signature".to_string() };
         test_invoke_transaction(
-            &origin_devnet,
+            origin_devnet,
             &[
                 ImpersonationAction::ImpersonateAccount(account_address),
                 ImpersonationAction::StopImpersonatingAccount(account_address),
@@ -149,7 +142,7 @@ mod impersonated_account_tests {
         .await;
 
         test_declare_transaction(
-            &origin_devnet,
+            origin_devnet,
             &[
                 ImpersonationAction::ImpersonateAccount(account_address),
                 ImpersonationAction::StopImpersonatingAccount(account_address),
@@ -165,14 +158,14 @@ mod impersonated_account_tests {
         let origin_devnet = &spawn_forkable_devnet().await.unwrap();
         let expected_result = TestCaseResult::Failure { msg: "invalid signature".to_string() };
         test_invoke_transaction(
-            &origin_devnet,
+            origin_devnet,
             &[ImpersonationAction::AutoImpersonate, ImpersonationAction::StopAutoImpersonate],
             expected_result.clone(),
         )
         .await;
 
         test_declare_transaction(
-            &origin_devnet,
+            origin_devnet,
             &[ImpersonationAction::AutoImpersonate, ImpersonationAction::StopAutoImpersonate],
             expected_result,
         )
@@ -187,7 +180,7 @@ mod impersonated_account_tests {
         let forked_devnet = origin_devnet.fork().await.unwrap();
 
         let mut account =
-            get_account_interacting_with_forked_devnet(&origin_devnet, &forked_devnet).await;
+            get_account_interacting_with_forked_devnet(origin_devnet, &forked_devnet).await;
 
         for action in impersonation_actions.iter() {
             forked_devnet.impersonate_account(action).await.unwrap();
@@ -234,7 +227,7 @@ mod impersonated_account_tests {
         let forked_devnet = origin_devnet.fork().await.unwrap();
 
         let account =
-            get_account_interacting_with_forked_devnet(&origin_devnet, &forked_devnet).await;
+            get_account_interacting_with_forked_devnet(origin_devnet, &forked_devnet).await;
 
         for action in impersonation_actions.iter() {
             forked_devnet.impersonate_account(action).await.unwrap();
