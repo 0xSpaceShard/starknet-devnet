@@ -310,7 +310,7 @@ impl BackgroundDevnet {
         }
     }
 
-    pub async fn impersonate_account(
+    pub async fn execute_impersonation_action(
         &self,
         action: &ImpersonationAction,
     ) -> Result<(), anyhow::Error> {

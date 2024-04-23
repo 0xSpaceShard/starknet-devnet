@@ -202,7 +202,7 @@ mod impersonated_account_tests {
 
         for (impersonation_action_option, do_validate, expected_result) in steps {
             if let Some(impersonation_action) = impersonation_action_option {
-                forked_devnet.impersonate_account(&impersonation_action).await.unwrap();
+                forked_devnet.execute_impersonation_action(&impersonation_action).await.unwrap();
             }
 
             let simulation_result =
@@ -232,7 +232,7 @@ mod impersonated_account_tests {
             get_account_interacting_with_forked_devnet(origin_devnet, &forked_devnet).await;
 
         for action in impersonation_actions.iter() {
-            forked_devnet.impersonate_account(action).await.unwrap();
+            forked_devnet.execute_impersonation_action(action).await.unwrap();
         }
 
         let sierra_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), CAIRO_1_CONTRACT_PATH);
@@ -279,7 +279,7 @@ mod impersonated_account_tests {
             get_account_interacting_with_forked_devnet(origin_devnet, &forked_devnet).await;
 
         for action in impersonation_actions.iter() {
-            forked_devnet.impersonate_account(action).await.unwrap();
+            forked_devnet.execute_impersonation_action(action).await.unwrap();
         }
 
         let forked_account_initial_balance =
