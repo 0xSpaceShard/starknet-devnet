@@ -12,8 +12,15 @@ pub type Balance = BigUint;
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct StateUpdate {
-    pub block_hash: BlockHash,
-    pub new_root: GlobalRootHex,
+    pub block_hash: Option<BlockHash>,
+    pub new_root: Option<GlobalRootHex>,
+    pub old_root: GlobalRootHex,
+    pub state_diff: ThinStateDiff,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PendingStateUpdate {
     pub old_root: GlobalRootHex,
     pub state_diff: ThinStateDiff,
 }

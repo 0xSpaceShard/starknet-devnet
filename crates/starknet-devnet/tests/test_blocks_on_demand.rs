@@ -2,7 +2,8 @@ pub mod common;
 
 mod blocks_on_demand_tests {
 
-    use starknet_rs_core::types::{BlockStatus, FieldElement};
+    use starknet_rs_core::types::{BlockId, BlockStatus, BlockTag, FieldElement, MaybePendingStateUpdate};
+    use starknet_rs_providers::Provider;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -81,5 +82,29 @@ mod blocks_on_demand_tests {
         assert_eq!(pending_block.transactions.len(), 0);
 
         assert_pending_block_with_transactions(&devnet, 2, 0).await;
+    }
+
+    #[tokio::test]
+    async fn get_state_update() {
+        let devnet: BackgroundDevnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
+                .await
+                .expect("Could not start Devnet");
+
+        devnet.create_block().await.unwrap();
+
+        let state_update_pending_block =
+            devnet.json_rpc_client.get_state_update(BlockId::Tag(BlockTag::Pending)).await.unwrap();
+        match state_update_pending_block {
+            MaybePendingStateUpdate::PendingUpdate(_) => (),
+            other => panic!("Unexpected result: {other:?}"),
+        }
+
+        let state_update_latest_block =
+            devnet.json_rpc_client.get_state_update(BlockId::Tag(BlockTag::Latest)).await.unwrap();
+        match state_update_latest_block {
+            MaybePendingStateUpdate::Update(_) => (),
+            other => panic!("Unexpected result: {other:?}"),
+        }
     }
 }

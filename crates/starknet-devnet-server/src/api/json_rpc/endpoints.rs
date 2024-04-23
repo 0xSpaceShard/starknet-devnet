@@ -1,10 +1,10 @@
 use starknet_core::error::{Error, StateError};
-use starknet_rs_core::types::{BlockId as ImportedBlockId, MsgFromL1};
+use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag, MsgFromL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{Block, BlockHeader, BlockId};
-use starknet_types::rpc::state::StateUpdate;
+use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, SimulationFlag,
 };
@@ -71,22 +71,30 @@ impl JsonRpcHandler {
 
     /// starknet_getStateUpdate
     pub async fn get_state_update(&self, block_id: BlockId) -> StrictRpcResult {
+        let starknet = self.api.starknet.read().await;
         let state_update =
-            self.api.starknet.read().await.block_state_update(block_id.as_ref()).map_err(
-                |err| match err {
-                    Error::NoBlock => ApiError::BlockNotFound,
-                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
-                },
-            )?;
+            starknet.block_state_update(block_id.as_ref()).map_err(|err| match err {
+                Error::NoBlock => ApiError::BlockNotFound,
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            })?;
 
         let state_diff = state_update.state_diff.into();
 
-        Ok(StarknetResponse::StateUpdate(StateUpdate {
-            block_hash: state_update.block_hash,
-            new_root: state_update.new_root,
-            old_root: state_update.old_root,
-            state_diff,
-        }))
+        if starknet.config.blocks_on_demand
+            && block_id == ImportedBlockId::Tag(BlockTag::Pending).into()
+        {
+            Ok(StarknetResponse::PendingStateUpdate(PendingStateUpdate {
+                old_root: state_update.old_root,
+                state_diff,
+            }))
+        } else {
+            Ok(StarknetResponse::StateUpdate(StateUpdate {
+                block_hash: Some(state_update.block_hash),
+                new_root: Some(state_update.new_root),
+                old_root: state_update.old_root,
+                state_diff,
+            }))
+        }
     }
 
     /// starknet_getStorageAt
