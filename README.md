@@ -428,7 +428,7 @@ Account impersonation supports 4 methods:
 
 Notes: only INVOKE and DECLARE transactions are supported. DEPLOY_ACCOUNT transaction is not supported, but you can create an INVOKE transaction to UDC.
 
-Account impersonation feature follows JSON-RPC method specification:
+Account impersonation feature follows JSON-RPC method specification and each method returns an empty response:
 
 devnet_impersonateAccount
 ```js
