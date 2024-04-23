@@ -46,7 +46,10 @@ mod fork_tests {
         let origin_devnet = spawn_forkable_devnet().await.unwrap();
 
         let origin_devnet_config = origin_devnet.get_config().await.unwrap();
-        assert_eq!(origin_devnet_config["fork_config"], serde_json::json!(null));
+        assert_eq!(
+            origin_devnet_config["fork_config"],
+            serde_json::json!({ "url": null, "block_number": null })
+        );
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
@@ -56,7 +59,7 @@ mod fork_tests {
             url::Url::from_str(fork_devnet_fork_config["url"].as_str().unwrap()).unwrap(),
             url::Url::from_str(&origin_devnet.url).unwrap()
         );
-        assert_eq!(fork_devnet_fork_config["block"].as_i64().unwrap(), 0);
+        assert_eq!(fork_devnet_fork_config["block_number"].as_i64().unwrap(), 0);
     }
 
     #[tokio::test]
