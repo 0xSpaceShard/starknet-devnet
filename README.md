@@ -419,7 +419,7 @@ All RPC endpoints that support querying the state at an old (non-latest) block o
 
 ## Account impersonation
 
-Devnet allows you to use impersonated account from mainnet/testnet. To use the feature it is required to start devnet in forked mode.
+Devnet allows you to use impersonated account from mainnet/testnet. To use the feature it is required to start Devnet in [forked mode](#forking).
 Account impersonation supports 4 methods:
  - Impersonate specific account address, non existing in the local state  (devnet_impersonateAccount)
  - Automatic impersonation of an account, non existing in the local state (devnet_stopImpersonateAccount)
