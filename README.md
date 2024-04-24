@@ -277,14 +277,15 @@ $ starknet-devnet --dump-path <PATH>
 curl -X POST http://<HOST>:<PORT>/load -d '{ "path": <PATH> }' -H "Content-Type: application/json"
 ```
 
-Currently, dumping produces a list of received transactions that are stored on disk.
+Currently, dumping produces a list of received transactions that is stored on disk.
 Conversely, loading is implemented as the re-execution of transactions from a dump.
 This means that timestamps of `StarknetBlock` will be different.
 
 ### Loading disclaimer
 
 Dumping and loading are not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
-If you dumped a Devnet utilizing one class for account predeployment or with blocks-on-demand mode (e.g. the default `--account-class cairo0` and/or `--blocks-on-demand`), you should use the same options when loading.
+
+If you dumped a Devnet utilizing one class for account predeployment (e.g. `--account-class cairo0`), you should use the same option when loading. The same applies for dumping a Devnet in `--blocks-on-demand` mode.
 
 ## Restarting
 
@@ -300,9 +301,9 @@ A new block is generated with each new transaction, and you can create an empty 
 
 ### Creating blocks on demand
 
-If you start Devnet with the `--blocks-on-demand` CLI option, all valid transactions will be stored in a pending block (targetable via block tag `"Pending"`).
+If you start Devnet with the `--blocks-on-demand` CLI option, all valid transactions will be stored in a pending block (targetable via block tag `"pending"`).
 
-To create a block on demand, send a `POST` request to `/create_block`. This will convert the pending block to the latest block (targetable via block tag `"Latest"`), giving it a block hash and a block number. All subsequent transactions will be stored in a new pending block.
+To create a block on demand, send a `POST` request to `/create_block`. This will convert the pending block to the latest block (targetable via block tag `"latest"`), giving it a block hash and a block number. All subsequent transactions will be stored in a new pending block.
 
 In case of demanding block creation with no pending transactions, a new empty block will be generated.
 
