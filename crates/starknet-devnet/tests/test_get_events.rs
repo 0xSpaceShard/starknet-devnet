@@ -43,7 +43,7 @@ mod get_events_integration_tests {
         let predeployed_account = Arc::new(predeployed_account);
 
         if block_on_demand {
-            let _ = devnet.create_block().await;
+            devnet.create_block().await.unwrap();
         }
 
         // deploy the contract
@@ -57,7 +57,7 @@ mod get_events_integration_tests {
             .unwrap();
 
         if block_on_demand {
-            let _ = devnet.create_block().await;
+            devnet.create_block().await.unwrap();
         }
 
         // generate the address of the newly deployed contract
@@ -88,7 +88,7 @@ mod get_events_integration_tests {
         }
 
         if block_on_demand {
-            let _ = devnet.create_block().await;
+            devnet.create_block().await.unwrap();
         }
 
         // get all the events from the contract, the chunk size is large enough so we are sure

@@ -39,7 +39,7 @@ mod trace_tests {
 
     async fn get_invoke_trace(devnet: &BackgroundDevnet) {
         let mint_tx_hash = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-        let _ = devnet.create_block().await;
+        devnet.create_block().await.unwrap();
 
         let mint_tx_trace = devnet.json_rpc_client.trace_transaction(mint_tx_hash).await.unwrap();
 

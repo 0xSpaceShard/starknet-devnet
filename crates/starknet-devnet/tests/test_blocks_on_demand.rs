@@ -43,7 +43,7 @@ mod blocks_on_demand_tests {
             .get_balance_pending_state(
                 &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
                 FeeUnit::WEI,
-                tag,
+                common::block::TestBlockTag(tag),
             )
             .await
             .unwrap();
