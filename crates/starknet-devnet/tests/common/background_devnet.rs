@@ -76,7 +76,7 @@ impl BackgroundDevnet {
         BackgroundDevnet::spawn_with_additional_args(&[]).await
     }
 
-    pub async fn spawn_with_forking() -> Result<BackgroundDevnet, anyhow::Error> {
+    pub async fn spawn_forkable_devnet() -> Result<BackgroundDevnet, anyhow::Error> {
         let args = ["--state-archive-capacity", "full"];
         let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await?;
         Ok(devnet)
