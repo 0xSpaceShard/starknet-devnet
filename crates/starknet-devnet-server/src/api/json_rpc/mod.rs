@@ -213,8 +213,8 @@ impl JsonRpcHandler {
             StarknetRequest::StopImpersonateAccount(AccountAddressInput { account_address }) => {
                 self.stop_impersonating_account(account_address).await
             }
-            StarknetRequest::AutoImpersonate => self.auto_impersonate(true).await,
-            StarknetRequest::StopAutoImpersonate => self.auto_impersonate(false).await,
+            StarknetRequest::AutoImpersonate => self.set_auto_impersonate(true).await,
+            StarknetRequest::StopAutoImpersonate => self.set_auto_impersonate(false).await,
         };
 
         if let (Err(err), Some(forwarder)) = (&starknet_resp, &self.origin_caller) {
