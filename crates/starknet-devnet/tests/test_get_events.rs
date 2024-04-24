@@ -75,9 +75,9 @@ mod get_events_integration_tests {
         }];
 
         // invoke 10 times the contract to emit event, it should produce 10 events
-        let n_events_contract_invokations = 10;
+        let n_events_contract_invocations = 10;
         let nonce = predeployed_account.get_nonce().await.unwrap();
-        for n in 0..n_events_contract_invokations {
+        for n in 0..n_events_contract_invocations {
             predeployed_account
                 .execute(events_contract_call.clone())
                 .nonce(nonce + FieldElement::from(n as u128))
@@ -104,7 +104,7 @@ mod get_events_integration_tests {
             devnet.json_rpc_client.get_events(event_filter.clone(), None, 100000000).await.unwrap();
 
         let generated_events_count = events.events.len();
-        assert_eq!(generated_events_count, n_events_contract_invokations as usize);
+        assert_eq!(generated_events_count, n_events_contract_invocations as usize);
 
         // divide the events by a group of 3
         // and iterate over with continuation token
