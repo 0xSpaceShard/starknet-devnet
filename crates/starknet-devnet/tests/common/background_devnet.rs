@@ -229,7 +229,7 @@ impl BackgroundDevnet {
         address: &FieldElement,
         unit: FeeUnit,
     ) -> Result<FieldElement, anyhow::Error> {
-        Self::get_balance_pending_state(self, address, unit, false).await
+        Self::get_balance_pending_state(self, address, unit, BlockTag::Latest).await
     }
 
     /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`
@@ -238,10 +238,13 @@ impl BackgroundDevnet {
         &self,
         address: &FieldElement,
         unit: FeeUnit,
-        pending_state: bool,
+        tag: BlockTag,
     ) -> Result<FieldElement, anyhow::Error> {
-        let params =
-            format!("address={:#x}&unit={}&pending_state={}", address, unit, pending_state);
+        let tag = match tag {
+            BlockTag::Latest => "latest",
+            BlockTag::Pending => "pending",
+        };
+        let params = format!("address={:#x}&unit={}&tag={}", address, unit, tag);
 
         let resp = self.get("/account_balance", Some(params)).await?;
         // response validity asserted in test_balance.rs::assert_balance_endpoint_response

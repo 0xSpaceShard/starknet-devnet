@@ -2,7 +2,7 @@ pub mod common;
 
 mod blocks_on_demand_tests {
 
-    use starknet_rs_core::types::{BlockStatus, FieldElement};
+    use starknet_rs_core::types::{BlockStatus, BlockTag, FieldElement};
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -38,16 +38,12 @@ mod blocks_on_demand_tests {
         assert_eq!(pending_block.status, BlockStatus::Pending);
     }
 
-    async fn assert_balance(
-        devnet: &BackgroundDevnet,
-        expected: FieldElement,
-        pending_state: bool,
-    ) {
+    async fn assert_balance(devnet: &BackgroundDevnet, expected: FieldElement, tag: BlockTag) {
         let balance = devnet
             .get_balance_pending_state(
                 &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
                 FeeUnit::WEI,
-                pending_state,
+                tag,
             )
             .await
             .unwrap();
@@ -65,13 +61,16 @@ mod blocks_on_demand_tests {
             devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         }
 
-        assert_balance(&devnet, FieldElement::from(TX_COUNT * DUMMY_AMOUNT), true).await;
-        assert_balance(&devnet, FieldElement::from(0_u128), false).await;
+        assert_balance(&devnet, FieldElement::from(TX_COUNT * DUMMY_AMOUNT), BlockTag::Pending)
+            .await;
+        assert_balance(&devnet, FieldElement::from(0_u128), BlockTag::Latest).await;
 
         devnet.create_block().await.unwrap();
 
-        assert_balance(&devnet, FieldElement::from(TX_COUNT * DUMMY_AMOUNT), true).await;
-        assert_balance(&devnet, FieldElement::from(TX_COUNT * DUMMY_AMOUNT), false).await;
+        assert_balance(&devnet, FieldElement::from(TX_COUNT * DUMMY_AMOUNT), BlockTag::Pending)
+            .await;
+        assert_balance(&devnet, FieldElement::from(TX_COUNT * DUMMY_AMOUNT), BlockTag::Latest)
+            .await;
 
         assert_latest_block_with_transactions(&devnet, 1, TX_COUNT).await;
 
