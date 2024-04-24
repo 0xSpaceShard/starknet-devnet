@@ -46,7 +46,7 @@ pub fn estimate_fee(
 
     transactions
         .into_iter()
-        .map(|(transaction, skip_validate)| {
+        .map(|(transaction, skip_validate_due_to_impersonation)| {
             estimate_transaction_fee(
                 &mut transactional_state,
                 &block_context,
@@ -54,10 +54,11 @@ pub fn estimate_fee(
                     transaction,
                 ),
                 charge_fee,
-                skip_validate.then_some(false).or(validate), /* if skip validate is true, then
+                skip_validate_due_to_impersonation.then_some(false).or(validate), /* if skip validate is true, then
                                                               * this means that this transaction
-                                                              * have to skip validation, because
-                                                              * the sender is impersonated */
+                                                              * has to skip validation, because
+                                                              * the sender is impersonated.
+                                                              * Otherwise use the validate parameter that is passed to the estimateFee request */
             )
         })
         .collect()
