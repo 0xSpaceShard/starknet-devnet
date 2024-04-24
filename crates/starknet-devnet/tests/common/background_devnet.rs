@@ -23,6 +23,7 @@ use starknet_types::rpc::transaction_receipt::FeeUnit;
 use tokio::sync::Mutex;
 use url::Url;
 
+use super::block::TestBlockTag;
 use super::constants::{
     ACCOUNTS, CHAIN_ID_CLI_PARAM, HEALTHCHECK_PATH, HOST, MAX_PORT, MIN_PORT,
     PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, RPC_PATH, SEED,
@@ -229,7 +230,7 @@ impl BackgroundDevnet {
         address: &FieldElement,
         unit: FeeUnit,
     ) -> Result<FieldElement, anyhow::Error> {
-        Self::get_balance_pending_state(self, address, unit, BlockTag::Latest).await
+        Self::get_balance_pending_state(self, address, unit, TestBlockTag(BlockTag::Latest)).await
     }
 
     /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`
@@ -238,12 +239,8 @@ impl BackgroundDevnet {
         &self,
         address: &FieldElement,
         unit: FeeUnit,
-        tag: BlockTag,
+        tag: TestBlockTag,
     ) -> Result<FieldElement, anyhow::Error> {
-        let tag = match tag {
-            BlockTag::Latest => "latest",
-            BlockTag::Pending => "pending",
-        };
         let params = format!("address={:#x}&unit={}&tag={}", address, unit, tag);
 
         let resp = self.get("/account_balance", Some(params)).await?;
