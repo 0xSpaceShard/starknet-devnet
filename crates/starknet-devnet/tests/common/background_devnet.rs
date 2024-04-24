@@ -230,12 +230,12 @@ impl BackgroundDevnet {
         address: &FieldElement,
         unit: FeeUnit,
     ) -> Result<FieldElement, anyhow::Error> {
-        Self::get_balance_pending_state(self, address, unit, TestBlockTag(BlockTag::Latest)).await
+        Self::get_balance_by_tag(self, address, unit, TestBlockTag(BlockTag::Latest)).await
     }
 
     /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`
     /// from pending state or latest state
-    pub async fn get_balance_pending_state(
+    pub async fn get_balance_by_tag(
         &self,
         address: &FieldElement,
         unit: FeeUnit,
