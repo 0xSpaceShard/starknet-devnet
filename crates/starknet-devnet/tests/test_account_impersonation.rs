@@ -6,21 +6,18 @@ mod impersonated_account_tests {
     use server::test_utils::exported_test_utils::assert_contains;
     use starknet_core::constants::STRK_ERC20_CONTRACT_ADDRESS;
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
-    use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
     use starknet_rs_core::types::{BlockId, BlockTag, ExecutionResult, FieldElement};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::jsonrpc::HttpTransport;
     use starknet_rs_providers::{JsonRpcClient, Provider};
     use starknet_rs_signers::{LocalWallet, SigningKey};
-    use starknet_types::felt::Felt;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
-    use starknet_types::traits::ToHexString;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::{
-        self, CAIRO_1_CASM_PATH, CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH,
+    use crate::common::constants;
+    use crate::common::utils::{
+        get_simple_contract_in_sierra_and_compiled_class_hash, ImpersonationAction,
     };
-    use crate::common::utils::ImpersonationAction;
 
     const IMPERSONATED_ACCOUNT_PRIVATE_KEY: FieldElement = FieldElement::ONE;
     // FieldElement::from_dec_str("100000000000")
@@ -237,20 +234,10 @@ mod impersonated_account_tests {
             forked_devnet.execute_impersonation_action(action).await.unwrap();
         }
 
-        let sierra_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), CAIRO_1_CONTRACT_PATH);
-        let contract_artifact: SierraClass =
-            serde_json::from_reader(std::fs::File::open(sierra_path).unwrap()).unwrap();
-
-        let casm_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), CAIRO_1_CASM_PATH);
-        let casm_contract_definition: CompiledClass =
-            serde_json::from_reader(std::fs::File::open(casm_path).unwrap()).unwrap();
-        let compiled_class_hash = (casm_contract_definition.class_hash()).unwrap();
-        assert_eq!(Felt::from(compiled_class_hash).to_prefixed_hex_str(), CASM_COMPILED_CLASS_HASH);
+        let (flattened_class, compiled_class_hash) =
+            get_simple_contract_in_sierra_and_compiled_class_hash();
 
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
-
-        // We need to flatten the ABI into a string first
-        let flattened_class = contract_artifact.flatten().unwrap();
 
         let declare_result =
             account.declare(Arc::new(flattened_class), compiled_class_hash).send().await;
