@@ -5,6 +5,7 @@ mod blocks_on_demand_tests {
     use starknet_rs_core::types::{BlockStatus, BlockTag, FieldElement};
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
+    use crate::common;
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::assert_tx_successful;
 
@@ -43,7 +44,7 @@ mod blocks_on_demand_tests {
             .get_balance_pending_state(
                 &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
                 FeeUnit::WEI,
-                tag,
+                common::block::TestBlockTag(tag),
             )
             .await
             .unwrap();
