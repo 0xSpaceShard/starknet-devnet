@@ -85,10 +85,9 @@ mod trace_tests {
 
     #[tokio::test]
     async fn get_invoke_trace_blocks_on_demand_mode() {
-        let devnet: BackgroundDevnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
-                .await
-                .expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
+            .await
+            .expect("Could not start Devnet");
 
         get_invoke_trace(&devnet).await
     }

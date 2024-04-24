@@ -52,10 +52,8 @@ mod blocks_on_demand_tests {
 
     #[tokio::test]
     async fn blocks_on_demand_states_and_blocks() {
-        let devnet: BackgroundDevnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
-                .await
-                .expect("Could not start Devnet");
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
 
         let tx_count = 5;
         for _ in 0..tx_count {
