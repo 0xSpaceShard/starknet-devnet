@@ -371,7 +371,7 @@ mod tests {
         let mut blocks = StarknetBlocks::default();
 
         let last_block_number = 11;
-        for block_number in 2..last_block_number + 1 {
+        for block_number in 2..=last_block_number {
             let mut block_to_insert = StarknetBlock::create_pending_block();
             block_to_insert.header.block_number = BlockNumber(block_number);
             block_to_insert.header.block_hash = Felt::from(block_number as u128).into();
