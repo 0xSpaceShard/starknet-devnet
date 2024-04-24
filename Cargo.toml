@@ -26,6 +26,7 @@ keywords = ["starknet", "cairo", "testnet", "local", "server"]
 
 
 [workspace.dependencies]
+
 # axum
 axum = { version = "0.5" }
 hyper = "0.14.12"
@@ -107,3 +108,6 @@ lazy_static = { version = "1.4.0" }
 ethers = { version = "2.0.11" }
 
 openssl = { version = "0.10", features = ["vendored"] }
+
+
+
