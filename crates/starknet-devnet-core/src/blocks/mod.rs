@@ -379,7 +379,6 @@ mod tests {
 
             // last block will be a pending block
             if block_number == last_block_number {
-                println!("last block will be a pending block!!!");
                 blocks.pending_block = block_to_insert;
             }
         }
