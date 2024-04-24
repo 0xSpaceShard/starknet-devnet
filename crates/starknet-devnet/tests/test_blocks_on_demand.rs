@@ -11,7 +11,6 @@ mod blocks_on_demand_tests {
 
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
-    const TX_COUNT: u128 = 5;
 
     async fn assert_latest_block_with_transactions(
         devnet: &BackgroundDevnet,
@@ -44,7 +43,7 @@ mod blocks_on_demand_tests {
             .get_balance_pending_state(
                 &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
                 FeeUnit::WEI,
-                common::block::TestBlockTag(tag),
+                tag,
             )
             .await
             .unwrap();
@@ -58,22 +57,23 @@ mod blocks_on_demand_tests {
                 .await
                 .expect("Could not start Devnet");
 
-        for _ in 0..TX_COUNT {
+        let tx_count = 5;
+        for _ in 0..tx_count {
             devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         }
 
-        assert_balance(&devnet, FieldElement::from(TX_COUNT * DUMMY_AMOUNT), BlockTag::Pending)
+        assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Pending)
             .await;
         assert_balance(&devnet, FieldElement::from(0_u128), BlockTag::Latest).await;
 
         devnet.create_block().await.unwrap();
 
-        assert_balance(&devnet, FieldElement::from(TX_COUNT * DUMMY_AMOUNT), BlockTag::Pending)
+        assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Pending)
             .await;
-        assert_balance(&devnet, FieldElement::from(TX_COUNT * DUMMY_AMOUNT), BlockTag::Latest)
+        assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest)
             .await;
 
-        assert_latest_block_with_transactions(&devnet, 1, TX_COUNT).await;
+        assert_latest_block_with_transactions(&devnet, 1, tx_count).await;
 
         // check if pending_block was restarted
         let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
