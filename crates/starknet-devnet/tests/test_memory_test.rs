@@ -15,17 +15,38 @@ mod memory_tests {
     static DUMMY_AMOUNT: u128 = 1;
 
     #[bench]
-    fn bench_memory_with_mint(b: &mut Bencher) {
+    fn bench_memory_with_mint_none(b: &mut Bencher) {
         let rt = tokio::runtime::Runtime::new().unwrap();
 
         b.iter(|| {
+            rt.block_on(async {
+                let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+                    "--state-archive-capacity=none",
+                ])
+                .await
+                .expect("Could not start Devnet");
+                for n in 1..100 {
+                    println!("n: {:?}", n);
+                    let mint_tx_hash = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+                    println!("mint_tx_hash: {:?}", mint_tx_hash);
+                }
+            })
+        });
+    }
+
+
+    #[bench]
+    fn bench_memory_with_mint_full(b: &mut Bencher) {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+
+        b.iter( || {
             rt.block_on(async {
                 let devnet = BackgroundDevnet::spawn_with_additional_args(&[
                     "--state-archive-capacity=full",
                 ])
                 .await
                 .expect("Could not start Devnet");
-                for n in 1..100000 {
+                for n in 1..100 {
                     println!("n: {:?}", n);
                     let mint_tx_hash = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
                     println!("mint_tx_hash: {:?}", mint_tx_hash);
