@@ -26,7 +26,7 @@ mod fork_tests {
     use crate::common::constants;
     use crate::common::utils::{
         assert_cairo1_classes_equal, assert_tx_successful, declare_deploy,
-        get_block_reader_contract_in_sierra_and_compiled_class_hash, get_json_body,
+        get_block_reader_contract_in_sierra_and_compiled_class_hash,
         get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
         send_ctrl_c_signal_and_wait,
     };
@@ -45,18 +45,21 @@ mod fork_tests {
     async fn test_fork_status() {
         let origin_devnet = spawn_forkable_devnet().await.unwrap();
 
-        let origin_status =
-            get_json_body(origin_devnet.get("/fork_status", None).await.unwrap()).await;
-        assert_eq!(origin_status, serde_json::json!({}));
+        let origin_devnet_config = origin_devnet.get_config().await.unwrap();
+        assert_eq!(
+            origin_devnet_config["fork_config"],
+            serde_json::json!({ "url": null, "block_number": null })
+        );
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
-        let fork_status = get_json_body(fork_devnet.get("/fork_status", None).await.unwrap()).await;
+        let fork_devnet_config = fork_devnet.get_config().await.unwrap();
+        let fork_devnet_fork_config = &fork_devnet_config["fork_config"];
         assert_eq!(
-            url::Url::from_str(fork_status["url"].as_str().unwrap()).unwrap(),
+            url::Url::from_str(fork_devnet_fork_config["url"].as_str().unwrap()).unwrap(),
             url::Url::from_str(&origin_devnet.url).unwrap()
         );
-        assert_eq!(fork_status["block"].as_i64().unwrap(), 0);
+        assert_eq!(fork_devnet_fork_config["block_number"].as_i64().unwrap(), 0);
     }
 
     #[tokio::test]

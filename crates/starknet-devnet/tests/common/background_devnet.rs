@@ -44,6 +44,7 @@ pub struct BackgroundDevnet {
     pub http_client: Client<HttpConnector>,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
     pub process: Child,
+    pub port: u16,
     pub url: String,
     rpc_url: Url,
 }
@@ -137,6 +138,7 @@ impl BackgroundDevnet {
                     http_client,
                     json_rpc_client,
                     process,
+                    port: free_port,
                     url: devnet_url,
                     rpc_url: devnet_rpc_url,
                 });
@@ -304,6 +306,10 @@ impl BackgroundDevnet {
             Ok(MaybePendingBlockWithTxHashes::Block(b)) => Ok(b),
             other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
         }
+    }
+
+    pub async fn get_config(&self) -> Result<serde_json::Value, anyhow::Error> {
+        Ok(get_json_body(self.get("/config", None).await?).await)
     }
 }
 

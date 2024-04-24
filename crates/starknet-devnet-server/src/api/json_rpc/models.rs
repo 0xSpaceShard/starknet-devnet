@@ -132,9 +132,8 @@ pub struct DeployAccountTransactionOutput {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-#[serde(tag = "type")]
+#[serde(tag = "type", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum BroadcastedInvokeTransactionEnumWrapper {
-    #[serde(rename = "INVOKE")]
     Invoke(BroadcastedInvokeTransaction),
 }
 
