@@ -103,7 +103,7 @@ mod simulation_tests {
         let contract_artifact: Arc<LegacyContractClass> =
             Arc::new(serde_json::from_value(contract_json.inner).unwrap());
 
-        let max_fee = FieldElement::ZERO; // TODO try 1e18 as u128 instead
+        let max_fee = FieldElement::from(1e18 as u128); // TODO try 1e18 as u128 instead - Done
         let nonce = FieldElement::ZERO;
 
         let signature = account
