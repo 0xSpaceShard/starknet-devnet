@@ -109,6 +109,12 @@ pub(crate) struct Args {
     #[arg(requires = "dump_path")]
     dump_on: Option<DumpOn>,
 
+    #[arg(long = "lite-mode")]
+    #[arg(value_name = "LITE_MODE")]
+    #[arg(default_value = "false")]
+    #[arg(help = "Specify whether to run in lite mode and skip block hash calculation;")]
+    lite_mode: bool,
+
     // Dump path as string
     #[arg(long = "dump-path")]
     #[arg(value_name = "DUMP_PATH")]
@@ -162,6 +168,7 @@ impl Args {
             chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
+            lite_mode: self.lite_mode,
             re_execute_on_init: true,
             state_archive: self.state_archive,
             fork_config: ForkConfig {

@@ -47,6 +47,7 @@ pub struct StarknetConfig {
     pub chain_id: ChainId,
     pub dump_on: Option<DumpOn>,
     pub dump_path: Option<String>,
+    pub lite_mode: bool,
     /// on initialization, re-execute loaded txs (if any)
     pub re_execute_on_init: bool,
     pub state_archive: StateArchiveCapacity,
@@ -71,6 +72,7 @@ impl Default for StarknetConfig {
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
             dump_on: None,
             dump_path: None,
+            lite_mode: false,
             re_execute_on_init: true,
             state_archive: StateArchiveCapacity::default(),
             fork_config: ForkConfig::default(),
