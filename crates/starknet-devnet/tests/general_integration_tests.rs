@@ -68,6 +68,7 @@ mod general_integration_tests {
             "chain_id": "SN_MAIN",
             "dump_on": "exit",
             "dump_path": dump_file.path,
+            "blocks_on_demand": true,
             "state_archive": "full",
             "fork_config": {
                 "url": null,
@@ -100,6 +101,7 @@ mod general_integration_tests {
             &expected_config["dump_on"].as_str().unwrap(),
             "--dump-path",
             &expected_config["dump_path"].as_str().unwrap(),
+            "--blocks-on-demand",
             "--state-archive-capacity",
             &expected_config["state_archive"].as_str().unwrap(),
             "--host",
