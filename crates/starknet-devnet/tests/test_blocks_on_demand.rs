@@ -15,7 +15,8 @@ mod blocks_on_demand_tests {
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
     use crate::common::utils::{
-        assert_tx_successful, get_simple_contract_in_sierra_and_compiled_class_hash,
+        assert_tx_successful, get_contract_balance,
+        get_simple_contract_in_sierra_and_compiled_class_hash,
     };
 
     static DUMMY_ADDRESS: u128 = 1;
@@ -169,7 +170,10 @@ mod blocks_on_demand_tests {
         devnet.create_block().await.unwrap();
 
         assert_tx_successful(&invoke_result.transaction_hash, &devnet.json_rpc_client).await;
-        assert_eq!(devnet.get_contract_balance(contract_address).await, initial_value + increment);
+        assert_eq!(
+            get_contract_balance(&devnet, contract_address).await,
+            initial_value + increment
+        );
     }
 
     #[tokio::test]

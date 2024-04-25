@@ -157,7 +157,7 @@ mod abort_blocks_tests {
         assert_eq!(aborted_blocks, vec![second_block.block_hash]);
 
         let balance = devnet
-            .get_balance(
+            .get_balance_latest(
                 &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
                 FeeUnit::WEI,
             )
@@ -169,7 +169,7 @@ mod abort_blocks_tests {
         assert_eq!(aborted_blocks, vec![first_block.block_hash]);
 
         let balance = devnet
-            .get_balance(
+            .get_balance_latest(
                 &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
                 FeeUnit::WEI,
             )
@@ -180,7 +180,7 @@ mod abort_blocks_tests {
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
         let balance = devnet
-            .get_balance(
+            .get_balance_latest(
                 &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
                 FeeUnit::WEI,
             )
