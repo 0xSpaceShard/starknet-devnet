@@ -35,7 +35,7 @@ mod simulation_tests {
     }
 
     /// Calculating the fee of a transaction depends on fee weights of vm resources and the resource
-    /// usage. The fee from vm usage is the haviest product of cairo resource usage multiplied
+    /// usage. The fee from vm usage is the heaviest product of cairo resource usage multiplied
     /// by cairo resource fee cost, rounded down to the nearest integer. There is a
     /// possibility that although some of the resources present in the resp_no_flags are not in
     /// resp_skip_validation, this doesnt mean that the fee will be higher, for example:
@@ -54,13 +54,13 @@ mod simulation_tests {
     fn assert_difference_if_validation(
         resp_no_flags: &serde_json::Value,
         resp_skip_validation: &serde_json::Value,
-        expected_contract_adddress: &str,
+        expected_contract_address: &str,
         should_skip_fee_invocation: bool,
     ) {
         let no_flags_trace = &resp_no_flags["transaction_trace"];
         assert_eq!(
             no_flags_trace["validate_invocation"]["contract_address"].as_str().unwrap(),
-            expected_contract_adddress
+            expected_contract_address
         );
         assert!(no_flags_trace["state_diff"].as_object().is_some());
 
