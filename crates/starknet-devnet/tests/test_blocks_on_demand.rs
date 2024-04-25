@@ -79,4 +79,17 @@ mod blocks_on_demand_tests {
 
         assert_pending_block_with_transactions(&devnet, 2, 0).await;
     }
+
+    #[tokio::test]
+    async fn pending_block_in_normal_mode() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        devnet.create_block().await.unwrap();
+
+        let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
+        let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+
+        // querying pending block in normal mode should default to the latest block
+        assert_eq!(pending_block, latest_block);
+    }
 }
