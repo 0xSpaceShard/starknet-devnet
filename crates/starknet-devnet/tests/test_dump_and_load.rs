@@ -109,7 +109,8 @@ mod dump_and_load_tests {
                 ("dump_load_dump_load_on_".to_owned() + mode).as_str(),
             );
 
-            for _ in 0..2 {
+            let total_iterations = 2;
+            for _ in 0..total_iterations {
                 let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
                     "--dump-path",
                     &dump_file.path,
@@ -138,8 +139,8 @@ mod dump_and_load_tests {
             .expect("Could not start Devnet");
 
             let last_block = devnet_load.get_latest_block_with_tx_hashes().await.unwrap();
-            assert_eq!(last_block.block_number, 2);
-            assert_eq!(last_block.transactions.len(), 2);
+            assert_eq!(last_block.block_number, total_iterations);
+            assert_eq!(last_block.transactions.len(), total_iterations as usize);
         }
     }
 

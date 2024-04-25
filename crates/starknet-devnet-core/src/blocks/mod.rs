@@ -370,15 +370,15 @@ mod tests {
     fn get_blocks_with_filter() {
         let mut blocks = StarknetBlocks::default();
 
-        let last_block_number = 12;
-        for block_number in 2..last_block_number {
+        let last_block_number = 11;
+        for block_number in 2..=last_block_number {
             let mut block_to_insert = StarknetBlock::create_pending_block();
             block_to_insert.header.block_number = BlockNumber(block_number);
             block_to_insert.header.block_hash = Felt::from(block_number as u128).into();
             blocks.insert(block_to_insert.clone(), StateDiff::default());
 
             // last block will be a pending block
-            if block_number == last_block_number - 1 {
+            if block_number == last_block_number {
                 blocks.pending_block = block_to_insert;
             }
         }

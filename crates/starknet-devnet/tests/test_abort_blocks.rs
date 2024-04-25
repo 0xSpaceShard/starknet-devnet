@@ -53,7 +53,7 @@ mod abort_blocks_tests {
 
     #[tokio::test]
     async fn abort_latest_block() {
-        let devnet: BackgroundDevnet =
+        let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
                 .expect("Could not start Devnet");
@@ -82,7 +82,7 @@ mod abort_blocks_tests {
 
     #[tokio::test]
     async fn abort_two_blocks() {
-        let devnet: BackgroundDevnet =
+        let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
                 .expect("Could not start Devnet");
@@ -99,7 +99,7 @@ mod abort_blocks_tests {
 
     #[tokio::test]
     async fn abort_block_with_transaction() {
-        let devnet: BackgroundDevnet =
+        let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
                 .expect("Could not start Devnet");
@@ -116,7 +116,7 @@ mod abort_blocks_tests {
 
     #[tokio::test]
     async fn query_aborted_block_by_number_should_fail() {
-        let devnet: BackgroundDevnet =
+        let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
                 .expect("Could not start Devnet");
@@ -142,7 +142,7 @@ mod abort_blocks_tests {
 
     #[tokio::test]
     async fn abort_block_state_revert() {
-        let devnet: BackgroundDevnet =
+        let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
                 .expect("Could not start Devnet");
@@ -194,8 +194,7 @@ mod abort_blocks_tests {
 
     #[tokio::test]
     async fn abort_blocks_without_state_archive_capacity() {
-        let devnet: BackgroundDevnet =
-            BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let new_block_hash = devnet.create_block().await.unwrap();
         abort_blocks_error(&devnet, &new_block_hash).await;
@@ -203,7 +202,7 @@ mod abort_blocks_tests {
 
     #[tokio::test]
     async fn abort_same_block_twice() {
-        let devnet: BackgroundDevnet =
+        let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
                 .expect("Could not start Devnet");

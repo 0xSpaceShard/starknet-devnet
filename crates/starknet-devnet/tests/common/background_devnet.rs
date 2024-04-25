@@ -44,6 +44,7 @@ pub struct BackgroundDevnet {
     pub http_client: Client<HttpConnector>,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
     pub process: Child,
+    pub port: u16,
     pub url: String,
     rpc_url: Url,
 }
@@ -137,6 +138,7 @@ impl BackgroundDevnet {
                     http_client,
                     json_rpc_client,
                     process,
+                    port: free_port,
                     url: devnet_url,
                     rpc_url: devnet_rpc_url,
                 });
@@ -229,19 +231,18 @@ impl BackgroundDevnet {
         address: &FieldElement,
         unit: FeeUnit,
     ) -> Result<FieldElement, anyhow::Error> {
-        Self::get_balance_pending_state(self, address, unit, false).await
+        Self::get_balance_by_tag(self, address, unit, BlockTag::Latest).await
     }
 
     /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`
     /// from pending state or latest state
-    pub async fn get_balance_pending_state(
+    pub async fn get_balance_by_tag(
         &self,
         address: &FieldElement,
         unit: FeeUnit,
-        pending_state: bool,
+        tag: BlockTag,
     ) -> Result<FieldElement, anyhow::Error> {
-        let params =
-            format!("address={:#x}&unit={}&pending_state={}", address, unit, pending_state);
+        let params = format!("address={:#x}&unit={}&tag={}", address, unit, Self::tag_to_str(tag));
 
         let resp = self.get("/account_balance", Some(params)).await?;
         // response validity asserted in test_balance.rs::assert_balance_endpoint_response
@@ -249,6 +250,28 @@ impl BackgroundDevnet {
         let json_resp = get_json_body(resp).await;
         let amount_raw = json_resp["amount"].as_str().unwrap();
         Ok(FieldElement::from_dec_str(amount_raw)?)
+    }
+
+    fn tag_to_str(tag: BlockTag) -> &'static str {
+        match tag {
+            BlockTag::Latest => "latest",
+            BlockTag::Pending => "pending",
+        }
+    }
+
+    pub async fn get_contract_balance(&self, contract_address: FieldElement) -> FieldElement {
+        let contract_call = FunctionCall {
+            contract_address,
+            entry_point_selector: get_selector_from_name("get_balance").unwrap(),
+            calldata: vec![],
+        };
+        match self.json_rpc_client.call(contract_call, BlockId::Tag(BlockTag::Latest)).await {
+            Ok(res) => {
+                assert_eq!(res.len(), 1);
+                res[0]
+            }
+            Err(e) => panic!("Call failed: {e}"),
+        }
     }
 
     /// Performs GET request on devnet; path should have a leading slash
@@ -326,6 +349,10 @@ impl BackgroundDevnet {
             Ok(MaybePendingBlockWithTxHashes::Block(b)) => Ok(b),
             other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
         }
+    }
+
+    pub async fn get_config(&self) -> Result<serde_json::Value, anyhow::Error> {
+        Ok(get_json_body(self.get("/config", None).await?).await)
     }
 }
 

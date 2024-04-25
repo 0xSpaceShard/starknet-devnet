@@ -97,8 +97,7 @@ mod advancing_time_tests {
 
     #[tokio::test]
     async fn timestamp_syscall_set_in_past() {
-        let devnet: BackgroundDevnet =
-            BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
 
         // set time in past
@@ -118,8 +117,7 @@ mod advancing_time_tests {
     #[tokio::test]
     async fn timestamp_syscall_set_in_future() {
         let now = get_unix_timestamp_as_seconds();
-        let devnet: BackgroundDevnet =
-            BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
 
         // set time in future
@@ -139,8 +137,7 @@ mod advancing_time_tests {
     #[tokio::test]
     async fn timestamp_syscall_increase_time() {
         let now = get_unix_timestamp_as_seconds();
-        let devnet: BackgroundDevnet =
-            BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
 
         // increase time
@@ -166,8 +163,7 @@ mod advancing_time_tests {
     #[tokio::test]
     async fn timestamp_syscall_contract_constructor() {
         let now = get_unix_timestamp_as_seconds();
-        let devnet: BackgroundDevnet =
-            BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
 
         // wait 1 second
@@ -272,10 +268,9 @@ mod advancing_time_tests {
 
     #[tokio::test]
     async fn set_time_in_past_block_on_demand_mode() {
-        let devnet: BackgroundDevnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
-                .await
-                .expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
+            .await
+            .expect("Could not start Devnet");
 
         set_time_in_past(&devnet).await;
     }
@@ -317,10 +312,9 @@ mod advancing_time_tests {
 
     #[tokio::test]
     async fn set_time_in_future_block_on_demand_mode() {
-        let devnet: BackgroundDevnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
-                .await
-                .expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
+            .await
+            .expect("Could not start Devnet");
 
         set_time_in_future(&devnet).await;
     }

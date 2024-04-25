@@ -324,7 +324,6 @@ impl Starknet {
             // clone_historic() requires self.historic_state, self.historic_state is set in
             // expand_historic(), expand_historic() can be executed from commit_with_diff() - this
             // is why self.pending_state.commit_with_diff() is here
-            // TODO during PR: maybe there is a better way to do it?
             self.pending_state.commit_with_diff()?;
             self.state = self.pending_state.clone_historic();
         }
