@@ -20,19 +20,13 @@ mod impersonated_account_tests {
     };
 
     const IMPERSONATED_ACCOUNT_PRIVATE_KEY: FieldElement = FieldElement::ONE;
-    // FieldElement::from_dec_str("100000000000")
+    // FieldElement::from(100000000000)
     const AMOUNT_TO_TRANSFER: FieldElement = FieldElement::from_mont([
         18446740873709551617,
         18446744073709551615,
         18446744073709551615,
         576406352303423504,
     ]);
-
-    #[derive(Clone)]
-    enum TestCaseResult {
-        Success,
-        Failure { msg: String },
-    }
 
     async fn get_account_for_impersonation_and_private_key(
         devnet: &BackgroundDevnet,
@@ -176,39 +170,29 @@ mod impersonated_account_tests {
 
         let invoke_calls = vec![get_invoke_transaction_request(AMOUNT_TO_TRANSFER)];
 
-        // vector of tuples of steps (impersonation action, do validation, expected_result)
+        // vector of tuples of steps (impersonation action, do validation, expected some error
+        // message - none if its successful)
         let steps = vec![
-            (
-                Some(ImpersonationAction::ImpersonateAccount(account.address())),
-                true,
-                TestCaseResult::Success,
-            ),
-            (
-                Some(ImpersonationAction::ImpersonateAccount(account.address())),
-                false,
-                TestCaseResult::Success,
-            ),
-            (None, false, TestCaseResult::Success),
-            (None, true, TestCaseResult::Failure { msg: "invalid signature".to_string() }),
-            (Some(ImpersonationAction::AutoImpersonate), true, TestCaseResult::Success),
-            (Some(ImpersonationAction::AutoImpersonate), false, TestCaseResult::Success),
+            (Some(ImpersonationAction::ImpersonateAccount(account.address())), true, None),
+            (Some(ImpersonationAction::ImpersonateAccount(account.address())), false, None),
+            (None, false, None),
+            (None, true, Some("invalid signature")),
+            (Some(ImpersonationAction::AutoImpersonate), true, None),
+            (Some(ImpersonationAction::AutoImpersonate), false, None),
         ];
 
-        for (impersonation_action_option, do_validate, expected_result) in steps {
+        for (impersonation_action_option, do_validate, expected_error_message) in steps {
             if let Some(impersonation_action) = impersonation_action_option {
                 forked_devnet.execute_impersonation_action(&impersonation_action).await.unwrap();
             }
 
             let simulation_result =
                 account.execute(invoke_calls.clone()).simulate(!do_validate, false).await;
-            match expected_result {
-                TestCaseResult::Success => {
-                    simulation_result.expect("Expected simulation to succeed");
-                }
-                TestCaseResult::Failure { msg } => {
-                    let err = simulation_result.err().unwrap();
-                    assert_contains(&format!("{:?}", err).to_lowercase(), &msg);
-                }
+            if let Some(error_msg) = expected_error_message {
+                let simulation_err = simulation_result.expect_err("Expected simulation to fail");
+                assert_contains(&format!("{:?}", simulation_err).to_lowercase(), &error_msg);
+            } else {
+                simulation_result.expect("Expected simulation to succeed");
             }
 
             forked_devnet.restart().await.unwrap();
@@ -271,7 +255,7 @@ mod impersonated_account_tests {
     }
 
     fn assert_anyhow_error_contains_message(error: anyhow::Error, message: &str) {
-        let error_string = format!("{:?}", error).to_lowercase();
+        let error_string = format!("{:?}", error.root_cause()).to_lowercase();
         assert_contains(&error_string, message);
     }
 }
