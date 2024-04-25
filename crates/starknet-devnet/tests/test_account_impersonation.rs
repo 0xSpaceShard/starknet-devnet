@@ -101,10 +101,10 @@ mod impersonated_account_tests {
         let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
         let invoke_txn_err = test_invoke_transaction(&origin_devnet, &[]).await.unwrap_err();
-        asset_anyhow_error_contains_message(invoke_txn_err, "invalid signature");
+        assert_anyhow_error_contains_message(invoke_txn_err, "invalid signature");
 
         let declare_txn_err = test_declare_transaction(&origin_devnet, &[]).await.unwrap_err();
-        asset_anyhow_error_contains_message(declare_txn_err, "invalid signature");
+        assert_anyhow_error_contains_message(declare_txn_err, "invalid signature");
     }
 
     #[tokio::test]
@@ -130,7 +130,7 @@ mod impersonated_account_tests {
         .await
         .unwrap_err();
 
-        asset_anyhow_error_contains_message(invoke_txn_err, "invalid signature");
+        assert_anyhow_error_contains_message(invoke_txn_err, "invalid signature");
 
         let declare_txn_err = test_declare_transaction(
             origin_devnet,
@@ -141,7 +141,7 @@ mod impersonated_account_tests {
         )
         .await
         .unwrap_err();
-        asset_anyhow_error_contains_message(declare_txn_err, "invalid signature");
+        assert_anyhow_error_contains_message(declare_txn_err, "invalid signature");
     }
 
     #[tokio::test]
@@ -155,7 +155,7 @@ mod impersonated_account_tests {
         )
         .await
         .unwrap_err();
-        asset_anyhow_error_contains_message(invoke_txn_err, "invalid signature");
+        assert_anyhow_error_contains_message(invoke_txn_err, "invalid signature");
 
         let declare_txn_err = test_declare_transaction(
             origin_devnet,
@@ -163,7 +163,7 @@ mod impersonated_account_tests {
         )
         .await
         .unwrap_err();
-        asset_anyhow_error_contains_message(declare_txn_err, "invalid signature");
+        assert_anyhow_error_contains_message(declare_txn_err, "invalid signature");
     }
 
     #[tokio::test]
@@ -270,7 +270,7 @@ mod impersonated_account_tests {
         Ok(())
     }
 
-    fn asset_anyhow_error_contains_message(error: anyhow::Error, message: &str) {
+    fn assert_anyhow_error_contains_message(error: anyhow::Error, message: &str) {
         let error_string = format!("{:?}", error).to_lowercase();
         assert_contains(&error_string, message);
     }
