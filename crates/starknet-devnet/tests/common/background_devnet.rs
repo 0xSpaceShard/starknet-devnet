@@ -257,6 +257,21 @@ impl BackgroundDevnet {
         }
     }
 
+    pub async fn get_contract_balance(&self, contract_address: FieldElement) -> FieldElement {
+        let contract_call = FunctionCall {
+            contract_address,
+            entry_point_selector: get_selector_from_name("get_balance").unwrap(),
+            calldata: vec![],
+        };
+        match self.json_rpc_client.call(contract_call, BlockId::Tag(BlockTag::Latest)).await {
+            Ok(res) => {
+                assert_eq!(res.len(), 1);
+                res[0]
+            }
+            Err(e) => panic!("Call failed: {e}"),
+        }
+    }
+
     /// Performs GET request on devnet; path should have a leading slash
     pub async fn get(
         &self,
