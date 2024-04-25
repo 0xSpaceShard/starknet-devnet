@@ -17,7 +17,7 @@ async fn mint_iter(f: &str) {
         .await
         .expect("Could not start Devnet");
 
-    for _n in 1..5000 {
+    for _n in 1..=5000 {
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
     }
 }
