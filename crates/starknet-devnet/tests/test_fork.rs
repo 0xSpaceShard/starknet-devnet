@@ -26,7 +26,7 @@ mod fork_tests {
     use crate::common::constants;
     use crate::common::utils::{
         assert_cairo1_classes_equal, assert_tx_successful, declare_deploy,
-        get_block_reader_contract_in_sierra_and_compiled_class_hash,
+        get_block_reader_contract_in_sierra_and_compiled_class_hash, get_contract_balance,
         get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
         send_ctrl_c_signal_and_wait,
     };
@@ -155,7 +155,8 @@ mod fork_tests {
         }
 
         // not using get_balance_at_block=2: requires forking with --state-archive-capacity full
-        let final_balance = fork_devnet.get_balance(&dummy_address, FeeUnit::WEI).await.unwrap();
+        let final_balance =
+            fork_devnet.get_balance_latest(&dummy_address, FeeUnit::WEI).await.unwrap();
         let expected_final_balance = (2_u128 * mint_amount).into();
         assert_eq!(final_balance, expected_final_balance);
     }
@@ -295,11 +296,11 @@ mod fork_tests {
         );
 
         // assert correctly deployed
-        assert_eq!(origin_devnet.get_contract_balance(contract_address).await, initial_value);
+        assert_eq!(get_contract_balance(&origin_devnet, contract_address).await, initial_value);
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
-        assert_eq!(fork_devnet.get_contract_balance(contract_address).await, initial_value);
+        assert_eq!(get_contract_balance(&fork_devnet, contract_address).await, initial_value);
 
         let fork_predeployed_account = SingleOwnerAccount::new(
             fork_devnet.clone_provider(),
@@ -327,9 +328,9 @@ mod fork_tests {
         assert_tx_successful(&invoke_result.transaction_hash, &fork_devnet.json_rpc_client).await;
 
         // assert origin intact and fork changed
-        assert_eq!(origin_devnet.get_contract_balance(contract_address).await, initial_value);
+        assert_eq!(get_contract_balance(&origin_devnet, contract_address).await, initial_value);
         assert_eq!(
-            fork_devnet.get_contract_balance(contract_address).await,
+            get_contract_balance(&fork_devnet, contract_address).await,
             initial_value + increment
         );
     }
@@ -486,7 +487,7 @@ mod fork_tests {
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
-        let fork_balance = fork_devnet.get_balance(&address, FeeUnit::WEI).await.unwrap();
+        let fork_balance = fork_devnet.get_balance_latest(&address, FeeUnit::WEI).await.unwrap();
         assert_eq!(fork_balance, FieldElement::from(mint_amount));
     }
 

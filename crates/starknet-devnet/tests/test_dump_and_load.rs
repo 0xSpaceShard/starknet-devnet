@@ -427,7 +427,7 @@ mod dump_and_load_tests {
         devnet_load.post_json("/load".into(), load_body).await.unwrap();
 
         let balance_result = devnet_load
-            .get_balance(&FieldElement::from(DUMMY_ADDRESS), FeeUnit::WEI)
+            .get_balance_latest(&FieldElement::from(DUMMY_ADDRESS), FeeUnit::WEI)
             .await
             .unwrap();
         assert_eq!(balance_result, DUMMY_AMOUNT.into());

@@ -225,8 +225,8 @@ impl BackgroundDevnet {
     }
 
     /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`
-    /// from latest block state
-    pub async fn get_balance(
+    /// from latest state
+    pub async fn get_balance_latest(
         &self,
         address: &FieldElement,
         unit: FeeUnit,
@@ -256,21 +256,6 @@ impl BackgroundDevnet {
         match tag {
             BlockTag::Latest => "latest",
             BlockTag::Pending => "pending",
-        }
-    }
-
-    pub async fn get_contract_balance(&self, contract_address: FieldElement) -> FieldElement {
-        let contract_call = FunctionCall {
-            contract_address,
-            entry_point_selector: get_selector_from_name("get_balance").unwrap(),
-            calldata: vec![],
-        };
-        match self.json_rpc_client.call(contract_call, BlockId::Tag(BlockTag::Latest)).await {
-            Ok(res) => {
-                assert_eq!(res.len(), 1);
-                res[0]
-            }
-            Err(e) => panic!("Call failed: {e}"),
         }
     }
 
