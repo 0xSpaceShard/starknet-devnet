@@ -5,7 +5,6 @@ mod blocks_on_demand_tests {
     use starknet_rs_core::types::{BlockStatus, BlockTag, FieldElement};
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
-    use crate::common;
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::assert_tx_successful;
 
