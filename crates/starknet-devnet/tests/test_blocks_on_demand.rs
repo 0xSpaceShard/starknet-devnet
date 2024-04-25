@@ -47,10 +47,10 @@ mod blocks_on_demand_tests {
 
     async fn assert_balance(devnet: &BackgroundDevnet, expected: FieldElement, tag: BlockTag) {
         let balance = devnet
-            .get_balance_at_block(
+            .get_balance_by_tag(
                 &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
                 FeeUnit::WEI,
-                BlockId,
+                tag,
             )
             .await
             .unwrap();
