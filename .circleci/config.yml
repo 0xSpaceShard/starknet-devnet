@@ -41,17 +41,6 @@ executors:
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
-  spell-check:
-    docker:
-      - image: cimg/rust:1.75.0
-    steps:
-      # Checkout the code as the first step.
-      - checkout
-      # Install typos-cli
-      - run: cargo install typos-cli
-      # Run code spell check
-      - run: typos
-
   build-and-test:
     parameters:
       cargo_cache_key:
@@ -101,6 +90,18 @@ jobs:
           name: Integration tests
           # fails if jobs not limited; read more in https://github.com/0xSpaceShard/starknet-devnet-rs/issues/378
           command: cargo test --jobs 3 --test '*' --no-fail-fast
+
+  spell-check:
+    docker:
+      - image: cimg/rust:1.75.0
+    steps:
+      - checkout
+      - run:
+          name: Install spelling checker
+          command: cargo install typos-cli
+      - run:
+          name: Execute spelling checker
+          command: typos
 
   binary-build:
     parameters:
@@ -183,9 +184,9 @@ jobs:
 workflows:
   build-test-maybe-publish:
     jobs:
-      - spell-check
       - build-and-test:
           cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
+      - spell-check
       - binary-build:
           <<: *on_main
           matrix:
