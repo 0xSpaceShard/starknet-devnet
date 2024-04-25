@@ -43,7 +43,7 @@ mod blocks_on_demand_tests {
             .get_balance_by_tag(
                 &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
                 FeeUnit::WEI,
-                common::block::TestBlockTag(tag),
+                tag,
             )
             .await
             .unwrap();
