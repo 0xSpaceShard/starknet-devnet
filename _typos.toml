@@ -1,0 +1,14 @@
+[default.extend-words]
+# Don't correct the word
+
+# test for incorrect contract_address key in deserialize_get_storage_input
+addresss = "addresss"
+
+# test for incorrect block_number key in deserialize_block_id_block_number_variants
+numberr = "numberr"
+
+# STARKNET_1.0_MSGING_L1TOL2_MAPPPING_V2
+MAPPPING = "MAPPPING"
+
+payed = "payed"
+ede = "ede"

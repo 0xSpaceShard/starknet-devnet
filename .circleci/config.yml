@@ -41,6 +41,17 @@ executors:
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
+  spell-check:
+    docker:
+      - image: cimg/rust:1.75.0
+    steps:
+      # Checkout the code as the first step.
+      - checkout
+      # Install typos-cli
+      - run: cargo install typos-cli
+      # Run code spell check
+      - run: typos
+
   build-and-test:
     parameters:
       cargo_cache_key:
@@ -172,6 +183,7 @@ jobs:
 workflows:
   build-test-maybe-publish:
     jobs:
+      - spell-check
       - build-and-test:
           cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
       - binary-build:
