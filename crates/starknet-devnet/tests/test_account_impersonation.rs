@@ -83,45 +83,36 @@ mod impersonated_account_tests {
         test_invoke_transaction(
             &devnet,
             &[ImpersonationAction::ImpersonateAccount(account_address)],
-            TestCaseResult::Success,
         )
-        .await;
+        .await
+        .unwrap();
 
         test_declare_transaction(
             &devnet,
             &[ImpersonationAction::ImpersonateAccount(account_address)],
-            TestCaseResult::Success,
         )
-        .await;
+        .await
+        .unwrap();
     }
 
     #[tokio::test]
     async fn non_impersonated_account_fails_to_make_a_transaction_and_receives_an_error_of_invalid_signature()
      {
         let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
-        let expected_result = TestCaseResult::Failure { msg: "invalid signature".to_string() };
 
-        test_invoke_transaction(&origin_devnet, &[], expected_result.clone()).await;
+        let invoke_txn_err = test_invoke_transaction(&origin_devnet, &[]).await.unwrap_err();
+        asset_anyhow_error_contains_message(invoke_txn_err, "invalid signature");
 
-        test_declare_transaction(&origin_devnet, &[], expected_result).await;
+        let declare_txn_err = test_declare_transaction(&origin_devnet, &[]).await.unwrap_err();
+        asset_anyhow_error_contains_message(declare_txn_err, "invalid signature");
     }
 
     #[tokio::test]
     async fn test_auto_impersonate_allows_user_to_send_transactions() {
         let devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
-        test_invoke_transaction(
-            &devnet,
-            &[ImpersonationAction::AutoImpersonate],
-            TestCaseResult::Success,
-        )
-        .await;
+        test_invoke_transaction(&devnet, &[ImpersonationAction::AutoImpersonate]).await.unwrap();
 
-        test_declare_transaction(
-            &devnet,
-            &[ImpersonationAction::AutoImpersonate],
-            TestCaseResult::Success,
-        )
-        .await
+        test_declare_transaction(&devnet, &[ImpersonationAction::AutoImpersonate]).await.unwrap();
     }
 
     #[tokio::test]
@@ -129,46 +120,50 @@ mod impersonated_account_tests {
      {
         let origin_devnet = &BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
         let (_, account_address) = origin_devnet.get_first_predeployed_account().await;
-        let expected_result = TestCaseResult::Failure { msg: "invalid signature".to_string() };
-        test_invoke_transaction(
+        let invoke_txn_err = test_invoke_transaction(
             origin_devnet,
             &[
                 ImpersonationAction::ImpersonateAccount(account_address),
                 ImpersonationAction::StopImpersonatingAccount(account_address),
             ],
-            expected_result.clone(),
-        )
-        .await;
-
-        test_declare_transaction(
-            origin_devnet,
-            &[
-                ImpersonationAction::ImpersonateAccount(account_address),
-                ImpersonationAction::StopImpersonatingAccount(account_address),
-            ],
-            expected_result.clone(),
         )
         .await
+        .unwrap_err();
+
+        asset_anyhow_error_contains_message(invoke_txn_err, "invalid signature");
+
+        let declare_txn_err = test_declare_transaction(
+            origin_devnet,
+            &[
+                ImpersonationAction::ImpersonateAccount(account_address),
+                ImpersonationAction::StopImpersonatingAccount(account_address),
+            ],
+        )
+        .await
+        .unwrap_err();
+        asset_anyhow_error_contains_message(declare_txn_err, "invalid signature");
     }
 
     #[tokio::test]
     async fn test_auto_impersonate_then_stop_and_send_transaction_fails_with_invalid_signature_error()
      {
         let origin_devnet = &BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
-        let expected_result = TestCaseResult::Failure { msg: "invalid signature".to_string() };
-        test_invoke_transaction(
-            origin_devnet,
-            &[ImpersonationAction::AutoImpersonate, ImpersonationAction::StopAutoImpersonate],
-            expected_result.clone(),
-        )
-        .await;
 
-        test_declare_transaction(
+        let invoke_txn_err = test_invoke_transaction(
             origin_devnet,
             &[ImpersonationAction::AutoImpersonate, ImpersonationAction::StopAutoImpersonate],
-            expected_result,
         )
-        .await;
+        .await
+        .unwrap_err();
+        asset_anyhow_error_contains_message(invoke_txn_err, "invalid signature");
+
+        let declare_txn_err = test_declare_transaction(
+            origin_devnet,
+            &[ImpersonationAction::AutoImpersonate, ImpersonationAction::StopAutoImpersonate],
+        )
+        .await
+        .unwrap_err();
+        asset_anyhow_error_contains_message(declare_txn_err, "invalid signature");
     }
 
     #[tokio::test]
@@ -223,15 +218,14 @@ mod impersonated_account_tests {
     async fn test_declare_transaction(
         origin_devnet: &BackgroundDevnet,
         impersonation_actions: &[ImpersonationAction],
-        expected_result: TestCaseResult,
-    ) {
+    ) -> Result<(), anyhow::Error> {
         let forked_devnet = origin_devnet.fork().await.unwrap();
 
         let mut account =
             get_account_interacting_with_forked_devnet(origin_devnet, &forked_devnet).await;
 
         for action in impersonation_actions.iter() {
-            forked_devnet.execute_impersonation_action(action).await.unwrap();
+            forked_devnet.execute_impersonation_action(action).await?;
         }
 
         let (flattened_class, compiled_class_hash) =
@@ -239,66 +233,45 @@ mod impersonated_account_tests {
 
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
 
-        let declare_result =
-            account.declare(Arc::new(flattened_class), compiled_class_hash).send().await;
+        account.declare(Arc::new(flattened_class), compiled_class_hash).send().await?;
 
-        match expected_result {
-            TestCaseResult::Success => {
-                crate::common::utils::assert_tx_successful(
-                    &declare_result.unwrap().transaction_hash,
-                    &forked_devnet.json_rpc_client,
-                )
-                .await;
-            }
-            TestCaseResult::Failure { msg } => {
-                let err = declare_result.err().unwrap();
-                assert_contains(&format!("{:?}", err).to_lowercase(), &msg);
-            }
-        }
+        Ok(())
     }
 
     async fn test_invoke_transaction(
         origin_devnet: &BackgroundDevnet,
         impersonation_actions: &[ImpersonationAction],
-        expected_result: TestCaseResult,
-    ) {
-        let forked_devnet = origin_devnet.fork().await.unwrap();
+    ) -> Result<(), anyhow::Error> {
+        let forked_devnet = origin_devnet.fork().await?;
 
         let account =
             get_account_interacting_with_forked_devnet(origin_devnet, &forked_devnet).await;
 
         for action in impersonation_actions.iter() {
-            forked_devnet.execute_impersonation_action(action).await.unwrap();
+            forked_devnet.execute_impersonation_action(action).await?;
         }
 
         let forked_account_initial_balance =
-            forked_devnet.get_balance(&account.address(), FeeUnit::FRI).await.unwrap();
+            forked_devnet.get_balance(&account.address(), FeeUnit::FRI).await?;
 
         let invoke_call = get_invoke_transaction_request(AMOUNT_TO_TRANSFER);
 
-        let result = account.execute(vec![invoke_call]).send().await;
+        let result = account.execute(vec![invoke_call]).send().await?;
 
-        match expected_result {
-            TestCaseResult::Success => {
-                let result = result.unwrap();
+        let receipt =
+            forked_devnet.json_rpc_client.get_transaction_receipt(result.transaction_hash).await?;
 
-                let receipt = forked_devnet
-                    .json_rpc_client
-                    .get_transaction_receipt(result.transaction_hash)
-                    .await
-                    .unwrap();
+        assert_eq!(receipt.execution_result(), &ExecutionResult::Succeeded);
 
-                assert_eq!(receipt.execution_result(), &ExecutionResult::Succeeded);
-                let forked_account_balance =
-                    forked_devnet.get_balance(&account.address(), FeeUnit::FRI).await.unwrap();
-                assert!(
-                    forked_account_initial_balance >= AMOUNT_TO_TRANSFER + forked_account_balance
-                );
-            }
-            TestCaseResult::Failure { msg } => {
-                let err = result.err().unwrap();
-                assert_contains(&format!("{:?}", err).to_lowercase(), &msg);
-            }
-        }
+        let forked_account_balance =
+            forked_devnet.get_balance(&account.address(), FeeUnit::FRI).await?;
+        assert!(forked_account_initial_balance >= AMOUNT_TO_TRANSFER + forked_account_balance);
+
+        Ok(())
+    }
+
+    fn asset_anyhow_error_contains_message(error: anyhow::Error, message: &str) {
+        let error_string = format!("{:?}", error).to_lowercase();
+        assert_contains(&error_string, message);
     }
 }
