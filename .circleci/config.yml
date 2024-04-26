@@ -71,7 +71,7 @@ jobs:
           command: cargo +nightly fmt --all --check
       - run:
           name: Code spell check
-          command: ./scripts/spelling_check.sh
+          command: ./scripts/check_spelling.sh
       - save_cache:
           # Caching dependencies for future use
           # Build and Clippy steps generate their own target artifacts
