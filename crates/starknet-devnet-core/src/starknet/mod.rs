@@ -428,7 +428,7 @@ impl Starknet {
         }
     }
 
-    /// Handles suceeded and reverted transactions.
+    /// Handles succeeded and reverted transactions.
     /// The tx is stored and potentially dumped.
     /// A new block is generated.
     pub(crate) fn handle_accepted_transaction(

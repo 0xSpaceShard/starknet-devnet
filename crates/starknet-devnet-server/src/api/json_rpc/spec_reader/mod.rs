@@ -266,7 +266,7 @@ mod tests {
                         | StarknetRequest::ClassByHash(_) => {
                             assert!(matches!(sn_response, StarknetResponse::ContractClass(_)));
                         }
-                        StarknetRequest::EsimateFee(_) => {
+                        StarknetRequest::EstimateFee(_) => {
                             assert!(matches!(sn_response, StarknetResponse::EstimateFee(_)));
                         }
                         StarknetRequest::EstimateMessageFee(_) => {

@@ -104,7 +104,7 @@ mod get_events_integration_tests {
             devnet.json_rpc_client.get_events(event_filter.clone(), None, 100000000).await.unwrap();
 
         let generated_events_count = events.events.len();
-        assert_eq!(generated_events_count, n_events_contract_invocations as usize);
+        assert_eq!(generated_events_count, n_events_contract_invocations);
 
         // divide the events by a group of 3
         // and iterate over with continuation token
