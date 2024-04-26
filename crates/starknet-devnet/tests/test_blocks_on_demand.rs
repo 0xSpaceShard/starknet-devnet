@@ -81,12 +81,6 @@ mod blocks_on_demand_tests {
             .await;
 
         assert_latest_block_with_transactions(&devnet, 1, tx_hashes).await;
-
-        // check if pending_block was restarted
-        let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
-        assert_eq!(pending_block.block_number, 2);
-        assert_eq!(pending_block.transactions.len(), 0);
-
         assert_pending_block_with_transactions(&devnet, 2, 0).await;
     }
 
