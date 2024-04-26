@@ -152,26 +152,34 @@ mod blocks_on_demand_tests {
             &ctor_args,
         );
 
+        let mut tx_hashes = Vec::new();
         let increment = FieldElement::from(5_u32);
         let contract_invoke = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("increase_balance").unwrap(),
             calldata: vec![increment, FieldElement::ZERO],
         }];
+        let tx_count = 2;
+        for n in 1..=tx_count {
+            let invoke_result = predeployed_account
+                .execute(contract_invoke.clone())
+                .max_fee(FieldElement::from(1e18 as u128))
+                .nonce(FieldElement::from(n as u128))
+                .send()
+                .await
+                .unwrap();
 
-        let invoke_result = predeployed_account
-            .execute(contract_invoke.clone())
-            .max_fee(FieldElement::from(1e18 as u128))
-            .send()
-            .await
-            .unwrap();
+            assert_tx_successful(&invoke_result.transaction_hash, &devnet.json_rpc_client).await;
+
+            tx_hashes.push(invoke_result.transaction_hash);
+        }
 
         devnet.create_block().await.unwrap();
 
-        assert_tx_successful(&invoke_result.transaction_hash, &devnet.json_rpc_client).await;
+        assert_latest_block_with_transactions(&devnet, 3, tx_hashes).await;
         assert_eq!(
             get_contract_balance(&devnet, contract_address).await,
-            initial_value + increment
+            initial_value + (increment * FieldElement::from(tx_count as u128))
         );
     }
 }
