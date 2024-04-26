@@ -238,10 +238,10 @@ POST /mint
 
 ### Check balance
 
-Check the balance of an address by sending a GET request to `/account_balance`. The address should be a 0x-prefixed hex string; the unit defaults to `WEI`.
+Check the balance of an address by sending a GET request to `/account_balance`. The address should be a 0x-prefixed hex string; the unit defaults to `WEI` and block_tag to `latest`.
 
 ```
-GET /account_balance?address=<ADDRESS>&[unit=<FRI|WEI>]&[tag=<latest|pending>]
+GET /account_balance?address=<ADDRESS>&[unit=<FRI|WEI>]&[block_tag=<latest|pending>]
 ```
 
 ## Dumping & Loading

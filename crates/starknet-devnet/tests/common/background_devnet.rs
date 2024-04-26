@@ -242,7 +242,8 @@ impl BackgroundDevnet {
         unit: FeeUnit,
         tag: BlockTag,
     ) -> Result<FieldElement, anyhow::Error> {
-        let params = format!("address={:#x}&unit={}&tag={}", address, unit, Self::tag_to_str(tag));
+        let params =
+            format!("address={:#x}&unit={}&block_tag={}", address, unit, Self::tag_to_str(tag));
 
         let resp = self.get("/account_balance", Some(params)).await?;
         // response validity asserted in test_balance.rs::assert_balance_endpoint_response

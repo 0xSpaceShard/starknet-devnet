@@ -35,7 +35,7 @@ pub async fn get_predeployed_accounts(
 pub struct BalanceQuery {
     address: Felt,
     unit: Option<FeeUnit>,
-    tag: Option<BlockTag>,
+    block_tag: Option<BlockTag>,
 }
 
 pub async fn get_account_balance(
@@ -53,7 +53,7 @@ pub async fn get_account_balance(
         &mut starknet,
         account_address,
         erc20_address,
-        params.tag.unwrap_or(BlockTag::Latest),
+        params.block_tag.unwrap_or(BlockTag::Latest),
     )
     .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
     Ok(Json(AccountBalanceResponse { amount: amount.to_string(), unit }))
