@@ -88,23 +88,23 @@ impl StarknetBlocks {
         self.hash_to_state.insert(block_hash, state);
     }
 
-    pub fn get_by_block_id(&self, mut block_id: &BlockId) -> Option<&StarknetBlock> {
-        if !self.blocks_on_demand && block_id == &BlockId::Tag(BlockTag::Pending) {
-            // in normal mode, querying pending block should default to the latest
-            block_id = &BlockId::Tag(BlockTag::Latest);
-        }
+    fn get_by_latest_hash(&self) -> Option<&StarknetBlock> {
+        if let Some(hash) = self.last_block_hash { self.get_by_hash(hash) } else { None }
+    }
 
+    pub fn get_by_block_id(&self, block_id: &BlockId) -> Option<&StarknetBlock> {
         match block_id {
             BlockId::Hash(hash) => self.get_by_hash(Felt::from(hash)),
             BlockId::Number(block_number) => self.get_by_num(&BlockNumber(*block_number)),
-            BlockId::Tag(BlockTag::Pending) => Some(&self.pending_block),
-            BlockId::Tag(BlockTag::Latest) => {
-                if let Some(hash) = self.last_block_hash {
-                    self.get_by_hash(hash)
+            BlockId::Tag(BlockTag::Pending) => {
+                if !self.blocks_on_demand {
+                    // in normal mode, querying pending block should default to the latest
+                    self.get_by_latest_hash()
                 } else {
-                    None
+                    Some(&self.pending_block)
                 }
             }
+            BlockId::Tag(BlockTag::Latest) => self.get_by_latest_hash(),
         }
     }
 
