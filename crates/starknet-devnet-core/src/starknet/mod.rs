@@ -105,6 +105,8 @@ impl Default for Starknet {
         Self {
             block_context: Self::init_block_context(
                 DEVNET_DEFAULT_GAS_PRICE,
+                DEVNET_DEFAULT_GAS_PRICE,
+                DEVNET_DEFAULT_DATA_GAS_PRICE,
                 DEVNET_DEFAULT_DATA_GAS_PRICE,
                 ETH_ERC20_CONTRACT_ADDRESS,
                 STRK_ERC20_CONTRACT_ADDRESS,
@@ -199,8 +201,10 @@ impl Starknet {
             pending_state: Default::default(),
             predeployed_accounts,
             block_context: Self::init_block_context(
-                config.gas_price,
-                config.data_gas_price,
+                config.gas_price_wei,
+                config.gas_price_strk,
+                config.data_gas_price_wei,
+                config.data_gas_price_strk,
                 ETH_ERC20_CONTRACT_ADDRESS,
                 STRK_ERC20_CONTRACT_ADDRESS,
                 config.chain_id,
@@ -241,7 +245,11 @@ impl Starknet {
     }
 
     pub fn get_state(&mut self) -> &mut StarknetState {
-        if self.config.blocks_on_demand { &mut self.pending_state } else { &mut self.state }
+        if self.config.blocks_on_demand {
+            &mut self.pending_state
+        } else {
+            &mut self.state
+        }
     }
 
     pub fn restart(&mut self) -> DevnetResult<()> {
@@ -461,8 +469,10 @@ impl Starknet {
     }
 
     fn init_block_context(
-        gas_price: NonZeroU128,
-        data_gas_price: NonZeroU128,
+        gas_price_wei: NonZeroU128,
+        gas_price_strk: NonZeroU128,
+        data_gas_price_wei: NonZeroU128,
+        data_gas_price_strk: NonZeroU128,
         eth_fee_token_address: &str,
         strk_fee_token_address: &str,
         chain_id: ChainId,
@@ -479,10 +489,10 @@ impl Starknet {
             block_timestamp: BlockTimestamp(0),
             sequencer_address: contract_address!("0x1000"),
             gas_prices: blockifier::block::GasPrices {
-                eth_l1_gas_price: gas_price,
-                strk_l1_gas_price: gas_price,
-                eth_l1_data_gas_price: data_gas_price,
-                strk_l1_data_gas_price: data_gas_price,
+                eth_l1_gas_price: gas_price_wei,
+                strk_l1_gas_price: gas_price_strk,
+                eth_l1_data_gas_price: data_gas_price_wei,
+                strk_l1_data_gas_price: data_gas_price_strk,
             },
             use_kzg_da: true,
         };
@@ -719,7 +729,7 @@ impl Starknet {
         amount: BigUint,
         erc20_address: ContractAddress,
     ) -> DevnetResult<Felt> {
-        let sufficiently_big_max_fee = self.config.gas_price.get() * 1_000_000;
+        let sufficiently_big_max_fee = self.config.gas_price_wei.get() * 1_000_000;
         let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
         let state = self.get_state();
         let nonce = state.get_nonce_at(starknet_api::core::ContractAddress::try_from(
@@ -1233,6 +1243,8 @@ mod tests {
         let block_ctx = Starknet::init_block_context(
             nonzero!(10u128),
             nonzero!(10u128),
+            nonzero!(10u128),
+            nonzero!(10u128),
             "0xAA",
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
@@ -1340,6 +1352,8 @@ mod tests {
     #[test]
     fn correct_block_context_update() {
         let mut block_ctx = Starknet::init_block_context(
+            nonzero!(1u128),
+            nonzero!(1u128),
             nonzero!(1u128),
             nonzero!(1u128),
             ETH_ERC20_CONTRACT_ADDRESS,
