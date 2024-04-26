@@ -496,7 +496,21 @@ To check for unused dependencies, run:
 ./scripts/check_unused_deps.sh
 ```
 
-If you think this reports a dependency as a false-positive (i.e. isn't unused), check [here](https://github.com/bnjbvr/cargo-machete#false-positives).
+If you think this reports a dependency as a false positive (i.e. isn't unused), check [here](https://github.com/bnjbvr/cargo-machete#false-positives).
+
+### Development - Spelling check
+
+To check for spelling errors in the code, run:
+
+```
+./scripts/check_spelling.sh
+```
+
+If you think this reports a false-positive, check [here](https://crates.io/crates/typos-cli#false-positives).
+
+### Development - pre-commit
+
+To speed up development, you can put all the previous steps (and more) in a script defined at [.git/hooks/pre-commit](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks).
 
 ### Development - Testing
 
