@@ -1,5 +1,5 @@
 use starknet_core::error::{Error, StateError};
-use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag, MsgFromL1};
+use starknet_rs_core::types::{BlockId as ImportedBlockId, MsgFromL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
@@ -23,20 +23,14 @@ impl JsonRpcHandler {
     }
 
     /// starknet_getBlockWithTxHashes
-    pub async fn get_block_with_tx_hashes(&self, mut block_id: BlockId) -> StrictRpcResult {
-        let starknet = self.api.starknet.read().await;
-
-        if !starknet.config.blocks_on_demand
-            && block_id == BlockId(ImportedBlockId::Tag(BlockTag::Pending))
-        {
-            // in normal mode, querying pending block should default to the latest
-            block_id = BlockId(ImportedBlockId::Tag(BlockTag::Latest));
-        }
-
-        let block = starknet.get_block(block_id.as_ref()).map_err(|err| match err {
-            Error::NoBlock => ApiError::BlockNotFound,
-            unknown_error => ApiError::StarknetDevnetError(unknown_error),
-        })?;
+    pub async fn get_block_with_tx_hashes(&self, block_id: BlockId) -> StrictRpcResult {
+        let block =
+            self.api.starknet.read().await.get_block(block_id.as_ref()).map_err(
+                |err| match err {
+                    Error::NoBlock => ApiError::BlockNotFound,
+                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
+                },
+            )?;
 
         Ok(StarknetResponse::Block(Block {
             status: *block.status(),

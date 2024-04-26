@@ -206,7 +206,7 @@ impl Starknet {
                 config.chain_id,
                 starting_block_number,
             ),
-            blocks: StarknetBlocks::new(starting_block_number),
+            blocks: StarknetBlocks::new(starting_block_number, config.blocks_on_demand),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
             pending_block_timestamp_shift: 0,

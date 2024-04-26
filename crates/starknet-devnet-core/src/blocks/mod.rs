@@ -25,6 +25,7 @@ pub(crate) struct StarknetBlocks {
     pub(crate) hash_to_state_diff: HashMap<BlockHash, StateDiff>,
     pub(crate) hash_to_state: HashMap<BlockHash, StarknetState>,
     pub(crate) aborted_blocks: Vec<Felt>,
+    pub(crate) blocks_on_demand: bool,
 }
 
 impl HashIdentified for StarknetBlocks {
@@ -48,13 +49,14 @@ impl Default for StarknetBlocks {
             hash_to_state_diff: HashMap::new(),
             hash_to_state: HashMap::new(),
             aborted_blocks: Vec::new(),
+            blocks_on_demand: false,
         }
     }
 }
 
 impl StarknetBlocks {
-    pub fn new(starting_block_number: u64) -> Self {
-        let mut blocks = Self::default();
+    pub fn new(starting_block_number: u64, blocks_on_demand: bool) -> Self {
+        let mut blocks = Self { blocks_on_demand, ..Self::default() };
         blocks.pending_block.set_block_number(starting_block_number);
         blocks
     }
@@ -86,7 +88,12 @@ impl StarknetBlocks {
         self.hash_to_state.insert(block_hash, state);
     }
 
-    pub fn get_by_block_id(&self, block_id: &BlockId) -> Option<&StarknetBlock> {
+    pub fn get_by_block_id(&self, mut block_id: &BlockId) -> Option<&StarknetBlock> {
+        if !self.blocks_on_demand && block_id == &BlockId::Tag(BlockTag::Pending) {
+            // in normal mode, querying pending block should default to the latest
+            block_id = &BlockId::Tag(BlockTag::Latest);
+        }
+
         match block_id {
             BlockId::Hash(hash) => self.get_by_hash(Felt::from(hash)),
             BlockId::Number(block_number) => self.get_by_num(&BlockNumber(*block_number)),
@@ -317,7 +324,7 @@ mod tests {
 
     #[test]
     fn block_number_from_block_id_should_return_correct_result() {
-        let mut blocks = StarknetBlocks::default();
+        let mut blocks = StarknetBlocks::new(0, true);
         let mut block_to_insert = StarknetBlock::create_pending_block();
         blocks.pending_block = block_to_insert.clone();
 
