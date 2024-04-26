@@ -38,7 +38,9 @@ pub(crate) struct Args {
     #[arg(long = "account-class-custom")]
     #[arg(value_name = "PATH")]
     #[arg(conflicts_with = "account_class_choice")]
-    #[arg(help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;")]
+    #[arg(
+        help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;"
+    )]
     account_class_custom: Option<AccountClassWrapper>,
 
     /// Initial balance of predeployed accounts
@@ -85,17 +87,31 @@ pub(crate) struct Args {
 
     // Gas price in wei
     #[arg(long = "gas-price")]
-    #[arg(value_name = "GAS_PRICE")]
+    #[arg(value_name = "GAS_PRICE_WEI")]
     #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
     #[arg(help = "Specify the gas price in wei per gas unit;")]
-    gas_price: NonZeroU128,
+    gas_price_wei: NonZeroU128,
+
+    // Gas price in strk
+    #[arg(long = "gas-price-strk")]
+    #[arg(value_name = "GAS_PRICE_STRK")]
+    #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
+    #[arg(help = "Specify the gas price in strk per gas unit;")]
+    gas_price_strk: NonZeroU128,
 
     // Gas price in wei
     #[arg(long = "data-gas-price")]
-    #[arg(value_name = "DATA_GAS_PRICE")]
+    #[arg(value_name = "DATA_GAS_PRICE_WEI")]
     #[arg(default_value_t = DEVNET_DEFAULT_DATA_GAS_PRICE)]
     #[arg(help = "Specify the gas price in wei per data gas unit;")]
-    data_gas_price: NonZeroU128,
+    data_gas_price_wei: NonZeroU128,
+
+    // Gas price in strk
+    #[arg(long = "data-gas-price-strk")]
+    #[arg(value_name = "DATA_GAS_PRICE_STRK")]
+    #[arg(default_value_t = DEVNET_DEFAULT_DATA_GAS_PRICE)]
+    #[arg(help = "Specify the gas price in strk per data gas unit;")]
+    data_gas_price_strk: NonZeroU128,
 
     #[arg(long = "chain-id")]
     #[arg(value_name = "CHAIN_ID")]
