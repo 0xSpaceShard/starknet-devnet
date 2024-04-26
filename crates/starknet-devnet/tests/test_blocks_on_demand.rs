@@ -22,11 +22,11 @@ mod blocks_on_demand_tests {
     async fn assert_latest_block_with_transactions(
         devnet: &BackgroundDevnet,
         block_number: u64,
-        transactions_count: u128,
+        transactions: Vec<FieldElement>,
     ) {
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
         assert_eq!(latest_block.block_number, block_number);
-        assert_eq!(latest_block.transactions.len() as u128, transactions_count);
+        assert_eq!(transactions, latest_block.transactions);
         assert_eq!(latest_block.status, BlockStatus::AcceptedOnL2);
 
         for tx_hash in latest_block.transactions {
@@ -63,8 +63,10 @@ mod blocks_on_demand_tests {
             BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
 
         let tx_count = 5;
+        let mut tx_hashes = Vec::new();
         for _ in 0..tx_count {
-            devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+            let mint_hash = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+            tx_hashes.push(mint_hash);
         }
 
         assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Pending)
@@ -78,7 +80,7 @@ mod blocks_on_demand_tests {
         assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest)
             .await;
 
-        assert_latest_block_with_transactions(&devnet, 1, tx_count).await;
+        assert_latest_block_with_transactions(&devnet, 1, tx_hashes).await;
 
         // check if pending_block was restarted
         let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
