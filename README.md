@@ -32,10 +32,7 @@ This repository is work in progress, please be patient. Please check below the s
 - [x] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
   - [x] [Aborting blocks](#abort-blocks)
   - [x] [Creating an empty block](#create-an-empty-block)
-
-### TODO to reach feature parity with the Pythonic Devnet
-
-- [ ] Creating blocks on demand
+  - [x] [Creating blocks on demand](#creating-blocks-on-demand)
 
 ## Installation and running
 
@@ -241,10 +238,10 @@ POST /mint
 
 ### Check balance
 
-Check the balance of an address by sending a GET request to `/account_balance`. The address should be a 0x-prefixed hex string; the unit defaults to `WEI`.
+Check the balance of an address by sending a GET request to `/account_balance`. The address should be a 0x-prefixed hex string; the unit defaults to `WEI` and block_tag to `latest`.
 
 ```
-GET /account_balance?address=<ADDRESS>&[unit=<FRI|WEI>]
+GET /account_balance?address=<ADDRESS>&[unit=<FRI|WEI>]&[block_tag=<latest|pending>]
 ```
 
 ## Dumping & Loading
@@ -257,10 +254,10 @@ To preserve your Devnet instance for future use, these are the options:
 $ starknet-devnet --dump-on exit --dump-path <PATH>
 ```
 
-- Dumping after each transaction:
+- Dumping after each block:
 
 ```
-$ starknet-devnet --dump-on transaction --dump-path <PATH>
+$ starknet-devnet --dump-on block --dump-path <PATH>
 ```
 
 - Dumping on request requires providing --dump-on mode on the startup. Example usage in `exit` mode (replace `<HOST>`, `<PORT>` and `<PATH>` with your own):
@@ -292,8 +289,9 @@ This means that timestamps of `StarknetBlock` will be different.
 
 ### Loading disclaimer
 
-Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
-If you dumped a Devnet utilizing one class for account predeployment (e.g. the default `--account-class cairo0`), you should use the same option when loading.
+Dumping and loading are not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
+
+If you dumped a Devnet utilizing one class for account predeployment (e.g. `--account-class cairo0`), you should use the same option when loading. The same applies for dumping a Devnet in `--blocks-on-demand` mode.
 
 ## Restarting
 
@@ -306,6 +304,26 @@ If you're using [**the Hardhat plugin**](https://github.com/0xSpaceShard/starkne
 Devnet starts with a genesis block (with a block number equal to 0). In forking mode, the genesis block number will be equal to forked block number plus one.
 
 A new block is generated with each new transaction, and you can create an empty block by yourself.
+
+### Creating blocks on demand
+
+If you start Devnet with the `--blocks-on-demand` CLI option, all valid transactions will be stored in a pending block (targetable via block tag `"pending"`).
+
+To create a block on demand, send a `POST` request to `/create_block`. This will convert the pending block to the latest block (targetable via block tag `"latest"`), giving it a block hash and a block number. All subsequent transactions will be stored in a new pending block.
+
+In case of demanding block creation with no pending transactions, a new empty block will be generated.
+
+The creation of the genesis block is not affected by this feature.
+
+```
+POST /create_block
+```
+
+Response:
+
+```
+{'block_hash': '0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67'}
+```
 
 ### Create an empty block
 

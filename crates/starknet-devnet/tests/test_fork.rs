@@ -26,7 +26,7 @@ mod fork_tests {
     use crate::common::constants;
     use crate::common::utils::{
         assert_cairo1_classes_equal, assert_tx_successful, declare_deploy,
-        get_block_reader_contract_in_sierra_and_compiled_class_hash,
+        get_block_reader_contract_in_sierra_and_compiled_class_hash, get_contract_balance,
         get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
         send_ctrl_c_signal_and_wait,
     };
@@ -155,27 +155,10 @@ mod fork_tests {
         }
 
         // not using get_balance_at_block=2: requires forking with --state-archive-capacity full
-        let final_balance = fork_devnet.get_balance(&dummy_address, FeeUnit::WEI).await.unwrap();
+        let final_balance =
+            fork_devnet.get_balance_latest(&dummy_address, FeeUnit::WEI).await.unwrap();
         let expected_final_balance = (2_u128 * mint_amount).into();
         assert_eq!(final_balance, expected_final_balance);
-    }
-
-    async fn get_contract_balance(
-        devnet: &BackgroundDevnet,
-        contract_address: FieldElement,
-    ) -> FieldElement {
-        let contract_call = FunctionCall {
-            contract_address,
-            entry_point_selector: get_selector_from_name("get_balance").unwrap(),
-            calldata: vec![],
-        };
-        match devnet.json_rpc_client.call(contract_call, BlockId::Tag(BlockTag::Latest)).await {
-            Ok(res) => {
-                assert_eq!(res.len(), 1);
-                res[0]
-            }
-            Err(e) => panic!("Call failed: {e}"),
-        }
     }
 
     #[tokio::test]
@@ -504,7 +487,7 @@ mod fork_tests {
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
-        let fork_balance = fork_devnet.get_balance(&address, FeeUnit::WEI).await.unwrap();
+        let fork_balance = fork_devnet.get_balance_latest(&address, FeeUnit::WEI).await.unwrap();
         assert_eq!(fork_balance, FieldElement::from(mint_amount));
     }
 

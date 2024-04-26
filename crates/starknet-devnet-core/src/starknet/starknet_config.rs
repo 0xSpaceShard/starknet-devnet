@@ -18,7 +18,7 @@ use crate::constants::{
 #[serde(rename_all = "snake_case")]
 pub enum DumpOn {
     Exit,
-    Transaction,
+    Block,
 }
 
 #[derive(Default, Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum, Serialize)]
@@ -77,6 +77,7 @@ pub struct StarknetConfig {
     pub chain_id: ChainId,
     pub dump_on: Option<DumpOn>,
     pub dump_path: Option<String>,
+    pub blocks_on_demand: bool,
     /// on initialization, re-execute loaded txs (if any)
     #[serde(skip_serializing)]
     pub re_execute_on_init: bool,
@@ -102,6 +103,7 @@ impl Default for StarknetConfig {
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
             dump_on: None,
             dump_path: None,
+            blocks_on_demand: false,
             re_execute_on_init: true,
             state_archive: StateArchiveCapacity::default(),
             fork_config: ForkConfig::default(),

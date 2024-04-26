@@ -73,7 +73,7 @@ impl CommittedClassStorage {
     }
 }
 
-pub(crate) struct StarknetState {
+pub struct StarknetState {
     pub(crate) state: CachedState<DictState>,
     rpc_contract_classes: CommittedClassStorage,
     /// - initially `None`

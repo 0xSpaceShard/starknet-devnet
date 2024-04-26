@@ -115,6 +115,10 @@ pub(crate) struct Args {
     #[arg(help = "Specify the path to dump to;")]
     dump_path: Option<String>,
 
+    #[arg(long = "blocks-on-demand")]
+    #[arg(help = "Introduces block generation on demand via /create_block endpoint;")]
+    blocks_on_demand: bool,
+
     #[arg(long = "state-archive-capacity")]
     #[arg(value_name = "STATE_ARCHIVE_CAPACITY")]
     #[arg(default_value = "none")]
@@ -162,6 +166,7 @@ impl Args {
             chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
+            blocks_on_demand: self.blocks_on_demand,
             re_execute_on_init: true,
             state_archive: self.state_archive,
             fork_config: ForkConfig {
