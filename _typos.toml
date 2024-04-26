@@ -1,0 +1,8 @@
+[files]
+# Don't correct submodule and test_data
+extend-exclude = ["contracts/l1-l2-messaging/solidity", "crates/starknet-devnet-server/test_data", "crates/starknet-devnet/test_data", "crates/starknet-devnet-types/test_data"]
+ignore-vcs = true
+
+[default]
+# Don't correct hexadecimal string
+extend-ignore-re = ["0x[0-9a-fA-F]+"]

@@ -397,7 +397,7 @@ mod tests {
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
         // check if contract is successfully declared
         assert!(starknet.state.is_contract_declared(class_hash));
-        // check if pending block is resetted
+        // check if pending block is reset
         assert!(starknet.pending_block().get_transactions().is_empty());
         // check if there is generated block
         assert_eq!(starknet.blocks.hash_to_block.len(), 1);

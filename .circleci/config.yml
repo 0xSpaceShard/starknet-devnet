@@ -69,6 +69,9 @@ jobs:
       - run:
           name: Format check
           command: cargo +nightly fmt --all --check
+      - run:
+          name: Code spell check
+          command: cargo +nightly install typos-cli && typos
       - save_cache:
           # Caching dependencies for future use
           # Build and Clippy steps generate their own target artifacts

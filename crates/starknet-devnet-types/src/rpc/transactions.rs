@@ -377,7 +377,7 @@ impl BroadcastedTransactionCommonV3 {
             ), // h(paymaster_data)
             chain_id,                                                         // chain_id
             self.nonce.into(),                                                // nonce
-            self.get_data_availability_modes_field_element(), /* nonce_data_availabilty ||
+            self.get_data_availability_modes_field_element(), /* nonce_data_availability ||
                                                                * fee_data_availability_mode */
         ];
 
