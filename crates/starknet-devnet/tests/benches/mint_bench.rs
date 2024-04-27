@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion, SamplingMode};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use tokio::runtime::Runtime;
 
 use crate::common::background_devnet::BackgroundDevnet;
@@ -10,10 +10,7 @@ static DUMMY_ADDRESS: u128 = 1;
 static DUMMY_AMOUNT: u128 = 1;
 
 async fn mint_iter(f: &str) {
-    let devnet =
-        BackgroundDevnet::spawn_with_additional_args(&[
-            format!("--state-archive-capacity={}", f).as_str()
-        ])
+    let devnet = BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity={}", f])
         .await
         .expect("Could not start Devnet");
 
