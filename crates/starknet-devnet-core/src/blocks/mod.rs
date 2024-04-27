@@ -253,17 +253,14 @@ impl HashProducer for StarknetBlock {
     type Error = Error;
     fn generate_hash(&self) -> DevnetResult<BlockHash> {
         let hash = pedersen_hash_array(&[
-            stark_felt!(self.header.block_number.0), // block number
-            self.header.state_root.0,                // global_state_root
-            *self.header.sequencer.0.key(),          // sequencer_address
-            stark_felt!(self.header.timestamp.0),    // block_timestamp
+            stark_felt!(self.header.block_number.0),           // block number
+            self.header.state_root.0,                          // global_state_root
+            *self.header.sequencer.0.key(),                    // sequencer_address
+            stark_felt!(self.header.timestamp.0),              // block_timestamp
             stark_felt!(self.transaction_hashes.len() as u64), // transaction_count
-            stark_felt!(0_u8),                       // transaction_commitment
-            stark_felt!(0_u8),                       // event_count
-            stark_felt!(0_u8),                       // event_commitment
-            stark_felt!(0_u8),                       // protocol_version
-            stark_felt!(0_u8),                       // extra_data
-            stark_felt!(self.header.parent_hash.0),  // parent_block_hash
+            stark_felt!(self.header.n_events),                 // event_count
+            stark_felt!(self.header.starknet_version),         // protocol_version
+            stark_felt!(self.header.parent_hash.0),            // parent_block_hash
         ]);
 
         Ok(Felt::from(hash))
