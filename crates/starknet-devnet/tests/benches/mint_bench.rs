@@ -10,7 +10,7 @@ pub mod common;
 static PEAK_ALLOC: PeakAlloc = PeakAlloc;
 
 // peak memory in MB
-const PEAK_MEMORY_LIMIT: f32 =  1.0;
+const PEAK_MEMORY_LIMIT: f32 = 1.0;
 
 static DUMMY_ADDRESS: u128 = 1;
 static DUMMY_AMOUNT: u128 = 1;
@@ -25,7 +25,11 @@ async fn mint_iter(f: &str) {
     }
 
     let peak_mem = PEAK_ALLOC.peak_usage_as_gb();
-    assert!(peak_mem < PEAK_MEMORY_LIMIT, "peak memory should not exceed {} in MB", PEAK_MEMORY_LIMIT);
+    assert!(
+        peak_mem < PEAK_MEMORY_LIMIT,
+        "peak memory should not exceed {} in MB",
+        PEAK_MEMORY_LIMIT
+    );
     println!("The max amount that was used {} in MB of RAM", peak_mem);
 }
 
