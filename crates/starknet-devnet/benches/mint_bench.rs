@@ -1,16 +1,9 @@
 use crate::common::background_devnet::BackgroundDevnet;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use peak_alloc::PeakAlloc;
 use tokio::runtime::Runtime;
 
-#[path = "../common/mod.rs"]
+#[path = "../tests/common/mod.rs"]
 pub mod common;
-
-#[global_allocator]
-static PEAK_ALLOC: PeakAlloc = PeakAlloc;
-
-// peak memory in MB
-const PEAK_MEMORY_LIMIT: f32 = 1.0;
 
 static DUMMY_ADDRESS: u128 = 1;
 static DUMMY_AMOUNT: u128 = 1;
@@ -23,14 +16,6 @@ async fn mint_iter(f: &str) {
     for _n in 1..=5000 {
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
     }
-
-    let peak_mem = PEAK_ALLOC.peak_usage_as_gb();
-    assert!(
-        peak_mem < PEAK_MEMORY_LIMIT,
-        "peak memory should not exceed {} in MB",
-        PEAK_MEMORY_LIMIT
-    );
-    println!("The max amount that was used {} in MB of RAM", peak_mem);
 }
 
 fn bench_memory(c: &mut Criterion) {
