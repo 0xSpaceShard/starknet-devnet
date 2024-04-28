@@ -4266,6 +4266,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "peak_alloc"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29c4e8e2dd832fd76346468f822e4e600d30ba4e5aa545a128abf12cfae7ea3e"
+
+[[package]]
 name = "pem"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5582,6 +5588,7 @@ dependencies = [
  "ethers",
  "hyper 0.14.28",
  "lazy_static",
+ "peak_alloc",
  "serde",
  "serde_json",
  "starknet-accounts",
