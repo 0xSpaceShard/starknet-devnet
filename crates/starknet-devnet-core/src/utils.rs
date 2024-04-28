@@ -4,6 +4,11 @@ use starknet_rs_core::types::contract::CompiledClass;
 use starknet_rs_ff::FieldElement;
 use starknet_types::felt::Felt;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
+use starknet_types::num_integer::Integer;
+use starknet_api::hash::pedersen_hash;
+use starknet_api::hash::StarkFelt;
+use sha3::{Digest, Keccak256, Keccak256Core};
+use cairo_felt::Felt252;
 
 use crate::error::{DevnetResult, Error};
 
@@ -27,18 +32,33 @@ pub mod random_number_generator {
     }
 }
 
+/// Returns the Keccak hash
+pub fn calculate_sn_keccak(data: &[u8]) -> [u8; 32] {
+    let mut hasher = Keccak256::from_core(Keccak256Core::default());
+    hasher.update(data);
+    let mut result: [u8; 32] = hasher.finalize().into();
+    // Only the first 250 bits from the hash are used.
+    result[0] &= 0b0000_0011;
+    result
+}
+
 /// Returns the storage address of a Starknet storage variable given its name and arguments.
 pub(crate) fn get_storage_var_address(
     storage_var_name: &str,
     args: &[Felt],
 ) -> DevnetResult<StorageKey> {
-    let storage_var_address = starknet_rs_core::utils::get_storage_var_address(
-        storage_var_name,
-        &args.iter().map(|f| FieldElement::from(*f)).collect::<Vec<FieldElement>>(),
-    )
-    .map_err(|err| crate::error::Error::UnexpectedInternalError { msg: err.to_string() })?;
+    let storage_var_name_hash = calculate_sn_keccak(storage_var_name.as_bytes());
+    let storage_var_name_hash = StarkFelt::new(storage_var_name_hash)?;
 
-    Ok(PatriciaKey::new(Felt::new(storage_var_address.to_bytes_be())?)?)
+    let storage_key_hash = args
+        .iter()
+        .fold(storage_var_name_hash, |res, arg| pedersen_hash(&res, &StarkFelt::from(arg)));
+
+    let storage_key = Felt252::from_bytes_be(storage_key_hash.bytes()).mod_floor(
+        &Felt252::from_bytes_be(&starknet_api::core::L2_ADDRESS_UPPER_BOUND.to_bytes_be()),
+    );
+
+    Ok(PatriciaKey::new(Felt::new(storage_key.to_be_bytes())?)?)
 }
 
 pub(crate) fn get_versioned_constants() -> VersionedConstants {

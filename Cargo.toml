@@ -64,6 +64,7 @@ regex_generate = "0.2.3"
 reqwest = { version = "0.10", features = ["blocking"] }
 url = "2.4"
 usc = { version = "2.1.0", package = "universal-sierra-compiler" }
+sha3 = "0.11.0-pre.3"              
 
 # Starknet dependencies
 starknet_api = { version = "0.10.0", features = ["testing"] }
@@ -75,6 +76,7 @@ starknet-rs-providers = { version = "0.10.0", package = "starknet-providers" }
 starknet-rs-accounts = { version = "0.9.0", package = "starknet-accounts" }
 starknet-rs-contract = { version = "0.9.0", package = "starknet-contract" }
 starknet-rs-crypto = { version = "0.6.2", package = "starknet-crypto" }
+cairo-felt = "0.9.1"
 
 # Cairo-lang dependencies
 cairo-lang-starknet-classes = { version = "=2.6.0", package = "cairo-lang-starknet-classes" }

@@ -2,8 +2,9 @@ use blockifier::state::state_api::State;
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
-use starknet_rs_core::utils::get_storage_var_address;
 
+use crate::utils::get_storage_var_address;
+use crate::account::NameError;
 use crate::constants::{
     CAIRO_1_ERC20_CONTRACT, CAIRO_1_ERC20_CONTRACT_CLASS_HASH, CHARGEABLE_ACCOUNT_ADDRESS,
     UDC_CONTRACT, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
@@ -47,10 +48,11 @@ pub(crate) fn initialize_erc20_at_address(
         // necessary to set - otherwise minting txs cannot be executed
         ("Ownable_owner", Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?),
     ] {
-        let storage_var_address = get_storage_var_address(storage_var_name, &[])?.try_into()?;
+        let storage_var_address = get_storage_var_address(storage_var_name, &[]).unwrap();
+        //let storage_var_addr = storage_var_address.to_felt().to_bytes_be();
         state.set_storage_at(
             contract_address.try_into()?,
-            storage_var_address,
+            storage_var_address.try_into()?,
             storage_value.into(),
         )?;
     }

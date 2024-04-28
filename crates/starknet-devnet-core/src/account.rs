@@ -4,16 +4,20 @@ use blockifier::abi::sierra_types::next_storage_key;
 use blockifier::state::state_api::StateReader;
 use starknet_api::core::{calculate_contract_address, PatriciaKey};
 use starknet_api::hash::{StarkFelt, StarkHash};
+use starknet_api::serde_utils::bytes_from_hex_str;
 use starknet_api::transaction::{Calldata, ContractAddressSalt};
 use starknet_api::{patricia_key, stark_felt};
+use crate::utils::get_storage_var_address;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
+use starknet_rs_core::types::FieldElement;
 use starknet_types::error::Error;
 use starknet_types::felt::{split_biguint, ClassHash, Felt, Key};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
-use starknet_rs_core::utils::get_storage_var_address;
+use starknet_rs_core::utils::NonAsciiNameError;
+use thiserror::Error;
 
 use crate::constants::{
     CAIRO_0_ACCOUNT_CONTRACT, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
@@ -31,6 +35,26 @@ const ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION: &str =
 pub enum FeeToken {
     ETH,
     STRK,
+}
+
+#[derive(Debug, Error)]
+pub enum NameError {
+    InvalidCharacter(starknet_rs_core::utils::NonAsciiNameError),
+}
+
+impl core::fmt::Display for NameError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NameError::InvalidCharacter(e) => write!(f, "{:?}", e),
+            _ => write!(f, "{}", "Unknown error"),
+        }
+    }
+}
+
+impl From<NonAsciiNameError> for NameError {
+    fn from(value: NonAsciiNameError) -> Self {
+        Self::InvalidCharacter(value)
+    }
 }
 
 #[derive(Clone)]
@@ -106,21 +130,27 @@ impl Account {
     // simulate constructor logic (register interfaces and set public key), as done in
     // https://github.com/OpenZeppelin/cairo-contracts/blob/89a450a88628ec3b86273f261b2d8d1ca9b1522b/src/account/account.cairo#L207-L211
     fn simulate_constructor(&self, state: &mut StarknetState) -> DevnetResult<()> {
-        let core_address = self.account_address.try_into()?;
+        let core_address = self.account_address;
 
+        let bytes = bytes_from_hex_str::<32, true>(ISRC6_ID_HEX).map_err(|err| {
+            Error::StarknetApiError(starknet_api::StarknetApiError::InnerDeserialization(err))
+        })?;
+
+        let arg = FieldElement::from_bytes_be(&bytes).unwrap();
         let interface_storage_var = get_storage_var_address(
             "SRC5_supported_interfaces",
-            &[Felt::from_prefixed_hex_str(ISRC6_ID_HEX)?],
-        )?;
+            &[arg.into()],
+        ).unwrap();
+
         state.state.state.set_storage_at(
-            core_address,
+            core_address.try_into()?,
             interface_storage_var.try_into()?,
             StarkFelt::ONE,
         )?;
 
-        let public_key_storage_var = get_storage_var_address("Account_public_key", &[])?;
+        let public_key_storage_var = get_storage_var_address("Account_public_key", &[]).unwrap();
         state.state.state.set_storage_at(
-            core_address,
+            core_address.try_into()?,
             public_key_storage_var.try_into()?,
             self.public_key.into(),
         )?;
@@ -151,7 +181,8 @@ impl Deployed for Account {
 impl Accounted for Account {
     fn set_initial_balance(&self, state: &mut DictState) -> DevnetResult<()> {
         let storage_var_address_low =
-            get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
+            get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)]).unwrap();
+
         let storage_var_address_high = next_storage_key(&storage_var_address_low.try_into()?)?;
 
         let (high, low) = split_biguint(self.initial_balance.clone())?;

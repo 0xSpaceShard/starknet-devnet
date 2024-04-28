@@ -76,7 +76,6 @@ mod tests {
         BroadcastedInvokeTransaction, BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
     };
     use starknet_types::traits::HashProducer;
-    use starknet_rs_core::utils::get_storage_var_address;
 
     use crate::account::{Account, FeeToken};
     use crate::constants::{
@@ -90,6 +89,7 @@ mod tests {
     use crate::utils::test_utils::{
         cairo_0_account_without_validations, dummy_contract_address, dummy_felt, get_bytes_from_u32,
     };
+    use crate::utils::get_storage_var_address;
 
     fn test_invoke_transaction_v1(
         account_address: ContractAddress,

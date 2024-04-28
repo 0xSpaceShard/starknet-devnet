@@ -91,8 +91,7 @@ mod tests {
         BroadcastedDeployAccountTransaction, BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
     };
     use starknet_types::traits::HashProducer;
-    use starknet_rs_core::utils::get_storage_var_address;
-
+    
     use crate::constants::{
         self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
@@ -101,6 +100,7 @@ mod tests {
     use crate::starknet::{predeployed, Starknet};
     use crate::state::CustomState;
     use crate::traits::{Deployed, HashIdentifiedMut};
+    use crate::utils::get_storage_var_address;
 
     fn test_deploy_account_transaction_v3(
         class_hash: ClassHash,
