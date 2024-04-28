@@ -7,16 +7,15 @@ use starknet_api::hash::{StarkFelt, StarkHash};
 use starknet_api::serde_utils::bytes_from_hex_str;
 use starknet_api::transaction::{Calldata, ContractAddressSalt};
 use starknet_api::{patricia_key, stark_felt};
-use crate::utils::get_storage_var_address;
+use starknet_rs_core::types::FieldElement;
+use starknet_rs_core::utils::NonAsciiNameError;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
-use starknet_rs_core::types::FieldElement;
 use starknet_types::error::Error;
 use starknet_types::felt::{split_biguint, ClassHash, Felt, Key};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
-use starknet_rs_core::utils::NonAsciiNameError;
 use thiserror::Error;
 
 use crate::constants::{
@@ -27,6 +26,7 @@ use crate::error::DevnetResult;
 use crate::state::state_readers::DictState;
 use crate::state::{CustomState, StarknetState};
 use crate::traits::{Accounted, Deployed};
+use crate::utils::get_storage_var_address;
 
 /// data taken from https://github.com/0xSpaceShard/starknet-devnet/blob/fb96e0cc3c1c31fb29892ecefd2a670cf8a32b51/starknet_devnet/account.py
 const ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION: &str =
@@ -46,7 +46,6 @@ impl core::fmt::Display for NameError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             NameError::InvalidCharacter(e) => write!(f, "{:?}", e),
-            _ => write!(f, "{}", "Unknown error"),
         }
     }
 }
@@ -137,10 +136,8 @@ impl Account {
         })?;
 
         let arg = FieldElement::from_bytes_be(&bytes).unwrap();
-        let interface_storage_var = get_storage_var_address(
-            "SRC5_supported_interfaces",
-            &[arg.into()],
-        ).unwrap();
+        let interface_storage_var =
+            get_storage_var_address("SRC5_supported_interfaces", &[arg.into()]).unwrap();
 
         state.state.state.set_storage_at(
             core_address.try_into()?,

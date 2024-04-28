@@ -1,14 +1,13 @@
 use blockifier::versioned_constants::VersionedConstants;
+use cairo_felt::Felt252;
 use serde_json::Value;
+use sha3::{Digest, Keccak256, Keccak256Core};
+use starknet_api::hash::{pedersen_hash, StarkFelt};
 use starknet_rs_core::types::contract::CompiledClass;
 use starknet_rs_ff::FieldElement;
 use starknet_types::felt::Felt;
-use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 use starknet_types::num_integer::Integer;
-use starknet_api::hash::pedersen_hash;
-use starknet_api::hash::StarkFelt;
-use sha3::{Digest, Keccak256, Keccak256Core};
-use cairo_felt::Felt252;
+use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
 use crate::error::{DevnetResult, Error};
 
@@ -43,10 +42,7 @@ pub fn calculate_sn_keccak(data: &[u8]) -> [u8; 32] {
 }
 
 /// Returns the storage address of a Starknet storage variable given its name and arguments.
-pub(crate) fn get_storage_var_address(
-    storage_var_name: &str,
-    args: &[Felt],
-) -> DevnetResult<StorageKey> {
+pub fn get_storage_var_address(storage_var_name: &str, args: &[Felt]) -> DevnetResult<StorageKey> {
     let storage_var_name_hash = calculate_sn_keccak(storage_var_name.as_bytes());
     let storage_var_name_hash = StarkFelt::new(storage_var_name_hash)?;
 

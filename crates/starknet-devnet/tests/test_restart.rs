@@ -8,12 +8,12 @@ mod test_restart {
     use hyper::StatusCode;
     use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS};
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
+    use starknet_core::utils::get_storage_var_address;
     use starknet_rs_accounts::{
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
-    use starknet_rs_core::utils::get_storage_var_address;
     use starknet_rs_providers::{Provider, ProviderError};
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
@@ -62,13 +62,17 @@ mod test_restart {
         devnet.mint(dummy_address, mint_amount).await;
 
         // define storage retriever
-        let storage_key = get_storage_var_address("ERC20_balances", &[dummy_address]).unwrap();
+        let storage_key =
+            get_storage_var_address("ERC20_balances", &[dummy_address.into()]).unwrap();
+        let storage_key = storage_key.to_felt();
         let get_storage = || {
-            devnet.json_rpc_client.get_storage_at(
-                FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
-                storage_key,
-                BlockId::Tag(BlockTag::Latest),
-            )
+            devnet
+                .json_rpc_client
+                .get_storage_at::<FieldElement, FieldElement, starknet_rs_core::types::BlockId>(
+                    FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
+                    storage_key.into(),
+                    BlockId::Tag(BlockTag::Latest),
+                )
         };
 
         let storage_value_before = get_storage().await.unwrap();

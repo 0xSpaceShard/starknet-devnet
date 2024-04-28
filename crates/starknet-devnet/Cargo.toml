@@ -20,6 +20,7 @@ server = { workspace = true }
 starknet-core = { workspace = true }
 starknet-types = { workspace = true }
 starknet-rs-core = { workspace = true }
+starknet_api = { workspace = true }
 url = { workspace = true }
 
 # async

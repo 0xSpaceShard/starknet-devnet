@@ -5,6 +5,7 @@ mod fork_tests {
     use std::sync::Arc;
 
     use server::test_utils::exported_test_utils::assert_contains;
+    use starknet_core::utils::get_storage_var_address;
     use starknet_rs_accounts::{
         Account, AccountFactory, AccountFactoryError, Call, ExecutionEncoding,
         OpenZeppelinAccountFactory, SingleOwnerAccount,
@@ -15,11 +16,10 @@ mod fork_tests {
         BlockId, BlockTag, ContractClass, FieldElement, FunctionCall,
         MaybePendingBlockWithTxHashes, StarknetError,
     };
-    use starknet_rs_core::utils::{
-        get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
-    };
+    use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::{Provider, ProviderError};
     use starknet_rs_signers::Signer;
+    use starknet_types::felt::Felt;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -483,9 +483,14 @@ mod fork_tests {
         assert_eq!(dummy_value, FieldElement::ZERO);
 
         let real_key = get_storage_var_address("Account_public_key", &[]).unwrap();
+        let real_key: Felt = real_key.to_felt();
         let real_value = fork_devnet
             .json_rpc_client
-            .get_storage_at(account_address, real_key, BlockId::Tag(BlockTag::Latest))
+            .get_storage_at::<FieldElement, FieldElement, starknet_rs_core::types::BlockId>(
+                account_address,
+                real_key.into(),
+                BlockId::Tag(BlockTag::Latest),
+            )
             .await
             .unwrap();
         assert_eq!(real_value, signer.get_public_key().await.unwrap().scalar());

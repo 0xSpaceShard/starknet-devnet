@@ -3,8 +3,7 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
 
-use crate::utils::get_storage_var_address;
-use crate::account::NameError;
+// use crate::account::NameError;
 use crate::constants::{
     CAIRO_1_ERC20_CONTRACT, CAIRO_1_ERC20_CONTRACT_CLASS_HASH, CHARGEABLE_ACCOUNT_ADDRESS,
     UDC_CONTRACT, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
@@ -12,6 +11,7 @@ use crate::constants::{
 use crate::error::{DevnetResult, Error};
 use crate::state::StarknetState;
 use crate::system_contract::SystemContract;
+use crate::utils::get_storage_var_address;
 
 pub(crate) fn create_erc20_at_address(contract_address: &str) -> DevnetResult<SystemContract> {
     let erc20_fee_contract = SystemContract::new_cairo1(
@@ -49,7 +49,7 @@ pub(crate) fn initialize_erc20_at_address(
         ("Ownable_owner", Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?),
     ] {
         let storage_var_address = get_storage_var_address(storage_var_name, &[]).unwrap();
-        //let storage_var_addr = storage_var_address.to_felt().to_bytes_be();
+        // let storage_var_addr = storage_var_address.to_felt().to_bytes_be();
         state.set_storage_at(
             contract_address.try_into()?,
             storage_var_address.try_into()?,
