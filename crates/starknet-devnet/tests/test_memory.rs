@@ -39,12 +39,12 @@ mod memory_test {
         let diff = (full - none).abs() / none;
         assert!(
             diff <= TOLERANCE,
-    "Memory difference should not exceed {}% tolerance.
+            "Memory difference should not exceed {}% tolerance.
     Current difference is {}% between:
     - Full state archive: {full} MB
     - No state archive: {none} MB",
-        TOLERANCE * 100.0,
-        diff * 100.0,
+            TOLERANCE * 100.0,
+            diff * 100.0,
         );
     }
 }

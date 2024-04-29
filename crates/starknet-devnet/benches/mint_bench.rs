@@ -1,6 +1,7 @@
-use crate::common::background_devnet::BackgroundDevnet;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use tokio::runtime::Runtime;
+
+use crate::common::background_devnet::BackgroundDevnet;
 
 #[path = "../tests/common/mod.rs"]
 pub mod common;
