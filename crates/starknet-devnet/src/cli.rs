@@ -38,9 +38,7 @@ pub(crate) struct Args {
     #[arg(long = "account-class-custom")]
     #[arg(value_name = "PATH")]
     #[arg(conflicts_with = "account_class_choice")]
-    #[arg(
-        help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;"
-    )]
+    #[arg(help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;")]
     account_class_custom: Option<AccountClassWrapper>,
 
     /// Initial balance of predeployed accounts

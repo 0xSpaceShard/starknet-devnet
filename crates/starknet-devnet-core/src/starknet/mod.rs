@@ -245,11 +245,7 @@ impl Starknet {
     }
 
     pub fn get_state(&mut self) -> &mut StarknetState {
-        if self.config.blocks_on_demand {
-            &mut self.pending_state
-        } else {
-            &mut self.state
-        }
+        if self.config.blocks_on_demand { &mut self.pending_state } else { &mut self.state }
     }
 
     pub fn restart(&mut self) -> DevnetResult<()> {
