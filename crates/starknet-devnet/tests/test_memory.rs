@@ -32,7 +32,7 @@ mod memory_test {
     #[tokio::test]
     async fn test_full_state_archive_capacity_presents_no_increase() {
         // tolerance limit of 0.1%
-        const TOLERANCE: f32 = 0.0000001;
+        const TOLERANCE: f32 = 0.001;
         let full = mint_iter("full").await;
         let none = mint_iter("none").await;
 
