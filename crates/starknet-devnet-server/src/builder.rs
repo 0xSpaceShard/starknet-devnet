@@ -3,12 +3,13 @@ use std::net::SocketAddr;
 use std::time::Duration;
 
 use axum::extract::DefaultBodyLimit;
-use axum::http::HeaderValue;
-use axum::response::Response;
+use axum::http::{HeaderValue, Request, StatusCode};
+use axum::middleware::Next;
+use axum::response::{IntoResponse, Response};
 use axum::routing::{post, IntoMakeService};
 use axum::{Extension, Router};
 use hyper::server::conn::AddrIncoming;
-use hyper::{header, Method, Request, Server};
+use hyper::{header, Method, Server};
 use tower::Service;
 use tower_http::cors::CorsLayer;
 use tower_http::timeout::TimeoutLayer;
@@ -93,6 +94,7 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
             .layer(Extension(self.json_rpc_handler))
             .layer(Extension(self.http_api_handler))
             .layer(TraceLayer::new_for_http())
+            .layer(axum::middleware::from_fn(response_logging_middleware))
             .layer(TimeoutLayer::new(Duration::from_secs(config.timeout.into())))
             .layer(DefaultBodyLimit::max(config.request_body_size_limit))
             .layer(
@@ -101,8 +103,51 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
                     .allow_origin("*".parse::<HeaderValue>().unwrap())
                     .allow_headers(vec![header::CONTENT_TYPE])
                     .allow_methods(vec![Method::GET, Method::POST]),
-            );
+            )
+            .layer(axum::middleware::from_fn(request_logging_middleware));
 
         Ok(Server::try_bind(&self.address)?.serve(svc.into_make_service()))
     }
+}
+
+async fn request_logging_middleware(
+    request: Request<hyper::Body>,
+    next: Next<hyper::Body>,
+) -> Result<impl IntoResponse, Response> {
+    let (parts, body) = request.into_parts();
+
+    let body = log_body(body).await?;
+    Ok(next.run(Request::from_parts(parts, body)).await)
+}
+
+async fn log_body<T>(body: T) -> Result<hyper::Body, Response>
+where
+    T: axum::body::HttpBody,
+    <T as hyper::body::HttpBody>::Error: std::fmt::Display,
+{
+    let bytes = hyper::body::to_bytes(body)
+        .await
+        .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response())?;
+
+    if let Ok(body_str) = std::str::from_utf8(&bytes) {
+        tracing::info!("{}", body_str);
+    } else {
+        tracing::error!("Failed to convert body to string");
+    }
+
+    Ok(hyper::body::Body::from(bytes))
+}
+
+async fn response_logging_middleware(
+    request: Request<hyper::Body>,
+    next: Next<hyper::Body>,
+) -> Result<impl IntoResponse, Response> {
+    let response = next.run(request).await;
+
+    let (parts, body) = response.into_parts();
+
+    let body = log_body(body).await?;
+
+    let response = Response::from_parts(parts, body);
+    Ok(response)
 }
