@@ -468,6 +468,7 @@ impl Starknet {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn init_block_context(
         gas_price_wei: NonZeroU128,
         gas_price_strk: NonZeroU128,
