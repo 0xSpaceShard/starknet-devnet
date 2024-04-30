@@ -26,11 +26,26 @@ mod cli;
 mod initial_balance_wrapper;
 mod ip_addr_wrapper;
 
+const REQUEST_ENV_LOG_VAR: &str = "request";
+const RESPONSE_ENV_LOG_VAR: &str = "response";
+
 /// Configures tracing with default level INFO,
 /// If the environment variable `RUST_LOG` is set, it will be used instead.
+/// Added are two more directives: `request` and `response`. If they are present, then have to be
+/// removed to be able to construct the `EnvFilter`.
 fn configure_tracing() {
-    let level_filter_layer =
-        EnvFilter::builder().with_default_directive(tracing::Level::INFO.into()).from_env_lossy();
+    let mut log_env_var = std::env::var(EnvFilter::DEFAULT_ENV).unwrap_or_default().to_lowercase();
+
+    for directive in [REQUEST_ENV_LOG_VAR, RESPONSE_ENV_LOG_VAR] {
+        if let Some(start_index) = log_env_var.find(directive) {
+            let end_index = start_index + directive.len();
+            log_env_var.replace_range(start_index..end_index, "");
+        }
+    }
+
+    let level_filter_layer = EnvFilter::builder()
+        .with_default_directive(tracing::Level::INFO.into())
+        .parse_lossy(log_env_var);
 
     tracing_subscriber::fmt().with_env_filter(level_filter_layer).init();
 }
@@ -43,7 +58,7 @@ fn log_predeployed_accounts(
     for account in predeployed_accounts {
         let formatted_str = format!(
             r"
-| Account address |  {} 
+| Account address |  {}
 | Private key     |  {}
 | Public key      |  {}",
             account.account_address.to_prefixed_hex_str(),

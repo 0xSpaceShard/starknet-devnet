@@ -12,9 +12,11 @@ use starknet_core::starknet::starknet_config::{
     DumpOn, ForkConfig, StarknetConfig, StateArchiveCapacity,
 };
 use starknet_types::chain_id::ChainId;
+use tracing_subscriber::EnvFilter;
 
 use crate::initial_balance_wrapper::InitialBalanceWrapper;
 use crate::ip_addr_wrapper::IpAddrWrapper;
+use crate::{REQUEST_ENV_LOG_VAR, RESPONSE_ENV_LOG_VAR};
 
 /// Run a local instance of Starknet Devnet
 #[derive(Parser, Debug)]
@@ -191,11 +193,17 @@ impl Args {
             },
         };
 
+        let log_env_var = std::env::var(EnvFilter::DEFAULT_ENV).unwrap_or_default().to_lowercase();
+        let log_request = log_env_var.contains(REQUEST_ENV_LOG_VAR);
+        let log_response = log_env_var.contains(RESPONSE_ENV_LOG_VAR);
+
         let server_config = ServerConfig {
             host: self.host.inner,
             port: self.port,
             timeout: self.timeout,
             request_body_size_limit: self.request_body_size_limit,
+            log_request,
+            log_response,
         };
 
         Ok((starknet_config, server_config))
