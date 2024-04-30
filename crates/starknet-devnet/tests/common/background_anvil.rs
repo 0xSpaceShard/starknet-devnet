@@ -5,6 +5,7 @@ use std::time;
 use ethers::prelude::*;
 use ethers::providers::{Http, Provider};
 use ethers::types::Address;
+use hyper::client::HttpConnector;
 use hyper::http::request;
 use hyper::{Client, Response, StatusCode};
 use k256::ecdsa::SigningKey;
@@ -46,15 +47,17 @@ impl BackgroundAnvil {
             .spawn()
             .expect("Could not start background Anvil");
 
-        let anvil_url = format!("http://127.0.0.1:{port}");
+        let address = "127.0.0.1";
+        let anvil_url = format!("http://{address}:{port}");
 
         let mut retries = 0;
         let max_retries = 10;
 
+        let client = Client::new(); // spawn the client just once to save resources
         while retries < max_retries {
-            if let Ok(anvil_block_rsp) = send_dummy_request(&anvil_url).await {
+            if let Ok(anvil_block_rsp) = send_dummy_request(&client, &anvil_url).await {
                 assert_eq!(anvil_block_rsp.status(), StatusCode::OK);
-                println!("Spawned background anvil at port {port} (127.0.0.1)");
+                println!("Spawned background anvil at port {port} ({address})");
 
                 let (provider, provider_signer) = setup_ethereum_provider(&anvil_url).await?;
 
@@ -200,7 +203,10 @@ async fn setup_ethereum_provider(
 
 /// Even if the RPC method is dummy (doesn't exist),
 /// the server is expected to respond properly if alive
-async fn send_dummy_request(rpc_url: &str) -> Result<Response<hyper::Body>, hyper::Error> {
+async fn send_dummy_request(
+    client: &Client<HttpConnector>,
+    rpc_url: &str,
+) -> Result<Response<hyper::Body>, hyper::Error> {
     let req = request::Request::post(rpc_url)
         .header("content-type", "application/json")
         .body(hyper::Body::from(
@@ -213,8 +219,7 @@ async fn send_dummy_request(rpc_url: &str) -> Result<Response<hyper::Body>, hype
             .to_string(),
         ))
         .unwrap();
-
-    Client::new().request(req).await
+    client.request(req).await
 }
 
 /// By implementing Drop, we ensure there are no zombie background Anvil processes
