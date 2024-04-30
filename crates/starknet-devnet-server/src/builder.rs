@@ -93,8 +93,13 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
         svc = svc
             .layer(Extension(self.json_rpc_handler))
             .layer(Extension(self.http_api_handler))
-            .layer(TraceLayer::new_for_http())
-            .layer(axum::middleware::from_fn(response_logging_middleware))
+            .layer(TraceLayer::new_for_http());
+
+        if config.log_response {
+            svc = svc.layer(axum::middleware::from_fn(response_logging_middleware));
+        }
+
+        svc = svc
             .layer(TimeoutLayer::new(Duration::from_secs(config.timeout.into())))
             .layer(DefaultBodyLimit::max(config.request_body_size_limit))
             .layer(
@@ -103,8 +108,11 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
                     .allow_origin("*".parse::<HeaderValue>().unwrap())
                     .allow_headers(vec![header::CONTENT_TYPE])
                     .allow_methods(vec![Method::GET, Method::POST]),
-            )
-            .layer(axum::middleware::from_fn(request_logging_middleware));
+            );
+
+        if config.log_request {
+            svc = svc.layer(axum::middleware::from_fn(request_logging_middleware));
+        }
 
         Ok(Server::try_bind(&self.address)?.serve(svc.into_make_service()))
     }

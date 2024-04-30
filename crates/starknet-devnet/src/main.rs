@@ -209,3 +209,26 @@ pub async fn shutdown_signal(api: Api) {
     let starknet = api.starknet.read().await;
     starknet.dump_events().expect("Failed to dump starknet transactions");
 }
+
+#[cfg(test)]
+mod tests {
+    use tracing::level_filters::LevelFilter;
+    use tracing_subscriber::EnvFilter;
+
+    use crate::configure_tracing;
+
+    #[test]
+    fn test_generated_log_level_from_empty_environment_variable_is_info() {
+        assert_environment_variable_sets_expected_log_level("", LevelFilter::INFO);
+    }
+
+    fn assert_environment_variable_sets_expected_log_level(
+        env_var: &str,
+        expected_level: LevelFilter,
+    ) {
+        std::env::set_var(EnvFilter::DEFAULT_ENV, env_var);
+        configure_tracing();
+
+        assert_eq!(LevelFilter::current(), expected_level);
+    }
+}
