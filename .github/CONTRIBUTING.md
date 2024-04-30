@@ -6,6 +6,10 @@ These guidelines are intended for external contributors.
 
 It is advised to [create an issue](https://github.com/0xSpaceShard/starknet-devnet-rs/issues/new/choose) before creating a PR. Creating an issue is the best way to reach somebody with repository-specific experience who can provide more info on how a problem/idea can be addressed and if a PR is needed.
 
+### Development Docs
+
+The readme contains a section which may be of use to contributors on [this link](https://github.com/0xSpaceShard/starknet-devnet-rs/?tab=readme-ov-file#development).
+
 ### Checklist
 
 The [PR template](pull_request_template.md) contains a checklist. It is important to go through the checklist to ensure the expected quality standards and to ensure the CI workflow succeeds once it is executed.

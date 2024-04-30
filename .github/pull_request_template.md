@@ -8,7 +8,7 @@
 
 ## Checklist:
 
-- [ ] Checked the relevant parts of [development docs](https://github.com/0xSpaceShard/starknet-devnet-rs/?tab=readme-ov-file#development)
+- [ ] Checked out the [contribution guidelines](CONTRIBUTING.md)
 - [ ] Applied formatting - `./scripts/format.sh`
 - [ ] No linter errors - `./scripts/clippy_check.sh`
 - [ ] No unused dependencies - `./scripts/check_unused_deps.sh`
