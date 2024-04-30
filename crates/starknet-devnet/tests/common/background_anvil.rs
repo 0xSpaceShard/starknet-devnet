@@ -81,8 +81,7 @@ impl BackgroundAnvil {
         )
             .map_err(|e| {
                 TestError::EthersError(format!(
-                    "Error formatting messaging contract deploy request: {}",
-                    e
+                    "Error formatting messaging contract deploy request: {e}"
                 ))
             })?
         // Required by the new version of anvil, as default is no longer accepted.
@@ -92,8 +91,7 @@ impl BackgroundAnvil {
             .await
             .map_err(|e| {
                 TestError::EthersError(format!(
-                    "Error deploying messaging contract: {}",
-                    e
+                    "Error deploying messaging contract: {e}"
                 ))
             })?;
 
@@ -104,7 +102,7 @@ impl BackgroundAnvil {
         let l1l2_contract = abigen::L1L2Example::new(address, self.provider.clone());
 
         l1l2_contract.get_balance(user).call().await.map_err(|e| {
-            TestError::EthersError(format!("Error calling l1l2 contract on ethereum: {}", e))
+            TestError::EthersError(format!("Error calling l1l2 contract on ethereum: {e}"))
         })
     }
 
@@ -123,15 +121,13 @@ impl BackgroundAnvil {
             .await
             .map_err(|e| {
                 TestError::EthersError(format!(
-                    "tx for deposit l1l2 contract on ethereum failed: {}",
-                    e
+                    "tx for deposit l1l2 contract on ethereum failed: {e}"
                 ))
             })?
             .await
             .map_err(|e| {
                 TestError::EthersError(format!(
-                    "tx for deposit l1l2 contract on ethereum no receipt: {}",
-                    e
+                    "tx for deposit l1l2 contract on ethereum no receipt: {e}"
                 ))
             })?;
 
@@ -158,15 +154,13 @@ impl BackgroundAnvil {
             .await
             .map_err(|e| {
                 TestError::EthersError(format!(
-                    "tx for deposit l1l2 contract on ethereum failed: {}",
-                    e
+                    "tx for deposit l1l2 contract on ethereum failed: {e}"
                 ))
             })?
             .await
             .map_err(|e| {
                 TestError::EthersError(format!(
-                    "tx for deposit l1l2 contract on ethereum no receipt: {}",
-                    e
+                    "tx for deposit l1l2 contract on ethereum no receipt: {e}"
                 ))
             })?;
 
@@ -181,9 +175,7 @@ async fn setup_ethereum_provider(
     TestError,
 > {
     let provider = Provider::<Http>::try_from(rpc_url)
-        .map_err(|e| {
-            TestError::EthersError(format!("Can't parse L1 node URL: {} ({})", rpc_url, e))
-        })
+        .map_err(|e| TestError::EthersError(format!("Can't parse L1 node URL: {rpc_url} ({e})")))
         .map_err(|e| TestError::EthersError(e.to_string()))?;
 
     let chain_id =
