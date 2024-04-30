@@ -26,8 +26,8 @@ mod cli;
 mod initial_balance_wrapper;
 mod ip_addr_wrapper;
 
-const REQUEST_ENV_LOG_VAR: &str = "request";
-const RESPONSE_ENV_LOG_VAR: &str = "response";
+const REQUEST_LOG_ENV_VAR: &str = "request";
+const RESPONSE_LOG_ENV_VAR: &str = "response";
 
 /// Configures tracing with default level INFO,
 /// If the environment variable `RUST_LOG` is set, it will be used instead.
@@ -36,7 +36,7 @@ const RESPONSE_ENV_LOG_VAR: &str = "response";
 fn configure_tracing() {
     let mut log_env_var = std::env::var(EnvFilter::DEFAULT_ENV).unwrap_or_default().to_lowercase();
 
-    for directive in [REQUEST_ENV_LOG_VAR, RESPONSE_ENV_LOG_VAR] {
+    for directive in [REQUEST_LOG_ENV_VAR, RESPONSE_LOG_ENV_VAR] {
         if let Some(start_index) = log_env_var.find(directive) {
             let end_index = start_index + directive.len();
             log_env_var.replace_range(start_index..end_index, "");

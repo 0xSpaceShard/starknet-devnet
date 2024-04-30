@@ -16,7 +16,7 @@ use tracing_subscriber::EnvFilter;
 
 use crate::initial_balance_wrapper::InitialBalanceWrapper;
 use crate::ip_addr_wrapper::IpAddrWrapper;
-use crate::{REQUEST_ENV_LOG_VAR, RESPONSE_ENV_LOG_VAR};
+use crate::{REQUEST_LOG_ENV_VAR, RESPONSE_LOG_ENV_VAR};
 
 /// Run a local instance of Starknet Devnet
 #[derive(Parser, Debug)]
@@ -217,8 +217,8 @@ struct RequestResponseLogging {
 impl RequestResponseLogging {
     fn from_rust_log_environment_variable() -> Self {
         let log_env_var = std::env::var(EnvFilter::DEFAULT_ENV).unwrap_or_default().to_lowercase();
-        let log_request = log_env_var.contains(REQUEST_ENV_LOG_VAR);
-        let log_response = log_env_var.contains(RESPONSE_ENV_LOG_VAR);
+        let log_request = log_env_var.contains(REQUEST_LOG_ENV_VAR);
+        let log_response = log_env_var.contains(RESPONSE_LOG_ENV_VAR);
 
         Self { log_request, log_response }
     }
