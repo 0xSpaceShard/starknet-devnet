@@ -128,6 +128,20 @@ async fn request_logging_middleware(
     Ok(next.run(Request::from_parts(parts, body)).await)
 }
 
+async fn response_logging_middleware(
+    request: Request<hyper::Body>,
+    next: Next<hyper::Body>,
+) -> Result<impl IntoResponse, Response> {
+    let response = next.run(request).await;
+
+    let (parts, body) = response.into_parts();
+
+    let body = log_body(body).await?;
+
+    let response = Response::from_parts(parts, body);
+    Ok(response)
+}
+
 async fn log_body<T>(body: T) -> Result<hyper::Body, Response>
 where
     T: axum::body::HttpBody,
@@ -144,18 +158,4 @@ where
     }
 
     Ok(hyper::body::Body::from(bytes))
-}
-
-async fn response_logging_middleware(
-    request: Request<hyper::Body>,
-    next: Next<hyper::Body>,
-) -> Result<impl IntoResponse, Response> {
-    let response = next.run(request).await;
-
-    let (parts, body) = response.into_parts();
-
-    let body = log_body(body).await?;
-
-    let response = Response::from_parts(parts, body);
-    Ok(response)
 }
