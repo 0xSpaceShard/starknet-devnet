@@ -50,11 +50,9 @@ impl BackgroundAnvil {
         let address = "127.0.0.1";
         let anvil_url = format!("http://{address}:{port}");
 
-        let mut retries = 0;
+        let client = Client::new();
         let max_retries = 10;
-
-        let client = Client::new(); // spawn the client just once to save resources
-        while retries < max_retries {
+        for _ in 0..max_retries {
             if let Ok(anvil_block_rsp) = send_dummy_request(&client, &anvil_url).await {
                 assert_eq!(anvil_block_rsp.status(), StatusCode::OK);
                 println!("Spawned background anvil at port {port} ({address})");
@@ -64,7 +62,6 @@ impl BackgroundAnvil {
                 return Ok(Self { process, url: anvil_url, provider, provider_signer });
             }
 
-            retries += 1;
             tokio::time::sleep(time::Duration::from_millis(500)).await;
         }
 

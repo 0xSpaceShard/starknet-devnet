@@ -127,10 +127,9 @@ impl BackgroundDevnet {
         let healthcheck_uri =
             format!("{}{HEALTHCHECK_PATH}", devnet_url.as_str()).as_str().parse::<Uri>()?;
 
-        let mut retries = 0;
-        let max_retries = 30; // limit the number of times we check if devnet is spawned
         let http_client = Client::new();
-        while retries < max_retries {
+        let max_retries = 30;
+        for _ in 0..max_retries {
             if let Ok(alive_resp) = http_client.get(healthcheck_uri.clone()).await {
                 assert_eq!(alive_resp.status(), StatusCode::OK);
                 println!("Spawned background devnet at port {free_port}");
@@ -144,9 +143,8 @@ impl BackgroundDevnet {
                 });
             }
 
-            // otherwise there is an error, probably a ConnectError if Devnet is not yet up
-            // so we retry after some sleep
-            retries += 1;
+            // If still in the loop, there is an error: probably a ConnectError if Devnet is not yet
+            // up so we retry after some sleep.
             tokio::time::sleep(time::Duration::from_millis(500)).await;
         }
 
