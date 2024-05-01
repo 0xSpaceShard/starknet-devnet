@@ -44,6 +44,7 @@ pub struct BackgroundDevnet {
     pub http_client: Client<HttpConnector>,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
     pub process: Child,
+    pub port: u16,
     pub url: String,
     rpc_url: Url,
 }
@@ -137,6 +138,7 @@ impl BackgroundDevnet {
                     http_client,
                     json_rpc_client,
                     process,
+                    port: free_port,
                     url: devnet_url,
                     rpc_url: devnet_rpc_url,
                 });
@@ -223,12 +225,25 @@ impl BackgroundDevnet {
     }
 
     /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`
-    pub async fn get_balance(
+    /// from latest state
+    pub async fn get_balance_latest(
         &self,
         address: &FieldElement,
         unit: FeeUnit,
     ) -> Result<FieldElement, anyhow::Error> {
-        let params = format!("address={:#x}&unit={}", address, unit);
+        Self::get_balance_by_tag(self, address, unit, BlockTag::Latest).await
+    }
+
+    /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`
+    /// from pending state or latest state
+    pub async fn get_balance_by_tag(
+        &self,
+        address: &FieldElement,
+        unit: FeeUnit,
+        tag: BlockTag,
+    ) -> Result<FieldElement, anyhow::Error> {
+        let params =
+            format!("address={:#x}&unit={}&block_tag={}", address, unit, Self::tag_to_str(tag));
 
         let resp = self.get("/account_balance", Some(params)).await?;
         // response validity asserted in test_balance.rs::assert_balance_endpoint_response
@@ -236,6 +251,13 @@ impl BackgroundDevnet {
         let json_resp = get_json_body(resp).await;
         let amount_raw = json_resp["amount"].as_str().unwrap();
         Ok(FieldElement::from_dec_str(amount_raw)?)
+    }
+
+    fn tag_to_str(tag: BlockTag) -> &'static str {
+        match tag {
+            BlockTag::Latest => "latest",
+            BlockTag::Pending => "pending",
+        }
     }
 
     /// Performs GET request on devnet; path should have a leading slash
@@ -304,6 +326,19 @@ impl BackgroundDevnet {
             Ok(MaybePendingBlockWithTxHashes::Block(b)) => Ok(b),
             other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
         }
+    }
+
+    pub async fn get_pending_block_with_tx_hashes(
+        &self,
+    ) -> Result<BlockWithTxHashes, anyhow::Error> {
+        match self.json_rpc_client.get_block_with_tx_hashes(BlockId::Tag(BlockTag::Pending)).await {
+            Ok(MaybePendingBlockWithTxHashes::Block(b)) => Ok(b),
+            other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
+        }
+    }
+
+    pub async fn get_config(&self) -> Result<serde_json::Value, anyhow::Error> {
+        Ok(get_json_body(self.get("/config", None).await?).await)
     }
 }
 

@@ -85,17 +85,31 @@ pub(crate) struct Args {
 
     // Gas price in wei
     #[arg(long = "gas-price")]
-    #[arg(value_name = "GAS_PRICE")]
+    #[arg(value_name = "GAS_PRICE_WEI")]
     #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
     #[arg(help = "Specify the gas price in wei per gas unit;")]
-    gas_price: NonZeroU128,
+    gas_price_wei: NonZeroU128,
+
+    // Gas price in strk
+    #[arg(long = "gas-price-strk")]
+    #[arg(value_name = "GAS_PRICE_STRK")]
+    #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
+    #[arg(help = "Specify the gas price in strk per gas unit;")]
+    gas_price_strk: NonZeroU128,
 
     // Gas price in wei
     #[arg(long = "data-gas-price")]
-    #[arg(value_name = "DATA_GAS_PRICE")]
+    #[arg(value_name = "DATA_GAS_PRICE_WEI")]
     #[arg(default_value_t = DEVNET_DEFAULT_DATA_GAS_PRICE)]
     #[arg(help = "Specify the gas price in wei per data gas unit;")]
-    data_gas_price: NonZeroU128,
+    data_gas_price_wei: NonZeroU128,
+
+    // Gas price in strk
+    #[arg(long = "data-gas-price-strk")]
+    #[arg(value_name = "DATA_GAS_PRICE_STRK")]
+    #[arg(default_value_t = DEVNET_DEFAULT_DATA_GAS_PRICE)]
+    #[arg(help = "Specify the gas price in strk per data gas unit;")]
+    data_gas_price_strk: NonZeroU128,
 
     #[arg(long = "chain-id")]
     #[arg(value_name = "CHAIN_ID")]
@@ -120,6 +134,10 @@ pub(crate) struct Args {
     #[arg(value_name = "DUMP_PATH")]
     #[arg(help = "Specify the path to dump to;")]
     dump_path: Option<String>,
+
+    #[arg(long = "blocks-on-demand")]
+    #[arg(help = "Introduces block generation on demand via /create_block endpoint;")]
+    blocks_on_demand: bool,
 
     #[arg(long = "state-archive-capacity")]
     #[arg(value_name = "STATE_ARCHIVE_CAPACITY")]
@@ -163,11 +181,14 @@ impl Args {
             account_contract_class_hash: account_class_wrapper.class_hash,
             predeployed_accounts_initial_balance: self.initial_balance.0.clone(),
             start_time: self.start_time,
-            gas_price: self.gas_price,
-            data_gas_price: self.data_gas_price,
+            gas_price_wei: self.gas_price_wei,
+            gas_price_strk: self.gas_price_strk,
+            data_gas_price_wei: self.data_gas_price_wei,
+            data_gas_price_strk: self.data_gas_price_strk,
             chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
+            blocks_on_demand: self.blocks_on_demand,
             lite_mode: self.lite_mode,
             re_execute_on_init: true,
             state_archive: self.state_archive,
