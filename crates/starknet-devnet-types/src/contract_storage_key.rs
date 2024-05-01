@@ -3,7 +3,7 @@ use std::fmt::Display;
 use super::contract_address::ContractAddress;
 use crate::patricia_key::StorageKey;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct ContractStorageKey(ContractAddress, StorageKey);
 
 impl ContractStorageKey {

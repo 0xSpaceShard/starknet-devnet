@@ -7,7 +7,7 @@ use crate::serde_helpers::hex_string::{
     deserialize_to_prefixed_patricia_key, serialize_patricia_key_to_prefixed_hex,
 };
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct PatriciaKey(pub(crate) Felt);
 
 impl PatriciaKey {

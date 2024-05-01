@@ -13,7 +13,7 @@ use crate::serde_helpers::hex_string::{
 };
 use crate::traits::{ToDecimalString, ToHexString};
 
-#[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct Felt(pub(crate) [u8; 32]);
 
 impl Serialize for Felt {

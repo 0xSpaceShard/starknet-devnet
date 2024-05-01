@@ -8,7 +8,7 @@ use crate::felt::{BlockHash, Felt};
 use crate::rpc::transactions::Transactions;
 pub type GlobalRootHex = Felt;
 
-#[derive(Copy, Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum BlockHashOrNumber {
     #[serde(rename = "block_hash")]
     Hash(Felt),
