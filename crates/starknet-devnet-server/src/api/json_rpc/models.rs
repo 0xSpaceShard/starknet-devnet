@@ -132,9 +132,8 @@ pub struct DeployAccountTransactionOutput {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-#[serde(tag = "type")]
+#[serde(tag = "type", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum BroadcastedInvokeTransactionEnumWrapper {
-    #[serde(rename = "INVOKE")]
     Invoke(BroadcastedInvokeTransaction),
 }
 
@@ -432,7 +431,7 @@ mod tests {
         assert_get_storage_input_correctness(
             false,
             expected_storage_input.clone(),
-            r#"{"block_id": {"block_hash": "0x01"}, "contract_addresss": "0x02", "key": "0x03"}"#,
+            r#"{"block_id": {"block_hash": "0x01"}, "contract_address_mock": "0x02", "key": "0x03"}"#,
         );
 
         // Incorrect key key
@@ -526,7 +525,7 @@ mod tests {
         assert_block_id_block_number_correctness(
             false,
             10,
-            r#"{"block_id": {"block_numberr": 10}}"#,
+            r#"{"block_id": {"block_number_mock": 10}}"#,
         );
 
         // Incorrect block_number value

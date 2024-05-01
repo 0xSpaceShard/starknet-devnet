@@ -127,7 +127,7 @@ mod tests {
     }
 
     #[test]
-    fn acount_deploy_transaction_v3_with_query_version_should_return_an_error() {
+    fn account_deploy_transaction_v3_with_query_version_should_return_an_error() {
         let mut deploy_account_transaction =
             test_deploy_account_transaction_v3(Felt::default(), 0, 10);
         deploy_account_transaction.common.version =
@@ -408,6 +408,8 @@ mod tests {
 
         starknet.state.declare_contract_class(class_hash, contract_class.into()).unwrap();
         starknet.block_context = Starknet::init_block_context(
+            nonzero!(1u128),
+            nonzero!(1u128),
             nonzero!(1u128),
             nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
