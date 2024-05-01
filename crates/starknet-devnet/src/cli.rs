@@ -454,6 +454,9 @@ mod tests {
             ("response,info", false, true),
             ("info", false, false),
             ("", false, false),
+            ("REQUEST,RESPONSE", true, true),
+            ("REQUEST", true, false),
+            ("RESPONSE", false, true),
         ] {
             std::env::set_var(EnvFilter::DEFAULT_ENV, environment_variable);
             let RequestResponseLogging { log_request, log_response } =
