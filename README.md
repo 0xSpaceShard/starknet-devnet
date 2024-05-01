@@ -25,6 +25,7 @@ This repository is work in progress, please be patient. Please check below the s
 - [x] [Mint token - Local faucet](#mint-token)
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
 - [x] [Starknet.js test suite passes 100%](https://github.com/starknet-io/starknet.js/actions)
+- [x] [Lite mode](https://0xspaceshard.github.io/starknet-devnet/docs/guide/lite-mode)
 - [x] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
 - [x] [Availability as a package (crate)](#install-an-executable-binary)
 - [x] [Forking](#forking)
@@ -364,6 +365,14 @@ Response:
 {
     "aborted": [BLOCK_HASH_0, BLOCK_HASH_1, ...]
 }
+```
+
+## Lite mode
+
+Runs the Devnet in a minimal lite mode by just skipping the block hash calculation. This is useful for testing purposes when the block hash is not needed.
+
+```
+$ starknet-devnet --lite-mode
 ```
 
 ## Advancing time
