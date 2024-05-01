@@ -36,7 +36,7 @@ impl AccountContractClassChoice {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct AccountClassWrapper {
     pub contract_class: ContractClass,
     pub class_hash: Felt,

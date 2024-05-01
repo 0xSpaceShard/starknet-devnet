@@ -47,7 +47,7 @@ mod abigen {
     );
 }
 
-#[derive(Debug, PartialEq, Eq, EthEvent)]
+#[derive(Debug, EthEvent)]
 pub struct LogMessageToL2 {
     #[ethevent(indexed)]
     from_address: Address,

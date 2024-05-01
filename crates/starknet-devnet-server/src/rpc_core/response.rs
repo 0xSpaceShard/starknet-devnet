@@ -4,7 +4,7 @@ use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::{Id, Version};
 
 /// Response of a _single_ rpc call
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RpcResponse {
     // JSON RPC version
