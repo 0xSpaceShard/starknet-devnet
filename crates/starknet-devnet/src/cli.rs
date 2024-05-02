@@ -124,8 +124,6 @@ pub(crate) struct Args {
     dump_on: Option<DumpOn>,
 
     #[arg(long = "lite-mode")]
-    #[arg(value_name = "LITE_MODE")]
-    #[arg(default_value = "false")]
     #[arg(help = "Specify whether to run in lite mode and skip block hash calculation;")]
     lite_mode: bool,
 

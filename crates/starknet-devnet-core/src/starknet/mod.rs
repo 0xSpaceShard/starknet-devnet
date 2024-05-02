@@ -292,14 +292,11 @@ impl Starknet {
             BlockNumber(new_block.block_number().0 - self.blocks.aborted_blocks.len() as u64);
 
         // set new block header
-        if self.config.lite_mode {
-            new_block.set_block_hash(BlockHash::from_prefixed_hex_str(&format!(
-                "0x{:x}",
-                new_block_number.0
-            ))?);
+        new_block.set_block_hash(if self.config.lite_mode {
+            BlockHash::from_prefixed_hex_str(&format!("{:#x}", new_block_number.0))?
         } else {
-            new_block.set_block_hash(new_block.generate_hash()?);
-        }
+            new_block.generate_hash()?
+        });
         new_block.status = BlockStatus::AcceptedOnL2;
         new_block.header.block_number = new_block_number;
 
