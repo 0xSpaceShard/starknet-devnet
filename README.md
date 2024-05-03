@@ -622,11 +622,27 @@ To release a new version, follow these steps:
 
 4. Attach the [binary artifacts built in CI](https://circleci.com/docs/artifacts/#artifacts-overview) to the release. Use `scripts/fetch_ci_binaries.py` to fetch all artifacts of a CI workflow.
 
+### Development - External PRs
+
+Read more about how to review PRs in [the guidelines](.github/CONTRIBUTING.md#review).
+
+Our CI/CD platform (CircleCI) does not have the option to trigger the workflow on external PRs with a simple click. So once a PR is reviewed and looks like its workflow could pass, you can either accept & merge it blindly (which shall trigger the workflow on the target branch), or use the following workaround to trigger it:
+
+```
+# https://stackoverflow.com/questions/5884784/how-to-pull-remote-branch-from-somebody-elses-repo
+$ git remote add <CONTRIBUTOR> <CONTRIBUTOR_GIT_FORK_URL>
+$ git fetch <CONTRIBUTOR>
+$ git checkout -b <CONTRIBUTOR>/<BRANCH> <CONTRIBUTOR>/<BRANCH>
+
+$ git remote set-url --push <CONTRIBUTOR> git@github.com:0xSpaceShard/starknet-devnet-rs.git
+$ git push <CONTRIBUTOR> HEAD
+```
+
 ## ✏️ Contributing
 
 We ❤️ and encourage all contributions!
 
-[Click here](https://0xspaceshard.github.io/starknet-devnet/docs/guide/development) for the development guide.
+[Click here](.github/CONTRIBUTING.md) for the development guide.
 
 ## 🙌 Special Thanks
 
