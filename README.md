@@ -628,10 +628,15 @@ Read more about how to review PRs in [the guidelines](.github/CONTRIBUTING.md#re
 
 Our CI/CD platform (CircleCI) does not have the option to trigger the workflow on click. So once a PR is reviewed and looks like its workflow could pass, you can either accept & merge it blindly (which shall trigger the workflow on the target branch), or use the following procedure to trigger it:
 
-- Read [this](https://stackoverflow.com/questions/5884784/how-to-pull-remote-branch-from-somebody-elses-repo).
-- Check out the contributor's branch.
-- Create your own branch from it.
-- Push the branch.
+```
+# https://stackoverflow.com/questions/5884784/how-to-pull-remote-branch-from-somebody-elses-repo
+$ git remote add <CONTRIBUTOR> git://path/to/contributors/repo.git
+$ git fetch <CONTIRBUTOR>
+$ git checkout -b <CONTRIBUTOR>/<BRANCH> <CONTRIBUTOR>/<BRANCH>
+
+$ git remote set-url --push <CONTRIBUTOR> git@github.com:0xSpaceShard/starknet-devnet-rs.git
+$ git push <CONTRIBUTOR> HEAD
+```
 
 ## ✏️ Contributing
 
