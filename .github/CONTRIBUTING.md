@@ -2,6 +2,10 @@
 
 These guidelines are intended for external contributors.
 
+> :warning: IMPORTANT NOTE :warning:
+>
+> All contributions are expected to be of the highest possible quality! That means the PR is thoroughly tested and documented, and without blindly generated ChatGPT code and documentation! PRs that do not comply with these rules stated here shall not be considered!
+
 ### Should you create a PR?
 
 It is advised to [create an issue](https://github.com/0xSpaceShard/starknet-devnet-rs/issues/new/choose) before creating a PR. Creating an issue is the best way to reach somebody with repository-specific experience who can provide more info on how a problem/idea can be addressed and if a PR is needed.
