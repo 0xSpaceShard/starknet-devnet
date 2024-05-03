@@ -70,7 +70,6 @@ mod general_integration_tests {
             "chain_id": "SN_MAIN",
             "dump_on": "exit",
             "dump_path": dump_file.path,
-            "blocks_on_demand": true,
             "state_archive": "full",
             "fork_config": {
                 "url": null,
@@ -81,7 +80,9 @@ mod general_integration_tests {
                 // expected port added after spawning; determined by port-acquiring logic
                 "timeout": 121,
                 "request_body_size_limit": 1000,
-            }
+            },
+            "blocks_on_demand": true,
+            "lite_mode": false
         });
 
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[

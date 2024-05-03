@@ -479,7 +479,9 @@ To retrieve the current configuration of Devnet, send a GET request to `/config`
     "port": 5050,
     "timeout": 120,
     "request_body_size_limit": 2000000
-  }
+  },
+  "blocks_on_demand": false,
+  "lite_mode": false
 }
 ```
 
