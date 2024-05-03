@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
 """
-Tests if a command performs faster. Assumes variable independence and variance equality.
-You need to define the command constants and may change the other constants defined
-at the top of this script.
+Tests if a command performs faster using independent t-test. You need to define the
+command constants and may change the other constants defined at the top of this script.
 """
 
 import subprocess
