@@ -487,6 +487,10 @@ To retrieve the current configuration of Devnet, send a GET request to `/config`
 
 ## Development
 
+### Installation
+
+Some developer scripts used in this project are written in Python 3, with dependencies specified in `scripts/requirements.txt`. You may want to [install the dependencies in a virtual environment](https://docs.python.org/3/library/venv.html#creating-virtual-environments).
+
 ### Development - Visual Studio Code
 
 It is highly recommended to get familiar with [Visual Studio Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/create-dev-container#_dockerfile) and install [rust-analyzer](https://code.visualstudio.com/docs/languages/rust) extension.
@@ -545,13 +549,13 @@ To speed up development, you can put all the previous steps (and more) in a scri
 
 ### Development - Testing
 
-### Prerequisites
+#### Prerequisites
 
 Some tests require the `anvil` command, so you need to [install Foundry](https://book.getfoundry.sh/getting-started/installation). The `anvil` command might not be usable by tests if you run them using VS Code's `Run Test` button available just above the test case. Either run tests using a shell which has foundry/anvil in `PATH`, or modify the BackgroundAnvil Command to specify `anvil` by its path on your system.
 
 To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to testing. This builds the production target used in integration tests, so spawning BackgroundDevnet won't time out.
 
-### Test execution
+#### Test execution
 
 Run all tests using all available CPUs with:
 
@@ -564,6 +568,10 @@ The previous command might cause your testing to die along the way due to memory
 ```
 $ cargo test --jobs <N>
 ```
+
+#### Benchmarking
+
+To test if your contribution presents an improvement in execution time, check out the script at `scripts/benchmark/command_stat_test.py`.
 
 ### Development - Docker
 
