@@ -626,12 +626,12 @@ To release a new version, follow these steps:
 
 Read more about how to review PRs in [the guidelines](.github/CONTRIBUTING.md#review).
 
-Our CI/CD platform (CircleCI) does not have the option to trigger the workflow on click. So once a PR is reviewed and looks like its workflow could pass, you can either accept & merge it blindly (which shall trigger the workflow on the target branch), or use the following procedure to trigger it:
+Our CI/CD platform (CircleCI) does not have the option to trigger the workflow on external PRs with a simple click. So once a PR is reviewed and looks like its workflow could pass, you can either accept & merge it blindly (which shall trigger the workflow on the target branch), or use the following workaround to trigger it:
 
 ```
 # https://stackoverflow.com/questions/5884784/how-to-pull-remote-branch-from-somebody-elses-repo
-$ git remote add <CONTRIBUTOR> git://path/to/contributors/repo.git
-$ git fetch <CONTIRBUTOR>
+$ git remote add <CONTRIBUTOR> <CONTRIBUTOR_GIT_FORK_URL>
+$ git fetch <CONTRIBUTOR>
 $ git checkout -b <CONTRIBUTOR>/<BRANCH> <CONTRIBUTOR>/<BRANCH>
 
 $ git remote set-url --push <CONTRIBUTOR> git@github.com:0xSpaceShard/starknet-devnet-rs.git
