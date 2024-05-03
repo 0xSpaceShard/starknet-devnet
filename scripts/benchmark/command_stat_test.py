@@ -1,8 +1,15 @@
 #!/usr/bin/env python
 
 """
-Tests if a command performs faster using independent t-test. You need to define the
-command constants and may change the other constants defined at the top of this script.
+This program tests if a command performs faster using independent t-test. At the top of the file,
+there are command placeholders which you need to define. You may change other constants
+if needed. Optionally, modify `performance_program`, a function used to simulate the
+work that is timed.
+
+The program will start the command defined in `ORIGINAL_COMMAND`,
+run `performance_program` `SAMPLE_SIZE` times, store these times,
+and repeat the same process for `IMPROVED_COMMAND`.
+The times shall than be statistically tested and the result printed.
 """
 
 import subprocess
