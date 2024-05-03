@@ -489,7 +489,7 @@ To retrieve the current configuration of Devnet, send a GET request to `/config`
 
 ### Installation
 
-Some developer scripts used in this project depend on Python 3, with dependencies specified in `scripts/requirements.txt`. You may want to [install them in a virtual environment](https://docs.python.org/3/library/venv.html#creating-virtual-environments).
+Some developer scripts used in this project are written in Python 3, with dependencies specified in `scripts/requirements.txt`. You may want to [install the dependencies in a virtual environment](https://docs.python.org/3/library/venv.html#creating-virtual-environments).
 
 ### Development - Visual Studio Code
 
