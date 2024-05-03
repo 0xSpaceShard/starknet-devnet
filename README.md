@@ -25,6 +25,7 @@ This repository is work in progress, please be patient. Please check below the s
 - [x] [Mint token - Local faucet](#mint-token)
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
 - [x] [Starknet.js test suite passes 100%](https://github.com/starknet-io/starknet.js/actions)
+- [x] [Lite mode](#lite-mode)
 - [x] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
 - [x] [Availability as a package (crate)](#install-an-executable-binary)
 - [x] [Forking](#forking)
@@ -366,6 +367,14 @@ Response:
 }
 ```
 
+## Lite Mode
+
+Runs Devnet in a minimal lite mode by just skipping the block hash calculation. This is useful for testing purposes when the block hash is not needed.
+
+```
+$ starknet-devnet --lite-mode
+```
+
 ## Advancing time
 
 Block timestamp can be manipulated by setting the exact time or setting the time offset. By default, timestamp methods `/set_time` and `/increase_time` generate a new block. This can be changed for `/set_time` by setting the optional parameter `generate_block` to `false`. This skips immediate new block generation, but will use the specified timestamp whenever the next block is supposed to be generated.
@@ -470,11 +479,17 @@ To retrieve the current configuration of Devnet, send a GET request to `/config`
     "port": 5050,
     "timeout": 120,
     "request_body_size_limit": 2000000
-  }
+  },
+  "blocks_on_demand": false,
+  "lite_mode": false
 }
 ```
 
 ## Development
+
+### Installation
+
+Some developer scripts used in this project are written in Python 3, with dependencies specified in `scripts/requirements.txt`. You may want to [install the dependencies in a virtual environment](https://docs.python.org/3/library/venv.html#creating-virtual-environments).
 
 ### Development - Visual Studio Code
 
@@ -534,13 +549,13 @@ To speed up development, you can put all the previous steps (and more) in a scri
 
 ### Development - Testing
 
-### Prerequisites
+#### Prerequisites
 
 Some tests require the `anvil` command, so you need to [install Foundry](https://book.getfoundry.sh/getting-started/installation). The `anvil` command might not be usable by tests if you run them using VS Code's `Run Test` button available just above the test case. Either run tests using a shell which has foundry/anvil in `PATH`, or modify the BackgroundAnvil Command to specify `anvil` by its path on your system.
 
 To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to testing. This builds the production target used in integration tests, so spawning BackgroundDevnet won't time out.
 
-### Test execution
+#### Test execution
 
 Run all tests using all available CPUs with:
 
@@ -553,6 +568,10 @@ The previous command might cause your testing to die along the way due to memory
 ```
 $ cargo test --jobs <N>
 ```
+
+#### Benchmarking
+
+To test if your contribution presents an improvement in execution time, check out the script at `scripts/benchmark/command_stat_test.py`.
 
 ### Development - Docker
 

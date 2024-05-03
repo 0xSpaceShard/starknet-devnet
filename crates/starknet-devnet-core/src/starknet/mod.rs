@@ -25,7 +25,7 @@ use starknet_types::chain_id::ChainId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::emitted_event::EmittedEvent;
-use starknet_types::felt::{split_biguint, ClassHash, Felt, TransactionHash};
+use starknet_types::felt::{split_biguint, BlockHash, ClassHash, Felt, TransactionHash};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{Block, BlockHeader};
@@ -288,18 +288,23 @@ impl Starknet {
     pub(crate) fn generate_new_block(&mut self, state_diff: StateDiff) -> DevnetResult<Felt> {
         let mut new_block = self.pending_block().clone();
 
+        let new_block_number =
+            BlockNumber(new_block.block_number().0 - self.blocks.aborted_blocks.len() as u64);
+
         // set new block header
-        new_block.set_block_hash(new_block.generate_hash()?);
+        new_block.set_block_hash(if self.config.lite_mode {
+            BlockHash::from_prefixed_hex_str(&format!("{:#x}", new_block_number.0))?
+        } else {
+            new_block.generate_hash()?
+        });
         new_block.status = BlockStatus::AcceptedOnL2;
+        new_block.header.block_number = new_block_number;
 
         // set block timestamp and context block timestamp for contract execution
         let block_timestamp = self.next_block_timestamp();
         new_block.set_timestamp(block_timestamp);
         Self::update_block_context_block_timestamp(&mut self.block_context, block_timestamp);
 
-        let new_block_number =
-            BlockNumber(new_block.block_number().0 - self.blocks.aborted_blocks.len() as u64);
-        new_block.header.block_number = new_block_number;
         let new_block_hash: Felt = new_block.header.block_hash.0.into();
 
         // update txs block hash block number for each transaction in the pending block
