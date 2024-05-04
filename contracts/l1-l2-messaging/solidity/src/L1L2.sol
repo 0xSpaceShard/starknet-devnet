@@ -26,7 +26,7 @@ contract L1L2Example {
         starknetCore = starknetCore_;
     }
 
-    function get_balance(uint256 user)
+    function get_balance(address user)
         external
         view
         returns (uint256)
@@ -34,28 +34,25 @@ contract L1L2Example {
         return userBalances[user];
     }
 
-    function withdraw(
-        uint256 l2ContractAddress,
-        uint256 user,
-        uint256 amount
-    ) external {
-        // Construct the withdrawal message's payload.
-        uint256[] memory payload = new uint256[](3);
-        payload[0] = MESSAGE_WITHDRAW;
-        payload[1] = user;
-        payload[2] = amount;
+  function withdraw(address l2ContractAddress, address user, uint256 amount) external {
+    // Construct the withdrawal message's payload.
+    uint256[] memory payload = new uint256[](3);
+    payload[0] = MESSAGE_WITHDRAW;
+    payload[1] = user;
+    payload[2] = amount;
 
-        // Consume the message from the StarkNet core contract.
-        // This will revert the (Ethereum) transaction if the message does not exist.
-        starknetCore.consumeMessageFromL2(l2ContractAddress, payload);
+    // Update the L1 balance before consuming the message to minimize the window of vulnerability.
+    userBalances[user] += amount;
 
-        // Update the L1 balance.
-        userBalances[user] += amount;
-    }
+    // Consume the message from the StarkNet core contract.
+    // This will revert the (Ethereum) transaction if the message does not exist.
+    starknetCore.consumeMessageFromL2(l2ContractAddress, payload);
+}
+
 
     function deposit(
-        uint256 l2ContractAddress,
-        uint256 user,
+        address l2ContractAddress,
+        address user ,
         uint256 amount
     ) external payable {
         require(amount < 2**64, "Invalid amount.");
