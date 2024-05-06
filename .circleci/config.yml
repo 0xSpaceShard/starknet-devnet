@@ -35,6 +35,7 @@ executors:
   apple-darwin:
     macos:
       xcode: 15.3.0
+    resource_class: macos.m1.medium.gen1
     environment:
       COMPILER_ARCHIVE: cross-x86_64-apple-darwin.tar.gz
 
@@ -175,19 +176,20 @@ jobs:
 workflows:
   build-test-maybe-publish:
     jobs:
-      - build-and-test:
-          cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
+      # - build-and-test:
+      #     cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
       - binary-build:
-          <<: *on_main
+          # <<: *on_main
           matrix:
             parameters:
               arch: [x86_64, aarch64]
-              platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
+              # platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
+              platform: [apple-darwin]
           target_triplet: << matrix.arch >>-<< matrix.platform >>
           archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
       - image-build-amd:
           <<: *on_main
       - image-build-arm:
           <<: *on_main
-      - publish:
-          <<: *on_main_after_test_and_build
+      # - publish:
+      #     <<: *on_main_after_test_and_build
