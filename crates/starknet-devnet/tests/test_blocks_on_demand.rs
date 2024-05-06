@@ -3,6 +3,7 @@ pub mod common;
 mod blocks_on_demand_tests {
     use std::sync::Arc;
 
+    use serde_json::json;
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{BlockStatus, BlockTag, FieldElement};
@@ -18,6 +19,36 @@ mod blocks_on_demand_tests {
 
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
+
+    async fn assert_pending_state_update(devnet: &BackgroundDevnet) {
+        let latest_state = &devnet
+            .send_custom_rpc(
+                "starknet_getStateUpdate",
+                json!(    {
+                    "block_id": "pending"
+                }),
+            )
+            .await["result"];
+
+        assert!(latest_state["old_root"].is_string());
+        assert!(latest_state["state_diff"].is_object());
+    }
+
+    async fn assert_latest_state_update(devnet: &BackgroundDevnet) {
+        let latest_state = &devnet
+            .send_custom_rpc(
+                "starknet_getStateUpdate",
+                json!(    {
+                    "block_id": "latest"
+                }),
+            )
+            .await["result"];
+
+        assert!(latest_state["block_hash"].is_string());
+        assert!(latest_state["new_root"].is_string());
+        assert!(latest_state["old_root"].is_string());
+        assert!(latest_state["state_diff"].is_object());
+    }
 
     async fn assert_latest_block_with_transactions(
         devnet: &BackgroundDevnet,
@@ -82,6 +113,9 @@ mod blocks_on_demand_tests {
 
         assert_latest_block_with_transactions(&devnet, 1, tx_hashes).await;
         assert_pending_block_with_transactions(&devnet, 2, 0).await;
+
+        assert_pending_state_update(&devnet).await;
+        assert_latest_state_update(&devnet).await;
     }
 
     #[tokio::test]
