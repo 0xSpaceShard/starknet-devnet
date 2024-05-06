@@ -19,7 +19,7 @@ use starknet_types::rpc::block::Block;
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
-use starknet_types::rpc::state::StateUpdate;
+use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, EventsChunk, SimulatedTransaction, TransactionTrace, TransactionWithHash,
@@ -354,6 +354,7 @@ impl std::fmt::Display for StarknetRequest {
 pub enum StarknetResponse {
     Block(Block),
     StateUpdate(StateUpdate),
+    PendingStateUpdate(PendingStateUpdate),
     Felt(Felt),
     Transaction(TransactionWithHash),
     TransactionReceiptByTransactionHash(Box<TransactionReceipt>),

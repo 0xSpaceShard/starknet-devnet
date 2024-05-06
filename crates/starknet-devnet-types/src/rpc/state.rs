@@ -18,6 +18,13 @@ pub struct StateUpdate {
     pub state_diff: ThinStateDiff,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PendingStateUpdate {
+    pub old_root: GlobalRootHex,
+    pub state_diff: ThinStateDiff,
+}
+
 #[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct ThinStateDiff {
     pub deployed_contracts: Vec<DeployedContract>,
