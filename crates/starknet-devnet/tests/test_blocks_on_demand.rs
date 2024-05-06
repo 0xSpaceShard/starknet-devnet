@@ -21,7 +21,7 @@ mod blocks_on_demand_tests {
     static DUMMY_AMOUNT: u128 = 1;
 
     async fn assert_pending_state_update(devnet: &BackgroundDevnet) {
-        let latest_state = &devnet
+        let pending_state_update = &devnet
             .send_custom_rpc(
                 "starknet_getStateUpdate",
                 json!(    {
@@ -30,12 +30,12 @@ mod blocks_on_demand_tests {
             )
             .await["result"];
 
-        assert!(latest_state["old_root"].is_string());
-        assert!(latest_state["state_diff"].is_object());
+        assert!(pending_state_update["old_root"].is_string());
+        assert!(pending_state_update["state_diff"].is_object());
     }
 
     async fn assert_latest_state_update(devnet: &BackgroundDevnet) {
-        let latest_state = &devnet
+        let latest_state_update = &devnet
             .send_custom_rpc(
                 "starknet_getStateUpdate",
                 json!(    {
@@ -44,10 +44,10 @@ mod blocks_on_demand_tests {
             )
             .await["result"];
 
-        assert!(latest_state["block_hash"].is_string());
-        assert!(latest_state["new_root"].is_string());
-        assert!(latest_state["old_root"].is_string());
-        assert!(latest_state["state_diff"].is_object());
+        assert!(latest_state_update["block_hash"].is_string());
+        assert!(latest_state_update["new_root"].is_string());
+        assert!(latest_state_update["old_root"].is_string());
+        assert!(latest_state_update["state_diff"].is_object());
     }
 
     async fn assert_latest_block_with_transactions(
