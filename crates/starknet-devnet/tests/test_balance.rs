@@ -15,7 +15,8 @@ mod balance_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
 
-        let retrieved_result = devnet.get_balance(&contract_address, FeeUnit::WEI).await.unwrap();
+        let retrieved_result =
+            devnet.get_balance_latest(&contract_address, FeeUnit::WEI).await.unwrap();
 
         let expected_hex_balance = format!("0x{PREDEPLOYED_ACCOUNT_INITIAL_BALANCE:x}");
         let expected_balance = FieldElement::from_hex_be(expected_hex_balance.as_str()).unwrap();

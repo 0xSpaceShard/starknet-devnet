@@ -136,15 +136,15 @@ pub(crate) mod test_utils {
     }
 
     pub(crate) fn convert_from_sn_api_resource_bounds_mapping(
-        resourse_bounds: ResourceBoundsMapping,
+        resource_bounds: ResourceBoundsMapping,
     ) -> ResourceBoundsWrapper {
-        let l1_resource_bounds = resourse_bounds
+        let l1_resource_bounds = resource_bounds
             .0
             .get(&starknet_api::transaction::Resource::L1Gas)
             .cloned()
             .unwrap_or(ResourceBounds { max_amount: 0, max_price_per_unit: 0 });
 
-        let l2_resource_bounds = resourse_bounds
+        let l2_resource_bounds = resource_bounds
             .0
             .get(&starknet_api::transaction::Resource::L2Gas)
             .cloned()

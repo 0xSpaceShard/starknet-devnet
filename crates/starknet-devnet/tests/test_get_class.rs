@@ -12,7 +12,7 @@ mod get_class_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
 
-        let _ = devnet
+        devnet
             .json_rpc_client
             .get_class_at(BlockId::Tag(BlockTag::Latest), contract_address)
             .await
@@ -30,7 +30,7 @@ mod get_class_tests {
             .await
             .unwrap();
 
-        let _ = devnet
+        devnet
             .json_rpc_client
             .get_class(BlockId::Tag(BlockTag::Latest), retrieved_hash)
             .await

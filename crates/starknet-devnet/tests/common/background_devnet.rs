@@ -44,6 +44,7 @@ pub struct BackgroundDevnet {
     pub http_client: Client<HttpConnector>,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
     pub process: Child,
+    pub port: u16,
     pub url: String,
     rpc_url: Url,
 }
@@ -126,10 +127,9 @@ impl BackgroundDevnet {
         let healthcheck_uri =
             format!("{}{HEALTHCHECK_PATH}", devnet_url.as_str()).as_str().parse::<Uri>()?;
 
-        let mut retries = 0;
-        let max_retries = 30; // limit the number of times we check if devnet is spawned
         let http_client = Client::new();
-        while retries < max_retries {
+        let max_retries = 30;
+        for _ in 0..max_retries {
             if let Ok(alive_resp) = http_client.get(healthcheck_uri.clone()).await {
                 assert_eq!(alive_resp.status(), StatusCode::OK);
                 println!("Spawned background devnet at port {free_port}");
@@ -137,14 +137,14 @@ impl BackgroundDevnet {
                     http_client,
                     json_rpc_client,
                     process,
+                    port: free_port,
                     url: devnet_url,
                     rpc_url: devnet_rpc_url,
                 });
             }
 
-            // otherwise there is an error, probably a ConnectError if Devnet is not yet up
-            // so we retry after some sleep
-            retries += 1;
+            // If still in the loop, there is an error: probably a ConnectError if Devnet is not yet
+            // up so we retry after some sleep.
             tokio::time::sleep(time::Duration::from_millis(500)).await;
         }
 
@@ -223,12 +223,25 @@ impl BackgroundDevnet {
     }
 
     /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`
-    pub async fn get_balance(
+    /// from latest state
+    pub async fn get_balance_latest(
         &self,
         address: &FieldElement,
         unit: FeeUnit,
     ) -> Result<FieldElement, anyhow::Error> {
-        let params = format!("address={:#x}&unit={}", address, unit);
+        Self::get_balance_by_tag(self, address, unit, BlockTag::Latest).await
+    }
+
+    /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`
+    /// from pending state or latest state
+    pub async fn get_balance_by_tag(
+        &self,
+        address: &FieldElement,
+        unit: FeeUnit,
+        tag: BlockTag,
+    ) -> Result<FieldElement, anyhow::Error> {
+        let params =
+            format!("address={:#x}&unit={}&block_tag={}", address, unit, Self::tag_to_str(tag));
 
         let resp = self.get("/account_balance", Some(params)).await?;
         // response validity asserted in test_balance.rs::assert_balance_endpoint_response
@@ -236,6 +249,13 @@ impl BackgroundDevnet {
         let json_resp = get_json_body(resp).await;
         let amount_raw = json_resp["amount"].as_str().unwrap();
         Ok(FieldElement::from_dec_str(amount_raw)?)
+    }
+
+    fn tag_to_str(tag: BlockTag) -> &'static str {
+        match tag {
+            BlockTag::Latest => "latest",
+            BlockTag::Pending => "pending",
+        }
     }
 
     /// Performs GET request on devnet; path should have a leading slash
@@ -304,6 +324,19 @@ impl BackgroundDevnet {
             Ok(MaybePendingBlockWithTxHashes::Block(b)) => Ok(b),
             other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
         }
+    }
+
+    pub async fn get_pending_block_with_tx_hashes(
+        &self,
+    ) -> Result<BlockWithTxHashes, anyhow::Error> {
+        match self.json_rpc_client.get_block_with_tx_hashes(BlockId::Tag(BlockTag::Pending)).await {
+            Ok(MaybePendingBlockWithTxHashes::Block(b)) => Ok(b),
+            other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
+        }
+    }
+
+    pub async fn get_config(&self) -> Result<serde_json::Value, anyhow::Error> {
+        Ok(get_json_body(self.get("/config", None).await?).await)
     }
 }
 

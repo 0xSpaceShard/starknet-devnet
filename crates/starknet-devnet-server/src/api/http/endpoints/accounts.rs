@@ -1,5 +1,6 @@
 use axum::extract::Query;
 use axum::{Extension, Json};
+use starknet_rs_core::types::BlockTag;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
@@ -34,6 +35,7 @@ pub async fn get_predeployed_accounts(
 pub struct BalanceQuery {
     address: Felt,
     unit: Option<FeeUnit>,
+    block_tag: Option<BlockTag>,
 }
 
 pub async fn get_account_balance(
@@ -47,7 +49,12 @@ pub async fn get_account_balance(
 
     let mut starknet = state.api.starknet.write().await;
 
-    let amount = get_balance(&mut starknet, account_address, erc20_address)
-        .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
+    let amount = get_balance(
+        &mut starknet,
+        account_address,
+        erc20_address,
+        params.block_tag.unwrap_or(BlockTag::Latest),
+    )
+    .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
     Ok(Json(AccountBalanceResponse { amount: amount.to_string(), unit }))
 }

@@ -9,18 +9,16 @@ mod get_transaction_by_hash_integration_tests {
         SingleOwnerAccount,
     };
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::{Provider, ProviderError};
-    use starknet_types::felt::Felt;
-    use starknet_types::traits::ToHexString;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::{
-        self, CAIRO_1_CASM_PATH, CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH,
+    use crate::common::constants;
+    use crate::common::utils::{
+        assert_tx_successful, get_deployable_account_signer,
+        get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
     };
-    use crate::common::utils::{assert_tx_successful, get_deployable_account_signer, resolve_path};
 
     #[tokio::test]
     async fn get_declare_v1_transaction_by_hash_happy_path() {
@@ -60,15 +58,7 @@ mod get_transaction_by_hash_integration_tests {
     async fn get_declare_v2_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        let sierra_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), CAIRO_1_CONTRACT_PATH);
-        let contract_artifact: SierraClass =
-            serde_json::from_reader(std::fs::File::open(sierra_path).unwrap()).unwrap();
-
-        let casm_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), CAIRO_1_CASM_PATH);
-        let casm_contract_definition: CompiledClass =
-            serde_json::from_reader(std::fs::File::open(casm_path).unwrap()).unwrap();
-        let compiled_class_hash = (casm_contract_definition.class_hash()).unwrap();
-        assert_eq!(Felt::from(compiled_class_hash).to_prefixed_hex_str(), CASM_COMPILED_CLASS_HASH);
+        let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
 
         let (signer, address) = devnet.get_first_predeployed_account().await;
         let mut account = SingleOwnerAccount::new(
@@ -81,9 +71,8 @@ mod get_transaction_by_hash_integration_tests {
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
 
         // We need to flatten the ABI into a string first
-        let flattened_class = contract_artifact.flatten().unwrap();
         let declare_result = account
-            .declare(Arc::new(flattened_class), compiled_class_hash)
+            .declare(Arc::new(contract_class), casm_hash)
             .nonce(FieldElement::ZERO)
             .send()
             .await

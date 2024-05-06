@@ -3,7 +3,9 @@ pub mod common;
 mod get_events_integration_tests {
     use std::sync::Arc;
 
-    use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
+    use starknet_rs_accounts::{
+        Account, Call, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
+    };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{BlockId, BlockTag, EventFilter, FieldElement};
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
@@ -13,14 +15,11 @@ mod get_events_integration_tests {
     use crate::common::constants;
     use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
 
-    #[tokio::test]
     /// The test verifies that the `get_events` RPC method returns the correct events.
     /// The test starts a devnet, gets the first predeployed account, using it declares and deploys
     /// a contract that emits events.
     /// Then the events are being fetched first all of them then in chunks
-    async fn get_events_correct_chunking() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-
+    async fn get_events_correct_chunking(devnet: &BackgroundDevnet, block_on_demand: bool) {
         let (signer, address) = devnet.get_first_predeployed_account().await;
         let predeployed_account = SingleOwnerAccount::new(
             devnet.clone_provider(),
@@ -43,6 +42,10 @@ mod get_events_integration_tests {
 
         let predeployed_account = Arc::new(predeployed_account);
 
+        if block_on_demand {
+            devnet.create_block().await.unwrap();
+        }
+
         // deploy the contract
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
@@ -52,6 +55,10 @@ mod get_events_integration_tests {
             .send()
             .await
             .unwrap();
+
+        if block_on_demand {
+            devnet.create_block().await.unwrap();
+        }
 
         // generate the address of the newly deployed contract
         let new_contract_address = get_udc_deployed_address(
@@ -68,14 +75,20 @@ mod get_events_integration_tests {
         }];
 
         // invoke 10 times the contract to emit event, it should produce 10 events
-        let n_events_contract_invokations = 10;
-        for _ in 0..n_events_contract_invokations {
+        let n_events_contract_invocations = 10;
+        let nonce = predeployed_account.get_nonce().await.unwrap();
+        for n in 0..n_events_contract_invocations {
             predeployed_account
                 .execute(events_contract_call.clone())
+                .nonce(nonce + FieldElement::from(n as u128))
                 .max_fee(FieldElement::from(100000000000000000000u128))
                 .send()
                 .await
                 .unwrap();
+        }
+
+        if block_on_demand {
+            devnet.create_block().await.unwrap();
         }
 
         // get all the events from the contract, the chunk size is large enough so we are sure
@@ -91,7 +104,7 @@ mod get_events_integration_tests {
             devnet.json_rpc_client.get_events(event_filter.clone(), None, 100000000).await.unwrap();
 
         let generated_events_count = events.events.len();
-        assert_eq!(generated_events_count, n_events_contract_invokations);
+        assert_eq!(generated_events_count, n_events_contract_invocations);
 
         // divide the events by a group of 3
         // and iterate over with continuation token
@@ -120,5 +133,21 @@ mod get_events_integration_tests {
         }
 
         assert_eq!(total_extracted_events, generated_events_count);
+    }
+
+    #[tokio::test]
+    async fn get_events_correct_chunking_normal_mode() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        get_events_correct_chunking(&devnet, false).await
+    }
+
+    #[tokio::test]
+    async fn get_events_correct_chunking_blocks_on_demand_mode() {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
+            .await
+            .expect("Could not start Devnet");
+
+        get_events_correct_chunking(&devnet, true).await
     }
 }

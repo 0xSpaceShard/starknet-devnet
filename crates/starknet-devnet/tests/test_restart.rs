@@ -173,16 +173,16 @@ mod test_restart {
         .await
         .unwrap();
 
-        let predeployed_account_addresss = devnet.get_first_predeployed_account().await.1;
+        let predeployed_account_address = devnet.get_first_predeployed_account().await.1;
 
         let balance_before =
-            devnet.get_balance(&predeployed_account_addresss, FeeUnit::WEI).await.unwrap();
+            devnet.get_balance_latest(&predeployed_account_address, FeeUnit::WEI).await.unwrap();
         assert_eq!(balance_before, FieldElement::from(initial_balance));
 
         devnet.restart().await.unwrap();
 
         let balance_after =
-            devnet.get_balance(&predeployed_account_addresss, FeeUnit::WEI).await.unwrap();
+            devnet.get_balance_latest(&predeployed_account_address, FeeUnit::WEI).await.unwrap();
         assert_eq!(balance_before, balance_after);
     }
 

@@ -25,6 +25,7 @@ This repository is work in progress, please be patient. Please check below the s
 - [x] [Mint token - Local faucet](#mint-token)
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
 - [x] [Starknet.js test suite passes 100%](https://github.com/starknet-io/starknet.js/actions)
+- [x] [Lite mode](#lite-mode)
 - [x] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
 - [x] [Availability as a package (crate)](#install-an-executable-binary)
 - [x] [Forking](#forking)
@@ -32,10 +33,7 @@ This repository is work in progress, please be patient. Please check below the s
 - [x] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
   - [x] [Aborting blocks](#abort-blocks)
   - [x] [Creating an empty block](#create-an-empty-block)
-
-### TODO to reach feature parity with the Pythonic Devnet
-
-- [ ] Creating blocks on demand
+  - [x] [Creating blocks on demand](#creating-blocks-on-demand)
 
 ## Installation and running
 
@@ -91,6 +89,12 @@ After [git-cloning](https://github.com/git-guides/git-clone) this repository, ru
 
 ```
 $ cargo run
+```
+
+Specify optional CLI params like this:
+
+```
+$ cargo run -- [ARGS]
 ```
 
 For a more optimized performance (though with a longer compilation time), run:
@@ -235,10 +239,10 @@ POST /mint
 
 ### Check balance
 
-Check the balance of an address by sending a GET request to `/account_balance`. The address should be a 0x-prefixed hex string; the unit defaults to `WEI`.
+Check the balance of an address by sending a GET request to `/account_balance`. The address should be a 0x-prefixed hex string; the unit defaults to `WEI` and block_tag to `latest`.
 
 ```
-GET /account_balance?address=<ADDRESS>&[unit=<FRI|WEI>]
+GET /account_balance?address=<ADDRESS>&[unit=<FRI|WEI>]&[block_tag=<latest|pending>]
 ```
 
 ## Dumping & Loading
@@ -251,10 +255,10 @@ To preserve your Devnet instance for future use, these are the options:
 $ starknet-devnet --dump-on exit --dump-path <PATH>
 ```
 
-- Dumping after each transaction:
+- Dumping after each block:
 
 ```
-$ starknet-devnet --dump-on transaction --dump-path <PATH>
+$ starknet-devnet --dump-on block --dump-path <PATH>
 ```
 
 - Dumping on request requires providing --dump-on mode on the startup. Example usage in `exit` mode (replace `<HOST>`, `<PORT>` and `<PATH>` with your own):
@@ -286,8 +290,9 @@ This means that timestamps of `StarknetBlock` will be different.
 
 ### Loading disclaimer
 
-Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
-If you dumped a Devnet utilizing one class for account predeployment (e.g. the default `--account-class cairo0`), you should use the same option when loading.
+Dumping and loading are not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
+
+If you dumped a Devnet utilizing one class for account predeployment (e.g. `--account-class cairo0`), you should use the same option when loading. The same applies for dumping a Devnet in `--blocks-on-demand` mode.
 
 ## Restarting
 
@@ -300,6 +305,26 @@ If you're using [**the Hardhat plugin**](https://github.com/0xSpaceShard/starkne
 Devnet starts with a genesis block (with a block number equal to 0). In forking mode, the genesis block number will be equal to forked block number plus one.
 
 A new block is generated with each new transaction, and you can create an empty block by yourself.
+
+### Creating blocks on demand
+
+If you start Devnet with the `--blocks-on-demand` CLI option, all valid transactions will be stored in a pending block (targetable via block tag `"pending"`).
+
+To create a block on demand, send a `POST` request to `/create_block`. This will convert the pending block to the latest block (targetable via block tag `"latest"`), giving it a block hash and a block number. All subsequent transactions will be stored in a new pending block.
+
+In case of demanding block creation with no pending transactions, a new empty block will be generated.
+
+The creation of the genesis block is not affected by this feature.
+
+```
+POST /create_block
+```
+
+Response:
+
+```
+{'block_hash': '0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67'}
+```
 
 ### Create an empty block
 
@@ -340,6 +365,14 @@ Response:
 {
     "aborted": [BLOCK_HASH_0, BLOCK_HASH_1, ...]
 }
+```
+
+## Lite Mode
+
+Runs Devnet in a minimal lite mode by just skipping the block hash calculation. This is useful for testing purposes when the block hash is not needed.
+
+```
+$ starknet-devnet --lite-mode
 ```
 
 ## Advancing time
@@ -408,24 +441,7 @@ $ starknet-devnet --fork-network <URL> [--fork-block <BLOCK_NUMBER>]
 
 The value passed to `--fork-network` should be the URL to a Starknet JSON-RPC API provider. Specifying a `--fork-block` is optional; it defaults to the `"latest"` block at the time of Devnet's start-up. All calls will first try Devnet's state and then fall back to the forking block.
 
-### Forking status
-
-```
-GET /fork_status
-```
-
-Response when Devnet is a fork of an origin:
-
-```js
-{
-  "url": "https://your.origin.io",
-  "block": 42 // the block from which origin was forked
-}
-```
-
-Response when not forking: `{}`
-
-### Querying old state by specifying block hash or number
+## Querying old state by specifying block hash or number
 
 With state archive capacity set to `full`, Devnet will store full state history. The default mode is `none`, where no old states are stored.
 
@@ -435,7 +451,45 @@ $ starknet-devnet --state-archive-capacity <CAPACITY>
 
 All RPC endpoints that support querying the state at an old (non-latest) block only work with state archive capacity set to `full`.
 
+## Fetch Devnet configuration
+
+To retrieve the current configuration of Devnet, send a GET request to `/config`. Example response is attached below. It can be interpreted as a JSON mapping of CLI input parameters, both specified and default ones, with some irrelevant parameters omitted. So use `starknet-devnet --help` to better understand the meaning of each value, though keep in mind that some of the parameters have slightly modified names.
+
+```json
+{
+  "seed": 4063802897,
+  "total_accounts": 10,
+  "account_contract_class_hash": "0x61dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f",
+  "predeployed_accounts_initial_balance": "1000000000000000000000",
+  "start_time": null,
+  "gas_price_wei": 100000000000,
+  "gas_price_strk": 100000000000,
+  "data_gas_price_wei": 100000000000,
+  "data_gas_price_strk": 100000000000,
+  "chain_id": "SN_SEPOLIA",
+  "dump_on": "exit",
+  "dump_path": "dump_path.json",
+  "state_archive": "none",
+  "fork_config": {
+    "url": "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7",
+    "block_number": 26429
+  },
+  "server_config": {
+    "host": "127.0.0.1",
+    "port": 5050,
+    "timeout": 120,
+    "request_body_size_limit": 2000000
+  },
+  "blocks_on_demand": false,
+  "lite_mode": false
+}
+```
+
 ## Development
+
+### Installation
+
+Some developer scripts used in this project are written in Python 3, with dependencies specified in `scripts/requirements.txt`. You may want to [install the dependencies in a virtual environment](https://docs.python.org/3/library/venv.html#creating-virtual-environments).
 
 ### Development - Visual Studio Code
 
@@ -477,17 +531,31 @@ To check for unused dependencies, run:
 ./scripts/check_unused_deps.sh
 ```
 
-If you think this reports a dependency as a false-positive (i.e. isn't unused), check [here](https://github.com/bnjbvr/cargo-machete#false-positives).
+If you think this reports a dependency as a false positive (i.e. isn't unused), check [here](https://github.com/bnjbvr/cargo-machete#false-positives).
+
+### Development - Spelling check
+
+To check for spelling errors in the code, run:
+
+```
+./scripts/check_spelling.sh
+```
+
+If you think this reports a false-positive, check [here](https://crates.io/crates/typos-cli#false-positives).
+
+### Development - pre-commit
+
+To speed up development, you can put all the previous steps (and more) in a script defined at [.git/hooks/pre-commit](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks).
 
 ### Development - Testing
 
-### Prerequisites
+#### Prerequisites
 
 Some tests require the `anvil` command, so you need to [install Foundry](https://book.getfoundry.sh/getting-started/installation). The `anvil` command might not be usable by tests if you run them using VS Code's `Run Test` button available just above the test case. Either run tests using a shell which has foundry/anvil in `PATH`, or modify the BackgroundAnvil Command to specify `anvil` by its path on your system.
 
 To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to testing. This builds the production target used in integration tests, so spawning BackgroundDevnet won't time out.
 
-### Test execution
+#### Test execution
 
 Run all tests using all available CPUs with:
 
@@ -501,8 +569,13 @@ The previous command might cause your testing to die along the way due to memory
 $ cargo test --jobs <N>
 ```
 
-### Bench execution
-To run the benchmarks and generate a performance report:
+#### Benchmarking
+
+To test if your contribution presents an improvement in execution time, check out the script at `scripts/benchmark/command_stat_test.py`.
+
+
+##### Cargo Bench execution
+To run the criterion benchmarks and generate a performance report:
 
 ```
 $ cargo bench
@@ -565,11 +638,27 @@ To release a new version, follow these steps:
 
 4. Attach the [binary artifacts built in CI](https://circleci.com/docs/artifacts/#artifacts-overview) to the release. Use `scripts/fetch_ci_binaries.py` to fetch all artifacts of a CI workflow.
 
+### Development - External PRs
+
+Read more about how to review PRs in [the guidelines](.github/CONTRIBUTING.md#review).
+
+Our CI/CD platform (CircleCI) does not have the option to trigger the workflow on external PRs with a simple click. So once a PR is reviewed and looks like its workflow could pass, you can either accept & merge it blindly (which shall trigger the workflow on the target branch), or use the following workaround to trigger it:
+
+```
+# https://stackoverflow.com/questions/5884784/how-to-pull-remote-branch-from-somebody-elses-repo
+$ git remote add <CONTRIBUTOR> <CONTRIBUTOR_GIT_FORK_URL>
+$ git fetch <CONTRIBUTOR>
+$ git checkout -b <CONTRIBUTOR>/<BRANCH> <CONTRIBUTOR>/<BRANCH>
+
+$ git remote set-url --push <CONTRIBUTOR> git@github.com:0xSpaceShard/starknet-devnet-rs.git
+$ git push <CONTRIBUTOR> HEAD
+```
+
 ## ✏️ Contributing
 
 We ❤️ and encourage all contributions!
 
-[Click here](https://0xspaceshard.github.io/starknet-devnet/docs/guide/development) for the development guide.
+[Click here](.github/CONTRIBUTING.md) for the development guide.
 
 ## 🙌 Special Thanks
 

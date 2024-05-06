@@ -51,8 +51,10 @@ mod minting_tests {
 
         assert!(tx_hash_value.as_str().unwrap().starts_with("0x"));
 
-        let new_balance =
-            devnet.get_balance(&FieldElement::from_hex_be(address).unwrap(), unit).await.unwrap();
+        let new_balance = devnet
+            .get_balance_latest(&FieldElement::from_hex_be(address).unwrap(), unit)
+            .await
+            .unwrap();
 
         let final_balance = FieldElement::from_dec_str(&final_balance.to_str_radix(10)).unwrap();
         assert_eq!(final_balance, new_balance);

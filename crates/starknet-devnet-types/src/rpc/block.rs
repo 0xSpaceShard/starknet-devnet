@@ -17,7 +17,7 @@ pub enum BlockHashOrNumber {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct BlockId(ImportedBlockId);
+pub struct BlockId(pub ImportedBlockId);
 
 impl From<ImportedBlockId> for BlockId {
     fn from(value: ImportedBlockId) -> Self {
