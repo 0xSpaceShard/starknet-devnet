@@ -10,9 +10,10 @@ static DUMMY_ADDRESS: u128 = 1;
 static DUMMY_AMOUNT: u128 = 1;
 
 async fn mint_iter(capacity: &str) {
-    let devnet = BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", capacity])
-        .await
-        .expect("Could not start Devnet");
+    let devnet =
+        BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", capacity])
+            .await
+            .expect("Could not start Devnet");
 
     for _n in 1..=5_000 {
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;

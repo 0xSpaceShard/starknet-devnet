@@ -67,8 +67,8 @@ pub fn get_flattened_sierra_contract_and_casm_hash(
     (sierra_class.flatten().unwrap(), casm_hash(casm_json).unwrap())
 }
 
-pub fn get_messaging_contract_in_sierra_and_compiled_class_hash(
-) -> (FlattenedSierraClass, FieldElement) {
+pub fn get_messaging_contract_in_sierra_and_compiled_class_hash()
+-> (FlattenedSierraClass, FieldElement) {
     let sierra_path =
         concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/messaging/cairo_1_l1l2.sierra");
     get_flattened_sierra_contract_and_casm_hash(sierra_path)
@@ -81,8 +81,8 @@ pub fn get_messaging_lib_in_sierra_and_compiled_class_hash() -> (FlattenedSierra
     get_flattened_sierra_contract_and_casm_hash(sierra_path)
 }
 
-pub fn get_events_contract_in_sierra_and_compiled_class_hash(
-) -> (FlattenedSierraClass, FieldElement) {
+pub fn get_events_contract_in_sierra_and_compiled_class_hash()
+-> (FlattenedSierraClass, FieldElement) {
     let events_sierra_path = concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/test_data/cairo1/events/events_2.0.1_compiler.sierra"
@@ -90,15 +90,15 @@ pub fn get_events_contract_in_sierra_and_compiled_class_hash(
     get_flattened_sierra_contract_and_casm_hash(events_sierra_path)
 }
 
-pub fn get_block_reader_contract_in_sierra_and_compiled_class_hash(
-) -> (FlattenedSierraClass, FieldElement) {
+pub fn get_block_reader_contract_in_sierra_and_compiled_class_hash()
+-> (FlattenedSierraClass, FieldElement) {
     let timestamp_sierra_path =
         concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/block_reader/block_reader.sierra");
     get_flattened_sierra_contract_and_casm_hash(timestamp_sierra_path)
 }
 
-pub fn get_simple_contract_in_sierra_and_compiled_class_hash(
-) -> (FlattenedSierraClass, FieldElement) {
+pub fn get_simple_contract_in_sierra_and_compiled_class_hash()
+-> (FlattenedSierraClass, FieldElement) {
     let contract_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), CAIRO_1_CONTRACT_PATH);
     get_flattened_sierra_contract_and_casm_hash(&contract_path)
 }
