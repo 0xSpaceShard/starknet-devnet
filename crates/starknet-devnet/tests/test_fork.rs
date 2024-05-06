@@ -502,7 +502,7 @@ mod fork_tests {
             Err(ProviderError::Other(e)) => {
                 assert_contains(&e.to_string(), "error sending request")
             }
-            unexpected => panic!("Got unxpected resp: {unexpected:?}"),
+            unexpected => panic!("Got unexpected resp: {unexpected:?}"),
         }
     }
 

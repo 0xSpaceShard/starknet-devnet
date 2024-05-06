@@ -37,8 +37,6 @@ pub enum Error {
     NoStateAtBlock { block_id: BlockId },
     #[error("Format error")]
     FormatError,
-    #[error("Sierra compilation error")]
-    SierraCompilationError,
     #[error("No transaction found")]
     NoTransaction,
     #[error("Invalid transaction index in a block")]

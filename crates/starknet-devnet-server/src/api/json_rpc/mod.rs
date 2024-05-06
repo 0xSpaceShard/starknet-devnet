@@ -75,7 +75,7 @@ impl ToRpcResponseResult for StrictRpcResult {
 }
 
 /// This object will be used as a shared state between HTTP calls.
-/// Is simillar to the HttpApiHandler but is with extended functionality and is used for JSON-RPC
+/// Is similar to the HttpApiHandler but is with extended functionality and is used for JSON-RPC
 /// methods
 #[derive(Clone)]
 pub struct JsonRpcHandler {
@@ -153,7 +153,7 @@ impl JsonRpcHandler {
             StarknetRequest::Call(CallInput { request, block_id }) => {
                 self.call(block_id, request).await
             }
-            StarknetRequest::EsimateFee(EstimateFeeInput {
+            StarknetRequest::EstimateFee(EstimateFeeInput {
                 request,
                 block_id,
                 simulation_flags,
@@ -267,7 +267,7 @@ pub enum StarknetRequest {
     #[serde(rename = "starknet_call")]
     Call(CallInput),
     #[serde(rename = "starknet_estimateFee")]
-    EsimateFee(EstimateFeeInput),
+    EstimateFee(EstimateFeeInput),
     #[serde(rename = "starknet_blockNumber", with = "empty_params")]
     BlockNumber,
     #[serde(rename = "starknet_blockHashAndNumber", with = "empty_params")]
@@ -324,7 +324,7 @@ impl std::fmt::Display for StarknetRequest {
                 write!(f, "starknet_getBlockTransactionCount")
             }
             StarknetRequest::Call(_) => write!(f, "starknet_call"),
-            StarknetRequest::EsimateFee(_) => write!(f, "starknet_estimateFee"),
+            StarknetRequest::EstimateFee(_) => write!(f, "starknet_estimateFee"),
             StarknetRequest::BlockNumber => write!(f, "starknet_blockNumber"),
             StarknetRequest::BlockHashAndNumber => write!(f, "starknet_blockHashAndNumber"),
             StarknetRequest::ChainId => write!(f, "starknet_chainId"),

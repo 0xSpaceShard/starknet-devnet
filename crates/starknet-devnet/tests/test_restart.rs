@@ -173,7 +173,7 @@ mod test_restart {
         .await
         .unwrap();
 
-        let predeployed_account_addresss = devnet.get_first_predeployed_account().await.1;
+        let predeployed_account_address = devnet.get_first_predeployed_account().await.1;
 
         let balance_before =
             devnet.get_balance_latest(&predeployed_account_addresss, FeeUnit::WEI).await.unwrap();

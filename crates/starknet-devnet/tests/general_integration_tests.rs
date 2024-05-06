@@ -63,8 +63,10 @@ mod general_integration_tests {
             "account_contract_class_hash": "0x61dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f",
             "predeployed_accounts_initial_balance": "3",
             "start_time": 4,
-            "gas_price": 5,
-            "data_gas_price": 6,
+            "gas_price_wei": 5,
+            "gas_price_strk": 7,
+            "data_gas_price_wei": 6,
+            "data_gas_price_strk": 8,
             "chain_id": "SN_MAIN",
             "dump_on": "exit",
             "dump_path": dump_file.path,
@@ -79,7 +81,9 @@ mod general_integration_tests {
                 // expected port added after spawning; determined by port-acquiring logic
                 "timeout": 121,
                 "request_body_size_limit": 1000,
-            }
+            },
+            "blocks_on_demand": true,
+            "lite_mode": false
         });
 
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
@@ -92,9 +96,13 @@ mod general_integration_tests {
             "--start-time",
             &serde_json::to_string(&expected_config["start_time"]).unwrap(),
             "--gas-price",
-            &serde_json::to_string(&expected_config["gas_price"]).unwrap(),
+            &serde_json::to_string(&expected_config["gas_price_wei"]).unwrap(),
+            "--gas-price-strk",
+            &serde_json::to_string(&expected_config["gas_price_strk"]).unwrap(),
             "--data-gas-price",
-            &serde_json::to_string(&expected_config["data_gas_price"]).unwrap(),
+            &serde_json::to_string(&expected_config["data_gas_price_wei"]).unwrap(),
+            "--data-gas-price-strk",
+            &serde_json::to_string(&expected_config["data_gas_price_strk"]).unwrap(),
             "--chain-id",
             "MAINNET",
             "--dump-on",

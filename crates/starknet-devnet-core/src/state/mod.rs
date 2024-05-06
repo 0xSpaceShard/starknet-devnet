@@ -303,7 +303,11 @@ impl CustomState for StarknetState {
                 serde_json::to_value(cairo_lang_contract_class)
                     .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
             )
-            .map_err(|_| Error::SierraCompilationError)?;
+            .map_err(|err| {
+                Error::TypesError(starknet_types::error::Error::SierraCompilationError {
+                    reason: err.to_string(),
+                })
+            })?;
 
             let casm_hash = Felt::from(casm_hash(casm_json)?);
 
@@ -327,7 +331,11 @@ impl CustomState for StarknetState {
                 serde_json::to_value(cairo_lang_contract_class)
                     .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
             )
-            .map_err(|_| Error::SierraCompilationError)?;
+            .map_err(|err| {
+                Error::TypesError(starknet_types::error::Error::SierraCompilationError {
+                    reason: err.to_string(),
+                })
+            })?;
 
             let casm_hash = Felt::from(casm_hash(casm_json)?);
             self.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
