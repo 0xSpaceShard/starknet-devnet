@@ -3,7 +3,7 @@ use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag, MsgFromL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::block::{Block, BlockHeader, BlockId};
+use starknet_types::rpc::block::{Block, BlockHeader, BlockId, PendingBlock, PendingBlockHeader};
 use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, SimulationFlag,
@@ -24,21 +24,32 @@ impl JsonRpcHandler {
 
     /// starknet_getBlockWithTxHashes
     pub async fn get_block_with_tx_hashes(&self, block_id: BlockId) -> StrictRpcResult {
-        let block =
-            self.api.starknet.read().await.get_block(block_id.as_ref()).map_err(
-                |err| match err {
-                    Error::NoBlock => ApiError::BlockNotFound,
-                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
-                },
-            )?;
+        let starknet = self.api.starknet.read().await;
 
-        Ok(StarknetResponse::Block(Block {
-            status: *block.status(),
-            header: BlockHeader::from(&block),
-            transactions: starknet_types::rpc::transactions::Transactions::Hashes(
-                block.get_transactions().to_owned(),
-            ),
-        }))
+        let block = starknet.get_block(block_id.as_ref()).map_err(|err| match err {
+            Error::NoBlock => ApiError::BlockNotFound,
+            unknown_error => ApiError::StarknetDevnetError(unknown_error),
+        })?;
+
+        // TODO: is this starknet.config.blocks_on_demand needed here?
+        if starknet.config.blocks_on_demand
+            && block_id == ImportedBlockId::Tag(BlockTag::Pending).into()
+        {
+            Ok(StarknetResponse::PendingBlock(PendingBlock {
+                header: PendingBlockHeader::from(&block),
+                transactions: starknet_types::rpc::transactions::Transactions::Hashes(
+                    block.get_transactions().to_owned(),
+                ),
+            }))
+        } else {
+            Ok(StarknetResponse::Block(Block {
+                status: *block.status(),
+                header: BlockHeader::from(&block),
+                transactions: starknet_types::rpc::transactions::Transactions::Hashes(
+                    block.get_transactions().to_owned(),
+                ),
+            }))
+        }
     }
 
     /// starknet_getBlockWithTxs
@@ -81,6 +92,7 @@ impl JsonRpcHandler {
 
         let state_diff = state_update.state_diff.into();
 
+        // TODO: is this starknet.config.blocks_on_demand needed here?
         if starknet.config.blocks_on_demand
             && block_id == ImportedBlockId::Tag(BlockTag::Pending).into()
         {

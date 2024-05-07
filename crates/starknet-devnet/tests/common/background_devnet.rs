@@ -328,9 +328,9 @@ impl BackgroundDevnet {
 
     pub async fn get_pending_block_with_tx_hashes(
         &self,
-    ) -> Result<BlockWithTxHashes, anyhow::Error> {
+    ) -> Result<MaybePendingBlockWithTxHashes, anyhow::Error> {
         match self.json_rpc_client.get_block_with_tx_hashes(BlockId::Tag(BlockTag::Pending)).await {
-            Ok(MaybePendingBlockWithTxHashes::Block(b)) => Ok(b),
+            Ok(b) => Ok(b),
             other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
         }
     }

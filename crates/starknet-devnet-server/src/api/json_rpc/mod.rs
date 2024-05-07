@@ -15,7 +15,7 @@ use models::{
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::felt::Felt;
-use starknet_types::rpc::block::Block;
+use starknet_types::rpc::block::{Block, PendingBlock};
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
@@ -353,6 +353,7 @@ impl std::fmt::Display for StarknetRequest {
 #[serde(untagged)]
 pub enum StarknetResponse {
     Block(Block),
+    PendingBlock(PendingBlock),
     StateUpdate(StateUpdate),
     PendingStateUpdate(PendingStateUpdate),
     Felt(Felt),

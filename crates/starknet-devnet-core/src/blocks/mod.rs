@@ -8,7 +8,9 @@ use starknet_api::stark_felt;
 use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
-use starknet_types::rpc::block::{BlockHeader as TypesBlockHeader, ResourcePrice};
+use starknet_types::rpc::block::{
+    BlockHeader as TypesBlockHeader, PendingBlockHeader as TypesPendingBlockHeader, ResourcePrice,
+};
 use starknet_types::traits::HashProducer;
 
 use crate::constants::STARKNET_VERSION;
@@ -170,6 +172,27 @@ pub struct StarknetBlock {
     pub(crate) header: BlockHeader,
     transaction_hashes: Vec<TransactionHash>,
     pub(crate) status: BlockStatus,
+}
+
+impl From<&StarknetBlock> for TypesPendingBlockHeader {
+    fn from(value: &StarknetBlock) -> Self {
+        Self {
+            parent_hash: value.parent_hash(),
+            sequencer_address: value.sequencer_address(),
+            new_root: value.new_root(),
+            timestamp: value.timestamp(),
+            starknet_version: STARKNET_VERSION.to_string(),
+            l1_gas_price: ResourcePrice {
+                price_in_fri: value.header.l1_gas_price.price_in_fri.0.into(),
+                price_in_wei: value.header.l1_gas_price.price_in_wei.0.into(),
+            },
+            l1_data_gas_price: ResourcePrice {
+                price_in_fri: value.header.l1_data_gas_price.price_in_fri.0.into(),
+                price_in_wei: value.header.l1_data_gas_price.price_in_wei.0.into(),
+            },
+            l1_da_mode: value.header.l1_da_mode,
+        }
+    }
 }
 
 impl From<&StarknetBlock> for TypesBlockHeader {
