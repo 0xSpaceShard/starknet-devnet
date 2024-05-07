@@ -58,8 +58,8 @@ pub fn get_erc20_address(unit: &FeeUnit) -> ContractAddress {
 }
 
 pub async fn mint(
-    Json(request): Json<MintTokensRequest>,
     Extension(state): Extension<HttpApiHandler>,
+    Json(request): Json<MintTokensRequest>,
 ) -> HttpApiResult<Json<MintTokensResponse>> {
     let mut starknet = state.api.starknet.write().await;
     let unit = request.unit.unwrap_or(FeeUnit::WEI);

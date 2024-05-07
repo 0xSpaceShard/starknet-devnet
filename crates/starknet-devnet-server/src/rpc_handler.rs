@@ -66,8 +66,8 @@ pub trait RpcHandler: Clone + Send + Sync + 'static {
 
 /// Handles incoming JSON-RPC Request
 pub async fn handle<THandler: RpcHandler>(
-    request: Result<Json<Request>, JsonRejection>,
     Extension(handler): Extension<THandler>,
+    request: Result<Json<Request>, JsonRejection>,
 ) -> Json<Response> {
     match request {
         Ok(req) => handle_request(req.0, handler)

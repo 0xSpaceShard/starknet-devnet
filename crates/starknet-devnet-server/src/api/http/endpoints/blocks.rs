@@ -20,8 +20,8 @@ pub async fn create_block(
 }
 
 pub async fn abort_blocks(
-    Json(data): Json<AbortingBlocks>,
     Extension(state): Extension<HttpApiHandler>,
+    Json(data): Json<AbortingBlocks>,
 ) -> HttpApiResult<Json<AbortedBlocks>> {
     let mut starknet = state.api.starknet.write().await;
     let aborted = starknet

@@ -5,8 +5,8 @@ use crate::api::http::models::{IncreaseTime, IncreaseTimeResponse, SetTime, SetT
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 
 pub async fn set_time(
-    Json(data): Json<SetTime>,
     Extension(state): Extension<HttpApiHandler>,
+    Json(data): Json<SetTime>,
 ) -> HttpApiResult<Json<SetTimeResponse>> {
     let mut starknet = state.api.starknet.write().await;
     let generate_block = data.generate_block.unwrap_or(true);
@@ -30,8 +30,8 @@ pub async fn set_time(
 }
 
 pub async fn increase_time(
-    Json(data): Json<IncreaseTime>,
     Extension(state): Extension<HttpApiHandler>,
+    Json(data): Json<IncreaseTime>,
 ) -> HttpApiResult<Json<IncreaseTimeResponse>> {
     let mut starknet = state.api.starknet.write().await;
     starknet

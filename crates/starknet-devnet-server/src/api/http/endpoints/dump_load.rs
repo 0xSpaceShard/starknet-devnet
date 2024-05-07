@@ -5,8 +5,8 @@ use crate::api::http::models::{DumpPath, LoadPath};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 
 pub async fn dump(
-    Json(path): Json<DumpPath>,
     Extension(state): Extension<HttpApiHandler>,
+    Json(path): Json<DumpPath>,
 ) -> HttpApiResult<()> {
     let starknet = state.api.starknet.write().await;
 
@@ -43,8 +43,8 @@ pub async fn dump(
 }
 
 pub async fn load(
-    Json(path): Json<LoadPath>,
     Extension(state): Extension<HttpApiHandler>,
+    Json(path): Json<LoadPath>,
 ) -> HttpApiResult<()> {
     let file_path = std::path::Path::new(&path.path);
     if path.path.is_empty() || !file_path.exists() {
