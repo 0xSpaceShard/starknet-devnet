@@ -571,23 +571,21 @@ $ cargo test --jobs <N>
 
 #### Benchmarking
 
-To test if your contribution presents an improvement in execution time, check out the script at `scripts/benchmark/command_stat_test.py`.
+To statistically test if your contribution presents an improvement in execution time and memory usage, check out the script at `scripts/benchmark/command_stat_test.py`.
 
+##### Cargo Bench Execution
 
-##### Cargo Bench execution
-To run the criterion benchmarks and generate a performance report:
+To run Criterion benchmarks and generate a performance report:
 
 ```
 $ cargo bench
 ```
 
-This command will compile the benchmarks and run them using all available CPUs on your machine. Criterion will perform multiple iterations of each benchmark to collect performance data and generate statistical analysis.
-
-Check the report created at `target/criterion/report/index.html`
+This command will compile the benchmarks defined in this repository and run them using all available CPUs. Criterion will perform multiple iterations of each benchmark to collect performance data and generate statistical analysis with a report at `target/criterion/report/index.html`.
 
 Criterion is highly configurable and offers various options to customise the benchmarking process. You can find more information about Criterion and its features in the [Criterion documentation](https://bheisler.github.io/criterion.rs/book/index.html).
 
-To measure and benchmark memory it is best to use external tools such as Valgrind, Leaks, etc.
+Since it is hard to achieve a platform-agnostic way of detecting the memory used by a process in Rust, to measure and benchmark memory it is best to use external tools such as Valgrind, Leaks, etc. A lighter version of this achieving this is, while running `cargo bench`, to simply track the computer memory used with your system's resource monitor (such as `htop`).
 
 ### Development - Docker
 
