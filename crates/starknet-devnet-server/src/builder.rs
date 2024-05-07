@@ -31,7 +31,7 @@ pub type StarknetDevnetServer = Server<AddrIncoming, IntoMakeService<Router>>;
 
 pub struct Builder<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static> {
     address: SocketAddr,
-    routes: Router,
+    routes: Router<()>,
     json_rpc_handler: TJsonRpcHandler,
     http_api_handler: THttpApiHandler,
 }
@@ -44,12 +44,7 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
         json_rpc_handler: TJsonRpcHandler,
         http_api_handler: THttpApiHandler,
     ) -> Self {
-        Builder {
-            address: addr,
-            routes: Router::<hyper::Body>::new(),
-            json_rpc_handler,
-            http_api_handler,
-        }
+        Builder { address: addr, routes: Router::new(), json_rpc_handler, http_api_handler }
     }
 
     /// Adds an HTTP endpoint to a specific route
@@ -65,7 +60,7 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
             + 'static,
         THttpMethodService::Future: Send + 'static,
     {
-        Self { routes: self.routes.route(path, http_service), ..self }
+        Self { routes: self.routes.route_service(path, http_service), ..self }
     }
 
     /// Adds the object that will be available on every HTTP request
@@ -77,7 +72,7 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
     /// request
     pub fn json_rpc_route(self, path: &str) -> Self {
         Self {
-            routes: self.routes.route(path, post(rpc_handler::handle::<TJsonRpcHandler>)),
+            routes: self.routes.route_service(path, post(rpc_handler::handle::<TJsonRpcHandler>)),
             ..self
         }
     }
@@ -102,6 +97,8 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
                     .allow_headers(vec![header::CONTENT_TYPE])
                     .allow_methods(vec![Method::GET, Method::POST]),
             );
+
+        // let svc: Router<()> = svc.with_state((self.json_rpc_handler, self.http_api_handler));
 
         Ok(Server::try_bind(&self.address)?.serve(svc.into_make_service()))
     }

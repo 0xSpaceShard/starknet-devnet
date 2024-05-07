@@ -171,7 +171,7 @@ mod minting_tests {
     async fn reject_bad_balance_query(query: &str) {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let resp = devnet.get("/account_balance", Some(query.into())).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::UNPROCESSABLE_ENTITY, "Checking status of {resp:?}");
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST, "Checking status of {resp:?}");
     }
 
     #[tokio::test]
