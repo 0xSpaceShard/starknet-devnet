@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 """
-This program tests if a command performs faster using independent t-test. At the top of the file,
-there are command placeholders which you need to define. You may change other constants
-if needed. Optionally, modify `performance_program`, a function used to simulate the
-work that is benchmarked.
+This program tests if a command performs faster and with less memory. This is achieved
+using independent t-test. At the top of the file, there are command placeholders which
+you need to define. You may change other constants if needed. Optionally, modify
+`performance_program`, a function used to simulate the work that is benchmarked.
 
 The program will start the command defined in `ORIGINAL_COMMAND`,
 run `performance_program` `SAMPLE_SIZE` times, store these measurements,
