@@ -573,6 +573,22 @@ $ cargo test --jobs <N>
 
 To test if your contribution presents an improvement in execution time, check out the script at `scripts/benchmark/command_stat_test.py`.
 
+
+##### Cargo Bench execution
+To run the criterion benchmarks and generate a performance report:
+
+```
+$ cargo bench
+```
+
+This command will compile the benchmarks and run them using all available CPUs on your machine. Criterion will perform multiple iterations of each benchmark to collect performance data and generate statistical analysis.
+
+Check the report created at `target/criterion/report/index.html`
+
+Criterion is highly configurable and offers various options to customise the benchmarking process. You can find more information about Criterion and its features in the [Criterion documentation](https://bheisler.github.io/criterion.rs/book/index.html).
+
+To measure and benchmark memory it is best to use external tools such as Valgrind, Leaks, etc.
+
 ### Development - Docker
 
 Due to internal needs, images with arch suffix are built and pushed to Docker Hub, but this is not mentioned in the user docs as users should NOT be needing it.

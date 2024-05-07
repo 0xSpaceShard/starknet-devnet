@@ -48,3 +48,10 @@ starknet-rs-core = { workspace = true }
 starknet-rs-accounts = { workspace = true }
 hyper = { workspace = true }
 usc = { workspace = true }
+criterion = { version = "0.3.4", features = ["async_tokio"] }
+
+
+[[bench]]
+name = "mint_bench"
+harness = false
+path = "benches/mint_bench.rs"
