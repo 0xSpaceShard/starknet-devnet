@@ -4,20 +4,22 @@
 This program tests if a command performs faster using independent t-test. At the top of the file,
 there are command placeholders which you need to define. You may change other constants
 if needed. Optionally, modify `performance_program`, a function used to simulate the
-work that is timed.
+work that is benchmarked.
 
 The program will start the command defined in `ORIGINAL_COMMAND`,
-run `performance_program` `SAMPLE_SIZE` times, store these times,
+run `performance_program` `SAMPLE_SIZE` times, store these measurements,
 and repeat the same process for `IMPROVED_COMMAND`.
-The times shall than be statistically tested and the result printed.
+The measurements shall than be statistically tested and the result printed.
 """
 
 import subprocess
 import time
-from typing import List
+from typing import List, Tuple
 
+import psutil
 import requests
 from scipy.stats import ttest_ind
+from scipy.stats import describe
 
 DEVNET_PORT = "5050"
 DEVNET_URL = f"http://localhost:{DEVNET_PORT}"
@@ -25,18 +27,20 @@ REQUEST_TIMEOUT = 2
 
 ORIGINAL_COMMAND: str = ...
 """
-The original baseline command used for starting Devnet. E.g.:
+The original baseline command used for starting Devnet. E.g. one of the following:
 ```
 f"cargo run --release -- --port {DEVNET_PORT}"
+f"cargo run --release -- --port {DEVNET_PORT} --state-archive-capacity full"
 ```
 Be sure to have compiled the program before executing the script to avoid timeout.
 """
 
 IMPROVED_COMMAND: str = ...
 """
-The command used for starting Devnet in improved mode. E.g.:
+The command used for starting Devnet in improved mode. E.g. one of the following:
 ```
 f"cargo run --release -- --port {DEVNET_PORT} --lite-mode"
+f"cargo run --release -- --port {DEVNET_PORT} --state-archive-capacity none"
 ```
 """
 
@@ -89,14 +93,17 @@ def terminate_and_wait(proc: subprocess.Popen):
     proc.wait()
 
 
-def get_sample(command: str, size: int) -> List[float]:
+def get_sample(command: str, size: int) -> Tuple[List[float], List[float]]:
     """
     Run `command` and run `performance_program` `size` times.
-    Returns a list containing `size` measured times.
+    Returns a tuple of:
+      - a list containing `size` measured times in seconds
+      - a list containing `size` measured memory usages in MB
     """
     total_start_time = time.time()
 
     times = []
+    memories = []
 
     for _ in range(size):
         with subprocess.Popen(
@@ -104,30 +111,51 @@ def get_sample(command: str, size: int) -> List[float]:
         ) as command_proc:
             ensure_process_started(command_proc)
 
+            command_proc_ps = psutil.Process(command_proc.pid)
+
+            start_memory = command_proc_ps.memory_info()
             start_time = time.time()
             performance_program()
             measured_time = time.time() - start_time
+            final_memory = command_proc_ps.memory_info()
 
-            print(f"Measured time: {measured_time}")
+            print(f"Measured time (s): {measured_time}")
             times.append(measured_time)
+
+            measured_rss = (final_memory.rss - start_memory.rss) / 1e6
+            print(f"Measured memory - rss (MB): {measured_rss}")
+            memories.append(measured_rss)
 
             terminate_and_wait(command_proc)
 
     total_time = time.time() - total_start_time
-    print(f"Collected sample of size {size} in {total_time:.2f}s")
-    return times
+    print(f"Collected samples in {total_time:.2f}s")
+    print(f"\tTime sample:   {describe(times)}")
+    print(f"\tMemory sample: {describe(memories)}")
+    return times, memories
 
 
 def main():
     """Run statistical testing"""
 
-    samples = []
+    time_samples = []
+    memory_samples = []
     for command in [ORIGINAL_COMMAND, IMPROVED_COMMAND]:
         print(f"Collecting sample for: {command}")
-        samples.append(get_sample(command, SAMPLE_SIZE))
+        times, memories = get_sample(command, SAMPLE_SIZE)
+        time_samples.append(times)
+        memory_samples.append(memories)
 
-    result = ttest_ind(samples[0], samples[1], alternative=ALTERNATIVE_HYPOTHESIS)
-    print(result)
+    print("Statistical report:")
+    time_result = ttest_ind(
+        time_samples[0], time_samples[1], alternative=ALTERNATIVE_HYPOTHESIS
+    )
+    print("\tTime (s):  ", time_result)
+
+    memory_result = ttest_ind(
+        memory_samples[0], memory_samples[1], alternative=ALTERNATIVE_HYPOTHESIS
+    )
+    print("\tMemory (MB):", memory_result)
 
 
 if __name__ == "__main__":
