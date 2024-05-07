@@ -117,6 +117,7 @@ jobs:
               sh -s -- -y --default-toolchain=1.74.0
       - run: rustup target add << parameters.target_triplet >>
       - run:
+          # perhaps unify this and the next step
           name: Install Cross
           command: |
             curl -SsL https://github.com/cross-rs/cross/releases/download/v0.2.5/${COMPILER_ARCHIVE} |
