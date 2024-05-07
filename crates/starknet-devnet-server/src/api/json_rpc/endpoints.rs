@@ -31,7 +31,8 @@ impl JsonRpcHandler {
             unknown_error => ApiError::StarknetDevnetError(unknown_error),
         })?;
 
-        // TODO: is this starknet.config.blocks_on_demand needed here?
+        // StarknetBlock needs to be mapped to PendingBlock response only in blocks_on_demand mode
+        // and when block_id is pending
         if starknet.config.blocks_on_demand
             && block_id == ImportedBlockId::Tag(BlockTag::Pending).into()
         {
@@ -92,7 +93,8 @@ impl JsonRpcHandler {
 
         let state_diff = state_update.state_diff.into();
 
-        // TODO: is this starknet.config.blocks_on_demand needed here?
+        // StateUpdate needs to be mapped to PendingStateUpdate response only in blocks_on_demand
+        // mode and when block_id is pending
         if starknet.config.blocks_on_demand
             && block_id == ImportedBlockId::Tag(BlockTag::Pending).into()
         {
