@@ -3,13 +3,14 @@ pub mod common;
 mod blocks_on_demand_tests {
     use std::sync::Arc;
 
-    use serde_json::json;
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
-        BlockStatus, BlockTag, FieldElement, MaybePendingBlockWithTxHashes,
+        BlockId, BlockStatus, BlockTag, FieldElement, MaybePendingBlockWithTxHashes,
+        MaybePendingStateUpdate,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
+    use starknet_rs_providers::Provider;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -24,34 +25,25 @@ mod blocks_on_demand_tests {
 
     async fn assert_pending_state_update(devnet: &BackgroundDevnet) {
         let pending_state_update = &devnet
-            .send_custom_rpc(
-                "starknet_getStateUpdate",
-                json!(    {
-                    "block_id": "pending"
-                }),
-            )
-            .await["result"];
+            .json_rpc_client
+            .get_state_update(BlockId::Tag(BlockTag::Pending))
+            .await
+            .unwrap();
 
-        assert!(pending_state_update["old_root"].is_string());
-        assert!(pending_state_update["state_diff"].is_object());
-        assert!(pending_state_update["block_hash"].is_null());
-        assert!(pending_state_update["new_root"].is_null());
+        match pending_state_update {
+            MaybePendingStateUpdate::PendingUpdate(_) => {}
+            _ => panic!("Invalid state type {:?}", pending_state_update),
+        }
     }
 
-    async fn assert_latest_state_update(devnet: &BackgroundDevnet, block_id: &str) {
-        let latest_state_update = &devnet
-            .send_custom_rpc(
-                "starknet_getStateUpdate",
-                json!(    {
-                    "block_id": block_id
-                }),
-            )
-            .await["result"];
+    async fn assert_latest_state_update(devnet: &BackgroundDevnet, block_tag: BlockId) {
+        let latest_state_update =
+            &devnet.json_rpc_client.get_state_update(block_tag).await.unwrap();
 
-        assert!(latest_state_update["block_hash"].is_string());
-        assert!(latest_state_update["new_root"].is_string());
-        assert!(latest_state_update["old_root"].is_string());
-        assert!(latest_state_update["state_diff"].is_object());
+        match latest_state_update {
+            MaybePendingStateUpdate::Update(_) => {}
+            _ => panic!("Invalid state type {:?}", latest_state_update),
+        }
     }
 
     async fn assert_latest_block_with_transactions(
@@ -126,7 +118,7 @@ mod blocks_on_demand_tests {
         assert_pending_block_with_transactions(&devnet, 0).await;
 
         assert_pending_state_update(&devnet).await;
-        assert_latest_state_update(&devnet, "latest").await;
+        assert_latest_state_update(&devnet, BlockId::Tag(BlockTag::Latest)).await;
     }
 
     #[tokio::test]
@@ -147,8 +139,8 @@ mod blocks_on_demand_tests {
         }
 
         // querying state update in normal mode should default to the latest state update
-        assert_latest_state_update(&devnet, "pending").await;
-        assert_latest_state_update(&devnet, "latest").await;
+        assert_latest_state_update(&devnet, BlockId::Tag(BlockTag::Pending)).await;
+        assert_latest_state_update(&devnet, BlockId::Tag(BlockTag::Latest)).await;
     }
 
     #[tokio::test]
