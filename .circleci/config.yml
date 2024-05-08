@@ -110,27 +110,17 @@ jobs:
 
     steps:
       - checkout
-      - setup_remote_docker:
-          # either set this up conditionally or add a comment that it's necessary only for mac
-          version: docker23
       - run:
           name: Install Rust
           command: |
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
               sh -s -- -y --default-toolchain=1.74.0
-      # perhaps remove this step:
-      - run: rustup target add << parameters.target_triplet >>
-      - run:
-          # perhaps unify this and the next step
-          name: Install Cross
-          # command: |
-          #   curl -SsL https://github.com/cross-rs/cross/releases/download/v0.2.5/${COMPILER_ARCHIVE} |
-          #     tar -xvz -C /tmp
-          command: ./scripts/install_cross.sh
       - run:
           name: Compile binary
-          # command: /tmp/cross build --release --target=<< parameters.target_triplet >>
-          command: cross build --release --target=<< parameters.target_triplet >>
+          command: ./scripts/compile_binary.sh << parameters.target_triplet >>
+      - run:
+          name: Compile binary
+          command: ${RUST_COMPILER} build --release --target=<< parameters.target_triplet >>
       - run:
           name: Archive and compress binary artifact # only the file, not the whole dir structure
           command: tar -czvf << parameters.archive_path >> --directory target/<< parameters.target_triplet >>/release starknet-devnet
@@ -190,9 +180,7 @@ workflows:
           matrix:
             parameters:
               arch: [x86_64, aarch64]
-              # platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
-              platform: [unknown-linux-gnu, apple-darwin]
-              # platform: [apple-darwin]
+              platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
           target_triplet: << matrix.arch >>-<< matrix.platform >>
           archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
       - image-build-amd:
