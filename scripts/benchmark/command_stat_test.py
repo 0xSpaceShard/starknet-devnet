@@ -102,8 +102,8 @@ def get_sample(command: str, size: int) -> Tuple[List[float], List[float]]:
     """
     total_start_time = time.time()
 
-    times = []
-    memories = []
+    time_measurements = []
+    memory_measurements = []
 
     for _ in range(size):
         with subprocess.Popen(
@@ -120,19 +120,19 @@ def get_sample(command: str, size: int) -> Tuple[List[float], List[float]]:
             final_memory = command_proc_ps.memory_info()
 
             print(f"Measured time (s): {measured_time}")
-            times.append(measured_time)
+            time_measurements.append(measured_time)
 
             measured_rss = (final_memory.rss - start_memory.rss) / 1e6
             print(f"Measured memory - rss (MB): {measured_rss}")
-            memories.append(measured_rss)
+            memory_measurements.append(measured_rss)
 
             terminate_and_wait(command_proc)
 
     total_time = time.time() - total_start_time
     print(f"Collected samples in {total_time:.2f}s")
-    print(f"\tTime sample:   {describe(times)}")
-    print(f"\tMemory sample: {describe(memories)}")
-    return times, memories
+    print(f"\tTime sample:   {describe(time_measurements)}")
+    print(f"\tMemory sample: {describe(memory_measurements)}")
+    return time_measurements, memory_measurements
 
 
 def main():
