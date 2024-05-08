@@ -119,9 +119,6 @@ jobs:
           name: Compile binary
           command: ./scripts/compile_binary.sh << parameters.target_triplet >>
       - run:
-          name: Compile binary
-          command: ${RUST_COMPILER} build --release --target=<< parameters.target_triplet >>
-      - run:
           name: Archive and compress binary artifact # only the file, not the whole dir structure
           command: tar -czvf << parameters.archive_path >> --directory target/<< parameters.target_triplet >>/release starknet-devnet
       - store_artifacts: # to later include them in github release
