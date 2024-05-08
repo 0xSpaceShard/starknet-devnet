@@ -170,10 +170,10 @@ jobs:
 workflows:
   build-test-maybe-publish:
     jobs:
-      # - build-and-test:
-      #     cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
+      - build-and-test:
+          cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
       - binary-build:
-          # <<: *on_main
+          <<: *on_main
           matrix:
             parameters:
               arch: [x86_64, aarch64]
@@ -184,5 +184,5 @@ workflows:
           <<: *on_main
       - image-build-arm:
           <<: *on_main
-      # - publish:
-      #     <<: *on_main_after_test_and_build
+      - publish:
+          <<: *on_main_after_test_and_build
