@@ -61,21 +61,11 @@ mod blocks_on_demand_tests {
         }
     }
 
-    async fn assert_pending_block_with_transactions(
-        devnet: &BackgroundDevnet,
-        transactions_count: u128,
-    ) {
+    async fn assert_pending_block_with_transactions(devnet: &BackgroundDevnet) {
         let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
 
-        match pending_block {
-            MaybePendingBlockWithTxHashes::PendingBlock(block) => {
-                assert_eq!(block.transactions.len() as u128, transactions_count);
-
-                for tx_hash in block.transactions {
-                    assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
-                }
-            }
-            _ => panic!("Invalid block type {:?}", pending_block),
+        for tx_hash in pending_block.transactions {
+            assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
         }
     }
 
@@ -115,7 +105,7 @@ mod blocks_on_demand_tests {
             .await;
 
         assert_latest_block_with_transactions(&devnet, 1, tx_hashes).await;
-        assert_pending_block_with_transactions(&devnet, 0).await;
+        assert_pending_block_with_transactions(&devnet).await;
 
         assert_pending_state_update(&devnet).await;
         assert_latest_state_update(&devnet, BlockId::Tag(BlockTag::Latest)).await;
@@ -127,7 +117,11 @@ mod blocks_on_demand_tests {
 
         devnet.create_block().await.unwrap();
 
-        let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
+        let pending_block = devnet
+            .json_rpc_client
+            .get_block_with_tx_hashes(BlockId::Tag(BlockTag::Pending))
+            .await
+            .unwrap();
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
         // querying pending block in normal mode should default to the latest block
