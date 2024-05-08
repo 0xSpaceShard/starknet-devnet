@@ -179,7 +179,6 @@ impl From<&StarknetBlock> for TypesPendingBlockHeader {
         Self {
             parent_hash: value.parent_hash(),
             sequencer_address: value.sequencer_address(),
-            new_root: value.new_root(),
             timestamp: value.timestamp(),
             starknet_version: STARKNET_VERSION.to_string(),
             l1_gas_price: ResourcePrice {

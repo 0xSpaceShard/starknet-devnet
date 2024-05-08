@@ -97,7 +97,6 @@ pub struct BlockHeader {
 pub struct PendingBlockHeader {
     pub parent_hash: BlockHash,
     pub sequencer_address: ContractAddress,
-    pub new_root: GlobalRootHex,
     pub timestamp: BlockTimestamp,
     pub starknet_version: String,
     pub l1_gas_price: ResourcePrice,
