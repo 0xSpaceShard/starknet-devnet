@@ -8,8 +8,8 @@ you need to define. You may change other constants if needed. Optionally, modify
 
 The program will start the command defined in `ORIGINAL_COMMAND`,
 run `performance_program` `SAMPLE_SIZE` times, store these measurements,
-and repeat the same process for `IMPROVED_COMMAND`.
-The measurements shall than be statistically tested and the result printed.
+and repeat the same process for `IMPROVED_COMMAND`. Freely modify these three variables.
+The measurements shall then be statistically tested and the results printed.
 """
 
 import subprocess
@@ -25,35 +25,27 @@ DEVNET_PORT = "5050"
 DEVNET_URL = f"http://localhost:{DEVNET_PORT}"
 REQUEST_TIMEOUT = 2
 
-ORIGINAL_COMMAND: str = ...
+ORIGINAL_COMMAND: str = f"cargo run --release -- --port {DEVNET_PORT}"
 """
-The original baseline command used for starting Devnet. E.g. one of the following:
-```
-f"cargo run --release -- --port {DEVNET_PORT}"
-f"cargo run --release -- --port {DEVNET_PORT} --state-archive-capacity full"
-```
+The original baseline command used for starting Devnet. Modify it freely.
 Be sure to have compiled the program before executing the script to avoid timeout.
 """
 
-IMPROVED_COMMAND: str = ...
+IMPROVED_COMMAND: str = f"cargo run --release -- --port {DEVNET_PORT} --lite-mode"
 """
-The command used for starting Devnet in improved mode. E.g. one of the following:
-```
-f"cargo run --release -- --port {DEVNET_PORT} --lite-mode"
-f"cargo run --release -- --port {DEVNET_PORT} --state-archive-capacity none"
-```
+The command used for starting Devnet in improved mode. Modify it freely.
 """
 
 ALTERNATIVE_HYPOTHESIS = "greater"
 """
 The null-hypothesis is that the two analyzed samples come from equal sources,
-i.e. that the two commands under test perform equally fast. The alternative is "greater"
+i.e. that the two tested commands perform equally well. The alternative is "greater"
 because the original command is supposed to be slower, i.e. yield greater times.
-If you want to use this script to test if two commands are different,
-change the alternative to "two-sided".
+Or in terms of memory, that it uses more memory. If you want to use this script
+to test if two commands are simply different, change the alternative to "two-sided".
 """
 
-SAMPLE_SIZE = 20
+SAMPLE_SIZE = 2
 
 
 def ensure_process_started(proc: subprocess.Popen):
