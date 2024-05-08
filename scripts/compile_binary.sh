@@ -13,10 +13,12 @@ TARGET="$1"
 kernel_name=$(uname -s)
 case "$kernel_name" in
 Darwin*)
+    # on mac (for apple-darwin targets), rely on host compiler's targets
     rustup target add "$TARGET"
     compiler_command="cargo"
     ;;
 Linux*)
+    # on linux, rely on cross compiler
     download_url="https://github.com/cross-rs/cross/releases/download/${CROSS_VERSION}/cross-x86_64-unknown-linux-gnu.tar.gz"
     curl -SsL "$download_url" |
         tar -xvz -C /tmp
