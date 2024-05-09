@@ -5,8 +5,12 @@ mod blocks_on_demand_tests {
 
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::{BlockStatus, BlockTag, FieldElement};
+    use starknet_rs_core::types::{
+        BlockId, BlockStatus, BlockTag, FieldElement, MaybePendingBlockWithTxHashes,
+        MaybePendingStateUpdate,
+    };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
+    use starknet_rs_providers::Provider;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -18,6 +22,23 @@ mod blocks_on_demand_tests {
 
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
+
+    async fn assert_pending_state_update(devnet: &BackgroundDevnet) {
+        let pending_state_update = &devnet
+            .json_rpc_client
+            .get_state_update(BlockId::Tag(BlockTag::Pending))
+            .await
+            .unwrap();
+
+        assert!(matches!(pending_state_update, MaybePendingStateUpdate::PendingUpdate(_)));
+    }
+
+    async fn assert_latest_state_update(devnet: &BackgroundDevnet, block_tag: BlockId) {
+        let latest_state_update =
+            &devnet.json_rpc_client.get_state_update(block_tag).await.unwrap();
+
+        assert!(matches!(latest_state_update, MaybePendingStateUpdate::Update(_)));
+    }
 
     async fn assert_latest_block_with_transactions(
         devnet: &BackgroundDevnet,
@@ -34,15 +55,12 @@ mod blocks_on_demand_tests {
         }
     }
 
-    async fn assert_pending_block_with_transactions(
-        devnet: &BackgroundDevnet,
-        block_number: u64,
-        transactions_count: u128,
-    ) {
+    async fn assert_pending_block_with_transactions(devnet: &BackgroundDevnet) {
         let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
-        assert_eq!(pending_block.block_number, block_number);
-        assert_eq!(pending_block.transactions.len() as u128, transactions_count);
-        assert_eq!(pending_block.status, BlockStatus::Pending);
+
+        for tx_hash in pending_block.transactions {
+            assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
+        }
     }
 
     async fn assert_balance(devnet: &BackgroundDevnet, expected: FieldElement, tag: BlockTag) {
@@ -81,20 +99,36 @@ mod blocks_on_demand_tests {
             .await;
 
         assert_latest_block_with_transactions(&devnet, 1, tx_hashes).await;
-        assert_pending_block_with_transactions(&devnet, 2, 0).await;
+        assert_pending_block_with_transactions(&devnet).await;
+
+        assert_pending_state_update(&devnet).await;
+        assert_latest_state_update(&devnet, BlockId::Tag(BlockTag::Latest)).await;
     }
 
     #[tokio::test]
-    async fn pending_block_in_normal_mode() {
+    async fn pending_block_and_state_in_normal_mode() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
         devnet.create_block().await.unwrap();
 
-        let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
+        let pending_block = devnet
+            .json_rpc_client
+            .get_block_with_tx_hashes(BlockId::Tag(BlockTag::Pending))
+            .await
+            .unwrap();
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
         // querying pending block in normal mode should default to the latest block
-        assert_eq!(pending_block, latest_block);
+        match pending_block {
+            MaybePendingBlockWithTxHashes::Block(block) => {
+                assert_eq!(block, latest_block);
+            }
+            _ => panic!("Invalid block type {:?}", pending_block),
+        }
+
+        // querying state update in normal mode should default to the latest state update
+        assert_latest_state_update(&devnet, BlockId::Tag(BlockTag::Pending)).await;
+        assert_latest_state_update(&devnet, BlockId::Tag(BlockTag::Latest)).await;
     }
 
     #[tokio::test]
