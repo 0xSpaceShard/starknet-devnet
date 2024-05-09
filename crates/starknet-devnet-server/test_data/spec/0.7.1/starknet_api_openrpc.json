@@ -81,6 +81,10 @@
                         {
                             "title": "Block with transactions",
                             "$ref": "#/components/schemas/BLOCK_WITH_TXS"
+                        },
+                        {
+                            "title": "Pending block with transactions",
+                            "$ref": "#/components/schemas/PENDING_BLOCK_WITH_TXS"
                         }
                     ]
                 }
@@ -114,6 +118,10 @@
                         {
                             "title": "Block with transactions",
                             "$ref": "#/components/schemas/BLOCK_WITH_RECEIPTS"
+                        },
+                        {
+                            "title": "Pending block with transactions",
+                            "$ref": "#/components/schemas/PENDING_BLOCK_WITH_RECEIPTS"
                         }
                     ]
                 }
