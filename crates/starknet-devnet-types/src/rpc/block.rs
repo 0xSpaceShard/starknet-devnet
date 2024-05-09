@@ -81,22 +81,20 @@ pub struct PendingBlock {
 #[serde(deny_unknown_fields)]
 pub struct BlockHeader {
     pub block_hash: BlockHash,
+    pub parent_hash: BlockHash,
     pub block_number: BlockNumber,
+    pub sequencer_address: ContractAddress,
     pub new_root: GlobalRootHex,
-    #[serde(flatten)]
-    pub header: BaseBlockHeader,
+    pub timestamp: BlockTimestamp,
+    pub starknet_version: String,
+    pub l1_gas_price: ResourcePrice,
+    pub l1_data_gas_price: ResourcePrice,
+    pub l1_da_mode: L1DataAvailabilityMode,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct PendingBlockHeader {
-    #[serde(flatten)]
-    pub header: BaseBlockHeader,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct BaseBlockHeader {
     pub parent_hash: BlockHash,
     pub sequencer_address: ContractAddress,
     pub timestamp: BlockTimestamp,
@@ -105,7 +103,6 @@ pub struct BaseBlockHeader {
     pub l1_data_gas_price: ResourcePrice,
     pub l1_da_mode: L1DataAvailabilityMode,
 }
-
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ResourcePrice {

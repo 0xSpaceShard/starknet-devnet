@@ -9,8 +9,7 @@ use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 use starknet_types::rpc::block::{
-    BaseBlockHeader, BlockHeader as TypesBlockHeader,
-    PendingBlockHeader as TypesPendingBlockHeader, ResourcePrice,
+    BlockHeader as TypesBlockHeader, PendingBlockHeader as TypesPendingBlockHeader, ResourcePrice,
 };
 use starknet_types::traits::HashProducer;
 
@@ -175,7 +174,7 @@ pub struct StarknetBlock {
     pub(crate) status: BlockStatus,
 }
 
-impl From<&StarknetBlock> for BaseBlockHeader {
+impl From<&StarknetBlock> for TypesPendingBlockHeader {
     fn from(value: &StarknetBlock) -> Self {
         Self {
             parent_hash: value.parent_hash(),
@@ -195,19 +194,25 @@ impl From<&StarknetBlock> for BaseBlockHeader {
     }
 }
 
-impl From<&StarknetBlock> for TypesPendingBlockHeader {
-    fn from(value: &StarknetBlock) -> Self {
-        Self { header: BaseBlockHeader::from(value) }
-    }
-}
-
 impl From<&StarknetBlock> for TypesBlockHeader {
     fn from(value: &StarknetBlock) -> Self {
         Self {
             block_hash: value.block_hash(),
+            parent_hash: value.parent_hash(),
             block_number: value.block_number(),
+            sequencer_address: value.sequencer_address(),
             new_root: value.new_root(),
-            header: BaseBlockHeader::from(value),
+            timestamp: value.timestamp(),
+            starknet_version: STARKNET_VERSION.to_string(),
+            l1_gas_price: ResourcePrice {
+                price_in_fri: value.header.l1_gas_price.price_in_fri.0.into(),
+                price_in_wei: value.header.l1_gas_price.price_in_wei.0.into(),
+            },
+            l1_data_gas_price: ResourcePrice {
+                price_in_fri: value.header.l1_data_gas_price.price_in_fri.0.into(),
+                price_in_wei: value.header.l1_data_gas_price.price_in_wei.0.into(),
+            },
+            l1_da_mode: value.header.l1_da_mode,
         }
     }
 }
