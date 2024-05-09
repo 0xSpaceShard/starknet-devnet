@@ -30,20 +30,14 @@ mod blocks_on_demand_tests {
             .await
             .unwrap();
 
-        match pending_state_update {
-            MaybePendingStateUpdate::PendingUpdate(_) => {}
-            _ => panic!("Invalid state type {:?}", pending_state_update),
-        }
+        assert!(matches!(pending_state_update, MaybePendingStateUpdate::PendingUpdate(_)));
     }
 
     async fn assert_latest_state_update(devnet: &BackgroundDevnet, block_tag: BlockId) {
         let latest_state_update =
             &devnet.json_rpc_client.get_state_update(block_tag).await.unwrap();
 
-        match latest_state_update {
-            MaybePendingStateUpdate::Update(_) => {}
-            _ => panic!("Invalid state type {:?}", latest_state_update),
-        }
+        assert!(matches!(latest_state_update, MaybePendingStateUpdate::Update(_)));
     }
 
     async fn assert_latest_block_with_transactions(
