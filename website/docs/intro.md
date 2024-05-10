@@ -2,7 +2,10 @@
 sidebar_position: 1
 ---
 
+
+
 <!-- logo / title -->
+<!--
 <p align="center" style="margin-bottom: 0px !important">
   <img width="200" src="https://github.com/0xSpaceShard/starknet-devnet-rs/assets/21069052/4791b0e4-58fc-4a44-8f87-fc0db636a5c7" alt="Devnet-RS" align="center"></img>
 </p>
@@ -16,207 +19,7 @@ sidebar_position: 1
   <a href="https://starkware.co/" target="_blank">
     <img src="https://img.shields.io/badge/powered_by-StarkWare-navy" style="max-width: 100%;"></img>
   </a>
-</p>
-
-A local testnet for Starknet... in Rust!
-
-This repository is work in progress, please be patient. Please check below the status of features compared with the [Pythonic Devnet](https://github.com/0xSpaceShard/starknet-devnet):
-
-### Supported Features
-
-- [x] [RPC support](#api)
-- [x] [Dump & Load](#dumping--loading)
-- [x] [Mint token - Local faucet](#mint-token)
-- [x] [Customizable predeployed accounts](#predeployed-contracts)
-- [x] [Starknet.js test suite passes 100%](https://github.com/starknet-io/starknet.js/actions)
-- [x] [Lite mode](#lite-mode)
-- [x] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
-- [x] [Availability as a package (crate)](#install-an-executable-binary)
-- [x] [Forking](#forking)
-- [x] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
-- [x] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
-  - [x] [Aborting blocks](#abort-blocks)
-  - [x] [Creating an empty block](#create-an-empty-block)
-  - [x] [Creating blocks on demand](#creating-blocks-on-demand)
-
-## Installation and running
-
-There are several approaches to installing and running Devnet.
-
-### Requirements
-
-Any of the approaches below that mention `cargo` require you to have [installed Rust](https://www.rust-lang.org/tools/install). You might also need to install `pkg-config` and `make`.
-
-The required Rust version is specified in [rust-toolchain.toml](rust-toolchain.toml) and handled automatically by `cargo`.
-
-### Install an executable binary
-
-Installing an executable binary is achievable with `cargo install` via crates.io or github.com. This approach downloads the crate, builds it in release mode and copies it to `~/.cargo/bin/`. To avoid needing to compile and wait, check the [pre-compiled binary section](#fetch-a-pre-compiled-binary-executable).
-
-If in the past you installed [Pythonic Devnet](https://github.com/0xSpaceShard/starknet-devnet), be sure to remove it to avoid name collision of the old and the new executable - if by no other means, then by `rm $(which starknet-devnet)`.
-
-#### Install from crates.io
-
-```
-$ cargo install starknet-devnet
-```
-
-#### Install from GitHub
-
-- Use the `--locked` flag to ensure using the dependencies listed in [the lock file](/Cargo.lock)
-- Preferably familiarize yourself with the `cargo install` command ([docs](https://doc.rust-lang.org/cargo/commands/cargo-install.html#dealing-with-the-lockfile))
-
-```
-$ cargo install --git https://github.com/0xSpaceShard/starknet-devnet-rs.git --locked
-```
-
-#### Run the installed executable
-
-When `cargo install` finishes, follow the output in your terminal. If properly configured, you should be able to run Devnet with:
-
-```
-$ starknet-devnet
-```
-
-### Fetch a pre-compiled binary executable
-
-If you want to save time and skip project compilation on installation, since Devnet v0.0.5, the Assets section of each [GitHub release](https://github.com/0xSpaceShard/starknet-devnet-rs/releases) contains a set of platform-specific pre-compiled binary executables. Extract and run with:
-
-```
-$ curl https://github.com/0xSpaceShard/starknet-devnet-rs/releases/download/<VERSION>/<COMPRESSED_ARCHIVE> | tar -xvzf -C <TARGET_DIR>
-$ <TARGET_DIR>/starknet-devnet
-```
-
-### Run from source
-
-After [git-cloning](https://github.com/git-guides/git-clone) this repository, running the following command will install, build and start Devnet:
-
-```
-$ cargo run
-```
-
-Specify optional CLI params like this:
-
-```
-$ cargo run -- [ARGS]
-```
-
-For a more optimized performance (though with a longer compilation time), run:
-
-```
-$ cargo run --release
-```
-
-### Run with Docker
-
-Devnet is available as a Docker image ([Docker Hub link](https://hub.docker.com/r/shardlabs/starknet-devnet-rs/)). To download the `latest` image, run:
-
-```text
-$ docker pull shardlabs/starknet-devnet-rs
-```
-
-Supported platforms: linux/amd64 and linux/arm64 (also executable on darwin/arm64).
-
-Running a container is done like this (see [port publishing](#container-port-publishing) for more info):
-
-```text
-$ docker run -p [HOST:]<PORT>:5050 shardlabs/starknet-devnet-rs [OPTIONS]
-```
-
-### Docker image tags
-
-All of the versions published on crates.io for starknet-devnet are available as docker images, which can be used via:
-
-```
-$ docker pull shardlabs/starknet-devnet-rs:<CRATES_IO_VERSION>
-```
-
-NOTE! The latest docker image tag corresponds to the last published version in crates.io
-
-Commits to the `main` branch of this repository are mostly available as images tagged with their commit hash (the full 40-lowercase-hex-digits SHA1 digest):
-
-```
-$ docker pull shardlabs/starknet-devnet-rs:<COMMIT_HASH>
-```
-
-By appending the `-seed0` suffix, you can use images which [predeploy funded accounts](#predeployed-contracts) with `--seed 0`, thus always predeploying the same set of accounts:
-
-```
-$ docker pull shardlabs/starknet-devnet-rs:<VERSION>-seed0
-$ docker pull shardlabs/starknet-devnet-rs:latest-seed0
-```
-
-### Container port publishing
-
-#### Linux
-
-If on a Linux host machine, you can use [`--network host`](https://docs.docker.com/network/host/). This way, the port used internally by the container is also available on your host machine. The `--port` option can be used (as well as other CLI options).
-
-```text
-$ docker run --network host shardlabs/starknet-devnet-rs [--port <PORT>]
-```
-
-#### Mac, Windows
-
-If not on Linux, you need to publish the container's internally used port to a desired `<PORT>` on your host machine. The internal port is `5050` by default (probably not your concern, but can be overridden with `--port`).
-
-```text
-$ docker run -p [HOST:]<PORT>:5050 shardlabs/starknet-devnet-rs
-```
-
-E.g. if you want to use your host machine's `127.0.0.1:5050`, you need to run:
-
-```text
-$ docker run -p 127.0.0.1:5050:5050 shardlabs/starknet-devnet-rs
-```
-
-You may ignore any address-related output logged on container startup (e.g. `Starknet Devnet listening on 0.0.0.0:5050`). What you will use is what you specified with the `-p` argument.
-
-If you don't specify the `HOST` part, the server will indeed be available on all of your host machine's addresses (localhost, local network IP, etc.), which may present a security issue if you don't want anyone from the local network to access your Devnet instance.
-
-## CLI options
-
-Check out the CLI options with:
-
-```
-$ starknet-devnet --help
-```
-
-Or if using dockerized Devnet:
-
-```
-$ docker run --rm shardlabs/starknet-devnet-rs --help
-```
-
-## Logging
-
-By default, the logging level is INFO, but this can be changed via the `RUST_LOG` environment variable.
-
-All logging levels: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`
-
-To specify the logging level and run Devnet on the same line:
-
-```
-$ RUST_LOG=<LEVEL> starknet-devnet
-```
-
-or if using dockerized Devnet:
-
-```
-$ docker run -e RUST_LOG=<LEVEL> shardlabs/starknet-devnet-rs
-```
-
-## API
-
-Unlike Pythonic Devnet, which supported the gateway and feeder gateway API, Devnet in Rust only supports JSON-RPC. Since JSON-RPC v0.6.0, to find out which JSON-RPC version is supported by which Devnet version, check out the [releases page](https://github.com/0xspaceshard/starknet-devnet-rs/releases).
-
-Below is the list of old RPC versions supported by Devnet, usable as git tags or branches. They should be used with `git checkout <REVISION>`.
-
-- `json-rpc-v0.4.0`
-- `json-rpc-v0.5.0`
-- `json-rpc-v0.5.1`
-
-The JSON-RPC API is reachable via `/rpc` and `/` (e.g. if spawning Devnet with default settings, these URLs have the equivalent functionality: `http://127.0.0.1:5050/rpc` and `http://127.0.0.1:5050/`)
+</p>-->
 
 ## Predeployed contracts
 
@@ -230,7 +33,7 @@ The predeployment information is logged on Devnet startup. Predeployed accounts 
 
 ## Mint token
 
-For now, you can consult the [Pythonic Devnet docs on minting](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token/), with the differences between lite minting not being supported anymore and additional support of Stark token minting declared in FRI unit. Unit is an optional parameter and when it's not specified is set to WEI by default, this behaviour can change in the next versions.
+For now, you can consult [Pythonic Devnet docs on minting](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token/), with the differences between lite minting not being supported anymore and additional support of Stark token minting declared in FRI unit. Unit is an optional parameter and when it's not specified is set to WEI by default, this behaviour can change in the next versions.
 
 ```
 POST /mint

@@ -9,26 +9,29 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Isolated but Connected',
+    title: 'Isolated but connected 🖥️',
     description: (
       <>
-        TODO
+        Simulate <a href="https://docs.starknet.io/documentation/" target="_blank" rel="noopener noreferrer">Starknet</a> in the
+        comfort of your local network. Fork mainnet/testnet to interact with real-world smart contracts, while maintaining isolation.
       </>
     ),
   },
   {
-    title: 'Configurable',
+    title: 'Configurable and preservable 🔧',
     description: (
       <>
-        TODO
+        Gas price, predeployed accounts, chain ID... All of this and more can be configured according to your needs.
+        Once your work is done, dump Devnet into a file and later load it to continue where you left off.
       </>
     ),
   },
   {
-    title: 'Built in Rust',
+    title: 'Built in Rust 🦀',
     description: (
       <>
-        Faster than its predecessor Pythonic predecessor starknet-devnet, this baby is built with Rust (TM) to allow you the bestest possible user experience. Yasss!!!!
+        Faster than its <a href="https://0xspaceshard.github.io/starknet-devnet/" target="_blank" rel="noopener noreferrer">
+        Pythonic predecessor</a>, this baby is built with Rust to ensure you the bestest possible user experience. Yasss!!!!
       </>
     ),
   },

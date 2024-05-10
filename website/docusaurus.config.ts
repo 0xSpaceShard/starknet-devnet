@@ -5,15 +5,15 @@ import type * as Preset from "@docusaurus/preset-classic";
 const GITHUB_REPO_URL = "https://github.com/0xSpaceShard/starknet-devnet-rs";
 
 const config: Config = {
-  title: "Starknet Devnet RS",
+  title: "Starknet Devnet",
   tagline: "A local testnet for Starknet... in Rust",
   favicon: "img/favicon.ico",
 
   // Set the production url of your site here
-  url: "https://github.com/",
+  url: "https://0xspaceshard.github.io",
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: "/0xSpaceShard/starknet-devnet/",
+  baseUrl: "/starknet-devnet-rs/",
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
@@ -38,7 +38,7 @@ const config: Config = {
         docs: {
           sidebarPath: "./sidebars.ts",
           editUrl:
-            "https://github.com/0xSpaceShard/starknet-devnet/blob/master/website",
+            "https://github.com/0xSpaceShard/starknet-devnet-rs/blob/master/website",
         },
         theme: {
           customCss: "./src/css/custom.css",
@@ -51,17 +51,17 @@ const config: Config = {
     // Replace with your project's social card
     image: "img/docusaurus-social-card.jpg",
     navbar: {
-      title: "My Site",
+      title: "Starknet Devnet",
       logo: {
-        alt: "My Site Logo",
-        src: "img/logo.svg",
+        alt: "Devnet Logo",
+        src: "img/devnet-logo.png",
       },
       items: [
         {
           type: "docSidebar",
-          sidebarId: "tutorialSidebar",
+          sidebarId: "docSidebar",
           position: "left",
-          label: "Tutorial",
+          label: "Docs",
         },
         {
           href: GITHUB_REPO_URL,
@@ -77,7 +77,7 @@ const config: Config = {
           title: "Docs",
           items: [
             {
-              label: "Tutorial",
+              label: "Get started",
               to: "/docs/intro",
             },
           ],
