@@ -28,7 +28,7 @@ use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{split_biguint, BlockHash, ClassHash, Felt, TransactionHash};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::block::{Block, BlockHeader};
+use starknet_types::rpc::block::{Block, BlockResult, BlockHeader, PendingBlock, PendingBlockHeader};
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
 use starknet_types::rpc::state::ThinStateDiff;
 use starknet_types::rpc::transaction_receipt::{
@@ -894,7 +894,7 @@ impl Starknet {
         Ok(block.clone())
     }
 
-    pub fn get_block_with_transactions(&self, block_id: &BlockId) -> DevnetResult<Block> {
+    pub fn get_block_with_transactions(&self, block_id: &BlockId) -> DevnetResult<BlockResult> {
         let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
         let transactions = block
             .get_transactions()
@@ -907,11 +907,20 @@ impl Starknet {
             })
             .collect::<DevnetResult<Vec<TransactionWithHash>>>()?;
 
-        Ok(Block {
-            status: *block.status(),
-            header: BlockHeader::from(block),
-            transactions: Transactions::Full(transactions),
-        })
+        if self.config.blocks_on_demand
+            && block_id == &BlockId::Tag(BlockTag::Pending)
+        {
+            Ok(BlockResult::PendingBlock(PendingBlock {
+                header: PendingBlockHeader::from(block),
+                transactions: Transactions::Full(transactions),
+            }))
+        } else {
+            Ok(BlockResult::Block(Block {
+                status: *block.status(),
+                header: BlockHeader::from(block),
+                transactions: Transactions::Full(transactions),
+            }))
+        }
     }
 
     pub fn get_block_with_receipts(&self, block_id: BlockId) -> DevnetResult<Block> {
@@ -1018,7 +1027,10 @@ impl Starknet {
         &self,
         block_id: &BlockId,
     ) -> DevnetResult<Vec<BlockTransactionTrace>> {
-        let transactions = self.get_block_with_transactions(block_id)?.transactions;
+        let transactions = match self.get_block_with_transactions(block_id)? {
+            BlockResult::Block(b) => b.transactions,
+            BlockResult::PendingBlock(b) => b.transactions,
+        };
 
         let mut traces = Vec::new();
         if let Transactions::Full(txs) = transactions {

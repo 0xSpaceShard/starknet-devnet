@@ -62,6 +62,13 @@ impl<'de> Deserialize<'de> for BlockId {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub enum BlockResult {
+    Block(Block),
+    PendingBlock(PendingBlock),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Block {
     pub status: BlockStatus,
     #[serde(flatten)]
