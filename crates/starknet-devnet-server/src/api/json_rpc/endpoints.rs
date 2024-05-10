@@ -3,7 +3,9 @@ use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag, MsgFromL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::block::{Block, BlockHeader, BlockId, BlockResult, PendingBlock, PendingBlockHeader};
+use starknet_types::rpc::block::{
+    Block, BlockHeader, BlockId, BlockResult, PendingBlock, PendingBlockHeader,
+};
 use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, SimulationFlag,
@@ -58,13 +60,11 @@ impl JsonRpcHandler {
         let starknet = self.api.starknet.read().await;
 
         let block =
-            starknet.get_block_with_transactions(block_id.as_ref()).map_err(
-                |err| match err {
-                    Error::NoBlock => ApiError::BlockNotFound,
-                    Error::NoTransaction => ApiError::TransactionNotFound,
-                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
-                },
-            )?;
+            starknet.get_block_with_transactions(block_id.as_ref()).map_err(|err| match err {
+                Error::NoBlock => ApiError::BlockNotFound,
+                Error::NoTransaction => ApiError::TransactionNotFound,
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            })?;
 
         match block {
             BlockResult::Block(b) => Ok(StarknetResponse::Block(b)),
@@ -83,7 +83,10 @@ impl JsonRpcHandler {
                 },
             )?;
 
-        Ok(StarknetResponse::Block(block))
+        match block {
+            BlockResult::Block(b) => Ok(StarknetResponse::Block(b)),
+            BlockResult::PendingBlock(b) => Ok(StarknetResponse::PendingBlock(b)),
+        }
     }
 
     /// starknet_getStateUpdate

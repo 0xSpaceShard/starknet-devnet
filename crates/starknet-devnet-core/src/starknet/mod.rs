@@ -28,7 +28,9 @@ use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{split_biguint, BlockHash, ClassHash, Felt, TransactionHash};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::block::{Block, BlockResult, BlockHeader, PendingBlock, PendingBlockHeader};
+use starknet_types::rpc::block::{
+    Block, BlockHeader, BlockResult, PendingBlock, PendingBlockHeader,
+};
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
 use starknet_types::rpc::state::ThinStateDiff;
 use starknet_types::rpc::transaction_receipt::{
@@ -907,9 +909,7 @@ impl Starknet {
             })
             .collect::<DevnetResult<Vec<TransactionWithHash>>>()?;
 
-        if self.config.blocks_on_demand
-            && block_id == &BlockId::Tag(BlockTag::Pending)
-        {
+        if self.config.blocks_on_demand && block_id == &BlockId::Tag(BlockTag::Pending) {
             Ok(BlockResult::PendingBlock(PendingBlock {
                 header: PendingBlockHeader::from(block),
                 transactions: Transactions::Full(transactions),
@@ -923,7 +923,7 @@ impl Starknet {
         }
     }
 
-    pub fn get_block_with_receipts(&self, block_id: BlockId) -> DevnetResult<Block> {
+    pub fn get_block_with_receipts(&self, block_id: BlockId) -> DevnetResult<BlockResult> {
         let block = self.blocks.get_by_block_id(&block_id).ok_or(Error::NoBlock)?;
         let mut transaction_receipts: Vec<TransactionWithReceipt> = vec![];
 
@@ -953,11 +953,18 @@ impl Starknet {
                 .push(TransactionWithReceipt { receipt, transaction: transaction.transaction });
         }
 
-        Ok(Block {
-            status: *block.status(),
-            header: BlockHeader::from(block),
-            transactions: Transactions::FullWithReceipts(transaction_receipts),
-        })
+        if self.config.blocks_on_demand && block_id == BlockId::Tag(BlockTag::Pending) {
+            Ok(BlockResult::PendingBlock(PendingBlock {
+                header: PendingBlockHeader::from(block),
+                transactions: Transactions::FullWithReceipts(transaction_receipts),
+            }))
+        } else {
+            Ok(BlockResult::Block(Block {
+                status: *block.status(),
+                header: BlockHeader::from(block),
+                transactions: Transactions::FullWithReceipts(transaction_receipts),
+            }))
+        }
     }
 
     pub fn get_transaction_by_block_id_and_index(
