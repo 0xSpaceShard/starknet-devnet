@@ -34,26 +34,53 @@ pub fn serve_http_api_json_rpc(
         .json_rpc_route("/")
         .json_rpc_route("/rpc")
         .http_api_route("/is_alive", get(http::is_alive))
+        .http_api_route("/devnet_is_alive", get(http::is_alive))
         .http_api_route("/dump", post(http::dump_load::dump))
+        .http_api_route("devnet_dump", post(http::dump_load::dump))
         .http_api_route("/load", post(http::dump_load::load))
+        .http_api_route("/devnet_load", post(http::dump_load::load))
         .http_api_route("/postman/load_l1_messaging_contract", post(http::postman::postman_load))
+        .http_api_route("/devnet_postman/load_l1_messaging_contract", post(http::postman::postman_load))
         .http_api_route("/postman/flush", post(http::postman::postman_flush))
+        .http_api_route("/devnet_postman/flush", post(http::postman::postman_flush))
         .http_api_route(
             "/postman/send_message_to_l2",
+            post(http::postman::postman_send_message_to_l2),
+        )
+        .http_api_route(
+            "/devnet_postman/send_message_to_l2",
             post(http::postman::postman_send_message_to_l2),
         )
         .http_api_route(
             "/postman/consume_message_from_l2",
             post(http::postman::postman_consume_message_from_l2),
         )
+        .http_api_route(
+            "/devnet_postman/consume_message_from_l2",
+            post(http::postman::postman_consume_message_from_l2),
+        )
         .http_api_route("/create_block", post(http::blocks::create_block))
+        .http_api_route("/devnet_create_block", post(http::blocks::create_block))
         .http_api_route("/abort_blocks", post(http::blocks::abort_blocks))
         .http_api_route("/restart", post(http::restart))
+        .http_api_route("/devnet_restart", post(http::restart))
         .http_api_route("/set_time", post(http::time::set_time))
+        .http_api_route("/devnet_set_time", post(http::time::set_time))
         .http_api_route("/increase_time", post(http::time::increase_time))
+        .http_api_route("/devnet_increase_time", post(http::time::increase_time))
         .http_api_route("/predeployed_accounts", get(http::accounts::get_predeployed_accounts))
+        .http_api_route("/devnet_predeployed_accounts", get(http::accounts::get_predeployed_accounts))
         .http_api_route("/account_balance", get(http::accounts::get_account_balance))
+        .http_api_route("/devnet_account_balance", get(http::accounts::get_account_balance))
         .http_api_route("/mint", post(http::mint_token::mint))
+        .http_api_route("/devnet_mint", post(http::mint_token::mint))
         .http_api_route("/config", get(http::get_devnet_config))
+        .http_api_route("/devnet_config", get(http::get_devnet_config))
         .build(server_config)
 }
+
+
+// changes to make
+// mint should be done via 
+// POST /mint and 
+// POST /devnet_mint
