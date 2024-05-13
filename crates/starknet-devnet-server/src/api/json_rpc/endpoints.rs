@@ -6,7 +6,7 @@ use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{
     Block, BlockHeader, BlockId, BlockResult, PendingBlock, PendingBlockHeader,
 };
-use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
+use starknet_types::rpc::state::StateUpdateResult;
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, SimulationFlag,
 };
@@ -33,6 +33,7 @@ impl JsonRpcHandler {
             unknown_error => ApiError::StarknetDevnetError(unknown_error),
         })?;
 
+        // TODO: fix this
         // StarknetBlock needs to be mapped to PendingBlock response only in blocks_on_demand mode
         // and when block_id is pending
         if starknet.config.blocks_on_demand
@@ -99,24 +100,9 @@ impl JsonRpcHandler {
                 unknown_error => ApiError::StarknetDevnetError(unknown_error),
             })?;
 
-        let state_diff = state_update.state_diff.into();
-
-        // StateUpdate needs to be mapped to PendingStateUpdate response only in blocks_on_demand
-        // mode and when block_id is pending
-        if starknet.config.blocks_on_demand
-            && block_id == ImportedBlockId::Tag(BlockTag::Pending).into()
-        {
-            Ok(StarknetResponse::PendingStateUpdate(PendingStateUpdate {
-                old_root: state_update.old_root,
-                state_diff,
-            }))
-        } else {
-            Ok(StarknetResponse::StateUpdate(StateUpdate {
-                block_hash: state_update.block_hash,
-                new_root: state_update.new_root,
-                old_root: state_update.old_root,
-                state_diff,
-            }))
+        match state_update {
+            StateUpdateResult::StateUpdate(s) => Ok(StarknetResponse::StateUpdate(s)),
+            StateUpdateResult::PendingStateUpdate(s) => Ok(StarknetResponse::PendingStateUpdate(s)),
         }
     }
 

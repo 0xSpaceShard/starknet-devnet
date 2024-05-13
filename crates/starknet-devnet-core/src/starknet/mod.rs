@@ -32,7 +32,9 @@ use starknet_types::rpc::block::{
     Block, BlockHeader, BlockResult, PendingBlock, PendingBlockHeader,
 };
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
-use starknet_types::rpc::state::ThinStateDiff;
+use starknet_types::rpc::state::{
+    PendingStateUpdate, StateUpdate, StateUpdateResult, ThinStateDiff,
+};
 use starknet_types::rpc::transaction_receipt::{
     DeployTransactionReceipt, L1HandlerTransactionReceipt, TransactionReceipt,
 };
@@ -66,7 +68,6 @@ use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
-use crate::state::state_update::StateUpdate;
 use crate::state::{CustomState, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
@@ -785,8 +786,25 @@ impl Starknet {
         )
     }
 
-    pub fn block_state_update(&self, block_id: &BlockId) -> DevnetResult<StateUpdate> {
-        state_update::state_update_by_block_id(self, block_id)
+    pub fn block_state_update(&self, block_id: &BlockId) -> DevnetResult<StateUpdateResult> {
+        let state_update = state_update::state_update_by_block_id(self, block_id)?;
+        let state_diff = state_update.state_diff.into();
+
+        // StateUpdate needs to be mapped to PendingStateUpdate only in blocks_on_demand mode and
+        // when block_id is pending
+        if self.config.blocks_on_demand && block_id == &BlockId::Tag(BlockTag::Pending) {
+            Ok(StateUpdateResult::PendingStateUpdate(PendingStateUpdate {
+                old_root: state_update.old_root,
+                state_diff,
+            }))
+        } else {
+            Ok(StateUpdateResult::StateUpdate(StateUpdate {
+                block_hash: state_update.block_hash,
+                new_root: state_update.new_root,
+                old_root: state_update.old_root,
+                state_diff,
+            }))
+        }
     }
 
     pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> DevnetResult<Vec<Felt>> {
