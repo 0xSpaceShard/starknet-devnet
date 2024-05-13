@@ -34,8 +34,6 @@ impl JsonRpcHandler {
             unknown_error => ApiError::StarknetDevnetError(unknown_error),
         })?;
 
-        // StarknetBlock needs to be mapped to PendingBlock response when the block status is
-        // pending
         if block.status() == &BlockStatus::Pending {
             Ok(StarknetResponse::PendingBlock(PendingBlock {
                 header: PendingBlockHeader::from(&block),

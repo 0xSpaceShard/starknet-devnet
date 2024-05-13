@@ -927,7 +927,7 @@ impl Starknet {
             })
             .collect::<DevnetResult<Vec<TransactionWithHash>>>()?;
 
-        if self.config.blocks_on_demand && block_id == &BlockId::Tag(BlockTag::Pending) {
+        if block.status() == &BlockStatus::Pending {
             Ok(BlockResult::PendingBlock(PendingBlock {
                 header: PendingBlockHeader::from(block),
                 transactions: Transactions::Full(transactions),
@@ -971,7 +971,7 @@ impl Starknet {
                 .push(TransactionWithReceipt { receipt, transaction: transaction.transaction });
         }
 
-        if self.config.blocks_on_demand && block_id == BlockId::Tag(BlockTag::Pending) {
+        if block.status() == &BlockStatus::Pending {
             Ok(BlockResult::PendingBlock(PendingBlock {
                 header: PendingBlockHeader::from(block),
                 transactions: Transactions::FullWithReceipts(transaction_receipts),
