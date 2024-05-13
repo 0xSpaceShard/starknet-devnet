@@ -1,5 +1,5 @@
 use starknet_core::error::{Error, StateError};
-use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag, MsgFromL1};
+use starknet_rs_core::types::{BlockId as ImportedBlockId, MsgFromL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
@@ -10,6 +10,7 @@ use starknet_types::rpc::state::StateUpdateResult;
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, SimulationFlag,
 };
+use starknet_types::starknet_api::block::BlockStatus;
 
 use super::error::{ApiError, StrictRpcResult};
 use super::models::{BlockHashAndNumberOutput, SyncingOutput, TransactionStatusOutput};
@@ -33,12 +34,9 @@ impl JsonRpcHandler {
             unknown_error => ApiError::StarknetDevnetError(unknown_error),
         })?;
 
-        // TODO: fix this
-        // StarknetBlock needs to be mapped to PendingBlock response only in blocks_on_demand mode
-        // and when block_id is pending
-        if starknet.config.blocks_on_demand
-            && block_id == ImportedBlockId::Tag(BlockTag::Pending).into()
-        {
+        // StarknetBlock needs to be mapped to PendingBlock response when the block status is
+        // pending
+        if block.status() == &BlockStatus::Pending {
             Ok(StarknetResponse::PendingBlock(PendingBlock {
                 header: PendingBlockHeader::from(&block),
                 transactions: starknet_types::rpc::transactions::Transactions::Hashes(
