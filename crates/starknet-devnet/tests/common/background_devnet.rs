@@ -4,9 +4,8 @@ use std::net::TcpListener;
 use std::process::{Child, Command, Stdio};
 use std::time;
 
-use hyper::client::HttpConnector;
-use hyper::{Client, StatusCode, Uri};
 use lazy_static::lazy_static;
+use reqwest::{Client, StatusCode};
 use serde_json::json;
 use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
 use starknet_rs_core::types::{
@@ -42,7 +41,7 @@ lazy_static! {
 
 #[derive(Debug)]
 pub struct BackgroundDevnet {
-    pub http_client: Client<HttpConnector>,
+    pub reqwest_client: ReqwestClient,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
     pub process: Child,
     pub port: u16,
@@ -77,8 +76,8 @@ impl BackgroundDevnet {
         BackgroundDevnet::spawn_with_additional_args(&[]).await
     }
 
-    pub fn reqwest_client(&self) -> ReqwestClient {
-        ReqwestClient::new(self.url.clone())
+    pub fn reqwest_client(&self) -> &ReqwestClient {
+        &self.reqwest_client
     }
 
     /// Takes specified args and adds default values for args that are missing
@@ -129,17 +128,16 @@ impl BackgroundDevnet {
                 .spawn()
                 .expect("Could not start background devnet");
 
-        let healthcheck_uri =
-            format!("{}{HEALTHCHECK_PATH}", devnet_url.as_str()).as_str().parse::<Uri>()?;
+        let healthcheck_uri = format!("{}{HEALTHCHECK_PATH}", devnet_url.as_str()).to_string();
+        let reqwest_client = Client::new();
 
-        let http_client = Client::new();
         let max_retries = 30;
         for _ in 0..max_retries {
-            if let Ok(alive_resp) = http_client.get(healthcheck_uri.clone()).await {
+            if let Ok(alive_resp) = reqwest_client.get(&healthcheck_uri).send().await {
                 assert_eq!(alive_resp.status(), StatusCode::OK);
                 println!("Spawned background devnet at port {free_port}");
                 return Ok(BackgroundDevnet {
-                    http_client,
+                    reqwest_client: ReqwestClient::new(devnet_url.clone(), reqwest_client),
                     json_rpc_client,
                     process,
                     port: free_port,

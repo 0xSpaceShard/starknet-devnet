@@ -9,14 +9,15 @@ use super::errors::ReqwestError;
 
 #[derive(Clone, Debug)]
 pub struct HttpEmptyResponseBody;
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ReqwestClient {
     url: String,
+    reqwest_client: reqwest::Client,
 }
 
 impl ReqwestClient {
-    pub fn new(url: String) -> Self {
-        Self { url }
+    pub fn new(url: String, reqwest_client: reqwest::Client) -> Self {
+        Self { url, reqwest_client }
     }
 
     async fn get_response<TParam>(
@@ -35,9 +36,9 @@ impl ReqwestClient {
             format!("{}{}?{}", self.url, path, query)
         };
         let request_builder = if method == reqwest::Method::GET {
-            reqwest::Client::new().get(&url)
+            self.reqwest_client.get(&url)
         } else {
-            reqwest::Client::new().post(&url)
+            self.reqwest_client.post(&url)
         };
 
         if TypeId::of::<TParam>() == TypeId::of::<()>() {

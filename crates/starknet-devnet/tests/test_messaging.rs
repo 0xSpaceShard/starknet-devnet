@@ -15,7 +15,6 @@ mod test_messaging {
     use std::sync::Arc;
 
     use ethers::prelude::*;
-    use hyper::Body;
     use serde_json::{json, Value};
     use starknet_rs_accounts::{
         Account, AccountError, Call, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
@@ -382,15 +381,6 @@ mod test_messaging {
         // Withdraw the 1 amount in a l2->l1 message.
         withdraw(Arc::clone(&account), l1l2_contract_address, user, user_balance, l1_address).await;
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ZERO]);
-
-        let _req_body = Body::from(
-            json!({
-                "from_address": format!("0x{:64x}", l1l2_contract_address),
-                "to_address": DUMMY_L1_ADDRESS,
-                "payload": ["0x0","0x1","0x1"],
-            })
-            .to_string(),
-        );
 
         let body: serde_json::Value = devnet
             .reqwest_client()

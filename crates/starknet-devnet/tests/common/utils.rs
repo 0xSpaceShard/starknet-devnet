@@ -4,7 +4,6 @@ use std::path::Path;
 use std::process::{Child, Command};
 use std::sync::Arc;
 
-use hyper::{Body, Response};
 use server::test_utils::exported_test_utils::assert_contains;
 use starknet_core::random_number_generator::generate_u32_random_number;
 use starknet_core::utils::casm_hash;

@@ -24,7 +24,7 @@ mod general_integration_tests {
         let too_big_path = "a".repeat(limit);
         let reqwest_error =
             PostReqwestSender::<serde_json::Value, HttpEmptyResponseBody>::post_json_async(
-                &devnet.reqwest_client(),
+                devnet.reqwest_client(),
                 "/load",
                 json!({"path": too_big_path}),
             )
