@@ -11,8 +11,7 @@ mod minting_tests {
     use crate::common::constants::{
         PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
     };
-    use crate::common::reqwest_client::{ReqwestSender};
-    
+    use crate::common::reqwest_client::ReqwestSender;
 
     static DUMMY_ADDRESS: &str = "0x42";
     static DUMMY_AMOUNT: u128 = 42;

@@ -567,10 +567,7 @@ mod advancing_time_tests {
         let past_time = 1;
         let resp_body_set_time: serde_json::Value = devnet
             .reqwest_client()
-            .post_json_async(
-                "/set_time",
-                json!({ "time": past_time, "generate_block": false }),
-            )
+            .post_json_async("/set_time", json!({ "time": past_time, "generate_block": false }))
             .await
             .unwrap();
 
