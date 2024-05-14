@@ -207,6 +207,8 @@ mod blocks_on_demand_tests {
         let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
 
+        let mut tx_hashes = Vec::new();
+
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let predeployed_account = Arc::new(SingleOwnerAccount::new(
             devnet.clone_provider(),
@@ -223,25 +225,27 @@ mod blocks_on_demand_tests {
         let declaration_result = predeployed_account
             .declare(Arc::new(contract_class), casm_class_hash)
             .max_fee(FieldElement::from(1e18 as u128))
+            .nonce(FieldElement::ZERO)
             .send()
             .await
             .unwrap();
 
-        devnet.create_block().await.unwrap();
+        tx_hashes.push(declaration_result.transaction_hash);
 
         // deploy the contract
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
         let initial_value = FieldElement::from(10_u32);
         let ctor_args = vec![initial_value];
-        contract_factory
+        let deploy_result = contract_factory
             .deploy(ctor_args.clone(), FieldElement::ZERO, false)
             .max_fee(FieldElement::from(1e18 as u128))
+            .nonce(FieldElement::ZERO)
             .send()
             .await
             .unwrap();
 
-        devnet.create_block().await.unwrap();
+        tx_hashes.push(deploy_result.transaction_hash);
 
         // generate the address of the newly deployed contract
         let contract_address = get_udc_deployed_address(
@@ -251,7 +255,6 @@ mod blocks_on_demand_tests {
             &ctor_args,
         );
 
-        let mut tx_hashes = Vec::new();
         let increment = FieldElement::from(5_u32);
         let contract_invoke = vec![Call {
             to: contract_address,
@@ -275,7 +278,7 @@ mod blocks_on_demand_tests {
 
         devnet.create_block().await.unwrap();
 
-        assert_latest_block_with_tx_hashes(&devnet, 3, tx_hashes).await;
+        assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await;
         assert_eq!(
             get_contract_balance(&devnet, contract_address).await,
             initial_value + (increment * FieldElement::from(tx_count as u128))
