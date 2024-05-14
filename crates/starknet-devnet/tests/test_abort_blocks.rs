@@ -1,14 +1,14 @@
 pub mod common;
 
 mod abort_blocks_tests {
-    use hyper::Body;
     use serde_json::json;
     use server::api::json_rpc::error::ApiError;
     use starknet_rs_core::types::FieldElement;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::utils::{assert_tx_reverted, get_json_body, to_hex_felt};
+    use crate::common::reqwest_client::{HttpEmptyResponseBody, ReqwestSender};
+    use crate::common::utils::{assert_tx_reverted, to_hex_felt};
 
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
@@ -17,11 +17,15 @@ mod abort_blocks_tests {
         devnet: &BackgroundDevnet,
         starting_block_hash: &FieldElement,
     ) -> Vec<FieldElement> {
-        let body = json!({ "starting_block_hash": to_hex_felt(starting_block_hash) }).to_string();
-        let abort_blocks_resp =
-            devnet.post_json("/abort_blocks".into(), Body::from(body)).await.unwrap();
+        let mut aborted_blocks: serde_json::Value = devnet
+            .reqwest_client()
+            .post_json_async(
+                "/abort_blocks",
+                json!({ "starting_block_hash": to_hex_felt(starting_block_hash) }),
+            )
+            .await
+            .unwrap();
 
-        let mut aborted_blocks = get_json_body(abort_blocks_resp).await;
         let aborted_blocks = aborted_blocks["aborted"].take().as_array().unwrap().clone();
 
         aborted_blocks
@@ -31,12 +35,17 @@ mod abort_blocks_tests {
     }
 
     async fn abort_blocks_error(devnet: &BackgroundDevnet, starting_block_hash: &FieldElement) {
-        let body = json!({ "starting_block_hash": to_hex_felt(starting_block_hash) }).to_string();
-        let abort_blocks =
-            devnet.post_json("/abort_blocks".into(), Body::from(body)).await.unwrap();
+        let aborted_blocks_error = devnet
+            .reqwest_client()
+            .post_json_async(
+                "/abort_blocks",
+                json!({ "starting_block_hash": to_hex_felt(starting_block_hash) }),
+            )
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap_err();
 
-        let aborted_blocks = get_json_body(abort_blocks).await;
-        assert!(aborted_blocks["error"].to_string().starts_with("\"Block abortion failed"));
+        assert!(aborted_blocks_error.error_message().contains("\"Block abortion failed"));
     }
 
     async fn assert_block_rejected(devnet: &BackgroundDevnet, block_hash: &FieldElement) {

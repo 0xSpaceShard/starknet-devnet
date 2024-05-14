@@ -2,27 +2,23 @@
 pub mod common;
 
 mod general_rpc_tests {
-    use hyper::Body;
     use serde_json::json;
     use server::api::json_rpc::RPC_SPEC_VERSION;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::RPC_PATH;
-    use crate::common::utils::get_json_body;
+    use crate::common::reqwest_client::ReqwestSender;
 
     #[tokio::test]
     async fn rpc_at_root() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let resp_root: serde_json::Value =
+            devnet.reqwest_client().post_json_async("/", ()).await.unwrap();
 
-        let resp_root =
-            devnet.post_json("/".into(), Body::from(json!({}).to_string())).await.unwrap();
-        let resp_root_body = get_json_body(resp_root).await;
+        let resp_rpc: serde_json::Value =
+            devnet.reqwest_client().post_json_async(RPC_PATH, ()).await.unwrap();
 
-        let resp_rpc =
-            devnet.post_json(RPC_PATH.into(), Body::from(json!({}).to_string())).await.unwrap();
-        let resp_rpc_body = get_json_body(resp_rpc).await;
-
-        assert_eq!(resp_root_body, resp_rpc_body);
+        assert_eq!(resp_root, resp_rpc);
     }
 
     #[tokio::test]

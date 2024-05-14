@@ -5,7 +5,6 @@ use std::process::{Child, Command, Stdio};
 use std::time;
 
 use hyper::client::HttpConnector;
-use hyper::http::request;
 use hyper::{Body, Client, Response, StatusCode, Uri};
 use lazy_static::lazy_static;
 use serde_json::json;
@@ -27,7 +26,8 @@ use super::constants::{
     ACCOUNTS, CHAIN_ID_CLI_PARAM, HEALTHCHECK_PATH, HOST, MAX_PORT, MIN_PORT,
     PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, RPC_PATH, SEED,
 };
-use super::errors::TestError;
+use super::errors::{ReqwestError, TestError};
+use super::reqwest_client::{HttpEmptyResponseBody, ReqwestClient, ReqwestSender};
 use crate::common::utils::get_json_body;
 
 lazy_static! {
@@ -74,6 +74,10 @@ impl BackgroundDevnet {
     #[allow(dead_code)] // dead_code needed to pass clippy
     pub(crate) async fn spawn() -> Result<Self, TestError> {
         BackgroundDevnet::spawn_with_additional_args(&[]).await
+    }
+
+    pub fn reqwest_client(&self) -> ReqwestClient {
+        ReqwestClient::new(self.url.clone())
     }
 
     /// Takes specified args and adds default values for args that are missing
@@ -156,7 +160,7 @@ impl BackgroundDevnet {
         path: String,
         body: hyper::Body,
     ) -> Result<Response<hyper::Body>, hyper::Error> {
-        let req = request::Request::builder()
+        let req = hyper::http::request::Request::builder()
             .method("POST")
             .uri(format!("{}{}", self.url.as_str(), path))
             .header("content-type", "application/json")
@@ -177,9 +181,7 @@ impl BackgroundDevnet {
             "params": params
         });
 
-        let body = hyper::Body::from(body_json.to_string());
-        let resp = self.post_json(RPC_PATH.into(), body).await.unwrap();
-        get_json_body(resp).await
+        self.reqwest_client().post_json_async(RPC_PATH, body_json).await.unwrap()
     }
 
     pub fn clone_provider(&self) -> JsonRpcClient<HttpTransport> {
@@ -187,18 +189,17 @@ impl BackgroundDevnet {
     }
 
     pub async fn mint(&self, address: impl LowerHex, mint_amount: u128) -> FieldElement {
-        let req_body = Body::from(
-            json!({
-                "address": format!("{address:#x}"),
-                "amount": mint_amount
-            })
-            .to_string(),
-        );
-
-        let resp = self.post_json("/mint".into(), req_body).await.unwrap();
-        let resp_status = resp.status();
-        let resp_body = get_json_body(resp).await;
-        assert_eq!(resp_status, StatusCode::OK, "Checking status of {resp_body:?}");
+        let resp_body: serde_json::Value = self
+            .reqwest_client()
+            .post_json_async(
+                "/mint",
+                json!({
+                    "address": format!("{address:#x}"),
+                    "amount": mint_amount
+                }),
+            )
+            .await
+            .unwrap();
 
         FieldElement::from_hex_be(resp_body["tx_hash"].as_str().unwrap()).unwrap()
     }
@@ -286,8 +287,11 @@ impl BackgroundDevnet {
         (signer, account_address)
     }
 
-    pub async fn restart(&self) -> Result<Response<Body>, hyper::Error> {
-        self.post_json("/restart".into(), Body::empty()).await
+    pub async fn restart(&self) -> Result<(), ReqwestError> {
+        self.reqwest_client()
+            .post_json_async("/restart", ())
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
     }
 
     pub async fn fork(&self) -> Result<Self, TestError> {
@@ -309,10 +313,9 @@ impl BackgroundDevnet {
 
     /// Mines a new block and returns its hash
     pub async fn create_block(&self) -> Result<FieldElement, anyhow::Error> {
-        let block_creation_resp =
-            self.post_json("/create_block".into(), Body::from(json!({}).to_string())).await?;
+        let block_creation_resp_body: serde_json::Value =
+            self.reqwest_client().post_json_async("/create_block", ()).await.unwrap();
 
-        let block_creation_resp_body = get_json_body(block_creation_resp).await;
         let block_hash_str = block_creation_resp_body["block_hash"].as_str().unwrap();
         Ok(FieldElement::from_hex_be(block_hash_str)?)
     }
