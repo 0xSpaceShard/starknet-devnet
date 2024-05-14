@@ -31,7 +31,6 @@ use super::reqwest_client::{
     GetReqwestSender, HttpEmptyResponseBody, PostReqwestSender, ReqwestClient,
 };
 
-
 lazy_static! {
     /// This is to prevent TOCTOU errors; i.e. one background devnet might find one
     /// port to be free, and while it's trying to start listening to it, another instance

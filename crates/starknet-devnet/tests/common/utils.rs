@@ -23,18 +23,6 @@ use starknet_rs_signers::LocalWallet;
 use super::background_devnet::BackgroundDevnet;
 use super::constants::CAIRO_1_CONTRACT_PATH;
 
-pub async fn get_json_body(resp: Response<Body>) -> serde_json::Value {
-    let resp_body = resp.into_body();
-    let resp_body_bytes = hyper::body::to_bytes(resp_body).await.unwrap();
-    serde_json::from_slice(&resp_body_bytes).unwrap()
-}
-
-pub async fn get_string_body(resp: Response<Body>) -> String {
-    let resp_body = resp.into_body();
-    let body_bytes = hyper::body::to_bytes(resp_body).await.unwrap();
-    String::from_utf8(body_bytes.to_vec()).unwrap()
-}
-
 /// dummy testing value
 pub fn get_deployable_account_signer() -> LocalWallet {
     let new_account_private_key = "0xc248668388dbe9acdfa3bc734cc2d57a";
