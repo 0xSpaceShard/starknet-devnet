@@ -155,20 +155,6 @@ impl BackgroundDevnet {
         Err(TestError::DevnetNotStartable)
     }
 
-    pub async fn post_json(
-        &self,
-        path: String,
-        body: hyper::Body,
-    ) -> Result<Response<hyper::Body>, hyper::Error> {
-        let req = hyper::http::request::Request::builder()
-            .method("POST")
-            .uri(format!("{}{}", self.url.as_str(), path))
-            .header("content-type", "application/json")
-            .body(body)
-            .unwrap();
-        self.http_client.request(req).await
-    }
-
     pub async fn send_custom_rpc(
         &self,
         method: &str,
