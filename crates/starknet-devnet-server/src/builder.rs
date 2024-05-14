@@ -7,8 +7,8 @@ use axum::http::HeaderValue;
 use axum::response::Response;
 use axum::routing::{post, IntoMakeService};
 use axum::{Extension, Router};
-use hyper::server::conn::AddrIncoming;
-use hyper::{header, Method, Request, Server};
+use hyper::{header, Method, Request};
+use tokio::net::TcpListener;
 use tower::Service;
 use tower_http::cors::CorsLayer;
 use tower_http::timeout::TimeoutLayer;
@@ -18,7 +18,7 @@ use crate::error::ServerResult;
 use crate::rpc_handler::{self, RpcHandler};
 use crate::ServerConfig;
 /// Helper type for naming the [`Server`]
-pub type StarknetDevnetServer = Server<AddrIncoming, IntoMakeService<Router>>;
+pub type StarknetDevnetServer = axum::serve::Serve<IntoMakeService<Router>, Router>;
 
 /// Helper for constructing a [`Server`].
 /// [`Builder`] is a convenience wrapper around [`Router`] with added support for JSON-RPC and HTTP
@@ -99,6 +99,9 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
 
         // let svc: Router<()> = svc.with_state((self.json_rpc_handler, self.http_api_handler));
 
-        Ok(Server::try_bind(&self.address)?.serve(svc.into_make_service()))
+        let tcpp =
+            TcpListener::from_std(std::net::TcpListener::bind(&self.address).unwrap()).unwrap();
+
+        Ok(axum::serve(tcpp, svc.into_make_service()))
     }
 }

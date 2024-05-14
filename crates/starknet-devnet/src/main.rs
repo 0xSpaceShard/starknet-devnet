@@ -43,7 +43,7 @@ fn log_predeployed_accounts(
     for account in predeployed_accounts {
         let formatted_str = format!(
             r"
-| Account address |  {} 
+| Account address |  {}
 | Private key     |  {}
 | Public key      |  {}",
             account.account_address.to_prefixed_hex_str(),
@@ -152,7 +152,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     set_and_log_fork_config(&mut starknet_config.fork_config, starknet_config.chain_id).await?;
 
-    let mut addr: SocketAddr = SocketAddr::new(server_config.host, server_config.port);
+    let addr: SocketAddr = SocketAddr::new(server_config.host, server_config.port);
 
     let api = Api::new(Starknet::new(&starknet_config)?);
 
@@ -174,18 +174,14 @@ async fn main() -> Result<(), anyhow::Error> {
     );
 
     let server = serve_http_api_json_rpc(addr, api.clone(), &starknet_config, &server_config)?;
-    addr = server.local_addr();
 
     info!("Starknet Devnet listening on {}", addr);
 
-    // spawn the server on a new task
-    let serve = if starknet_config.dump_on == Some(DumpOn::Exit) {
-        tokio::task::spawn(server.with_graceful_shutdown(shutdown_signal(api.clone())))
+    if starknet_config.dump_on == Some(DumpOn::Exit) {
+        Ok(server.with_graceful_shutdown(shutdown_signal(api.clone())).await?)
     } else {
-        tokio::task::spawn(server)
-    };
-
-    Ok(serve.await??)
+        Ok(server.await?)
+    }
 }
 
 pub async fn shutdown_signal(api: Api) {
