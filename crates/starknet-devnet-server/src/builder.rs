@@ -17,7 +17,6 @@ use tower_http::trace::TraceLayer;
 use crate::error::ServerResult;
 use crate::rpc_handler::{self, RpcHandler};
 use crate::ServerConfig;
-
 /// Helper type for naming the [`Server`]
 pub type StarknetDevnetServer = Server<AddrIncoming, IntoMakeService<Router>>;
 
@@ -54,7 +53,7 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
         http_service: THttpMethodService,
     ) -> Self
     where
-        THttpMethodService: Service<Request<hyper::Body>, Response = Response, Error = Infallible>
+        THttpMethodService: Service<Request<axum::body::Body>, Response = Response, Error = Infallible>
             + Clone
             + Send
             + 'static,
