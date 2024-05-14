@@ -5,7 +5,7 @@ use std::process::{Child, Command, Stdio};
 use std::time;
 
 use hyper::client::HttpConnector;
-use hyper::{Body, Client, Response, StatusCode, Uri};
+use hyper::{Client, StatusCode, Uri};
 use lazy_static::lazy_static;
 use serde_json::json;
 use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
@@ -30,7 +30,7 @@ use super::errors::{ReqwestError, TestError};
 use super::reqwest_client::{
     GetReqwestSender, HttpEmptyResponseBody, PostReqwestSender, ReqwestClient,
 };
-use crate::common::utils::get_json_body;
+
 
 lazy_static! {
     /// This is to prevent TOCTOU errors; i.e. one background devnet might find one

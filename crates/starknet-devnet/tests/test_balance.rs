@@ -9,7 +9,7 @@ mod balance_tests {
         PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
     };
     use crate::common::reqwest_client::GetReqwestSender;
-    use crate::common::utils::get_json_body;
+    
 
     #[tokio::test]
     async fn getting_balance_of_predeployed_contract() {
