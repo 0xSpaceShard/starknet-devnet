@@ -14,7 +14,7 @@ mod advancing_time_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
-    use crate::common::reqwest_client::{HttpEmptyResponseBody, ReqwestSender};
+    use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
     use crate::common::utils::{
         get_block_reader_contract_in_sierra_and_compiled_class_hash, get_unix_timestamp_as_seconds,
         send_ctrl_c_signal_and_wait, UniqueAutoDeletableFile,

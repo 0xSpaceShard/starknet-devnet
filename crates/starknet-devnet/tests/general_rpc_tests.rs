@@ -7,7 +7,7 @@ mod general_rpc_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::RPC_PATH;
-    use crate::common::reqwest_client::ReqwestSender;
+    use crate::common::reqwest_client::PostReqwestSender;
 
     #[tokio::test]
     async fn rpc_at_root() {

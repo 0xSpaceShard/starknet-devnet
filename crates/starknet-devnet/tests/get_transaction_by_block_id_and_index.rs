@@ -7,7 +7,7 @@ mod get_transaction_by_block_id_and_index_integration_tests {
     use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::reqwest_client::{HttpEmptyResponseBody, ReqwestSender};
+    use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
 
     #[tokio::test]
     async fn get_transaction_by_block_id_and_index_happy_path() {

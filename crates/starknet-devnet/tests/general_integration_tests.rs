@@ -6,7 +6,7 @@ mod general_integration_tests {
     use serde_json::json;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::reqwest_client::{HttpEmptyResponseBody, ReqwestSender};
+    use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
     use crate::common::utils::UniqueAutoDeletableFile;
 
     #[tokio::test]
@@ -23,7 +23,7 @@ mod general_integration_tests {
 
         let too_big_path = "a".repeat(limit);
         let reqwest_error =
-            ReqwestSender::<serde_json::Value, HttpEmptyResponseBody>::post_json_async(
+            PostReqwestSender::<serde_json::Value, HttpEmptyResponseBody>::post_json_async(
                 &devnet.reqwest_client(),
                 "/load",
                 json!({"path": too_big_path}),

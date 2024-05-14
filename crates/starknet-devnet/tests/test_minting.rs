@@ -11,7 +11,9 @@ mod minting_tests {
     use crate::common::constants::{
         PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
     };
-    use crate::common::reqwest_client::ReqwestSender;
+    use crate::common::reqwest_client::{
+        GetReqwestSender, HttpEmptyResponseBody, PostReqwestSender,
+    };
 
     static DUMMY_ADDRESS: &str = "0x42";
     static DUMMY_AMOUNT: u128 = 42;
@@ -170,8 +172,13 @@ mod minting_tests {
 
     async fn reject_bad_balance_query(query: &str) {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
-        let resp = devnet.get("/account_balance", Some(query.into())).await.unwrap();
-        assert_eq!(resp.status(), hyper::StatusCode::BAD_REQUEST, "Checking status of {resp:?}");
+        let resp = devnet
+            .reqwest_client()
+            .get_json_async("/account_balance", Some(query.into()))
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap_err();
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST, "Checking status of {resp:?}");
     }
 
     #[tokio::test]

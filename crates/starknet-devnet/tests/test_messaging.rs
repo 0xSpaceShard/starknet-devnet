@@ -38,7 +38,7 @@ mod test_messaging {
         CHAIN_ID, L1_HANDLER_SELECTOR, MESSAGING_L1_CONTRACT_ADDRESS,
         MESSAGING_L2_CONTRACT_ADDRESS, MESSAGING_WHITELISTED_L1_CONTRACT,
     };
-    use crate::common::reqwest_client::{HttpEmptyResponseBody, ReqwestSender};
+    use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
     use crate::common::utils::{
         assert_tx_successful, get_messaging_contract_in_sierra_and_compiled_class_hash,
         get_messaging_lib_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,

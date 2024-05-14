@@ -10,7 +10,7 @@ mod dump_and_load_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
-    use crate::common::reqwest_client::{HttpEmptyResponseBody, ReqwestSender};
+    use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
     use crate::common::utils::{send_ctrl_c_signal_and_wait, UniqueAutoDeletableFile};
 
     static DUMMY_ADDRESS: u128 = 1;

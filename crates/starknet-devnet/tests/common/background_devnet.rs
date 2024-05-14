@@ -27,7 +27,9 @@ use super::constants::{
     PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, RPC_PATH, SEED,
 };
 use super::errors::{ReqwestError, TestError};
-use super::reqwest_client::{HttpEmptyResponseBody, ReqwestClient, ReqwestSender};
+use super::reqwest_client::{
+    GetReqwestSender, HttpEmptyResponseBody, PostReqwestSender, ReqwestClient,
+};
 use crate::common::utils::get_json_body;
 
 lazy_static! {
@@ -229,11 +231,10 @@ impl BackgroundDevnet {
     ) -> Result<FieldElement, anyhow::Error> {
         let params =
             format!("address={:#x}&unit={}&block_tag={}", address, unit, Self::tag_to_str(tag));
+        let json_resp: serde_json::Value =
+            self.reqwest_client().get_json_async("/account_balance", Some(params)).await.unwrap();
 
-        let resp = self.get("/account_balance", Some(params)).await?;
         // response validity asserted in test_balance.rs::assert_balance_endpoint_response
-
-        let json_resp = get_json_body(resp).await;
         let amount_raw = json_resp["amount"].as_str().unwrap();
         Ok(FieldElement::from_dec_str(amount_raw)?)
     }
@@ -245,22 +246,11 @@ impl BackgroundDevnet {
         }
     }
 
-    /// Performs GET request on devnet; path should have a leading slash
-    pub async fn get(
-        &self,
-        path: &str,
-        query: Option<String>,
-    ) -> Result<Response<Body>, hyper::Error> {
-        let uri = format!("{}{}?{}", self.url, path, query.unwrap_or("".into()));
-        let response = self.http_client.get(uri.as_str().parse::<Uri>().unwrap()).await.unwrap();
-        Ok(response)
-    }
-
     /// This method returns the private key and the address of the first predeployed account
     pub async fn get_first_predeployed_account(&self) -> (LocalWallet, FieldElement) {
-        let predeployed_accounts_response = self.get("/predeployed_accounts", None).await.unwrap();
+        let predeployed_accounts_json: serde_json::Value =
+            self.reqwest_client().get_json_async("/predeployed_accounts", None).await.unwrap();
 
-        let predeployed_accounts_json = get_json_body(predeployed_accounts_response).await;
         let first_account = predeployed_accounts_json.as_array().unwrap().get(0).unwrap();
 
         let account_address =
@@ -325,7 +315,7 @@ impl BackgroundDevnet {
     }
 
     pub async fn get_config(&self) -> Result<serde_json::Value, anyhow::Error> {
-        Ok(get_json_body(self.get("/config", None).await?).await)
+        Ok(self.reqwest_client().get_json_async("/config", None).await.unwrap())
     }
 }
 
