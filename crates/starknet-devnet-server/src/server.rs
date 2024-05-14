@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use axum::routing::{get, post};
 use starknet_core::starknet::starknet_config::StarknetConfig;
 use tokio::net::TcpListener;
