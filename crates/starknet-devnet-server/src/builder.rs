@@ -1,11 +1,10 @@
 use std::convert::Infallible;
-use std::net::SocketAddr;
 use std::time::Duration;
 
 use axum::extract::DefaultBodyLimit;
 use axum::http::HeaderValue;
 use axum::response::Response;
-use axum::routing::{post, IntoMakeService};
+use axum::routing::post;
 use axum::{Extension, Router};
 use hyper::{header, Method, Request};
 use tokio::net::TcpListener;
@@ -18,7 +17,7 @@ use crate::error::ServerResult;
 use crate::rpc_handler::{self, RpcHandler};
 use crate::ServerConfig;
 /// Helper type for naming the [`Server`]
-pub type StarknetDevnetServer = axum::serve::Serve<IntoMakeService<Router>, Router>;
+pub type StarknetDevnetServer = axum::serve::Serve<Router, Router>;
 
 /// Helper for constructing a [`Server`].
 /// [`Builder`] is a convenience wrapper around [`Router`] with added support for JSON-RPC and HTTP
@@ -29,7 +28,7 @@ pub type StarknetDevnetServer = axum::serve::Serve<IntoMakeService<Router>, Rout
 /// Take a look at https://docs.rs/axum/latest/axum/#using-request-extensions
 
 pub struct Builder<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static> {
-    address: SocketAddr,
+    tcp_listener: TcpListener,
     routes: Router<()>,
     json_rpc_handler: TJsonRpcHandler,
     http_api_handler: THttpApiHandler,
@@ -39,11 +38,11 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
     Builder<TJsonRpcHandler, THttpApiHandler>
 {
     pub fn new(
-        addr: SocketAddr,
+        tcp_listener: TcpListener,
         json_rpc_handler: TJsonRpcHandler,
         http_api_handler: THttpApiHandler,
     ) -> Self {
-        Builder { address: addr, routes: Router::new(), json_rpc_handler, http_api_handler }
+        Builder { tcp_listener, routes: Router::new(), json_rpc_handler, http_api_handler }
     }
 
     /// Adds an HTTP endpoint to a specific route
@@ -99,9 +98,6 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
 
         // let svc: Router<()> = svc.with_state((self.json_rpc_handler, self.http_api_handler));
 
-        let tcpp =
-            TcpListener::from_std(std::net::TcpListener::bind(&self.address).unwrap()).unwrap();
-
-        Ok(axum::serve(tcpp, svc.into_make_service()))
+        Ok(axum::serve(self.tcp_listener, svc))
     }
 }

@@ -1,7 +1,8 @@
-use std::net::SocketAddr;
+use std::str::FromStr;
 
 use axum::routing::{get, post};
 use starknet_core::starknet::starknet_config::StarknetConfig;
+use tokio::net::TcpListener;
 
 use crate::api::http::{endpoints as http, HttpApiHandler};
 use crate::api::json_rpc::origin_forwarder::OriginForwarder;
@@ -13,7 +14,7 @@ use crate::ServerConfig;
 
 /// Configures an [axum::Server] that handles related JSON-RPC calls and WEB API calls via HTTP
 pub fn serve_http_api_json_rpc(
-    addr: SocketAddr,
+    tcp_listener: TcpListener,
     api: Api,
     starknet_config: &StarknetConfig,
     server_config: &ServerConfig,
@@ -29,7 +30,7 @@ pub fn serve_http_api_json_rpc(
 
     let json_rpc = JsonRpcHandler { api, origin_caller };
 
-    crate::builder::Builder::<JsonRpcHandler, HttpApiHandler>::new(addr, json_rpc, http)
+    crate::builder::Builder::<JsonRpcHandler, HttpApiHandler>::new(tcp_listener, json_rpc, http)
         .json_rpc_route("/")
         .json_rpc_route("/rpc")
         .http_api_route("/is_alive", get(http::is_alive))
