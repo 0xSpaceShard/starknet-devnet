@@ -96,8 +96,6 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
                     .allow_methods(vec![Method::GET, Method::POST]),
             );
 
-        // let svc: Router<()> = svc.with_state((self.json_rpc_handler, self.http_api_handler));
-
         Ok(axum::serve(self.tcp_listener, svc))
     }
 }
