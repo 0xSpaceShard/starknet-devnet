@@ -2,6 +2,7 @@ use std::any::TypeId;
 
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde_json::json;
 
 use super::errors::ReqwestError;
 
@@ -28,7 +29,7 @@ impl ReqwestClient {
         let url = format!("{}{}", self.url, path);
         let request_builder = reqwest::Client::new().post(&url);
         if TypeId::of::<TParam>() == TypeId::of::<()>() {
-            request_builder.send().await.map_err(|err| ReqwestError::Error(err))
+            request_builder.json(&json!({})).send().await.map_err(|err| ReqwestError::Error(err))
         } else {
             request_builder.json(&body).send().await.map_err(|err| ReqwestError::Error(err))
         }
@@ -48,6 +49,8 @@ pub trait ReqwestSender<TParam, TResponse>: Clone + Send + Sync + 'static {
     /// The response from the devnet in the form of the type `TResponse`
     /// If http status is not success it will return a `super::errors::ReqwestError`
     async fn post_json_async(&self, path: &str, body: TParam) -> Result<TResponse, ReqwestError>;
+
+    // async fn get_json_async(&self, path: &str) -> Result<TResponse, ReqwestError>;
 }
 
 #[async_trait::async_trait]

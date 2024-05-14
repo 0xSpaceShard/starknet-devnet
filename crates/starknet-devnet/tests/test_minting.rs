@@ -1,7 +1,7 @@
 pub mod common;
 
 mod minting_tests {
-    use hyper::{Body, StatusCode};
+    use reqwest::StatusCode;
     use serde_json::json;
     use starknet_rs_core::types::FieldElement;
     use starknet_types::num_bigint::BigUint;
@@ -11,6 +11,7 @@ mod minting_tests {
     use crate::common::constants::{
         PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
     };
+    use crate::common::reqwest_client::{HttpEmptyResponseBody, ReqwestSender};
     use crate::common::utils::get_json_body;
 
     static DUMMY_ADDRESS: &str = "0x42";
@@ -23,19 +24,19 @@ mod minting_tests {
         unit: FeeUnit,
     ) {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let req_body = Body::from(
-            json!({
-                "address": address,
-                "amount": mint_amount,
-                "unit": unit,
-            })
-            .to_string(),
-        );
 
-        let resp = devnet.post_json("/mint".into(), req_body).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
-
-        let mut resp_body = get_json_body(resp).await;
+        let mut resp_body: serde_json::Value = devnet
+            .reqwest_client()
+            .post_json_async(
+                "/mint",
+                json!({
+                    "address": address,
+                    "amount": mint_amount,
+                    "unit": unit,
+                }),
+            )
+            .await
+            .unwrap();
 
         // tx hash is not constant so we later just assert its general form
         let tx_hash_value = resp_body["tx_hash"].take();
@@ -78,13 +79,9 @@ mod minting_tests {
             "amount": DUMMY_AMOUNT,
         });
 
-        let resp = devnet
-            .post_json("/mint".into(), Body::from(unit_not_specified.to_string()))
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+        let mut resp_body: serde_json::Value =
+            devnet.reqwest_client().post_json_async("/mint", unit_not_specified).await.unwrap();
 
-        let mut resp_body = get_json_body(resp).await;
         let tx_hash_value = resp_body["tx_hash"].take();
 
         // tx hash is not constant so we later just assert its general form
@@ -134,8 +131,12 @@ mod minting_tests {
 
     async fn reject_bad_minting_request(json_body: serde_json::Value) {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
-        let req_body = Body::from(json_body.to_string());
-        let resp = devnet.post_json("/mint".into(), req_body).await.unwrap();
+        let resp = devnet
+            .reqwest_client()
+            .post_json_async("/mint", json_body)
+            .await
+            .map(|_: serde_json::Value| ())
+            .unwrap_err();
         assert_eq!(resp.status(), StatusCode::UNPROCESSABLE_ENTITY, "Checking status of {resp:?}");
     }
 
@@ -171,7 +172,7 @@ mod minting_tests {
     async fn reject_bad_balance_query(query: &str) {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let resp = devnet.get("/account_balance", Some(query.into())).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::BAD_REQUEST, "Checking status of {resp:?}");
+        assert_eq!(resp.status(), hyper::StatusCode::BAD_REQUEST, "Checking status of {resp:?}");
     }
 
     #[tokio::test]
