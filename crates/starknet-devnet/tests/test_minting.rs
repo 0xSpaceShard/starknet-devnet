@@ -11,8 +11,8 @@ mod minting_tests {
     use crate::common::constants::{
         PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
     };
-    use crate::common::reqwest_client::{HttpEmptyResponseBody, ReqwestSender};
-    use crate::common::utils::get_json_body;
+    use crate::common::reqwest_client::{ReqwestSender};
+    
 
     static DUMMY_ADDRESS: &str = "0x42";
     static DUMMY_AMOUNT: u128 = 42;

@@ -250,7 +250,7 @@ mod advancing_time_tests {
     async fn set_time_in_past(devnet: &BackgroundDevnet) {
         // set time and assert if >= past_time, check if inside buffer limit
         let past_time = 1;
-        let block_timestamp = set_time_fn(&devnet, past_time).await;
+        let block_timestamp = set_time_fn(devnet, past_time).await;
         assert_eq!(block_timestamp, past_time);
         let set_time_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
         assert_ge_with_buffer(set_time_block.timestamp, past_time);
@@ -292,7 +292,7 @@ mod advancing_time_tests {
         // set time and assert if >= future_time, check if inside buffer limit
         let now = get_unix_timestamp_as_seconds();
         let future_time = now + 1000;
-        let block_timestamp = set_time_fn(&devnet, future_time).await;
+        let block_timestamp = set_time_fn(devnet, future_time).await;
         assert_eq!(block_timestamp, future_time);
         let set_time_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
         assert_ge_with_buffer(set_time_block.timestamp, future_time);
@@ -568,7 +568,7 @@ mod advancing_time_tests {
         let resp_body_set_time: serde_json::Value = devnet
             .reqwest_client()
             .post_json_async(
-                "/set_time".into(),
+                "/set_time",
                 json!({ "time": past_time, "generate_block": false }),
             )
             .await

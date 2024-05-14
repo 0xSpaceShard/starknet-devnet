@@ -1,14 +1,14 @@
 pub mod common;
 
 mod get_transaction_by_block_id_and_index_integration_tests {
-    use hyper::Body;
+    
     use serde_json::json;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
     use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::reqwest_client::{HttpEmptyResponseBody, ReqwestSender};
-    use crate::common::utils::get_json_body;
+    
 
     #[tokio::test]
     async fn get_transaction_by_block_id_and_index_happy_path() {

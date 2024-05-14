@@ -29,9 +29,9 @@ impl ReqwestClient {
         let url = format!("{}{}", self.url, path);
         let request_builder = reqwest::Client::new().post(&url);
         if TypeId::of::<TParam>() == TypeId::of::<()>() {
-            request_builder.json(&json!({})).send().await.map_err(|err| ReqwestError::Error(err))
+            request_builder.json(&json!({})).send().await.map_err(ReqwestError::Error)
         } else {
-            request_builder.json(&body).send().await.map_err(|err| ReqwestError::Error(err))
+            request_builder.json(&body).send().await.map_err(ReqwestError::Error)
         }
     }
 }

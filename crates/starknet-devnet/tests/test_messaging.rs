@@ -15,7 +15,7 @@ mod test_messaging {
     use std::sync::Arc;
 
     use ethers::prelude::*;
-    use hyper::{Body, StatusCode};
+    use hyper::{Body};
     use serde_json::{json, Value};
     use starknet_rs_accounts::{
         Account, AccountError, Call, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
@@ -40,7 +40,7 @@ mod test_messaging {
     };
     use crate::common::reqwest_client::{HttpEmptyResponseBody, ReqwestSender};
     use crate::common::utils::{
-        assert_tx_successful, get_json_body,
+        assert_tx_successful,
         get_messaging_contract_in_sierra_and_compiled_class_hash,
         get_messaging_lib_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
         to_hex_felt, UniqueAutoDeletableFile,
@@ -384,7 +384,7 @@ mod test_messaging {
         withdraw(Arc::clone(&account), l1l2_contract_address, user, user_balance, l1_address).await;
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ZERO]);
 
-        let req_body = Body::from(
+        let _req_body = Body::from(
             json!({
                 "from_address": format!("0x{:64x}", l1l2_contract_address),
                 "to_address": DUMMY_L1_ADDRESS,

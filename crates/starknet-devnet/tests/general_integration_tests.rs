@@ -44,7 +44,7 @@ mod general_integration_tests {
         let ok_path = "0".repeat(limit - 20);
         let error = devnet
             .reqwest_client()
-            .post_json_async("/load".into(), json!({ "path": ok_path }))
+            .post_json_async("/load", json!({ "path": ok_path }))
             .await
             .map(|_: HttpEmptyResponseBody| ())
             .unwrap_err();
