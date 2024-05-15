@@ -1,5 +1,5 @@
 use axum::extract::{Query, State};
-use axum::{Json};
+use axum::Json;
 use starknet_rs_core::types::BlockTag;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;

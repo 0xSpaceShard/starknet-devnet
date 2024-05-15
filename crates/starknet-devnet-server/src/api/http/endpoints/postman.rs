@@ -1,5 +1,5 @@
 use axum::extract::State;
-use axum::{Json};
+use axum::Json;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 

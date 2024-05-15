@@ -1,7 +1,7 @@
 use std::fmt::{self};
 
 use axum::extract::rejection::JsonRejection;
-use axum::extract::{State};
+use axum::extract::State;
 use axum::Json;
 use futures::{future, FutureExt};
 use serde::de::DeserializeOwned;

@@ -1,5 +1,5 @@
 use axum::extract::State;
-use axum::{Json};
+use axum::Json;
 use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::{BlockId, BlockTag};

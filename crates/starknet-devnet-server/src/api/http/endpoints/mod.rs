@@ -1,5 +1,5 @@
 use axum::extract::State;
-use axum::{Json};
+use axum::Json;
 use serde::Serialize;
 use starknet_core::starknet::starknet_config::StarknetConfig;
 
