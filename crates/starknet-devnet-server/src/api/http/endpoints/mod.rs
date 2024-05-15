@@ -1,4 +1,5 @@
-use axum::{Extension, Json};
+use axum::extract::State;
+use axum::Json;
 use serde::Serialize;
 use starknet_core::starknet::starknet_config::StarknetConfig;
 
@@ -30,7 +31,7 @@ pub async fn is_alive() -> HttpApiResult<String> {
 }
 
 /// Restart
-pub async fn restart(Extension(state): Extension<HttpApiHandler>) -> HttpApiResult<()> {
+pub async fn restart(State(state): State<HttpApiHandler>) -> HttpApiResult<()> {
     state
         .api
         .starknet
@@ -50,7 +51,7 @@ pub struct DevnetConfig {
 
 /// Devnet config
 pub async fn get_devnet_config(
-    Extension(state): Extension<HttpApiHandler>,
+    State(state): State<HttpApiHandler>,
 ) -> HttpApiResult<Json<DevnetConfig>> {
     Ok(Json(DevnetConfig {
         starknet_config: state.api.starknet.read().await.config.clone(),

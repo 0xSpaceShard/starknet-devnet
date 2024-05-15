@@ -5,11 +5,9 @@ use std::time;
 use ethers::prelude::*;
 use ethers::providers::{Http, Provider};
 use ethers::types::Address;
-use hyper::client::HttpConnector;
-use hyper::http::request;
-use hyper::{Client, Response, StatusCode};
 use k256::ecdsa::SigningKey;
 use rand::Rng;
+use reqwest::StatusCode;
 use starknet_core::messaging::ethereum::ETH_ACCOUNT_DEFAULT;
 
 use super::errors::TestError;
@@ -50,7 +48,7 @@ impl BackgroundAnvil {
         let address = "127.0.0.1";
         let anvil_url = format!("http://{address}:{port}");
 
-        let client = Client::new();
+        let client = reqwest::Client::new();
         let max_retries = 10;
         for _ in 0..max_retries {
             if let Ok(anvil_block_rsp) = send_dummy_request(&client, &anvil_url).await {
@@ -193,22 +191,19 @@ async fn setup_ethereum_provider(
 /// Even if the RPC method is dummy (doesn't exist),
 /// the server is expected to respond properly if alive
 async fn send_dummy_request(
-    client: &Client<HttpConnector>,
+    client: &reqwest::Client,
     rpc_url: &str,
-) -> Result<Response<hyper::Body>, hyper::Error> {
-    let req = request::Request::post(rpc_url)
-        .header("content-type", "application/json")
-        .body(hyper::Body::from(
-            serde_json::json!({
-                "jsonrpc": "2.0",
-                "method": "eth_blockNumberfuiorhgorueh",
-                "params": [],
-                "id": "1"
-            })
-            .to_string(),
-        ))
-        .unwrap();
-    client.request(req).await
+) -> Result<reqwest::Response, reqwest::Error> {
+    client
+        .post(rpc_url)
+        .json(&serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "eth_blockNumberfuiorhgorueh",
+            "params": [],
+            "id": "1"
+        }))
+        .send()
+        .await
 }
 
 /// By implementing Drop, we ensure there are no zombie background Anvil processes

@@ -1,5 +1,5 @@
-use axum::http::request;
-use hyper::client::HttpConnector;
+use std::sync::Arc;
+
 use serde_json::json;
 
 use crate::rpc_core::error::RpcError;
@@ -15,8 +15,8 @@ use crate::rpc_core::response::{ResponseResult, RpcResponse};
 /// Basic contract-wise interaction is handled by `BlockingOriginReader`
 #[derive(Clone)]
 pub struct OriginForwarder {
-    client: hyper::Client<HttpConnector>,
-    url: hyper::Uri,
+    reqwest_client: reqwest::Client,
+    url: Arc<String>,
     block_number: u64,
 }
 
@@ -24,8 +24,8 @@ pub struct OriginForwarder {
 enum OriginInteractionError {}
 
 impl OriginForwarder {
-    pub fn new(url: hyper::Uri, block_number: u64) -> Self {
-        Self { client: hyper::Client::new(), url, block_number }
+    pub fn new(url: String, block_number: u64) -> Self {
+        Self { reqwest_client: reqwest::Client::new(), url: Arc::new(url), block_number }
     }
 
     /// In case block tag "pending" or "latest" is a part of the request, it is replaced with the
@@ -58,19 +58,14 @@ impl OriginForwarder {
         rpc_call: &RpcMethodCall,
     ) -> Result<ResponseResult, anyhow::Error> {
         let rpc_call = self.clone_call_with_origin_block_id(rpc_call);
-
-        let req_body_str = serde_json::to_string(&rpc_call)?;
-        let req_body = hyper::Body::from(req_body_str);
-        let req = request::Request::builder()
-            .method("POST")
-            .uri(self.url.clone())
-            .header("content-type", "application/json")
-            .body(req_body)?;
-
-        let origin_resp = self.client.request(req).await?;
-        let origin_body = origin_resp.into_body();
-        let origin_body_bytes = hyper::body::to_bytes(origin_body).await?;
-        let origin_rpc_resp: RpcResponse = serde_json::from_slice(&origin_body_bytes)?;
+        let origin_rpc_resp: RpcResponse = self
+            .reqwest_client
+            .post(self.url.to_string())
+            .json(&rpc_call)
+            .send()
+            .await?
+            .json()
+            .await?;
 
         Ok(origin_rpc_resp.result)
     }
@@ -95,8 +90,7 @@ mod tests {
     #[test]
     fn test_replacing_block_id() {
         let block_number = 10;
-        let forwarder =
-            OriginForwarder::new(hyper::Uri::from_static("http://dummy.com"), block_number);
+        let forwarder = OriginForwarder::new("http://dummy.com".to_string(), block_number);
 
         let common_body = json!({
             "method": "starknet_dummyMethod",

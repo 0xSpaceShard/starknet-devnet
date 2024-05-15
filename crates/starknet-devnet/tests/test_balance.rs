@@ -8,7 +8,7 @@ mod balance_tests {
     use crate::common::constants::{
         PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
     };
-    use crate::common::utils::get_json_body;
+    use crate::common::reqwest_client::GetReqwestSender;
 
     #[tokio::test]
     async fn getting_balance_of_predeployed_contract() {
@@ -34,8 +34,11 @@ mod balance_tests {
         ] {
             for unit in ["WEI", "FRI"] {
                 let params = format!("address={}&unit={}", address, unit);
-                let resp = devnet.get("/account_balance", Some(params)).await.unwrap();
-                let json_resp = get_json_body(resp).await;
+                let json_resp: serde_json::Value = devnet
+                    .reqwest_client()
+                    .get_json_async("/account_balance", Some(params))
+                    .await
+                    .unwrap();
 
                 assert_eq!(json_resp["unit"], unit);
                 assert_eq!(json_resp["amount"], expected_balance);
