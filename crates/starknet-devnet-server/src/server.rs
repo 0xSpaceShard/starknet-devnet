@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use axum::extract::DefaultBodyLimit;
 use axum::http::HeaderValue;
-use axum::routing::{get, post, IntoMakeService, MethodRouter};
+use axum::routing::{get, post, IntoMakeService};
 use axum::Router;
 use reqwest::{header, Method};
 use starknet_core::starknet::starknet_config::StarknetConfig;

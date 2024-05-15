@@ -1,5 +1,5 @@
 use axum::extract::State;
-use axum::{Extension, Json};
+use axum::{Json};
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{AbortedBlocks, AbortingBlocks, CreatedBlock};
