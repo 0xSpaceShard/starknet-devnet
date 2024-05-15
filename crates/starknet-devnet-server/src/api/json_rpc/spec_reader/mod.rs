@@ -246,7 +246,10 @@ mod tests {
                         StarknetRequest::BlockWithTransactionHashes(_)
                         | StarknetRequest::BlockWithFullTransactions(_)
                         | StarknetRequest::BlockWithReceipts(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::Block(_)));
+                            assert!(matches!(
+                                sn_response,
+                                StarknetResponse::Block(_) | StarknetResponse::PendingBlock(_)
+                            ));
                         }
                         StarknetRequest::BlockHashAndNumber => {
                             assert!(matches!(sn_response, StarknetResponse::BlockHashAndNumber(_)));
@@ -282,7 +285,11 @@ mod tests {
                             ));
                         }
                         StarknetRequest::StateUpdate(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::StateUpdate(_)));
+                            assert!(matches!(
+                                sn_response,
+                                StarknetResponse::StateUpdate(_)
+                                    | StarknetResponse::PendingStateUpdate(_)
+                            ));
                         }
                         StarknetRequest::Syncing => {
                             assert!(matches!(sn_response, StarknetResponse::Syncing(_)));

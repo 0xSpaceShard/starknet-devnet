@@ -9,7 +9,9 @@ use reqwest::{Client, StatusCode};
 use serde_json::json;
 use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, BlockWithTxHashes, FieldElement, FunctionCall, MaybePendingBlockWithTxHashes,
+    BlockId, BlockTag, BlockWithTxHashes, BlockWithTxs, FieldElement, FunctionCall,
+    MaybePendingBlockWithTxHashes, MaybePendingBlockWithTxs, PendingBlockWithTxHashes,
+    PendingBlockWithTxs,
 };
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -304,9 +306,23 @@ impl BackgroundDevnet {
 
     pub async fn get_pending_block_with_tx_hashes(
         &self,
-    ) -> Result<BlockWithTxHashes, anyhow::Error> {
+    ) -> Result<PendingBlockWithTxHashes, anyhow::Error> {
         match self.json_rpc_client.get_block_with_tx_hashes(BlockId::Tag(BlockTag::Pending)).await {
-            Ok(MaybePendingBlockWithTxHashes::Block(b)) => Ok(b),
+            Ok(MaybePendingBlockWithTxHashes::PendingBlock(b)) => Ok(b),
+            other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
+        }
+    }
+
+    pub async fn get_latest_block_with_txs(&self) -> Result<BlockWithTxs, anyhow::Error> {
+        match self.json_rpc_client.get_block_with_txs(BlockId::Tag(BlockTag::Latest)).await {
+            Ok(MaybePendingBlockWithTxs::Block(b)) => Ok(b),
+            other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
+        }
+    }
+
+    pub async fn get_pending_block_with_txs(&self) -> Result<PendingBlockWithTxs, anyhow::Error> {
+        match self.json_rpc_client.get_block_with_txs(BlockId::Tag(BlockTag::Pending)).await {
+            Ok(MaybePendingBlockWithTxs::PendingBlock(b)) => Ok(b),
             other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
         }
     }
