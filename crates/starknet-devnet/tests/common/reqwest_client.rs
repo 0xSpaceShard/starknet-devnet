@@ -35,10 +35,10 @@ impl ReqwestClient {
         } else {
             format!("{}{}?{}", self.url, path, query)
         };
-        let request_builder = if method == reqwest::Method::GET {
-            self.reqwest_client.get(&url)
-        } else {
-            self.reqwest_client.post(&url)
+        let request_builder = match method {
+            reqwest::Method::GET => self.reqwest_client.get(&url),
+            reqwest::Method::POST => self.reqwest_client.post(&url),
+            _ => panic!("Unsupported method: {:?}", method),
         };
 
         if TypeId::of::<TParam>() == TypeId::of::<()>() {
