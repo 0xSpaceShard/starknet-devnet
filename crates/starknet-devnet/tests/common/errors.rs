@@ -8,7 +8,7 @@ pub enum TestError {
     UrlParseError(#[from] url::ParseError),
 
     #[error("Invalid URI")]
-    InvalidUri(#[from] hyper::http::uri::InvalidUri),
+    InvalidUri(#[from] axum::http::uri::InvalidUri),
 
     #[error("Could not start Devnet. Make sure you've built it with: `cargo build --release`")]
     DevnetNotStartable,

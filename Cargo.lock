@@ -5431,9 +5431,9 @@ version = "0.0.5"
 dependencies = [
  "anyhow",
  "async-trait",
+ "axum",
  "clap",
  "ethers",
- "hyper 1.3.1",
  "lazy_static",
  "reqwest 0.12.4",
  "serde",
@@ -5490,7 +5490,6 @@ dependencies = [
  "async-trait",
  "axum",
  "futures",
- "hyper 1.3.1",
  "rand",
  "rand_chacha",
  "regex_generate",

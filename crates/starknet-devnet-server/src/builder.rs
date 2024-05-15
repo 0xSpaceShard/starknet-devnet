@@ -2,11 +2,10 @@ use std::convert::Infallible;
 use std::time::Duration;
 
 use axum::extract::DefaultBodyLimit;
-use axum::http::HeaderValue;
+use axum::http::{header, HeaderValue, Method, Request};
 use axum::response::Response;
 use axum::routing::post;
 use axum::{Extension, Router};
-use hyper::{header, Method, Request};
 use tokio::net::TcpListener;
 use tower::Service;
 use tower_http::cors::CorsLayer;
@@ -81,7 +80,6 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
     /// https://docs.rs/axum/latest/axum/#using-request-extensions
     pub fn build(self, config: &ServerConfig) -> ServerResult<StarknetDevnetServer> {
         let mut svc = self.routes;
-
         svc = svc
             .layer(Extension(self.json_rpc_handler))
             .layer(Extension(self.http_api_handler))

@@ -12,7 +12,6 @@ description = "Server component of devnet"
 
 # axum
 axum = { workspace = true }
-hyper = { workspace = true }
 reqwest = { workspace = true }
 tower-http = { workspace = true }
 tower = { workspace = true }
