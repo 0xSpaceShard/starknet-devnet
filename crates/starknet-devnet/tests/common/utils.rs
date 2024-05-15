@@ -119,12 +119,20 @@ pub async fn get_contract_balance(
     devnet: &BackgroundDevnet,
     contract_address: FieldElement,
 ) -> FieldElement {
+    get_contract_balance_by_block_id(devnet, contract_address, BlockId::Tag(BlockTag::Latest)).await
+}
+
+pub async fn get_contract_balance_by_block_id(
+    devnet: &BackgroundDevnet,
+    contract_address: FieldElement,
+    block_id: BlockId,
+) -> FieldElement {
     let contract_call = FunctionCall {
         contract_address,
         entry_point_selector: get_selector_from_name("get_balance").unwrap(),
         calldata: vec![],
     };
-    match devnet.json_rpc_client.call(contract_call, BlockId::Tag(BlockTag::Latest)).await {
+    match devnet.json_rpc_client.call(contract_call, block_id).await {
         Ok(res) => {
             assert_eq!(res.len(), 1);
             res[0]
