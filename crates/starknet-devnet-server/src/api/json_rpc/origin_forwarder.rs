@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde_json::json;
 
 use crate::rpc_core::error::RpcError;
@@ -14,7 +16,7 @@ use crate::rpc_core::response::{ResponseResult, RpcResponse};
 #[derive(Clone)]
 pub struct OriginForwarder {
     reqwest_client: reqwest::Client,
-    url: String,
+    url: Arc<String>,
     block_number: u64,
 }
 
@@ -23,7 +25,7 @@ enum OriginInteractionError {}
 
 impl OriginForwarder {
     pub fn new(url: String, block_number: u64) -> Self {
-        Self { reqwest_client: reqwest::Client::new(), url, block_number }
+        Self { reqwest_client: reqwest::Client::new(), url: Arc::new(url), block_number }
     }
 
     /// In case block tag "pending" or "latest" is a part of the request, it is replaced with the

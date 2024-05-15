@@ -1,4 +1,4 @@
-use axum::extract::Query;
+use axum::extract::{Query, State};
 use axum::{Extension, Json};
 use starknet_rs_core::types::BlockTag;
 use starknet_types::contract_address::ContractAddress;
@@ -11,7 +11,7 @@ use crate::api::http::models::{AccountBalanceResponse, SerializableAccount};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 
 pub async fn get_predeployed_accounts(
-    Extension(state): Extension<HttpApiHandler>,
+    State(state): State<HttpApiHandler>,
 ) -> HttpApiResult<Json<Vec<SerializableAccount>>> {
     let predeployed_accounts = state
         .api
@@ -39,7 +39,7 @@ pub struct BalanceQuery {
 }
 
 pub async fn get_account_balance(
-    Extension(state): Extension<HttpApiHandler>,
+    State(state): State<HttpApiHandler>,
     Query(params): Query<BalanceQuery>,
 ) -> HttpApiResult<Json<AccountBalanceResponse>> {
     let account_address = ContractAddress::new(params.address)

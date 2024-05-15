@@ -1,3 +1,4 @@
+use axum::extract::State;
 use axum::{Extension, Json};
 
 use crate::api::http::error::HttpApiError;
@@ -5,7 +6,7 @@ use crate::api::http::models::{DumpPath, LoadPath};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 
 pub async fn dump(
-    Extension(state): Extension<HttpApiHandler>,
+    State(state): State<HttpApiHandler>,
     Json(path): Json<DumpPath>,
 ) -> HttpApiResult<()> {
     let starknet = state.api.starknet.write().await;
@@ -43,7 +44,7 @@ pub async fn dump(
 }
 
 pub async fn load(
-    Extension(state): Extension<HttpApiHandler>,
+    State(state): State<HttpApiHandler>,
     Json(path): Json<LoadPath>,
 ) -> HttpApiResult<()> {
     let file_path = std::path::Path::new(&path.path);

@@ -173,7 +173,7 @@ async fn main() -> Result<(), anyhow::Error> {
         starknet_config.predeployed_accounts_initial_balance.clone(),
     );
 
-    let server = serve_http_api_json_rpc(listener, api.clone(), &starknet_config, &server_config)?;
+    let server = serve_http_api_json_rpc(listener, api.clone(), &starknet_config, &server_config);
 
     info!("Starknet Devnet listening on {}", address);
 

@@ -1,7 +1,7 @@
 use std::fmt::{self};
 
 use axum::extract::rejection::JsonRejection;
-use axum::extract::Extension;
+use axum::extract::{Extension, State};
 use axum::Json;
 use futures::{future, FutureExt};
 use serde::de::DeserializeOwned;
@@ -66,7 +66,7 @@ pub trait RpcHandler: Clone + Send + Sync + 'static {
 
 /// Handles incoming JSON-RPC Request
 pub async fn handle<THandler: RpcHandler>(
-    Extension(handler): Extension<THandler>,
+    State(handler): State<THandler>,
     request: Result<Json<Request>, JsonRejection>,
 ) -> Json<Response> {
     match request {
