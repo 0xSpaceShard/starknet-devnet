@@ -5511,7 +5511,7 @@ dependencies = [
 name = "starknet-devnet-types"
 version = "0.0.4"
 dependencies = [
- "base64 0.21.7",
+ "base64 0.22.1",
  "blockifier",
  "cairo-lang-casm 2.6.0",
  "cairo-lang-compiler 2.6.0",

@@ -46,7 +46,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 
 # misc
-base64 = { version = "0.21.2" }
+base64 = { version = "0.22" }
 clap = { version = "4.3.2", features = ["derive"] }
 flate2 = { version = ">= 1.0.26, < 1.0.27" }
 nonzero_ext = "0.3.0"
@@ -98,7 +98,7 @@ server = { version = "0.0.5", path = "crates/starknet-devnet-server", package = 
 # Dependabot alerts
 zerocopy = "0.7.31"
 unsafe-libyaml = "0.2.10"
-h2 = "0.3.24"
+h2 = "0.4"
 
 num-bigint = { version = "0.4" }
 
