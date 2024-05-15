@@ -266,6 +266,8 @@ impl JsonRpcHandler {
     pub async fn call(&self, block_id: BlockId, request: FunctionCall) -> StrictRpcResult {
         let mut starknet = self.api.starknet.write().await;
 
+        println!("TODO: Block id: {:?}", block_id);
+
         match starknet.call(
             block_id.as_ref(),
             request.contract_address.into(),
