@@ -4,14 +4,14 @@ use std::net::TcpListener;
 use std::process::{Child, Command, Stdio};
 use std::time;
 
-use hyper::client::HttpConnector;
-use hyper::http::request;
-use hyper::{Body, Client, Response, StatusCode, Uri};
 use lazy_static::lazy_static;
+use reqwest::{Client, StatusCode};
 use serde_json::json;
 use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, BlockWithTxHashes, FieldElement, FunctionCall, MaybePendingBlockWithTxHashes,
+    BlockId, BlockTag, BlockWithTxHashes, BlockWithTxs, FieldElement, FunctionCall,
+    MaybePendingBlockWithTxHashes, MaybePendingBlockWithTxs, PendingBlockWithTxHashes,
+    PendingBlockWithTxs,
 };
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -27,8 +27,10 @@ use super::constants::{
     ACCOUNTS, CHAIN_ID_CLI_PARAM, HEALTHCHECK_PATH, HOST, MAX_PORT, MIN_PORT,
     PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, RPC_PATH, SEED,
 };
-use super::errors::TestError;
-use crate::common::utils::get_json_body;
+use super::errors::{ReqwestError, TestError};
+use super::reqwest_client::{
+    GetReqwestSender, HttpEmptyResponseBody, PostReqwestSender, ReqwestClient,
+};
 
 lazy_static! {
     /// This is to prevent TOCTOU errors; i.e. one background devnet might find one
@@ -41,7 +43,7 @@ lazy_static! {
 
 #[derive(Debug)]
 pub struct BackgroundDevnet {
-    pub http_client: Client<HttpConnector>,
+    pub reqwest_client: ReqwestClient,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
     pub process: Child,
     pub port: u16,
@@ -74,6 +76,10 @@ impl BackgroundDevnet {
     #[allow(dead_code)] // dead_code needed to pass clippy
     pub(crate) async fn spawn() -> Result<Self, TestError> {
         BackgroundDevnet::spawn_with_additional_args(&[]).await
+    }
+
+    pub fn reqwest_client(&self) -> &ReqwestClient {
+        &self.reqwest_client
     }
 
     /// Takes specified args and adds default values for args that are missing
@@ -124,17 +130,16 @@ impl BackgroundDevnet {
                 .spawn()
                 .expect("Could not start background devnet");
 
-        let healthcheck_uri =
-            format!("{}{HEALTHCHECK_PATH}", devnet_url.as_str()).as_str().parse::<Uri>()?;
+        let healthcheck_uri = format!("{}{HEALTHCHECK_PATH}", devnet_url.as_str()).to_string();
+        let reqwest_client = Client::new();
 
-        let http_client = Client::new();
         let max_retries = 30;
         for _ in 0..max_retries {
-            if let Ok(alive_resp) = http_client.get(healthcheck_uri.clone()).await {
+            if let Ok(alive_resp) = reqwest_client.get(&healthcheck_uri).send().await {
                 assert_eq!(alive_resp.status(), StatusCode::OK);
                 println!("Spawned background devnet at port {free_port}");
                 return Ok(BackgroundDevnet {
-                    http_client,
+                    reqwest_client: ReqwestClient::new(devnet_url.clone(), reqwest_client),
                     json_rpc_client,
                     process,
                     port: free_port,
@@ -151,20 +156,6 @@ impl BackgroundDevnet {
         Err(TestError::DevnetNotStartable)
     }
 
-    pub async fn post_json(
-        &self,
-        path: String,
-        body: hyper::Body,
-    ) -> Result<Response<hyper::Body>, hyper::Error> {
-        let req = request::Request::builder()
-            .method("POST")
-            .uri(format!("{}{}", self.url.as_str(), path))
-            .header("content-type", "application/json")
-            .body(body)
-            .unwrap();
-        self.http_client.request(req).await
-    }
-
     pub async fn send_custom_rpc(
         &self,
         method: &str,
@@ -177,9 +168,7 @@ impl BackgroundDevnet {
             "params": params
         });
 
-        let body = hyper::Body::from(body_json.to_string());
-        let resp = self.post_json(RPC_PATH.into(), body).await.unwrap();
-        get_json_body(resp).await
+        self.reqwest_client().post_json_async(RPC_PATH, body_json).await.unwrap()
     }
 
     pub fn clone_provider(&self) -> JsonRpcClient<HttpTransport> {
@@ -187,18 +176,17 @@ impl BackgroundDevnet {
     }
 
     pub async fn mint(&self, address: impl LowerHex, mint_amount: u128) -> FieldElement {
-        let req_body = Body::from(
-            json!({
-                "address": format!("{address:#x}"),
-                "amount": mint_amount
-            })
-            .to_string(),
-        );
-
-        let resp = self.post_json("/mint".into(), req_body).await.unwrap();
-        let resp_status = resp.status();
-        let resp_body = get_json_body(resp).await;
-        assert_eq!(resp_status, StatusCode::OK, "Checking status of {resp_body:?}");
+        let resp_body: serde_json::Value = self
+            .reqwest_client()
+            .post_json_async(
+                "/mint",
+                json!({
+                    "address": format!("{address:#x}"),
+                    "amount": mint_amount
+                }),
+            )
+            .await
+            .unwrap();
 
         FieldElement::from_hex_be(resp_body["tx_hash"].as_str().unwrap()).unwrap()
     }
@@ -242,11 +230,10 @@ impl BackgroundDevnet {
     ) -> Result<FieldElement, anyhow::Error> {
         let params =
             format!("address={:#x}&unit={}&block_tag={}", address, unit, Self::tag_to_str(tag));
+        let json_resp: serde_json::Value =
+            self.reqwest_client().get_json_async("/account_balance", Some(params)).await.unwrap();
 
-        let resp = self.get("/account_balance", Some(params)).await?;
         // response validity asserted in test_balance.rs::assert_balance_endpoint_response
-
-        let json_resp = get_json_body(resp).await;
         let amount_raw = json_resp["amount"].as_str().unwrap();
         Ok(FieldElement::from_dec_str(amount_raw)?)
     }
@@ -258,22 +245,11 @@ impl BackgroundDevnet {
         }
     }
 
-    /// Performs GET request on devnet; path should have a leading slash
-    pub async fn get(
-        &self,
-        path: &str,
-        query: Option<String>,
-    ) -> Result<Response<Body>, hyper::Error> {
-        let uri = format!("{}{}?{}", self.url, path, query.unwrap_or("".into()));
-        let response = self.http_client.get(uri.as_str().parse::<Uri>().unwrap()).await.unwrap();
-        Ok(response)
-    }
-
     /// This method returns the private key and the address of the first predeployed account
     pub async fn get_first_predeployed_account(&self) -> (LocalWallet, FieldElement) {
-        let predeployed_accounts_response = self.get("/predeployed_accounts", None).await.unwrap();
+        let predeployed_accounts_json: serde_json::Value =
+            self.reqwest_client().get_json_async("/predeployed_accounts", None).await.unwrap();
 
-        let predeployed_accounts_json = get_json_body(predeployed_accounts_response).await;
         let first_account = predeployed_accounts_json.as_array().unwrap().get(0).unwrap();
 
         let account_address =
@@ -286,8 +262,11 @@ impl BackgroundDevnet {
         (signer, account_address)
     }
 
-    pub async fn restart(&self) -> Result<Response<Body>, hyper::Error> {
-        self.post_json("/restart".into(), Body::empty()).await
+    pub async fn restart(&self) -> Result<(), ReqwestError> {
+        self.reqwest_client()
+            .post_json_async("/restart", ())
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
     }
 
     pub async fn fork(&self) -> Result<Self, TestError> {
@@ -309,10 +288,9 @@ impl BackgroundDevnet {
 
     /// Mines a new block and returns its hash
     pub async fn create_block(&self) -> Result<FieldElement, anyhow::Error> {
-        let block_creation_resp =
-            self.post_json("/create_block".into(), Body::from(json!({}).to_string())).await?;
+        let block_creation_resp_body: serde_json::Value =
+            self.reqwest_client().post_json_async("/create_block", ()).await.unwrap();
 
-        let block_creation_resp_body = get_json_body(block_creation_resp).await;
         let block_hash_str = block_creation_resp_body["block_hash"].as_str().unwrap();
         Ok(FieldElement::from_hex_be(block_hash_str)?)
     }
@@ -328,15 +306,29 @@ impl BackgroundDevnet {
 
     pub async fn get_pending_block_with_tx_hashes(
         &self,
-    ) -> Result<BlockWithTxHashes, anyhow::Error> {
+    ) -> Result<PendingBlockWithTxHashes, anyhow::Error> {
         match self.json_rpc_client.get_block_with_tx_hashes(BlockId::Tag(BlockTag::Pending)).await {
-            Ok(MaybePendingBlockWithTxHashes::Block(b)) => Ok(b),
+            Ok(MaybePendingBlockWithTxHashes::PendingBlock(b)) => Ok(b),
+            other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
+        }
+    }
+
+    pub async fn get_latest_block_with_txs(&self) -> Result<BlockWithTxs, anyhow::Error> {
+        match self.json_rpc_client.get_block_with_txs(BlockId::Tag(BlockTag::Latest)).await {
+            Ok(MaybePendingBlockWithTxs::Block(b)) => Ok(b),
+            other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
+        }
+    }
+
+    pub async fn get_pending_block_with_txs(&self) -> Result<PendingBlockWithTxs, anyhow::Error> {
+        match self.json_rpc_client.get_block_with_txs(BlockId::Tag(BlockTag::Pending)).await {
+            Ok(MaybePendingBlockWithTxs::PendingBlock(b)) => Ok(b),
             other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
         }
     }
 
     pub async fn get_config(&self) -> Result<serde_json::Value, anyhow::Error> {
-        Ok(get_json_body(self.get("/config", None).await?).await)
+        Ok(self.reqwest_client().get_json_async("/config", None).await.unwrap())
     }
 }
 

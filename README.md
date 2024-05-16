@@ -202,6 +202,23 @@ or if using dockerized Devnet:
 $ docker run -e RUST_LOG=<LEVEL> shardlabs/starknet-devnet-rs
 ```
 
+By default, logging of request and response data is turned off.
+To see the request and/or response body, additional level have to be provided via `RUST_LOG` environment variable.
+To log the request body use `REQUEST`, to log the response body use `RESPONSE`.
+
+NOTE! that logging request and response requires at least logging level `INFO`.
+
+The following two commands will log request and response data with log level `INFO`.
+Example:
+
+```
+$ RUST_LOG="REQUEST,RESPONSE" starknet-devnet
+```
+
+```
+$ RUST_LOG="REQUEST,RESPONSE,INFO" starknet-devnet
+```
+
 ## API
 
 Unlike Pythonic Devnet, which supported the gateway and feeder gateway API, Devnet in Rust only supports JSON-RPC. Since JSON-RPC v0.6.0, to find out which JSON-RPC version is supported by which Devnet version, check out the [releases page](https://github.com/0xspaceshard/starknet-devnet-rs/releases).
@@ -571,23 +588,21 @@ $ cargo test --jobs <N>
 
 #### Benchmarking
 
-To test if your contribution presents an improvement in execution time, check out the script at `scripts/benchmark/command_stat_test.py`.
+To statistically test if your contribution presents an improvement in execution time and memory usage, check out the script at `scripts/benchmark/command_stat_test.py`.
 
+##### Cargo Bench Execution
 
-##### Cargo Bench execution
-To run the criterion benchmarks and generate a performance report:
+To run Criterion benchmarks and generate a performance report:
 
 ```
 $ cargo bench
 ```
 
-This command will compile the benchmarks and run them using all available CPUs on your machine. Criterion will perform multiple iterations of each benchmark to collect performance data and generate statistical analysis.
-
-Check the report created at `target/criterion/report/index.html`
+This command will compile the benchmarks defined in this repository and run them using all available CPUs. Criterion will perform multiple iterations of each benchmark to collect performance data and generate statistical analysis with a report at `target/criterion/report/index.html`.
 
 Criterion is highly configurable and offers various options to customise the benchmarking process. You can find more information about Criterion and its features in the [Criterion documentation](https://bheisler.github.io/criterion.rs/book/index.html).
 
-To measure and benchmark memory it is best to use external tools such as Valgrind, Leaks, etc.
+Since it is hard to achieve a platform-agnostic way of detecting the memory used by a process in Rust, to measure and benchmark memory it is best to use external tools such as Valgrind, Leaks, etc. A lighter version of this achieving this is, while running `cargo bench`, to simply track the computer memory used with your system's resource monitor (such as `htop`).
 
 ### Development - Docker
 

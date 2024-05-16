@@ -15,11 +15,11 @@ use models::{
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::felt::Felt;
-use starknet_types::rpc::block::Block;
+use starknet_types::rpc::block::{Block, PendingBlock};
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
-use starknet_types::rpc::state::StateUpdate;
+use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, EventsChunk, SimulatedTransaction, TransactionTrace, TransactionWithHash,
@@ -353,7 +353,9 @@ impl std::fmt::Display for StarknetRequest {
 #[serde(untagged)]
 pub enum StarknetResponse {
     Block(Block),
+    PendingBlock(PendingBlock),
     StateUpdate(StateUpdate),
+    PendingStateUpdate(PendingStateUpdate),
     Felt(Felt),
     Transaction(TransactionWithHash),
     TransactionReceiptByTransactionHash(Box<TransactionReceipt>),
