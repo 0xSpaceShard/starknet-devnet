@@ -1,9 +1,13 @@
 use std::time::Duration;
 
-use axum::extract::DefaultBodyLimit;
-use axum::http::HeaderValue;
+use axum::body::{Body, Bytes};
+use axum::extract::{DefaultBodyLimit, Request};
+use axum::http::{HeaderValue, StatusCode};
+use axum::middleware::Next;
+use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post, IntoMakeService};
 use axum::Router;
+use http_body_util::BodyExt;
 use reqwest::{header, Method};
 use starknet_core::starknet::starknet_config::StarknetConfig;
 use tokio::net::TcpListener;
@@ -70,9 +74,13 @@ pub fn serve_http_api_json_rpc(
     let json_rpc_routes = json_rpc_routes(json_rpc_handler);
     let http_api_routes = http_api_routes(http_handler);
 
-    let routes = http_api_routes
-        .merge(json_rpc_routes)
-        .layer(TraceLayer::new_for_http())
+    let mut routes = http_api_routes.merge(json_rpc_routes).layer(TraceLayer::new_for_http());
+
+    if server_config.log_response {
+        routes = routes.layer(axum::middleware::from_fn(response_logging_middleware));
+    };
+
+    routes = routes
         .layer(TimeoutLayer::new(Duration::from_secs(server_config.timeout.into())))
         .layer(DefaultBodyLimit::max(server_config.request_body_size_limit))
         .layer(
@@ -83,5 +91,61 @@ pub fn serve_http_api_json_rpc(
                     .allow_methods(vec![Method::GET, Method::POST]),
         );
 
+    if server_config.log_request {
+        routes = routes.layer(axum::middleware::from_fn(request_logging_middleware));
+    }
+
     axum::serve(tcp_listener, routes.into_make_service())
+}
+
+async fn log_body_and_path<T>(
+    body: T,
+    uri_option: Option<axum::http::Uri>,
+) -> Result<axum::body::Body, (StatusCode, String)>
+where
+    T: axum::body::HttpBody<Data = Bytes>,
+    T::Error: std::fmt::Display,
+{
+    let bytes = match body.collect().await {
+        Ok(collected) => collected.to_bytes(),
+        Err(err) => {
+            return Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()));
+        }
+    };
+
+    if let Ok(body_str) = std::str::from_utf8(&bytes) {
+        if let Some(uri) = uri_option {
+            tracing::info!("{} {}", uri, body_str);
+        } else {
+            tracing::info!("{}", body_str);
+        }
+    } else {
+        tracing::error!("Failed to convert body to string");
+    }
+
+    Ok(Body::from(bytes))
+}
+
+async fn request_logging_middleware(
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    let (parts, body) = request.into_parts();
+
+    let body = log_body_and_path(body, Some(parts.uri.clone())).await?;
+    Ok(next.run(Request::from_parts(parts, body)).await)
+}
+
+async fn response_logging_middleware(
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    let response = next.run(request).await;
+
+    let (parts, body) = response.into_parts();
+
+    let body = log_body_and_path(body, None).await?;
+
+    let response = Response::from_parts(parts, body);
+    Ok(response)
 }
