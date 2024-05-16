@@ -32,7 +32,11 @@ const RESPONSE_LOG_ENV_VAR: &str = "response";
 /// Configures tracing with default level INFO,
 /// If the environment variable `RUST_LOG` is set, it will be used instead.
 /// Added are two more directives: `request` and `response`. If they are present, then have to be
-/// removed to be able to construct the `EnvFilter`.
+/// removed to be able to construct the `EnvFilter` correctly, because tracing_subscriber recognizes
+/// them as path syntax (way to access a module) and assignes them TRACE level. Because they are not
+/// paths to some module like this one: `starknet-devnet::cli` nothing gets logged. For example:
+/// `RUST_LOG=request` is translated to `request=TRACE`, which means that will log TRACE level for
+/// request module.
 fn configure_tracing() {
     let log_env_var = std::env::var(EnvFilter::DEFAULT_ENV).unwrap_or_default().to_lowercase();
 
