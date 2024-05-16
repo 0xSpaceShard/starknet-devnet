@@ -602,6 +602,7 @@ mod fork_tests {
 
         fork_devnet
             .json_rpc_client
+            // -1 to force fetching from origin
             .get_block_with_tx_hashes(BlockId::Number(fork_block - 1))
             .await
             .unwrap();
