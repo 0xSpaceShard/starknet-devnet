@@ -14,7 +14,6 @@ description = "Server component of devnet"
 axum = { workspace = true }
 reqwest = { workspace = true }
 tower-http = { workspace = true }
-tower = { workspace = true }
 
 # tracing
 tracing = { workspace = true }
