@@ -35,15 +35,15 @@ const RESPONSE_LOG_ENV_VAR: &str = "response";
 /// removed to be able to construct the `EnvFilter`.
 fn configure_tracing() {
     let log_env_var = std::env::var(EnvFilter::DEFAULT_ENV).unwrap_or_default().to_lowercase();
-    let mut log_env_var =
-        log_env_var.split(",").map(|el| el.trim()).collect::<Vec<&str>>().join(",");
 
-    for directive in [REQUEST_LOG_ENV_VAR, RESPONSE_LOG_ENV_VAR] {
-        if let Some(start_index) = log_env_var.find(directive) {
-            let end_index = start_index + directive.len();
-            log_env_var.replace_range(start_index..end_index, "");
-        }
-    }
+    // Remove the `request` and `response` directives from the environment variable.
+    // And trim empty spaces around each directive
+    let log_env_var = log_env_var
+        .split(",")
+        .map(|el| el.trim())
+        .filter(|el| [REQUEST_LOG_ENV_VAR, RESPONSE_LOG_ENV_VAR].contains(el) == false)
+        .collect::<Vec<&str>>()
+        .join(",");
 
     let level_filter_layer = EnvFilter::builder()
         .with_default_directive(tracing::Level::INFO.into())
