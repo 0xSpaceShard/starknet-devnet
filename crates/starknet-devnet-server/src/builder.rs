@@ -9,12 +9,11 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{post, IntoMakeService};
 use axum::{Extension, Router};
 use hyper::server::conn::AddrIncoming;
-use hyper::{header, Method, Server, Uri};
+use hyper::{header, Method, Server};
 use tower::Service;
 use tower_http::cors::CorsLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
-use tracing::info;
 
 use crate::error::ServerResult;
 use crate::rpc_handler::{self, RpcHandler};
