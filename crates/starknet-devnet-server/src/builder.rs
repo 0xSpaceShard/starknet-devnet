@@ -121,7 +121,7 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
 async fn request_logging_middleware(
     request: Request<hyper::Body>,
     next: Next<hyper::Body>,
-) -> Result<impl IntoResponse, Response> {
+) -> Result<impl IntoResponse, (StatusCode, String)> {
     let (parts, body) = request.into_parts();
 
     let body = log_body(body).await?;
@@ -131,7 +131,7 @@ async fn request_logging_middleware(
 async fn response_logging_middleware(
     request: Request<hyper::Body>,
     next: Next<hyper::Body>,
-) -> Result<impl IntoResponse, Response> {
+) -> Result<impl IntoResponse, (StatusCode, String)> {
     let response = next.run(request).await;
 
     let (parts, body) = response.into_parts();
@@ -142,14 +142,14 @@ async fn response_logging_middleware(
     Ok(response)
 }
 
-async fn log_body<T>(body: T) -> Result<hyper::Body, Response>
+async fn log_body<T>(body: T) -> Result<hyper::Body, (StatusCode, String)>
 where
     T: axum::body::HttpBody,
     <T as hyper::body::HttpBody>::Error: std::fmt::Display,
 {
     let bytes = hyper::body::to_bytes(body)
         .await
-        .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response())?;
+        .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?;
 
     if let Ok(body_str) = std::str::from_utf8(&bytes) {
         tracing::info!("{}", body_str);
