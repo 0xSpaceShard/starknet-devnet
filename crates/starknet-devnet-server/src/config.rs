@@ -8,4 +8,8 @@ pub struct ServerConfig {
     pub port: u16,
     pub timeout: u16,
     pub request_body_size_limit: usize,
+    #[serde(skip)]
+    pub log_request: bool,
+    #[serde(skip)]
+    pub log_response: bool,
 }
