@@ -9,11 +9,12 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{post, IntoMakeService};
 use axum::{Extension, Router};
 use hyper::server::conn::AddrIncoming;
-use hyper::{header, Method, Server};
+use hyper::{header, Method, Server, Uri};
 use tower::Service;
 use tower_http::cors::CorsLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
+use tracing::info;
 
 use crate::error::ServerResult;
 use crate::rpc_handler::{self, RpcHandler};
@@ -124,7 +125,7 @@ async fn request_logging_middleware(
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     let (parts, body) = request.into_parts();
 
-    let body = log_body(body).await?;
+    let body = log_body_and_path(body, Some(parts.uri.clone())).await?;
     Ok(next.run(Request::from_parts(parts, body)).await)
 }
 
@@ -136,13 +137,16 @@ async fn response_logging_middleware(
 
     let (parts, body) = response.into_parts();
 
-    let body = log_body(body).await?;
+    let body = log_body_and_path(body, None).await?;
 
     let response = Response::from_parts(parts, body);
     Ok(response)
 }
 
-async fn log_body<T>(body: T) -> Result<hyper::Body, (StatusCode, String)>
+async fn log_body_and_path<T>(
+    body: T,
+    uri_option: Option<axum::http::Uri>,
+) -> Result<hyper::Body, (StatusCode, String)>
 where
     T: axum::body::HttpBody,
     <T as hyper::body::HttpBody>::Error: std::fmt::Display,
@@ -152,7 +156,11 @@ where
         .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?;
 
     if let Ok(body_str) = std::str::from_utf8(&bytes) {
-        tracing::info!("{}", body_str);
+        if let Some(uri) = uri_option {
+            tracing::info!("{} {}", uri, body_str);
+        } else {
+            tracing::info!("{}", body_str);
+        }
     } else {
         tracing::error!("Failed to convert body to string");
     }
