@@ -2,8 +2,6 @@
 sidebar_position: 1
 ---
 
-
-
 <!-- logo / title -->
 <!--
 <p align="center" style="margin-bottom: 0px !important">
@@ -20,37 +18,6 @@ sidebar_position: 1
     <img src="https://img.shields.io/badge/powered_by-StarkWare-navy" style="max-width: 100%;"></img>
   </a>
 </p>-->
-
-## Predeployed contracts
-
-Devnet predeploys a [UDC](https://docs.openzeppelin.com/contracts-cairo/0.6.1/udc), an [ERC20 (fee token)](https://docs.openzeppelin.com/contracts-cairo/0.8.1/erc20) contract and a set of predeployed funded accounts.
-
-The set of accounts can be controlled via [CLI options](#cli-options): `--accounts <NUMBER_OF>`, `--initial-balance <WEI>`, `--seed <VALUE>`.
-
-Choose between predeploying Cairo 0 (OpenZeppelin 0.5.1) or Cairo 1 (default; OpenZeppelin 0.8.1) accounts by using `--account-class [cairo0 | cairo1]`. Alternatively, provide a path to the [Sierra artifact](https://github.com/starkware-libs/cairo#compiling-and-running-cairo-files) of your custom account using `--account-class-custom <SIERRA_PATH>`.
-
-The predeployment information is logged on Devnet startup. Predeployed accounts can be retrieved in JSON format by sending a `GET` request to `/predeployed_accounts` of your Devnet.
-
-## Mint token
-
-For now, you can consult [Pythonic Devnet docs on minting](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token/), with the differences between lite minting not being supported anymore and additional support of Stark token minting declared in FRI unit. Unit is an optional parameter and when it's not specified is set to WEI by default, this behaviour can change in the next versions.
-
-```
-POST /mint
-{
-    "address": "0x6e3205f...",
-    "amount": 500000,
-    "unit": "FRI"
-}
-```
-
-### Check balance
-
-Check the balance of an address by sending a GET request to `/account_balance`. The address should be a 0x-prefixed hex string; the unit defaults to `WEI` and block_tag to `latest`.
-
-```
-GET /account_balance?address=<ADDRESS>&[unit=<FRI|WEI>]&[block_tag=<latest|pending>]
-```
 
 ## Dumping & Loading
 
