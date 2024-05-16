@@ -2,11 +2,12 @@
 pub mod common;
 
 mod general_integration_tests {
-    use hyper::{Body, StatusCode};
+    use reqwest::StatusCode;
     use serde_json::json;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::utils::{get_json_body, UniqueAutoDeletableFile};
+    use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
+    use crate::common::utils::UniqueAutoDeletableFile;
 
     #[tokio::test]
     /// Asserts that a background instance can be spawned
@@ -21,15 +22,16 @@ mod general_integration_tests {
         let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await.unwrap();
 
         let too_big_path = "a".repeat(limit);
-        match devnet
-            .post_json("/load".into(), Body::from(json!({ "path": too_big_path }).to_string()))
+        let reqwest_error =
+            PostReqwestSender::<serde_json::Value, HttpEmptyResponseBody>::post_json_async(
+                devnet.reqwest_client(),
+                "/load",
+                json!({"path": too_big_path}),
+            )
             .await
-        {
-            Ok(resp) => {
-                assert_eq!(resp.status(), StatusCode::PAYLOAD_TOO_LARGE);
-            }
-            other => panic!("Unexpected response: {other:?}"),
-        }
+            .expect_err("Request should have been rejected");
+
+        assert_eq!(reqwest_error.status(), reqwest::StatusCode::PAYLOAD_TOO_LARGE);
     }
 
     #[tokio::test]
@@ -40,17 +42,18 @@ mod general_integration_tests {
 
         // subtract enough so that the rest of the json body doesn't overflow the limit
         let ok_path = "0".repeat(limit - 20);
-        match devnet
-            .post_json("/load".into(), Body::from(json!({ "path": ok_path }).to_string()))
+        let error = devnet
+            .reqwest_client()
+            .post_json_async("/load", json!({ "path": ok_path }))
             .await
-        {
-            Ok(resp) => {
-                assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
-                let load_resp = get_json_body(resp).await;
-                assert_eq!(load_resp, json!({ "error": "The file does not exist" }));
-            }
-            other => panic!("Unexpected response: {other:?}"),
-        }
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap_err();
+
+        assert_eq!(error.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(
+            error.error_message(),
+            json!({ "error": "The file does not exist" }).to_string()
+        );
     }
 
     #[tokio::test]
@@ -70,7 +73,6 @@ mod general_integration_tests {
             "chain_id": "SN_MAIN",
             "dump_on": "exit",
             "dump_path": dump_file.path,
-            "blocks_on_demand": true,
             "state_archive": "full",
             "fork_config": {
                 "url": null,
@@ -81,7 +83,9 @@ mod general_integration_tests {
                 // expected port added after spawning; determined by port-acquiring logic
                 "timeout": 121,
                 "request_body_size_limit": 1000,
-            }
+            },
+            "blocks_on_demand": true,
+            "lite_mode": false
         });
 
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[

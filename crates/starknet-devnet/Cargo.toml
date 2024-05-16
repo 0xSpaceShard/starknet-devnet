@@ -37,6 +37,7 @@ anyhow = { workspace = true }
 starknet-rs-providers = { workspace = true }
 
 [dev-dependencies]
+async-trait = { workspace = true }
 thiserror = { workspace = true }
 ethers = { workspace = true }
 lazy_static = { workspace = true }
@@ -46,5 +47,13 @@ starknet-core = { workspace = true, features = ["test_utils"] }
 starknet-rs-signers = { workspace = true }
 starknet-rs-core = { workspace = true }
 starknet-rs-accounts = { workspace = true }
-hyper = { workspace = true }
+axum = { workspace = true }
 usc = { workspace = true }
+reqwest = { workspace = true }
+criterion = { version = "0.3.4", features = ["async_tokio"] }
+
+
+[[bench]]
+name = "mint_bench"
+harness = false
+path = "benches/mint_bench.rs"

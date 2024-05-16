@@ -1,5 +1,3 @@
-use std::net::SocketAddr;
-
 use anyhow::Ok;
 use clap::Parser;
 use cli::Args;
@@ -19,6 +17,7 @@ use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_types::chain_id::ChainId;
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::ToHexString;
+use tokio::net::TcpListener;
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
@@ -173,7 +172,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     set_and_log_fork_config(&mut starknet_config.fork_config, starknet_config.chain_id).await?;
 
-    let mut addr: SocketAddr = SocketAddr::new(server_config.host, server_config.port);
+    let address = format!("{}:{}", server_config.host, server_config.port);
+    let listener = TcpListener::bind(address.clone()).await?;
 
     let api = Api::new(Starknet::new(&starknet_config)?);
 
@@ -194,19 +194,17 @@ async fn main() -> Result<(), anyhow::Error> {
         starknet_config.predeployed_accounts_initial_balance.clone(),
     );
 
-    let server = serve_http_api_json_rpc(addr, api.clone(), &starknet_config, &server_config)?;
-    addr = server.local_addr();
+    let server = serve_http_api_json_rpc(listener, api.clone(), &starknet_config, &server_config);
 
-    info!("Starknet Devnet listening on {}", addr);
+    info!("Starknet Devnet listening on {}", address);
 
-    // spawn the server on a new task
-    let serve = if starknet_config.dump_on == Some(DumpOn::Exit) {
-        tokio::task::spawn(server.with_graceful_shutdown(shutdown_signal(api.clone())))
+    if starknet_config.dump_on == Some(DumpOn::Exit) {
+        server.with_graceful_shutdown(shutdown_signal(api.clone())).await?
     } else {
-        tokio::task::spawn(server)
-    };
+        server.await?
+    }
 
-    Ok(serve.await??)
+    Ok(())
 }
 
 pub async fn shutdown_signal(api: Api) {

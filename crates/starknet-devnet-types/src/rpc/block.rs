@@ -62,10 +62,25 @@ impl<'de> Deserialize<'de> for BlockId {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub enum BlockResult {
+    Block(Block),
+    PendingBlock(PendingBlock),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Block {
     pub status: BlockStatus,
     #[serde(flatten)]
     pub header: BlockHeader,
+    pub transactions: Transactions,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PendingBlock {
+    #[serde(flatten)]
+    pub header: PendingBlockHeader,
     pub transactions: Transactions,
 }
 
@@ -84,6 +99,17 @@ pub struct BlockHeader {
     pub l1_da_mode: L1DataAvailabilityMode,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PendingBlockHeader {
+    pub parent_hash: BlockHash,
+    pub sequencer_address: ContractAddress,
+    pub timestamp: BlockTimestamp,
+    pub starknet_version: String,
+    pub l1_gas_price: ResourcePrice,
+    pub l1_data_gas_price: ResourcePrice,
+    pub l1_da_mode: L1DataAvailabilityMode,
+}
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ResourcePrice {

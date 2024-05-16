@@ -26,14 +26,15 @@ keywords = ["starknet", "cairo", "testnet", "local", "server"]
 
 
 [workspace.dependencies]
+
 # axum
-axum = { version = "0.5" }
-hyper = "0.14.12"
-tower-http = { version = "0.4", features = ["full"] }
+axum = { version = "0.7" }
+http-body-util = { version = "0.1" }
+tower-http = { version = "0.5", features = ["full"] }
 tower = { version = "0.4", features = ["full"] }
 
 # async
-tokio = { version = "1.18.5", features = [
+tokio = { version = "1", features = [
 	"time",
 	"macros",
 	"rt-multi-thread",
@@ -47,7 +48,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 
 # misc
-base64 = { version = "0.21.2" }
+base64 = { version = "0.22" }
 clap = { version = "4.3.2", features = ["derive"] }
 flate2 = { version = ">= 1.0.26, < 1.0.27" }
 nonzero_ext = "0.3.0"
@@ -61,7 +62,7 @@ rand = "0.8.5"
 rand_chacha = "0.3.1"
 rand_mt = "4.2.2"
 regex_generate = "0.2.3"
-reqwest = { version = "0.10", features = ["blocking"] }
+reqwest = { version = "0.12", features = ["blocking", "json"] }
 url = "2.4"
 usc = { version = "2.1.0", package = "universal-sierra-compiler" }
 
@@ -99,7 +100,7 @@ server = { version = "0.0.5", path = "crates/starknet-devnet-server", package = 
 # Dependabot alerts
 zerocopy = "0.7.31"
 unsafe-libyaml = "0.2.10"
-h2 = "0.3.24"
+h2 = "0.4"
 
 num-bigint = { version = "0.4" }
 

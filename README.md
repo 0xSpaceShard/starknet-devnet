@@ -25,6 +25,7 @@ This repository is work in progress, please be patient. Please check below the s
 - [x] [Mint token - Local faucet](#mint-token)
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
 - [x] [Starknet.js test suite passes 100%](https://github.com/starknet-io/starknet.js/actions)
+- [x] [Lite mode](#lite-mode)
 - [x] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
 - [x] [Availability as a package (crate)](#install-an-executable-binary)
 - [x] [Forking](#forking)
@@ -383,6 +384,14 @@ Response:
 }
 ```
 
+## Lite Mode
+
+Runs Devnet in a minimal lite mode by just skipping the block hash calculation. This is useful for testing purposes when the block hash is not needed.
+
+```
+$ starknet-devnet --lite-mode
+```
+
 ## Advancing time
 
 Block timestamp can be manipulated by setting the exact time or setting the time offset. By default, timestamp methods `/set_time` and `/increase_time` generate a new block. This can be changed for `/set_time` by setting the optional parameter `generate_block` to `false`. This skips immediate new block generation, but will use the specified timestamp whenever the next block is supposed to be generated.
@@ -487,11 +496,17 @@ To retrieve the current configuration of Devnet, send a GET request to `/config`
     "port": 5050,
     "timeout": 120,
     "request_body_size_limit": 2000000
-  }
+  },
+  "blocks_on_demand": false,
+  "lite_mode": false
 }
 ```
 
 ## Development
+
+### Installation
+
+Some developer scripts used in this project are written in Python 3, with dependencies specified in `scripts/requirements.txt`. You may want to [install the dependencies in a virtual environment](https://docs.python.org/3/library/venv.html#creating-virtual-environments).
 
 ### Development - Visual Studio Code
 
@@ -551,13 +566,13 @@ To speed up development, you can put all the previous steps (and more) in a scri
 
 ### Development - Testing
 
-### Prerequisites
+#### Prerequisites
 
 Some tests require the `anvil` command, so you need to [install Foundry](https://book.getfoundry.sh/getting-started/installation). The `anvil` command might not be usable by tests if you run them using VS Code's `Run Test` button available just above the test case. Either run tests using a shell which has foundry/anvil in `PATH`, or modify the BackgroundAnvil Command to specify `anvil` by its path on your system.
 
 To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to testing. This builds the production target used in integration tests, so spawning BackgroundDevnet won't time out.
 
-### Test execution
+#### Test execution
 
 Run all tests using all available CPUs with:
 
@@ -570,6 +585,24 @@ The previous command might cause your testing to die along the way due to memory
 ```
 $ cargo test --jobs <N>
 ```
+
+#### Benchmarking
+
+To statistically test if your contribution presents an improvement in execution time and memory usage, check out the script at `scripts/benchmark/command_stat_test.py`.
+
+##### Cargo Bench Execution
+
+To run Criterion benchmarks and generate a performance report:
+
+```
+$ cargo bench
+```
+
+This command will compile the benchmarks defined in this repository and run them using all available CPUs. Criterion will perform multiple iterations of each benchmark to collect performance data and generate statistical analysis with a report at `target/criterion/report/index.html`.
+
+Criterion is highly configurable and offers various options to customise the benchmarking process. You can find more information about Criterion and its features in the [Criterion documentation](https://bheisler.github.io/criterion.rs/book/index.html).
+
+Since it is hard to achieve a platform-agnostic way of detecting the memory used by a process in Rust, to measure and benchmark memory it is best to use external tools such as Valgrind, Leaks, etc. A lighter version of this achieving this is, while running `cargo bench`, to simply track the computer memory used with your system's resource monitor (such as `htop`).
 
 ### Development - Docker
 
@@ -620,11 +653,27 @@ To release a new version, follow these steps:
 
 4. Attach the [binary artifacts built in CI](https://circleci.com/docs/artifacts/#artifacts-overview) to the release. Use `scripts/fetch_ci_binaries.py` to fetch all artifacts of a CI workflow.
 
+### Development - External PRs
+
+Read more about how to review PRs in [the guidelines](.github/CONTRIBUTING.md#review).
+
+Our CI/CD platform (CircleCI) does not have the option to trigger the workflow on external PRs with a simple click. So once a PR is reviewed and looks like its workflow could pass, you can either accept & merge it blindly (which shall trigger the workflow on the target branch), or use the following workaround to trigger it:
+
+```
+# https://stackoverflow.com/questions/5884784/how-to-pull-remote-branch-from-somebody-elses-repo
+$ git remote add <CONTRIBUTOR> <CONTRIBUTOR_GIT_FORK_URL>
+$ git fetch <CONTRIBUTOR>
+$ git checkout -b <CONTRIBUTOR>/<BRANCH> <CONTRIBUTOR>/<BRANCH>
+
+$ git remote set-url --push <CONTRIBUTOR> git@github.com:0xSpaceShard/starknet-devnet-rs.git
+$ git push <CONTRIBUTOR> HEAD
+```
+
 ## ✏️ Contributing
 
 We ❤️ and encourage all contributions!
 
-[Click here](https://0xspaceshard.github.io/starknet-devnet/docs/guide/development) for the development guide.
+[Click here](.github/CONTRIBUTING.md) for the development guide.
 
 ## 🙌 Special Thanks
 

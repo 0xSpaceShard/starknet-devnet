@@ -80,6 +80,7 @@ pub struct StarknetConfig {
     pub dump_on: Option<DumpOn>,
     pub dump_path: Option<String>,
     pub blocks_on_demand: bool,
+    pub lite_mode: bool,
     /// on initialization, re-execute loaded txs (if any)
     #[serde(skip_serializing)]
     pub re_execute_on_init: bool,
@@ -108,6 +109,7 @@ impl Default for StarknetConfig {
             dump_on: None,
             dump_path: None,
             blocks_on_demand: false,
+            lite_mode: false,
             re_execute_on_init: true,
             state_archive: StateArchiveCapacity::default(),
             fork_config: ForkConfig::default(),

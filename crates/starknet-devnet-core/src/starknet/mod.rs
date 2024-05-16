@@ -25,12 +25,16 @@ use starknet_types::chain_id::ChainId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::emitted_event::EmittedEvent;
-use starknet_types::felt::{split_biguint, ClassHash, Felt, TransactionHash};
+use starknet_types::felt::{split_biguint, BlockHash, ClassHash, Felt, TransactionHash};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::block::{Block, BlockHeader};
+use starknet_types::rpc::block::{
+    Block, BlockHeader, BlockResult, PendingBlock, PendingBlockHeader,
+};
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
-use starknet_types::rpc::state::ThinStateDiff;
+use starknet_types::rpc::state::{
+    PendingStateUpdate, StateUpdate, StateUpdateResult, ThinStateDiff,
+};
 use starknet_types::rpc::transaction_receipt::{
     DeployTransactionReceipt, L1HandlerTransactionReceipt, TransactionReceipt,
 };
@@ -64,7 +68,6 @@ use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
-use crate::state::state_update::StateUpdate;
 use crate::state::{CustomState, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
@@ -288,18 +291,23 @@ impl Starknet {
     pub(crate) fn generate_new_block(&mut self, state_diff: StateDiff) -> DevnetResult<Felt> {
         let mut new_block = self.pending_block().clone();
 
+        let new_block_number =
+            BlockNumber(new_block.block_number().0 - self.blocks.aborted_blocks.len() as u64);
+
         // set new block header
-        new_block.set_block_hash(new_block.generate_hash()?);
+        new_block.set_block_hash(if self.config.lite_mode {
+            BlockHash::from_prefixed_hex_str(&format!("{:#x}", new_block_number.0))?
+        } else {
+            new_block.generate_hash()?
+        });
         new_block.status = BlockStatus::AcceptedOnL2;
+        new_block.header.block_number = new_block_number;
 
         // set block timestamp and context block timestamp for contract execution
         let block_timestamp = self.next_block_timestamp();
         new_block.set_timestamp(block_timestamp);
         Self::update_block_context_block_timestamp(&mut self.block_context, block_timestamp);
 
-        let new_block_number =
-            BlockNumber(new_block.block_number().0 - self.blocks.aborted_blocks.len() as u64);
-        new_block.header.block_number = new_block_number;
         let new_block_hash: Felt = new_block.header.block_hash.0.into();
 
         // update txs block hash block number for each transaction in the pending block
@@ -778,8 +786,25 @@ impl Starknet {
         )
     }
 
-    pub fn block_state_update(&self, block_id: &BlockId) -> DevnetResult<StateUpdate> {
-        state_update::state_update_by_block_id(self, block_id)
+    pub fn block_state_update(&self, block_id: &BlockId) -> DevnetResult<StateUpdateResult> {
+        let state_update = state_update::state_update_by_block_id(self, block_id)?;
+        let state_diff = state_update.state_diff.into();
+
+        // StateUpdate needs to be mapped to PendingStateUpdate only in blocks_on_demand mode and
+        // when block_id is pending
+        if self.config.blocks_on_demand && block_id == &BlockId::Tag(BlockTag::Pending) {
+            Ok(StateUpdateResult::PendingStateUpdate(PendingStateUpdate {
+                old_root: state_update.old_root,
+                state_diff,
+            }))
+        } else {
+            Ok(StateUpdateResult::StateUpdate(StateUpdate {
+                block_hash: state_update.block_hash,
+                new_root: state_update.new_root,
+                old_root: state_update.old_root,
+                state_diff,
+            }))
+        }
     }
 
     pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> DevnetResult<Vec<Felt>> {
@@ -889,7 +914,7 @@ impl Starknet {
         Ok(block.clone())
     }
 
-    pub fn get_block_with_transactions(&self, block_id: &BlockId) -> DevnetResult<Block> {
+    pub fn get_block_with_transactions(&self, block_id: &BlockId) -> DevnetResult<BlockResult> {
         let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
         let transactions = block
             .get_transactions()
@@ -902,14 +927,21 @@ impl Starknet {
             })
             .collect::<DevnetResult<Vec<TransactionWithHash>>>()?;
 
-        Ok(Block {
-            status: *block.status(),
-            header: BlockHeader::from(block),
-            transactions: Transactions::Full(transactions),
-        })
+        if block.status() == &BlockStatus::Pending {
+            Ok(BlockResult::PendingBlock(PendingBlock {
+                header: PendingBlockHeader::from(block),
+                transactions: Transactions::Full(transactions),
+            }))
+        } else {
+            Ok(BlockResult::Block(Block {
+                status: *block.status(),
+                header: BlockHeader::from(block),
+                transactions: Transactions::Full(transactions),
+            }))
+        }
     }
 
-    pub fn get_block_with_receipts(&self, block_id: BlockId) -> DevnetResult<Block> {
+    pub fn get_block_with_receipts(&self, block_id: BlockId) -> DevnetResult<BlockResult> {
         let block = self.blocks.get_by_block_id(&block_id).ok_or(Error::NoBlock)?;
         let mut transaction_receipts: Vec<TransactionWithReceipt> = vec![];
 
@@ -939,11 +971,18 @@ impl Starknet {
                 .push(TransactionWithReceipt { receipt, transaction: transaction.transaction });
         }
 
-        Ok(Block {
-            status: *block.status(),
-            header: BlockHeader::from(block),
-            transactions: Transactions::FullWithReceipts(transaction_receipts),
-        })
+        if block.status() == &BlockStatus::Pending {
+            Ok(BlockResult::PendingBlock(PendingBlock {
+                header: PendingBlockHeader::from(block),
+                transactions: Transactions::FullWithReceipts(transaction_receipts),
+            }))
+        } else {
+            Ok(BlockResult::Block(Block {
+                status: *block.status(),
+                header: BlockHeader::from(block),
+                transactions: Transactions::FullWithReceipts(transaction_receipts),
+            }))
+        }
     }
 
     pub fn get_transaction_by_block_id_and_index(
@@ -1013,7 +1052,10 @@ impl Starknet {
         &self,
         block_id: &BlockId,
     ) -> DevnetResult<Vec<BlockTransactionTrace>> {
-        let transactions = self.get_block_with_transactions(block_id)?.transactions;
+        let transactions = match self.get_block_with_transactions(block_id)? {
+            BlockResult::Block(b) => b.transactions,
+            BlockResult::PendingBlock(b) => b.transactions,
+        };
 
         let mut traces = Vec::new();
         if let Transactions::Full(txs) = transactions {
