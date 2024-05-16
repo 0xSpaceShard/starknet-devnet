@@ -39,9 +39,9 @@ fn configure_tracing() {
     // Remove the `request` and `response` directives from the environment variable.
     // And trim empty spaces around each directive
     let log_env_var = log_env_var
-        .split(",")
+        .split(',')
         .map(|el| el.trim())
-        .filter(|el| [REQUEST_LOG_ENV_VAR, RESPONSE_LOG_ENV_VAR].contains(el) == false)
+        .filter(|el| ![REQUEST_LOG_ENV_VAR, RESPONSE_LOG_ENV_VAR].contains(el))
         .collect::<Vec<&str>>()
         .join(",");
 
