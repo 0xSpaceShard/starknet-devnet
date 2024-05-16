@@ -34,7 +34,9 @@ const RESPONSE_LOG_ENV_VAR: &str = "response";
 /// Added are two more directives: `request` and `response`. If they are present, then have to be
 /// removed to be able to construct the `EnvFilter`.
 fn configure_tracing() {
-    let mut log_env_var = std::env::var(EnvFilter::DEFAULT_ENV).unwrap_or_default().to_lowercase();
+    let log_env_var = std::env::var(EnvFilter::DEFAULT_ENV).unwrap_or_default().to_lowercase();
+    let mut log_env_var =
+        log_env_var.split(",").map(|el| el.trim()).collect::<Vec<&str>>().join(",");
 
     for directive in [REQUEST_LOG_ENV_VAR, RESPONSE_LOG_ENV_VAR] {
         if let Some(start_index) = log_env_var.find(directive) {
