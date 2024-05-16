@@ -1,11 +1,12 @@
-use axum::{Extension, Json};
+use axum::extract::State;
+use axum::Json;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{AbortedBlocks, AbortingBlocks, CreatedBlock};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 
 pub async fn create_block(
-    Extension(state): Extension<HttpApiHandler>,
+    State(state): State<HttpApiHandler>,
 ) -> HttpApiResult<Json<CreatedBlock>> {
     let mut starknet = state.api.starknet.write().await;
     starknet
@@ -20,8 +21,8 @@ pub async fn create_block(
 }
 
 pub async fn abort_blocks(
+    State(state): State<HttpApiHandler>,
     Json(data): Json<AbortingBlocks>,
-    Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<AbortedBlocks>> {
     let mut starknet = state.api.starknet.write().await;
     let aborted = starknet

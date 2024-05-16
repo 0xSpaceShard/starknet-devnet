@@ -1,5 +1,3 @@
-use std::net::SocketAddr;
-
 use anyhow::Ok;
 use clap::Parser;
 use cli::Args;
@@ -19,6 +17,7 @@ use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_types::chain_id::ChainId;
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::ToHexString;
+use tokio::net::TcpListener;
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
@@ -26,11 +25,32 @@ mod cli;
 mod initial_balance_wrapper;
 mod ip_addr_wrapper;
 
+const REQUEST_LOG_ENV_VAR: &str = "request";
+const RESPONSE_LOG_ENV_VAR: &str = "response";
+
 /// Configures tracing with default level INFO,
 /// If the environment variable `RUST_LOG` is set, it will be used instead.
+/// Added are two more directives: `request` and `response`. If they are present, then have to be
+/// removed to be able to construct the `EnvFilter` correctly, because tracing_subscriber recognizes
+/// them as path syntax (way to access a module) and assigns them TRACE level. Because they are not
+/// paths to some module like this one: `starknet-devnet::cli` nothing gets logged. For example:
+/// `RUST_LOG=request` is translated to `request=TRACE`, which means that will log TRACE level for
+/// request module.
 fn configure_tracing() {
-    let level_filter_layer =
-        EnvFilter::builder().with_default_directive(tracing::Level::INFO.into()).from_env_lossy();
+    let log_env_var = std::env::var(EnvFilter::DEFAULT_ENV).unwrap_or_default().to_lowercase();
+
+    // Remove the `request` and `response` directives from the environment variable.
+    // And trim empty spaces around each directive
+    let log_env_var = log_env_var
+        .split(',')
+        .map(|el| el.trim())
+        .filter(|el| ![REQUEST_LOG_ENV_VAR, RESPONSE_LOG_ENV_VAR].contains(el))
+        .collect::<Vec<&str>>()
+        .join(",");
+
+    let level_filter_layer = EnvFilter::builder()
+        .with_default_directive(tracing::Level::INFO.into())
+        .parse_lossy(log_env_var);
 
     tracing_subscriber::fmt().with_env_filter(level_filter_layer).init();
 }
@@ -43,7 +63,7 @@ fn log_predeployed_accounts(
     for account in predeployed_accounts {
         let formatted_str = format!(
             r"
-| Account address |  {} 
+| Account address |  {}
 | Private key     |  {}
 | Public key      |  {}",
             account.account_address.to_prefixed_hex_str(),
@@ -152,7 +172,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     set_and_log_fork_config(&mut starknet_config.fork_config, starknet_config.chain_id).await?;
 
-    let mut addr: SocketAddr = SocketAddr::new(server_config.host, server_config.port);
+    let address = format!("{}:{}", server_config.host, server_config.port);
+    let listener = TcpListener::bind(address.clone()).await?;
 
     let api = Api::new(Starknet::new(&starknet_config)?);
 
@@ -173,19 +194,17 @@ async fn main() -> Result<(), anyhow::Error> {
         starknet_config.predeployed_accounts_initial_balance.clone(),
     );
 
-    let server = serve_http_api_json_rpc(addr, api.clone(), &starknet_config, &server_config)?;
-    addr = server.local_addr();
+    let server = serve_http_api_json_rpc(listener, api.clone(), &starknet_config, &server_config);
 
-    info!("Starknet Devnet listening on {}", addr);
+    info!("Starknet Devnet listening on {}", address);
 
-    // spawn the server on a new task
-    let serve = if starknet_config.dump_on == Some(DumpOn::Exit) {
-        tokio::task::spawn(server.with_graceful_shutdown(shutdown_signal(api.clone())))
+    if starknet_config.dump_on == Some(DumpOn::Exit) {
+        server.with_graceful_shutdown(shutdown_signal(api.clone())).await?
     } else {
-        tokio::task::spawn(server)
-    };
+        server.await?
+    }
 
-    Ok(serve.await??)
+    Ok(())
 }
 
 pub async fn shutdown_signal(api: Api) {
@@ -193,4 +212,27 @@ pub async fn shutdown_signal(api: Api) {
 
     let starknet = api.starknet.read().await;
     starknet.dump_events().expect("Failed to dump starknet transactions");
+}
+
+#[cfg(test)]
+mod tests {
+    use tracing::level_filters::LevelFilter;
+    use tracing_subscriber::EnvFilter;
+
+    use crate::configure_tracing;
+
+    #[test]
+    fn test_generated_log_level_from_empty_environment_variable_is_info() {
+        assert_environment_variable_sets_expected_log_level("", LevelFilter::INFO);
+    }
+
+    fn assert_environment_variable_sets_expected_log_level(
+        env_var: &str,
+        expected_level: LevelFilter,
+    ) {
+        std::env::set_var(EnvFilter::DEFAULT_ENV, env_var);
+        configure_tracing();
+
+        assert_eq!(LevelFilter::current(), expected_level);
+    }
 }

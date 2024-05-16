@@ -1,4 +1,5 @@
-use axum::{Extension, Json};
+use axum::extract::State;
+use axum::Json;
 use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::{BlockId, BlockTag};
@@ -58,8 +59,8 @@ pub fn get_erc20_address(unit: &FeeUnit) -> ContractAddress {
 }
 
 pub async fn mint(
+    State(state): State<HttpApiHandler>,
     Json(request): Json<MintTokensRequest>,
-    Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<MintTokensResponse>> {
     let mut starknet = state.api.starknet.write().await;
     let unit = request.unit.unwrap_or(FeeUnit::WEI);
