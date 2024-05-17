@@ -12,9 +12,11 @@ use starknet_core::starknet::starknet_config::{
     DumpOn, ForkConfig, StarknetConfig, StateArchiveCapacity,
 };
 use starknet_types::chain_id::ChainId;
+use tracing_subscriber::EnvFilter;
 
 use crate::initial_balance_wrapper::InitialBalanceWrapper;
 use crate::ip_addr_wrapper::IpAddrWrapper;
+use crate::{REQUEST_LOG_ENV_VAR, RESPONSE_LOG_ENV_VAR};
 
 /// Run a local instance of Starknet Devnet
 #[derive(Parser, Debug)]
@@ -196,14 +198,34 @@ impl Args {
             },
         };
 
+        let RequestResponseLogging { log_request, log_response } =
+            RequestResponseLogging::from_rust_log_environment_variable();
+
         let server_config = ServerConfig {
             host: self.host.inner,
             port: self.port,
             timeout: self.timeout,
             request_body_size_limit: self.request_body_size_limit,
+            log_request,
+            log_response,
         };
 
         Ok((starknet_config, server_config))
+    }
+}
+
+struct RequestResponseLogging {
+    log_request: bool,
+    log_response: bool,
+}
+
+impl RequestResponseLogging {
+    fn from_rust_log_environment_variable() -> Self {
+        let log_env_var = std::env::var(EnvFilter::DEFAULT_ENV).unwrap_or_default().to_lowercase();
+        let log_request = log_env_var.contains(REQUEST_LOG_ENV_VAR);
+        let log_response = log_env_var.contains(RESPONSE_LOG_ENV_VAR);
+
+        Self { log_request, log_response }
     }
 }
 
@@ -214,8 +236,9 @@ mod tests {
         CAIRO_0_ERC20_CONTRACT_PATH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
     };
     use starknet_core::starknet::starknet_config::StateArchiveCapacity;
+    use tracing_subscriber::EnvFilter;
 
-    use super::Args;
+    use super::{Args, RequestResponseLogging};
     use crate::ip_addr_wrapper::IpAddrWrapper;
 
     #[test]
@@ -425,6 +448,27 @@ mod tests {
         match Args::try_parse_from(["--", "--request-body-size-limit", "-1"]) {
             Err(_) => (),
             Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
+        }
+    }
+
+    #[test]
+    fn test_variants_of_env_var() {
+        for (environment_variable, should_log_request, should_log_response) in [
+            ("request,response,info", true, true),
+            ("request,info", true, false),
+            ("response,info", false, true),
+            ("info", false, false),
+            ("", false, false),
+            ("REQUEST,RESPONSE", true, true),
+            ("REQUEST", true, false),
+            ("RESPONSE", false, true),
+        ] {
+            std::env::set_var(EnvFilter::DEFAULT_ENV, environment_variable);
+            let RequestResponseLogging { log_request, log_response } =
+                RequestResponseLogging::from_rust_log_environment_variable();
+
+            assert_eq!(log_request, should_log_request);
+            assert_eq!(log_response, should_log_response);
         }
     }
 }

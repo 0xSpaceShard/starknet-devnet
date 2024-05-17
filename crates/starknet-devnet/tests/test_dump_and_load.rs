@@ -4,13 +4,13 @@ mod dump_and_load_tests {
     use std::path::Path;
     use std::time;
 
-    use hyper::Body;
     use serde_json::json;
     use starknet_rs_providers::Provider;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
+    use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
     use crate::common::utils::{send_ctrl_c_signal_and_wait, UniqueAutoDeletableFile};
 
     static DUMMY_ADDRESS: u128 = 1;
@@ -331,21 +331,29 @@ mod dump_and_load_tests {
     #[tokio::test]
     async fn dump_endpoint_fail_with_no_mode_set() {
         let devnet_dump = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let dump_body = Body::from(json!({}).to_string());
-        let result = devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();
+        let result = devnet_dump
+            .reqwest_client()
+            .post_json_async("/dump", ())
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap_err();
         assert_eq!(result.status(), 400);
     }
 
     #[tokio::test]
     async fn dump_endpoint_fail_with_wrong_request() {
         let devnet_dump = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let dump_body = Body::from(
-            json!({
-                "test": ""
-            })
-            .to_string(),
-        );
-        let result = devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();
+        let result = devnet_dump
+            .reqwest_client()
+            .post_json_async(
+                "/dump",
+                json!({
+                    "test": ""
+                }),
+            )
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap_err();
         assert_eq!(result.status(), 400);
     }
 
@@ -362,26 +370,36 @@ mod dump_and_load_tests {
         .expect("Could not start Devnet");
 
         devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-        let dump_body = Body::from(
-            json!({
-                "path": "///"
-            })
-            .to_string(),
-        );
-        let result = devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();
+        let result = devnet_dump
+            .reqwest_client()
+            .post_json_async(
+                "/dump",
+                json!({
+                    "path": "///"
+                }),
+            )
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap_err();
         assert_eq!(result.status(), 400);
     }
 
     #[tokio::test]
     async fn load_endpoint_fail_with_wrong_request() {
         let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let load_body = Body::from(
-            json!({
-                "test": ""
-            })
-            .to_string(),
-        );
-        let result = devnet_load.post_json("/load".into(), load_body).await.unwrap();
+
+        let result = devnet_load
+            .reqwest_client()
+            .post_json_async(
+                "/load",
+                json!({
+                    "test": ""
+                }),
+            )
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap_err();
+
         assert_eq!(result.status(), 422);
     }
 
@@ -389,8 +407,12 @@ mod dump_and_load_tests {
     async fn load_endpoint_fail_with_wrong_path() {
         let load_file_name = "load_file_name";
         let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let load_body = Body::from(json!({ "path": load_file_name }).to_string());
-        let result = devnet_load.post_json("/load".into(), load_body).await.unwrap();
+        let result = devnet_load
+            .reqwest_client()
+            .post_json_async("/load", json!({ "path": load_file_name }))
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap_err();
         assert_eq!(result.status(), 400);
     }
 
@@ -410,21 +432,32 @@ mod dump_and_load_tests {
         .expect("Could not start Devnet");
 
         let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-        let dump_body = Body::from(json!({}).to_string());
-        devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();
+        devnet_dump
+            .reqwest_client()
+            .post_json_async("/dump", ())
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap();
         assert!(Path::new(&dump_file.path).exists());
 
         let dump_file_custom = UniqueAutoDeletableFile::new("dump_endpoint_custom_path");
-        let dump_body_custom_path =
-            Body::from(json!({ "path": dump_file_custom.path }).to_string());
-        devnet_dump.post_json("/dump".into(), dump_body_custom_path).await.unwrap();
+        devnet_dump
+            .reqwest_client()
+            .post_json_async("/dump", json!({ "path": dump_file_custom.path }))
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap();
         assert!(Path::new(&dump_file_custom.path).exists());
 
         // load and re-execute from "dump_endpoint" file and check if transaction and state of the
         // blockchain is valid
         let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let load_body = Body::from(json!({ "path": dump_file.path }).to_string());
-        devnet_load.post_json("/load".into(), load_body).await.unwrap();
+        devnet_load
+            .reqwest_client()
+            .post_json_async("/load", json!({ "path": dump_file.path }))
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap();
 
         let balance_result = devnet_load
             .get_balance_latest(&FieldElement::from(DUMMY_ADDRESS), FeeUnit::WEI)
@@ -458,9 +491,12 @@ mod dump_and_load_tests {
 
         // set time in past without block generation
         let past_time = 1;
-        let set_time_body =
-            Body::from(json!({ "time": past_time, "generate_block": false }).to_string());
-        devnet_dump.post_json("/set_time".into(), set_time_body).await.unwrap();
+        devnet_dump
+            .reqwest_client()
+            .post_json_async("/set_time", json!({ "time": past_time, "generate_block": false }))
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap();
 
         // wait 1 second
         tokio::time::sleep(time::Duration::from_secs(1)).await;

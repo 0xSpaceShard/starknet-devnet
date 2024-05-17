@@ -79,8 +79,7 @@ mod tests {
                 starknet_rs_core::types::BlockTag::Latest,
             ))
             .unwrap();
-
-        let state_diff: ThinStateDiff = state_update.state_diff.into();
+        let state_diff = state_update.get_state_diff();
 
         let expected_state_diff: ThinStateDiff = StateDiff {
             declared_contracts: vec![compiled_class_hash],

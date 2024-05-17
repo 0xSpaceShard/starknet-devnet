@@ -15,7 +15,6 @@ mod test_messaging {
     use std::sync::Arc;
 
     use ethers::prelude::*;
-    use hyper::{Body, StatusCode};
     use serde_json::{json, Value};
     use starknet_rs_accounts::{
         Account, AccountError, Call, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
@@ -38,9 +37,9 @@ mod test_messaging {
         CHAIN_ID, L1_HANDLER_SELECTOR, MESSAGING_L1_CONTRACT_ADDRESS,
         MESSAGING_L2_CONTRACT_ADDRESS, MESSAGING_WHITELISTED_L1_CONTRACT,
     };
+    use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
     use crate::common::utils::{
-        assert_tx_successful, get_json_body,
-        get_messaging_contract_in_sierra_and_compiled_class_hash,
+        assert_tx_successful, get_messaging_contract_in_sierra_and_compiled_class_hash,
         get_messaging_lib_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
         to_hex_felt, UniqueAutoDeletableFile,
     };
@@ -202,10 +201,11 @@ mod test_messaging {
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ZERO]);
 
         // Flush messages to check the presence of the withdraw
-        let req_body = Body::from(json!({ "dry_run": true }).to_string());
-        let resp = devnet.post_json("/postman/flush".into(), req_body).await.expect("flush failed");
-        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
-        let resp_body = get_json_body(resp).await;
+        let resp_body: serde_json::Value = devnet
+            .reqwest_client()
+            .post_json_async("/postman/flush", json!({ "dry_run": true }))
+            .await
+            .unwrap();
 
         assert_eq!(
             resp_body,
@@ -265,10 +265,11 @@ mod test_messaging {
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ZERO]);
 
         // Flush messages to check the presence of the withdraw
-        let req_body = Body::from(json!({ "dry_run": true }).to_string());
-        let resp = devnet.post_json("/postman/flush".into(), req_body).await.expect("flush failed");
-        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
-        let resp_body = get_json_body(resp).await;
+        let resp_body: serde_json::Value = devnet
+            .reqwest_client()
+            .post_json_async("/postman/flush", json!({ "dry_run": true }))
+            .await
+            .unwrap();
 
         assert_eq!(
             resp_body,
@@ -300,23 +301,16 @@ mod test_messaging {
 
         // Use postman to send a message to l2 without l1 - the message increments user balance
         let increment_amount = FieldElement::from_hex_be("0xff").unwrap();
-        let req_body = Body::from(
-            json!({
-                "l1_contract_address": MESSAGING_L1_ADDRESS,
-                "l2_contract_address": format!("0x{:64x}", l1l2_contract_address),
-                "entry_point_selector": format!("0x{:64x}", get_selector_from_name("deposit").unwrap()),
-                "payload": [to_hex_felt(&user), to_hex_felt(&increment_amount)],
-                "paid_fee_on_l1": "0x1234",
-                "nonce": "0x1"
-            }).to_string(),
-        );
 
-        let resp = devnet
-            .post_json("/postman/send_message_to_l2".into(), req_body)
-            .await
-            .expect("send message to l2 failed");
-        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
-        let body = get_json_body(resp).await;
+        let body: serde_json::Value = devnet.reqwest_client().post_json_async("/postman/send_message_to_l2", json!({
+            "l1_contract_address": MESSAGING_L1_ADDRESS,
+            "l2_contract_address": format!("0x{:64x}", l1l2_contract_address),
+            "entry_point_selector": format!("0x{:64x}", get_selector_from_name("deposit").unwrap()),
+            "payload": [to_hex_felt(&user), to_hex_felt(&increment_amount)],
+            "paid_fee_on_l1": "0x1234",
+            "nonce": "0x1"
+        }))
+        .await.unwrap();
         let tx_hash_hex = body.get("transaction_hash").unwrap().as_str().unwrap();
         let tx_hash = FieldElement::from_hex_be(tx_hash_hex).unwrap();
         assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
@@ -355,15 +349,15 @@ mod test_messaging {
 
         let (devnet, _, _) = setup_devnet(&["--account-class", "cairo1"]).await;
 
-        let req_body = Body::from(json!({ "network_url": anvil.url }).to_string());
-        let resp = devnet
-            .post_json("/postman/load_l1_messaging_contract".into(), req_body)
+        let body: serde_json::Value = devnet
+            .reqwest_client()
+            .post_json_async(
+                "/postman/load_l1_messaging_contract",
+                json!({ "network_url": anvil.url }),
+            )
             .await
             .expect("deploy l1 messaging contract failed");
 
-        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
-
-        let body = get_json_body(resp).await;
         assert_eq!(
             body.get("messaging_contract_address").unwrap().as_str().unwrap(),
             MESSAGING_L1_ADDRESS
@@ -388,22 +382,18 @@ mod test_messaging {
         withdraw(Arc::clone(&account), l1l2_contract_address, user, user_balance, l1_address).await;
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ZERO]);
 
-        let req_body = Body::from(
-            json!({
-                "from_address": format!("0x{:64x}", l1l2_contract_address),
-                "to_address": DUMMY_L1_ADDRESS,
-                "payload": ["0x0","0x1","0x1"],
-            })
-            .to_string(),
-        );
-
-        let resp = devnet
-            .post_json("/postman/consume_message_from_l2".into(), req_body)
+        let body: serde_json::Value = devnet
+            .reqwest_client()
+            .post_json_async(
+                "/postman/consume_message_from_l2",
+                json!({
+                    "from_address": format!("0x{:64x}", l1l2_contract_address),
+                    "to_address": DUMMY_L1_ADDRESS,
+                    "payload": ["0x0","0x1","0x1"],
+                }),
+            )
             .await
             .expect("consume message from l2 failed");
-        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
-
-        let body = get_json_body(resp).await;
         assert_eq!(
             body.get("message_hash").unwrap().as_str().unwrap(),
             "0xac5356289f98e5012f8efcabb9f7ad3adaa43f81ac47b6311d2c23ca01590bd0"
@@ -425,15 +415,15 @@ mod test_messaging {
         .await;
 
         // Load l1 messaging contract.
-        let req_body = Body::from(json!({ "network_url": anvil.url }).to_string());
-        let resp = devnet
-            .post_json("/postman/load_l1_messaging_contract".into(), req_body)
+        let body: serde_json::Value = devnet
+            .reqwest_client()
+            .post_json_async(
+                "/postman/load_l1_messaging_contract",
+                json!({ "network_url": anvil.url }),
+            )
             .await
             .expect("deploy l1 messaging contract failed");
 
-        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
-
-        let body = get_json_body(resp).await;
         assert_eq!(
             body.get("messaging_contract_address").unwrap().as_str().unwrap(),
             MESSAGING_L1_ADDRESS
@@ -465,9 +455,12 @@ mod test_messaging {
         assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [FieldElement::ZERO]);
 
         // Flush to send the messages.
-        let resp =
-            devnet.post_json("/postman/flush".into(), "".into()).await.expect("flush failed");
-        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+        devnet
+            .reqwest_client()
+            .post_json_async("/postman/flush", ())
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .expect("flush failed");
 
         // Check that the balance is 0 on L1 before consuming the message.
         let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
@@ -498,16 +491,17 @@ mod test_messaging {
         assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [FieldElement::ZERO]);
 
         // Flush messages to have MessageToL2 executed.
-        let resp =
-            devnet.post_json("/postman/flush".into(), "".into()).await.expect("flush failed");
-        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+        let flush_body: serde_json::Value = devnet
+            .reqwest_client()
+            .post_json_async("/postman/flush", ())
+            .await
+            .expect("flush failed");
 
         // Ensure the balance is back to 1 on L2.
         assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [FieldElement::ONE]);
 
         // Assert traces of L1Handler transaction with custom rpc call,
         // json_rpc_client.trace_transaction() is not supported
-        let flush_body = get_json_body(resp).await;
         let l1_handler_tx_trace = &devnet
             .send_custom_rpc(
                 "starknet_traceTransaction",
@@ -558,16 +552,15 @@ mod test_messaging {
 
         // Use postman to send a message to l2 without l1 - the message increments user balance
         let increment_amount = FieldElement::from_hex_be("0xff").unwrap();
-        let req_body = Body::from(json!({
+
+        dumping_devnet.reqwest_client().post_json_async("/postman/send_message_to_l2", json!({
             "l1_contract_address": MESSAGING_WHITELISTED_L1_CONTRACT,
             "l2_contract_address": format!("0x{:64x}", l1l2_contract_address),
             "entry_point_selector": format!("0x{:64x}", get_selector_from_name("deposit").unwrap()),
             "payload": [to_hex_felt(&user), to_hex_felt(&increment_amount)],
             "paid_fee_on_l1": "0x1234",
             "nonce": "0x1"
-        }).to_string());
-
-        dumping_devnet.post_json("/postman/send_message_to_l2".into(), req_body).await.unwrap();
+        })).await.map(|_: HttpEmptyResponseBody| ()).unwrap();
 
         assert_eq!(
             get_balance(&dumping_devnet, l1l2_contract_address, user).await,

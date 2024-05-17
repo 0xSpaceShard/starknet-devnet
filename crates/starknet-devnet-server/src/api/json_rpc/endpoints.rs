@@ -1,13 +1,16 @@
 use starknet_core::error::{Error, StateError};
-use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag, MsgFromL1};
+use starknet_rs_core::types::{BlockId as ImportedBlockId, MsgFromL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::block::{Block, BlockHeader, BlockId, PendingBlock, PendingBlockHeader};
-use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
+use starknet_types::rpc::block::{
+    Block, BlockHeader, BlockId, BlockResult, PendingBlock, PendingBlockHeader,
+};
+use starknet_types::rpc::state::StateUpdateResult;
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, SimulationFlag,
 };
+use starknet_types::starknet_api::block::BlockStatus;
 
 use super::error::{ApiError, StrictRpcResult};
 use super::models::{BlockHashAndNumberOutput, SyncingOutput, TransactionStatusOutput};
@@ -31,11 +34,7 @@ impl JsonRpcHandler {
             unknown_error => ApiError::StarknetDevnetError(unknown_error),
         })?;
 
-        // StarknetBlock needs to be mapped to PendingBlock response only in blocks_on_demand mode
-        // and when block_id is pending
-        if starknet.config.blocks_on_demand
-            && block_id == ImportedBlockId::Tag(BlockTag::Pending).into()
-        {
+        if block.status() == &BlockStatus::Pending {
             Ok(StarknetResponse::PendingBlock(PendingBlock {
                 header: PendingBlockHeader::from(&block),
                 transactions: starknet_types::rpc::transactions::Transactions::Hashes(
@@ -55,16 +54,19 @@ impl JsonRpcHandler {
 
     /// starknet_getBlockWithTxs
     pub async fn get_block_with_txs(&self, block_id: BlockId) -> StrictRpcResult {
-        let block =
-            self.api.starknet.read().await.get_block_with_transactions(block_id.as_ref()).map_err(
-                |err| match err {
-                    Error::NoBlock => ApiError::BlockNotFound,
-                    Error::NoTransaction => ApiError::TransactionNotFound,
-                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
-                },
-            )?;
+        let starknet = self.api.starknet.read().await;
 
-        Ok(StarknetResponse::Block(block))
+        let block =
+            starknet.get_block_with_transactions(block_id.as_ref()).map_err(|err| match err {
+                Error::NoBlock => ApiError::BlockNotFound,
+                Error::NoTransaction => ApiError::TransactionNotFound,
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            })?;
+
+        match block {
+            BlockResult::Block(b) => Ok(StarknetResponse::Block(b)),
+            BlockResult::PendingBlock(b) => Ok(StarknetResponse::PendingBlock(b)),
+        }
     }
 
     /// starknet_getBlockWithReceipts
@@ -78,7 +80,10 @@ impl JsonRpcHandler {
                 },
             )?;
 
-        Ok(StarknetResponse::Block(block))
+        match block {
+            BlockResult::Block(b) => Ok(StarknetResponse::Block(b)),
+            BlockResult::PendingBlock(b) => Ok(StarknetResponse::PendingBlock(b)),
+        }
     }
 
     /// starknet_getStateUpdate
@@ -91,24 +96,9 @@ impl JsonRpcHandler {
                 unknown_error => ApiError::StarknetDevnetError(unknown_error),
             })?;
 
-        let state_diff = state_update.state_diff.into();
-
-        // StateUpdate needs to be mapped to PendingStateUpdate response only in blocks_on_demand
-        // mode and when block_id is pending
-        if starknet.config.blocks_on_demand
-            && block_id == ImportedBlockId::Tag(BlockTag::Pending).into()
-        {
-            Ok(StarknetResponse::PendingStateUpdate(PendingStateUpdate {
-                old_root: state_update.old_root,
-                state_diff,
-            }))
-        } else {
-            Ok(StarknetResponse::StateUpdate(StateUpdate {
-                block_hash: state_update.block_hash,
-                new_root: state_update.new_root,
-                old_root: state_update.old_root,
-                state_diff,
-            }))
+        match state_update {
+            StateUpdateResult::StateUpdate(s) => Ok(StarknetResponse::StateUpdate(s)),
+            StateUpdateResult::PendingStateUpdate(s) => Ok(StarknetResponse::PendingStateUpdate(s)),
         }
     }
 
