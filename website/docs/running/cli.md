@@ -1,3 +1,7 @@
+---
+sidebar_position: 2.3
+---
+
 # CLI options
 
 Check out the CLI options with:

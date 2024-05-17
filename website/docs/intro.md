@@ -2,71 +2,7 @@
 sidebar_position: 1
 ---
 
-<!-- logo / title -->
-<!--
-<p align="center" style="margin-bottom: 0px !important">
-  <img width="200" src="https://github.com/0xSpaceShard/starknet-devnet-rs/assets/21069052/4791b0e4-58fc-4a44-8f87-fc0db636a5c7" alt="Devnet-RS" align="center"></img>
-</p>
-
-<h1 align="center" style="margin-top: 12px !important">Starknet Devnet RS</h1>
-
-<p align="center" dir="auto">
-  <a href="https://hub.docker.com/r/shardlabs/starknet-devnet-rs/tags" target="_blank">
-    <img src="https://img.shields.io/badge/dockerhub-images-important.svg?logo=Docker" style="max-width: 100%;"></img>
-  </a>
-  <a href="https://starkware.co/" target="_blank">
-    <img src="https://img.shields.io/badge/powered_by-StarkWare-navy" style="max-width: 100%;"></img>
-  </a>
-</p>-->
-
-## Dumping & Loading
-
-To preserve your Devnet instance for future use, these are the options:
-
-- Dumping on exit (handles Ctrl+C, i.e. SIGINT, doesn't handle SIGKILL):
-
-```
-$ starknet-devnet --dump-on exit --dump-path <PATH>
-```
-
-- Dumping after each block:
-
-```
-$ starknet-devnet --dump-on block --dump-path <PATH>
-```
-
-- Dumping on request requires providing --dump-on mode on the startup. Example usage in `exit` mode (replace `<HOST>`, `<PORT>` and `<PATH>` with your own):
-
-```
-$ starknet-devnet --dump-on exit --dump-path <PATH>
-$ curl -X POST http://<HOST>:<PORT>/dump -d '{ "path": <PATH> }' -H "Content-Type: application/json"
-```
-
-### Loading
-
-To load a preserved Devnet instance, the options are:
-
-- Loading on startup (note the argument name is not `--load-path` as it was in Devnet-py):
-
-```
-$ starknet-devnet --dump-path <PATH>
-```
-
-- Loading on request:
-
-```
-curl -X POST http://<HOST>:<PORT>/load -d '{ "path": <PATH> }' -H "Content-Type: application/json"
-```
-
-Currently, dumping produces a list of received transactions that is stored on disk.
-Conversely, loading is implemented as the re-execution of transactions from a dump.
-This means that timestamps of `StarknetBlock` will be different.
-
-### Loading disclaimer
-
-Dumping and loading are not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
-
-If you dumped a Devnet utilizing one class for account predeployment (e.g. `--account-class cairo0`), you should use the same option when loading. The same applies for dumping a Devnet in `--blocks-on-demand` mode.
+<!-- add testnet difference or other general disclaimers -->
 
 ## Restarting
 
@@ -74,135 +10,12 @@ Devnet can be restarted by making a `POST /restart` request (no body required). 
 
 If you're using [**the Hardhat plugin**](https://github.com/0xSpaceShard/starknet-hardhat-plugin#restart), restart with `starknet.devnet.restart()`.
 
-## Blocks
-
-Devnet starts with a genesis block (with a block number equal to 0). In forking mode, the genesis block number will be equal to forked block number plus one.
-
-A new block is generated with each new transaction, and you can create an empty block by yourself.
-
-### Creating blocks on demand
-
-If you start Devnet with the `--blocks-on-demand` CLI option, all valid transactions will be stored in a pending block (targetable via block tag `"pending"`).
-
-To create a block on demand, send a `POST` request to `/create_block`. This will convert the pending block to the latest block (targetable via block tag `"latest"`), giving it a block hash and a block number. All subsequent transactions will be stored in a new pending block.
-
-In case of demanding block creation with no pending transactions, a new empty block will be generated.
-
-The creation of the genesis block is not affected by this feature.
-
-```
-POST /create_block
-```
-
-Response:
-
-```
-{'block_hash': '0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67'}
-```
-
-### Create an empty block
-
-To create an empty block without transactions, POST a request to /create_block:
-
-```
-POST /create_block
-```
-
-Response:
-
-```
-{"block_hash": "0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67"}
-```
-
-### Abort blocks
-
-This functionality allows to simulate block abortion that can occur on mainnet.
-
-You can abort blocks and revert transactions from the specified block to the currently latest block. Newly created blocks after the abortion will have accepted status and will continue with numbering where the last accepted block left off.
-
-The state of Devnet will be reverted to the state of the last accepted block.
-
-E.g. assume there are 3 accepted blocks numbered 1, 2 and 3. Upon receiving a request to abort blocks starting with block 2, the blocks numbered 2 and 3 are aborted and their transactions reverted. The state of network will be as it was in block 1. Once a new block is mined, it will be accepted and it will have number 2.
-
-Aborted blocks can only be queried by block hash. Aborting the blocks in forking origin and already aborted blocks is not supported and results in an error.
-
-```
-POST /abort_blocks
-{
-    "starting_block_hash": BLOCK_HASH
-}
-```
-
-Response:
-
-```
-{
-    "aborted": [BLOCK_HASH_0, BLOCK_HASH_1, ...]
-}
-```
-
 ## Lite Mode
 
 Runs Devnet in a minimal lite mode by just skipping the block hash calculation. This is useful for testing purposes when the block hash is not needed.
 
 ```
 $ starknet-devnet --lite-mode
-```
-
-## Advancing time
-
-Block timestamp can be manipulated by setting the exact time or setting the time offset. By default, timestamp methods `/set_time` and `/increase_time` generate a new block. This can be changed for `/set_time` by setting the optional parameter `generate_block` to `false`. This skips immediate new block generation, but will use the specified timestamp whenever the next block is supposed to be generated.
-
-All values should be set in [Unix time seconds](https://en.wikipedia.org/wiki/Unix_time).
-
-### Set time
-
-Sets the exact time and generates a new block.
-
-```
-POST /set_time
-{
-    "time": TIME_IN_SECONDS
-}
-```
-
-Doesn't generate a new block, but sets the exact time for the next generated block.
-
-```
-POST /set_time
-{
-    "time": TIME_IN_SECONDS,
-    "generate_block": false
-}
-```
-
-Warning: block time can be set in the past which might lead to unexpected behavior!
-
-### Increase time
-
-Increases the block timestamp by the provided amount and generates a new block. All subsequent blocks will keep this increment.
-
-```
-POST /increase_time
-{
-    "time": TIME_IN_SECONDS
-}
-```
-
-### Start time arg
-
-Devnet can be started with the `--start-time` argument, where `START_TIME_IN_SECONDS` should be greater than 0.
-
-```
-$ starknet-devnet --start-time <START_TIME_IN_SECONDS>
-```
-
-## Timeout
-
-Timeout can be passed to Devnet's HTTP server. This makes it easier to deploy and manage large contracts that take longer to execute.
-
-```
-$ starknet-devnet --timeout <TIMEOUT>
 ```
 
 ## Forking
@@ -224,40 +37,6 @@ $ starknet-devnet --state-archive-capacity <CAPACITY>
 ```
 
 All RPC endpoints that support querying the state at an old (non-latest) block only work with state archive capacity set to `full`.
-
-## Fetch Devnet configuration
-
-To retrieve the current configuration of Devnet, send a GET request to `/config`. Example response is attached below. It can be interpreted as a JSON mapping of CLI input parameters, both specified and default ones, with some irrelevant parameters omitted. So use `starknet-devnet --help` to better understand the meaning of each value, though keep in mind that some of the parameters have slightly modified names.
-
-```json
-{
-  "seed": 4063802897,
-  "total_accounts": 10,
-  "account_contract_class_hash": "0x61dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f",
-  "predeployed_accounts_initial_balance": "1000000000000000000000",
-  "start_time": null,
-  "gas_price_wei": 100000000000,
-  "gas_price_strk": 100000000000,
-  "data_gas_price_wei": 100000000000,
-  "data_gas_price_strk": 100000000000,
-  "chain_id": "SN_SEPOLIA",
-  "dump_on": "exit",
-  "dump_path": "dump_path.json",
-  "state_archive": "none",
-  "fork_config": {
-    "url": "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7",
-    "block_number": 26429
-  },
-  "server_config": {
-    "host": "127.0.0.1",
-    "port": 5050,
-    "timeout": 120,
-    "request_body_size_limit": 2000000
-  },
-  "blocks_on_demand": false,
-  "lite_mode": false
-}
-```
 
 ## Development
 
