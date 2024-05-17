@@ -11,9 +11,32 @@ pub type Balance = BigUint;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
+pub enum StateUpdateResult {
+    StateUpdate(StateUpdate),
+    PendingStateUpdate(PendingStateUpdate),
+}
+
+impl StateUpdateResult {
+    pub fn get_state_diff(&self) -> ThinStateDiff {
+        match self {
+            StateUpdateResult::StateUpdate(s) => s.state_diff.clone(),
+            StateUpdateResult::PendingStateUpdate(s) => s.state_diff.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct StateUpdate {
     pub block_hash: BlockHash,
     pub new_root: GlobalRootHex,
+    pub old_root: GlobalRootHex,
+    pub state_diff: ThinStateDiff,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PendingStateUpdate {
     pub old_root: GlobalRootHex,
     pub state_diff: ThinStateDiff,
 }

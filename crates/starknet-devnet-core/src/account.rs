@@ -15,8 +15,8 @@ use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
 
 use crate::constants::{
-    CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-    CHARGEABLE_ACCOUNT_PUBLIC_KEY,
+    CAIRO_0_ACCOUNT_CONTRACT, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
+    CHARGEABLE_ACCOUNT_PUBLIC_KEY, ISRC6_ID_HEX,
 };
 use crate::error::DevnetResult;
 use crate::state::state_readers::DictState;
@@ -50,7 +50,7 @@ impl Account {
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
     ) -> DevnetResult<Self> {
-        let account_contract_class = Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH)?;
+        let account_contract_class = Cairo0Json::raw_json_from_json_str(CAIRO_0_ACCOUNT_CONTRACT)?;
         let class_hash = account_contract_class.generate_hash()?;
 
         // insanely big - should practically never run out of funds
@@ -102,6 +102,31 @@ impl Account {
 
         Ok(ContractAddress::from(account_address))
     }
+
+    // simulate constructor logic (register interfaces and set public key), as done in
+    // https://github.com/OpenZeppelin/cairo-contracts/blob/89a450a88628ec3b86273f261b2d8d1ca9b1522b/src/account/account.cairo#L207-L211
+    fn simulate_constructor(&self, state: &mut StarknetState) -> DevnetResult<()> {
+        let core_address = self.account_address.try_into()?;
+
+        let interface_storage_var = get_storage_var_address(
+            "SRC5_supported_interfaces",
+            &[Felt::from_prefixed_hex_str(ISRC6_ID_HEX)?],
+        )?;
+        state.state.state.set_storage_at(
+            core_address,
+            interface_storage_var.try_into()?,
+            StarkFelt::ONE,
+        )?;
+
+        let public_key_storage_var = get_storage_var_address("Account_public_key", &[])?;
+        state.state.state.set_storage_at(
+            core_address,
+            public_key_storage_var.try_into()?,
+            self.public_key.into(),
+        )?;
+
+        Ok(())
+    }
 }
 
 impl Deployed for Account {
@@ -110,16 +135,10 @@ impl Deployed for Account {
 
         state.predeploy_contract(self.account_address, self.class_hash)?;
 
-        // set public key directly in the most underlying state
-        let public_key_storage_var = get_storage_var_address("Account_public_key", &[])?;
-        state.state.state.set_storage_at(
-            self.account_address.try_into()?,
-            public_key_storage_var.try_into()?,
-            self.public_key.into(),
-        )?;
-
         // set balance directly in the most underlying state
         self.set_initial_balance(&mut state.state.state)?;
+
+        self.simulate_constructor(state)?;
 
         Ok(())
     }

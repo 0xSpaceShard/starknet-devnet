@@ -12,9 +12,11 @@ use starknet_core::starknet::starknet_config::{
     DumpOn, ForkConfig, StarknetConfig, StateArchiveCapacity,
 };
 use starknet_types::chain_id::ChainId;
+use tracing_subscriber::EnvFilter;
 
 use crate::initial_balance_wrapper::InitialBalanceWrapper;
 use crate::ip_addr_wrapper::IpAddrWrapper;
+use crate::{REQUEST_LOG_ENV_VAR, RESPONSE_LOG_ENV_VAR};
 
 /// Run a local instance of Starknet Devnet
 #[derive(Parser, Debug)]
@@ -85,17 +87,31 @@ pub(crate) struct Args {
 
     // Gas price in wei
     #[arg(long = "gas-price")]
-    #[arg(value_name = "GAS_PRICE")]
+    #[arg(value_name = "GAS_PRICE_WEI")]
     #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
     #[arg(help = "Specify the gas price in wei per gas unit;")]
-    gas_price: NonZeroU128,
+    gas_price_wei: NonZeroU128,
+
+    // Gas price in strk
+    #[arg(long = "gas-price-strk")]
+    #[arg(value_name = "GAS_PRICE_STRK")]
+    #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
+    #[arg(help = "Specify the gas price in strk per gas unit;")]
+    gas_price_strk: NonZeroU128,
 
     // Gas price in wei
     #[arg(long = "data-gas-price")]
-    #[arg(value_name = "DATA_GAS_PRICE")]
+    #[arg(value_name = "DATA_GAS_PRICE_WEI")]
     #[arg(default_value_t = DEVNET_DEFAULT_DATA_GAS_PRICE)]
     #[arg(help = "Specify the gas price in wei per data gas unit;")]
-    data_gas_price: NonZeroU128,
+    data_gas_price_wei: NonZeroU128,
+
+    // Gas price in strk
+    #[arg(long = "data-gas-price-strk")]
+    #[arg(value_name = "DATA_GAS_PRICE_STRK")]
+    #[arg(default_value_t = DEVNET_DEFAULT_DATA_GAS_PRICE)]
+    #[arg(help = "Specify the gas price in strk per data gas unit;")]
+    data_gas_price_strk: NonZeroU128,
 
     #[arg(long = "chain-id")]
     #[arg(value_name = "CHAIN_ID")]
@@ -104,16 +120,24 @@ pub(crate) struct Args {
     chain_id: ChainId,
 
     #[arg(long = "dump-on")]
-    #[arg(value_name = "WHEN")]
+    #[arg(value_name = "EVENT")]
     #[arg(help = "Specify when to dump the state of Devnet;")]
     #[arg(requires = "dump_path")]
     dump_on: Option<DumpOn>,
+
+    #[arg(long = "lite-mode")]
+    #[arg(help = "Specify whether to run in lite mode and skip block hash calculation;")]
+    lite_mode: bool,
 
     // Dump path as string
     #[arg(long = "dump-path")]
     #[arg(value_name = "DUMP_PATH")]
     #[arg(help = "Specify the path to dump to;")]
     dump_path: Option<String>,
+
+    #[arg(long = "blocks-on-demand")]
+    #[arg(help = "Introduces block generation on demand via /create_block endpoint;")]
+    blocks_on_demand: bool,
 
     #[arg(long = "state-archive-capacity")]
     #[arg(value_name = "STATE_ARCHIVE_CAPACITY")]
@@ -157,11 +181,15 @@ impl Args {
             account_contract_class_hash: account_class_wrapper.class_hash,
             predeployed_accounts_initial_balance: self.initial_balance.0.clone(),
             start_time: self.start_time,
-            gas_price: self.gas_price,
-            data_gas_price: self.data_gas_price,
+            gas_price_wei: self.gas_price_wei,
+            gas_price_strk: self.gas_price_strk,
+            data_gas_price_wei: self.data_gas_price_wei,
+            data_gas_price_strk: self.data_gas_price_strk,
             chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
+            blocks_on_demand: self.blocks_on_demand,
+            lite_mode: self.lite_mode,
             re_execute_on_init: true,
             state_archive: self.state_archive,
             fork_config: ForkConfig {
@@ -170,14 +198,34 @@ impl Args {
             },
         };
 
+        let RequestResponseLogging { log_request, log_response } =
+            RequestResponseLogging::from_rust_log_environment_variable();
+
         let server_config = ServerConfig {
             host: self.host.inner,
             port: self.port,
             timeout: self.timeout,
             request_body_size_limit: self.request_body_size_limit,
+            log_request,
+            log_response,
         };
 
         Ok((starknet_config, server_config))
+    }
+}
+
+struct RequestResponseLogging {
+    log_request: bool,
+    log_response: bool,
+}
+
+impl RequestResponseLogging {
+    fn from_rust_log_environment_variable() -> Self {
+        let log_env_var = std::env::var(EnvFilter::DEFAULT_ENV).unwrap_or_default().to_lowercase();
+        let log_request = log_env_var.contains(REQUEST_LOG_ENV_VAR);
+        let log_response = log_env_var.contains(RESPONSE_LOG_ENV_VAR);
+
+        Self { log_request, log_response }
     }
 }
 
@@ -188,8 +236,9 @@ mod tests {
         CAIRO_0_ERC20_CONTRACT_PATH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
     };
     use starknet_core::starknet::starknet_config::StateArchiveCapacity;
+    use tracing_subscriber::EnvFilter;
 
-    use super::Args;
+    use super::{Args, RequestResponseLogging};
     use crate::ip_addr_wrapper::IpAddrWrapper;
 
     #[test]
@@ -399,6 +448,27 @@ mod tests {
         match Args::try_parse_from(["--", "--request-body-size-limit", "-1"]) {
             Err(_) => (),
             Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
+        }
+    }
+
+    #[test]
+    fn test_variants_of_env_var() {
+        for (environment_variable, should_log_request, should_log_response) in [
+            ("request,response,info", true, true),
+            ("request,info", true, false),
+            ("response,info", false, true),
+            ("info", false, false),
+            ("", false, false),
+            ("REQUEST,RESPONSE", true, true),
+            ("REQUEST", true, false),
+            ("RESPONSE", false, true),
+        ] {
+            std::env::set_var(EnvFilter::DEFAULT_ENV, environment_variable);
+            let RequestResponseLogging { log_request, log_response } =
+                RequestResponseLogging::from_rust_log_environment_variable();
+
+            assert_eq!(log_request, should_log_request);
+            assert_eq!(log_response, should_log_response);
         }
     }
 }

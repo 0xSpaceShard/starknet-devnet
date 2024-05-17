@@ -5,7 +5,6 @@ mod test_restart {
     use std::path::Path;
     use std::sync::Arc;
 
-    use hyper::StatusCode;
     use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS};
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
@@ -26,8 +25,7 @@ mod test_restart {
     #[tokio::test]
     async fn assert_restartable() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
-        let resp = devnet.restart().await.unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
+        devnet.restart().await.unwrap();
     }
 
     #[tokio::test]
@@ -38,8 +36,7 @@ mod test_restart {
         let mint_hash = devnet.mint(FieldElement::ONE, 100).await;
         assert!(devnet.json_rpc_client.get_transaction_by_hash(mint_hash).await.is_ok());
 
-        let restart_resp = devnet.restart().await.unwrap();
-        assert_eq!(restart_resp.status(), StatusCode::OK);
+        devnet.restart().await.unwrap();
 
         match devnet.json_rpc_client.get_transaction_by_hash(mint_hash).await {
             Err(ProviderError::StarknetError(StarknetError::TransactionHashNotFound)) => (),
@@ -173,16 +170,16 @@ mod test_restart {
         .await
         .unwrap();
 
-        let predeployed_account_addresss = devnet.get_first_predeployed_account().await.1;
+        let predeployed_account_address = devnet.get_first_predeployed_account().await.1;
 
         let balance_before =
-            devnet.get_balance(&predeployed_account_addresss, FeeUnit::WEI).await.unwrap();
+            devnet.get_balance_latest(&predeployed_account_address, FeeUnit::WEI).await.unwrap();
         assert_eq!(balance_before, FieldElement::from(initial_balance));
 
         devnet.restart().await.unwrap();
 
         let balance_after =
-            devnet.get_balance(&predeployed_account_addresss, FeeUnit::WEI).await.unwrap();
+            devnet.get_balance_latest(&predeployed_account_address, FeeUnit::WEI).await.unwrap();
         assert_eq!(balance_before, balance_after);
     }
 

@@ -26,7 +26,7 @@ mod fork_tests {
     use crate::common::constants;
     use crate::common::utils::{
         assert_cairo1_classes_equal, assert_tx_successful, declare_deploy,
-        get_block_reader_contract_in_sierra_and_compiled_class_hash, get_json_body,
+        get_block_reader_contract_in_sierra_and_compiled_class_hash, get_contract_balance,
         get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
         send_ctrl_c_signal_and_wait,
     };
@@ -39,18 +39,21 @@ mod fork_tests {
     async fn test_fork_status() {
         let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
-        let origin_status =
-            get_json_body(origin_devnet.get("/fork_status", None).await.unwrap()).await;
-        assert_eq!(origin_status, serde_json::json!({}));
+        let origin_devnet_config = origin_devnet.get_config().await.unwrap();
+        assert_eq!(
+            origin_devnet_config["fork_config"],
+            serde_json::json!({ "url": null, "block_number": null })
+        );
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
-        let fork_status = get_json_body(fork_devnet.get("/fork_status", None).await.unwrap()).await;
+        let fork_devnet_config = fork_devnet.get_config().await.unwrap();
+        let fork_devnet_fork_config = &fork_devnet_config["fork_config"];
         assert_eq!(
-            url::Url::from_str(fork_status["url"].as_str().unwrap()).unwrap(),
+            url::Url::from_str(fork_devnet_fork_config["url"].as_str().unwrap()).unwrap(),
             url::Url::from_str(&origin_devnet.url).unwrap()
         );
-        assert_eq!(fork_status["block"].as_i64().unwrap(), 0);
+        assert_eq!(fork_devnet_fork_config["block_number"].as_i64().unwrap(), 0);
     }
 
     #[tokio::test]
@@ -146,27 +149,10 @@ mod fork_tests {
         }
 
         // not using get_balance_at_block=2: requires forking with --state-archive-capacity full
-        let final_balance = fork_devnet.get_balance(&dummy_address, FeeUnit::WEI).await.unwrap();
+        let final_balance =
+            fork_devnet.get_balance_latest(&dummy_address, FeeUnit::WEI).await.unwrap();
         let expected_final_balance = (2_u128 * mint_amount).into();
         assert_eq!(final_balance, expected_final_balance);
-    }
-
-    async fn get_contract_balance(
-        devnet: &BackgroundDevnet,
-        contract_address: FieldElement,
-    ) -> FieldElement {
-        let contract_call = FunctionCall {
-            contract_address,
-            entry_point_selector: get_selector_from_name("get_balance").unwrap(),
-            calldata: vec![],
-        };
-        match devnet.json_rpc_client.call(contract_call, BlockId::Tag(BlockTag::Latest)).await {
-            Ok(res) => {
-                assert_eq!(res.len(), 1);
-                res[0]
-            }
-            Err(e) => panic!("Call failed: {e}"),
-        }
     }
 
     #[tokio::test]
@@ -243,13 +229,20 @@ mod fork_tests {
             .unwrap();
         assert_eq!(retrieved_class_hash, class_hash);
 
-        let retrieved_class = fork_devnet
+        let expected_sierra = ContractClass::Sierra(contract_class);
+        let retrieved_class_by_hash = fork_devnet
             .json_rpc_client
             .get_class(BlockId::Tag(BlockTag::Latest), class_hash)
             .await
             .unwrap();
-        assert_cairo1_classes_equal(retrieved_class, ContractClass::Sierra(contract_class))
+        assert_cairo1_classes_equal(retrieved_class_by_hash, expected_sierra.clone()).unwrap();
+
+        let retrieved_class_by_address = fork_devnet
+            .json_rpc_client
+            .get_class_at(BlockId::Tag(BlockTag::Latest), contract_address)
+            .await
             .unwrap();
+        assert_cairo1_classes_equal(retrieved_class_by_address, expected_sierra).unwrap();
     }
 
     #[tokio::test]
@@ -488,7 +481,7 @@ mod fork_tests {
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
-        let fork_balance = fork_devnet.get_balance(&address, FeeUnit::WEI).await.unwrap();
+        let fork_balance = fork_devnet.get_balance_latest(&address, FeeUnit::WEI).await.unwrap();
         assert_eq!(fork_balance, FieldElement::from(mint_amount));
     }
 
@@ -503,7 +496,7 @@ mod fork_tests {
             Err(ProviderError::Other(e)) => {
                 assert_contains(&e.to_string(), "error sending request")
             }
-            unexpected => panic!("Got unxpected resp: {unexpected:?}"),
+            unexpected => panic!("Got unexpected resp: {unexpected:?}"),
         }
     }
 
