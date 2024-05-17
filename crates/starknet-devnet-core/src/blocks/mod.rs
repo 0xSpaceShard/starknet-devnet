@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use ethers::core::k256::elliptic_curve::rand_core::block;
 use indexmap::IndexMap;
 use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus, BlockTimestamp};
 use starknet_api::data_availability::L1DataAvailabilityMode;
@@ -22,8 +23,8 @@ use crate::traits::HashIdentified;
 pub(crate) struct StarknetBlocks {
     pub(crate) num_to_hash: IndexMap<BlockNumber, BlockHash>,
     pub(crate) hash_to_block: HashMap<BlockHash, StarknetBlock>,
-    pub(crate) pending_block: StarknetBlock,
-    pub(crate) last_block_hash: Option<BlockHash>,
+    pub(crate) pending_block: Option<StarknetBlock>,
+    pub(crate) last_block_hash: Option<BlockHash>, // option? why? we have genesis block always
     pub(crate) hash_to_state_diff: HashMap<BlockHash, StateDiff>,
     pub(crate) hash_to_state: HashMap<BlockHash, StarknetState>,
     pub(crate) aborted_blocks: Vec<Felt>,
@@ -46,7 +47,7 @@ impl Default for StarknetBlocks {
         Self {
             num_to_hash: IndexMap::new(),
             hash_to_block: HashMap::new(),
-            pending_block: StarknetBlock::create_pending_block(),
+            pending_block: None, // StarknetBlock::create_pending_block()
             last_block_hash: None,
             hash_to_state_diff: HashMap::new(),
             hash_to_state: HashMap::new(),
@@ -59,7 +60,7 @@ impl Default for StarknetBlocks {
 impl StarknetBlocks {
     pub fn new(starting_block_number: u64, blocks_on_demand: bool) -> Self {
         let mut blocks = Self { blocks_on_demand, ..Self::default() };
-        blocks.pending_block.set_block_number(starting_block_number);
+        // blocks.pending_block.set_block_number(starting_block_number);
         blocks
     }
 
@@ -103,7 +104,10 @@ impl StarknetBlocks {
                     // in normal mode, querying pending block should default to the latest
                     self.get_by_latest_hash()
                 } else {
-                    Some(&self.pending_block)
+                    match &self.pending_block {
+                        Some(pending_block) => Some(&pending_block),
+                        None => self.get_by_latest_hash(),
+                    }
                 }
             }
             BlockId::Tag(BlockTag::Latest) => self.get_by_latest_hash(),
@@ -348,7 +352,7 @@ mod tests {
     fn block_number_from_block_id_should_return_correct_result() {
         let mut blocks = StarknetBlocks::new(0, true);
         let mut block_to_insert = StarknetBlock::create_pending_block();
-        blocks.pending_block = block_to_insert.clone();
+        blocks.pending_block = Some(block_to_insert.clone());
 
         // latest block returns none, because collection is empty
         assert!(
@@ -408,7 +412,7 @@ mod tests {
 
             // last block will be a pending block
             if block_number == last_block_number {
-                blocks.pending_block = block_to_insert;
+                blocks.pending_block = Some(block_to_insert);
             }
         }
 
@@ -677,7 +681,7 @@ mod tests {
         let mut block_to_insert = StarknetBlock::create_pending_block();
         block_to_insert.header.block_hash = block_to_insert.generate_hash().unwrap().into();
         block_to_insert.header.block_number = BlockNumber(10);
-        blocks.pending_block = block_to_insert.clone();
+        blocks.pending_block = Some(block_to_insert.clone());
 
         blocks.insert(block_to_insert.clone(), StateDiff::default());
 
