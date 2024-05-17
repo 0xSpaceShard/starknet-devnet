@@ -430,6 +430,7 @@ Account impersonation supports 4 methods:
 Notes:
 - Only INVOKE and DECLARE transactions are supported. DEPLOY_ACCOUNT transaction is not supported, but you can create an INVOKE transaction to UDC.
 - Overall fee, for transactions sent via impersonated account, will be lower compared to normal transactions. The reason is that validation part is skipped.
+- Sending transactions with account that **does not** exist will return 1 of the errors: ContractNotFound, InsufficientAccountBalance. Most common way of sending a transaction is via starknet-rs/starknet.js or starkli. If a nonce is not hardcoded, during transaction construction it will query devnet for the account nonce and will return ContractNotFound error. Otherwise it will skip the part with fetching account nonce and fail with InsufficientAccountBalance error.
 
 Account impersonation feature follows JSON-RPC method specification and each method returns an empty response:
 
