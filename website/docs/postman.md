@@ -1,11 +1,14 @@
 # L1-L2 interaction via Postman
 
-Postman is a Starknet utility that allows testing L1-L2 interaction. Ensure you have an L1 node and a Devnet (L2 node) running, [load](#load) a messaging contract, and [flush](#flush) the queue when needed. You can use [**`starknet-hardhat-plugin`**](https://github.com/0xSpaceShard/starknet-hardhat-plugin), as witnessed in [**this example**](https://github.com/0xSpaceShard/starknet-hardhat-example/blob/master/test/postman.test.ts), or directly send requests to the following endpoints:
+Postman is a Starknet utility that allows testing L1-L2 interaction. Ensure you have an L1 node and a Devnet (L2 node) running, [load](#load) a messaging contract, and [flush](#flush) the queue when needed. You can use [**`starknet-hardhat-plugin`**](https://github.com/0xSpaceShard/starknet-hardhat-plugin) to perform these actions, as witnessed in [**this example**](https://github.com/0xSpaceShard/starknet-hardhat-example/blob/master/test/postman.test.ts), or directly send requests to the endpoints specified below.
 
 ## Load
 
 ```
 POST /postman/load_l1_messaging_contract
+```
+
+```js
 {
   "networkUrl": "http://localhost:8545",
   "address": "0x123...def"
@@ -20,7 +23,7 @@ Loads a `MockStarknetMessaging` contract. The `address` parameter is optional; i
 - [**Sepolia testnet**](https://sepolia.etherscan.io/)
 - [**Ganache**](https://www.npmjs.com/package/ganache)
 - [**Geth**](https://github.com/ethereum/go-ethereum#docker-quick-start)
-- [**Hardhat node**](https://hardhat.org/hardhat-network/#running-stand-alone-in-order-to-support-wallets-and-other-software).
+- [**Hardhat node**](https://hardhat.org/hardhat-network/#running-stand-alone-in-order-to-support-wallets-and-other-software)
 
 ## Flush
 
@@ -32,24 +35,27 @@ Goes through the newly enqueued messages, sending them from L1 to L2 and from L2
 
 ```
 POST /postman/flush
+```
+
+```js
 { "dry_run": true }
 ```
 
-L1 node is required to be running if `dry_run` option is not used.
+A running L1 node is required if `dry_run` is not set.
 
 ## Disclaimer
 
-This method of L1-L2 communication testing differs from Starknet Alpha networks. Taking the [**L1L2Example.sol**](https://www.cairo-lang.org/docs/_static/L1L2Example.sol) contract from the [**Starknet documentation**](https://www.cairo-lang.org/docs/hello_starknet/l1l2.html):
+This method of L1-L2 communication testing differs from how Starknet mainnet and testnets work. Taking [**L1L2Example.sol**](https://github.com/MikeSpa/starknet-test/blob/6a68d033cd7ddb5df937154f860f1c06174e6860/L1L2Example.sol#L46) (originally from Starknet documentation, no longer available there):
 
-```
+```solidity
 constructor(IStarknetCore starknetCore_) public {
     starknetCore = starknetCore_;
 }
 ```
 
-The constructor takes an `IStarknetCore` contract as argument, however for Devnet L1-L2 communication testing, this will have to be replaced with the [**MockStarknetMessaging.sol**](https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/starknet/testing/MockStarknetMessaging.sol) contract :
+The constructor takes an `IStarknetCore` contract as argument, however for Devnet's L1-L2 communication testing, this has to be replaced with the logic in [**MockStarknetMessaging.sol**](https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/starknet/testing/MockStarknetMessaging.sol):
 
-```
+```solidity
 constructor(MockStarknetMessaging mockStarknetMessaging_) public {
     starknetCore = mockStarknetMessaging_;
 }
@@ -63,7 +69,7 @@ Sending mock transactions from L1 to L2 without the need for running L1. Deploye
 
 Normally `nonce` is calculated by L1 StarknetContract and it's used in L1 and L2. In this case, we need to provide it manually.
 
-L1 node is **not** required for this operation.
+A running L1 node is **not** required for this operation.
 
 ```
 POST /postman/send_message_to_l2
@@ -88,7 +94,7 @@ Request:
 Response:
 
 ```js
-{"transaction_hash": "0x0548c761a9fd5512782998b2da6f44c42bf78fb88c3794eea330a91c9abb10bb"}
+{ "transaction_hash": "0x0548c761a9fd5512782998b2da6f44c42bf78fb88c3794eea330a91c9abb10bb" }
 ```
 
 ### L2->L1
@@ -96,7 +102,7 @@ Response:
 Sending mock transactions from L2 to L1.
 Deployed L2 contract address `l2_contract_address` and `l1_contract_address` must be valid.
 
-L1 node is required to be running.
+A running L1 node is required for this operation.
 
 ```
 POST /postman/consume_message_from_l2
