@@ -2,40 +2,28 @@
 sidebar_position: 1
 ---
 
-<!-- TODO: add testnet difference or other general disclaimers -->
+# Intro
+
+:::danger Difference disclaimer
+
+- Devnet should not be used as a replacement for official testnets. After testing on Devnet, be sure to test on a testnet (alpha-sepolia)!
+- The semantics of `REJECTED` and `REVERTED` status of a transaction is not the same as on the official testnet:
+
+| Tx status  | Official testnet                                            | Devnet                                                     |
+| ---------- | ----------------------------------------------------------- | ---------------------------------------------------------- |
+| `REJECTED` | validation failed; not included in a block                  | not used                                                   |
+| `REVERTED` | validation passed but execution failed; included in a block | validation or execution failed; not included in a block`*` |
+
+`*`: dummy zeroes (0) in tx info for block number and tx index
+
+:::
+
+You may now proceed with [running Devnet](./running) and checking out some of the many features listed in the sidebar on the left.
+
 <!-- TODO: add instructions for editing docs -->
 <!-- TODO: add examples:
   - L1-L2 - use content of contracts/README.md, add section in postman.md that mentions the example and starknet-hardhat-plugin; consider adding developer section to postman.md
  -->
-
-
-## Lite Mode
-
-Runs Devnet in a minimal lite mode by just skipping the block hash calculation. This is useful for testing purposes when the block hash is not needed.
-
-```
-$ starknet-devnet --lite-mode
-```
-
-## Forking
-
-To interact with contracts deployed on mainnet or testnet, you can use the forking to simulate the origin and experiment with it locally, making no changes to the origin itself.
-
-```
-$ starknet-devnet --fork-network <URL> [--fork-block <BLOCK_NUMBER>]
-```
-
-The value passed to `--fork-network` should be the URL to a Starknet JSON-RPC API provider. Specifying a `--fork-block` is optional; it defaults to the `"latest"` block at the time of Devnet's start-up. All calls will first try Devnet's state and then fall back to the forking block.
-
-## Querying old state by specifying block hash or number
-
-With state archive capacity set to `full`, Devnet will store full state history. The default mode is `none`, where no old states are stored.
-
-```
-$ starknet-devnet --state-archive-capacity <CAPACITY>
-```
-
-All RPC endpoints that support querying the state at an old (non-latest) block only work with state archive capacity set to `full`.
 
 ## Development
 
