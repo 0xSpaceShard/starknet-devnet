@@ -8,11 +8,6 @@ sidebar_position: 1
   - L1-L2 - use content of contracts/README.md, add section in postman.md that mentions the example and starknet-hardhat-plugin; consider adding developer section to postman.md
  -->
 
-## Restarting
-
-Devnet can be restarted by making a `POST /restart` request (no body required). All of the deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests from a dump file you may have provided on startup.
-
-If you're using [**the Hardhat plugin**](https://github.com/0xSpaceShard/starknet-hardhat-plugin#restart), restart with `starknet.devnet.restart()`.
 
 ## Lite Mode
 
