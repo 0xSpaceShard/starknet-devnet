@@ -35,6 +35,7 @@ executors:
   apple-darwin:
     macos:
       xcode: 15.3.0
+    resource_class: macos.m1.medium.gen1
     environment:
       COMPILER_ARCHIVE: cross-x86_64-apple-darwin.tar.gz
 
@@ -114,15 +115,9 @@ jobs:
           command: |
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
               sh -s -- -y --default-toolchain=1.74.0
-      - run: rustup target add << parameters.target_triplet >>
-      - run:
-          name: Install Cross
-          command: |
-            curl -SsL https://github.com/cross-rs/cross/releases/download/v0.2.5/${COMPILER_ARCHIVE} |
-              tar -xvz -C /tmp
       - run:
           name: Compile binary
-          command: /tmp/cross build --release --target=<< parameters.target_triplet >>
+          command: ./scripts/compile_binary.sh << parameters.target_triplet >>
       - run:
           name: Archive and compress binary artifact # only the file, not the whole dir structure
           command: tar -czvf << parameters.archive_path >> --directory target/<< parameters.target_triplet >>/release starknet-devnet

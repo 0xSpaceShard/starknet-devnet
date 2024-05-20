@@ -586,4 +586,25 @@ mod fork_tests {
             .unwrap();
         assert_eq!(second_fork_block_number, [FieldElement::from(5_u8)]); // origin block + declare + deploy
     }
+
+    #[tokio::test]
+    async fn test_forking_https() {
+        let origin_url = "https://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7";
+        let fork_block = 2;
+        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--fork-network",
+            origin_url,
+            "--fork-block",
+            &fork_block.to_string(),
+        ])
+        .await
+        .unwrap();
+
+        fork_devnet
+            .json_rpc_client
+            // -1 to force fetching from origin
+            .get_block_with_tx_hashes(BlockId::Number(fork_block - 1))
+            .await
+            .unwrap();
+    }
 }

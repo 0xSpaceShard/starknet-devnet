@@ -203,13 +203,11 @@ $ docker run -e RUST_LOG=<LEVEL> shardlabs/starknet-devnet-rs
 ```
 
 By default, logging of request and response data is turned off.
-To see the request and/or response body, additional level have to be provided via `RUST_LOG` environment variable.
-To log the request body use `REQUEST`, to log the response body use `RESPONSE`.
+To see the request and/or response body, additional levels can be specified via the `RUST_LOG` environment variable: `REQUEST` for request body, `RESPONSE` for response body.
 
-NOTE! that logging request and response requires at least logging level `INFO`.
+NOTE! Logging request and response requires at least logging level `INFO`.
 
-The following two commands will log request and response data with log level `INFO`.
-Example:
+For example, the following two commands will log request and response data with log level `INFO`.
 
 ```
 $ RUST_LOG="REQUEST,RESPONSE" starknet-devnet
