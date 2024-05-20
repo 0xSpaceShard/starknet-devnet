@@ -1,4 +1,4 @@
-##Blocks
+# Blocks
 
 Devnet starts with a genesis block (with a block number equal to 0). In forking mode, the genesis block number will be equal to forked block number plus one.
 
@@ -26,7 +26,7 @@ Response:
 
 ## Create an empty block
 
-To create an empty block without transactions, POST a request to /create_block:
+To create an empty block without transactions, `POST` a request to /create_block:
 
 ```
 POST /create_block
