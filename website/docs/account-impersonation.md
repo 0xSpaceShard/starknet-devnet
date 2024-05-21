@@ -46,7 +46,7 @@ Stops the impersonation of an account previously marked for impersonation.
 
 ### devnet_autoImpersonate
 
-Automatic impersonation of an account. Every account that does not exist in the local state will be impersonated.
+Enables automatic account impersonation. Every account that does not exist in the local state will be impersonated.
 
 ```js
 {
