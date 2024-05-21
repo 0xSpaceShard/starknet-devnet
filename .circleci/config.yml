@@ -158,31 +158,53 @@ jobs:
       - checkout
       - setup_remote_docker:
           version: docker23
+      - add_ssh_keys:
+          # needed for pushing to gh-pages
+          fingerprints:
+            - "SHA256:1fS1UW0iDy11l/WU+CwJWune85eddR0/WDoc7sPoMqw"
       - run:
           name: Publish new versions to crates.io
           command: ./scripts/publish_cratesio_new_versions.sh
       - run:
           name: Create tags and push joint image manifests
           command: ./docker/tag_images_and_create_joint_image_manifests.sh
+      - run:
+          name: Publish docs
+          command: ./scripts/publish_docs.sh
+
+  dummy-publish:
+    docker:
+      - image: cimg/rust:1.74.0
+    resource_class: large
+    steps:
+      - checkout
+      - add_ssh_keys:
+          # needed for pushing to gh-pages
+          fingerprints:
+            - "SHA256:1fS1UW0iDy11l/WU+CwJWune85eddR0/WDoc7sPoMqw"
+      - run:
+          name: Publish docs
+          command: ./scripts/publish_docs.sh
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
   build-test-maybe-publish:
     jobs:
-      - build-and-test:
-          cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
-      - binary-build:
-          <<: *on_main
-          matrix:
-            parameters:
-              arch: [x86_64, aarch64]
-              platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
-          target_triplet: << matrix.arch >>-<< matrix.platform >>
-          archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
-      - image-build-amd:
-          <<: *on_main
-      - image-build-arm:
-          <<: *on_main
-      - publish:
-          <<: *on_main_after_test_and_build
+      # - build-and-test:
+      #     cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
+      # - binary-build:
+      #     <<: *on_main
+      #     matrix:
+      #       parameters:
+      #         arch: [x86_64, aarch64]
+      #         platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
+      #     target_triplet: << matrix.arch >>-<< matrix.platform >>
+      #     archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
+      # - image-build-amd:
+      #     <<: *on_main
+      # - image-build-arm:
+      #     <<: *on_main
+      # - publish:
+      #     <<: *on_main_after_test_and_build
+      - dummy-publish
