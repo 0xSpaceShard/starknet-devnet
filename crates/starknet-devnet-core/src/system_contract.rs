@@ -74,14 +74,15 @@ mod tests {
 
     use super::SystemContract;
     use crate::constants::{
-        CAIRO_1_ERC20_CONTRACT, CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS,
+        CAIRO_1_ERC20_CONTRACT_CLASS_HASH, CAIRO_1_ERC20_CONTRACT_PATH, ETH_ERC20_CONTRACT_ADDRESS,
     };
     use crate::state::StarknetState;
     use crate::traits::Deployed;
 
     #[test]
     fn load_erc20_contract() {
-        assert!(ContractClass::cairo_1_from_sierra_json_str(CAIRO_1_ERC20_CONTRACT).is_ok());
+        let json_str = std::fs::read_to_string(CAIRO_1_ERC20_CONTRACT_PATH).unwrap();
+        assert!(ContractClass::cairo_1_from_sierra_json_str(&json_str).is_ok());
     }
 
     #[test]
@@ -90,7 +91,7 @@ mod tests {
         let sys_contract = SystemContract::new_cairo1(
             CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
             ETH_ERC20_CONTRACT_ADDRESS,
-            CAIRO_1_ERC20_CONTRACT,
+            std::fs::read_to_string(CAIRO_1_ERC20_CONTRACT_PATH).unwrap().as_str(),
         )
         .unwrap();
 

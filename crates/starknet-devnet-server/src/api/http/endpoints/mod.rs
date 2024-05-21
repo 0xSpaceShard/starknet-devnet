@@ -1,11 +1,8 @@
-use axum::extract::State;
-use axum::Json;
-use serde::Serialize;
-use starknet_core::starknet::starknet_config::StarknetConfig;
+use axum::{Extension, Json};
 
 use super::error::HttpApiError;
+use super::models::ForkStatus;
 use super::{HttpApiHandler, HttpApiResult};
-use crate::ServerConfig;
 
 /// Dumping and loading
 pub mod dump_load;
@@ -31,7 +28,7 @@ pub async fn is_alive() -> HttpApiResult<String> {
 }
 
 /// Restart
-pub async fn restart(State(state): State<HttpApiHandler>) -> HttpApiResult<()> {
+pub async fn restart(Extension(state): Extension<HttpApiHandler>) -> HttpApiResult<()> {
     state
         .api
         .starknet
@@ -42,19 +39,13 @@ pub async fn restart(State(state): State<HttpApiHandler>) -> HttpApiResult<()> {
     Ok(())
 }
 
-#[derive(Serialize)]
-pub struct DevnetConfig {
-    #[serde(flatten)]
-    starknet_config: StarknetConfig,
-    server_config: ServerConfig,
-}
-
-/// Devnet config
-pub async fn get_devnet_config(
-    State(state): State<HttpApiHandler>,
-) -> HttpApiResult<Json<DevnetConfig>> {
-    Ok(Json(DevnetConfig {
-        starknet_config: state.api.starknet.read().await.config.clone(),
-        server_config: state.server_config.clone(),
+/// Fork
+pub async fn get_fork_status(
+    Extension(state): Extension<HttpApiHandler>,
+) -> HttpApiResult<Json<ForkStatus>> {
+    let fork_config = &state.api.starknet.read().await.config.fork_config;
+    Ok(Json(ForkStatus {
+        url: fork_config.url.as_ref().map(|url| url.to_string()),
+        block: fork_config.block_number,
     }))
 }

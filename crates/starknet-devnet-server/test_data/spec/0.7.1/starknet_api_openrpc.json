@@ -44,10 +44,6 @@
                         {
                             "title": "Block with transaction hashes",
                             "$ref": "#/components/schemas/BLOCK_WITH_TX_HASHES"
-                        },
-                        {
-                            "title": "Pending block with transaction hashes",
-                            "$ref": "#/components/schemas/PENDING_BLOCK_WITH_TX_HASHES"
                         }
                     ]
                 }
@@ -81,10 +77,6 @@
                         {
                             "title": "Block with transactions",
                             "$ref": "#/components/schemas/BLOCK_WITH_TXS"
-                        },
-                        {
-                            "title": "Pending block with transactions",
-                            "$ref": "#/components/schemas/PENDING_BLOCK_WITH_TXS"
                         }
                     ]
                 }
@@ -118,10 +110,6 @@
                         {
                             "title": "Block with transactions",
                             "$ref": "#/components/schemas/BLOCK_WITH_RECEIPTS"
-                        },
-                        {
-                            "title": "Pending block with transactions",
-                            "$ref": "#/components/schemas/PENDING_BLOCK_WITH_RECEIPTS"
                         }
                     ]
                 }
@@ -155,10 +143,6 @@
                         {
                             "title": "State update",
                             "$ref": "#/components/schemas/STATE_UPDATE"
-                        },
-                        {
-                            "title": "Pending state update",
-                            "$ref": "#/components/schemas/PENDING_STATE_UPDATE"
                         }
                     ]
                 }
@@ -1503,68 +1487,6 @@
                     "l1_da_mode",
                     "starknet_version"
                 ]
-            },
-            "PENDING_BLOCK_HEADER": {
-                "title": "Pending block header",
-                "type": "object",
-                "properties": {
-                    "parent_hash": {
-                        "title": "Parent hash",
-                        "description": "The hash of this block's parent",
-                        "$ref": "#/components/schemas/BLOCK_HASH"
-                    },
-                    "timestamp": {
-                        "title": "Timestamp",
-                        "description": "The time in which the block was created, encoded in Unix time",
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "sequencer_address": {
-                        "title": "Sequencer address",
-                        "description": "The StarkNet identity of the sequencer submitting this block",
-                        "$ref": "#/components/schemas/FELT"
-                    },
-                    "l1_gas_price": {
-                        "title": "L1 gas price",
-                        "description": "The price of l1 gas in the block",
-                        "$ref": "#/components/schemas/RESOURCE_PRICE"
-                    },
-                    "l1_data_gas_price": {
-                        "title": "L1 data gas price",
-                        "description": "The price of l1 data gas in the block",
-                        "$ref": "#/components/schemas/RESOURCE_PRICE"
-                    },
-                    "l1_da_mode": {
-                        "title": "L1 da mode",
-                        "type": "string",
-                        "description": "specifies whether the data of this block is published via blob data or calldata",
-                        "enum": [
-                            "BLOB",
-                            "CALLDATA"
-                        ]
-                    },
-                    "starknet_version": {
-                        "title": "Starknet version",
-                        "description": "Semver of the current Starknet protocol",
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "parent_hash",
-                    "timestamp",
-                    "sequencer_address",
-                    "l1_gas_price",
-                    "l1_data_gas_price",
-                    "l1_da_mode",
-                    "starknet_version"
-                ],
-                "not": {
-                    "required": [
-                        "block_hash",
-                        "block_number",
-                        "new_root"
-                    ]
-                }
             },
             "BLOCK_WITH_TX_HASHES": {
                 "title": "Block with transaction hashes",

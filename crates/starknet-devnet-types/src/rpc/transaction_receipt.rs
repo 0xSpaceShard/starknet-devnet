@@ -274,7 +274,9 @@ pub struct FeeAmount {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "unit")]
 pub enum FeeInUnits {
+    #[serde(rename = "WEI")]
     WEI(FeeAmount),
+    #[serde(rename = "FRI")]
     FRI(FeeAmount),
 }
 

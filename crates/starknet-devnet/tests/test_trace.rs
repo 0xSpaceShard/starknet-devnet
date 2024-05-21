@@ -37,9 +37,26 @@ mod trace_tests {
         assert_eq!(invocation.calldata[7], FieldElement::from(DUMMY_AMOUNT));
     }
 
-    async fn get_invoke_trace(devnet: &BackgroundDevnet) {
+    #[tokio::test]
+    async fn get_trace_non_existing_transaction() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let err = devnet
+            .json_rpc_client
+            .trace_transaction(FieldElement::ZERO)
+            .await
+            .expect_err("Should fail");
+
+        match err {
+            ProviderError::StarknetError(StarknetError::TransactionHashNotFound) => (),
+            _ => panic!("Should fail with error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn get_invoke_trace() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
         let mint_tx_hash = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-        devnet.create_block().await.unwrap();
 
         let mint_tx_trace = devnet.json_rpc_client.trace_transaction(mint_tx_hash).await.unwrap();
 
@@ -59,37 +76,6 @@ mod trace_tests {
         } else {
             panic!("Could not unpack the transaction trace from {mint_tx_trace:?}");
         }
-    }
-
-    #[tokio::test]
-    async fn get_trace_non_existing_transaction() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let err = devnet
-            .json_rpc_client
-            .trace_transaction(FieldElement::ZERO)
-            .await
-            .expect_err("Should fail");
-
-        match err {
-            ProviderError::StarknetError(StarknetError::TransactionHashNotFound) => (),
-            _ => panic!("Should fail with error"),
-        }
-    }
-
-    #[tokio::test]
-    async fn get_invoke_trace_normal_mode() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-
-        get_invoke_trace(&devnet).await
-    }
-
-    #[tokio::test]
-    async fn get_invoke_trace_blocks_on_demand_mode() {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
-            .await
-            .expect("Could not start Devnet");
-
-        get_invoke_trace(&devnet).await
     }
 
     #[tokio::test]

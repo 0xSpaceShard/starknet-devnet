@@ -1,4 +1,5 @@
 pub mod api;
+pub mod builder;
 mod config;
 pub mod error;
 pub mod rpc_core;

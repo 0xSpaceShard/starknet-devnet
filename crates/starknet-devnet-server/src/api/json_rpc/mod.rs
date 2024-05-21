@@ -16,11 +16,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::felt::Felt;
-use starknet_types::rpc::block::{Block, PendingBlock};
+use starknet_types::rpc::block::Block;
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
-use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
+use starknet_types::rpc::state::StateUpdate;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, EventsChunk, SimulatedTransaction, TransactionTrace, TransactionWithHash,
@@ -77,7 +77,7 @@ impl ToRpcResponseResult for StrictRpcResult {
 }
 
 /// This object will be used as a shared state between HTTP calls.
-/// Is similar to the HttpApiHandler but is with extended functionality and is used for JSON-RPC
+/// Is simillar to the HttpApiHandler but is with extended functionality and is used for JSON-RPC
 /// methods
 #[derive(Clone)]
 pub struct JsonRpcHandler {
@@ -155,7 +155,7 @@ impl JsonRpcHandler {
             StarknetRequest::Call(CallInput { request, block_id }) => {
                 self.call(block_id, request).await
             }
-            StarknetRequest::EstimateFee(EstimateFeeInput {
+            StarknetRequest::EsimateFee(EstimateFeeInput {
                 request,
                 block_id,
                 simulation_flags,
@@ -225,11 +225,10 @@ impl JsonRpcHandler {
                 | error::ApiError::TransactionNotFound
                 | error::ApiError::NoStateAtBlock { .. }
                 | error::ApiError::ClassHashNotFound => {
-                    // ClassHashNotFound can be thrown from starknet_getClass, starknet_getClassAt
-                    // or starknet_deployAccount, but starknet_deployAccount
-                    // doesn't need to be retried from here as it already attempted fetching from
-                    // the origin internally. This distinction is handled by (un)setting the
-                    // `forwardable` flag
+                    // ClassHashNotFound can be thrown from starknet_getClass or
+                    // starknet_deployAccount, but only starknet_getClass should be retried from
+                    // here; starknet_deployAccount already fetches from origin internally. This is
+                    // handled by (un)setting the `forwardable` flag
 
                     if forwardable {
                         return forwarder.call(&original_call).await;
@@ -277,7 +276,7 @@ pub enum StarknetRequest {
     #[serde(rename = "starknet_call")]
     Call(CallInput),
     #[serde(rename = "starknet_estimateFee")]
-    EstimateFee(EstimateFeeInput),
+    EsimateFee(EstimateFeeInput),
     #[serde(rename = "starknet_blockNumber", with = "empty_params")]
     BlockNumber,
     #[serde(rename = "starknet_blockHashAndNumber", with = "empty_params")]
@@ -342,7 +341,7 @@ impl std::fmt::Display for StarknetRequest {
                 write!(f, "starknet_getBlockTransactionCount")
             }
             StarknetRequest::Call(_) => write!(f, "starknet_call"),
-            StarknetRequest::EstimateFee(_) => write!(f, "starknet_estimateFee"),
+            StarknetRequest::EsimateFee(_) => write!(f, "starknet_estimateFee"),
             StarknetRequest::BlockNumber => write!(f, "starknet_blockNumber"),
             StarknetRequest::BlockHashAndNumber => write!(f, "starknet_blockHashAndNumber"),
             StarknetRequest::ChainId => write!(f, "starknet_chainId"),
@@ -377,9 +376,7 @@ impl std::fmt::Display for StarknetRequest {
 #[serde(untagged)]
 pub enum StarknetResponse {
     Block(Block),
-    PendingBlock(PendingBlock),
     StateUpdate(StateUpdate),
-    PendingStateUpdate(PendingStateUpdate),
     Felt(Felt),
     Transaction(TransactionWithHash),
     TransactionReceiptByTransactionHash(Box<TransactionReceipt>),

@@ -163,7 +163,7 @@ mod tests {
         assert!(check_if_filter_applies_for_event_keys(&Some(filter), &keys));
 
         // filter with 1 key and second one value that is not amongst the keys, but will not
-        // evaluate, because the keys is of length 1
+        // evalueate, because the keys is of length 1
         let filter = vec![vec![1u32], vec![2u32]];
         assert!(check_if_filter_applies_for_event_keys(&Some(filter), &keys));
 

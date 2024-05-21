@@ -7,9 +7,10 @@ use starknet_rs_ff::FieldElement;
 use crate::felt::Felt;
 
 #[derive(Clone, Copy, Debug, clap::ValueEnum)]
-#[clap(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ChainId {
+    #[clap(name = "MAINNET")]
     Mainnet,
+    #[clap(name = "TESTNET")]
     Testnet,
 }
 

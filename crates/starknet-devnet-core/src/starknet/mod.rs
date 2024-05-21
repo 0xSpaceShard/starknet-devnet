@@ -16,8 +16,7 @@ use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, Ga
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, ExecutionResult, MsgFromL1, TransactionExecutionStatus,
-    TransactionFinalityStatus,
+    BlockId, ExecutionResult, MsgFromL1, TransactionExecutionStatus, TransactionFinalityStatus,
 };
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
@@ -26,16 +25,12 @@ use starknet_types::chain_id::ChainId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::emitted_event::EmittedEvent;
-use starknet_types::felt::{split_biguint, BlockHash, ClassHash, Felt, TransactionHash};
+use starknet_types::felt::{split_biguint, ClassHash, Felt, TransactionHash};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::block::{
-    Block, BlockHeader, BlockResult, PendingBlock, PendingBlockHeader,
-};
+use starknet_types::rpc::block::{Block, BlockHeader};
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
-use starknet_types::rpc::state::{
-    PendingStateUpdate, StateUpdate, StateUpdateResult, ThinStateDiff,
-};
+use starknet_types::rpc::state::ThinStateDiff;
 use starknet_types::rpc::transaction_receipt::{
     DeployTransactionReceipt, L1HandlerTransactionReceipt, TransactionReceipt,
 };
@@ -70,6 +65,7 @@ use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
+use crate::state::state_update::StateUpdate;
 use crate::state::{CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
@@ -91,8 +87,7 @@ mod state_update;
 pub(crate) mod transaction_trace;
 
 pub struct Starknet {
-    pub state: StarknetState,
-    pub pending_state: StarknetState,
+    pub(in crate::starknet) state: StarknetState,
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
     // To avoid repeating some logic related to blocks,
@@ -112,8 +107,6 @@ impl Default for Starknet {
         Self {
             block_context: Self::init_block_context(
                 DEVNET_DEFAULT_GAS_PRICE,
-                DEVNET_DEFAULT_GAS_PRICE,
-                DEVNET_DEFAULT_DATA_GAS_PRICE,
                 DEVNET_DEFAULT_DATA_GAS_PRICE,
                 ETH_ERC20_CONTRACT_ADDRESS,
                 STRK_ERC20_CONTRACT_ADDRESS,
@@ -121,7 +114,6 @@ impl Default for Starknet {
                 DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
             ),
             state: Default::default(),
-            pending_state: Default::default(),
             predeployed_accounts: Default::default(),
             blocks: Default::default(),
             transactions: Default::default(),
@@ -206,19 +198,16 @@ impl Starknet {
             config.fork_config.block_number.map_or(DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, |n| n + 1);
         let mut this = Self {
             state,
-            pending_state: Default::default(),
             predeployed_accounts,
             block_context: Self::init_block_context(
-                config.gas_price_wei,
-                config.gas_price_strk,
-                config.data_gas_price_wei,
-                config.data_gas_price_strk,
+                config.gas_price,
+                config.data_gas_price,
                 ETH_ERC20_CONTRACT_ADDRESS,
                 STRK_ERC20_CONTRACT_ADDRESS,
                 config.chain_id,
                 starting_block_number,
             ),
-            blocks: StarknetBlocks::new(starting_block_number, config.blocks_on_demand),
+            blocks: StarknetBlocks::new(starting_block_number),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
             pending_block_timestamp_shift: 0,
@@ -229,10 +218,6 @@ impl Starknet {
         };
 
         this.restart_pending_block()?;
-
-        if this.config.blocks_on_demand {
-            this.pending_state = this.state.clone_historic();
-        }
 
         // Create an empty genesis block, set start_time before if it's set
         if let Some(start_time) = config.start_time {
@@ -251,10 +236,6 @@ impl Starknet {
         }
 
         Ok(this)
-    }
-
-    pub fn get_state(&mut self) -> &mut StarknetState {
-        if self.config.blocks_on_demand { &mut self.pending_state } else { &mut self.state }
     }
 
     pub fn restart(&mut self) -> DevnetResult<()> {
@@ -297,23 +278,18 @@ impl Starknet {
     pub(crate) fn generate_new_block(&mut self, state_diff: StateDiff) -> DevnetResult<Felt> {
         let mut new_block = self.pending_block().clone();
 
-        let new_block_number =
-            BlockNumber(new_block.block_number().0 - self.blocks.aborted_blocks.len() as u64);
-
         // set new block header
-        new_block.set_block_hash(if self.config.lite_mode {
-            BlockHash::from_prefixed_hex_str(&format!("{:#x}", new_block_number.0))?
-        } else {
-            new_block.generate_hash()?
-        });
+        new_block.set_block_hash(new_block.generate_hash()?);
         new_block.status = BlockStatus::AcceptedOnL2;
-        new_block.header.block_number = new_block_number;
 
         // set block timestamp and context block timestamp for contract execution
         let block_timestamp = self.next_block_timestamp();
         new_block.set_timestamp(block_timestamp);
         Self::update_block_context_block_timestamp(&mut self.block_context, block_timestamp);
 
+        let new_block_number =
+            BlockNumber(new_block.block_number().0 - self.blocks.aborted_blocks.len() as u64);
+        new_block.header.block_number = new_block_number;
         let new_block_hash: Felt = new_block.header.block_hash.0.into();
 
         // update txs block hash block number for each transaction in the pending block
@@ -337,14 +313,6 @@ impl Starknet {
         }
 
         self.generate_pending_block()?;
-
-        if self.config.blocks_on_demand {
-            // clone_historic() requires self.historic_state, self.historic_state is set in
-            // expand_historic(), expand_historic() can be executed from commit_with_diff() - this
-            // is why self.pending_state.commit_with_diff() is here
-            self.pending_state.commit_with_diff()?;
-            self.state = self.pending_state.clone_historic();
-        }
 
         Ok(new_block_hash)
     }
@@ -381,8 +349,6 @@ impl Starknet {
             )
         }
 
-        let state = self.get_state();
-
         match transaction_result {
             Ok(tx_info) => {
                 // If transaction is not reverted
@@ -390,16 +356,24 @@ impl Starknet {
                 if !tx_info.is_reverted() {
                     match &transaction.transaction {
                         Transaction::Declare(DeclareTransaction::V1(declare_v1)) => {
-                            declare_contract_class(&declare_v1.class_hash, contract_class, state)?
+                            declare_contract_class(
+                                &declare_v1.class_hash,
+                                contract_class,
+                                &mut self.state,
+                            )?
                         }
                         Transaction::Declare(DeclareTransaction::V2(declare_v2)) => {
-                            declare_contract_class(&declare_v2.class_hash, contract_class, state)?
+                            declare_contract_class(
+                                &declare_v2.class_hash,
+                                contract_class,
+                                &mut self.state,
+                            )?
                         }
                         Transaction::Declare(DeclareTransaction::V3(declare_v3)) => {
                             declare_contract_class(
                                 declare_v3.get_class_hash(),
                                 contract_class,
-                                state,
+                                &mut self.state,
                             )?
                         }
                         _ => {}
@@ -446,7 +420,7 @@ impl Starknet {
         }
     }
 
-    /// Handles succeeded and reverted transactions.
+    /// Handles suceeded and reverted transactions.
     /// The tx is stored and potentially dumped.
     /// A new block is generated.
     pub(crate) fn handle_accepted_transaction(
@@ -470,20 +444,15 @@ impl Starknet {
 
         self.transactions.insert(transaction_hash, transaction_to_add);
 
-        // create new block from pending one, only if block on-demand mode is disabled
-        if !self.config.blocks_on_demand {
-            self.generate_new_block(state_diff)?;
-        }
+        // create new block from pending one
+        self.generate_new_block(state_diff)?;
 
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn init_block_context(
-        gas_price_wei: NonZeroU128,
-        gas_price_strk: NonZeroU128,
-        data_gas_price_wei: NonZeroU128,
-        data_gas_price_strk: NonZeroU128,
+        gas_price: NonZeroU128,
+        data_gas_price: NonZeroU128,
         eth_fee_token_address: &str,
         strk_fee_token_address: &str,
         chain_id: ChainId,
@@ -500,10 +469,10 @@ impl Starknet {
             block_timestamp: BlockTimestamp(0),
             sequencer_address: contract_address!("0x1000"),
             gas_prices: blockifier::block::GasPrices {
-                eth_l1_gas_price: gas_price_wei,
-                strk_l1_gas_price: gas_price_strk,
-                eth_l1_data_gas_price: data_gas_price_wei,
-                strk_l1_data_gas_price: data_gas_price_strk,
+                eth_l1_gas_price: gas_price,
+                strk_l1_gas_price: gas_price,
+                eth_l1_data_gas_price: data_gas_price,
+                strk_l1_data_gas_price: data_gas_price,
             },
             use_kzg_da: true,
         };
@@ -583,8 +552,7 @@ impl Starknet {
 
     fn get_mut_state_at(&mut self, block_id: &BlockId) -> DevnetResult<&mut StarknetState> {
         match block_id {
-            BlockId::Tag(BlockTag::Latest) => Ok(&mut self.state),
-            BlockId::Tag(BlockTag::Pending) => Ok(&mut self.pending_state),
+            BlockId::Tag(_) => Ok(&mut self.state),
             _ => {
                 if self.config.state_archive == StateArchiveCapacity::None {
                     return Err(Error::NoStateAtBlock { block_id: *block_id });
@@ -740,10 +708,9 @@ impl Starknet {
         amount: BigUint,
         erc20_address: ContractAddress,
     ) -> DevnetResult<Felt> {
-        let sufficiently_big_max_fee = self.config.gas_price_wei.get() * 1_000_000;
+        let sufficiently_big_max_fee = self.config.gas_price.get() * 1_000_000;
         let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
-        let state = self.get_state();
-        let nonce = state.get_nonce_at(starknet_api::core::ContractAddress::try_from(
+        let nonce = self.state.get_nonce_at(starknet_api::core::ContractAddress::try_from(
             starknet_api::hash::StarkFelt::from(chargeable_address_felt),
         )?)?;
 
@@ -792,25 +759,8 @@ impl Starknet {
         )
     }
 
-    pub fn block_state_update(&self, block_id: &BlockId) -> DevnetResult<StateUpdateResult> {
-        let state_update = state_update::state_update_by_block_id(self, block_id)?;
-        let state_diff = state_update.state_diff.into();
-
-        // StateUpdate needs to be mapped to PendingStateUpdate only in blocks_on_demand mode and
-        // when block_id is pending
-        if self.config.blocks_on_demand && block_id == &BlockId::Tag(BlockTag::Pending) {
-            Ok(StateUpdateResult::PendingStateUpdate(PendingStateUpdate {
-                old_root: state_update.old_root,
-                state_diff,
-            }))
-        } else {
-            Ok(StateUpdateResult::StateUpdate(StateUpdate {
-                block_hash: state_update.block_hash,
-                new_root: state_update.new_root,
-                old_root: state_update.old_root,
-                state_diff,
-            }))
-        }
+    pub fn block_state_update(&self, block_id: &BlockId) -> DevnetResult<StateUpdate> {
+        state_update::state_update_by_block_id(self, block_id)
     }
 
     pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> DevnetResult<Vec<Felt>> {
@@ -920,7 +870,7 @@ impl Starknet {
         Ok(block.clone())
     }
 
-    pub fn get_block_with_transactions(&self, block_id: &BlockId) -> DevnetResult<BlockResult> {
+    pub fn get_block_with_transactions(&self, block_id: &BlockId) -> DevnetResult<Block> {
         let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
         let transactions = block
             .get_transactions()
@@ -933,21 +883,14 @@ impl Starknet {
             })
             .collect::<DevnetResult<Vec<TransactionWithHash>>>()?;
 
-        if block.status() == &BlockStatus::Pending {
-            Ok(BlockResult::PendingBlock(PendingBlock {
-                header: PendingBlockHeader::from(block),
-                transactions: Transactions::Full(transactions),
-            }))
-        } else {
-            Ok(BlockResult::Block(Block {
-                status: *block.status(),
-                header: BlockHeader::from(block),
-                transactions: Transactions::Full(transactions),
-            }))
-        }
+        Ok(Block {
+            status: *block.status(),
+            header: BlockHeader::from(block),
+            transactions: Transactions::Full(transactions),
+        })
     }
 
-    pub fn get_block_with_receipts(&self, block_id: BlockId) -> DevnetResult<BlockResult> {
+    pub fn get_block_with_receipts(&self, block_id: BlockId) -> DevnetResult<Block> {
         let block = self.blocks.get_by_block_id(&block_id).ok_or(Error::NoBlock)?;
         let mut transaction_receipts: Vec<TransactionWithReceipt> = vec![];
 
@@ -977,18 +920,11 @@ impl Starknet {
                 .push(TransactionWithReceipt { receipt, transaction: transaction.transaction });
         }
 
-        if block.status() == &BlockStatus::Pending {
-            Ok(BlockResult::PendingBlock(PendingBlock {
-                header: PendingBlockHeader::from(block),
-                transactions: Transactions::FullWithReceipts(transaction_receipts),
-            }))
-        } else {
-            Ok(BlockResult::Block(Block {
-                status: *block.status(),
-                header: BlockHeader::from(block),
-                transactions: Transactions::FullWithReceipts(transaction_receipts),
-            }))
-        }
+        Ok(Block {
+            status: *block.status(),
+            header: BlockHeader::from(block),
+            transactions: Transactions::FullWithReceipts(transaction_receipts),
+        })
     }
 
     pub fn get_transaction_by_block_id_and_index(
@@ -1058,10 +994,7 @@ impl Starknet {
         &self,
         block_id: &BlockId,
     ) -> DevnetResult<Vec<BlockTransactionTrace>> {
-        let transactions = match self.get_block_with_transactions(block_id)? {
-            BlockResult::Block(b) => b.transactions,
-            BlockResult::PendingBlock(b) => b.transactions,
-        };
+        let transactions = self.get_block_with_transactions(block_id)?.transactions;
 
         let mut traces = Vec::new();
         if let Transactions::Full(txs) = transactions {
@@ -1397,8 +1330,6 @@ mod tests {
         let block_ctx = Starknet::init_block_context(
             nonzero!(10u128),
             nonzero!(10u128),
-            nonzero!(10u128),
-            nonzero!(10u128),
             "0xAA",
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
@@ -1506,8 +1437,6 @@ mod tests {
     #[test]
     fn correct_block_context_update() {
         let mut block_ctx = Starknet::init_block_context(
-            nonzero!(1u128),
-            nonzero!(1u128),
             nonzero!(1u128),
             nonzero!(1u128),
             ETH_ERC20_CONTRACT_ADDRESS,

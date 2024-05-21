@@ -1,5 +1,4 @@
-use axum::extract::State;
-use axum::Json;
+use axum::{Extension, Json};
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 
@@ -11,7 +10,7 @@ use crate::api::http::models::{
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 
 pub async fn postman_load(
-    State(state): State<HttpApiHandler>,
+    Extension(state): Extension<HttpApiHandler>,
     Json(data): Json<PostmanLoadL1MessagingContract>,
 ) -> HttpApiResult<Json<MessagingLoadAddress>> {
     let mut starknet = state.api.starknet.write().await;
@@ -25,7 +24,7 @@ pub async fn postman_load(
 }
 
 pub async fn postman_flush(
-    State(state): State<HttpApiHandler>,
+    Extension(state): Extension<HttpApiHandler>,
     data: Option<Json<FlushParameters>>,
 ) -> HttpApiResult<Json<FlushedMessages>> {
     // Need to handle L1 to L2 first in case that those messages
@@ -83,7 +82,7 @@ pub async fn postman_flush(
 }
 
 pub async fn postman_send_message_to_l2(
-    State(state): State<HttpApiHandler>,
+    Extension(state): Extension<HttpApiHandler>,
     Json(message): Json<MessageToL2>,
 ) -> HttpApiResult<Json<TxHash>> {
     let mut starknet = state.api.starknet.write().await;
@@ -102,7 +101,7 @@ pub async fn postman_send_message_to_l2(
 }
 
 pub async fn postman_consume_message_from_l2(
-    State(state): State<HttpApiHandler>,
+    Extension(state): Extension<HttpApiHandler>,
     Json(message): Json<MessageToL1>,
 ) -> HttpApiResult<Json<MessageHash>> {
     let mut starknet = state.api.starknet.write().await;

@@ -24,6 +24,7 @@ pub const PREDEPLOYED_ACCOUNT_INITIAL_BALANCE: u128 = DEVNET_DEFAULT_INITIAL_BAL
 
 // Example contract with basic storage read and write - Cairo 1
 pub const CAIRO_1_CONTRACT_PATH: &str = "test_data/rpc/contract_cairo_v1/output.json";
+pub const CAIRO_1_CASM_PATH: &str = "test_data/rpc/contract_cairo_v1/output-casm.json";
 pub const CASM_COMPILED_CLASS_HASH: &str =
     "0x63b33a5f2f46b1445d04c06d7832c48c48ad087ce0803b71f2b8d96353716ca";
 

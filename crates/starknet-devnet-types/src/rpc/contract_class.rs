@@ -47,6 +47,11 @@ impl ContractClass {
 
         Ok(sierra_contract_class)
     }
+
+    pub fn cairo_1_from_path(path: &str) -> DevnetResult<ContractClass> {
+        let json_str = std::fs::read_to_string(path)?;
+        Ok(ContractClass::Cairo1(ContractClass::cairo_1_from_sierra_json_str(&json_str)?))
+    }
 }
 
 impl From<Cairo0ContractClass> for ContractClass {
@@ -278,8 +283,8 @@ pub fn compute_sierra_class_hash(contract_class: &SierraContractClass) -> Devnet
 
     // to match SierraClass struct, the field sierra_program_debug_info dont have to be
     // Option::None, because during serialization it gets converted to null
-    // and the next deserialzation to SierraClass will fail, because it expects this key to have
-    // some value
+    // and the next deserialzation to SierraClas will fail, because it expects this key to have some
+    // value
     if contract_class.sierra_program_debug_info.is_none() {
         contract_class_json_value["sierra_program_debug_info"] =
             serde_json::to_value(SierraClassDebugInfo {

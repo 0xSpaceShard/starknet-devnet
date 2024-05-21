@@ -16,27 +16,6 @@ aliases:
       - build-and-test
       - image-build-amd
       - image-build-arm
-      - binary-build
-
-  - &linux_build
-    machine:
-      image: ubuntu-2204:2024.01.2
-    resource_class: large
-    environment:
-      COMPILER_ARCHIVE: cross-x86_64-unknown-linux-gnu.tar.gz
-
-executors:
-  unknown-linux-gnu:
-    <<: *linux_build
-
-  unknown-linux-musl:
-    <<: *linux_build
-
-  apple-darwin:
-    macos:
-      xcode: 15.3.0
-    environment:
-      COMPILER_ARCHIVE: cross-x86_64-apple-darwin.tar.gz
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
@@ -69,9 +48,6 @@ jobs:
       - run:
           name: Format check
           command: cargo +nightly fmt --all --check
-      - run:
-          name: Code spell check
-          command: ./scripts/check_spelling.sh
       - save_cache:
           # Caching dependencies for future use
           # Build and Clippy steps generate their own target artifacts
@@ -94,41 +70,6 @@ jobs:
           # fails if jobs not limited; read more in https://github.com/0xSpaceShard/starknet-devnet-rs/issues/378
           command: cargo test --jobs 3 --test '*' --no-fail-fast
 
-  binary-build:
-    parameters:
-      arch:
-        type: string
-      platform:
-        type: executor
-      target_triplet:
-        type: string
-      archive_path:
-        type: string
-
-    executor: << parameters.platform >>
-
-    steps:
-      - checkout
-      - run:
-          name: Install Rust
-          command: |
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
-              sh -s -- -y --default-toolchain=1.74.0
-      - run: rustup target add << parameters.target_triplet >>
-      - run:
-          name: Install Cross
-          command: |
-            curl -SsL https://github.com/cross-rs/cross/releases/download/v0.2.5/${COMPILER_ARCHIVE} |
-              tar -xvz -C /tmp
-      - run:
-          name: Compile binary
-          command: /tmp/cross build --release --target=<< parameters.target_triplet >>
-      - run:
-          name: Archive and compress binary artifact # only the file, not the whole dir structure
-          command: tar -czvf << parameters.archive_path >> --directory target/<< parameters.target_triplet >>/release starknet-devnet
-      - store_artifacts: # to later include them in github release
-          path: << parameters.archive_path >>
-
   image-build-amd:
     docker:
       - image: cimg/base:2021.04
@@ -141,11 +82,12 @@ jobs:
           name: Build amd images
           command: ./docker/image_build.sh
           environment:
-            ARCH_SUFFIX: -amd
+            ARCH_SUFFIX: "-amd"
+            REMOTE: true
 
   image-build-arm:
     machine:
-      image: ubuntu-2204:2024.01.2
+      image: ubuntu-2004:202111-02
     resource_class: arm.large
     steps:
       - checkout
@@ -154,6 +96,7 @@ jobs:
           command: ./docker/image_build.sh
           environment:
             ARCH_SUFFIX: -arm
+            REMOTE: ""
 
   publish:
     docker:
@@ -166,6 +109,7 @@ jobs:
       - run:
           name: Publish new versions to crates.io
           command: ./scripts/publish_cratesio_new_versions.sh
+
       - run:
           name: Create tags and push joint image manifests
           command: ./docker/tag_images_and_create_joint_image_manifests.sh
@@ -173,18 +117,10 @@ jobs:
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
-  build-test-maybe-publish:
+  main:
     jobs:
       - build-and-test:
           cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
-      - binary-build:
-          <<: *on_main
-          matrix:
-            parameters:
-              arch: [x86_64, aarch64]
-              platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
-          target_triplet: << matrix.arch >>-<< matrix.platform >>
-          archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
       - image-build-amd:
           <<: *on_main
       - image-build-arm:

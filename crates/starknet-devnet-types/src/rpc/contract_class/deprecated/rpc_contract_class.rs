@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn test_rpc_deserialization() {
-        DeprecatedContractClass::rpc_from_path(CAIRO_0_RPC_CONTRACT_PATH).unwrap();
+        let _ = DeprecatedContractClass::rpc_from_path(CAIRO_0_RPC_CONTRACT_PATH).unwrap();
     }
 
     #[test]

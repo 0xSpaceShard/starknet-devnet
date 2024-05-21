@@ -4,22 +4,19 @@ use std::path::Path;
 use std::process::{Child, Command};
 use std::sync::Arc;
 
+use hyper::{Body, Response};
 use server::test_utils::exported_test_utils::assert_contains;
 use starknet_core::random_number_generator::generate_u32_random_number;
 use starknet_core::utils::casm_hash;
 use starknet_rs_accounts::{Account, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::contract::SierraClass;
-use starknet_rs_core::types::{
-    BlockId, BlockTag, ContractClass, ExecutionResult, FieldElement, FlattenedSierraClass,
-    FunctionCall,
-};
-use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
+use starknet_rs_core::types::{ContractClass, ExecutionResult, FieldElement, FlattenedSierraClass};
+use starknet_rs_core::utils::get_udc_deployed_address;
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::LocalWallet;
 
-use super::background_devnet::BackgroundDevnet;
 use super::constants::CAIRO_1_CONTRACT_PATH;
 
 pub enum ImpersonationAction {
@@ -27,6 +24,18 @@ pub enum ImpersonationAction {
     StopImpersonatingAccount(FieldElement),
     AutoImpersonate,
     StopAutoImpersonate,
+}
+
+pub async fn get_json_body(resp: Response<Body>) -> serde_json::Value {
+    let resp_body = resp.into_body();
+    let resp_body_bytes = hyper::body::to_bytes(resp_body).await.unwrap();
+    serde_json::from_slice(&resp_body_bytes).unwrap()
+}
+
+pub async fn get_string_body(resp: Response<Body>) -> String {
+    let resp_body = resp.into_body();
+    let body_bytes = hyper::body::to_bytes(resp_body).await.unwrap();
+    String::from_utf8(body_bytes.to_vec()).unwrap()
 }
 
 /// dummy testing value
@@ -106,24 +115,6 @@ pub async fn assert_tx_successful<T: Provider>(tx_hash: &FieldElement, client: &
     match receipt.execution_result() {
         ExecutionResult::Succeeded => (),
         other => panic!("Should have succeeded; got: {other:?}"),
-    }
-}
-
-pub async fn get_contract_balance(
-    devnet: &BackgroundDevnet,
-    contract_address: FieldElement,
-) -> FieldElement {
-    let contract_call = FunctionCall {
-        contract_address,
-        entry_point_selector: get_selector_from_name("get_balance").unwrap(),
-        calldata: vec![],
-    };
-    match devnet.json_rpc_client.call(contract_call, BlockId::Tag(BlockTag::Latest)).await {
-        Ok(res) => {
-            assert_eq!(res.len(), 1);
-            res[0]
-        }
-        Err(e) => panic!("Call failed: {e}"),
     }
 }
 

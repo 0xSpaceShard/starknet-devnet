@@ -115,12 +115,17 @@ impl fmt::Display for TransactionType {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "type", deny_unknown_fields, rename_all = "SCREAMING_SNAKE_CASE")]
+#[serde(tag = "type", deny_unknown_fields)]
 pub enum Transaction {
+    #[serde(rename = "DECLARE")]
     Declare(DeclareTransaction),
+    #[serde(rename = "DEPLOY_ACCOUNT")]
     DeployAccount(DeployAccountTransaction),
+    #[serde(rename = "DEPLOY")]
     Deploy(DeployTransaction),
+    #[serde(rename = "INVOKE")]
     Invoke(InvokeTransaction),
+    #[serde(rename = "L1_HANDLER")]
     L1Handler(L1HandlerTransaction),
 }
 
@@ -377,7 +382,7 @@ impl BroadcastedTransactionCommonV3 {
             ), // h(paymaster_data)
             chain_id,                                                         // chain_id
             self.nonce.into(),                                                // nonce
-            self.get_data_availability_modes_field_element(), /* nonce_data_availability ||
+            self.get_data_availability_modes_field_element(), /* nonce_data_availabilty ||
                                                                * fee_data_availability_mode */
         ];
 
@@ -449,10 +454,13 @@ impl BroadcastedTransactionCommonV3 {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(tag = "type", rename_all = "SCREAMING_SNAKE_CASE")]
+#[serde(tag = "type")]
 pub enum BroadcastedTransaction {
+    #[serde(rename = "INVOKE")]
     Invoke(BroadcastedInvokeTransaction),
+    #[serde(rename = "DECLARE")]
     Declare(BroadcastedDeclareTransaction),
+    #[serde(rename = "DEPLOY_ACCOUNT")]
     DeployAccount(BroadcastedDeployAccountTransaction),
 }
 
@@ -976,17 +984,20 @@ impl<'de> Deserialize<'de> for BroadcastedInvokeTransaction {
 /// account, and fee will be deducted from the balance before the simulation of the next
 /// transaction). To skip the fee charge, use the SKIP_FEE_CHARGE flag.
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SimulationFlag {
+    #[serde(rename = "SKIP_VALIDATE")]
     SkipValidate,
+    #[serde(rename = "SKIP_FEE_CHARGE")]
     SkipFeeCharge,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum CallType {
+    #[serde(rename = "LIBRARY_CALL")]
     LibraryCall,
+    #[serde(rename = "CALL")]
     Call,
+    #[serde(rename = "DELEGATE")]
     Delegate,
 }
 
@@ -1008,11 +1019,15 @@ pub struct FunctionInvocation {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "SCREAMING_SNAKE_CASE")]
+#[serde(tag = "type")]
 pub enum TransactionTrace {
+    #[serde(rename = "INVOKE")]
     Invoke(InvokeTransactionTrace),
+    #[serde(rename = "DECLARE")]
     Declare(DeclareTransactionTrace),
+    #[serde(rename = "DEPLOY_ACCOUNT")]
     DeployAccount(DeployAccountTransactionTrace),
+    #[serde(rename = "L1_HANDLER")]
     L1Handler(L1HandlerTransactionTrace),
 }
 
