@@ -18,9 +18,6 @@ sidebar_position: 1
 
 :::
 
-You may now proceed with [running Devnet](./running/install) and checking out some of the many features listed in the sidebar on the left.
+You may now proceed with [running Devnet](./running/install) and checking out the many features listed in the sidebar on the left.
 
 <!-- TODO: add doc versioning -->
-<!-- TODO: add examples:
-  - L1-L2 - use content of contracts/README.md, add section in postman.md that mentions the example and starknet-hardhat-plugin; consider adding developer section to postman.md
- -->

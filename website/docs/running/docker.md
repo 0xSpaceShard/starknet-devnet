@@ -28,9 +28,9 @@ $ docker pull shardlabs/starknet-devnet-rs:<CRATES_IO_VERSION>
 
 :::note
 
-The latest docker image tag corresponds to the last published version in crates.io
+The `latest` docker image tag corresponds to the last published version on crates.io.
 
-...
+:::
 
 Commits to the `main` branch of this repository are mostly available as images tagged with their commit hash (the full 40-lowercase-hex-digits SHA1 digest):
 
