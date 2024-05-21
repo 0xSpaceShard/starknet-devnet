@@ -184,10 +184,6 @@ $ git push <CONTRIBUTOR> HEAD
 
 ## ✏️ Contributing
 
-We ❤️ and encourage all contributions!
+We ❤️ and encourage all contributions and thank all the [contributors](https://github.com/0xSpaceShard/starknet-devnet-rs/graphs/contributors)!
 
 [Click here](.github/CONTRIBUTING.md) for the development guide.
-
-## 🙌 Special Thanks
-
-Special thanks to all the [contributors](https://github.com/0xSpaceShard/starknet-devnet-rs/graphs/contributors)!
