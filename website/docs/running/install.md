@@ -8,7 +8,7 @@ sidebar_position: 2.1
 
 Any of the approaches below that mention `cargo` require you to have [installed Rust](https://www.rust-lang.org/tools/install). You might also need to install `pkg-config` and `make`.
 
-The required Rust version is specified in [rust-toolchain.toml](rust-toolchain.toml) and handled automatically by `cargo`.
+The required Rust version is specified in `rust-toolchain.toml` in the project root and handled automatically by `cargo`.
 
 ## Install an executable binary
 
@@ -26,8 +26,8 @@ $ cargo install starknet-devnet
 
 ### Install from GitHub
 
-- Use the `--locked` flag to ensure using the dependencies listed in [the lock file](/Cargo.lock)
-- Preferably familiarize yourself with the `cargo install` command ([docs](https://doc.rust-lang.org/cargo/commands/cargo-install.html#dealing-with-the-lockfile))
+- Use the `--locked` flag to ensure using the dependencies listed in `Cargo.lock` in the project root.
+- Preferably familiarize yourself with the `cargo install` command ([docs](https://doc.rust-lang.org/cargo/commands/cargo-install.html#dealing-with-the-lockfile)).
 
 ```
 $ cargo install --git https://github.com/0xSpaceShard/starknet-devnet-rs.git --locked
