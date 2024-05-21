@@ -24,4 +24,3 @@ You may now proceed with [running Devnet](./running/install) and checking out so
 <!-- TODO: add examples:
   - L1-L2 - use content of contracts/README.md, add section in postman.md that mentions the example and starknet-hardhat-plugin; consider adding developer section to postman.md
  -->
- <!-- TODO: add contribution link to the page -->

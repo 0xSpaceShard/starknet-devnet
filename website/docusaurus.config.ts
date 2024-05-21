@@ -80,6 +80,10 @@ const config: Config = {
               label: 'Get started',
               to: '/docs/intro',
             },
+            {
+              label: 'Contribute',
+              to: 'https://github.com/0xSpaceShard/starknet-devnet-rs/blob/main/.github/CONTRIBUTING.md',
+            },
           ],
         },
         {
