@@ -33,36 +33,43 @@ pub fn add_declare_transaction(
     let transaction_hash = blockifier_declare_transaction.tx_hash().0.into();
     let class_hash = blockifier_declare_transaction.class_hash().0.into();
 
-    let (declare_transaction, contract_class) = match broadcasted_declare_transaction {
-        BroadcastedDeclareTransaction::V1(ref v1) => {
-            let declare_transaction = Transaction::Declare(DeclareTransaction::V1(
-                DeclareTransactionV0V1::new(v1, class_hash),
-            ));
+    let (declare_transaction, contract_class, sender_address) =
+        match broadcasted_declare_transaction {
+            BroadcastedDeclareTransaction::V1(ref v1) => {
+                let declare_transaction = Transaction::Declare(DeclareTransaction::V1(
+                    DeclareTransactionV0V1::new(v1, class_hash),
+                ));
 
-            (declare_transaction, v1.contract_class.clone().into())
-        }
-        BroadcastedDeclareTransaction::V2(ref v2) => {
-            let declare_transaction = Transaction::Declare(DeclareTransaction::V2(
-                DeclareTransactionV2::new(v2, class_hash),
-            ));
+                (declare_transaction, v1.contract_class.clone().into(), &v1.sender_address)
+            }
+            BroadcastedDeclareTransaction::V2(ref v2) => {
+                let declare_transaction = Transaction::Declare(DeclareTransaction::V2(
+                    DeclareTransactionV2::new(v2, class_hash),
+                ));
 
-            (declare_transaction, v2.contract_class.clone().into())
-        }
-        BroadcastedDeclareTransaction::V3(ref v3) => {
-            let declare_transaction = Transaction::Declare(DeclareTransaction::V3(
-                DeclareTransactionV3::new(v3, class_hash),
-            ));
+                (declare_transaction, v2.contract_class.clone().into(), &v2.sender_address)
+            }
+            BroadcastedDeclareTransaction::V3(ref v3) => {
+                let declare_transaction = Transaction::Declare(DeclareTransaction::V3(
+                    DeclareTransactionV3::new(v3, class_hash),
+                ));
 
-            (declare_transaction, v3.contract_class.clone().into())
-        }
-    };
+                (declare_transaction, v3.contract_class.clone().into(), &v3.sender_address)
+            }
+        };
+
+    let validate = !(Starknet::is_account_impersonated(
+        &mut starknet.state,
+        &starknet.cheats,
+        sender_address,
+    )?);
 
     let transaction = TransactionWithHash::new(transaction_hash, declare_transaction);
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::Declare(
             blockifier_declare_transaction,
         )
-        .execute(&mut starknet.state.state, &starknet.block_context, true, true);
+        .execute(&mut starknet.state.state, &starknet.block_context, true, validate);
 
     starknet.handle_transaction_result(
         transaction,

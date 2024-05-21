@@ -15,7 +15,6 @@ axum = { workspace = true }
 http-body-util = { workspace = true }
 reqwest = { workspace = true }
 tower-http = { workspace = true }
-tower = { workspace = true }
 
 # tracing
 tracing = { workspace = true }

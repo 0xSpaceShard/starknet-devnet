@@ -22,6 +22,13 @@ pub mod state_update;
 
 pub trait CustomStateReader {
     fn is_contract_deployed(&mut self, contract_address: ContractAddress) -> DevnetResult<bool>;
+    /// using is_contract_deployed with forked state returns that the contract is deployed on the
+    /// forked side and a validation cannot be skipped when creating a transaction with
+    /// impersonated account
+    fn is_contract_deployed_locally(
+        &mut self,
+        contract_address: ContractAddress,
+    ) -> DevnetResult<bool>;
     fn is_contract_declared(&mut self, class_hash: ClassHash) -> bool;
     /// sierra for cairo1, only artifact for cairo0
     fn get_rpc_contract_class(&self, class_hash: &ClassHash) -> Option<&ContractClass>;
@@ -286,6 +293,14 @@ impl CustomStateReader for StarknetState {
 
     fn get_rpc_contract_class(&self, class_hash: &ClassHash) -> Option<&ContractClass> {
         self.rpc_contract_classes.committed.get(class_hash)
+    }
+
+    fn is_contract_deployed_locally(
+        &mut self,
+        contract_address: ContractAddress,
+    ) -> DevnetResult<bool> {
+        let api_address = contract_address.try_into()?;
+        Ok(self.state.state.address_to_class_hash.contains_key(&api_address))
     }
 }
 

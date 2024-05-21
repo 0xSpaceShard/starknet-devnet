@@ -13,6 +13,7 @@ use models::{
     EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::felt::Felt;
 use starknet_types::rpc::block::{Block, PendingBlock};
@@ -29,10 +30,10 @@ use tracing::{error, info, trace};
 
 use self::error::StrictRpcResult;
 use self::models::{
-    BlockHashAndNumberOutput, BlockIdInput, BroadcastedDeclareTransactionInput,
-    BroadcastedDeployAccountTransactionInput, BroadcastedInvokeTransactionInput,
-    DeclareTransactionOutput, DeployAccountTransactionOutput, InvokeTransactionOutput,
-    SyncingOutput, TransactionStatusOutput,
+    AccountAddressInput, BlockHashAndNumberOutput, BlockIdInput,
+    BroadcastedDeclareTransactionInput, BroadcastedDeployAccountTransactionInput,
+    BroadcastedInvokeTransactionInput, DeclareTransactionOutput, DeployAccountTransactionOutput,
+    InvokeTransactionOutput, SyncingOutput, TransactionStatusOutput,
 };
 use self::origin_forwarder::OriginForwarder;
 use super::Api;
@@ -68,6 +69,7 @@ pub fn to_rpc_result<T: Serialize>(val: T) -> ResponseResult {
 impl ToRpcResponseResult for StrictRpcResult {
     fn to_rpc_result(self) -> ResponseResult {
         match self {
+            Ok(StarknetResponse::Empty) => to_rpc_result(json!({})),
             Ok(data) => to_rpc_result(data),
             Err(err) => err.api_error_to_rpc_error().into(),
         }
@@ -205,6 +207,14 @@ impl JsonRpcHandler {
             StarknetRequest::BlockTransactionTraces(BlockIdInput { block_id }) => {
                 self.get_trace_block_transactions(block_id).await
             }
+            StarknetRequest::ImpersonateAccount(AccountAddressInput { account_address }) => {
+                self.impersonate_account(account_address).await
+            }
+            StarknetRequest::StopImpersonateAccount(AccountAddressInput { account_address }) => {
+                self.stop_impersonating_account(account_address).await
+            }
+            StarknetRequest::AutoImpersonate => self.set_auto_impersonate(true).await,
+            StarknetRequest::StopAutoImpersonate => self.set_auto_impersonate(false).await,
         };
 
         if let (Err(err), Some(forwarder)) = (&starknet_resp, &self.origin_caller) {
@@ -294,6 +304,14 @@ pub enum StarknetRequest {
     TraceTransaction(TransactionHashInput),
     #[serde(rename = "starknet_traceBlockTransactions")]
     BlockTransactionTraces(BlockIdInput),
+    #[serde(rename = "devnet_impersonateAccount")]
+    ImpersonateAccount(AccountAddressInput),
+    #[serde(rename = "devnet_stopImpersonateAccount")]
+    StopImpersonateAccount(AccountAddressInput),
+    #[serde(rename = "devnet_autoImpersonate", with = "empty_params")]
+    AutoImpersonate,
+    #[serde(rename = "devnet_stopAutoImpersonate", with = "empty_params")]
+    StopAutoImpersonate,
 }
 
 impl std::fmt::Display for StarknetRequest {
@@ -344,6 +362,12 @@ impl std::fmt::Display for StarknetRequest {
             StarknetRequest::BlockTransactionTraces(_) => {
                 write!(f, "starknet_traceBlockTransactions")
             }
+            StarknetRequest::ImpersonateAccount(_) => write!(f, "devnet_impersonateAccount"),
+            StarknetRequest::StopImpersonateAccount(_) => {
+                write!(f, "devnet_stopImpersonateAccount")
+            }
+            StarknetRequest::AutoImpersonate => write!(f, "devnet_autoImpersonate"),
+            StarknetRequest::StopAutoImpersonate => write!(f, "devnet_stopAutoImpersonate"),
         }
     }
 }
@@ -376,6 +400,7 @@ pub enum StarknetResponse {
     SimulateTransactions(Vec<SimulatedTransaction>),
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
+    Empty,
 }
 
 #[cfg(test)]
@@ -930,5 +955,21 @@ mod requests_tests {
             Err(err) => assert_contains(&err.to_string(), expected_msg),
             other => panic!("Invalid result: {other:?}"),
         }
+    }
+}
+
+#[cfg(test)]
+mod response_tests {
+    use crate::api::json_rpc::error::StrictRpcResult;
+    use crate::api::json_rpc::{StarknetResponse, ToRpcResponseResult};
+
+    #[test]
+    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result()
+     {
+        assert_eq!(
+            r#"{"result":{}}"#,
+            serde_json::to_string(&StrictRpcResult::Ok(StarknetResponse::Empty).to_rpc_result())
+                .unwrap()
+        );
     }
 }

@@ -35,15 +35,9 @@ mod fork_tests {
     const SEPOLIA_GENESIS_BLOCK_HASH: &str =
         "0x19f675d3fb226821493a6ab9a1955e384bba80f130de625621a418e9a7c0ca3";
 
-    async fn spawn_forkable_devnet() -> Result<BackgroundDevnet, anyhow::Error> {
-        let args = ["--state-archive-capacity", "full"];
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await?;
-        Ok(devnet)
-    }
-
     #[tokio::test]
     async fn test_fork_status() {
-        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
         let origin_devnet_config = origin_devnet.get_config().await.unwrap();
         assert_eq!(
@@ -135,7 +129,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_forked_account_balance() {
-        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
         // new origin block
         let dummy_address = FieldElement::ONE;
@@ -163,7 +157,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_getting_cairo0_class_from_origin_and_fork() {
-        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
         let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
         let predeployed_account = Arc::new(SingleOwnerAccount::new(
@@ -253,7 +247,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_origin_declare_deploy_fork_invoke() {
-        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
         let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
         let predeployed_account = Arc::new(SingleOwnerAccount::new(
@@ -337,7 +331,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_deploying_account_with_class_not_present_on_origin() {
-        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
@@ -409,7 +403,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_get_nonce_if_contract_not_deployed() {
-        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
         let fork_devnet = origin_devnet.fork().await.unwrap();
         let dummy_address = FieldElement::ONE;
         match fork_devnet
@@ -424,7 +418,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_get_nonce_if_contract_deployed_on_origin() {
-        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
         let (_, account_address) = origin_devnet.get_first_predeployed_account().await;
@@ -439,7 +433,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_get_storage_if_contract_not_deployed() {
-        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
         let fork_devnet = origin_devnet.fork().await.unwrap();
         let dummy_address = FieldElement::ONE;
         let dummy_key = FieldElement::ONE;
@@ -455,7 +449,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_get_storage_if_contract_deployed_on_origin() {
-        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
         let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
@@ -479,7 +473,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_fork_using_origin_token_contract() {
-        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
         let address = FieldElement::ONE;
         let mint_amount = 1000_u128;
@@ -493,7 +487,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_fork_if_origin_dies() {
-        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
         let fork_devnet = origin_devnet.fork().await.unwrap();
         send_ctrl_c_signal_and_wait(&origin_devnet.process).await;
 
@@ -509,7 +503,7 @@ mod fork_tests {
     #[tokio::test]
     async fn test_block_count_increased() {
         // latest block has number 0
-        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
         // create two blocks
         origin_devnet.mint(0x1, 1).await; // dummy data
@@ -546,7 +540,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_block_count_increased_on_state() {
-        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
         let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
         let predeployed_account = Arc::new(SingleOwnerAccount::new(
@@ -585,5 +579,26 @@ mod fork_tests {
             .await
             .unwrap();
         assert_eq!(second_fork_block_number, [FieldElement::from(5_u8)]); // origin block + declare + deploy
+    }
+
+    #[tokio::test]
+    async fn test_forking_https() {
+        let origin_url = "https://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7";
+        let fork_block = 2;
+        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--fork-network",
+            origin_url,
+            "--fork-block",
+            &fork_block.to_string(),
+        ])
+        .await
+        .unwrap();
+
+        fork_devnet
+            .json_rpc_client
+            // -1 to force fetching from origin
+            .get_block_with_tx_hashes(BlockId::Number(fork_block - 1))
+            .await
+            .unwrap();
     }
 }
