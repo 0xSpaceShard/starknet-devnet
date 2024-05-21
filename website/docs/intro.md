@@ -20,15 +20,8 @@ sidebar_position: 1
 
 You may now proceed with [running Devnet](./running/install) and checking out some of the many features listed in the sidebar on the left.
 
-<!-- TODO: add instructions for editing docs -->
 <!-- TODO: add doc versioning -->
 <!-- TODO: add examples:
   - L1-L2 - use content of contracts/README.md, add section in postman.md that mentions the example and starknet-hardhat-plugin; consider adding developer section to postman.md
  -->
-<!-- add prettier -->
-
-## ✏️ Contributing
-
-We ❤️ and encourage all contributions and thank all the [contributors](https://github.com/0xSpaceShard/starknet-devnet-rs/graphs/contributors)!
-
-[Click here](https://github.com/0xSpaceShard/starknet-devnet-rs/blob/main/.github/CONTRIBUTING.md) for the development guide.
+ <!-- TODO: add contribution link to the page -->

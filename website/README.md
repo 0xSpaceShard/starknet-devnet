@@ -2,13 +2,25 @@
 
 This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
 
+### New content addition
+
+Check out the existing pages and categories under `website/docs/`. If the addition you wish to make in the documentation is not suitable for any of the existing markdown (.md) files, feel free to create a new one.
+
 ### Installation
 
 ```
 $ yarn
 ```
 
-### Local Development
+### Format
+
+Format the website code by running
+
+```
+$ yarn format
+```
+
+### Local development
 
 ```
 $ yarn start

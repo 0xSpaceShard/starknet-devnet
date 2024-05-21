@@ -8,12 +8,12 @@ import Heading from '@theme/Heading';
 import styles from './index.module.css';
 
 function HomepageHeader() {
-  const {siteConfig} = useDocusaurusContext();
+  const { siteConfig } = useDocusaurusContext();
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <div className="container">
         <div className="h">
-          <img src="img/devnet-logo.png"/>
+          <img src="img/devnet-logo.png" />
         </div>
         <Heading as="h1" className="hero__title">
           {siteConfig.title}
@@ -22,7 +22,8 @@ function HomepageHeader() {
         <div className={styles.buttons}>
           <Link
             className="button button--secondary button--lg"
-            to="/docs/intro">
+            to="/docs/intro"
+          >
             Get started
           </Link>
         </div>
@@ -32,11 +33,9 @@ function HomepageHeader() {
 }
 
 export default function Home(): JSX.Element {
-  const {siteConfig} = useDocusaurusContext();
+  const { siteConfig } = useDocusaurusContext();
   return (
-    <Layout
-      title={`Home`}
-      description="A local testnet for Starknet">
+    <Layout title={`Home`} description="A local testnet for Starknet">
       <HomepageHeader />
       <main>
         <HomepageFeatures />

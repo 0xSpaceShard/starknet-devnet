@@ -2,11 +2,13 @@
 
 Devnet allows you to use impersonated account from mainnet/testnet. This means that a transaction sent from an impersonated account will not fail with an invalid signature error. In the general case, a transaction sent with an account that is not in the local state fails with the aforementioned error. For impersonation to work, Devnet needs to be run in [forking mode](./forking.md).
 
-:::note Notes
+:::warning Caveat
 
 - Only `INVOKE` and `DECLARE` transactions are supported. `DEPLOY_ACCOUNT` transaction is not supported, but you can create an `INVOKE` transaction to UDC.
 - Overall fee, for transactions sent with an impersonated account, will be lower compared to normal transactions. The reason is that validation part is skipped.
-- Sending transactions with an account that **does not** exist will return one of the errors: `ContractNotFound`, `InsufficientAccountBalance`. The most common way of sending a transaction is via starknet-rs/starknet.js or starkli. In transaction construction, if account nonce is not hardcoded, Devnet is queried and returns `ContractNotFound`. Otherwise the nonce fetching part is skipped and `InsufficientAccountBalance` is returned.
+- The most common way of sending a transaction is via starknet-rs/starknet.js or starkli. Trying to send with an account that **does not** exist even in the origin network will return an error:
+  - In transaction construction, if account nonce is not hardcoded, Devnet is queried and returns `ContractNotFound`.
+  - Otherwise the nonce fetching part is skipped and `InsufficientAccountBalance` is returned.
 
 :::
 
