@@ -152,7 +152,7 @@ jobs:
 
   publish:
     docker:
-      - image: cimg/rust:1.74.0
+      - image: cimg/rust:1.74.0-node
     resource_class: large
     steps:
       - checkout
@@ -174,7 +174,7 @@ jobs:
 
   dummy-publish:
     docker:
-      - image: cimg/rust:1.74.0
+      - image: cimg/rust:1.74.0-node
     resource_class: large
     steps:
       - checkout
