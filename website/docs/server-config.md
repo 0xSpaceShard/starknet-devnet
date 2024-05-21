@@ -2,7 +2,7 @@
 
 ## Host and port
 
-Specify the host and the port used by the server with `--host <ADDRESS>` and `--port <NUMBER>` CLI arguments. If running with Docker, check out the [port publishing docs](./running/docker.md#container-port-publishing).
+Specify the host and the port used by the server with `--host <ADDRESS>` and `--port <NUMBER>` CLI arguments. If running with Docker, check out the [port publishing docs](./running/docker#container-port-publishing).
 
 ## Logging
 
@@ -25,7 +25,9 @@ $ docker run -e RUST_LOG=<LEVEL> shardlabs/starknet-devnet-rs
 By default, logging of request and response data is turned off.
 To see the request and/or response body, additional levels can be specified via the `RUST_LOG` environment variable: `REQUEST` for request body, `RESPONSE` for response body.
 
-NOTE! Logging request and response requires at least logging level `INFO`.
+:::note
+
+Logging request and response requires at least logging level `INFO`.
 
 For example, the following two commands will log request and response data with log level `INFO`.
 
@@ -36,6 +38,8 @@ $ RUST_LOG="REQUEST,RESPONSE" starknet-devnet
 ```
 $ RUST_LOG="REQUEST,RESPONSE,INFO" starknet-devnet
 ```
+
+:::
 
 ## Timeout
 

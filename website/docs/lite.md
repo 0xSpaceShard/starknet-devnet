@@ -1,4 +1,4 @@
-# Lite Mode
+# Lite mode
 
 To run Devnet in a minimal lite mode, provide the flag:
 

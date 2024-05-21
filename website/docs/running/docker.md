@@ -26,7 +26,11 @@ All of the versions published on crates.io for starknet-devnet are available as 
 $ docker pull shardlabs/starknet-devnet-rs:<CRATES_IO_VERSION>
 ```
 
-NOTE! The latest docker image tag corresponds to the last published version in crates.io
+:::note
+
+The latest docker image tag corresponds to the last published version in crates.io
+
+...
 
 Commits to the `main` branch of this repository are mostly available as images tagged with their commit hash (the full 40-lowercase-hex-digits SHA1 digest):
 
@@ -34,7 +38,7 @@ Commits to the `main` branch of this repository are mostly available as images t
 $ docker pull shardlabs/starknet-devnet-rs:<COMMIT_HASH>
 ```
 
-By appending the `-seed0` suffix, you can use images which [predeploy funded accounts](#predeployed-contracts) with `--seed 0`, thus always predeploying the same set of accounts:
+By appending the `-seed0` suffix, you can use images which [predeploy funded accounts](../predeployed) with `--seed 0`, thus always predeploying the same set of accounts:
 
 ```
 $ docker pull shardlabs/starknet-devnet-rs:<VERSION>-seed0
@@ -68,3 +72,14 @@ $ docker run -p 127.0.0.1:5050:5050 shardlabs/starknet-devnet-rs
 You may ignore any address-related output logged on container startup (e.g. `Starknet Devnet listening on 0.0.0.0:5050`). What you will use is what you specified with the `-p` argument.
 
 If you don't specify the `HOST` part, the server will indeed be available on all of your host machine's addresses (localhost, local network IP, etc.), which may present a security issue if you don't want anyone from the local network to access your Devnet instance.
+
+### Development note
+
+Due to internal needs, images with arch suffix are built and pushed to Docker Hub, but this is not mentioned in the user docs as users should NOT be needing it.
+
+This is what happens under the hood on `main`:
+
+- build `shardlabs/starknet-devnet-rs-<COMMIT_SHA1>-amd`
+- build `shardlabs/starknet-devnet-rs-<COMMIT_SHA1>-arm`
+- create and push joint docker manifest called `shardlabs/starknet-devnet-rs-<COMMIT_SHA1>`
+  - same for `latest`
