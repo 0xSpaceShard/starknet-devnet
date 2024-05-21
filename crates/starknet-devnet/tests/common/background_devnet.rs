@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::LowerHex;
 use std::net::TcpListener;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Command};
 use std::time;
 
 use lazy_static::lazy_static;

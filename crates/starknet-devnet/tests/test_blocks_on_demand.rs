@@ -17,7 +17,8 @@ mod blocks_on_demand_tests {
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
     use crate::common::utils::{
-        assert_tx_successful, get_contract_balance, get_contract_balance_by_block_id, get_simple_contract_in_sierra_and_compiled_class_hash
+        assert_tx_successful, get_contract_balance, get_contract_balance_by_block_id,
+        get_simple_contract_in_sierra_and_compiled_class_hash,
     };
 
     static DUMMY_ADDRESS: u128 = 1;
@@ -253,9 +254,14 @@ mod blocks_on_demand_tests {
             &starknet_rs_core::utils::UdcUniqueness::NotUnique,
             &ctor_args,
         );
-        
+
         assert_eq!(
-            get_contract_balance_by_block_id(&devnet, contract_address, BlockId::Tag(BlockTag::Pending)).await,
+            get_contract_balance_by_block_id(
+                &devnet,
+                contract_address,
+                BlockId::Tag(BlockTag::Pending)
+            )
+            .await,
             initial_value
         );
 
@@ -281,7 +287,12 @@ mod blocks_on_demand_tests {
         }
 
         assert_eq!(
-            get_contract_balance_by_block_id(&devnet, contract_address, BlockId::Tag(BlockTag::Pending)).await,
+            get_contract_balance_by_block_id(
+                &devnet,
+                contract_address,
+                BlockId::Tag(BlockTag::Pending)
+            )
+            .await,
             initial_value + (increment * FieldElement::from(tx_count as u128))
         );
 
@@ -291,7 +302,12 @@ mod blocks_on_demand_tests {
 
         println!("TODO: This call should query the latest state not pending");
         assert_eq!(
-            get_contract_balance_by_block_id(&devnet, contract_address, BlockId::Tag(BlockTag::Pending)).await,
+            get_contract_balance_by_block_id(
+                &devnet,
+                contract_address,
+                BlockId::Tag(BlockTag::Pending)
+            )
+            .await,
             initial_value + (increment * FieldElement::from(tx_count as u128))
         );
         assert_eq!(

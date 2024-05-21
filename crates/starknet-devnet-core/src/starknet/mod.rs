@@ -298,7 +298,7 @@ impl Starknet {
         let mut new_block = self.pending_block().clone();
 
         let new_block_number =
-        BlockNumber(new_block.block_number().0 - self.blocks.aborted_blocks.len() as u64);
+            BlockNumber(new_block.block_number().0 - self.blocks.aborted_blocks.len() as u64);
 
         // set new block header
         new_block.set_block_hash(if self.config.lite_mode {
@@ -464,20 +464,20 @@ impl Starknet {
             state_diff.clone().into(),
         )?;
         let transaction_to_add = StarknetTransaction::create_accepted(transaction, tx_info, trace);
-        
+
         // TODO: this clone and set is needed in case of some?
         match self.blocks.pending_block.clone() {
             Some(mut pending_block) => {
                 pending_block.add_transaction(*transaction_hash);
 
                 self.blocks.pending_block = Some(pending_block);
-            },
+            }
             None => {
                 let mut block = StarknetBlock::create_pending_block();
                 block.add_transaction(*transaction_hash);
 
                 self.blocks.pending_block = Some(block);
-            },
+            }
         }
 
         self.transactions.insert(transaction_hash, transaction_to_add);
@@ -561,10 +561,9 @@ impl Starknet {
     }
 
     fn pending_block(&self) -> StarknetBlock {
-        match &self.blocks.pending_block
-        {
+        match &self.blocks.pending_block {
             Some(pending_block) => pending_block.clone(),
-            None => self.get_latest_block().unwrap() // TODO: fix this unwrap
+            None => self.get_latest_block().unwrap(), // TODO: fix this unwrap
         }
     }
 
@@ -592,7 +591,7 @@ impl Starknet {
         block.header.sequencer =
             SequencerContractAddress(self.block_context.block_info().sequencer_address);
 
-        // self.blocks.pending_block = block; // TODO: move this to handle tx 
+        // self.blocks.pending_block = block; // TODO: move this to handle tx
         // TODO: create block should set pending_block to none!!! remember about that!
         Ok(())
     }
@@ -1711,7 +1710,7 @@ mod tests {
 
         assert_eq!(num_no_transactions.unwrap(), 0);
 
-        let tx = dummy_declare_transaction_v1();
+        let _tx = dummy_declare_transaction_v1();
 
         // add transaction hash to pending block
         // starknet.blocks.pending_block.add_transaction(*tx.get_transaction_hash());
