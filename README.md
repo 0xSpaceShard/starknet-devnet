@@ -20,74 +20,99 @@ This repository is work in progress, please be patient. Please check below the s
 
 ### Supported Features
 
-- [x] RPC v0.7.0
+- [x] [RPC support](#api)
 - [x] [Dump & Load](#dumping--loading)
 - [x] [Mint token - Local faucet](#mint-token)
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
 - [x] [Starknet.js test suite passes 100%](https://github.com/starknet-io/starknet.js/actions)
+- [x] [Lite mode](#lite-mode)
 - [x] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
-- [x] [Availability as a package (crate)](#installing-from-cratesio)
+- [x] [Availability as a package (crate)](#install-an-executable-binary)
 - [x] [Forking](#forking)
 - [x] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
 - [x] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
   - [x] [Aborting blocks](#abort-blocks)
   - [x] [Creating an empty block](#create-an-empty-block)
+  - [x] [Creating blocks on demand](#creating-blocks-on-demand)
 - [x] [Account impersonation](#account-impersonation)
 
-### TODO to reach feature parity with the Pythonic Devnet
+## Installation and running
 
-- [ ] Creating blocks on demand
+There are several approaches to installing and running Devnet.
 
-## Requirements
+### Requirements
 
-Make sure to have installed [Rust](https://www.rust-lang.org/tools/install).
+Any of the approaches below that mention `cargo` require you to have [installed Rust](https://www.rust-lang.org/tools/install). You might also need to install `pkg-config` and `make`.
 
 The required Rust version is specified in [rust-toolchain.toml](rust-toolchain.toml) and handled automatically by `cargo`.
 
-## Run from source
+### Install an executable binary
 
-After git-cloning this repository, install and run the project with:
+Installing an executable binary is achievable with `cargo install` via crates.io or github.com. This approach downloads the crate, builds it in release mode and copies it to `~/.cargo/bin/`. To avoid needing to compile and wait, check the [pre-compiled binary section](#fetch-a-pre-compiled-binary-executable).
 
-```
-$ cargo run
-```
+If in the past you installed [Pythonic Devnet](https://github.com/0xSpaceShard/starknet-devnet), be sure to remove it to avoid name collision of the old and the new executable - if by no other means, then by `rm $(which starknet-devnet)`.
 
-For a more optimized and faster performance (though with a longer compilation time), run with:
-
-```
-$ cargo run --release
-```
-
-## Run as a binary
-
-Installing and running as a binary is achievable via `cargo install`. The project can be installed from crates.io and github.com.
-
-### Installing from crates.io
+#### Install from crates.io
 
 ```
 $ cargo install starknet-devnet
 ```
 
-### Installing from github
+#### Install from GitHub
 
 - Use the `--locked` flag to ensure using the dependencies listed in [the lock file](/Cargo.lock)
-- Preferrably familiarize yourself with the `cargo install` command ([docs](https://doc.rust-lang.org/cargo/commands/cargo-install.html#dealing-with-the-lockfile))
+- Preferably familiarize yourself with the `cargo install` command ([docs](https://doc.rust-lang.org/cargo/commands/cargo-install.html#dealing-with-the-lockfile))
 
 ```
 $ cargo install --git https://github.com/0xSpaceShard/starknet-devnet-rs.git --locked
 ```
 
-When the installation finishes, follow the output in your terminal.
+#### Run the installed executable
 
-## Run with Docker
+When `cargo install` finishes, follow the output in your terminal. If properly configured, you should be able to run Devnet with:
 
-This application is available as a Docker image ([Docker Hub link](https://hub.docker.com/r/shardlabs/starknet-devnet-rs/)). To download the `latest` image, run:
+```
+$ starknet-devnet
+```
+
+### Fetch a pre-compiled binary executable
+
+If you want to save time and skip project compilation on installation, since Devnet v0.0.5, the Assets section of each [GitHub release](https://github.com/0xSpaceShard/starknet-devnet-rs/releases) contains a set of platform-specific pre-compiled binary executables. Extract and run with:
+
+```
+$ curl https://github.com/0xSpaceShard/starknet-devnet-rs/releases/download/<VERSION>/<COMPRESSED_ARCHIVE> | tar -xvzf -C <TARGET_DIR>
+$ <TARGET_DIR>/starknet-devnet
+```
+
+### Run from source
+
+After [git-cloning](https://github.com/git-guides/git-clone) this repository, running the following command will install, build and start Devnet:
+
+```
+$ cargo run
+```
+
+Specify optional CLI params like this:
+
+```
+$ cargo run -- [ARGS]
+```
+
+For a more optimized performance (though with a longer compilation time), run:
+
+```
+$ cargo run --release
+```
+
+### Run with Docker
+
+Devnet is available as a Docker image ([Docker Hub link](https://hub.docker.com/r/shardlabs/starknet-devnet-rs/)). To download the `latest` image, run:
 
 ```text
 $ docker pull shardlabs/starknet-devnet-rs
 ```
 
-Supported architectures: arm64 and amd64.
+Supported platforms: linux/amd64 and linux/arm64 (also executable on darwin/arm64).
 
 Running a container is done like this (see [port publishing](#container-port-publishing) for more info):
 
@@ -151,7 +176,7 @@ If you don't specify the `HOST` part, the server will indeed be available on all
 Check out the CLI options with:
 
 ```
-$ cargo run -- --help
+$ starknet-devnet --help
 ```
 
 Or if using dockerized Devnet:
@@ -169,7 +194,7 @@ All logging levels: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`
 To specify the logging level and run Devnet on the same line:
 
 ```
-$ RUST_LOG=<LEVEL> cargo run
+$ RUST_LOG=<LEVEL> starknet-devnet
 ```
 
 or if using dockerized Devnet:
@@ -178,17 +203,32 @@ or if using dockerized Devnet:
 $ docker run -e RUST_LOG=<LEVEL> shardlabs/starknet-devnet-rs
 ```
 
+By default, logging of request and response data is turned off.
+To see the request and/or response body, additional level have to be provided via `RUST_LOG` environment variable.
+To log the request body use `REQUEST`, to log the response body use `RESPONSE`.
+
+NOTE! that logging request and response requires at least logging level `INFO`.
+
+The following two commands will log request and response data with log level `INFO`.
+Example:
+
+```
+$ RUST_LOG="REQUEST,RESPONSE" starknet-devnet
+```
+
+```
+$ RUST_LOG="REQUEST,RESPONSE,INFO" starknet-devnet
+```
+
 ## API
 
 Unlike Pythonic Devnet, which supported the gateway and feeder gateway API, Devnet in Rust only supports JSON-RPC. Since JSON-RPC v0.6.0, to find out which JSON-RPC version is supported by which Devnet version, check out the [releases page](https://github.com/0xspaceshard/starknet-devnet-rs/releases).
 
-Below is the list of old RPC versions supported by Devnet, usable as git tags or branches.
+Below is the list of old RPC versions supported by Devnet, usable as git tags or branches. They should be used with `git checkout <REVISION>`.
 
 - `json-rpc-v0.4.0`
 - `json-rpc-v0.5.0`
 - `json-rpc-v0.5.1`
-
-These revisions should be used with `git checkout <REVISION>`.
 
 The JSON-RPC API is reachable via `/rpc` and `/` (e.g. if spawning Devnet with default settings, these URLs have the equivalent functionality: `http://127.0.0.1:5050/rpc` and `http://127.0.0.1:5050/`)
 
@@ -217,10 +257,10 @@ POST /mint
 
 ### Check balance
 
-Check the balance of an address by sending a GET request to `/account_balance`. The address should be a 0x-prefixed hex string; the unit defaults to `WEI`.
+Check the balance of an address by sending a GET request to `/account_balance`. The address should be a 0x-prefixed hex string; the unit defaults to `WEI` and block_tag to `latest`.
 
 ```
-GET /account_balance?address=<ADDRESS>&[unit=<FRI|WEI>]
+GET /account_balance?address=<ADDRESS>&[unit=<FRI|WEI>]&[block_tag=<latest|pending>]
 ```
 
 ## Dumping & Loading
@@ -230,20 +270,20 @@ To preserve your Devnet instance for future use, these are the options:
 - Dumping on exit (handles Ctrl+C, i.e. SIGINT, doesn't handle SIGKILL):
 
 ```
-cargo run -- --dump-on exit --dump-path <PATH>
+$ starknet-devnet --dump-on exit --dump-path <PATH>
 ```
 
-- Dumping after each transaction:
+- Dumping after each block:
 
 ```
-cargo run -- --dump-on transaction --dump-path <PATH>
+$ starknet-devnet --dump-on block --dump-path <PATH>
 ```
 
 - Dumping on request requires providing --dump-on mode on the startup. Example usage in `exit` mode (replace `<HOST>`, `<PORT>` and `<PATH>` with your own):
 
 ```
-cargo run -- --dump-on exit --dump-path <PATH>
-curl -X POST http://<HOST>:<PORT>/dump -d '{ "path": <PATH> }' -H "Content-Type: application/json"
+$ starknet-devnet --dump-on exit --dump-path <PATH>
+$ curl -X POST http://<HOST>:<PORT>/dump -d '{ "path": <PATH> }' -H "Content-Type: application/json"
 ```
 
 ### Loading
@@ -253,7 +293,7 @@ To load a preserved Devnet instance, the options are:
 - Loading on startup (note the argument name is not `--load-path` as it was in Devnet-py):
 
 ```
-cargo run -- --dump-path <PATH>
+$ starknet-devnet --dump-path <PATH>
 ```
 
 - Loading on request:
@@ -268,8 +308,9 @@ This means that timestamps of `StarknetBlock` will be different.
 
 ### Loading disclaimer
 
-Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
-If you dumped a Devnet utilizing one class for account predeployment (e.g. the default `--account-class cairo0`), you should use the same option when loading.
+Dumping and loading are not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
+
+If you dumped a Devnet utilizing one class for account predeployment (e.g. `--account-class cairo0`), you should use the same option when loading. The same applies for dumping a Devnet in `--blocks-on-demand` mode.
 
 ## Restarting
 
@@ -282,6 +323,26 @@ If you're using [**the Hardhat plugin**](https://github.com/0xSpaceShard/starkne
 Devnet starts with a genesis block (with a block number equal to 0). In forking mode, the genesis block number will be equal to forked block number plus one.
 
 A new block is generated with each new transaction, and you can create an empty block by yourself.
+
+### Creating blocks on demand
+
+If you start Devnet with the `--blocks-on-demand` CLI option, all valid transactions will be stored in a pending block (targetable via block tag `"pending"`).
+
+To create a block on demand, send a `POST` request to `/create_block`. This will convert the pending block to the latest block (targetable via block tag `"latest"`), giving it a block hash and a block number. All subsequent transactions will be stored in a new pending block.
+
+In case of demanding block creation with no pending transactions, a new empty block will be generated.
+
+The creation of the genesis block is not affected by this feature.
+
+```
+POST /create_block
+```
+
+Response:
+
+```
+{'block_hash': '0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67'}
+```
 
 ### Create an empty block
 
@@ -322,6 +383,14 @@ Response:
 {
     "aborted": [BLOCK_HASH_0, BLOCK_HASH_1, ...]
 }
+```
+
+## Lite Mode
+
+Runs Devnet in a minimal lite mode by just skipping the block hash calculation. This is useful for testing purposes when the block hash is not needed.
+
+```
+$ starknet-devnet --lite-mode
 ```
 
 ## Advancing time
@@ -369,7 +438,7 @@ POST /increase_time
 Devnet can be started with the `--start-time` argument, where `START_TIME_IN_SECONDS` should be greater than 0.
 
 ```
-cargo run -- --start-time <START_TIME_IN_SECONDS>
+$ starknet-devnet --start-time <START_TIME_IN_SECONDS>
 ```
 
 ## Timeout
@@ -377,7 +446,7 @@ cargo run -- --start-time <START_TIME_IN_SECONDS>
 Timeout can be passed to Devnet's HTTP server. This makes it easier to deploy and manage large contracts that take longer to execute.
 
 ```
-cargo run -- --timeout <TIMEOUT>
+$ starknet-devnet --timeout <TIMEOUT>
 ```
 
 ## Forking
@@ -385,34 +454,17 @@ cargo run -- --timeout <TIMEOUT>
 To interact with contracts deployed on mainnet or testnet, you can use the forking to simulate the origin and experiment with it locally, making no changes to the origin itself.
 
 ```
-cargo run -- --fork-network <URL> [--fork-block <BLOCK_NUMBER>]
+$ starknet-devnet --fork-network <URL> [--fork-block <BLOCK_NUMBER>]
 ```
 
 The value passed to `--fork-network` should be the URL to a Starknet JSON-RPC API provider. Specifying a `--fork-block` is optional; it defaults to the `"latest"` block at the time of Devnet's start-up. All calls will first try Devnet's state and then fall back to the forking block.
 
-### Forking status
-
-```
-GET /fork_status
-```
-
-Response when Devnet is a fork of an origin:
-
-```js
-{
-  "url": "https://your.origin.io",
-  "block": 42 // the block from which origin was forked
-}
-```
-
-Response when not forking: `{}`
-
-### Querying old state by specifying block hash or number
+## Querying old state by specifying block hash or number
 
 With state archive capacity set to `full`, Devnet will store full state history. The default mode is `none`, where no old states are stored.
 
 ```
-cargo run -- --state-archive-capacity <CAPACITY>
+$ starknet-devnet --state-archive-capacity <CAPACITY>
 ```
 
 All RPC endpoints that support querying the state at an old (non-latest) block only work with state archive capacity set to `full`.
@@ -479,7 +531,45 @@ devnet_stopAutoImpersonate
 ```
 
 
+## Fetch Devnet configuration
+
+To retrieve the current configuration of Devnet, send a GET request to `/config`. Example response is attached below. It can be interpreted as a JSON mapping of CLI input parameters, both specified and default ones, with some irrelevant parameters omitted. So use `starknet-devnet --help` to better understand the meaning of each value, though keep in mind that some of the parameters have slightly modified names.
+
+```json
+{
+  "seed": 4063802897,
+  "total_accounts": 10,
+  "account_contract_class_hash": "0x61dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f",
+  "predeployed_accounts_initial_balance": "1000000000000000000000",
+  "start_time": null,
+  "gas_price_wei": 100000000000,
+  "gas_price_strk": 100000000000,
+  "data_gas_price_wei": 100000000000,
+  "data_gas_price_strk": 100000000000,
+  "chain_id": "SN_SEPOLIA",
+  "dump_on": "exit",
+  "dump_path": "dump_path.json",
+  "state_archive": "none",
+  "fork_config": {
+    "url": "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7",
+    "block_number": 26429
+  },
+  "server_config": {
+    "host": "127.0.0.1",
+    "port": 5050,
+    "timeout": 120,
+    "request_body_size_limit": 2000000
+  },
+  "blocks_on_demand": false,
+  "lite_mode": false
+}
+```
+
 ## Development
+
+### Installation
+
+Some developer scripts used in this project are written in Python 3, with dependencies specified in `scripts/requirements.txt`. You may want to [install the dependencies in a virtual environment](https://docs.python.org/3/library/venv.html#creating-virtual-environments).
 
 ### Development - Visual Studio Code
 
@@ -521,29 +611,61 @@ To check for unused dependencies, run:
 ./scripts/check_unused_deps.sh
 ```
 
-If you think this reports a dependency as a false-positive (i.e. isn't unused), check [here](https://github.com/bnjbvr/cargo-machete#false-positives).
+If you think this reports a dependency as a false positive (i.e. isn't unused), check [here](https://github.com/bnjbvr/cargo-machete#false-positives).
+
+### Development - Spelling check
+
+To check for spelling errors in the code, run:
+
+```
+./scripts/check_spelling.sh
+```
+
+If you think this reports a false-positive, check [here](https://crates.io/crates/typos-cli#false-positives).
+
+### Development - pre-commit
+
+To speed up development, you can put all the previous steps (and more) in a script defined at [.git/hooks/pre-commit](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks).
 
 ### Development - Testing
 
-### Prerequisites
+#### Prerequisites
 
 Some tests require the `anvil` command, so you need to [install Foundry](https://book.getfoundry.sh/getting-started/installation). The `anvil` command might not be usable by tests if you run them using VS Code's `Run Test` button available just above the test case. Either run tests using a shell which has foundry/anvil in `PATH`, or modify the BackgroundAnvil Command to specify `anvil` by its path on your system.
 
 To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to testing. This builds the production target used in integration tests, so spawning BackgroundDevnet won't time out.
 
-### Test execution
+#### Test execution
 
 Run all tests using all available CPUs with:
 
 ```
-cargo test
+$ cargo test
 ```
 
 The previous command might cause your testing to die along the way due to memory issues. In that case, limiting the number of jobs helps, but depends on your machine (rule of thumb: N=6):
 
 ```
-cargo test --jobs <N>
+$ cargo test --jobs <N>
 ```
+
+#### Benchmarking
+
+To statistically test if your contribution presents an improvement in execution time and memory usage, check out the script at `scripts/benchmark/command_stat_test.py`.
+
+##### Cargo Bench Execution
+
+To run Criterion benchmarks and generate a performance report:
+
+```
+$ cargo bench
+```
+
+This command will compile the benchmarks defined in this repository and run them using all available CPUs. Criterion will perform multiple iterations of each benchmark to collect performance data and generate statistical analysis with a report at `target/criterion/report/index.html`.
+
+Criterion is highly configurable and offers various options to customise the benchmarking process. You can find more information about Criterion and its features in the [Criterion documentation](https://bheisler.github.io/criterion.rs/book/index.html).
+
+Since it is hard to achieve a platform-agnostic way of detecting the memory used by a process in Rust, to measure and benchmark memory it is best to use external tools such as Valgrind, Leaks, etc. A lighter version of this achieving this is, while running `cargo bench`, to simply track the computer memory used with your system's resource monitor (such as `htop`).
 
 ### Development - Docker
 
@@ -572,6 +694,8 @@ Devnet exposes the following endpoints:
 
 Tests in devnet require an erc20 contract with the `Mintable` feature, keep in mind that before the compilation process of [cairo-contracts](https://github.com/OpenZeppelin/cairo-contracts/) you need to mark the `Mintable` check box in this [wizard](https://wizard.openzeppelin.com/cairo) and copy this implementation to `/src/presets/erc20.cairo`.
 
+If smart contract constructor logic has changed, Devnet's predeployment logic needs to be changed, e.g. `simulate_constructor` in `crates/starknet-devnet-core/src/account.rs`.
+
 ### Development - Updating Starknet
 
 Updating the underlying Starknet is done by updating the `blockifier` dependency. It also requires updating the `STARKNET_VERSION` constant.
@@ -580,11 +704,39 @@ Updating the underlying Starknet is done by updating the `blockifier` dependency
 
 Updating the RPC requires following the specification files in the [starknet-specs repository](https://github.com/starkware-libs/starknet-specs). The spec_reader testing utility requires these files to be copied into the Devnet repository. The `RPC_SPEC_VERSION` constant needs to be updated accordingly.
 
+### Development - New Devnet version release
+
+To release a new version, follow these steps:
+
+1. Increment the semver in Cargo.toml of those Devnet crates that have changed. Use `scripts/check_crate_changes.sh` for this. Preferably create a separate PR for the increment, such as [this one](https://github.com/0xSpaceShard/starknet-devnet-rs/pull/398).
+
+2. The publishing of crates and Docker images is done automatically in CI when merged into the main branch.
+
+3. When the CI workflow is done, create a git tag of the form `vX.Y.Z`, push it and create a GitHub release with notes describing changes since the last release.
+
+4. Attach the [binary artifacts built in CI](https://circleci.com/docs/artifacts/#artifacts-overview) to the release. Use `scripts/fetch_ci_binaries.py` to fetch all artifacts of a CI workflow.
+
+### Development - External PRs
+
+Read more about how to review PRs in [the guidelines](.github/CONTRIBUTING.md#review).
+
+Our CI/CD platform (CircleCI) does not have the option to trigger the workflow on external PRs with a simple click. So once a PR is reviewed and looks like its workflow could pass, you can either accept & merge it blindly (which shall trigger the workflow on the target branch), or use the following workaround to trigger it:
+
+```
+# https://stackoverflow.com/questions/5884784/how-to-pull-remote-branch-from-somebody-elses-repo
+$ git remote add <CONTRIBUTOR> <CONTRIBUTOR_GIT_FORK_URL>
+$ git fetch <CONTRIBUTOR>
+$ git checkout -b <CONTRIBUTOR>/<BRANCH> <CONTRIBUTOR>/<BRANCH>
+
+$ git remote set-url --push <CONTRIBUTOR> git@github.com:0xSpaceShard/starknet-devnet-rs.git
+$ git push <CONTRIBUTOR> HEAD
+```
+
 ## ✏️ Contributing
 
 We ❤️ and encourage all contributions!
 
-[Click here](https://0xspaceshard.github.io/starknet-devnet/docs/guide/development) for the development guide.
+[Click here](.github/CONTRIBUTING.md) for the development guide.
 
 ## 🙌 Special Thanks
 

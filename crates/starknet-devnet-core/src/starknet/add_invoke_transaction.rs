@@ -45,11 +45,15 @@ pub fn add_invoke_transaction(
         &ContractAddress::from(blockifier_invoke_transaction.sender_address()),
     )?);
 
+    let block_context = starknet.block_context.clone();
+
+    let state = &mut starknet.get_state().state;
+
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::Invoke(
             blockifier_invoke_transaction,
         )
-        .execute(&mut starknet.state.state, &starknet.block_context, true, validate);
+        .execute(state, &block_context, true, validate);
 
     let transaction = TransactionWithHash::new(transaction_hash, invoke_transaction);
 
@@ -485,6 +489,8 @@ mod tests {
         // change storage of dummy contract
 
         starknet.block_context = Starknet::init_block_context(
+            nonzero!(1u128),
+            nonzero!(1u128),
             nonzero!(1u128),
             nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,

@@ -1,0 +1,14 @@
+[files]
+extend-exclude = [
+    # exclude submodule
+    "contracts/l1-l2-messaging/solidity",
+    "crates/**/test_data"
+]
+ignore-vcs = true
+
+[default]
+# Don't correct hexadecimal string
+extend-ignore-re = [
+    # prevent false positives (e.g. "ede" being reported as needing to be "edge")
+    "0x[0-9a-fA-F]+",
+]

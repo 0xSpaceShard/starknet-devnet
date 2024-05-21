@@ -1,27 +1,29 @@
 pub mod common;
 
 mod get_transaction_by_block_id_and_index_integration_tests {
-    use hyper::Body;
+
     use serde_json::json;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
     use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::utils::get_json_body;
+    use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
 
     #[tokio::test]
     async fn get_transaction_by_block_id_and_index_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let req_body = Body::from(
-            json!({
-                "address": "0x1",
-                "amount": 1
-            })
-            .to_string(),
-        );
-        let resp = devnet.post_json("/mint".into(), req_body).await.unwrap();
-        let resp_body = get_json_body(resp).await;
-        let tx_hash_value = resp_body["tx_hash"].as_str().unwrap().to_string();
+        let resp: serde_json::Value = devnet
+            .reqwest_client()
+            .post_json_async(
+                "/mint",
+                json!({
+                    "address": "0x1",
+                    "amount": 1
+                }),
+            )
+            .await
+            .unwrap();
+        let tx_hash_value = resp["tx_hash"].as_str().unwrap().to_string();
 
         let result = devnet
             .json_rpc_client
@@ -45,14 +47,19 @@ mod get_transaction_by_block_id_and_index_integration_tests {
     #[tokio::test]
     async fn get_transaction_by_block_id_and_index_wrong_index() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let req_body = Body::from(
-            json!({
-                "address": "0x1",
-                "amount": 1
-            })
-            .to_string(),
-        );
-        devnet.post_json("/mint".into(), req_body).await.unwrap();
+
+        devnet
+            .reqwest_client()
+            .post_json_async(
+                "/mint",
+                json!({
+                    "address": "0x1",
+                    "amount": 1
+                }),
+            )
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap();
 
         let result = devnet
             .json_rpc_client

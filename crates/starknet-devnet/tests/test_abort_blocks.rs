@@ -1,14 +1,14 @@
 pub mod common;
 
 mod abort_blocks_tests {
-    use hyper::Body;
     use serde_json::json;
     use server::api::json_rpc::error::ApiError;
     use starknet_rs_core::types::FieldElement;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::utils::{assert_tx_reverted, get_json_body, to_hex_felt};
+    use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
+    use crate::common::utils::{assert_tx_reverted, to_hex_felt};
 
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
@@ -17,11 +17,15 @@ mod abort_blocks_tests {
         devnet: &BackgroundDevnet,
         starting_block_hash: &FieldElement,
     ) -> Vec<FieldElement> {
-        let body = json!({ "starting_block_hash": to_hex_felt(starting_block_hash) }).to_string();
-        let abort_blocks_resp =
-            devnet.post_json("/abort_blocks".into(), Body::from(body)).await.unwrap();
+        let mut aborted_blocks: serde_json::Value = devnet
+            .reqwest_client()
+            .post_json_async(
+                "/abort_blocks",
+                json!({ "starting_block_hash": to_hex_felt(starting_block_hash) }),
+            )
+            .await
+            .unwrap();
 
-        let mut aborted_blocks = get_json_body(abort_blocks_resp).await;
         let aborted_blocks = aborted_blocks["aborted"].take().as_array().unwrap().clone();
 
         aborted_blocks
@@ -31,12 +35,17 @@ mod abort_blocks_tests {
     }
 
     async fn abort_blocks_error(devnet: &BackgroundDevnet, starting_block_hash: &FieldElement) {
-        let body = json!({ "starting_block_hash": to_hex_felt(starting_block_hash) }).to_string();
-        let abort_blocks =
-            devnet.post_json("/abort_blocks".into(), Body::from(body)).await.unwrap();
+        let aborted_blocks_error = devnet
+            .reqwest_client()
+            .post_json_async(
+                "/abort_blocks",
+                json!({ "starting_block_hash": to_hex_felt(starting_block_hash) }),
+            )
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap_err();
 
-        let aborted_blocks = get_json_body(abort_blocks).await;
-        assert!(aborted_blocks["error"].to_string().starts_with("\"Block abortion failed"));
+        assert!(aborted_blocks_error.error_message().contains("\"Block abortion failed"));
     }
 
     async fn assert_block_rejected(devnet: &BackgroundDevnet, block_hash: &FieldElement) {
@@ -53,7 +62,7 @@ mod abort_blocks_tests {
 
     #[tokio::test]
     async fn abort_latest_block() {
-        let devnet: BackgroundDevnet =
+        let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
                 .expect("Could not start Devnet");
@@ -82,7 +91,7 @@ mod abort_blocks_tests {
 
     #[tokio::test]
     async fn abort_two_blocks() {
-        let devnet: BackgroundDevnet =
+        let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
                 .expect("Could not start Devnet");
@@ -99,7 +108,7 @@ mod abort_blocks_tests {
 
     #[tokio::test]
     async fn abort_block_with_transaction() {
-        let devnet: BackgroundDevnet =
+        let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
                 .expect("Could not start Devnet");
@@ -116,7 +125,7 @@ mod abort_blocks_tests {
 
     #[tokio::test]
     async fn query_aborted_block_by_number_should_fail() {
-        let devnet: BackgroundDevnet =
+        let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
                 .expect("Could not start Devnet");
@@ -142,7 +151,7 @@ mod abort_blocks_tests {
 
     #[tokio::test]
     async fn abort_block_state_revert() {
-        let devnet: BackgroundDevnet =
+        let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
                 .expect("Could not start Devnet");
@@ -157,7 +166,7 @@ mod abort_blocks_tests {
         assert_eq!(aborted_blocks, vec![second_block.block_hash]);
 
         let balance = devnet
-            .get_balance(
+            .get_balance_latest(
                 &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
                 FeeUnit::WEI,
             )
@@ -169,7 +178,7 @@ mod abort_blocks_tests {
         assert_eq!(aborted_blocks, vec![first_block.block_hash]);
 
         let balance = devnet
-            .get_balance(
+            .get_balance_latest(
                 &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
                 FeeUnit::WEI,
             )
@@ -180,7 +189,7 @@ mod abort_blocks_tests {
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
         let balance = devnet
-            .get_balance(
+            .get_balance_latest(
                 &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
                 FeeUnit::WEI,
             )
@@ -194,8 +203,7 @@ mod abort_blocks_tests {
 
     #[tokio::test]
     async fn abort_blocks_without_state_archive_capacity() {
-        let devnet: BackgroundDevnet =
-            BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let new_block_hash = devnet.create_block().await.unwrap();
         abort_blocks_error(&devnet, &new_block_hash).await;
@@ -203,7 +211,7 @@ mod abort_blocks_tests {
 
     #[tokio::test]
     async fn abort_same_block_twice() {
-        let devnet: BackgroundDevnet =
+        let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
                 .expect("Could not start Devnet");
