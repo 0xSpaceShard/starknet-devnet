@@ -2,9 +2,9 @@
 
 This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
 
-### New content addition
+### New content
 
-Check out the existing pages and categories under `website/docs/`. If the addition you wish to make in the documentation is not suitable for any of the existing markdown (.md) files, feel free to create a new one.
+Check out the existing pages and categories under `docs/`. If the change you wish to make in the documentation is not suitable for any of the existing markdown (.md) files, feel free to create a new one.
 
 ### Installation
 
