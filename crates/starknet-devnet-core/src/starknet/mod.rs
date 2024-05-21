@@ -8,6 +8,7 @@ use blockifier::state::cached_state::{
     CachedState, GlobalContractCache, GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST,
 };
 use blockifier::state::state_api::StateReader;
+use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::errors::TransactionPreValidationError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
@@ -44,11 +45,12 @@ use starknet_types::rpc::transactions::{
     BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionCommon,
     DeclareTransaction, SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace,
-    TransactionWithHash, TransactionWithReceipt, Transactions,
+    TransactionType, TransactionWithHash, TransactionWithReceipt, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
 
+use self::cheats::Cheats;
 use self::defaulter::StarknetDefaulter;
 use self::dump::DumpEvent;
 use self::predeployed::initialize_erc20_at_address;
@@ -68,7 +70,7 @@ use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
-use crate::state::{CustomState, StarknetState};
+use crate::state::{CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
 use crate::utils::get_versioned_constants;
@@ -77,6 +79,7 @@ mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
 mod add_l1_handler_transaction;
+mod cheats;
 pub(crate) mod defaulter;
 pub mod dump;
 mod estimations;
@@ -101,6 +104,7 @@ pub struct Starknet {
     pub next_block_timestamp: Option<u64>,
     pub(crate) messaging: MessagingBroker,
     pub(crate) dump_events: Vec<DumpEvent>,
+    cheats: Cheats,
 }
 
 impl Default for Starknet {
@@ -126,6 +130,7 @@ impl Default for Starknet {
             next_block_timestamp: None,
             messaging: Default::default(),
             dump_events: Default::default(),
+            cheats: Default::default(),
         }
     }
 }
@@ -220,6 +225,7 @@ impl Starknet {
             next_block_timestamp: None,
             messaging: Default::default(),
             dump_events: Default::default(),
+            cheats: Default::default(),
         };
 
         this.restart_pending_block()?;
@@ -1102,20 +1108,38 @@ impl Starknet {
         }
 
         let mut transactions_traces: Vec<TransactionTrace> = vec![];
+        let cheats = self.cheats.clone();
         let state = self.get_mut_state_at(block_id)?;
+
+        let blockifier_transactions = {
+            transactions
+                .iter()
+                .map(|txn| {
+                    Ok((
+                        txn.to_blockifier_account_transaction(&chain_id)?,
+                        txn.get_type(),
+                        Starknet::should_transaction_skip_validation_if_sender_is_impersonated(
+                            state, &cheats, txn,
+                        )?,
+                    ))
+                })
+                .collect::<DevnetResult<Vec<(AccountTransaction, TransactionType, bool)>>>()?
+        };
+
         let mut transactional_rpc_contract_classes = state.clone_rpc_contract_classes();
         let mut transactional_state = CachedState::new(
             CachedState::create_transactional(&mut state.state),
             GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
         );
-        for broadcasted_transaction in transactions.iter() {
-            let blockifier_transaction =
-                broadcasted_transaction.to_blockifier_account_transaction(&chain_id)?;
+
+        for (blockifier_transaction, transaction_type, skip_validate_due_to_impersonation) in
+            blockifier_transactions.into_iter()
+        {
             let tx_execution_info = blockifier_transaction.execute(
                 &mut transactional_state,
                 &block_context,
                 !skip_fee_charge,
-                !skip_validate,
+                !(skip_validate || skip_validate_due_to_impersonation),
             )?;
 
             let state_diff: ThinStateDiff = StateDiff::generate(
@@ -1125,7 +1149,7 @@ impl Starknet {
             .into();
             let trace = create_trace(
                 &mut transactional_state,
-                broadcasted_transaction.get_type(),
+                transaction_type,
                 &tx_execution_info,
                 state_diff,
             )?;
@@ -1227,6 +1251,97 @@ impl Starknet {
             .duration_since(std::time::UNIX_EPOCH)
             .expect("should get current UNIX timestamp")
             .as_secs()
+    }
+
+    /// Impersonates account, allowing to send transactions on behalf of the account, without its
+    /// private key
+    ///
+    /// # Arguments
+    /// * `account` - Account to impersonate
+    pub fn impersonate_account(&mut self, account: ContractAddress) -> DevnetResult<(), Error> {
+        if self.config.fork_config.url.is_none() {
+            return Err(Error::UnsupportedAction {
+                msg: "Account impersonation is supported when forking mode is enabled.".to_string(),
+            });
+        }
+        if self.state.is_contract_deployed_locally(account)? {
+            return Err(Error::UnsupportedAction {
+                msg: "Account is in local state, cannot be impersonated".to_string(),
+            });
+        }
+        self.cheats.impersonate_account(account);
+        Ok(())
+    }
+
+    /// Stops impersonating account.
+    /// After this call, the account, previously impersonated can't be used to send transactions
+    /// without its private key
+    ///
+    /// # Arguments
+    /// * `account` - Account to stop impersonating
+    pub fn stop_impersonating_account(&mut self, account: &ContractAddress) {
+        self.cheats.stop_impersonating_account(account);
+    }
+
+    /// Turn on/off auto impersonation of accounts that are not part of the state
+    ///
+    /// # Arguments
+    /// * `auto_impersonation` - If true, auto impersonate every account that is not part of the
+    ///   state, otherwise dont auto impersonate
+    pub fn set_auto_impersonate_account(&mut self, auto_impersonation: bool) {
+        self.cheats.set_auto_impersonate(auto_impersonation);
+    }
+
+    /// Returns true if the account is not part of the state and is impersonated
+    ///
+    /// # Arguments
+    /// * `account` - Account to check
+    fn is_account_impersonated(
+        state: &mut StarknetState,
+        cheats: &Cheats,
+        account: &ContractAddress,
+    ) -> DevnetResult<bool> {
+        let is_contract_already_in_state = state.is_contract_deployed_locally(*account)?;
+        if is_contract_already_in_state {
+            return Ok(false);
+        }
+
+        Ok(cheats.is_impersonated(account))
+    }
+
+    /// Returns true if the transaction should skip validation if the sender is impersonated
+    ///
+    /// # Arguments
+    /// * `transaction` - Transaction to check
+    fn should_transaction_skip_validation_if_sender_is_impersonated(
+        state: &mut StarknetState,
+        cheats: &Cheats,
+        transaction: &BroadcastedTransaction,
+    ) -> DevnetResult<bool> {
+        let sender_address = match transaction {
+            BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(v1)) => {
+                Some(&v1.sender_address)
+            }
+            BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V3(v3)) => {
+                Some(&v3.sender_address)
+            }
+            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(v1)) => {
+                Some(&v1.sender_address)
+            }
+            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(v2)) => {
+                Some(&v2.sender_address)
+            }
+            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V3(v3)) => {
+                Some(&v3.sender_address)
+            }
+            BroadcastedTransaction::DeployAccount(_) => None,
+        };
+
+        if let Some(sender_address) = sender_address {
+            Starknet::is_account_impersonated(state, cheats, sender_address)
+        } else {
+            Ok(false)
+        }
     }
 }
 

@@ -1,4 +1,5 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1;
 use starknet_types::rpc::transactions::invoke_transaction_v3::InvokeTransactionV3;
@@ -38,6 +39,12 @@ pub fn add_invoke_transaction(
         }
     };
 
+    let validate = !(Starknet::is_account_impersonated(
+        &mut starknet.state,
+        &starknet.cheats,
+        &ContractAddress::from(blockifier_invoke_transaction.sender_address()),
+    )?);
+
     let block_context = starknet.block_context.clone();
 
     let state = &mut starknet.get_state().state;
@@ -46,7 +53,7 @@ pub fn add_invoke_transaction(
         blockifier::transaction::account_transaction::AccountTransaction::Invoke(
             blockifier_invoke_transaction,
         )
-        .execute(state, &block_context, true, true);
+        .execute(state, &block_context, true, validate);
 
     let transaction = TransactionWithHash::new(transaction_hash, invoke_transaction);
 

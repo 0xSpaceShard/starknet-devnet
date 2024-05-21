@@ -22,6 +22,13 @@ use starknet_rs_signers::LocalWallet;
 use super::background_devnet::BackgroundDevnet;
 use super::constants::CAIRO_1_CONTRACT_PATH;
 
+pub enum ImpersonationAction {
+    ImpersonateAccount(FieldElement),
+    StopImpersonatingAccount(FieldElement),
+    AutoImpersonate,
+    StopAutoImpersonate,
+}
+
 /// dummy testing value
 pub fn get_deployable_account_signer() -> LocalWallet {
     let new_account_private_key = "0xc248668388dbe9acdfa3bc734cc2d57a";

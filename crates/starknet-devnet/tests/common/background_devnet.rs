@@ -31,6 +31,7 @@ use super::errors::{ReqwestError, TestError};
 use super::reqwest_client::{
     GetReqwestSender, HttpEmptyResponseBody, PostReqwestSender, ReqwestClient,
 };
+use super::utils::{to_hex_felt, ImpersonationAction};
 
 lazy_static! {
     /// This is to prevent TOCTOU errors; i.e. one background devnet might find one
@@ -76,6 +77,12 @@ impl BackgroundDevnet {
     #[allow(dead_code)] // dead_code needed to pass clippy
     pub(crate) async fn spawn() -> Result<Self, TestError> {
         BackgroundDevnet::spawn_with_additional_args(&[]).await
+    }
+
+    pub async fn spawn_forkable_devnet() -> Result<BackgroundDevnet, anyhow::Error> {
+        let args = ["--state-archive-capacity", "full"];
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await?;
+        Ok(devnet)
     }
 
     pub fn reqwest_client(&self) -> &ReqwestClient {
@@ -329,6 +336,36 @@ impl BackgroundDevnet {
 
     pub async fn get_config(&self) -> Result<serde_json::Value, anyhow::Error> {
         Ok(self.reqwest_client().get_json_async("/config", None).await.unwrap())
+    }
+
+    pub async fn execute_impersonation_action(
+        &self,
+        action: &ImpersonationAction,
+    ) -> Result<(), anyhow::Error> {
+        let (method_name, params) = match action {
+            ImpersonationAction::ImpersonateAccount(account) => (
+                "devnet_impersonateAccount",
+                json!({
+                    "account_address": to_hex_felt(account)
+                }),
+            ),
+            ImpersonationAction::StopImpersonatingAccount(account) => (
+                "devnet_stopImpersonateAccount",
+                json!({
+                    "account_address": to_hex_felt(account)
+                }),
+            ),
+            ImpersonationAction::AutoImpersonate => ("devnet_autoImpersonate", json!({})),
+            ImpersonationAction::StopAutoImpersonate => ("devnet_stopAutoImpersonate", json!({})),
+        };
+
+        let result = self.send_custom_rpc(method_name, params).await;
+
+        result
+            .get("error")
+            .and_then(|error_json| error_json.get("message"))
+            .and_then(|message_json| message_json.as_str())
+            .map_or(Ok(()), |message| Err(anyhow::Error::msg(message.to_string())))
     }
 }
 

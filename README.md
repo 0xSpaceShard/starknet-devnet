@@ -34,6 +34,7 @@ This repository is work in progress, please be patient. Please check below the s
   - [x] [Aborting blocks](#abort-blocks)
   - [x] [Creating an empty block](#create-an-empty-block)
   - [x] [Creating blocks on demand](#creating-blocks-on-demand)
+- [x] [Account impersonation](#account-impersonation)
 
 ## Installation and running
 
@@ -465,6 +466,68 @@ $ starknet-devnet --state-archive-capacity <CAPACITY>
 ```
 
 All RPC endpoints that support querying the state at an old (non-latest) block only work with state archive capacity set to `full`.
+
+## Account impersonation
+
+Devnet allows you to use impersonated account from mainnet/testnet. This means that a transaction sent from an impersonated account, will not fail with an invalid signature error. In the general case a transaction send via an account that is not in the local state, fails with `invalid signature` error. To use the feature it is required to start Devnet in [forked mode](#forking).
+
+Account impersonation supports 4 methods:
+ - Impersonate specific account address, not existing in the local state  (devnet_impersonateAccount)
+ - Stop impersonation of an account (devnet_stopImpersonateAccount)
+ - Automatic impersonation of an account. Every account that does not exist in the local state, will be considered as impersonated(devnet_autoImpersonate)
+ - Stop auto impersonation (devnet_stopAutoImpersonate)
+
+Notes:
+- Only INVOKE and DECLARE transactions are supported. DEPLOY_ACCOUNT transaction is not supported, but you can create an INVOKE transaction to UDC.
+- Overall fee, for transactions sent via impersonated account, will be lower compared to normal transactions. The reason is that validation part is skipped.
+- Sending transactions with account that **does not** exist will return 1 of the errors: ContractNotFound, InsufficientAccountBalance. Most common way of sending a transaction is via starknet-rs/starknet.js or starkli. If a nonce is not hardcoded, during transaction construction it will query devnet for the account nonce and will return ContractNotFound error. Otherwise it will skip the part with fetching account nonce and fail with InsufficientAccountBalance error.
+
+Account impersonation feature follows JSON-RPC method specification and each method returns an empty response:
+
+devnet_impersonateAccount
+```js
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_impersonateAccount",
+    "params": {
+        "account_address": "0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7"
+    }
+}
+```
+
+devnet_stopImpersonateAccount
+```js
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_stopImpersonateAccount",
+    "params": {
+        "account_address": "0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7"
+    }
+}
+```
+
+devnet_autoImpersonate
+```js
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_autoImpersonate",
+    "params": {}
+}
+```
+
+devnet_stopAutoImpersonate
+```js
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_stopAutoImpersonate",
+    "params": {}
+}
+```
+
 
 ## Fetch Devnet configuration
 
