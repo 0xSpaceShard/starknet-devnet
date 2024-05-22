@@ -1,6 +1,6 @@
 [package]
 name = "starknet-devnet-core"
-version = "0.0.5"
+version = "0.0.6"
 edition.workspace = true
 repository.workspace = true
 license-file.workspace = true
