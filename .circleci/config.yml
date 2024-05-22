@@ -152,18 +152,25 @@ jobs:
 
   publish:
     docker:
-      - image: cimg/rust:1.74.0
+      - image: cimg/rust:1.74.0-node
     resource_class: large
     steps:
       - checkout
       - setup_remote_docker:
           version: docker23
+      - add_ssh_keys:
+          # needed for pushing to gh-pages
+          fingerprints:
+            - "SHA256:y2r0YUdeS8k6XSOFmgNs4wcTJFv+PIgkY0Yz+af6NSU"
       - run:
           name: Publish new versions to crates.io
           command: ./scripts/publish_cratesio_new_versions.sh
       - run:
           name: Create tags and push joint image manifests
           command: ./docker/tag_images_and_create_joint_image_manifests.sh
+      - run:
+          name: Publish docs
+          command: ./scripts/publish_docs.sh
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
