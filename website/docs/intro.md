@@ -19,5 +19,3 @@ sidebar_position: 1
 :::
 
 You may now proceed with [running Devnet](./running/install) and checking out the many features listed in the sidebar on the left.
-
-<!-- TODO: add doc versioning -->

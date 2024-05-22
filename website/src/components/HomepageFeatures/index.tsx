@@ -39,7 +39,7 @@ const FeatureList: FeatureItem[] = [
     title: 'Built in Rust 🦀',
     description: (
       <>
-        Faster than its{' '}
+        Unlike its
         <a
           href="https://0xspaceshard.github.io/starknet-devnet/"
           target="_blank"
@@ -47,8 +47,8 @@ const FeatureList: FeatureItem[] = [
         >
           Pythonic predecessor
         </a>
-        , this baby is built with Rust to ensure you the bestest possible user
-        experience. Yasss!!!
+        , this program is built in Rust to ensure a better performance and
+        overall user experience.
       </>
     ),
   },
