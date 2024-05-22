@@ -1466,6 +1466,7 @@ mod tests {
         let tx = dummy_declare_transaction_v1();
 
         // add transaction hash to pending block
+        starknet.blocks.pending_block = Some(StarknetBlock::create_pending_block()); // TODO: this should be like this or automatic?
         starknet.blocks.pending_block.as_mut().unwrap().add_transaction(*tx.get_transaction_hash());
 
         // pending block has some transactions
@@ -1502,12 +1503,13 @@ mod tests {
         let initial_sequencer = starknet.block_context.block_info().sequencer_address;
 
         // create pending block with some information in it
-        let mut pending_block = StarknetBlock::create_pending_block();
-        pending_block.add_transaction(dummy_felt());
-        pending_block.status = BlockStatus::AcceptedOnL2;
-
+        let mut new_pending_block = StarknetBlock::create_pending_block();
+        new_pending_block.add_transaction(dummy_felt());
+        starknet.blocks.pending_block = Some(new_pending_block);
+        
+        let pending_block = starknet.get_pending_block().unwrap();
+        
         // assign the pending block
-        // starknet.blocks.pending_block = pending_block.clone();
         assert!(starknet.get_pending_or_latest_block() == pending_block);
 
         // empty the pending to block and check if it is in starting state
