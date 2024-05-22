@@ -418,7 +418,7 @@ mod tests {
             DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
 
-        starknet.restart_pending_block().unwrap();
+        starknet.create_next_pending_block_todo().unwrap();
 
         (starknet, class_hash, erc_20_contract.get_address(), strk_erc20_contract.get_address())
     }

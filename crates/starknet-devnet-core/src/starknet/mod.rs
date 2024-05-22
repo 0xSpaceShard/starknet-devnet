@@ -228,7 +228,7 @@ impl Starknet {
             cheats: Default::default(),
         };
 
-        this.restart_pending_block()?;
+        this.create_next_pending_block_todo()?;
 
         if this.config.blocks_on_demand {
             this.pending_state = this.state.clone_historic();
@@ -271,9 +271,9 @@ impl Starknet {
 
     // Update block context
     // Initialize values for new pending block
-    pub(crate) fn generate_pending_block(&mut self) -> DevnetResult<()> {
+    pub(crate) fn advance_block_context_block_number_todo(&mut self) -> DevnetResult<()> {
         Self::advance_block_context_block_number(&mut self.block_context);
-        self.restart_pending_block()?;
+        //  self.create_pending_block_TODO()?;
 
         Ok(())
     }
@@ -295,10 +295,15 @@ impl Starknet {
     /// Generates new pending block
     /// Returns the new block number
     pub(crate) fn generate_new_block(&mut self, state_diff: StateDiff) -> DevnetResult<Felt> {
-        let mut new_block = self.pending_block().clone();
+        let mut new_block = match self.get_pending_block() {
+            Some(pending_block) => pending_block.clone(),
+            None => StarknetBlock::create_pending_block(),
+        };
 
-        let new_block_number =
-            BlockNumber(new_block.block_number().0 - self.blocks.aborted_blocks.len() as u64);
+        let new_block_number = BlockNumber(
+            self.block_context.block_info().block_number.0
+                - self.blocks.aborted_blocks.len() as u64,
+        );
 
         // set new block header
         new_block.set_block_hash(if self.config.lite_mode {
@@ -336,7 +341,7 @@ impl Starknet {
             self.blocks.save_state_at(new_block_hash, clone);
         }
 
-        self.generate_pending_block()?;
+        self.advance_block_context_block_number_todo()?;
 
         if self.config.blocks_on_demand {
             // clone_historic() requires self.historic_state, self.historic_state is set in
@@ -345,6 +350,8 @@ impl Starknet {
             self.pending_state.commit_with_diff()?;
             self.state = self.pending_state.clone_historic();
         }
+
+        self.blocks.pending_block = None;
 
         Ok(new_block_hash)
     }
@@ -560,7 +567,17 @@ impl Starknet {
         );
     }
 
-    fn pending_block(&self) -> StarknetBlock {
+    fn get_pending_block(&self) -> Option<StarknetBlock> {
+        self.blocks.pending_block.clone() // TODO: clone or & ?
+
+        // match &self.blocks.pending_block {
+        //     Some(pending_block) => pending_block.clone(),
+        //     None => self.get_latest_block().unwrap(), // TODO: fix this unwrap
+        // }
+    }
+
+    #[allow(dead_code)]
+    fn get_pending_or_latest_block(&self) -> StarknetBlock {
         match &self.blocks.pending_block {
             Some(pending_block) => pending_block.clone(),
             None => self.get_latest_block().unwrap(), // TODO: fix this unwrap
@@ -568,10 +585,10 @@ impl Starknet {
     }
 
     /// Restarts pending block with information from block_context
-    fn restart_pending_block(&mut self) -> DevnetResult<()> {
+    fn create_next_pending_block_todo(&mut self) -> DevnetResult<()> {
         let mut block = StarknetBlock::create_pending_block();
 
-        block.header.block_number = self.block_context.block_info().block_number;
+        block.header.block_number = self.block_context.block_info().block_number.next();
         block.header.l1_gas_price = GasPricePerToken {
             price_in_fri: GasPrice(
                 self.block_context.block_info().gas_prices.strk_l1_gas_price.get(),
@@ -591,8 +608,6 @@ impl Starknet {
         block.header.sequencer =
             SequencerContractAddress(self.block_context.block_info().sequencer_address);
 
-        // self.blocks.pending_block = block; // TODO: move this to handle tx
-        // TODO: create block should set pending_block to none!!! remember about that!
         Ok(())
     }
 
@@ -1026,6 +1041,8 @@ impl Starknet {
             .get_by_block_id(&BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
             .ok_or(crate::error::Error::NoBlock)?;
 
+        println!("block_number: {:?}", block.block_number());
+
         Ok(block.clone())
     }
 
@@ -1433,9 +1450,12 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
         let initial_block_number = starknet.block_context.block_info().block_number;
-        starknet.generate_pending_block().unwrap();
+        starknet.create_next_pending_block_todo().unwrap();
 
-        assert_eq!(starknet.pending_block().header.block_number, initial_block_number.next());
+        assert_eq!(
+            starknet.get_pending_block().clone().unwrap().header.block_number,
+            initial_block_number.next()
+        );
     }
 
     #[test]
@@ -1446,10 +1466,10 @@ mod tests {
         let tx = dummy_declare_transaction_v1();
 
         // add transaction hash to pending block
-        // starknet.blocks.pending_block.add_transaction(*tx.get_transaction_hash());
+        starknet.blocks.pending_block.as_mut().unwrap().add_transaction(*tx.get_transaction_hash());
 
         // pending block has some transactions
-        assert!(!starknet.pending_block().get_transactions().is_empty());
+        assert!(!starknet.get_pending_block().unwrap().get_transactions().is_empty());
         // blocks collection should not be empty
         assert_eq!(starknet.blocks.hash_to_block.len(), 1);
 
@@ -1488,34 +1508,40 @@ mod tests {
 
         // assign the pending block
         // starknet.blocks.pending_block = pending_block.clone();
-        assert!(starknet.pending_block() == pending_block);
+        assert!(starknet.get_pending_or_latest_block() == pending_block);
 
         // empty the pending to block and check if it is in starting state
-        starknet.restart_pending_block().unwrap();
+        starknet.create_next_pending_block_todo().unwrap();
 
-        assert!(starknet.pending_block() != pending_block);
-        assert_eq!(starknet.pending_block().status, BlockStatus::Pending);
-        assert!(starknet.pending_block().get_transactions().is_empty());
-        assert_eq!(starknet.pending_block().header.timestamp, initial_block_timestamp);
-        assert_eq!(starknet.pending_block().header.block_number, initial_block_number);
-        assert_eq!(starknet.pending_block().header.parent_hash, BlockHash::default());
+        assert!(starknet.get_pending_or_latest_block() != pending_block);
+        assert_eq!(starknet.get_pending_or_latest_block().status, BlockStatus::Pending);
+        assert!(starknet.get_pending_or_latest_block().get_transactions().is_empty());
         assert_eq!(
-            starknet.pending_block().header.l1_gas_price.price_in_wei,
+            starknet.get_pending_or_latest_block().header.timestamp,
+            initial_block_timestamp
+        );
+        assert_eq!(
+            starknet.get_pending_or_latest_block().header.block_number,
+            initial_block_number
+        );
+        assert_eq!(starknet.get_pending_or_latest_block().header.parent_hash, BlockHash::default());
+        assert_eq!(
+            starknet.get_pending_or_latest_block().header.l1_gas_price.price_in_wei,
             GasPrice(initial_gas_price_wei.get())
         );
         assert_eq!(
-            starknet.pending_block().header.l1_gas_price.price_in_fri,
+            starknet.get_pending_or_latest_block().header.l1_gas_price.price_in_fri,
             GasPrice(initial_gas_price_fri.get())
         );
         assert_eq!(
-            starknet.pending_block().header.l1_data_gas_price.price_in_wei,
+            starknet.get_pending_or_latest_block().header.l1_data_gas_price.price_in_wei,
             GasPrice(initial_data_gas_price_wei.get())
         );
         assert_eq!(
-            starknet.pending_block().header.l1_data_gas_price.price_in_fri,
+            starknet.get_pending_or_latest_block().header.l1_data_gas_price.price_in_fri,
             GasPrice(initial_data_gas_price_fri.get())
         );
-        assert_eq!(starknet.pending_block().header.sequencer.0, initial_sequencer);
+        assert_eq!(starknet.get_pending_or_latest_block().header.sequencer.0, initial_sequencer);
     }
 
     #[test]
@@ -1790,7 +1816,6 @@ mod tests {
         starknet.generate_new_block(StateDiff::default()).unwrap();
 
         let latest_block = starknet.get_latest_block();
-
         assert_eq!(latest_block.unwrap().block_number(), BlockNumber(3));
     }
 
@@ -1804,7 +1829,7 @@ mod tests {
         //     .blocks
         //     .pending_block
         //     .set_timestamp(BlockTimestamp(Starknet::get_unix_timestamp_as_seconds()));
-        let pending_block_timestamp = starknet.pending_block().header.timestamp;
+        let pending_block_timestamp = starknet.get_pending_or_latest_block().header.timestamp;
 
         let sleep_duration_secs = 5;
         thread::sleep(Duration::from_secs(sleep_duration_secs));

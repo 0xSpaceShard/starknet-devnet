@@ -60,8 +60,6 @@ impl Default for StarknetBlocks {
 
 impl StarknetBlocks {
     pub fn new(_starting_block_number: u64, blocks_on_demand: bool) -> Self {
-        // let blocks = Self { blocks_on_demand, ..Self::default() };
-        // blocks.pending_block.set_block_number(starting_block_number);
         Self { blocks_on_demand, ..Self::default() }
     }
 
@@ -273,10 +271,6 @@ impl StarknetBlock {
             transaction_hashes: Vec::new(),
         }
     }
-
-    // pub(crate) fn set_block_number(&mut self, block_number: u64) {
-    //     self.header.block_number = BlockNumber(block_number)
-    // }
 
     pub(crate) fn set_timestamp(&mut self, timestamp: BlockTimestamp) {
         self.header.timestamp = timestamp;
