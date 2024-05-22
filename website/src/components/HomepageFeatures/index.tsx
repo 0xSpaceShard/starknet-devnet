@@ -48,7 +48,7 @@ const FeatureList: FeatureItem[] = [
           Pythonic predecessor
         </a>
         , this baby is built with Rust to ensure you the bestest possible user
-        experience. Yasss!!
+        experience. Yasss!!!
       </>
     ),
   },

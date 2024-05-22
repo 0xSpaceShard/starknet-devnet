@@ -38,8 +38,7 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          editUrl:
-            'https://github.com/0xSpaceShard/starknet-devnet-rs/blob/master/website',
+          editUrl: `${GITHUB_REPO_URL}/blob/master/website`,
         },
         theme: {
           customCss: './src/css/custom.css',
@@ -83,7 +82,7 @@ const config: Config = {
             },
             {
               label: 'Contribute',
-              to: 'https://github.com/0xSpaceShard/starknet-devnet-rs/blob/main/.github/CONTRIBUTING.md',
+              to: `${GITHUB_REPO_URL}/blob/main/.github/CONTRIBUTING.md`,
             },
           ],
         },
