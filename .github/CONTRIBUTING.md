@@ -167,10 +167,10 @@ The documentation website content has [its own readme](../website/README.md).
 
 To release a new version, follow these steps:
 
-1. Increment the semver in Cargo.toml of those Devnet crates that have changed. Use `scripts/check_crate_changes.sh` for this. Preferably create a separate PR for the increment, such as [this one](https://github.com/0xSpaceShard/starknet-devnet-rs/pull/398). In your PR, also add a documentation entry for the incoming version by running:
+1. Increment the semver in Cargo.toml of those Devnet crates that have changed. Use `scripts/check_crate_changes.sh` for this. Preferably create a separate PR for the increment, such as [this one](https://github.com/0xSpaceShard/starknet-devnet-rs/pull/473). In your PR, add a documentation entry for the incoming version by running:
 
    ```
-   npm run docusaurus docs: version <VERSION>
+   npm run docusaurus docs:version <VERSION>
    ```
 
 2. The publishing of crates and Docker images is done automatically in CI when merged into the main branch.
