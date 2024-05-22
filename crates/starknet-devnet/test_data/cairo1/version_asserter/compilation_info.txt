@@ -1,1 +1,0 @@
-Compiled using cairo 2.2.0
