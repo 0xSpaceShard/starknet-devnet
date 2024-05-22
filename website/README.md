@@ -6,6 +6,10 @@ This website is built using [Docusaurus](https://docusaurus.io/), a modern stati
 
 Check out the existing pages and categories under `docs/`. If the change you wish to make in the documentation is not suitable for any of the existing markdown (.md) files, feel free to create a new one.
 
+### Documentation versioning
+
+A new version of the documentation should be created when releasing a new crate. Check [this](../.github/CONTRIBUTING#new-devnet-version-release) out for more info.
+
 ### Installation
 
 ```

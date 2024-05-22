@@ -64,6 +64,12 @@ const config: Config = {
           label: 'Docs',
         },
         {
+          type: 'docsVersionDropdown',
+          position: 'left',
+          dropdownItemsAfter: [],
+          dropdownActiveClassDisabled: true,
+        },
+        {
           href: GITHUB_REPO_URL,
           label: 'GitHub',
           position: 'right',
