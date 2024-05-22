@@ -153,7 +153,7 @@ jobs:
   publish:
     docker:
       - image: cimg/rust:1.74.0-node
-    resource_class: large
+    resource_class: xlarge
     steps:
       - checkout
       - setup_remote_docker:

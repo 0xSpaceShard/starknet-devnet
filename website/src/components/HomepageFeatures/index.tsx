@@ -39,7 +39,7 @@ const FeatureList: FeatureItem[] = [
     title: 'Built in Rust 🦀',
     description: (
       <>
-        Unlike its
+        Unlike its{' '}
         <a
           href="https://0xspaceshard.github.io/starknet-devnet/"
           target="_blank"
