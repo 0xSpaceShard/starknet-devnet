@@ -488,7 +488,8 @@ mod tests {
             DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
 
-        starknet.create_next_pending_block_todo().unwrap();
+        // TODO: remove this later
+        starknet.create_and_set_pending_block().unwrap();
 
         (starknet, acc.get_address())
     }

@@ -407,6 +407,8 @@ mod tests {
                 .unwrap();
         }
 
+        println!("starknet.blocks.hash_to_block.len(): {:?}", starknet.blocks.hash_to_block.len());
+
         assert_eq!(starknet.blocks.get_blocks(None, None).unwrap().len(), 6);
         for idx in 0..5 {
             starknet.transactions.get_by_hash(Felt::from(idx as u128 + 100)).unwrap();
