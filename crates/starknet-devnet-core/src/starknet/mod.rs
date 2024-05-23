@@ -1506,9 +1506,9 @@ mod tests {
         let mut new_pending_block = StarknetBlock::create_pending_block();
         new_pending_block.add_transaction(dummy_felt());
         starknet.blocks.pending_block = Some(new_pending_block);
-        
+
         let pending_block = starknet.get_pending_block().unwrap();
-        
+
         // assign the pending block
         assert!(starknet.get_pending_or_latest_block() == pending_block);
 
