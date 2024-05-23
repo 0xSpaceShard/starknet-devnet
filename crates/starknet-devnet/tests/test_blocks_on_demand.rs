@@ -172,7 +172,8 @@ mod blocks_on_demand_tests {
         assert_latest_block_with_receipts(&devnet, 1).await;
 
         // TODO: according to new logic, there is no pending block now so this is failing - is that
-        // ok or not?? assert_pending_block_with_tx_hashes(&devnet).await;
+        // ok or not??
+        // assert_pending_block_with_tx_hashes(&devnet).await;
         // assert_pending_block_with_txs(&devnet).await;
         // assert_pending_block_with_receipts(&devnet).await;
 

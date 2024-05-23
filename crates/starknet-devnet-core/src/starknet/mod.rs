@@ -1738,10 +1738,12 @@ mod tests {
 
         assert_eq!(num_no_transactions.unwrap(), 0);
 
-        let _tx = dummy_declare_transaction_v1();
+        // create pending block and add transaction hash
+        let mut pending_block = StarknetBlock::create_pending_block();
+        let tx = dummy_declare_transaction_v1();
+        pending_block.add_transaction(*tx.get_transaction_hash());
 
-        // add transaction hash to pending block
-        // starknet.blocks.pending_block.add_transaction(*tx.get_transaction_hash());
+        starknet.blocks.pending_block = Some(pending_block);
 
         starknet.generate_new_block(StateDiff::default()).unwrap();
 
