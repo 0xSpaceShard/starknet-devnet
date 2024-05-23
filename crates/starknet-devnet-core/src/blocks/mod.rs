@@ -48,7 +48,7 @@ impl Default for StarknetBlocks {
         Self {
             num_to_hash: IndexMap::new(),
             hash_to_block: HashMap::new(),
-            pending_block: None, // StarknetBlock::create_pending_block()
+            pending_block: None,
             last_block_hash: None,
             hash_to_state_diff: HashMap::new(),
             hash_to_state: HashMap::new(),

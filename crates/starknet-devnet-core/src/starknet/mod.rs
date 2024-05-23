@@ -273,7 +273,7 @@ impl Starknet {
     // Initialize values for new pending block
     pub(crate) fn advance_block_context_block_number_todo(&mut self) -> DevnetResult<()> {
         Self::advance_block_context_block_number(&mut self.block_context);
-        //  self.create_pending_block_TODO()?;
+        //  self.create_next_pending_block_todo()?;
 
         Ok(())
     }
