@@ -228,9 +228,6 @@ impl Starknet {
             cheats: Default::default(),
         };
 
-        // TODO: this should be removed?
-        this.create_and_set_pending_block()?;
-
         if this.config.blocks_on_demand {
             this.pending_state = this.state.clone_historic();
         }
@@ -298,7 +295,7 @@ impl Starknet {
     pub(crate) fn generate_new_block(&mut self, state_diff: StateDiff) -> DevnetResult<Felt> {
         let mut new_block = match self.get_pending_block() {
             Some(pending_block) => pending_block.clone(),
-            None => StarknetBlock::create_pending_block(),
+            None => self.create_and_set_pending_block()?,
         };
 
         let new_block_number = BlockNumber(
@@ -473,7 +470,7 @@ impl Starknet {
         )?;
         let transaction_to_add = StarknetTransaction::create_accepted(transaction, tx_info, trace);
 
-        // TODO: this clone and set is needed in case of some?
+        // TODO: this clone is needed? can it be avoided?
         match self.blocks.pending_block.clone() {
             Some(mut pending_block) => {
                 pending_block.add_transaction(*transaction_hash);
@@ -481,10 +478,8 @@ impl Starknet {
                 self.blocks.pending_block = Some(pending_block);
             }
             None => {
-                let _ = self.create_and_set_pending_block(); // TODO: is that ok here? I think so...
-                self.blocks.pending_block.as_mut().unwrap().add_transaction(*transaction_hash); // TODO: remove this unwrap
-
-                // self.blocks.pending_block = Some(block);
+                let _ = self.create_and_set_pending_block()?;
+                self.blocks.pending_block.as_mut().unwrap().add_transaction(*transaction_hash); // TODO: remove this unwrap - how?
             }
         }
 
@@ -586,7 +581,7 @@ impl Starknet {
     }
 
     /// Restarts pending block with information from block_context
-    fn create_and_set_pending_block(&mut self) -> DevnetResult<()> {
+    fn create_and_set_pending_block(&mut self) -> DevnetResult<StarknetBlock> {
         let mut block = StarknetBlock::create_pending_block(); // TODO: scan code with - StarknetBlock::create_pending_block()
 
         block.header.block_number = self.block_context.block_info().block_number.next();
@@ -609,9 +604,9 @@ impl Starknet {
         block.header.sequencer =
             SequencerContractAddress(self.block_context.block_info().sequencer_address);
 
-        self.blocks.pending_block = Some(block);
+        self.blocks.pending_block = Some(block.clone());
 
-        Ok(())
+        Ok(block)
     }
 
     fn get_mut_state_at(&mut self, block_id: &BlockId) -> DevnetResult<&mut StarknetState> {

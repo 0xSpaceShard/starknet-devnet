@@ -419,7 +419,7 @@ mod tests {
         );
 
         // TODO: remove this later
-        starknet.create_and_set_pending_block().unwrap();
+        // starknet.create_and_set_pending_block().unwrap();
 
         (starknet, class_hash, erc_20_contract.get_address(), strk_erc20_contract.get_address())
     }

@@ -489,7 +489,7 @@ mod tests {
         );
 
         // TODO: remove this later
-        starknet.create_and_set_pending_block().unwrap();
+        // starknet.create_and_set_pending_block().unwrap();
 
         (starknet, acc.get_address())
     }
