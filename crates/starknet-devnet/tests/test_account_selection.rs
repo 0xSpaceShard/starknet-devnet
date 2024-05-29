@@ -16,12 +16,14 @@ mod test_account_selection {
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
         BlockId, BlockTag, DeployAccountTransactionResult, FieldElement, FunctionCall,
-        MaybePendingTransactionReceipt, TransactionFinalityStatus, TransactionReceipt,
+        MaybePendingTransactionReceipt, TransactionExecutionStatus, TransactionFinalityStatus,
+        TransactionReceipt,
     };
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
     use starknet_rs_providers::Provider;
+    use starknet_rs_signers::LocalWallet;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::CHAIN_ID;
@@ -39,12 +41,8 @@ mod test_account_selection {
 
     #[tokio::test]
     async fn spawnable_with_custom_account_cairo_1() {
-        BackgroundDevnet::spawn_with_additional_args(&[
-            "--account-class-custom",
-            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
-        ])
-        .await
-        .unwrap();
+        let args = ["--account-class-custom", CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH];
+        BackgroundDevnet::spawn_with_additional_args(&args).await.unwrap();
     }
 
     /// Common body for tests defined below
@@ -67,33 +65,31 @@ mod test_account_selection {
 
     #[tokio::test]
     async fn correct_cairo1_artifact() {
-        correct_artifact_test_body(
-            &["--account-class", "cairo1"],
-            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
-        )
-        .await;
+        let args = ["--account-class", "cairo1"];
+        correct_artifact_test_body(&args, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).await;
     }
 
     #[tokio::test]
     async fn correct_custom_artifact() {
-        correct_artifact_test_body(
-            &["--account-class-custom", CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH],
-            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
-        )
-        .await;
+        let args = ["--account-class-custom", CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH];
+        correct_artifact_test_body(&args, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).await;
     }
 
     /// Utility for deploying accounts of `class_hash`
     async fn deploy_account(
         devnet: &BackgroundDevnet,
         class_hash: FieldElement,
-    ) -> DeployAccountTransactionResult {
+    ) -> (DeployAccountTransactionResult, LocalWallet) {
         let signer = get_deployable_account_signer();
 
-        let account_factory =
-            OpenZeppelinAccountFactory::new(class_hash, CHAIN_ID, signer, devnet.clone_provider())
-                .await
-                .unwrap();
+        let account_factory = OpenZeppelinAccountFactory::new(
+            class_hash,
+            CHAIN_ID,
+            signer.clone(),
+            devnet.clone_provider(),
+        )
+        .await
+        .unwrap();
 
         let salt = FieldElement::THREE;
         let deployment = account_factory
@@ -105,7 +101,7 @@ mod test_account_selection {
 
         let account_deployment = deployment.send().await.unwrap();
         assert_eq!(account_deployment.contract_address, account_address);
-        account_deployment
+        (account_deployment, signer)
     }
 
     /// Common body for tests defined below
@@ -113,7 +109,7 @@ mod test_account_selection {
         let devnet = BackgroundDevnet::spawn_with_additional_args(devnet_args).await.unwrap();
 
         let class_hash = FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap();
-        let account_deployment = deploy_account(&devnet, class_hash).await;
+        let (account_deployment, signer) = deploy_account(&devnet, class_hash).await;
 
         let deploy_account_receipt = devnet
             .json_rpc_client
@@ -124,9 +120,20 @@ mod test_account_selection {
         match deploy_account_receipt {
             MaybePendingTransactionReceipt::Receipt(TransactionReceipt::DeployAccount(receipt)) => {
                 assert_eq!(receipt.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+                assert_eq!(
+                    receipt.execution_result.status(),
+                    TransactionExecutionStatus::Succeeded
+                );
             }
             _ => panic!("Invalid receipt {:?}", deploy_account_receipt),
         }
+
+        can_declare_deploy_invoke_cairo0_using_account(
+            &devnet,
+            signer,
+            account_deployment.contract_address,
+        )
+        .await;
     }
 
     #[tokio::test]
@@ -145,12 +152,11 @@ mod test_account_selection {
         can_deploy_new_account_test_body(&args).await;
     }
 
-    /// Common body for tests defined below
-    async fn can_declare_deploy_invoke_using_predeployed_test_body(devnet_args: &[&str]) {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(devnet_args).await.unwrap();
-
-        // get account
-        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+    async fn can_declare_deploy_invoke_cairo0_using_account(
+        devnet: &BackgroundDevnet,
+        signer: LocalWallet,
+        account_address: FieldElement,
+    ) {
         let account = Arc::new(SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
@@ -159,6 +165,8 @@ mod test_account_selection {
             ExecutionEncoding::New,
         ));
 
+        // TODO do the same for cairo1, i.e. non-legacy, perhaps in a separate test
+
         // get class
         let contract_json = dummy_cairo_0_contract_class();
         let contract_artifact: Arc<LegacyContractClass> =
@@ -166,13 +174,8 @@ mod test_account_selection {
         let class_hash = contract_artifact.class_hash().unwrap();
 
         // declare class
-        let declaration_result = account
-            .declare_legacy(contract_artifact.clone())
-            .nonce(FieldElement::ZERO)
-            .max_fee(FieldElement::from(1e18 as u128))
-            .send()
-            .await
-            .unwrap();
+        let declaration_result =
+            account.declare_legacy(contract_artifact.clone()).send().await.unwrap();
         assert_eq!(declaration_result.class_hash, class_hash);
 
         // deploy instance of class
@@ -187,8 +190,6 @@ mod test_account_selection {
         );
         contract_factory
             .deploy(constructor_calldata, salt, false)
-            .nonce(FieldElement::ONE)
-            .max_fee(FieldElement::from(1e18 as u128))
             .send()
             .await
             .expect("Cannot deploy");
@@ -200,12 +201,7 @@ mod test_account_selection {
             selector: get_selector_from_name("increase_balance").unwrap(),
             calldata: vec![increase_amount],
         }];
-        account
-            .execute(invoke_calls)
-            .max_fee(FieldElement::from(1e18 as u128))
-            .send()
-            .await
-            .unwrap();
+        account.execute(invoke_calls).send().await.unwrap();
 
         // prepare the call used in checking the balance
         let call = FunctionCall {
@@ -216,6 +212,15 @@ mod test_account_selection {
         let balance_after_sufficient =
             devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap();
         assert_eq!(balance_after_sufficient, vec![increase_amount]);
+    }
+
+    /// Common body for tests defined below
+    async fn can_declare_deploy_invoke_using_predeployed_test_body(devnet_args: &[&str]) {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(devnet_args).await.unwrap();
+
+        // get account
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        can_declare_deploy_invoke_cairo0_using_account(&devnet, signer, account_address).await;
     }
 
     #[tokio::test]
@@ -258,7 +263,7 @@ mod test_account_selection {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
         let class_hash = FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap();
-        let account_deployment = deploy_account(&devnet, class_hash).await;
+        let (account_deployment, _) = deploy_account(&devnet, class_hash).await;
 
         assert_supports_isrc6(&devnet, account_deployment.contract_address).await;
     }
