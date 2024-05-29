@@ -16,8 +16,6 @@ mod test_account_selection {
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
         BlockId, BlockTag, DeployAccountTransactionResult, FieldElement, FunctionCall,
-        MaybePendingTransactionReceipt, TransactionExecutionStatus, TransactionFinalityStatus,
-        TransactionReceipt,
     };
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
@@ -27,7 +25,10 @@ mod test_account_selection {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::CHAIN_ID;
-    use crate::common::utils::get_deployable_account_signer;
+    use crate::common::utils::{
+        assert_tx_successful, get_deployable_account_signer,
+        get_simple_contract_in_sierra_and_compiled_class_hash,
+    };
 
     #[tokio::test]
     async fn spawnable_with_cairo0() {
@@ -117,20 +118,19 @@ mod test_account_selection {
             .await
             .unwrap();
 
-        match deploy_account_receipt {
-            MaybePendingTransactionReceipt::Receipt(TransactionReceipt::DeployAccount(receipt)) => {
-                assert_eq!(receipt.finality_status, TransactionFinalityStatus::AcceptedOnL2);
-                assert_eq!(
-                    receipt.execution_result.status(),
-                    TransactionExecutionStatus::Succeeded
-                );
-            }
-            _ => panic!("Invalid receipt {:?}", deploy_account_receipt),
-        }
+        assert_tx_successful(deploy_account_receipt.transaction_hash(), &devnet.json_rpc_client)
+            .await;
 
         can_declare_deploy_invoke_cairo0_using_account(
             &devnet,
-            signer,
+            &signer,
+            account_deployment.contract_address,
+        )
+        .await;
+
+        can_declare_deploy_invoke_cairo1_using_account(
+            &devnet,
+            &signer,
             account_deployment.contract_address,
         )
         .await;
@@ -154,7 +154,7 @@ mod test_account_selection {
 
     async fn can_declare_deploy_invoke_cairo0_using_account(
         devnet: &BackgroundDevnet,
-        signer: LocalWallet,
+        signer: &LocalWallet,
         account_address: FieldElement,
     ) {
         let account = Arc::new(SingleOwnerAccount::new(
@@ -164,8 +164,6 @@ mod test_account_selection {
             CHAIN_ID,
             ExecutionEncoding::New,
         ));
-
-        // TODO do the same for cairo1, i.e. non-legacy, perhaps in a separate test
 
         // get class
         let contract_json = dummy_cairo_0_contract_class();
@@ -214,13 +212,60 @@ mod test_account_selection {
         assert_eq!(balance_after_sufficient, vec![increase_amount]);
     }
 
+    async fn can_declare_deploy_invoke_cairo1_using_account(
+        devnet: &BackgroundDevnet,
+        signer: &LocalWallet,
+        account_address: FieldElement,
+    ) {
+        let account = Arc::new(SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            account_address,
+            CHAIN_ID,
+            ExecutionEncoding::New,
+        ));
+
+        let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+
+        // declare the contract
+        let declaration_result =
+            account.declare(Arc::new(contract_class), casm_hash).send().await.unwrap();
+
+        // deploy the contract
+        let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
+        let initial_value = FieldElement::from(10_u32);
+        let ctor_args = vec![initial_value];
+        contract_factory.deploy(ctor_args.clone(), FieldElement::ZERO, false).send().await.unwrap();
+
+        // generate the address of the newly deployed contract
+        let contract_address = get_udc_deployed_address(
+            FieldElement::ZERO,
+            declaration_result.class_hash,
+            &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+            &ctor_args,
+        );
+
+        // invoke on forked devnet
+        let increment = FieldElement::from(5_u32);
+        let contract_invoke = vec![Call {
+            to: contract_address,
+            selector: get_selector_from_name("increase_balance").unwrap(),
+            calldata: vec![increment, FieldElement::ZERO],
+        }];
+
+        let invoke_result = account.execute(contract_invoke.clone()).send().await.unwrap();
+
+        assert_tx_successful(&invoke_result.transaction_hash, &devnet.json_rpc_client).await;
+    }
+
     /// Common body for tests defined below
     async fn can_declare_deploy_invoke_using_predeployed_test_body(devnet_args: &[&str]) {
         let devnet = BackgroundDevnet::spawn_with_additional_args(devnet_args).await.unwrap();
 
         // get account
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
-        can_declare_deploy_invoke_cairo0_using_account(&devnet, signer, account_address).await;
+        can_declare_deploy_invoke_cairo0_using_account(&devnet, &signer, account_address).await;
+        can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
     }
 
     #[tokio::test]

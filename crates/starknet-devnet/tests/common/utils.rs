@@ -107,6 +107,11 @@ pub async fn assert_tx_successful<T: Provider>(tx_hash: &FieldElement, client: &
         ExecutionResult::Succeeded => (),
         other => panic!("Should have succeeded; got: {other:?}"),
     }
+
+    match receipt.finality_status() {
+        starknet_rs_core::types::TransactionFinalityStatus::AcceptedOnL2 => (),
+        other => panic!("Should have been accepted on L2; got: {other:?}"),
+    }
 }
 
 pub async fn get_contract_balance(
