@@ -50,3 +50,8 @@ pub const MESSAGING_L1_CONTRACT_ADDRESS: &str = "0xe7f1725e7734ce288f8367e1bb143
 /// Cairo 1 account which panics on validation
 pub const INVALID_ACCOUNT_SIERRA_PATH: &str =
     "test_data/cairo1/invalid_account/invalid_account.sierra";
+
+/// Forking
+pub const SEPOLIA_URL: &str = "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7";
+pub const SEPOLIA_GENESIS_BLOCK_HASH: &str =
+    "0x19f675d3fb226821493a6ab9a1955e384bba80f130de625621a418e9a7c0ca3";

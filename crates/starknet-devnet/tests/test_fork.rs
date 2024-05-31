@@ -23,17 +23,13 @@ mod fork_tests {
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants;
+    use crate::common::constants::{self, SEPOLIA_GENESIS_BLOCK_HASH, SEPOLIA_URL};
     use crate::common::utils::{
         assert_cairo1_classes_equal, assert_tx_successful, declare_deploy,
         get_block_reader_contract_in_sierra_and_compiled_class_hash, get_contract_balance,
         get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
         send_ctrl_c_signal_and_wait,
     };
-
-    const SEPOLIA_URL: &str = "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7";
-    const SEPOLIA_GENESIS_BLOCK_HASH: &str =
-        "0x19f675d3fb226821493a6ab9a1955e384bba80f130de625621a418e9a7c0ca3";
 
     #[tokio::test]
     async fn test_fork_status() {
@@ -583,7 +579,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_forking_https() {
-        let origin_url = "https://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7";
+        let origin_url = SEPOLIA_URL;
         let fork_block = 2;
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--fork-network",

@@ -9,8 +9,8 @@ mod test_account_selection {
     };
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
-        Account, AccountFactory, Call, ExecutionEncoding, OpenZeppelinAccountFactory,
-        SingleOwnerAccount,
+        Account, AccountFactory, ArgentAccountFactory, Call, ExecutionEncoding,
+        OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
@@ -24,11 +24,74 @@ mod test_account_selection {
     use starknet_rs_signers::LocalWallet;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::CHAIN_ID;
+    use crate::common::constants::{CHAIN_ID, SEPOLIA_URL};
     use crate::common::utils::{
         assert_tx_successful, get_deployable_account_signer,
         get_simple_contract_in_sierra_and_compiled_class_hash,
     };
+
+    enum AccountClassSelection {
+        OpenZeppelin,
+        Argent,
+    }
+
+    impl AccountClassSelection {
+        fn get_class_hash(&self) -> FieldElement {
+            FieldElement::from_hex_be(match self {
+                AccountClassSelection::OpenZeppelin => CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
+                AccountClassSelection::Argent => {
+                    "0x01a736d6ed154502257f02b1ccdf4d9d1089f80811cd6acad48e6b6a9d1f2003"
+                }
+            })
+            .unwrap()
+        }
+
+        async fn deploy(
+            &self,
+            devnet: &BackgroundDevnet,
+        ) -> (DeployAccountTransactionResult, LocalWallet) {
+            let signer = get_deployable_account_signer();
+
+            let salt = FieldElement::THREE;
+            let deployment = match self {
+                AccountClassSelection::OpenZeppelin => {
+                    let factory = OpenZeppelinAccountFactory::new(
+                        self.get_class_hash(),
+                        CHAIN_ID,
+                        signer.clone(),
+                        devnet.clone_provider(),
+                    )
+                    .await
+                    .unwrap();
+
+                    let deployment = factory.deploy(salt);
+
+                    let account_address = deployment.address();
+                    devnet.mint(account_address, 1e18 as u128).await;
+                    deployment.send().await.unwrap()
+                }
+                AccountClassSelection::Argent => {
+                    let factory = ArgentAccountFactory::new(
+                        self.get_class_hash(),
+                        CHAIN_ID,
+                        FieldElement::ZERO,
+                        signer.clone(),
+                        devnet.clone_provider(),
+                    )
+                    .await
+                    .unwrap();
+
+                    let deployment = factory.deploy(salt);
+
+                    let account_address = deployment.address();
+                    devnet.mint(account_address, 1e18 as u128).await;
+                    deployment.send().await.unwrap()
+                }
+            };
+
+            (deployment, signer)
+        }
+    }
 
     #[tokio::test]
     async fn spawnable_with_cairo0() {
@@ -76,41 +139,14 @@ mod test_account_selection {
         correct_artifact_test_body(&args, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).await;
     }
 
-    /// Utility for deploying accounts of `class_hash`
-    async fn deploy_account(
-        devnet: &BackgroundDevnet,
-        class_hash: FieldElement,
-    ) -> (DeployAccountTransactionResult, LocalWallet) {
-        let signer = get_deployable_account_signer();
-
-        let account_factory = OpenZeppelinAccountFactory::new(
-            class_hash,
-            CHAIN_ID,
-            signer.clone(),
-            devnet.clone_provider(),
-        )
-        .await
-        .unwrap();
-
-        let salt = FieldElement::THREE;
-        let deployment = account_factory
-            .deploy(salt)
-            .max_fee(FieldElement::from(1e18 as u128))
-            .nonce(FieldElement::ZERO);
-        let account_address = deployment.address();
-        devnet.mint(account_address, 1e18 as u128).await;
-
-        let account_deployment = deployment.send().await.unwrap();
-        assert_eq!(account_deployment.contract_address, account_address);
-        (account_deployment, signer)
-    }
-
     /// Common body for tests defined below
-    async fn can_deploy_new_account_test_body(devnet_args: &[&str]) {
+    async fn can_deploy_new_account_test_body(
+        devnet_args: &[&str],
+        account_class_selection: AccountClassSelection,
+    ) {
         let devnet = BackgroundDevnet::spawn_with_additional_args(devnet_args).await.unwrap();
 
-        let class_hash = FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap();
-        let (account_deployment, signer) = deploy_account(&devnet, class_hash).await;
+        let (account_deployment, signer) = account_class_selection.deploy(&devnet).await;
 
         let deploy_account_receipt = devnet
             .json_rpc_client
@@ -137,19 +173,33 @@ mod test_account_selection {
     }
 
     #[tokio::test]
-    async fn can_deploy_new_cairo1_account() {
-        can_deploy_new_account_test_body(&["--account-class", "cairo1"]).await;
+    async fn can_deploy_new_cairo1_oz_account() {
+        can_deploy_new_account_test_body(
+            &["--account-class", "cairo1"],
+            AccountClassSelection::OpenZeppelin,
+        )
+        .await;
     }
 
     #[tokio::test]
-    async fn can_deploy_new_cairo1_account_when_cairo0_selected() {
-        can_deploy_new_account_test_body(&["--account-class", "cairo0"]).await;
+    async fn can_deploy_new_cairo1_oz_account_when_cairo0_selected() {
+        can_deploy_new_account_test_body(
+            &["--account-class", "cairo0"],
+            AccountClassSelection::OpenZeppelin,
+        )
+        .await;
     }
 
     #[tokio::test]
-    async fn can_deploy_new_custom_account() {
+    async fn can_deploy_new_custom_oz_account() {
         let args = ["--account-class-custom", CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH];
-        can_deploy_new_account_test_body(&args).await;
+        can_deploy_new_account_test_body(&args, AccountClassSelection::OpenZeppelin).await;
+    }
+
+    #[tokio::test]
+    async fn can_deploy_new_argent_account() {
+        let args = ["--fork-network", SEPOLIA_URL];
+        can_deploy_new_account_test_body(&args, AccountClassSelection::Argent).await;
     }
 
     async fn can_declare_deploy_invoke_cairo0_using_account(
@@ -307,8 +357,7 @@ mod test_account_selection {
     async fn test_interface_support_of_newly_deployed_account() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
-        let class_hash = FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap();
-        let (account_deployment, _) = deploy_account(&devnet, class_hash).await;
+        let (account_deployment, _) = AccountClassSelection::OpenZeppelin.deploy(&devnet).await;
 
         assert_supports_isrc6(&devnet, account_deployment.contract_address).await;
     }
