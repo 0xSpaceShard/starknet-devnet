@@ -18,6 +18,10 @@ Alternatively, provide a path to the [Sierra artifact](https://github.com/starkw
 --account-class-custom <SIERRA_PATH>
 ```
 
+## Deploying an undeclared account
+
+If you want to deploy an instance of an account contract class not predeclared on Devnet, you can use [forking](./forking). Just fork an origin network which has the needed class already declared, e.g. the Sepolia testnet. Why? Because new versions of wallets like ArgentX and Braavos tend to be declared on testnet/mainnet soon after release.
+
 ## How to get predeployment info?
 
 The predeployment information is logged on Devnet startup. Predeployed accounts can be retrieved in JSON format by sending a `GET` request to `/predeployed_accounts` of your Devnet.

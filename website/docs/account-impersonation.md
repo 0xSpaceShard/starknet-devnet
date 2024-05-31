@@ -1,5 +1,11 @@
 # Account impersonation
 
+:::info
+
+This page is about account impersonation. To read about account class selection and deployment, click [here](./predeployed).
+
+:::
+
 Devnet allows you to use impersonated account from mainnet/testnet. This means that a transaction sent from an impersonated account will not fail with an invalid signature error. In the general case, a transaction sent with an account that is not in the local state fails with the aforementioned error. For impersonation to work, Devnet needs to be run in [forking mode](./forking.md).
 
 :::warning Caveat
