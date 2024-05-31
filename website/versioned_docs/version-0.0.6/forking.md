@@ -11,3 +11,7 @@ The value passed to `--fork-network` should be the URL to a Starknet JSON-RPC AP
 ## Account impersonation
 
 [Here](./account-impersonation) you can read more about acting as an account deployed on the origin.
+
+## Deploying an undeclared account
+
+[Here](./predeployed#deploying-an-undeclared-account) you can read about deploying an account not declared on Devnet.
