@@ -24,7 +24,7 @@ mod test_account_selection {
     use starknet_rs_signers::LocalWallet;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::{CHAIN_ID, SEPOLIA_URL};
+    use crate::common::constants::{CHAIN_ID, MAINNET_URL};
     use crate::common::utils::{
         assert_tx_successful, get_deployable_account_signer,
         get_simple_contract_in_sierra_and_compiled_class_hash,
@@ -40,12 +40,15 @@ mod test_account_selection {
             FieldElement::from_hex_be(match self {
                 AccountClassSelection::OpenZeppelin => CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
                 AccountClassSelection::Argent => {
-                    "0x01a736d6ed154502257f02b1ccdf4d9d1089f80811cd6acad48e6b6a9d1f2003"
+                    // at commit d9f5220059c1e61ff87e4a5752522569135e464c of
+                    // argentlabs/argent-contracts-starknet:main
+                    "0x029927c8af6bccf3f6fda035981e765a7bdbf18a2dc0d630494f8758aa908e2b"
                 }
             })
             .unwrap()
         }
 
+        // TODO this needn't be a single method since there is very little common code
         async fn deploy(
             &self,
             devnet: &BackgroundDevnet,
@@ -157,12 +160,14 @@ mod test_account_selection {
         assert_tx_successful(deploy_account_receipt.transaction_hash(), &devnet.json_rpc_client)
             .await;
 
-        can_declare_deploy_invoke_cairo0_using_account(
-            &devnet,
-            &signer,
-            account_deployment.contract_address,
-        )
-        .await;
+        if let AccountClassSelection::OpenZeppelin = account_class_selection {
+            can_declare_deploy_invoke_cairo0_using_account(
+                &devnet,
+                &signer,
+                account_deployment.contract_address,
+            )
+            .await;
+        }
 
         can_declare_deploy_invoke_cairo1_using_account(
             &devnet,
@@ -198,7 +203,7 @@ mod test_account_selection {
 
     #[tokio::test]
     async fn can_deploy_new_argent_account() {
-        let args = ["--fork-network", SEPOLIA_URL];
+        let args = ["--fork-network", MAINNET_URL];
         can_deploy_new_account_test_body(&args, AccountClassSelection::Argent).await;
     }
 

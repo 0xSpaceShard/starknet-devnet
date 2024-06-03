@@ -23,7 +23,9 @@ mod fork_tests {
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::{self, SEPOLIA_GENESIS_BLOCK_HASH, SEPOLIA_URL};
+    use crate::common::constants::{
+        self, INTEGRATION_SEPOLIA_GENESIS_BLOCK_HASH, INTEGRATION_SEPOLIA_URL,
+    };
     use crate::common::utils::{
         assert_cairo1_classes_equal, assert_tx_successful, declare_deploy,
         get_block_reader_contract_in_sierra_and_compiled_class_hash, get_contract_balance,
@@ -54,15 +56,17 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_forking_sepolia_genesis_block() {
-        let fork_devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--fork-network", SEPOLIA_URL])
-                .await
-                .unwrap();
+        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--fork-network",
+            INTEGRATION_SEPOLIA_URL,
+        ])
+        .await
+        .unwrap();
 
         let resp = &fork_devnet
             .json_rpc_client
             .get_block_with_tx_hashes(BlockId::Hash(
-                FieldElement::from_hex_be(SEPOLIA_GENESIS_BLOCK_HASH).unwrap(),
+                FieldElement::from_hex_be(INTEGRATION_SEPOLIA_GENESIS_BLOCK_HASH).unwrap(),
             ))
             .await;
 
@@ -74,10 +78,12 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_getting_non_existent_block_from_origin() {
-        let fork_devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--fork-network", SEPOLIA_URL])
-                .await
-                .expect("Could not start Devnet");
+        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--fork-network",
+            INTEGRATION_SEPOLIA_URL,
+        ])
+        .await
+        .expect("Could not start Devnet");
 
         let non_existent_block_hash = "0x123456";
         let resp = &fork_devnet
@@ -579,7 +585,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_forking_https() {
-        let origin_url = SEPOLIA_URL;
+        let origin_url = INTEGRATION_SEPOLIA_URL;
         let fork_block = 2;
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--fork-network",
