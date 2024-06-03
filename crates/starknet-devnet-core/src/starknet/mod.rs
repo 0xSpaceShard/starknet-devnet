@@ -230,10 +230,6 @@ impl Starknet {
 
         this.restart_pending_block()?;
 
-        if this.config.blocks_on_demand {
-            this.pending_state = this.state.clone_historic();
-        }
-
         // Create an empty genesis block, set start_time before if it's set
         if let Some(start_time) = config.start_time {
             this.set_next_block_timestamp(start_time);
@@ -338,13 +334,14 @@ impl Starknet {
 
         self.generate_pending_block()?;
 
-        if self.config.blocks_on_demand {
-            // clone_historic() requires self.historic_state, self.historic_state is set in
-            // expand_historic(), expand_historic() can be executed from commit_with_diff() - this
-            // is why self.pending_state.commit_with_diff() is here
-            self.pending_state.commit_with_diff()?;
-            self.state = self.pending_state.clone_historic();
-        }
+        // TODO: Seems that pending_state is always there and blocks_on_demand is just option to
+        // generate blocks or not
+
+        // clone_historic() requires self.historic_state, self.historic_state is set in
+        // expand_historic(), expand_historic() can be executed from commit_with_diff() - this
+        // is why self.pending_state.commit_with_diff() is here
+        self.pending_state.commit_with_diff()?;
+        self.state = self.pending_state.clone_historic();
 
         Ok(new_block_hash)
     }
@@ -577,6 +574,13 @@ impl Starknet {
             SequencerContractAddress(self.block_context.block_info().sequencer_address);
 
         self.blocks.pending_block = block;
+
+        // TODO: rename to restart_pending_block_and_state
+
+        // ok that is all?
+        // commit_with_diff to state and clone to pending state
+        self.state.commit_with_diff()?;
+        self.pending_state = self.state.clone_historic();
 
         Ok(())
     }
@@ -1452,6 +1456,7 @@ mod tests {
 
     #[test]
     fn successful_emptying_of_pending_block() {
+        // TODO: successful_emptying_of_pending_block_and_state
         let config = StarknetConfig { start_time: Some(0), ..Default::default() };
         let mut starknet = Starknet::new(&config).unwrap();
 
@@ -1477,6 +1482,8 @@ mod tests {
 
         // empty the pending to block and check if it is in starting state
         starknet.restart_pending_block().unwrap();
+
+        // TODO: also check state here !?
 
         assert!(*starknet.pending_block() != pending_block);
         assert_eq!(starknet.pending_block().status, BlockStatus::Pending);
