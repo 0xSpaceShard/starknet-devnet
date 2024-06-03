@@ -228,25 +228,24 @@ mod test_account_selection {
         assert_tx_successful(&invoke_result.transaction_hash, &devnet.json_rpc_client).await;
     }
 
-    /// Common body for tests defined below
-    async fn can_declare_deploy_invoke_using_predeployed_test_body(devnet_args: &[&str]) {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(devnet_args).await.unwrap();
+    #[tokio::test]
+    async fn can_declare_deploy_invoke_using_predeployed_cairo1() {
+        let cli_args = ["--account-class", "cairo1"];
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
-        // get account
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         can_declare_deploy_invoke_cairo0_using_account(&devnet, &signer, account_address).await;
         can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
     }
 
     #[tokio::test]
-    async fn can_declare_deploy_invoke_using_predeployed_cairo1() {
-        can_declare_deploy_invoke_using_predeployed_test_body(&["--account-class", "cairo1"]).await;
-    }
-
-    #[tokio::test]
     async fn can_declare_deploy_invoke_using_predeployed_custom() {
         let cli_args = ["--account-class-custom", CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH];
-        can_declare_deploy_invoke_using_predeployed_test_body(&cli_args).await;
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
+
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        can_declare_deploy_invoke_cairo0_using_account(&devnet, &signer, account_address).await;
+        can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
     }
 
     async fn assert_supports_isrc6(devnet: &BackgroundDevnet, account_address: FieldElement) {
