@@ -56,12 +56,8 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_forking_sepolia_genesis_block() {
-        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
-            "--fork-network",
-            INTEGRATION_SEPOLIA_URL,
-        ])
-        .await
-        .unwrap();
+        let cli_args = ["--fork-network", INTEGRATION_SEPOLIA_URL];
+        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
         let resp = &fork_devnet
             .json_rpc_client
@@ -78,12 +74,8 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_getting_non_existent_block_from_origin() {
-        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
-            "--fork-network",
-            INTEGRATION_SEPOLIA_URL,
-        ])
-        .await
-        .expect("Could not start Devnet");
+        let cli_args = ["--fork-network", INTEGRATION_SEPOLIA_URL];
+        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
         let non_existent_block_hash = "0x123456";
         let resp = &fork_devnet
