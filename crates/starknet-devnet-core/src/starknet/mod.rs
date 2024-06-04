@@ -792,9 +792,8 @@ impl Starknet {
         let state_update = state_update::state_update_by_block_id(self, block_id)?;
         let state_diff = state_update.state_diff.into();
 
-        // StateUpdate needs to be mapped to PendingStateUpdate only in blocks_on_demand mode and
-        // when block_id is pending
-        if self.config.blocks_on_demand && block_id == &BlockId::Tag(BlockTag::Pending) {
+        // StateUpdate needs to be mapped to PendingStateUpdate when block_id is pending
+        if block_id == &BlockId::Tag(BlockTag::Pending) {
             Ok(StateUpdateResult::PendingStateUpdate(PendingStateUpdate {
                 old_root: state_update.old_root,
                 state_diff,

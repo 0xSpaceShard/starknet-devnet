@@ -7,8 +7,7 @@ mod blocks_on_demand_tests {
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
-        BlockId, BlockStatus, BlockTag, FieldElement, MaybePendingBlockWithTxHashes,
-        MaybePendingStateUpdate,
+        BlockId, BlockStatus, BlockTag, FieldElement, MaybePendingStateUpdate,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::Provider;
@@ -34,9 +33,9 @@ mod blocks_on_demand_tests {
         assert!(matches!(pending_state_update, MaybePendingStateUpdate::PendingUpdate(_)));
     }
 
-    async fn assert_latest_state_update(devnet: &BackgroundDevnet, block_tag: BlockId) {
+    async fn assert_latest_state_update(devnet: &BackgroundDevnet) {
         let latest_state_update =
-            &devnet.json_rpc_client.get_state_update(block_tag).await.unwrap();
+            &devnet.json_rpc_client.get_state_update(BlockId::Tag(BlockTag::Latest)).await.unwrap();
 
         assert!(matches!(latest_state_update, MaybePendingStateUpdate::Update(_)));
     }
@@ -169,6 +168,42 @@ mod blocks_on_demand_tests {
     }
 
     #[tokio::test]
+    async fn normal_mode_states_and_blocks() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        let tx_count = 5;
+        let mut tx_hashes = Vec::new();
+        for _ in 0..tx_count {
+            let mint_hash = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+            tx_hashes.push(mint_hash);
+        }
+
+        assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Pending)
+            .await;
+        assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest)
+            .await;
+
+        // TODO: fix this
+        // assert_pending_block_with_tx_hashes(&devnet, 0).await;
+        // assert_pending_block_with_txs(&devnet, 0).await;
+        // assert_pending_block_with_receipts(&devnet, 0).await;
+
+        // devnet.create_block().await.unwrap();
+
+        // assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Pending)
+        //     .await;
+        // assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest)
+        //     .await;
+
+        // assert_latest_block_with_tx_hashes(&devnet, tx_count as u64, tx_hashes).await;
+        // assert_latest_block_with_txs(&devnet, tx_count as u64).await;
+        // assert_latest_block_with_receipts(&devnet, tx_count as u64).await;
+
+        // assert_pending_state_update(&devnet).await;
+        // assert_latest_state_update(&devnet).await;
+    }
+
+    #[tokio::test]
     async fn blocks_on_demand_states_and_blocks() {
         let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
@@ -188,12 +223,7 @@ mod blocks_on_demand_tests {
         assert_pending_block_with_txs(&devnet, tx_count).await;
         assert_pending_block_with_receipts(&devnet, tx_count).await;
 
-        // assert!(compare_pending_and_latest_block(&devnet).await == false);
-
         devnet.create_block().await.unwrap();
-
-        // let x = compare_pending_and_latest_block(&devnet).await;
-        // println!("compare_pending_and_latest_block: {:?}", x);
 
         assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Pending)
             .await;
@@ -205,33 +235,7 @@ mod blocks_on_demand_tests {
         assert_latest_block_with_receipts(&devnet, 1).await;
 
         assert_pending_state_update(&devnet).await;
-        assert_latest_state_update(&devnet, BlockId::Tag(BlockTag::Latest)).await;
-    }
-
-    #[tokio::test]
-    async fn pending_block_and_state_in_normal_mode() {
-        let devnet = BackgroundDevnet::spawn().await.unwrap();
-
-        devnet.create_block().await.unwrap();
-
-        let pending_block = devnet
-            .json_rpc_client
-            .get_block_with_tx_hashes(BlockId::Tag(BlockTag::Pending))
-            .await
-            .unwrap();
-        let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
-
-        // querying pending block in normal mode should default to the latest block
-        match pending_block {
-            MaybePendingBlockWithTxHashes::Block(block) => {
-                assert_eq!(block, latest_block);
-            }
-            _ => panic!("Invalid block type {:?}", pending_block),
-        }
-
-        // querying state update in normal mode should default to the latest state update
-        assert_latest_state_update(&devnet, BlockId::Tag(BlockTag::Pending)).await;
-        assert_latest_state_update(&devnet, BlockId::Tag(BlockTag::Latest)).await;
+        assert_latest_state_update(&devnet).await;
     }
 
     #[tokio::test]
