@@ -48,7 +48,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 
 # misc
 base64 = { version = "0.22" }
-clap = { version = "4.3.2", features = ["derive"] }
+clap = { version = "4.3.2", features = ["derive", "env"] }
 flate2 = { version = ">= 1.0.26, < 1.0.27" }
 nonzero_ext = "0.3.0"
 serde = { version = "1.0.197", features = ["derive"] }
