@@ -17,7 +17,8 @@ mod blocks_on_demand_tests {
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
     use crate::common::utils::{
-        assert_tx_successful, get_simple_contract_in_sierra_and_compiled_class_hash,
+        assert_tx_successful, get_contract_balance, get_contract_balance_by_block_id,
+        get_simple_contract_in_sierra_and_compiled_class_hash,
     };
 
     static DUMMY_ADDRESS: u128 = 1;
@@ -56,13 +57,15 @@ mod blocks_on_demand_tests {
         }
     }
 
-    // async fn assert_pending_block_with_tx_hashes(devnet: &BackgroundDevnet) {
-    //     let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
+    async fn assert_pending_block_with_tx_hashes(devnet: &BackgroundDevnet, tx_count: u128) {
+        let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
 
-    //     for tx_hash in pending_block.transactions {
-    //         assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
-    //     }
-    // }
+        assert!(pending_block.transactions.len() as u128 == tx_count);
+
+        for tx_hash in pending_block.transactions {
+            assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
+        }
+    }
 
     async fn assert_latest_block_with_txs(devnet: &BackgroundDevnet, block_number: u64) {
         let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
@@ -75,13 +78,15 @@ mod blocks_on_demand_tests {
         }
     }
 
-    // async fn assert_pending_block_with_txs(devnet: &BackgroundDevnet) {
-    //     let pending_block = devnet.get_pending_block_with_txs().await.unwrap();
+    async fn assert_pending_block_with_txs(devnet: &BackgroundDevnet, tx_count: u128) {
+        let pending_block = devnet.get_pending_block_with_txs().await.unwrap();
 
-    //     for tx in pending_block.transactions {
-    //         assert_tx_successful(tx.transaction_hash(), &devnet.json_rpc_client).await;
-    //     }
-    // }
+        assert!(pending_block.transactions.len() as u128 == tx_count);
+
+        for tx in pending_block.transactions {
+            assert_tx_successful(tx.transaction_hash(), &devnet.json_rpc_client).await;
+        }
+    }
 
     async fn assert_latest_block_with_receipts(devnet: &BackgroundDevnet, block_number: u64) {
         let latest_block = &devnet
@@ -106,30 +111,30 @@ mod blocks_on_demand_tests {
         }
     }
 
-    // async fn assert_pending_block_with_receipts(devnet: &BackgroundDevnet) {
-    //     let pending_block = &devnet
-    //         .send_custom_rpc(
-    //             "starknet_getBlockWithReceipts",
-    //             json!(    {
-    //                 "block_id": "pending"
-    //             }),
-    //         )
-    //         .await["result"];
+    async fn assert_pending_block_with_receipts(devnet: &BackgroundDevnet, tx_count: u128) {
+        let pending_block = &devnet
+            .send_custom_rpc(
+                "starknet_getBlockWithReceipts",
+                json!(    {
+                    "block_id": "pending"
+                }),
+            )
+            .await["result"];
 
-    //     assert!(pending_block["status"].is_null());
+        assert!(pending_block["status"].is_null());
+        assert!(pending_block["transactions"].as_array().unwrap().len() as u128 == tx_count);
 
-    //     for tx in pending_block["transactions"].as_array().unwrap() {
-    //         assert_tx_successful(
-    //             &FieldElement::from_hex_be(tx["receipt"]["transaction_hash"].as_str().unwrap())
-    //                 .unwrap(),
-    //             &devnet.json_rpc_client,
-    //         )
-    //         .await;
-    //     }
-    // }
+        for tx in pending_block["transactions"].as_array().unwrap() {
+            assert_tx_successful(
+                &FieldElement::from_hex_be(tx["receipt"]["transaction_hash"].as_str().unwrap())
+                    .unwrap(),
+                &devnet.json_rpc_client,
+            )
+            .await;
+        }
+    }
 
-    // TODO: use it or not?
-    // async fn assert_pending_block_defaults_to_latest(devnet: &BackgroundDevnet) {
+    // async fn compare_pending_and_latest_block(devnet: &BackgroundDevnet) -> bool {
     //     let pending_block = &devnet
     //         .send_custom_rpc(
     //             "starknet_getBlockWithReceipts",
@@ -148,7 +153,7 @@ mod blocks_on_demand_tests {
     //         )
     //         .await["result"];
 
-    //     assert_eq!(pending_block, latest_block);
+    //     pending_block == latest_block
     // }
 
     async fn assert_balance(devnet: &BackgroundDevnet, expected: FieldElement, tag: BlockTag) {
@@ -179,18 +184,21 @@ mod blocks_on_demand_tests {
             .await;
         assert_balance(&devnet, FieldElement::from(0_u128), BlockTag::Latest).await;
 
-        // TODO: fix this later
-        // assert_pending_block_with_tx_hashes(&devnet).await;
-        // assert_pending_block_with_txs(&devnet).await;
-        // assert_pending_block_with_receipts(&devnet).await;
+        assert_pending_block_with_tx_hashes(&devnet, tx_count).await;
+        assert_pending_block_with_txs(&devnet, tx_count).await;
+        assert_pending_block_with_receipts(&devnet, tx_count).await;
+
+        // assert!(compare_pending_and_latest_block(&devnet).await == false);
 
         devnet.create_block().await.unwrap();
 
-        // TODO: fix this later
-        // assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Pending)
-        //     .await;
-        // assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest)
-        //     .await;
+        // let x = compare_pending_and_latest_block(&devnet).await;
+        // println!("compare_pending_and_latest_block: {:?}", x);
+
+        assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Pending)
+            .await;
+        assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest)
+            .await;
 
         assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await;
         assert_latest_block_with_txs(&devnet, 1).await;
@@ -264,7 +272,7 @@ mod blocks_on_demand_tests {
         let deploy_result = contract_factory
             .deploy(ctor_args.clone(), FieldElement::ZERO, false)
             .max_fee(FieldElement::from(1e18 as u128))
-            .nonce(FieldElement::ZERO) // TODO: nonce can be removed by set block it - do it later
+            .nonce(FieldElement::ONE) // TODO: nonce can be removed by set block it - do it later
             .send()
             .await
             .unwrap();
@@ -290,7 +298,7 @@ mod blocks_on_demand_tests {
             let invoke_result = predeployed_account
                 .execute(contract_invoke.clone())
                 .max_fee(FieldElement::from(1e18 as u128))
-                .nonce(FieldElement::from(n as u128))
+                .nonce(FieldElement::from(n + 1_u128))
                 .send()
                 .await
                 .unwrap();
@@ -300,33 +308,31 @@ mod blocks_on_demand_tests {
             tx_hashes.push(invoke_result.transaction_hash);
         }
 
-        // TODO: fix later
-        // assert_eq!(
-        //     get_contract_balance_by_block_id(
-        //         &devnet,
-        //         contract_address,
-        //         BlockId::Tag(BlockTag::Pending)
-        //     )
-        //     .await,
-        //     initial_value + (increment * FieldElement::from(tx_count as u128))
-        // );
+        assert_eq!(
+            get_contract_balance_by_block_id(
+                &devnet,
+                contract_address,
+                BlockId::Tag(BlockTag::Pending)
+            )
+            .await,
+            initial_value + (increment * FieldElement::from(tx_count))
+        );
 
         devnet.create_block().await.unwrap();
 
         assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await;
-        // TODO: fix later
-        // assert_eq!(
-        //     get_contract_balance_by_block_id(
-        //         &devnet,
-        //         contract_address,
-        //         BlockId::Tag(BlockTag::Pending)
-        //     )
-        //     .await,
-        //     initial_value + (increment * FieldElement::from(tx_count as u128))
-        // );
-        // assert_eq!(
-        //     get_contract_balance(&devnet, contract_address).await,
-        //     initial_value + (increment * FieldElement::from(tx_count as u128))
-        // );
+        assert_eq!(
+            get_contract_balance_by_block_id(
+                &devnet,
+                contract_address,
+                BlockId::Tag(BlockTag::Pending)
+            )
+            .await,
+            initial_value + (increment * FieldElement::from(tx_count))
+        );
+        assert_eq!(
+            get_contract_balance(&devnet, contract_address).await,
+            initial_value + (increment * FieldElement::from(tx_count))
+        );
     }
 }

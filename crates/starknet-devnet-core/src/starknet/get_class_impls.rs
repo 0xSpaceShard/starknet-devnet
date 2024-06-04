@@ -93,7 +93,7 @@ mod tests {
         )
         .unwrap();
 
-        acc.deploy(&mut starknet.state).unwrap();
+        acc.deploy(&mut starknet.pending_state).unwrap();
 
         starknet.block_context = Starknet::init_block_context(
             nonzero!(1u128),
@@ -136,7 +136,7 @@ mod tests {
     #[test]
     fn get_class_hash_at_generated_accounts() {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
-        let state_diff = starknet.state.commit_with_diff().unwrap();
+        let state_diff = starknet.pending_state.commit_with_diff().unwrap();
         starknet.generate_new_block(state_diff).unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
@@ -150,7 +150,7 @@ mod tests {
     #[test]
     fn get_class_hash_at_generated_accounts_without_state_archive() {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::None);
-        let state_diff = starknet.state.commit_with_diff().unwrap();
+        let state_diff = starknet.pending_state.commit_with_diff().unwrap();
         starknet.generate_new_block(state_diff).unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
@@ -166,7 +166,7 @@ mod tests {
     #[test]
     fn get_class_at_generated_accounts() {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
-        let state_diff = starknet.state.commit_with_diff().unwrap();
+        let state_diff = starknet.pending_state.commit_with_diff().unwrap();
         starknet.generate_new_block(state_diff).unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();

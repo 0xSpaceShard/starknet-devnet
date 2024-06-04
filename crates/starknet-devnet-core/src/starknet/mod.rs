@@ -205,8 +205,8 @@ impl Starknet {
         let starting_block_number =
             config.fork_config.block_number.map_or(DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, |n| n + 1);
         let mut this = Self {
-            state,
-            pending_state: Default::default(),
+            state: Default::default(),
+            pending_state: state,
             predeployed_accounts,
             block_context: Self::init_block_context(
                 config.gas_price_wei,
@@ -250,7 +250,7 @@ impl Starknet {
     }
 
     pub fn get_state(&mut self) -> &mut StarknetState {
-        if self.config.blocks_on_demand { &mut self.pending_state } else { &mut self.state }
+        &mut self.pending_state
     }
 
     pub fn restart(&mut self) -> DevnetResult<()> {
@@ -326,21 +326,20 @@ impl Starknet {
         // insert pending block in the blocks collection and connect it to the state diff
         self.blocks.insert(new_block, state_diff);
 
+        // clone_historic() requires self.historic_state, self.historic_state is set in
+        // expand_historic(), expand_historic() can be executed from commit_with_diff() - this
+        // is why self.pending_state.commit_with_diff()? is here
+        self.pending_state.commit_with_diff()?;
+
         // save into blocks state archive
         if self.config.state_archive == StateArchiveCapacity::Full {
-            let clone = self.state.clone_historic();
+            let clone = self.pending_state.clone_historic();
             self.blocks.save_state_at(new_block_hash, clone);
         }
 
         self.generate_pending_block()?;
 
-        // TODO: Seems that pending_state is always there and blocks_on_demand is just option to
-        // generate blocks or not
-
-        // clone_historic() requires self.historic_state, self.historic_state is set in
-        // expand_historic(), expand_historic() can be executed from commit_with_diff() - this
-        // is why self.pending_state.commit_with_diff() is here
-        self.pending_state.commit_with_diff()?;
+        // Clone pending state to state
         self.state = self.pending_state.clone_historic();
 
         Ok(new_block_hash)
@@ -452,10 +451,10 @@ impl Starknet {
         transaction: &TransactionWithHash,
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
-        let state_diff = self.state.commit_with_diff()?;
+        let state_diff = self.pending_state.commit_with_diff()?;
 
         let trace = create_trace(
-            &mut self.state.state,
+            &mut self.pending_state.state,
             transaction.get_type(),
             &tx_info,
             state_diff.clone().into(),
@@ -574,13 +573,6 @@ impl Starknet {
             SequencerContractAddress(self.block_context.block_info().sequencer_address);
 
         self.blocks.pending_block = block;
-
-        // TODO: rename to restart_pending_block_and_state
-
-        // ok that is all?
-        // commit_with_diff to state and clone to pending state
-        self.state.commit_with_diff()?;
-        self.pending_state = self.state.clone_historic();
 
         Ok(())
     }
@@ -884,7 +876,7 @@ impl Starknet {
             let reverted_state = self.blocks.hash_to_state.get(&current_block.block_hash()).ok_or(
                 Error::NoStateAtBlock { block_id: BlockId::Number(current_block.block_number().0) },
             )?;
-            self.state = reverted_state.clone_historic();
+            self.pending_state = reverted_state.clone_historic();
         }
 
         self.blocks.aborted_blocks = aborted.clone();
@@ -1268,7 +1260,7 @@ impl Starknet {
                 msg: "Account impersonation is supported when forking mode is enabled.".to_string(),
             });
         }
-        if self.state.is_contract_deployed_locally(account)? {
+        if self.pending_state.is_contract_deployed_locally(account)? {
             return Err(Error::UnsupportedAction {
                 msg: "Account is in local state, cannot be impersonated".to_string(),
             });
@@ -1386,10 +1378,12 @@ mod tests {
         let expected_balance = config.predeployed_accounts_initial_balance;
 
         for account in predeployed_accounts {
-            let account_balance = account.get_balance(&mut starknet.state, FeeToken::ETH).unwrap();
+            let account_balance =
+                account.get_balance(&mut starknet.pending_state, FeeToken::ETH).unwrap();
             assert_eq!(expected_balance, account_balance);
 
-            let account_balance = account.get_balance(&mut starknet.state, FeeToken::STRK).unwrap();
+            let account_balance =
+                account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap();
             assert_eq!(expected_balance, account_balance);
         }
     }
@@ -1736,7 +1730,11 @@ mod tests {
 
         // **generate second block**
         // add data to state
-        starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
+        starknet
+            .pending_state
+            .state
+            .increment_nonce(dummy_contract_address().try_into().unwrap())
+            .unwrap();
         // get state difference
         let state_diff = starknet.state.commit_with_diff().unwrap();
         // generate new block and save the state
@@ -1744,9 +1742,13 @@ mod tests {
 
         // **generate third block**
         // add data to state
-        starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
+        starknet
+            .pending_state
+            .state
+            .increment_nonce(dummy_contract_address().try_into().unwrap())
+            .unwrap();
         // get state difference
-        let state_diff = starknet.state.commit_with_diff().unwrap();
+        let state_diff = starknet.pending_state.commit_with_diff().unwrap();
         // generate new block and save the state
         let third_block = starknet.generate_new_block(state_diff).unwrap();
 
