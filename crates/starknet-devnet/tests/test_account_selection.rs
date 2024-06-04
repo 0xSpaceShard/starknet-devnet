@@ -111,6 +111,7 @@ mod test_account_selection {
     }
 
     #[tokio::test]
+    /// Relying on forking: the origin network is expected to have the account class declared.
     async fn can_deploy_new_argent_account() {
         let cli_args = ["--fork-network", MAINNET_URL];
         let devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();

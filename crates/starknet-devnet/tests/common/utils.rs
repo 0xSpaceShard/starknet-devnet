@@ -279,6 +279,7 @@ pub async fn declare_deploy(
     Ok((declaration_result.class_hash, contract_address))
 }
 
+/// Assumes the Cairo1 OpenZepplin contract is declared in the target network.
 pub async fn deploy_oz_account(
     devnet: &BackgroundDevnet,
 ) -> Result<(DeployAccountTransactionResult, LocalWallet), anyhow::Error> {
@@ -301,6 +302,7 @@ pub async fn deploy_oz_account(
     Ok((deployment_result, signer))
 }
 
+/// Assumes the Argent account contract is declared in the target network.
 pub async fn deploy_argent_account(
     devnet: &BackgroundDevnet,
 ) -> Result<(DeployAccountTransactionResult, LocalWallet), anyhow::Error> {
