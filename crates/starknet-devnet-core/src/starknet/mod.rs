@@ -339,7 +339,7 @@ impl Starknet {
 
         self.generate_pending_block()?;
 
-        // Clone pending state to state
+        // every new block we need to clone pending state to state
         self.state = self.pending_state.clone_historic();
 
         Ok(new_block_hash)
@@ -1450,7 +1450,6 @@ mod tests {
 
     #[test]
     fn successful_emptying_of_pending_block() {
-        // TODO: successful_emptying_of_pending_block_and_state
         let config = StarknetConfig { start_time: Some(0), ..Default::default() };
         let mut starknet = Starknet::new(&config).unwrap();
 
@@ -1476,8 +1475,6 @@ mod tests {
 
         // empty the pending to block and check if it is in starting state
         starknet.restart_pending_block().unwrap();
-
-        // TODO: also check state here !?
 
         assert!(*starknet.pending_block() != pending_block);
         assert_eq!(starknet.pending_block().status, BlockStatus::Pending);
