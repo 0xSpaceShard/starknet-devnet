@@ -103,7 +103,7 @@ pub(crate) struct Args {
 
     // Gas price in strk
     #[arg(long = "gas-price-strk")]
-    #[arg(env = "GAS_PRICE_STKR")]
+    #[arg(env = "GAS_PRICE_STRK")]
     #[arg(value_name = "STRK_PER_GAS_UNIT")]
     #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
     #[arg(help = "Specify the gas price in strk per gas unit;")]
@@ -491,5 +491,72 @@ mod tests {
             assert_eq!(log_request, should_log_request);
             assert_eq!(log_response, should_log_response);
         }
+    }
+
+    #[test]
+    fn test_env_vars_have_same_effect_as_cli_params() {
+        let mut cli_args = vec!["--"];
+        let config_truth = [
+            ("--accounts", "ACCOUNTS", "1"),
+            ("--account-class", "ACCOUNT_CLASS", "cairo0"),
+            ("--initial-balance", "INITIAL_BALANCE", "1"),
+            ("--seed", "SEED", "43"),
+            ("--port", "PORT", "1234"),
+            ("--start-time", "START_TIME", "123"),
+            ("--timeout", "TIMEOUT", "12"),
+            ("--gas-price", "GAS_PRICE", "1"),
+            ("--gas-price-strk", "GAS_PRICE_STRK", "2"),
+            ("--data-gas-price", "DATA_GAS_PRICE", "3"),
+            ("--data-gas-price-strk", "DATA_GAS_PRICE_STRK", "4"),
+            ("--chain-id", "CHAIN_ID", "MAINNET"),
+            ("--dump-on", "DUMP_ON", "exit"),
+            ("--dump-path", "DUMP_PATH", "dummy-path"),
+            ("--state-archive-capacity", "STATE_ARCHIVE_CAPACITY", "full"),
+            ("--fork-network", "FORK_NETWORK", "http://dummy.com"),
+            ("--fork-block", "FORK_BLOCK", "42"),
+            ("--request-body-size-limit", "REQUEST_BODY_SIZE_LIMIT", "100"),
+        ];
+        for (cli_param, _, value) in config_truth {
+            cli_args.push(cli_param);
+            cli_args.push(value);
+        }
+
+        let config_via_cli = Args::parse_from(cli_args).to_config().unwrap();
+
+        for (_, var_name, value) in config_truth {
+            std::env::set_var(var_name, value);
+        }
+        let config_via_env = Args::parse_from(["--"]).to_config().unwrap();
+
+        assert_eq!(
+            serde_json::to_value(config_via_cli).unwrap(),
+            serde_json::to_value(config_via_env).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_boolean_param_specification_via_env_vars() {
+        let mut cli_args = vec!["--"];
+        let config_truth =
+            [("--lite-mode", "LITE_MODE"), ("--blocks-on-demand", "BLOCKS_ON_DEMAND")];
+        for (cli_param, _) in config_truth {
+            cli_args.push(cli_param);
+        }
+
+        let mut config_via_cli =
+            serde_json::to_value(Args::parse_from(cli_args).to_config().unwrap()).unwrap();
+
+        for (_, var_name) in config_truth {
+            std::env::set_var(var_name, "true");
+        }
+        let mut config_via_env =
+            serde_json::to_value(Args::parse_from(["--"]).to_config().unwrap()).unwrap();
+
+        // Removing seed as it is generated randomly - it would make the compared objects different.
+        // to_config returns two config parts, so using index 0 to address starknet_config.
+        config_via_cli[0]["seed"].take();
+        config_via_env[0]["seed"].take();
+
+        assert_eq!(config_via_cli, config_via_env);
     }
 }
