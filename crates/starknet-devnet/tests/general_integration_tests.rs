@@ -84,7 +84,7 @@ mod general_integration_tests {
                 "timeout": 121,
                 "request_body_size_limit": 1000,
             },
-            "block_generation": "ON_DEMAND",
+            "block_generation": "on_demand",
             "lite_mode": false
         });
 
@@ -112,7 +112,7 @@ mod general_integration_tests {
             "--dump-path",
             &expected_config["dump_path"].as_str().unwrap(),
             "--block_generation",
-            "ON_DEMAND",
+            "on_demand",
             "--state-archive-capacity",
             &expected_config["state_archive"].as_str().unwrap(),
             "--host",

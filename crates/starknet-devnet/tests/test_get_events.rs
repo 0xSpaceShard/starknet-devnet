@@ -148,7 +148,7 @@ mod get_events_integration_tests {
     #[tokio::test]
     async fn get_events_correct_chunking_blocks_generation_on_demand() {
         let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--block_generation", "ON_DEMAND"])
+            BackgroundDevnet::spawn_with_additional_args(&["--block_generation", "on_demand"])
                 .await
                 .expect("Could not start Devnet");
 

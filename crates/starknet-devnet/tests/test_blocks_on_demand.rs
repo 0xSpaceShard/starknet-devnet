@@ -187,7 +187,7 @@ mod blocks_generation_tests {
     #[tokio::test]
     async fn blocks_generation_on_demand_states_and_blocks() {
         let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--block-generation", "ON_DEMAND"])
+            BackgroundDevnet::spawn_with_additional_args(&["--block-generation", "on_demand"])
                 .await
                 .unwrap();
 
@@ -233,7 +233,7 @@ mod blocks_generation_tests {
     #[tokio::test]
     async fn blocks_generation_on_demand_invoke_and_call() {
         let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--block-generation", "ON_DEMAND"])
+            BackgroundDevnet::spawn_with_additional_args(&["--block-generation", "on_demand"])
                 .await
                 .unwrap();
 
