@@ -6,7 +6,6 @@ mod abort_blocks_tests {
     use starknet_rs_core::types::FieldElement;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
-    // use starknet_types::rpc::transaction_receipt::FeeUnit;
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
     use crate::common::utils::{assert_tx_reverted, to_hex_felt};

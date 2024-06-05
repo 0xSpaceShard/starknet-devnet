@@ -292,13 +292,13 @@ mod test_account_selection {
             .get_nonce(BlockId::Tag(BlockTag::Pending), account_address)
             .await
             .unwrap();
+        assert_eq!(pending_block_nonce, FieldElement::ZERO);
 
         let latest_block_nonce = devnet
             .json_rpc_client
             .get_nonce(BlockId::Tag(BlockTag::Latest), account_address)
             .await
             .unwrap();
-
-        assert_eq!(pending_block_nonce, latest_block_nonce);
+        assert_eq!(latest_block_nonce, FieldElement::ZERO);
     }
 }
