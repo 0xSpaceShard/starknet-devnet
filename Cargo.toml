@@ -107,3 +107,6 @@ lazy_static = { version = "1.4.0" }
 ethers = { version = "2.0.11" }
 
 openssl = { version = "0.10", features = ["vendored"] }
+
+# Dev dependencies
+serial_test = "3.1.1"

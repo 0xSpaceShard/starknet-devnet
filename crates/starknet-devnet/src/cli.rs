@@ -473,6 +473,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_variants_of_env_var() {
         for (environment_variable, should_log_request, should_log_response) in [
             ("request,response,info", true, true),
@@ -494,9 +495,9 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_env_vars_have_same_effect_as_cli_params() {
-        let mut cli_args = vec!["--"];
-        let config_truth = [
+        let config_source = [
             ("--accounts", "ACCOUNTS", "1"),
             ("--account-class", "ACCOUNT_CLASS", "cairo0"),
             ("--initial-balance", "INITIAL_BALANCE", "1"),
@@ -516,14 +517,16 @@ mod tests {
             ("--fork-block", "FORK_BLOCK", "42"),
             ("--request-body-size-limit", "REQUEST_BODY_SIZE_LIMIT", "100"),
         ];
-        for (cli_param, _, value) in config_truth {
+
+        let mut cli_args = vec!["--"];
+        for (cli_param, _, value) in config_source {
             cli_args.push(cli_param);
             cli_args.push(value);
         }
 
         let config_via_cli = Args::parse_from(cli_args).to_config().unwrap();
 
-        for (_, var_name, value) in config_truth {
+        for (_, var_name, value) in config_source {
             std::env::set_var(var_name, value);
         }
         let config_via_env = Args::parse_from(["--"]).to_config().unwrap();
@@ -532,21 +535,28 @@ mod tests {
             serde_json::to_value(config_via_cli).unwrap(),
             serde_json::to_value(config_via_env).unwrap()
         );
+
+        // remove var to avoid collision with other tests
+        for (_, var_name, _) in config_source {
+            std::env::remove_var(var_name);
+        }
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_boolean_param_specification_via_env_vars() {
-        let mut cli_args = vec!["--"];
-        let config_truth =
+        let config_source =
             [("--lite-mode", "LITE_MODE"), ("--blocks-on-demand", "BLOCKS_ON_DEMAND")];
-        for (cli_param, _) in config_truth {
+
+        let mut cli_args = vec!["--"];
+        for (cli_param, _) in config_source {
             cli_args.push(cli_param);
         }
 
         let mut config_via_cli =
             serde_json::to_value(Args::parse_from(cli_args).to_config().unwrap()).unwrap();
 
-        for (_, var_name) in config_truth {
+        for (_, var_name) in config_source {
             std::env::set_var(var_name, "true");
         }
         let mut config_via_env =
@@ -558,5 +568,10 @@ mod tests {
         config_via_env[0]["seed"].take();
 
         assert_eq!(config_via_cli, config_via_env);
+
+        // remove var to avoid collision with other tests
+        for (var_name, _) in config_source {
+            std::env::remove_var(var_name);
+        }
     }
 }
