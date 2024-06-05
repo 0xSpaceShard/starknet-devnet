@@ -251,7 +251,7 @@ mod blocks_on_demand_tests {
         let declaration_result = predeployed_account
             .declare(Arc::new(contract_class), casm_class_hash)
             .max_fee(FieldElement::from(1e18 as u128))
-            .nonce(FieldElement::ZERO) // TODO: nonce can be removed by set block it - do it later
+            .nonce(FieldElement::ZERO)
             .send()
             .await
             .unwrap();
@@ -266,7 +266,7 @@ mod blocks_on_demand_tests {
         let deploy_result = contract_factory
             .deploy(ctor_args.clone(), FieldElement::ZERO, false)
             .max_fee(FieldElement::from(1e18 as u128))
-            .nonce(FieldElement::ONE) // TODO: nonce can be removed by set block it - do it later
+            .nonce(FieldElement::ONE)
             .send()
             .await
             .unwrap();
