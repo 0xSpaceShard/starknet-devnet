@@ -66,11 +66,16 @@ mod blocks_on_demand_tests {
         }
     }
 
-    async fn assert_latest_block_with_txs(devnet: &BackgroundDevnet, block_number: u64) {
+    async fn assert_latest_block_with_txs(
+        devnet: &BackgroundDevnet,
+        block_number: u64,
+        tx_count: u128,
+    ) {
         let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
 
         assert_eq!(latest_block.block_number, block_number);
         assert_eq!(latest_block.status, BlockStatus::AcceptedOnL2);
+        assert!(latest_block.transactions.len() as u128 == tx_count);
 
         for tx in latest_block.transactions {
             assert_tx_successful(tx.transaction_hash(), &devnet.json_rpc_client).await;
@@ -87,7 +92,11 @@ mod blocks_on_demand_tests {
         }
     }
 
-    async fn assert_latest_block_with_receipts(devnet: &BackgroundDevnet, block_number: u64) {
+    async fn assert_latest_block_with_receipts(
+        devnet: &BackgroundDevnet,
+        block_number: u64,
+        tx_count: u128,
+    ) {
         let latest_block = &devnet
             .send_custom_rpc(
                 "starknet_getBlockWithReceipts",
@@ -97,6 +106,7 @@ mod blocks_on_demand_tests {
             )
             .await["result"];
 
+        assert_eq!(latest_block["transactions"].as_array().unwrap().len() as u128, tx_count);
         assert_eq!(latest_block["block_number"], block_number);
         assert_eq!(latest_block["status"], "ACCEPTED_ON_L2");
 
@@ -133,28 +143,6 @@ mod blocks_on_demand_tests {
         }
     }
 
-    // async fn compare_pending_and_latest_block(devnet: &BackgroundDevnet) -> bool {
-    //     let pending_block = &devnet
-    //         .send_custom_rpc(
-    //             "starknet_getBlockWithReceipts",
-    //             json!(    {
-    //                 "block_id": "pending"
-    //             }),
-    //         )
-    //         .await["result"];
-
-    //     let latest_block = &devnet
-    //         .send_custom_rpc(
-    //             "starknet_getBlockWithReceipts",
-    //             json!(    {
-    //                 "block_id": "latest"
-    //             }),
-    //         )
-    //         .await["result"];
-
-    //     pending_block == latest_block
-    // }
-
     async fn assert_balance(devnet: &BackgroundDevnet, expected: FieldElement, tag: BlockTag) {
         let balance = devnet
             .get_balance_by_tag(
@@ -183,24 +171,17 @@ mod blocks_on_demand_tests {
         assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest)
             .await;
 
-        // TODO: fix this
-        // assert_pending_block_with_tx_hashes(&devnet, 0).await;
-        // assert_pending_block_with_txs(&devnet, 0).await;
-        // assert_pending_block_with_receipts(&devnet, 0).await;
+        assert_pending_block_with_tx_hashes(&devnet, 0).await;
+        assert_pending_block_with_txs(&devnet, 0).await;
+        assert_pending_block_with_receipts(&devnet, 0).await;
 
-        // devnet.create_block().await.unwrap();
+        assert_latest_block_with_tx_hashes(&devnet, 5, vec![tx_hashes.last().copied().unwrap()])
+            .await;
+        assert_latest_block_with_txs(&devnet, 5, 1).await;
+        assert_latest_block_with_receipts(&devnet, 5, 1).await;
 
-        // assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Pending)
-        //     .await;
-        // assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest)
-        //     .await;
-
-        // assert_latest_block_with_tx_hashes(&devnet, tx_count as u64, tx_hashes).await;
-        // assert_latest_block_with_txs(&devnet, tx_count as u64).await;
-        // assert_latest_block_with_receipts(&devnet, tx_count as u64).await;
-
-        // assert_pending_state_update(&devnet).await;
-        // assert_latest_state_update(&devnet).await;
+        assert_pending_state_update(&devnet).await;
+        assert_latest_state_update(&devnet).await;
     }
 
     #[tokio::test]
@@ -223,6 +204,11 @@ mod blocks_on_demand_tests {
         assert_pending_block_with_txs(&devnet, tx_count).await;
         assert_pending_block_with_receipts(&devnet, tx_count).await;
 
+        assert_latest_block_with_tx_hashes(&devnet, 0, vec![]).await;
+        assert_latest_block_with_txs(&devnet, 0, 0).await;
+        assert_latest_block_with_receipts(&devnet, 0, 0).await;
+
+        // create new block from pending block
         devnet.create_block().await.unwrap();
 
         assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Pending)
@@ -230,9 +216,13 @@ mod blocks_on_demand_tests {
         assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest)
             .await;
 
+        assert_pending_block_with_tx_hashes(&devnet, 0).await;
+        assert_pending_block_with_txs(&devnet, 0).await;
+        assert_pending_block_with_receipts(&devnet, 0).await;
+
         assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await;
-        assert_latest_block_with_txs(&devnet, 1).await;
-        assert_latest_block_with_receipts(&devnet, 1).await;
+        assert_latest_block_with_txs(&devnet, 1, tx_count).await;
+        assert_latest_block_with_receipts(&devnet, 1, tx_count).await;
 
         assert_pending_state_update(&devnet).await;
         assert_latest_state_update(&devnet).await;
