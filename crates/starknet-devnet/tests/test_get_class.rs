@@ -55,7 +55,7 @@ mod get_class_tests {
             devnet.clone_provider(),
             signer.clone(),
             account_address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::New,
         ));
 
@@ -92,7 +92,7 @@ mod get_class_tests {
             devnet.clone_provider(),
             signer.clone(),
             account_address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::New,
         ));
 
