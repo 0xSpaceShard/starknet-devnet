@@ -240,7 +240,7 @@ impl TryFrom<Cairo0Json> for blockifier::execution::contract_class::ContractClas
 
 pub fn json_into_raw_program(json_data: &Value) -> DevnetResult<Vec<u8>> {
     let mut buffer = Vec::new();
-    let encoder = GzEncoder::new(&mut buffer, Compression::default());
+    let encoder = GzEncoder::new(&mut buffer, Compression::best());
     serde_json::to_writer(encoder, &json_data).map_err(JsonError::SerdeJsonError)?;
 
     Ok(buffer)
