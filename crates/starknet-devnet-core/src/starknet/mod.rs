@@ -875,6 +875,10 @@ impl Starknet {
             let reverted_state = self.blocks.hash_to_state.get(&current_block.block_hash()).ok_or(
                 Error::NoStateAtBlock { block_id: BlockId::Number(current_block.block_number().0) },
             )?;
+
+            // in the abort block scenario, we need to revert state and pending_state to be able to
+            // use the calls properly
+            self.state = reverted_state.clone_historic();
             self.pending_state = reverted_state.clone_historic();
         }
 
