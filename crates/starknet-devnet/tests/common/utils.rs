@@ -5,14 +5,17 @@ use std::process::{Child, Command};
 use std::sync::Arc;
 
 use server::test_utils::exported_test_utils::assert_contains;
+use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
 use starknet_core::random_number_generator::generate_u32_random_number;
 use starknet_core::utils::casm_hash;
-use starknet_rs_accounts::{Account, SingleOwnerAccount};
+use starknet_rs_accounts::{
+    Account, AccountFactory, ArgentAccountFactory, OpenZeppelinAccountFactory, SingleOwnerAccount,
+};
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, ContractClass, ExecutionResult, FieldElement, FlattenedSierraClass,
-    FunctionCall,
+    BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult,
+    FieldElement, FlattenedSierraClass, FunctionCall,
 };
 use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -20,7 +23,7 @@ use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::LocalWallet;
 
 use super::background_devnet::BackgroundDevnet;
-use super::constants::CAIRO_1_CONTRACT_PATH;
+use super::constants::{ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_CONTRACT_PATH, CHAIN_ID};
 
 pub enum ImpersonationAction {
     ImpersonateAccount(FieldElement),
@@ -282,6 +285,53 @@ pub async fn declare_deploy(
     );
 
     Ok((declaration_result.class_hash, contract_address))
+}
+
+/// Assumes the Cairo1 OpenZepplin contract is declared in the target network.
+pub async fn deploy_oz_account(
+    devnet: &BackgroundDevnet,
+) -> Result<(DeployAccountTransactionResult, LocalWallet), anyhow::Error> {
+    let signer = get_deployable_account_signer();
+    let salt = FieldElement::THREE;
+    let factory = OpenZeppelinAccountFactory::new(
+        FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH)?,
+        CHAIN_ID,
+        signer.clone(),
+        devnet.clone_provider(),
+    )
+    .await?;
+
+    let deployment = factory.deploy(salt);
+
+    let account_address = deployment.address();
+    devnet.mint(account_address, 1e18 as u128).await;
+    let deployment_result = deployment.send().await?;
+
+    Ok((deployment_result, signer))
+}
+
+/// Assumes the Argent account contract is declared in the target network.
+pub async fn deploy_argent_account(
+    devnet: &BackgroundDevnet,
+) -> Result<(DeployAccountTransactionResult, LocalWallet), anyhow::Error> {
+    let signer = get_deployable_account_signer();
+    let salt = FieldElement::THREE;
+    let factory = ArgentAccountFactory::new(
+        FieldElement::from_hex_be(ARGENT_ACCOUNT_CLASS_HASH)?,
+        CHAIN_ID,
+        FieldElement::ZERO,
+        signer.clone(),
+        devnet.clone_provider(),
+    )
+    .await?;
+
+    let deployment = factory.deploy(salt);
+
+    let account_address = deployment.address();
+    devnet.mint(account_address, 1e18 as u128).await;
+    let deployment_result = deployment.send().await?;
+
+    Ok((deployment_result, signer))
 }
 
 #[cfg(test)]
