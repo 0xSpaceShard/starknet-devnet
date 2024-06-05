@@ -16,6 +16,7 @@ use crate::constants::{
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum, Serialize)]
 #[serde(rename_all = "snake_case")]
+#[clap(rename_all = "snake_case")] // TODO: is this needed here or not?
 pub enum DumpOn {
     Exit,
     Block,
@@ -23,11 +24,19 @@ pub enum DumpOn {
 
 #[derive(Default, Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum, Serialize)]
 #[serde(rename_all = "snake_case")]
-#[clap(rename_all = "snake_case")]
+#[clap(rename_all = "snake_case")] // TODO: is this needed here or not?
 pub enum StateArchiveCapacity {
     #[default]
     None,
     Full,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum, Serialize)]
+#[serde(rename_all = "snake_case")]
+#[clap(rename_all = "snake_case")] // TODO: is this needed here or not?
+pub enum BlockGeneration {
+    OnDemand,
+    Periodic,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -79,7 +88,7 @@ pub struct StarknetConfig {
     pub chain_id: ChainId,
     pub dump_on: Option<DumpOn>,
     pub dump_path: Option<String>,
-    pub blocks_on_demand: bool,
+    pub block_generation: Option<BlockGeneration>,
     pub lite_mode: bool,
     /// on initialization, re-execute loaded txs (if any)
     #[serde(skip_serializing)]
@@ -108,7 +117,7 @@ impl Default for StarknetConfig {
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
             dump_on: None,
             dump_path: None,
-            blocks_on_demand: false,
+            block_generation: None,
             lite_mode: false,
             re_execute_on_init: true,
             state_archive: StateArchiveCapacity::default(),

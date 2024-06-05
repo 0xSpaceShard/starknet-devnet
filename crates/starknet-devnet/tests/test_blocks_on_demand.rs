@@ -1,6 +1,6 @@
 pub mod common;
 
-mod blocks_on_demand_tests {
+mod blocks_generation_tests {
     use std::sync::Arc;
 
     use serde_json::json;
@@ -185,9 +185,11 @@ mod blocks_on_demand_tests {
     }
 
     #[tokio::test]
-    async fn blocks_on_demand_states_and_blocks() {
+    async fn blocks_generation_on_demand_states_and_blocks() {
         let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
+            BackgroundDevnet::spawn_with_additional_args(&["--block-generation", "ON_DEMAND"])
+                .await
+                .unwrap();
 
         let tx_count = 5;
         let mut tx_hashes = Vec::new();
@@ -229,9 +231,11 @@ mod blocks_on_demand_tests {
     }
 
     #[tokio::test]
-    async fn blocks_on_demand_invoke_and_call() {
+    async fn blocks_generation_on_demand_invoke_and_call() {
         let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
+            BackgroundDevnet::spawn_with_additional_args(&["--block-generation", "ON_DEMAND"])
+                .await
+                .unwrap();
 
         let mut tx_hashes = Vec::new();
 

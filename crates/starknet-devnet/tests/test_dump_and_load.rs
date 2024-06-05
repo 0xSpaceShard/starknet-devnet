@@ -101,7 +101,7 @@ mod dump_and_load_tests {
     }
 
     #[tokio::test]
-    async fn dump_and_load_blocks_on_demand() {
+    async fn dump_and_load_blocks_generation_on_demand() {
         let modes = vec!["exit", "block"];
 
         for mode in modes {
@@ -116,7 +116,8 @@ mod dump_and_load_tests {
                     &dump_file.path,
                     "--dump-on",
                     mode,
-                    "--blocks-on-demand",
+                    "--block-generation",
+                    "ON_DEMAND",
                 ])
                 .await
                 .expect("Could not start Devnet");
@@ -133,7 +134,8 @@ mod dump_and_load_tests {
                 &dump_file.path,
                 "--dump-on",
                 mode,
-                "--blocks-on-demand",
+                "--block-generation",
+                "ON_DEMAND",
             ])
             .await
             .expect("Could not start Devnet");

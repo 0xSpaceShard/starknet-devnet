@@ -72,8 +72,11 @@ pub async fn mint(
         .await
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
 
-    let block_tag =
-        if starknet.config.blocks_on_demand { BlockTag::Pending } else { BlockTag::Latest };
+    let block_tag = if starknet.config.block_generation.is_some() {
+        BlockTag::Pending
+    } else {
+        BlockTag::Latest
+    };
 
     let new_balance = get_balance(&mut starknet, request.address, erc20_address, block_tag)
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;

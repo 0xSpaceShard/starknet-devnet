@@ -19,7 +19,10 @@ mod get_events_integration_tests {
     /// The test starts a devnet, gets the first predeployed account, using it declares and deploys
     /// a contract that emits events.
     /// Then the events are being fetched first all of them then in chunks
-    async fn get_events_correct_chunking(devnet: &BackgroundDevnet, block_on_demand: bool) {
+    async fn get_events_correct_chunking(
+        devnet: &BackgroundDevnet,
+        block_generation_on_demand: bool,
+    ) {
         let (signer, address) = devnet.get_first_predeployed_account().await;
         let predeployed_account = SingleOwnerAccount::new(
             devnet.clone_provider(),
@@ -42,7 +45,7 @@ mod get_events_integration_tests {
 
         let predeployed_account = Arc::new(predeployed_account);
 
-        if block_on_demand {
+        if block_generation_on_demand {
             devnet.create_block().await.unwrap();
         }
 
@@ -56,7 +59,7 @@ mod get_events_integration_tests {
             .await
             .unwrap();
 
-        if block_on_demand {
+        if block_generation_on_demand {
             devnet.create_block().await.unwrap();
         }
 
@@ -87,7 +90,7 @@ mod get_events_integration_tests {
                 .unwrap();
         }
 
-        if block_on_demand {
+        if block_generation_on_demand {
             devnet.create_block().await.unwrap();
         }
 
@@ -143,10 +146,11 @@ mod get_events_integration_tests {
     }
 
     #[tokio::test]
-    async fn get_events_correct_chunking_blocks_on_demand_mode() {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
-            .await
-            .expect("Could not start Devnet");
+    async fn get_events_correct_chunking_blocks_generation_on_demand() {
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--block_generation", "ON_DEMAND"])
+                .await
+                .expect("Could not start Devnet");
 
         get_events_correct_chunking(&devnet, true).await
     }

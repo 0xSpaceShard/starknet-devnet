@@ -9,7 +9,7 @@ use starknet_core::constants::{
 use starknet_core::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use starknet_core::random_number_generator::generate_u32_random_number;
 use starknet_core::starknet::starknet_config::{
-    DumpOn, ForkConfig, StarknetConfig, StateArchiveCapacity,
+    BlockGeneration, DumpOn, ForkConfig, StarknetConfig, StateArchiveCapacity,
 };
 use starknet_types::chain_id::ChainId;
 use tracing_subscriber::EnvFilter;
@@ -135,9 +135,14 @@ pub(crate) struct Args {
     #[arg(help = "Specify the path to dump to;")]
     dump_path: Option<String>,
 
-    #[arg(long = "blocks-on-demand")]
-    #[arg(help = "Introduces block generation on demand via /create_block endpoint;")]
-    blocks_on_demand: bool,
+    #[arg(long = "block-generation")]
+    #[arg(help = "Introduces block generation on demand via /create_block endpoint or in time \
+                  periods with --block-generation-period;")]
+    block_generation: Option<BlockGeneration>,
+
+    #[arg(long = "block-generation-period")]
+    #[arg(requires = "block_generation")]
+    block_generation_period: Option<u64>,
 
     #[arg(long = "state-archive-capacity")]
     #[arg(value_name = "STATE_ARCHIVE_CAPACITY")]
@@ -188,7 +193,7 @@ impl Args {
             chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
-            blocks_on_demand: self.blocks_on_demand,
+            block_generation: self.block_generation,
             lite_mode: self.lite_mode,
             re_execute_on_init: true,
             state_archive: self.state_archive,
