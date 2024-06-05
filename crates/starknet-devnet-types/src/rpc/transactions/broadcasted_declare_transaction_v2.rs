@@ -1,19 +1,9 @@
-use blockifier::transaction::transactions::DeclareTransaction;
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
-use starknet_rs_core::crypto::compute_hash_on_elements;
-use starknet_rs_ff::FieldElement;
 
-use super::broadcasted_declare_transaction_v1::PREFIX_DECLARE;
 use crate::contract_address::ContractAddress;
-use crate::contract_class::{compute_sierra_class_hash, ContractClass};
-use crate::error::DevnetResult;
-use crate::felt::{
-    ClassHash, CompiledClassHash, Felt, Nonce, TransactionHash, TransactionSignature,
-    TransactionVersion,
-};
-use crate::rpc::transactions::declare_transaction_v2::DeclareTransactionV2;
+use crate::felt::{CompiledClassHash, Nonce, TransactionSignature, TransactionVersion};
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 
@@ -50,59 +40,6 @@ impl BroadcastedDeclareTransactionV2 {
             },
         }
     }
-
-    pub fn create_declare(
-        &self,
-        class_hash: ClassHash,
-        transaction_hash: TransactionHash,
-    ) -> DeclareTransactionV2 {
-        DeclareTransactionV2 {
-            class_hash,
-            compiled_class_hash: self.compiled_class_hash,
-            sender_address: self.sender_address,
-            nonce: self.common.nonce,
-            max_fee: self.common.max_fee,
-            version: self.common.version,
-            transaction_hash,
-            signature: self.common.signature.clone(),
-        }
-    }
-
-    pub fn create_blockifier_declare(&self, chain_id: Felt) -> DevnetResult<DeclareTransaction> {
-        let sierra_class_hash: Felt = compute_sierra_class_hash(&self.contract_class)?;
-
-        let sn_api_declare = starknet_api::transaction::DeclareTransaction::V2(
-            starknet_api::transaction::DeclareTransactionV2 {
-                max_fee: self.common.max_fee,
-                signature: starknet_api::transaction::TransactionSignature(
-                    self.common.signature.iter().map(|&felt| felt.into()).collect(),
-                ),
-                nonce: starknet_api::core::Nonce(self.common.nonce.into()),
-                class_hash: sierra_class_hash.into(),
-                compiled_class_hash: self.compiled_class_hash.into(),
-                sender_address: self.sender_address.try_into()?,
-            },
-        );
-
-        let txn_hash: Felt = compute_hash_on_elements(&[
-            PREFIX_DECLARE,
-            self.common.version.into(),
-            self.sender_address.into(),
-            FieldElement::ZERO, // entry_point_selector
-            compute_hash_on_elements(&[sierra_class_hash.into()]),
-            self.common.max_fee.0.into(),
-            FieldElement::from(chain_id),
-            self.common.nonce.into(),
-            self.compiled_class_hash.into(),
-        ])
-        .into();
-
-        Ok(DeclareTransaction::new(
-            sn_api_declare,
-            starknet_api::transaction::TransactionHash(txn_hash.into()),
-            ContractClass::Cairo1(self.contract_class.clone()).try_into()?,
-        )?)
-    }
 }
 
 #[cfg(test)]
@@ -115,6 +52,7 @@ mod tests {
     use crate::contract_class::ContractClass;
     use crate::felt::Felt;
     use crate::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+    use crate::rpc::transactions::BroadcastedDeclareTransaction;
     use crate::traits::ToHexString;
 
     #[derive(Deserialize)]
@@ -165,9 +103,10 @@ mod tests {
             feeder_gateway_transaction.version,
         );
 
-        let blockifier_declare_transaction = broadcasted_declare_transaction
-            .create_blockifier_declare(ChainId::Testnet.to_felt())
-            .unwrap();
+        let blockifier_declare_transaction =
+            BroadcastedDeclareTransaction::V2(Box::new(broadcasted_declare_transaction))
+                .create_blockifier_declare(&ChainId::goerli_legacy_id())
+                .unwrap();
 
         assert_eq!(
             feeder_gateway_transaction.class_hash,

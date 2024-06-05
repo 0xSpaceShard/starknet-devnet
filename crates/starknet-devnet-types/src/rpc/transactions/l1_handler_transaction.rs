@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use blockifier::transaction::transactions::L1HandlerTransaction as BlockifierL1HandlerTransaction;
+use serde::{Deserialize, Serialize};
 use starknet_api::core::{
     ContractAddress as ApiContractAddress, EntryPointSelector as ApiEntryPointSelector,
     Nonce as ApiNonce,
@@ -12,11 +13,11 @@ use starknet_api::transaction::{
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_core::types::FieldElement;
 
+use super::{deserialize_paid_fee_on_l1, serialize_paid_fee_on_l1};
 use crate::contract_address::ContractAddress;
 use crate::error::{ConversionError, DevnetResult, Error};
-use crate::felt::Felt;
+use crate::felt::{Calldata, EntryPointSelector, Felt, Nonce, TransactionVersion};
 use crate::rpc::messaging::MessageToL2;
-use crate::rpc::transactions::L1HandlerTransaction;
 
 /// Cairo string for "l1_handler"
 const PREFIX_L1_HANDLER: FieldElement = FieldElement::from_mont([
@@ -26,13 +27,22 @@ const PREFIX_L1_HANDLER: FieldElement = FieldElement::from_mont([
     157895833347907735,
 ]);
 
-impl L1HandlerTransaction {
-    /// Instantiates a new `L1HandlerTransaction`.
-    pub fn with_hash(mut self, chain_id: Felt) -> Self {
-        self.transaction_hash = self.compute_hash(chain_id);
-        self
-    }
+#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct L1HandlerTransaction {
+    pub version: TransactionVersion,
+    pub nonce: Nonce,
+    pub contract_address: ContractAddress,
+    pub entry_point_selector: EntryPointSelector,
+    pub calldata: Calldata,
+    #[serde(
+        serialize_with = "serialize_paid_fee_on_l1",
+        deserialize_with = "deserialize_paid_fee_on_l1"
+    )]
+    pub paid_fee_on_l1: u128,
+}
 
+impl L1HandlerTransaction {
     /// Computes the hash of a `L1HandlerTransaction`.
     ///
     /// # Arguments
@@ -62,7 +72,10 @@ impl L1HandlerTransaction {
     }
 
     /// Creates a blockifier version of `L1HandlerTransaction`.
-    pub fn create_blockifier_transaction(&self) -> DevnetResult<BlockifierL1HandlerTransaction> {
+    pub fn create_blockifier_transaction(
+        &self,
+        chain_id: Felt,
+    ) -> DevnetResult<BlockifierL1HandlerTransaction> {
         let transaction = BlockifierL1HandlerTransaction {
             tx: ApiL1HandlerTransaction {
                 contract_address: ApiContractAddress::try_from(self.contract_address)?,
@@ -72,7 +85,7 @@ impl L1HandlerTransaction {
                 version: ApiTransactionVersion(self.version.into()),
             },
             paid_fee_on_l1: ApiFee(self.paid_fee_on_l1),
-            tx_hash: ApiTransactionHash(self.transaction_hash.into()),
+            tx_hash: ApiTransactionHash(self.compute_hash(chain_id).into()),
         };
 
         Ok(transaction)
@@ -173,7 +186,7 @@ mod tests {
             paid_fee_on_l1: fee.into(),
         };
 
-        let chain_id = ChainId::Testnet.to_felt();
+        let chain_id = ChainId::goerli_legacy_id();
 
         let transaction_hash = Felt::from_prefixed_hex_str(
             "0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b",
@@ -198,13 +211,12 @@ mod tests {
             calldata,
             nonce: nonce.into(),
             paid_fee_on_l1: fee,
-            transaction_hash,
             ..Default::default()
         };
 
-        let transaction =
-            L1HandlerTransaction::try_from_message_to_l2(message).unwrap().with_hash(chain_id);
+        let transaction = L1HandlerTransaction::try_from_message_to_l2(message).unwrap();
 
         assert_eq!(transaction, expected_tx);
+        assert_eq!(transaction.compute_hash(chain_id), transaction_hash);
     }
 }

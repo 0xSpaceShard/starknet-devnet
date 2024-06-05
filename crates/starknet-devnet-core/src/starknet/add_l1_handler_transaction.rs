@@ -1,6 +1,7 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_types::felt::TransactionHash;
-use starknet_types::rpc::transactions::{L1HandlerTransaction, Transaction};
+use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
+use starknet_types::rpc::transactions::{Transaction, TransactionWithHash};
 use tracing::trace;
 
 use super::Starknet;
@@ -11,10 +12,10 @@ pub fn add_l1_handler_transaction(
     starknet: &mut Starknet,
     transaction: L1HandlerTransaction,
 ) -> DevnetResult<TransactionHash> {
-    let transaction_hash = transaction.transaction_hash;
-    trace!("Executing L1 handler transaction [{:#064x}]", transaction.transaction_hash);
-
-    let blockifier_transaction = transaction.create_blockifier_transaction()?;
+    let blockifier_transaction =
+        transaction.create_blockifier_transaction(starknet.chain_id().to_felt())?;
+    let transaction_hash = blockifier_transaction.tx_hash.0.into();
+    trace!("Executing L1 handler transaction [{:#064x}]", transaction_hash);
 
     // Fees are charges on L1 as `L1HandlerTransaction` is not executed by an
     // account, but directly by the sequencer.
@@ -30,7 +31,7 @@ pub fn add_l1_handler_transaction(
     );
 
     starknet.handle_transaction_result(
-        Transaction::L1Handler(transaction.clone()),
+        TransactionWithHash::new(transaction_hash, Transaction::L1Handler(transaction.clone())),
         None,
         blockifier_execution_result,
     )?;
@@ -54,12 +55,14 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::felt::Felt;
-    use starknet_types::rpc::transactions::L1HandlerTransaction;
+    use starknet_types::rpc::state::Balance;
+    use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
     use crate::constants::{
-        self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
+        self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
+        ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::starknet::{predeployed, Starknet};
     use crate::state::CustomState;
@@ -89,16 +92,17 @@ mod tests {
             nonce: nonce.into(),
             paid_fee_on_l1: fee,
             ..Default::default()
-        }
-        .with_hash(ChainId::Testnet.to_felt());
+        };
+
+        let l1_handler_transaction_hash = transaction.compute_hash(ChainId::Testnet.to_felt());
 
         let transaction_hash = Felt::from_prefixed_hex_str(
-            "0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b",
+            "0x1b24ea8dd9e0cb603043958b27a8569635ea13568883cc155130591b7ffe37a",
         )
         .unwrap();
 
         assert_eq!(transaction.version, Felt::from(0));
-        assert_eq!(transaction.transaction_hash, transaction_hash);
+        assert_eq!(l1_handler_transaction_hash, transaction_hash);
     }
 
     #[test]
@@ -172,7 +176,6 @@ mod tests {
             paid_fee_on_l1: fee,
             ..Default::default()
         }
-        .with_hash(ChainId::Testnet.to_felt())
     }
 
     /// Initializes a starknet object with: l1l2 dummy contract that has two functions for
@@ -197,7 +200,7 @@ mod tests {
             account_without_validations_contract_class.generate_hash().unwrap();
 
         let account = Account::new(
-            Felt::from(10000),
+            Balance::from(10000_u32),
             dummy_felt(),
             dummy_felt(),
             account_without_validations_class_hash,
@@ -258,9 +261,13 @@ mod tests {
             .unwrap();
         starknet.block_context = Starknet::init_block_context(
             nonzero!(1u128),
+            nonzero!(1u128),
+            nonzero!(1u128),
+            nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
+            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
 
         starknet.restart_pending_block().unwrap();

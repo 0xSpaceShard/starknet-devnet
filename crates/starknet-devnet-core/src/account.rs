@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use blockifier::abi::sierra_types::next_storage_key;
 use blockifier::state::state_api::StateReader;
 use starknet_api::core::{calculate_contract_address, PatriciaKey};
 use starknet_api::hash::{StarkFelt, StarkHash};
@@ -7,15 +8,15 @@ use starknet_api::transaction::{Calldata, ContractAddressSalt};
 use starknet_api::{patricia_key, stark_felt};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
-use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::error::Error;
-use starknet_types::felt::{Balance, ClassHash, Felt, Key};
+use starknet_types::felt::{split_biguint, ClassHash, Felt, Key};
 use starknet_types::num_bigint::BigUint;
+use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
 
 use crate::constants::{
-    CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-    CHARGEABLE_ACCOUNT_PUBLIC_KEY,
+    CAIRO_0_ACCOUNT_CONTRACT, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
+    CHARGEABLE_ACCOUNT_PUBLIC_KEY, ISRC6_ID_HEX,
 };
 use crate::error::DevnetResult;
 use crate::state::state_readers::DictState;
@@ -49,12 +50,11 @@ impl Account {
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
     ) -> DevnetResult<Self> {
-        let account_contract_class = Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH)?;
+        let account_contract_class = Cairo0Json::raw_json_from_json_str(CAIRO_0_ACCOUNT_CONTRACT)?;
         let class_hash = account_contract_class.generate_hash()?;
 
         // insanely big - should practically never run out of funds
-        let initial_balance = BigUint::from(u128::MAX);
-        let initial_balance_hex = format!("0x{}", initial_balance.to_str_radix(16));
+        let initial_balance = Balance::from(u128::MAX);
         Ok(Self {
             public_key: Key::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_PUBLIC_KEY).unwrap(),
             private_key: Key::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_PRIVATE_KEY).unwrap(),
@@ -62,7 +62,7 @@ impl Account {
                 Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS).unwrap(),
             )
             .unwrap(),
-            initial_balance: Felt::from_prefixed_hex_str(&initial_balance_hex).unwrap(),
+            initial_balance,
             class_hash,
             contract_class: account_contract_class.into(),
             eth_fee_token_address,
@@ -103,16 +103,29 @@ impl Account {
         Ok(ContractAddress::from(account_address))
     }
 
-    fn eth_balance_storage_key(&self) -> DevnetResult<ContractStorageKey> {
-        let storage_var_address =
-            get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
-        Ok(ContractStorageKey::new(self.eth_fee_token_address, storage_var_address))
-    }
+    // simulate constructor logic (register interfaces and set public key), as done in
+    // https://github.com/OpenZeppelin/cairo-contracts/blob/89a450a88628ec3b86273f261b2d8d1ca9b1522b/src/account/account.cairo#L207-L211
+    fn simulate_constructor(&self, state: &mut StarknetState) -> DevnetResult<()> {
+        let core_address = self.account_address.try_into()?;
 
-    fn strk_balance_storage_key(&self) -> DevnetResult<ContractStorageKey> {
-        let storage_var_address =
-            get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
-        Ok(ContractStorageKey::new(self.strk_fee_token_address, storage_var_address))
+        let interface_storage_var = get_storage_var_address(
+            "SRC5_supported_interfaces",
+            &[Felt::from_prefixed_hex_str(ISRC6_ID_HEX)?],
+        )?;
+        state.state.state.set_storage_at(
+            core_address,
+            interface_storage_var.try_into()?,
+            StarkFelt::ONE,
+        )?;
+
+        let public_key_storage_var = get_storage_var_address("Account_public_key", &[])?;
+        state.state.state.set_storage_at(
+            core_address,
+            public_key_storage_var.try_into()?,
+            self.public_key.into(),
+        )?;
+
+        Ok(())
     }
 }
 
@@ -122,16 +135,10 @@ impl Deployed for Account {
 
         state.predeploy_contract(self.account_address, self.class_hash)?;
 
-        // set public key directly in the most underlying state
-        let public_key_storage_var = get_storage_var_address("Account_public_key", &[])?;
-        state.state.state.set_storage_at(
-            self.account_address.try_into()?,
-            public_key_storage_var.try_into()?,
-            self.public_key.into(),
-        )?;
-
         // set balance directly in the most underlying state
         self.set_initial_balance(&mut state.state.state)?;
+
+        self.simulate_constructor(state)?;
 
         Ok(())
     }
@@ -143,14 +150,23 @@ impl Deployed for Account {
 
 impl Accounted for Account {
     fn set_initial_balance(&self, state: &mut DictState) -> DevnetResult<()> {
-        let storage_var_address =
+        let storage_var_address_low =
             get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
+        let storage_var_address_high = next_storage_key(&storage_var_address_low.try_into()?)?;
+
+        let (high, low) = split_biguint(self.initial_balance.clone())?;
 
         for fee_token_address in [self.eth_fee_token_address, self.strk_fee_token_address] {
             state.set_storage_at(
                 fee_token_address.try_into()?,
-                storage_var_address.try_into()?,
-                self.initial_balance.into(),
+                storage_var_address_low.try_into()?,
+                low.into(),
+            )?;
+
+            state.set_storage_at(
+                fee_token_address.try_into()?,
+                storage_var_address_high,
+                high.into(),
             )?;
         }
 
@@ -158,23 +174,25 @@ impl Accounted for Account {
     }
 
     fn get_balance(&self, state: &mut impl StateReader, token: FeeToken) -> DevnetResult<Balance> {
-        let balance_storage_key = match token {
-            FeeToken::ETH => self.eth_balance_storage_key()?,
-            FeeToken::STRK => self.strk_balance_storage_key()?,
+        let fee_token_address = match token {
+            FeeToken::ETH => self.eth_fee_token_address,
+            FeeToken::STRK => self.strk_fee_token_address,
         };
-        let balance = state.get_storage_at(
-            (*balance_storage_key.get_contract_address()).try_into()?,
-            (*balance_storage_key.get_storage_key()).try_into()?,
+        let (low, high) = state.get_fee_token_balance(
+            self.account_address.try_into()?,
+            fee_token_address.try_into()?,
         )?;
-        Ok(balance.into())
+        let low: BigUint = Felt::from(low).into();
+        let high: BigUint = Felt::from(high).into();
+        Ok(low + (high << 128))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
+    use starknet_types::rpc::state::Balance;
 
     use super::Account;
     use crate::account::FeeToken;
@@ -182,7 +200,6 @@ mod tests {
     use crate::state::{CustomState, StarknetState};
     use crate::traits::{Accounted, Deployed};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
-    use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
 
     /// Testing if generated account address has the same value as the first account in
@@ -228,33 +245,6 @@ mod tests {
     }
 
     #[test]
-    fn correct_balance_storage_key() {
-        let default_felt = Felt::default();
-        let fee_token_address =
-            ContractAddress::new(Felt::from_prefixed_hex_str("0xFEEE").unwrap()).unwrap();
-        // here we can use the same address for eth fee and strk fee, because we are not extracting
-        // any data from the state of those addresses. Only checking if the storage key is correct
-        let mut account = Account::new(
-            default_felt,
-            default_felt,
-            default_felt,
-            default_felt,
-            dummy_cairo_0_contract_class().into(),
-            fee_token_address,
-            fee_token_address,
-        )
-        .unwrap();
-        let account_address = ContractAddress::new(Felt::from(111)).unwrap();
-        account.account_address = account_address;
-
-        let expected_balance_storage_key = ContractStorageKey::new(
-            fee_token_address,
-            get_storage_var_address("ERC20_balances", &[Felt::from(account_address)]).unwrap(),
-        );
-        assert_eq!(expected_balance_storage_key, account.eth_balance_storage_key().unwrap());
-    }
-
-    #[test]
     fn account_deployed_successfully() {
         let (account, mut state) = setup();
         assert!(account.deploy(&mut state).is_ok());
@@ -263,8 +253,8 @@ mod tests {
     #[test]
     fn account_get_balance_should_return_correct_value() {
         let (mut account, mut state) = setup();
-        let expected_balance = Felt::from(100);
-        account.initial_balance = expected_balance;
+        let expected_balance = Balance::from(100_u8);
+        account.initial_balance = expected_balance.clone();
         account.deploy(&mut state).unwrap();
         let generated_balance = account.get_balance(&mut state, FeeToken::ETH).unwrap();
 
@@ -303,7 +293,7 @@ mod tests {
 
         (
             Account::new(
-                Felt::from(10),
+                Balance::from(10_u8),
                 Felt::from(13431515),
                 Felt::from(11),
                 dummy_felt(),

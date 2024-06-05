@@ -3,9 +3,10 @@ use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
+use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
-    BroadcastedInvokeTransaction, L1HandlerTransaction,
+    BroadcastedInvokeTransaction,
 };
 
 use super::{DumpOn, Starknet};
@@ -26,30 +27,14 @@ impl Starknet {
     pub fn re_execute(&mut self, events: Vec<DumpEvent>) -> DevnetResult<()> {
         for event in events.into_iter() {
             match event {
-                DumpEvent::AddDeclareTransaction(BroadcastedDeclareTransaction::V1(tx)) => {
-                    self.add_declare_transaction_v1(*tx)?;
+                DumpEvent::AddDeclareTransaction(tx) => {
+                    self.add_declare_transaction(tx)?;
                 }
-                DumpEvent::AddDeclareTransaction(BroadcastedDeclareTransaction::V2(tx)) => {
-                    self.add_declare_transaction_v2(*tx)?;
+                DumpEvent::AddDeployAccountTransaction(tx) => {
+                    self.add_deploy_account_transaction(tx)?;
                 }
-                DumpEvent::AddDeclareTransaction(BroadcastedDeclareTransaction::V3(tx)) => {
-                    self.add_declare_transaction_v3(*tx)?;
-                }
-                DumpEvent::AddDeployAccountTransaction(
-                    BroadcastedDeployAccountTransaction::V1(tx),
-                ) => {
-                    self.add_deploy_account_transaction_v1(tx)?;
-                }
-                DumpEvent::AddDeployAccountTransaction(
-                    BroadcastedDeployAccountTransaction::V3(tx),
-                ) => {
-                    self.add_deploy_account_transaction_v3(tx)?;
-                }
-                DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V1(tx)) => {
-                    self.add_invoke_transaction_v1(tx)?;
-                }
-                DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V3(tx)) => {
-                    self.add_invoke_transaction_v3(tx)?;
+                DumpEvent::AddInvokeTransaction(tx) => {
+                    self.add_invoke_transaction(tx)?;
                 }
                 DumpEvent::AddL1HandlerTransaction(tx) => {
                     self.add_l1_handler_transaction(tx)?;
@@ -72,7 +57,7 @@ impl Starknet {
     // add starknet dump event
     pub fn handle_dump_event(&mut self, event: DumpEvent) -> DevnetResult<()> {
         match self.config.dump_on {
-            Some(DumpOn::Transaction) => self.dump_event(event),
+            Some(DumpOn::Block) => self.dump_event(event),
             Some(DumpOn::Exit) => {
                 self.dump_events.push(event);
 
@@ -170,9 +155,9 @@ impl Starknet {
                     let events: Vec<DumpEvent> = serde_json::from_reader(file)
                         .map_err(|e| Error::DeserializationError { origin: e.to_string() })?;
 
-                    // to avoid doublets in transaction mode during load, we need to remove the file
+                    // to avoid doublets in block mode during load, we need to remove the file
                     // because they will be re-executed and saved again
-                    if self.config.dump_on == Some(DumpOn::Transaction) {
+                    if self.config.dump_on == Some(DumpOn::Block) {
                         fs::remove_file(file_path).map_err(Error::IoError)?;
                     }
 

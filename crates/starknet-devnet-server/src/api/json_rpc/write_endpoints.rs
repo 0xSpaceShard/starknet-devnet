@@ -1,3 +1,4 @@
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction,
@@ -15,27 +16,8 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedDeclareTransaction,
     ) -> StrictRpcResult {
-        let (transaction_hash, class_hash) = match request {
-            BroadcastedDeclareTransaction::V1(broadcasted_declare_txn) => self
-                .api
-                .starknet
-                .write()
-                .await
-                .add_declare_transaction_v1(*broadcasted_declare_txn)?,
-            BroadcastedDeclareTransaction::V2(broadcasted_declare_txn) => self
-                .api
-                .starknet
-                .write()
-                .await
-                .add_declare_transaction_v2(*broadcasted_declare_txn)?,
-
-            BroadcastedDeclareTransaction::V3(broadcasted_declare_txn) => self
-                .api
-                .starknet
-                .write()
-                .await
-                .add_declare_transaction_v3(*broadcasted_declare_txn)?,
-        };
+        let (transaction_hash, class_hash) =
+            self.api.starknet.write().await.add_declare_transaction(request)?;
 
         Ok(StarknetResponse::AddDeclareTransaction(DeclareTransactionOutput {
             transaction_hash,
@@ -47,33 +29,15 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedDeployAccountTransaction,
     ) -> StrictRpcResult {
-        let (transaction_hash, contract_address) = match request {
-            BroadcastedDeployAccountTransaction::V1(deploy_account_txn_v1) => self
-                .api
-                .starknet
-                .write()
-                .await
-                .add_deploy_account_transaction_v1(deploy_account_txn_v1)
-                .map_err(|err| match err {
+        let (transaction_hash, contract_address) =
+            self.api.starknet.write().await.add_deploy_account_transaction(request).map_err(
+                |err| match err {
                     starknet_core::error::Error::StateError(
                         starknet_core::error::StateError::NoneClassHash(_),
                     ) => ApiError::ClassHashNotFound,
                     unknown_error => ApiError::StarknetDevnetError(unknown_error),
-                })?,
-
-            BroadcastedDeployAccountTransaction::V3(deploy_account_txn_v3) => self
-                .api
-                .starknet
-                .write()
-                .await
-                .add_deploy_account_transaction_v3(deploy_account_txn_v3)
-                .map_err(|err| match err {
-                    starknet_core::error::Error::StateError(
-                        starknet_core::error::StateError::NoneClassHash(_),
-                    ) => ApiError::ClassHashNotFound,
-                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
-                })?,
-        };
+                },
+            )?;
 
         Ok(StarknetResponse::AddDeployAccountTransaction(DeployAccountTransactionOutput {
             transaction_hash,
@@ -85,16 +49,30 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedInvokeTransaction,
     ) -> StrictRpcResult {
-        let transaction_hash = match request {
-            BroadcastedInvokeTransaction::V1(invoke_txn) => {
-                self.api.starknet.write().await.add_invoke_transaction_v1(invoke_txn)?
-            }
-            BroadcastedInvokeTransaction::V3(invoke_txn) => {
-                self.api.starknet.write().await.add_invoke_transaction_v3(invoke_txn)?
-            }
-        };
+        let transaction_hash = self.api.starknet.write().await.add_invoke_transaction(request)?;
 
         Ok(StarknetResponse::AddInvokeTransaction(InvokeTransactionOutput { transaction_hash }))
+    }
+
+    // devnet_impersonateAccount
+    pub async fn impersonate_account(&self, address: ContractAddress) -> StrictRpcResult {
+        let mut starknet = self.api.starknet.write().await;
+        starknet.impersonate_account(address)?;
+        Ok(StarknetResponse::Empty)
+    }
+
+    // devnet_stopImpersonatingAccount
+    pub async fn stop_impersonating_account(&self, address: ContractAddress) -> StrictRpcResult {
+        let mut starknet = self.api.starknet.write().await;
+        starknet.stop_impersonating_account(&address);
+        Ok(StarknetResponse::Empty)
+    }
+
+    // devnet_autoImpersonate | devnet_stopAutoImpersonate
+    pub async fn set_auto_impersonate(&self, auto_impersonation: bool) -> StrictRpcResult {
+        let mut starknet = self.api.starknet.write().await;
+        starknet.set_auto_impersonate_account(auto_impersonation);
+        Ok(StarknetResponse::Empty)
     }
 }
 

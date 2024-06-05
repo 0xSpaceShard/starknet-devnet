@@ -1,17 +1,12 @@
-use std::sync::Arc;
-
-use blockifier::transaction::transactions::InvokeTransaction;
 use serde::{Deserialize, Serialize};
-use starknet_api::hash::StarkFelt;
 use starknet_rs_crypto::poseidon_hash_many;
 use starknet_rs_ff::FieldElement;
 
-use super::broadcasted_invoke_transaction_v1::PREFIX_INVOKE;
 use super::BroadcastedTransactionCommonV3;
+use crate::constants::PREFIX_INVOKE;
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
 use crate::felt::{Calldata, Felt};
-use crate::utils::into_vec;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -29,7 +24,7 @@ impl BroadcastedInvokeTransactionV3 {
     ///
     /// # Arguments
     /// `chain_id` - the chain id to use for the transaction hash computation
-    fn calculate_transaction_hash(&self, chain_id: Felt) -> DevnetResult<Felt> {
+    pub(crate) fn calculate_transaction_hash(&self, chain_id: &Felt) -> DevnetResult<Felt> {
         let common_fields = self.common.common_fields_for_hash(
             PREFIX_INVOKE,
             chain_id.into(),
@@ -54,47 +49,6 @@ impl BroadcastedInvokeTransactionV3 {
         let txn_hash = poseidon_hash_many(fields_to_hash.as_slice());
 
         Ok(txn_hash.into())
-    }
-
-    /// Creates a blockifier invoke transaction from the current transaction.
-    /// The transaction hash is computed using the given chain id.
-    ///
-    /// # Arguments
-    /// `chain_id` - the chain id to use for the transaction hash computation
-    /// `only_query` - whether the transaction is a query or not
-    pub fn create_blockifier_invoke_transaction(
-        &self,
-        chain_id: Felt,
-        only_query: bool,
-    ) -> DevnetResult<InvokeTransaction> {
-        let txn_hash = self.calculate_transaction_hash(chain_id)?;
-
-        let sn_api_transaction = starknet_api::transaction::InvokeTransactionV3 {
-            resource_bounds: (&self.common.resource_bounds).into(),
-            tip: self.common.tip,
-            signature: starknet_api::transaction::TransactionSignature(into_vec(
-                &self.common.signature,
-            )),
-            nonce: starknet_api::core::Nonce(self.common.nonce.into()),
-            sender_address: self.sender_address.try_into()?,
-            calldata: starknet_api::transaction::Calldata(Arc::new(
-                self.calldata.iter().map(StarkFelt::from).collect::<Vec<StarkFelt>>(),
-            )),
-            nonce_data_availability_mode: self.common.nonce_data_availability_mode,
-            fee_data_availability_mode: self.common.fee_data_availability_mode,
-            paymaster_data: starknet_api::transaction::PaymasterData(
-                self.common.paymaster_data.iter().map(|f| f.into()).collect(),
-            ),
-            account_deployment_data: starknet_api::transaction::AccountDeploymentData(
-                self.account_deployment_data.iter().map(|f| f.into()).collect(),
-            ),
-        };
-
-        Ok(InvokeTransaction {
-            tx: starknet_api::transaction::InvokeTransaction::V3(sn_api_transaction),
-            tx_hash: starknet_api::transaction::TransactionHash(txn_hash.into()),
-            only_query,
-        })
     }
 }
 
@@ -172,7 +126,7 @@ mod tests {
 
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,
-            broadcasted_txn.calculate_transaction_hash(ChainId::Testnet.to_felt()).unwrap()
+            broadcasted_txn.calculate_transaction_hash(&ChainId::goerli_legacy_id()).unwrap()
         );
     }
 }

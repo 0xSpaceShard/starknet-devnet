@@ -1,12 +1,16 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
+use indexmap::IndexMap;
 use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus, BlockTimestamp};
+use starknet_api::data_availability::L1DataAvailabilityMode;
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
 use starknet_api::stark_felt;
-use starknet_rs_core::types::BlockId;
+use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
-use starknet_types::rpc::block::{BlockHeader as TypesBlockHeader, ResourcePrice};
+use starknet_types::rpc::block::{
+    BlockHeader as TypesBlockHeader, PendingBlockHeader as TypesPendingBlockHeader, ResourcePrice,
+};
 use starknet_types::traits::HashProducer;
 
 use crate::constants::STARKNET_VERSION;
@@ -16,12 +20,14 @@ use crate::state::StarknetState;
 use crate::traits::HashIdentified;
 
 pub(crate) struct StarknetBlocks {
-    pub(crate) hash_to_num: HashMap<BlockHash, BlockNumber>,
-    pub(crate) num_to_block: HashMap<BlockNumber, StarknetBlock>,
+    pub(crate) num_to_hash: IndexMap<BlockNumber, BlockHash>,
+    pub(crate) hash_to_block: HashMap<BlockHash, StarknetBlock>,
     pub(crate) pending_block: StarknetBlock,
     pub(crate) last_block_hash: Option<BlockHash>,
-    pub(crate) num_to_state_diff: HashMap<BlockNumber, StateDiff>,
-    pub(crate) num_to_state: HashMap<BlockNumber, StarknetState>,
+    pub(crate) hash_to_state_diff: HashMap<BlockHash, StateDiff>,
+    pub(crate) hash_to_state: HashMap<BlockHash, StarknetState>,
+    pub(crate) aborted_blocks: Vec<Felt>,
+    pub(crate) blocks_on_demand: bool,
 }
 
 impl HashIdentified for StarknetBlocks {
@@ -29,8 +35,7 @@ impl HashIdentified for StarknetBlocks {
     type Hash = BlockHash;
 
     fn get_by_hash(&self, hash: Self::Hash) -> Option<&Self::Element> {
-        let block_number = self.hash_to_num.get(&hash)?;
-        let block = self.num_to_block.get(block_number)?;
+        let block = self.hash_to_block.get(&hash)?;
 
         Some(block)
     }
@@ -39,17 +44,25 @@ impl HashIdentified for StarknetBlocks {
 impl Default for StarknetBlocks {
     fn default() -> Self {
         Self {
-            hash_to_num: HashMap::new(),
-            num_to_block: HashMap::new(),
+            num_to_hash: IndexMap::new(),
+            hash_to_block: HashMap::new(),
             pending_block: StarknetBlock::create_pending_block(),
             last_block_hash: None,
-            num_to_state_diff: HashMap::new(),
-            num_to_state: HashMap::new(),
+            hash_to_state_diff: HashMap::new(),
+            hash_to_state: HashMap::new(),
+            aborted_blocks: Vec::new(),
+            blocks_on_demand: false,
         }
     }
 }
 
 impl StarknetBlocks {
+    pub fn new(starting_block_number: u64, blocks_on_demand: bool) -> Self {
+        let mut blocks = Self { blocks_on_demand, ..Self::default() };
+        blocks.pending_block.set_block_number(starting_block_number);
+        blocks
+    }
+
     /// Inserts a block in the collection and modifies the block parent hash to match the last block
     /// hash
     pub fn insert(&mut self, mut block: StarknetBlock, state_diff: StateDiff) {
@@ -60,28 +73,40 @@ impl StarknetBlocks {
         let hash = block.block_hash();
         let block_number = block.block_number();
 
-        self.hash_to_num.insert(hash, block_number);
-        self.num_to_block.insert(block_number, block);
-        self.num_to_state_diff.insert(block_number, state_diff);
+        self.num_to_hash.insert(block_number, hash);
+        self.hash_to_block.insert(hash, block);
+        self.hash_to_state_diff.insert(hash, state_diff);
         self.last_block_hash = Some(hash);
     }
 
-    pub fn save_state_at(&mut self, block_number: BlockNumber, state: StarknetState) {
-        self.num_to_state.insert(block_number, state);
+    fn get_by_num(&self, num: &BlockNumber) -> Option<&StarknetBlock> {
+        let block_hash = self.num_to_hash.get(num)?;
+        let block = self.hash_to_block.get(block_hash)?;
+
+        Some(block)
+    }
+
+    pub fn save_state_at(&mut self, block_hash: Felt, state: StarknetState) {
+        self.hash_to_state.insert(block_hash, state);
+    }
+
+    fn get_by_latest_hash(&self) -> Option<&StarknetBlock> {
+        if let Some(hash) = self.last_block_hash { self.get_by_hash(hash) } else { None }
     }
 
     pub fn get_by_block_id(&self, block_id: &BlockId) -> Option<&StarknetBlock> {
         match block_id {
             BlockId::Hash(hash) => self.get_by_hash(Felt::from(hash)),
-            BlockId::Number(block_number) => self.num_to_block.get(&BlockNumber(*block_number)),
-            // latest and pending for now will return the latest one
-            BlockId::Tag(_) => {
-                if let Some(hash) = self.last_block_hash {
-                    self.get_by_hash(hash)
+            BlockId::Number(block_number) => self.get_by_num(&BlockNumber(*block_number)),
+            BlockId::Tag(BlockTag::Pending) => {
+                if !self.blocks_on_demand {
+                    // in normal mode, querying pending block should default to the latest
+                    self.get_by_latest_hash()
                 } else {
-                    None
+                    Some(&self.pending_block)
                 }
             }
+            BlockId::Tag(BlockTag::Latest) => self.get_by_latest_hash(),
         }
     }
 
@@ -101,8 +126,8 @@ impl StarknetBlocks {
         from: Option<BlockId>,
         to: Option<BlockId>,
     ) -> DevnetResult<Vec<&StarknetBlock>> {
-        // used btree map to keep elements in the order of the keys
-        let mut filtered_blocks: BTreeMap<BlockNumber, &StarknetBlock> = BTreeMap::new();
+        // used IndexMap to keep elements in the order of the keys
+        let mut filtered_blocks: IndexMap<Felt, &StarknetBlock> = IndexMap::new();
 
         let starting_block = if let Some(block_id) = from {
             // If the value for block number provided is not correct it will return None
@@ -123,8 +148,8 @@ impl StarknetBlocks {
         };
 
         // iterate over the blocks and apply the filter
-        // then insert the filtered blocks into the btree map
-        self.num_to_block
+        // then insert the filtered blocks into the index map
+        self.num_to_hash
             .iter()
             .filter(|(current_block_number, _)| match (starting_block, ending_block) {
                 (None, None) => true,
@@ -134,8 +159,8 @@ impl StarknetBlocks {
                     **current_block_number >= start && **current_block_number <= end
                 }
             })
-            .for_each(|(block_number, block)| {
-                filtered_blocks.insert(*block_number, block);
+            .for_each(|(_, block_hash)| {
+                filtered_blocks.insert(*block_hash, &self.hash_to_block[block_hash]);
             });
 
         Ok(filtered_blocks.into_values().collect())
@@ -147,6 +172,26 @@ pub struct StarknetBlock {
     pub(crate) header: BlockHeader,
     transaction_hashes: Vec<TransactionHash>,
     pub(crate) status: BlockStatus,
+}
+
+impl From<&StarknetBlock> for TypesPendingBlockHeader {
+    fn from(value: &StarknetBlock) -> Self {
+        Self {
+            parent_hash: value.parent_hash(),
+            sequencer_address: value.sequencer_address(),
+            timestamp: value.timestamp(),
+            starknet_version: STARKNET_VERSION.to_string(),
+            l1_gas_price: ResourcePrice {
+                price_in_fri: value.header.l1_gas_price.price_in_fri.0.into(),
+                price_in_wei: value.header.l1_gas_price.price_in_wei.0.into(),
+            },
+            l1_data_gas_price: ResourcePrice {
+                price_in_fri: value.header.l1_data_gas_price.price_in_fri.0.into(),
+                price_in_wei: value.header.l1_data_gas_price.price_in_wei.0.into(),
+            },
+            l1_da_mode: value.header.l1_da_mode,
+        }
+    }
 }
 
 impl From<&StarknetBlock> for TypesBlockHeader {
@@ -215,10 +260,17 @@ impl StarknetBlock {
 
     pub(crate) fn create_pending_block() -> Self {
         Self {
-            header: BlockHeader::default(),
+            header: BlockHeader {
+                l1_da_mode: L1DataAvailabilityMode::Blob,
+                ..BlockHeader::default()
+            },
             status: BlockStatus::Pending,
             transaction_hashes: Vec::new(),
         }
+    }
+
+    pub(crate) fn set_block_number(&mut self, block_number: u64) {
+        self.header.block_number = BlockNumber(block_number)
     }
 
     pub(crate) fn set_timestamp(&mut self, timestamp: BlockTimestamp) {
@@ -294,10 +346,11 @@ mod tests {
 
     #[test]
     fn block_number_from_block_id_should_return_correct_result() {
-        let mut blocks = StarknetBlocks::default();
+        let mut blocks = StarknetBlocks::new(0, true);
         let mut block_to_insert = StarknetBlock::create_pending_block();
+        blocks.pending_block = block_to_insert.clone();
 
-        // latest/pending block returns none, because collection is empty
+        // latest block returns none, because collection is empty
         assert!(
             blocks
                 .block_number_from_block_id(&BlockId::Tag(
@@ -305,12 +358,13 @@ mod tests {
                 ))
                 .is_none()
         );
+        // pending block returns some
         assert!(
             blocks
                 .block_number_from_block_id(&BlockId::Tag(
                     starknet_rs_core::types::BlockTag::Pending
                 ))
-                .is_none()
+                .is_some()
         );
 
         let block_hash = block_to_insert.generate_hash().unwrap();
@@ -345,15 +399,21 @@ mod tests {
     fn get_blocks_with_filter() {
         let mut blocks = StarknetBlocks::default();
 
-        for block_number in 2..12 {
+        let last_block_number = 11;
+        for block_number in 2..=last_block_number {
             let mut block_to_insert = StarknetBlock::create_pending_block();
             block_to_insert.header.block_number = BlockNumber(block_number);
             block_to_insert.header.block_hash = Felt::from(block_number as u128).into();
-            blocks.insert(block_to_insert, StateDiff::default());
+            blocks.insert(block_to_insert.clone(), StateDiff::default());
+
+            // last block will be a pending block
+            if block_number == last_block_number {
+                blocks.pending_block = block_to_insert;
+            }
         }
 
         // check blocks len
-        assert!(blocks.num_to_block.len() == 10);
+        assert!(blocks.hash_to_block.len() == 10);
 
         // 1. None, None
         // no filter
@@ -617,6 +677,7 @@ mod tests {
         let mut block_to_insert = StarknetBlock::create_pending_block();
         block_to_insert.header.block_hash = block_to_insert.generate_hash().unwrap().into();
         block_to_insert.header.block_number = BlockNumber(10);
+        blocks.pending_block = block_to_insert.clone();
 
         blocks.insert(block_to_insert.clone(), StateDiff::default());
 
@@ -658,20 +719,19 @@ mod tests {
         }
 
         assert!(
-            blocks.num_to_block.get(&BlockNumber(0)).unwrap().header.parent_hash
-                == BlockHash::default()
+            blocks.get_by_num(&BlockNumber(0)).unwrap().header.parent_hash == BlockHash::default()
         );
         assert!(
-            blocks.num_to_block.get(&BlockNumber(0)).unwrap().header.block_hash
-                == blocks.num_to_block.get(&BlockNumber(1)).unwrap().header.parent_hash
+            blocks.get_by_num(&BlockNumber(0)).unwrap().header.block_hash
+                == blocks.get_by_num(&BlockNumber(1)).unwrap().header.parent_hash
         );
         assert!(
-            blocks.num_to_block.get(&BlockNumber(1)).unwrap().header.block_hash
-                == blocks.num_to_block.get(&BlockNumber(2)).unwrap().header.parent_hash
+            blocks.get_by_num(&BlockNumber(1)).unwrap().header.block_hash
+                == blocks.get_by_num(&BlockNumber(2)).unwrap().header.parent_hash
         );
         assert!(
-            blocks.num_to_block.get(&BlockNumber(1)).unwrap().header.parent_hash
-                != blocks.num_to_block.get(&BlockNumber(2)).unwrap().header.parent_hash
+            blocks.get_by_num(&BlockNumber(1)).unwrap().header.parent_hash
+                != blocks.get_by_num(&BlockNumber(2)).unwrap().header.parent_hash
         )
     }
 
@@ -693,6 +753,12 @@ mod tests {
         let block = StarknetBlock::create_pending_block();
         assert!(block.status == BlockStatus::Pending);
         assert!(block.transaction_hashes.is_empty());
-        assert_eq!(block.header, BlockHeader::default());
+        assert_eq!(
+            block.header,
+            BlockHeader {
+                l1_da_mode: starknet_api::data_availability::L1DataAvailabilityMode::Blob,
+                ..Default::default()
+            }
+        );
     }
 }

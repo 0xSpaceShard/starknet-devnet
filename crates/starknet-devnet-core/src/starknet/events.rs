@@ -130,7 +130,6 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::emitted_event::Event;
     use starknet_types::felt::Felt;
-    use starknet_types::rpc::transactions::{DeclareTransaction, Transaction};
 
     use super::{check_if_filter_applies_for_event, get_events};
     use crate::starknet::events::check_if_filter_applies_for_event_keys;
@@ -164,7 +163,7 @@ mod tests {
         assert!(check_if_filter_applies_for_event_keys(&Some(filter), &keys));
 
         // filter with 1 key and second one value that is not amongst the keys, but will not
-        // evalueate, because the keys is of length 1
+        // evaluate, because the keys is of length 1
         let filter = vec![vec![1u32], vec![2u32]];
         assert!(check_if_filter_applies_for_event_keys(&Some(filter), &keys));
 
@@ -347,14 +346,14 @@ mod tests {
 
         // returns all events from the first 2 blocks, skip 3, but limit the result to 1
         let (events, has_more) =
-            get_events(&starknet, None, Some(BlockId::Number(1)), None, None, 3, Some(1)).unwrap();
+            get_events(&starknet, None, Some(BlockId::Number(2)), None, None, 3, Some(1)).unwrap();
         assert_eq!(events.len(), 0);
         assert!(!has_more);
 
         // returns all events from the first 2 blocks, skip 1, but limit the result to 1, it should
         // return 1 event and should be more
         let (events, has_more) =
-            get_events(&starknet, None, Some(BlockId::Number(1)), None, None, 1, Some(1)).unwrap();
+            get_events(&starknet, None, Some(BlockId::Number(2)), None, None, 1, Some(1)).unwrap();
         assert_eq!(events.len(), 1);
         assert!(has_more);
     }
@@ -394,10 +393,9 @@ mod tests {
         // each transaction should have events count equal to the order of the transaction
         let mut starknet = Starknet::new(&StarknetConfig::default()).unwrap();
 
-        for idx in 0..5 {
-            let transaction =
-                Transaction::Declare(DeclareTransaction::Version1(dummy_declare_transaction_v1()));
+        let transaction = dummy_declare_transaction_v1();
 
+        for idx in 0..5 {
             let txn_info = blockifier::transaction::objects::TransactionExecutionInfo {
                 execute_call_info: Some(dummy_call_info(idx + 1)),
                 ..Default::default()
@@ -409,7 +407,7 @@ mod tests {
                 .unwrap();
         }
 
-        assert_eq!(starknet.blocks.get_blocks(None, None).unwrap().len(), 5);
+        assert_eq!(starknet.blocks.get_blocks(None, None).unwrap().len(), 6);
         for idx in 0..5 {
             starknet.transactions.get_by_hash(Felt::from(idx as u128 + 100)).unwrap();
         }

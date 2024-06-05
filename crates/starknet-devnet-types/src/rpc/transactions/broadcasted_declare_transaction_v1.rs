@@ -1,25 +1,13 @@
-use blockifier::execution::contract_class::ClassInfo;
-use blockifier::transaction::transactions::DeclareTransaction;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_ff::FieldElement;
 
-/// Cairo string for "declare" from starknet-rs
-pub(crate) const PREFIX_DECLARE: FieldElement = FieldElement::from_mont([
-    17542456862011667323,
-    18446744073709551615,
-    18446744073709551615,
-    191557713328401194,
-]);
-
+use crate::constants::PREFIX_DECLARE;
 use crate::contract_address::ContractAddress;
-use crate::contract_class::{Cairo0ContractClass, ContractClass};
+use crate::contract_class::Cairo0ContractClass;
 use crate::error::DevnetResult;
-use crate::felt::{
-    ClassHash, Felt, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
-};
-use crate::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
+use crate::felt::{ClassHash, Felt, Nonce, TransactionSignature, TransactionVersion};
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 use crate::traits::HashProducer;
 
@@ -50,49 +38,6 @@ impl BroadcastedDeclareTransactionV1 {
                 version,
                 signature: signature.clone(),
             },
-        }
-    }
-
-    pub fn create_blockifier_declare(
-        &self,
-        class_hash: ClassHash,
-        transaction_hash: TransactionHash,
-    ) -> DevnetResult<DeclareTransaction> {
-        let sn_api_declare = starknet_api::transaction::DeclareTransaction::V1(
-            starknet_api::transaction::DeclareTransactionV0V1 {
-                class_hash: class_hash.into(),
-                sender_address: self.sender_address.try_into()?,
-                nonce: starknet_api::core::Nonce(self.common.nonce.into()),
-                max_fee: self.common.max_fee,
-                signature: starknet_api::transaction::TransactionSignature(
-                    self.common.signature.iter().map(|&felt| felt.into()).collect(),
-                ),
-            },
-        );
-
-        let class_info: ClassInfo =
-            ContractClass::Cairo0(self.contract_class.clone()).try_into()?;
-
-        Ok(DeclareTransaction::new(
-            sn_api_declare,
-            starknet_api::transaction::TransactionHash(transaction_hash.into()),
-            class_info,
-        )?)
-    }
-
-    pub fn create_declare(
-        &self,
-        class_hash: ClassHash,
-        transaction_hash: TransactionHash,
-    ) -> DeclareTransactionV0V1 {
-        DeclareTransactionV0V1 {
-            class_hash,
-            sender_address: self.sender_address,
-            nonce: self.common.nonce,
-            max_fee: self.common.max_fee,
-            version: self.common.version,
-            transaction_hash,
-            signature: self.common.signature.clone(),
         }
     }
 
@@ -129,6 +74,7 @@ mod tests {
     use crate::contract_class::Cairo0Json;
     use crate::felt::Felt;
     use crate::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
+    use crate::rpc::transactions::BroadcastedDeclareTransaction;
     use crate::traits::{HashProducer, ToHexString};
 
     #[derive(Deserialize)]
@@ -175,13 +121,10 @@ mod tests {
             feeder_gateway_transaction.version,
         );
 
-        let class_hash = broadcasted_tx.generate_class_hash().unwrap();
-        let transaction_hash = broadcasted_tx
-            .calculate_transaction_hash(&ChainId::Testnet.to_felt(), &class_hash)
-            .unwrap();
-
         let blockifier_declare_transaction =
-            broadcasted_tx.create_blockifier_declare(class_hash, transaction_hash).unwrap();
+            BroadcastedDeclareTransaction::V1(Box::new(broadcasted_tx))
+                .create_blockifier_declare(&ChainId::goerli_legacy_id())
+                .unwrap();
 
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,

@@ -1,9 +1,11 @@
 use blockifier::versioned_constants::VersionedConstants;
+use serde_json::Value;
+use starknet_rs_core::types::contract::CompiledClass;
 use starknet_rs_ff::FieldElement;
 use starknet_types::felt::Felt;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
-use crate::error::DevnetResult;
+use crate::error::{DevnetResult, Error};
 
 pub mod random_number_generator {
     use rand::{thread_rng, Rng, SeedableRng};
@@ -43,27 +45,34 @@ pub(crate) fn get_versioned_constants() -> VersionedConstants {
     VersionedConstants::create_for_testing()
 }
 
+/// Returns the hash of a compiled class.
+/// # Arguments
+/// * `casm_json` - The compiled class in JSON format.
+pub fn casm_hash(casm_json: Value) -> DevnetResult<FieldElement> {
+    serde_json::from_value::<CompiledClass>(casm_json)
+        .map_err(|err| Error::DeserializationError { origin: err.to_string() })?
+        .class_hash()
+        .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })
+}
+
 #[cfg(test)]
 pub(crate) mod test_utils {
-
-    use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use starknet_api::transaction::Fee;
-    use starknet_types::constants::MAX_BYTECODE_SIZE_LIMIT;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{
-        compute_casm_class_hash, Cairo0ContractClass, Cairo0Json, ContractClass,
-    };
+    use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
     use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
     use starknet_types::rpc::transactions::{
-        BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
+        BroadcastedTransactionCommonV3, DeclareTransaction, ResourceBoundsWrapper, Transaction,
+        TransactionWithHash,
     };
     use starknet_types::traits::HashProducer;
 
+    use super::casm_hash;
     use crate::constants::DEVNET_DEFAULT_CHAIN_ID;
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
 
@@ -89,7 +98,7 @@ pub(crate) mod test_utils {
         ContractAddress::new(Felt::from_prefixed_hex_str("0xADD4E55").unwrap()).unwrap()
     }
 
-    pub(crate) fn dummy_declare_transaction_v1() -> DeclareTransactionV0V1 {
+    pub(crate) fn dummy_declare_transaction_v1() -> TransactionWithHash {
         let chain_id = DEVNET_DEFAULT_CHAIN_ID.to_felt();
         let contract_class = dummy_cairo_0_contract_class();
         let broadcasted_tx = BroadcastedDeclareTransactionV1::new(
@@ -104,7 +113,13 @@ pub(crate) mod test_utils {
         let transaction_hash =
             broadcasted_tx.calculate_transaction_hash(&chain_id, &class_hash).unwrap();
 
-        broadcasted_tx.create_declare(class_hash, transaction_hash)
+        TransactionWithHash::new(
+            transaction_hash,
+            Transaction::Declare(DeclareTransaction::V1(DeclareTransactionV0V1::new(
+                &broadcasted_tx,
+                class_hash,
+            ))),
+        )
     }
 
     pub(crate) fn dummy_broadcasted_declare_transaction_v2(
@@ -112,15 +127,10 @@ pub(crate) mod test_utils {
     ) -> BroadcastedDeclareTransactionV2 {
         let contract_class = dummy_cairo_1_contract_class();
 
-        let compiled_class_hash = compute_casm_class_hash(
-            &CasmContractClass::from_contract_class(
-                contract_class.clone(),
-                true,
-                MAX_BYTECODE_SIZE_LIMIT,
-            )
-            .unwrap(),
-        )
-        .unwrap();
+        let casm_contract_class_json =
+            usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap()).unwrap();
+
+        let compiled_class_hash = casm_hash(casm_contract_class_json).unwrap().into();
 
         BroadcastedDeclareTransactionV2::new(
             &contract_class,

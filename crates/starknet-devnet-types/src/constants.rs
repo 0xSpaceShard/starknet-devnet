@@ -1,3 +1,5 @@
+use starknet_rs_ff::FieldElement;
+
 pub const OUTPUT_BUILTIN_NAME: &str = "output_builtin";
 pub const HASH_BUILTIN_NAME: &str = "pedersen_builtin";
 pub const RANGE_CHECK_BUILTIN_NAME: &str = "range_check_builtin";
@@ -9,5 +11,34 @@ pub const POSEIDON_BUILTIN_NAME: &str = "poseidon_builtin";
 pub const SEGMENT_ARENA_BUILTIN_NAME: &str = "segment_arena_builtin";
 pub const N_STEPS: &str = "n_steps";
 
-/// as per https://docs.starknet.io/documentation/tools/limits_and_triggers/
-pub const MAX_BYTECODE_SIZE_LIMIT: usize = 81920;
+// copied from starknet-rs, because it is not exposed as public type
+pub const QUERY_VERSION_OFFSET: FieldElement = FieldElement::from_mont([
+    18446744073700081665,
+    17407,
+    18446744073709551584,
+    576460752142434320,
+]);
+
+/// Cairo string for "invoke" from starknet-rs
+pub(crate) const PREFIX_INVOKE: FieldElement = FieldElement::from_mont([
+    18443034532770911073,
+    18446744073709551615,
+    18446744073709551615,
+    513398556346534256,
+]);
+
+/// Cairo string for "deploy_account" from starknet-rs
+pub(crate) const PREFIX_DEPLOY_ACCOUNT: FieldElement = FieldElement::from_mont([
+    3350261884043292318,
+    18443211694809419988,
+    18446744073709551615,
+    461298303000467581,
+]);
+
+/// Cairo string for "declare" from starknet-rs
+pub(crate) const PREFIX_DECLARE: FieldElement = FieldElement::from_mont([
+    17542456862011667323,
+    18446744073709551615,
+    18446744073709551615,
+    191557713328401194,
+]);

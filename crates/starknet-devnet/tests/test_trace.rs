@@ -12,7 +12,6 @@ mod trace_tests {
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{
         DeployedContractItem, FieldElement, FunctionInvocation, StarknetError, TransactionTrace,
     };
@@ -21,6 +20,7 @@ mod trace_tests {
     use starknet_types::rpc::transactions::BlockTransactionTrace;
 
     use crate::common::background_devnet::BackgroundDevnet;
+    use crate::common::constants;
     use crate::common::utils::{
         get_deployable_account_signer, get_events_contract_in_sierra_and_compiled_class_hash,
     };
@@ -37,26 +37,9 @@ mod trace_tests {
         assert_eq!(invocation.calldata[7], FieldElement::from(DUMMY_AMOUNT));
     }
 
-    #[tokio::test]
-    async fn get_trace_non_existing_transaction() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let err = devnet
-            .json_rpc_client
-            .trace_transaction(FieldElement::ZERO)
-            .await
-            .expect_err("Should fail");
-
-        match err {
-            ProviderError::StarknetError(StarknetError::TransactionHashNotFound) => (),
-            _ => panic!("Should fail with error"),
-        }
-    }
-
-    #[tokio::test]
-    async fn get_invoke_trace() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-
+    async fn get_invoke_trace(devnet: &BackgroundDevnet) {
         let mint_tx_hash = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        devnet.create_block().await.unwrap();
 
         let mint_tx_trace = devnet.json_rpc_client.trace_transaction(mint_tx_hash).await.unwrap();
 
@@ -79,6 +62,37 @@ mod trace_tests {
     }
 
     #[tokio::test]
+    async fn get_trace_non_existing_transaction() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let err = devnet
+            .json_rpc_client
+            .trace_transaction(FieldElement::ZERO)
+            .await
+            .expect_err("Should fail");
+
+        match err {
+            ProviderError::StarknetError(StarknetError::TransactionHashNotFound) => (),
+            _ => panic!("Should fail with error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn get_invoke_trace_normal_mode() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        get_invoke_trace(&devnet).await
+    }
+
+    #[tokio::test]
+    async fn get_invoke_trace_blocks_on_demand_mode() {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
+            .await
+            .expect("Could not start Devnet");
+
+        get_invoke_trace(&devnet).await
+    }
+
+    #[tokio::test]
     async fn get_declare_trace() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -87,7 +101,7 @@ mod trace_tests {
             devnet.clone_provider(),
             signer,
             account_address,
-            chain_id::TESTNET,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         );
 
@@ -143,7 +157,7 @@ mod trace_tests {
             devnet.clone_provider(),
             signer,
             account_address,
-            chain_id::TESTNET,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         ));
 
@@ -207,7 +221,7 @@ mod trace_tests {
         let new_account_signer = get_deployable_account_signer();
         let account_factory = OpenZeppelinAccountFactory::new(
             FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap(),
-            chain_id::TESTNET,
+            constants::CHAIN_ID,
             new_account_signer.clone(),
             devnet.clone_provider(),
         )

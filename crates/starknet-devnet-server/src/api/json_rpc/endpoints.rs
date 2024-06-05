@@ -3,12 +3,14 @@ use starknet_rs_core::types::{BlockId as ImportedBlockId, MsgFromL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::block::{Block, BlockHeader, BlockId};
-use starknet_types::rpc::state::StateUpdate;
+use starknet_types::rpc::block::{
+    Block, BlockHeader, BlockId, BlockResult, PendingBlock, PendingBlockHeader,
+};
+use starknet_types::rpc::state::StateUpdateResult;
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, SimulationFlag,
 };
-use starknet_types::traits::ToHexString;
+use starknet_types::starknet_api::block::BlockStatus;
 
 use super::error::{ApiError, StrictRpcResult};
 use super::models::{BlockHashAndNumberOutput, SyncingOutput, TransactionStatusOutput};
@@ -20,40 +22,51 @@ const DEFAULT_CONTINUATION_TOKEN: &str = "0";
 impl JsonRpcHandler {
     /// starknet_specVersion
     pub fn spec_version(&self) -> StrictRpcResult {
-        Ok(StarknetResponse::SpecVersion(RPC_SPEC_VERSION.to_string()))
+        Ok(StarknetResponse::String(RPC_SPEC_VERSION.to_string()))
     }
 
     /// starknet_getBlockWithTxHashes
     pub async fn get_block_with_tx_hashes(&self, block_id: BlockId) -> StrictRpcResult {
-        let block =
-            self.api.starknet.read().await.get_block(block_id.as_ref()).map_err(
-                |err| match err {
-                    Error::NoBlock => ApiError::BlockNotFound,
-                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
-                },
-            )?;
+        let starknet = self.api.starknet.read().await;
 
-        Ok(StarknetResponse::BlockWithTransactionHashes(Block {
-            status: *block.status(),
-            header: BlockHeader::from(&block),
-            transactions: starknet_types::rpc::transactions::Transactions::Hashes(
-                block.get_transactions().to_owned(),
-            ),
-        }))
+        let block = starknet.get_block(block_id.as_ref()).map_err(|err| match err {
+            Error::NoBlock => ApiError::BlockNotFound,
+            unknown_error => ApiError::StarknetDevnetError(unknown_error),
+        })?;
+
+        if block.status() == &BlockStatus::Pending {
+            Ok(StarknetResponse::PendingBlock(PendingBlock {
+                header: PendingBlockHeader::from(&block),
+                transactions: starknet_types::rpc::transactions::Transactions::Hashes(
+                    block.get_transactions().to_owned(),
+                ),
+            }))
+        } else {
+            Ok(StarknetResponse::Block(Block {
+                status: *block.status(),
+                header: BlockHeader::from(&block),
+                transactions: starknet_types::rpc::transactions::Transactions::Hashes(
+                    block.get_transactions().to_owned(),
+                ),
+            }))
+        }
     }
 
     /// starknet_getBlockWithTxs
     pub async fn get_block_with_txs(&self, block_id: BlockId) -> StrictRpcResult {
-        let block =
-            self.api.starknet.read().await.get_block_with_transactions(block_id.as_ref()).map_err(
-                |err| match err {
-                    Error::NoBlock => ApiError::BlockNotFound,
-                    Error::NoTransaction => ApiError::TransactionNotFound,
-                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
-                },
-            )?;
+        let starknet = self.api.starknet.read().await;
 
-        Ok(StarknetResponse::BlockWithFullTransactions(block))
+        let block =
+            starknet.get_block_with_transactions(block_id.as_ref()).map_err(|err| match err {
+                Error::NoBlock => ApiError::BlockNotFound,
+                Error::NoTransaction => ApiError::TransactionNotFound,
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            })?;
+
+        match block {
+            BlockResult::Block(b) => Ok(StarknetResponse::Block(b)),
+            BlockResult::PendingBlock(b) => Ok(StarknetResponse::PendingBlock(b)),
+        }
     }
 
     /// starknet_getBlockWithReceipts
@@ -67,27 +80,26 @@ impl JsonRpcHandler {
                 },
             )?;
 
-        Ok(StarknetResponse::BlockWithReceipts(block))
+        match block {
+            BlockResult::Block(b) => Ok(StarknetResponse::Block(b)),
+            BlockResult::PendingBlock(b) => Ok(StarknetResponse::PendingBlock(b)),
+        }
     }
 
     /// starknet_getStateUpdate
     pub async fn get_state_update(&self, block_id: BlockId) -> StrictRpcResult {
+        let starknet = self.api.starknet.read().await;
+
         let state_update =
-            self.api.starknet.read().await.block_state_update(block_id.as_ref()).map_err(
-                |err| match err {
-                    Error::NoBlock => ApiError::BlockNotFound,
-                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
-                },
-            )?;
+            starknet.block_state_update(block_id.as_ref()).map_err(|err| match err {
+                Error::NoBlock => ApiError::BlockNotFound,
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            })?;
 
-        let state_diff = state_update.state_diff.into();
-
-        Ok(StarknetResponse::StateUpdate(StateUpdate {
-            block_hash: state_update.block_hash,
-            new_root: state_update.new_root,
-            old_root: state_update.old_root,
-            state_diff,
-        }))
+        match state_update {
+            StateUpdateResult::StateUpdate(s) => Ok(StarknetResponse::StateUpdate(s)),
+            StateUpdateResult::PendingStateUpdate(s) => Ok(StarknetResponse::PendingStateUpdate(s)),
+        }
     }
 
     /// starknet_getStorageAt
@@ -105,12 +117,14 @@ impl JsonRpcHandler {
             .contract_storage_at_block(block_id.as_ref(), contract_address, key)
             .map_err(|err| match err {
                 Error::NoBlock => ApiError::BlockNotFound,
-                Error::StateError(StateError::NoneStorage(_))
-                | Error::NoStateAtBlock { block_number: _ } => ApiError::ContractNotFound,
+                Error::ContractNotFound | Error::StateError(StateError::NoneStorage(_)) => {
+                    ApiError::ContractNotFound
+                }
+                e @ Error::NoStateAtBlock { .. } => ApiError::NoStateAtBlock { msg: e.to_string() },
                 unknown_error => ApiError::StarknetDevnetError(unknown_error),
             })?;
 
-        Ok(StarknetResponse::StorageAt(felt))
+        Ok(StarknetResponse::Felt(felt))
     }
 
     /// starknet_getTransactionByHash
@@ -119,7 +133,7 @@ impl JsonRpcHandler {
         transaction_hash: TransactionHash,
     ) -> StrictRpcResult {
         match self.api.starknet.read().await.get_transaction_by_hash(transaction_hash) {
-            Ok(transaction) => Ok(StarknetResponse::TransactionByHash(transaction.clone())),
+            Ok(transaction) => Ok(StarknetResponse::Transaction(transaction.clone())),
             Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
             Err(err) => Err(err.into()),
         }
@@ -161,9 +175,7 @@ impl JsonRpcHandler {
             .await
             .get_transaction_by_block_id_and_index(block_id.as_ref(), index)
         {
-            Ok(transaction) => {
-                Ok(StarknetResponse::TransactionByBlockAndIndex(transaction.clone()))
-            }
+            Ok(transaction) => Ok(StarknetResponse::Transaction(transaction.clone())),
             Err(Error::InvalidTransactionIndexInBlock) => {
                 Err(ApiError::InvalidTransactionIndexInBlock)
             }
@@ -189,12 +201,13 @@ impl JsonRpcHandler {
     /// starknet_getClass
     pub async fn get_class(&self, block_id: BlockId, class_hash: ClassHash) -> StrictRpcResult {
         match self.api.starknet.write().await.get_class(block_id.as_ref(), class_hash) {
-            Ok(contract_class) => Ok(StarknetResponse::ClassByHash(contract_class.try_into()?)),
-            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
-            Err(Error::StateError(_) | Error::NoStateAtBlock { block_number: _ }) => {
-                Err(ApiError::ClassHashNotFound)
-            }
-            Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
+            Ok(contract_class) => Ok(StarknetResponse::ContractClass(contract_class.try_into()?)),
+            Err(e) => Err(match e {
+                Error::NoBlock => ApiError::BlockNotFound,
+                Error::StateError(_) => ApiError::ClassHashNotFound,
+                e @ Error::NoStateAtBlock { .. } => ApiError::NoStateAtBlock { msg: e.to_string() },
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            }),
         }
     }
 
@@ -205,15 +218,19 @@ impl JsonRpcHandler {
         contract_address: ContractAddress,
     ) -> StrictRpcResult {
         match self.api.starknet.write().await.get_class_at(block_id.as_ref(), contract_address) {
-            Ok(contract_class) => {
-                Ok(StarknetResponse::ClassAtContractAddress(contract_class.try_into()?))
-            }
+            Ok(contract_class) => Ok(StarknetResponse::ContractClass(contract_class.try_into()?)),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
-            Err(
-                Error::ContractNotFound
-                | Error::StateError(_)
-                | Error::NoStateAtBlock { block_number: _ },
-            ) => Err(ApiError::ContractNotFound),
+            Err(Error::StateError(StateError::NoneClassHash(_))) => {
+                // NoneClassHash can be returned only when forking, otherwise it means that
+                // contract_address is locally present, but its class hash isn't, which is a bug.
+                // ClassHashNotFound is not expected to be returned by the server, but to be handled
+                // by the forking logic as a signal to forward the request to the origin.
+                Err(ApiError::ClassHashNotFound)
+            }
+            Err(Error::ContractNotFound | Error::StateError(_)) => Err(ApiError::ContractNotFound),
+            Err(e @ Error::NoStateAtBlock { .. }) => {
+                Err(ApiError::NoStateAtBlock { msg: e.to_string() })
+            }
             Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
         }
     }
@@ -226,10 +243,11 @@ impl JsonRpcHandler {
     ) -> StrictRpcResult {
         match self.api.starknet.write().await.get_class_hash_at(block_id.as_ref(), contract_address)
         {
-            Ok(class_hash) => Ok(StarknetResponse::ClassHashAtContractAddress(class_hash)),
+            Ok(class_hash) => Ok(StarknetResponse::Felt(class_hash)),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
-            Err(Error::ContractNotFound | Error::NoStateAtBlock { block_number: _ }) => {
-                Err(ApiError::ContractNotFound)
+            Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
+            Err(e @ Error::NoStateAtBlock { .. }) => {
+                Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
             Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
         }
@@ -257,6 +275,9 @@ impl JsonRpcHandler {
             Ok(result) => Ok(StarknetResponse::Call(result)),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
+            Err(e @ Error::NoStateAtBlock { .. }) => {
+                Err(ApiError::NoStateAtBlock { msg: e.to_string() })
+            }
             Err(err) => Err(ApiError::ContractError { error: err }),
         }
     }
@@ -270,9 +291,12 @@ impl JsonRpcHandler {
     ) -> StrictRpcResult {
         let mut starknet = self.api.starknet.write().await;
         match starknet.estimate_fee(block_id.as_ref(), &request, &simulation_flags) {
-            Ok(result) => Ok(StarknetResponse::EsimateFee(result)),
+            Ok(result) => Ok(StarknetResponse::EstimateFee(result)),
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(e @ Error::NoStateAtBlock { .. }) => {
+                Err(ApiError::NoStateAtBlock { msg: e.to_string() })
+            }
             Err(err) => Err(ApiError::ContractError { error: err }),
         }
     }
@@ -286,6 +310,9 @@ impl JsonRpcHandler {
             Ok(result) => Ok(StarknetResponse::EstimateMessageFee(result)),
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(e @ Error::NoStateAtBlock { .. }) => {
+                Err(ApiError::NoStateAtBlock { msg: e.to_string() })
+            }
             Err(err) => Err(ApiError::ContractError { error: err }),
         }
     }
@@ -317,7 +344,7 @@ impl JsonRpcHandler {
     pub async fn chain_id(&self) -> StrictRpcResult {
         let chain_id = self.api.starknet.read().await.chain_id();
 
-        Ok(StarknetResponse::ChainId(chain_id.to_felt().to_prefixed_hex_str()))
+        Ok(StarknetResponse::Felt(chain_id.to_felt()))
     }
 
     /// starknet_syncing
@@ -364,13 +391,12 @@ impl JsonRpcHandler {
             .contract_nonce_at_block(block_id.as_ref(), contract_address)
             .map_err(|err| match err {
                 Error::NoBlock => ApiError::BlockNotFound,
-                Error::NoStateAtBlock { block_number: _ } | Error::ContractNotFound => {
-                    ApiError::ContractNotFound
-                }
+                Error::ContractNotFound => ApiError::ContractNotFound,
+                e @ Error::NoStateAtBlock { .. } => ApiError::NoStateAtBlock { msg: e.to_string() },
                 unknown_error => ApiError::StarknetDevnetError(unknown_error),
             })?;
 
-        Ok(StarknetResponse::ContractNonce(nonce))
+        Ok(StarknetResponse::Felt(nonce))
     }
 
     /// starknet_simulateTransactions
@@ -386,6 +412,9 @@ impl JsonRpcHandler {
             Ok(result) => Ok(StarknetResponse::SimulateTransactions(result)),
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(e @ Error::NoStateAtBlock { .. }) => {
+                Err(ApiError::NoStateAtBlock { msg: e.to_string() })
+            }
             Err(err) => Err(ApiError::ContractError { error: err }),
         }
     }

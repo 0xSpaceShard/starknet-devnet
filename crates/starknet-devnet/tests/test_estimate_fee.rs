@@ -4,9 +4,7 @@ mod estimate_fee_tests {
     use std::sync::Arc;
 
     use serde_json::json;
-    use starknet_core::constants::{
-        CAIRO_0_ACCOUNT_CONTRACT_HASH, QUERY_VERSION_BASE, UDC_CONTRACT_ADDRESS,
-    };
+    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, UDC_CONTRACT_ADDRESS};
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
         Account, AccountError, AccountFactory, AccountFactoryError, Call, ConnectedAccount,
@@ -23,6 +21,7 @@ mod estimate_fee_tests {
         cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
     use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_types::constants::QUERY_VERSION_OFFSET;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
@@ -473,7 +472,7 @@ mod estimate_fee_tests {
             .await
             .expect("Cannot deploy");
 
-        let expected_version = QUERY_VERSION_BASE + FieldElement::ONE;
+        let expected_version = QUERY_VERSION_OFFSET + FieldElement::ONE;
         let calls = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("assert_version").unwrap(),

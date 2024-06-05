@@ -1,14 +1,13 @@
 use std::process::{Child, Command};
 use std::sync::Arc;
-use std::{thread, time};
+use std::time;
 
 use ethers::prelude::*;
 use ethers::providers::{Http, Provider};
 use ethers::types::Address;
-use hyper::http::request;
-use hyper::{Client, Response, StatusCode};
 use k256::ecdsa::SigningKey;
 use rand::Rng;
+use reqwest::StatusCode;
 use starknet_core::messaging::ethereum::ETH_ACCOUNT_DEFAULT;
 
 use super::errors::TestError;
@@ -46,23 +45,22 @@ impl BackgroundAnvil {
             .spawn()
             .expect("Could not start background Anvil");
 
-        let anvil_url = format!("http://127.0.0.1:{port}");
+        let address = "127.0.0.1";
+        let anvil_url = format!("http://{address}:{port}");
 
-        let mut retries = 0;
+        let client = reqwest::Client::new();
         let max_retries = 10;
-
-        while retries < max_retries {
-            if let Ok(anvil_block_rsp) = send_dummy_request(&anvil_url).await {
+        for _ in 0..max_retries {
+            if let Ok(anvil_block_rsp) = send_dummy_request(&client, &anvil_url).await {
                 assert_eq!(anvil_block_rsp.status(), StatusCode::OK);
-                println!("Spawned background anvil at port {port} (127.0.0.1)");
+                println!("Spawned background anvil at port {port} ({address})");
 
                 let (provider, provider_signer) = setup_ethereum_provider(&anvil_url).await?;
 
                 return Ok(Self { process, url: anvil_url, provider, provider_signer });
             }
 
-            retries += 1;
-            thread::sleep(time::Duration::from_millis(500));
+            tokio::time::sleep(time::Duration::from_millis(500)).await;
         }
 
         Err(TestError::AnvilNotStartable)
@@ -78,8 +76,7 @@ impl BackgroundAnvil {
         )
             .map_err(|e| {
                 TestError::EthersError(format!(
-                    "Error formatting messaging contract deploy request: {}",
-                    e
+                    "Error formatting messaging contract deploy request: {e}"
                 ))
             })?
         // Required by the new version of anvil, as default is no longer accepted.
@@ -89,8 +86,7 @@ impl BackgroundAnvil {
             .await
             .map_err(|e| {
                 TestError::EthersError(format!(
-                    "Error deploying messaging contract: {}",
-                    e
+                    "Error deploying messaging contract: {e}"
                 ))
             })?;
 
@@ -101,7 +97,7 @@ impl BackgroundAnvil {
         let l1l2_contract = abigen::L1L2Example::new(address, self.provider.clone());
 
         l1l2_contract.get_balance(user).call().await.map_err(|e| {
-            TestError::EthersError(format!("Error calling l1l2 contract on ethereum: {}", e))
+            TestError::EthersError(format!("Error calling l1l2 contract on ethereum: {e}"))
         })
     }
 
@@ -120,15 +116,13 @@ impl BackgroundAnvil {
             .await
             .map_err(|e| {
                 TestError::EthersError(format!(
-                    "tx for deposit l1l2 contract on ethereum failed: {}",
-                    e
+                    "tx for deposit l1l2 contract on ethereum failed: {e}"
                 ))
             })?
             .await
             .map_err(|e| {
                 TestError::EthersError(format!(
-                    "tx for deposit l1l2 contract on ethereum no receipt: {}",
-                    e
+                    "tx for deposit l1l2 contract on ethereum no receipt: {e}"
                 ))
             })?;
 
@@ -155,15 +149,13 @@ impl BackgroundAnvil {
             .await
             .map_err(|e| {
                 TestError::EthersError(format!(
-                    "tx for deposit l1l2 contract on ethereum failed: {}",
-                    e
+                    "tx for deposit l1l2 contract on ethereum failed: {e}"
                 ))
             })?
             .await
             .map_err(|e| {
                 TestError::EthersError(format!(
-                    "tx for deposit l1l2 contract on ethereum no receipt: {}",
-                    e
+                    "tx for deposit l1l2 contract on ethereum no receipt: {e}"
                 ))
             })?;
 
@@ -178,9 +170,7 @@ async fn setup_ethereum_provider(
     TestError,
 > {
     let provider = Provider::<Http>::try_from(rpc_url)
-        .map_err(|e| {
-            TestError::EthersError(format!("Can't parse L1 node URL: {} ({})", rpc_url, e))
-        })
+        .map_err(|e| TestError::EthersError(format!("Can't parse L1 node URL: {rpc_url} ({e})")))
         .map_err(|e| TestError::EthersError(e.to_string()))?;
 
     let chain_id =
@@ -200,21 +190,20 @@ async fn setup_ethereum_provider(
 
 /// Even if the RPC method is dummy (doesn't exist),
 /// the server is expected to respond properly if alive
-async fn send_dummy_request(rpc_url: &str) -> Result<Response<hyper::Body>, hyper::Error> {
-    let req = request::Request::post(rpc_url)
-        .header("content-type", "application/json")
-        .body(hyper::Body::from(
-            serde_json::json!({
-                "jsonrpc": "2.0",
-                "method": "eth_blockNumberfuiorhgorueh",
-                "params": [],
-                "id": "1"
-            })
-            .to_string(),
-        ))
-        .unwrap();
-
-    Client::new().request(req).await
+async fn send_dummy_request(
+    client: &reqwest::Client,
+    rpc_url: &str,
+) -> Result<reqwest::Response, reqwest::Error> {
+    client
+        .post(rpc_url)
+        .json(&serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "eth_blockNumberfuiorhgorueh",
+            "params": [],
+            "id": "1"
+        }))
+        .send()
+        .await
 }
 
 /// By implementing Drop, we ensure there are no zombie background Anvil processes

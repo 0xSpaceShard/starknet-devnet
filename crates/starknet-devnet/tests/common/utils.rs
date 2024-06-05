@@ -2,27 +2,31 @@ use std::fmt::LowerHex;
 use std::fs;
 use std::path::Path;
 use std::process::{Child, Command};
+use std::sync::Arc;
 
-use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
-use hyper::{Body, Response};
+use server::test_utils::exported_test_utils::assert_contains;
 use starknet_core::random_number_generator::generate_u32_random_number;
+use starknet_core::utils::casm_hash;
+use starknet_rs_accounts::{Account, SingleOwnerAccount};
+use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::contract::SierraClass;
-use starknet_rs_core::types::{ContractClass, ExecutionResult, FieldElement, FlattenedSierraClass};
-use starknet_rs_providers::Provider;
+use starknet_rs_core::types::{
+    BlockId, BlockTag, ContractClass, ExecutionResult, FieldElement, FlattenedSierraClass,
+    FunctionCall,
+};
+use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
+use starknet_rs_providers::jsonrpc::HttpTransport;
+use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::LocalWallet;
-use starknet_types::constants::MAX_BYTECODE_SIZE_LIMIT;
-use starknet_types::contract_class::compute_casm_class_hash;
 
-pub async fn get_json_body(resp: Response<Body>) -> serde_json::Value {
-    let resp_body = resp.into_body();
-    let resp_body_bytes = hyper::body::to_bytes(resp_body).await.unwrap();
-    serde_json::from_slice(&resp_body_bytes).unwrap()
-}
+use super::background_devnet::BackgroundDevnet;
+use super::constants::CAIRO_1_CONTRACT_PATH;
 
-pub async fn get_string_body(resp: Response<Body>) -> String {
-    let resp_body = resp.into_body();
-    let body_bytes = hyper::body::to_bytes(resp_body).await.unwrap();
-    String::from_utf8(body_bytes.to_vec()).unwrap()
+pub enum ImpersonationAction {
+    ImpersonateAccount(FieldElement),
+    StopImpersonatingAccount(FieldElement),
+    AutoImpersonate,
+    StopAutoImpersonate,
 }
 
 /// dummy testing value
@@ -57,14 +61,8 @@ pub fn get_flattened_sierra_contract_and_casm_hash(
 ) -> (FlattenedSierraClass, FieldElement) {
     let sierra_string = std::fs::read_to_string(sierra_path).unwrap();
     let sierra_class: SierraClass = serde_json::from_str(&sierra_string).unwrap();
-    let contract_class: cairo_lang_starknet_classes::contract_class::ContractClass =
-        serde_json::from_str(&sierra_string).unwrap();
-
-    let casm_contract_class =
-        CasmContractClass::from_contract_class(contract_class, false, MAX_BYTECODE_SIZE_LIMIT)
-            .unwrap();
-    let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
-    (sierra_class.flatten().unwrap(), compiled_class_hash.into())
+    let casm_json = usc::compile_contract(serde_json::from_str(&sierra_string).unwrap()).unwrap();
+    (sierra_class.flatten().unwrap(), casm_hash(casm_json).unwrap())
 }
 
 pub fn get_messaging_contract_in_sierra_and_compiled_class_hash()
@@ -90,11 +88,17 @@ pub fn get_events_contract_in_sierra_and_compiled_class_hash()
     get_flattened_sierra_contract_and_casm_hash(events_sierra_path)
 }
 
-pub fn get_timestamp_contract_in_sierra_and_compiled_class_hash()
+pub fn get_block_reader_contract_in_sierra_and_compiled_class_hash()
 -> (FlattenedSierraClass, FieldElement) {
     let timestamp_sierra_path =
-        concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/timestamp/timestamp.json");
+        concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/block_reader/block_reader.sierra");
     get_flattened_sierra_contract_and_casm_hash(timestamp_sierra_path)
+}
+
+pub fn get_simple_contract_in_sierra_and_compiled_class_hash()
+-> (FlattenedSierraClass, FieldElement) {
+    let contract_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), CAIRO_1_CONTRACT_PATH);
+    get_flattened_sierra_contract_and_casm_hash(&contract_path)
 }
 
 pub async fn assert_tx_successful<T: Provider>(tx_hash: &FieldElement, client: &T) {
@@ -102,6 +106,29 @@ pub async fn assert_tx_successful<T: Provider>(tx_hash: &FieldElement, client: &
     match receipt.execution_result() {
         ExecutionResult::Succeeded => (),
         other => panic!("Should have succeeded; got: {other:?}"),
+    }
+
+    match receipt.finality_status() {
+        starknet_rs_core::types::TransactionFinalityStatus::AcceptedOnL2 => (),
+        other => panic!("Should have been accepted on L2; got: {other:?}"),
+    }
+}
+
+pub async fn get_contract_balance(
+    devnet: &BackgroundDevnet,
+    contract_address: FieldElement,
+) -> FieldElement {
+    let contract_call = FunctionCall {
+        contract_address,
+        entry_point_selector: get_selector_from_name("get_balance").unwrap(),
+        calldata: vec![],
+    };
+    match devnet.json_rpc_client.call(contract_call, BlockId::Tag(BlockTag::Latest)).await {
+        Ok(res) => {
+            assert_eq!(res.len(), 1);
+            res[0]
+        }
+        Err(e) => panic!("Call failed: {e}"),
     }
 }
 
@@ -114,7 +141,7 @@ pub async fn assert_tx_reverted<T: Provider>(
     match receipt.execution_result() {
         ExecutionResult::Reverted { reason } => {
             for expected_reason in expected_failure_reasons {
-                reason.contains(expected_reason);
+                assert_contains(reason, expected_reason);
             }
         }
         other => panic!("Should have reverted; got: {other:?}; receipt: {receipt:?}"),
@@ -142,7 +169,7 @@ pub fn get_unix_timestamp_as_seconds() -> u64 {
 
 pub async fn send_ctrl_c_signal_and_wait(process: &Child) {
     send_ctrl_c_signal(process).await;
-    std::thread::sleep(std::time::Duration::from_secs(1));
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 }
 
 async fn send_ctrl_c_signal(process: &Child) {
@@ -204,7 +231,9 @@ impl UniqueAutoDeletableFile {
     /// Unlike [NamedTempFile](https://docs.rs/tempfile/latest/tempfile/struct.NamedTempFile.html),
     /// it doesn't create the file.
     pub fn new(name_base: &str) -> Self {
-        Self { path: format!("{name_base}-{}", generate_u32_random_number()) }
+        // generate two random numbers to increase uniqueness
+        let rand = format!("{}{}", generate_u32_random_number(), generate_u32_random_number());
+        Self { path: format!("{name_base}-{}", rand) }
     }
 }
 
@@ -212,6 +241,39 @@ impl Drop for UniqueAutoDeletableFile {
     fn drop(&mut self) {
         remove_file(&self.path)
     }
+}
+
+/// Declares and deploys a Cairo 1 contract; returns class hash and contract address
+pub async fn declare_deploy(
+    account: Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>,
+    contract_class: FlattenedSierraClass,
+    casm_hash: FieldElement,
+    ctor_args: &[FieldElement],
+) -> Result<(FieldElement, FieldElement), anyhow::Error> {
+    // declare the contract
+    let declaration_result = account
+        .declare(Arc::new(contract_class), casm_hash)
+        .max_fee(FieldElement::from(1e18 as u128))
+        .send()
+        .await?;
+
+    // deploy the contract
+    let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
+    contract_factory
+        .deploy(ctor_args.to_vec(), FieldElement::ZERO, false)
+        .max_fee(FieldElement::from(1e18 as u128))
+        .send()
+        .await?;
+
+    // generate the address of the newly deployed contract
+    let contract_address = get_udc_deployed_address(
+        FieldElement::ZERO,
+        declaration_result.class_hash,
+        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        ctor_args,
+    );
+
+    Ok((declaration_result.class_hash, contract_address))
 }
 
 #[cfg(test)]

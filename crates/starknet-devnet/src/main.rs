@@ -1,43 +1,69 @@
-use std::net::SocketAddr;
-
 use anyhow::Ok;
 use clap::Parser;
 use cli::Args;
+use server::api::json_rpc::RPC_SPEC_VERSION;
 use server::api::Api;
 use server::server::serve_http_api_json_rpc;
-use server::ServerConfig;
 use starknet_core::account::Account;
 use starknet_core::constants::{
     CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
-use starknet_core::starknet::starknet_config::DumpOn;
+use starknet_core::starknet::starknet_config::{DumpOn, ForkConfig};
 use starknet_core::starknet::Starknet;
+use starknet_rs_core::types::{BlockId, BlockTag, MaybePendingBlockWithTxHashes};
+use starknet_rs_providers::jsonrpc::HttpTransport;
+use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_types::chain_id::ChainId;
-use starknet_types::felt::Felt;
-use starknet_types::traits::{ToDecimalString, ToHexString};
-use tracing::info;
+use starknet_types::rpc::state::Balance;
+use starknet_types::traits::ToHexString;
+use tokio::net::TcpListener;
+use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
 mod cli;
-mod contract_class_choice;
 mod initial_balance_wrapper;
 mod ip_addr_wrapper;
 
+const REQUEST_LOG_ENV_VAR: &str = "request";
+const RESPONSE_LOG_ENV_VAR: &str = "response";
+
 /// Configures tracing with default level INFO,
 /// If the environment variable `RUST_LOG` is set, it will be used instead.
+/// Added are two more directives: `request` and `response`. If they are present, then have to be
+/// removed to be able to construct the `EnvFilter` correctly, because tracing_subscriber recognizes
+/// them as path syntax (way to access a module) and assigns them TRACE level. Because they are not
+/// paths to some module like this one: `starknet-devnet::cli` nothing gets logged. For example:
+/// `RUST_LOG=request` is translated to `request=TRACE`, which means that will log TRACE level for
+/// request module.
 fn configure_tracing() {
-    let level_filter_layer =
-        EnvFilter::builder().with_default_directive(tracing::Level::INFO.into()).from_env_lossy();
+    let log_env_var = std::env::var(EnvFilter::DEFAULT_ENV).unwrap_or_default().to_lowercase();
+
+    // Remove the `request` and `response` directives from the environment variable.
+    // And trim empty spaces around each directive
+    let log_env_var = log_env_var
+        .split(',')
+        .map(|el| el.trim())
+        .filter(|el| ![REQUEST_LOG_ENV_VAR, RESPONSE_LOG_ENV_VAR].contains(el))
+        .collect::<Vec<&str>>()
+        .join(",");
+
+    let level_filter_layer = EnvFilter::builder()
+        .with_default_directive(tracing::Level::INFO.into())
+        .parse_lossy(log_env_var);
 
     tracing_subscriber::fmt().with_env_filter(level_filter_layer).init();
 }
 
-fn log_predeployed_accounts(predeployed_accounts: &Vec<Account>, seed: u32, initial_balance: Felt) {
+fn log_predeployed_accounts(
+    predeployed_accounts: &Vec<Account>,
+    seed: u32,
+    initial_balance: Balance,
+) {
     for account in predeployed_accounts {
         let formatted_str = format!(
             r"
-| Account address |  {} 
+| Account address |  {}
 | Private key     |  {}
 | Public key      |  {}",
             account.account_address.to_prefixed_hex_str(),
@@ -52,15 +78,12 @@ fn log_predeployed_accounts(predeployed_accounts: &Vec<Account>, seed: u32, init
         println!();
         let class_hash = predeployed_accounts.get(0).unwrap().class_hash.to_prefixed_hex_str();
         println!("Predeployed accounts using class with hash: {class_hash}");
-        println!(
-            "Initial balance of each account: {} WEI and FRI",
-            initial_balance.to_decimal_string()
-        );
+        println!("Initial balance of each account: {} WEI and FRI", initial_balance);
         println!("Seed to replicate this account sequence: {seed}");
     }
 }
 
-fn print_predeployed_contracts() {
+fn log_predeployed_contracts() {
     println!("Predeployed FeeToken");
     println!("ETH Address: {ETH_ERC20_CONTRACT_ADDRESS}");
     println!("STRK Address: {STRK_ERC20_CONTRACT_ADDRESS}");
@@ -72,8 +95,71 @@ fn print_predeployed_contracts() {
     println!();
 }
 
-fn print_chain_id(chain_id: ChainId) {
+fn log_chain_id(chain_id: ChainId) {
     println!("Chain ID: {} ({})", chain_id, chain_id.to_felt().to_prefixed_hex_str());
+}
+
+async fn check_forking_spec_version(
+    client: &JsonRpcClient<HttpTransport>,
+) -> Result<(), anyhow::Error> {
+    let origin_spec_version = client.spec_version().await?;
+    if origin_spec_version != RPC_SPEC_VERSION {
+        warn!(
+            "JSON-RPC API version of origin ({}) does not match this Devnet's version ({}).",
+            origin_spec_version, RPC_SPEC_VERSION
+        );
+    }
+    Ok(())
+}
+
+async fn check_forking_chain_id(
+    client: &JsonRpcClient<HttpTransport>,
+    devnet_chain_id: ChainId,
+) -> Result<(), anyhow::Error> {
+    let origin_chain_id = client.chain_id().await?;
+    let devnet_chain_id_felt = devnet_chain_id.into();
+    if origin_chain_id != devnet_chain_id_felt {
+        warn!(
+            "Origin chain ID ({:#x}) does not match this Devnet's chain ID ({:#x}).",
+            origin_chain_id, devnet_chain_id_felt
+        );
+    }
+    Ok(())
+}
+
+/// Logs forking info if forking specified. If block_number is not specified, it is set to the
+/// latest block number.
+pub async fn set_and_log_fork_config(
+    fork_config: &mut ForkConfig,
+    chain_id: ChainId,
+) -> Result<(), anyhow::Error> {
+    if let Some(url) = &fork_config.url {
+        let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
+        let block_id =
+            fork_config.block_number.map_or(BlockId::Tag(BlockTag::Latest), BlockId::Number);
+
+        let block = json_rpc_client.get_block_with_tx_hashes(block_id).await.map_err(|e| {
+            anyhow::Error::msg(match e {
+                starknet_rs_providers::ProviderError::StarknetError(
+                    starknet_rs_core::types::StarknetError::BlockNotFound,
+                ) => format!("Forking from block {block_id:?}: block not found"),
+                _ => format!("Forking from block {block_id:?}: {e}; Check the URL"),
+            })
+        })?;
+
+        match block {
+            MaybePendingBlockWithTxHashes::Block(b) => {
+                fork_config.block_number = Some(b.block_number);
+                println!("Forking from block: number={}, hash={:#x}", b.block_number, b.block_hash);
+            }
+            _ => panic!("Unreachable"),
+        };
+
+        check_forking_spec_version(&json_rpc_client).await?;
+        check_forking_chain_id(&json_rpc_client, chain_id).await?;
+    }
+
+    Ok(())
 }
 
 #[tokio::main]
@@ -82,9 +168,12 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // parse arguments
     let args = Args::parse();
-    let starknet_config = args.to_starknet_config()?;
+    let (mut starknet_config, server_config) = args.to_config()?;
 
-    let mut addr: SocketAddr = SocketAddr::new(starknet_config.host, starknet_config.port);
+    set_and_log_fork_config(&mut starknet_config.fork_config, starknet_config.chain_id).await?;
+
+    let address = format!("{}:{}", server_config.host, server_config.port);
+    let listener = TcpListener::bind(address.clone()).await?;
 
     let api = Api::new(Starknet::new(&starknet_config)?);
 
@@ -95,30 +184,27 @@ async fn main() -> Result<(), anyhow::Error> {
         );
     };
 
-    print_predeployed_contracts();
-    print_chain_id(starknet_config.chain_id);
+    log_predeployed_contracts();
+    log_chain_id(starknet_config.chain_id);
 
     let predeployed_accounts = api.starknet.read().await.get_predeployed_accounts();
     log_predeployed_accounts(
         &predeployed_accounts,
         starknet_config.seed,
-        starknet_config.predeployed_accounts_initial_balance,
+        starknet_config.predeployed_accounts_initial_balance.clone(),
     );
 
-    let server =
-        serve_http_api_json_rpc(addr, ServerConfig::default(), api.clone(), &starknet_config)?;
-    addr = server.local_addr();
+    let server = serve_http_api_json_rpc(listener, api.clone(), &starknet_config, &server_config);
 
-    info!("Starknet Devnet listening on {}", addr);
+    info!("Starknet Devnet listening on {}", address);
 
-    // spawn the server on a new task
-    let serve = if starknet_config.dump_on == Some(DumpOn::Exit) {
-        tokio::task::spawn(server.with_graceful_shutdown(shutdown_signal(api.clone())))
+    if starknet_config.dump_on == Some(DumpOn::Exit) {
+        server.with_graceful_shutdown(shutdown_signal(api.clone())).await?
     } else {
-        tokio::task::spawn(server)
-    };
+        server.await?
+    }
 
-    Ok(serve.await??)
+    Ok(())
 }
 
 pub async fn shutdown_signal(api: Api) {
@@ -126,4 +212,27 @@ pub async fn shutdown_signal(api: Api) {
 
     let starknet = api.starknet.read().await;
     starknet.dump_events().expect("Failed to dump starknet transactions");
+}
+
+#[cfg(test)]
+mod tests {
+    use tracing::level_filters::LevelFilter;
+    use tracing_subscriber::EnvFilter;
+
+    use crate::configure_tracing;
+
+    #[test]
+    fn test_generated_log_level_from_empty_environment_variable_is_info() {
+        assert_environment_variable_sets_expected_log_level("", LevelFilter::INFO);
+    }
+
+    fn assert_environment_variable_sets_expected_log_level(
+        env_var: &str,
+        expected_level: LevelFilter,
+    ) {
+        std::env::set_var(EnvFilter::DEFAULT_ENV, env_var);
+        configure_tracing();
+
+        assert_eq!(LevelFilter::current(), expected_level);
+    }
 }

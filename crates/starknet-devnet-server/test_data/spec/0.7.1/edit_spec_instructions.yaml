@@ -1,0 +1,74 @@
+# Remove entries before processing the spec file
+clean:
+  - components/schemas/COMMON_RECEIPT_PROPERTIES/properties/revert_reason/name
+  - components/schemas/PENDING_COMMON_RECEIPT_PROPERTIES/properties/revert_reason/name
+
+# Replace entries at "path" with the specified value in the spec file before processing it
+replace:
+# The following comment is for example purpose
+  # - path: components/schemas/BLOCK_HEADER/properties/l1_gas_price/descritpion
+  #   new_name: description
+
+add:
+  - path: components/schemas/NUM_AS_HEX
+    new_entry: pattern/^0x[a-fA-F0-9]{1,10}$
+  - path: components/schemas/CHAIN_ID
+    new_entry: pattern/^0x[a-fA-F0-9]{1,10}$
+  - path: components/schemas/DEPRECATED_CONTRACT_CLASS/properties/program
+    new_entry: pattern/^$
+  - path: components/schemas/MSG_TO_L1/properties/to_address
+    new_entry: $ref/#/components/schemas/ETH_ADDRESS
+  - path: components/schemas/FEE_PAYMENT/properties/amount
+    new_entry: $ref/#/components/schemas/u64
+
+remove_from_array:
+  - path: components/schemas/INVOKE_TXN/oneOf
+    index: 0
+  - path: components/schemas/TXN_STATUS/enum
+    index: 1
+  - path: components/schemas/TXN_STATUS/enum
+    index: 0
+  - path: components/schemas/TRANSACTION_TRACE/oneOf
+    index: 3
+  - path: components/schemas/BROADCASTED_DECLARE_TXN/oneOf
+    index: 0
+  - path: components/schemas/TXN/oneOf
+    index: 3
+  - path: components/schemas/TXN/oneOf
+    index: 1
+  - path: components/schemas/TXN_RECEIPT/oneOf
+    index: 1
+  - path: components/schemas/DECLARE_TXN/oneOf
+    index: 0
+
+edit_manually:
+  - action: CHANGE
+    what: every max_fee field type to u128
+  - action: REMOVE
+    what: removed the outer "schema" object -  instead of being items -> schema -> {type, properties}, now its items -> {type, properties} in starknet_simulateTransactions
+  - action: REMOVE
+    what: PENDING_BLOCK_HEADER schema from the spec
+  - action: REMOVE
+    what: starknet_getStateUpdate -> result removed PENDING_STATE_UPDATE
+  - action: REMOVE
+    what: starknet_getBlockWithTxs -> result removed PENDING_BLOCK_WITH_TXS
+  - action: REMOVE
+    what: starknet_getBlockWithTxHashes -> result removed PENDING_BLOCK_WITH_TX_HASHES
+  - action: ADD
+    what: execution_status to required fields of the result of starknet_getTransactionStatus
+  - action: ADD
+    what: abi to required fields of CONTRACT_CLASS
+  - action: CHANGE
+    what: components/schemas/FELT/pattern to ^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,61})$
+  - action: CHANGE
+    what: components/EVENT to components/EVENT_CONTENT in trace_api spec
+  - action: CHANGE
+    what: ORDERED_EVENT $ref from components/EVENT to components/EVENT_CONTENT in trace_api spec
+  - action: CHANGE
+    what: components/FEE_ESTIMATE field types from FELT to u64
+  - action: ADD
+    what: block_hash, block_number to required fields of EMITTED_EVENT
+  - action: REMOVE
+    what: starknet_syncing -> result -> oneOf SYNC_STATUS variant
+  - action: REMOVE
+    what: starknet_getBlockWithReceipts -> result remove PENDING_BLOCK_WITH_RECEIPTS

@@ -1,6 +1,7 @@
-use axum::{Extension, Json};
+use axum::extract::State;
+use axum::Json;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::transactions::L1HandlerTransaction;
+use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
@@ -10,7 +11,7 @@ use crate::api::http::models::{
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 
 pub async fn postman_load(
-    Extension(state): Extension<HttpApiHandler>,
+    State(state): State<HttpApiHandler>,
     Json(data): Json<PostmanLoadL1MessagingContract>,
 ) -> HttpApiResult<Json<MessagingLoadAddress>> {
     let mut starknet = state.api.starknet.write().await;
@@ -24,7 +25,7 @@ pub async fn postman_load(
 }
 
 pub async fn postman_flush(
-    Extension(state): Extension<HttpApiHandler>,
+    State(state): State<HttpApiHandler>,
     data: Option<Json<FlushParameters>>,
 ) -> HttpApiResult<Json<FlushedMessages>> {
     // Need to handle L1 to L2 first in case that those messages
@@ -82,22 +83,18 @@ pub async fn postman_flush(
 }
 
 pub async fn postman_send_message_to_l2(
-    Extension(state): Extension<HttpApiHandler>,
+    State(state): State<HttpApiHandler>,
     Json(message): Json<MessageToL2>,
 ) -> HttpApiResult<Json<TxHash>> {
     let mut starknet = state.api.starknet.write().await;
 
-    let chain_id = starknet.chain_id().to_felt();
-
-    let transaction = L1HandlerTransaction::try_from_message_to_l2(message)
-        .map_err(|_| HttpApiError::InvalidValueError {
+    let transaction = L1HandlerTransaction::try_from_message_to_l2(message).map_err(|_| {
+        HttpApiError::InvalidValueError {
             msg: "The `paid_fee_on_l1` is out of range, expecting u128 value".to_string(),
-        })?
-        .with_hash(chain_id);
+        }
+    })?;
 
-    let transaction_hash = transaction.transaction_hash;
-
-    starknet
+    let transaction_hash = starknet
         .add_l1_handler_transaction(transaction)
         .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
 
@@ -105,7 +102,7 @@ pub async fn postman_send_message_to_l2(
 }
 
 pub async fn postman_consume_message_from_l2(
-    Extension(state): Extension<HttpApiHandler>,
+    State(state): State<HttpApiHandler>,
     Json(message): Json<MessageToL1>,
 ) -> HttpApiResult<Json<MessageHash>> {
     let mut starknet = state.api.starknet.write().await;
