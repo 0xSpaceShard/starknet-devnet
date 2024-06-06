@@ -4,6 +4,7 @@ mod blocks_on_demand_tests {
     use std::sync::Arc;
 
     use serde_json::json;
+    use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
@@ -171,6 +172,49 @@ mod blocks_on_demand_tests {
             .await
             .unwrap();
         assert_eq!(latest_block_nonce, FieldElement::ZERO);
+    }
+
+    async fn assert_get_storage_at(devnet: &BackgroundDevnet) {
+        let (_, account_address) = devnet.get_first_predeployed_account().await;
+        let key = FieldElement::ZERO;
+
+        let pending_block_storage = devnet
+            .json_rpc_client
+            .get_storage_at(account_address, key, BlockId::Tag(BlockTag::Pending))
+            .await
+            .unwrap();
+        assert_eq!(pending_block_storage, FieldElement::ZERO);
+
+        let latest_block_storage = devnet
+            .json_rpc_client
+            .get_storage_at(account_address, key, BlockId::Tag(BlockTag::Latest))
+            .await
+            .unwrap();
+        assert_eq!(latest_block_storage, FieldElement::ZERO);
+    }
+
+    async fn assert_get_class_hash_at(devnet: &BackgroundDevnet) {
+        let (_, account_address) = devnet.get_first_predeployed_account().await;
+
+        let pending_block_class_hash = devnet
+            .json_rpc_client
+            .get_class_hash_at(BlockId::Tag(BlockTag::Pending), account_address)
+            .await
+            .unwrap();
+        assert_eq!(
+            pending_block_class_hash,
+            FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+        );
+
+        let latest_block_class_hash = devnet
+            .json_rpc_client
+            .get_class_hash_at(BlockId::Tag(BlockTag::Latest), account_address)
+            .await
+            .unwrap();
+        assert_eq!(
+            latest_block_class_hash,
+            FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+        );
     }
 
     #[tokio::test]
@@ -381,5 +425,35 @@ mod blocks_on_demand_tests {
             BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
 
         assert_get_nonce(&devnet).await;
+    }
+
+    #[tokio::test]
+    async fn get_storage_at_normal_mode() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        assert_get_storage_at(&devnet).await;
+    }
+
+    #[tokio::test]
+    async fn get_storage_at_block_on_demand() {
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
+
+        assert_get_storage_at(&devnet).await;
+    }
+
+    #[tokio::test]
+    async fn get_class_hash_at_normal_mode() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        assert_get_class_hash_at(&devnet).await;
+    }
+
+    #[tokio::test]
+    async fn get_class_hash_at_block_on_demand() {
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
+
+        assert_get_class_hash_at(&devnet).await;
     }
 }
