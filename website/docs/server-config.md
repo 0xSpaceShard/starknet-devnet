@@ -1,5 +1,7 @@
 # Server config
 
+To read generally about ways to configure your Devnet instance, check out the [CLI section](./running/cli.md).
+
 ## Host and port
 
 Specify the host and the port used by the server with `--host <ADDRESS>` and `--port <NUMBER>` CLI arguments. If running with Docker, check out the [port publishing docs](./running/docker#container-port-publishing).
