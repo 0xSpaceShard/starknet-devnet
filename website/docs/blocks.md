@@ -2,7 +2,7 @@
 
 Devnet starts with a genesis block (with a block number equal to 0). In forking mode, the genesis block number will be equal to the forked block number plus one.
 
-A new block is generated based on the pending block, once a new block is generated the pending block is restarted. By default, a new block is generated with each new transaction, you can also create an empty block by yourself.
+A new block is generated based on the pending block, once a new block is generated the pending block is restarted. By default, a new block is generated with each new transaction, but you can also [create an empty block by yourself](#create-an-empty-block).
 
 ## Creating blocks on demand
 
