@@ -7,7 +7,7 @@ mod blocks_on_demand_tests {
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
-        BlockId, BlockStatus, BlockTag, FieldElement, MaybePendingStateUpdate,
+        BlockId, BlockStatus, BlockTag, FieldElement, FunctionCall, MaybePendingStateUpdate,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::Provider;
@@ -343,6 +343,15 @@ mod blocks_on_demand_tests {
             .await,
             expected_balance
         );
+
+        let contract_call = FunctionCall {
+            contract_address,
+            entry_point_selector: get_selector_from_name("get_balance").unwrap(),
+            calldata: vec![],
+        };
+        let latest_block_balance =
+            devnet.json_rpc_client.call(contract_call, BlockId::Tag(BlockTag::Latest)).await;
+        assert!(latest_block_balance.is_err());
 
         devnet.create_block().await.unwrap();
 
