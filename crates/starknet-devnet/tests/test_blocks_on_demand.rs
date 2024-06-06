@@ -317,12 +317,12 @@ mod blocks_on_demand_tests {
             selector: get_selector_from_name("increase_balance").unwrap(),
             calldata: vec![increment, FieldElement::ZERO],
         }];
-        let tx_count = 2;
-        for n in 1..=tx_count {
+        let increment_count = 2;
+        for i in 1..=increment_count {
             let invoke_result = predeployed_account
                 .execute(contract_invoke.clone())
                 .max_fee(FieldElement::from(1e18 as u128))
-                .nonce(FieldElement::from(n + 1_u128))
+                .nonce(FieldElement::from(i + 1_u128))
                 .send()
                 .await
                 .unwrap();
@@ -332,6 +332,8 @@ mod blocks_on_demand_tests {
             tx_hashes.push(invoke_result.transaction_hash);
         }
 
+        let expected_balance = initial_value + (increment * FieldElement::from(increment_count));
+
         assert_eq!(
             get_contract_balance_by_block_id(
                 &devnet,
@@ -339,7 +341,7 @@ mod blocks_on_demand_tests {
                 BlockId::Tag(BlockTag::Pending)
             )
             .await,
-            initial_value + (increment * FieldElement::from(tx_count))
+            expected_balance
         );
 
         devnet.create_block().await.unwrap();
@@ -352,12 +354,9 @@ mod blocks_on_demand_tests {
                 BlockId::Tag(BlockTag::Pending)
             )
             .await,
-            initial_value + (increment * FieldElement::from(tx_count))
+            expected_balance
         );
-        assert_eq!(
-            get_contract_balance(&devnet, contract_address).await,
-            initial_value + (increment * FieldElement::from(tx_count))
-        );
+        assert_eq!(get_contract_balance(&devnet, contract_address).await, expected_balance);
     }
 
     #[tokio::test]
