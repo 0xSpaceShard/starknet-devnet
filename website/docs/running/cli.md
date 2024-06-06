@@ -30,6 +30,14 @@ $ <VAR1>=<VALUE> <VAR2>=<VALUE> starknet-devnet
 
 To see the exact variable names, use [`--help`](#help).
 
+### Precedence
+
+If both a CLI argument and an environment variable are passed for a parameter, the CLI argument takes precedence. If none are provided, the default value is used. E.g. if running Devnet with the following command, seed value 42 will be used:
+
+```
+$ SEED=10 starknet-devnet --seed 42
+```
+
 ### Docker
 
 If using dockerized Devnet, specify the variables like this:
@@ -74,7 +82,7 @@ ACCOUNTS=3
 ...
 ```
 
-and run:
+Then run:
 
 ```
 $ docker run --env-file .my-env-file shardlabs/starknet-devnet-rs

@@ -20,7 +20,13 @@ use crate::{REQUEST_LOG_ENV_VAR, RESPONSE_LOG_ENV_VAR};
 
 /// Run a local instance of Starknet Devnet
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None, propagate_version = true)]
+#[command(
+    author,
+    version,
+    about = "A local testnet for Starknet... in Rust!",
+    long_about = "Documentation: https://0xspaceshard.github.io/starknet-devnet-rs",
+    propagate_version = true
+)]
 pub(crate) struct Args {
     /// Number of accounts
     #[arg(long = "accounts")]
