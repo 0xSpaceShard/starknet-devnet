@@ -51,6 +51,7 @@ axum = { workspace = true }
 usc = { workspace = true }
 reqwest = { workspace = true }
 criterion = { version = "0.3.4", features = ["async_tokio"] }
+serial_test = { workspace = true }
 
 
 [[bench]]

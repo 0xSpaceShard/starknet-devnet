@@ -356,7 +356,7 @@ pub mod base_64_gzipped_json_string {
         S: Serializer,
     {
         let mut buffer = Vec::new();
-        let encoder = GzEncoder::new(&mut buffer, Compression::default());
+        let encoder = GzEncoder::new(&mut buffer, Compression::best());
         serde_json::to_writer(encoder, program)
             .map_err(|_| serde::ser::Error::custom("program: Unable to encode program"))?;
 

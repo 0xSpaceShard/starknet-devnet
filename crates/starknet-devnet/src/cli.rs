@@ -20,24 +20,32 @@ use crate::{REQUEST_LOG_ENV_VAR, RESPONSE_LOG_ENV_VAR};
 
 /// Run a local instance of Starknet Devnet
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-#[command(propagate_version = true)]
+#[command(
+    author,
+    version,
+    about = "A local testnet for Starknet... in Rust!",
+    long_about = "Documentation: https://0xspaceshard.github.io/starknet-devnet-rs",
+    propagate_version = true
+)]
 pub(crate) struct Args {
     /// Number of accounts
     #[arg(long = "accounts")]
-    #[arg(value_name = "ACCOUNTS")]
+    #[arg(env = "ACCOUNTS")]
+    #[arg(value_name = "NUMBER")]
     #[arg(default_value_t = DEVNET_DEFAULT_TOTAL_ACCOUNTS)]
     #[arg(help = "Specify the number of accounts to be predeployed;")]
     accounts_count: u8,
 
     /// Class used for account predeployment
     #[arg(long = "account-class")]
+    #[arg(env = "ACCOUNT_CLASS")]
     #[arg(value_name = "ACCOUNT_CLASS")]
     #[arg(default_value = "cairo1")]
     #[arg(help = "Specify the class used by predeployed accounts;")]
     account_class_choice: AccountContractClassChoice,
 
     #[arg(long = "account-class-custom")]
+    #[arg(env = "ACCOUNT_CLASS_CUSTOM")]
     #[arg(value_name = "PATH")]
     #[arg(conflicts_with = "account_class_choice")]
     #[arg(help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;")]
@@ -45,6 +53,7 @@ pub(crate) struct Args {
 
     /// Initial balance of predeployed accounts
     #[arg(long = "initial-balance")]
+    #[arg(env = "INITIAL_BALANCE")]
     #[arg(short = 'e')]
     #[arg(value_name = "DECIMAL_VALUE")]
     #[arg(default_value_t = InitialBalanceWrapper::default())]
@@ -53,6 +62,7 @@ pub(crate) struct Args {
 
     // Seed for predeployed accounts
     #[arg(long = "seed")]
+    #[arg(env = "SEED")]
     #[arg(value_name = "SEED")]
     #[arg(help = "Specify the seed for randomness of accounts to be predeployed; if not \
                   provided, it is randomly generated")]
@@ -60,6 +70,7 @@ pub(crate) struct Args {
 
     // Host address
     #[arg(long = "host")]
+    #[arg(env = "HOST")]
     #[arg(value_name = "HOST")]
     #[arg(default_value_t = IpAddrWrapper::LOCALHOST)]
     #[arg(help = "Specify the address to listen at;")]
@@ -67,6 +78,7 @@ pub(crate) struct Args {
 
     // Port number
     #[arg(long = "port")]
+    #[arg(env = "PORT")]
     #[arg(value_name = "PORT")]
     #[arg(default_value_t = DEVNET_DEFAULT_PORT)]
     #[arg(help = "Specify the port to listen at;")]
@@ -74,89 +86,104 @@ pub(crate) struct Args {
 
     // Set start time in seconds
     #[arg(long = "start-time")]
-    #[arg(value_name = "START_TIME_IN_SECONDS")]
+    #[arg(env = "START_TIME")]
+    #[arg(value_name = "SECONDS")]
     #[arg(help = "Specify start time in seconds;")]
     start_time: Option<u64>,
 
     // Server timeout in seconds
     #[arg(long = "timeout")]
-    #[arg(value_name = "TIMEOUT")]
+    #[arg(env = "TIMEOUT")]
+    #[arg(value_name = "SECONDS")]
     #[arg(default_value_t = DEVNET_DEFAULT_TIMEOUT)]
     #[arg(help = "Specify the server timeout in seconds;")]
     timeout: u16,
 
     // Gas price in wei
     #[arg(long = "gas-price")]
-    #[arg(value_name = "GAS_PRICE_WEI")]
+    #[arg(env = "GAS_PRICE")]
+    #[arg(value_name = "WEI_PER_GAS_UNIT")]
     #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
     #[arg(help = "Specify the gas price in wei per gas unit;")]
     gas_price_wei: NonZeroU128,
 
     // Gas price in strk
     #[arg(long = "gas-price-strk")]
-    #[arg(value_name = "GAS_PRICE_STRK")]
+    #[arg(env = "GAS_PRICE_STRK")]
+    #[arg(value_name = "STRK_PER_GAS_UNIT")]
     #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
     #[arg(help = "Specify the gas price in strk per gas unit;")]
     gas_price_strk: NonZeroU128,
 
     // Gas price in wei
     #[arg(long = "data-gas-price")]
-    #[arg(value_name = "DATA_GAS_PRICE_WEI")]
+    #[arg(env = "DATA_GAS_PRICE")]
+    #[arg(value_name = "WEI_PER_GAS_UNIT")]
     #[arg(default_value_t = DEVNET_DEFAULT_DATA_GAS_PRICE)]
     #[arg(help = "Specify the gas price in wei per data gas unit;")]
     data_gas_price_wei: NonZeroU128,
 
     // Gas price in strk
     #[arg(long = "data-gas-price-strk")]
-    #[arg(value_name = "DATA_GAS_PRICE_STRK")]
+    #[arg(env = "DATA_GAS_PRICE_STRK")]
+    #[arg(value_name = "STRK_PER_GAS_UNIT")]
     #[arg(default_value_t = DEVNET_DEFAULT_DATA_GAS_PRICE)]
     #[arg(help = "Specify the gas price in strk per data gas unit;")]
     data_gas_price_strk: NonZeroU128,
 
     #[arg(long = "chain-id")]
+    #[arg(env = "CHAIN_ID")]
     #[arg(value_name = "CHAIN_ID")]
     #[arg(default_value = "TESTNET")]
     #[arg(help = "Specify the chain ID;")]
     chain_id: ChainId,
 
     #[arg(long = "dump-on")]
+    #[arg(env = "DUMP_ON")]
     #[arg(value_name = "EVENT")]
     #[arg(help = "Specify when to dump the state of Devnet;")]
     #[arg(requires = "dump_path")]
     dump_on: Option<DumpOn>,
 
     #[arg(long = "lite-mode")]
+    #[arg(env = "LITE_MODE")]
     #[arg(help = "Specify whether to run in lite mode and skip block hash calculation;")]
     lite_mode: bool,
 
     // Dump path as string
     #[arg(long = "dump-path")]
+    #[arg(env = "DUMP_PATH")]
     #[arg(value_name = "DUMP_PATH")]
     #[arg(help = "Specify the path to dump to;")]
     dump_path: Option<String>,
 
     #[arg(long = "blocks-on-demand")]
+    #[arg(env = "BLOCKS_ON_DEMAND")]
     #[arg(help = "Introduces block generation on demand via /create_block endpoint;")]
     blocks_on_demand: bool,
 
     #[arg(long = "state-archive-capacity")]
+    #[arg(env = "STATE_ARCHIVE_CAPACITY")]
     #[arg(value_name = "STATE_ARCHIVE_CAPACITY")]
     #[arg(default_value = "none")]
     #[arg(help = "Specify the state archive capacity;")]
     state_archive: StateArchiveCapacity,
 
     #[arg(long = "fork-network")]
+    #[arg(env = "FORK_NETWORK")]
     #[arg(value_name = "URL")]
     #[arg(help = "Specify the URL of the network to fork;")]
     fork_network: Option<url::Url>,
 
     #[arg(long = "fork-block")]
+    #[arg(env = "FORK_BLOCK")]
     #[arg(value_name = "BLOCK_NUMBER")]
     #[arg(help = "Specify the number of the block to fork at;")]
     #[arg(requires = "fork_network")]
     fork_block: Option<u64>,
 
     #[arg(long = "request-body-size-limit")]
+    #[arg(env = "REQUEST_BODY_SIZE_LIMIT")]
     #[arg(value_name = "BYTES")]
     #[arg(help = "Specify the maximum HTTP request body size;")]
     #[arg(default_value_t = DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT)]
@@ -452,6 +479,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_variants_of_env_var() {
         for (environment_variable, should_log_request, should_log_response) in [
             ("request,response,info", true, true),
@@ -469,6 +497,87 @@ mod tests {
 
             assert_eq!(log_request, should_log_request);
             assert_eq!(log_response, should_log_response);
+        }
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_env_vars_have_same_effect_as_cli_params() {
+        let config_source = [
+            ("--accounts", "ACCOUNTS", "1"),
+            ("--account-class", "ACCOUNT_CLASS", "cairo0"),
+            ("--initial-balance", "INITIAL_BALANCE", "1"),
+            ("--seed", "SEED", "43"),
+            ("--port", "PORT", "1234"),
+            ("--start-time", "START_TIME", "123"),
+            ("--timeout", "TIMEOUT", "12"),
+            ("--gas-price", "GAS_PRICE", "1"),
+            ("--gas-price-strk", "GAS_PRICE_STRK", "2"),
+            ("--data-gas-price", "DATA_GAS_PRICE", "3"),
+            ("--data-gas-price-strk", "DATA_GAS_PRICE_STRK", "4"),
+            ("--chain-id", "CHAIN_ID", "MAINNET"),
+            ("--dump-on", "DUMP_ON", "exit"),
+            ("--dump-path", "DUMP_PATH", "dummy-path"),
+            ("--state-archive-capacity", "STATE_ARCHIVE_CAPACITY", "full"),
+            ("--fork-network", "FORK_NETWORK", "http://dummy.com"),
+            ("--fork-block", "FORK_BLOCK", "42"),
+            ("--request-body-size-limit", "REQUEST_BODY_SIZE_LIMIT", "100"),
+        ];
+
+        let mut cli_args = vec!["--"];
+        for (cli_param, _, value) in config_source {
+            cli_args.push(cli_param);
+            cli_args.push(value);
+        }
+
+        let config_via_cli = Args::parse_from(cli_args).to_config().unwrap();
+
+        for (_, var_name, value) in config_source {
+            std::env::set_var(var_name, value);
+        }
+        let config_via_env = Args::parse_from(["--"]).to_config().unwrap();
+
+        assert_eq!(
+            serde_json::to_value(config_via_cli).unwrap(),
+            serde_json::to_value(config_via_env).unwrap()
+        );
+
+        // remove var to avoid collision with other tests
+        for (_, var_name, _) in config_source {
+            std::env::remove_var(var_name);
+        }
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_boolean_param_specification_via_env_vars() {
+        let config_source =
+            [("--lite-mode", "LITE_MODE"), ("--blocks-on-demand", "BLOCKS_ON_DEMAND")];
+
+        let mut cli_args = vec!["--"];
+        for (cli_param, _) in config_source {
+            cli_args.push(cli_param);
+        }
+
+        let mut config_via_cli =
+            serde_json::to_value(Args::parse_from(cli_args).to_config().unwrap()).unwrap();
+
+        for (_, var_name) in config_source {
+            std::env::set_var(var_name, "true");
+        }
+        let mut config_via_env =
+            serde_json::to_value(Args::parse_from(["--"]).to_config().unwrap()).unwrap();
+
+        // Removing seed as it is generated randomly - it would make the compared objects different.
+        // to_config returns two config parts, so using index 0 to address starknet_config.
+        config_via_cli[0]["seed"].take();
+        config_via_env[0]["seed"].take();
+
+        assert_eq!(config_via_cli, config_via_env);
+
+        // remove var to avoid collision with other tests
+        for (var_name, _) in config_source {
+            std::env::remove_var(var_name);
         }
     }
 }
