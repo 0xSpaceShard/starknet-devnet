@@ -75,7 +75,7 @@ mod blocks_on_demand_tests {
 
         assert_eq!(latest_block.block_number, block_number);
         assert_eq!(latest_block.status, BlockStatus::AcceptedOnL2);
-        assert!(latest_block.transactions.len() == tx_count);
+        assert_eq!(latest_block.transactions.len(), tx_count);
 
         for tx in latest_block.transactions {
             assert_tx_successful(tx.transaction_hash(), &devnet.json_rpc_client).await;
@@ -131,7 +131,7 @@ mod blocks_on_demand_tests {
             .await["result"];
 
         assert!(pending_block["status"].is_null());
-        assert!(pending_block["transactions"].as_array().unwrap().len() == tx_count);
+        assert_eq!(pending_block["transactions"].as_array().unwrap().len(), tx_count);
 
         for tx in pending_block["transactions"].as_array().unwrap() {
             assert_tx_successful(
