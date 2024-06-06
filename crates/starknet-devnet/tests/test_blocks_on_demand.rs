@@ -59,7 +59,7 @@ mod blocks_on_demand_tests {
     async fn assert_pending_block_with_tx_hashes(devnet: &BackgroundDevnet, tx_count: usize) {
         let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
 
-        assert!(pending_block.transactions.len() == tx_count);
+        assert_eq!(pending_block.transactions.len(), tx_count);
 
         for tx_hash in pending_block.transactions {
             assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
@@ -85,7 +85,7 @@ mod blocks_on_demand_tests {
     async fn assert_pending_block_with_txs(devnet: &BackgroundDevnet, tx_count: usize) {
         let pending_block = devnet.get_pending_block_with_txs().await.unwrap();
 
-        assert!(pending_block.transactions.len() == tx_count);
+        assert_eq!(pending_block.transactions.len(), tx_count);
 
         for tx in pending_block.transactions {
             assert_tx_successful(tx.transaction_hash(), &devnet.json_rpc_client).await;
