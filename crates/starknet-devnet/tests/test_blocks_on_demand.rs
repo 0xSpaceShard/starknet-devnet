@@ -155,6 +155,24 @@ mod blocks_on_demand_tests {
         assert_eq!(balance, expected);
     }
 
+    async fn assert_get_nonce(devnet: &BackgroundDevnet) {
+        let (_, account_address) = devnet.get_first_predeployed_account().await;
+
+        let pending_block_nonce = devnet
+            .json_rpc_client
+            .get_nonce(BlockId::Tag(BlockTag::Pending), account_address)
+            .await
+            .unwrap();
+        assert_eq!(pending_block_nonce, FieldElement::ZERO);
+
+        let latest_block_nonce = devnet
+            .json_rpc_client
+            .get_nonce(BlockId::Tag(BlockTag::Latest), account_address)
+            .await
+            .unwrap();
+        assert_eq!(latest_block_nonce, FieldElement::ZERO);
+    }
+
     #[tokio::test]
     async fn normal_mode_states_and_blocks() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
@@ -328,5 +346,20 @@ mod blocks_on_demand_tests {
             get_contract_balance(&devnet, contract_address).await,
             initial_value + (increment * FieldElement::from(tx_count))
         );
+    }
+
+    #[tokio::test]
+    async fn get_nonce_of_first_predeployed_account_normal_mode() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        assert_get_nonce(&devnet).await;
+    }
+
+    #[tokio::test]
+    async fn get_nonce_of_first_predeployed_account_block_on_demand() {
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
+
+        assert_get_nonce(&devnet).await;
     }
 }
