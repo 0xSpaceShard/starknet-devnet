@@ -88,13 +88,14 @@ pub struct StarknetState {
     historic_state: Option<DictState>,
 }
 
+fn default_global_contract_cache() -> GlobalContractCache {
+    GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST)
+}
+
 impl Default for StarknetState {
     fn default() -> Self {
         Self {
-            state: CachedState::new(
-                Default::default(),
-                GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
-            ),
+            state: CachedState::new(Default::default(), default_global_contract_cache()),
             rpc_contract_classes: Default::default(),
             historic_state: Default::default(),
         }
@@ -104,10 +105,7 @@ impl Default for StarknetState {
 impl StarknetState {
     pub fn new(defaulter: StarknetDefaulter) -> Self {
         Self {
-            state: CachedState::new(
-                DictState::new(defaulter),
-                GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
-            ),
+            state: CachedState::new(DictState::new(defaulter), default_global_contract_cache()),
             rpc_contract_classes: Default::default(),
             historic_state: Default::default(),
         }
@@ -120,10 +118,7 @@ impl StarknetState {
     pub fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
         let diff = StateDiff::generate(&mut self.state, &mut self.rpc_contract_classes)?;
         let new_historic = self.expand_historic(diff.clone())?;
-        self.state = CachedState::new(
-            new_historic.clone(),
-            GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
-        );
+        self.state = CachedState::new(new_historic.clone(), default_global_contract_cache());
         Ok(diff)
     }
 
@@ -172,10 +167,7 @@ impl StarknetState {
     pub fn clone_historic(&self) -> Self {
         let historic_state = self.historic_state.as_ref().unwrap().clone();
         Self {
-            state: CachedState::new(
-                historic_state,
-                GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
-            ),
+            state: CachedState::new(historic_state, default_global_contract_cache()),
             rpc_contract_classes: self.rpc_contract_classes.clone(),
             historic_state: Some(self.historic_state.as_ref().unwrap().clone()),
         }
