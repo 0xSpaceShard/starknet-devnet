@@ -59,7 +59,7 @@ pub fn add_declare_transaction(
         };
 
     let validate = !(Starknet::is_account_impersonated(
-        &mut starknet.state,
+        &mut starknet.pending_state,
         &starknet.cheats,
         sender_address,
     )?);
@@ -69,7 +69,12 @@ pub fn add_declare_transaction(
         blockifier::transaction::account_transaction::AccountTransaction::Declare(
             blockifier_declare_transaction,
         )
-        .execute(&mut starknet.state.state, &starknet.block_context, true, validate);
+        .execute(
+            &mut starknet.pending_state.state,
+            &starknet.block_context,
+            true,
+            validate,
+        );
 
     starknet.handle_transaction_result(
         transaction,
@@ -257,7 +262,7 @@ mod tests {
         // check if txn is with status accepted
         assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        starknet.state.get_rpc_contract_class(&class_hash).unwrap();
+        starknet.pending_state.get_rpc_contract_class(&class_hash).unwrap();
     }
 
     #[test]
@@ -296,9 +301,9 @@ mod tests {
         let expected_compiled_class_hash = declare_txn.compiled_class_hash;
 
         // check if contract is not declared
-        assert!(!starknet.state.is_contract_declared(expected_class_hash));
+        assert!(!starknet.pending_state.is_contract_declared(expected_class_hash));
         assert_eq!(
-            starknet.state.get_compiled_class_hash(expected_class_hash.into()).unwrap(),
+            starknet.pending_state.get_compiled_class_hash(expected_class_hash.into()).unwrap(),
             CompiledClassHash(StarkHash::ZERO)
         );
         assert!(starknet.get_class(&BlockId::Tag(BlockTag::Latest), expected_class_hash).is_err());
@@ -314,9 +319,9 @@ mod tests {
         // check if txn is with status accepted
         assert_eq!(retrieved_txn.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(retrieved_txn.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        assert!(starknet.state.is_contract_declared(expected_class_hash));
+        assert!(starknet.pending_state.is_contract_declared(expected_class_hash));
         assert_eq!(
-            starknet.state.get_compiled_class_hash(expected_class_hash.into()).unwrap(),
+            starknet.pending_state.get_compiled_class_hash(expected_class_hash.into()).unwrap(),
             expected_compiled_class_hash.into()
         );
     }
@@ -403,7 +408,7 @@ mod tests {
         assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
         // check if contract is successfully declared
-        assert!(starknet.state.is_contract_declared(class_hash));
+        assert!(starknet.pending_state.is_contract_declared(class_hash));
         // check if pending block is reset
         assert!(starknet.pending_block().get_transactions().is_empty());
         // check if there is generated block
@@ -430,7 +435,7 @@ mod tests {
             BroadcastedDeclareTransaction::V1(ref v1) => {
                 let expected_class_hash = v1.contract_class.generate_hash().unwrap();
                 // check if contract is not declared
-                assert!(!starknet.state.is_contract_declared(expected_class_hash));
+                assert!(!starknet.pending_state.is_contract_declared(expected_class_hash));
             }
             _ => panic!("Wrong transaction type"),
         }
@@ -444,7 +449,7 @@ mod tests {
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         // check if contract is declared
-        assert!(starknet.state.is_contract_declared(class_hash));
+        assert!(starknet.pending_state.is_contract_declared(class_hash));
     }
 
     /// Initializes starknet with 1 account - account without validations
@@ -458,10 +463,10 @@ mod tests {
 
         let eth_erc_20_contract =
             predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
-        eth_erc_20_contract.deploy(&mut starknet.state).unwrap();
+        eth_erc_20_contract.deploy(&mut starknet.pending_state).unwrap();
 
         let strk_erc20_contract = create_erc20_at_address(STRK_ERC20_CONTRACT_ADDRESS).unwrap();
-        strk_erc20_contract.deploy(&mut starknet.state).unwrap();
+        strk_erc20_contract.deploy(&mut starknet.pending_state).unwrap();
 
         let acc = Account::new(
             Balance::from(acc_balance.unwrap_or(10000)),
@@ -474,7 +479,7 @@ mod tests {
         )
         .unwrap();
 
-        acc.deploy(&mut starknet.state).unwrap();
+        acc.deploy(&mut starknet.pending_state).unwrap();
 
         starknet.block_context = Starknet::init_block_context(
             nonzero!(1u128),

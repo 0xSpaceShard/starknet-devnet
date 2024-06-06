@@ -40,7 +40,7 @@ pub fn add_invoke_transaction(
     };
 
     let validate = !(Starknet::is_account_impersonated(
-        &mut starknet.state,
+        &mut starknet.pending_state,
         &starknet.cheats,
         &ContractAddress::from(blockifier_invoke_transaction.sender_address()),
     )?);
@@ -221,7 +221,8 @@ mod tests {
     fn invoke_transaction_v3_successful_execution() {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
         let account_address = account.get_address();
-        let initial_balance = account.get_balance(&mut starknet.state, FeeToken::STRK).unwrap();
+        let initial_balance =
+            account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap();
 
         let invoke_transaction = test_invoke_transaction_v3(
             account_address,
@@ -230,7 +231,7 @@ mod tests {
             Felt::from(10),
             0,
             account
-                .get_balance(&mut starknet.state, crate::account::FeeToken::STRK)
+                .get_balance(&mut starknet.pending_state, crate::account::FeeToken::STRK)
                 .unwrap()
                 .to_string()
                 .parse::<u64>()
@@ -244,7 +245,8 @@ mod tests {
         assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
         assert!(
-            account.get_balance(&mut starknet.state, FeeToken::STRK).unwrap() < initial_balance
+            account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap()
+                < initial_balance
         );
     }
 
@@ -301,7 +303,7 @@ mod tests {
 
         // check storage
         assert_eq!(
-            starknet.state.get_storage_at(blockifier_address, storage_key).unwrap(),
+            starknet.pending_state.get_storage_at(blockifier_address, storage_key).unwrap(),
             Felt::from(10).into()
         );
 
@@ -320,7 +322,7 @@ mod tests {
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
         assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(
-            starknet.state.get_storage_at(blockifier_address, storage_key).unwrap(),
+            starknet.pending_state.get_storage_at(blockifier_address, storage_key).unwrap(),
             StarkFelt::from_u128(25)
         );
     }
@@ -384,7 +386,7 @@ mod tests {
 
         let account_address: starknet_api::core::ContractAddress =
             account.get_address().try_into().unwrap();
-        let initial_nonce = starknet.state.get_nonce_at(account_address).unwrap();
+        let initial_nonce = starknet.pending_state.get_nonce_at(account_address).unwrap();
         assert_eq!(initial_nonce, Nonce(StarkFelt::ZERO));
 
         let calldata = vec![
@@ -411,7 +413,7 @@ mod tests {
         assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Reverted);
 
-        let nonce_after_reverted = starknet.state.get_nonce_at(account_address).unwrap();
+        let nonce_after_reverted = starknet.pending_state.get_nonce_at(account_address).unwrap();
         assert_eq!(nonce_after_reverted, Nonce(StarkFelt::ONE));
     }
 
@@ -423,11 +425,11 @@ mod tests {
         // deploy erc20 contracts
         let eth_erc_20_contract =
             predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
-        eth_erc_20_contract.deploy(&mut starknet.state).unwrap();
+        eth_erc_20_contract.deploy(&mut starknet.pending_state).unwrap();
 
         let strk_erc_20_contract =
             predeployed::create_erc20_at_address(constants::STRK_ERC20_CONTRACT_ADDRESS).unwrap();
-        strk_erc_20_contract.deploy(&mut starknet.state).unwrap();
+        strk_erc_20_contract.deploy(&mut starknet.pending_state).unwrap();
 
         // deploy account contract
         let account_without_validations_contract_class = cairo_0_account_without_validations();
@@ -445,7 +447,7 @@ mod tests {
         )
         .unwrap();
 
-        account.deploy(&mut starknet.state).unwrap();
+        account.deploy(&mut starknet.pending_state).unwrap();
 
         // dummy contract
         let dummy_contract: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
@@ -477,13 +479,13 @@ mod tests {
 
         // declare dummy contract
         starknet
-            .state
+            .pending_state
             .declare_contract_class(dummy_contract_class_hash, dummy_contract.into())
             .unwrap();
 
         // deploy dummy contract
         starknet
-            .state
+            .pending_state
             .predeploy_contract(dummy_contract_address, dummy_contract_class_hash)
             .unwrap();
         // change storage of dummy contract

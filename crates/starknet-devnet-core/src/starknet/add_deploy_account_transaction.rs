@@ -51,7 +51,7 @@ pub fn add_deploy_account_transaction(
         }
     };
 
-    if !starknet.state.is_contract_declared(class_hash) {
+    if !starknet.pending_state.is_contract_declared(class_hash) {
         return Err(Error::StateError(crate::error::StateError::NoneClassHash(class_hash)));
     }
     let transaction_hash = blockifier_deploy_account_transaction.tx_hash.0.into();
@@ -61,7 +61,7 @@ pub fn add_deploy_account_transaction(
         blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(
             blockifier_deploy_account_transaction,
         )
-        .execute(&mut starknet.state.state, &starknet.block_context, true, true);
+        .execute(&mut starknet.pending_state.state, &starknet.block_context, true, true);
 
     starknet.handle_transaction_result(transaction, None, blockifier_execution_result)?;
     starknet.handle_dump_event(DumpEvent::AddDeployAccountTransaction(
@@ -268,7 +268,7 @@ mod tests {
 
         let account_balance_before_deployment = StarkFelt::from_u128(1000000);
         starknet
-            .state
+            .pending_state
             .set_storage_at(
                 fee_token_address,
                 balance_storage_var_address,
@@ -310,7 +310,7 @@ mod tests {
 
         let account_balance_before_deployment = StarkFelt::from_u128(1000000);
         starknet
-            .state
+            .pending_state
             .set_storage_at(
                 fee_token_address,
                 balance_storage_var_address,
@@ -331,8 +331,10 @@ mod tests {
             account_class_hash,
         );
 
-        let account_balance_after_deployment =
-            starknet.state.get_storage_at(fee_token_address, balance_storage_var_address).unwrap();
+        let account_balance_after_deployment = starknet
+            .pending_state
+            .get_storage_at(fee_token_address, balance_storage_var_address)
+            .unwrap();
 
         assert!(account_balance_before_deployment > account_balance_after_deployment);
     }
@@ -366,7 +368,7 @@ mod tests {
 
         let account_balance_before_deployment = StarkFelt::from_u128(1000000);
         starknet
-            .state
+            .pending_state
             .set_storage_at(
                 fee_token_address,
                 balance_storage_var_address,
@@ -397,16 +399,16 @@ mod tests {
         );
         let erc_20_contract =
             predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
-        erc_20_contract.deploy(&mut starknet.state).unwrap();
+        erc_20_contract.deploy(&mut starknet.pending_state).unwrap();
 
         let strk_erc20_contract =
             predeployed::create_erc20_at_address(STRK_ERC20_CONTRACT_ADDRESS).unwrap();
-        strk_erc20_contract.deploy(&mut starknet.state).unwrap();
+        strk_erc20_contract.deploy(&mut starknet.pending_state).unwrap();
 
         let contract_class = Cairo0Json::raw_json_from_path(account_json_path).unwrap();
         let class_hash = contract_class.generate_hash().unwrap();
 
-        starknet.state.declare_contract_class(class_hash, contract_class.into()).unwrap();
+        starknet.pending_state.declare_contract_class(class_hash, contract_class.into()).unwrap();
         starknet.block_context = Starknet::init_block_context(
             nonzero!(1u128),
             nonzero!(1u128),
