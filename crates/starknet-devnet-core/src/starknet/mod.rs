@@ -91,7 +91,7 @@ mod state_update;
 pub(crate) mod transaction_trace;
 
 pub struct Starknet {
-    pub state: StarknetState,
+    pub latest_state: StarknetState,
     pub pending_state: StarknetState,
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
@@ -120,7 +120,7 @@ impl Default for Starknet {
                 DEVNET_DEFAULT_CHAIN_ID,
                 DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
             ),
-            state: Default::default(),
+            latest_state: Default::default(),
             pending_state: Default::default(),
             predeployed_accounts: Default::default(),
             blocks: Default::default(),
@@ -205,7 +205,7 @@ impl Starknet {
         let starting_block_number =
             config.fork_config.block_number.map_or(DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, |n| n + 1);
         let mut this = Self {
-            state: Default::default(), // temporary - overwritten on genesis block creation
+            latest_state: Default::default(), // temporary - overwritten on genesis block creation
             pending_state: state,
             predeployed_accounts,
             block_context: Self::init_block_context(
@@ -340,7 +340,7 @@ impl Starknet {
         self.generate_pending_block()?;
 
         // every new block we need to clone pending state to state
-        self.state = self.pending_state.clone_historic();
+        self.latest_state = self.pending_state.clone_historic();
 
         Ok(new_block_hash)
     }
@@ -579,7 +579,7 @@ impl Starknet {
 
     fn get_mut_state_at(&mut self, block_id: &BlockId) -> DevnetResult<&mut StarknetState> {
         match block_id {
-            BlockId::Tag(BlockTag::Latest) => Ok(&mut self.state),
+            BlockId::Tag(BlockTag::Latest) => Ok(&mut self.latest_state),
             BlockId::Tag(BlockTag::Pending) => Ok(&mut self.pending_state),
             _ => {
                 if self.config.state_archive == StateArchiveCapacity::None {
@@ -878,7 +878,7 @@ impl Starknet {
 
             // in the abort block scenario, we need to revert state and pending_state to be able to
             // use the calls properly
-            self.state = reverted_state.clone_historic();
+            self.latest_state = reverted_state.clone_historic();
             self.pending_state = reverted_state.clone_historic();
         }
 
@@ -1736,7 +1736,7 @@ mod tests {
             .increment_nonce(dummy_contract_address().try_into().unwrap())
             .unwrap();
         // get state difference
-        let state_diff = starknet.state.commit_with_diff().unwrap();
+        let state_diff = starknet.latest_state.commit_with_diff().unwrap();
         // generate new block and save the state
         let second_block = starknet.generate_new_block(state_diff).unwrap();
 
