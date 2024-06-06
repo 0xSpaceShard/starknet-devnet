@@ -205,7 +205,7 @@ impl Starknet {
         let starting_block_number =
             config.fork_config.block_number.map_or(DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, |n| n + 1);
         let mut this = Self {
-            state: Default::default(),
+            state: Default::default(), // temporary - overwritten on genesis block creation
             pending_state: state,
             predeployed_accounts,
             block_context: Self::init_block_context(
