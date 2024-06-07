@@ -73,6 +73,9 @@ mod blocks_generation_tests {
         tx_count: usize,
     ) {
         let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
+
+        assert_eq!(latest_block.block_number, block_number);
+        assert_eq!(latest_block.status, BlockStatus::AcceptedOnL2);
         assert_eq!(latest_block.transactions.len(), tx_count);
 
         for tx in latest_block.transactions {
@@ -246,7 +249,9 @@ mod blocks_generation_tests {
     #[tokio::test]
     async fn blocks_on_demand_states_and_blocks() {
         let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
+            BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
+                .await
+                .unwrap();
 
         let tx_count = 5_usize;
         let mut tx_hashes = Vec::new();
@@ -302,7 +307,7 @@ mod blocks_generation_tests {
     #[tokio::test]
     async fn blocks_on_demand_invoke_and_call() {
         let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--block-generation", "on_demand"])
+            BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
                 .await
                 .unwrap();
 
@@ -421,7 +426,9 @@ mod blocks_generation_tests {
     #[tokio::test]
     async fn get_nonce_of_first_predeployed_account_block_on_demand() {
         let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
+            BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
+                .await
+                .unwrap();
 
         assert_get_nonce(&devnet).await;
     }
@@ -436,7 +443,9 @@ mod blocks_generation_tests {
     #[tokio::test]
     async fn get_storage_at_block_on_demand() {
         let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
+            BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
+                .await
+                .unwrap();
 
         assert_get_storage_at(&devnet).await;
     }
@@ -451,7 +460,9 @@ mod blocks_generation_tests {
     #[tokio::test]
     async fn get_class_hash_at_block_on_demand() {
         let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
+            BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
+                .await
+                .unwrap();
 
         assert_get_class_hash_at(&devnet).await;
     }

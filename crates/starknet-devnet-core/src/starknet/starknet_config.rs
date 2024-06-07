@@ -35,8 +35,9 @@ pub enum StateArchiveCapacity {
 #[serde(rename_all = "snake_case")]
 #[clap(rename_all = "snake_case")] // TODO: is this needed here or not?
 pub enum BlockGeneration {
-    OnDemand,
-    Periodic,
+    Transaction,
+    Demand,
+    // Interval(u64),
 }
 
 #[derive(Debug, Clone, Default, Serialize)]

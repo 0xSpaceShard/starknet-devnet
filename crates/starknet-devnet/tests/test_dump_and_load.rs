@@ -116,8 +116,8 @@ mod dump_and_load_tests {
                     &dump_file.path,
                     "--dump-on",
                     mode,
-                    "--block-generation",
-                    "on_demand",
+                    "--block-generation-on",
+                    "demand",
                 ])
                 .await
                 .expect("Could not start Devnet");
@@ -134,8 +134,8 @@ mod dump_and_load_tests {
                 &dump_file.path,
                 "--dump-on",
                 mode,
-                "--block-generation",
-                "on_demand",
+                "--block-generation-on",
+                "demand",
             ])
             .await
             .expect("Could not start Devnet");

@@ -157,15 +157,11 @@ pub(crate) struct Args {
     #[arg(help = "Specify the path to dump to;")]
     dump_path: Option<String>,
 
-    #[arg(long = "block-generation")]
-    #[arg(env = "BLOCK_GENERATION")]
+    #[arg(long = "block-generation-on")]
+    #[arg(env = "BLOCK_GENERATION_ON")]
     #[arg(help = "Introduces block generation on demand via /create_block endpoint or in time \
-                  periods with --block-generation-period;")]
-    block_generation: Option<BlockGeneration>,
-
-    #[arg(long = "block-generation-period")]
-    #[arg(requires = "block_generation")]
-    block_generation_period: Option<u64>,
+                  periods with --block-generation-on <SECONDS>;")]
+    block_generation_on: Option<BlockGeneration>,
 
     #[arg(long = "state-archive-capacity")]
     #[arg(env = "STATE_ARCHIVE_CAPACITY")]
@@ -220,7 +216,7 @@ impl Args {
             chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
-            block_generation: self.block_generation,
+            block_generation: self.block_generation_on,
             lite_mode: self.lite_mode,
             re_execute_on_init: true,
             state_archive: self.state_archive,
@@ -527,6 +523,7 @@ mod tests {
             ("--fork-network", "FORK_NETWORK", "http://dummy.com"),
             ("--fork-block", "FORK_BLOCK", "42"),
             ("--request-body-size-limit", "REQUEST_BODY_SIZE_LIMIT", "100"),
+            ("--block-generation-on", "BLOCK_GENERATION_ON", "demand"),
         ];
 
         let mut cli_args = vec!["--"];
@@ -556,8 +553,7 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn test_boolean_param_specification_via_env_vars() {
-        let config_source =
-            [("--lite-mode", "LITE_MODE"), ("--blocks-on-demand", "BLOCKS_ON_DEMAND")];
+        let config_source = [("--lite-mode", "LITE_MODE"), ("--block-generation-on", "demand")];
 
         let mut cli_args = vec!["--"];
         for (cli_param, _) in config_source {
