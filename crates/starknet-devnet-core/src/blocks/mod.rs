@@ -460,7 +460,7 @@ mod tests {
             blocks.get_blocks(Some(BlockId::Number(2)), Some(BlockId::Number(9))).unwrap().len(),
             8
         );
-        // from block number to to block hash
+        // from block number to block hash
         assert_eq!(
             blocks
                 .get_blocks(Some(BlockId::Number(2)), Some(BlockId::Hash(Felt::from(9).into())))

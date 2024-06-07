@@ -237,7 +237,7 @@ impl Starknet {
         Ok(transactions_hashes)
     }
 
-    /// Collects all messages for all the transactions of the the given block.
+    /// Collects all messages for all the transactions of the given block.
     ///
     /// # Arguments
     ///
