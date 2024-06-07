@@ -89,7 +89,7 @@ pub struct StarknetConfig {
     pub chain_id: ChainId,
     pub dump_on: Option<DumpOn>,
     pub dump_path: Option<String>,
-    pub block_generation: Option<BlockGeneration>,
+    pub block_generation_on: BlockGeneration,
     pub lite_mode: bool,
     /// on initialization, re-execute loaded txs (if any)
     #[serde(skip_serializing)]
@@ -118,7 +118,7 @@ impl Default for StarknetConfig {
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
             dump_on: None,
             dump_path: None,
-            block_generation: None,
+            block_generation_on: BlockGeneration::Transaction,
             lite_mode: false,
             re_execute_on_init: true,
             state_archive: StateArchiveCapacity::default(),

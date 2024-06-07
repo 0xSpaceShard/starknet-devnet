@@ -159,9 +159,10 @@ pub(crate) struct Args {
 
     #[arg(long = "block-generation-on")]
     #[arg(env = "BLOCK_GENERATION_ON")]
+    #[arg(default_value = "transaction")]
     #[arg(help = "Introduces block generation on demand via /create_block endpoint or in time \
                   periods with --block-generation-on <SECONDS>;")]
-    block_generation_on: Option<BlockGeneration>,
+    block_generation_on: BlockGeneration,
 
     #[arg(long = "state-archive-capacity")]
     #[arg(env = "STATE_ARCHIVE_CAPACITY")]
@@ -216,7 +217,7 @@ impl Args {
             chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
-            block_generation: self.block_generation_on,
+            block_generation_on: self.block_generation_on,
             lite_mode: self.lite_mode,
             re_execute_on_init: true,
             state_archive: self.state_archive,
@@ -553,7 +554,7 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn test_boolean_param_specification_via_env_vars() {
-        let config_source = [("--lite-mode", "LITE_MODE"), ("--block-generation-on", "demand")];
+        let config_source = [("--lite-mode", "LITE_MODE")];
 
         let mut cli_args = vec!["--"];
         for (cli_param, _) in config_source {

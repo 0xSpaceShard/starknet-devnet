@@ -84,7 +84,7 @@ mod general_integration_tests {
                 "timeout": 121,
                 "request_body_size_limit": 1000,
             },
-            "block_generation": "demand",
+            "block_generation_on": "demand",
             "lite_mode": false
         });
 
