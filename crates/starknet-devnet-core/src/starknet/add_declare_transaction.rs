@@ -262,7 +262,10 @@ mod tests {
         // check if txn is with status accepted
         assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        starknet.pending_state.get_rpc_contract_class(&class_hash).unwrap();
+        starknet
+            .pending_state
+            .get_rpc_contract_class(&class_hash, &BlockId::Tag(BlockTag::Latest))
+            .unwrap();
     }
 
     #[test]

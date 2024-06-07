@@ -6,6 +6,7 @@ use blockifier::state::cached_state::{
 use blockifier::state::state_api::{State, StateReader};
 use starknet_api::core::CompiledClassHash;
 use starknet_api::hash::StarkFelt;
+use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt};
@@ -30,8 +31,12 @@ pub trait CustomStateReader {
         contract_address: ContractAddress,
     ) -> DevnetResult<bool>;
     fn is_contract_declared(&mut self, class_hash: ClassHash) -> bool;
-    /// sierra for cairo1, only artifact for cairo0
-    fn get_rpc_contract_class(&self, class_hash: &ClassHash) -> Option<&ContractClass>;
+    /// sierra for cairo1; the only artifact for cairo0
+    fn get_rpc_contract_class(
+        &self,
+        class_hash: &ClassHash,
+        block_id: &BlockId,
+    ) -> Option<&ContractClass>;
 }
 
 pub trait CustomState {
@@ -57,8 +62,12 @@ pub trait CustomState {
 #[derive(Default, Clone)]
 /// Utility structure that makes it easier to calculate state diff later on
 pub struct CommittedClassStorage {
+    // TODO add Arc<RwLock<...>>
     staging: HashMap<ClassHash, ContractClass>,
-    committed: HashMap<ClassHash, ContractClass>,
+    committed: HashMap<ClassHash, (ContractClass, u64)>,
+    // TODO currently initialized only with Default, but shouldn't if
+    // forking
+    current_block_number: u64,
 }
 
 impl CommittedClassStorage {
@@ -68,7 +77,11 @@ impl CommittedClassStorage {
 
     pub fn commit(&mut self) -> HashMap<ClassHash, ContractClass> {
         let diff = self.staging.clone();
-        self.committed.extend(self.staging.drain());
+        let numbered = self
+            .staging
+            .drain()
+            .map(|(class_hash, class)| (class_hash, (class, self.current_block_number)));
+        self.committed.extend(numbered);
         diff
     }
 
@@ -283,8 +296,33 @@ impl CustomStateReader for StarknetState {
             || self.get_compiled_contract_class(class_hash.into()).is_ok()
     }
 
-    fn get_rpc_contract_class(&self, class_hash: &ClassHash) -> Option<&ContractClass> {
-        self.rpc_contract_classes.committed.get(class_hash)
+    fn get_rpc_contract_class(
+        &self,
+        class_hash: &ClassHash,
+        block_id: &BlockId,
+    ) -> Option<&ContractClass> {
+        if let Some((class, storage_block_number)) =
+            self.rpc_contract_classes.committed.get(class_hash)
+        {
+            match block_id {
+                BlockId::Hash(_) => {
+                    todo!("first get the corresponding block number")
+                }
+                BlockId::Number(query_block_number) => {
+                    if storage_block_number <= query_block_number {
+                        return Some(class);
+                    }
+                }
+                BlockId::Tag(_) => {
+                    // User requested at block_id = pending || latest, and since it's present among
+                    // the committed classes, it means it's latest or older and should be returned.
+                    return Some(class);
+                }
+            }
+        } else if let BlockId::Tag(BlockTag::Pending) = block_id {
+            return self.rpc_contract_classes.staging.get(class_hash);
+        }
+        None
     }
 
     fn is_contract_deployed_locally(
@@ -372,6 +410,7 @@ mod tests {
     use starknet_api::core::Nonce;
     use starknet_api::hash::StarkFelt;
     use starknet_api::state::StorageKey;
+    use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::felt::Felt;
@@ -460,7 +499,8 @@ mod tests {
             other => panic!("Invalid result: {other:?}"),
         }
 
-        let retrieved_rpc_class = state.get_rpc_contract_class(&class_hash).unwrap();
+        let retrieved_rpc_class =
+            state.get_rpc_contract_class(&class_hash, &BlockId::Tag(BlockTag::Latest)).unwrap();
         assert_eq!(retrieved_rpc_class, &contract_class.into());
     }
 
