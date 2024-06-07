@@ -24,7 +24,7 @@ pub fn add_l1_handler_transaction(
     let validate = true;
 
     let blockifier_execution_result = blockifier_transaction.execute(
-        &mut starknet.state.state,
+        &mut starknet.pending_state.state,
         &starknet.block_context,
         charge_fee,
         validate,
@@ -188,11 +188,11 @@ mod tests {
         // deploy erc20 contract
         let eth_erc_20_contract =
             predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
-        eth_erc_20_contract.deploy(&mut starknet.state).unwrap();
+        eth_erc_20_contract.deploy(&mut starknet.pending_state).unwrap();
 
         let strk_erc_20_contract =
             predeployed::create_erc20_at_address(STRK_ERC20_CONTRACT_ADDRESS).unwrap();
-        strk_erc_20_contract.deploy(&mut starknet.state).unwrap();
+        strk_erc_20_contract.deploy(&mut starknet.pending_state).unwrap();
 
         // deploy account contract
         let account_without_validations_contract_class = cairo_0_account_without_validations();
@@ -210,7 +210,7 @@ mod tests {
         )
         .unwrap();
 
-        account.deploy(&mut starknet.state).unwrap();
+        account.deploy(&mut starknet.pending_state).unwrap();
 
         // dummy contract
         let dummy_contract: Cairo0ContractClass = dummy_cairo_l1l2_contract().into();
@@ -250,13 +250,13 @@ mod tests {
 
         // declare dummy contract
         starknet
-            .state
+            .pending_state
             .declare_contract_class(dummy_contract_class_hash, dummy_contract.into())
             .unwrap();
 
         // deploy dummy contract
         starknet
-            .state
+            .pending_state
             .predeploy_contract(dummy_contract_address, dummy_contract_class_hash)
             .unwrap();
         starknet.block_context = Starknet::init_block_context(

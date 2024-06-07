@@ -109,7 +109,7 @@ mod tests {
 
         let eth_erc_20_contract =
             predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
-        eth_erc_20_contract.deploy(&mut starknet.state).unwrap();
+        eth_erc_20_contract.deploy(&mut starknet.pending_state).unwrap();
 
         let acc = Account::new(
             Balance::from(1e18 as u128),
@@ -123,7 +123,7 @@ mod tests {
         )
         .unwrap();
 
-        acc.deploy(&mut starknet.state).unwrap();
+        acc.deploy(&mut starknet.pending_state).unwrap();
 
         starknet.block_context = Starknet::init_block_context(
             nonzero!(1u128),
