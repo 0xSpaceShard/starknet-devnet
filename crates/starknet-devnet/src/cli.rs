@@ -188,6 +188,11 @@ pub(crate) struct Args {
     #[arg(help = "Specify the maximum HTTP request body size;")]
     #[arg(default_value_t = DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT)]
     request_body_size_limit: usize,
+
+    #[arg(long = "disable-account-impersonation")]
+    #[arg(env = "DISABLE_ACCOUNT_IMPERSONATION")]
+    #[arg(help = "Disables the possibility to impersonate accounts;")]
+    disable_account_impersonation: bool,
 }
 
 impl Args {
@@ -223,6 +228,7 @@ impl Args {
                 url: self.fork_network.clone(),
                 block_number: self.fork_block,
             },
+            disable_account_impersonation: self.disable_account_impersonation,
         };
 
         let RequestResponseLogging { log_request, log_response } =
