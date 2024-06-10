@@ -71,7 +71,7 @@ impl JsonRpcHandler {
     // devnet_autoImpersonate | devnet_stopAutoImpersonate
     pub async fn set_auto_impersonate(&self, auto_impersonation: bool) -> StrictRpcResult {
         let mut starknet = self.api.starknet.write().await;
-        starknet.set_auto_impersonate_account(auto_impersonation);
+        starknet.set_auto_impersonate_account(auto_impersonation)?;
         Ok(StarknetResponse::Empty)
     }
 }
