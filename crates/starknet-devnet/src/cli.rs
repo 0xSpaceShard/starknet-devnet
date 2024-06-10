@@ -191,7 +191,7 @@ pub(crate) struct Args {
 
     #[arg(long = "disable-account-impersonation")]
     #[arg(env = "DISABLE_ACCOUNT_IMPERSONATION")]
-    #[arg(help = "Disables possibility to impersonate accounts;")]
+    #[arg(help = "Disables the possibility to impersonate accounts;")]
     disable_account_impersonation: bool,
 }
 
