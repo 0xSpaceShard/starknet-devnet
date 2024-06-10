@@ -85,7 +85,8 @@ mod general_integration_tests {
                 "request_body_size_limit": 1000,
             },
             "blocks_on_demand": true,
-            "lite_mode": false
+            "lite_mode": false,
+            "disable_account_impersonation": false,
         });
 
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
