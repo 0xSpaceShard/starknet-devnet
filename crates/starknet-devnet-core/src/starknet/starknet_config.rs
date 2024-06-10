@@ -1,6 +1,6 @@
 use std::num::NonZeroU128;
 
-use clap::{Error, FromArgMatches, ArgMatches};
+use clap::Error;
 use serde::{Serialize, Serializer};
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_class::ContractClass;
@@ -40,13 +40,14 @@ pub enum BlockGeneration {
 
 impl std::str::FromStr for BlockGeneration {
     type Err = Error;
-    
+
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "transaction" => Ok(BlockGeneration::Transaction),
             "demand" => Ok(BlockGeneration::Demand),
             value => {
-                let interval_value = value.parse::<u64>()
+                let interval_value = value
+                    .parse::<u64>()
                     .map_err(|_| Error::new(clap::error::ErrorKind::InvalidValue))?;
                 Ok(BlockGeneration::Interval(interval_value))
             }

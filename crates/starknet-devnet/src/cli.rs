@@ -161,7 +161,8 @@ pub(crate) struct Args {
     #[arg(env = "BLOCK_GENERATION_ON")]
     #[arg(default_value = "transaction")]
     #[arg(help = "Introduces block generation on demand via /create_block endpoint or in time \
-                  periods with --block-generation-on <SECONDS>. All possible values <transaction|demand|<SECONDS>;")]
+                  periods with --block-generation-on <SECONDS>. All possible values \
+                  <transaction|demand|<SECONDS>;")]
     block_generation_on: BlockGeneration,
 
     #[arg(long = "state-archive-capacity")]
