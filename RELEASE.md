@@ -7,8 +7,8 @@ To release a new Devnet version, follow these steps:
 2. Add a documentation entry for the incoming version by running:
 
    ```
-   cd website
-   npm run docusaurus docs:version <VERSION>
+   $ cd website
+   $ npm run docusaurus docs:version <VERSION>
    ```
 
 3. Create a PR styled after [this one](https://github.com/0xSpaceShard/starknet-devnet-rs/pull/473).
