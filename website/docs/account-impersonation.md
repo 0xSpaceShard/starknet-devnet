@@ -18,6 +18,8 @@ Devnet allows you to use impersonated account from mainnet/testnet. This means t
 
 :::
 
+User can disable account impersonation feature, by starting devnet with cli flag `disable-account-impersonation` or using environment variable `DISABLE_ACCOUNT_IMPERSONATION`. Every subsequent JSON-RPC request will return an error. This feature can be used in CTFs to stop participants from easily solving the task.
+
 ## API
 
 Account impersonation follows JSON-RPC method specification. Each method returns an empty response:
