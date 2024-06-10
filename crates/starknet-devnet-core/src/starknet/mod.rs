@@ -324,6 +324,9 @@ impl Starknet {
             }
         });
 
+        println!("new_block: {:?}", new_block.block_number().clone());
+        println!("new_block_hash: {:?}", new_block_hash.clone());
+
         // insert pending block in the blocks collection and connect it to the state diff
         self.blocks.insert(new_block, state_diff);
 

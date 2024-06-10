@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use anyhow::Ok;
 use clap::Parser;
 use cli::Args;
@@ -18,6 +20,7 @@ use starknet_types::chain_id::ChainId;
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::ToHexString;
 use tokio::net::TcpListener;
+use tokio::time::interval;
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
@@ -198,13 +201,38 @@ async fn main() -> Result<(), anyhow::Error> {
 
     info!("Starknet Devnet listening on {}", address);
 
+    // Spawn a task to run the periodic function every 5 seconds
+    tokio::spawn(async move {
+        let mut interval = interval(Duration::from_secs(5));
+
+        loop {
+            interval.tick().await;
+
+            // TODO: how to pass reference to periodic_task? I can't just clone it right? It can't
+            // work that way I'll just create second instance of that struct.
+            periodic_task(api.clone()).await;
+        }
+    });
+
     if starknet_config.dump_on == Some(DumpOn::Exit) {
-        server.with_graceful_shutdown(shutdown_signal(api.clone())).await?
+        // TODO: how to pass reference to shutdown_signal?
+        // server.with_graceful_shutdown(shutdown_signal(api.clone())).await?
     } else {
         server.await?
     }
 
     Ok(())
+}
+
+async fn periodic_task(api: Api) {
+    // Your task logic here
+    println!("periodic_task!");
+
+    let mut starknet = api.starknet.write().await;
+    let _ = starknet.create_block();
+
+    // Simulate work
+    tokio::time::sleep(Duration::from_secs(1)).await;
 }
 
 pub async fn shutdown_signal(api: Api) {
