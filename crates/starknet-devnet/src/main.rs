@@ -11,7 +11,7 @@ use starknet_core::constants::{
     CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
-use starknet_core::starknet::starknet_config::{DumpOn, ForkConfig};
+use starknet_core::starknet::starknet_config::{BlockGeneration, DumpOn, ForkConfig};
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::{BlockId, BlockTag, MaybePendingBlockWithTxHashes};
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -20,6 +20,7 @@ use starknet_types::chain_id::ChainId;
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::ToHexString;
 use tokio::net::TcpListener;
+use tokio::task;
 use tokio::time::interval;
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
@@ -201,22 +202,13 @@ async fn main() -> Result<(), anyhow::Error> {
 
     info!("Starknet Devnet listening on {}", address);
 
-    // Spawn a task to run the periodic function every 5 seconds
-    tokio::spawn(async move {
-        let mut interval = interval(Duration::from_secs(5));
-
-        loop {
-            interval.tick().await;
-
-            // TODO: how to pass reference to periodic_task? I can't just clone it right? It can't
-            // work that way I'll just create second instance of that struct.
-            periodic_task(api.clone()).await;
-        }
-    });
+    if let BlockGeneration::Interval(timestamp) = starknet_config.block_generation_on {
+        let task_handle = task::spawn(create_block_interval(api.clone(), timestamp));
+        task_handle.await?;
+    }
 
     if starknet_config.dump_on == Some(DumpOn::Exit) {
-        // TODO: how to pass reference to shutdown_signal?
-        // server.with_graceful_shutdown(shutdown_signal(api.clone())).await?
+        server.with_graceful_shutdown(shutdown_signal(api.clone())).await?
     } else {
         server.await?
     }
@@ -224,15 +216,17 @@ async fn main() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-async fn periodic_task(api: Api) {
-    // Your task logic here
-    println!("periodic_task!");
+async fn create_block_interval(api: Api, block_interval: u64) {
+    let mut interval = interval(Duration::from_secs(block_interval));
 
-    let mut starknet = api.starknet.write().await;
-    let _ = starknet.create_block();
+    loop {
+        interval.tick().await;
 
-    // Simulate work
-    tokio::time::sleep(Duration::from_secs(1)).await;
+        let mut starknet = api.starknet.write().await;
+        let _ = starknet.create_block();
+
+        info!("Block generated on time interval");
+    }
 }
 
 pub async fn shutdown_signal(api: Api) {

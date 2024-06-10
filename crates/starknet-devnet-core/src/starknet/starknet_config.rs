@@ -1,5 +1,6 @@
 use std::num::NonZeroU128;
 
+use clap::{Error, FromArgMatches, ArgMatches};
 use serde::{Serialize, Serializer};
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_class::ContractClass;
@@ -16,7 +17,6 @@ use crate::constants::{
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum, Serialize)]
 #[serde(rename_all = "snake_case")]
-#[clap(rename_all = "snake_case")] // TODO: is this needed here or not?
 pub enum DumpOn {
     Exit,
     Block,
@@ -24,20 +24,34 @@ pub enum DumpOn {
 
 #[derive(Default, Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum, Serialize)]
 #[serde(rename_all = "snake_case")]
-#[clap(rename_all = "snake_case")] // TODO: is this needed here or not?
 pub enum StateArchiveCapacity {
     #[default]
     None,
     Full,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum, Serialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
-#[clap(rename_all = "snake_case")] // TODO: is this needed here or not?
 pub enum BlockGeneration {
     Transaction,
     Demand,
-    // Interval(u64),
+    Interval(u64),
+}
+
+impl std::str::FromStr for BlockGeneration {
+    type Err = Error;
+    
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "transaction" => Ok(BlockGeneration::Transaction),
+            "demand" => Ok(BlockGeneration::Demand),
+            value => {
+                let interval_value = value.parse::<u64>()
+                    .map_err(|_| Error::new(clap::error::ErrorKind::InvalidValue))?;
+                Ok(BlockGeneration::Interval(interval_value))
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
