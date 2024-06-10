@@ -3,7 +3,7 @@
 set -eu
 
 if [ $# -ne 1 ]; then
-    echo "$0: <VERSION>"
+    >&2 echo "$0: <VERSION>"
     exit 1
 fi
 
