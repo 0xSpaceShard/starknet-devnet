@@ -1263,6 +1263,11 @@ impl Starknet {
                 msg: "Account impersonation is supported when forking mode is enabled.".to_string(),
             });
         }
+        if self.config.disable_account_impersonation {
+            return Err(Error::UnsupportedAction {
+                msg: "Account impersonation is disabled.".to_string(),
+            });
+        }
         if self.pending_state.is_contract_deployed_locally(account)? {
             return Err(Error::UnsupportedAction {
                 msg: "Account is in local state, cannot be impersonated".to_string(),
@@ -1287,8 +1292,23 @@ impl Starknet {
     /// # Arguments
     /// * `auto_impersonation` - If true, auto impersonate every account that is not part of the
     ///   state, otherwise dont auto impersonate
-    pub fn set_auto_impersonate_account(&mut self, auto_impersonation: bool) {
+    pub fn set_auto_impersonate_account(
+        &mut self,
+        auto_impersonation: bool,
+    ) -> DevnetResult<(), Error> {
+        if self.config.fork_config.url.is_none() {
+            return Err(Error::UnsupportedAction {
+                msg: "Account impersonation is supported when forking mode is enabled.".to_string(),
+            });
+        }
+        if self.config.disable_account_impersonation {
+            return Err(Error::UnsupportedAction {
+                msg: "Account impersonation is disabled.".to_string(),
+            });
+        }
         self.cheats.set_auto_impersonate(auto_impersonation);
+
+        Ok(())
     }
 
     /// Returns true if the account is not part of the state and is impersonated

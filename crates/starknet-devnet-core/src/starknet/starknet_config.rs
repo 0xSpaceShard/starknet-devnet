@@ -86,6 +86,7 @@ pub struct StarknetConfig {
     pub re_execute_on_init: bool,
     pub state_archive: StateArchiveCapacity,
     pub fork_config: ForkConfig,
+    pub disable_account_impersonation: bool,
 }
 
 impl Default for StarknetConfig {
@@ -113,6 +114,7 @@ impl Default for StarknetConfig {
             re_execute_on_init: true,
             state_archive: StateArchiveCapacity::default(),
             fork_config: ForkConfig::default(),
+            disable_account_impersonation: false,
         }
     }
 }
