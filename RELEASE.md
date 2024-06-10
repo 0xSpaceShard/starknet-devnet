@@ -13,7 +13,7 @@ To release a new Devnet version, follow these steps:
 
 3. Create a PR styled after [this one](https://github.com/0xSpaceShard/starknet-devnet-rs/pull/473).
 
-4. The publishing of crates and Docker images is done automatically in CI when merged into the main branch.
+4. The publishing of crates, Docker images and documentation website is done automatically in CI when the PR is merged into the main branch.
 
 5. When the CI workflow is done, create a git tag of the form `vX.Y.Z`, push it and create a GitHub release with notes describing changes since the last release.
 
