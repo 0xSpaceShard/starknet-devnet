@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 
 use blockifier::state::cached_state::{
     CachedState, GlobalContractCache, GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST,
@@ -36,7 +37,7 @@ pub trait CustomStateReader {
         &self,
         class_hash: &ClassHash,
         block_id: &BlockId,
-    ) -> Option<&ContractClass>;
+    ) -> Option<ContractClass>;
 }
 
 pub trait CustomState {
@@ -62,7 +63,6 @@ pub trait CustomState {
 #[derive(Default, Clone)]
 /// Utility structure that makes it easier to calculate state diff later on
 pub struct CommittedClassStorage {
-    // TODO add Arc<RwLock<...>>
     staging: HashMap<ClassHash, ContractClass>,
     committed: HashMap<ClassHash, (ContractClass, u64)>,
     // TODO currently initialized only with Default, but shouldn't if
@@ -82,6 +82,7 @@ impl CommittedClassStorage {
             .drain()
             .map(|(class_hash, class)| (class_hash, (class, self.current_block_number)));
         self.committed.extend(numbered);
+        self.current_block_number += 1;
         diff
     }
 
@@ -95,7 +96,7 @@ impl CommittedClassStorage {
 
 pub struct StarknetState {
     pub(crate) state: CachedState<DictState>,
-    rpc_contract_classes: CommittedClassStorage,
+    rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
     /// - initially `None`
     /// - indicates the state hasn't yet been cloned for old-state preservation purpose
     historic_state: Option<DictState>,
@@ -125,11 +126,11 @@ impl StarknetState {
     }
 
     pub fn clone_rpc_contract_classes(&self) -> CommittedClassStorage {
-        self.rpc_contract_classes.clone()
+        self.rpc_contract_classes.read().unwrap().clone()
     }
 
     pub fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
-        let diff = StateDiff::generate(&mut self.state, &mut self.rpc_contract_classes)?;
+        let diff = StateDiff::generate(&mut self.state, self.rpc_contract_classes.clone())?;
         let new_historic = self.expand_historic(diff.clone())?;
         self.state = CachedState::new(new_historic.clone(), default_global_contract_cache());
         Ok(diff)
@@ -300,10 +301,10 @@ impl CustomStateReader for StarknetState {
         &self,
         class_hash: &ClassHash,
         block_id: &BlockId,
-    ) -> Option<&ContractClass> {
-        if let Some((class, storage_block_number)) =
-            self.rpc_contract_classes.committed.get(class_hash)
-        {
+    ) -> Option<ContractClass> {
+        let class_storage = self.rpc_contract_classes.read().unwrap();
+        if let Some((class, storage_block_number)) = class_storage.committed.get(class_hash) {
+            let class = class.clone();
             match block_id {
                 BlockId::Hash(_) => {
                     todo!("first get the corresponding block number")
@@ -320,7 +321,7 @@ impl CustomStateReader for StarknetState {
                 }
             }
         } else if let BlockId::Tag(BlockTag::Pending) = block_id {
-            return self.rpc_contract_classes.staging.get(class_hash);
+            return class_storage.staging.get(class_hash).cloned();
         }
         None
     }
@@ -360,7 +361,8 @@ impl CustomState for StarknetState {
         };
 
         self.state.state.set_contract_class(class_hash.into(), compiled_class)?;
-        self.rpc_contract_classes.insert_and_commit(class_hash, contract_class);
+        let mut class_storage = self.rpc_contract_classes.write().unwrap();
+        class_storage.insert_and_commit(class_hash, contract_class);
         Ok(())
     }
 
@@ -387,7 +389,8 @@ impl CustomState for StarknetState {
         };
 
         self.set_contract_class(class_hash.into(), compiled_class)?;
-        self.rpc_contract_classes.insert(class_hash, contract_class);
+        let mut class_storage = self.rpc_contract_classes.write().unwrap();
+        class_storage.insert(class_hash, contract_class);
         Ok(())
     }
 
@@ -501,7 +504,7 @@ mod tests {
 
         let retrieved_rpc_class =
             state.get_rpc_contract_class(&class_hash, &BlockId::Tag(BlockTag::Latest)).unwrap();
-        assert_eq!(retrieved_rpc_class, &contract_class.into());
+        assert_eq!(retrieved_rpc_class, contract_class.into());
     }
 
     #[test]

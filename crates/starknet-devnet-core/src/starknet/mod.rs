@@ -1,5 +1,5 @@
 use std::num::NonZeroU128;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use blockifier::block::BlockInfo;
 use blockifier::context::{BlockContext, ChainInfo, TransactionContext};
@@ -1125,7 +1125,8 @@ impl Starknet {
                 .collect::<DevnetResult<Vec<(AccountTransaction, TransactionType, bool)>>>()?
         };
 
-        let mut transactional_rpc_contract_classes = state.clone_rpc_contract_classes();
+        let transactional_rpc_contract_classes =
+            Arc::new(RwLock::new(state.clone_rpc_contract_classes()));
         let mut transactional_state = CachedState::new(
             CachedState::create_transactional(&mut state.state),
             GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
@@ -1143,7 +1144,7 @@ impl Starknet {
 
             let state_diff: ThinStateDiff = StateDiff::generate(
                 &mut transactional_state,
-                &mut transactional_rpc_contract_classes,
+                transactional_rpc_contract_classes.clone(),
             )?
             .into();
             let trace = create_trace(

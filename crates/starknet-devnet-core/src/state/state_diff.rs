@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::{State, StateReader};
@@ -32,14 +33,14 @@ impl Eq for StateDiff {}
 impl StateDiff {
     pub(crate) fn generate<S: StateReader>(
         state: &mut CachedState<S>,
-        contract_classes: &mut CommittedClassStorage,
+        contract_classes: Arc<RwLock<CommittedClassStorage>>,
     ) -> DevnetResult<Self> {
         let mut declared_contracts = Vec::<ClassHash>::new();
         let mut cairo_0_declared_contracts = Vec::<ClassHash>::new();
 
         let diff = state.to_state_diff();
         state.move_classes_to_global_cache();
-        let new_classes = contract_classes.commit();
+        let new_classes = contract_classes.write().unwrap().commit();
 
         for (class_hash, class) in new_classes {
             match class {
@@ -186,7 +187,7 @@ mod tests {
     fn correct_no_difference_between_non_modified_states() {
         let mut state = setup();
         let generated_diff =
-            StateDiff::generate(&mut state.state, &mut state.rpc_contract_classes).unwrap();
+            StateDiff::generate(&mut state.state, state.rpc_contract_classes).unwrap();
         let expected_diff = StateDiff::default();
         assert_eq!(generated_diff, expected_diff);
     }
@@ -201,7 +202,7 @@ mod tests {
         state.declare_contract_class(class_hash.into(), contract_class).unwrap();
 
         let generated_diff =
-            StateDiff::generate(&mut state.state, &mut state.rpc_contract_classes).unwrap();
+            StateDiff::generate(&mut state.state, state.rpc_contract_classes).unwrap();
 
         let mut expected_diff = StateDiff::default();
         expected_diff.declared_contracts.push(Felt::from(class_hash));
@@ -223,7 +224,7 @@ mod tests {
         state.declare_contract_class(class_hash, contract_class).unwrap();
 
         let generated_diff =
-            StateDiff::generate(&mut state.state, &mut state.rpc_contract_classes).unwrap();
+            StateDiff::generate(&mut state.state, state.rpc_contract_classes).unwrap();
 
         let mut expected_diff = StateDiff::default();
         expected_diff.declared_contracts.push(class_hash);
@@ -243,7 +244,7 @@ mod tests {
         state.declare_contract_class(class_hash, contract_class).unwrap();
 
         let generated_diff =
-            StateDiff::generate(&mut state.state, &mut state.rpc_contract_classes).unwrap();
+            StateDiff::generate(&mut state.state, state.rpc_contract_classes).unwrap();
 
         let expected_diff = StateDiff {
             cairo_0_declared_contracts: vec![class_hash].into_iter().collect(),
@@ -265,7 +266,7 @@ mod tests {
             state.declare_contract_class(class_hash, contract_class).unwrap();
 
             let generated_diff =
-                StateDiff::generate(&mut state.state, &mut state.rpc_contract_classes).unwrap();
+                StateDiff::generate(&mut state.state, state.rpc_contract_classes.clone()).unwrap();
 
             let expected_diff = StateDiff {
                 cairo_0_declared_contracts: vec![class_hash].into_iter().collect(),
@@ -282,7 +283,7 @@ mod tests {
             state.declare_contract_class(class_hash, contract_class).unwrap();
 
             let generated_diff =
-                StateDiff::generate(&mut state.state, &mut state.rpc_contract_classes).unwrap();
+                StateDiff::generate(&mut state.state, state.rpc_contract_classes).unwrap();
 
             let mut expected_diff = StateDiff::default();
             expected_diff.declared_contracts.push(class_hash);
@@ -306,7 +307,7 @@ mod tests {
             .unwrap();
 
         let generated_diff =
-            StateDiff::generate(&mut state.state, &mut state.rpc_contract_classes).unwrap();
+            StateDiff::generate(&mut state.state, state.rpc_contract_classes).unwrap();
 
         let expected_diff = StateDiff {
             address_to_class_hash: vec![(contract_address, class_hash)].into_iter().collect(),
