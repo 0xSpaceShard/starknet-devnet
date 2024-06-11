@@ -65,12 +65,17 @@ pub trait CustomState {
 pub struct CommittedClassStorage {
     staging: HashMap<ClassHash, ContractClass>,
     committed: HashMap<ClassHash, (ContractClass, u64)>,
-    // TODO currently initialized only with Default, but shouldn't if
-    // forking
     current_block_number: u64,
 }
 
 impl CommittedClassStorage {
+    pub fn new(starting_block_number: u64) -> Self {
+        Self {
+            staging: Default::default(),
+            committed: Default::default(),
+            current_block_number: starting_block_number,
+        }
+    }
     pub fn insert(&mut self, class_hash: ClassHash, contract_class: ContractClass) {
         self.staging.insert(class_hash, contract_class);
     }
@@ -117,10 +122,12 @@ impl Default for StarknetState {
 }
 
 impl StarknetState {
-    pub fn new(defaulter: StarknetDefaulter) -> Self {
+    pub fn new(defaulter: StarknetDefaulter, starting_block_number: u64) -> Self {
         Self {
             state: CachedState::new(DictState::new(defaulter), default_global_contract_cache()),
-            rpc_contract_classes: Default::default(),
+            rpc_contract_classes: Arc::new(RwLock::new(CommittedClassStorage::new(
+                starting_block_number,
+            ))),
             historic_state: Default::default(),
         }
     }

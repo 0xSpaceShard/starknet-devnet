@@ -137,8 +137,13 @@ impl Default for Starknet {
 
 impl Starknet {
     pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
+        // when forking, the number of the first new block to be mined is equal to the last origin
+        // block (the one specified by the user) plus one.
+        let starting_block_number =
+            config.fork_config.block_number.map_or(DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, |n| n + 1);
+
         let defaulter = StarknetDefaulter::new(config.fork_config.clone());
-        let mut state = StarknetState::new(defaulter);
+        let mut state = StarknetState::new(defaulter, starting_block_number);
 
         // predeclare account classes
         for account_class_choice in
@@ -200,10 +205,6 @@ impl Starknet {
 
         state.commit_with_diff()?;
 
-        // when forking, the number of the first new block to be mined is equal to the last origin
-        // block (the one specified by the user) plus one.
-        let starting_block_number =
-            config.fork_config.block_number.map_or(DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, |n| n + 1);
         let mut this = Self {
             latest_state: Default::default(), // temporary - overwritten on genesis block creation
             pending_state: state,
