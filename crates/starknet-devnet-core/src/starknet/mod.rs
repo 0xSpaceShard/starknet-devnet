@@ -1756,7 +1756,7 @@ mod tests {
             .increment_nonce(dummy_contract_address().try_into().unwrap())
             .unwrap();
         // get state difference
-        let state_diff = starknet.latest_state.commit_with_diff().unwrap();
+        let state_diff = starknet.pending_state.commit_with_diff().unwrap();
         // generate new block and save the state
         let second_block = starknet.generate_new_block(state_diff).unwrap();
 

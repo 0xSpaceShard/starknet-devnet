@@ -71,13 +71,6 @@ impl CommittedClassStorage {
         self.committed.extend(self.staging.drain());
         diff
     }
-
-    /// Skips the staging phase
-    fn insert_and_commit(&mut self, class_hash: ClassHash, contract_class: ContractClass) {
-        assert!(self.staging.is_empty());
-        self.insert(class_hash, contract_class);
-        self.commit();
-    }
 }
 
 pub struct StarknetState {
@@ -330,7 +323,7 @@ impl CustomState for StarknetState {
         };
 
         self.state.state.set_contract_class(class_hash.into(), compiled_class)?;
-        self.rpc_contract_classes.insert_and_commit(class_hash, contract_class);
+        self.rpc_contract_classes.insert(class_hash, contract_class);
         Ok(())
     }
 
