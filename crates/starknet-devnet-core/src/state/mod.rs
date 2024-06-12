@@ -110,7 +110,7 @@ impl StarknetState {
         self.rpc_contract_classes.clone()
     }
 
-    pub fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
+    pub(crate) fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
         let diff = StateDiff::generate(&mut self.state, &mut self.rpc_contract_classes)?;
         let new_historic = self.expand_historic(diff.clone())?;
         self.state = CachedState::new(
