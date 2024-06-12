@@ -311,26 +311,29 @@ impl CustomStateReader for StarknetState {
     ) -> Option<ContractClass> {
         let class_storage = self.rpc_contract_classes.read().unwrap();
         if let Some((class, storage_block_number)) = class_storage.committed.get(class_hash) {
-            let class = class.clone();
             match block_id {
                 BlockId::Hash(_) => {
-                    todo!("first get the corresponding block number")
+                    None // this case should have been handled earlier
                 }
                 BlockId::Number(query_block_number) => {
                     if storage_block_number <= query_block_number {
-                        return Some(class);
+                        Some(class.clone())
+                    } else {
+                        None
                     }
                 }
                 BlockId::Tag(_) => {
-                    // User requested at block_id = pending || latest, and since it's present among
-                    // the committed classes, it means it's latest or older and should be returned.
-                    return Some(class);
+                    // Class requested at block_id = (pending || latest); since it's present among
+                    // the committed classes, it's in the latest block or older and should be
+                    // returned.
+                    Some(class.clone())
                 }
             }
         } else if let BlockId::Tag(BlockTag::Pending) = block_id {
-            return class_storage.staging.get(class_hash).cloned();
+            class_storage.staging.get(class_hash).cloned()
+        } else {
+            None
         }
-        None
     }
 
     fn is_contract_deployed_locally(
