@@ -1,14 +1,14 @@
 # Blocks
 
-Devnet starts with a genesis block (with a block number equal to 0). In forking mode, the genesis block number will be equal to forked block number plus one.
+Devnet starts with a genesis block (with a block number equal to 0). In forking mode, the genesis block number will be equal to the forked block number plus one.
 
-A new block is generated with each new transaction, and you can create an empty block by yourself.
+A new block is generated based on the pending block, once a new block is generated the pending block is restarted. By default, a new block is generated with each new transaction, but you can also [create an empty block by yourself](#create-an-empty-block).
 
 ## Creating blocks on demand
 
-If you start Devnet with the `--block-generation-on demand` CLI option, all valid transactions will be stored in a pending block (targetable via block tag `"pending"`).
+If you start Devnet with the `--blocks-on-demand` CLI option, you will enable the possibility to store more than one transaction in the pending block (targetable via block tag `"pending"`).
 
-To create a block on demand, send a `POST` request to `/create_block`. This will convert the pending block to the latest block (targetable via block tag `"latest"`), giving it a block hash and a block number. All subsequent transactions will be stored in a new pending block.
+Once you've added the desired transactions into the pending block, you can send a `POST` request to `/create_block`. This will convert the pending block to the latest block (targetable via block tag `"latest"`), giving it a block hash and a block number. All subsequent transactions will be stored in a new pending block.
 
 In case of demanding block creation with no pending transactions, a new empty block will be generated.
 

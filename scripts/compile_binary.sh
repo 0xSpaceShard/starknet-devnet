@@ -5,7 +5,7 @@ set -euo pipefail
 CROSS_VERSION="v0.2.5"
 
 if [ $# != 1 ]; then
-    echo "Error: $0 <TARGET>"
+    >&2 echo "Error: $0 <TARGET>"
     exit 1
 fi
 TARGET="$1"
@@ -25,7 +25,7 @@ Linux*)
     compiler_command="/tmp/cross"
     ;;
 *)
-    echo "Unsupported kernel: $kernel_name"
+    >&2 echo "Unsupported kernel: $kernel_name"
     exit 1
     ;;
 esac

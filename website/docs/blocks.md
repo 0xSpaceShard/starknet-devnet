@@ -26,7 +26,7 @@ Response:
 
 ## Create an empty block
 
-To create an empty block without transactions, `POST` a request to /create_block:
+To create an empty block without transactions, `POST` a request to `/create_block`:
 
 ```
 POST /create_block
@@ -40,7 +40,7 @@ Response:
 
 ## Abort blocks
 
-This functionality allows to simulate block abortion that can occur on mainnet.
+This functionality allows simulating block abortion that can occur on mainnet.
 
 You can abort blocks and revert transactions from the specified block to the currently latest block. Newly created blocks after the abortion will have accepted status and will continue with numbering where the last accepted block left off.
 

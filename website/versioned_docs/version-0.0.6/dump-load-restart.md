@@ -52,3 +52,33 @@ If you dumped a Devnet utilizing one class for account predeployment (e.g. `--ac
 Devnet can be restarted by making a `POST /restart` request (no body required). All of the deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests that may have been loaded from a dump file on startup.
 
 If you're using [**the Hardhat plugin**](https://github.com/0xSpaceShard/starknet-hardhat-plugin#restart), restart with `starknet.devnet.restart()`.
+
+## Docker
+
+To enable dumping and loading with dockerized Devnet, you must bind the container path to the path on your host machine.
+
+This example:
+
+- Relies on [Docker bind mount](https://docs.docker.com/storage/bind-mounts/); try [Docker volume](https://docs.docker.com/storage/volumes/) instead.
+- Assumes that `/path/to/dumpdir` exists. If unsure, use absolute paths.
+- Assumes you are listening on `127.0.0.1:5050`.
+
+If there is `mydump` inside `/path/to/dumpdir`, you can load it with:
+
+```
+docker run \
+  -p 127.0.0.1:5050:5050 \
+  --mount type=bind,source=/path/to/dumpdir,target=/path/to/dumpdir \
+  shardlabs/starknet-devnet-rs \
+  --dump-path /path/to/dumpdir/mydump
+```
+
+To dump to `/path/to/dumpdir/mydump` on Devnet shutdown, run:
+
+```
+docker run \
+  -p 127.0.0.1:5050:5050 \
+  --mount type=bind,source=/path/to/dumpdir,target=/path/to/dumpdir \
+  shardlabs/starknet-devnet-rs \
+  --dump-on exit --dump-path /path/to/dumpdir/mydump
+```

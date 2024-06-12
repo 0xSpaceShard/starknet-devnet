@@ -69,6 +69,44 @@ mod impersonated_account_tests {
     }
 
     #[tokio::test]
+    async fn test_account_impersonation_have_to_return_an_error_when_account_impersonation_is_disabled()
+     {
+        let origin_devnet =
+            BackgroundDevnet::spawn_forkable_devnet().await.expect("Could not start Devnet");
+
+        let args = [
+            "--fork-network",
+            origin_devnet.url.as_str(),
+            "--accounts",
+            "0",
+            "--disable-account-impersonation",
+        ];
+        let forked_devnet = BackgroundDevnet::spawn_with_additional_args(&args).await.unwrap();
+
+        let impersonation_err = forked_devnet
+            .execute_impersonation_action(&ImpersonationAction::ImpersonateAccount(
+                FieldElement::ONE,
+            ))
+            .await
+            .unwrap_err();
+
+        assert_anyhow_error_contains_message(
+            impersonation_err,
+            "account impersonation is disabled",
+        );
+
+        let impersonation_err = forked_devnet
+            .execute_impersonation_action(&ImpersonationAction::AutoImpersonate)
+            .await
+            .unwrap_err();
+
+        assert_anyhow_error_contains_message(
+            impersonation_err,
+            "account impersonation is disabled",
+        );
+    }
+
+    #[tokio::test]
     async fn test_impersonated_of_a_predeployed_account_account_can_send_transaction() {
         let devnet =
             BackgroundDevnet::spawn_forkable_devnet().await.expect("Could not start Devnet");
