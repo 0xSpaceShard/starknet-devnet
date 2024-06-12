@@ -1,3 +1,4 @@
+use std::future::IntoFuture;
 use std::time::Duration;
 
 use anyhow::Ok;
@@ -20,6 +21,7 @@ use starknet_types::chain_id::ChainId;
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::ToHexString;
 use tokio::net::TcpListener;
+use tokio::signal::unix::{signal, SignalKind};
 use tokio::task;
 use tokio::time::interval;
 use tracing::{info, warn};
@@ -202,38 +204,52 @@ async fn main() -> Result<(), anyhow::Error> {
 
     info!("Starknet Devnet listening on {}", address);
 
+    let empty_handle: task::JoinHandle<()> = task::spawn(async {});
+    let mut block_interval_handle = empty_handle;
     if let BlockGeneration::Interval(timestamp) = starknet_config.block_generation_on {
-        let task_handle = task::spawn(create_block_interval(api.clone(), timestamp));
-        task_handle.await?;
+        // use JoinHandle to run block interval creation as a new task
+        block_interval_handle = task::spawn(create_block_interval(api.clone(), timestamp));
     }
 
-    if starknet_config.dump_on == Some(DumpOn::Exit) {
-        server.with_graceful_shutdown(shutdown_signal(api.clone())).await?
-    } else {
-        server.await?
-    }
+    // run server also as a JoinHandle
+    let server_handle =
+        task::spawn(server.with_graceful_shutdown(shutdown_signal(api.clone())).into_future());
+
+    // wait for ctrl + c signal (SIGINT)
+    shutdown_signal(api.clone()).await;
+
+    // join both tasks
+    let _ = tokio::join!(block_interval_handle, server_handle);
 
     Ok(())
 }
 
 async fn create_block_interval(api: Api, block_interval: u64) {
     let mut interval = interval(Duration::from_secs(block_interval));
+    let mut sigint = signal(SignalKind::interrupt()).expect("Failed to setup SIGINT handler");
 
     loop {
-        interval.tick().await;
-
-        let mut starknet = api.starknet.write().await;
-        let _ = starknet.create_block();
-
-        info!("Block generated on time interval");
+        tokio::select! {
+            _ = interval.tick() => {
+                let mut starknet = api.starknet.write().await;
+                let _ = starknet.create_block_dump_event(None);
+            }
+            _ = sigint.recv() => {
+                println!("Ctrl+C detected! Shutting down task.");
+                return;
+            }
+        }
     }
 }
 
 pub async fn shutdown_signal(api: Api) {
     tokio::signal::ctrl_c().await.expect("Failed to install CTRL+C signal handler");
 
+    // dump scenario
     let starknet = api.starknet.read().await;
-    starknet.dump_events().expect("Failed to dump starknet transactions");
+    if starknet.config.dump_on == Some(DumpOn::Exit) {
+        starknet.dump_events().expect("Failed to dump starknet transactions");
+    }
 }
 
 #[cfg(test)]

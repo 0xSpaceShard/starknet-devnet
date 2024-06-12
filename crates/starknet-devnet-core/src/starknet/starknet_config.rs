@@ -24,6 +24,7 @@ pub enum DumpOn {
 
 #[derive(Default, Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum, Serialize)]
 #[serde(rename_all = "snake_case")]
+#[clap(rename_all = "snake_case")]
 pub enum StateArchiveCapacity {
     #[default]
     None,
