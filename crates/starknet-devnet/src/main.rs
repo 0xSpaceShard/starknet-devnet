@@ -207,7 +207,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let empty_handle: task::JoinHandle<()> = task::spawn(async {});
     let mut block_interval_handle = empty_handle;
     if let BlockGeneration::Interval(timestamp) = starknet_config.block_generation_on {
-        // use JoinHandle to run block interval creation as a new task
+        // use JoinHandle to run block interval creation as a task
         block_interval_handle = task::spawn(create_block_interval(api.clone(), timestamp));
     }
 
@@ -235,7 +235,6 @@ async fn create_block_interval(api: Api, block_interval: u64) {
                 let _ = starknet.create_block_dump_event(None);
             }
             _ = sigint.recv() => {
-                println!("Ctrl+C detected! Shutting down task.");
                 return;
             }
         }
