@@ -34,7 +34,7 @@ pub fn get_class_impl(
     let block_id = if let BlockId::Hash(block_hash) = block_id {
         match starknet.blocks.hash_to_block.get(&block_hash.into()) {
             Some(block) => BlockId::Number(block.block_number().0),
-            None => return Err(Error::StateError(StateError::NoneClassHash(class_hash))),
+            None => return Err(Error::NoBlock),
         }
     } else {
         *block_id
