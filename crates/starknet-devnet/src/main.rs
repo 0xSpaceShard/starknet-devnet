@@ -244,7 +244,7 @@ async fn create_block_interval(api: Api, block_interval: u64) {
 pub async fn shutdown_signal(api: Api) {
     tokio::signal::ctrl_c().await.expect("Failed to install CTRL+C signal handler");
 
-    // dump scenario
+    // dump on exit scenario
     let starknet = api.starknet.read().await;
     if starknet.config.dump_on == Some(DumpOn::Exit) {
         starknet.dump_events().expect("Failed to dump starknet transactions");

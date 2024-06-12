@@ -2,6 +2,7 @@ pub mod common;
 
 mod blocks_generation_tests {
     use std::sync::Arc;
+    use std::time;
 
     use serde_json::json;
     use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
@@ -18,7 +19,8 @@ mod blocks_generation_tests {
     use crate::common::constants;
     use crate::common::utils::{
         assert_tx_successful, get_contract_balance, get_contract_balance_by_block_id,
-        get_simple_contract_in_sierra_and_compiled_class_hash,
+        get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
+        UniqueAutoDeletableFile,
     };
 
     static DUMMY_ADDRESS: u128 = 1;
@@ -414,6 +416,64 @@ mod blocks_generation_tests {
             expected_balance
         );
         assert_eq!(get_contract_balance(&devnet, contract_address).await, expected_balance);
+    }
+
+    #[tokio::test]
+    async fn blocks_on_interval() {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "1"])
+            .await
+            .expect("Could not start Devnet");
+
+        // wait 1 second
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
+
+        let last_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+
+        // first is genesis block, second block is generated instantly, third is generated after 1
+        // second
+        assert_eq!(last_block.block_number, 2);
+    }
+
+    #[tokio::test]
+    async fn blocks_on_interval_dump_and_load() {
+        let mode = "exit";
+        let dump_file = UniqueAutoDeletableFile::new(
+            ("blocks_on_interval_dump_and_load_".to_owned() + mode).as_str(),
+        );
+
+        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            &dump_file.path,
+            "--dump-on",
+            mode,
+            "--block-generation-on",
+            "1",
+        ])
+        .await
+        .expect("Could not start Devnet");
+
+        // wait 1 second
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
+
+        let last_block = devnet_dump.get_latest_block_with_tx_hashes().await.unwrap();
+
+        // first is genesis block, second block is generated instantly, third is generated after 1
+        // second
+        assert_eq!(last_block.block_number, 2);
+
+        send_ctrl_c_signal_and_wait(&devnet_dump.process).await;
+
+        let devnet_load = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            dump_file.path.as_str(),
+            "--dump-on",
+            mode,
+        ])
+        .await
+        .expect("Could not start Devnet");
+
+        let last_block_load = devnet_load.get_latest_block_with_tx_hashes().await.unwrap();
+        assert_eq!(last_block.block_number, last_block_load.block_number);
     }
 
     #[tokio::test]
