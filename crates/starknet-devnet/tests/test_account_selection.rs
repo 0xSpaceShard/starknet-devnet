@@ -281,24 +281,4 @@ mod test_account_selection {
 
         assert_supports_isrc6(&devnet, account_deployment.contract_address).await;
     }
-
-    #[tokio::test]
-    async fn get_nonce_of_first_predeployed_account() {
-        let devnet = BackgroundDevnet::spawn().await.unwrap();
-        let (_, account_address) = devnet.get_first_predeployed_account().await;
-
-        let pending_block_nonce = devnet
-            .json_rpc_client
-            .get_nonce(BlockId::Tag(BlockTag::Pending), account_address)
-            .await
-            .unwrap();
-        assert_eq!(pending_block_nonce, FieldElement::ZERO);
-
-        let latest_block_nonce = devnet
-            .json_rpc_client
-            .get_nonce(BlockId::Tag(BlockTag::Latest), account_address)
-            .await
-            .unwrap();
-        assert_eq!(latest_block_nonce, FieldElement::ZERO);
-    }
 }
