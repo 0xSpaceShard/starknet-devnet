@@ -90,11 +90,10 @@ mod tests {
         }
         .into();
 
-        assert_eq!(
-            state_diff.deprecated_declared_classes,
-            expected_state_diff.deprecated_declared_classes
-        );
-        assert_eq!(state_diff.declared_classes, expected_state_diff.declared_classes);
+        let class_diff = (state_diff.deprecated_declared_classes, state_diff.declared_classes);
+        let expected_class_diff =
+            (expected_state_diff.deprecated_declared_classes, expected_state_diff.declared_classes);
+        assert_eq!(class_diff, expected_class_diff);
     }
 
     /// Initializes starknet with account_without_validations
@@ -137,6 +136,10 @@ mod tests {
         );
 
         starknet.restart_pending_block().unwrap();
+
+        // commit the newly declared account class
+        let state_diff = starknet.commit_with_diff().unwrap();
+        starknet.generate_new_block_and_state(state_diff).unwrap();
 
         (starknet, acc.get_address())
     }
