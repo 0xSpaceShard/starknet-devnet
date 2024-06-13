@@ -23,13 +23,13 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
     "0x061dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f";
 
 pub const CAIRO_1_ERC20_CONTRACT: &str =
-    include_str!("../accounts_artifacts/ERC20_Mintable_OZ_0.8.1.json");
+    include_str!("../accounts_artifacts/ERC20_Mintable_OZ_0.13.0.json");
 
 /// ERC20 class hash is hardcoded to be the same as OZ class hash ERC20.cairo although it should be
 /// different, due to commented key attributes in struct Approval (owner and spender), and add of
-/// mintable feature: https://docs.openzeppelin.com/contracts-cairo/0.8.1/presets
+/// mintable feature: https://docs.openzeppelin.com/contracts-cairo/0.13.0/presets
 pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: &str =
-    "0x046ded64ae2dead6448e247234bab192a9c483644395b66f2155f2614e5804b0";
+    "0x040b9e69e14ddc34a98ec8133c80807c144b818bc6cbf5a119d8f62535258142";
 
 /// only used in tests; if artifact needed in production, add a new constant that uses include_str!
 pub const CAIRO_0_ERC20_CONTRACT_PATH: &str =
