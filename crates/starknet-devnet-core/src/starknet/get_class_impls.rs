@@ -149,8 +149,8 @@ mod tests {
     #[test]
     fn get_class_hash_at_generated_accounts() {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
-        let state_diff = starknet.pending_state.commit_with_diff().unwrap();
-        starknet.generate_new_block(state_diff).unwrap();
+        let state_diff = starknet.commit_with_diff().unwrap();
+        starknet.generate_new_block_and_state(state_diff).unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);
@@ -163,8 +163,8 @@ mod tests {
     #[test]
     fn get_class_hash_at_generated_accounts_without_state_archive() {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::None);
-        let state_diff = starknet.pending_state.commit_with_diff().unwrap();
-        starknet.generate_new_block(state_diff).unwrap();
+        let state_diff = starknet.commit_with_diff().unwrap();
+        starknet.generate_new_block_and_state(state_diff).unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);
@@ -179,10 +179,11 @@ mod tests {
     #[test]
     fn get_class_at_generated_accounts() {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
-        let state_diff = starknet.pending_state.commit_with_diff().unwrap();
-        starknet.generate_new_block(state_diff).unwrap();
+        let state_diff = starknet.commit_with_diff().unwrap();
+        starknet.generate_new_block_and_state(state_diff).unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
+        assert_eq!(block_number.0, 0); // defined via block context in setup
         let block_id = BlockId::Number(block_number.0);
 
         let contract_class = starknet.get_class_at(&block_id, account.account_address).unwrap();
