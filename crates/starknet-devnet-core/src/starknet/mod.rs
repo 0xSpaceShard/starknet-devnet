@@ -348,7 +348,8 @@ impl Starknet {
         Ok(new_block_hash)
     }
 
-    /// Commits the the diff between latest and pending state.
+    /// Commits the the changes accumulated in pending state. Check
+    /// `StarknetState::commit_with_diff` for more info.
     pub fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
         self.pending_state.commit_with_diff()
     }
