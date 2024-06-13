@@ -63,7 +63,7 @@ mod general_integration_tests {
         let mut expected_config = json!({
             "seed": 1,
             "total_accounts": 2,
-            "account_contract_class_hash": "0x61dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f",
+            "account_contract_class_hash": "0xe2eb8f5672af4e6a4e8a8f1b44989685e668489b0a25437733756c5a34a1d6",
             "predeployed_accounts_initial_balance": "3",
             "start_time": 4,
             "gas_price_wei": 5,
