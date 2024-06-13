@@ -21,7 +21,7 @@ mod tests {
     use starknet_api::transaction::Fee;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0Json, ContractClass};
+    use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::Felt;
     use starknet_types::rpc::state::{Balance, ThinStateDiff};
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
@@ -36,7 +36,9 @@ mod tests {
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::casm_hash;
-    use crate::utils::test_utils::{dummy_cairo_1_contract_class, dummy_felt};
+    use crate::utils::test_utils::{
+        cairo_0_account_without_validations, dummy_cairo_1_contract_class, dummy_felt,
+    };
 
     #[test]
     /// This test checks that the state update is correct after a declare transaction v2.
@@ -100,11 +102,7 @@ mod tests {
     /// deploys ERC20 contract
     fn setup() -> (Starknet, ContractAddress) {
         let mut starknet = Starknet::default();
-        let account_json_path = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/account_without_validations/account.json"
-        );
-        let contract_class = Cairo0Json::raw_json_from_path(account_json_path).unwrap();
+        let account_class = cairo_0_account_without_validations();
 
         let eth_erc_20_contract =
             predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
@@ -114,8 +112,8 @@ mod tests {
             Balance::from(1e18 as u128),
             dummy_felt(),
             dummy_felt(),
-            contract_class.generate_hash().unwrap(),
-            contract_class.into(),
+            account_class.generate_hash().unwrap(),
+            account_class.into(),
             eth_erc_20_contract.get_address(),
             ContractAddress::new(Felt::from_prefixed_hex_str(STRK_ERC20_CONTRACT_ADDRESS).unwrap())
                 .unwrap(),

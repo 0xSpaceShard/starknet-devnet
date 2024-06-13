@@ -100,7 +100,7 @@ mod tests {
     use starknet_rs_ff::FieldElement;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0Json, ContractClass};
+    use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::Felt;
     use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
@@ -119,8 +119,9 @@ mod tests {
     use crate::traits::{Deployed, HashIdentified, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
-        convert_broadcasted_declare_v2_to_v3, dummy_broadcasted_declare_transaction_v2,
-        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
+        cairo_0_account_without_validations, convert_broadcasted_declare_v2_to_v3,
+        dummy_broadcasted_declare_transaction_v2, dummy_cairo_1_contract_class,
+        dummy_contract_address, dummy_felt,
     };
 
     fn broadcasted_declare_transaction_v1(
@@ -455,11 +456,7 @@ mod tests {
     /// Initializes starknet with 1 account - account without validations
     fn setup(acc_balance: Option<u128>) -> (Starknet, ContractAddress) {
         let mut starknet = Starknet::default();
-        let account_json_path = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/account_without_validations/account.json"
-        );
-        let contract_class = Cairo0Json::raw_json_from_path(account_json_path).unwrap();
+        let account_class = cairo_0_account_without_validations();
 
         let eth_erc_20_contract =
             predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
@@ -472,8 +469,8 @@ mod tests {
             Balance::from(acc_balance.unwrap_or(10000)),
             dummy_felt(),
             dummy_felt(),
-            contract_class.generate_hash().unwrap(),
-            contract_class.into(),
+            account_class.generate_hash().unwrap(),
+            account_class.into(),
             eth_erc_20_contract.get_address(),
             strk_erc20_contract.get_address(),
         )

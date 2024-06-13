@@ -51,7 +51,7 @@ mod tests {
     use nonzero_ext::nonzero;
     use starknet_rs_core::types::BlockId;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0Json, ContractClass};
+    use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::Felt;
     use starknet_types::rpc::state::Balance;
     use starknet_types::traits::HashProducer;
@@ -65,7 +65,9 @@ mod tests {
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::starknet::Starknet;
     use crate::traits::Deployed;
-    use crate::utils::test_utils::{dummy_broadcasted_declare_transaction_v2, dummy_felt};
+    use crate::utils::test_utils::{
+        cairo_0_account_without_validations, dummy_broadcasted_declare_transaction_v2, dummy_felt,
+    };
 
     fn setup(
         acc_balance: Option<u128>,
@@ -74,18 +76,14 @@ mod tests {
         let mut starknet = Starknet::new(&StarknetConfig { state_archive, ..Default::default() })
             .expect("Could not start Devnet");
 
-        let account_json_path = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/account_without_validations/account.json"
-        );
-        let contract_class = Cairo0Json::raw_json_from_path(account_json_path).unwrap();
+        let account_class = cairo_0_account_without_validations();
 
         let acc = Account::new(
             Balance::from(acc_balance.unwrap_or(100)),
             dummy_felt(),
             dummy_felt(),
-            contract_class.generate_hash().unwrap(),
-            contract_class.into(),
+            account_class.generate_hash().unwrap(),
+            account_class.into(),
             ContractAddress::new(Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS).unwrap())
                 .unwrap(),
             ContractAddress::new(Felt::from_prefixed_hex_str(STRK_ERC20_CONTRACT_ADDRESS).unwrap())
