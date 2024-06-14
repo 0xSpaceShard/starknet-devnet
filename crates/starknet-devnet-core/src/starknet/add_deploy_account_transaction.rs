@@ -398,10 +398,10 @@ mod tests {
             predeployed::create_erc20_at_address(STRK_ERC20_CONTRACT_ADDRESS).unwrap();
         strk_erc20_contract.deploy(&mut starknet.pending_state).unwrap();
 
-        let account_class = cairo_0_account_without_validations();
-        let class_hash = account_class.generate_hash().unwrap();
+        let contract_class = cairo_0_account_without_validations();
+        let class_hash = contract_class.generate_hash().unwrap();
 
-        starknet.pending_state.declare_contract_class(class_hash, account_class.into()).unwrap();
+        starknet.pending_state.declare_contract_class(class_hash, contract_class.into()).unwrap();
         starknet.block_context = Starknet::init_block_context(
             nonzero!(1u128),
             nonzero!(1u128),
