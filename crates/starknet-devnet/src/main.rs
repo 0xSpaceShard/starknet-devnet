@@ -204,9 +204,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     info!("Starknet Devnet listening on {}", address);
 
-    let empty_handle = task::spawn(async {
-        Ok(())
-    });
+    let empty_handle = task::spawn(async { Ok(()) });
     let mut block_interval_handle = empty_handle;
     if let BlockGenerationOn::Interval(seconds) = starknet_config.block_generation_on {
         // use JoinHandle to run block interval creation as a task
