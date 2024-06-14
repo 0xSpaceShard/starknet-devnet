@@ -47,71 +47,20 @@ pub fn get_class_at_impl(
 
 #[cfg(test)]
 mod tests {
-
-    use nonzero_ext::nonzero;
     use starknet_rs_core::types::BlockId;
-    use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
-    use starknet_types::felt::Felt;
-    use starknet_types::rpc::state::Balance;
-    use starknet_types::traits::HashProducer;
 
-    use crate::account::Account;
-    use crate::constants::{
-        self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
-        ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
-    };
     use crate::error::Error;
-    use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
-    use crate::starknet::Starknet;
-    use crate::traits::Deployed;
-    use crate::utils::test_utils::{
-        cairo_0_account_without_validations, dummy_broadcasted_declare_transaction_v2, dummy_felt,
-    };
-
-    fn setup(
-        acc_balance: Option<u128>,
-        state_archive: StateArchiveCapacity,
-    ) -> (Starknet, Account) {
-        let mut starknet = Starknet::new(&StarknetConfig { state_archive, ..Default::default() })
-            .expect("Could not start Devnet");
-
-        let account_class = cairo_0_account_without_validations();
-
-        let acc = Account::new(
-            Balance::from(acc_balance.unwrap_or(100)),
-            dummy_felt(),
-            dummy_felt(),
-            account_class.generate_hash().unwrap(),
-            account_class.into(),
-            ContractAddress::new(Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS).unwrap())
-                .unwrap(),
-            ContractAddress::new(Felt::from_prefixed_hex_str(STRK_ERC20_CONTRACT_ADDRESS).unwrap())
-                .unwrap(),
-        )
-        .unwrap();
-
-        acc.deploy(&mut starknet.pending_state).unwrap();
-
-        starknet.block_context = Starknet::init_block_context(
-            nonzero!(1u128),
-            nonzero!(1u128),
-            nonzero!(1u128),
-            nonzero!(1u128),
-            constants::ETH_ERC20_CONTRACT_ADDRESS,
-            constants::STRK_ERC20_CONTRACT_ADDRESS,
-            DEVNET_DEFAULT_CHAIN_ID,
-            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
-        );
-
-        starknet.restart_pending_block().unwrap();
-
-        (starknet, acc)
-    }
+    use crate::starknet::starknet_config::StateArchiveCapacity;
+    use crate::starknet::tests::setup_starknet_with_unvalidated_account_and_state_capacity;
+    use crate::utils::test_utils::dummy_broadcasted_declare_transaction_v2;
 
     #[test]
     fn get_sierra_class() {
-        let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
+        let (mut starknet, account) = setup_starknet_with_unvalidated_account_and_state_capacity(
+            1e8 as u128,
+            StateArchiveCapacity::Full,
+        );
 
         let declare_txn = dummy_broadcasted_declare_transaction_v2(&account.account_address);
 
@@ -133,9 +82,10 @@ mod tests {
 
     #[test]
     fn get_class_hash_at_generated_accounts() {
-        let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
-        let state_diff = starknet.commit_with_diff().unwrap();
-        starknet.generate_new_block_and_state(state_diff).unwrap();
+        let (mut starknet, account) = setup_starknet_with_unvalidated_account_and_state_capacity(
+            1e8 as u128,
+            StateArchiveCapacity::Full,
+        );
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);
@@ -147,9 +97,10 @@ mod tests {
 
     #[test]
     fn get_class_hash_at_generated_accounts_without_state_archive() {
-        let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::None);
-        let state_diff = starknet.commit_with_diff().unwrap();
-        starknet.generate_new_block_and_state(state_diff).unwrap();
+        let (mut starknet, account) = setup_starknet_with_unvalidated_account_and_state_capacity(
+            1e8 as u128,
+            StateArchiveCapacity::None,
+        );
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);
@@ -163,12 +114,12 @@ mod tests {
 
     #[test]
     fn get_class_at_generated_accounts() {
-        let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
-        let state_diff = starknet.commit_with_diff().unwrap();
-        starknet.generate_new_block_and_state(state_diff).unwrap();
+        let (mut starknet, account) = setup_starknet_with_unvalidated_account_and_state_capacity(
+            1e8 as u128,
+            StateArchiveCapacity::Full,
+        );
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
-        assert_eq!(block_number.0, 0); // defined via block context in setup
         let block_id = BlockId::Number(block_number.0);
 
         let contract_class = starknet.get_class_at(&block_id, account.account_address).unwrap();

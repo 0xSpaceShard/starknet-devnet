@@ -1405,15 +1405,18 @@ mod tests {
         dummy_felt,
     };
 
-    /// Initializes starknet with 1 account - account without validations
-    pub(crate) fn setup_starknet_with_unvalidated_account(
+    /// Initializes starknet with 1 account that doesn't require tx without validation and with the
+    /// specified state archive capacity
+    pub(crate) fn setup_starknet_with_unvalidated_account_and_state_capacity(
         acc_balance: u128,
+        state_archive: StateArchiveCapacity,
     ) -> (Starknet, Account) {
         let mut starknet = Starknet::new(&StarknetConfig {
             gas_price_wei: nonzero!(1u128),
             gas_price_strk: nonzero!(1u128),
             data_gas_price_wei: nonzero!(1u128),
             data_gas_price_strk: nonzero!(1u128),
+            state_archive,
             ..Default::default()
         })
         .unwrap();
@@ -1436,6 +1439,16 @@ mod tests {
         starknet.restart_pending_block().unwrap();
 
         (starknet, acc)
+    }
+
+    /// Initializes starknet with 1 account that doesn't require tx without validation
+    pub(crate) fn setup_starknet_with_unvalidated_account(
+        acc_balance: u128,
+    ) -> (Starknet, Account) {
+        setup_starknet_with_unvalidated_account_and_state_capacity(
+            acc_balance,
+            StateArchiveCapacity::None,
+        )
     }
 
     #[test]
