@@ -90,7 +90,6 @@ pub fn add_declare_transaction(
 #[cfg(test)]
 mod tests {
     use blockifier::state::state_api::StateReader;
-    use nonzero_ext::nonzero;
     use starknet_api::core::CompiledClassHash;
     use starknet_api::hash::StarkHash;
     use starknet_api::transaction::Fee;
@@ -102,26 +101,19 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::Felt;
-    use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
     use starknet_types::traits::HashProducer;
 
-    use crate::account::Account;
-    use crate::constants::{
-        self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
-        ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
-    };
-    use crate::starknet::predeployed::create_erc20_at_address;
-    use crate::starknet::{predeployed, Starknet};
+    use crate::starknet::tests::setup_starknet_with_unvalidated_account;
+    use crate::starknet::Starknet;
     use crate::state::CustomStateReader;
-    use crate::traits::{Deployed, HashIdentified, HashIdentifiedMut};
+    use crate::traits::{HashIdentified, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
-        cairo_0_account_without_validations, convert_broadcasted_declare_v2_to_v3,
-        dummy_broadcasted_declare_transaction_v2, dummy_cairo_1_contract_class,
-        dummy_contract_address, dummy_felt,
+        convert_broadcasted_declare_v2_to_v3, dummy_broadcasted_declare_transaction_v2,
+        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
     };
 
     fn broadcasted_declare_transaction_v1(
@@ -224,8 +216,8 @@ mod tests {
 
     #[test]
     fn add_declare_v2_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
-        let (mut starknet, sender) = setup(Some(1));
-        let declare_txn = dummy_broadcasted_declare_transaction_v2(&sender);
+        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(Some(1));
+        let declare_txn = dummy_broadcasted_declare_transaction_v2(&sender.account_address);
 
         match starknet
             .add_declare_transaction(BroadcastedDeclareTransaction::V2(Box::new(declare_txn)))
@@ -242,10 +234,11 @@ mod tests {
 
     #[test]
     fn add_declare_v3_transaction_successful_execution() {
-        let (mut starknet, sender) = setup(Some(1e18 as u128));
+        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(Some(1e18 as u128));
 
-        let declare_txn =
-            convert_broadcasted_declare_v2_to_v3(dummy_broadcasted_declare_transaction_v2(&sender));
+        let declare_txn = convert_broadcasted_declare_v2_to_v3(
+            dummy_broadcasted_declare_transaction_v2(&sender.account_address),
+        );
 
         let (tx_hash, class_hash) = starknet
             .add_declare_transaction(BroadcastedDeclareTransaction::V3(Box::new(
@@ -268,9 +261,9 @@ mod tests {
 
     #[test]
     fn add_declare_v2_transaction_successful_execution() {
-        let (mut starknet, sender) = setup(Some(100000000));
+        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(Some(100000000));
 
-        let declare_txn = dummy_broadcasted_declare_transaction_v2(&sender);
+        let declare_txn = dummy_broadcasted_declare_transaction_v2(&sender.account_address);
         let (tx_hash, class_hash) = starknet
             .add_declare_transaction(BroadcastedDeclareTransaction::V2(Box::new(
                 declare_txn.clone(),
@@ -295,8 +288,8 @@ mod tests {
 
     #[test]
     fn declare_v2_transaction_successful_storage_change() {
-        let (mut starknet, sender) = setup(Some(100000000));
-        let declare_txn = dummy_broadcasted_declare_transaction_v2(&sender);
+        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(Some(100000000));
+        let declare_txn = dummy_broadcasted_declare_transaction_v2(&sender.account_address);
         let expected_class_hash =
             ContractClass::Cairo1(declare_txn.contract_class.clone()).generate_hash().unwrap();
         let expected_compiled_class_hash = declare_txn.compiled_class_hash;
@@ -355,9 +348,9 @@ mod tests {
 
     #[test]
     fn add_declare_v1_transaction_should_return_an_error_due_to_low_max_fee() {
-        let (mut starknet, sender) = setup(Some(20000));
+        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(Some(20000));
 
-        let mut declare_txn = broadcasted_declare_transaction_v1(sender);
+        let mut declare_txn = broadcasted_declare_transaction_v1(sender.account_address);
         match declare_txn {
             BroadcastedDeclareTransaction::V1(ref mut v1) => {
                 v1.common.max_fee = Fee(10);
@@ -377,9 +370,9 @@ mod tests {
 
     #[test]
     fn add_declare_v1_transaction_should_return_an_error_due_to_not_enough_balance_on_account() {
-        let (mut starknet, sender) = setup(Some(1));
+        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(Some(1));
 
-        let declare_txn = broadcasted_declare_transaction_v1(sender);
+        let declare_txn = broadcasted_declare_transaction_v1(sender.account_address);
         match starknet.add_declare_transaction(declare_txn).unwrap_err() {
             crate::error::Error::TransactionValidationError(
                 crate::error::TransactionValidationError::InsufficientAccountBalance,
@@ -392,9 +385,9 @@ mod tests {
 
     #[test]
     fn add_declare_v1_transaction_successful_execution() {
-        let (mut starknet, sender) = setup(None);
+        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(None);
 
-        let declare_txn = broadcasted_declare_transaction_v1(sender);
+        let declare_txn = broadcasted_declare_transaction_v1(sender.account_address);
         let (tx_hash, class_hash) = starknet.add_declare_transaction(declare_txn.clone()).unwrap();
 
         let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
@@ -429,8 +422,8 @@ mod tests {
 
     #[test]
     fn declare_v1_transaction_successful_storage_change() {
-        let (mut starknet, sender) = setup(None);
-        let declare_txn = broadcasted_declare_transaction_v1(sender);
+        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(None);
+        let declare_txn = broadcasted_declare_transaction_v1(sender.account_address);
 
         match declare_txn {
             BroadcastedDeclareTransaction::V1(ref v1) => {
@@ -451,46 +444,5 @@ mod tests {
 
         // check if contract is declared
         assert!(starknet.pending_state.is_contract_declared(class_hash));
-    }
-
-    /// Initializes starknet with 1 account - account without validations
-    fn setup(acc_balance: Option<u128>) -> (Starknet, ContractAddress) {
-        let mut starknet = Starknet::default();
-        let account_class = cairo_0_account_without_validations();
-
-        let eth_erc_20_contract =
-            predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
-        eth_erc_20_contract.deploy(&mut starknet.pending_state).unwrap();
-
-        let strk_erc20_contract = create_erc20_at_address(STRK_ERC20_CONTRACT_ADDRESS).unwrap();
-        strk_erc20_contract.deploy(&mut starknet.pending_state).unwrap();
-
-        let acc = Account::new(
-            Balance::from(acc_balance.unwrap_or(10000)),
-            dummy_felt(),
-            dummy_felt(),
-            account_class.generate_hash().unwrap(),
-            account_class.into(),
-            eth_erc_20_contract.get_address(),
-            strk_erc20_contract.get_address(),
-        )
-        .unwrap();
-
-        acc.deploy(&mut starknet.pending_state).unwrap();
-
-        starknet.block_context = Starknet::init_block_context(
-            nonzero!(1u128),
-            nonzero!(1u128),
-            nonzero!(1u128),
-            nonzero!(1u128),
-            constants::ETH_ERC20_CONTRACT_ADDRESS,
-            constants::STRK_ERC20_CONTRACT_ADDRESS,
-            DEVNET_DEFAULT_CHAIN_ID,
-            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
-        );
-
-        starknet.restart_pending_block().unwrap();
-
-        (starknet, acc.get_address())
     }
 }
