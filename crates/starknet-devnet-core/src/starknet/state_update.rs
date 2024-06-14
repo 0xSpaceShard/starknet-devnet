@@ -35,7 +35,7 @@ mod tests {
     #[test]
     /// This test checks that the state update is correct after a declare transaction v2.
     fn correct_state_update_after_declare_transaction_v2() {
-        let (mut starknet, acc) = setup_starknet_with_unvalidated_account(Some(1e18 as u128));
+        let (mut starknet, acc) = setup_starknet_with_unvalidated_account(1e18 as u128);
         let contract_class = dummy_cairo_1_contract_class();
 
         let sierra_class_hash =

@@ -1407,7 +1407,7 @@ mod tests {
 
     /// Initializes starknet with 1 account - account without validations
     pub(crate) fn setup_starknet_with_unvalidated_account(
-        acc_balance: Option<u128>,
+        acc_balance: u128,
     ) -> (Starknet, Account) {
         let mut starknet = Starknet::new(&StarknetConfig {
             gas_price_wei: nonzero!(1u128),
@@ -1420,7 +1420,7 @@ mod tests {
 
         let account_class = cairo_0_account_without_validations();
         let acc = Account::new(
-            Balance::from(acc_balance.unwrap_or(10000)),
+            Balance::from(acc_balance),
             dummy_felt(),
             dummy_felt(),
             account_class.generate_hash().unwrap(),
@@ -1431,6 +1431,8 @@ mod tests {
         .unwrap();
         acc.deploy(&mut starknet.pending_state).unwrap();
 
+        let state_diff = starknet.commit_with_diff().unwrap();
+        starknet.generate_new_block_and_state(state_diff).unwrap();
         starknet.restart_pending_block().unwrap();
 
         (starknet, acc)

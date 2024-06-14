@@ -216,7 +216,7 @@ mod tests {
 
     #[test]
     fn add_declare_v2_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
-        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(Some(1));
+        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(1);
         let declare_txn = dummy_broadcasted_declare_transaction_v2(&sender.account_address);
 
         match starknet
@@ -234,7 +234,7 @@ mod tests {
 
     #[test]
     fn add_declare_v3_transaction_successful_execution() {
-        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(Some(1e18 as u128));
+        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(1e18 as u128);
 
         let declare_txn = convert_broadcasted_declare_v2_to_v3(
             dummy_broadcasted_declare_transaction_v2(&sender.account_address),
@@ -261,7 +261,7 @@ mod tests {
 
     #[test]
     fn add_declare_v2_transaction_successful_execution() {
-        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(Some(100000000));
+        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(1e8 as u128);
 
         let declare_txn = dummy_broadcasted_declare_transaction_v2(&sender.account_address);
         let (tx_hash, class_hash) = starknet
@@ -288,7 +288,7 @@ mod tests {
 
     #[test]
     fn declare_v2_transaction_successful_storage_change() {
-        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(Some(100000000));
+        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(1e8 as u128);
         let declare_txn = dummy_broadcasted_declare_transaction_v2(&sender.account_address);
         let expected_class_hash =
             ContractClass::Cairo1(declare_txn.contract_class.clone()).generate_hash().unwrap();
@@ -348,7 +348,7 @@ mod tests {
 
     #[test]
     fn add_declare_v1_transaction_should_return_an_error_due_to_low_max_fee() {
-        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(Some(20000));
+        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(20000);
 
         let mut declare_txn = broadcasted_declare_transaction_v1(sender.account_address);
         match declare_txn {
@@ -370,7 +370,7 @@ mod tests {
 
     #[test]
     fn add_declare_v1_transaction_should_return_an_error_due_to_not_enough_balance_on_account() {
-        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(Some(1));
+        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(1);
 
         let declare_txn = broadcasted_declare_transaction_v1(sender.account_address);
         match starknet.add_declare_transaction(declare_txn).unwrap_err() {
@@ -385,8 +385,9 @@ mod tests {
 
     #[test]
     fn add_declare_v1_transaction_successful_execution() {
-        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(None);
+        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(10000);
 
+        let initial_block_count = starknet.blocks.hash_to_block.len();
         let declare_txn = broadcasted_declare_transaction_v1(sender.account_address);
         let (tx_hash, class_hash) = starknet.add_declare_transaction(declare_txn.clone()).unwrap();
 
@@ -405,8 +406,8 @@ mod tests {
         assert!(starknet.pending_state.is_contract_declared(class_hash));
         // check if pending block is reset
         assert!(starknet.pending_block().get_transactions().is_empty());
-        // check if there is generated block
-        assert_eq!(starknet.blocks.hash_to_block.len(), 1);
+        // check if there is one new generated block
+        assert_eq!(starknet.blocks.hash_to_block.len(), initial_block_count + 1);
         // check if transaction is in generated block
         assert_eq!(
             *starknet
@@ -422,7 +423,7 @@ mod tests {
 
     #[test]
     fn declare_v1_transaction_successful_storage_change() {
-        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(None);
+        let (mut starknet, sender) = setup_starknet_with_unvalidated_account(10000);
         let declare_txn = broadcasted_declare_transaction_v1(sender.account_address);
 
         match declare_txn {
