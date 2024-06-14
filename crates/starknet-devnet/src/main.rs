@@ -204,7 +204,9 @@ async fn main() -> Result<(), anyhow::Error> {
 
     info!("Starknet Devnet listening on {}", address);
 
-    let empty_handle: task::JoinHandle<()> = task::spawn(async {});
+    let empty_handle = task::spawn(async {
+        Ok(())
+    });
     let mut block_interval_handle = empty_handle;
     if let BlockGenerationOn::Interval(seconds) = starknet_config.block_generation_on {
         // use JoinHandle to run block interval creation as a task
@@ -219,12 +221,16 @@ async fn main() -> Result<(), anyhow::Error> {
     shutdown_signal(api.clone()).await;
 
     // join both tasks
-    let _ = tokio::join!(block_interval_handle, server_handle);
+    let (block_interval_result, server_result) = tokio::join!(block_interval_handle, server_handle);
+
+    // handle the results of the tasks
+    block_interval_result??;
+    server_result??;
 
     Ok(())
 }
 
-async fn create_block_interval(api: Api, block_interval: u64) {
+async fn create_block_interval(api: Api, block_interval: u64) -> Result<(), anyhow::Error> {
     let mut interval = interval(Duration::from_secs(block_interval));
     let mut sigint = signal(SignalKind::interrupt()).expect("Failed to setup SIGINT handler");
 
@@ -232,10 +238,10 @@ async fn create_block_interval(api: Api, block_interval: u64) {
         tokio::select! {
             _ = interval.tick() => {
                 let mut starknet = api.starknet.write().await;
-                let _ = starknet.create_block_dump_event(None);
+                starknet.create_block_dump_event(None)?
             }
             _ = sigint.recv() => {
-                return;
+                return Ok(())
             }
         }
     }
