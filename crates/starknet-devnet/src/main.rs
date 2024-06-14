@@ -12,7 +12,7 @@ use starknet_core::constants::{
     CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
-use starknet_core::starknet::starknet_config::{BlockGeneration, DumpOn, ForkConfig};
+use starknet_core::starknet::starknet_config::{BlockGenerationOn, DumpOn, ForkConfig};
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::{BlockId, BlockTag, MaybePendingBlockWithTxHashes};
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -206,7 +206,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let empty_handle: task::JoinHandle<()> = task::spawn(async {});
     let mut block_interval_handle = empty_handle;
-    if let BlockGeneration::Interval(seconds) = starknet_config.block_generation_on {
+    if let BlockGenerationOn::Interval(seconds) = starknet_config.block_generation_on {
         // use JoinHandle to run block interval creation as a task
         block_interval_handle = task::spawn(create_block_interval(api.clone(), seconds));
     }

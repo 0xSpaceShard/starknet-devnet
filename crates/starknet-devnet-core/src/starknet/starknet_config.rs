@@ -33,24 +33,24 @@ pub enum StateArchiveCapacity {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum BlockGeneration {
+pub enum BlockGenerationOn {
     Transaction,
     Demand,
     Interval(u64),
 }
 
-impl std::str::FromStr for BlockGeneration {
+impl std::str::FromStr for BlockGenerationOn {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "transaction" => Ok(BlockGeneration::Transaction),
-            "demand" => Ok(BlockGeneration::Demand),
+            "transaction" => Ok(BlockGenerationOn::Transaction),
+            "demand" => Ok(BlockGenerationOn::Demand),
             value => {
                 let interval_value = value
                     .parse::<u64>()
                     .map_err(|_| Error::new(clap::error::ErrorKind::InvalidValue))?;
-                Ok(BlockGeneration::Interval(interval_value))
+                Ok(BlockGenerationOn::Interval(interval_value))
             }
         }
     }
@@ -105,7 +105,7 @@ pub struct StarknetConfig {
     pub chain_id: ChainId,
     pub dump_on: Option<DumpOn>,
     pub dump_path: Option<String>,
-    pub block_generation_on: BlockGeneration,
+    pub block_generation_on: BlockGenerationOn,
     pub lite_mode: bool,
     /// on initialization, re-execute loaded txs (if any)
     #[serde(skip_serializing)]
@@ -135,7 +135,7 @@ impl Default for StarknetConfig {
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
             dump_on: None,
             dump_path: None,
-            block_generation_on: BlockGeneration::Transaction,
+            block_generation_on: BlockGenerationOn::Transaction,
             lite_mode: false,
             re_execute_on_init: true,
             state_archive: StateArchiveCapacity::default(),

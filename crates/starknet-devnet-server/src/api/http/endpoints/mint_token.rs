@@ -1,7 +1,7 @@
 use axum::extract::State;
 use axum::Json;
 use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
-use starknet_core::starknet::starknet_config::BlockGeneration;
+use starknet_core::starknet::starknet_config::BlockGenerationOn;
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::contract_address::ContractAddress;
@@ -73,7 +73,7 @@ pub async fn mint(
         .await
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
 
-    let block_tag = if starknet.config.block_generation_on != BlockGeneration::Transaction {
+    let block_tag = if starknet.config.block_generation_on != BlockGenerationOn::Transaction {
         BlockTag::Pending
     } else {
         BlockTag::Latest

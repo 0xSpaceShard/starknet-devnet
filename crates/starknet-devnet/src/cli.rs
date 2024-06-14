@@ -9,7 +9,7 @@ use starknet_core::constants::{
 use starknet_core::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use starknet_core::random_number_generator::generate_u32_random_number;
 use starknet_core::starknet::starknet_config::{
-    BlockGeneration, DumpOn, ForkConfig, StarknetConfig, StateArchiveCapacity,
+    BlockGenerationOn, DumpOn, ForkConfig, StarknetConfig, StateArchiveCapacity,
 };
 use starknet_types::chain_id::ChainId;
 use tracing_subscriber::EnvFilter;
@@ -163,7 +163,7 @@ pub(crate) struct Args {
     #[arg(help = "Introduces block generation on demand via /create_block endpoint or in time \
                   periods with --block-generation-on <SECONDS>. All possible values \
                   <transaction|demand|<SECONDS>;")]
-    block_generation_on: BlockGeneration,
+    block_generation_on: BlockGenerationOn,
 
     #[arg(long = "state-archive-capacity")]
     #[arg(env = "STATE_ARCHIVE_CAPACITY")]
