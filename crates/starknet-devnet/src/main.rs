@@ -206,9 +206,9 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let empty_handle: task::JoinHandle<()> = task::spawn(async {});
     let mut block_interval_handle = empty_handle;
-    if let BlockGeneration::Interval(timestamp) = starknet_config.block_generation_on {
+    if let BlockGeneration::Interval(seconds) = starknet_config.block_generation_on {
         // use JoinHandle to run block interval creation as a task
-        block_interval_handle = task::spawn(create_block_interval(api.clone(), timestamp));
+        block_interval_handle = task::spawn(create_block_interval(api.clone(), seconds));
     }
 
     // run server also as a JoinHandle
