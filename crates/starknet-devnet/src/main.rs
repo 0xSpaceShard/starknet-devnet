@@ -236,6 +236,8 @@ async fn create_block_interval(api: Api, block_interval: u64) -> Result<(), anyh
         tokio::select! {
             _ = interval.tick() => {
                 let mut starknet = api.starknet.write().await;
+                info!("Generating block on time interval");
+
                 starknet.create_block_dump_event(None)?
             }
             _ = sigint.recv() => {
