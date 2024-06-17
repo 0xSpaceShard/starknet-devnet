@@ -39,7 +39,7 @@ To retrieve the current configuration of Devnet, send a `GET` request to `/confi
     "timeout": 120,
     "request_body_size_limit": 2000000
   },
-  "block_generation": null,
+  "blocks_on_demand": false,
   "lite_mode": false
 }
 ```
