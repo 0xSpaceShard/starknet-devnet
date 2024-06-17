@@ -26,7 +26,7 @@ mod tests {
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::traits::HashProducer;
 
-    use crate::starknet::tests::setup_starknet_with_unvalidated_account;
+    use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
     use crate::state::state_diff::StateDiff;
     use crate::traits::HashIdentifiedMut;
     use crate::utils::casm_hash;
@@ -35,7 +35,7 @@ mod tests {
     #[test]
     /// This test checks that the state update is correct after a declare transaction v2.
     fn correct_state_update_after_declare_transaction_v2() {
-        let (mut starknet, acc) = setup_starknet_with_unvalidated_account(1e18 as u128);
+        let (mut starknet, acc) = setup_starknet_with_no_signature_check_account(1e18 as u128);
         let contract_class = dummy_cairo_1_contract_class();
 
         let sierra_class_hash =

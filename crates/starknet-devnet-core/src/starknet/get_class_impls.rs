@@ -52,15 +52,16 @@ mod tests {
 
     use crate::error::Error;
     use crate::starknet::starknet_config::StateArchiveCapacity;
-    use crate::starknet::tests::setup_starknet_with_unvalidated_account_and_state_capacity;
+    use crate::starknet::tests::setup_starknet_with_no_signature_check_account_and_state_capacity;
     use crate::utils::test_utils::dummy_broadcasted_declare_transaction_v2;
 
     #[test]
     fn get_sierra_class() {
-        let (mut starknet, account) = setup_starknet_with_unvalidated_account_and_state_capacity(
-            1e8 as u128,
-            StateArchiveCapacity::Full,
-        );
+        let (mut starknet, account) =
+            setup_starknet_with_no_signature_check_account_and_state_capacity(
+                1e8 as u128,
+                StateArchiveCapacity::Full,
+            );
 
         let declare_txn = dummy_broadcasted_declare_transaction_v2(&account.account_address);
 
@@ -82,10 +83,11 @@ mod tests {
 
     #[test]
     fn get_class_hash_at_generated_accounts() {
-        let (mut starknet, account) = setup_starknet_with_unvalidated_account_and_state_capacity(
-            1e8 as u128,
-            StateArchiveCapacity::Full,
-        );
+        let (mut starknet, account) =
+            setup_starknet_with_no_signature_check_account_and_state_capacity(
+                1e8 as u128,
+                StateArchiveCapacity::Full,
+            );
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);
@@ -97,10 +99,11 @@ mod tests {
 
     #[test]
     fn get_class_hash_at_generated_accounts_without_state_archive() {
-        let (mut starknet, account) = setup_starknet_with_unvalidated_account_and_state_capacity(
-            1e8 as u128,
-            StateArchiveCapacity::None,
-        );
+        let (mut starknet, account) =
+            setup_starknet_with_no_signature_check_account_and_state_capacity(
+                1e8 as u128,
+                StateArchiveCapacity::None,
+            );
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);
@@ -114,10 +117,11 @@ mod tests {
 
     #[test]
     fn get_class_at_generated_accounts() {
-        let (mut starknet, account) = setup_starknet_with_unvalidated_account_and_state_capacity(
-            1e8 as u128,
-            StateArchiveCapacity::Full,
-        );
+        let (mut starknet, account) =
+            setup_starknet_with_no_signature_check_account_and_state_capacity(
+                1e8 as u128,
+                StateArchiveCapacity::Full,
+            );
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);

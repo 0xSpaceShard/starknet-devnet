@@ -1405,9 +1405,9 @@ mod tests {
         dummy_felt,
     };
 
-    /// Initializes starknet with 1 account that doesn't require tx without validation and with the
-    /// specified state archive capacity
-    pub(crate) fn setup_starknet_with_unvalidated_account_and_state_capacity(
+    /// Initializes starknet with 1 account that doesn't perform actual tx signature validation.
+    /// Allows specifying the state archive capacity.
+    pub(crate) fn setup_starknet_with_no_signature_check_account_and_state_capacity(
         acc_balance: u128,
         state_archive: StateArchiveCapacity,
     ) -> (Starknet, Account) {
@@ -1441,11 +1441,11 @@ mod tests {
         (starknet, acc)
     }
 
-    /// Initializes starknet with 1 account that doesn't require tx without validation
-    pub(crate) fn setup_starknet_with_unvalidated_account(
+    /// Initializes starknet with 1 account that doesn't perform actual tx signature validation.
+    pub(crate) fn setup_starknet_with_no_signature_check_account(
         acc_balance: u128,
     ) -> (Starknet, Account) {
-        setup_starknet_with_unvalidated_account_and_state_capacity(
+        setup_starknet_with_no_signature_check_account_and_state_capacity(
             acc_balance,
             StateArchiveCapacity::None,
         )
