@@ -437,7 +437,7 @@ mod blocks_generation_tests {
     #[tokio::test]
     async fn blocks_on_interval_dump_and_load() {
         let mode = "exit";
-        let dump_file = UniqueAutoDeletableFile::new(("interval_dump".to_owned()).as_str());
+        let dump_file = UniqueAutoDeletableFile::new("interval_dump");
         let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
             "--dump-path",
             &dump_file.path,
