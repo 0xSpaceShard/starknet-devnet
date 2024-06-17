@@ -17,31 +17,25 @@ pub fn state_update_by_block_id(
 
 #[cfg(test)]
 mod tests {
-    use nonzero_ext::nonzero;
+
     use starknet_api::transaction::Fee;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
-    use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0Json, ContractClass};
+    use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::Felt;
-    use starknet_types::rpc::state::{Balance, ThinStateDiff};
+    use starknet_types::rpc::state::ThinStateDiff;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::traits::HashProducer;
 
-    use crate::account::Account;
-    use crate::constants::{
-        self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
-        ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
-    };
-    use crate::starknet::{predeployed, Starknet};
+    use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
     use crate::state::state_diff::StateDiff;
-    use crate::traits::{Deployed, HashIdentifiedMut};
+    use crate::traits::HashIdentifiedMut;
     use crate::utils::casm_hash;
-    use crate::utils::test_utils::{dummy_cairo_1_contract_class, dummy_felt};
+    use crate::utils::test_utils::dummy_cairo_1_contract_class;
 
     #[test]
     /// This test checks that the state update is correct after a declare transaction v2.
     fn correct_state_update_after_declare_transaction_v2() {
-        let (mut starknet, sender_address) = setup();
+        let (mut starknet, acc) = setup_starknet_with_no_signature_check_account(1e18 as u128);
         let contract_class = dummy_cairo_1_contract_class();
 
         let sierra_class_hash =
@@ -55,7 +49,7 @@ mod tests {
         let declare_txn = BroadcastedDeclareTransactionV2::new(
             &contract_class,
             compiled_class_hash,
-            sender_address,
+            acc.account_address,
             Fee(400000),
             &Vec::new(),
             Felt::from(0),
@@ -94,53 +88,5 @@ mod tests {
         let expected_class_diff =
             (expected_state_diff.deprecated_declared_classes, expected_state_diff.declared_classes);
         assert_eq!(class_diff, expected_class_diff);
-    }
-
-    /// Initializes starknet with account_without_validations
-    /// deploys ERC20 contract
-    fn setup() -> (Starknet, ContractAddress) {
-        let mut starknet = Starknet::default();
-        let account_json_path = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/account_without_validations/account.json"
-        );
-        let contract_class = Cairo0Json::raw_json_from_path(account_json_path).unwrap();
-
-        let eth_erc_20_contract =
-            predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
-        eth_erc_20_contract.deploy(&mut starknet.pending_state).unwrap();
-
-        let acc = Account::new(
-            Balance::from(1e18 as u128),
-            dummy_felt(),
-            dummy_felt(),
-            contract_class.generate_hash().unwrap(),
-            contract_class.into(),
-            eth_erc_20_contract.get_address(),
-            ContractAddress::new(Felt::from_prefixed_hex_str(STRK_ERC20_CONTRACT_ADDRESS).unwrap())
-                .unwrap(),
-        )
-        .unwrap();
-
-        acc.deploy(&mut starknet.pending_state).unwrap();
-
-        starknet.block_context = Starknet::init_block_context(
-            nonzero!(1u128),
-            nonzero!(1u128),
-            nonzero!(1u128),
-            nonzero!(1u128),
-            constants::ETH_ERC20_CONTRACT_ADDRESS,
-            constants::STRK_ERC20_CONTRACT_ADDRESS,
-            DEVNET_DEFAULT_CHAIN_ID,
-            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
-        );
-
-        starknet.restart_pending_block().unwrap();
-
-        // commit the newly declared account class
-        let state_diff = starknet.commit_with_diff().unwrap();
-        starknet.generate_new_block_and_state(state_diff).unwrap();
-
-        (starknet, acc.get_address())
     }
 }
