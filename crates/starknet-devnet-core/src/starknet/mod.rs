@@ -1387,9 +1387,11 @@ mod tests {
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
+    use starknet_types::rpc::state::Balance;
+    use starknet_types::traits::HashProducer;
 
     use super::Starknet;
-    use crate::account::FeeToken;
+    use crate::account::{Account, FeeToken};
     use crate::blocks::StarknetBlock;
     use crate::constants::{
         DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE,
@@ -1399,10 +1401,57 @@ mod tests {
     use crate::error::{DevnetResult, Error};
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::state::state_diff::StateDiff;
-    use crate::traits::{Accounted, HashIdentified};
+    use crate::traits::{Accounted, Deployed, HashIdentified};
     use crate::utils::test_utils::{
-        dummy_contract_address, dummy_declare_transaction_v1, dummy_felt,
+        cairo_0_account_without_validations, dummy_contract_address, dummy_declare_transaction_v1,
+        dummy_felt,
     };
+
+    /// Initializes starknet with 1 account that doesn't perform actual tx signature validation.
+    /// Allows specifying the state archive capacity.
+    pub(crate) fn setup_starknet_with_no_signature_check_account_and_state_capacity(
+        acc_balance: u128,
+        state_archive: StateArchiveCapacity,
+    ) -> (Starknet, Account) {
+        let mut starknet = Starknet::new(&StarknetConfig {
+            gas_price_wei: nonzero!(1u128),
+            gas_price_strk: nonzero!(1u128),
+            data_gas_price_wei: nonzero!(1u128),
+            data_gas_price_strk: nonzero!(1u128),
+            state_archive,
+            ..Default::default()
+        })
+        .unwrap();
+
+        let account_class = cairo_0_account_without_validations();
+        let acc = Account::new(
+            Balance::from(acc_balance),
+            dummy_felt(),
+            dummy_felt(),
+            account_class.generate_hash().unwrap(),
+            account_class.into(),
+            starknet.block_context.chain_info().fee_token_addresses.eth_fee_token_address.into(),
+            starknet.block_context.chain_info().fee_token_addresses.strk_fee_token_address.into(),
+        )
+        .unwrap();
+        acc.deploy(&mut starknet.pending_state).unwrap();
+
+        let state_diff = starknet.commit_with_diff().unwrap();
+        starknet.generate_new_block_and_state(state_diff).unwrap();
+        starknet.restart_pending_block().unwrap();
+
+        (starknet, acc)
+    }
+
+    /// Initializes starknet with 1 account that doesn't perform actual tx signature validation.
+    pub(crate) fn setup_starknet_with_no_signature_check_account(
+        acc_balance: u128,
+    ) -> (Starknet, Account) {
+        setup_starknet_with_no_signature_check_account_and_state_capacity(
+            acc_balance,
+            StateArchiveCapacity::None,
+        )
+    }
 
     #[test]
     fn correct_initial_state_with_test_config() {
