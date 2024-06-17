@@ -24,6 +24,10 @@ Response:
 {'block_hash': '0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67'}
 ```
 
+## Automatic periodic block creation
+
+Devnet started with the `--block-generation-on <INTERVAL>` CLI option, will behave like in `demand` mode but new blocks will be mined automatically in time intervals.
+
 ## Create an empty block
 
 To create an empty block without transactions, `POST` a request to `/create_block`:
