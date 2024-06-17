@@ -65,29 +65,18 @@ pub trait CustomState {
 pub struct CommittedClassStorage {
     staging: HashMap<ClassHash, ContractClass>,
     committed: HashMap<ClassHash, (ContractClass, u64)>,
-    current_block_number: u64,
 }
 
 impl CommittedClassStorage {
-    pub fn new(starting_block_number: u64) -> Self {
-        Self {
-            staging: Default::default(),
-            committed: Default::default(),
-            current_block_number: starting_block_number,
-        }
-    }
     pub fn insert(&mut self, class_hash: ClassHash, contract_class: ContractClass) {
         self.staging.insert(class_hash, contract_class);
     }
 
-    pub fn commit(&mut self) -> HashMap<ClassHash, ContractClass> {
+    pub fn commit(&mut self, block_number: u64) -> HashMap<ClassHash, ContractClass> {
         let diff = self.staging.clone();
-        let numbered = self
-            .staging
-            .drain()
-            .map(|(class_hash, class)| (class_hash, (class, self.current_block_number)));
+        let numbered =
+            self.staging.drain().map(|(class_hash, class)| (class_hash, (class, block_number)));
         self.committed.extend(numbered);
-        self.current_block_number += 1;
         diff
     }
 }
@@ -115,12 +104,10 @@ impl Default for StarknetState {
 }
 
 impl StarknetState {
-    pub fn new(defaulter: StarknetDefaulter, starting_block_number: u64) -> Self {
+    pub fn new(defaulter: StarknetDefaulter) -> Self {
         Self {
             state: CachedState::new(DictState::new(defaulter), default_global_contract_cache()),
-            rpc_contract_classes: Arc::new(RwLock::new(CommittedClassStorage::new(
-                starting_block_number,
-            ))),
+            rpc_contract_classes: Arc::new(RwLock::new(CommittedClassStorage::default())),
             historic_state: Default::default(),
         }
     }
@@ -130,8 +117,9 @@ impl StarknetState {
     }
 
     /// Commits and returns the state difference accumulated since the previous (historic) state.
-    pub(crate) fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
-        let diff = StateDiff::generate(&mut self.state, self.rpc_contract_classes.clone())?;
+    pub(crate) fn commit_with_diff(&mut self, block_number: u64) -> DevnetResult<StateDiff> {
+        let new_classes = self.rpc_contract_classes.write().unwrap().commit(block_number);
+        let diff = StateDiff::generate(&mut self.state, new_classes)?;
         let new_historic = self.expand_historic(diff.clone())?;
         self.state = CachedState::new(new_historic.clone(), default_global_contract_cache());
         Ok(diff)
@@ -457,7 +445,8 @@ mod tests {
             .unwrap();
 
         state.state.set_storage_at(contract_address, storage_key, dummy_felt().into()).unwrap();
-        state.commit_with_diff().unwrap();
+        let block_number = 1;
+        state.commit_with_diff(block_number).unwrap();
 
         let storage_after = state.get_storage_at(contract_address, storage_key).unwrap();
         assert_eq!(storage_after, dummy_felt().into());
@@ -474,7 +463,8 @@ mod tests {
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(StarkFelt::ZERO));
 
         state.state.increment_nonce(contract_address).unwrap();
-        state.commit_with_diff().unwrap();
+        let block_number = 1;
+        state.commit_with_diff(block_number).unwrap();
 
         // check if nonce update was correct
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(StarkFelt::ONE));
@@ -497,7 +487,8 @@ mod tests {
             .declare_contract_class(class_hash, contract_class.clone().try_into().unwrap())
             .unwrap();
 
-        state.commit_with_diff().unwrap();
+        let block_number = 1;
+        state.commit_with_diff(block_number).unwrap();
 
         match state.get_compiled_contract_class(class_hash.into()) {
             Ok(blockifier::execution::contract_class::ContractClass::V0(retrieved_class)) => {

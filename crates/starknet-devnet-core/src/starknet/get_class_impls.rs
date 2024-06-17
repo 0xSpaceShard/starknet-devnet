@@ -142,4 +142,6 @@ mod tests {
         let contract_class = starknet.get_class_at(&block_id, account.account_address).unwrap();
         assert_eq!(contract_class, account.contract_class);
     }
+
+    // TODO test failure case when getting from a block where the class was not yet declared
 }
