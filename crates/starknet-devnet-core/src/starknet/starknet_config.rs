@@ -1,6 +1,6 @@
 use std::num::NonZeroU128;
 
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Serialize, Serializer};
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::Felt;

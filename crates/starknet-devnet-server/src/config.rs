@@ -1,9 +1,8 @@
 use std::net::IpAddr;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(Deserialize))]
 pub struct ServerConfig {
     pub host: IpAddr,
     pub port: u16,

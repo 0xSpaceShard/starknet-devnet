@@ -79,8 +79,9 @@ pub fn to_rpc_result<T: Serialize>(val: T) -> ResponseResult {
 impl ToRpcResponseResult for StrictRpcResult {
     fn to_rpc_result(self) -> ResponseResult {
         match self {
-            Ok(StarknetResponse::Empty) => to_rpc_result(json!({})),
-            Ok(data) => to_rpc_result(data),
+            Ok(JsonRpcResponse::Empty) => to_rpc_result(json!({})),
+            Ok(JsonRpcResponse::Devnet(data)) => to_rpc_result(data),
+            Ok(JsonRpcResponse::Starknet(data)) => to_rpc_result(data),
             Err(err) => err.api_error_to_rpc_error().into(),
         }
     }
@@ -245,6 +246,7 @@ impl JsonRpcHandler {
             StarknetRequest::PredeployedAccounts => self.get_predeployed_accounts().await,
             StarknetRequest::AccountBalance(data) => self.get_account_balance(data).await,
             StarknetRequest::Mint(data) => self.mint(data).await,
+            StarknetRequest::DevnetConfig => self.get_devnet_config().await,
         };
 
         if let (Err(err), Some(forwarder)) = (&starknet_resp, &self.origin_caller) {
@@ -375,6 +377,8 @@ pub enum StarknetRequest {
     AccountBalance(BalanceQuery),
     #[serde(rename = "devnet_mint")]
     Mint(MintTokensRequest),
+    #[serde(rename = "devnet_config", with = "empty_params")]
+    DevnetConfig,
 }
 
 impl std::fmt::Display for StarknetRequest {
@@ -450,7 +454,28 @@ impl std::fmt::Display for StarknetRequest {
             StarknetRequest::PredeployedAccounts => write!(f, "devnet_predeployedAccounts"),
             StarknetRequest::AccountBalance(_) => write!(f, "devnet_accountBalance"),
             StarknetRequest::Mint(_) => write!(f, "devnet_mint"),
+            StarknetRequest::DevnetConfig => write!(f, "devnet_config"),
         }
+    }
+}
+
+#[derive(Serialize)]
+#[serde(untagged)]
+pub enum JsonRpcResponse {
+    Starknet(StarknetResponse),
+    Devnet(DevnetResponse),
+    Empty,
+}
+
+impl From<StarknetResponse> for JsonRpcResponse {
+    fn from(resp: StarknetResponse) -> Self {
+        JsonRpcResponse::Starknet(resp)
+    }
+}
+
+impl From<DevnetResponse> for JsonRpcResponse {
+    fn from(resp: DevnetResponse) -> Self {
+        JsonRpcResponse::Devnet(resp)
     }
 }
 
@@ -482,7 +507,10 @@ pub enum StarknetResponse {
     SimulateTransactions(Vec<SimulatedTransaction>),
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
-    Empty,
+}
+
+#[derive(Serialize)]
+pub enum DevnetResponse {
     MessagingContractAddress(MessagingLoadAddress),
     FlushedMessages(FlushedMessages),
     MessageHash(MessageHash),
@@ -490,10 +518,11 @@ pub enum StarknetResponse {
     AbortedBlocks(AbortedBlocks),
     SetTime(SetTimeResponse),
     IncreaseTime(IncreaseTimeResponse),
+    TransactionHash(TransactionHashOutput),
     PredeployedAccounts(Vec<SerializableAccount>),
     AccountBalance(AccountBalanceResponse),
     MintTokens(MintTokensResponse),
-    // DevnetConfig(DevnetConfig),
+    DevnetConfig(DevnetConfig),
 }
 
 #[cfg(test)]
@@ -1054,15 +1083,17 @@ mod requests_tests {
 #[cfg(test)]
 mod response_tests {
     use crate::api::json_rpc::error::StrictRpcResult;
-    use crate::api::json_rpc::{StarknetResponse, ToRpcResponseResult};
+    use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
     fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result()
      {
         assert_eq!(
             r#"{"result":{}}"#,
-            serde_json::to_string(&StrictRpcResult::Ok(StarknetResponse::Empty).to_rpc_result())
-                .unwrap()
+            serde_json::to_string(
+                &StrictRpcResult::Ok(crate::api::json_rpc::JsonRpcResponse::Empty).to_rpc_result()
+            )
+            .unwrap()
         );
     }
 }

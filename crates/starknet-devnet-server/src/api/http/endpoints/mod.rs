@@ -1,6 +1,6 @@
 use axum::extract::State;
 use axum::Json;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use starknet_core::starknet::starknet_config::StarknetConfig;
 
 use super::error::HttpApiError;

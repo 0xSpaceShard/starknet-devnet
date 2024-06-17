@@ -3,7 +3,7 @@ use starknet_types;
 use thiserror::Error;
 use tracing::error;
 
-use super::{StarknetResponse, WILDCARD_RPC_ERROR_CODE};
+use super::{JsonRpcResponse, WILDCARD_RPC_ERROR_CODE};
 use crate::api::http::error::HttpApiError;
 use crate::rpc_core::error::RpcError;
 
@@ -196,7 +196,7 @@ impl ApiError {
     }
 }
 
-pub type StrictRpcResult = Result<StarknetResponse, ApiError>;
+pub type StrictRpcResult = Result<JsonRpcResponse, ApiError>;
 
 #[cfg(test)]
 mod tests {
