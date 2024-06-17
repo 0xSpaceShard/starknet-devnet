@@ -59,28 +59,28 @@ pub fn load_json<T: serde::de::DeserializeOwned>(path: &str) -> T {
     loaded
 }
 
-pub type SierraWithHash = (FlattenedSierraClass, FieldElement);
+pub type SierraWithCasmHash = (FlattenedSierraClass, FieldElement);
 
-pub fn get_flattened_sierra_contract_and_casm_hash(sierra_path: &str) -> SierraWithHash {
+pub fn get_flattened_sierra_contract_and_casm_hash(sierra_path: &str) -> SierraWithCasmHash {
     let sierra_string = std::fs::read_to_string(sierra_path).unwrap();
     let sierra_class: SierraClass = serde_json::from_str(&sierra_string).unwrap();
     let casm_json = usc::compile_contract(serde_json::from_str(&sierra_string).unwrap()).unwrap();
     (sierra_class.flatten().unwrap(), casm_hash(casm_json).unwrap())
 }
 
-pub fn get_messaging_contract_in_sierra_and_compiled_class_hash() -> SierraWithHash {
+pub fn get_messaging_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
     let sierra_path =
         concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/messaging/cairo_1_l1l2.sierra");
     get_flattened_sierra_contract_and_casm_hash(sierra_path)
 }
 
-pub fn get_messaging_lib_in_sierra_and_compiled_class_hash() -> SierraWithHash {
+pub fn get_messaging_lib_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
     let sierra_path =
         concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/messaging/cairo_1_l1l2_lib.sierra");
     get_flattened_sierra_contract_and_casm_hash(sierra_path)
 }
 
-pub fn get_events_contract_in_sierra_and_compiled_class_hash() -> SierraWithHash {
+pub fn get_events_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
     let events_sierra_path = concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/test_data/cairo1/events/events_2.0.1_compiler.sierra"
@@ -88,13 +88,13 @@ pub fn get_events_contract_in_sierra_and_compiled_class_hash() -> SierraWithHash
     get_flattened_sierra_contract_and_casm_hash(events_sierra_path)
 }
 
-pub fn get_block_reader_contract_in_sierra_and_compiled_class_hash() -> SierraWithHash {
+pub fn get_block_reader_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
     let timestamp_sierra_path =
         concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/block_reader/block_reader.sierra");
     get_flattened_sierra_contract_and_casm_hash(timestamp_sierra_path)
 }
 
-pub fn get_simple_contract_in_sierra_and_compiled_class_hash() -> SierraWithHash {
+pub fn get_simple_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
     let contract_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), CAIRO_1_CONTRACT_PATH);
     get_flattened_sierra_contract_and_casm_hash(&contract_path)
 }
