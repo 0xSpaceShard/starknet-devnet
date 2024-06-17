@@ -435,6 +435,27 @@ mod blocks_generation_tests {
     }
 
     #[tokio::test]
+    async fn blocks_on_interval_transactions() {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "1"])
+            .await
+            .expect("Could not start Devnet");
+
+        let tx_count = 5;
+        let mut tx_hashes = Vec::new();
+        for _ in 0..tx_count {
+            let mint_hash = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+            tx_hashes.push(mint_hash);
+        }
+
+        // wait 1 second
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
+
+        // first is genesis block, second block is generated instantly, third is generated after 1
+        // second
+        assert_latest_block_with_tx_hashes(&devnet, 2, tx_hashes).await;
+    }
+
+    #[tokio::test]
     async fn blocks_on_interval_dump_and_load() {
         let mode = "exit";
         let dump_file = UniqueAutoDeletableFile::new("interval_dump");
