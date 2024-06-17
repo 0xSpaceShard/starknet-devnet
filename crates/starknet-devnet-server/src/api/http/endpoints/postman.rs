@@ -9,35 +9,59 @@ use crate::api::http::models::{
     PostmanLoadL1MessagingContract, TxHash,
 };
 use crate::api::http::{HttpApiHandler, HttpApiResult};
+use crate::api::Api;
 
 pub async fn postman_load(
     State(state): State<HttpApiHandler>,
     Json(data): Json<PostmanLoadL1MessagingContract>,
 ) -> HttpApiResult<Json<MessagingLoadAddress>> {
-    let mut starknet = state.api.starknet.write().await;
+    postman_load_impl(&state.api, data).await.map(Json::from)
+}
+
+pub async fn postman_flush(
+    State(state): State<HttpApiHandler>,
+    Json(data): Json<FlushParameters>,
+) -> HttpApiResult<Json<FlushedMessages>> {
+    postman_flush_impl(&state.api, data).await.map(Json::from)
+}
+
+pub async fn postman_send_message_to_l2(
+    State(state): State<HttpApiHandler>,
+    Json(message): Json<MessageToL2>,
+) -> HttpApiResult<Json<TxHash>> {
+    postman_send_message_to_l2_impl(&state.api, message).await.map(Json::from)
+}
+
+pub async fn postman_consume_message_from_l2(
+    State(state): State<HttpApiHandler>,
+    Json(message): Json<MessageToL1>,
+) -> HttpApiResult<Json<MessageHash>> {
+    postman_consume_message_from_l2_impl(&state.api, message).await.map(Json::from)
+}
+
+pub(crate) async fn postman_load_impl(
+    api: &Api,
+    data: PostmanLoadL1MessagingContract,
+) -> HttpApiResult<MessagingLoadAddress> {
+    let mut starknet = api.starknet.write().await;
 
     let messaging_contract_address = starknet
         .configure_messaging(&data.network_url, data.address.as_deref())
         .await
         .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
 
-    Ok(Json(MessagingLoadAddress { messaging_contract_address }))
+    Ok(MessagingLoadAddress { messaging_contract_address })
 }
 
-pub async fn postman_flush(
-    State(state): State<HttpApiHandler>,
-    data: Option<Json<FlushParameters>>,
-) -> HttpApiResult<Json<FlushedMessages>> {
+pub(crate) async fn postman_flush_impl(
+    api: &Api,
+    data: FlushParameters,
+) -> HttpApiResult<FlushedMessages> {
     // Need to handle L1 to L2 first in case that those messages
     // will create L2 to L1 messages.
-    let mut starknet = state.api.starknet.write().await;
+    let mut starknet = api.starknet.write().await;
 
-    let is_dry_run = if let Some(data) = data {
-        let data = Json(data);
-        data.dry_run
-    } else {
-        false
-    };
+    let is_dry_run = data.dry_run.unwrap_or(false);
 
     // Fetch and execute messages to l2.
     let (messages_to_l2, generated_l2_transactions) = if is_dry_run {
@@ -60,12 +84,12 @@ pub async fn postman_flush(
     })?;
 
     if is_dry_run {
-        return Ok(Json(FlushedMessages {
+        return Ok(FlushedMessages {
             messages_to_l1,
             messages_to_l2,
             generated_l2_transactions,
             l1_provider: "dry run".to_string(),
-        }));
+        });
     }
 
     starknet.send_messages_to_l1().await.map_err(|e| HttpApiError::MessagingError {
@@ -74,19 +98,14 @@ pub async fn postman_flush(
 
     let l1_provider = starknet.get_ethereum_url().unwrap_or("Not set".to_string());
 
-    Ok(Json(FlushedMessages {
-        messages_to_l1,
-        messages_to_l2,
-        generated_l2_transactions,
-        l1_provider,
-    }))
+    Ok(FlushedMessages { messages_to_l1, messages_to_l2, generated_l2_transactions, l1_provider })
 }
 
-pub async fn postman_send_message_to_l2(
-    State(state): State<HttpApiHandler>,
-    Json(message): Json<MessageToL2>,
-) -> HttpApiResult<Json<TxHash>> {
-    let mut starknet = state.api.starknet.write().await;
+pub async fn postman_send_message_to_l2_impl(
+    api: &Api,
+    message: MessageToL2,
+) -> HttpApiResult<TxHash> {
+    let mut starknet = api.starknet.write().await;
 
     let transaction = L1HandlerTransaction::try_from_message_to_l2(message).map_err(|_| {
         HttpApiError::InvalidValueError {
@@ -98,19 +117,19 @@ pub async fn postman_send_message_to_l2(
         .add_l1_handler_transaction(transaction)
         .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
 
-    Ok(Json(TxHash { transaction_hash }))
+    Ok(TxHash { transaction_hash })
 }
 
-pub async fn postman_consume_message_from_l2(
-    State(state): State<HttpApiHandler>,
-    Json(message): Json<MessageToL1>,
-) -> HttpApiResult<Json<MessageHash>> {
-    let mut starknet = state.api.starknet.write().await;
+pub async fn postman_consume_message_from_l2_impl(
+    api: &Api,
+    message: MessageToL1,
+) -> HttpApiResult<MessageHash> {
+    let mut starknet = api.starknet.write().await;
 
     let message_hash = starknet
         .consume_l2_to_l1_message(&message)
         .await
         .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
 
-    Ok(Json(MessageHash { message_hash }))
+    Ok(MessageHash { message_hash })
 }

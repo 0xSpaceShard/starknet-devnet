@@ -15,6 +15,10 @@ use starknet_types::starknet_api::block::BlockStatus;
 use super::error::{ApiError, StrictRpcResult};
 use super::models::{BlockHashAndNumberOutput, SyncingOutput, TransactionStatusOutput};
 use super::{JsonRpcHandler, StarknetResponse, RPC_SPEC_VERSION};
+use crate::api::http::endpoints::accounts::{
+    get_account_balance_impl, get_predeployed_accounts_impl, BalanceQuery,
+};
+use crate::api::http::endpoints::DevnetConfig;
 
 const DEFAULT_CONTINUATION_TOKEN: &str = "0";
 
@@ -442,4 +446,33 @@ impl JsonRpcHandler {
             Err(err) => Err(err.into()),
         }
     }
+
+    /// devnet_isAlive
+    pub fn is_alive(&self) -> StrictRpcResult {
+        Ok(StarknetResponse::String("Alive!!!".to_string()))
+    }
+
+    /// devnet_predeployedAccounts
+    pub async fn get_predeployed_accounts(&self) -> StrictRpcResult {
+        let predeployed_accounts =
+            get_predeployed_accounts_impl(&self.api).await.map_err(ApiError::from)?;
+
+        Ok(StarknetResponse::PredeployedAccounts(predeployed_accounts))
+    }
+
+    /// devnet_accountBalance
+    pub async fn get_account_balance(&self, params: BalanceQuery) -> StrictRpcResult {
+        let account_balance =
+            get_account_balance_impl(&self.api, params).await.map_err(ApiError::from)?;
+
+        Ok(StarknetResponse::AccountBalance(account_balance))
+    }
+
+    // /// devnet_config
+    // pub async fn get_devnet_config(&self) -> StrictRpcResult {
+    //     Ok(StarknetResponse::DevnetConfig(DevnetConfig {
+    //         starknet_config: self.api.starknet.read().await.config.clone(),
+    //         server_config: self.server_config.clone(),
+    //     }))
+    // }
 }

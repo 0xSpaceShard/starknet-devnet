@@ -9,12 +9,18 @@ use super::mint_token::{get_balance, get_erc20_address};
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{AccountBalanceResponse, SerializableAccount};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
+use crate::api::Api;
 
 pub async fn get_predeployed_accounts(
     State(state): State<HttpApiHandler>,
 ) -> HttpApiResult<Json<Vec<SerializableAccount>>> {
-    let predeployed_accounts = state
-        .api
+    get_predeployed_accounts_impl(&state.api).await.map(Json::from)
+}
+
+pub(crate) async fn get_predeployed_accounts_impl(
+    api: &Api,
+) -> HttpApiResult<Vec<SerializableAccount>> {
+    let predeployed_accounts = api
         .starknet
         .read()
         .await
@@ -28,7 +34,7 @@ pub async fn get_predeployed_accounts(
         })
         .collect();
 
-    Ok(Json(predeployed_accounts))
+    Ok(predeployed_accounts)
 }
 
 #[derive(serde::Deserialize, Debug)]
@@ -42,12 +48,19 @@ pub async fn get_account_balance(
     State(state): State<HttpApiHandler>,
     Query(params): Query<BalanceQuery>,
 ) -> HttpApiResult<Json<AccountBalanceResponse>> {
+    get_account_balance_impl(&state.api, params).await.map(Json::from)
+}
+
+pub(crate) async fn get_account_balance_impl(
+    api: &Api,
+    params: BalanceQuery,
+) -> HttpApiResult<AccountBalanceResponse> {
     let account_address = ContractAddress::new(params.address)
         .map_err(|e| HttpApiError::InvalidValueError { msg: e.to_string() })?;
     let unit = params.unit.unwrap_or(FeeUnit::WEI);
     let erc20_address = get_erc20_address(&unit);
 
-    let mut starknet = state.api.starknet.write().await;
+    let mut starknet = api.starknet.write().await;
 
     let amount = get_balance(
         &mut starknet,
@@ -56,5 +69,5 @@ pub async fn get_account_balance(
         params.block_tag.unwrap_or(BlockTag::Latest),
     )
     .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
-    Ok(Json(AccountBalanceResponse { amount: amount.to_string(), unit }))
+    Ok(AccountBalanceResponse { amount: amount.to_string(), unit })
 }

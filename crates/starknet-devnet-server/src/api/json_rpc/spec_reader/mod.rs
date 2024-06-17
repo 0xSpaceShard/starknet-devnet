@@ -313,10 +313,7 @@ mod tests {
                             ));
                         }
                         StarknetRequest::AddInvokeTransaction(_) => {
-                            assert!(matches!(
-                                sn_response,
-                                StarknetResponse::AddInvokeTransaction(_)
-                            ));
+                            assert!(matches!(sn_response, StarknetResponse::TransactionHash(_)));
                         }
                         StarknetRequest::SpecVersion => {
                             assert!(matches!(sn_response, StarknetResponse::String(_)));

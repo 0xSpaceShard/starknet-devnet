@@ -4,6 +4,7 @@ use thiserror::Error;
 use tracing::error;
 
 use super::{StarknetResponse, WILDCARD_RPC_ERROR_CODE};
+use crate::api::http::error::HttpApiError;
 use crate::rpc_core::error::RpcError;
 
 #[allow(unused)]
@@ -55,6 +56,8 @@ pub enum ApiError {
     NoTraceAvailable,
     #[error("{msg}")]
     NoStateAtBlock { msg: String },
+    #[error(transparent)]
+    HttpApiError(#[from] HttpApiError),
 }
 
 impl ApiError {
@@ -188,6 +191,7 @@ impl ApiError {
                 message: error_message.into(),
                 data: None,
             },
+            ApiError::HttpApiError(http_api_error) => http_api_error.http_api_error_to_rpc_error(),
         }
     }
 }

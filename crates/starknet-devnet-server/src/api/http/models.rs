@@ -27,6 +27,7 @@ pub struct PostmanLoadL1MessagingContract {
 }
 
 #[derive(Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
 pub struct MessageHash {
     pub message_hash: Hash256,
 }
@@ -37,44 +38,52 @@ pub struct TxHash {
 }
 
 #[derive(Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
 pub struct CreatedBlock {
     pub block_hash: BlockHash,
 }
 
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(Debug))]
 pub struct AbortingBlocks {
     pub(crate) starting_block_hash: BlockHash,
 }
 
 #[derive(Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
 pub struct AbortedBlocks {
     pub(crate) aborted: Vec<BlockHash>,
 }
 
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(Debug))]
 pub struct IncreaseTime {
     pub time: u64,
 }
 
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(Debug))]
 pub struct SetTime {
     pub time: u64,
     pub generate_block: Option<bool>,
 }
 
 #[derive(Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
 pub struct SetTimeResponse {
     pub block_timestamp: u64,
     pub block_hash: Option<BlockHash>,
 }
 
 #[derive(Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
 pub struct IncreaseTimeResponse {
     pub timestamp_increased_by: u64,
     pub block_hash: BlockHash,
 }
 
 #[derive(Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
 pub struct SerializableAccount {
     pub initial_balance: String,
     pub address: ContractAddress,
@@ -83,6 +92,7 @@ pub struct SerializableAccount {
 }
 
 #[derive(Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
 pub struct AccountBalanceResponse {
     pub amount: String,
     pub unit: FeeUnit,
@@ -104,6 +114,7 @@ pub struct MintTokensRequest {
 }
 
 #[derive(Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
 pub struct MintTokensResponse {
     /// decimal repr
     pub new_balance: String,
@@ -119,7 +130,7 @@ pub struct ForkStatus {
     pub block: Option<u64>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct FlushedMessages {
     pub messages_to_l1: Vec<MessageToL1>,
     pub messages_to_l2: Vec<MessageToL2>,
@@ -128,8 +139,9 @@ pub struct FlushedMessages {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(test, derive(Debug))]
 pub struct FlushParameters {
-    pub dry_run: bool,
+    pub dry_run: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize)]

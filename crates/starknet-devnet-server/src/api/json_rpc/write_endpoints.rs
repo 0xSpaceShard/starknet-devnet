@@ -1,4 +1,5 @@
 use starknet_types::contract_address::ContractAddress;
+use starknet_types::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction,
@@ -6,9 +7,22 @@ use starknet_types::rpc::transactions::{
 
 use super::error::{ApiError, StrictRpcResult};
 use super::models::{
-    DeclareTransactionOutput, DeployAccountTransactionOutput, InvokeTransactionOutput,
+    DeclareTransactionOutput, DeployAccountTransactionOutput, TransactionHashOutput,
 };
 use super::StarknetResponse;
+use crate::api::http::endpoints::blocks::{abort_blocks_impl, create_block_impl};
+use crate::api::http::endpoints::dump_load::{dump_impl, load_impl};
+use crate::api::http::endpoints::mint_token::mint_impl;
+use crate::api::http::endpoints::postman::{
+    postman_consume_message_from_l2_impl, postman_flush_impl, postman_load_impl,
+    postman_send_message_to_l2_impl,
+};
+use crate::api::http::endpoints::restart_impl;
+use crate::api::http::endpoints::time::{increase_time_impl, set_time_impl};
+use crate::api::http::models::{
+    AbortingBlocks, DumpPath, FlushParameters, IncreaseTime, LoadPath, MintTokensRequest,
+    PostmanLoadL1MessagingContract, SetTime,
+};
 use crate::api::json_rpc::JsonRpcHandler;
 
 impl JsonRpcHandler {
@@ -51,7 +65,7 @@ impl JsonRpcHandler {
     ) -> StrictRpcResult {
         let transaction_hash = self.api.starknet.write().await.add_invoke_transaction(request)?;
 
-        Ok(StarknetResponse::AddInvokeTransaction(InvokeTransactionOutput { transaction_hash }))
+        Ok(StarknetResponse::TransactionHash(TransactionHashOutput { transaction_hash }))
     }
 
     // devnet_impersonateAccount
@@ -73,6 +87,92 @@ impl JsonRpcHandler {
         let mut starknet = self.api.starknet.write().await;
         starknet.set_auto_impersonate_account(auto_impersonation)?;
         Ok(StarknetResponse::Empty)
+    }
+
+    /// devnet_dump
+    pub async fn dump(&self, path: DumpPath) -> StrictRpcResult {
+        dump_impl(&self.api, path).await.map_err(ApiError::from)?;
+        Ok(StarknetResponse::Empty)
+    }
+
+    /// devnet_load
+    pub async fn load(&self, path: LoadPath) -> StrictRpcResult {
+        load_impl(&self.api, path).await.map_err(ApiError::from)?;
+        Ok(StarknetResponse::Empty)
+    }
+
+    /// devnet_postmanLoad
+    pub async fn postman_load(&self, data: PostmanLoadL1MessagingContract) -> StrictRpcResult {
+        Ok(StarknetResponse::MessagingContractAddress(
+            postman_load_impl(&self.api, data).await.map_err(ApiError::from)?,
+        ))
+    }
+
+    /// devnet_postmanFlush
+    pub async fn postman_flush(&self, data: FlushParameters) -> StrictRpcResult {
+        Ok(StarknetResponse::FlushedMessages(
+            postman_flush_impl(&self.api, data).await.map_err(ApiError::from)?,
+        ))
+    }
+
+    /// devnet_postmanSendMessageToL2
+    pub async fn postman_send_message_to_l2(&self, message: MessageToL2) -> StrictRpcResult {
+        let transaction_hash =
+            postman_send_message_to_l2_impl(&self.api, message).await.map_err(ApiError::from)?;
+
+        Ok(StarknetResponse::TransactionHash(TransactionHashOutput {
+            transaction_hash: transaction_hash.transaction_hash,
+        }))
+    }
+
+    /// devnet_postmanConsumeMessageFromL2
+    pub async fn postman_consume_message_from_l2(&self, message: MessageToL1) -> StrictRpcResult {
+        let message_hash = postman_consume_message_from_l2_impl(&self.api, message)
+            .await
+            .map_err(ApiError::from)?;
+
+        Ok(StarknetResponse::MessageHash(message_hash))
+    }
+
+    /// devnet_createBlock
+    pub async fn create_block(&self) -> StrictRpcResult {
+        let created_block = create_block_impl(&self.api).await.map_err(ApiError::from)?;
+        Ok(StarknetResponse::CreatedBlock(created_block))
+    }
+
+    /// devnet_abortBlocks
+    pub async fn abort_blocks(&self, data: AbortingBlocks) -> StrictRpcResult {
+        let aborted_blocks = abort_blocks_impl(&self.api, data).await.map_err(ApiError::from)?;
+
+        Ok(StarknetResponse::AbortedBlocks(aborted_blocks))
+    }
+
+    /// devnet_restart
+    pub async fn restart(&self) -> StrictRpcResult {
+        restart_impl(&self.api).await.map_err(ApiError::from)?;
+
+        Ok(StarknetResponse::Empty)
+    }
+
+    /// devnet_setTime
+    pub async fn set_time(&self, data: SetTime) -> StrictRpcResult {
+        let set_time_response = set_time_impl(&self.api, data).await.map_err(ApiError::from)?;
+        Ok(StarknetResponse::SetTime(set_time_response))
+    }
+
+    /// devnet_increaseTime
+    pub async fn increase_time(&self, data: IncreaseTime) -> StrictRpcResult {
+        let increase_time_response =
+            increase_time_impl(&self.api, data).await.map_err(ApiError::from)?;
+
+        Ok(StarknetResponse::IncreaseTime(increase_time_response))
+    }
+
+    /// devnet_mint
+    pub async fn mint(&self, request: MintTokensRequest) -> StrictRpcResult {
+        let mint_tokens_response = mint_impl(&self.api, request).await.map_err(ApiError::from)?;
+
+        Ok(StarknetResponse::MintTokens(mint_tokens_response))
     }
 }
 

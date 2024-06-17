@@ -1,10 +1,11 @@
 use axum::extract::State;
 use axum::Json;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use starknet_core::starknet::starknet_config::StarknetConfig;
 
 use super::error::HttpApiError;
 use super::{HttpApiHandler, HttpApiResult};
+use crate::api::Api;
 use crate::ServerConfig;
 
 /// Dumping and loading
@@ -32,21 +33,24 @@ pub async fn is_alive() -> HttpApiResult<String> {
 
 /// Restart
 pub async fn restart(State(state): State<HttpApiHandler>) -> HttpApiResult<()> {
-    state
-        .api
-        .starknet
+    restart_impl(&state.api).await
+}
+
+pub(crate) async fn restart_impl(api: &Api) -> HttpApiResult<()> {
+    api.starknet
         .write()
         .await
         .restart()
         .map_err(|err| HttpApiError::RestartError { msg: err.to_string() })?;
+
     Ok(())
 }
 
 #[derive(Serialize)]
 pub struct DevnetConfig {
     #[serde(flatten)]
-    starknet_config: StarknetConfig,
-    server_config: ServerConfig,
+    pub(crate) starknet_config: StarknetConfig,
+    pub(crate) server_config: ServerConfig,
 }
 
 /// Devnet config

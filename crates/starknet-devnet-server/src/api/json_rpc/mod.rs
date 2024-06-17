@@ -10,12 +10,13 @@ pub const RPC_SPEC_VERSION: &str = "0.7.1";
 
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
-    EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput,
+    EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput, TransactionHashOutput,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::felt::Felt;
+use starknet_types::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::block::{Block, PendingBlock};
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
@@ -33,9 +34,17 @@ use self::models::{
     AccountAddressInput, BlockHashAndNumberOutput, BlockIdInput,
     BroadcastedDeclareTransactionInput, BroadcastedDeployAccountTransactionInput,
     BroadcastedInvokeTransactionInput, DeclareTransactionOutput, DeployAccountTransactionOutput,
-    InvokeTransactionOutput, SyncingOutput, TransactionStatusOutput,
+    SyncingOutput, TransactionStatusOutput,
 };
 use self::origin_forwarder::OriginForwarder;
+use super::http::endpoints::accounts::BalanceQuery;
+use super::http::endpoints::DevnetConfig;
+use super::http::models::{
+    AbortedBlocks, AbortingBlocks, AccountBalanceResponse, CreatedBlock, DumpPath, FlushParameters,
+    FlushedMessages, IncreaseTime, IncreaseTimeResponse, LoadPath, MessageHash,
+    MessagingLoadAddress, MintTokensRequest, MintTokensResponse, PostmanLoadL1MessagingContract,
+    SerializableAccount, SetTime, SetTimeResponse,
+};
 use super::Api;
 use crate::api::json_rpc::models::{
     BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper,
@@ -46,6 +55,7 @@ use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::ResponseResult;
 use crate::rpc_handler::RpcHandler;
+use crate::ServerConfig;
 
 /// Helper trait to easily convert results to rpc results
 pub trait ToRpcResponseResult {
@@ -83,6 +93,7 @@ impl ToRpcResponseResult for StrictRpcResult {
 pub struct JsonRpcHandler {
     pub api: Api,
     pub origin_caller: Option<OriginForwarder>,
+    pub server_config: ServerConfig,
 }
 
 #[async_trait::async_trait]
@@ -215,6 +226,25 @@ impl JsonRpcHandler {
             }
             StarknetRequest::AutoImpersonate => self.set_auto_impersonate(true).await,
             StarknetRequest::StopAutoImpersonate => self.set_auto_impersonate(false).await,
+            StarknetRequest::IsAlive => self.is_alive(),
+            StarknetRequest::Dump(path) => self.dump(path).await,
+            StarknetRequest::Load(path) => self.load(path).await,
+            StarknetRequest::PostmanLoadL1MessagingContract(data) => self.postman_load(data).await,
+            StarknetRequest::PostmanFlush(data) => self.postman_flush(data).await,
+            StarknetRequest::PostmanSendMessageToL2(message) => {
+                self.postman_send_message_to_l2(message).await
+            }
+            StarknetRequest::PostmanConsumeMessageFromL2(message) => {
+                self.postman_consume_message_from_l2(message).await
+            }
+            StarknetRequest::CreateBlock => self.create_block().await,
+            StarknetRequest::AbortBlocks(data) => self.abort_blocks(data).await,
+            StarknetRequest::Restart => self.restart().await,
+            StarknetRequest::SetTime(data) => self.set_time(data).await,
+            StarknetRequest::IncreaseTime(data) => self.increase_time(data).await,
+            StarknetRequest::PredeployedAccounts => self.get_predeployed_accounts().await,
+            StarknetRequest::AccountBalance(data) => self.get_account_balance(data).await,
+            StarknetRequest::Mint(data) => self.mint(data).await,
         };
 
         if let (Err(err), Some(forwarder)) = (&starknet_resp, &self.origin_caller) {
@@ -243,7 +273,8 @@ impl JsonRpcHandler {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Deserialize)]
+#[cfg_attr(test, derive(Debug))]
 #[serde(tag = "method", content = "params")]
 pub enum StarknetRequest {
     #[serde(rename = "starknet_specVersion", with = "empty_params")]
@@ -312,6 +343,38 @@ pub enum StarknetRequest {
     AutoImpersonate,
     #[serde(rename = "devnet_stopAutoImpersonate", with = "empty_params")]
     StopAutoImpersonate,
+
+    #[serde(rename = "devnet_isAlive", with = "empty_params")]
+    IsAlive,
+    #[serde(rename = "devnet_dump")]
+    Dump(DumpPath),
+    #[serde(rename = "devnet_load")]
+    Load(LoadPath),
+
+    #[serde(rename = "devnet_postmanLoad")]
+    PostmanLoadL1MessagingContract(PostmanLoadL1MessagingContract),
+    #[serde(rename = "devnet_postmanFlush")]
+    PostmanFlush(FlushParameters),
+    #[serde(rename = "devnet_postmanSendMessageToL2")]
+    PostmanSendMessageToL2(MessageToL2),
+    #[serde(rename = "devnet_postmanConsumeMessageFromL2")]
+    PostmanConsumeMessageFromL2(MessageToL1),
+    #[serde(rename = "devnet_createBlock", with = "empty_params")]
+    CreateBlock,
+    #[serde(rename = "devnet_abortBlocks")]
+    AbortBlocks(AbortingBlocks),
+    #[serde(rename = "devnet_restart", with = "empty_params")]
+    Restart,
+    #[serde(rename = "devnet_setTime")]
+    SetTime(SetTime),
+    #[serde(rename = "devnet_increaseTime")]
+    IncreaseTime(IncreaseTime),
+    #[serde(rename = "devnet_predeployedAccounts", with = "empty_params")]
+    PredeployedAccounts,
+    #[serde(rename = "devnet_accountBalance")]
+    AccountBalance(BalanceQuery),
+    #[serde(rename = "devnet_mint")]
+    Mint(MintTokensRequest),
 }
 
 impl std::fmt::Display for StarknetRequest {
@@ -368,11 +431,30 @@ impl std::fmt::Display for StarknetRequest {
             }
             StarknetRequest::AutoImpersonate => write!(f, "devnet_autoImpersonate"),
             StarknetRequest::StopAutoImpersonate => write!(f, "devnet_stopAutoImpersonate"),
+            StarknetRequest::IsAlive => write!(f, "devnet_isAlive"),
+            StarknetRequest::Dump(_) => write!(f, "devnet_dump"),
+            StarknetRequest::Load(_) => write!(f, "devnet_load"),
+            StarknetRequest::PostmanLoadL1MessagingContract(_) => write!(f, "devnet_postmanLoad"),
+            StarknetRequest::PostmanFlush(_) => write!(f, "devnet_postmanFlush"),
+            StarknetRequest::PostmanSendMessageToL2(_) => {
+                write!(f, "devnet_postmanSendMessageToL2")
+            }
+            StarknetRequest::PostmanConsumeMessageFromL2(_) => {
+                write!(f, "devnet_postmanConsumeMessageFromL2")
+            }
+            StarknetRequest::CreateBlock => write!(f, "devnet_createBlock"),
+            StarknetRequest::AbortBlocks(_) => write!(f, "devnet_abortBlocks"),
+            StarknetRequest::Restart => write!(f, "devnet_restart"),
+            StarknetRequest::SetTime(_) => write!(f, "devnet_setTime"),
+            StarknetRequest::IncreaseTime(_) => write!(f, "devnet_increaseTime"),
+            StarknetRequest::PredeployedAccounts => write!(f, "devnet_predeployedAccounts"),
+            StarknetRequest::AccountBalance(_) => write!(f, "devnet_accountBalance"),
+            StarknetRequest::Mint(_) => write!(f, "devnet_mint"),
         }
     }
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize)]
 #[cfg_attr(test, derive(Deserialize))]
 #[serde(untagged)]
 pub enum StarknetResponse {
@@ -395,12 +477,23 @@ pub enum StarknetResponse {
     Events(EventsChunk),
     AddDeclareTransaction(DeclareTransactionOutput),
     AddDeployAccountTransaction(DeployAccountTransactionOutput),
-    AddInvokeTransaction(InvokeTransactionOutput),
+    TransactionHash(TransactionHashOutput),
     EstimateMessageFee(FeeEstimateWrapper),
     SimulateTransactions(Vec<SimulatedTransaction>),
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
     Empty,
+    MessagingContractAddress(MessagingLoadAddress),
+    FlushedMessages(FlushedMessages),
+    MessageHash(MessageHash),
+    CreatedBlock(CreatedBlock),
+    AbortedBlocks(AbortedBlocks),
+    SetTime(SetTimeResponse),
+    IncreaseTime(IncreaseTimeResponse),
+    PredeployedAccounts(Vec<SerializableAccount>),
+    AccountBalance(AccountBalanceResponse),
+    MintTokens(MintTokensResponse),
+    // DevnetConfig(DevnetConfig),
 }
 
 #[cfg(test)]

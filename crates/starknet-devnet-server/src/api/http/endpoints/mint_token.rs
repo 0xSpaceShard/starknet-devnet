@@ -12,6 +12,7 @@ use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{MintTokensRequest, MintTokensResponse};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 use crate::api::json_rpc::error::ApiError;
+use crate::api::Api;
 
 /// get the balance of the `address`
 pub fn get_balance(
@@ -62,7 +63,14 @@ pub async fn mint(
     State(state): State<HttpApiHandler>,
     Json(request): Json<MintTokensRequest>,
 ) -> HttpApiResult<Json<MintTokensResponse>> {
-    let mut starknet = state.api.starknet.write().await;
+    mint_impl(&state.api, request).await.map(Json::from)
+}
+
+pub(crate) async fn mint_impl(
+    api: &Api,
+    request: MintTokensRequest,
+) -> HttpApiResult<MintTokensResponse> {
+    let mut starknet = api.starknet.write().await;
     let unit = request.unit.unwrap_or(FeeUnit::WEI);
     let erc20_address = get_erc20_address(&unit);
 
@@ -78,5 +86,5 @@ pub async fn mint(
     let new_balance = get_balance(&mut starknet, request.address, erc20_address, block_tag)
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
 
-    Ok(Json(MintTokensResponse { new_balance: new_balance.to_str_radix(10), unit, tx_hash }))
+    Ok(MintTokensResponse { new_balance: new_balance.to_str_radix(10), unit, tx_hash })
 }
