@@ -50,7 +50,12 @@ impl std::str::FromStr for BlockGenerationOn {
                 let interval_value = value
                     .parse::<u64>()
                     .map_err(|_| Error::new(clap::error::ErrorKind::InvalidValue))?;
-                Ok(BlockGenerationOn::Interval(interval_value))
+
+                if interval_value > 0 {
+                    Ok(BlockGenerationOn::Interval(interval_value))
+                } else {
+                    Err(Error::new(clap::error::ErrorKind::InvalidValue))
+                }
             }
         }
     }

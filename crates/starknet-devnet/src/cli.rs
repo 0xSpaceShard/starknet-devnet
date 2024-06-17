@@ -274,7 +274,7 @@ mod tests {
     use starknet_core::constants::{
         CAIRO_0_ERC20_CONTRACT_PATH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
     };
-    use starknet_core::starknet::starknet_config::StateArchiveCapacity;
+    use starknet_core::starknet::starknet_config::{BlockGenerationOn, StateArchiveCapacity};
     use tracing_subscriber::EnvFilter;
 
     use super::{Args, RequestResponseLogging};
@@ -590,6 +590,34 @@ mod tests {
         // remove var to avoid collision with other tests
         for (var_name, _) in config_source {
             std::env::remove_var(var_name);
+        }
+    }
+
+    #[test]
+    fn not_allowing_invalid_values_as_block_generation_interval() {
+        for interval in ["", "0", "-1", "abc"] {
+            match Args::try_parse_from(["--", "--block-generation-on", interval]) {
+                Err(_) => (),
+                Ok(parsed) => panic!("Should fail for {interval}; got: {parsed:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn allowing_valid_values_as_block_generation_interval() {
+        match Args::try_parse_from(["--", "--block-generation-on", "1"]) {
+            Ok(args) => assert_eq!(args.block_generation_on, BlockGenerationOn::Interval(1)),
+            Err(e) => panic!("Should have passed; got: {e}"),
+        }
+
+        match Args::try_parse_from(["--", "--block-generation-on", "demand"]) {
+            Ok(args) => assert_eq!(args.block_generation_on, BlockGenerationOn::Demand),
+            Err(e) => panic!("Should have passed; got: {e}"),
+        }
+
+        match Args::try_parse_from(["--", "--block-generation-on", "transaction"]) {
+            Ok(args) => assert_eq!(args.block_generation_on, BlockGenerationOn::Transaction),
+            Err(e) => panic!("Should have passed; got: {e}"),
         }
     }
 }
