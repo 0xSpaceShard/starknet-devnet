@@ -329,11 +329,6 @@ impl Starknet {
         // insert pending block in the blocks collection and connect it to the state diff
         self.blocks.insert(new_block, state_diff);
 
-        // clone_historic() requires self.historic_state, self.historic_state is set in
-        // expand_historic(), expand_historic() can be executed from commit_with_diff() - this
-        // is why self.commit_with_diff()? is here
-        self.commit_with_diff()?;
-
         // save into blocks state archive
         if self.config.state_archive == StateArchiveCapacity::Full {
             let clone = self.pending_state.clone_historic();
