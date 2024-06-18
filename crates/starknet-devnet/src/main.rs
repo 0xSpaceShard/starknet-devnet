@@ -2,9 +2,9 @@ use std::future::IntoFuture;
 use std::result::Result::Ok;
 use std::time::Duration;
 
-use anyhow::Error;
 use clap::Parser;
 use cli::Args;
+use futures::future::join_all;
 use server::api::json_rpc::RPC_SPEC_VERSION;
 use server::api::Api;
 use server::server::serve_http_api_json_rpc;
@@ -23,7 +23,7 @@ use starknet_types::rpc::state::Balance;
 use starknet_types::traits::ToHexString;
 use tokio::net::TcpListener;
 use tokio::signal::unix::{signal, SignalKind};
-use tokio::task::{self, JoinHandle};
+use tokio::task::{self};
 use tokio::time::interval;
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
@@ -169,16 +169,6 @@ pub async fn set_and_log_fork_config(
     Ok(())
 }
 
-async fn flatten<T, E>(handle: JoinHandle<Result<T, E>>) -> Result<T, Error>
-where
-    E: Into<Error> + Send + 'static,
-{
-    match handle.await {
-        Ok(result) => result.map_err(Into::into),
-        Err(join_error) => Err(Error::new(join_error)),
-    }
-}
-
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     configure_tracing();
@@ -215,27 +205,34 @@ async fn main() -> Result<(), anyhow::Error> {
 
     info!("Starknet Devnet listening on {}", address);
 
-    let empty_handle = task::spawn(async { Ok(()) });
-    let mut block_interval_handle = empty_handle;
+    let mut tasks = vec![];
+
     if let BlockGenerationOn::Interval(seconds) = starknet_config.block_generation_on {
         // use JoinHandle to run block interval creation as a task
-        block_interval_handle = task::spawn(create_block_interval(api.clone(), seconds));
+        let block_interval_handle = task::spawn(create_block_interval(api.clone(), seconds));
+
+        tasks.push(block_interval_handle);
     }
 
     // run server also as a JoinHandle
-    let server_handle =
-        task::spawn(server.with_graceful_shutdown(shutdown_signal(api.clone())).into_future());
+    let server_handle = task::spawn(server.with_graceful_shutdown(shutdown_signal(api.clone())).into_future());
+    tasks.push(server_handle);
 
     // wait for ctrl + c signal (SIGINT)
     shutdown_signal(api.clone()).await;
 
-    // join both tasks
-    let _ = tokio::try_join!(flatten(block_interval_handle), flatten(server_handle))?;
+    // join all tasks
+    let results = join_all(tasks).await;
+
+    // handle the results of the tasks
+    for result in results {
+        result??;
+    }
 
     Ok(())
 }
 
-async fn create_block_interval(api: Api, block_interval: u64) -> Result<(), anyhow::Error> {
+async fn create_block_interval(api: Api, block_interval: u64) -> Result<(), std::io::Error> {
     let mut interval = interval(Duration::from_secs(block_interval));
     let mut sigint = signal(SignalKind::interrupt()).expect("Failed to setup SIGINT handler");
 
@@ -245,7 +242,7 @@ async fn create_block_interval(api: Api, block_interval: u64) -> Result<(), anyh
                 let mut starknet = api.starknet.write().await;
                 info!("Generating block on time interval");
 
-                starknet.create_block_dump_event(None)?
+                starknet.create_block_dump_event(None).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?
             }
             _ = sigint.recv() => {
                 return Ok(())
