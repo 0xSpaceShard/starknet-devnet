@@ -84,7 +84,7 @@ mod general_integration_tests {
                 "timeout": 121,
                 "request_body_size_limit": 1000,
             },
-            "blocks_on_demand": true,
+            "block_generation_on": "demand",
             "lite_mode": false,
             "disable_account_impersonation": false,
         });
@@ -112,7 +112,8 @@ mod general_integration_tests {
             &expected_config["dump_on"].as_str().unwrap(),
             "--dump-path",
             &expected_config["dump_path"].as_str().unwrap(),
-            "--blocks-on-demand",
+            "--block-generation-on",
+            "demand",
             "--state-archive-capacity",
             &expected_config["state_archive"].as_str().unwrap(),
             "--host",

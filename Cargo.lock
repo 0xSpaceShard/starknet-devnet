@@ -5585,6 +5585,7 @@ dependencies = [
  "clap 4.5.4",
  "criterion",
  "ethers",
+ "futures",
  "lazy_static",
  "reqwest 0.12.4",
  "serde",
