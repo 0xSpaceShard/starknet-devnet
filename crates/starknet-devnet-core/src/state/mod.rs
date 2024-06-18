@@ -1,10 +1,11 @@
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use blockifier::state::cached_state::{
     CachedState, GlobalContractCache, GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST,
 };
 use blockifier::state::state_api::{State, StateReader};
+use parking_lot::RwLock;
 use starknet_api::core::CompiledClassHash;
 use starknet_api::hash::StarkFelt;
 use starknet_rs_core::types::{BlockId, BlockTag};
@@ -113,12 +114,12 @@ impl StarknetState {
     }
 
     pub fn clone_rpc_contract_classes(&self) -> CommittedClassStorage {
-        self.rpc_contract_classes.read().unwrap().clone()
+        self.rpc_contract_classes.read().clone()
     }
 
     /// Commits and returns the state difference accumulated since the previous (historic) state.
     pub(crate) fn commit_with_diff(&mut self, block_number: u64) -> DevnetResult<StateDiff> {
-        let new_classes = self.rpc_contract_classes.write().unwrap().commit(block_number);
+        let new_classes = self.rpc_contract_classes.write().commit(block_number);
         let diff = StateDiff::generate(&mut self.state, new_classes)?;
         let new_historic = self.expand_historic(diff.clone())?;
         self.state = CachedState::new(new_historic.clone(), default_global_contract_cache());
@@ -291,7 +292,7 @@ impl CustomStateReader for StarknetState {
         class_hash: &ClassHash,
         block_id: &BlockId,
     ) -> Option<ContractClass> {
-        let class_storage = self.rpc_contract_classes.read().unwrap();
+        let class_storage = self.rpc_contract_classes.read();
         if let Some((class, storage_block_number)) = class_storage.committed.get(class_hash) {
             match block_id {
                 BlockId::Hash(_) => {
@@ -353,7 +354,7 @@ impl CustomState for StarknetState {
         };
 
         self.state.state.set_contract_class(class_hash.into(), compiled_class)?;
-        let mut class_storage = self.rpc_contract_classes.write().unwrap();
+        let mut class_storage = self.rpc_contract_classes.write();
         class_storage.insert(class_hash, contract_class);
         Ok(())
     }
@@ -381,7 +382,7 @@ impl CustomState for StarknetState {
         };
 
         self.set_contract_class(class_hash.into(), compiled_class)?;
-        let mut class_storage = self.rpc_contract_classes.write().unwrap();
+        let mut class_storage = self.rpc_contract_classes.write();
         class_storage.insert(class_hash, contract_class);
         Ok(())
     }

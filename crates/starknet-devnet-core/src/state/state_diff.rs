@@ -185,7 +185,7 @@ mod tests {
     fn correct_no_difference_between_non_modified_states() {
         let mut state = setup();
         let block_number = 1;
-        let new_classes = state.rpc_contract_classes.write().unwrap().commit(block_number);
+        let new_classes = state.rpc_contract_classes.write().commit(block_number);
         let generated_diff = StateDiff::generate(&mut state.state, new_classes).unwrap();
         let expected_diff = StateDiff::default();
         assert_eq!(generated_diff, expected_diff);
@@ -201,7 +201,7 @@ mod tests {
         state.declare_contract_class(class_hash.into(), contract_class).unwrap();
 
         let block_number = 1;
-        let new_classes = state.rpc_contract_classes.write().unwrap().commit(block_number);
+        let new_classes = state.rpc_contract_classes.write().commit(block_number);
         let generated_diff = StateDiff::generate(&mut state.state, new_classes).unwrap();
 
         let mut expected_diff = StateDiff::default();
@@ -224,7 +224,7 @@ mod tests {
         state.declare_contract_class(class_hash, contract_class).unwrap();
 
         let block_number = 1;
-        let new_classes = state.rpc_contract_classes.write().unwrap().commit(block_number);
+        let new_classes = state.rpc_contract_classes.write().commit(block_number);
         let generated_diff = StateDiff::generate(&mut state.state, new_classes).unwrap();
 
         let mut expected_diff = StateDiff::default();
@@ -245,7 +245,7 @@ mod tests {
         state.declare_contract_class(class_hash, contract_class).unwrap();
 
         let block_number = 1;
-        let new_classes = state.rpc_contract_classes.write().unwrap().commit(block_number);
+        let new_classes = state.rpc_contract_classes.write().commit(block_number);
         let generated_diff = StateDiff::generate(&mut state.state, new_classes).unwrap();
 
         let expected_diff = StateDiff {
@@ -268,7 +268,7 @@ mod tests {
             state.declare_contract_class(class_hash, contract_class).unwrap();
 
             let block_number = 1;
-            let new_classes = state.rpc_contract_classes.write().unwrap().commit(block_number);
+            let new_classes = state.rpc_contract_classes.write().commit(block_number);
             let generated_diff = StateDiff::generate(&mut state.state, new_classes).unwrap();
 
             let expected_diff = StateDiff {
@@ -286,7 +286,7 @@ mod tests {
             state.declare_contract_class(class_hash, contract_class).unwrap();
 
             let block_number = 1;
-            let new_classes = state.rpc_contract_classes.write().unwrap().commit(block_number);
+            let new_classes = state.rpc_contract_classes.write().commit(block_number);
             let generated_diff = StateDiff::generate(&mut state.state, new_classes).unwrap();
 
             let mut expected_diff = StateDiff::default();
@@ -311,7 +311,7 @@ mod tests {
             .unwrap();
 
         let block_number = 1;
-        let new_classes = state.rpc_contract_classes.write().unwrap().commit(block_number);
+        let new_classes = state.rpc_contract_classes.write().commit(block_number);
         let generated_diff = StateDiff::generate(&mut state.state, new_classes).unwrap();
 
         let expected_diff = StateDiff {

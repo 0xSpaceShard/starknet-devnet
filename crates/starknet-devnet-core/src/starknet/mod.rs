@@ -1,5 +1,5 @@
 use std::num::NonZeroU128;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use blockifier::block::BlockInfo;
 use blockifier::context::{BlockContext, ChainInfo, TransactionContext};
@@ -12,6 +12,7 @@ use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::errors::TransactionPreValidationError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
+use parking_lot::RwLock;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, GasPricePerToken};
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::transaction::Fee;
@@ -1155,8 +1156,7 @@ impl Starknet {
             )?;
 
             let block_number = block_context.block_info().block_number.0;
-            let new_classes =
-                transactional_rpc_contract_classes.write().unwrap().commit(block_number);
+            let new_classes = transactional_rpc_contract_classes.write().commit(block_number);
             let state_diff: ThinStateDiff =
                 StateDiff::generate(&mut transactional_state, new_classes)?.into();
             let trace = create_trace(
