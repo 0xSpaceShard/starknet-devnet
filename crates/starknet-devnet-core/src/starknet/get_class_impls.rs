@@ -143,5 +143,21 @@ mod tests {
         assert_eq!(contract_class, account.contract_class);
     }
 
-    // TODO test failure case when getting from a block where the class was not yet declared
+    #[test]
+    fn attempt_getting_class_from_block_before_declaration() {
+        let (mut starknet, account) =
+            setup_starknet_with_no_signature_check_account_and_state_capacity(
+                1e8 as u128,
+                StateArchiveCapacity::Full,
+            );
+
+        let block_number = starknet.get_latest_block().unwrap().block_number();
+        // class not present before the latest block
+        let block_id = BlockId::Number(block_number.0 - 1);
+
+        match starknet.get_class_at(&block_id, account.account_address) {
+            Err(Error::ContractNotFound) => (),
+            other => panic!("Got unexpected resp: {other:?}"),
+        }
+    }
 }
