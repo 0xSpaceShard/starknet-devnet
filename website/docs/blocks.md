@@ -8,7 +8,7 @@ A new block is generated based on the pending block, once a new block is generat
 
 If you start Devnet with the `--blocks-on-demand` CLI option, you will enable the possibility to store more than one transaction in the pending block (targetable via block tag `"pending"`).
 
-Once you've added the desired transactions into the pending block, you can send a `POST` request to `/create_block`. This will convert the pending block to the latest block (targetable via block tag `"latest"`), giving it a block hash and a block number. All subsequent transactions will be stored in a new pending block.
+Once you've added the desired transactions into the pending block, you can send a `POST` request to `/create_block` or `JSON-RPC` request with method name `devnet_createBlock`. This will convert the pending block to the latest block (targetable via block tag `"latest"`), giving it a block hash and a block number. All subsequent transactions will be stored in a new pending block.
 
 In case of demanding block creation with no pending transactions, a new empty block will be generated.
 
@@ -16,6 +16,15 @@ The creation of the genesis block is not affected by this feature.
 
 ```
 POST /create_block
+```
+
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_createBlock"
+}
 ```
 
 Response:
@@ -30,6 +39,15 @@ To create an empty block without transactions, `POST` a request to `/create_bloc
 
 ```
 POST /create_block
+```
+
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_createBlock"
+}
 ```
 
 Response:
@@ -54,6 +72,18 @@ Aborted blocks can only be queried by block hash. Aborting the blocks in forking
 POST /abort_blocks
 {
     "starting_block_hash": BLOCK_HASH
+}
+```
+
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_abortBlocks",
+    "params": {
+        "starting_block_hash": BLOCK_HASH
+    }
 }
 ```
 
