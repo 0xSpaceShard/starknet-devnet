@@ -84,6 +84,9 @@ impl CommittedClassStorage {
 
 pub struct StarknetState {
     pub(crate) state: CachedState<DictState>,
+    /// The class storage is meant to be shared between states to prevent copying (due to memory
+    /// concerns). Knowing which class was added when is made possible by storing the class
+    /// together with the block number.
     rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
     /// - initially `None`
     /// - indicates the state hasn't yet been cloned for old-state preservation purpose
@@ -299,6 +302,8 @@ impl CustomStateReader for StarknetState {
                     None // this case should have been handled earlier
                 }
                 BlockId::Number(query_block_number) => {
+                    // If the class was stored before the block at which we are querying (or at that
+                    // block), we can return it.
                     if storage_block_number <= query_block_number {
                         Some(class.clone())
                     } else {
