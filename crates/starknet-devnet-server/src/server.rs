@@ -42,12 +42,9 @@ fn http_api_routes(http_api_handler: HttpApiHandler) -> Router {
             "/postman/consume_message_from_l2",
             post(http::postman::postman_consume_message_from_l2),
         )
-
         .route("/create_block", post(http::blocks::create_block))
         .route("/abort_blocks", post(http::blocks::abort_blocks))
-
         .route("/restart", post(http::restart))
-        // json-rpc
         .route("/set_time", post(http::time::set_time))
         .route("/increase_time", post(http::time::increase_time))
         .route("/predeployed_accounts", get(http::accounts::get_predeployed_accounts))
