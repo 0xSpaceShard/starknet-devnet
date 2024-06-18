@@ -1,8 +1,7 @@
 use std::future::IntoFuture;
-use std::result::Result::Ok;
 use std::time::Duration;
 
-use anyhow::Error;
+use anyhow::Ok;
 use clap::Parser;
 use cli::Args;
 use server::api::json_rpc::RPC_SPEC_VERSION;
@@ -23,7 +22,7 @@ use starknet_types::rpc::state::Balance;
 use starknet_types::traits::ToHexString;
 use tokio::net::TcpListener;
 use tokio::signal::unix::{signal, SignalKind};
-use tokio::task::{self, JoinHandle};
+use tokio::task;
 use tokio::time::interval;
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
@@ -169,16 +168,6 @@ pub async fn set_and_log_fork_config(
     Ok(())
 }
 
-async fn flatten<T, E>(handle: JoinHandle<Result<T, E>>) -> Result<T, Error>
-where
-    E: Into<Error> + Send + 'static,
-{
-    match handle.await {
-        Ok(result) => result.map_err(Into::into),
-        Err(join_error) => Err(Error::new(join_error)),
-    }
-}
-
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     configure_tracing();
@@ -230,7 +219,11 @@ async fn main() -> Result<(), anyhow::Error> {
     shutdown_signal(api.clone()).await;
 
     // join both tasks
-    let _ = tokio::try_join!(flatten(block_interval_handle), flatten(server_handle))?;
+    let (block_interval_result, server_result) = tokio::join!(block_interval_handle, server_handle);
+
+    // handle the results of the tasks
+    block_interval_result??;
+    server_result??;
 
     Ok(())
 }
