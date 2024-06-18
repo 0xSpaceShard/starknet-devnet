@@ -342,14 +342,14 @@ impl Starknet {
 
         self.generate_pending_block()?;
 
-        // every new block we need to clone pending state to state
+        // for every new block we need to clone pending state into state
         self.latest_state = self.pending_state.clone_historic();
 
         Ok(new_block_hash)
     }
 
-    /// Commits the the changes accumulated in pending state. Check
-    /// `StarknetState::commit_with_diff` for more info.
+    /// Commits the changes accumulated in pending state. Check `StarknetState::commit_with_diff`
+    /// for more info.
     pub fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
         let block_number = self.block_context.block_info().block_number.0;
         self.pending_state.commit_with_diff(block_number)
