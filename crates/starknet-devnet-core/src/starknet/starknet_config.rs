@@ -1,5 +1,6 @@
 use std::num::NonZeroU128;
 
+use clap::Error;
 use serde::{Serialize, Serializer};
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_class::ContractClass;
@@ -28,6 +29,36 @@ pub enum StateArchiveCapacity {
     #[default]
     None,
     Full,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BlockGenerationOn {
+    Transaction,
+    Demand,
+    Interval(u64),
+}
+
+impl std::str::FromStr for BlockGenerationOn {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "transaction" => Ok(BlockGenerationOn::Transaction),
+            "demand" => Ok(BlockGenerationOn::Demand),
+            value => {
+                let interval_value = value
+                    .parse::<u64>()
+                    .map_err(|_| Error::new(clap::error::ErrorKind::InvalidValue))?;
+
+                if interval_value > 0 {
+                    Ok(BlockGenerationOn::Interval(interval_value))
+                } else {
+                    Err(Error::new(clap::error::ErrorKind::InvalidValue))
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -79,7 +110,7 @@ pub struct StarknetConfig {
     pub chain_id: ChainId,
     pub dump_on: Option<DumpOn>,
     pub dump_path: Option<String>,
-    pub blocks_on_demand: bool,
+    pub block_generation_on: BlockGenerationOn,
     pub lite_mode: bool,
     /// on initialization, re-execute loaded txs (if any)
     #[serde(skip_serializing)]
@@ -109,7 +140,7 @@ impl Default for StarknetConfig {
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
             dump_on: None,
             dump_path: None,
-            blocks_on_demand: false,
+            block_generation_on: BlockGenerationOn::Transaction,
             lite_mode: false,
             re_execute_on_init: true,
             state_archive: StateArchiveCapacity::default(),

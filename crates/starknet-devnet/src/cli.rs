@@ -9,7 +9,7 @@ use starknet_core::constants::{
 use starknet_core::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use starknet_core::random_number_generator::generate_u32_random_number;
 use starknet_core::starknet::starknet_config::{
-    DumpOn, ForkConfig, StarknetConfig, StateArchiveCapacity,
+    BlockGenerationOn, DumpOn, ForkConfig, StarknetConfig, StateArchiveCapacity,
 };
 use starknet_types::chain_id::ChainId;
 use tracing_subscriber::EnvFilter;
@@ -157,10 +157,16 @@ pub(crate) struct Args {
     #[arg(help = "Specify the path to dump to;")]
     dump_path: Option<String>,
 
-    #[arg(long = "blocks-on-demand")]
-    #[arg(env = "BLOCKS_ON_DEMAND")]
-    #[arg(help = "Introduces block generation on demand via /create_block endpoint;")]
-    blocks_on_demand: bool,
+    #[arg(long = "block-generation-on")]
+    #[arg(env = "BLOCK_GENERATION_ON")]
+    #[arg(default_value = "transaction")]
+    #[arg(help = "Specify when to generate a new block. Possible values are:
+- \"transaction\" - new block generated on each transaction
+- \"demand\" - new block creatable solely by sending a POST request to /create_block
+- <INTERVAL> - a positive integer indicating after how many seconds a new block is generated
+
+Sending POST /create_block is also an option in modes other than \"demand\".")]
+    block_generation_on: BlockGenerationOn,
 
     #[arg(long = "state-archive-capacity")]
     #[arg(env = "STATE_ARCHIVE_CAPACITY")]
@@ -220,7 +226,7 @@ impl Args {
             chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
-            blocks_on_demand: self.blocks_on_demand,
+            block_generation_on: self.block_generation_on,
             lite_mode: self.lite_mode,
             re_execute_on_init: true,
             state_archive: self.state_archive,
@@ -268,7 +274,7 @@ mod tests {
     use starknet_core::constants::{
         CAIRO_0_ERC20_CONTRACT_PATH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
     };
-    use starknet_core::starknet::starknet_config::StateArchiveCapacity;
+    use starknet_core::starknet::starknet_config::{BlockGenerationOn, StateArchiveCapacity};
     use tracing_subscriber::EnvFilter;
 
     use super::{Args, RequestResponseLogging};
@@ -528,6 +534,7 @@ mod tests {
             ("--fork-network", "FORK_NETWORK", "http://dummy.com"),
             ("--fork-block", "FORK_BLOCK", "42"),
             ("--request-body-size-limit", "REQUEST_BODY_SIZE_LIMIT", "100"),
+            ("--block-generation-on", "BLOCK_GENERATION_ON", "demand"),
         ];
 
         let mut cli_args = vec!["--"];
@@ -557,8 +564,7 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn test_boolean_param_specification_via_env_vars() {
-        let config_source =
-            [("--lite-mode", "LITE_MODE"), ("--blocks-on-demand", "BLOCKS_ON_DEMAND")];
+        let config_source = [("--lite-mode", "LITE_MODE")];
 
         let mut cli_args = vec!["--"];
         for (cli_param, _) in config_source {
@@ -584,6 +590,34 @@ mod tests {
         // remove var to avoid collision with other tests
         for (var_name, _) in config_source {
             std::env::remove_var(var_name);
+        }
+    }
+
+    #[test]
+    fn not_allowing_invalid_values_as_block_generation_interval() {
+        for interval in ["", "0", "-1", "abc"] {
+            match Args::try_parse_from(["--", "--block-generation-on", interval]) {
+                Err(_) => (),
+                Ok(parsed) => panic!("Should fail for {interval}; got: {parsed:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn allowing_valid_values_as_block_generation_interval() {
+        match Args::try_parse_from(["--", "--block-generation-on", "1"]) {
+            Ok(args) => assert_eq!(args.block_generation_on, BlockGenerationOn::Interval(1)),
+            Err(e) => panic!("Should have passed; got: {e}"),
+        }
+
+        match Args::try_parse_from(["--", "--block-generation-on", "demand"]) {
+            Ok(args) => assert_eq!(args.block_generation_on, BlockGenerationOn::Demand),
+            Err(e) => panic!("Should have passed; got: {e}"),
+        }
+
+        match Args::try_parse_from(["--", "--block-generation-on", "transaction"]) {
+            Ok(args) => assert_eq!(args.block_generation_on, BlockGenerationOn::Transaction),
+            Err(e) => panic!("Should have passed; got: {e}"),
         }
     }
 }
