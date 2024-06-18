@@ -215,7 +215,8 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     // run server also as a JoinHandle
-    let server_handle = task::spawn(server.with_graceful_shutdown(shutdown_signal(api.clone())).into_future());
+    let server_handle =
+        task::spawn(server.with_graceful_shutdown(shutdown_signal(api.clone())).into_future());
     tasks.push(server_handle);
 
     // wait for ctrl + c signal (SIGINT)
