@@ -113,7 +113,7 @@ mod get_class_tests {
             .await
             .unwrap();
 
-        assert_cairo1_classes_equal(retrieved_class, ContractClass::Sierra(contract_class))
+        assert_cairo1_classes_equal(&retrieved_class, &ContractClass::Sierra(contract_class))
             .unwrap();
     }
 
@@ -165,6 +165,7 @@ mod get_class_tests {
         devnet.create_block().await.unwrap();
 
         // getting class at the following block IDs should be successful
+        let expected_class = ContractClass::Sierra(contract_class);
         for block_id in [
             BlockId::Tag(BlockTag::Latest),
             BlockId::Tag(BlockTag::Pending),
@@ -178,8 +179,7 @@ mod get_class_tests {
                 .await
                 .unwrap();
 
-            let expected_class = ContractClass::Sierra(contract_class.clone());
-            assert_cairo1_classes_equal(retrieved_class, expected_class).unwrap();
+            assert_cairo1_classes_equal(&retrieved_class, &expected_class).unwrap();
         }
 
         // getting class at the following block IDs should NOT be successful
