@@ -121,12 +121,18 @@ impl StarknetState {
     }
 
     /// Commits and returns the state difference accumulated since the previous (historic) state.
-    pub(crate) fn commit_with_diff(&mut self, block_number: u64) -> DevnetResult<StateDiff> {
-        let new_classes = self.rpc_contract_classes.write().commit(block_number);
+    /// Classes are NOT committed conditionally; see `Self::commit_classes``.
+    pub(crate) fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
+        let new_classes = self.rpc_contract_classes.read().staging.clone();
+
         let diff = StateDiff::generate(&mut self.state, new_classes)?;
         let new_historic = self.expand_historic(diff.clone())?;
         self.state = CachedState::new(new_historic.clone(), default_global_contract_cache());
         Ok(diff)
+    }
+
+    pub(crate) fn commit_classes(&mut self, block_number: u64) {
+        self.rpc_contract_classes.write().commit(block_number);
     }
 
     pub fn assert_contract_deployed(
@@ -451,8 +457,8 @@ mod tests {
             .unwrap();
 
         state.state.set_storage_at(contract_address, storage_key, dummy_felt().into()).unwrap();
-        let block_number = 1;
-        state.commit_with_diff(block_number).unwrap();
+        state.commit_with_diff().unwrap();
+        state.commit_classes(1);
 
         let storage_after = state.get_storage_at(contract_address, storage_key).unwrap();
         assert_eq!(storage_after, dummy_felt().into());
@@ -469,8 +475,8 @@ mod tests {
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(StarkFelt::ZERO));
 
         state.state.increment_nonce(contract_address).unwrap();
-        let block_number = 1;
-        state.commit_with_diff(block_number).unwrap();
+        state.commit_with_diff().unwrap();
+        state.commit_classes(1);
 
         // check if nonce update was correct
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(StarkFelt::ONE));
@@ -493,8 +499,8 @@ mod tests {
             .declare_contract_class(class_hash, contract_class.clone().try_into().unwrap())
             .unwrap();
 
-        let block_number = 1;
-        state.commit_with_diff(block_number).unwrap();
+        state.commit_with_diff().unwrap();
+        state.commit_classes(1);
 
         match state.get_compiled_contract_class(class_hash.into()) {
             Ok(blockifier::execution::contract_class::ContractClass::V0(retrieved_class)) => {
