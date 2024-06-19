@@ -1,7 +1,8 @@
 pub mod common;
 
-mod blocks_on_demand_tests {
+mod blocks_generation_tests {
     use std::sync::Arc;
+    use std::time;
 
     use serde_json::json;
     use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
@@ -18,7 +19,8 @@ mod blocks_on_demand_tests {
     use crate::common::constants;
     use crate::common::utils::{
         assert_tx_successful, get_contract_balance, get_contract_balance_by_block_id,
-        get_simple_contract_in_sierra_and_compiled_class_hash,
+        get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
+        UniqueAutoDeletableFile,
     };
 
     static DUMMY_ADDRESS: u128 = 1;
@@ -249,7 +251,9 @@ mod blocks_on_demand_tests {
     #[tokio::test]
     async fn blocks_on_demand_states_and_blocks() {
         let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
+            BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
+                .await
+                .unwrap();
 
         let tx_count = 5_usize;
         let mut tx_hashes = Vec::new();
@@ -305,7 +309,9 @@ mod blocks_on_demand_tests {
     #[tokio::test]
     async fn blocks_on_demand_invoke_and_call() {
         let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
+            BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
+                .await
+                .unwrap();
 
         let mut tx_hashes = Vec::new();
 
@@ -413,6 +419,82 @@ mod blocks_on_demand_tests {
     }
 
     #[tokio::test]
+    async fn blocks_on_interval() {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "1"])
+            .await
+            .expect("Could not start Devnet");
+
+        // wait 1 second
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
+
+        let last_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+
+        // first is genesis block, second block is generated instantly, third is generated after 1
+        // second
+        assert_eq!(last_block.block_number, 2);
+    }
+
+    #[tokio::test]
+    async fn blocks_on_interval_transactions() {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "1"])
+            .await
+            .expect("Could not start Devnet");
+
+        let tx_count = 5;
+        let mut tx_hashes = Vec::new();
+        for _ in 0..tx_count {
+            let mint_hash = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+            tx_hashes.push(mint_hash);
+        }
+
+        // wait 1 second
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
+
+        // first is genesis block, second block is generated instantly, third is generated after 1
+        // second
+        assert_latest_block_with_tx_hashes(&devnet, 2, tx_hashes).await;
+    }
+
+    #[tokio::test]
+    async fn blocks_on_interval_dump_and_load() {
+        let mode = "exit";
+        let dump_file = UniqueAutoDeletableFile::new("interval_dump");
+        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            &dump_file.path,
+            "--dump-on",
+            mode,
+            "--block-generation-on",
+            "1",
+        ])
+        .await
+        .expect("Could not start Devnet");
+
+        // wait 1 second
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
+
+        let last_block = devnet_dump.get_latest_block_with_tx_hashes().await.unwrap();
+
+        // first is genesis block, second block is generated instantly, third is generated after 1
+        // second
+        assert_eq!(last_block.block_number, 2);
+
+        send_ctrl_c_signal_and_wait(&devnet_dump.process).await;
+
+        let devnet_load = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            dump_file.path.as_str(),
+            "--dump-on",
+            mode,
+        ])
+        .await
+        .expect("Could not start Devnet");
+
+        let last_block_load = devnet_load.get_latest_block_with_tx_hashes().await.unwrap();
+        assert_eq!(last_block.block_number, last_block_load.block_number);
+    }
+
+    #[tokio::test]
     async fn get_nonce_of_first_predeployed_account_normal_mode() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
@@ -422,7 +504,9 @@ mod blocks_on_demand_tests {
     #[tokio::test]
     async fn get_nonce_of_first_predeployed_account_block_on_demand() {
         let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
+            BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
+                .await
+                .unwrap();
 
         assert_get_nonce(&devnet).await;
     }
@@ -437,7 +521,9 @@ mod blocks_on_demand_tests {
     #[tokio::test]
     async fn get_storage_at_block_on_demand() {
         let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
+            BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
+                .await
+                .unwrap();
 
         assert_get_storage_at(&devnet).await;
     }
@@ -452,7 +538,9 @@ mod blocks_on_demand_tests {
     #[tokio::test]
     async fn get_class_hash_at_block_on_demand() {
         let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"]).await.unwrap();
+            BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
+                .await
+                .unwrap();
 
         assert_get_class_hash_at(&devnet).await;
     }

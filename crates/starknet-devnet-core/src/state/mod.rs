@@ -71,13 +71,6 @@ impl CommittedClassStorage {
         self.committed.extend(self.staging.drain());
         diff
     }
-
-    /// Skips the staging phase
-    fn insert_and_commit(&mut self, class_hash: ClassHash, contract_class: ContractClass) {
-        assert!(self.staging.is_empty());
-        self.insert(class_hash, contract_class);
-        self.commit();
-    }
 }
 
 pub struct StarknetState {
@@ -117,7 +110,8 @@ impl StarknetState {
         self.rpc_contract_classes.clone()
     }
 
-    pub fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
+    /// Commits and returns the state difference accumulated since the previous (historic) state.
+    pub(crate) fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
         let diff = StateDiff::generate(&mut self.state, &mut self.rpc_contract_classes)?;
         let new_historic = self.expand_historic(diff.clone())?;
         self.state = CachedState::new(
@@ -330,7 +324,7 @@ impl CustomState for StarknetState {
         };
 
         self.state.state.set_contract_class(class_hash.into(), compiled_class)?;
-        self.rpc_contract_classes.insert_and_commit(class_hash, contract_class);
+        self.rpc_contract_classes.insert(class_hash, contract_class);
         Ok(())
     }
 
