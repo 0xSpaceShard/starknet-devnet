@@ -222,19 +222,32 @@ mod get_class_tests {
 
         // getting class at the following block IDs should NOT be successful
         for block_id in [
-            BlockId::Tag(BlockTag::Latest),
             BlockId::Number(original_block.block_number),
             BlockId::Hash(original_block.block_hash),
+            BlockId::Tag(BlockTag::Latest),
         ] {
             let retrieved =
                 devnet.json_rpc_client.get_class(block_id, declaration_result.class_hash).await;
             match retrieved {
                 Err(ProviderError::StarknetError(StarknetError::ClassHashNotFound)) => (),
+                other => panic!("Unexpected response at block_id={block_id:?}: {other:?}"),
+            }
+        }
+
+        // getting class from the future block number should yield a different error
+        let declaration_block_number = BlockId::Number(original_block.block_number + 1);
+        {
+            let retrieved = devnet
+                .json_rpc_client
+                .get_class(declaration_block_number, declaration_result.class_hash)
+                .await;
+            match retrieved {
+                Err(ProviderError::StarknetError(StarknetError::BlockNotFound)) => (),
                 other => panic!("Unexpected response: {other:?}"),
             }
         }
 
-        // getting class at the following block IDs should be successful
+        // getting class at the following block IDs should be successful even before block creation
         let expected_class = ContractClass::Sierra(contract_class);
         for block_id in [BlockId::Tag(BlockTag::Pending)] {
             let retrieved_class = devnet
@@ -248,11 +261,11 @@ mod get_class_tests {
 
         let declaration_block_hash = devnet.create_block().await.unwrap();
 
-        // getting class at the following block IDs should be successful
+        // getting class at the following block IDs should be successful after block creation
         for block_id in [
             BlockId::Tag(BlockTag::Latest),
             BlockId::Tag(BlockTag::Pending),
-            BlockId::Number(original_block.block_number + 1),
+            declaration_block_number,
             BlockId::Hash(declaration_block_hash),
         ] {
             let retrieved_class = devnet
