@@ -15,6 +15,7 @@ use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, GasPricePerToken};
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::transaction::Fee;
+use starknet_config::BlockGenerationOn;
 use starknet_rs_core::types::{
     BlockId, BlockTag, ExecutionResult, MsgFromL1, TransactionExecutionStatus,
     TransactionFinalityStatus,
@@ -470,8 +471,8 @@ impl Starknet {
 
         self.transactions.insert(transaction_hash, transaction_to_add);
 
-        // create new block from pending one, only if block on-demand mode is disabled
-        if !self.config.blocks_on_demand {
+        // create new block from pending one, only in block generation transaction mode
+        if self.config.block_generation_on == BlockGenerationOn::Transaction {
             self.generate_new_block_and_state(state_diff)?;
         }
 

@@ -24,6 +24,7 @@ url = { workspace = true }
 
 # async
 tokio = { workspace = true, features = ["signal"] }
+futures = { workspace = true }
 
 # tracing
 tracing = { workspace = true }
