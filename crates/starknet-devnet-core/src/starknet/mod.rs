@@ -205,6 +205,9 @@ impl Starknet {
         let starting_block_number =
             config.fork_config.block_number.map_or(DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, |n| n + 1);
 
+        // TODO redundant?
+        state.commit_with_diff(starting_block_number)?;
+
         let mut this = Self {
             latest_state: Default::default(), // temporary - overwritten on genesis block creation
             pending_state: state,
