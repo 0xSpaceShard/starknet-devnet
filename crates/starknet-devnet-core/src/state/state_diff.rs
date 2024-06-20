@@ -116,7 +116,6 @@ impl StateDiff {
     pub(crate) fn extend(&mut self, other: &StateDiff) {
         self.address_to_class_hash.extend(&other.address_to_class_hash);
         self.address_to_nonce.extend(&other.address_to_nonce);
-        // TODO why having to clone only here
         self.storage_updates.extend(other.storage_updates.clone());
         self.class_hash_to_compiled_class_hash.extend(&other.class_hash_to_compiled_class_hash);
         self.cairo_0_declared_contracts.extend(&other.cairo_0_declared_contracts);

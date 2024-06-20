@@ -62,7 +62,8 @@ pub trait CustomState {
 }
 
 #[derive(Default, Clone)]
-/// Utility structure that makes it easier to calculate state diff later on
+/// Utility structure that makes it easier to calculate state diff later on. Classes are first
+/// inserted into the staging area (pending state), later to be committed (latest state).
 pub struct CommittedClassStorage {
     staging: HashMap<ClassHash, ContractClass>,
     committed: HashMap<ClassHash, (ContractClass, u64)>,
@@ -121,8 +122,8 @@ impl StarknetState {
     }
 
     /// Commits and returns the state difference accumulated since the previous (historic) state.
-    /// Classes are NOT committed conditionally; see `Self::commit_classes``.
-    pub(crate) fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
+    /// Classes are NOT committed; see `Self::commit_classes`.
+    pub(crate) fn commit_diff(&mut self) -> DevnetResult<StateDiff> {
         let new_classes = self.rpc_contract_classes.read().staging.clone();
 
         let diff = StateDiff::generate(&mut self.state, new_classes)?;
@@ -457,7 +458,7 @@ mod tests {
             .unwrap();
 
         state.state.set_storage_at(contract_address, storage_key, dummy_felt().into()).unwrap();
-        state.commit_with_diff().unwrap();
+        state.commit_diff().unwrap();
         state.commit_classes(1);
 
         let storage_after = state.get_storage_at(contract_address, storage_key).unwrap();
@@ -475,7 +476,7 @@ mod tests {
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(StarkFelt::ZERO));
 
         state.state.increment_nonce(contract_address).unwrap();
-        state.commit_with_diff().unwrap();
+        state.commit_diff().unwrap();
         state.commit_classes(1);
 
         // check if nonce update was correct
@@ -499,7 +500,7 @@ mod tests {
             .declare_contract_class(class_hash, contract_class.clone().try_into().unwrap())
             .unwrap();
 
-        state.commit_with_diff().unwrap();
+        state.commit_diff().unwrap();
         state.commit_classes(1);
 
         match state.get_compiled_contract_class(class_hash.into()) {
