@@ -507,7 +507,7 @@ mod test_messaging {
                 "starknet_traceTransaction",
                 json!({ "transaction_hash": flush_body.get("generated_l2_transactions").unwrap()[0] }),
             )
-            .await["result"];
+            .await.unwrap();
         assert_traces(l1_handler_tx_trace);
 
         send_ctrl_c_signal_and_wait(&devnet.process).await;
@@ -527,7 +527,7 @@ mod test_messaging {
             "starknet_traceTransaction",
             json!({ "transaction_hash": flush_body.get("generated_l2_transactions").unwrap()[0] }),
         )
-        .await["result"];
+        .await.unwrap();
         assert_traces(l1_handler_tx_trace_load);
     }
 

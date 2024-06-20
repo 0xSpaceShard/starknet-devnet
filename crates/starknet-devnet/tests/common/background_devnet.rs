@@ -7,6 +7,7 @@ use std::time;
 use lazy_static::lazy_static;
 use reqwest::{Client, StatusCode};
 use serde_json::json;
+use server::rpc_core::error::RpcError;
 use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
 use starknet_rs_core::types::{
     BlockId, BlockTag, BlockWithTxHashes, BlockWithTxs, FieldElement, FunctionCall,
@@ -167,7 +168,7 @@ impl BackgroundDevnet {
         &self,
         method: &str,
         params: serde_json::Value,
-    ) -> serde_json::Value {
+    ) -> Result<serde_json::Value, RpcError> {
         let body_json = json!({
             "jsonrpc": "2.0",
             "id": 0,
@@ -175,7 +176,19 @@ impl BackgroundDevnet {
             "params": params
         });
 
-        self.reqwest_client().post_json_async(RPC_PATH, body_json).await.unwrap()
+        let json_rpc_result: serde_json::Value = self
+            .reqwest_client()
+            .post_json_async(RPC_PATH, body_json)
+            .await
+            .map_err(|_| RpcError::internal_error())?;
+
+        if let Some(result) = json_rpc_result.get("result") {
+            Ok(result.clone())
+        } else if let Some(error) = json_rpc_result.get("error") {
+            Err(serde_json::from_value(error.clone()).unwrap())
+        } else {
+            Err(RpcError::internal_error())
+        }
     }
 
     pub fn clone_provider(&self) -> JsonRpcClient<HttpTransport> {
@@ -361,11 +374,10 @@ impl BackgroundDevnet {
 
         let result = self.send_custom_rpc(method_name, params).await;
 
-        result
-            .get("error")
-            .and_then(|error_json| error_json.get("message"))
-            .and_then(|message_json| message_json.as_str())
-            .map_or(Ok(()), |message| Err(anyhow::Error::msg(message.to_string())))
+        match result {
+            Ok(_) => Ok(()),
+            Err(err) => Err(anyhow::Error::msg(err.message.to_string())),
+        }
     }
 }
 

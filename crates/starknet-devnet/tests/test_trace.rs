@@ -279,7 +279,8 @@ mod trace_tests {
         // this test also needs to be updated
         let block_traces = &devnet
             .send_custom_rpc("starknet_traceBlockTransactions", json!({ "block_id": "latest" }))
-            .await["result"];
+            .await
+            .unwrap();
         let traces = &block_traces[0];
 
         // assert if there is only one transaction trace

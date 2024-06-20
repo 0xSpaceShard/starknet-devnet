@@ -49,14 +49,15 @@ mod abort_blocks_tests {
     }
 
     async fn assert_block_rejected(devnet: &BackgroundDevnet, block_hash: &FieldElement) {
-        let block_after_abort = &devnet
+        let block_after_abort = devnet
             .send_custom_rpc(
                 "starknet_getBlockWithTxHashes",
                 json!({
                     "block_id": {"block_hash": to_hex_felt(block_hash)},
                 }),
             )
-            .await["result"];
+            .await
+            .unwrap();
         assert_eq!(block_after_abort["status"], "REJECTED".to_string());
     }
 
@@ -81,7 +82,8 @@ mod abort_blocks_tests {
                     "block_id": {"block_hash": to_hex_felt(&genesis_block_hash)},
                 }),
             )
-            .await["result"];
+            .await
+            .unwrap();
         assert_eq!(genesis_block_after_abort["status"], "ACCEPTED_ON_L2".to_string());
 
         assert_block_rejected(&devnet, &new_block_hash).await;
@@ -135,18 +137,16 @@ mod abort_blocks_tests {
         assert_eq!(aborted_blocks, vec![new_block_hash]);
         assert_block_rejected(&devnet, &new_block_hash).await;
 
-        let new_block_after_abort_by_number = &devnet
+        let rpc_error = devnet
             .send_custom_rpc(
                 "starknet_getBlockWithTxHashes",
                 json!({
                     "block_id": {"block_number": 1},
                 }),
             )
-            .await;
-        assert_eq!(
-            new_block_after_abort_by_number["error"]["message"],
-            ApiError::BlockNotFound.to_string()
-        )
+            .await
+            .unwrap_err();
+        assert_eq!(rpc_error.message, ApiError::BlockNotFound.to_string())
     }
 
     #[tokio::test]
