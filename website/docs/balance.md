@@ -59,7 +59,7 @@ JSON-RPC
 {
     "jsonrpc": "2.0",
     "id": "1",
-    "method": "devnet_accountBalance",
+    "method": "devnet_getAccountBalance",
     "params": {
         "address": "0x6e3205f...",
         "unit": "WEI" | "FRI",
