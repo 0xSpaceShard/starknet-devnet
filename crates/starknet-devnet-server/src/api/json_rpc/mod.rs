@@ -510,6 +510,7 @@ pub enum StarknetResponse {
 }
 
 #[derive(Serialize)]
+#[serde(untagged)]
 pub enum DevnetResponse {
     MessagingContractAddress(MessagingLoadAddress),
     FlushedMessages(FlushedMessages),

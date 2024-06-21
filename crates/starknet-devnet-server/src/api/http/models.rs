@@ -11,11 +11,13 @@ use starknet_types::serde_helpers::dec_string::deserialize_biguint;
 use crate::api::http::error::HttpApiError;
 
 #[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct DumpPath {
     pub path: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct LoadPath {
     pub path: String,
 }
