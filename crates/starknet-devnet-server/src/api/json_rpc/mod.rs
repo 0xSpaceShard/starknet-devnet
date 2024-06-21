@@ -371,13 +371,13 @@ pub enum JsonRpcRequest {
     SetTime(SetTime),
     #[serde(rename = "devnet_increaseTime")]
     IncreaseTime(IncreaseTime),
-    #[serde(rename = "devnet_predeployedAccounts", with = "empty_params")]
+    #[serde(rename = "devnet_getPredeployedAccounts", with = "empty_params")]
     PredeployedAccounts,
-    #[serde(rename = "devnet_accountBalance")]
+    #[serde(rename = "devnet_getAccountBalance")]
     AccountBalance(BalanceQuery),
     #[serde(rename = "devnet_mint")]
     Mint(MintTokensRequest),
-    #[serde(rename = "devnet_config", with = "empty_params")]
+    #[serde(rename = "devnet_getConfig", with = "empty_params")]
     DevnetConfig,
 }
 
