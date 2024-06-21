@@ -227,7 +227,6 @@ impl JsonRpcHandler {
             }
             JsonRpcRequest::AutoImpersonate => self.set_auto_impersonate(true).await,
             JsonRpcRequest::StopAutoImpersonate => self.set_auto_impersonate(false).await,
-            JsonRpcRequest::IsAlive => self.is_alive(),
             JsonRpcRequest::Dump(path) => self.dump(path).await,
             JsonRpcRequest::Load(path) => self.load(path).await,
             JsonRpcRequest::PostmanLoadL1MessagingContract(data) => self.postman_load(data).await,
@@ -345,8 +344,6 @@ pub enum JsonRpcRequest {
     AutoImpersonate,
     #[serde(rename = "devnet_stopAutoImpersonate", with = "empty_params")]
     StopAutoImpersonate,
-    #[serde(rename = "devnet_isAlive", with = "empty_params")]
-    IsAlive,
     #[serde(rename = "devnet_dump")]
     Dump(DumpPath),
     #[serde(rename = "devnet_load")]

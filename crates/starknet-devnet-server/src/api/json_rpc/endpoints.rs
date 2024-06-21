@@ -458,11 +458,6 @@ impl JsonRpcHandler {
         }
     }
 
-    /// devnet_isAlive
-    pub fn is_alive(&self) -> StrictRpcResult {
-        Ok(StarknetResponse::String("Alive!!!".to_string()).into())
-    }
-
     /// devnet_getPredeployedAccounts
     pub async fn get_predeployed_accounts(&self) -> StrictRpcResult {
         let predeployed_accounts =
