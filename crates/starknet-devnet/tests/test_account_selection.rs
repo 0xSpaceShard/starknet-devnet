@@ -54,7 +54,7 @@ mod test_account_selection {
         let expected_hash = FieldElement::from_hex_be(expected_hash_hex).unwrap();
         assert_eq!(retrieved_class_hash, expected_hash);
 
-        let config = devnet.get_config().await.unwrap();
+        let config = devnet.get_config().await;
         let config_class_hash_hex = config["account_contract_class_hash"].as_str().unwrap();
         assert_eq!(FieldElement::from_hex_be(config_class_hash_hex).unwrap(), expected_hash);
     }

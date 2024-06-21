@@ -6,11 +6,13 @@ mod advancing_time_tests {
     use std::time;
 
     use serde_json::json;
+    use server::rpc_core::error::ErrorCode::InvalidParams;
     use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::Provider;
+    use starknet_types::rpc;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
@@ -28,21 +30,14 @@ mod advancing_time_tests {
     /// Set time and generate a new block
     /// Returns the block timestamp of the newly generated block
     pub async fn set_time_fn(devnet: &BackgroundDevnet, time: u64) -> u64 {
-        let resp_body: serde_json::Value = devnet
-            .reqwest_client()
-            .post_json_async("/set_time", json!({ "time": time }))
-            .await
-            .unwrap();
+        let resp_body: serde_json::Value =
+            devnet.send_custom_rpc("devnet_setTime", json!({ "time": time })).await.unwrap();
 
         resp_body["block_timestamp"].as_u64().unwrap()
     }
 
     pub async fn increase_time_fn(devnet: &BackgroundDevnet, time: u64) {
-        let _: serde_json::Value = devnet
-            .reqwest_client()
-            .post_json_async("/increase_time", json!({ "time": time }))
-            .await
-            .unwrap();
+        devnet.send_custom_rpc("devnet_increaseTime", json!({ "time": time })).await.unwrap();
     }
 
     pub fn assert_ge_with_buffer(val1: u64, val2: u64) {
@@ -333,30 +328,23 @@ mod advancing_time_tests {
     #[tokio::test]
     async fn set_time_empty_body() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let response_error = devnet
-            .reqwest_client()
-            .post_json_async("/set_time", json!({}))
-            .await
-            .map(|_: HttpEmptyResponseBody| ())
-            .unwrap_err();
-        assert_eq!(response_error.status(), 422);
+        let response_error = devnet.send_custom_rpc("devnet_setTime", json!({})).await.unwrap_err();
+        assert_eq!(response_error.code, InvalidParams);
     }
 
     #[tokio::test]
     async fn set_time_wrong_body() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let result = devnet
-            .reqwest_client()
-            .post_json_async(
-                "/set_time",
+        let rpc_error = devnet
+            .send_custom_rpc(
+                "devnet_setTime",
                 json!({
                     "test": 0
                 }),
             )
             .await
-            .map(|_: HttpEmptyResponseBody| ())
             .unwrap_err();
-        assert_eq!(result.status(), 422);
+        assert_eq!(rpc_error.code, InvalidParams);
     }
 
     #[tokio::test]
@@ -400,30 +388,23 @@ mod advancing_time_tests {
     #[tokio::test]
     async fn increase_time_empty_body() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let result = devnet
-            .reqwest_client()
-            .post_json_async("/increase_time", json!({}))
-            .await
-            .map(|_: HttpEmptyResponseBody| ())
-            .unwrap_err();
-        assert_eq!(result.status(), 422);
+        let rpc_error = devnet.send_custom_rpc("devnet_increaseTime", json!({})).await.unwrap_err();
+        assert_eq!(rpc_error.code, InvalidParams);
     }
 
     #[tokio::test]
     async fn increase_time_wrong_body() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let result = devnet
-            .reqwest_client()
-            .post_json_async(
-                "/increase_time",
+        let rpc_error = devnet
+            .send_custom_rpc(
+                "devnet_increaseTime",
                 json!({
                     "test": 0
                 }),
             )
             .await
-            .map(|_: HttpEmptyResponseBody| ())
             .unwrap_err();
-        assert_eq!(result.status(), 422);
+        assert_eq!(rpc_error.code, InvalidParams);
     }
 
     #[tokio::test]
@@ -566,8 +547,10 @@ mod advancing_time_tests {
         // set time in past without block generation
         let past_time = 1;
         let resp_body_set_time: serde_json::Value = devnet
-            .reqwest_client()
-            .post_json_async("/set_time", json!({ "time": past_time, "generate_block": false }))
+            .send_custom_rpc(
+                "devnet_setTime",
+                json!({ "time": past_time, "generate_block": false }),
+            )
             .await
             .unwrap();
 

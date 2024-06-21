@@ -25,7 +25,7 @@ mod test_restart {
     #[tokio::test]
     async fn assert_restartable() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
-        devnet.restart().await.unwrap();
+        devnet.restart().await;
     }
 
     #[tokio::test]
@@ -36,7 +36,7 @@ mod test_restart {
         let mint_hash = devnet.mint(FieldElement::ONE, 100).await;
         assert!(devnet.json_rpc_client.get_transaction_by_hash(mint_hash).await.is_ok());
 
-        devnet.restart().await.unwrap();
+        devnet.restart().await;
 
         match devnet.json_rpc_client.get_transaction_by_hash(mint_hash).await {
             Err(ProviderError::StarknetError(StarknetError::TransactionHashNotFound)) => (),
@@ -71,7 +71,7 @@ mod test_restart {
         let storage_value_before = get_storage().await.unwrap();
         assert_eq!(storage_value_before, FieldElement::from(mint_amount));
 
-        devnet.restart().await.unwrap();
+        devnet.restart().await;
 
         let storage_value_after = get_storage().await.unwrap();
         assert_eq!(storage_value_after, FieldElement::ZERO);
@@ -104,7 +104,7 @@ mod test_restart {
             .await
             .unwrap();
 
-        devnet.restart().await.unwrap();
+        devnet.restart().await;
 
         // expect ContractNotFound error since account not present anymore
         match devnet
@@ -150,7 +150,7 @@ mod test_restart {
             .unwrap();
         assert_eq!(estimate_before.gas_price, FieldElement::from(expected_gas_price));
 
-        devnet.restart().await.unwrap();
+        devnet.restart().await;
 
         let estimate_after =
             predeployed_account.declare_legacy(contract_artifact).estimate_fee().await.unwrap();
@@ -176,7 +176,7 @@ mod test_restart {
             devnet.get_balance_latest(&predeployed_account_address, FeeUnit::WEI).await.unwrap();
         assert_eq!(balance_before, FieldElement::from(initial_balance));
 
-        devnet.restart().await.unwrap();
+        devnet.restart().await;
 
         let balance_after =
             devnet.get_balance_latest(&predeployed_account_address, FeeUnit::WEI).await.unwrap();
@@ -195,7 +195,7 @@ mod test_restart {
         .await
         .unwrap();
 
-        devnet.restart().await.unwrap();
+        devnet.restart().await;
 
         // send a dummy tx; otherwise there's no dump
         devnet.mint(FieldElement::ONE, 1).await;
@@ -233,7 +233,7 @@ mod test_restart {
                 .await
                 .unwrap();
 
-        loaded_devnet.restart().await.unwrap();
+        loaded_devnet.restart().await;
 
         // asserting that restarting really clears the state, without re-executing txs from dump
         match loaded_devnet.json_rpc_client.get_transaction_by_hash(tx_hash).await {
