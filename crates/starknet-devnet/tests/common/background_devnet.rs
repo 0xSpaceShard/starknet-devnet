@@ -185,7 +185,7 @@ impl BackgroundDevnet {
         } else if let Some(error) = json_rpc_result.get("error") {
             Err(serde_json::from_value(error.clone()).unwrap())
         } else {
-            Err(RpcError::internal_error())
+            Err(RpcError::internal_error_with("Server responded with malformed response"))
         }
     }
 
