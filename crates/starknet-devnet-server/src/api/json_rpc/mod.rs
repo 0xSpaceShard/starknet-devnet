@@ -345,14 +345,12 @@ pub enum JsonRpcRequest {
     AutoImpersonate,
     #[serde(rename = "devnet_stopAutoImpersonate", with = "empty_params")]
     StopAutoImpersonate,
-
     #[serde(rename = "devnet_isAlive", with = "empty_params")]
     IsAlive,
     #[serde(rename = "devnet_dump")]
     Dump(DumpPath),
     #[serde(rename = "devnet_load")]
     Load(LoadPath),
-
     #[serde(rename = "devnet_postmanLoad")]
     PostmanLoadL1MessagingContract(PostmanLoadL1MessagingContract),
     #[serde(rename = "devnet_postmanFlush")]
