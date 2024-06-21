@@ -38,6 +38,7 @@ pub(crate) async fn get_predeployed_accounts_impl(
 }
 
 #[derive(serde::Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct BalanceQuery {
     address: Felt,
     unit: Option<FeeUnit>,

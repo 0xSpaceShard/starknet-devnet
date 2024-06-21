@@ -463,7 +463,7 @@ impl JsonRpcHandler {
         Ok(StarknetResponse::String("Alive!!!".to_string()).into())
     }
 
-    /// devnet_predeployedAccounts
+    /// devnet_getPredeployedAccounts
     pub async fn get_predeployed_accounts(&self) -> StrictRpcResult {
         let predeployed_accounts =
             get_predeployed_accounts_impl(&self.api).await.map_err(ApiError::from)?;
@@ -471,7 +471,7 @@ impl JsonRpcHandler {
         Ok(DevnetResponse::PredeployedAccounts(predeployed_accounts).into())
     }
 
-    /// devnet_accountBalance
+    /// devnet_getAccountBalance
     pub async fn get_account_balance(&self, params: BalanceQuery) -> StrictRpcResult {
         let account_balance =
             get_account_balance_impl(&self.api, params).await.map_err(ApiError::from)?;
@@ -479,7 +479,7 @@ impl JsonRpcHandler {
         Ok(DevnetResponse::AccountBalance(account_balance).into())
     }
 
-    /// devnet_config
+    /// devnet_getConfig
     pub async fn get_devnet_config(&self) -> Result<JsonRpcResponse, ApiError> {
         Ok(DevnetResponse::DevnetConfig(DevnetConfig {
             starknet_config: self.api.starknet.read().await.config.clone(),

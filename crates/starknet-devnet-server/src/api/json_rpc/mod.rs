@@ -451,10 +451,10 @@ impl std::fmt::Display for JsonRpcRequest {
             JsonRpcRequest::Restart => write!(f, "devnet_restart"),
             JsonRpcRequest::SetTime(_) => write!(f, "devnet_setTime"),
             JsonRpcRequest::IncreaseTime(_) => write!(f, "devnet_increaseTime"),
-            JsonRpcRequest::PredeployedAccounts => write!(f, "devnet_predeployedAccounts"),
-            JsonRpcRequest::AccountBalance(_) => write!(f, "devnet_accountBalance"),
+            JsonRpcRequest::PredeployedAccounts => write!(f, "devnet_getPredeployedAccounts"),
+            JsonRpcRequest::AccountBalance(_) => write!(f, "devnet_getAccountBalance"),
             JsonRpcRequest::Mint(_) => write!(f, "devnet_mint"),
-            JsonRpcRequest::DevnetConfig => write!(f, "devnet_config"),
+            JsonRpcRequest::DevnetConfig => write!(f, "devnet_getConfig"),
         }
     }
 }
