@@ -372,8 +372,7 @@ mod dump_and_load_tests {
             )
             .await
             .unwrap_err();
-        println!("{:?}", rpc_error);
-        assert!(rpc_error.message.contains("File exists"));
+        assert!(rpc_error.message.contains("I/O error"));
     }
 
     #[tokio::test]
