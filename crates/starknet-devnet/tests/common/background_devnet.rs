@@ -28,10 +28,8 @@ use super::constants::{
     ACCOUNTS, CHAIN_ID_CLI_PARAM, HEALTHCHECK_PATH, HOST, MAX_PORT, MIN_PORT,
     PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, RPC_PATH, SEED,
 };
-use super::errors::{ReqwestError, TestError};
-use super::reqwest_client::{
-    GetReqwestSender, HttpEmptyResponseBody, PostReqwestSender, ReqwestClient,
-};
+use super::errors::TestError;
+use super::reqwest_client::{PostReqwestSender, ReqwestClient};
 use super::utils::{to_hex_felt, ImpersonationAction};
 
 lazy_static! {
@@ -180,7 +178,7 @@ impl BackgroundDevnet {
             .reqwest_client()
             .post_json_async(RPC_PATH, body_json)
             .await
-            .map_err(|_| RpcError::internal_error())?;
+            .map_err(|err| RpcError::internal_error_with(err.error_message()))?;
 
         if let Some(result) = json_rpc_result.get("result") {
             Ok(result.clone())
