@@ -273,10 +273,11 @@ mod advancing_time_tests {
     }
 
     #[tokio::test]
-    async fn set_time_in_past_block_on_demand_mode() {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
-            .await
-            .expect("Could not start Devnet");
+    async fn set_time_in_past_block_generation_on_demand() {
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
+                .await
+                .expect("Could not start Devnet");
 
         set_time_in_past(&devnet).await;
     }
@@ -315,10 +316,11 @@ mod advancing_time_tests {
     }
 
     #[tokio::test]
-    async fn set_time_in_future_block_on_demand_mode() {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--blocks-on-demand"])
-            .await
-            .expect("Could not start Devnet");
+    async fn set_time_in_future_block_generation_on_demand() {
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
+                .await
+                .expect("Could not start Devnet");
 
         set_time_in_future(&devnet).await;
     }

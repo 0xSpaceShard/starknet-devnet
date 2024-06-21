@@ -6,7 +6,7 @@ A new block is generated based on the pending block, once a new block is generat
 
 ## Creating blocks on demand
 
-If you start Devnet with the `--blocks-on-demand` CLI option, you will enable the possibility to store more than one transaction in the pending block (targetable via block tag `"pending"`).
+If you start Devnet with the `--block-generation-on demand` CLI option, you will enable the possibility to store more than one transaction in the pending block (targetable via block tag `"pending"`).
 
 Once you've added the desired transactions into the pending block, you can send a `POST` request to `/create_block` or `JSON-RPC` request with method name `devnet_createBlock`. This will convert the pending block to the latest block (targetable via block tag `"latest"`), giving it a block hash and a block number. All subsequent transactions will be stored in a new pending block.
 
@@ -32,6 +32,10 @@ Response:
 ```
 {'block_hash': '0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67'}
 ```
+
+## Automatic periodic block creation
+
+Devnet started with the `--block-generation-on <INTERVAL>` CLI option, will behave like in `demand` mode but new blocks will be mined automatically in time intervals.
 
 ## Create an empty block
 
