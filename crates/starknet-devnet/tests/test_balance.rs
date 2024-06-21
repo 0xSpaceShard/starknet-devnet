@@ -1,6 +1,7 @@
 pub mod common;
 
 mod balance_tests {
+    use serde_json::json;
     use starknet_rs_core::types::FieldElement;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
@@ -8,7 +9,6 @@ mod balance_tests {
     use crate::common::constants::{
         PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
     };
-    use crate::common::reqwest_client::GetReqwestSender;
 
     #[tokio::test]
     async fn getting_balance_of_predeployed_contract() {
@@ -33,10 +33,14 @@ mod balance_tests {
             (PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string().as_str()),
         ] {
             for unit in ["WEI", "FRI"] {
-                let params = format!("address={}&unit={}", address, unit);
                 let json_resp: serde_json::Value = devnet
-                    .reqwest_client()
-                    .get_json_async("/account_balance", Some(params))
+                    .send_custom_rpc(
+                        "devnet_getAccountBalance",
+                        json!({
+                            "address": address,
+                            "unit": unit,
+                        }),
+                    )
                     .await
                     .unwrap();
 

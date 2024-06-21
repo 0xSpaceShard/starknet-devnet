@@ -129,7 +129,7 @@ mod general_integration_tests {
 
         expected_config["server_config"]["port"] = devnet.port.into();
 
-        let fetched_config = devnet.get_config().await.unwrap();
+        let fetched_config = devnet.get_config().await;
         assert_eq!(fetched_config, expected_config);
     }
 }

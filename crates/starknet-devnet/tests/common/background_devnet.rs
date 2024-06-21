@@ -7,6 +7,7 @@ use std::time;
 use lazy_static::lazy_static;
 use reqwest::{Client, StatusCode};
 use serde_json::json;
+use server::rpc_core::error::RpcError;
 use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
 use starknet_rs_core::types::{
     BlockId, BlockTag, BlockWithTxHashes, BlockWithTxs, FieldElement, FunctionCall,
@@ -27,10 +28,8 @@ use super::constants::{
     ACCOUNTS, CHAIN_ID_CLI_PARAM, HEALTHCHECK_PATH, HOST, MAX_PORT, MIN_PORT,
     PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, RPC_PATH, SEED,
 };
-use super::errors::{ReqwestError, TestError};
-use super::reqwest_client::{
-    GetReqwestSender, HttpEmptyResponseBody, PostReqwestSender, ReqwestClient,
-};
+use super::errors::TestError;
+use super::reqwest_client::{PostReqwestSender, ReqwestClient};
 use super::utils::{to_hex_felt, ImpersonationAction};
 
 lazy_static! {
@@ -167,7 +166,7 @@ impl BackgroundDevnet {
         &self,
         method: &str,
         params: serde_json::Value,
-    ) -> serde_json::Value {
+    ) -> Result<serde_json::Value, RpcError> {
         let body_json = json!({
             "jsonrpc": "2.0",
             "id": 0,
@@ -175,7 +174,19 @@ impl BackgroundDevnet {
             "params": params
         });
 
-        self.reqwest_client().post_json_async(RPC_PATH, body_json).await.unwrap()
+        let json_rpc_result: serde_json::Value = self
+            .reqwest_client()
+            .post_json_async(RPC_PATH, body_json)
+            .await
+            .map_err(|err| RpcError::internal_error_with(err.error_message()))?;
+
+        if let Some(result) = json_rpc_result.get("result") {
+            Ok(result.clone())
+        } else if let Some(error) = json_rpc_result.get("error") {
+            Err(serde_json::from_value(error.clone()).unwrap())
+        } else {
+            Err(RpcError::internal_error_with("Server responded with malformed response"))
+        }
     }
 
     pub fn clone_provider(&self) -> JsonRpcClient<HttpTransport> {
@@ -184,9 +195,8 @@ impl BackgroundDevnet {
 
     pub async fn mint(&self, address: impl LowerHex, mint_amount: u128) -> FieldElement {
         let resp_body: serde_json::Value = self
-            .reqwest_client()
-            .post_json_async(
-                "/mint",
+            .send_custom_rpc(
+                "devnet_mint",
                 json!({
                     "address": format!("{address:#x}"),
                     "amount": mint_amount
@@ -235,10 +245,17 @@ impl BackgroundDevnet {
         unit: FeeUnit,
         tag: BlockTag,
     ) -> Result<FieldElement, anyhow::Error> {
-        let params =
-            format!("address={:#x}&unit={}&block_tag={}", address, unit, Self::tag_to_str(tag));
-        let json_resp: serde_json::Value =
-            self.reqwest_client().get_json_async("/account_balance", Some(params)).await.unwrap();
+        let json_resp = self
+            .send_custom_rpc(
+                "devnet_getAccountBalance",
+                json!({
+                    "address": format!("{address:#x}"),
+                    "unit": unit,
+                    "block_tag": Self::tag_to_str(tag)
+                }),
+            )
+            .await
+            .unwrap();
 
         // response validity asserted in test_balance.rs::assert_balance_endpoint_response
         let amount_raw = json_resp["amount"].as_str().unwrap();
@@ -254,8 +271,8 @@ impl BackgroundDevnet {
 
     /// This method returns the private key and the address of the first predeployed account
     pub async fn get_first_predeployed_account(&self) -> (LocalWallet, FieldElement) {
-        let predeployed_accounts_json: serde_json::Value =
-            self.reqwest_client().get_json_async("/predeployed_accounts", None).await.unwrap();
+        let predeployed_accounts_json =
+            self.send_custom_rpc("devnet_getPredeployedAccounts", json!({})).await.unwrap();
 
         let first_account = predeployed_accounts_json.as_array().unwrap().get(0).unwrap();
 
@@ -269,11 +286,8 @@ impl BackgroundDevnet {
         (signer, account_address)
     }
 
-    pub async fn restart(&self) -> Result<(), ReqwestError> {
-        self.reqwest_client()
-            .post_json_async("/restart", ())
-            .await
-            .map(|_: HttpEmptyResponseBody| ())
+    pub async fn restart(&self) {
+        self.send_custom_rpc("devnet_restart", json!({})).await.unwrap();
     }
 
     pub async fn fork(&self) -> Result<Self, TestError> {
@@ -296,7 +310,7 @@ impl BackgroundDevnet {
     /// Mines a new block and returns its hash
     pub async fn create_block(&self) -> Result<FieldElement, anyhow::Error> {
         let block_creation_resp_body: serde_json::Value =
-            self.reqwest_client().post_json_async("/create_block", ()).await.unwrap();
+            self.send_custom_rpc("devnet_createBlock", json!({})).await.unwrap();
 
         let block_hash_str = block_creation_resp_body["block_hash"].as_str().unwrap();
         Ok(FieldElement::from_hex_be(block_hash_str)?)
@@ -334,8 +348,8 @@ impl BackgroundDevnet {
         }
     }
 
-    pub async fn get_config(&self) -> Result<serde_json::Value, anyhow::Error> {
-        Ok(self.reqwest_client().get_json_async("/config", None).await.unwrap())
+    pub async fn get_config(&self) -> serde_json::Value {
+        self.send_custom_rpc("devnet_getConfig", json!({})).await.unwrap()
     }
 
     pub async fn execute_impersonation_action(
@@ -361,11 +375,10 @@ impl BackgroundDevnet {
 
         let result = self.send_custom_rpc(method_name, params).await;
 
-        result
-            .get("error")
-            .and_then(|error_json| error_json.get("message"))
-            .and_then(|message_json| message_json.as_str())
-            .map_or(Ok(()), |message| Err(anyhow::Error::msg(message.to_string())))
+        match result {
+            Ok(_) => Ok(()),
+            Err(err) => Err(anyhow::Error::msg(err.message.to_string())),
+        }
     }
 }
 

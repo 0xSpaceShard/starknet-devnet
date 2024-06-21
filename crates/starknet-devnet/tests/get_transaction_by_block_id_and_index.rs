@@ -2,28 +2,15 @@ pub mod common;
 
 mod get_transaction_by_block_id_and_index_integration_tests {
 
-    use serde_json::json;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
     use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
 
     #[tokio::test]
     async fn get_transaction_by_block_id_and_index_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let resp: serde_json::Value = devnet
-            .reqwest_client()
-            .post_json_async(
-                "/mint",
-                json!({
-                    "address": "0x1",
-                    "amount": 1
-                }),
-            )
-            .await
-            .unwrap();
-        let tx_hash_value = resp["tx_hash"].as_str().unwrap().to_string();
+        let tx_hash_value = devnet.mint(FieldElement::ONE, 1).await;
 
         let result = devnet
             .json_rpc_client
@@ -35,10 +22,7 @@ mod get_transaction_by_block_id_and_index_integration_tests {
             starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
         ) = result
         {
-            assert_eq!(
-                invoke_v1.transaction_hash,
-                FieldElement::from_hex_be(&tx_hash_value).unwrap()
-            );
+            assert_eq!(invoke_v1.transaction_hash, tx_hash_value);
         } else {
             panic!("Could not unpack the transaction from {result:?}");
         }
@@ -48,18 +32,7 @@ mod get_transaction_by_block_id_and_index_integration_tests {
     async fn get_transaction_by_block_id_and_index_wrong_index() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        devnet
-            .reqwest_client()
-            .post_json_async(
-                "/mint",
-                json!({
-                    "address": "0x1",
-                    "amount": 1
-                }),
-            )
-            .await
-            .map(|_: HttpEmptyResponseBody| ())
-            .unwrap();
+        devnet.mint(FieldElement::ONE, 1).await;
 
         let result = devnet
             .json_rpc_client

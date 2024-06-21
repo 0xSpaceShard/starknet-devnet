@@ -5,12 +5,12 @@ mod dump_and_load_tests {
     use std::time;
 
     use serde_json::json;
+    use server::rpc_core::error::ErrorCode::InvalidParams;
     use starknet_rs_providers::Provider;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
-    use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
     use crate::common::utils::{send_ctrl_c_signal_and_wait, UniqueAutoDeletableFile};
 
     static DUMMY_ADDRESS: u128 = 1;
@@ -333,30 +333,23 @@ mod dump_and_load_tests {
     #[tokio::test]
     async fn dump_endpoint_fail_with_no_mode_set() {
         let devnet_dump = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let result = devnet_dump
-            .reqwest_client()
-            .post_json_async("/dump", ())
-            .await
-            .map(|_: HttpEmptyResponseBody| ())
-            .unwrap_err();
-        assert_eq!(result.status(), 400);
+        let rpc_error = devnet_dump.send_custom_rpc("devnet_dump", json!({})).await.unwrap_err();
+        assert!(rpc_error.message.contains("Please provide --dump-on mode"));
     }
 
     #[tokio::test]
     async fn dump_endpoint_fail_with_wrong_request() {
         let devnet_dump = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let result = devnet_dump
-            .reqwest_client()
-            .post_json_async(
-                "/dump",
+        let rpc_error = devnet_dump
+            .send_custom_rpc(
+                "devnet_dump",
                 json!({
                     "test": ""
                 }),
             )
             .await
-            .map(|_: HttpEmptyResponseBody| ())
             .unwrap_err();
-        assert_eq!(result.status(), 400);
+        assert_eq!(rpc_error.code, InvalidParams);
     }
 
     #[tokio::test]
@@ -372,37 +365,33 @@ mod dump_and_load_tests {
         .expect("Could not start Devnet");
 
         devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-        let result = devnet_dump
-            .reqwest_client()
-            .post_json_async(
-                "/dump",
+        let rpc_error = devnet_dump
+            .send_custom_rpc(
+                "devnet_dump",
                 json!({
                     "path": "///"
                 }),
             )
             .await
-            .map(|_: HttpEmptyResponseBody| ())
             .unwrap_err();
-        assert_eq!(result.status(), 400);
+        assert!(rpc_error.message.contains("I/O error"));
     }
 
     #[tokio::test]
     async fn load_endpoint_fail_with_wrong_request() {
         let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        let result = devnet_load
-            .reqwest_client()
-            .post_json_async(
-                "/load",
+        let rpc_error = devnet_load
+            .send_custom_rpc(
+                "devnet_load",
                 json!({
                     "test": ""
                 }),
             )
             .await
-            .map(|_: HttpEmptyResponseBody| ())
             .unwrap_err();
 
-        assert_eq!(result.status(), 422);
+        assert_eq!(rpc_error.code, InvalidParams);
     }
 
     #[tokio::test]
@@ -410,12 +399,10 @@ mod dump_and_load_tests {
         let load_file_name = "load_file_name";
         let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let result = devnet_load
-            .reqwest_client()
-            .post_json_async("/load", json!({ "path": load_file_name }))
+            .send_custom_rpc("devnet_load", json!({ "path": load_file_name }))
             .await
-            .map(|_: HttpEmptyResponseBody| ())
             .unwrap_err();
-        assert_eq!(result.status(), 400);
+        assert!(result.message.contains("file does not exist"));
     }
 
     #[tokio::test]
@@ -434,20 +421,13 @@ mod dump_and_load_tests {
         .expect("Could not start Devnet");
 
         let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-        devnet_dump
-            .reqwest_client()
-            .post_json_async("/dump", ())
-            .await
-            .map(|_: HttpEmptyResponseBody| ())
-            .unwrap();
+        devnet_dump.send_custom_rpc("devnet_dump", json!({})).await.unwrap();
         assert!(Path::new(&dump_file.path).exists());
 
         let dump_file_custom = UniqueAutoDeletableFile::new("dump_endpoint_custom_path");
         devnet_dump
-            .reqwest_client()
-            .post_json_async("/dump", json!({ "path": dump_file_custom.path }))
+            .send_custom_rpc("devnet_dump", json!({ "path": dump_file_custom.path }))
             .await
-            .map(|_: HttpEmptyResponseBody| ())
             .unwrap();
         assert!(Path::new(&dump_file_custom.path).exists());
 
@@ -455,10 +435,8 @@ mod dump_and_load_tests {
         // blockchain is valid
         let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         devnet_load
-            .reqwest_client()
-            .post_json_async("/load", json!({ "path": dump_file.path }))
+            .send_custom_rpc("devnet_load", json!({ "path": dump_file.path }))
             .await
-            .map(|_: HttpEmptyResponseBody| ())
             .unwrap();
 
         let balance_result = devnet_load
@@ -494,10 +472,11 @@ mod dump_and_load_tests {
         // set time in past without block generation
         let past_time = 1;
         devnet_dump
-            .reqwest_client()
-            .post_json_async("/set_time", json!({ "time": past_time, "generate_block": false }))
+            .send_custom_rpc(
+                "devnet_setTime",
+                json!({ "time": past_time, "generate_block": false }),
+            )
             .await
-            .map(|_: HttpEmptyResponseBody| ())
             .unwrap();
 
         // wait 1 second

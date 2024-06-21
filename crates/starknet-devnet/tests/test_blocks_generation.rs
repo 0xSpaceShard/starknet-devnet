@@ -107,7 +107,8 @@ mod blocks_generation_tests {
                     "block_id": "latest"
                 }),
             )
-            .await["result"];
+            .await
+            .unwrap();
 
         assert_eq!(latest_block["transactions"].as_array().unwrap().len(), tx_count);
         assert_eq!(latest_block["block_number"], block_number);
@@ -131,7 +132,8 @@ mod blocks_generation_tests {
                     "block_id": "pending"
                 }),
             )
-            .await["result"];
+            .await
+            .unwrap();
 
         assert!(pending_block["status"].is_null());
         assert_eq!(pending_block["transactions"].as_array().unwrap().len(), tx_count);

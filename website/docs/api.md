@@ -8,11 +8,11 @@ The JSON-RPC API is reachable via `/rpc` and `/` (e.g. if spawning Devnet with d
 
 ## Devnet API
 
-Devnet has many other functional features which are available via their own endpoints, which are all mentioned throughout the documentation.
+Devnet has many other functional features which are available via their own endpoints and JSON-RPC, which are all mentioned throughout the documentation.
 
 ## Config API
 
-To retrieve the current configuration of Devnet, send a `GET` request to `/config`. Example response is attached below. It can be interpreted as a JSON mapping of CLI input parameters, both specified and default ones, with some irrelevant parameters omitted. So use `starknet-devnet --help` to better understand the meaning of each value, though keep in mind that some of the parameters have slightly modified names.
+To retrieve the current configuration of Devnet, send a `GET` request to `/config` or `JSON-RPC` request with method name `devnet_getConfig`. Example response is attached below. It can be interpreted as a JSON mapping of CLI input parameters, both specified and default ones, with some irrelevant parameters omitted. So use `starknet-devnet --help` to better understand the meaning of each value, though keep in mind that some of the parameters have slightly modified names.
 
 ```json
 {

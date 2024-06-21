@@ -152,7 +152,7 @@ pub struct BroadcastedInvokeTransactionInput {
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(test, derive(Deserialize))]
 #[serde(deny_unknown_fields)]
-pub struct InvokeTransactionOutput {
+pub struct TransactionHashOutput {
     pub transaction_hash: TransactionHash,
 }
 

@@ -4,6 +4,9 @@ use axum::Json;
 use serde_json::json;
 use thiserror::Error;
 
+use crate::api::json_rpc::WILDCARD_RPC_ERROR_CODE;
+use crate::rpc_core::error::RpcError;
+
 #[derive(Error, Debug)]
 pub enum HttpApiError {
     #[error("{0}")]
@@ -32,6 +35,15 @@ pub enum HttpApiError {
     MessagingError { msg: String },
     #[error("Invalid value: {msg}")]
     InvalidValueError { msg: String },
+}
+
+impl HttpApiError {
+    pub fn http_api_error_to_rpc_error(&self) -> RpcError {
+        let error_message = self.to_string();
+        let error_rpc_code =
+            crate::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE);
+        RpcError { code: error_rpc_code, message: error_message.into(), data: None }
+    }
 }
 
 impl IntoResponse for HttpApiError {

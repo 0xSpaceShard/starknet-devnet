@@ -25,8 +25,8 @@ mod general_rpc_tests {
     async fn rpc_returns_correct_spec_version() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
-        let resp_body = devnet.send_custom_rpc("starknet_specVersion", json!([])).await;
-        match resp_body.get("result").and_then(|val| val.as_str()) {
+        let resp_body = devnet.send_custom_rpc("starknet_specVersion", json!([])).await.unwrap();
+        match resp_body.as_str() {
             Some(received_ver) => assert_eq!(received_ver, RPC_SPEC_VERSION),
             _ => panic!("Invalid resp: {resp_body}"),
         }
@@ -36,38 +36,24 @@ mod general_rpc_tests {
     async fn rpc_returns_method_not_found() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         for invalid_method in ["invalid_method", "starknet_specVersion_butWrong"] {
-            let resp_body = devnet.send_custom_rpc(invalid_method, json!({})).await;
-
-            match resp_body
-                .get("error")
-                .and_then(|err| err.get("code"))
-                .and_then(|val| val.as_i64())
-            {
-                Some(received) => {
-                    assert_eq!(received, server::rpc_core::error::ErrorCode::MethodNotFound.code())
-                }
-                _ => panic!("Invalid resp: {resp_body}"),
-            }
+            let rpc_error = devnet.send_custom_rpc(invalid_method, json!({})).await.unwrap_err();
+            assert_eq!(rpc_error.code, server::rpc_core::error::ErrorCode::MethodNotFound);
         }
     }
 
     #[tokio::test]
     async fn rpc_returns_invalid_params() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
-        let resp_body = devnet
+        let rpc_error = devnet
             .send_custom_rpc(
                 "starknet_specVersion",
                 json!({
                     "invalid_param": "unneeded_value",
                 }),
             )
-            .await;
+            .await
+            .unwrap_err();
 
-        match resp_body.get("error").and_then(|err| err.get("code")).and_then(|val| val.as_i64()) {
-            Some(received) => {
-                assert_eq!(received, server::rpc_core::error::ErrorCode::InvalidParams.code())
-            }
-            _ => panic!("Invalid resp: {resp_body}"),
-        }
+        assert_eq!(rpc_error.code, server::rpc_core::error::ErrorCode::InvalidParams);
     }
 }

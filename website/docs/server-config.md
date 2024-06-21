@@ -61,8 +61,17 @@ $ starknet-devnet --request-body-size-limit <BYTES>
 
 ## API
 
-Retrieve the server config by sending a `GET` request to `/config` and extracting its `server_config` property.
+Retrieve the server config by sending a `GET` request to `/config` or `JSON-RPC` request with method name `devnet_getConfig` and extracting its `server_config` property.
 
 ```
 $ curl localhost:5050/config | jq .server_config
+```
+
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_getConfig"
+}
 ```

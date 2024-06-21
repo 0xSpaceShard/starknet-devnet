@@ -268,20 +268,17 @@ mod get_transaction_receipt_by_hash_integration_tests {
                 u32::from_str_radix(&offset_hex_string[2..], 16).unwrap().into();
         }
 
-        let resp = &devnet
+        let rpc_error = devnet
             .send_custom_rpc(
                 "starknet_addDeclareTransaction",
                 serde_json::json!({ "declare_transaction": declare_rpc_body }),
             )
-            .await;
+            .await
+            .unwrap_err();
 
-        match resp["error"]["code"].as_u64() {
-            Some(53) => {
-                // We got error code corresponding to insufficient balance, which is ok;
-                // it's important we didn't get failed JSON schema matching with error -32602
-            }
-            _ => panic!("Unexpected response: {resp}"),
-        }
+        // We got error code corresponding to insufficient balance, which is ok;
+        // it's important we didn't get failed JSON schema matching with error -32602
+        assert_eq!(rpc_error.code.code(), 53);
     }
 
     #[tokio::test]

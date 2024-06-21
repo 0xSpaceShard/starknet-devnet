@@ -8,10 +8,23 @@ Postman is a Starknet utility that allows testing L1-L2 interaction. Ensure you 
 POST /postman/load_l1_messaging_contract
 ```
 
-```js
+```json
 {
   "networkUrl": "http://localhost:8545",
   "address": "0x123...def"
+}
+```
+
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_postmanLoad",
+    "params": {
+      "networkUrl": "http://localhost:8545",
+      "address": "0x123...def"
+    }
 }
 ```
 
@@ -31,6 +44,15 @@ Loads a `MockStarknetMessaging` contract. The `address` parameter is optional; i
 POST /postman/flush
 ```
 
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_postmanFlush"
+}
+```
+
 Goes through the newly enqueued messages, sending them from L1 to L2 and from L2 to L1. Requires no body. Optionally, set the `dry_run` specifier to just see the result of flushing, without actually triggering it:
 
 ```
@@ -39,6 +61,18 @@ POST /postman/flush
 
 ```js
 { "dry_run": true }
+```
+
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_postmanFlush",
+    "params": {
+      "dry_run": true
+    }
+}
 ```
 
 A running L1 node is required if `dry_run` is not set.
@@ -91,6 +125,26 @@ Request:
 }
 ```
 
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_postmanSendMessageToL2",
+    "params": {
+      "l2_contract_address": "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2",
+      "entry_point_selector": "0xC73F681176FC7B3F9693986FD7B14581E8D540519E27400E88B8713932BE01",
+      "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      "payload": [
+        "0x1",
+        "0x2"
+      ],
+      "paid_fee_on_l1": "0x123456abcdef"
+      "nonce":"0x0"
+  }
+}
+```
+
 Response:
 
 ```js
@@ -115,6 +169,20 @@ Request:
     "l2_contract_address": "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2",
     "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
     "payload": ["0x0", "0x1", "0x3e8"],
+}
+```
+
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_postmanConsumeMessageFromL2",
+    "params": {
+      "l2_contract_address": "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2",
+      "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      "payload": ["0x0", "0x1", "0x3e8"],
+  }
 }
 ```
 

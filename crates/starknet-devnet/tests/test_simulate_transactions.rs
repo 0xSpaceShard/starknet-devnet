@@ -141,12 +141,14 @@ mod simulation_tests {
         let params_no_flags = get_params(&[]);
         let resp_no_flags = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
-            .await["result"][0];
+            .await
+            .unwrap()[0];
 
         let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
         let resp_skip_validation = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
-            .await["result"][0];
+            .await
+            .unwrap()[0];
 
         assert_difference_if_validation(
             resp_no_flags,
@@ -213,12 +215,14 @@ mod simulation_tests {
         let params_no_flags = get_params(&[]);
         let resp_no_flags = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
-            .await["result"][0];
+            .await
+            .unwrap()[0];
 
         let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
         let resp_skip_validation = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
-            .await["result"][0];
+            .await
+            .unwrap()[0];
 
         assert_difference_if_validation(
             resp_no_flags,
@@ -285,7 +289,8 @@ mod simulation_tests {
         let params_no_flags = get_params(&[]);
         let resp_no_flags = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
-            .await["result"][0];
+            .await
+            .unwrap()[0];
 
         let no_flags_trace = &resp_no_flags["transaction_trace"];
         assert_eq!(
@@ -305,7 +310,8 @@ mod simulation_tests {
         let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
         let resp_skip_validation = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
-            .await["result"][0];
+            .await
+            .unwrap()[0];
         let skip_validation_trace = &resp_skip_validation["transaction_trace"];
         assert!(skip_validation_trace["validate_invocation"].as_object().is_none());
         assert_eq!(
@@ -323,7 +329,8 @@ mod simulation_tests {
         let params_skip_everything = get_params(&["SKIP_VALIDATE", "SKIP_FEE_CHARGE"]);
         let resp_skip_everything = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_skip_everything)
-            .await["result"][0];
+            .await
+            .unwrap()[0];
         let skip_everything_trace = &resp_skip_everything["transaction_trace"];
         assert!(skip_everything_trace["validate_invocation"].as_object().is_none());
         assert!(skip_everything_trace["fee_transfer_invocation"].as_object().is_none());
@@ -422,7 +429,8 @@ mod simulation_tests {
 
         let resp_no_flags = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
-            .await["result"][0];
+            .await
+            .unwrap()[0];
         assert_eq!(
             resp_no_flags["transaction_trace"]["execute_invocation"]["contract_address"],
             sender_address_hex
@@ -431,7 +439,8 @@ mod simulation_tests {
         let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
         let resp_skip_validation = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
-            .await["result"][0];
+            .await
+            .unwrap()[0];
         assert_eq!(
             resp_skip_validation["transaction_trace"]["execute_invocation"]["contract_address"],
             sender_address_hex

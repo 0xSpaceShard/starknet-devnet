@@ -426,10 +426,8 @@ mod estimate_fee_tests {
             ]
         });
 
-        let result = devnet.send_custom_rpc("starknet_estimateFee", params).await;
-        let revert_error = result["error"]["data"]["revert_error"].as_str().unwrap();
-
-        assert!(revert_error.contains(panic_reason));
+        let rpc_error = devnet.send_custom_rpc("starknet_estimateFee", params).await.unwrap_err();
+        assert!(rpc_error.data.unwrap()["revert_error"].as_str().unwrap().contains(panic_reason));
     }
 
     #[tokio::test]

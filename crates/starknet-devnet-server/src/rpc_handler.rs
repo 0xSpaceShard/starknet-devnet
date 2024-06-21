@@ -15,7 +15,7 @@ use crate::rpc_core::response::{Response, ResponseResult, RpcResponse};
 #[async_trait::async_trait]
 pub trait RpcHandler: Clone + Send + Sync + 'static {
     /// The request type to expect
-    type Request: DeserializeOwned + Send + Sync + fmt::Debug;
+    type Request: DeserializeOwned + Send + Sync + fmt::Display;
 
     /// Invoked when the request was received
     async fn on_request(

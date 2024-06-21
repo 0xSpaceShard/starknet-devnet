@@ -233,7 +233,7 @@ mod impersonated_account_tests {
                 simulation_result.expect("Expected simulation to succeed");
             }
 
-            forked_devnet.restart().await.unwrap();
+            forked_devnet.restart().await;
         }
     }
 

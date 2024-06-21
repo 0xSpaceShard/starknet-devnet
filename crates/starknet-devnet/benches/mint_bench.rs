@@ -25,7 +25,7 @@ fn bench_devnet(c: &mut Criterion) {
     let mut group = c.benchmark_group("Mint");
     group.significance_level(0.1).sample_size(10);
     for i in ["full", "none"].iter() {
-        group.bench_function(*i, |b| b.to_async(&rt).iter(|| black_box(mint_iter(*i))));
+        group.bench_function(*i, |b| b.to_async(&rt).iter(|| black_box(mint_iter(i))));
     }
 
     group.finish();

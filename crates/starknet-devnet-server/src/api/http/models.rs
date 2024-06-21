@@ -10,17 +10,23 @@ use starknet_types::serde_helpers::dec_string::deserialize_biguint;
 
 use crate::api::http::error::HttpApiError;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(test, derive(Debug))]
 pub struct DumpPath {
     pub path: Option<String>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(test, derive(Debug))]
 pub struct LoadPath {
     pub path: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(test, derive(Debug))]
 pub struct PostmanLoadL1MessagingContract {
     pub network_url: String,
     pub address: Option<String>,
@@ -42,6 +48,8 @@ pub struct CreatedBlock {
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(test, derive(Debug))]
 pub struct AbortingBlocks {
     pub(crate) starting_block_hash: BlockHash,
 }
@@ -52,11 +60,15 @@ pub struct AbortedBlocks {
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(test, derive(Debug))]
 pub struct IncreaseTime {
     pub time: u64,
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(test, derive(Debug))]
 pub struct SetTime {
     pub time: u64,
     pub generate_block: Option<bool>,
@@ -94,7 +106,9 @@ pub struct FeeToken {
     address: ContractAddress,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(test, derive(Debug))]
 pub struct MintTokensRequest {
     pub address: ContractAddress,
     #[serde(deserialize_with = "deserialize_biguint")]
@@ -119,7 +133,7 @@ pub struct ForkStatus {
     pub block: Option<u64>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct FlushedMessages {
     pub messages_to_l1: Vec<MessageToL1>,
     pub messages_to_l2: Vec<MessageToL2>,
@@ -128,8 +142,10 @@ pub struct FlushedMessages {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(test, derive(Debug))]
 pub struct FlushParameters {
-    pub dry_run: bool,
+    pub dry_run: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize)]

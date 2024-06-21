@@ -9,7 +9,7 @@ Separate tokens use separate ERC20 contracts for minting and charging fees. Thes
 
 ## Mint token - Local faucet
 
-By sending a `POST` request to `/mint` for a token, you initiate a transaction on that token's ERC20 contract. The response contains the hash of this transaction, as well as the new balance after minting. The token is specified by providing the unit, and defaults to `WEI`.
+By sending a `POST` request to `/mint` or `JSON-RPC` request with method name `devnet_mint` for a token, you initiate a transaction on that token's ERC20 contract. The response contains the hash of this transaction, as well as the new balance after minting. The token is specified by providing the unit, and defaults to `WEI`.
 
 The value of `amount` is in WEI and needs to be an integer (or a float whose fractional part is 0, e.g. `1000.0` or `1e21`)
 
@@ -19,6 +19,20 @@ POST /mint
     "address": "0x6e3205f...",
     "amount": 500000,
     "unit": "WEI" | "FRI"
+}
+```
+
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_mint",
+    "params": {
+        "address": "0x6e3205f...",
+        "amount": 500000,
+        "unit": "WEI" | "FRI"
+    }
 }
 ```
 
@@ -38,4 +52,18 @@ Check the balance of an address by sending a `GET` request to `/account_balance`
 
 ```
 GET /account_balance?address=<ADDRESS>[&unit=<FRI|WEI>][&block_tag=<latest|pending>]
+```
+
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_getAccountBalance",
+    "params": {
+        "address": "0x6e3205f...",
+        "unit": "WEI" | "FRI",
+        "block_tag": "latest" | "pending"
+    }
+}
 ```
