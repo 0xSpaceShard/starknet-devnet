@@ -430,7 +430,6 @@ impl std::fmt::Display for JsonRpcRequest {
             }
             JsonRpcRequest::AutoImpersonate => write!(f, "devnet_autoImpersonate"),
             JsonRpcRequest::StopAutoImpersonate => write!(f, "devnet_stopAutoImpersonate"),
-            JsonRpcRequest::IsAlive => write!(f, "devnet_isAlive"),
             JsonRpcRequest::Dump(_) => write!(f, "devnet_dump"),
             JsonRpcRequest::Load(_) => write!(f, "devnet_load"),
             JsonRpcRequest::PostmanLoadL1MessagingContract(_) => write!(f, "devnet_postmanLoad"),
