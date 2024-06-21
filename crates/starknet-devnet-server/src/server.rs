@@ -70,7 +70,8 @@ pub fn serve_http_api_json_rpc(
         None
     };
 
-    let json_rpc_handler = JsonRpcHandler { api, origin_caller };
+    let json_rpc_handler =
+        JsonRpcHandler { api, origin_caller, server_config: server_config.clone() };
     let json_rpc_routes = json_rpc_routes(json_rpc_handler);
     let http_api_routes = http_api_routes(http_handler);
 

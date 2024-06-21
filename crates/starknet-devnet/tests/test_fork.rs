@@ -37,7 +37,7 @@ mod fork_tests {
     async fn test_fork_status() {
         let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
-        let origin_devnet_config = origin_devnet.get_config().await.unwrap();
+        let origin_devnet_config = origin_devnet.get_config().await;
         assert_eq!(
             origin_devnet_config["fork_config"],
             serde_json::json!({ "url": null, "block_number": null })
@@ -45,7 +45,7 @@ mod fork_tests {
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
-        let fork_devnet_config = fork_devnet.get_config().await.unwrap();
+        let fork_devnet_config = fork_devnet.get_config().await;
         let fork_devnet_fork_config = &fork_devnet_config["fork_config"];
         assert_eq!(
             url::Url::from_str(fork_devnet_fork_config["url"].as_str().unwrap()).unwrap(),

@@ -23,6 +23,18 @@ $ starknet-devnet --dump-on exit --dump-path <PATH>
 $ curl -X POST http://<HOST>:<PORT>/dump -d '{ "path": <PATH> }' -H "Content-Type: application/json"
 ```
 
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_dump",
+    "params": {
+        "path": PATH
+    }
+}
+```
+
 ## Loading
 
 To load a preserved Devnet instance, the options are:
@@ -39,6 +51,18 @@ $ starknet-devnet --dump-path <PATH>
 curl -X POST http://<HOST>:<PORT>/load -d '{ "path": <PATH> }' -H "Content-Type: application/json"
 ```
 
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_load",
+    "params": {
+        "path": PATH
+    }
+}
+```
+
 Currently, dumping produces a list of received transactions that is stored on disk. Conversely, loading is implemented as the re-execution of transactions from a dump. This means that timestamps of `StarknetBlock` will be different on each load.
 
 ### Loading disclaimer
@@ -49,7 +73,7 @@ If you dumped a Devnet utilizing one class for account predeployment (e.g. `--ac
 
 ## Restarting
 
-Devnet can be restarted by making a `POST /restart` request (no body required). All of the deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests that may have been loaded from a dump file on startup.
+Devnet can be restarted by making a `POST /restart` request (no body required) or `JSON-RPC` request with method name `devnet_restart`. All of the deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests that may have been loaded from a dump file on startup.
 
 If you're using [**the Hardhat plugin**](https://github.com/0xSpaceShard/starknet-hardhat-plugin#restart), restart with `starknet.devnet.restart()`.
 
