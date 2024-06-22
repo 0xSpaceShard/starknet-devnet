@@ -7,9 +7,9 @@ mod get_events_integration_tests {
         Account, Call, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::{BlockId, BlockTag, EventFilter, FieldElement};
+    use starknet_rs_core::types::{BlockId, BlockTag, EventFilter, FieldElement, StarknetError};
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
-    use starknet_rs_providers::Provider;
+    use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
@@ -150,5 +150,45 @@ mod get_events_integration_tests {
                 .expect("Could not start Devnet");
 
         get_events_correct_chunking(&devnet, true).await
+    }
+
+    #[tokio::test]
+    async fn get_events_errors() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        let chunk_size = 3;
+        let mut continuation_token: Option<String> = None;
+        let event_filter = EventFilter {
+            from_block: Some(BlockId::Number(90000000)),
+            to_block: Some(BlockId::Tag(BlockTag::Latest)),
+            address: None,
+            keys: None,
+        };
+        match devnet
+            .json_rpc_client
+            .get_events(event_filter.clone(), continuation_token.clone(), chunk_size as u64)
+            .await
+            .unwrap_err()
+        {
+            ProviderError::StarknetError(StarknetError::BlockNotFound) => (),
+            err => panic!("Invalid error: {err:?}"),
+        }
+
+        continuation_token = Some(String::from("invalid token"));
+        let event_filter = EventFilter {
+            from_block: Some(BlockId::Number(0)),
+            to_block: Some(BlockId::Tag(BlockTag::Latest)),
+            address: None,
+            keys: None,
+        };
+        match devnet
+            .json_rpc_client
+            .get_events(event_filter.clone(), continuation_token.clone(), chunk_size as u64)
+            .await
+            .unwrap_err()
+        {
+            ProviderError::StarknetError(StarknetError::InvalidContinuationToken) => (),
+            err => panic!("Invalid error: {err:?}"),
+        }
     }
 }

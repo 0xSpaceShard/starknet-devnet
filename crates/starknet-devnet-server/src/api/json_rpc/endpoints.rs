@@ -376,14 +376,19 @@ impl JsonRpcHandler {
             .parse::<usize>()
             .map_err(|_| ApiError::InvalidContinuationToken)?;
 
-        let (events, has_more_events) = starknet.get_events(
-            filter.from_block,
-            filter.to_block,
-            filter.address,
-            filter.keys,
-            page * filter.chunk_size,
-            Some(filter.chunk_size),
-        )?;
+        let (events, has_more_events) = starknet
+            .get_events(
+                filter.from_block,
+                filter.to_block,
+                filter.address,
+                filter.keys,
+                page * filter.chunk_size,
+                Some(filter.chunk_size),
+            )
+            .map_err(|err| match err {
+                Error::NoBlock => ApiError::BlockNotFound,
+                _ => err.into(),
+            })?;
 
         Ok(StarknetResponse::Events(EventsChunk {
             events,
