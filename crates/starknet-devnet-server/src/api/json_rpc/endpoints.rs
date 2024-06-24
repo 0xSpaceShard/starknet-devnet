@@ -271,7 +271,7 @@ impl JsonRpcHandler {
         let num_trans_count = self.api.starknet.read().await.get_block_txs_count(block_id.as_ref());
         match num_trans_count {
             Ok(count) => Ok(StarknetResponse::BlockTransactionCount(count).into()),
-            Err(_) => Err(ApiError::NoBlocks),
+            Err(_) => Err(ApiError::BlockNotFound),
         }
     }
 

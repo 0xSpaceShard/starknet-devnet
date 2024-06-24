@@ -219,8 +219,7 @@ impl EthereumMessaging {
                 Some(receipt) => {
                     trace!(
                         "Message {:064x} sent on L1 with transaction hash {:#x}",
-                        message_hash,
-                        receipt.transaction_hash,
+                        message_hash, receipt.transaction_hash,
                     );
                 }
                 None => {
