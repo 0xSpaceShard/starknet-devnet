@@ -1,6 +1,6 @@
 use axum::extract::{Query, State};
 use axum::Json;
-use starknet_rs_core::types::BlockTag;
+use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
@@ -20,10 +20,10 @@ pub async fn get_predeployed_accounts(
 pub(crate) async fn get_predeployed_accounts_impl(
     api: &Api,
 ) -> HttpApiResult<Vec<SerializableAccount>> {
-    let predeployed_accounts = api
-        .starknet
-        .read()
-        .await
+    // TODO account
+
+    let mut starknet = api.starknet.write().await;
+    let predeployed_accounts: Vec<_> = starknet
         .get_predeployed_accounts()
         .into_iter()
         .map(|acc| SerializableAccount {
@@ -31,8 +31,17 @@ pub(crate) async fn get_predeployed_accounts_impl(
             address: acc.account_address,
             public_key: acc.public_key,
             private_key: acc.private_key,
+            balance: "0".into(),
         })
         .collect();
+
+    println!("testo");
+
+    let address = predeployed_accounts[0].address;
+    println!("address: {:?}", address);
+
+    let x = starknet.get_balance_erc20(address.into(), BlockId::Tag(BlockTag::Latest));
+    println!("x: {:?}", x);
 
     Ok(predeployed_accounts)
 }

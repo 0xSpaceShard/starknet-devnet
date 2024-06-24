@@ -281,4 +281,19 @@ mod test_account_selection {
 
         assert_supports_isrc6(&devnet, account_deployment.contract_address).await;
     }
+
+    #[tokio::test]
+    async fn test_get_predeployed_accounts_balances() {
+        // TODO account
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--accounts", "10"]).await.unwrap();
+
+        let accounts = devnet.get_predeployed_accounts().await;
+
+        println!("accounts: {:?}", accounts);
+
+        for account in accounts.as_array().unwrap() {
+            println!("account: {:?}", account["balance"]);
+        }
+    }
 }

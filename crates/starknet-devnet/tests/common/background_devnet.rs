@@ -132,7 +132,7 @@ impl BackgroundDevnet {
                 .arg("--port")
                 .arg(free_port.to_string())
                 .args(Self::add_default_args(args))
-                .stdout(Stdio::piped()) // comment this out for complete devnet stdout
+                //.stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
 
@@ -284,6 +284,15 @@ impl BackgroundDevnet {
         let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key));
 
         (signer, account_address)
+    }
+
+    pub async fn get_predeployed_accounts(&self) -> serde_json::Value {
+        // TODO account
+
+        let predeployed_accounts_json =
+            self.send_custom_rpc("devnet_getPredeployedAccounts", json!({})).await.unwrap();
+
+        predeployed_accounts_json
     }
 
     pub async fn restart(&self) {
