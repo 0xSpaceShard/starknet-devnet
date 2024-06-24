@@ -108,7 +108,7 @@ mod tests {
 
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
     use crate::starknet::Starknet;
-    use crate::state::CustomStateReader;
+    use crate::state::{BlockTagOrNumber, CustomStateReader};
     use crate::traits::{HashIdentified, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
@@ -258,7 +258,7 @@ mod tests {
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
         starknet
             .pending_state
-            .get_rpc_contract_class(&class_hash, &BlockId::Tag(BlockTag::Latest))
+            .get_rpc_contract_class(&class_hash, &BlockTagOrNumber::Tag(BlockTag::Latest))
             .unwrap();
     }
 

@@ -6,7 +6,7 @@ use starknet_types::felt::ClassHash;
 
 use crate::error::{DevnetResult, Error, StateError};
 use crate::starknet::Starknet;
-use crate::state::CustomStateReader;
+use crate::state::{BlockTagOrNumber, CustomStateReader};
 
 pub fn get_class_hash_at_impl(
     starknet: &mut Starknet,
@@ -29,21 +29,20 @@ pub fn get_class_impl(
     block_id: &BlockId,
     class_hash: ClassHash,
 ) -> DevnetResult<ContractClass> {
-    // if provided with block hash, convert to number - the underlying logic only works with that or
-    // block tag
-    let block_id = if let BlockId::Hash(block_hash) = block_id {
-        match starknet.blocks.hash_to_block.get(&block_hash.into()) {
-            Some(block) => BlockId::Number(block.block_number().0),
+    // if block id is hash, convert to number; the underlying logic only works with that or tag
+    let block_tag_or_number = match block_id {
+        BlockId::Hash(block_hash) => match starknet.blocks.hash_to_block.get(&block_hash.into()) {
+            Some(block) => BlockTagOrNumber::Number(block.block_number().0),
             None => return Err(Error::NoBlock),
-        }
-    } else {
-        *block_id
+        },
+        BlockId::Number(number) => BlockTagOrNumber::Number(*number),
+        BlockId::Tag(tag) => BlockTagOrNumber::Tag(*tag),
     };
 
     // TODO do we even need the state at the specific block_id? Perhaps the class storage should be
     // a property of the parent class.
-    let state = starknet.get_mut_state_at(&block_id)?;
-    match state.get_rpc_contract_class(&class_hash, &block_id) {
+    let state = starknet.get_mut_state_at(block_id)?;
+    match state.get_rpc_contract_class(&class_hash, &block_tag_or_number) {
         Some(class) => Ok(class.clone()),
         None => Err(Error::StateError(StateError::NoneClassHash(class_hash))),
     }

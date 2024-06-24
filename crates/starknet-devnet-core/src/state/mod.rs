@@ -8,7 +8,7 @@ use blockifier::state::state_api::{State, StateReader};
 use parking_lot::RwLock;
 use starknet_api::core::CompiledClassHash;
 use starknet_api::hash::StarkFelt;
-use starknet_rs_core::types::{BlockId, BlockTag};
+use starknet_rs_core::types::BlockTag;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt};
@@ -22,6 +22,11 @@ use crate::utils::casm_hash;
 pub(crate) mod state_diff;
 pub(crate) mod state_readers;
 pub mod state_update;
+
+pub enum BlockTagOrNumber {
+    Tag(BlockTag),
+    Number(u64),
+}
 
 pub trait CustomStateReader {
     fn is_contract_deployed(&mut self, contract_address: ContractAddress) -> DevnetResult<bool>;
@@ -37,7 +42,7 @@ pub trait CustomStateReader {
     fn get_rpc_contract_class(
         &self,
         class_hash: &ClassHash,
-        block_id: &BlockId,
+        block_id: &BlockTagOrNumber,
     ) -> Option<ContractClass>;
 }
 
@@ -300,15 +305,13 @@ impl CustomStateReader for StarknetState {
     fn get_rpc_contract_class(
         &self,
         class_hash: &ClassHash,
-        block_id: &BlockId,
+        block_id: &BlockTagOrNumber,
     ) -> Option<ContractClass> {
         let class_storage = self.rpc_contract_classes.read();
         if let Some((class, storage_block_number)) = class_storage.committed.get(class_hash) {
+            // If we're here, the requested class was committed at some point, need to see when.
             match block_id {
-                BlockId::Hash(_) => {
-                    None // this case should have been handled earlier
-                }
-                BlockId::Number(query_block_number) => {
+                BlockTagOrNumber::Number(query_block_number) => {
                     // If the class was stored before the block at which we are querying (or at that
                     // block), we can return it.
                     if storage_block_number <= query_block_number {
@@ -317,15 +320,19 @@ impl CustomStateReader for StarknetState {
                         None
                     }
                 }
-                BlockId::Tag(_) => {
-                    // Class requested at block_id = (pending || latest); since it's present among
-                    // the committed classes, it's in the latest block or older and should be
-                    // returned.
+                BlockTagOrNumber::Tag(_) => {
+                    // Class is requested at block_id = (pending || latest). Since it's present
+                    // among the committed classes, it's in the latest block or
+                    // older and can be returned for either tag.
                     Some(class.clone())
                 }
             }
-        } else if let BlockId::Tag(BlockTag::Pending) = block_id {
-            class_storage.staging.get(class_hash).cloned()
+        } else if let Some(class) = class_storage.staging.get(class_hash) {
+            // If class present in storage.staging, it can only be retrieved if block_id=pending
+            match block_id {
+                BlockTagOrNumber::Tag(BlockTag::Pending) => Some(class.clone()),
+                _ => None,
+            }
         } else {
             None
         }
@@ -418,13 +425,13 @@ mod tests {
     use starknet_api::core::Nonce;
     use starknet_api::hash::StarkFelt;
     use starknet_api::state::StorageKey;
-    use starknet_rs_core::types::{BlockId, BlockTag};
+    use starknet_rs_core::types::BlockTag;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::felt::Felt;
 
     use super::StarknetState;
-    use crate::state::{CustomState, CustomStateReader};
+    use crate::state::{BlockTagOrNumber, CustomState, CustomStateReader};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
 
@@ -510,8 +517,9 @@ mod tests {
             other => panic!("Invalid result: {other:?}"),
         }
 
-        let retrieved_rpc_class =
-            state.get_rpc_contract_class(&class_hash, &BlockId::Tag(BlockTag::Latest)).unwrap();
+        let retrieved_rpc_class = state
+            .get_rpc_contract_class(&class_hash, &BlockTagOrNumber::Tag(BlockTag::Latest))
+            .unwrap();
         assert_eq!(retrieved_rpc_class, contract_class.into());
     }
 
