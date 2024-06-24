@@ -329,6 +329,18 @@ pub async fn deploy_argent_account(
     Ok((deployment_result, signer))
 }
 
+/// Assert that the set of elements of `iterable1` is a subset of the elements of `iterable2` and
+/// vice versa.
+pub fn assert_equal_elements<T>(iterable1: &[T], iterable2: &[T])
+where
+    T: PartialEq,
+{
+    assert_eq!(iterable1.len(), iterable2.len());
+    for e in iterable1 {
+        assert!(iterable2.contains(e));
+    }
+}
+
 #[cfg(test)]
 mod test_unique_auto_deletable_file {
     use std::path::Path;

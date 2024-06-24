@@ -19,8 +19,8 @@ mod blocks_generation_tests {
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
     use crate::common::utils::{
-        assert_tx_successful, get_contract_balance, get_contract_balance_by_block_id,
-        get_events_contract_in_sierra_and_compiled_class_hash,
+        assert_equal_elements, assert_tx_successful, get_contract_balance,
+        get_contract_balance_by_block_id, get_events_contract_in_sierra_and_compiled_class_hash,
         get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
         UniqueAutoDeletableFile,
     };
@@ -383,8 +383,11 @@ mod blocks_generation_tests {
         for block_id in [BlockId::Tag(BlockTag::Latest), BlockId::Hash(declaration_block_hash)] {
             match devnet.json_rpc_client.get_state_update(block_id).await {
                 Ok(MaybePendingStateUpdate::Update(StateUpdate { state_diff, .. })) => {
-                    assert_eq!(state_diff.declared_classes, expected_block_declarations);
-                    assert_eq!(state_diff.nonces, expected_block_nonce_update)
+                    assert_equal_elements(
+                        &state_diff.declared_classes,
+                        &expected_block_declarations,
+                    );
+                    assert_equal_elements(&state_diff.nonces, &expected_block_nonce_update)
                 }
                 other => panic!("Unexpected response: {other:?}"),
             }
