@@ -37,7 +37,7 @@ use self::models::{
     SyncingOutput, TransactionStatusOutput,
 };
 use self::origin_forwarder::OriginForwarder;
-use super::http::endpoints::accounts::{BalanceQuery, PredeployedAccountseQuery};
+use super::http::endpoints::accounts::{BalanceQuery, PredeployedAccountsQuery};
 use super::http::endpoints::DevnetConfig;
 use super::http::models::{
     AbortedBlocks, AbortingBlocks, AccountBalanceResponse, CreatedBlock, DumpPath, FlushParameters,
@@ -367,7 +367,7 @@ pub enum JsonRpcRequest {
     #[serde(rename = "devnet_increaseTime")]
     IncreaseTime(IncreaseTime),
     #[serde(rename = "devnet_getPredeployedAccounts")]
-    PredeployedAccounts(PredeployedAccountseQuery),
+    PredeployedAccounts(PredeployedAccountsQuery),
     #[serde(rename = "devnet_getAccountBalance")]
     AccountBalance(BalanceQuery),
     #[serde(rename = "devnet_mint")]

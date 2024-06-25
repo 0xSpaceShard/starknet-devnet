@@ -16,8 +16,7 @@ use super::error::{ApiError, StrictRpcResult};
 use super::models::{BlockHashAndNumberOutput, SyncingOutput, TransactionStatusOutput};
 use super::{DevnetResponse, JsonRpcHandler, JsonRpcResponse, StarknetResponse, RPC_SPEC_VERSION};
 use crate::api::http::endpoints::accounts::{
-    get_account_balance_impl, get_predeployed_accounts_impl, BalanceQuery,
-    PredeployedAccountseQuery,
+    get_account_balance_impl, get_predeployed_accounts_impl, BalanceQuery, PredeployedAccountsQuery,
 };
 use crate::api::http::endpoints::DevnetConfig;
 
@@ -462,7 +461,7 @@ impl JsonRpcHandler {
     /// devnet_getPredeployedAccounts
     pub async fn get_predeployed_accounts(
         &self,
-        params: PredeployedAccountseQuery,
+        params: PredeployedAccountsQuery,
     ) -> StrictRpcResult {
         let predeployed_accounts =
             get_predeployed_accounts_impl(&self.api, params).await.map_err(ApiError::from)?;

@@ -12,20 +12,20 @@ use crate::api::http::{HttpApiHandler, HttpApiResult};
 use crate::api::Api;
 
 #[derive(serde::Deserialize, Debug)]
-pub struct PredeployedAccountseQuery {
+pub struct PredeployedAccountsQuery {
     with_balance: Option<bool>,
 }
 
 pub async fn get_predeployed_accounts(
     State(state): State<HttpApiHandler>,
-    Query(params): Query<PredeployedAccountseQuery>,
+    Query(params): Query<PredeployedAccountsQuery>,
 ) -> HttpApiResult<Json<Vec<SerializableAccount>>> {
     get_predeployed_accounts_impl(&state.api, params).await.map(Json::from)
 }
 
 pub(crate) async fn get_predeployed_accounts_impl(
     api: &Api,
-    params: PredeployedAccountseQuery,
+    params: PredeployedAccountsQuery,
 ) -> HttpApiResult<Vec<SerializableAccount>> {
     let mut starknet = api.starknet.write().await;
     let mut predeployed_accounts: Vec<_> = starknet
