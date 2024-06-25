@@ -1,6 +1,7 @@
 use axum::extract::{Query, State};
 use axum::Json;
-use starknet_rs_core::types::{BlockId, BlockTag};
+use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
+use starknet_rs_core::types::{BlockId, BlockTag, FieldElement};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
@@ -17,13 +18,28 @@ pub async fn get_predeployed_accounts(
     get_predeployed_accounts_impl(&state.api).await.map(Json::from)
 }
 
+pub(crate) async fn get_balance_eth(api: &Api, address: ContractAddress) -> FieldElement {
+    println!("get_balance_eth 1");
+
+    let mut starknet = api.starknet.write().await;
+    println!("get_balance_eth 2");
+
+    let eth = FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap().into();
+    println!("get_balance_eth 3");
+
+    let result =
+        starknet.get_balance_erc20(address.into(), BlockId::Tag(BlockTag::Latest), eth);
+
+    println!("result: {:?}", result);
+
+    result.unwrap()
+}
+
 pub(crate) async fn get_predeployed_accounts_impl(
     api: &Api,
 ) -> HttpApiResult<Vec<SerializableAccount>> {
-    // TODO account
-
     let mut starknet = api.starknet.write().await;
-    let predeployed_accounts: Vec<_> = starknet
+    let mut predeployed_accounts: Vec<_> = starknet
         .get_predeployed_accounts()
         .into_iter()
         .map(|acc| SerializableAccount {
@@ -31,17 +47,23 @@ pub(crate) async fn get_predeployed_accounts_impl(
             address: acc.account_address,
             public_key: acc.public_key,
             private_key: acc.private_key,
-            balance: "0".into(),
+            balance: "0".to_string(),
         })
         .collect();
 
-    println!("testo");
+    // TODO: update balance
+    for account in predeployed_accounts.iter_mut() {
+        println!("account.address: {:?}", account.address);
+        let eth = FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap().into();
+        println!("get_balance_eth 333");
+    
+        let result =
+            starknet.get_balance_erc20(account.address.into(), BlockId::Tag(BlockTag::Latest), eth);
+        
+        account.balance = result.unwrap().to_string();
 
-    let address = predeployed_accounts[0].address;
-    println!("address: {:?}", address);
-
-    let x = starknet.get_balance_erc20(address.into(), BlockId::Tag(BlockTag::Latest));
-    println!("x: {:?}", x);
+        println!("account.balance: {:?}", account.balance);
+    }
 
     Ok(predeployed_accounts)
 }

@@ -293,7 +293,8 @@ mod test_account_selection {
         println!("accounts: {:?}", accounts);
 
         for account in accounts.as_array().unwrap() {
-            println!("account: {:?}", account["balance"]);
+            println!("account: {:?}", account);
+            println!("balance: {:?}", account["balance"]);
         }
     }
 }

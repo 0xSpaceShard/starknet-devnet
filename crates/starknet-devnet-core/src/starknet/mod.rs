@@ -266,33 +266,34 @@ impl Starknet {
         &mut self,
         address: Felt,
         block_id: BlockId,
+        contract_address: FieldElement,
     ) -> DevnetResult<FieldElement> {
         // TODO account
 
+        // FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap().into()
+
         let balance_raw = self.call(
             &block_id,
-            FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap().into(),
+            contract_address.into(),
             get_selector_from_name("balanceOf").unwrap().into(),
             vec![address.into()],
         )?;
 
         println!("balance_raw: {:?}", balance_raw);
-        // assert_eq!(balance_raw.len(), 2);
-        // let balance_low: BigUint = (Felt::from(*balance_raw.get(0).unwrap())).into();
-        // let balance_high: BigUint = (Felt::from(*balance_raw.get(1).unwrap())).into();
-        // let balance: BigUint = (balance_high << 128) + balance_low;
+        
+        assert_eq!(balance_raw.len(), 2);
+        let balance_low: BigUint = (Felt::from(*balance_raw.get(0).unwrap())).into();
+        let balance_high: BigUint = (Felt::from(*balance_raw.get(1).unwrap())).into();
+        let balance: BigUint = (balance_high << 128) + balance_low;
+        let x = FieldElement::from_byte_slice_be(&balance.to_bytes_be()).unwrap();
 
-        // let x = FieldElement::from_byte_slice_be(&balance.to_bytes_be()).unwrap();
-        // Ok(x)
-        Ok(FieldElement::ZERO)
+        println!("balance x: {:?}", x);
+
+        Ok(x)
     }
 
     pub fn get_predeployed_accounts(&self) -> Vec<Account> {
         let vec = self.predeployed_accounts.get_accounts().to_vec();
-
-        // TODO: some magic with get balances
-        println!("some magic with get balances");
-
         vec
     }
 
