@@ -1,7 +1,6 @@
 use axum::extract::{Query, State};
 use axum::Json;
-use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
-use starknet_rs_core::types::{BlockId, BlockTag, FieldElement};
+use starknet_rs_core::types::BlockTag;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
@@ -12,31 +11,21 @@ use crate::api::http::models::{AccountBalanceResponse, SerializableAccount};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 use crate::api::Api;
 
-pub async fn get_predeployed_accounts(
-    State(state): State<HttpApiHandler>,
-) -> HttpApiResult<Json<Vec<SerializableAccount>>> {
-    get_predeployed_accounts_impl(&state.api).await.map(Json::from)
+#[derive(serde::Deserialize, Debug)]
+pub struct PredeployedAccountseQuery {
+    with_balance: Option<bool>,
 }
 
-pub(crate) async fn get_balance_eth(api: &Api, address: ContractAddress) -> FieldElement {
-    println!("get_balance_eth 1");
-
-    let mut starknet = api.starknet.write().await;
-    println!("get_balance_eth 2");
-
-    let eth = FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap().into();
-    println!("get_balance_eth 3");
-
-    let result =
-        starknet.get_balance_erc20(address.into(), BlockId::Tag(BlockTag::Latest), eth);
-
-    println!("result: {:?}", result);
-
-    result.unwrap()
+pub async fn get_predeployed_accounts(
+    State(state): State<HttpApiHandler>,
+    Query(params): Query<PredeployedAccountseQuery>,
+) -> HttpApiResult<Json<Vec<SerializableAccount>>> {
+    get_predeployed_accounts_impl(&state.api, params).await.map(Json::from)
 }
 
 pub(crate) async fn get_predeployed_accounts_impl(
     api: &Api,
+    params: PredeployedAccountseQuery,
 ) -> HttpApiResult<Vec<SerializableAccount>> {
     let mut starknet = api.starknet.write().await;
     let mut predeployed_accounts: Vec<_> = starknet
@@ -47,22 +36,27 @@ pub(crate) async fn get_predeployed_accounts_impl(
             address: acc.account_address,
             public_key: acc.public_key,
             private_key: acc.private_key,
-            balance: "0".to_string(),
+            balances: None,
         })
         .collect();
 
-    // TODO: update balance
-    for account in predeployed_accounts.iter_mut() {
-        println!("account.address: {:?}", account.address);
-        let eth = FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap().into();
-        println!("get_balance_eth 333");
-    
-        let result =
-            starknet.get_balance_erc20(account.address.into(), BlockId::Tag(BlockTag::Latest), eth);
-        
-        account.balance = result.unwrap().to_string();
+    // handle with_balance query string
+    if params.with_balance == Some(true) {
+        for account in predeployed_accounts.iter_mut() {
+            let mut balances = Vec::new();
 
-        println!("account.balance: {:?}", account.balance);
+            for unit in [FeeUnit::WEI, FeeUnit::FRI] {
+                let erc20_address = get_erc20_address(&unit);
+                let amount =
+                    get_balance(&mut starknet, account.address, erc20_address, BlockTag::Pending)
+                        .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
+                let balance = AccountBalanceResponse { amount: amount.to_string(), unit };
+
+                balances.push(balance)
+            }
+
+            account.balances = Some(balances);
+        }
     }
 
     Ok(predeployed_accounts)
@@ -101,5 +95,6 @@ pub(crate) async fn get_account_balance_impl(
         params.block_tag.unwrap_or(BlockTag::Latest),
     )
     .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
+
     Ok(AccountBalanceResponse { amount: amount.to_string(), unit })
 }

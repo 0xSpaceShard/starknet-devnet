@@ -24,4 +24,8 @@ If you want to deploy an instance of an account contract class not predeclared o
 
 ## How to get predeployment info?
 
-The predeployment information is logged on Devnet startup. Predeployed accounts can be retrieved in JSON format by sending a `GET` request to `/predeployed_accounts` of your Devnet or `JSON-RPC` request with method name `devnet_getPredeployedAccounts`.
+The predeployment information is logged on Devnet startup. Predeployed accounts can be retrieved in JSON format by sending a `GET` request to `/predeployed_accounts` of your Devnet or `JSON-RPC` request with method name `devnet_getPredeployedAccounts`. With additional query string `with_balance=true` WEI and FRI balances will be provided.
+
+```
+GET /predeployed_accounts?with_balance=true
+```

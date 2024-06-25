@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::LowerHex;
 use std::net::TcpListener;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Command};
 use std::time;
 
 use lazy_static::lazy_static;
@@ -287,12 +287,13 @@ impl BackgroundDevnet {
     }
 
     pub async fn get_predeployed_accounts(&self) -> serde_json::Value {
-        // TODO account
+        self.send_custom_rpc("devnet_getPredeployedAccounts", json!({})).await.unwrap()
+    }
 
-        let predeployed_accounts_json =
-            self.send_custom_rpc("devnet_getPredeployedAccounts", json!({})).await.unwrap();
-
-        predeployed_accounts_json
+    pub async fn get_predeployed_accounts_with_balances(&self) -> serde_json::Value {
+        self.send_custom_rpc("devnet_getPredeployedAccounts", json!({"with_balance": true}))
+            .await
+            .unwrap()
     }
 
     pub async fn restart(&self) {

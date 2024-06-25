@@ -284,17 +284,21 @@ mod test_account_selection {
 
     #[tokio::test]
     async fn test_get_predeployed_accounts_balances() {
-        // TODO account
         let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--accounts", "10"]).await.unwrap();
 
         let accounts = devnet.get_predeployed_accounts().await;
-
-        println!("accounts: {:?}", accounts);
-
         for account in accounts.as_array().unwrap() {
-            println!("account: {:?}", account);
-            println!("balance: {:?}", account["balance"]);
+            assert!(account["balances"].is_null());
+        }
+
+        let accounts_balances = devnet.get_predeployed_accounts_with_balances().await;
+        for account in accounts_balances.as_array().unwrap() {
+            assert_eq!(account["balances"][0]["amount"], "500000000000000000000");
+            assert_eq!(account["balances"][0]["unit"], "WEI");
+
+            assert_eq!(account["balances"][1]["amount"], "500000000000000000000");
+            assert_eq!(account["balances"][1]["unit"], "FRI");
         }
     }
 }
