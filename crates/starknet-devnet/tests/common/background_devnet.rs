@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::LowerHex;
 use std::net::TcpListener;
-use std::process::{Child, Command};
+use std::process::{Child, Command, Stdio};
 use std::time;
 
 use lazy_static::lazy_static;
@@ -132,7 +132,7 @@ impl BackgroundDevnet {
                 .arg("--port")
                 .arg(free_port.to_string())
                 .args(Self::add_default_args(args))
-                //.stdout(Stdio::piped()) // comment this out for complete devnet stdout
+                .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
 
