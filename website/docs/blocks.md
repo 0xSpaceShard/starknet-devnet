@@ -62,7 +62,7 @@ Response:
 
 ## Abort blocks
 
-This functionality allows simulating block abortion that can occur on mainnet, requires `-state-archive-capacity full` CLI option.
+This functionality allows simulating block abortion that can occur on mainnet. It is supported in the `--state-archive-capacity full` mode.
 
 You can abort blocks and revert transactions from the specified block to the currently latest block. Newly created blocks after the abortion will have accepted status and will continue with numbering where the last accepted block left off.
 
@@ -70,7 +70,7 @@ The state of Devnet will be reverted to the state of the last accepted block.
 
 E.g. assume there are 3 accepted blocks numbered 1, 2 and 3. Upon receiving a request to abort blocks starting with block 2, the blocks numbered 2 and 3 are aborted and their transactions reverted. The state of network will be as it was in block 1. Once a new block is mined, it will be accepted and it will have number 2.
 
-Aborted blocks can only be queried by block hash. Aborting the blocks in forking origin and already aborted blocks is not supported and results in an error. Aborting of devnet's genesis block is not supported. 
+Aborted blocks can only be queried by block hash. Aborting the blocks in forking origin and already aborted blocks is not supported and results in an error. Aborting of Devnet's genesis block is not supported.
 
 ```
 POST /abort_blocks
