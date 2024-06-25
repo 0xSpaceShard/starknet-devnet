@@ -263,8 +263,7 @@ impl Starknet {
     }
 
     pub fn get_predeployed_accounts(&self) -> Vec<Account> {
-        let vec = self.predeployed_accounts.get_accounts().to_vec();
-        vec
+        self.predeployed_accounts.get_accounts().to_vec()
     }
 
     // Update block context
@@ -1450,8 +1449,6 @@ mod tests {
 
     #[test]
     fn correct_initial_state_with_test_config() {
-        // this
-
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
         let predeployed_accounts = starknet.predeployed_accounts.get_accounts();
