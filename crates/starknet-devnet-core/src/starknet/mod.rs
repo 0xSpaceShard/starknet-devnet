@@ -850,6 +850,8 @@ impl Starknet {
         let mut reached_starting_block = false;
         let mut aborted: Vec<Felt> = Vec::new();
 
+        let mut rpc_contract_classes = self.rpc_contract_classes.write();
+
         // Abort blocks from latest to starting (iterating backwards) and revert transactions.
         while !reached_starting_block {
             reached_starting_block = next_block_to_abort_hash == starting_block_hash;
@@ -867,6 +869,7 @@ impl Starknet {
                         ExecutionResult::Reverted { reason: "Block aborted manually".to_string() };
                 }
 
+                rpc_contract_classes.remove_classes_at(block.block_number().0)?;
                 aborted.push(block.block_hash());
 
                 // Update next block hash to abort
@@ -893,6 +896,7 @@ impl Starknet {
         }
 
         self.pending_state_diff = StateDiff::default();
+        rpc_contract_classes.empty_staging();
         self.blocks.aborted_blocks = aborted.clone();
 
         Ok(aborted)

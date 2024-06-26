@@ -66,22 +66,33 @@ pub trait CustomState {
 pub struct CommittedClassStorage {
     staging: HashMap<ClassHash, ContractClass>,
     committed: HashMap<ClassHash, (ContractClass, u64)>,
+    /// Remembers all classes committed at a block
+    block_number_to_classes: HashMap<u64, Vec<ClassHash>>,
 }
 
 impl CommittedClassStorage {
+    /// Insert a new class into the staging area. Once it can be committed, call `commit`.
     pub fn insert(&mut self, class_hash: ClassHash, contract_class: ContractClass) {
         self.staging.insert(class_hash, contract_class);
     }
 
+    /// Commits all of the staged classes and returns them, together with their hashes.
     pub fn commit(&mut self, block_number: u64) -> HashMap<ClassHash, ContractClass> {
-        let diff = self.staging.clone();
-        let numbered =
-            self.staging.drain().map(|(class_hash, class)| (class_hash, (class, block_number)));
-        self.committed.extend(numbered);
-        diff
+        let mut freshly_committed = HashMap::new();
+
+        let hashes_at_this_block = self.block_number_to_classes.entry(block_number).or_default();
+        for (class_hash, class) in &self.staging {
+            freshly_committed.insert(*class_hash, class.clone());
+            self.committed.insert(*class_hash, (class.clone(), block_number));
+
+            hashes_at_this_block.push(*class_hash);
+        }
+
+        self.empty_staging();
+        freshly_committed
     }
 
-    /// sierra for cairo1; the only artifact for cairo0
+    /// Returns sierra for cairo1; returns the only artifact for cairo0.
     pub fn get_class(
         &self,
         class_hash: &ClassHash,
@@ -115,6 +126,22 @@ impl CommittedClassStorage {
         } else {
             None
         }
+    }
+
+    /// Removes all classes committed at `block_number`. If no classes were committed at that block,
+    /// does nothing.
+    pub fn remove_classes_at(&mut self, block_number: u64) -> DevnetResult<()> {
+        let removable = self.block_number_to_classes.remove(&block_number).ok_or(Error::NoBlock)?;
+        for class_hash in removable {
+            self.committed.remove(&class_hash);
+        }
+
+        Ok(())
+    }
+
+    /// Removes all staged classes.
+    pub fn empty_staging(&mut self) {
+        self.staging = Default::default();
     }
 }
 

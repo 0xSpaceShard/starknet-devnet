@@ -13,7 +13,7 @@ mod get_class_tests {
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
     use crate::common::utils::{
         assert_cairo1_classes_equal, get_events_contract_in_sierra_and_compiled_class_hash,
-        resolve_path,
+        resolve_path, to_hex_felt,
     };
 
     #[tokio::test]
@@ -221,29 +221,18 @@ mod get_class_tests {
             .unwrap();
 
         // getting class at the following block IDs should NOT be successful
-        for block_id in [
-            BlockId::Number(original_block.block_number),
-            BlockId::Hash(original_block.block_hash),
-            BlockId::Tag(BlockTag::Latest),
+        let declaration_block_number = BlockId::Number(original_block.block_number + 1);
+        for (block_id, expected_err) in [
+            (BlockId::Number(original_block.block_number), StarknetError::ClassHashNotFound),
+            (BlockId::Hash(original_block.block_hash), StarknetError::ClassHashNotFound),
+            (BlockId::Tag(BlockTag::Latest), StarknetError::ClassHashNotFound),
+            (declaration_block_number, StarknetError::BlockNotFound),
         ] {
             let retrieved =
                 devnet.json_rpc_client.get_class(block_id, declaration_result.class_hash).await;
             match retrieved {
-                Err(ProviderError::StarknetError(StarknetError::ClassHashNotFound)) => (),
+                Err(ProviderError::StarknetError(err)) => assert_eq!(err, expected_err),
                 other => panic!("Unexpected response at block_id={block_id:?}: {other:?}"),
-            }
-        }
-
-        // getting class from the future block number should yield a different error
-        let declaration_block_number = BlockId::Number(original_block.block_number + 1);
-        {
-            let retrieved = devnet
-                .json_rpc_client
-                .get_class(declaration_block_number, declaration_result.class_hash)
-                .await;
-            match retrieved {
-                Err(ProviderError::StarknetError(StarknetError::BlockNotFound)) => (),
-                other => panic!("Unexpected response: {other:?}"),
             }
         }
 
@@ -275,6 +264,78 @@ mod get_class_tests {
                 .unwrap();
 
             assert_cairo1_classes_equal(&retrieved_class, &expected_class).unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn test_getting_class_after_block_abortion() {
+        let devnet_args = ["--state-archive-capacity", "full"];
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let predeployed_account = Arc::new(SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer.clone(),
+            account_address,
+            chain_id::SEPOLIA,
+            ExecutionEncoding::New,
+        ));
+
+        let (contract_class, casm_class_hash) =
+            get_events_contract_in_sierra_and_compiled_class_hash();
+
+        // declare the contract
+        let declaration_result = predeployed_account
+            .declare(Arc::new(contract_class.clone()), casm_class_hash)
+            .max_fee(FieldElement::from(1e18 as u128))
+            .send()
+            .await
+            .unwrap();
+
+        let abortable_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+
+        devnet
+            .send_custom_rpc(
+                "devnet_abortBlocks",
+                serde_json::json!({ "starting_block_hash": to_hex_felt(&abortable_block.block_hash) }),
+            )
+            .await
+            .unwrap();
+
+        // Getting class at the following block IDs should NOT be successful after abortion; these
+        // blocks exist, but their states don't contain the class.
+        for (block_id, expected_err) in [
+            // this block's state is invalidated
+            (BlockId::Number(abortable_block.block_number), StarknetError::BlockNotFound),
+            (BlockId::Hash(abortable_block.block_hash), StarknetError::ClassHashNotFound),
+            (BlockId::Tag(BlockTag::Latest), StarknetError::ClassHashNotFound),
+            (BlockId::Tag(BlockTag::Pending), StarknetError::ClassHashNotFound),
+        ] {
+            let retrieved =
+                devnet.json_rpc_client.get_class(block_id, declaration_result.class_hash).await;
+            match retrieved {
+                Err(ProviderError::StarknetError(err)) => assert_eq!(err, expected_err),
+                other => panic!("Unexpected response at block_id={block_id:?}: {other:?}"),
+            }
+        }
+
+        let latest_block_hash = devnet.create_block().await.unwrap();
+
+        // getting class at the following block IDs should NOT be successful after creating a block
+        // that has the same number that the aborted block had
+        for block_id in [
+            BlockId::Number(abortable_block.block_number),
+            BlockId::Hash(abortable_block.block_hash),
+            BlockId::Hash(latest_block_hash),
+            BlockId::Tag(BlockTag::Latest),
+            BlockId::Tag(BlockTag::Pending),
+        ] {
+            let retrieved =
+                devnet.json_rpc_client.get_class(block_id, declaration_result.class_hash).await;
+            match retrieved {
+                Err(ProviderError::StarknetError(StarknetError::ClassHashNotFound)) => (),
+                other => panic!("Unexpected response at block_id={block_id:?}: {other:?}"),
+            }
         }
     }
 }
