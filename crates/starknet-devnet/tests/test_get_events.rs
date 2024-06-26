@@ -156,39 +156,41 @@ mod get_events_integration_tests {
     async fn get_events_errors() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        let chunk_size = 3;
-        let mut continuation_token: Option<String> = None;
-        let event_filter = EventFilter {
-            from_block: Some(BlockId::Number(90000000)),
-            to_block: Some(BlockId::Tag(BlockTag::Latest)),
-            address: None,
-            keys: None,
-        };
-        match devnet
-            .json_rpc_client
-            .get_events(event_filter.clone(), continuation_token.clone(), chunk_size as u64)
-            .await
-            .unwrap_err()
         {
-            ProviderError::StarknetError(StarknetError::BlockNotFound) => (),
-            err => panic!("Invalid error: {err:?}"),
+            let chunk_size: u64 = 3;
+            let continuation_token: Option<String> = None;
+            let event_filter = EventFilter {
+                from_block: Some(BlockId::Number(90000000)),
+                to_block: Some(BlockId::Tag(BlockTag::Latest)),
+                address: None,
+                keys: None,
+            };
+            match devnet
+                .json_rpc_client
+                .get_events(event_filter, continuation_token, chunk_size)
+                .await
+            {
+                Err(ProviderError::StarknetError(StarknetError::BlockNotFound)) => (),
+                resp => panic!("Unexpected response: {resp:?}"),
+            }
         }
-
-        continuation_token = Some(String::from("invalid token"));
-        let event_filter = EventFilter {
-            from_block: Some(BlockId::Number(0)),
-            to_block: Some(BlockId::Tag(BlockTag::Latest)),
-            address: None,
-            keys: None,
-        };
-        match devnet
-            .json_rpc_client
-            .get_events(event_filter.clone(), continuation_token.clone(), chunk_size as u64)
-            .await
-            .unwrap_err()
         {
-            ProviderError::StarknetError(StarknetError::InvalidContinuationToken) => (),
-            err => panic!("Invalid error: {err:?}"),
+            let chunk_size: u64 = 3;
+            let continuation_token = Some(String::from("invalid token"));
+            let event_filter = EventFilter {
+                from_block: Some(BlockId::Number(0)),
+                to_block: Some(BlockId::Tag(BlockTag::Latest)),
+                address: None,
+                keys: None,
+            };
+            match devnet
+                .json_rpc_client
+                .get_events(event_filter, continuation_token, chunk_size)
+                .await
+            {
+                Err(ProviderError::StarknetError(StarknetError::InvalidContinuationToken)) => (),
+                resp => panic!("Unexpected response: {resp:?}"),
+            }
         }
     }
 }
