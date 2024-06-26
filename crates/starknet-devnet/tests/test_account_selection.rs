@@ -30,7 +30,7 @@ mod test_account_selection {
         devnet.send_custom_rpc("devnet_getPredeployedAccounts", json!({})).await.unwrap()
     }
 
-    pub async fn get_predeployed_accounts_with_balances(
+    pub async fn get_predeployed_accounts_with_balance(
         devnet: &BackgroundDevnet,
     ) -> serde_json::Value {
         devnet
@@ -39,7 +39,7 @@ mod test_account_selection {
             .unwrap()
     }
 
-    pub async fn get_predeployed_accounts_without_balances(
+    pub async fn get_predeployed_accounts_without_balance(
         devnet: &BackgroundDevnet,
     ) -> serde_json::Value {
         devnet
@@ -312,19 +312,19 @@ mod test_account_selection {
 
         let accounts = get_predeployed_accounts(&devnet).await;
         for account in accounts.as_array().unwrap() {
-            assert!(account["balances"].is_null());
+            assert!(account["balance"].is_null());
         }
 
-        let accounts_without_balances = get_predeployed_accounts_without_balances(&devnet).await;
-        for account in accounts_without_balances.as_array().unwrap() {
-            assert!(account["balances"].is_null());
+        let accounts_without_balance = get_predeployed_accounts_without_balance(&devnet).await;
+        for account in accounts_without_balance.as_array().unwrap() {
+            assert!(account["balance"].is_null());
         }
 
-        let accounts_balances = get_predeployed_accounts_with_balances(&devnet).await;
-        assert_eq!(accounts_balances.as_array().unwrap().len(), 10);
-        for account in accounts_balances.as_array().unwrap() {
+        let accounts_with_balance = get_predeployed_accounts_with_balance(&devnet).await;
+        assert_eq!(accounts_with_balance.as_array().unwrap().len(), 10);
+        for account in accounts_with_balance.as_array().unwrap() {
             assert_eq!(
-                account["balances"],
+                account["balance"],
                 json!([
                     { "amount":  "500000000000000000000", "unit": "WEI" },
                     { "amount":  "500000000000000000000", "unit": "FRI" },

@@ -36,7 +36,7 @@ pub(crate) async fn get_predeployed_accounts_impl(
             address: acc.account_address,
             public_key: acc.public_key,
             private_key: acc.private_key,
-            balances: None,
+            balance: None,
         })
         .collect();
 
@@ -55,7 +55,7 @@ pub(crate) async fn get_predeployed_accounts_impl(
                 balances.push(balance)
             }
 
-            account.balances = Some(balances);
+            account.balance = Some(balances);
         }
     }
 
