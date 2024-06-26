@@ -286,16 +286,6 @@ impl BackgroundDevnet {
         (signer, account_address)
     }
 
-    pub async fn get_predeployed_accounts(&self) -> serde_json::Value {
-        self.send_custom_rpc("devnet_getPredeployedAccounts", json!({})).await.unwrap()
-    }
-
-    pub async fn get_predeployed_accounts_with_balances(&self) -> serde_json::Value {
-        self.send_custom_rpc("devnet_getPredeployedAccounts", json!({"with_balance": true}))
-            .await
-            .unwrap()
-    }
-
     pub async fn restart(&self) {
         self.send_custom_rpc("devnet_restart", json!({})).await.unwrap();
     }

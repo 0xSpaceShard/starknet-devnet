@@ -26,6 +26,28 @@ mod test_account_selection {
         get_simple_contract_in_sierra_and_compiled_class_hash,
     };
 
+    pub async fn get_predeployed_accounts(devnet: &BackgroundDevnet) -> serde_json::Value {
+        devnet.send_custom_rpc("devnet_getPredeployedAccounts", json!({})).await.unwrap()
+    }
+
+    pub async fn get_predeployed_accounts_with_balances(
+        devnet: &BackgroundDevnet,
+    ) -> serde_json::Value {
+        devnet
+            .send_custom_rpc("devnet_getPredeployedAccounts", json!({"with_balance": true}))
+            .await
+            .unwrap()
+    }
+
+    pub async fn get_predeployed_accounts_without_balances(
+        devnet: &BackgroundDevnet,
+    ) -> serde_json::Value {
+        devnet
+            .send_custom_rpc("devnet_getPredeployedAccounts", json!({"with_balance": false}))
+            .await
+            .unwrap()
+    }
+
     #[tokio::test]
     async fn spawnable_with_cairo0() {
         BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo0"]).await.unwrap();
@@ -288,20 +310,26 @@ mod test_account_selection {
         let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--accounts", "10"]).await.unwrap();
 
-        let accounts = devnet.get_predeployed_accounts().await;
+        let accounts = get_predeployed_accounts(&devnet).await;
         for account in accounts.as_array().unwrap() {
             assert!(account["balances"].is_null());
         }
 
-        let accounts_balances = devnet.get_predeployed_accounts_with_balances().await;
-        
-        assert_eq!(accounts_balances.as_array().unwrap().len(), 10);
+        let accounts_without_balances = get_predeployed_accounts_without_balances(&devnet).await;
+        for account in accounts_without_balances.as_array().unwrap() {
+            assert!(account["balances"].is_null());
+        }
 
+        let accounts_balances = get_predeployed_accounts_with_balances(&devnet).await;
+        assert_eq!(accounts_balances.as_array().unwrap().len(), 10);
         for account in accounts_balances.as_array().unwrap() {
-            assert_eq!(account["balances"], json!([
-                { "amount":  "500000000000000000000", "unit": "WEI" }, 
-                { "amount":  "500000000000000000000", "unit": "FRI" },
-            ]));
+            assert_eq!(
+                account["balances"],
+                json!([
+                    { "amount":  "500000000000000000000", "unit": "WEI" },
+                    { "amount":  "500000000000000000000", "unit": "FRI" },
+                ])
+            );
         }
     }
 }
