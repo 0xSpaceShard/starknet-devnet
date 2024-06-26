@@ -194,12 +194,22 @@ impl BackgroundDevnet {
     }
 
     pub async fn mint(&self, address: impl LowerHex, mint_amount: u128) -> FieldElement {
+        self.mint_unit(address, mint_amount, FeeUnit::WEI).await
+    }
+
+    pub async fn mint_unit(
+        &self,
+        address: impl LowerHex,
+        mint_amount: u128,
+        unit: FeeUnit,
+    ) -> FieldElement {
         let resp_body: serde_json::Value = self
             .send_custom_rpc(
                 "devnet_mint",
                 json!({
                     "address": format!("{address:#x}"),
-                    "amount": mint_amount
+                    "amount": mint_amount,
+                    "unit": unit,
                 }),
             )
             .await
