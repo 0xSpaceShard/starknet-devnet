@@ -319,10 +319,12 @@ mod test_account_selection {
         for account in accounts_with_balance.as_array().unwrap() {
             assert_eq!(
                 account["balance"],
-                json!([
-                    { "amount":  "1", "unit": "WEI" },
-                    { "amount":  "1", "unit": "FRI" },
-                ])
+                json!(
+                    {
+                        "wei": { "amount":  "1", "unit": "WEI" },
+                        "fri": { "amount":  "1", "unit": "FRI" },
+                    }
+                )
             );
         }
 
@@ -339,10 +341,12 @@ mod test_account_selection {
         for account in accounts_with_balance.as_array().unwrap() {
             assert_eq!(
                 account["balance"],
-                json!([
-                    { "amount":  "2", "unit": "WEI" },
-                    { "amount":  "2", "unit": "FRI" },
-                ])
+                json!(
+                    {
+                        "wei": { "amount":  "2", "unit": "WEI" },
+                        "fri": { "amount":  "2", "unit": "FRI" },
+                    }
+                )
             );
         }
     }

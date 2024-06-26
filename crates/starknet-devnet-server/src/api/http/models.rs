@@ -92,7 +92,13 @@ pub struct SerializableAccount {
     pub address: ContractAddress,
     pub public_key: Felt,
     pub private_key: Felt,
-    pub balance: Option<Vec<AccountBalanceResponse>>,
+    pub balance: Option<AccountBalancesResponse>,
+}
+
+#[derive(Serialize)]
+pub struct AccountBalancesResponse {
+    pub wei: AccountBalanceResponse,
+    pub fri: AccountBalanceResponse,
 }
 
 #[derive(Serialize)]
