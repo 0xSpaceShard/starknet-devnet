@@ -40,7 +40,7 @@ impl JsonRpcHandler {
 
         if block.status() == &BlockStatus::Pending {
             Ok(StarknetResponse::PendingBlock(PendingBlock {
-                header: PendingBlockHeader::from(&block),
+                header: PendingBlockHeader::from(block),
                 transactions: starknet_types::rpc::transactions::Transactions::Hashes(
                     block.get_transactions().to_owned(),
                 ),
@@ -49,7 +49,7 @@ impl JsonRpcHandler {
         } else {
             Ok(StarknetResponse::Block(Block {
                 status: *block.status(),
-                header: BlockHeader::from(&block),
+                header: BlockHeader::from(block),
                 transactions: starknet_types::rpc::transactions::Transactions::Hashes(
                     block.get_transactions().to_owned(),
                 ),
@@ -78,7 +78,7 @@ impl JsonRpcHandler {
     /// starknet_getBlockWithReceipts
     pub async fn get_block_with_receipts(&self, block_id: BlockId) -> StrictRpcResult {
         let block =
-            self.api.starknet.read().await.get_block_with_receipts(block_id.into()).map_err(
+            self.api.starknet.read().await.get_block_with_receipts(block_id.as_ref()).map_err(
                 |err| match err {
                     Error::NoBlock => ApiError::BlockNotFound,
                     Error::NoTransaction => ApiError::TransactionNotFound,

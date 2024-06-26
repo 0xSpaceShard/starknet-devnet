@@ -72,7 +72,7 @@ use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
-use crate::state::{CustomState, CustomStateReader, StarknetState};
+use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
 use crate::utils::get_versioned_constants;
@@ -108,6 +108,7 @@ pub struct Starknet {
     pub next_block_timestamp: Option<u64>,
     pub(crate) messaging: MessagingBroker,
     pub(crate) dump_events: Vec<DumpEvent>,
+    rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
     cheats: Cheats,
 }
 
@@ -135,6 +136,7 @@ impl Default for Starknet {
             next_block_timestamp: None,
             messaging: Default::default(),
             dump_events: Default::default(),
+            rpc_contract_classes: Default::default(),
             cheats: Default::default(),
         }
     }
@@ -143,7 +145,8 @@ impl Default for Starknet {
 impl Starknet {
     pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
         let defaulter = StarknetDefaulter::new(config.fork_config.clone());
-        let mut state = StarknetState::new(defaulter);
+        let rpc_contract_classes = Arc::new(RwLock::new(CommittedClassStorage::default()));
+        let mut state = StarknetState::new(defaulter, rpc_contract_classes.clone());
 
         // predeclare account classes
         for account_class_choice in
@@ -232,6 +235,7 @@ impl Starknet {
             next_block_timestamp: None,
             messaging: Default::default(),
             dump_events: Default::default(),
+            rpc_contract_classes,
             cheats: Default::default(),
         };
 
@@ -598,7 +602,7 @@ impl Starknet {
                     return Err(Error::NoStateAtBlock { block_id: *block_id });
                 }
 
-                let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
+                let block = self.get_block(block_id)?;
                 let block_hash = block.block_hash();
                 let state = self
                     .blocks
@@ -888,14 +892,14 @@ impl Starknet {
             self.pending_state = reverted_state.clone_historic();
         }
 
+        self.pending_state_diff = StateDiff::default();
         self.blocks.aborted_blocks = aborted.clone();
 
         Ok(aborted)
     }
 
     pub fn get_block_txs_count(&self, block_id: &BlockId) -> DevnetResult<u64> {
-        let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
-
+        let block = self.get_block(block_id)?;
         Ok(block.get_transactions().len() as u64)
     }
 
@@ -920,13 +924,12 @@ impl Starknet {
         Ok(state.get_storage_at(contract_address.try_into()?, storage_key.try_into()?)?.into())
     }
 
-    pub fn get_block(&self, block_id: &BlockId) -> DevnetResult<StarknetBlock> {
-        let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
-        Ok(block.clone())
+    pub fn get_block(&self, block_id: &BlockId) -> DevnetResult<&StarknetBlock> {
+        self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)
     }
 
     pub fn get_block_with_transactions(&self, block_id: &BlockId) -> DevnetResult<BlockResult> {
-        let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
+        let block = self.get_block(block_id)?;
         let transactions = block
             .get_transactions()
             .iter()
@@ -952,8 +955,8 @@ impl Starknet {
         }
     }
 
-    pub fn get_block_with_receipts(&self, block_id: BlockId) -> DevnetResult<BlockResult> {
-        let block = self.blocks.get_by_block_id(&block_id).ok_or(Error::NoBlock)?;
+    pub fn get_block_with_receipts(&self, block_id: &BlockId) -> DevnetResult<BlockResult> {
+        let block = self.get_block(block_id)?;
         let mut transaction_receipts: Vec<TransactionWithReceipt> = vec![];
 
         for transaction_hash in block.get_transactions() {

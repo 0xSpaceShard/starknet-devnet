@@ -257,8 +257,9 @@ mod tests {
         assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
         starknet
-            .pending_state
-            .get_rpc_contract_class(&class_hash, &BlockTagOrNumber::Tag(BlockTag::Latest))
+            .rpc_contract_classes
+            .read()
+            .get_class(&class_hash, &BlockTagOrNumber::Tag(BlockTag::Latest))
             .unwrap();
     }
 

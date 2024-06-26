@@ -38,12 +38,6 @@ pub trait CustomStateReader {
         contract_address: ContractAddress,
     ) -> DevnetResult<bool>;
     fn is_contract_declared(&mut self, class_hash: ClassHash) -> bool;
-    /// sierra for cairo1; the only artifact for cairo0
-    fn get_rpc_contract_class(
-        &self,
-        class_hash: &ClassHash,
-        block_id: &BlockTagOrNumber,
-    ) -> Option<ContractClass>;
 }
 
 pub trait CustomState {
@@ -86,6 +80,42 @@ impl CommittedClassStorage {
         self.committed.extend(numbered);
         diff
     }
+
+    /// sierra for cairo1; the only artifact for cairo0
+    pub fn get_class(
+        &self,
+        class_hash: &ClassHash,
+        block_id: &BlockTagOrNumber,
+    ) -> Option<ContractClass> {
+        if let Some((class, storage_block_number)) = self.committed.get(class_hash) {
+            // If we're here, the requested class was committed at some point, need to see when.
+            match block_id {
+                BlockTagOrNumber::Number(query_block_number) => {
+                    // If the class was stored before the block at which we are querying (or at that
+                    // block), we can return it.
+                    if storage_block_number <= query_block_number {
+                        Some(class.clone())
+                    } else {
+                        None
+                    }
+                }
+                BlockTagOrNumber::Tag(_) => {
+                    // Class is requested at block_id = (pending || latest). Since it's present
+                    // among the committed classes, it's in the latest block or
+                    // older and can be returned for either tag.
+                    Some(class.clone())
+                }
+            }
+        } else if let Some(class) = self.staging.get(class_hash) {
+            // If class present in storage.staging, it can only be retrieved if block_id=pending
+            match block_id {
+                BlockTagOrNumber::Tag(BlockTag::Pending) => Some(class.clone()),
+                _ => None,
+            }
+        } else {
+            None
+        }
+    }
 }
 
 pub struct StarknetState {
@@ -114,10 +144,13 @@ impl Default for StarknetState {
 }
 
 impl StarknetState {
-    pub fn new(defaulter: StarknetDefaulter) -> Self {
+    pub fn new(
+        defaulter: StarknetDefaulter,
+        rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
+    ) -> Self {
         Self {
             state: CachedState::new(DictState::new(defaulter), default_global_contract_cache()),
-            rpc_contract_classes: Arc::new(RwLock::new(CommittedClassStorage::default())),
+            rpc_contract_classes,
             historic_state: Default::default(),
         }
     }
@@ -302,42 +335,6 @@ impl CustomStateReader for StarknetState {
             || self.get_compiled_contract_class(class_hash.into()).is_ok()
     }
 
-    fn get_rpc_contract_class(
-        &self,
-        class_hash: &ClassHash,
-        block_id: &BlockTagOrNumber,
-    ) -> Option<ContractClass> {
-        let class_storage = self.rpc_contract_classes.read();
-        if let Some((class, storage_block_number)) = class_storage.committed.get(class_hash) {
-            // If we're here, the requested class was committed at some point, need to see when.
-            match block_id {
-                BlockTagOrNumber::Number(query_block_number) => {
-                    // If the class was stored before the block at which we are querying (or at that
-                    // block), we can return it.
-                    if storage_block_number <= query_block_number {
-                        Some(class.clone())
-                    } else {
-                        None
-                    }
-                }
-                BlockTagOrNumber::Tag(_) => {
-                    // Class is requested at block_id = (pending || latest). Since it's present
-                    // among the committed classes, it's in the latest block or
-                    // older and can be returned for either tag.
-                    Some(class.clone())
-                }
-            }
-        } else if let Some(class) = class_storage.staging.get(class_hash) {
-            // If class present in storage.staging, it can only be retrieved if block_id=pending
-            match block_id {
-                BlockTagOrNumber::Tag(BlockTag::Pending) => Some(class.clone()),
-                _ => None,
-            }
-        } else {
-            None
-        }
-    }
-
     fn is_contract_deployed_locally(
         &mut self,
         contract_address: ContractAddress,
@@ -518,7 +515,9 @@ mod tests {
         }
 
         let retrieved_rpc_class = state
-            .get_rpc_contract_class(&class_hash, &BlockTagOrNumber::Tag(BlockTag::Latest))
+            .rpc_contract_classes
+            .read()
+            .get_class(&class_hash, &BlockTagOrNumber::Tag(BlockTag::Latest))
             .unwrap();
         assert_eq!(retrieved_rpc_class, contract_class.into());
     }
