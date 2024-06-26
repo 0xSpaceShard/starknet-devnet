@@ -1,14 +1,22 @@
 # API
 
-## Starknet API
+## JSON-RPC API
 
-Unlike Pythonic Devnet, which also supported Starknet's gateway and feeder gateway API, Devnet in Rust supports Starknet's JSON-RPC API. Since JSON-RPC v0.6.0, to find out which JSON-RPC version is supported by which Devnet version, check out the [releases page](https://github.com/0xspaceshard/starknet-devnet-rs/releases).
+Both Starknet's and Devnet's JSON-RPC API are reachable at `/rpc` and `/`. E.g. if spawning Devnet with default settings, these URLs are functionally equivalent: `http://127.0.0.1:5050/rpc` and `http://127.0.0.1:5050/`. The difference between these two groups of methods is their prefix: `starknet_` (e.g. `starknet_getNonce`) and `devnet_` (e.g. `devnet_mint`).
 
-The JSON-RPC API is reachable via `/rpc` and `/` (e.g. if spawning Devnet with default settings, these URLs are functionally equivalent: `http://127.0.0.1:5050/rpc` and `http://127.0.0.1:5050/`)
+### Starknet API
 
-## Devnet API
+Unlike Pythonic Devnet, which also supported Starknet's gateway and feeder gateway API, Devnet in Rust supports [Starknet's JSON-RPC API](https://github.com/starkware-libs/starknet-specs/tree/master/api). Since JSON-RPC v0.6.0, to find out which JSON-RPC version is supported by which Devnet version, check out the [releases page](https://github.com/0xspaceshard/starknet-devnet-rs/releases).
 
-Devnet has many other functional features which are available via their own endpoints and JSON-RPC, which are all mentioned throughout the documentation.
+### Devnet API
+
+Devnet has many additional features which are available via their own endpoints and JSON-RPC, which are all mentioned throughout the documentation.
+
+## Interacting with Devnet in JavaScript and TypeScript
+
+To interact with Devnet usings the [Devnet API](#devnet-api), you can use [`starknet-devnet-js`](https://github.com/0xSpaceShard/starknet-devnet-rs/). This can be especially useful in achieving [L1-L2 communication](./postman.md#l1-l2-interaction-via-postman).
+
+To interact with Devnet usings the [Starknet API](#starknet-api), use [starknet.js](https://www.starknetjs.com/).
 
 ## Config API
 

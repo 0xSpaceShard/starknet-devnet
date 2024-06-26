@@ -2,7 +2,7 @@
 
 Devnet starts with a genesis block (with a block number equal to 0). In forking mode, the genesis block number will be equal to the forked block number plus one.
 
-A new block is generated based on the pending block, once a new block is generated the pending block is restarted. By default, a new block is generated with each new transaction, but you can also [create an empty block by yourself](#create-an-empty-block).
+By default, a new block is generated with each new transaction, but you can also [create an empty block by yourself](#create-an-empty-block).
 
 ## Creating blocks on demand
 
@@ -35,15 +35,35 @@ Response:
 
 ## Automatic periodic block creation
 
-Devnet started with the `--block-generation-on <INTERVAL>` CLI option, will behave like in `demand` mode but new blocks will be mined automatically in time intervals.
+If started with the `--block-generation-on <INTERVAL>` CLI option, Devnet will behave as in `demand` mode but new blocks will be mined automatically every `<INTERVAL>` seconds. Considering this example of spawning Devnet at moment `t`:
+
+```bash
+# t
+$ starknet-devnet --block-generation-on 10
+
+# t + 1s
+# user: send tx1
+
+# t + 4s
+# user: send tx2
+
+# t + 10s
+# Devnet: block automatically generated, contains tx1 and tx2
+
+# t + 12s
+# user: send tx3
+
+# t + 14s
+# user: invoke empty block creation
+# Devnet: generated block contains tx3
+
+# t + 20s
+# Devnet: block automatically generated, contains no txs (manual creation did not restart the counter)
+```
 
 ## Create an empty block
 
-To create an empty block without transactions, `POST` a request to `/create_block`:
-
-```
-POST /create_block
-```
+To create an empty block without transactions, `POST` a request:
 
 ```
 JSON-RPC
