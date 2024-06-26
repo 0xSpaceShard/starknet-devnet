@@ -4,6 +4,7 @@ pub mod common;
 mod test_account_selection {
     use std::sync::Arc;
 
+    use serde_json::json;
     use starknet_core::constants::{
         CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
     };
@@ -293,12 +294,14 @@ mod test_account_selection {
         }
 
         let accounts_balances = devnet.get_predeployed_accounts_with_balances().await;
-        for account in accounts_balances.as_array().unwrap() {
-            assert_eq!(account["balances"][0]["amount"], "500000000000000000000");
-            assert_eq!(account["balances"][0]["unit"], "WEI");
+        
+        assert_eq!(accounts_balances.as_array().unwrap().len(), 10);
 
-            assert_eq!(account["balances"][1]["amount"], "500000000000000000000");
-            assert_eq!(account["balances"][1]["unit"], "FRI");
+        for account in accounts_balances.as_array().unwrap() {
+            assert_eq!(account["balances"], json!([
+                { "amount":  "500000000000000000000", "unit": "WEI" }, 
+                { "amount":  "500000000000000000000", "unit": "FRI" },
+            ]));
         }
     }
 }
