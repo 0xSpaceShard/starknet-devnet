@@ -822,24 +822,18 @@ impl Starknet {
 
     pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> DevnetResult<Vec<Felt>> {
         if self.config.state_archive != StateArchiveCapacity::Full {
-            return Err(Error::UnsupportedAction {
-                msg: ("The abort blocks feature requires state-archive-capacity set to full."
-                    .into()),
-            });
+            let msg = "The abort blocks feature requires state-archive-capacity set to full.";
+            return Err(Error::UnsupportedAction { msg: msg.into() });
         }
 
         if self.blocks.aborted_blocks.contains(&starting_block_hash) {
             return Err(Error::UnsupportedAction { msg: "Block is already aborted".into() });
         }
 
-        let genesis_block_number = if let Some(block_number) = self.config.fork_config.block_number
-        {
-            block_number + 1
-        } else {
-            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER
-        };
-        let genesis_block =
-            self.blocks.get_by_block_id(&BlockId::Number(genesis_block_number)).unwrap();
+        let genesis_block = self
+            .blocks
+            .get_by_block_id(&BlockId::Number(self.blocks.starting_block_number))
+            .ok_or(Error::UnsupportedAction { msg: "Cannot abort - no genesis block".into() })?;
 
         if starting_block_hash == genesis_block.block_hash() {
             return Err(Error::UnsupportedAction { msg: "Genesis block can't be aborted".into() });
