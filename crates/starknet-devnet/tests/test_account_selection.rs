@@ -18,6 +18,7 @@ mod test_account_selection {
     };
     use starknet_rs_providers::Provider;
     use starknet_rs_signers::LocalWallet;
+    use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{CHAIN_ID, MAINNET_URL};
@@ -26,18 +27,11 @@ mod test_account_selection {
         get_simple_contract_in_sierra_and_compiled_class_hash,
     };
 
-    pub async fn get_predeployed_accounts(devnet: &BackgroundDevnet) -> serde_json::Value {
-        devnet.send_custom_rpc("devnet_getPredeployedAccounts", json!({})).await.unwrap()
-    }
-
-    pub async fn get_predeployed_accounts_balance(
+    pub async fn get_predeployed_accounts(
         devnet: &BackgroundDevnet,
-        with_balance: bool,
+        params: serde_json::Value,
     ) -> serde_json::Value {
-        devnet
-            .send_custom_rpc("devnet_getPredeployedAccounts", json!({"with_balance": with_balance}))
-            .await
-            .unwrap()
+        devnet.send_custom_rpc("devnet_getPredeployedAccounts", params).await.unwrap()
     }
 
     #[tokio::test]
@@ -299,27 +293,55 @@ mod test_account_selection {
 
     #[tokio::test]
     async fn test_get_predeployed_accounts_balances() {
-        let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--accounts", "10"]).await.unwrap();
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--accounts",
+            "10",
+            "--initial-balance",
+            "1",
+        ])
+        .await
+        .unwrap();
 
-        let accounts = get_predeployed_accounts(&devnet).await;
+        let accounts = get_predeployed_accounts(&devnet, json!({})).await;
         for account in accounts.as_array().unwrap() {
             assert!(account["balance"].is_null());
         }
 
-        let accounts_without_balance = get_predeployed_accounts_balance(&devnet, false).await;
+        let accounts_without_balance =
+            get_predeployed_accounts(&devnet, json!({"with_balance": false})).await;
         for account in accounts_without_balance.as_array().unwrap() {
             assert!(account["balance"].is_null());
         }
 
-        let accounts_with_balance = get_predeployed_accounts_balance(&devnet, true).await;
+        let accounts_with_balance =
+            get_predeployed_accounts(&devnet, json!({"with_balance": true})).await;
         assert_eq!(accounts_with_balance.as_array().unwrap().len(), 10);
         for account in accounts_with_balance.as_array().unwrap() {
             assert_eq!(
                 account["balance"],
                 json!([
-                    { "amount":  "500000000000000000000", "unit": "WEI" },
-                    { "amount":  "500000000000000000000", "unit": "FRI" },
+                    { "amount":  "1", "unit": "WEI" },
+                    { "amount":  "1", "unit": "FRI" },
+                ])
+            );
+        }
+
+        // increase balances and check again
+        for account in accounts_with_balance.as_array().unwrap() {
+            let address = &FieldElement::from_hex_be(account["address"].as_str().unwrap()).unwrap();
+            devnet.mint_unit(address, 1, FeeUnit::WEI).await;
+            devnet.mint_unit(address, 1, FeeUnit::FRI).await;
+        }
+
+        let accounts_with_balance =
+            get_predeployed_accounts(&devnet, json!({"with_balance": true})).await;
+        assert_eq!(accounts_with_balance.as_array().unwrap().len(), 10);
+        for account in accounts_with_balance.as_array().unwrap() {
+            assert_eq!(
+                account["balance"],
+                json!([
+                    { "amount":  "2", "unit": "WEI" },
+                    { "amount":  "2", "unit": "FRI" },
                 ])
             );
         }
