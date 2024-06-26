@@ -30,20 +30,12 @@ mod test_account_selection {
         devnet.send_custom_rpc("devnet_getPredeployedAccounts", json!({})).await.unwrap()
     }
 
-    pub async fn get_predeployed_accounts_with_balance(
+    pub async fn get_predeployed_accounts_balance(
         devnet: &BackgroundDevnet,
+        with_balance: bool,
     ) -> serde_json::Value {
         devnet
-            .send_custom_rpc("devnet_getPredeployedAccounts", json!({"with_balance": true}))
-            .await
-            .unwrap()
-    }
-
-    pub async fn get_predeployed_accounts_without_balance(
-        devnet: &BackgroundDevnet,
-    ) -> serde_json::Value {
-        devnet
-            .send_custom_rpc("devnet_getPredeployedAccounts", json!({"with_balance": false}))
+            .send_custom_rpc("devnet_getPredeployedAccounts", json!({"with_balance": with_balance}))
             .await
             .unwrap()
     }
@@ -315,12 +307,12 @@ mod test_account_selection {
             assert!(account["balance"].is_null());
         }
 
-        let accounts_without_balance = get_predeployed_accounts_without_balance(&devnet).await;
+        let accounts_without_balance = get_predeployed_accounts_balance(&devnet, false).await;
         for account in accounts_without_balance.as_array().unwrap() {
             assert!(account["balance"].is_null());
         }
 
-        let accounts_with_balance = get_predeployed_accounts_with_balance(&devnet).await;
+        let accounts_with_balance = get_predeployed_accounts_balance(&devnet, true).await;
         assert_eq!(accounts_with_balance.as_array().unwrap().len(), 10);
         for account in accounts_with_balance.as_array().unwrap() {
             assert_eq!(
