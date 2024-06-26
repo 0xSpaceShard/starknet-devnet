@@ -37,7 +37,7 @@ use self::models::{
     SyncingOutput, TransactionStatusOutput,
 };
 use self::origin_forwarder::OriginForwarder;
-use super::http::endpoints::accounts::BalanceQuery;
+use super::http::endpoints::accounts::{BalanceQuery, PredeployedAccountsQuery};
 use super::http::endpoints::DevnetConfig;
 use super::http::models::{
     AbortedBlocks, AbortingBlocks, AccountBalanceResponse, CreatedBlock, DumpPath, FlushParameters,
@@ -242,7 +242,7 @@ impl JsonRpcHandler {
             JsonRpcRequest::Restart => self.restart().await,
             JsonRpcRequest::SetTime(data) => self.set_time(data).await,
             JsonRpcRequest::IncreaseTime(data) => self.increase_time(data).await,
-            JsonRpcRequest::PredeployedAccounts => self.get_predeployed_accounts().await,
+            JsonRpcRequest::PredeployedAccounts(data) => self.get_predeployed_accounts(data).await,
             JsonRpcRequest::AccountBalance(data) => self.get_account_balance(data).await,
             JsonRpcRequest::Mint(data) => self.mint(data).await,
             JsonRpcRequest::DevnetConfig => self.get_devnet_config().await,
@@ -366,8 +366,8 @@ pub enum JsonRpcRequest {
     SetTime(SetTime),
     #[serde(rename = "devnet_increaseTime")]
     IncreaseTime(IncreaseTime),
-    #[serde(rename = "devnet_getPredeployedAccounts", with = "empty_params")]
-    PredeployedAccounts,
+    #[serde(rename = "devnet_getPredeployedAccounts")]
+    PredeployedAccounts(PredeployedAccountsQuery),
     #[serde(rename = "devnet_getAccountBalance")]
     AccountBalance(BalanceQuery),
     #[serde(rename = "devnet_mint")]
@@ -445,7 +445,7 @@ impl std::fmt::Display for JsonRpcRequest {
             JsonRpcRequest::Restart => write!(f, "devnet_restart"),
             JsonRpcRequest::SetTime(_) => write!(f, "devnet_setTime"),
             JsonRpcRequest::IncreaseTime(_) => write!(f, "devnet_increaseTime"),
-            JsonRpcRequest::PredeployedAccounts => write!(f, "devnet_getPredeployedAccounts"),
+            JsonRpcRequest::PredeployedAccounts(_) => write!(f, "devnet_getPredeployedAccounts"),
             JsonRpcRequest::AccountBalance(_) => write!(f, "devnet_getAccountBalance"),
             JsonRpcRequest::Mint(_) => write!(f, "devnet_mint"),
             JsonRpcRequest::DevnetConfig => write!(f, "devnet_getConfig"),
