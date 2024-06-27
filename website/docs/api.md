@@ -14,7 +14,7 @@ Devnet has many additional features which are available via their own endpoints 
 
 ## Interacting with Devnet in JavaScript and TypeScript
 
-To interact with Devnet usings the [Devnet API](#devnet-api), you can use [`starknet-devnet-js`](https://github.com/0xSpaceShard/starknet-devnet-rs/). This can be especially useful in achieving [L1-L2 communication](./postman.md#l1-l2-interaction-via-postman).
+To interact with Devnet using the [Devnet API](#devnet-api), you can use [`starknet-devnet-js`](https://github.com/0xSpaceShard/starknet-devnet-js/). This can be especially useful in achieving [L1-L2 communication](./postman.md#l1-l2-interaction-via-postman).
 
 To interact with Devnet usings the [Starknet API](#starknet-api), use [starknet.js](https://www.starknetjs.com/).
 
