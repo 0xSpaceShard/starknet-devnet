@@ -595,12 +595,26 @@ mod fork_tests {
             .await
             .unwrap();
 
+        // nonce from devnet 
         fork_devnet
             .json_rpc_client
             .get_nonce(
                 BlockId::Tag(BlockTag::Latest),
                 FieldElement::from_hex_be(
                     "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba",
+                )
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        // nonce from sepolia
+        fork_devnet
+            .json_rpc_client
+            .get_nonce(
+                BlockId::Tag(BlockTag::Latest),
+                FieldElement::from_hex_be(
+                    "0x304c822792da45bf6f8e6957aa9515bd7b365f05b5c1678f61ae0c46213251c",
                 )
                 .unwrap(),
             )
