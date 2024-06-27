@@ -34,7 +34,7 @@ usc = { workspace = true }
 openssl = { workspace = true }
 
 [dev-dependencies]
-hex = "0.4.3"
+hex = { workspace = true }
 
 [features]
 test_utils = []

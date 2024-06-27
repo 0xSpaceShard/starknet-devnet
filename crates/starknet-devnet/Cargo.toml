@@ -51,7 +51,7 @@ starknet-rs-accounts = { workspace = true }
 axum = { workspace = true }
 usc = { workspace = true }
 reqwest = { workspace = true }
-criterion = { version = "0.3.4", features = ["async_tokio"] }
+criterion = { workspace = true }
 serial_test = { workspace = true }
 
 
