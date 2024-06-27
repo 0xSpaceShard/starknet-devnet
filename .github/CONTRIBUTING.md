@@ -159,6 +159,10 @@ Updating the underlying Starknet is done by updating the `blockifier` dependency
 
 Updating the RPC requires following the specification files in the [starknet-specs repository](https://github.com/starkware-libs/starknet-specs). The spec_reader testing utility requires these files to be copied into the Devnet repository. The `RPC_SPEC_VERSION` constant needs to be updated accordingly.
 
+### Adding new dependencies
+
+When adding new Rust dependencies, specify them in the root Cargo.toml and use `{ workspace = true }` in crate-specific Cargo.toml files.
+
 ### Updating documentation
 
 The documentation website content has [its own readme](../website/README.md).
