@@ -6,6 +6,8 @@ This page is about account impersonation. To read about account class selection 
 
 :::
 
+## Introduction
+
 Devnet allows you to use impersonated account from mainnet/testnet. This means that a transaction sent from an impersonated account will not fail with an invalid signature error. In the general case, a transaction sent with an account that is not in the local state fails with the aforementioned error. For impersonation to work, Devnet needs to be run in [forking mode](./forking.md).
 
 :::warning Caveat
@@ -17,6 +19,8 @@ Devnet allows you to use impersonated account from mainnet/testnet. This means t
   - Otherwise the nonce fetching part is skipped and `InsufficientAccountBalance` is returned.
 
 :::
+
+## Disabling impersonation
 
 Users can disable account impersonation by starting Devnet with CLI flag `--disable-account-impersonation` or by setting environment variable `DISABLE_ACCOUNT_IMPERSONATION`. Every subsequent JSON-RPC impersonation request will return an error. This feature can be used in CTFs to prevent participants from easily solving the task.
 

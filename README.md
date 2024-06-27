@@ -24,4 +24,4 @@ Find the official documentation [here](https://0xspaceshard.github.io/starknet-d
 
 We ❤️ and encourage all contributions and thank all the [contributors](https://github.com/0xSpaceShard/starknet-devnet-rs/graphs/contributors)!
 
-[Click here](https://github.com/0xSpaceShard/starknet-devnet-rs/blob/main/.github/CONTRIBUTING.md) for the development guide.
+[Click here](.github/CONTRIBUTING.md) for the development guide.

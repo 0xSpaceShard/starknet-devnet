@@ -75,8 +75,6 @@ If you dumped a Devnet utilizing one class for account predeployment (e.g. `--ac
 
 Devnet can be restarted by making a `POST /restart` request (no body required) or `JSON-RPC` request with method name `devnet_restart`. All of the deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests that may have been loaded from a dump file on startup.
 
-If you're using [**the Hardhat plugin**](https://github.com/0xSpaceShard/starknet-hardhat-plugin#restart), restart with `starknet.devnet.restart()`.
-
 ## Docker
 
 To enable dumping and loading with dockerized Devnet, you must bind the container path to the path on your host machine.

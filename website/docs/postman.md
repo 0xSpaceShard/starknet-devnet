@@ -1,6 +1,6 @@
 # L1-L2 interaction via Postman
 
-Postman is a Starknet utility that allows testing L1-L2 interaction. Ensure you have an L1 node and a Devnet (L2 node) running, [load](#load) a messaging contract, and [flush](#flush) the queue when needed. You can use [**`starknet-hardhat-plugin`**](https://github.com/0xSpaceShard/starknet-hardhat-plugin) to perform these actions, as witnessed in [**this example**](https://github.com/0xSpaceShard/starknet-hardhat-example/blob/master/test/postman.test.ts), or directly send requests to the endpoints specified below.
+Postman is a Starknet utility that allows testing L1-L2 interaction. Ensure you have an L1 node and a Devnet (L2 node) running, [load](#load) a messaging contract, and [flush](#flush) the queue when needed. You can use [**`starknet-devnet-js`**](https://github.com/0xSpaceShard/starknet-devnet-js) to perform these actions, as witnessed in [**this example**](https://github.com/0xSpaceShard/starknet-devnet-js/blob/master/test/postman.test.ts), or directly send requests to the endpoints specified below.
 
 ## Load
 
