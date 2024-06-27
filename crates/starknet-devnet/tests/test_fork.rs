@@ -594,5 +594,17 @@ mod fork_tests {
             .get_block_with_tx_hashes(BlockId::Number(fork_block - 1))
             .await
             .unwrap();
+
+        fork_devnet
+            .json_rpc_client
+            .get_nonce(
+                BlockId::Tag(BlockTag::Latest),
+                FieldElement::from_hex_be(
+                    "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba",
+                )
+                .unwrap(),
+            )
+            .await
+            .unwrap();
     }
 }
