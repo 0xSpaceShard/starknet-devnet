@@ -49,7 +49,7 @@ use starknet_types::rpc::transactions::{
     DeclareTransaction, SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace,
     TransactionType, TransactionWithHash, TransactionWithReceipt, Transactions,
 };
-use starknet_types::traits::{HashProducer, ToHexString};
+use starknet_types::traits::HashProducer;
 use tracing::{error, info};
 
 use self::cheats::Cheats;
@@ -829,7 +829,6 @@ impl Starknet {
         }
 
         if self.blocks.get_by_hash(starting_block_hash).is_none() {
-            println!("DEBUG can't find by hash: {:?}", starting_block_hash.to_prefixed_hex_str());
             return Err(Error::NoBlock);
         }
 
