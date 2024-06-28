@@ -96,11 +96,11 @@ impl CommittedClassStorage {
     pub fn get_class(
         &self,
         class_hash: &ClassHash,
-        block_id: &BlockTagOrNumber,
+        block_tag_or_number: &BlockTagOrNumber,
     ) -> Option<ContractClass> {
         if let Some((class, storage_block_number)) = self.committed.get(class_hash) {
             // If we're here, the requested class was committed at some point, need to see when.
-            match block_id {
+            match block_tag_or_number {
                 BlockTagOrNumber::Number(query_block_number) => {
                     // If the class was stored before the block at which we are querying (or at that
                     // block), we can return it.
@@ -119,7 +119,7 @@ impl CommittedClassStorage {
             }
         } else if let Some(class) = self.staging.get(class_hash) {
             // If class present in storage.staging, it can only be retrieved if block_id=pending
-            match block_id {
+            match block_tag_or_number {
                 BlockTagOrNumber::Tag(BlockTag::Pending) => Some(class.clone()),
                 _ => None,
             }
