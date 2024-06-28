@@ -830,6 +830,10 @@ impl Starknet {
             return Err(Error::UnsupportedAction { msg: msg.into() });
         }
 
+        if self.blocks.get_by_hash(starting_block_hash).is_none() {
+            return Err(Error::NoBlock);
+        }
+
         if self.blocks.aborted_blocks.contains(&starting_block_hash) {
             return Err(Error::UnsupportedAction { msg: "Block is already aborted".into() });
         }
@@ -1889,5 +1893,37 @@ mod tests {
         // by number of sleep seconds because the timeline of events is this:
         // ----(pending block timestamp)----(sleep)----(new block timestamp)
         assert!(pending_block_timestamp.0 + sleep_duration_secs <= block_timestamp.0);
+    }
+
+    #[test]
+    fn test_block_abortion_when_state_archive_capacity_not_full() {
+        let mut starknet = Starknet::new(&StarknetConfig {
+            state_archive: StateArchiveCapacity::None,
+            ..Default::default()
+        })
+        .unwrap();
+
+        let dummy_hash = Felt::from_prefixed_hex_str("0x42").unwrap();
+        match starknet.abort_blocks(dummy_hash) {
+            Err(Error::UnsupportedAction { msg }) => {
+                assert!(msg.contains("state-archive-capacity"))
+            }
+            unexpected => panic!("Got unexpected response: {unexpected:?}"),
+        }
+    }
+
+    #[test]
+    fn test_abortion_of_non_existent_block() {
+        let mut starknet = Starknet::new(&StarknetConfig {
+            state_archive: StateArchiveCapacity::Full,
+            ..Default::default()
+        })
+        .unwrap();
+
+        let dummy_hash = Felt::from_prefixed_hex_str("0x42").unwrap();
+        match starknet.abort_blocks(dummy_hash) {
+            Err(Error::NoBlock) => (),
+            unexpected => panic!("Got unexpected response: {unexpected:?}"),
+        }
     }
 }

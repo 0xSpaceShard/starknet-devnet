@@ -4,11 +4,15 @@ This website is built using [Docusaurus](https://docusaurus.io/), a modern stati
 
 ### New content
 
-Check out the existing pages and categories under `docs/`. If the change you wish to make in the documentation is not suitable for any of the existing markdown (.md) files, feel free to create a new one.
+Check out the existing pages and categories under `website/docs/`. If the change you wish to make in the documentation is not suitable for any of the existing markdown (.md) files, feel free to create a new one.
 
 ### Documentation versioning
 
 A new version of the documentation should be created when releasing a new crate. Check [this](../.github/CONTRIBUTING#new-devnet-version-release) out for more info.
+
+#### Updating versioned documentation
+
+Generally, you should only be making changes to the pages in `website/versioned_docs/` if something important is applicable to those historic versions, but is missing in the documentation.
 
 ### Installation
 
