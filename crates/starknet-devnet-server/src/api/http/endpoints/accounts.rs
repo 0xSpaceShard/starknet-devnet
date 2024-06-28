@@ -15,6 +15,7 @@ use crate::api::http::{HttpApiHandler, HttpApiResult};
 use crate::api::Api;
 
 #[derive(serde::Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct PredeployedAccountsQuery {
     with_balance: Option<bool>,
 }
