@@ -321,8 +321,8 @@ mod test_account_selection {
                 account["balance"],
                 json!(
                     {
-                        "wei": { "amount":  "1", "unit": "WEI" },
-                        "fri": { "amount":  "1", "unit": "FRI" },
+                        "eth": { "amount":  "1", "unit": "WEI" },
+                        "strk": { "amount":  "1", "unit": "FRI" },
                     }
                 )
             );
@@ -343,8 +343,8 @@ mod test_account_selection {
                 account["balance"],
                 json!(
                     {
-                        "wei": { "amount":  "2", "unit": "WEI" },
-                        "fri": { "amount":  "2", "unit": "FRI" },
+                        "eth": { "amount":  "2", "unit": "WEI" },
+                        "strk": { "amount":  "2", "unit": "FRI" },
                     }
                 )
             );

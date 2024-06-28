@@ -97,8 +97,8 @@ pub struct SerializableAccount {
 
 #[derive(Serialize)]
 pub struct AccountBalancesResponse {
-    pub wei: AccountBalanceResponse,
-    pub fri: AccountBalanceResponse,
+    pub eth: AccountBalanceResponse,
+    pub strk: AccountBalanceResponse,
 }
 
 #[derive(Serialize)]
