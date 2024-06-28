@@ -58,10 +58,10 @@ pub(crate) async fn get_predeployed_accounts_impl(
     // handle with_balance query string
     if params.with_balance == Some(true) {
         for account in predeployed_accounts.iter_mut() {
-            let wei = get_balance_unit(&mut starknet, account.address, FeeUnit::WEI).await?;
-            let fri = get_balance_unit(&mut starknet, account.address, FeeUnit::FRI).await?;
+            let eth = get_balance_unit(&mut starknet, account.address, FeeUnit::WEI).await?;
+            let strk = get_balance_unit(&mut starknet, account.address, FeeUnit::FRI).await?;
 
-            account.balance = Some(AccountBalancesResponse { fri, wei });
+            account.balance = Some(AccountBalancesResponse { eth, strk });
         }
     }
 
