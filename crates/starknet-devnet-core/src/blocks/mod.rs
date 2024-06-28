@@ -13,7 +13,7 @@ use starknet_types::rpc::block::{
 };
 use starknet_types::traits::HashProducer;
 
-use crate::constants::STARKNET_VERSION;
+use crate::constants::{DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, STARKNET_VERSION};
 use crate::error::{DevnetResult, Error};
 use crate::state::state_diff::StateDiff;
 use crate::state::StarknetState;
@@ -27,6 +27,7 @@ pub(crate) struct StarknetBlocks {
     pub(crate) hash_to_state_diff: HashMap<BlockHash, StateDiff>,
     pub(crate) hash_to_state: HashMap<BlockHash, StarknetState>,
     pub(crate) aborted_blocks: Vec<Felt>,
+    pub(crate) starting_block_number: u64,
 }
 
 impl HashIdentified for StarknetBlocks {
@@ -50,13 +51,14 @@ impl Default for StarknetBlocks {
             hash_to_state_diff: HashMap::new(),
             hash_to_state: HashMap::new(),
             aborted_blocks: Vec::new(),
+            starting_block_number: DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         }
     }
 }
 
 impl StarknetBlocks {
     pub fn new(starting_block_number: u64) -> Self {
-        let mut blocks = Self::default();
+        let mut blocks = Self { starting_block_number, ..Default::default() };
         blocks.pending_block.set_block_number(starting_block_number);
         blocks
     }
@@ -155,6 +157,10 @@ impl StarknetBlocks {
             });
 
         Ok(filtered_blocks.into_values().collect())
+    }
+
+    pub fn next_block_number(&self) -> BlockNumber {
+        BlockNumber(self.pending_block.block_number().0 - self.aborted_blocks.len() as u64)
     }
 }
 

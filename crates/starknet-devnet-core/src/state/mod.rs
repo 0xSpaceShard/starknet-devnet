@@ -1,9 +1,11 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use blockifier::state::cached_state::{
     CachedState, GlobalContractCache, GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST,
 };
 use blockifier::state::state_api::{State, StateReader};
+use parking_lot::RwLock;
 use starknet_api::core::CompiledClassHash;
 use starknet_api::hash::StarkFelt;
 use starknet_types::contract_address::ContractAddress;
@@ -20,6 +22,11 @@ pub(crate) mod state_diff;
 pub(crate) mod state_readers;
 pub mod state_update;
 
+pub enum BlockNumberOrPending {
+    Pending,
+    Number(u64),
+}
+
 pub trait CustomStateReader {
     fn is_contract_deployed(&mut self, contract_address: ContractAddress) -> DevnetResult<bool>;
     /// using is_contract_deployed with forked state returns that the contract is deployed on the
@@ -30,8 +37,6 @@ pub trait CustomStateReader {
         contract_address: ContractAddress,
     ) -> DevnetResult<bool>;
     fn is_contract_declared(&mut self, class_hash: ClassHash) -> bool;
-    /// sierra for cairo1, only artifact for cairo0
-    fn get_rpc_contract_class(&self, class_hash: &ClassHash) -> Option<&ContractClass>;
 }
 
 pub trait CustomState {
@@ -55,39 +60,110 @@ pub trait CustomState {
 }
 
 #[derive(Default, Clone)]
-/// Utility structure that makes it easier to calculate state diff later on
+/// Utility structure that makes it easier to calculate state diff later on. Classes are first
+/// inserted into the staging area (pending state), later to be committed (assigned a block number
+/// to mark when they were added). Committed doesn't necessarily mean the class is a part of the
+/// latest state, just that it is bound to be. Since there is no way of telling if a class is in the
+/// latest state or no, retrieving from the latest state has to be done via block number.
 pub struct CommittedClassStorage {
     staging: HashMap<ClassHash, ContractClass>,
-    committed: HashMap<ClassHash, ContractClass>,
+    committed: HashMap<ClassHash, (ContractClass, u64)>,
+    /// Remembers all classes committed at a block
+    block_number_to_classes: HashMap<u64, Vec<ClassHash>>,
 }
 
 impl CommittedClassStorage {
+    /// Insert a new class into the staging area. Once it can be committed, call `commit`.
     pub fn insert(&mut self, class_hash: ClassHash, contract_class: ContractClass) {
         self.staging.insert(class_hash, contract_class);
     }
 
-    pub fn commit(&mut self) -> HashMap<ClassHash, ContractClass> {
-        let diff = self.staging.clone();
-        self.committed.extend(self.staging.drain());
-        diff
+    /// Commits all of the staged classes and returns them, together with their hashes.
+    pub fn commit(&mut self, block_number: u64) -> HashMap<ClassHash, ContractClass> {
+        let mut newly_committed = HashMap::new();
+
+        let hashes_at_this_block = self.block_number_to_classes.entry(block_number).or_default();
+        for (class_hash, class) in &self.staging {
+            newly_committed.insert(*class_hash, class.clone());
+            self.committed.insert(*class_hash, (class.clone(), block_number));
+
+            hashes_at_this_block.push(*class_hash);
+        }
+
+        self.empty_staging();
+        newly_committed
+    }
+
+    /// Returns sierra for cairo1; returns the only artifact for cairo0.
+    pub fn get_class(
+        &self,
+        class_hash: &ClassHash,
+        block_number_or_pending: &BlockNumberOrPending,
+    ) -> Option<ContractClass> {
+        if let Some((class, storage_block_number)) = self.committed.get(class_hash) {
+            // If we're here, the requested class was committed at some point, need to see when.
+            match block_number_or_pending {
+                BlockNumberOrPending::Number(query_block_number) => {
+                    // If the class was stored before the block at which we are querying (or at that
+                    // block), we can return it.
+                    if storage_block_number <= query_block_number {
+                        Some(class.clone())
+                    } else {
+                        None
+                    }
+                }
+                BlockNumberOrPending::Pending => {
+                    // Class is requested at block_id=pending. Since it's present among the
+                    // committed classes, it's in the latest block or older and can be returned.
+                    Some(class.clone())
+                }
+            }
+        } else if let Some(class) = self.staging.get(class_hash) {
+            // If class present in storage.staging, it can only be retrieved if block_id=pending
+            match block_number_or_pending {
+                BlockNumberOrPending::Pending => Some(class.clone()),
+                _ => None,
+            }
+        } else {
+            None
+        }
+    }
+
+    /// Removes all classes committed at `block_number`. If no classes were committed at that block,
+    /// does nothing.
+    pub fn remove_classes_at(&mut self, block_number: u64) {
+        if let Some(removable) = self.block_number_to_classes.remove(&block_number) {
+            for class_hash in removable {
+                self.committed.remove(&class_hash);
+            }
+        }
+    }
+
+    /// Removes all staged classes.
+    pub fn empty_staging(&mut self) {
+        self.staging = Default::default();
     }
 }
 
 pub struct StarknetState {
     pub(crate) state: CachedState<DictState>,
-    rpc_contract_classes: CommittedClassStorage,
+    /// The class storage is meant to be shared between states to prevent copying (due to memory
+    /// concerns). Knowing which class was added when is made possible by storing the class
+    /// together with the block number.
+    rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
     /// - initially `None`
     /// - indicates the state hasn't yet been cloned for old-state preservation purpose
     historic_state: Option<DictState>,
 }
 
+fn default_global_contract_cache() -> GlobalContractCache {
+    GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST)
+}
+
 impl Default for StarknetState {
     fn default() -> Self {
         Self {
-            state: CachedState::new(
-                Default::default(),
-                GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
-            ),
+            state: CachedState::new(Default::default(), default_global_contract_cache()),
             rpc_contract_classes: Default::default(),
             historic_state: Default::default(),
         }
@@ -95,29 +171,29 @@ impl Default for StarknetState {
 }
 
 impl StarknetState {
-    pub fn new(defaulter: StarknetDefaulter) -> Self {
+    pub fn new(
+        defaulter: StarknetDefaulter,
+        rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
+    ) -> Self {
         Self {
-            state: CachedState::new(
-                DictState::new(defaulter),
-                GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
-            ),
-            rpc_contract_classes: Default::default(),
+            state: CachedState::new(DictState::new(defaulter), default_global_contract_cache()),
+            rpc_contract_classes,
             historic_state: Default::default(),
         }
     }
 
     pub fn clone_rpc_contract_classes(&self) -> CommittedClassStorage {
-        self.rpc_contract_classes.clone()
+        self.rpc_contract_classes.read().clone()
     }
 
     /// Commits and returns the state difference accumulated since the previous (historic) state.
-    pub(crate) fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
-        let diff = StateDiff::generate(&mut self.state, &mut self.rpc_contract_classes)?;
+    pub(crate) fn commit_diff(&mut self, block_number: u64) -> DevnetResult<StateDiff> {
+        let new_classes = self.rpc_contract_classes.write().commit(block_number);
+
+        let diff = StateDiff::generate(&mut self.state, new_classes)?;
         let new_historic = self.expand_historic(diff.clone())?;
-        self.state = CachedState::new(
-            new_historic.clone(),
-            GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
-        );
+        self.state = CachedState::new(new_historic.clone(), default_global_contract_cache());
+
         Ok(diff)
     }
 
@@ -166,10 +242,7 @@ impl StarknetState {
     pub fn clone_historic(&self) -> Self {
         let historic_state = self.historic_state.as_ref().unwrap().clone();
         Self {
-            state: CachedState::new(
-                historic_state,
-                GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
-            ),
+            state: CachedState::new(historic_state, default_global_contract_cache()),
             rpc_contract_classes: self.rpc_contract_classes.clone(),
             historic_state: Some(self.historic_state.as_ref().unwrap().clone()),
         }
@@ -285,10 +358,6 @@ impl CustomStateReader for StarknetState {
             || self.get_compiled_contract_class(class_hash.into()).is_ok()
     }
 
-    fn get_rpc_contract_class(&self, class_hash: &ClassHash) -> Option<&ContractClass> {
-        self.rpc_contract_classes.committed.get(class_hash)
-    }
-
     fn is_contract_deployed_locally(
         &mut self,
         contract_address: ContractAddress,
@@ -324,7 +393,8 @@ impl CustomState for StarknetState {
         };
 
         self.state.state.set_contract_class(class_hash.into(), compiled_class)?;
-        self.rpc_contract_classes.insert(class_hash, contract_class);
+        let mut class_storage = self.rpc_contract_classes.write();
+        class_storage.insert(class_hash, contract_class);
         Ok(())
     }
 
@@ -351,7 +421,8 @@ impl CustomState for StarknetState {
         };
 
         self.set_contract_class(class_hash.into(), compiled_class)?;
-        self.rpc_contract_classes.insert(class_hash, contract_class);
+        let mut class_storage = self.rpc_contract_classes.write();
+        class_storage.insert(class_hash, contract_class);
         Ok(())
     }
 
@@ -379,7 +450,7 @@ mod tests {
     use starknet_types::felt::Felt;
 
     use super::StarknetState;
-    use crate::state::{CustomState, CustomStateReader};
+    use crate::state::{BlockNumberOrPending, CustomState, CustomStateReader};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
 
@@ -413,7 +484,7 @@ mod tests {
             .unwrap();
 
         state.state.set_storage_at(contract_address, storage_key, dummy_felt().into()).unwrap();
-        state.commit_with_diff().unwrap();
+        state.commit_diff(1).unwrap();
 
         let storage_after = state.get_storage_at(contract_address, storage_key).unwrap();
         assert_eq!(storage_after, dummy_felt().into());
@@ -430,7 +501,7 @@ mod tests {
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(StarkFelt::ZERO));
 
         state.state.increment_nonce(contract_address).unwrap();
-        state.commit_with_diff().unwrap();
+        state.commit_diff(1).unwrap();
 
         // check if nonce update was correct
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(StarkFelt::ONE));
@@ -453,7 +524,8 @@ mod tests {
             .declare_contract_class(class_hash, contract_class.clone().try_into().unwrap())
             .unwrap();
 
-        state.commit_with_diff().unwrap();
+        let block_number = 1;
+        state.commit_diff(block_number).unwrap();
 
         match state.get_compiled_contract_class(class_hash.into()) {
             Ok(blockifier::execution::contract_class::ContractClass::V0(retrieved_class)) => {
@@ -462,8 +534,12 @@ mod tests {
             other => panic!("Invalid result: {other:?}"),
         }
 
-        let retrieved_rpc_class = state.get_rpc_contract_class(&class_hash).unwrap();
-        assert_eq!(retrieved_rpc_class, &contract_class.into());
+        let retrieved_rpc_class = state
+            .rpc_contract_classes
+            .read()
+            .get_class(&class_hash, &BlockNumberOrPending::Number(block_number))
+            .unwrap();
+        assert_eq!(retrieved_rpc_class, contract_class.into());
     }
 
     #[test]

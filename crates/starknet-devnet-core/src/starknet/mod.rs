@@ -12,6 +12,7 @@ use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::errors::TransactionPreValidationError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
+use parking_lot::RwLock;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, GasPricePerToken};
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::transaction::Fee;
@@ -71,7 +72,7 @@ use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
-use crate::state::{CustomState, CustomStateReader, StarknetState};
+use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
 use crate::utils::get_versioned_constants;
@@ -94,6 +95,8 @@ pub(crate) mod transaction_trace;
 pub struct Starknet {
     pub latest_state: StarknetState,
     pub pending_state: StarknetState,
+    /// Contains the diff since the last block
+    pending_state_diff: StateDiff,
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
     // To avoid repeating some logic related to blocks,
@@ -105,6 +108,7 @@ pub struct Starknet {
     pub next_block_timestamp: Option<u64>,
     pub(crate) messaging: MessagingBroker,
     pub(crate) dump_events: Vec<DumpEvent>,
+    rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
     cheats: Cheats,
 }
 
@@ -123,6 +127,7 @@ impl Default for Starknet {
             ),
             latest_state: Default::default(),
             pending_state: Default::default(),
+            pending_state_diff: Default::default(),
             predeployed_accounts: Default::default(),
             blocks: Default::default(),
             transactions: Default::default(),
@@ -131,6 +136,7 @@ impl Default for Starknet {
             next_block_timestamp: None,
             messaging: Default::default(),
             dump_events: Default::default(),
+            rpc_contract_classes: Default::default(),
             cheats: Default::default(),
         }
     }
@@ -139,7 +145,8 @@ impl Default for Starknet {
 impl Starknet {
     pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
         let defaulter = StarknetDefaulter::new(config.fork_config.clone());
-        let mut state = StarknetState::new(defaulter);
+        let rpc_contract_classes = Arc::new(RwLock::new(CommittedClassStorage::default()));
+        let mut state = StarknetState::new(defaulter, rpc_contract_classes.clone());
 
         // predeclare account classes
         for account_class_choice in
@@ -199,15 +206,17 @@ impl Starknet {
         )?;
         chargeable_account.deploy(&mut state)?;
 
-        state.commit_with_diff()?;
-
         // when forking, the number of the first new block to be mined is equal to the last origin
         // block (the one specified by the user) plus one.
         let starting_block_number =
             config.fork_config.block_number.map_or(DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, |n| n + 1);
+
+        let pending_state_diff = state.commit_diff(starting_block_number)?;
+
         let mut this = Self {
             latest_state: Default::default(), // temporary - overwritten on genesis block creation
             pending_state: state,
+            pending_state_diff,
             predeployed_accounts,
             block_context: Self::init_block_context(
                 config.gas_price_wei,
@@ -226,6 +235,7 @@ impl Starknet {
             next_block_timestamp: None,
             messaging: Default::default(),
             dump_events: Default::default(),
+            rpc_contract_classes,
             cheats: Default::default(),
         };
 
@@ -289,16 +299,10 @@ impl Starknet {
     }
 
     /// Transfer data from pending block into new block and save it to blocks collection.
-    /// Generates new pending block. Same for pending state.
-    /// Returns the new block number.
-    pub(crate) fn generate_new_block_and_state(
-        &mut self,
-        state_diff: StateDiff,
-    ) -> DevnetResult<Felt> {
+    /// Generates new pending block. Same for pending state. Returns the new block hash.
+    pub(crate) fn generate_new_block_and_state(&mut self) -> DevnetResult<Felt> {
         let mut new_block = self.pending_block().clone();
-
-        let new_block_number =
-            BlockNumber(new_block.block_number().0 - self.blocks.aborted_blocks.len() as u64);
+        let new_block_number = self.blocks.next_block_number();
 
         // set new block header
         new_block.set_block_hash(if self.config.lite_mode {
@@ -328,7 +332,8 @@ impl Starknet {
         });
 
         // insert pending block in the blocks collection and connect it to the state diff
-        self.blocks.insert(new_block, state_diff);
+        self.blocks.insert(new_block, self.pending_state_diff.clone());
+        self.pending_state_diff = StateDiff::default();
 
         // save into blocks state archive
         if self.config.state_archive == StateArchiveCapacity::Full {
@@ -338,16 +343,21 @@ impl Starknet {
 
         self.generate_pending_block()?;
 
-        // every new block we need to clone pending state to state
+        // for every new block we need to clone pending state into state
         self.latest_state = self.pending_state.clone_historic();
 
         Ok(new_block_hash)
     }
 
-    /// Commits the the changes accumulated in pending state. Check
-    /// `StarknetState::commit_with_diff` for more info.
-    pub fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
-        self.pending_state.commit_with_diff()
+    /// Commits the changes since the last commit. Use it to commit the changes generated by the
+    /// last tx. Updates the `pending_state_diff` to accumulate the changes since the last block.
+    /// Check `StarknetState::commit_diff` for more info.
+    pub fn commit_diff(&mut self) -> DevnetResult<StateDiff> {
+        let next_block_number = self.blocks.next_block_number();
+        let state_diff = self.pending_state.commit_diff(next_block_number.0)?;
+        self.pending_state_diff.extend(&state_diff);
+
+        Ok(state_diff)
     }
 
     /// Handles transaction result either Ok or Error and updates the state accordingly.
@@ -447,16 +457,15 @@ impl Starknet {
         }
     }
 
-    /// Handles succeeded and reverted transactions.
-    /// The tx is stored and potentially dumped.
-    /// A new block is generated.
+    /// Handles succeeded and reverted transactions. The tx is stored and potentially dumped. A new
+    /// block is generated in block-generation-on-transaction mode.
     pub(crate) fn handle_accepted_transaction(
         &mut self,
         transaction_hash: &TransactionHash,
         transaction: &TransactionWithHash,
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
-        let state_diff = self.commit_with_diff()?;
+        let state_diff = self.commit_diff()?;
 
         let trace = create_trace(
             &mut self.pending_state.state,
@@ -471,9 +480,9 @@ impl Starknet {
 
         self.transactions.insert(transaction_hash, transaction_to_add);
 
-        // create new block from pending one, only in block generation transaction mode
+        // create new block from pending one, only in block-generation-on-transaction mode
         if self.config.block_generation_on == BlockGenerationOn::Transaction {
-            self.generate_new_block_and_state(state_diff)?;
+            self.generate_new_block_and_state()?;
         }
 
         Ok(())
@@ -591,7 +600,7 @@ impl Starknet {
                     return Err(Error::NoStateAtBlock { block_id: *block_id });
                 }
 
-                let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
+                let block = self.get_block(block_id)?;
                 let block_hash = block.block_hash();
                 let state = self
                     .blocks
@@ -612,7 +621,7 @@ impl Starknet {
     }
 
     pub fn get_class(
-        &mut self,
+        &self,
         block_id: &BlockId,
         class_hash: ClassHash,
     ) -> DevnetResult<ContractClass> {
@@ -815,10 +824,8 @@ impl Starknet {
 
     pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> DevnetResult<Vec<Felt>> {
         if self.config.state_archive != StateArchiveCapacity::Full {
-            return Err(Error::UnsupportedAction {
-                msg: ("The abort blocks feature requires state-archive-capacity set to full."
-                    .into()),
-            });
+            let msg = "The abort blocks feature requires state-archive-capacity set to full.";
+            return Err(Error::UnsupportedAction { msg: msg.into() });
         }
 
         if self.blocks.get_by_hash(starting_block_hash).is_none() {
@@ -829,14 +836,10 @@ impl Starknet {
             return Err(Error::UnsupportedAction { msg: "Block is already aborted".into() });
         }
 
-        let genesis_block_number = if let Some(block_number) = self.config.fork_config.block_number
-        {
-            block_number + 1
-        } else {
-            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER
-        };
-        let genesis_block =
-            self.blocks.get_by_block_id(&BlockId::Number(genesis_block_number)).unwrap();
+        let genesis_block = self
+            .blocks
+            .get_by_block_id(&BlockId::Number(self.blocks.starting_block_number))
+            .ok_or(Error::UnsupportedAction { msg: "Cannot abort - no genesis block".into() })?;
 
         if starting_block_hash == genesis_block.block_hash() {
             return Err(Error::UnsupportedAction { msg: "Genesis block can't be aborted".into() });
@@ -848,6 +851,8 @@ impl Starknet {
             .ok_or(Error::UnsupportedAction { msg: "No blocks to abort".into() })?;
         let mut reached_starting_block = false;
         let mut aborted: Vec<Felt> = Vec::new();
+
+        let mut rpc_contract_classes = self.rpc_contract_classes.write();
 
         // Abort blocks from latest to starting (iterating backwards) and revert transactions.
         while !reached_starting_block {
@@ -866,6 +871,7 @@ impl Starknet {
                         ExecutionResult::Reverted { reason: "Block aborted manually".to_string() };
                 }
 
+                rpc_contract_classes.remove_classes_at(block.block_number().0);
                 aborted.push(block.block_hash());
 
                 // Update next block hash to abort
@@ -891,14 +897,15 @@ impl Starknet {
             self.pending_state = reverted_state.clone_historic();
         }
 
+        self.pending_state_diff = StateDiff::default();
+        rpc_contract_classes.empty_staging();
         self.blocks.aborted_blocks = aborted.clone();
 
         Ok(aborted)
     }
 
     pub fn get_block_txs_count(&self, block_id: &BlockId) -> DevnetResult<u64> {
-        let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
-
+        let block = self.get_block(block_id)?;
         Ok(block.get_transactions().len() as u64)
     }
 
@@ -923,13 +930,12 @@ impl Starknet {
         Ok(state.get_storage_at(contract_address.try_into()?, storage_key.try_into()?)?.into())
     }
 
-    pub fn get_block(&self, block_id: &BlockId) -> DevnetResult<StarknetBlock> {
-        let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
-        Ok(block.clone())
+    pub fn get_block(&self, block_id: &BlockId) -> DevnetResult<&StarknetBlock> {
+        self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)
     }
 
     pub fn get_block_with_transactions(&self, block_id: &BlockId) -> DevnetResult<BlockResult> {
-        let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
+        let block = self.get_block(block_id)?;
         let transactions = block
             .get_transactions()
             .iter()
@@ -955,8 +961,8 @@ impl Starknet {
         }
     }
 
-    pub fn get_block_with_receipts(&self, block_id: BlockId) -> DevnetResult<BlockResult> {
-        let block = self.blocks.get_by_block_id(&block_id).ok_or(Error::NoBlock)?;
+    pub fn get_block_with_receipts(&self, block_id: &BlockId) -> DevnetResult<BlockResult> {
+        let block = self.get_block(block_id)?;
         let mut transaction_receipts: Vec<TransactionWithReceipt> = vec![];
 
         for transaction_hash in block.get_transactions() {
@@ -1134,7 +1140,8 @@ impl Starknet {
                 .collect::<DevnetResult<Vec<(AccountTransaction, TransactionType, bool)>>>()?
         };
 
-        let mut transactional_rpc_contract_classes = state.clone_rpc_contract_classes();
+        let transactional_rpc_contract_classes =
+            Arc::new(RwLock::new(state.clone_rpc_contract_classes()));
         let mut transactional_state = CachedState::new(
             CachedState::create_transactional(&mut state.state),
             GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
@@ -1150,11 +1157,10 @@ impl Starknet {
                 !(skip_validate || skip_validate_due_to_impersonation),
             )?;
 
-            let state_diff: ThinStateDiff = StateDiff::generate(
-                &mut transactional_state,
-                &mut transactional_rpc_contract_classes,
-            )?
-            .into();
+            let block_number = block_context.block_info().block_number.0;
+            let new_classes = transactional_rpc_contract_classes.write().commit(block_number);
+            let state_diff: ThinStateDiff =
+                StateDiff::generate(&mut transactional_state, new_classes)?.into();
             let trace = create_trace(
                 &mut transactional_state,
                 transaction_type,
@@ -1198,7 +1204,7 @@ impl Starknet {
 
     /// create new block from pending one
     pub fn create_block(&mut self) -> DevnetResult<(), Error> {
-        self.generate_new_block_and_state(StateDiff::default())?;
+        self.generate_new_block_and_state()?;
         Ok(())
     }
 
@@ -1398,7 +1404,6 @@ mod tests {
     };
     use crate::error::{DevnetResult, Error};
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
-    use crate::state::state_diff::StateDiff;
     use crate::traits::{Accounted, Deployed, HashIdentified};
     use crate::utils::test_utils::{
         cairo_0_account_without_validations, dummy_contract_address, dummy_declare_transaction_v1,
@@ -1434,8 +1439,8 @@ mod tests {
         .unwrap();
         acc.deploy(&mut starknet.pending_state).unwrap();
 
-        let state_diff = starknet.commit_with_diff().unwrap();
-        starknet.generate_new_block_and_state(state_diff).unwrap();
+        starknet.commit_diff().unwrap();
+        starknet.generate_new_block_and_state().unwrap();
         starknet.restart_pending_block().unwrap();
 
         (starknet, acc)
@@ -1517,7 +1522,7 @@ mod tests {
         // blocks collection should not be empty
         assert_eq!(starknet.blocks.hash_to_block.len(), 1);
 
-        starknet.generate_new_block_and_state(StateDiff::default()).unwrap();
+        starknet.generate_new_block_and_state().unwrap();
         // blocks collection should not be empty
         assert_eq!(starknet.blocks.hash_to_block.len(), 2);
 
@@ -1619,7 +1624,7 @@ mod tests {
         let config =
             StarknetConfig { state_archive: StateArchiveCapacity::Full, ..Default::default() };
         let mut starknet = Starknet::new(&config).unwrap();
-        starknet.generate_new_block_and_state(StateDiff::default()).unwrap();
+        starknet.generate_new_block_and_state().unwrap();
 
         match starknet.get_mut_state_at(&BlockId::Hash(Felt::from(0).into())) {
             Err(Error::NoBlock) => (),
@@ -1632,7 +1637,7 @@ mod tests {
         let config =
             StarknetConfig { state_archive: StateArchiveCapacity::Full, ..Default::default() };
         let mut starknet = Starknet::new(&config).unwrap();
-        let block_hash = starknet.generate_new_block_and_state(StateDiff::default()).unwrap();
+        let block_hash = starknet.generate_new_block_and_state().unwrap();
         starknet.blocks.hash_to_state.remove(&block_hash);
 
         match starknet.get_mut_state_at(&BlockId::Number(1)) {
@@ -1645,7 +1650,7 @@ mod tests {
     fn getting_state_at_without_state_archive() {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
-        starknet.generate_new_block_and_state(StateDiff::default()).unwrap();
+        starknet.generate_new_block_and_state().unwrap();
 
         match starknet.get_mut_state_at(&BlockId::Number(0)) {
             Err(Error::NoStateAtBlock { .. }) => (),
@@ -1754,7 +1759,7 @@ mod tests {
 
         assert_eq!(block_number.0, added_block.header.block_number.0);
 
-        starknet.generate_new_block_and_state(StateDiff::default()).unwrap();
+        starknet.generate_new_block_and_state().unwrap();
 
         let added_block2 =
             starknet.blocks.get_by_hash(starknet.blocks.last_block_hash.unwrap()).unwrap();
@@ -1768,7 +1773,7 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        starknet.generate_new_block_and_state(StateDiff::default()).unwrap();
+        starknet.generate_new_block_and_state().unwrap();
 
         let num_no_transactions = starknet.get_block_txs_count(&BlockId::Number(1));
 
@@ -1779,7 +1784,7 @@ mod tests {
         // add transaction hash to pending block
         starknet.blocks.pending_block.add_transaction(*tx.get_transaction_hash());
 
-        starknet.generate_new_block_and_state(StateDiff::default()).unwrap();
+        starknet.generate_new_block_and_state().unwrap();
 
         let num_one_transaction = starknet.get_block_txs_count(&BlockId::Number(2));
 
@@ -1804,7 +1809,7 @@ mod tests {
         .expect("Could not start Devnet");
 
         // generate initial block with empty state
-        starknet.generate_new_block_and_state(StateDiff::default()).unwrap();
+        starknet.generate_new_block_and_state().unwrap();
 
         // **generate second block**
         // add data to state
@@ -1813,10 +1818,10 @@ mod tests {
             .state
             .increment_nonce(dummy_contract_address().try_into().unwrap())
             .unwrap();
-        // get state difference
-        let state_diff = starknet.commit_with_diff().unwrap();
+
         // generate new block and save the state
-        let second_block = starknet.generate_new_block_and_state(state_diff).unwrap();
+        starknet.commit_diff().unwrap();
+        let second_block = starknet.generate_new_block_and_state().unwrap();
 
         // **generate third block**
         // add data to state
@@ -1825,10 +1830,10 @@ mod tests {
             .state
             .increment_nonce(dummy_contract_address().try_into().unwrap())
             .unwrap();
-        // get state difference
-        let state_diff = starknet.commit_with_diff().unwrap();
+
         // generate new block and save the state
-        let third_block = starknet.generate_new_block_and_state(state_diff).unwrap();
+        starknet.commit_diff().unwrap();
+        let third_block = starknet.generate_new_block_and_state().unwrap();
 
         // check modified state at block 1 and 2 to contain the correct value for the nonce
         let second_block_address_nonce = starknet
@@ -1857,9 +1862,9 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        starknet.generate_new_block_and_state(StateDiff::default()).unwrap();
-        starknet.generate_new_block_and_state(StateDiff::default()).unwrap();
-        starknet.generate_new_block_and_state(StateDiff::default()).unwrap();
+        starknet.generate_new_block_and_state().unwrap();
+        starknet.generate_new_block_and_state().unwrap();
+        starknet.generate_new_block_and_state().unwrap();
 
         let latest_block = starknet.get_latest_block();
 
@@ -1870,7 +1875,7 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        starknet.generate_new_block_and_state(StateDiff::default()).unwrap();
+        starknet.generate_new_block_and_state().unwrap();
         starknet
             .blocks
             .pending_block
@@ -1879,7 +1884,7 @@ mod tests {
 
         let sleep_duration_secs = 5;
         thread::sleep(Duration::from_secs(sleep_duration_secs));
-        starknet.generate_new_block_and_state(StateDiff::default()).unwrap();
+        starknet.generate_new_block_and_state().unwrap();
 
         let block_timestamp = starknet.get_latest_block().unwrap().header.timestamp;
         // check if the pending_block_timestamp is less than the block_timestamp,
