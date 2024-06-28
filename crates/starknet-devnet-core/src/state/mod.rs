@@ -61,7 +61,10 @@ pub trait CustomState {
 
 #[derive(Default, Clone)]
 /// Utility structure that makes it easier to calculate state diff later on. Classes are first
-/// inserted into the staging area (pending state), later to be committed (latest state).
+/// inserted into the staging area (pending state), later to be committed (assigned a block number
+/// to mark when they were added). Committed doesn't necessarily mean the class is a part of the
+/// latest state, just that it is bound to be. Since there is no way of telling if a class is in the
+/// latest state or no, retrieving from the latest state has to be done via block number.
 pub struct CommittedClassStorage {
     staging: HashMap<ClassHash, ContractClass>,
     committed: HashMap<ClassHash, (ContractClass, u64)>,
