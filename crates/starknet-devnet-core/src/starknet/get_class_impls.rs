@@ -25,7 +25,7 @@ pub fn get_class_hash_at_impl(
 }
 
 pub fn get_class_impl(
-    starknet: &mut Starknet, // TODO can be regular reference?
+    starknet: &Starknet,
     block_id: &BlockId,
     class_hash: ClassHash,
 ) -> DevnetResult<ContractClass> {

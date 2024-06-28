@@ -209,7 +209,7 @@ impl JsonRpcHandler {
 
     /// starknet_getClass
     pub async fn get_class(&self, block_id: BlockId, class_hash: ClassHash) -> StrictRpcResult {
-        match self.api.starknet.write().await.get_class(block_id.as_ref(), class_hash) {
+        match self.api.starknet.read().await.get_class(block_id.as_ref(), class_hash) {
             Ok(contract_class) => {
                 Ok(StarknetResponse::ContractClass(contract_class.try_into()?).into())
             }

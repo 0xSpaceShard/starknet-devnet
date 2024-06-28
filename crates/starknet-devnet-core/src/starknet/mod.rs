@@ -623,7 +623,7 @@ impl Starknet {
     }
 
     pub fn get_class(
-        &mut self,
+        &self,
         block_id: &BlockId,
         class_hash: ClassHash,
     ) -> DevnetResult<ContractClass> {
