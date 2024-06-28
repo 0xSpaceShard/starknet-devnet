@@ -120,6 +120,8 @@ impl StarknetDefaulter {
     }
 
     pub fn get_nonce_at(&self, contract_address: ContractAddress) -> StateResult<Nonce> {
+        println!("StarknetDefaulter get_nonce_at and origin_reader?");
+
         if let Some(origin) = &self.origin_reader {
             origin.get_nonce_at(contract_address)
         } else {
@@ -178,6 +180,8 @@ impl BlockingOriginReader {
     }
 
     fn get_nonce_at(&self, contract_address: ContractAddress) -> StateResult<Nonce> {
+        println!("BlockingOriginReader: {:?}", self.url);
+
         let nonce = match self.send_body(
             "starknet_getNonce",
             serde_json::json!({
