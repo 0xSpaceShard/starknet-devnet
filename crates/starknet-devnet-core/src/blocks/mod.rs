@@ -158,6 +158,10 @@ impl StarknetBlocks {
 
         Ok(filtered_blocks.into_values().collect())
     }
+
+    pub fn next_block_number(&self) -> BlockNumber {
+        BlockNumber(self.pending_block.block_number().0 - self.aborted_blocks.len() as u64)
+    }
 }
 
 #[derive(Clone, Eq, PartialEq)]

@@ -302,9 +302,7 @@ impl Starknet {
     /// Generates new pending block. Same for pending state. Returns the new block hash.
     pub(crate) fn generate_new_block_and_state(&mut self) -> DevnetResult<Felt> {
         let mut new_block = self.pending_block().clone();
-
-        let new_block_number =
-            BlockNumber(new_block.block_number().0 - self.blocks.aborted_blocks.len() as u64);
+        let new_block_number = self.blocks.next_block_number();
 
         // set new block header
         new_block.set_block_hash(if self.config.lite_mode {
