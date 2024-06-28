@@ -131,13 +131,12 @@ impl CommittedClassStorage {
 
     /// Removes all classes committed at `block_number`. If no classes were committed at that block,
     /// does nothing.
-    pub fn remove_classes_at(&mut self, block_number: u64) -> DevnetResult<()> {
-        let removable = self.block_number_to_classes.remove(&block_number).ok_or(Error::NoBlock)?;
-        for class_hash in removable {
-            self.committed.remove(&class_hash);
+    pub fn remove_classes_at(&mut self, block_number: u64) {
+        if let Some(removable) = self.block_number_to_classes.remove(&block_number) {
+            for class_hash in removable {
+                self.committed.remove(&class_hash);
+            }
         }
-
-        Ok(())
     }
 
     /// Removes all staged classes.

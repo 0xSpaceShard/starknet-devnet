@@ -49,7 +49,7 @@ use starknet_types::rpc::transactions::{
     DeclareTransaction, SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace,
     TransactionType, TransactionWithHash, TransactionWithReceipt, Transactions,
 };
-use starknet_types::traits::HashProducer;
+use starknet_types::traits::{HashProducer, ToHexString};
 use tracing::{error, info};
 
 use self::cheats::Cheats;
@@ -829,6 +829,7 @@ impl Starknet {
         }
 
         if self.blocks.get_by_hash(starting_block_hash).is_none() {
+            println!("DEBUG can't find by hash: {:?}", starting_block_hash.to_prefixed_hex_str());
             return Err(Error::NoBlock);
         }
 
@@ -871,7 +872,7 @@ impl Starknet {
                         ExecutionResult::Reverted { reason: "Block aborted manually".to_string() };
                 }
 
-                rpc_contract_classes.remove_classes_at(block.block_number().0)?;
+                rpc_contract_classes.remove_classes_at(block.block_number().0);
                 aborted.push(block.block_hash());
 
                 // Update next block hash to abort
