@@ -78,18 +78,18 @@ impl CommittedClassStorage {
 
     /// Commits all of the staged classes and returns them, together with their hashes.
     pub fn commit(&mut self, block_number: u64) -> HashMap<ClassHash, ContractClass> {
-        let mut freshly_committed = HashMap::new();
+        let mut newly_committed = HashMap::new();
 
         let hashes_at_this_block = self.block_number_to_classes.entry(block_number).or_default();
         for (class_hash, class) in &self.staging {
-            freshly_committed.insert(*class_hash, class.clone());
+            newly_committed.insert(*class_hash, class.clone());
             self.committed.insert(*class_hash, (class.clone(), block_number));
 
             hashes_at_this_block.push(*class_hash);
         }
 
         self.empty_staging();
-        freshly_committed
+        newly_committed
     }
 
     /// Returns sierra for cairo1; returns the only artifact for cairo0.
