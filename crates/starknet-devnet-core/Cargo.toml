@@ -1,6 +1,6 @@
 [package]
 name = "starknet-devnet-core"
-version = "0.0.7"
+version = "0.1.1"
 edition.workspace = true
 repository.workspace = true
 license-file.workspace = true
@@ -29,6 +29,7 @@ indexmap = { workspace = true }
 url = { workspace = true }
 nonzero_ext = { workspace = true }
 usc = { workspace = true }
+parking_lot = { workspace = true }
 
 # necessary for installing reqwest in Docker
 openssl = { workspace = true }

@@ -229,14 +229,14 @@ mod fork_tests {
             .get_class(BlockId::Tag(BlockTag::Latest), class_hash)
             .await
             .unwrap();
-        assert_cairo1_classes_equal(retrieved_class_by_hash, expected_sierra.clone()).unwrap();
+        assert_cairo1_classes_equal(&retrieved_class_by_hash, &expected_sierra).unwrap();
 
         let retrieved_class_by_address = fork_devnet
             .json_rpc_client
             .get_class_at(BlockId::Tag(BlockTag::Latest), contract_address)
             .await
             .unwrap();
-        assert_cairo1_classes_equal(retrieved_class_by_address, expected_sierra).unwrap();
+        assert_cairo1_classes_equal(&retrieved_class_by_address, &expected_sierra).unwrap();
     }
 
     #[tokio::test]

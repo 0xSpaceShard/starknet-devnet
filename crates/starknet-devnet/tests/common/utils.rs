@@ -208,8 +208,8 @@ fn take_abi_from_json(value: &mut serde_json::Value) -> Result<serde_json::Value
 /// Handles differences in abi serialization (some might contain spaces between properties, some
 /// not) Comparing the ABIs separately as JSON-parsed values.
 pub fn assert_cairo1_classes_equal(
-    class_a: ContractClass,
-    class_b: ContractClass,
+    class_a: &ContractClass,
+    class_b: &ContractClass,
 ) -> Result<(), anyhow::Error> {
     let mut class_a_jsonified = serde_json::to_value(class_a)?;
     let mut class_b_jsonified = serde_json::to_value(class_b)?;
@@ -327,6 +327,18 @@ pub async fn deploy_argent_account(
     let deployment_result = deployment.send().await?;
 
     Ok((deployment_result, signer))
+}
+
+/// Assert that the set of elements of `iterable1` is a subset of the elements of `iterable2` and
+/// vice versa.
+pub fn assert_equal_elements<T>(iterable1: &[T], iterable2: &[T])
+where
+    T: PartialEq,
+{
+    assert_eq!(iterable1.len(), iterable2.len());
+    for e in iterable1 {
+        assert!(iterable2.contains(e));
+    }
 }
 
 #[cfg(test)]

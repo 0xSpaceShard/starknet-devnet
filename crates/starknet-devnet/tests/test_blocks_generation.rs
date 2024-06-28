@@ -9,7 +9,8 @@ mod blocks_generation_tests {
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
-        BlockId, BlockStatus, BlockTag, FieldElement, FunctionCall, MaybePendingStateUpdate,
+        BlockId, BlockStatus, BlockTag, DeclaredClassItem, FieldElement, FunctionCall,
+        MaybePendingStateUpdate, NonceUpdate, StateUpdate, TransactionTrace,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::Provider;
@@ -18,7 +19,8 @@ mod blocks_generation_tests {
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
     use crate::common::utils::{
-        assert_tx_successful, get_contract_balance, get_contract_balance_by_block_id,
+        assert_equal_elements, assert_tx_successful, get_contract_balance,
+        get_contract_balance_by_block_id, get_events_contract_in_sierra_and_compiled_class_hash,
         get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
         UniqueAutoDeletableFile,
     };
@@ -306,6 +308,90 @@ mod blocks_generation_tests {
 
         assert_pending_state_update(&devnet).await;
         assert_latest_state_update(&devnet).await;
+    }
+
+    #[tokio::test]
+    async fn blocks_on_demand_declarations() {
+        let devnet_args = ["--block-generation-on", "demand"];
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let predeployed_account = Arc::new(SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer.clone(),
+            account_address,
+            constants::CHAIN_ID,
+            ExecutionEncoding::New,
+        ));
+
+        // perform declarations
+        let classes_with_hash = [
+            get_simple_contract_in_sierra_and_compiled_class_hash(),
+            get_events_contract_in_sierra_and_compiled_class_hash(),
+        ];
+        let mut declaration_results = vec![];
+        for (nonce, (class, casm_hash)) in classes_with_hash.iter().enumerate() {
+            let declaration_result = predeployed_account
+                .declare(Arc::new(class.clone()), *casm_hash)
+                .max_fee(FieldElement::from(1e18 as u128))
+                .nonce(FieldElement::from(nonce))
+                .send()
+                .await
+                .unwrap();
+            assert_tx_successful(&declaration_result.transaction_hash, &devnet.json_rpc_client)
+                .await;
+            declaration_results.push(declaration_result);
+        }
+
+        let declaration_block_hash = devnet.create_block().await.unwrap();
+
+        // assert individual tx state updates
+        let mut expected_block_declarations = vec![];
+        let mut expected_nonce = 1_u32;
+        for (declaration_result, (_, casm_hash)) in
+            declaration_results.iter().zip(classes_with_hash.iter())
+        {
+            let expected_declaration = DeclaredClassItem {
+                class_hash: declaration_result.class_hash,
+                compiled_class_hash: *casm_hash,
+            };
+            expected_block_declarations.push(expected_declaration.clone());
+
+            let tx_hash = declaration_result.transaction_hash;
+            match devnet.json_rpc_client.trace_transaction(tx_hash).await {
+                Ok(TransactionTrace::Declare(trace)) => {
+                    let state_diff = trace.state_diff.unwrap();
+                    assert_eq!(state_diff.declared_classes, vec![expected_declaration]);
+                    assert_eq!(
+                        state_diff.nonces,
+                        vec![NonceUpdate {
+                            contract_address: account_address,
+                            nonce: FieldElement::from(expected_nonce)
+                        }]
+                    )
+                }
+                other => panic!("Unexpected response: {other:?}"),
+            }
+            expected_nonce += 1;
+        }
+
+        // assert block state update - should include diff of all txs from pending block
+        let expected_block_nonce_update = vec![NonceUpdate {
+            contract_address: account_address,
+            nonce: FieldElement::from(classes_with_hash.len()),
+        }];
+        for block_id in [BlockId::Tag(BlockTag::Latest), BlockId::Hash(declaration_block_hash)] {
+            match devnet.json_rpc_client.get_state_update(block_id).await {
+                Ok(MaybePendingStateUpdate::Update(StateUpdate { state_diff, .. })) => {
+                    assert_equal_elements(
+                        &state_diff.declared_classes,
+                        &expected_block_declarations,
+                    );
+                    assert_equal_elements(&state_diff.nonces, &expected_block_nonce_update)
+                }
+                other => panic!("Unexpected response: {other:?}"),
+            }
+        }
     }
 
     #[tokio::test]
