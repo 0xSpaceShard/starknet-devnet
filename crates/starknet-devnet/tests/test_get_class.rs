@@ -307,7 +307,7 @@ mod get_class_tests {
         for (block_id, expected_err) in [
             // this block's state is invalidated
             (BlockId::Number(abortable_block.block_number), StarknetError::BlockNotFound),
-            (BlockId::Hash(abortable_block.block_hash), StarknetError::ClassHashNotFound),
+            (BlockId::Hash(abortable_block.block_hash), StarknetError::BlockNotFound),
             (BlockId::Tag(BlockTag::Latest), StarknetError::ClassHashNotFound),
             (BlockId::Tag(BlockTag::Pending), StarknetError::ClassHashNotFound),
         ] {
@@ -323,17 +323,17 @@ mod get_class_tests {
 
         // getting class at the following block IDs should NOT be successful after creating a block
         // that has the same number that the aborted block had
-        for block_id in [
-            BlockId::Number(abortable_block.block_number),
-            BlockId::Hash(abortable_block.block_hash),
-            BlockId::Hash(latest_block_hash),
-            BlockId::Tag(BlockTag::Latest),
-            BlockId::Tag(BlockTag::Pending),
+        for (block_id, expected_err) in [
+            (BlockId::Number(abortable_block.block_number), StarknetError::ClassHashNotFound),
+            (BlockId::Hash(abortable_block.block_hash), StarknetError::BlockNotFound),
+            (BlockId::Hash(latest_block_hash), StarknetError::ClassHashNotFound),
+            (BlockId::Tag(BlockTag::Latest), StarknetError::ClassHashNotFound),
+            (BlockId::Tag(BlockTag::Pending), StarknetError::ClassHashNotFound),
         ] {
             let retrieved =
                 devnet.json_rpc_client.get_class(block_id, declaration_result.class_hash).await;
             match retrieved {
-                Err(ProviderError::StarknetError(StarknetError::ClassHashNotFound)) => (),
+                Err(ProviderError::StarknetError(err)) => assert_eq!(err, expected_err),
                 other => panic!("Unexpected response at block_id={block_id:?}: {other:?}"),
             }
         }

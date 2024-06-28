@@ -8,7 +8,6 @@ use blockifier::state::state_api::{State, StateReader};
 use parking_lot::RwLock;
 use starknet_api::core::CompiledClassHash;
 use starknet_api::hash::StarkFelt;
-use starknet_rs_core::types::BlockTag;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt};
@@ -23,8 +22,8 @@ pub(crate) mod state_diff;
 pub(crate) mod state_readers;
 pub mod state_update;
 
-pub enum BlockTagOrNumber {
-    Tag(BlockTag),
+pub enum BlockNumberOrPending {
+    Pending,
     Number(u64),
 }
 
@@ -96,12 +95,12 @@ impl CommittedClassStorage {
     pub fn get_class(
         &self,
         class_hash: &ClassHash,
-        block_tag_or_number: &BlockTagOrNumber,
+        block_number_or_pending: &BlockNumberOrPending,
     ) -> Option<ContractClass> {
         if let Some((class, storage_block_number)) = self.committed.get(class_hash) {
             // If we're here, the requested class was committed at some point, need to see when.
-            match block_tag_or_number {
-                BlockTagOrNumber::Number(query_block_number) => {
+            match block_number_or_pending {
+                BlockNumberOrPending::Number(query_block_number) => {
                     // If the class was stored before the block at which we are querying (or at that
                     // block), we can return it.
                     if storage_block_number <= query_block_number {
@@ -110,17 +109,16 @@ impl CommittedClassStorage {
                         None
                     }
                 }
-                BlockTagOrNumber::Tag(_) => {
-                    // Class is requested at block_id = (pending || latest). Since it's present
-                    // among the committed classes, it's in the latest block or
-                    // older and can be returned for either tag.
+                BlockNumberOrPending::Pending => {
+                    // Class is requested at block_id=pending. Since it's present among the
+                    // committed classes, it's in the latest block or older and can be returned.
                     Some(class.clone())
                 }
             }
         } else if let Some(class) = self.staging.get(class_hash) {
             // If class present in storage.staging, it can only be retrieved if block_id=pending
-            match block_tag_or_number {
-                BlockTagOrNumber::Tag(BlockTag::Pending) => Some(class.clone()),
+            match block_number_or_pending {
+                BlockNumberOrPending::Pending => Some(class.clone()),
                 _ => None,
             }
         } else {
@@ -187,18 +185,14 @@ impl StarknetState {
     }
 
     /// Commits and returns the state difference accumulated since the previous (historic) state.
-    /// Classes are NOT committed; see `Self::commit_classes`.
-    pub(crate) fn commit_diff(&mut self) -> DevnetResult<StateDiff> {
-        let new_classes = self.rpc_contract_classes.read().staging.clone();
+    pub(crate) fn commit_diff(&mut self, block_number: u64) -> DevnetResult<StateDiff> {
+        let new_classes = self.rpc_contract_classes.write().commit(block_number);
 
         let diff = StateDiff::generate(&mut self.state, new_classes)?;
         let new_historic = self.expand_historic(diff.clone())?;
         self.state = CachedState::new(new_historic.clone(), default_global_contract_cache());
-        Ok(diff)
-    }
 
-    pub(crate) fn commit_classes(&mut self, block_number: u64) {
-        self.rpc_contract_classes.write().commit(block_number);
+        Ok(diff)
     }
 
     pub fn assert_contract_deployed(
@@ -449,13 +443,12 @@ mod tests {
     use starknet_api::core::Nonce;
     use starknet_api::hash::StarkFelt;
     use starknet_api::state::StorageKey;
-    use starknet_rs_core::types::BlockTag;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::felt::Felt;
 
     use super::StarknetState;
-    use crate::state::{BlockTagOrNumber, CustomState, CustomStateReader};
+    use crate::state::{BlockNumberOrPending, CustomState, CustomStateReader};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
 
@@ -489,8 +482,7 @@ mod tests {
             .unwrap();
 
         state.state.set_storage_at(contract_address, storage_key, dummy_felt().into()).unwrap();
-        state.commit_diff().unwrap();
-        state.commit_classes(1);
+        state.commit_diff(1).unwrap();
 
         let storage_after = state.get_storage_at(contract_address, storage_key).unwrap();
         assert_eq!(storage_after, dummy_felt().into());
@@ -507,8 +499,7 @@ mod tests {
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(StarkFelt::ZERO));
 
         state.state.increment_nonce(contract_address).unwrap();
-        state.commit_diff().unwrap();
-        state.commit_classes(1);
+        state.commit_diff(1).unwrap();
 
         // check if nonce update was correct
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(StarkFelt::ONE));
@@ -531,8 +522,8 @@ mod tests {
             .declare_contract_class(class_hash, contract_class.clone().try_into().unwrap())
             .unwrap();
 
-        state.commit_diff().unwrap();
-        state.commit_classes(1);
+        let block_number = 1;
+        state.commit_diff(block_number).unwrap();
 
         match state.get_compiled_contract_class(class_hash.into()) {
             Ok(blockifier::execution::contract_class::ContractClass::V0(retrieved_class)) => {
@@ -544,7 +535,7 @@ mod tests {
         let retrieved_rpc_class = state
             .rpc_contract_classes
             .read()
-            .get_class(&class_hash, &BlockTagOrNumber::Tag(BlockTag::Latest))
+            .get_class(&class_hash, &BlockNumberOrPending::Number(block_number))
             .unwrap();
         assert_eq!(retrieved_rpc_class, contract_class.into());
     }

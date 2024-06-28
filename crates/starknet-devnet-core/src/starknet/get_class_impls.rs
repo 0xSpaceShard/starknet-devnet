@@ -1,4 +1,5 @@
 use blockifier::state::state_api::StateReader;
+use starknet_api::block::BlockStatus;
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
@@ -6,7 +7,7 @@ use starknet_types::felt::ClassHash;
 
 use crate::error::{DevnetResult, Error, StateError};
 use crate::starknet::Starknet;
-use crate::state::BlockTagOrNumber;
+use crate::state::BlockNumberOrPending;
 
 pub fn get_class_hash_at_impl(
     starknet: &mut Starknet,
@@ -29,19 +30,18 @@ pub fn get_class_impl(
     block_id: &BlockId,
     class_hash: ClassHash,
 ) -> DevnetResult<ContractClass> {
-    starknet.get_block(block_id)?; // returns error if block at the id doesn't exist
+    let requested_block = starknet.get_block(block_id)?;
 
-    // if block id is hash, convert to number; the underlying logic only works with that or tag
-    let block_tag_or_number = match block_id {
-        BlockId::Hash(block_hash) => match starknet.blocks.hash_to_block.get(&block_hash.into()) {
-            Some(block) => BlockTagOrNumber::Number(block.block_number().0),
-            None => return Err(Error::NoBlock),
-        },
-        BlockId::Number(number) => BlockTagOrNumber::Number(*number),
-        BlockId::Tag(tag) => BlockTagOrNumber::Tag(*tag),
+    // the underlying logic only works with block number or pending tag
+    let block_number_or_pending = match requested_block.status {
+        BlockStatus::Pending => BlockNumberOrPending::Pending,
+        BlockStatus::AcceptedOnL2 | BlockStatus::AcceptedOnL1 => {
+            BlockNumberOrPending::Number(requested_block.block_number().0)
+        }
+        BlockStatus::Rejected => return Err(Error::NoBlock),
     };
 
-    match starknet.rpc_contract_classes.read().get_class(&class_hash, &block_tag_or_number) {
+    match starknet.rpc_contract_classes.read().get_class(&class_hash, &block_number_or_pending) {
         Some(class) => Ok(class.clone()),
         None => Err(Error::StateError(StateError::NoneClassHash(class_hash))),
     }
