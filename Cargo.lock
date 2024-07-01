@@ -5683,7 +5683,6 @@ dependencies = [
  "clap 4.5.4",
  "flate2",
  "num-bigint",
- "num-integer",
  "serde",
  "serde_json",
  "starknet-core",

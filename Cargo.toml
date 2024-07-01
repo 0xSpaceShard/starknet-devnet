@@ -64,6 +64,7 @@ regex_generate = "0.2.3"
 reqwest = { version = "0.12", features = ["blocking", "json"] }
 url = "2.4"
 usc = { version = "2.1.0", package = "universal-sierra-compiler" }
+num-bigint = { version = "0.4" }
 
 # Starknet dependencies
 starknet_api = { version = "0.10.0", features = ["testing"] }
@@ -101,8 +102,6 @@ zerocopy = "0.7.31"
 unsafe-libyaml = "0.2.10"
 h2 = "0.4"
 
-num-bigint = { version = "0.4" }
-
 ethers = { version = "2.0.11" }
 
 openssl = { version = "0.10", features = ["vendored"] }
@@ -110,5 +109,9 @@ openssl = { version = "0.10", features = ["vendored"] }
 parking_lot = "0.12.3"
 
 # Dev dependencies
-lazy_static = { version = "1.4.0" }
 serial_test = "3.1.1"
+hex = "0.4.3"
+lazy_static = { version = "1.4.0" }
+
+# Benchmarking
+criterion = { version = "0.3.4", features = ["async_tokio"] }

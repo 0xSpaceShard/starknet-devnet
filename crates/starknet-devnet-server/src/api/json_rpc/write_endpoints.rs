@@ -70,21 +70,21 @@ impl JsonRpcHandler {
         Ok(StarknetResponse::TransactionHash(TransactionHashOutput { transaction_hash }).into())
     }
 
-    // devnet_impersonateAccount
+    /// devnet_impersonateAccount
     pub async fn impersonate_account(&self, address: ContractAddress) -> StrictRpcResult {
         let mut starknet = self.api.starknet.write().await;
         starknet.impersonate_account(address)?;
         Ok(super::JsonRpcResponse::Empty)
     }
 
-    // devnet_stopImpersonatingAccount
+    /// devnet_stopImpersonatingAccount
     pub async fn stop_impersonating_account(&self, address: ContractAddress) -> StrictRpcResult {
         let mut starknet = self.api.starknet.write().await;
         starknet.stop_impersonating_account(&address);
         Ok(super::JsonRpcResponse::Empty)
     }
 
-    // devnet_autoImpersonate | devnet_stopAutoImpersonate
+    /// devnet_autoImpersonate | devnet_stopAutoImpersonate
     pub async fn set_auto_impersonate(&self, auto_impersonation: bool) -> StrictRpcResult {
         let mut starknet = self.api.starknet.write().await;
         starknet.set_auto_impersonate_account(auto_impersonation)?;
