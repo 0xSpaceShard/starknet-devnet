@@ -53,6 +53,8 @@ impl BlockingOriginReader {
             "id": 0,
         });
 
+        println!("send_body: {:?}", body);
+
         match self
             .client
             .post(self.url.clone())

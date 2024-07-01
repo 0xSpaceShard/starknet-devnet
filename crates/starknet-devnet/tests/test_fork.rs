@@ -595,7 +595,8 @@ mod fork_tests {
             .await
             .unwrap();
 
-        // nonce from devnet 
+        // nonce from devnet
+        // TODO: use first account from predeplyed accounts
         fork_devnet
             .json_rpc_client
             .get_nonce(
