@@ -24,7 +24,8 @@ mod fork_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
-        self, INTEGRATION_SEPOLIA_GENESIS_BLOCK_HASH, INTEGRATION_SEPOLIA_URL,
+        self, INTEGRATION_SEPOLIA_GENESIS_BLOCK_HASH, INTEGRATION_SEPOLIA_HTTPS_URL,
+        INTEGRATION_SEPOLIA_HTTP_URL,
     };
     use crate::common::utils::{
         assert_cairo1_classes_equal, assert_tx_successful, declare_deploy,
@@ -56,7 +57,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_forking_sepolia_genesis_block() {
-        let cli_args = ["--fork-network", INTEGRATION_SEPOLIA_URL];
+        let cli_args = ["--fork-network", INTEGRATION_SEPOLIA_HTTP_URL];
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
         let resp = &fork_devnet
@@ -74,7 +75,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_getting_non_existent_block_from_origin() {
-        let cli_args = ["--fork-network", INTEGRATION_SEPOLIA_URL];
+        let cli_args = ["--fork-network", INTEGRATION_SEPOLIA_HTTP_URL];
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
         let non_existent_block_hash = "0x123456";
@@ -577,7 +578,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_forking_https() {
-        let origin_url = INTEGRATION_SEPOLIA_URL;
+        let origin_url = INTEGRATION_SEPOLIA_HTTPS_URL;
         let fork_block = 2;
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--fork-network",
