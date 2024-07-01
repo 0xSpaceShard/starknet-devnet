@@ -57,8 +57,11 @@ pub const ARGENT_ACCOUNT_CLASS_HASH: &str =
     "0x029927c8af6bccf3f6fda035981e765a7bdbf18a2dc0d630494f8758aa908e2b";
 
 /// Forking
-pub const INTEGRATION_SEPOLIA_URL: &str =
+pub const INTEGRATION_SEPOLIA_HTTP_URL: &str =
+    "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7";
+pub const INTEGRATION_SEPOLIA_HTTPS_URL: &str =
     "https://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7";
+
 pub const MAINNET_URL: &str = "http://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_7";
 pub const INTEGRATION_SEPOLIA_GENESIS_BLOCK_HASH: &str =
     "0x19f675d3fb226821493a6ab9a1955e384bba80f130de625621a418e9a7c0ca3";
