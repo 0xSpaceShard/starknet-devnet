@@ -344,13 +344,13 @@ impl From<&ResourceBoundsWrapper> for starknet_api::transaction::ResourceBoundsM
 impl BroadcastedTransactionCommonV3 {
     /// Checks if total accumulated fee of resource_bounds is equal to 0
     pub fn is_max_fee_zero_value(&self) -> bool {
+        println!("BroadcastedTransactionCommonV3 is_max_fee_zero_value!!!");
+
         (self.resource_bounds.inner.l1_gas.max_amount as u128)
             * self.resource_bounds.inner.l1_gas.max_price_per_unit
             == 0
-            && (self.resource_bounds.inner.l2_gas.max_amount as u128)
-                * self.resource_bounds.inner.l2_gas.max_price_per_unit
-                == 0
     }
+
     /// Returns an array of FieldElements that reflects the `common_tx_fields` according to SNIP-8(https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md/#protocol-changes).
     ///
     /// # Arguments
