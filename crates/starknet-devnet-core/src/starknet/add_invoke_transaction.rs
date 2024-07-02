@@ -266,8 +266,8 @@ mod tests {
             .parse::<u64>()
             .unwrap();
 
-        // l2 gas should always be set to zero and l1 gas should be greater than 0 for transactions
-        // v3, this is why these 2 cases should fail
+        // l2 gas should always be set to zero and l1 gas should be greater than 0 for v3
+        // transactions, this is why these 2 cases should fail
         let fail_test_cases = [(l1_gas, 1), (0, 1)];
         for test_case in fail_test_cases {
             let invoke_transaction = test_invoke_transaction_v3(
