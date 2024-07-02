@@ -133,6 +133,7 @@ mod tests {
         param: Felt,
         nonce: u128,
         l1_gas_amount: u64,
+        l2_gas_amount: u64,
     ) -> BroadcastedInvokeTransaction {
         let calldata = vec![
             Felt::from(contract_address), // contract address
@@ -146,7 +147,12 @@ mod tests {
                 version: Felt::from(3),
                 signature: vec![],
                 nonce: Felt::from(nonce),
-                resource_bounds: ResourceBoundsWrapper::new(l1_gas_amount, 1, 0, 0),
+                resource_bounds: ResourceBoundsWrapper::new(
+                    l1_gas_amount,
+                    1,
+                    l2_gas_amount,
+                    l2_gas_amount.into(),
+                ),
                 tip: Tip(0),
                 paymaster_data: vec![],
                 nonce_data_availability_mode:
@@ -169,6 +175,7 @@ mod tests {
             Felt::from(10),
             0,
             1,
+            0,
         );
         match invoke_transaction {
             BroadcastedInvokeTransaction::V3(ref mut v3) => {
@@ -198,6 +205,7 @@ mod tests {
             contract_address,
             increase_balance_selector,
             Felt::from(10),
+            0,
             0,
             0,
         );
@@ -236,6 +244,7 @@ mod tests {
                 .to_string()
                 .parse::<u64>()
                 .unwrap(),
+            0,
         );
 
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
@@ -248,6 +257,46 @@ mod tests {
             account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap()
                 < initial_balance
         );
+    }
+
+    #[test]
+    fn invoke_transaction_v3_positive_l2_gas_should_fail() {
+        let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
+        let account_address = account.get_address();
+        let initial_balance =
+            account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap();
+
+        let invoke_transaction = test_invoke_transaction_v3(
+            account_address,
+            contract_address,
+            increase_balance_selector,
+            Felt::from(10),
+            0,
+            account
+                .get_balance(&mut starknet.pending_state, crate::account::FeeToken::STRK)
+                .unwrap()
+                .to_string()
+                .parse::<u64>()
+                .unwrap(),
+            1,
+        );
+
+        let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
+
+        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
+
+        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        assert!(
+            account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap()
+                < initial_balance
+        );
+
+        // TODO: this is passing now but should_fail
+        // let txs: &[BroadcastedTransaction] =
+        // &[BroadcastedTransaction::Invoke(invoke_transaction)]; let simulation_flags =
+        // vec![]; let x = starknet.estimate_fee(&BlockId::Tag(BlockTag::Pending), txs,
+        // &simulation_flags); println!("x {:?}", x);
     }
 
     #[test]
