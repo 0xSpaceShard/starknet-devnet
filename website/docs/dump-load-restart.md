@@ -45,10 +45,11 @@ To load a preserved Devnet instance, the options are:
 $ starknet-devnet --dump-path <PATH>
 ```
 
-- Loading on request:
+- Loading on request, which replaces the current state with the one in the provided file. It can be done by making `POST` to `/load` or by sending a JSON-RPC request:
 
 ```
-curl -X POST http://<HOST>:<PORT>/load -d '{ "path": <PATH> }' -H "Content-Type: application/json"
+POST /load
+{ "path": <PATH> }
 ```
 
 ```
@@ -58,14 +59,14 @@ JSON-RPC
     "id": "1",
     "method": "devnet_load",
     "params": {
-        "path": PATH
+        "path": <PATH>
     }
 }
 ```
 
-Currently, dumping produces a list of received transactions that is stored on disk. Conversely, loading is implemented as the re-execution of transactions from a dump. This means that timestamps of `StarknetBlock` will be different on each load.
-
 ### Loading disclaimer
+
+Currently, dumping produces a list of received transactions that is stored on disk. Conversely, loading is implemented as the re-execution of transactions from a dump. This means that timestamps of `StarknetBlock` will be different on each load.
 
 Dumping and loading are not guaranteed to work across versions. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
 
