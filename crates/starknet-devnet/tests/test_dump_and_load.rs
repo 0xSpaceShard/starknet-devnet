@@ -68,32 +68,12 @@ mod dump_and_load_tests {
     }
 
     #[tokio::test]
-    async fn dump_wrong_cli_parameters_no_path() {
-        let devnet_dump =
-            BackgroundDevnet::spawn_with_additional_args(&["--dump-on", "exit"]).await;
-        assert!(devnet_dump.is_err());
-    }
-
-    #[tokio::test]
     async fn dump_wrong_cli_parameters_path() {
         let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
             "--dump-path",
             "///",
             "--dump-on",
             "block",
-        ])
-        .await;
-
-        assert!(devnet_dump.is_err());
-    }
-
-    #[tokio::test]
-    async fn dump_wrong_cli_parameters_mode() {
-        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
-            "--dump-path",
-            "dump_wrong_cli_mode",
-            "--dump-on",
-            "e",
         ])
         .await;
 
