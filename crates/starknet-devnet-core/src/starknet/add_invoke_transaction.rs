@@ -147,12 +147,7 @@ mod tests {
                 version: Felt::from(3),
                 signature: vec![],
                 nonce: Felt::from(nonce),
-                resource_bounds: ResourceBoundsWrapper::new(
-                    l1_gas_amount,
-                    1,
-                    l2_gas_amount,
-                    l2_gas_amount.into(),
-                ),
+                resource_bounds: ResourceBoundsWrapper::new(l1_gas_amount, 1, l2_gas_amount, 1),
                 tip: Tip(0),
                 paymaster_data: vec![],
                 nonce_data_availability_mode:
@@ -264,30 +259,35 @@ mod tests {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
         let account_address = account.get_address();
 
-        let invoke_transaction = test_invoke_transaction_v3(
-            account_address,
-            contract_address,
-            increase_balance_selector,
-            Felt::from(10),
-            0,
-            account
-                .get_balance(&mut starknet.pending_state, crate::account::FeeToken::STRK)
-                .unwrap()
-                .to_string()
-                .parse::<u64>()
-                .unwrap(),
-            1,
-        );
+        let l1_gas = account
+            .get_balance(&mut starknet.pending_state, crate::account::FeeToken::STRK)
+            .unwrap()
+            .to_string()
+            .parse::<u64>()
+            .unwrap();
 
-        let transaction = starknet.add_invoke_transaction(invoke_transaction);
+        let fail_test_cases = [(l1_gas, 1), (0, 1)];
+        for test_case in fail_test_cases {
+            let invoke_transaction = test_invoke_transaction_v3(
+                account_address,
+                contract_address,
+                increase_balance_selector,
+                Felt::from(10),
+                0,
+                test_case.0,
+                test_case.1,
+            );
 
-        assert!(transaction.is_err());
-        match transaction.err().unwrap() {
-            err @ crate::error::Error::MaxFeeZeroError { .. } => {
-                assert_eq!(err.to_string(), "Invoke transaction V3: max_fee cannot be zero")
-            }
-            _ => {
-                panic!("Wrong error type")
+            let transaction = starknet.add_invoke_transaction(invoke_transaction);
+
+            assert!(transaction.is_err());
+            match transaction.err().unwrap() {
+                err @ crate::error::Error::MaxFeeZeroError { .. } => {
+                    assert_eq!(err.to_string(), "Invoke transaction V3: max_fee cannot be zero")
+                }
+                _ => {
+                    panic!("Wrong error type")
+                }
             }
         }
     }
