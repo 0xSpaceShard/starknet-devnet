@@ -342,13 +342,26 @@ impl From<&ResourceBoundsWrapper> for starknet_api::transaction::ResourceBoundsM
 }
 
 impl BroadcastedTransactionCommonV3 {
-    /// Checks if total accumulated fee of resource_bounds is equal to 0
+    /// Checks if total accumulated fee of resource_bounds for l1 is equal to 0 and for l2 is
+    /// greater than zero
     pub fn is_max_fee_zero_value(&self) -> bool {
-        println!("BroadcastedTransactionCommonV3 is_max_fee_zero_value!!!");
+        println!("self.resource_bounds.inner.l1_gas: {:?}", self.resource_bounds.inner.l1_gas);
+        println!("self.resource_bounds.inner.l2_gas: {:?}", self.resource_bounds.inner.l2_gas);
 
-        (self.resource_bounds.inner.l1_gas.max_amount as u128)
+        // TODO: now is_max_fee_zero_value makes() name makes no sense - fix it
+        let l2_is_not_zero = (self.resource_bounds.inner.l2_gas.max_amount as u128)
+            * self.resource_bounds.inner.l2_gas.max_price_per_unit
+            > 0;
+        println!("l2_is_not_zero: {:?}", l2_is_not_zero);
+
+        let l1_is_zero = (self.resource_bounds.inner.l1_gas.max_amount as u128)
             * self.resource_bounds.inner.l1_gas.max_price_per_unit
-            == 0
+            == 0;
+        println!("l1_is_zero: {:?}", l1_is_zero);
+
+        println!("l1_is_zero || l2_is_not_zero bool: {:?}", l1_is_zero || l2_is_not_zero);
+
+        l1_is_zero || l2_is_not_zero
     }
 
     /// Returns an array of FieldElements that reflects the `common_tx_fields` according to SNIP-8(https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md/#protocol-changes).
