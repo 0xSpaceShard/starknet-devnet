@@ -263,8 +263,6 @@ mod tests {
     fn invoke_transaction_v3_positive_l2_gas_should_fail() {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
         let account_address = account.get_address();
-        let initial_balance =
-            account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap();
 
         let invoke_transaction = test_invoke_transaction_v3(
             account_address,
@@ -281,22 +279,17 @@ mod tests {
             1,
         );
 
-        let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
+        let transaction = starknet.add_invoke_transaction(invoke_transaction);
 
-        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
-
-        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
-        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        assert!(
-            account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap()
-                < initial_balance
-        );
-
-        // TODO: this is passing now but should_fail
-        // let txs: &[BroadcastedTransaction] =
-        // &[BroadcastedTransaction::Invoke(invoke_transaction)]; let simulation_flags =
-        // vec![]; let x = starknet.estimate_fee(&BlockId::Tag(BlockTag::Pending), txs,
-        // &simulation_flags); println!("x {:?}", x);
+        assert!(transaction.is_err());
+        match transaction.err().unwrap() {
+            err @ crate::error::Error::MaxFeeZeroError { .. } => {
+                assert_eq!(err.to_string(), "Invoke transaction V3: max_fee cannot be zero")
+            }
+            _ => {
+                panic!("Wrong error type")
+            }
+        }
     }
 
     #[test]
