@@ -16,11 +16,18 @@ $ starknet-devnet --dump-on exit --dump-path <PATH>
 $ starknet-devnet --dump-on block --dump-path <PATH>
 ```
 
-- Dumping on request requires providing --dump-on mode on the startup. Example usage in `exit` mode (replace `<HOST>`, `<PORT>` and `<PATH>` with your own):
+- Dumping on request, which requires providing `--dump-on` on startup. E.g. if you run Devnet in `exit` mode, you can request dumping by sending `POST` to `/dump` or via JSON-RPC:
 
 ```
-$ starknet-devnet --dump-on exit --dump-path <PATH>
-$ curl -X POST http://<HOST>:<PORT>/dump -d '{ "path": <PATH> }' -H "Content-Type: application/json"
+$ starknet-devnet --dump-on exit --dump-path <DEFAULT_PATH>
+```
+
+```
+POST /dump
+{
+  // optional; defaults to the path specified via CLI
+  "path": <PATH>
+}
 ```
 
 ```
@@ -30,7 +37,8 @@ JSON-RPC
     "id": "1",
     "method": "devnet_dump",
     "params": {
-        "path": PATH
+        // optional; defaults to the path specified via CLI
+        "path": <PATH>
     }
 }
 ```
@@ -45,7 +53,7 @@ To load a preserved Devnet instance, the options are:
 $ starknet-devnet --dump-path <PATH>
 ```
 
-- Loading on request, which replaces the current state with the one in the provided file. It can be done by making `POST` to `/load` or by sending a JSON-RPC request:
+- Loading on request, which replaces the current state with the one in the provided file. It can be done by sending `POST` to `/load` or via JSON-RPC:
 
 ```
 POST /load
