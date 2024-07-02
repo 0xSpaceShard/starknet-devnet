@@ -278,7 +278,7 @@ pub enum FeeInUnits {
     FRI(FeeAmount),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum FeeUnit {
     WEI,
     FRI,
