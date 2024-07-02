@@ -62,9 +62,11 @@ pub(crate) async fn load_impl(api: &Api, path: LoadPath) -> HttpApiResult<()> {
     }
 
     let mut starknet = api.starknet.write().await;
-    let events =
-        starknet.load_events_custom_path(Some(path.path)).map_err(|_| HttpApiError::LoadError)?;
-    starknet.re_execute(events).map_err(|_| HttpApiError::ReExecutionError)?;
+    starknet.restart().map_err(|e| HttpApiError::RestartError { msg: e.to_string() })?;
+    let events = starknet
+        .load_events_custom_path(Some(path.path))
+        .map_err(|e| HttpApiError::LoadError(e.to_string()))?;
+    starknet.re_execute(events).map_err(|e| HttpApiError::ReExecutionError(e.to_string()))?;
 
     Ok(())
 }

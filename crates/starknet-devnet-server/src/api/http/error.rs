@@ -17,10 +17,10 @@ pub enum HttpApiError {
     FileNotFound,
     #[error("The dump operation failed: {msg}")]
     DumpError { msg: String },
-    #[error("The load operation failed")]
-    LoadError,
-    #[error("The re-execution operation failed")]
-    ReExecutionError,
+    #[error("The load operation failed: {0}")]
+    LoadError(String),
+    #[error("The re-execution operation failed: {0}")]
+    ReExecutionError(String),
     #[error("The creation of empty block failed: {msg}")]
     CreateEmptyBlockError { msg: String },
     #[error("The set time operation failed: {msg}")]
@@ -52,11 +52,11 @@ impl IntoResponse for HttpApiError {
             HttpApiError::GeneralError(err) => (StatusCode::BAD_REQUEST, err.to_string()),
             err @ HttpApiError::FileNotFound => (StatusCode::BAD_REQUEST, err.to_string()),
             err @ HttpApiError::DumpError { msg: _ } => (StatusCode::BAD_REQUEST, err.to_string()),
-            err @ HttpApiError::LoadError => (StatusCode::BAD_REQUEST, err.to_string()),
+            err @ HttpApiError::LoadError(_) => (StatusCode::BAD_REQUEST, err.to_string()),
             err @ HttpApiError::BlockAbortError { msg: _ } => {
                 (StatusCode::BAD_REQUEST, err.to_string())
             }
-            err @ HttpApiError::ReExecutionError => (StatusCode::BAD_REQUEST, err.to_string()),
+            err @ HttpApiError::ReExecutionError(_) => (StatusCode::BAD_REQUEST, err.to_string()),
             err @ HttpApiError::CreateEmptyBlockError { msg: _ } => {
                 (StatusCode::BAD_REQUEST, err.to_string())
             }

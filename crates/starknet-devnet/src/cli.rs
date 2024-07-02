@@ -620,4 +620,26 @@ mod tests {
             Err(e) => panic!("Should have passed; got: {e}"),
         }
     }
+
+    #[test]
+    fn disallow_dump_on_if_no_dump_path_provided() {
+        match Args::try_parse_from(["--", "--dump-on", "exit"]) {
+            Ok(args) => panic!("Should have failed; got: {args:?}"),
+            Err(e) => assert_eq!(
+                get_first_line(&e.to_string()),
+                "error: the following required arguments were not provided:"
+            ),
+        }
+    }
+
+    #[test]
+    fn invalid_dump_path_not_allowed() {
+        match Args::try_parse_from(["--", "--dump-path", "dump_wrong_cli_mode", "--dump-on", "e"]) {
+            Ok(args) => panic!("Should have failed; got: {args:?}"),
+            Err(e) => assert_eq!(
+                get_first_line(&e.to_string()),
+                "error: invalid value 'e' for '--dump-on <EVENT>'"
+            ),
+        }
+    }
 }

@@ -16,11 +16,18 @@ $ starknet-devnet --dump-on exit --dump-path <PATH>
 $ starknet-devnet --dump-on block --dump-path <PATH>
 ```
 
-- Dumping on request requires providing --dump-on mode on the startup. Example usage in `exit` mode (replace `<HOST>`, `<PORT>` and `<PATH>` with your own):
+- Dumping on request, which requires providing `--dump-on` on startup. E.g. if you run Devnet in `exit` mode, you can request dumping by sending `POST` to `/dump` or via JSON-RPC:
 
 ```
-$ starknet-devnet --dump-on exit --dump-path <PATH>
-$ curl -X POST http://<HOST>:<PORT>/dump -d '{ "path": <PATH> }' -H "Content-Type: application/json"
+$ starknet-devnet --dump-on exit --dump-path <DEFAULT_PATH>
+```
+
+```
+POST /dump
+{
+  // optional; defaults to the path specified via CLI
+  "path": <PATH>
+}
 ```
 
 ```
@@ -30,7 +37,8 @@ JSON-RPC
     "id": "1",
     "method": "devnet_dump",
     "params": {
-        "path": PATH
+        // optional; defaults to the path specified via CLI
+        "path": <PATH>
     }
 }
 ```
@@ -45,10 +53,11 @@ To load a preserved Devnet instance, the options are:
 $ starknet-devnet --dump-path <PATH>
 ```
 
-- Loading on request:
+- Loading on request, which replaces the current state with the one in the provided file. It can be done by sending `POST` to `/load` or via JSON-RPC:
 
 ```
-curl -X POST http://<HOST>:<PORT>/load -d '{ "path": <PATH> }' -H "Content-Type: application/json"
+POST /load
+{ "path": <PATH> }
 ```
 
 ```
@@ -58,14 +67,14 @@ JSON-RPC
     "id": "1",
     "method": "devnet_load",
     "params": {
-        "path": PATH
+        "path": <PATH>
     }
 }
 ```
 
-Currently, dumping produces a list of received transactions that is stored on disk. Conversely, loading is implemented as the re-execution of transactions from a dump. This means that timestamps of `StarknetBlock` will be different on each load.
-
 ### Loading disclaimer
+
+Currently, dumping produces a list of received transactions that is stored on disk. Conversely, loading is implemented as the re-execution of transactions from a dump. This means that timestamps of `StarknetBlock` will be different on each load.
 
 Dumping and loading are not guaranteed to work across versions. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
 

@@ -68,32 +68,12 @@ mod dump_and_load_tests {
     }
 
     #[tokio::test]
-    async fn dump_wrong_cli_parameters_no_path() {
-        let devnet_dump =
-            BackgroundDevnet::spawn_with_additional_args(&["--dump-on", "exit"]).await;
-        assert!(devnet_dump.is_err());
-    }
-
-    #[tokio::test]
     async fn dump_wrong_cli_parameters_path() {
         let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
             "--dump-path",
             "///",
             "--dump-on",
             "block",
-        ])
-        .await;
-
-        assert!(devnet_dump.is_err());
-    }
-
-    #[tokio::test]
-    async fn dump_wrong_cli_parameters_mode() {
-        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
-            "--dump-path",
-            "dump_wrong_cli_mode",
-            "--dump-on",
-            "e",
         ])
         .await;
 
@@ -455,6 +435,44 @@ mod dump_and_load_tests {
         } else {
             panic!("Could not unpack the transaction from {loaded_transaction:?}");
         }
+    }
+
+    #[tokio::test]
+    async fn mint_and_dump_and_load_on_same_devnet() {
+        let dump_file = UniqueAutoDeletableFile::new("dump_set_time");
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-on",
+            "exit",
+            "--dump-path",
+            &dump_file.path,
+        ])
+        .await
+        .unwrap();
+
+        let unit = FeeUnit::WEI;
+
+        devnet.mint_unit(DUMMY_ADDRESS, DUMMY_AMOUNT, unit).await;
+        let balance_before_dump =
+            devnet.get_balance_latest(&DUMMY_ADDRESS.into(), unit).await.unwrap();
+        assert_eq!(balance_before_dump, DUMMY_AMOUNT.into());
+
+        devnet.send_custom_rpc("devnet_dump", json!({ "path": dump_file.path })).await.unwrap();
+
+        devnet.mint_unit(DUMMY_ADDRESS, DUMMY_AMOUNT, unit).await;
+        let balance_after_dump =
+            devnet.get_balance_latest(&DUMMY_ADDRESS.into(), unit).await.unwrap();
+        assert_eq!(balance_after_dump, balance_before_dump + DUMMY_AMOUNT.into());
+
+        devnet.send_custom_rpc("devnet_load", json!({ "path": dump_file.path })).await.unwrap();
+
+        let balance_after_load =
+            devnet.get_balance_latest(&DUMMY_ADDRESS.into(), unit).await.unwrap();
+        assert_eq!(balance_after_load, balance_before_dump);
+
+        devnet.mint_unit(DUMMY_ADDRESS, DUMMY_AMOUNT, unit).await;
+        let balance_after_mint_on_loaded =
+            devnet.get_balance_latest(&DUMMY_ADDRESS.into(), unit).await.unwrap();
+        assert_eq!(balance_after_mint_on_loaded, balance_after_load + DUMMY_AMOUNT.into());
     }
 
     #[tokio::test]
