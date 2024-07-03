@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use starknet_core::starknet::dump::DumpEvent;
 use starknet_rs_core::types::{Hash256, MsgToL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash};
@@ -41,6 +42,8 @@ pub struct MessageHash {
 pub struct TxHash {
     pub transaction_hash: TransactionHash,
 }
+// Implemented as type alias so JSON returned doesn't have extra key
+pub type Dump = Option<Vec<DumpEvent>>;
 
 #[derive(Serialize)]
 pub struct CreatedBlock {

@@ -40,10 +40,7 @@ use self::origin_forwarder::OriginForwarder;
 use super::http::endpoints::accounts::{BalanceQuery, PredeployedAccountsQuery};
 use super::http::endpoints::DevnetConfig;
 use super::http::models::{
-    AbortedBlocks, AbortingBlocks, AccountBalanceResponse, CreatedBlock, DumpPath, FlushParameters,
-    FlushedMessages, IncreaseTime, IncreaseTimeResponse, LoadPath, MessageHash,
-    MessagingLoadAddress, MintTokensRequest, MintTokensResponse, PostmanLoadL1MessagingContract,
-    SerializableAccount, SetTime, SetTimeResponse,
+    AbortedBlocks, AbortingBlocks, AccountBalanceResponse, CreatedBlock, Dump, DumpPath, FlushParameters, FlushedMessages, IncreaseTime, IncreaseTimeResponse, LoadPath, MessageHash, MessagingLoadAddress, MintTokensRequest, MintTokensResponse, PostmanLoadL1MessagingContract, SerializableAccount, SetTime, SetTimeResponse
 };
 use super::Api;
 use crate::api::json_rpc::models::{
@@ -518,6 +515,7 @@ pub enum DevnetResponse {
     AccountBalance(AccountBalanceResponse),
     MintTokens(MintTokensResponse),
     DevnetConfig(DevnetConfig),
+    DevnetDump(Dump)
 }
 
 #[cfg(test)]

@@ -142,7 +142,6 @@ pub(crate) struct Args {
     #[arg(env = "DUMP_ON")]
     #[arg(value_name = "EVENT")]
     #[arg(help = "Specify when to dump the state of Devnet;")]
-    #[arg(requires = "dump_path")]
     dump_on: Option<DumpOn>,
 
     #[arg(long = "lite-mode")]
@@ -155,6 +154,7 @@ pub(crate) struct Args {
     #[arg(env = "DUMP_PATH")]
     #[arg(value_name = "DUMP_PATH")]
     #[arg(help = "Specify the path to dump to;")]
+    #[arg(required_if_eq_any([("dump_on", "exit"), ("dump_on", "block")]))]
     dump_path: Option<String>,
 
     #[arg(long = "block-generation-on")]
