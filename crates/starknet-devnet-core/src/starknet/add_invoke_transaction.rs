@@ -285,7 +285,7 @@ mod tests {
             assert!(transaction.is_err());
             match transaction.err().unwrap() {
                 err @ crate::error::Error::MaxFeeZeroError { .. } => {
-                    assert_eq!(err.to_string(), "Invoke transaction V3: max_fee cannot be zero")
+                    assert_eq!(err.to_string(), "Invoke transaction V3: max_fee cannot be zero (exception is v3 transaction where l2 gas must be zero)")
                 }
                 _ => {
                     panic!("Wrong error type")

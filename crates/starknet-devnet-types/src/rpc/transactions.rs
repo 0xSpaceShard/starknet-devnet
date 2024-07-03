@@ -342,8 +342,7 @@ impl From<&ResourceBoundsWrapper> for starknet_api::transaction::ResourceBoundsM
 }
 
 impl BroadcastedTransactionCommonV3 {
-    /// Checks if total accumulated fee of resource_bounds for l1 is equal to 0 or for l2 is not
-    /// greater than zero
+    /// Checks if total accumulated fee of resource_bounds for l1 is equal to 0 or for l2 is not zero
     pub fn is_l1_gas_zero_or_l2_gas_not_zero(&self) -> bool {
         let l2_is_not_zero = (self.resource_bounds.inner.l2_gas.max_amount as u128)
             * self.resource_bounds.inner.l2_gas.max_price_per_unit
@@ -351,13 +350,6 @@ impl BroadcastedTransactionCommonV3 {
         let l1_is_zero = (self.resource_bounds.inner.l1_gas.max_amount as u128)
             * self.resource_bounds.inner.l1_gas.max_price_per_unit
             == 0;
-
-        // TODO: remove prints later
-        println!("self.resource_bounds.inner.l1_gas: {:?}", self.resource_bounds.inner.l1_gas);
-        println!("self.resource_bounds.inner.l2_gas: {:?}", self.resource_bounds.inner.l2_gas);
-        println!("l2_is_not_zero: {:?}", l2_is_not_zero);
-        println!("l1_is_zero: {:?}", l1_is_zero);
-        println!("l1_is_zero || l2_is_not_zero bool: {:?}", l1_is_zero || l2_is_not_zero);
 
         l1_is_zero || l2_is_not_zero
     }
