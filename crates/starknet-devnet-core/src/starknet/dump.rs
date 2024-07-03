@@ -133,8 +133,8 @@ impl Starknet {
         }
     }
 
-    pub fn dump_events_vec(&self) -> DevnetResult<Vec<DumpEvent>> {
-        Ok(self.dump_events.clone())
+    pub fn read_dump_events(&self) -> &Vec<DumpEvent> {
+        &self.dump_events
     }
 
     pub fn load_events(&self) -> DevnetResult<Vec<DumpEvent>> {

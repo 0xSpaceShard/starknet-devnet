@@ -2,18 +2,18 @@ use axum::extract::State;
 use axum::Json;
 
 use crate::api::http::error::HttpApiError;
-use crate::api::http::models::{Dump, DumpPath, LoadPath};
+use crate::api::http::models::{DumpPath, DumpResponseBody, LoadPath};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 use crate::api::Api;
 
 pub async fn dump(
     State(state): State<HttpApiHandler>,
     Json(path): Json<DumpPath>,
-) -> HttpApiResult<Json<Dump>> {
+) -> HttpApiResult<Json<DumpResponseBody>> {
     dump_impl(&state.api, path).await.map(Json::from)
 }
 
-pub(crate) async fn dump_impl(api: &Api, path: DumpPath) -> HttpApiResult<Dump> {
+pub(crate) async fn dump_impl(api: &Api, path: DumpPath) -> HttpApiResult<DumpResponseBody> {
     let starknet = api.starknet.write().await;
 
     if starknet.config.dump_on.is_none() {
@@ -25,21 +25,18 @@ pub(crate) async fn dump_impl(api: &Api, path: DumpPath) -> HttpApiResult<Dump> 
     match path.path {
         None => {
             // path not present
-            match starknet.config.dump_path.clone() {
+            match &starknet.config.dump_path {
                 Some(path) => {
                     // dump_path is present
                     starknet
-                        .dump_events_custom_path(Some(path))
+                        .dump_events_custom_path(Some(path.clone()))
                         .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
                     Ok(None)
                 }
                 None => {
                     // dump_path is not present
-                    let json_dump = starknet.dump_events_vec();
-                    match json_dump {
-                        Ok(json_dump) => Ok(Some(json_dump)),
-                        Err(err) => Err(HttpApiError::DumpError { msg: err.to_string() }),
-                    }
+                    let json_dump = starknet.read_dump_events();
+                    Ok(Some(json_dump.clone()))
                 }
             }
         }

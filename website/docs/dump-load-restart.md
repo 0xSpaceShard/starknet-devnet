@@ -42,7 +42,7 @@ JSON-RPC
     }
 }
 ```
-If dump path is not provided either via `--dump-path` flag or in dump request, dump is redirected to STDOUT.
+If a dump path is not provided either via `--dump-path` or in the request, the dump is included in the response body. This means that if you request dumping via curl, it will be printed to STDOUT, which you can then redirect to a destination of your choice.
 
 ## Loading
 
