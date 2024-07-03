@@ -14,7 +14,7 @@ pub async fn dump(
 }
 
 pub(crate) async fn dump_impl(api: &Api, path: DumpPath) -> HttpApiResult<DumpResponseBody> {
-    let starknet = api.starknet.write().await;
+    let starknet = api.starknet.read().await;
 
     if starknet.config.dump_on.is_none() {
         return Err(HttpApiError::DumpError {
