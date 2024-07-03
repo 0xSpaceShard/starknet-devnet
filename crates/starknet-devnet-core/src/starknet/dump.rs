@@ -62,7 +62,7 @@ impl Starknet {
                 self.dump_events.push(event);
 
                 Ok(())
-            },
+            }
             Some(DumpOn::Exit) => {
                 self.dump_events.push(event);
 

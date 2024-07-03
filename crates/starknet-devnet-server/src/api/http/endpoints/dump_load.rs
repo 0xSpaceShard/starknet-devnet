@@ -11,10 +11,9 @@ pub async fn dump(
     Json(path): Json<DumpPath>,
 ) -> HttpApiResult<Json<Dump>> {
     dump_impl(&state.api, path).await.map(Json::from)
-
 }
 
-pub(crate) async fn dump_impl(api: &Api, path: DumpPath) -> HttpApiResult<Dump>{
+pub(crate) async fn dump_impl(api: &Api, path: DumpPath) -> HttpApiResult<Dump> {
     let starknet = api.starknet.write().await;
 
     if starknet.config.dump_on.is_none() {
