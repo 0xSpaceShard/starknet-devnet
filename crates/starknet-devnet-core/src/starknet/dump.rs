@@ -58,12 +58,7 @@ impl Starknet {
     pub fn handle_dump_event(&mut self, event: DumpEvent) -> DevnetResult<()> {
         match self.config.dump_on {
             Some(DumpOn::Block) => self.dump_event(event),
-            Some(DumpOn::Request) => {
-                self.dump_events.push(event);
-
-                Ok(())
-            }
-            Some(DumpOn::Exit) => {
+            Some(DumpOn::Request | DumpOn::Exit) => {
                 self.dump_events.push(event);
 
                 Ok(())
