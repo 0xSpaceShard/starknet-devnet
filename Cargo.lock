@@ -494,6 +494,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "bigdecimal"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51d712318a27c7150326677b321a5fa91b55f6d9034ffd67f20319e147d40cee"
+dependencies = [
+ "autocfg",
+ "libm",
+ "num-bigint",
+ "num-integer",
+ "num-traits 0.2.18",
+]
+
+[[package]]
 name = "bincode"
 version = "2.0.0-rc.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5666,6 +5679,7 @@ name = "starknet-devnet-types"
 version = "0.1.2"
 dependencies = [
  "base64 0.22.1",
+ "bigdecimal 0.4.5",
  "blockifier",
  "cairo-lang-casm 2.6.0",
  "cairo-lang-compiler 2.6.0",
@@ -5700,7 +5714,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7abf1b44ec5b18d87c1ae5f54590ca9d0699ef4dd5b2ffa66fc97f24613ec585"
 dependencies = [
  "ark-ff",
- "bigdecimal",
+ "bigdecimal 0.3.1",
  "crypto-bigint",
  "getrandom",
  "hex",

@@ -25,6 +25,7 @@ serde_json = { workspace = true, features = [
 ] }
 starknet-rs-ff = { workspace = true }
 num-bigint = { workspace = true }
+bigdecimal = { workspace = true }
 usc = { workspace = true }
 
 # Cairo-lang dependencies

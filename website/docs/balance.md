@@ -11,7 +11,7 @@ Separate tokens use separate ERC20 contracts for minting and charging fees. Thes
 
 By sending a `POST` request to `/mint` or `JSON-RPC` request with method name `devnet_mint` for a token, you initiate a transaction on that token's ERC20 contract. The response contains the hash of this transaction, as well as the new balance after minting. The token is specified by providing the unit, and defaults to `WEI`.
 
-The value of `amount` is in WEI and needs to be an integer (or a float whose fractional part is 0, e.g. `1000.0` or `1e21`)
+The value of `amount` is in WEI or FRI. The precision is preserved if specifying an integer or a float whose fractional part is zero (e.g. `1000.0`, `1e21`). If the fractional part is non-zero, the amount is truncated to the nearest integer (e.g. `3.9` becomes `3` and `1.23e1` becomes `12`).
 
 ```
 POST /mint
