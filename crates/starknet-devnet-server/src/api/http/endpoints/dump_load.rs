@@ -8,12 +8,12 @@ use crate::api::Api;
 
 pub async fn dump(
     State(state): State<HttpApiHandler>,
-    Json(path): Json<DumpPath>,
+    Json(path): Json<Option<DumpPath>>,
 ) -> HttpApiResult<()> {
     dump_impl(&state.api, path).await
 }
 
-pub(crate) async fn dump_impl(api: &Api, path: DumpPath) -> HttpApiResult<()> {
+pub(crate) async fn dump_impl(api: &Api, path: Option<DumpPath>) -> HttpApiResult<()> {
     let starknet = api.starknet.write().await;
 
     if starknet.config.dump_on.is_none() {
@@ -22,7 +22,7 @@ pub(crate) async fn dump_impl(api: &Api, path: DumpPath) -> HttpApiResult<()> {
         });
     }
 
-    match path.path {
+    match path {
         None => {
             // path not present
             starknet
@@ -30,7 +30,7 @@ pub(crate) async fn dump_impl(api: &Api, path: DumpPath) -> HttpApiResult<()> {
                 .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
             Ok(())
         }
-        Some(path) => {
+        Some(DumpPath { path }) => {
             if !path.is_empty() {
                 // path is present and it's not empty
                 starknet

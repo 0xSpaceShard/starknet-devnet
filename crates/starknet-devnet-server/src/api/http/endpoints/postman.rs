@@ -20,7 +20,7 @@ pub async fn postman_load(
 
 pub async fn postman_flush(
     State(state): State<HttpApiHandler>,
-    Json(data): Json<FlushParameters>,
+    Json(data): Json<Option<FlushParameters>>,
 ) -> HttpApiResult<Json<FlushedMessages>> {
     postman_flush_impl(&state.api, data).await.map(Json::from)
 }
@@ -55,13 +55,13 @@ pub(crate) async fn postman_load_impl(
 
 pub(crate) async fn postman_flush_impl(
     api: &Api,
-    data: FlushParameters,
+    data: Option<FlushParameters>,
 ) -> HttpApiResult<FlushedMessages> {
     // Need to handle L1 to L2 first in case that those messages
     // will create L2 to L1 messages.
     let mut starknet = api.starknet.write().await;
 
-    let is_dry_run = data.dry_run.unwrap_or(false);
+    let is_dry_run = if let Some(params) = data { params.dry_run } else { false };
 
     // Fetch and execute messages to l2.
     let (messages_to_l2, generated_l2_transactions) = if is_dry_run {

@@ -50,7 +50,7 @@ use crate::api::json_rpc::models::{
     BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper,
     BroadcastedInvokeTransactionEnumWrapper, SimulateTransactionsInput,
 };
-use crate::api::serde_helpers::empty_params;
+use crate::api::serde_helpers::{empty_params, possible_empty_params};
 use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::ResponseResult;
@@ -344,14 +344,14 @@ pub enum JsonRpcRequest {
     AutoImpersonate,
     #[serde(rename = "devnet_stopAutoImpersonate", with = "empty_params")]
     StopAutoImpersonate,
-    #[serde(rename = "devnet_dump")]
-    Dump(DumpPath),
+    #[serde(rename = "devnet_dump", with = "possible_empty_params")]
+    Dump(Option<DumpPath>),
     #[serde(rename = "devnet_load")]
     Load(LoadPath),
     #[serde(rename = "devnet_postmanLoad")]
     PostmanLoadL1MessagingContract(PostmanLoadL1MessagingContract),
-    #[serde(rename = "devnet_postmanFlush")]
-    PostmanFlush(FlushParameters),
+    #[serde(rename = "devnet_postmanFlush", with = "possible_empty_params")]
+    PostmanFlush(Option<FlushParameters>),
     #[serde(rename = "devnet_postmanSendMessageToL2")]
     PostmanSendMessageToL2(MessageToL2),
     #[serde(rename = "devnet_postmanConsumeMessageFromL2")]
@@ -366,8 +366,8 @@ pub enum JsonRpcRequest {
     SetTime(SetTime),
     #[serde(rename = "devnet_increaseTime")]
     IncreaseTime(IncreaseTime),
-    #[serde(rename = "devnet_getPredeployedAccounts")]
-    PredeployedAccounts(PredeployedAccountsQuery),
+    #[serde(rename = "devnet_getPredeployedAccounts", with = "possible_empty_params")]
+    PredeployedAccounts(Option<PredeployedAccountsQuery>),
     #[serde(rename = "devnet_getAccountBalance")]
     AccountBalance(BalanceQuery),
     #[serde(rename = "devnet_mint")]
@@ -1059,6 +1059,15 @@ mod requests_tests {
                 "method": "starknet_specVersion",
             }),
         ] {
+            assert_deserialization_succeeds(body.to_string().as_str())
+        }
+    }
+
+    #[test]
+    fn deserialize_devnet_methods_with_optional_body() {
+        for body in [json!({
+            "method": "devnet_dump"
+        })] {
             assert_deserialization_succeeds(body.to_string().as_str())
         }
     }
