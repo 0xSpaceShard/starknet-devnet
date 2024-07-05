@@ -17,19 +17,14 @@ use crate::api::Api;
 #[derive(serde::Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct PredeployedAccountsQuery {
-    with_balance: bool,
+    pub with_balance: Option<bool>,
 }
 
 pub async fn get_predeployed_accounts(
     State(state): State<HttpApiHandler>,
-    optional_params: Option<Query<PredeployedAccountsQuery>>,
+    Query(params): Query<PredeployedAccountsQuery>,
 ) -> HttpApiResult<Json<Vec<SerializableAccount>>> {
-    get_predeployed_accounts_impl(
-        &state.api,
-        optional_params.map(|query| Some(query.0)).unwrap_or(Option::None),
-    )
-    .await
-    .map(Json::from)
+    get_predeployed_accounts_impl(&state.api, params).await.map(Json::from)
 }
 
 pub(crate) async fn get_balance_unit(
@@ -46,7 +41,7 @@ pub(crate) async fn get_balance_unit(
 
 pub(crate) async fn get_predeployed_accounts_impl(
     api: &Api,
-    params: Option<PredeployedAccountsQuery>,
+    params: PredeployedAccountsQuery,
 ) -> HttpApiResult<Vec<SerializableAccount>> {
     let mut starknet = api.starknet.write().await;
     let mut predeployed_accounts: Vec<_> = starknet
@@ -62,14 +57,12 @@ pub(crate) async fn get_predeployed_accounts_impl(
         .collect();
 
     // handle with_balance query string
-    if let Some(PredeployedAccountsQuery { with_balance }) = params {
-        if with_balance {
-            for account in predeployed_accounts.iter_mut() {
-                let eth = get_balance_unit(&mut starknet, account.address, FeeUnit::WEI).await?;
-                let strk = get_balance_unit(&mut starknet, account.address, FeeUnit::FRI).await?;
+    if let Some(true) = params.with_balance {
+        for account in predeployed_accounts.iter_mut() {
+            let eth = get_balance_unit(&mut starknet, account.address, FeeUnit::WEI).await?;
+            let strk = get_balance_unit(&mut starknet, account.address, FeeUnit::FRI).await?;
 
-                account.balance = Some(AccountBalancesResponse { eth, strk });
-            }
+            account.balance = Some(AccountBalancesResponse { eth, strk });
         }
     }
 

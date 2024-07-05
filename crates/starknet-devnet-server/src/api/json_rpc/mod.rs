@@ -1074,6 +1074,17 @@ mod requests_tests {
             json!({
                 "method":"devnet_dump",
             }),
+            json!({
+                "method":"devnet_getPredeployedAccounts",
+                "params": {"with_balance": true}
+            }),
+            json!({
+                "method":"devnet_getPredeployedAccounts",
+            }),
+            json!({
+                "method":"devnet_getPredeployedAccounts",
+                "params": {}
+            }),
         ] {
             let mut json_rpc_object = json!({
                 "jsonrpc": "2.0",

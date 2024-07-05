@@ -468,8 +468,12 @@ impl JsonRpcHandler {
         &self,
         params: Option<PredeployedAccountsQuery>,
     ) -> StrictRpcResult {
-        let predeployed_accounts =
-            get_predeployed_accounts_impl(&self.api, params).await.map_err(ApiError::from)?;
+        let predeployed_accounts = get_predeployed_accounts_impl(
+            &self.api,
+            params.map_or(PredeployedAccountsQuery { with_balance: Option::None }, |val| val),
+        )
+        .await
+        .map_err(ApiError::from)?;
 
         Ok(DevnetResponse::PredeployedAccounts(predeployed_accounts).into())
     }
