@@ -596,12 +596,19 @@ impl Starknet {
             BlockId::Tag(BlockTag::Latest) => Ok(&mut self.latest_state),
             BlockId::Tag(BlockTag::Pending) => Ok(&mut self.pending_state),
             _ => {
+                let block = self.get_block(block_id)?;
+                let block_hash = block.block_hash();
+
+                let is_block_id_latest =
+                    self.blocks.last_block_hash.map_or(false, |hash| hash == block_hash);
+                if is_block_id_latest {
+                    return Ok(&mut self.latest_state);
+                }
+
                 if self.config.state_archive == StateArchiveCapacity::None {
                     return Err(Error::NoStateAtBlock { block_id: *block_id });
                 }
 
-                let block = self.get_block(block_id)?;
-                let block_hash = block.block_hash();
                 let state = self
                     .blocks
                     .hash_to_state
