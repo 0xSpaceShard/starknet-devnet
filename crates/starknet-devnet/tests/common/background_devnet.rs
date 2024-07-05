@@ -373,7 +373,7 @@ impl BackgroundDevnet {
                     "account_address": to_hex_felt(account)
                 }),
             ),
-            ImpersonationAction::StopImpersonatingAccount(account) => (
+            ImpersonationAction::StopImpersonateAccount(account) => (
                 "devnet_stopImpersonateAccount",
                 json!({
                     "account_address": to_hex_felt(account)

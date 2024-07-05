@@ -77,7 +77,7 @@ impl JsonRpcHandler {
         Ok(super::JsonRpcResponse::Empty)
     }
 
-    /// devnet_stopImpersonatingAccount
+    /// devnet_stopImpersonateAccount
     pub async fn stop_impersonating_account(&self, address: ContractAddress) -> StrictRpcResult {
         let mut starknet = self.api.starknet.write().await;
         starknet.stop_impersonating_account(&address);

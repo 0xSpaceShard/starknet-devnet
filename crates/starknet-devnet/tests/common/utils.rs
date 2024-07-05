@@ -27,7 +27,7 @@ use super::constants::{ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_CONTRACT_PATH, CHAIN_I
 
 pub enum ImpersonationAction {
     ImpersonateAccount(FieldElement),
-    StopImpersonatingAccount(FieldElement),
+    StopImpersonateAccount(FieldElement),
     AutoImpersonate,
     StopAutoImpersonate,
 }
