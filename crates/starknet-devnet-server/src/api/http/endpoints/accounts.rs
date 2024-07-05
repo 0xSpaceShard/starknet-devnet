@@ -22,9 +22,14 @@ pub struct PredeployedAccountsQuery {
 
 pub async fn get_predeployed_accounts(
     State(state): State<HttpApiHandler>,
-    Query(params): Query<Option<PredeployedAccountsQuery>>,
+    optional_params: Option<Query<PredeployedAccountsQuery>>,
 ) -> HttpApiResult<Json<Vec<SerializableAccount>>> {
-    get_predeployed_accounts_impl(&state.api, params).await.map(Json::from)
+    get_predeployed_accounts_impl(
+        &state.api,
+        optional_params.map(|query| Some(query.0)).unwrap_or(Option::None),
+    )
+    .await
+    .map(Json::from)
 }
 
 pub(crate) async fn get_balance_unit(

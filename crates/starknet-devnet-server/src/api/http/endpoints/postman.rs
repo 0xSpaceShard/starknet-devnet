@@ -3,6 +3,7 @@ use axum::Json;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 
+use super::extract_optional_json_from_request;
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
     FlushParameters, FlushedMessages, MessageHash, MessagingLoadAddress,
@@ -20,9 +21,11 @@ pub async fn postman_load(
 
 pub async fn postman_flush(
     State(state): State<HttpApiHandler>,
-    Json(data): Json<Option<FlushParameters>>,
+    optional_data: Option<Json<FlushParameters>>,
 ) -> HttpApiResult<Json<FlushedMessages>> {
-    postman_flush_impl(&state.api, data).await.map(Json::from)
+    postman_flush_impl(&state.api, extract_optional_json_from_request(optional_data))
+        .await
+        .map(Json::from)
 }
 
 pub async fn postman_send_message_to_l2(
