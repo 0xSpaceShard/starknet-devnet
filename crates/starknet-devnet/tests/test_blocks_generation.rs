@@ -642,8 +642,7 @@ mod blocks_generation_tests {
             [BlockId::Hash(latest_block.block_hash), BlockId::Number(latest_block.block_number)];
 
         for block_id in &block_ids {
-            let nonce =
-                devnet.json_rpc_client.get_nonce(block_id, account_address).await.unwrap();
+            let nonce = devnet.json_rpc_client.get_nonce(block_id, account_address).await.unwrap();
             assert_eq!(nonce, FieldElement::ZERO);
 
             let class_hash =

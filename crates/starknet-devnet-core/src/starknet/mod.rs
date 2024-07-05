@@ -1644,8 +1644,10 @@ mod tests {
         let config =
             StarknetConfig { state_archive: StateArchiveCapacity::Full, ..Default::default() };
         let mut starknet = Starknet::new(&config).unwrap();
+        let genesis_block_hash = starknet.get_latest_block().unwrap();
         let block_hash = starknet.generate_new_block_and_state().unwrap();
         starknet.blocks.hash_to_state.remove(&block_hash);
+        starknet.blocks.last_block_hash = Some(genesis_block_hash.block_hash());
 
         match starknet.get_mut_state_at(&BlockId::Number(1)) {
             Err(Error::NoStateAtBlock { block_id: _ }) => (),

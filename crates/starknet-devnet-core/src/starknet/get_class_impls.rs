@@ -118,6 +118,7 @@ mod tests {
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);
+        starknet.create_block().unwrap();
 
         let class_hash = starknet.get_class_hash_at(&block_id, account.account_address);
         match class_hash.err().unwrap() {
