@@ -642,24 +642,24 @@ mod blocks_generation_tests {
             [BlockId::Hash(latest_block.block_hash), BlockId::Number(latest_block.block_number)];
 
         for block_id in &block_ids {
-            let latest_block_nonce =
+            let nonce =
                 devnet.json_rpc_client.get_nonce(block_id, account_address).await.unwrap();
-            assert_eq!(latest_block_nonce, FieldElement::ZERO);
+            assert_eq!(nonce, FieldElement::ZERO);
 
-            let latest_block_class_hash =
+            let class_hash =
                 devnet.json_rpc_client.get_class_hash_at(block_id, account_address).await.unwrap();
             assert_eq!(
-                latest_block_class_hash,
+                class_hash,
                 FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
 
             let key = FieldElement::ZERO;
-            let latest_block_storage = devnet
+            let storage = devnet
                 .json_rpc_client
                 .get_storage_at(account_address, key, block_id)
                 .await
                 .unwrap();
-            assert_eq!(latest_block_storage, FieldElement::ZERO);
+            assert_eq!(storage, FieldElement::ZERO);
         }
     }
 }
