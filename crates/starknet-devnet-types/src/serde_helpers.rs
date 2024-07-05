@@ -284,6 +284,7 @@ pub mod hex_string {
 pub mod dec_string {
     use std::str::FromStr;
 
+    use bigdecimal::BigDecimal;
     use num_bigint::BigUint;
     use serde::Deserialize;
 
@@ -292,7 +293,12 @@ pub mod dec_string {
         D: serde::Deserializer<'de>,
     {
         let number = serde_json::Number::deserialize(deserializer)?;
-        BigUint::from_str(&number.to_string()).map_err(serde::de::Error::custom)
+        // biguint can't handle stringified scientific notation (that's what number can be)
+        let big_decimal =
+            BigDecimal::from_str(number.as_str()).map_err(serde::de::Error::custom)?;
+
+        // scale to 0 to force stringifying without scientific notation for large values (e.g. 1e30)
+        BigUint::from_str(&big_decimal.with_scale(0).to_string()).map_err(serde::de::Error::custom)
     }
 
     #[cfg(test)]
@@ -305,15 +311,31 @@ pub mod dec_string {
         #[test]
         fn deserialization_biguint() {
             #[derive(Deserialize)]
-            struct TestDeserialization {
+            struct TestDeserializationStruct {
                 #[serde(deserialize_with = "deserialize_biguint")]
                 value: BigUint,
             }
 
-            let json_str = r#"{"value": 3618502788666131106986593281521497120414687020801267626233049500247285301248}"#;
-
-            let data = serde_json::from_str::<TestDeserialization>(json_str).unwrap();
-            assert!(data.value == BigUint::from(1_u8) << 251);
+            for (json_str, expected) in [
+                (
+                    r#"{"value": 3618502788666131106986593281521497120414687020801267626233049500247285301248}"#,
+                    BigUint::from(1_u8) << 251,
+                ),
+                (r#"{"value": 1000000000000000000000000000000}"#, BigUint::from(10_u8).pow(30)),
+                (
+                    r#"{"value": 1000000000000000000000000000001}"#,
+                    BigUint::from(10_u8).pow(30) + BigUint::from(1_u8),
+                ),
+                (r#"{"value": 1e30}"#, BigUint::from(10_u8).pow(30)),
+                (r#"{"value": 1.23e1}"#, BigUint::from(12_u8)),
+                (r#"{"value": 1.29e1}"#, BigUint::from(12_u8)),
+                (r#"{"value": 100.0}"#, BigUint::from(100_u8)),
+            ] {
+                match serde_json::from_str::<TestDeserializationStruct>(json_str) {
+                    Ok(data) => assert_eq!(data.value, expected),
+                    Err(e) => panic!("Unexpected response {e} for parsing: {json_str}"),
+                }
+            }
         }
     }
 }
