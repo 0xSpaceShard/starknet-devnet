@@ -527,6 +527,7 @@ mod requests_tests {
     use starknet_types::felt::Felt;
 
     use super::JsonRpcRequest;
+    use crate::rpc_core::request::RpcMethodCall;
     use crate::test_utils::exported_test_utils::assert_contains;
 
     #[test]
@@ -1065,10 +1066,31 @@ mod requests_tests {
 
     #[test]
     fn deserialize_devnet_methods_with_optional_body() {
-        for body in [json!({
-            "method": "devnet_dump"
-        })] {
-            assert_deserialization_succeeds(body.to_string().as_str())
+        for mut body in [
+            json!({
+                "method": "devnet_dump",
+                "params": {}
+            }),
+            json!({
+                "method":"devnet_dump",
+            }),
+        ] {
+            let mut json_rpc_object = json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+            });
+
+            json_rpc_object.as_object_mut().unwrap().append(body.as_object_mut().unwrap());
+
+            let RpcMethodCall { method, params, id, .. } =
+                serde_json::from_value(json_rpc_object).unwrap();
+            let params: serde_json::Value = params.into();
+            let deserializable_call = serde_json::json!({
+                "method": &method,
+                "params": params
+            });
+
+            assert_deserialization_succeeds(deserializable_call.to_string().as_str())
         }
     }
 

@@ -31,7 +31,6 @@ pub mod possible_empty_params {
         D: Deserializer<'de>,
         T: DeserializeOwned,
     {
-        println!("deserialize");
         let value: Value = Deserialize::deserialize(d)?;
 
         match value {
@@ -98,10 +97,10 @@ mod tests {
         let json_str = "[1, 2, 3]";
         let value: Value = serde_json::from_str(json_str).unwrap();
         let deserializer = value.into_deserializer();
-        let x: Option<Vec<u32>> = possible_empty_params::deserialize(deserializer).unwrap();
-        println!("{}", x.unwrap().len());
-        let a: Option<()> =
+        let arr: Option<Vec<u32>> = possible_empty_params::deserialize(deserializer).unwrap();
+        assert_eq!(arr, Some(vec![1, 2, 3]));
+        let empty_field: Option<()> =
             possible_empty_params::deserialize(Value::Null.into_deserializer()).unwrap();
-        assert!(a.is_none());
+        assert!(empty_field.is_none());
     }
 }
