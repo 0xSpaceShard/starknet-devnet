@@ -632,4 +632,38 @@ mod blocks_generation_tests {
 
         assert_get_class_hash_at(&devnet).await;
     }
+
+    #[tokio::test]
+    async fn get_data_by_specifying_latest_block_number() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (_, account_address) = devnet.get_first_predeployed_account().await;
+        let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+
+        // TODO: check block hash and block number here
+
+        let latest_block_nonce = devnet
+            .json_rpc_client
+            .get_nonce(BlockId::Number(latest_block.block_number), account_address)
+            .await
+            .unwrap();
+        assert_eq!(latest_block_nonce, FieldElement::ZERO);
+
+        let latest_block_class_hash = devnet
+            .json_rpc_client
+            .get_class_hash_at(BlockId::Number(latest_block.block_number), account_address)
+            .await
+            .unwrap();
+        assert_eq!(
+            latest_block_class_hash,
+            FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+        );
+
+        let key = FieldElement::ZERO;
+        let latest_block_storage = devnet
+            .json_rpc_client
+            .get_storage_at(account_address, key, BlockId::Number(latest_block.block_number))
+            .await
+            .unwrap();
+        assert_eq!(latest_block_storage, FieldElement::ZERO);
+    }
 }
