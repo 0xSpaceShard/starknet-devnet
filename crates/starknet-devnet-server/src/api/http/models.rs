@@ -7,6 +7,7 @@ use starknet_types::rpc::eth_address::EthAddressWrapper;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 use starknet_types::serde_helpers::dec_string::deserialize_biguint;
+use starknet_types::starknet_api::block::BlockNumber;
 
 use crate::api::http::error::HttpApiError;
 
@@ -51,7 +52,8 @@ pub struct CreatedBlock {
 #[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(Debug))]
 pub struct AbortingBlocks {
-    pub(crate) starting_block_hash: BlockHash,
+    pub(crate) starting_block_number: Option<BlockNumber>,
+    pub(crate) starting_block_hash: Option<BlockHash>,
 }
 
 #[derive(Serialize)]

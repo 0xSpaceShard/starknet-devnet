@@ -5,6 +5,7 @@ mod abort_blocks_tests {
     use server::api::json_rpc::error::ApiError;
     use starknet_rs_core::types::FieldElement;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
+    use starknet_types::starknet_api::block::BlockNumber;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{assert_tx_reverted, to_hex_felt};
@@ -20,6 +21,26 @@ mod abort_blocks_tests {
             .send_custom_rpc(
                 "devnet_abortBlocks",
                 json!({ "starting_block_hash": to_hex_felt(starting_block_hash) }),
+            )
+            .await
+            .unwrap();
+
+        let aborted_blocks = aborted_blocks["aborted"].take().as_array().unwrap().clone();
+
+        aborted_blocks
+            .into_iter()
+            .map(|block_hash| serde_json::from_value(block_hash).unwrap())
+            .collect()
+    }
+
+    async fn abort_blocks_by_number(
+        devnet: &BackgroundDevnet,
+        starting_block_number: &BlockNumber,
+    ) -> Vec<FieldElement> {
+        let mut aborted_blocks = devnet
+            .send_custom_rpc(
+                "devnet_abortBlocks",
+                json!({ "starting_block_number": starting_block_number }),
             )
             .await
             .unwrap();
@@ -102,6 +123,37 @@ mod abort_blocks_tests {
 
         assert_block_rejected(&devnet, &first_block_hash).await;
         assert_block_rejected(&devnet, &second_block_hash).await;
+    }
+
+    #[tokio::test]
+    async fn test_abort_blocks_by_number() {
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .expect("Could not start Devnet");
+
+        let first_block_hash = devnet.create_block().await.unwrap();
+        let second_block_hash = devnet.create_block().await.unwrap();
+
+        let aborted_blocks = abort_blocks_by_number(&devnet, &BlockNumber(1)).await;
+        assert_eq!(json!(aborted_blocks), json!([second_block_hash, first_block_hash]));
+
+        assert_block_rejected(&devnet, &first_block_hash).await;
+        assert_block_rejected(&devnet, &second_block_hash).await;
+    }
+
+    #[tokio::test]
+    #[should_panic]
+    async fn test_abort_blocks_by_number_out_of_range() {
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .expect("Could not start Devnet");
+
+        devnet.create_block().await.unwrap();
+        devnet.create_block().await.unwrap();
+
+        abort_blocks_by_number(&devnet, &BlockNumber(5)).await;
     }
 
     #[tokio::test]

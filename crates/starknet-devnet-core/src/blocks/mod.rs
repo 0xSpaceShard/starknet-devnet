@@ -79,7 +79,7 @@ impl StarknetBlocks {
         self.last_block_hash = Some(hash);
     }
 
-    fn get_by_num(&self, num: &BlockNumber) -> Option<&StarknetBlock> {
+    pub(crate) fn get_by_num(&self, num: &BlockNumber) -> Option<&StarknetBlock> {
         let block_hash = self.num_to_hash.get(num)?;
         let block = self.hash_to_block.get(block_hash)?;
 

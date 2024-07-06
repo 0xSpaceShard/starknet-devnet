@@ -114,6 +114,12 @@ POST /abort_blocks
     "starting_block_hash": BLOCK_HASH
 }
 ```
+```
+POST /abort_blocks
+{
+    "starting_block_number": BLOCK_NUMBER
+}
+```
 
 ```
 JSON-RPC
@@ -127,6 +133,18 @@ JSON-RPC
 }
 ```
 
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_abortBlocks",
+    "params": {
+        "starting_block_number": BLOCK_NUMBER
+    }
+}
+```
+
 Response:
 
 ```
@@ -134,3 +152,5 @@ Response:
     "aborted": [BLOCK_HASH_0, BLOCK_HASH_1, ...]
 }
 ```
+
+If both `starting_block_hash` and `starting_block_number` are passed, `starting_block_hash` is used.

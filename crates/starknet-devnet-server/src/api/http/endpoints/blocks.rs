@@ -37,8 +37,24 @@ pub(crate) async fn abort_blocks_impl(
     data: AbortingBlocks,
 ) -> HttpApiResult<AbortedBlocks> {
     let mut starknet = api.starknet.write().await;
+
+    let starting_block_hash = match data.starting_block_hash {
+        Some(block_hash) => block_hash,
+        None => match data.starting_block_number {
+            Some(block_number) => starknet
+                .get_block_by_number(block_number)
+                .map_err(|err| HttpApiError::BlockAbortError { msg: (err.to_string()) })?
+                .block_hash(),
+            None => {
+                return Err(HttpApiError::BlockAbortError {
+                    msg: "Either starting_block_number or starting_block_hash must be provided"
+                        .to_string(),
+                });
+            }
+        },
+    };
     let aborted = starknet
-        .abort_blocks(data.starting_block_hash)
+        .abort_blocks(starting_block_hash)
         .map_err(|err| HttpApiError::BlockAbortError { msg: (err.to_string()) })?;
 
     Ok(AbortedBlocks { aborted })
