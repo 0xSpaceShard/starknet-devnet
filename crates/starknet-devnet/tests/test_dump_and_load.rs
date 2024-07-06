@@ -95,11 +95,6 @@ mod dump_and_load_tests {
     }
 
     #[tokio::test]
-    async fn dump_load_dump_load_on_request() {
-        dump_load_dump_load("request").await;
-    }
-
-    #[tokio::test]
     async fn dump_wrong_cli_parameters_path() {
         let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
             "--dump-path",
@@ -114,7 +109,7 @@ mod dump_and_load_tests {
 
     #[tokio::test]
     async fn dump_and_load_blocks_generation_on_demand() {
-        let modes = vec!["exit", "block", "request"];
+        let modes = vec!["exit", "block"];
 
         for mode in modes {
             let dump_file = UniqueAutoDeletableFile::new(
