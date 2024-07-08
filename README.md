@@ -16,6 +16,16 @@
 
 A local testnet for Starknet... in Rust!
 
+### Features
+
+- Forking - interact with contracts deployed on mainnet or testnet
+- Account impersonation
+- L1-L2 interaction
+- Predeployed contracts (Account contracts etc.)
+- Block manipulations
+- Dump/load state
+- Configurable according to your needs
+
 ## 🌐 Documentation
 
 Find the official documentation [here](https://0xspaceshard.github.io/starknet-devnet-rs/).
