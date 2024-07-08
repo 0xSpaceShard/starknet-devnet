@@ -24,9 +24,22 @@ $ starknet-devnet --dump-on exit --dump-path <DEFAULT_PATH>
 
 ```
 POST /dump
+```
+
+```
+POST /dump
 {
   // optional; defaults to the path specified via CLI
   "path": <PATH>
+}
+```
+
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_dump"
 }
 ```
 
