@@ -167,12 +167,20 @@ impl BackgroundDevnet {
         method: &str,
         params: serde_json::Value,
     ) -> Result<serde_json::Value, RpcError> {
-        let body_json = json!({
-            "jsonrpc": "2.0",
-            "id": 0,
-            "method": method,
-            "params": params
-        });
+        let body_json = if params.is_null() {
+            json!({
+                "jsonrpc": "2.0",
+                "id": 0,
+                "method": method
+            })
+        } else {
+            json!({
+                "jsonrpc": "2.0",
+                "id": 0,
+                "method": method,
+                "params": params
+            })
+        };
 
         let json_rpc_result: serde_json::Value = self
             .reqwest_client()
