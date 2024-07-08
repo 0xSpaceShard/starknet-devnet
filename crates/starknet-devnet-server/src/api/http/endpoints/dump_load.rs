@@ -22,30 +22,16 @@ pub(crate) async fn dump_impl(api: &Api, path: Option<DumpPath>) -> HttpApiResul
             msg: "Please provide --dump-on mode on startup.".to_string(),
         });
     }
-
-    match path {
-        None => {
-            // path not present
-            starknet
-                .dump_events()
-                .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
-            Ok(())
-        }
-        Some(DumpPath { path }) => {
-            if !path.is_empty() {
-                // path is present and it's not empty
-                starknet
-                    .dump_events_custom_path(Some(path))
-                    .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
-                Ok(())
-            } else {
-                // path is present but it's empty
-                starknet
-                    .dump_events()
-                    .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
-                Ok(())
-            }
-        }
+    let path = path.map_or(String::new(), |s| s.path.clone());
+    // path not present
+    if path.is_empty() {
+        starknet.dump_events().map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
+        Ok(())
+    } else {
+        starknet
+            .dump_events_custom_path(Some(path))
+            .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
+        Ok(())
     }
 }
 
