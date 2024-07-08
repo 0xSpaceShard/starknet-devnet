@@ -22,7 +22,7 @@ mod simulation_tests {
     use starknet_rs_signers::Signer;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CHAIN_ID};
+    use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CHAIN_ID, INTEGRATION_SEPOLIA_HTTP_URL};
     use crate::common::utils::{
         get_deployable_account_signer, get_flattened_sierra_contract_and_casm_hash,
         iter_to_hex_felt, to_hex_felt, to_num_as_hex,
@@ -230,6 +230,92 @@ mod simulation_tests {
             &sender_address_hex,
             max_fee == FieldElement::ZERO,
         );
+    }
+
+    #[tokio::test]
+    async fn simulate_declare_v2_fork() {
+        let cli_args = ["--fork-network", INTEGRATION_SEPOLIA_HTTP_URL];
+        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
+
+        // get account
+        let (fork_signer, fork_account_address) = fork_devnet.get_first_predeployed_account().await;
+        let fork_account = SingleOwnerAccount::new(
+            fork_devnet.clone_provider(),
+            fork_signer,
+            fork_account_address,
+            CHAIN_ID,
+            ExecutionEncoding::New,
+        );
+
+        // get class
+        let (fork_flattened_contract_artifact, fork_casm_hash) =
+            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH);
+
+        let fork_max_fee = FieldElement::ZERO;
+        let fork_nonce = FieldElement::from_hex_be("0x0").unwrap();
+
+        let fork_signature = fork_account
+            .declare(Arc::new(fork_flattened_contract_artifact.clone()), fork_casm_hash)
+            .max_fee(fork_max_fee)
+            .nonce(fork_nonce)
+            .prepared()
+            .unwrap()
+            .get_declare_request(false)
+            .await
+            .unwrap()
+            .signature;
+
+        println!("fork_signature: {:?}", fork_signature);
+        
+        let fork_signature_hex: Vec<String> = iter_to_hex_felt(&fork_signature);
+
+        let fork_sender_address_hex = to_hex_felt(&fork_account_address);
+
+        let fork_get_params = |fork_simulation_flags: &[&str]| -> serde_json::Value {
+            json!({
+                "block_id": "latest",
+                "simulation_flags": fork_simulation_flags,
+                "transactions": [
+                    {
+                        "type": "DECLARE",
+                        "sender_address": fork_sender_address_hex,
+                        "compiled_class_hash": to_hex_felt(&fork_casm_hash),
+                        "max_fee": to_hex_felt(&fork_max_fee),
+                        "version": "0x2",
+                        "signature": fork_signature_hex,
+                        "nonce": to_num_as_hex(&fork_nonce),
+                        "contract_class": fork_flattened_contract_artifact,
+                    }
+                ]
+            })
+        };
+
+
+        let fork_params_no_flags = fork_get_params(&[]);
+        println!("{:?}", fork_params_no_flags.to_string());
+
+        let fork_resp_no_flags = &fork_devnet
+            .send_custom_rpc("starknet_simulateTransactions", fork_params_no_flags)
+            .await
+            .unwrap()[0];
+
+        println!("Fork gas_consumed []: {:?}", fork_resp_no_flags["fee_estimation"]["gas_consumed"]);
+
+        let fork_params_skip_validation = fork_get_params(&["SKIP_VALIDATE"]);
+        let fork_resp_skip_validation = &fork_devnet
+            .send_custom_rpc("starknet_simulateTransactions", fork_params_skip_validation)
+            .await
+            .unwrap()[0];
+
+        println!("Fork gas_consumed [SKIP_VALIDATE]: {:?}", fork_resp_skip_validation["fee_estimation"]["gas_consumed"]);
+
+        assert_difference_if_validation(
+            fork_resp_no_flags,
+            fork_resp_skip_validation,
+            &fork_sender_address_hex,
+            fork_max_fee == FieldElement::ZERO,
+        );
+
     }
 
     #[tokio::test]
