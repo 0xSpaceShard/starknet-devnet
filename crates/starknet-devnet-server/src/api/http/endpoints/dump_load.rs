@@ -26,13 +26,13 @@ pub(crate) async fn dump_impl(api: &Api, path: Option<DumpPath>) -> HttpApiResul
     // path not present
     if path.is_empty() {
         starknet.dump_events().map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
-        Ok(())
     } else {
         starknet
             .dump_events_custom_path(Some(path))
             .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
-        Ok(())
     }
+
+    Ok(())
 }
 
 pub async fn load(
