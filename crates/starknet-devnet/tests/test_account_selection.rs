@@ -372,7 +372,7 @@ mod test_account_selection {
         ] {
             let http_response: serde_json::Value = devnet
                 .reqwest_client()
-                .get_json_async(&http_endpoint_path, http_query.map(|s| s.to_string()))
+                .get_json_async(http_endpoint_path, http_query.map(|s| s.to_string()))
                 .await
                 .unwrap();
 
