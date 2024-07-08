@@ -1075,6 +1075,10 @@ mod requests_tests {
                 "method":"devnet_dump",
             }),
             json!({
+                "method":"devnet_dump",
+                "params": {"path": "path"}
+            }),
+            json!({
                 "method":"devnet_getPredeployedAccounts",
                 "params": {"with_balance": true}
             }),
@@ -1085,6 +1089,17 @@ mod requests_tests {
                 "method":"devnet_getPredeployedAccounts",
                 "params": {}
             }),
+            json!({
+                "method":"devnet_postmanFlush",
+                "params": {"dry_run": true}
+            }),
+            json!({
+                "method":"devnet_postmanFlush",
+            }),
+            json!({
+                "method":"devnet_postmanFlush",
+                "params": {}
+            }),
         ] {
             let mut json_rpc_object = json!({
                 "jsonrpc": "2.0",
@@ -1093,7 +1108,7 @@ mod requests_tests {
 
             json_rpc_object.as_object_mut().unwrap().append(body.as_object_mut().unwrap());
 
-            let RpcMethodCall { method, params, id, .. } =
+            let RpcMethodCall { method, params, .. } =
                 serde_json::from_value(json_rpc_object).unwrap();
             let params: serde_json::Value = params.into();
             let deserializable_call = serde_json::json!({
