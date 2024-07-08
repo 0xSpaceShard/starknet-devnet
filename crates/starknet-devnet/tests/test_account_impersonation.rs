@@ -156,7 +156,7 @@ mod impersonated_account_tests {
             origin_devnet,
             &[
                 ImpersonationAction::ImpersonateAccount(account_address),
-                ImpersonationAction::StopImpersonatingAccount(account_address),
+                ImpersonationAction::StopImpersonateAccount(account_address),
             ],
         )
         .await
@@ -168,7 +168,7 @@ mod impersonated_account_tests {
             origin_devnet,
             &[
                 ImpersonationAction::ImpersonateAccount(account_address),
-                ImpersonationAction::StopImpersonatingAccount(account_address),
+                ImpersonationAction::StopImpersonateAccount(account_address),
             ],
         )
         .await
