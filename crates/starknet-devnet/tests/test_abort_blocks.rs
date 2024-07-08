@@ -65,6 +65,21 @@ mod abort_blocks_tests {
         assert!(aborted_blocks_error.message.contains("Block abortion failed"));
     }
 
+    async fn abort_blocks_by_number_error(
+        devnet: &BackgroundDevnet,
+        starting_block_number: &BlockNumber,
+    ) {
+        let aborted_blocks_error = devnet
+            .send_custom_rpc(
+                "devnet_abortBlocks",
+                json!({ "starting_block_number": starting_block_number }),
+            )
+            .await
+            .unwrap_err();
+
+        assert!(aborted_blocks_error.message.contains("Block abortion failed"));
+    }
+
     async fn assert_block_rejected(devnet: &BackgroundDevnet, block_hash: &FieldElement) {
         let block_after_abort = devnet
             .send_custom_rpc(
@@ -140,20 +155,8 @@ mod abort_blocks_tests {
 
         assert_block_rejected(&devnet, &first_block_hash).await;
         assert_block_rejected(&devnet, &second_block_hash).await;
-    }
 
-    #[tokio::test]
-    #[should_panic]
-    async fn test_abort_blocks_by_number_out_of_range() {
-        let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
-                .await
-                .expect("Could not start Devnet");
-
-        devnet.create_block().await.unwrap();
-        devnet.create_block().await.unwrap();
-
-        abort_blocks_by_number(&devnet, &BlockNumber(5)).await;
+        abort_blocks_by_number_error(&devnet, &BlockNumber(2)).await;
     }
 
     #[tokio::test]
