@@ -1,5 +1,6 @@
 use axum::extract::State;
 use axum::Json;
+use starknet_rs_core::types::BlockId;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{AbortedBlocks, AbortingBlocks, CreatedBlock};
@@ -42,7 +43,7 @@ pub(crate) async fn abort_blocks_impl(
         Some(block_hash) => block_hash,
         None => match data.starting_block_number {
             Some(block_number) => starknet
-                .get_block_by_number(block_number)
+                .get_block(&BlockId::Number(block_number.0))
                 .map_err(|err| HttpApiError::BlockAbortError { msg: (err.to_string()) })?
                 .block_hash(),
             None => {

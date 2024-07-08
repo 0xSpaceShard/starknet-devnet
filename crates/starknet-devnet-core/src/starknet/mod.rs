@@ -933,9 +933,6 @@ impl Starknet {
     pub fn get_block(&self, block_id: &BlockId) -> DevnetResult<&StarknetBlock> {
         self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)
     }
-    pub fn get_block_by_number(&self, block_number: BlockNumber) -> DevnetResult<&StarknetBlock> {
-        self.blocks.get_by_num(&block_number).ok_or(Error::NoBlock)
-    }
 
     pub fn get_block_with_transactions(&self, block_id: &BlockId) -> DevnetResult<BlockResult> {
         let block = self.get_block(block_id)?;
