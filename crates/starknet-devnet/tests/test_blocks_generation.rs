@@ -12,12 +12,14 @@ mod blocks_generation_tests {
         BlockId, BlockStatus, BlockTag, DeclaredClassItem, FieldElement, FunctionCall,
         MaybePendingStateUpdate, NonceUpdate, StateUpdate, TransactionTrace,
     };
-    use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
+    use starknet_rs_core::utils::{
+        get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
+    };
     use starknet_rs_providers::Provider;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants;
+    use crate::common::constants::{self, PREDEPLOYED_ACCOUNT_PUBLIC_KEY};
     use crate::common::utils::{
         assert_equal_elements, assert_tx_successful, get_contract_balance,
         get_contract_balance_by_block_id, get_events_contract_in_sierra_and_compiled_class_hash,
@@ -652,13 +654,13 @@ mod blocks_generation_tests {
                 FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
 
-            let key = FieldElement::ZERO;
+            let key = get_storage_var_address("Account_public_key", &[]).unwrap();
             let storage = devnet
                 .json_rpc_client
                 .get_storage_at(account_address, key, block_id)
                 .await
                 .unwrap();
-            assert_eq!(storage, FieldElement::ZERO);
+            assert_eq!(storage, FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_PUBLIC_KEY).unwrap());
         }
     }
 }
