@@ -12,8 +12,11 @@ mod blocks_generation_tests {
         BlockId, BlockStatus, BlockTag, DeclaredClassItem, FieldElement, FunctionCall,
         MaybePendingStateUpdate, NonceUpdate, StateUpdate, TransactionTrace,
     };
-    use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
+    use starknet_rs_core::utils::{
+        get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
+    };
     use starknet_rs_providers::Provider;
+    use starknet_rs_signers::Signer;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -631,5 +634,34 @@ mod blocks_generation_tests {
                 .unwrap();
 
         assert_get_class_hash_at(&devnet).await;
+    }
+
+    #[tokio::test]
+    async fn get_data_by_specifying_latest_block_hash_and_number() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+        let block_ids =
+            [BlockId::Hash(latest_block.block_hash), BlockId::Number(latest_block.block_number)];
+
+        for block_id in &block_ids {
+            let nonce = devnet.json_rpc_client.get_nonce(block_id, account_address).await.unwrap();
+            assert_eq!(nonce, FieldElement::ZERO);
+
+            let class_hash =
+                devnet.json_rpc_client.get_class_hash_at(block_id, account_address).await.unwrap();
+            assert_eq!(
+                class_hash,
+                FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+            );
+
+            let key = get_storage_var_address("Account_public_key", &[]).unwrap();
+            let storage = devnet
+                .json_rpc_client
+                .get_storage_at(account_address, key, block_id)
+                .await
+                .unwrap();
+            assert_eq!(storage, signer.get_public_key().await.unwrap().scalar());
+        }
     }
 }
