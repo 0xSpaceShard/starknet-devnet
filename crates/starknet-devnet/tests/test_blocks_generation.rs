@@ -16,10 +16,11 @@ mod blocks_generation_tests {
         get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
     };
     use starknet_rs_providers::Provider;
+    use starknet_rs_signers::Signer;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::{self, PREDEPLOYED_ACCOUNT_PUBLIC_KEY};
+    use crate::common::constants;
     use crate::common::utils::{
         assert_equal_elements, assert_tx_successful, get_contract_balance,
         get_contract_balance_by_block_id, get_events_contract_in_sierra_and_compiled_class_hash,
@@ -638,7 +639,7 @@ mod blocks_generation_tests {
     #[tokio::test]
     async fn get_data_by_specifying_latest_block_hash_and_number() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
-        let (_, account_address) = devnet.get_first_predeployed_account().await;
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
         let block_ids =
             [BlockId::Hash(latest_block.block_hash), BlockId::Number(latest_block.block_number)];
@@ -660,7 +661,7 @@ mod blocks_generation_tests {
                 .get_storage_at(account_address, key, block_id)
                 .await
                 .unwrap();
-            assert_eq!(storage, FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_PUBLIC_KEY).unwrap());
+            assert_eq!(storage, signer.get_public_key().await.unwrap().scalar());
         }
     }
 }
