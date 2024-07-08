@@ -362,10 +362,6 @@ impl BackgroundDevnet {
         self.send_custom_rpc("devnet_getConfig", json!({})).await.unwrap()
     }
 
-    pub async fn get_dump(&self) -> serde_json::Value {
-        self.send_custom_rpc("devnet_dump", json!({})).await.unwrap()
-    }
-
     pub async fn execute_impersonation_action(
         &self,
         action: &ImpersonationAction,
