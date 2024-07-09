@@ -79,6 +79,7 @@ jobs:
           # Test also generates, but significantly more
           # Compromise: saving before Test
           paths:
+            - /home/circleci/.rustup/toolchains
             - /home/circleci/.cargo/registry
             - target/debug/.fingerprint
             - target/debug/build
