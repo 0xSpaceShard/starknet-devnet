@@ -1,5 +1,6 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
-use starknet_types::felt::{ClassHash, TransactionHash};
+use starknet_types::contract_class::ContractClass;
+use starknet_types::felt::{ClassHash, CompiledClassHash, Felt, TransactionHash};
 use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
 use starknet_types::rpc::transactions::declare_transaction_v2::DeclareTransactionV2;
 use starknet_types::rpc::transactions::declare_transaction_v3::DeclareTransactionV3;
@@ -11,6 +12,7 @@ use super::dump::DumpEvent;
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
 use crate::state::CustomState;
+use crate::utils::calculate_casm_hash;
 
 pub fn add_declare_transaction(
     starknet: &mut Starknet,
@@ -34,7 +36,7 @@ pub fn add_declare_transaction(
     let transaction_hash = blockifier_declare_transaction.tx_hash().0.into();
     let class_hash = blockifier_declare_transaction.class_hash().0.into();
 
-    let (declare_transaction, contract_class, sender_address) =
+    let (declare_transaction, contract_class, casm_hash, sender_address) =
         match broadcasted_declare_transaction {
             BroadcastedDeclareTransaction::V1(ref v1) => {
                 let declare_transaction = Transaction::Declare(DeclareTransaction::V1(
@@ -42,23 +44,35 @@ pub fn add_declare_transaction(
                 ));
 
                 // TODO cloning necessary?
-                (declare_transaction, v1.contract_class.clone().into(), &v1.sender_address)
+                (declare_transaction, v1.contract_class.clone().into(), None, &v1.sender_address)
             }
             BroadcastedDeclareTransaction::V2(ref v2) => {
                 let declare_transaction = Transaction::Declare(DeclareTransaction::V2(
                     DeclareTransactionV2::new(v2, class_hash),
                 ));
 
-                (declare_transaction, v2.contract_class.clone().into(), &v2.sender_address)
+                (
+                    declare_transaction,
+                    v2.contract_class.clone().into(),
+                    Some(v2.compiled_class_hash),
+                    &v2.sender_address,
+                )
             }
             BroadcastedDeclareTransaction::V3(ref v3) => {
                 let declare_transaction = Transaction::Declare(DeclareTransaction::V3(
                     DeclareTransactionV3::new(v3, class_hash),
                 ));
 
-                (declare_transaction, v3.contract_class.clone().into(), &v3.sender_address)
+                (
+                    declare_transaction,
+                    v3.contract_class.clone().into(),
+                    Some(v3.compiled_class_hash),
+                    &v3.sender_address,
+                )
             }
         };
+
+    assert_casm_hash_is_valid(&contract_class, casm_hash)?;
 
     let validate = !(Starknet::is_account_impersonated(
         &mut starknet.pending_state,
@@ -81,7 +95,7 @@ pub fn add_declare_transaction(
     // if tx successful, store the class
     if blockifier_execution_result.as_ref().is_ok_and(|res| !res.is_reverted()) {
         let state = starknet.get_state();
-        state.declare_contract_class(class_hash, contract_class)?;
+        state.declare_contract_class(class_hash, casm_hash, contract_class)?;
     }
 
     // do the steps required in all transactions
@@ -92,6 +106,39 @@ pub fn add_declare_transaction(
 
     Ok((transaction_hash, class_hash))
 }
+
+/// Convert `contract_class` to casm, calculate its hash and assert it's equal to
+/// `received_casm_hash`
+fn assert_casm_hash_is_valid(
+    contract_class: &ContractClass,
+    received_casm_hash: Option<CompiledClassHash>,
+) -> DevnetResult<()> {
+    match (contract_class, received_casm_hash) {
+        (ContractClass::Cairo0(_), None) => Ok(()), // if cairo0, casm_hash expected to be None
+        (ContractClass::Cairo1(cairo_lang_contract_class), Some(received_casm_hash)) => {
+            let casm_json = usc::compile_contract(
+                serde_json::to_value(cairo_lang_contract_class)
+                    .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
+            )
+            .map_err(|err| {
+                Error::TypesError(starknet_types::error::Error::SierraCompilationError {
+                    reason: err.to_string(),
+                })
+            })?;
+
+            let calculated_casm_hash = Felt::from(calculate_casm_hash(casm_json)?);
+            if calculated_casm_hash == received_casm_hash {
+                Ok(())
+            } else {
+                Err(Error::CompiledClassHashMismatch)
+            }
+        }
+        unexpected => Err(Error::UnexpectedInternalError {
+            msg: format!("Unexpected class and casm combination: {unexpected:?}"),
+        }),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use blockifier::state::state_api::StateReader;

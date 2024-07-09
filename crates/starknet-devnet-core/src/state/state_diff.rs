@@ -207,9 +207,10 @@ mod tests {
         let mut state = setup();
 
         let class_hash = StarkFelt::from(1u8);
+        let casm_hash = Some(StarkFelt::from(1u8).into());
 
         let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
-        state.declare_contract_class(class_hash.into(), contract_class).unwrap();
+        state.declare_contract_class(class_hash.into(), casm_hash, contract_class).unwrap();
 
         let block_number = 1;
         let new_classes = state.rpc_contract_classes.write().commit(block_number);
@@ -231,8 +232,9 @@ mod tests {
         let mut state = setup();
 
         let class_hash = Felt::from(1);
+        let casm_hash = Some(Felt::from(1));
         let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
-        state.declare_contract_class(class_hash, contract_class).unwrap();
+        state.declare_contract_class(class_hash, casm_hash, contract_class).unwrap();
 
         let block_number = 1;
         let new_classes = state.rpc_contract_classes.write().commit(block_number);
@@ -253,7 +255,7 @@ mod tests {
         let class_hash = Felt::from(1);
         let contract_class = ContractClass::Cairo0(dummy_cairo_0_contract_class().into());
 
-        state.declare_contract_class(class_hash, contract_class).unwrap();
+        state.declare_contract_class(class_hash, None, contract_class).unwrap();
 
         let block_number = 1;
         let new_classes = state.rpc_contract_classes.write().commit(block_number);
@@ -276,7 +278,7 @@ mod tests {
             let class_hash = Felt::from(1);
             let contract_class = ContractClass::Cairo0(dummy_cairo_0_contract_class().into());
 
-            state.declare_contract_class(class_hash, contract_class).unwrap();
+            state.declare_contract_class(class_hash, None, contract_class).unwrap();
 
             let block_number = 1;
             let new_classes = state.rpc_contract_classes.write().commit(block_number);
@@ -293,8 +295,9 @@ mod tests {
         // declare cairo1
         {
             let class_hash = Felt::from(2);
+            let casm_hash = Some(Felt::from(2));
             let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
-            state.declare_contract_class(class_hash, contract_class).unwrap();
+            state.declare_contract_class(class_hash, casm_hash, contract_class).unwrap();
 
             let block_number = 1;
             let new_classes = state.rpc_contract_classes.write().commit(block_number);

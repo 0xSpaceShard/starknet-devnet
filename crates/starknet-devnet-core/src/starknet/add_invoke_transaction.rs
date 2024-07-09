@@ -534,7 +534,7 @@ mod tests {
         // declare dummy contract
         starknet
             .pending_state
-            .declare_contract_class(dummy_contract_class_hash, dummy_contract.into())
+            .declare_contract_class(dummy_contract_class_hash, None, dummy_contract.into())
             .unwrap();
 
         // deploy dummy contract
