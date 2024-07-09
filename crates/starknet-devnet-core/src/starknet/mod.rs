@@ -225,7 +225,7 @@ impl Starknet {
                 config.data_gas_price_strk,
                 ETH_ERC20_CONTRACT_ADDRESS,
                 STRK_ERC20_CONTRACT_ADDRESS,
-                config.chain_id,
+                config.chain_id.clone(),
                 starting_block_number,
             ),
             blocks: StarknetBlocks::new(starting_block_number),
@@ -723,7 +723,7 @@ impl Starknet {
 
     /// returning the chain id as object
     pub fn chain_id(&self) -> ChainId {
-        self.config.chain_id
+        self.config.chain_id.clone()
     }
 
     pub fn add_deploy_account_transaction(

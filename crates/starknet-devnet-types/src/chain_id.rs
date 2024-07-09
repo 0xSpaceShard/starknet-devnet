@@ -1,16 +1,18 @@
 use std::fmt::Display;
+use std::str::FromStr;
 
 use starknet_rs_core::chain_id::{MAINNET, SEPOLIA, TESTNET};
-use starknet_rs_core::utils::parse_cairo_short_string;
+use starknet_rs_core::utils::{cairo_short_string_to_felt, parse_cairo_short_string};
 use starknet_rs_ff::FieldElement;
 
+use crate::error::ConversionError;
 use crate::felt::Felt;
 
-#[derive(Clone, Copy, Debug, clap::ValueEnum)]
-#[clap(rename_all = "SCREAMING_SNAKE_CASE")]
+#[derive(Clone, Copy, Debug)]
 pub enum ChainId {
     Mainnet,
     Testnet,
+    Custom(FieldElement),
 }
 
 impl ChainId {
@@ -31,11 +33,31 @@ impl Display for ChainId {
     }
 }
 
+impl FromStr for ChainId {
+    type Err = ConversionError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let felt = cairo_short_string_to_felt(&s.to_ascii_uppercase())
+            .map_err(|err| ConversionError::OutOfRangeError(err.to_string()))?;
+
+        let chain_id = if felt == MAINNET {
+            ChainId::Mainnet
+        } else if felt == SEPOLIA {
+            ChainId::Testnet
+        } else {
+            ChainId::Custom(felt)
+        };
+
+        Ok(chain_id)
+    }
+}
+
 impl From<ChainId> for FieldElement {
     fn from(value: ChainId) -> Self {
         match value {
             ChainId::Mainnet => MAINNET,
             ChainId::Testnet => SEPOLIA,
+            ChainId::Custom(felt) => felt,
         }
     }
 }
@@ -45,6 +67,7 @@ impl From<&ChainId> for FieldElement {
         match value {
             ChainId::Mainnet => MAINNET,
             ChainId::Testnet => SEPOLIA,
+            ChainId::Custom(felt) => *felt,
         }
     }
 }

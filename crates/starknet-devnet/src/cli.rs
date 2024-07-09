@@ -223,7 +223,7 @@ impl Args {
             gas_price_strk: self.gas_price_strk,
             data_gas_price_wei: self.data_gas_price_wei,
             data_gas_price_strk: self.data_gas_price_strk,
-            chain_id: self.chain_id,
+            chain_id: self.chain_id.clone(),
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
             block_generation_on: self.block_generation_on,

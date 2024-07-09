@@ -102,7 +102,7 @@ fn log_predeployed_contracts() {
     println!();
 }
 
-fn log_chain_id(chain_id: ChainId) {
+fn log_chain_id(chain_id: &ChainId) {
     println!("Chain ID: {} ({})", chain_id, chain_id.to_felt().to_prefixed_hex_str());
 }
 
@@ -121,7 +121,7 @@ async fn check_forking_spec_version(
 
 async fn check_forking_chain_id(
     client: &JsonRpcClient<HttpTransport>,
-    devnet_chain_id: ChainId,
+    devnet_chain_id: &ChainId,
 ) -> Result<(), anyhow::Error> {
     let origin_chain_id = client.chain_id().await?;
     let devnet_chain_id_felt = devnet_chain_id.into();
@@ -138,7 +138,7 @@ async fn check_forking_chain_id(
 /// latest block number.
 pub async fn set_and_log_fork_config(
     fork_config: &mut ForkConfig,
-    chain_id: ChainId,
+    chain_id: &ChainId,
 ) -> Result<(), anyhow::Error> {
     if let Some(url) = &fork_config.url {
         let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
@@ -177,7 +177,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
     let (mut starknet_config, server_config) = args.to_config()?;
 
-    set_and_log_fork_config(&mut starknet_config.fork_config, starknet_config.chain_id).await?;
+    set_and_log_fork_config(&mut starknet_config.fork_config, &starknet_config.chain_id).await?;
 
     let address = format!("{}:{}", server_config.host, server_config.port);
     let listener = TcpListener::bind(address.clone()).await?;
@@ -192,7 +192,7 @@ async fn main() -> Result<(), anyhow::Error> {
     };
 
     log_predeployed_contracts();
-    log_chain_id(starknet_config.chain_id);
+    log_chain_id(&starknet_config.chain_id);
 
     let predeployed_accounts = api.starknet.read().await.get_predeployed_accounts();
     log_predeployed_accounts(
