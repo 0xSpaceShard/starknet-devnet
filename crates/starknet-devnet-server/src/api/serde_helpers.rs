@@ -21,7 +21,7 @@ pub mod empty_params {
     }
 }
 
-pub mod possible_empty_params {
+pub mod optional_params {
     use serde::de::{DeserializeOwned, Error as DeError};
     use serde::{Deserialize, Deserializer};
     use serde_json::Value;
@@ -48,7 +48,7 @@ mod tests {
     use serde_json::{self, Value};
 
     use super::empty_params::deserialize;
-    use super::possible_empty_params;
+    use super::optional_params;
 
     fn test_deserialization(json_str: &str) -> Result<(), serde_json::Error> {
         let value: Value = serde_json::from_str(json_str)?;
@@ -97,10 +97,10 @@ mod tests {
         let json_str = "[1, 2, 3]";
         let value: Value = serde_json::from_str(json_str).unwrap();
         let deserializer = value.into_deserializer();
-        let arr: Option<Vec<u32>> = possible_empty_params::deserialize(deserializer).unwrap();
+        let arr: Option<Vec<u32>> = optional_params::deserialize(deserializer).unwrap();
         assert_eq!(arr, Some(vec![1, 2, 3]));
         let empty_field: Option<()> =
-            possible_empty_params::deserialize(Value::Null.into_deserializer()).unwrap();
+            optional_params::deserialize(Value::Null.into_deserializer()).unwrap();
         assert!(empty_field.is_none());
     }
 }

@@ -50,7 +50,7 @@ use crate::api::json_rpc::models::{
     BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper,
     BroadcastedInvokeTransactionEnumWrapper, SimulateTransactionsInput,
 };
-use crate::api::serde_helpers::{empty_params, possible_empty_params};
+use crate::api::serde_helpers::{empty_params, optional_params};
 use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::ResponseResult;
@@ -344,13 +344,13 @@ pub enum JsonRpcRequest {
     AutoImpersonate,
     #[serde(rename = "devnet_stopAutoImpersonate", with = "empty_params")]
     StopAutoImpersonate,
-    #[serde(rename = "devnet_dump", with = "possible_empty_params")]
+    #[serde(rename = "devnet_dump", with = "optional_params")]
     Dump(Option<DumpPath>),
     #[serde(rename = "devnet_load")]
     Load(LoadPath),
     #[serde(rename = "devnet_postmanLoad")]
     PostmanLoadL1MessagingContract(PostmanLoadL1MessagingContract),
-    #[serde(rename = "devnet_postmanFlush", with = "possible_empty_params")]
+    #[serde(rename = "devnet_postmanFlush", with = "optional_params")]
     PostmanFlush(Option<FlushParameters>),
     #[serde(rename = "devnet_postmanSendMessageToL2")]
     PostmanSendMessageToL2(MessageToL2),
@@ -366,7 +366,7 @@ pub enum JsonRpcRequest {
     SetTime(SetTime),
     #[serde(rename = "devnet_increaseTime")]
     IncreaseTime(IncreaseTime),
-    #[serde(rename = "devnet_getPredeployedAccounts", with = "possible_empty_params")]
+    #[serde(rename = "devnet_getPredeployedAccounts", with = "optional_params")]
     PredeployedAccounts(Option<PredeployedAccountsQuery>),
     #[serde(rename = "devnet_getAccountBalance")]
     AccountBalance(BalanceQuery),
