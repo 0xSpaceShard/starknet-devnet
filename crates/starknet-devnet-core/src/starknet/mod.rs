@@ -822,15 +822,16 @@ impl Starknet {
         }
     }
 
-    pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> DevnetResult<Vec<Felt>> {
+    pub fn abort_blocks(&mut self, starting_block_id: BlockId) -> DevnetResult<Vec<Felt>> {
         if self.config.state_archive != StateArchiveCapacity::Full {
             let msg = "The abort blocks feature requires state-archive-capacity set to full.";
             return Err(Error::UnsupportedAction { msg: msg.into() });
         }
 
-        if self.blocks.get_by_hash(starting_block_hash).is_none() {
-            return Err(Error::NoBlock);
-        }
+        let starting_block_hash = match self.blocks.get_by_block_id(&starting_block_id) {
+            Some(block) => block.block_hash(),
+            None => return Err(Error::NoBlock),
+        };
 
         if self.blocks.aborted_blocks.contains(&starting_block_hash) {
             return Err(Error::UnsupportedAction { msg: "Block is already aborted".into() });
@@ -1902,7 +1903,7 @@ mod tests {
         .unwrap();
 
         let dummy_hash = Felt::from_prefixed_hex_str("0x42").unwrap();
-        match starknet.abort_blocks(dummy_hash) {
+        match starknet.abort_blocks(BlockId::Hash(dummy_hash.into())) {
             Err(Error::UnsupportedAction { msg }) => {
                 assert!(msg.contains("state-archive-capacity"))
             }
@@ -1919,7 +1920,7 @@ mod tests {
         .unwrap();
 
         let dummy_hash = Felt::from_prefixed_hex_str("0x42").unwrap();
-        match starknet.abort_blocks(dummy_hash) {
+        match starknet.abort_blocks(BlockId::Hash(dummy_hash.into())) {
             Err(Error::NoBlock) => (),
             unexpected => panic!("Got unexpected response: {unexpected:?}"),
         }
