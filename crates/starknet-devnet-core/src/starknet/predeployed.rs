@@ -1,5 +1,5 @@
 use blockifier::state::state_api::State;
-use starknet_rs_core::utils::get_selector_from_name;
+use starknet_rs_core::utils::cairo_short_string_to_felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
 
@@ -33,13 +33,13 @@ pub(crate) fn initialize_erc20_at_address(
     for (storage_var_name, storage_value) in [
         (
             "ERC20_name",
-            get_selector_from_name(erc20_name)
+            cairo_short_string_to_felt(erc20_name)
                 .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?
                 .into(),
         ),
         (
             "ERC20_symbol",
-            get_selector_from_name(erc20_symbol)
+            cairo_short_string_to_felt(erc20_symbol)
                 .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?
                 .into(),
         ),
