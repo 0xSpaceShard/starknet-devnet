@@ -117,7 +117,7 @@ POST /abort_blocks
 ```
 POST /abort_blocks
 {
-    "starting_block_number": BLOCK_NUMBER
+    "starting_block_id": BLOCK_ID
 }
 ```
 
@@ -140,7 +140,7 @@ JSON-RPC
     "id": "1",
     "method": "devnet_abortBlocks",
     "params": {
-        "starting_block_number": BLOCK_NUMBER
+        "starting_block_id": BLOCK_ID
     }
 }
 ```
@@ -153,4 +153,4 @@ Response:
 }
 ```
 
-If both `starting_block_hash` and `starting_block_number` are passed, `starting_block_hash` is used.
+If both `starting_block_hash` and `starting_block_id` are passed, error is thrown. Note: param `starting_block_hash` is being depreciated as block hash is contained in `BLOCK_ID` object.
