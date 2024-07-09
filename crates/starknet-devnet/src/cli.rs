@@ -135,7 +135,9 @@ pub(crate) struct Args {
     #[arg(env = "CHAIN_ID")]
     #[arg(value_name = "CHAIN_ID")]
     #[arg(default_value = "TESTNET")]
-    #[arg(help = "Specify the chain ID;")]
+    #[arg(help = "Specify the chain ID. Possible values are:
+- \"MAINNET\", \"TESTNET\" - predefined chain IDs
+- <USER_SUPPLIED> - custom chain ID, defined by user. Have to contain only ASCII characters.")]
     chain_id: ChainId,
 
     #[arg(long = "dump-on")]
@@ -223,7 +225,7 @@ impl Args {
             gas_price_strk: self.gas_price_strk,
             data_gas_price_wei: self.data_gas_price_wei,
             data_gas_price_strk: self.data_gas_price_strk,
-            chain_id: self.chain_id.clone(),
+            chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
             block_generation_on: self.block_generation_on,
