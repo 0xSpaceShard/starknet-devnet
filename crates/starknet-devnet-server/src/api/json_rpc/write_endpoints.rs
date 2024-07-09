@@ -10,7 +10,7 @@ use super::models::{
     DeclareTransactionOutput, DeployAccountTransactionOutput, TransactionHashOutput,
 };
 use super::{DevnetResponse, StarknetResponse};
-use crate::api::http::endpoints::blocks::{abort_blocks_impl, create_block_impl};
+use crate::api::http::endpoints::blocks::{abort_blocks_impl, create_block_impl, update_gas_impl};
 use crate::api::http::endpoints::dump_load::{dump_impl, load_impl};
 use crate::api::http::endpoints::mint_token::mint_impl;
 use crate::api::http::endpoints::postman::{
@@ -21,7 +21,7 @@ use crate::api::http::endpoints::restart_impl;
 use crate::api::http::endpoints::time::{increase_time_impl, set_time_impl};
 use crate::api::http::models::{
     AbortingBlocks, DumpPath, FlushParameters, IncreaseTime, LoadPath, MintTokensRequest,
-    PostmanLoadL1MessagingContract, SetTime,
+    PostmanLoadL1MessagingContract, SetTime, UpdateGas,
 };
 use crate::api::json_rpc::JsonRpcHandler;
 
@@ -150,6 +150,13 @@ impl JsonRpcHandler {
         let aborted_blocks = abort_blocks_impl(&self.api, data).await.map_err(ApiError::from)?;
 
         Ok(DevnetResponse::AbortedBlocks(aborted_blocks).into())
+    }
+
+    /// devnet_updateGas
+    pub async fn update_gas(&self, data: UpdateGas) -> StrictRpcResult {
+        let updated_gas = update_gas_impl(&self.api, data.update).await.map_err(ApiError::from)?;
+
+        Ok(DevnetResponse::UpdatedGas(updated_gas).into())
     }
 
     /// devnet_restart

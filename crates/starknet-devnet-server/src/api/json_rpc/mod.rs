@@ -43,7 +43,7 @@ use super::http::models::{
     AbortedBlocks, AbortingBlocks, AccountBalanceResponse, CreatedBlock, DumpPath, FlushParameters,
     FlushedMessages, IncreaseTime, IncreaseTimeResponse, LoadPath, MessageHash,
     MessagingLoadAddress, MintTokensRequest, MintTokensResponse, PostmanLoadL1MessagingContract,
-    SerializableAccount, SetTime, SetTimeResponse,
+    SerializableAccount, SetTime, SetTimeResponse, UpdateGas,
 };
 use super::Api;
 use crate::api::json_rpc::models::{
@@ -239,6 +239,7 @@ impl JsonRpcHandler {
             }
             JsonRpcRequest::CreateBlock => self.create_block().await,
             JsonRpcRequest::AbortBlocks(data) => self.abort_blocks(data).await,
+            JsonRpcRequest::UpdateGas(data) => self.update_gas(data).await,
             JsonRpcRequest::Restart => self.restart().await,
             JsonRpcRequest::SetTime(data) => self.set_time(data).await,
             JsonRpcRequest::IncreaseTime(data) => self.increase_time(data).await,
@@ -360,6 +361,8 @@ pub enum JsonRpcRequest {
     CreateBlock,
     #[serde(rename = "devnet_abortBlocks")]
     AbortBlocks(AbortingBlocks),
+    #[serde(rename = "devnet_updateGas")]
+    UpdateGas(UpdateGas),
     #[serde(rename = "devnet_restart", with = "empty_params")]
     Restart,
     #[serde(rename = "devnet_setTime")]
@@ -442,6 +445,7 @@ impl std::fmt::Display for JsonRpcRequest {
             }
             JsonRpcRequest::CreateBlock => write!(f, "devnet_createBlock"),
             JsonRpcRequest::AbortBlocks(_) => write!(f, "devnet_abortBlocks"),
+            JsonRpcRequest::UpdateGas(_) => write!(f, "devnet_updateGas"),
             JsonRpcRequest::Restart => write!(f, "devnet_restart"),
             JsonRpcRequest::SetTime(_) => write!(f, "devnet_setTime"),
             JsonRpcRequest::IncreaseTime(_) => write!(f, "devnet_increaseTime"),
@@ -511,6 +515,7 @@ pub enum DevnetResponse {
     MessageHash(MessageHash),
     CreatedBlock(CreatedBlock),
     AbortedBlocks(AbortedBlocks),
+    UpdatedGas(bool),
     SetTime(SetTimeResponse),
     IncreaseTime(IncreaseTimeResponse),
     TransactionHash(TransactionHashOutput),

@@ -265,8 +265,8 @@ mod simulation_tests {
             .unwrap()
             .signature;
 
-        println!("fork_signature: {:?}", fork_signature);
-        
+        // println!("fork_signature: {:?}", fork_signature);
+
         let fork_signature_hex: Vec<String> = iter_to_hex_felt(&fork_signature);
 
         let fork_sender_address_hex = to_hex_felt(&fork_account_address);
@@ -290,16 +290,18 @@ mod simulation_tests {
             })
         };
 
-
         let fork_params_no_flags = fork_get_params(&[]);
-        println!("{:?}", fork_params_no_flags.to_string());
+        // println!("{:?}", fork_params_no_flags.to_string());
 
         let fork_resp_no_flags = &fork_devnet
             .send_custom_rpc("starknet_simulateTransactions", fork_params_no_flags)
             .await
             .unwrap()[0];
 
-        println!("Fork gas_consumed []: {:?}", fork_resp_no_flags["fee_estimation"]["gas_consumed"]);
+        println!(
+            "Fork gas_consumed []: {:?}",
+            fork_resp_no_flags["fee_estimation"]["gas_consumed"]
+        );
 
         let fork_params_skip_validation = fork_get_params(&["SKIP_VALIDATE"]);
         let fork_resp_skip_validation = &fork_devnet
@@ -307,7 +309,10 @@ mod simulation_tests {
             .await
             .unwrap()[0];
 
-        println!("Fork gas_consumed [SKIP_VALIDATE]: {:?}", fork_resp_skip_validation["fee_estimation"]["gas_consumed"]);
+        println!(
+            "Fork gas_consumed [SKIP_VALIDATE]: {:?}",
+            fork_resp_skip_validation["fee_estimation"]["gas_consumed"]
+        );
 
         assert_difference_if_validation(
             fork_resp_no_flags,
@@ -316,6 +321,18 @@ mod simulation_tests {
             fork_max_fee == FieldElement::ZERO,
         );
 
+        // udpate gas
+        let updated_gas = &fork_devnet
+            .send_custom_rpc(
+                "devnet_updateGas",
+                json!({
+                    "update": true,
+                }),
+            )
+            .await
+            .unwrap();
+
+        println!("udpated gas: {:?}", updated_gas);
     }
 
     #[tokio::test]

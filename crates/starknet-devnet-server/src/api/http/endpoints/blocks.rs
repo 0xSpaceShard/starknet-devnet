@@ -43,3 +43,19 @@ pub(crate) async fn abort_blocks_impl(
 
     Ok(AbortedBlocks { aborted })
 }
+
+pub async fn update_gas(
+    State(state): State<HttpApiHandler>,
+    Json(data): Json<bool>,
+) -> HttpApiResult<Json<bool>> {
+    update_gas_impl(&state.api, data).await.map(Json::from)
+}
+
+pub(crate) async fn update_gas_impl(api: &Api, data: bool) -> HttpApiResult<bool> {
+    let mut starknet = api.starknet.write().await;
+    let updated = starknet
+        .update_gas()
+        .map_err(|err| HttpApiError::BlockAbortError { msg: (err.to_string()) })?;
+
+    Ok(true)
+}

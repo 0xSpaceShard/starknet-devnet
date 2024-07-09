@@ -1,7 +1,7 @@
 use std::num::NonZeroU128;
 use std::sync::Arc;
 
-use blockifier::block::BlockInfo;
+use blockifier::block::{BlockInfo, GasPrices};
 use blockifier::context::{BlockContext, ChainInfo, TransactionContext};
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::cached_state::{
@@ -12,6 +12,7 @@ use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::errors::TransactionPreValidationError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
+use nonzero_ext::nonzero;
 use parking_lot::RwLock;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, GasPricePerToken};
 use starknet_api::core::SequencerContractAddress;
@@ -61,7 +62,7 @@ use self::transaction_trace::create_trace;
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
-    CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
+    self, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
     DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
     ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS,
     STRK_ERC20_NAME, STRK_ERC20_SYMBOL,
@@ -509,7 +510,7 @@ impl Starknet {
             block_number: BlockNumber(block_number),
             block_timestamp: BlockTimestamp(0),
             sequencer_address: contract_address!("0x1000"),
-            gas_prices: blockifier::block::GasPrices {
+            gas_prices: GasPrices {
                 eth_l1_gas_price: gas_price_wei,
                 strk_l1_gas_price: gas_price_strk,
                 eth_l1_data_gas_price: data_gas_price_wei,
@@ -822,6 +823,24 @@ impl Starknet {
         }
     }
 
+    pub fn update_gas(&mut self) -> DevnetResult<bool> {
+        // TODO: block on demand mode and gas changes for each transaction? is that doable?
+
+        // BlockContext needs to be reinitialized
+        self.block_context = Starknet::init_block_context(
+            nonzero!(2u128),
+            nonzero!(2u128),
+            nonzero!(2u128),
+            nonzero!(2u128),
+            constants::ETH_ERC20_CONTRACT_ADDRESS,
+            constants::STRK_ERC20_CONTRACT_ADDRESS,
+            DEVNET_DEFAULT_CHAIN_ID,
+            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
+        );
+
+        Ok(true)
+    }
+
     pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> DevnetResult<Vec<Felt>> {
         if self.config.state_archive != StateArchiveCapacity::Full {
             let msg = "The abort blocks feature requires state-archive-capacity set to full.";
@@ -1107,6 +1126,8 @@ impl Starknet {
         transactions: &[BroadcastedTransaction],
         simulation_flags: Vec<SimulationFlag>,
     ) -> DevnetResult<Vec<SimulatedTransaction>> {
+        println!("simulate_transactions");
+
         let chain_id = self.chain_id().to_felt();
         let block_context = self.block_context.clone();
 

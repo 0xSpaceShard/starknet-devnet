@@ -62,6 +62,18 @@ pub struct AbortedBlocks {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(Debug))]
+pub struct UpdateGas {
+    pub(crate) update: bool,
+}
+
+#[derive(Serialize)]
+pub struct UpdatedGas {
+    pub(crate) updated: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(test, derive(Debug))]
 pub struct IncreaseTime {
     pub time: u64,
 }
