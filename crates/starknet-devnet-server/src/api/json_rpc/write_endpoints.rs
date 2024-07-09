@@ -92,7 +92,7 @@ impl JsonRpcHandler {
     }
 
     /// devnet_dump
-    pub async fn dump(&self, path: DumpPath) -> StrictRpcResult {
+    pub async fn dump(&self, path: Option<DumpPath>) -> StrictRpcResult {
         let dump = dump_impl(&self.api, path).await.map_err(ApiError::from)?;
         Ok(DevnetResponse::DevnetDump(dump).into())
     }
@@ -112,7 +112,7 @@ impl JsonRpcHandler {
     }
 
     /// devnet_postmanFlush
-    pub async fn postman_flush(&self, data: FlushParameters) -> StrictRpcResult {
+    pub async fn postman_flush(&self, data: Option<FlushParameters>) -> StrictRpcResult {
         Ok(DevnetResponse::FlushedMessages(
             postman_flush_impl(&self.api, data).await.map_err(ApiError::from)?,
         )

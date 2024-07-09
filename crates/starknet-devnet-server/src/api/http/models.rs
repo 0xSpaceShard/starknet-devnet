@@ -15,7 +15,7 @@ use crate::api::http::error::HttpApiError;
 #[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(Debug))]
 pub struct DumpPath {
-    pub path: Option<String>,
+    pub path: String,
 }
 
 #[derive(Deserialize)]
@@ -155,7 +155,7 @@ pub struct FlushedMessages {
 #[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(Debug))]
 pub struct FlushParameters {
-    pub dry_run: Option<bool>,
+    pub dry_run: bool,
 }
 
 #[derive(Serialize, Deserialize)]
