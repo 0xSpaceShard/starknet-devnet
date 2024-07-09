@@ -56,7 +56,7 @@ jobs:
             - << parameters.cargo_cache_key >>
       - run:
           # this step doesn't need to be cached, it's relatively fast (15s on Docker/X-Large)
-          name: Install nightly
+          name: Install nightly-2024-07-08
           command: rustup install nightly-2024-07-08
       - run:
           name: Install foundry
@@ -69,7 +69,7 @@ jobs:
           command: ./scripts/clippy_check.sh
       - run:
           name: Format check
-          command: cargo +nightly fmt --all --check
+          command: cargo +nightly-2024-07-08 fmt --all --check
       - run:
           name: Code spell check
           command: ./scripts/check_spelling.sh
