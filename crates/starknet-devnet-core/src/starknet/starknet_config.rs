@@ -20,6 +20,7 @@ use crate::constants::{
 pub enum DumpOn {
     Exit,
     Block,
+    Request,
 }
 
 #[derive(Default, Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum, Serialize)]

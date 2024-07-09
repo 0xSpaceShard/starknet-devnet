@@ -58,6 +58,40 @@ mod dump_and_load_tests {
     }
 
     #[tokio::test]
+    async fn dump_load_dump_load_without_path() {
+        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&["--dump-on", "request"])
+            .await
+            .expect("Could not start Devnet");
+
+        for _ in 0..2 {
+            devnet_dump.create_block().await.unwrap();
+            devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        }
+        let dump_rpc =
+            devnet_dump.send_custom_rpc("devnet_dump", json!({})).await.unwrap().to_string();
+        let dump_file = UniqueAutoDeletableFile::new("dump_load_dump_load_on_request_nofile");
+        std::fs::write(&dump_file.path, dump_rpc).expect("Failed to write dump file");
+
+        let devnet_load = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            &dump_file.path,
+            "--dump-on",
+            "request",
+        ])
+        .await
+        .expect("Could not start Devnet");
+
+        let last_block = devnet_load.get_latest_block_with_tx_hashes().await.unwrap();
+        assert_eq!(last_block.block_number, 4);
+
+        let loaded_balance = devnet_load
+            .get_balance_latest(&FieldElement::from(DUMMY_ADDRESS), FeeUnit::WEI)
+            .await
+            .unwrap();
+        assert_eq!(loaded_balance, FieldElement::from(DUMMY_AMOUNT * 2));
+    }
+
+    #[tokio::test]
     async fn dump_load_dump_load_on_exit() {
         dump_load_dump_load("exit").await;
     }

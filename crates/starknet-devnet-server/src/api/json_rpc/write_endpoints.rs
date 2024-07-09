@@ -93,8 +93,8 @@ impl JsonRpcHandler {
 
     /// devnet_dump
     pub async fn dump(&self, path: DumpPath) -> StrictRpcResult {
-        dump_impl(&self.api, path).await.map_err(ApiError::from)?;
-        Ok(super::JsonRpcResponse::Empty)
+        let dump = dump_impl(&self.api, path).await.map_err(ApiError::from)?;
+        Ok(DevnetResponse::DevnetDump(dump).into())
     }
 
     /// devnet_load

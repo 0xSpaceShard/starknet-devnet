@@ -2,19 +2,19 @@ use axum::extract::State;
 use axum::Json;
 
 use crate::api::http::error::HttpApiError;
-use crate::api::http::models::{DumpPath, LoadPath};
+use crate::api::http::models::{DumpPath, DumpResponseBody, LoadPath};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 use crate::api::Api;
 
 pub async fn dump(
     State(state): State<HttpApiHandler>,
     Json(path): Json<DumpPath>,
-) -> HttpApiResult<()> {
-    dump_impl(&state.api, path).await
+) -> HttpApiResult<Json<DumpResponseBody>> {
+    dump_impl(&state.api, path).await.map(Json::from)
 }
 
-pub(crate) async fn dump_impl(api: &Api, path: DumpPath) -> HttpApiResult<()> {
-    let starknet = api.starknet.write().await;
+pub(crate) async fn dump_impl(api: &Api, path: DumpPath) -> HttpApiResult<DumpResponseBody> {
+    let starknet = api.starknet.read().await;
 
     if starknet.config.dump_on.is_none() {
         return Err(HttpApiError::DumpError {
@@ -25,10 +25,20 @@ pub(crate) async fn dump_impl(api: &Api, path: DumpPath) -> HttpApiResult<()> {
     match path.path {
         None => {
             // path not present
-            starknet
-                .dump_events()
-                .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
-            Ok(())
+            match &starknet.config.dump_path {
+                Some(path) => {
+                    // dump_path is present
+                    starknet
+                        .dump_events_custom_path(Some(path.clone()))
+                        .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
+                    Ok(None)
+                }
+                None => {
+                    // dump_path is not present
+                    let json_dump = starknet.read_dump_events();
+                    Ok(Some(json_dump.clone()))
+                }
+            }
         }
         Some(path) => {
             if !path.is_empty() {
@@ -36,13 +46,13 @@ pub(crate) async fn dump_impl(api: &Api, path: DumpPath) -> HttpApiResult<()> {
                 starknet
                     .dump_events_custom_path(Some(path))
                     .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
-                Ok(())
+                Ok(None)
             } else {
                 // path is present but it's empty
                 starknet
                     .dump_events()
                     .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
-                Ok(())
+                Ok(None)
             }
         }
     }
