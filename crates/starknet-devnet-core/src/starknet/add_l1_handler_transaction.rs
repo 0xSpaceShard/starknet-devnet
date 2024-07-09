@@ -32,7 +32,6 @@ pub fn add_l1_handler_transaction(
 
     starknet.handle_transaction_result(
         TransactionWithHash::new(transaction_hash, Transaction::L1Handler(transaction.clone())),
-        None,
         blockifier_execution_result,
     )?;
     starknet.handle_dump_event(DumpEvent::AddL1HandlerTransaction(transaction))?;

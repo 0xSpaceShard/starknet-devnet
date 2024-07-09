@@ -10,6 +10,7 @@ use starknet_types::rpc::transactions::{
 use super::dump::DumpEvent;
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
+use crate::state::CustomState;
 
 pub fn add_declare_transaction(
     starknet: &mut Starknet,
@@ -40,6 +41,7 @@ pub fn add_declare_transaction(
                     DeclareTransactionV0V1::new(v1, class_hash),
                 ));
 
+                // TODO cloning necessary?
                 (declare_transaction, v1.contract_class.clone().into(), &v1.sender_address)
             }
             BroadcastedDeclareTransaction::V2(ref v2) => {
@@ -76,11 +78,14 @@ pub fn add_declare_transaction(
             validate,
         );
 
-    starknet.handle_transaction_result(
-        transaction,
-        Some(contract_class),
-        blockifier_execution_result,
-    )?;
+    // if tx successful, store the class
+    if blockifier_execution_result.as_ref().is_ok_and(|res| !res.is_reverted()) {
+        let state = starknet.get_state();
+        state.declare_contract_class(class_hash, contract_class)?;
+    }
+
+    // do the steps required in all transactions
+    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
 
     starknet
         .handle_dump_event(DumpEvent::AddDeclareTransaction(broadcasted_declare_transaction))?;

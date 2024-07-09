@@ -63,7 +63,7 @@ pub fn add_deploy_account_transaction(
         )
         .execute(&mut starknet.pending_state.state, &starknet.block_context, true, true);
 
-    starknet.handle_transaction_result(transaction, None, blockifier_execution_result)?;
+    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
     starknet.handle_dump_event(DumpEvent::AddDeployAccountTransaction(
         broadcasted_deploy_account_transaction,
     ))?;

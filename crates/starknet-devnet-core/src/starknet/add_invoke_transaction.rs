@@ -57,7 +57,7 @@ pub fn add_invoke_transaction(
 
     let transaction = TransactionWithHash::new(transaction_hash, invoke_transaction);
 
-    starknet.handle_transaction_result(transaction, None, blockifier_execution_result)?;
+    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
     starknet.handle_dump_event(DumpEvent::AddInvokeTransaction(broadcasted_invoke_transaction))?;
 
     Ok(transaction_hash)
