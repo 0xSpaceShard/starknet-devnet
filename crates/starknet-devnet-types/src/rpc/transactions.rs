@@ -342,15 +342,19 @@ impl From<&ResourceBoundsWrapper> for starknet_api::transaction::ResourceBoundsM
 }
 
 impl BroadcastedTransactionCommonV3 {
-    /// Checks if total accumulated fee of resource_bounds is equal to 0
-    pub fn is_max_fee_zero_value(&self) -> bool {
-        (self.resource_bounds.inner.l1_gas.max_amount as u128)
+    /// Checks if total accumulated fee of resource_bounds for l1 is equal to 0 or for l2 is not
+    /// zero
+    pub fn is_l1_gas_zero_or_l2_gas_not_zero(&self) -> bool {
+        let l2_is_not_zero = (self.resource_bounds.inner.l2_gas.max_amount as u128)
+            * self.resource_bounds.inner.l2_gas.max_price_per_unit
+            > 0;
+        let l1_is_zero = (self.resource_bounds.inner.l1_gas.max_amount as u128)
             * self.resource_bounds.inner.l1_gas.max_price_per_unit
-            == 0
-            && (self.resource_bounds.inner.l2_gas.max_amount as u128)
-                * self.resource_bounds.inner.l2_gas.max_price_per_unit
-                == 0
+            == 0;
+
+        l1_is_zero || l2_is_not_zero
     }
+
     /// Returns an array of FieldElements that reflects the `common_tx_fields` according to SNIP-8(https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md/#protocol-changes).
     ///
     /// # Arguments
@@ -515,7 +519,7 @@ impl BroadcastedDeclareTransaction {
         match self {
             BroadcastedDeclareTransaction::V1(v1) => v1.common.is_max_fee_zero_value(),
             BroadcastedDeclareTransaction::V2(v2) => v2.common.is_max_fee_zero_value(),
-            BroadcastedDeclareTransaction::V3(v3) => v3.common.is_max_fee_zero_value(),
+            BroadcastedDeclareTransaction::V3(v3) => v3.common.is_l1_gas_zero_or_l2_gas_not_zero(),
         }
     }
     /// Creates a blockifier declare transaction from the current transaction.
@@ -658,7 +662,9 @@ impl BroadcastedDeployAccountTransaction {
     pub fn is_max_fee_zero_value(&self) -> bool {
         match self {
             BroadcastedDeployAccountTransaction::V1(v1) => v1.common.is_max_fee_zero_value(),
-            BroadcastedDeployAccountTransaction::V3(v3) => v3.common.is_max_fee_zero_value(),
+            BroadcastedDeployAccountTransaction::V3(v3) => {
+                v3.common.is_l1_gas_zero_or_l2_gas_not_zero()
+            }
         }
     }
     /// Creates a blockifier deploy account transaction from the current transaction.
@@ -793,7 +799,7 @@ impl BroadcastedInvokeTransaction {
     pub fn is_max_fee_zero_value(&self) -> bool {
         match self {
             BroadcastedInvokeTransaction::V1(v1) => v1.common.is_max_fee_zero_value(),
-            BroadcastedInvokeTransaction::V3(v3) => v3.common.is_max_fee_zero_value(),
+            BroadcastedInvokeTransaction::V3(v3) => v3.common.is_l1_gas_zero_or_l2_gas_not_zero(),
         }
     }
     /// Creates a blockifier invoke transaction from the current transaction.

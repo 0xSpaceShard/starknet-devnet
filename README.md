@@ -16,6 +16,17 @@
 
 A local testnet for Starknet... in Rust!
 
+### Features
+
+- [Forking](https://0xspaceshard.github.io/starknet-devnet-rs/docs/forking) - interact with contracts deployed on mainnet or testnet
+- [Account impersonation](https://0xspaceshard.github.io/starknet-devnet-rs/docs/account-impersonation)
+- [L1-L2 interaction](https://0xspaceshard.github.io/starknet-devnet-rs/docs/postman)
+- [Predeployed contracts](https://0xspaceshard.github.io/starknet-devnet-rs/docs/predeployed) - accounts, tokens etc.
+- [Block manipulations](https://0xspaceshard.github.io/starknet-devnet-rs/docs/blocks) - creation, abortion etc.
+- [Time manipulations](https://0xspaceshard.github.io/starknet-devnet-rs/docs/starknet-time/)
+- [Dump, load, restart state](https://0xspaceshard.github.io/starknet-devnet-rs/docs/dump-load-restart)
+- [Configurable according to your needs](https://0xspaceshard.github.io/starknet-devnet-rs/docs/running/cli)
+
 ## 🌐 Documentation
 
 Find the official documentation [here](https://0xspaceshard.github.io/starknet-devnet-rs/).

@@ -183,7 +183,11 @@ mod tests {
         assert!(result.is_err());
         match result.err().unwrap() {
             err @ crate::error::Error::MaxFeeZeroError { .. } => {
-                assert_eq!(err.to_string(), "Declare transaction V3: max_fee cannot be zero")
+                assert_eq!(
+                    err.to_string(),
+                    "Declare transaction V3: max_fee cannot be zero (exception is v3 transaction \
+                     where l2 gas must be zero)"
+                )
             }
             _ => panic!("Wrong error type"),
         }
@@ -208,7 +212,11 @@ mod tests {
         assert!(result.is_err());
         match result.err().unwrap() {
             err @ crate::error::Error::MaxFeeZeroError { .. } => {
-                assert_eq!(err.to_string(), "Declare transaction V2: max_fee cannot be zero")
+                assert_eq!(
+                    err.to_string(),
+                    "Declare transaction V2: max_fee cannot be zero (exception is v3 transaction \
+                     where l2 gas must be zero)"
+                )
             }
             _ => panic!("Wrong error type"),
         }
@@ -344,7 +352,11 @@ mod tests {
         assert!(result.is_err());
         match result.err().unwrap() {
             err @ crate::error::Error::MaxFeeZeroError { .. } => {
-                assert_eq!(err.to_string(), "Declare transaction V1: max_fee cannot be zero")
+                assert_eq!(
+                    err.to_string(),
+                    "Declare transaction V1: max_fee cannot be zero (exception is v3 transaction \
+                     where l2 gas must be zero)"
+                )
             }
             _ => panic!("Wrong error type"),
         }

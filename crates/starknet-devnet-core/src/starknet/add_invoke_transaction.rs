@@ -133,6 +133,7 @@ mod tests {
         param: Felt,
         nonce: u128,
         l1_gas_amount: u64,
+        l2_gas_amount: u64,
     ) -> BroadcastedInvokeTransaction {
         let calldata = vec![
             Felt::from(contract_address), // contract address
@@ -146,7 +147,7 @@ mod tests {
                 version: Felt::from(3),
                 signature: vec![],
                 nonce: Felt::from(nonce),
-                resource_bounds: ResourceBoundsWrapper::new(l1_gas_amount, 1, 0, 0),
+                resource_bounds: ResourceBoundsWrapper::new(l1_gas_amount, 1, l2_gas_amount, 1),
                 tip: Tip(0),
                 paymaster_data: vec![],
                 nonce_data_availability_mode:
@@ -169,6 +170,7 @@ mod tests {
             Felt::from(10),
             0,
             1,
+            0,
         );
         match invoke_transaction {
             BroadcastedInvokeTransaction::V3(ref mut v3) => {
@@ -200,6 +202,7 @@ mod tests {
             Felt::from(10),
             0,
             0,
+            0,
         );
 
         let invoke_v3_txn_error = starknet
@@ -210,7 +213,9 @@ mod tests {
             err @ crate::error::Error::MaxFeeZeroError { .. } => {
                 assert_eq!(
                     err.to_string(),
-                    "Invoke transaction V3: max_fee cannot be zero".to_string()
+                    "Invoke transaction V3: max_fee cannot be zero (exception is v3 transaction \
+                     where l2 gas must be zero)"
+                        .to_string()
                 );
             }
             _ => panic!("Wrong error type"),
@@ -236,6 +241,7 @@ mod tests {
                 .to_string()
                 .parse::<u64>()
                 .unwrap(),
+            0,
         );
 
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
@@ -248,6 +254,50 @@ mod tests {
             account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap()
                 < initial_balance
         );
+    }
+
+    #[test]
+    fn invoke_transaction_v3_positive_l2_gas_should_fail() {
+        let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
+        let account_address = account.get_address();
+
+        let l1_gas = account
+            .get_balance(&mut starknet.pending_state, crate::account::FeeToken::STRK)
+            .unwrap()
+            .to_string()
+            .parse::<u64>()
+            .unwrap();
+
+        // l2 gas should always be set to zero and l1 gas should be greater than 0 for v3
+        // transactions, this is why these 2 cases should fail
+        let fail_test_cases = [(l1_gas, 1), (0, 1)];
+        for test_case in fail_test_cases {
+            let invoke_transaction = test_invoke_transaction_v3(
+                account_address,
+                contract_address,
+                increase_balance_selector,
+                Felt::from(10),
+                0,
+                test_case.0,
+                test_case.1,
+            );
+
+            let transaction = starknet.add_invoke_transaction(invoke_transaction);
+
+            assert!(transaction.is_err());
+            match transaction.err().unwrap() {
+                err @ crate::error::Error::MaxFeeZeroError { .. } => {
+                    assert_eq!(
+                        err.to_string(),
+                        "Invoke transaction V3: max_fee cannot be zero (exception is v3 \
+                         transaction where l2 gas must be zero)"
+                    )
+                }
+                _ => {
+                    panic!("Wrong error type")
+                }
+            }
+        }
     }
 
     #[test]
@@ -344,7 +394,11 @@ mod tests {
         assert!(result.is_err());
         match result.err().unwrap() {
             err @ crate::error::Error::MaxFeeZeroError { .. } => {
-                assert_eq!(err.to_string(), "Invoke transaction V1: max_fee cannot be zero")
+                assert_eq!(
+                    err.to_string(),
+                    "Invoke transaction V1: max_fee cannot be zero (exception is v3 transaction \
+                     where l2 gas must be zero)"
+                )
             }
             _ => panic!("Wrong error type"),
         }

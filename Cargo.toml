@@ -65,6 +65,7 @@ reqwest = { version = "0.12", features = ["blocking", "json"] }
 url = "2.4"
 usc = { version = "2.1.0", package = "universal-sierra-compiler" }
 num-bigint = { version = "0.4" }
+bigdecimal = { version = "0.4.5" }
 
 # Starknet dependencies
 starknet_api = { version = "0.10.0", features = ["testing"] }

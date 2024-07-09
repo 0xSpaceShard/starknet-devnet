@@ -77,7 +77,7 @@ impl JsonRpcHandler {
         Ok(super::JsonRpcResponse::Empty)
     }
 
-    /// devnet_stopImpersonatingAccount
+    /// devnet_stopImpersonateAccount
     pub async fn stop_impersonating_account(&self, address: ContractAddress) -> StrictRpcResult {
         let mut starknet = self.api.starknet.write().await;
         starknet.stop_impersonating_account(&address);
@@ -93,8 +93,8 @@ impl JsonRpcHandler {
 
     /// devnet_dump
     pub async fn dump(&self, path: Option<DumpPath>) -> StrictRpcResult {
-        dump_impl(&self.api, path).await.map_err(ApiError::from)?;
-        Ok(super::JsonRpcResponse::Empty)
+        let dump = dump_impl(&self.api, path).await.map_err(ApiError::from)?;
+        Ok(DevnetResponse::DevnetDump(dump).into())
     }
 
     /// devnet_load

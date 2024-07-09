@@ -16,7 +16,7 @@ $ starknet-devnet --dump-on exit --dump-path <PATH>
 $ starknet-devnet --dump-on block --dump-path <PATH>
 ```
 
-- Dumping on request, which requires providing `--dump-on` on startup. E.g. if you run Devnet in `exit` mode, you can request dumping by sending `POST` to `/dump` or via JSON-RPC. Body is not required. Optionally custom path to a file can be provided.
+- Dumping on request, which requires providing `--dump-on request` on startup. You can request dumping by sending `POST` to `/dump` or via JSON-RPC. Body is not required. Optionally custom path to a file can be provided.
 
 ```
 $ starknet-devnet --dump-on exit --dump-path <DEFAULT_PATH>
@@ -42,7 +42,7 @@ JSON-RPC
 ```
 POST /dump
 {
-  // optional; defaults to the path specified via CLI
+  // optional; defaults to the path specified via CLI if defined
   "path": <PATH>
 }
 ```
@@ -54,11 +54,13 @@ JSON-RPC
     "id": "1",
     "method": "devnet_dump",
     "params": {
-        // optional; defaults to the path specified via CLI
+        // optional; defaults to the path specified via CLI if defined
         "path": <PATH>
     }
 }
 ```
+
+If a dump path is not provided either via `--dump-path` or in the request, the dump is included in the response body. This means that if you request dumping via curl, it will be printed to STDOUT, which you can then redirect to a destination of your choice.
 
 ## Loading
 
