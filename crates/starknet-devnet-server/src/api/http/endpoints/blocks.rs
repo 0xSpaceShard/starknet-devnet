@@ -48,7 +48,7 @@ pub(crate) async fn abort_blocks_impl(
     }
 
     let block_id = match data.starting_block_id {
-        Some(block_id) => block_id.0,
+        Some(block_id) => From::from(block_id),
         None => match data.starting_block_hash {
             Some(block_hash) => BlockId::Hash(block_hash.into()),
             None => {

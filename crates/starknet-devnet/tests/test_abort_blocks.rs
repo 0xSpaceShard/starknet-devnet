@@ -36,18 +36,15 @@ mod abort_blocks_tests {
         devnet: &BackgroundDevnet,
         starting_block_id: &BlockId,
     ) -> Vec<FieldElement> {
-        let params = match starting_block_id {
-            BlockId::Hash(block_hash) => {
-                json!({ "starting_block_id": { "block_hash": to_hex_felt(block_hash) }})
-            }
-            BlockId::Number(block_number) => {
-                json!({ "starting_block_id": { "block_number": block_number } })
-            }
-            BlockId::Tag(block_id) => json!({ "starting_block_id": block_id }),
-        };
-
-        let mut aborted_blocks =
-            devnet.send_custom_rpc("devnet_abortBlocks", params).await.unwrap();
+        let mut aborted_blocks = devnet
+            .send_custom_rpc(
+                "devnet_abortBlocks",
+                json!({
+                    "starting_block_id" : starting_block_id
+                }),
+            )
+            .await
+            .unwrap();
 
         let aborted_blocks = aborted_blocks["aborted"].take().as_array().unwrap().clone();
 
@@ -73,17 +70,15 @@ mod abort_blocks_tests {
     }
 
     async fn abort_blocks_error(devnet: &BackgroundDevnet, starting_block_id: &BlockId) {
-        let params = match starting_block_id {
-            BlockId::Hash(block_hash) => {
-                json!({ "starting_block_id": { "block_hash": to_hex_felt(block_hash) }})
-            }
-            BlockId::Number(block_number) => {
-                json!({ "starting_block_id": { "block_number": block_number } })
-            }
-            BlockId::Tag(block_id) => json!({ "starting_block_id": block_id }),
-        };
-        let aborted_blocks_error =
-            devnet.send_custom_rpc("devnet_abortBlocks", params).await.unwrap_err();
+        let aborted_blocks_error = devnet
+            .send_custom_rpc(
+                "devnet_abortBlocks",
+                json!({
+                "starting_block_id" : starting_block_id
+                }),
+            )
+            .await
+            .unwrap_err();
 
         assert!(aborted_blocks_error.message.contains("Block abortion failed"));
     }
