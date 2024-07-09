@@ -233,7 +233,121 @@ mod simulation_tests {
     }
 
     #[tokio::test]
-    async fn simulate_declare_v2_fork() {
+    async fn update_gas() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        // get account
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let account = SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            account_address,
+            CHAIN_ID,
+            ExecutionEncoding::New,
+        );
+
+        // get class
+        let (flattened_contract_artifact, casm_hash) =
+            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH);
+
+        let max_fee = FieldElement::ZERO;
+        let nonce = FieldElement::from_hex_be("0x0").unwrap();
+
+        let signature = account
+            .declare(Arc::new(flattened_contract_artifact.clone()), casm_hash)
+            .max_fee(max_fee)
+            .nonce(nonce)
+            .prepared()
+            .unwrap()
+            .get_declare_request(false)
+            .await
+            .unwrap()
+            .signature;
+
+        let signature_hex: Vec<String> = iter_to_hex_felt(&signature);
+        let sender_address_hex = to_hex_felt(&account_address);
+        let get_params = |simulation_flags: &[&str]| -> serde_json::Value {
+            json!({
+                "block_id": "latest",
+                "simulation_flags": simulation_flags,
+                "transactions": [
+                    {
+                        "type": "DECLARE",
+                        "sender_address": sender_address_hex,
+                        "compiled_class_hash": to_hex_felt(&casm_hash),
+                        "max_fee": to_hex_felt(&max_fee),
+                        "version": "0x2",
+                        "signature": signature_hex,
+                        "nonce": to_num_as_hex(&nonce),
+                        "contract_class": flattened_contract_artifact,
+                    }
+                ]
+            })
+        };
+
+        let params_no_flags = get_params(&[]);
+        let resp_no_flags = &devnet
+            .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
+            .await
+            .unwrap()[0];
+
+        println!("gas_consumed[fee_estimation] []: {:?}", resp_no_flags["fee_estimation"]);
+
+        let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
+        let resp_skip_validation = &devnet
+            .send_custom_rpc("starknet_simulateTransactions", params_skip_validation.clone())
+            .await
+            .unwrap()[0];
+        println!(
+            "gas_consumed[fee_estimation] [SKIP_VALIDATE]: {:?}",
+            resp_skip_validation["fee_estimation"]
+        );
+
+        assert_difference_if_validation(
+            resp_no_flags,
+            resp_skip_validation,
+            &sender_address_hex,
+            max_fee == FieldElement::ZERO,
+        );
+
+        // udpate gas
+        let updated_gas = &devnet
+            .send_custom_rpc(
+                "devnet_updateGas",
+                json!({
+                    "update": true,
+                }),
+            )
+            .await
+            .unwrap();
+
+        devnet.create_block().await;
+
+        println!("udpated gas: {:?}", updated_gas);
+
+        let params_no_flags = get_params(&[]);
+        let resp_no_flags = &devnet
+            .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
+            .await
+            .unwrap()[0];
+
+        println!(
+            "gas_consumed[fee_estimation] after udpated gas []: {:?}",
+            resp_no_flags["fee_estimation"]
+        );
+
+        let resp_skip_validation = &devnet
+            .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
+            .await
+            .unwrap()[0];
+        println!(
+            "gas_consumed[fee_estimation] after udpated gas [SKIP_VALIDATE]: {:?}",
+            resp_skip_validation["fee_estimation"]
+        );
+    }
+
+    #[tokio::test]
+    async fn update_gas_fork() {
         let cli_args = ["--fork-network", INTEGRATION_SEPOLIA_HTTP_URL];
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 

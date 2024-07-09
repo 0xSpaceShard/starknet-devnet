@@ -125,15 +125,29 @@ fn estimate_transaction_fee<S: StateReader>(
 
     // TODO: get_versioned_constants should be set on startup, later add endpoint for edit this
     // TODO: add cairo contract with fee estimations (change need to be reflected in state)
-    let vector = &get_versioned_constants();
-    println!("vector: {:?}", vector);
+    // TODO: add tests with fee estimations/simulations and real transactions also...
+    let mut vector = get_versioned_constants();
+    // println!("vector: {:?}", vector);
+    println!("transaction_execution_info.actual_resources: {:?}", transaction_execution_info.actual_resources);
 
-    let gas_vector =
-        fee_utils::calculate_tx_gas_vector(&transaction_execution_info.actual_resources, vector)?;
+    // vm_resource_fee_cost in vector is private!
+
+    // vector.l2_resource_gas_costs = 
+    // This needs to be changed based on set gas !!!
+    let mut gas_vector =
+        fee_utils::calculate_tx_gas_vector(&transaction_execution_info.actual_resources, &vector)?;
     println!("gas_vector: {:?}", gas_vector);
+
+    println!("block_context.block_info(): {:?}", block_context.block_info());
+    
+    // This hardcoded gas_vector works but why update of block_context doesn't???
+    // gas_vector.l1_gas = 2000;
+    // gas_vector.l1_data_gas = 400;
 
     let total_fee =
         fee_utils::get_fee_by_gas_vector(block_context.block_info(), gas_vector, &fee_type);
+
+    println!("total_fee: {:?}", total_fee);
 
     let (gas_price, data_gas_price, unit) = match fee_type {
         blockifier::transaction::objects::FeeType::Strk => (

@@ -824,18 +824,27 @@ impl Starknet {
     }
 
     pub fn update_gas(&mut self) -> DevnetResult<bool> {
+        // TODO: add forking test to check chain_id and starting_block number logic!
         // TODO: block on demand mode and gas changes for each transaction? is that doable?
+
+        println!("l1_gas_price: {:?}", self.blocks.pending_block.header.l1_gas_price);
+        println!("l1_data_gas_price: {:?}", self.blocks.pending_block.header.l1_data_gas_price);
+
+        self.blocks.pending_block.header.l1_gas_price =
+            GasPricePerToken { price_in_fri: GasPrice(200000000000), price_in_wei: GasPrice(200000000000) };
+        self.blocks.pending_block.header.l1_data_gas_price =
+            GasPricePerToken { price_in_fri: GasPrice(200000000000), price_in_wei: GasPrice(200000000000) };
 
         // BlockContext needs to be reinitialized
         self.block_context = Starknet::init_block_context(
-            nonzero!(2u128),
-            nonzero!(2u128),
-            nonzero!(2u128),
-            nonzero!(2u128),
+            nonzero!(9000000000000000000u128),
+            nonzero!(9000000000000000000u128),
+            nonzero!(9000000000000000000u128),
+            nonzero!(9000000000000000000u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
-            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
+            self.block_context.block_info().block_number.0, // TODO: fix later, +1 just for now
         );
 
         Ok(true)
