@@ -828,6 +828,10 @@ impl Starknet {
             return Err(Error::UnsupportedAction { msg: msg.into() });
         }
 
+        if starting_block_id == BlockId::Tag(BlockTag::Pending) {
+            return Err(Error::UnsupportedAction { msg: "Cannot abort pending block".into() });
+        }
+
         let starting_block_hash = match self.blocks.get_by_block_id(&starting_block_id) {
             Some(block) => block.block_hash(),
             None => return Err(Error::NoBlock),

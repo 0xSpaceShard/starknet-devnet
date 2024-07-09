@@ -3,7 +3,7 @@ pub mod common;
 mod abort_blocks_tests {
     use serde_json::json;
     use server::api::json_rpc::error::ApiError;
-    use starknet_rs_core::types::{BlockId, FieldElement};
+    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement};
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -97,7 +97,7 @@ mod abort_blocks_tests {
     }
 
     #[tokio::test]
-    async fn abort_latest_block() {
+    async fn abort_latest_block_with_hash() {
         let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
@@ -295,5 +295,33 @@ mod abort_blocks_tests {
         assert_eq!(aborted_blocks, vec![fork_block_hash]);
 
         abort_blocks_error(&fork_devnet, &BlockId::Hash(fork_block_hash)).await;
+    }
+
+    #[tokio::test]
+    async fn abort_latest_blocks() {
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .expect("Could not start Devnet");
+
+        for _ in 0..3 {
+            devnet.create_block().await.unwrap();
+        }
+        for _ in 0..3 {
+            abort_blocks(&devnet, &BlockId::Tag(BlockTag::Latest)).await;
+        }
+        abort_blocks_error(&devnet, &BlockId::Tag(BlockTag::Latest)).await; // Rolled back to genesis block, should not be possible to abort
+    }
+    #[tokio::test]
+    async fn abort_pending_block() {
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .expect("Could not start Devnet");
+
+        for _ in 0..3 {
+            devnet.create_block().await.unwrap();
+        }
+        abort_blocks_error(&devnet, &BlockId::Tag(BlockTag::Pending)).await;
     }
 }
