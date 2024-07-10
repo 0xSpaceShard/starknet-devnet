@@ -19,7 +19,7 @@ use starknet_types::felt::Felt;
 use starknet_types::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::block::{Block, PendingBlock};
 use starknet_types::rpc::estimate_message_fee::{
-    EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
+    EstimateMessageFeeRequestWrapper, FeeEstimateWrapper, GasUpdate,
 };
 use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
@@ -41,7 +41,7 @@ use super::http::endpoints::accounts::{BalanceQuery, PredeployedAccountsQuery};
 use super::http::endpoints::DevnetConfig;
 use super::http::models::{
     AbortedBlocks, AbortingBlocks, AccountBalanceResponse, CreatedBlock, DumpPath, FlushParameters,
-    FlushedMessages, GasUpdate, IncreaseTime, IncreaseTimeResponse, LoadPath, MessageHash,
+    FlushedMessages, IncreaseTime, IncreaseTimeResponse, LoadPath, MessageHash,
     MessagingLoadAddress, MintTokensRequest, MintTokensResponse, PostmanLoadL1MessagingContract,
     SerializableAccount, SetTime, SetTimeResponse,
 };

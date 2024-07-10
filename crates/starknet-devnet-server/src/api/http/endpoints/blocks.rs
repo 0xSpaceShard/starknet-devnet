@@ -1,8 +1,9 @@
 use axum::extract::State;
 use axum::Json;
+use starknet_types::rpc::estimate_message_fee::GasUpdate;
 
 use crate::api::http::error::HttpApiError;
-use crate::api::http::models::{AbortedBlocks, AbortingBlocks, CreatedBlock, GasUpdate};
+use crate::api::http::models::{AbortedBlocks, AbortingBlocks, CreatedBlock};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 use crate::api::Api;
 
@@ -53,7 +54,7 @@ pub async fn update_gas(
 
 pub(crate) async fn update_gas_impl(api: &Api, data: GasUpdate) -> HttpApiResult<GasUpdate> {
     let mut starknet = api.starknet.write().await;
-    let updated = starknet
+    let updated_gas = starknet
         .update_gas(
             data.gas_price_wei,
             data.data_gas_price_wei,
@@ -62,11 +63,5 @@ pub(crate) async fn update_gas_impl(api: &Api, data: GasUpdate) -> HttpApiResult
         )
         .map_err(|err| HttpApiError::BlockAbortError { msg: (err.to_string()) })?;
 
-    // TODO: change to struct not tuples
-    Ok(GasUpdate {
-        gas_price_wei: updated.0,
-        data_gas_price_wei: updated.1,
-        gas_price_strk: updated.2,
-        data_gas_price_strk: updated.3,
-    })
+    Ok(updated_gas)
 }

@@ -1,5 +1,6 @@
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::messaging::{MessageToL1, MessageToL2};
+use starknet_types::rpc::estimate_message_fee::GasUpdate;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction,
@@ -20,8 +21,8 @@ use crate::api::http::endpoints::postman::{
 use crate::api::http::endpoints::restart_impl;
 use crate::api::http::endpoints::time::{increase_time_impl, set_time_impl};
 use crate::api::http::models::{
-    AbortingBlocks, DumpPath, FlushParameters, GasUpdate, IncreaseTime, LoadPath,
-    MintTokensRequest, PostmanLoadL1MessagingContract, SetTime,
+    AbortingBlocks, DumpPath, FlushParameters, IncreaseTime, LoadPath, MintTokensRequest,
+    PostmanLoadL1MessagingContract, SetTime,
 };
 use crate::api::json_rpc::JsonRpcHandler;
 

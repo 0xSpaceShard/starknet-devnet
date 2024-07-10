@@ -34,7 +34,7 @@ use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{
     Block, BlockHeader, BlockResult, PendingBlock, PendingBlockHeader,
 };
-use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
+use starknet_types::rpc::estimate_message_fee::{FeeEstimateWrapper, GasUpdate};
 use starknet_types::rpc::state::{
     PendingStateUpdate, StateUpdate, StateUpdateResult, ThinStateDiff,
 };
@@ -828,7 +828,7 @@ impl Starknet {
         data_gas_price_wei: NonZeroU128,
         gas_price_strk: NonZeroU128,
         data_gas_price_strk: NonZeroU128,
-    ) -> DevnetResult<(NonZeroU128, NonZeroU128, NonZeroU128, NonZeroU128)> {
+    ) -> DevnetResult<GasUpdate> {
         // TODO: add forking test to check chain_id and starting_block number logic!
         // TODO: block on demand mode and gas changes for each transaction? is that doable?
         // TODO: add test for block number checking in normal mode and forking mode
@@ -857,12 +857,13 @@ impl Starknet {
         );
 
         let gas_prices = self.block_context.block_info().gas_prices.clone();
-        Ok((
-            gas_prices.eth_l1_gas_price,
-            gas_prices.eth_l1_data_gas_price,
-            gas_prices.strk_l1_gas_price,
-            gas_prices.strk_l1_data_gas_price,
-        ))
+
+        Ok(GasUpdate {
+            gas_price_wei: gas_prices.eth_l1_gas_price,
+            data_gas_price_wei: gas_prices.eth_l1_data_gas_price,
+            gas_price_strk: gas_prices.strk_l1_gas_price,
+            data_gas_price_strk: gas_prices.strk_l1_data_gas_price,
+        })
     }
 
     pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> DevnetResult<Vec<Felt>> {

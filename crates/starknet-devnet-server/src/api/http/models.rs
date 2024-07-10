@@ -61,16 +61,6 @@ pub struct AbortedBlocks {
     pub(crate) aborted: Vec<BlockHash>,
 }
 
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-#[cfg_attr(test, derive(Debug))]
-pub struct GasUpdate {
-    pub(crate) gas_price_wei: NonZeroU128,
-    pub(crate) data_gas_price_wei: NonZeroU128,
-    pub(crate) gas_price_strk: NonZeroU128,
-    pub(crate) data_gas_price_strk: NonZeroU128,
-}
-
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(Debug))]
