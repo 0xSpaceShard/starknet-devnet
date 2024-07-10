@@ -1,5 +1,3 @@
-use std::num::NonZeroU128;
-
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::{Hash256, MsgToL1};
 use starknet_types::contract_address::ContractAddress;
