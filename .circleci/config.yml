@@ -55,7 +55,6 @@ jobs:
           keys:
             - << parameters.cargo_cache_key >>
       - run:
-          # this step doesn't need to be cached, it's relatively fast (15s on Docker/X-Large)
           name: Install nightly-2024-07-08
           command: rustup install nightly-2024-07-08
       - run:
