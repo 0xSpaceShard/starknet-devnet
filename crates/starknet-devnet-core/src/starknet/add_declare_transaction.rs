@@ -106,8 +106,8 @@ pub fn add_declare_transaction(
     Ok((transaction_hash, class_hash))
 }
 
-/// Convert `contract_class` to casm, calculate its hash and assert it's equal to
-/// `received_casm_hash`
+/// If cairo1, convert `contract_class` to casm, calculate its hash and assert it's equal to
+/// `received_casm_hash`. If cairo0, assert no `received_casm_hash`.
 fn assert_casm_hash_is_valid(
     contract_class: &ContractClass,
     received_casm_hash: Option<CompiledClassHash>,
@@ -120,9 +120,8 @@ fn assert_casm_hash_is_valid(
                     .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
             )
             .map_err(|err| {
-                Error::TypesError(starknet_types::error::Error::SierraCompilationError {
-                    reason: err.to_string(),
-                })
+                let reason = err.to_string();
+                Error::TypesError(starknet_types::error::Error::SierraCompilationError { reason })
             })?;
 
             let calculated_casm_hash = Felt::from(calculate_casm_hash(casm_json)?);

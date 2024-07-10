@@ -292,7 +292,7 @@ mod tests {
         // declare cairo1
         {
             let class_hash = Felt::from(1);
-            let casm_hash: Felt = Felt::from(2);
+            let casm_hash = Felt::from_prefixed_hex_str(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
             let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
             state.declare_contract_class(class_hash, Some(casm_hash), contract_class).unwrap();
 
