@@ -15,7 +15,7 @@ use starknet_core::constants::{
 };
 use starknet_core::starknet::starknet_config::{BlockGenerationOn, DumpOn, ForkConfig};
 use starknet_core::starknet::Starknet;
-use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, MaybePendingBlockWithTxHashes};
+use starknet_rs_core::types::{BlockId, BlockTag, MaybePendingBlockWithTxHashes};
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_types::chain_id::ChainId;
@@ -121,45 +121,32 @@ async fn check_forking_spec_version(
 
 /// Logs forking info if forking specified. If block_number is not specified, it is set to the
 /// latest block number.
-pub async fn set_and_log_fork_config(fork_config: &mut ForkConfig) -> Result<(), anyhow::Error> {
-    if let Some(url) = &fork_config.url {
-        let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
-        let block_id =
-            fork_config.block_number.map_or(BlockId::Tag(BlockTag::Latest), BlockId::Number);
+pub async fn set_and_log_fork_config(
+    fork_config: &mut ForkConfig,
+    json_rpc_client: &JsonRpcClient<HttpTransport>,
+) -> Result<(), anyhow::Error> {
+    let block_id = fork_config.block_number.map_or(BlockId::Tag(BlockTag::Latest), BlockId::Number);
 
-        let block = json_rpc_client.get_block_with_tx_hashes(block_id).await.map_err(|e| {
-            anyhow::Error::msg(match e {
-                starknet_rs_providers::ProviderError::StarknetError(
-                    starknet_rs_core::types::StarknetError::BlockNotFound,
-                ) => format!("Forking from block {block_id:?}: block not found"),
-                _ => format!("Forking from block {block_id:?}: {e}; Check the URL"),
-            })
-        })?;
+    let block = json_rpc_client.get_block_with_tx_hashes(block_id).await.map_err(|e| {
+        anyhow::Error::msg(match e {
+            starknet_rs_providers::ProviderError::StarknetError(
+                starknet_rs_core::types::StarknetError::BlockNotFound,
+            ) => format!("Forking from block {block_id:?}: block not found"),
+            _ => format!("Forking from block {block_id:?}: {e}; Check the URL"),
+        })
+    })?;
 
-        match block {
-            MaybePendingBlockWithTxHashes::Block(b) => {
-                fork_config.block_number = Some(b.block_number);
-                println!("Forking from block: number={}, hash={:#x}", b.block_number, b.block_hash);
-            }
-            _ => panic!("Unreachable"),
-        };
+    match block {
+        MaybePendingBlockWithTxHashes::Block(b) => {
+            fork_config.block_number = Some(b.block_number);
+            println!("Forking from block: number={}, hash={:#x}", b.block_number, b.block_hash);
+        }
+        _ => panic!("Unreachable"),
+    };
 
-        check_forking_spec_version(&json_rpc_client).await?;
-    }
+    check_forking_spec_version(&json_rpc_client).await?;
 
     Ok(())
-}
-
-async fn get_chain_id_from_forked_network_or_none(
-    fork_config: &ForkConfig,
-) -> Result<Option<ChainId>, anyhow::Error> {
-    if let Some(url) = &fork_config.url {
-        let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
-        let origin_chain_id: FieldElement = json_rpc_client.chain_id().await?;
-        Ok(Some(ChainId::Custom(origin_chain_id)))
-    } else {
-        Ok(None)
-    }
 }
 
 #[tokio::main]
@@ -170,14 +157,12 @@ async fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
     let (mut starknet_config, server_config) = args.to_config()?;
 
-    // set forking config if fork url provided
-    set_and_log_fork_config(&mut starknet_config.fork_config).await?;
+    // If fork url is provided, then set fork config and chain_id from forked network
+    if let Some(url) = starknet_config.fork_config.url.as_ref() {
+        let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
+        set_and_log_fork_config(&mut starknet_config.fork_config, &json_rpc_client).await?;
 
-    // if forking enabled then use chain id from forked network
-    if let Some(chain_id) =
-        get_chain_id_from_forked_network_or_none(&starknet_config.fork_config).await?
-    {
-        starknet_config.chain_id = chain_id;
+        starknet_config.chain_id = json_rpc_client.chain_id().await?.into();
     }
 
     let address = format!("{}:{}", server_config.host, server_config.port);

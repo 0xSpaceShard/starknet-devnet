@@ -72,6 +72,18 @@ impl From<&ChainId> for FieldElement {
     }
 }
 
+impl From<FieldElement> for ChainId {
+    fn from(value: FieldElement) -> Self {
+        if value == MAINNET {
+            ChainId::Mainnet
+        } else if value == SEPOLIA {
+            ChainId::Testnet
+        } else {
+            ChainId::Custom(value)
+        }
+    }
+}
+
 impl From<ChainId> for starknet_api::core::ChainId {
     fn from(value: ChainId) -> Self {
         starknet_api::core::ChainId(value.to_string())
