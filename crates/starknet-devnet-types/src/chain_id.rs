@@ -37,15 +37,15 @@ impl FromStr for ChainId {
     type Err = ConversionError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let felt = cairo_short_string_to_felt(&s.to_ascii_uppercase())
-            .map_err(|err| ConversionError::OutOfRangeError(err.to_string()))?;
-
-        let chain_id = if felt == MAINNET {
-            ChainId::Mainnet
-        } else if felt == SEPOLIA {
-            ChainId::Testnet
-        } else {
-            ChainId::Custom(felt)
+        let uppercase_chain_id_str = s.to_ascii_uppercase();
+        let chain_id = match uppercase_chain_id_str.as_str() {
+            "MAINNET" => ChainId::Mainnet,
+            "TESTNET" => ChainId::Testnet,
+            _ => {
+                let felt = cairo_short_string_to_felt(&uppercase_chain_id_str)
+                    .map_err(|err| ConversionError::OutOfRangeError(err.to_string()))?;
+                ChainId::Custom(felt)
+            }
         };
 
         Ok(chain_id)
