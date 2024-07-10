@@ -111,25 +111,7 @@ To abort, send one of the following:
 ```
 POST /abort_blocks
 {
-    "starting_block_hash": BLOCK_HASH
-}
-```
-```
-POST /abort_blocks
-{
     "starting_block_id": BLOCK_ID
-}
-```
-
-```
-JSON-RPC
-{
-    "jsonrpc": "2.0",
-    "id": "1",
-    "method": "devnet_abortBlocks",
-    "params": {
-        "starting_block_hash": BLOCK_HASH
-    }
 }
 ```
 
@@ -153,4 +135,4 @@ Response:
 }
 ```
 
-If both `starting_block_hash` and `starting_block_id` are passed, error is thrown. Note: param `starting_block_hash` is being depreciated as block hash is contained in `BLOCK_ID` object.
+Note: When aborting block with tag `pending`, block is mined and aborted as latest.

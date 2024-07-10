@@ -52,8 +52,7 @@ pub struct CreatedBlock {
 #[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(Debug))]
 pub struct AbortingBlocks {
-    pub(crate) starting_block_id: Option<BlockId>,
-    pub(crate) starting_block_hash: Option<BlockHash>,
+    pub(crate) starting_block_id: BlockId,
 }
 
 #[derive(Serialize)]

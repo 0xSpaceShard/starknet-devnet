@@ -12,26 +12,6 @@ mod abort_blocks_tests {
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
 
-    async fn abort_blocks_hash_legacy(
-        devnet: &BackgroundDevnet,
-        starting_block_hash: &FieldElement,
-    ) -> Vec<FieldElement> {
-        let mut aborted_blocks = devnet
-            .send_custom_rpc(
-                "devnet_abortBlocks",
-                json!({ "starting_block_hash": to_hex_felt(starting_block_hash) }),
-            )
-            .await
-            .unwrap();
-
-        let aborted_blocks = aborted_blocks["aborted"].take().as_array().unwrap().clone();
-
-        aborted_blocks
-            .into_iter()
-            .map(|block_hash| serde_json::from_value(block_hash).unwrap())
-            .collect()
-    }
-
     async fn abort_blocks(
         devnet: &BackgroundDevnet,
         starting_block_id: &BlockId,
@@ -52,21 +32,6 @@ mod abort_blocks_tests {
             .into_iter()
             .map(|block_hash| serde_json::from_value(block_hash).unwrap())
             .collect()
-    }
-
-    async fn abort_blocks_by_hash_legacy_error(
-        devnet: &BackgroundDevnet,
-        starting_block_hash: &FieldElement,
-    ) {
-        let aborted_blocks_error = devnet
-            .send_custom_rpc(
-                "devnet_abortBlocks",
-                json!({ "starting_block_hash": to_hex_felt(starting_block_hash) }),
-            )
-            .await
-            .unwrap_err();
-
-        assert!(aborted_blocks_error.message.contains("Block abortion failed"));
     }
 
     async fn abort_blocks_error(devnet: &BackgroundDevnet, starting_block_id: &BlockId) {
@@ -141,25 +106,6 @@ mod abort_blocks_tests {
 
         assert_block_rejected(&devnet, &first_block_hash).await;
         assert_block_rejected(&devnet, &second_block_hash).await;
-    }
-
-    #[tokio::test]
-    async fn test_abort_blocks_by_hash_legacy() {
-        let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
-                .await
-                .expect("Could not start Devnet");
-
-        let first_block_hash = devnet.create_block().await.unwrap();
-        let second_block_hash = devnet.create_block().await.unwrap();
-
-        let aborted_blocks = abort_blocks_hash_legacy(&devnet, &first_block_hash).await;
-        assert_eq!(json!(aborted_blocks), json!([second_block_hash, first_block_hash]));
-
-        assert_block_rejected(&devnet, &first_block_hash).await;
-        assert_block_rejected(&devnet, &second_block_hash).await;
-
-        abort_blocks_by_hash_legacy_error(&devnet, &second_block_hash).await;
     }
 
     #[tokio::test]

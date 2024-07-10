@@ -1,6 +1,5 @@
 use axum::extract::State;
 use axum::Json;
-use starknet_rs_core::types::BlockId;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{AbortedBlocks, AbortingBlocks, CreatedBlock};
@@ -39,28 +38,8 @@ pub(crate) async fn abort_blocks_impl(
 ) -> HttpApiResult<AbortedBlocks> {
     let mut starknet = api.starknet.write().await;
 
-    if data.starting_block_hash.is_some() && data.starting_block_id.is_some() {
-        return Err(HttpApiError::BlockAbortError {
-            msg: "Both starting_block_id and legacy starting_block_hash provided. Please provide \
-                  one or the other."
-                .to_string(),
-        });
-    }
-
-    let block_id = match data.starting_block_id {
-        Some(block_id) => From::from(block_id),
-        None => match data.starting_block_hash {
-            Some(block_hash) => BlockId::Hash(block_hash.into()),
-            None => {
-                return Err(HttpApiError::BlockAbortError {
-                    msg: "Either starting_block_id or starting_block_hash must be provided"
-                        .to_string(),
-                });
-            }
-        },
-    };
     let aborted = starknet
-        .abort_blocks(block_id)
+        .abort_blocks(From::from(data.starting_block_id))
         .map_err(|err| HttpApiError::BlockAbortError { msg: (err.to_string()) })?;
 
     Ok(AbortedBlocks { aborted })
