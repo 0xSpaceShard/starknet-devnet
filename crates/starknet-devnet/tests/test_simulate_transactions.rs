@@ -310,7 +310,6 @@ mod simulation_tests {
             max_fee == FieldElement::ZERO,
         );
 
-        // udpate gas
         let gas_update = json!({
             "gas_price_wei": 9000000000000000000u128,
             "data_gas_price_wei": 8000000000000000000u128,
@@ -434,7 +433,6 @@ mod simulation_tests {
             fork_max_fee == FieldElement::ZERO,
         );
 
-        // udpate gas
         let updated_gas = &fork_devnet
             .send_custom_rpc(
                 "devnet_updateGas",
@@ -448,7 +446,7 @@ mod simulation_tests {
             .await
             .unwrap();
 
-        println!("udpated gas: {:?}", updated_gas);
+        println!("updated_gas: {:?}", updated_gas);
     }
 
     #[tokio::test]

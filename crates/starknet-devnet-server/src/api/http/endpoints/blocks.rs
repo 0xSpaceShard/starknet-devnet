@@ -62,7 +62,7 @@ pub(crate) async fn update_gas_impl(api: &Api, data: GasUpdate) -> HttpApiResult
         )
         .map_err(|err| HttpApiError::BlockAbortError { msg: (err.to_string()) })?;
 
-    // TODO: change to struct not tupples
+    // TODO: change to struct not tuples
     Ok(GasUpdate {
         gas_price_wei: updated.0,
         data_gas_price_wei: updated.1,
