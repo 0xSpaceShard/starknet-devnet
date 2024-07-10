@@ -55,12 +55,7 @@ pub async fn update_gas(
 pub(crate) async fn update_gas_impl(api: &Api, data: GasUpdate) -> HttpApiResult<GasUpdate> {
     let mut starknet = api.starknet.write().await;
     let updated_gas = starknet
-        .update_gas(
-            data.gas_price_wei,
-            data.data_gas_price_wei,
-            data.gas_price_strk,
-            data.data_gas_price_strk,
-        )
+        .update_gas(data)
         .map_err(|err| HttpApiError::BlockAbortError { msg: (err.to_string()) })?;
 
     Ok(updated_gas)
