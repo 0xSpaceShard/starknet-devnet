@@ -52,8 +52,6 @@ mod blocks_generation_tests {
     ) {
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
-        println!("latest_block {:?}", latest_block);
-
         assert_eq!(latest_block.block_number, block_number);
         assert_eq!(transactions, latest_block.transactions);
         assert_eq!(latest_block.status, BlockStatus::AcceptedOnL2);

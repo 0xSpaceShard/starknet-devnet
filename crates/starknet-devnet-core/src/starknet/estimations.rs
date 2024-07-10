@@ -23,8 +23,6 @@ pub fn estimate_fee(
     charge_fee: Option<bool>,
     validate: Option<bool>,
 ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
-    println!("estimate_fee!!!");
-
     let chain_id = starknet.chain_id().to_felt();
     let block_context = starknet.block_context.clone();
     let cheats = starknet.cheats.clone();
@@ -101,8 +99,6 @@ fn estimate_transaction_fee<S: StateReader>(
     charge_fee: Option<bool>,
     validate: Option<bool>,
 ) -> DevnetResult<FeeEstimateWrapper> {
-    println!("estimate_transaction_fee");
-
     let fee_type = match transaction {
         blockifier::transaction::transaction_execution::Transaction::AccountTransaction(ref tx) => {
             tx.fee_type()
@@ -123,10 +119,10 @@ fn estimate_transaction_fee<S: StateReader>(
         return Err(Error::ExecutionError { revert_error });
     }
 
-    let vector = get_versioned_constants();
-
-    let gas_vector =
-        fee_utils::calculate_tx_gas_vector(&transaction_execution_info.actual_resources, &vector)?;
+    let gas_vector = fee_utils::calculate_tx_gas_vector(
+        &transaction_execution_info.actual_resources,
+        &get_versioned_constants(),
+    )?;
 
     let total_fee =
         fee_utils::get_fee_by_gas_vector(block_context.block_info(), gas_vector, &fee_type);

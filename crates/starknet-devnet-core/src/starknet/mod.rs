@@ -1,7 +1,7 @@
 use std::num::NonZeroU128;
 use std::sync::Arc;
 
-use blockifier::block::{BlockInfo, GasPrices};
+use blockifier::block::BlockInfo;
 use blockifier::context::{BlockContext, ChainInfo, TransactionContext};
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::cached_state::{
@@ -509,7 +509,7 @@ impl Starknet {
             block_number: BlockNumber(block_number),
             block_timestamp: BlockTimestamp(0),
             sequencer_address: contract_address!("0x1000"),
-            gas_prices: GasPrices {
+            gas_prices: blockifier::block::GasPrices {
                 eth_l1_gas_price: gas_price_wei,
                 strk_l1_gas_price: gas_price_strk,
                 eth_l1_data_gas_price: data_gas_price_wei,
@@ -1150,8 +1150,6 @@ impl Starknet {
         transactions: &[BroadcastedTransaction],
         simulation_flags: Vec<SimulationFlag>,
     ) -> DevnetResult<Vec<SimulatedTransaction>> {
-        println!("simulate_transactions");
-
         let chain_id = self.chain_id().to_felt();
         let block_context = self.block_context.clone();
 
