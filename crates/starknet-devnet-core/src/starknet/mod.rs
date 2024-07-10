@@ -822,14 +822,15 @@ impl Starknet {
         }
     }
 
-    pub fn abort_blocks(&mut self, starting_block_id: BlockId) -> DevnetResult<Vec<Felt>> {
+    pub fn abort_blocks(&mut self, mut starting_block_id: BlockId) -> DevnetResult<Vec<Felt>> {
         if self.config.state_archive != StateArchiveCapacity::Full {
             let msg = "The abort blocks feature requires state-archive-capacity set to full.";
             return Err(Error::UnsupportedAction { msg: msg.into() });
         }
 
         if starting_block_id == BlockId::Tag(BlockTag::Pending) {
-            return Err(Error::UnsupportedAction { msg: "Cannot abort pending block".into() });
+            self.create_block()?;
+            starting_block_id = BlockId::Tag(BlockTag::Latest);
         }
 
         let starting_block_hash = match self.blocks.get_by_block_id(&starting_block_id) {

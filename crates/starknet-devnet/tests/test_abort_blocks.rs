@@ -314,14 +314,36 @@ mod abort_blocks_tests {
     }
     #[tokio::test]
     async fn abort_pending_block() {
-        let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
-                .await
-                .expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--state-archive-capacity",
+            "full",
+            "--block-generation-on",
+            "demand",
+        ])
+        .await
+        .expect("Could not start Devnet");
 
-        for _ in 0..3 {
-            devnet.create_block().await.unwrap();
-        }
-        abort_blocks_error(&devnet, &BlockId::Tag(BlockTag::Pending)).await;
+        devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        devnet.create_block().await.unwrap();
+        devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        let pending_balance = devnet
+            .get_balance_by_tag(
+                &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
+                FeeUnit::WEI,
+                BlockTag::Pending,
+            )
+            .await
+            .unwrap();
+        assert_eq!(pending_balance, (2 * DUMMY_AMOUNT).into());
+
+        abort_blocks(&devnet, &BlockId::Tag(BlockTag::Pending)).await;
+        let latest_balance = devnet
+            .get_balance_latest(
+                &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
+                FeeUnit::WEI,
+            )
+            .await
+            .unwrap();
+        assert_eq!(latest_balance, DUMMY_AMOUNT.into());
     }
 }
