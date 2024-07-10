@@ -138,6 +138,7 @@ pub(crate) struct Args {
     #[arg(help = "Specify the chain ID. Possible values are:
 - \"MAINNET\", \"TESTNET\" - predefined chain IDs
 - <USER_SUPPLIED> - custom chain ID, defined by user. Have to contain only ASCII characters.")]
+    #[arg(conflicts_with = "fork_network")]
     chain_id: ChainId,
 
     #[arg(long = "dump-on")]
