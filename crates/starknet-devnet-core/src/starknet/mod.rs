@@ -826,6 +826,7 @@ impl Starknet {
     pub fn update_gas(&mut self) -> DevnetResult<bool> {
         // TODO: add forking test to check chain_id and starting_block number logic!
         // TODO: block on demand mode and gas changes for each transaction? is that doable?
+        // TODO: add test for block number checking in normal mode and forking mode
 
         println!("l1_gas_price: {:?}", self.blocks.pending_block.header.l1_gas_price);
         println!("l1_data_gas_price: {:?}", self.blocks.pending_block.header.l1_data_gas_price);
@@ -844,7 +845,7 @@ impl Starknet {
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
-            self.block_context.block_info().block_number.0, // TODO: fix later, +1 just for now
+            self.block_context.block_info().block_number.0,
         );
 
         Ok(true)

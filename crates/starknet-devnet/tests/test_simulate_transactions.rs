@@ -287,21 +287,21 @@ mod simulation_tests {
 
         let params_no_flags = get_params(&[]);
         let resp_no_flags = &devnet
-            .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
+            .send_custom_rpc("starknet_simulateTransactions", params_no_flags.clone())
             .await
             .unwrap()[0];
-
-        println!("gas_consumed[fee_estimation] []: {:?}", resp_no_flags["fee_estimation"]);
+        assert_eq!(resp_no_flags["fee_estimation"]["gas_price"], "0x174876e800");
+        assert_eq!(resp_no_flags["fee_estimation"]["data_gas_price"], "0x174876e800");
+        assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x7352ecf52000");
 
         let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
         let resp_skip_validation = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation.clone())
             .await
             .unwrap()[0];
-        println!(
-            "gas_consumed[fee_estimation] [SKIP_VALIDATE]: {:?}",
-            resp_skip_validation["fee_estimation"]
-        );
+        assert_eq!(resp_skip_validation["fee_estimation"]["gas_price"], "0x174876e800");
+        assert_eq!(resp_skip_validation["fee_estimation"]["data_gas_price"], "0x174876e800");
+        assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x733ba47e3800");
 
         assert_difference_if_validation(
             resp_no_flags,
@@ -320,29 +320,29 @@ mod simulation_tests {
             )
             .await
             .unwrap();
+        println!("TODO: add assert here for udpated gas: {:?}", updated_gas);
 
-        devnet.create_block().await;
-
-        println!("udpated gas: {:?}", updated_gas);
-
-        let params_no_flags = get_params(&[]);
         let resp_no_flags = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
             .await
             .unwrap()[0];
-
-        println!(
-            "gas_consumed[fee_estimation] after udpated gas []: {:?}",
-            resp_no_flags["fee_estimation"]
-        );
+        assert_eq!(resp_no_flags["fee_estimation"]["gas_price"], "0x7ce66c50e2840000");
+        assert_eq!(resp_no_flags["fee_estimation"]["data_gas_price"], "0x7ce66c50e2840000");
+        assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x26aa55080a1f5d00000");
 
         let resp_skip_validation = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
             .await
             .unwrap()[0];
-        println!(
-            "gas_consumed[fee_estimation] after udpated gas [SKIP_VALIDATE]: {:?}",
-            resp_skip_validation["fee_estimation"]
+        assert_eq!(resp_skip_validation["fee_estimation"]["gas_price"], "0x7ce66c50e2840000");
+        assert_eq!(resp_skip_validation["fee_estimation"]["data_gas_price"], "0x7ce66c50e2840000");
+        assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x26a286a1451134c0000");
+
+        assert_difference_if_validation(
+            resp_no_flags,
+            resp_skip_validation,
+            &sender_address_hex,
+            max_fee == FieldElement::ZERO,
         );
     }
 
