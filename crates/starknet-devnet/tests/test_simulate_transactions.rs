@@ -311,32 +311,31 @@ mod simulation_tests {
         );
 
         // udpate gas
-        let updated_gas = &devnet
-            .send_custom_rpc(
-                "devnet_updateGas",
-                json!({
-                    "update": true,
-                }),
-            )
-            .await
-            .unwrap();
-        println!("TODO: add assert here for udpated gas: {:?}", updated_gas);
+        let gas_update = json!({
+            "gas_price_wei": 9000000000000000000u128,
+            "data_gas_price_wei": 8000000000000000000u128,
+            "gas_price_strk": 7000000000000000000u128,
+            "data_gas_price_strk": 6000000000000000000u128,
+        });
+        let updated_gas =
+            &devnet.send_custom_rpc("devnet_updateGas", gas_update.clone()).await.unwrap();
+        assert_eq!(updated_gas, &gas_update);
 
         let resp_no_flags = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
             .await
             .unwrap()[0];
         assert_eq!(resp_no_flags["fee_estimation"]["gas_price"], "0x7ce66c50e2840000");
-        assert_eq!(resp_no_flags["fee_estimation"]["data_gas_price"], "0x7ce66c50e2840000");
-        assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x26aa55080a1f5d00000");
+        assert_eq!(resp_no_flags["fee_estimation"]["data_gas_price"], "0x6f05b59d3b200000");
+        assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x2603cc779e46ad00000");
 
         let resp_skip_validation = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
             .await
             .unwrap()[0];
         assert_eq!(resp_skip_validation["fee_estimation"]["gas_price"], "0x7ce66c50e2840000");
-        assert_eq!(resp_skip_validation["fee_estimation"]["data_gas_price"], "0x7ce66c50e2840000");
-        assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x26a286a1451134c0000");
+        assert_eq!(resp_skip_validation["fee_estimation"]["data_gas_price"], "0x6f05b59d3b200000");
+        assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x25fbfe10d93884c0000");
 
         assert_difference_if_validation(
             resp_no_flags,
@@ -440,7 +439,10 @@ mod simulation_tests {
             .send_custom_rpc(
                 "devnet_updateGas",
                 json!({
-                    "update": true,
+                    "gas_price_wei": 9000000000000000000u128,
+                    "data_gas_price_wei": 9000000000000000000u128,
+                    "gas_price_strk": 9000000000000000000u128,
+                    "data_gas_price_strk": 9000000000000000000u128,
                 }),
             )
             .await

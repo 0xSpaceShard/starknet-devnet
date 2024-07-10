@@ -12,7 +12,6 @@ use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::errors::TransactionPreValidationError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
-use nonzero_ext::nonzero;
 use parking_lot::RwLock;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, GasPricePerToken};
 use starknet_api::core::SequencerContractAddress;
@@ -823,32 +822,47 @@ impl Starknet {
         }
     }
 
-    pub fn update_gas(&mut self) -> DevnetResult<bool> {
+    pub fn update_gas(
+        &mut self,
+        gas_price_wei: NonZeroU128,
+        data_gas_price_wei: NonZeroU128,
+        gas_price_strk: NonZeroU128,
+        data_gas_price_strk: NonZeroU128,
+    ) -> DevnetResult<(NonZeroU128, NonZeroU128, NonZeroU128, NonZeroU128)> {
         // TODO: add forking test to check chain_id and starting_block number logic!
         // TODO: block on demand mode and gas changes for each transaction? is that doable?
         // TODO: add test for block number checking in normal mode and forking mode
+        // TODO: add cairo contract with fee estimations (change need to be reflected in state)
+        // TODO: add tests with fee estimations/simulations and real transactions also...
 
-        println!("l1_gas_price: {:?}", self.blocks.pending_block.header.l1_gas_price);
-        println!("l1_data_gas_price: {:?}", self.blocks.pending_block.header.l1_data_gas_price);
-
-        self.blocks.pending_block.header.l1_gas_price =
-            GasPricePerToken { price_in_fri: GasPrice(200000000000), price_in_wei: GasPrice(200000000000) };
-        self.blocks.pending_block.header.l1_data_gas_price =
-            GasPricePerToken { price_in_fri: GasPrice(200000000000), price_in_wei: GasPrice(200000000000) };
+        // TODO: Why do we need this l1_gas_price l1_data_gas_price in block hedear?
+        // println!("l1_gas_price: {:?}", self.blocks.pending_block.header.l1_gas_price);
+        // println!("l1_data_gas_price: {:?}", self.blocks.pending_block.header.l1_data_gas_price);
+        // self.blocks.pending_block.header.l1_gas_price =
+        //     GasPricePerToken { price_in_fri: GasPrice(200000000000), price_in_wei:
+        // GasPrice(200000000000) }; self.blocks.pending_block.header.l1_data_gas_price =
+        //     GasPricePerToken { price_in_fri: GasPrice(200000000000), price_in_wei:
+        // GasPrice(200000000000) };
 
         // BlockContext needs to be reinitialized
         self.block_context = Starknet::init_block_context(
-            nonzero!(9000000000000000000u128),
-            nonzero!(9000000000000000000u128),
-            nonzero!(9000000000000000000u128),
-            nonzero!(9000000000000000000u128),
+            gas_price_wei,
+            gas_price_strk,
+            data_gas_price_wei,
+            data_gas_price_strk,
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
-            DEVNET_DEFAULT_CHAIN_ID,
+            DEVNET_DEFAULT_CHAIN_ID, // TODO: fix chain id later and add tests
             self.block_context.block_info().block_number.0,
         );
 
-        Ok(true)
+        let gas_prices = self.block_context.block_info().gas_prices.clone();
+        Ok((
+            gas_prices.eth_l1_gas_price,
+            gas_prices.eth_l1_data_gas_price,
+            gas_prices.strk_l1_gas_price,
+            gas_prices.strk_l1_data_gas_price,
+        ))
     }
 
     pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> DevnetResult<Vec<Felt>> {

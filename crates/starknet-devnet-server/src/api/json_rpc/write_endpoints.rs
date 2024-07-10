@@ -20,8 +20,8 @@ use crate::api::http::endpoints::postman::{
 use crate::api::http::endpoints::restart_impl;
 use crate::api::http::endpoints::time::{increase_time_impl, set_time_impl};
 use crate::api::http::models::{
-    AbortingBlocks, DumpPath, FlushParameters, IncreaseTime, LoadPath, MintTokensRequest,
-    PostmanLoadL1MessagingContract, SetTime, UpdateGas,
+    AbortingBlocks, DumpPath, FlushParameters, GasUpdate, IncreaseTime, LoadPath,
+    MintTokensRequest, PostmanLoadL1MessagingContract, SetTime,
 };
 use crate::api::json_rpc::JsonRpcHandler;
 
@@ -153,8 +153,8 @@ impl JsonRpcHandler {
     }
 
     /// devnet_updateGas
-    pub async fn update_gas(&self, data: UpdateGas) -> StrictRpcResult {
-        let updated_gas = update_gas_impl(&self.api, data.update).await.map_err(ApiError::from)?;
+    pub async fn update_gas(&self, data: GasUpdate) -> StrictRpcResult {
+        let updated_gas = update_gas_impl(&self.api, data).await.map_err(ApiError::from)?;
 
         Ok(DevnetResponse::UpdatedGas(updated_gas).into())
     }

@@ -1,3 +1,5 @@
+use std::num::NonZeroU128;
+
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::{Hash256, MsgToL1};
 use starknet_types::contract_address::ContractAddress;
@@ -59,16 +61,14 @@ pub struct AbortedBlocks {
     pub(crate) aborted: Vec<BlockHash>,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(Debug))]
-pub struct UpdateGas {
-    pub(crate) update: bool,
-}
-
-#[derive(Serialize)]
-pub struct UpdatedGas {
-    pub(crate) updated: bool,
+pub struct GasUpdate {
+    pub(crate) gas_price_wei: NonZeroU128,
+    pub(crate) data_gas_price_wei: NonZeroU128,
+    pub(crate) gas_price_strk: NonZeroU128,
+    pub(crate) data_gas_price_strk: NonZeroU128,
 }
 
 #[derive(Deserialize)]

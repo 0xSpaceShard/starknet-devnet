@@ -2,7 +2,7 @@ use axum::extract::State;
 use axum::Json;
 
 use crate::api::http::error::HttpApiError;
-use crate::api::http::models::{AbortedBlocks, AbortingBlocks, CreatedBlock};
+use crate::api::http::models::{AbortedBlocks, AbortingBlocks, CreatedBlock, GasUpdate};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 use crate::api::Api;
 
@@ -46,16 +46,26 @@ pub(crate) async fn abort_blocks_impl(
 
 pub async fn update_gas(
     State(state): State<HttpApiHandler>,
-    Json(data): Json<bool>,
-) -> HttpApiResult<Json<bool>> {
+    Json(data): Json<GasUpdate>,
+) -> HttpApiResult<Json<GasUpdate>> {
     update_gas_impl(&state.api, data).await.map(Json::from)
 }
 
-pub(crate) async fn update_gas_impl(api: &Api, data: bool) -> HttpApiResult<bool> {
+pub(crate) async fn update_gas_impl(api: &Api, data: GasUpdate) -> HttpApiResult<GasUpdate> {
     let mut starknet = api.starknet.write().await;
     let updated = starknet
-        .update_gas()
+        .update_gas(
+            data.gas_price_wei,
+            data.data_gas_price_wei,
+            data.gas_price_strk,
+            data.data_gas_price_strk,
+        )
         .map_err(|err| HttpApiError::BlockAbortError { msg: (err.to_string()) })?;
 
-    Ok(true)
+    Ok(GasUpdate {
+        gas_price_wei: updated.0,
+        data_gas_price_wei: updated.1,
+        gas_price_strk: updated.2,
+        data_gas_price_strk: updated.3,
+    })
 }

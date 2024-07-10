@@ -132,7 +132,7 @@ impl BackgroundDevnet {
                 .arg("--port")
                 .arg(free_port.to_string())
                 .args(Self::add_default_args(args))
-                // .stdout(Stdio::piped()) // comment this out for complete devnet stdout
+                .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
 
