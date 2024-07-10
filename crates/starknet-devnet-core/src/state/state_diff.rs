@@ -178,9 +178,10 @@ impl From<StateDiff> for ThinStateDiff {
 }
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use blockifier::state::state_api::State;
     use starknet_api::core::ClassHash;
-    use starknet_api::hash::StarkFelt;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::Felt;
 
@@ -206,23 +207,21 @@ mod tests {
     fn correct_difference_in_class_hash_to_compiled_class_hash() {
         let mut state = setup();
 
-        let class_hash = StarkFelt::from(1u8);
-        let casm_hash = Some(StarkFelt::from(1u8).into());
+        let class_hash = Felt::from(1);
+        let casm_hash = Felt::from_prefixed_hex_str(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
 
         let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
-        state.declare_contract_class(class_hash.into(), casm_hash, contract_class).unwrap();
+        state.declare_contract_class(class_hash, Some(casm_hash), contract_class).unwrap();
 
         let block_number = 1;
         let new_classes = state.rpc_contract_classes.write().commit(block_number);
         let generated_diff = StateDiff::generate(&mut state.state, new_classes).unwrap();
 
-        let mut expected_diff = StateDiff::default();
-        expected_diff.declared_contracts.push(Felt::from(class_hash));
-        let expected_casm_hash =
-            Felt::from_prefixed_hex_str(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
-        expected_diff
-            .class_hash_to_compiled_class_hash
-            .insert(Felt::from(class_hash), expected_casm_hash);
+        let expected_diff = StateDiff {
+            declared_contracts: vec![class_hash],
+            class_hash_to_compiled_class_hash: HashMap::from([(class_hash, casm_hash)]),
+            ..Default::default()
+        };
 
         assert_eq!(generated_diff, expected_diff);
     }
@@ -232,19 +231,19 @@ mod tests {
         let mut state = setup();
 
         let class_hash = Felt::from(1);
-        let casm_hash = Some(Felt::from(1));
+        let casm_hash = Felt::from_prefixed_hex_str(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
         let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
-        state.declare_contract_class(class_hash, casm_hash, contract_class).unwrap();
+        state.declare_contract_class(class_hash, Some(casm_hash), contract_class).unwrap();
 
         let block_number = 1;
         let new_classes = state.rpc_contract_classes.write().commit(block_number);
         let generated_diff = StateDiff::generate(&mut state.state, new_classes).unwrap();
 
-        let mut expected_diff = StateDiff::default();
-        expected_diff.declared_contracts.push(class_hash);
-        let expected_casm_hash =
-            Felt::from_prefixed_hex_str(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
-        expected_diff.class_hash_to_compiled_class_hash.insert(class_hash, expected_casm_hash);
+        let expected_diff = StateDiff {
+            declared_contracts: vec![class_hash],
+            class_hash_to_compiled_class_hash: HashMap::from([(class_hash, casm_hash)]),
+            ..Default::default()
+        };
 
         assert_eq!(generated_diff, expected_diff);
     }
@@ -261,10 +260,8 @@ mod tests {
         let new_classes = state.rpc_contract_classes.write().commit(block_number);
         let generated_diff = StateDiff::generate(&mut state.state, new_classes).unwrap();
 
-        let expected_diff = StateDiff {
-            cairo_0_declared_contracts: vec![class_hash].into_iter().collect(),
-            ..StateDiff::default()
-        };
+        let expected_diff =
+            StateDiff { cairo_0_declared_contracts: vec![class_hash], ..StateDiff::default() };
 
         assert_eq!(generated_diff, expected_diff);
     }
@@ -294,20 +291,20 @@ mod tests {
 
         // declare cairo1
         {
-            let class_hash = Felt::from(2);
-            let casm_hash = Some(Felt::from(2));
+            let class_hash = Felt::from(1);
+            let casm_hash: Felt = Felt::from(2);
             let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
-            state.declare_contract_class(class_hash, casm_hash, contract_class).unwrap();
+            state.declare_contract_class(class_hash, Some(casm_hash), contract_class).unwrap();
 
             let block_number = 1;
             let new_classes = state.rpc_contract_classes.write().commit(block_number);
             let generated_diff = StateDiff::generate(&mut state.state, new_classes).unwrap();
 
-            let mut expected_diff = StateDiff::default();
-            expected_diff.declared_contracts.push(class_hash);
-            let expected_casm_hash =
-                Felt::from_prefixed_hex_str(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
-            expected_diff.class_hash_to_compiled_class_hash.insert(class_hash, expected_casm_hash);
+            let expected_diff = StateDiff {
+                declared_contracts: vec![class_hash],
+                class_hash_to_compiled_class_hash: HashMap::from([(class_hash, casm_hash)]),
+                ..Default::default()
+            };
 
             assert_eq!(generated_diff, expected_diff);
         }
