@@ -40,11 +40,14 @@ pub trait CustomStateReader {
 }
 
 pub trait CustomState {
+    /// Link class with its hash; if cairo1 class: calculate casm hash, link class hash with it
     fn predeclare_contract_class(
         &mut self,
         class_hash: ClassHash,
         contract_class: ContractClass,
     ) -> DevnetResult<()>;
+
+    /// Link class with its hash; if cairo1 class: link class hash with casm hash
     fn declare_contract_class(
         &mut self,
         class_hash: ClassHash,
@@ -405,7 +408,6 @@ impl CustomState for StarknetState {
         casm_hash: Option<starknet_types::felt::CompiledClassHash>,
         contract_class: ContractClass,
     ) -> DevnetResult<()> {
-        // TODO can the cloned+converted class be received as method param
         let compiled_class = contract_class.clone().try_into()?;
 
         if let Some(casm_hash) = casm_hash {

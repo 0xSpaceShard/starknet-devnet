@@ -43,7 +43,6 @@ pub fn add_declare_transaction(
                     DeclareTransactionV0V1::new(v1, class_hash),
                 ));
 
-                // TODO cloning necessary?
                 (declare_transaction, v1.contract_class.clone().into(), None, &v1.sender_address)
             }
             BroadcastedDeclareTransaction::V2(ref v2) => {
