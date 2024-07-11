@@ -1,12 +1,12 @@
 use serde::{Deserialize, Serialize};
 use starknet_rs_crypto::poseidon_hash_many;
-use starknet_rs_ff::FieldElement;
+use starknet_rs_core::types::Felt;
 
 use super::BroadcastedTransactionCommonV3;
 use crate::constants::PREFIX_INVOKE;
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
-use crate::felt::{Calldata, Felt};
+use crate::felt::Calldata;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -27,7 +27,7 @@ impl BroadcastedInvokeTransactionV3 {
     pub(crate) fn calculate_transaction_hash(&self, chain_id: &Felt) -> DevnetResult<Felt> {
         let common_fields = self.common.common_fields_for_hash(
             PREFIX_INVOKE,
-            chain_id.into(),
+            *chain_id,
             self.sender_address.into(),
         )?;
 
@@ -35,12 +35,12 @@ impl BroadcastedInvokeTransactionV3 {
             &self
                 .account_deployment_data
                 .iter()
-                .map(|f| FieldElement::from(*f))
-                .collect::<Vec<FieldElement>>(),
+                .map(|f| Felt::from(*f))
+                .collect::<Vec<Felt>>(),
         );
 
         let call_data_hash = poseidon_hash_many(
-            &self.calldata.iter().map(|f| FieldElement::from(*f)).collect::<Vec<FieldElement>>(),
+            &self.calldata.iter().map(|f| Felt::from(*f)).collect::<Vec<Felt>>(),
         );
 
         let fields_to_hash =
@@ -59,7 +59,7 @@ mod tests {
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
-    use crate::felt::Felt;
+    use starknet_rs_core::types::Felt;
     use crate::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
     use crate::rpc::transactions::BroadcastedTransactionCommonV3;
     use crate::utils::test_utils::{

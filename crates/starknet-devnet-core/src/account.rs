@@ -3,7 +3,6 @@ use std::sync::Arc;
 use blockifier::abi::sierra_types::next_storage_key;
 use blockifier::state::state_api::StateReader;
 use starknet_api::core::{calculate_contract_address, PatriciaKey};
-use starknet_api::hash::{StarkFelt, StarkHash};
 use starknet_api::transaction::{Calldata, ContractAddressSalt};
 use starknet_api::{patricia_key, stark_felt};
 use starknet_types::contract_address::ContractAddress;
@@ -56,10 +55,10 @@ impl Account {
         // insanely big - should practically never run out of funds
         let initial_balance = Balance::from(u128::MAX);
         Ok(Self {
-            public_key: Key::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_PUBLIC_KEY).unwrap(),
-            private_key: Key::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_PRIVATE_KEY).unwrap(),
+            public_key: Key::from_hex(CHARGEABLE_ACCOUNT_PUBLIC_KEY).unwrap(),
+            private_key: Key::from_hex(CHARGEABLE_ACCOUNT_PRIVATE_KEY).unwrap(),
             account_address: ContractAddress::new(
-                Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS).unwrap(),
+                Felt::from_hex(CHARGEABLE_ACCOUNT_ADDRESS).unwrap(),
             )
             .unwrap(),
             initial_balance,
@@ -94,7 +93,7 @@ impl Account {
     fn compute_account_address(public_key: &Key) -> DevnetResult<ContractAddress> {
         let account_address = calculate_contract_address(
             ContractAddressSalt(stark_felt!(20u32)),
-            Felt::from_prefixed_hex_str(ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION)?.into(),
+            Felt::from_hex(ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION)?.into(),
             &Calldata(Arc::new(vec![(*public_key).into()])),
             starknet_api::core::ContractAddress(patricia_key!(0u32)),
         )
@@ -108,14 +107,12 @@ impl Account {
     fn simulate_constructor(&self, state: &mut StarknetState) -> DevnetResult<()> {
         let core_address = self.account_address.try_into()?;
 
-        let interface_storage_var = get_storage_var_address(
-            "SRC5_supported_interfaces",
-            &[Felt::from_prefixed_hex_str(ISRC6_ID_HEX)?],
-        )?;
+        let interface_storage_var =
+            get_storage_var_address("SRC5_supported_interfaces", &[Felt::from_hex(ISRC6_ID_HEX)?])?;
         state.state.state.set_storage_at(
             core_address,
             interface_storage_var.try_into()?,
-            StarkFelt::ONE,
+            Felt::ONE,
         )?;
 
         let public_key_storage_var = get_storage_var_address("Account_public_key", &[])?;
@@ -154,7 +151,7 @@ impl Accounted for Account {
             get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
         let storage_var_address_high = next_storage_key(&storage_var_address_low.try_into()?)?;
 
-        let (high, low) = split_biguint(self.initial_balance.clone())?;
+        let (high, low) = split_biguint(self.initial_balance.clone());
 
         for fee_token_address in [self.eth_fee_token_address, self.strk_fee_token_address] {
             state.set_storage_at(
@@ -190,8 +187,8 @@ impl Accounted for Account {
 
 #[cfg(test)]
 mod tests {
+    use starknet_rs_core::types::Felt;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::Felt;
     use starknet_types::rpc::state::Balance;
 
     use super::Account;
@@ -207,17 +204,13 @@ mod tests {
     #[test]
     fn account_address_should_be_equal() {
         let expected_result = ContractAddress::new(
-            Felt::from_prefixed_hex_str(
-                "0x6e3205f9b7c4328f00f718fdecf56ab31acfb3cd6ffeb999dcbac41236ea502",
-            )
-            .unwrap(),
+            Felt::from_hex("0x6e3205f9b7c4328f00f718fdecf56ab31acfb3cd6ffeb999dcbac41236ea502")
+                .unwrap(),
         )
         .unwrap();
         let generated_result = Account::compute_account_address(
-            &Felt::from_prefixed_hex_str(
-                "0x60dea6c1228f1db4ca1f9db11c01b6e9cce5e627f7181dcaa27d69cbdbe57b5",
-            )
-            .unwrap(),
+            &Felt::from_hex("0x60dea6c1228f1db4ca1f9db11c01b6e9cce5e627f7181dcaa27d69cbdbe57b5")
+                .unwrap(),
         )
         .unwrap();
 
@@ -227,17 +220,13 @@ mod tests {
     #[test]
     fn account_address_should_not_be_equal() {
         let expected_result = ContractAddress::new(
-            Felt::from_prefixed_hex_str(
-                "0x6e3205f9b7c4328f00f718fdecf56ab31acfb3cd6ffeb999dcbac41236ea502",
-            )
-            .unwrap(),
+            Felt::from_hex("0x6e3205f9b7c4328f00f718fdecf56ab31acfb3cd6ffeb999dcbac41236ea502")
+                .unwrap(),
         )
         .unwrap();
         let generated_result = Account::compute_account_address(
-            &Felt::from_prefixed_hex_str(
-                "0x60dea6c1228f1db4ca1f9db11c01b6e9cce5e627f7181dcaa27d69cbdbe57b6",
-            )
-            .unwrap(),
+            &Felt::from_hex("0x60dea6c1228f1db4ca1f9db11c01b6e9cce5e627f7181dcaa27d69cbdbe57b6")
+                .unwrap(),
         )
         .unwrap();
 
@@ -287,7 +276,7 @@ mod tests {
         state
             .predeploy_contract(
                 fee_token_address,
-                Felt::from_prefixed_hex_str(CAIRO_1_ERC20_CONTRACT_CLASS_HASH).unwrap(),
+                Felt::from_hex(CAIRO_1_ERC20_CONTRACT_CLASS_HASH).unwrap(),
             )
             .unwrap();
 

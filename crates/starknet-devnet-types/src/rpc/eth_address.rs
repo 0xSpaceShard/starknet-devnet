@@ -2,10 +2,9 @@ use std::str::FromStr;
 
 use starknet_api::core::EthAddress as ApiEthAddress;
 use starknet_rs_core::types::EthAddress;
-use starknet_rs_ff::FieldElement;
+use starknet_rs_core::types::Felt;
 
 use crate::error::{DevnetResult, Error};
-use crate::felt::Felt;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -26,9 +25,9 @@ impl FromStr for EthAddressWrapper {
 
 impl From<EthAddressWrapper> for Felt {
     fn from(value: EthAddressWrapper) -> Self {
-        let felt: FieldElement = value.inner.into();
+        let felt: Felt = value.inner.into();
         let raw_felt = felt.to_bytes_be();
-        Felt(raw_felt)
+        Felt::from_bytes_be(&raw_felt)
     }
 }
 

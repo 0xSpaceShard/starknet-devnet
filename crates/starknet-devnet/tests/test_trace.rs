@@ -13,7 +13,7 @@ mod trace_tests {
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
-        DeployedContractItem, FieldElement, FunctionInvocation, StarknetError, TransactionTrace,
+        DeployedContractItem, Felt, FunctionInvocation, StarknetError, TransactionTrace,
     };
     use starknet_rs_core::utils::{get_udc_deployed_address, UdcUniqueness};
     use starknet_rs_providers::{Provider, ProviderError};
@@ -31,10 +31,10 @@ mod trace_tests {
     fn assert_mint_invocation(invocation: FunctionInvocation) {
         assert_eq!(
             invocation.contract_address,
-            FieldElement::from_hex_be(CHARGEABLE_ACCOUNT_ADDRESS).unwrap()
+            Felt::from_hex(CHARGEABLE_ACCOUNT_ADDRESS).unwrap()
         );
-        assert_eq!(invocation.calldata[6], FieldElement::from(DUMMY_ADDRESS));
-        assert_eq!(invocation.calldata[7], FieldElement::from(DUMMY_AMOUNT));
+        assert_eq!(invocation.calldata[6], Felt::from(DUMMY_ADDRESS));
+        assert_eq!(invocation.calldata[7], Felt::from(DUMMY_AMOUNT));
     }
 
     async fn get_invoke_trace(devnet: &BackgroundDevnet) {
@@ -54,7 +54,7 @@ mod trace_tests {
 
             assert_eq!(
                 invoke_trace.fee_transfer_invocation.unwrap().contract_address,
-                FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
+                Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
             );
         } else {
             panic!("Could not unpack the transaction trace from {mint_tx_trace:?}");
@@ -66,7 +66,7 @@ mod trace_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let err = devnet
             .json_rpc_client
-            .trace_transaction(FieldElement::ZERO)
+            .trace_transaction(Felt::ZERO)
             .await
             .expect_err("Should fail");
 
@@ -112,7 +112,7 @@ mod trace_tests {
         // declare the contract
         let declaration_result = predeployed_account
             .declare(Arc::new(cairo_1_contract), casm_class_hash)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
             .unwrap();
@@ -130,11 +130,11 @@ mod trace_tests {
             assert_eq!(validate_invocation.contract_address, account_address);
             assert_eq!(
                 validate_invocation.class_hash,
-                FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+                Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
             assert_eq!(
                 validate_invocation.calldata[0],
-                FieldElement::from_hex_be(
+                Felt::from_hex(
                     "0x113bf26d112a164297e04381212c9bd7409f07591f0a04f539bdf56693eaaf3"
                 )
                 .unwrap()
@@ -142,7 +142,7 @@ mod trace_tests {
 
             assert_eq!(
                 declare_trace.fee_transfer_invocation.unwrap().contract_address,
-                FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
+                Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
             );
         } else {
             panic!("Could not unpack the transaction trace from {declare_tx_trace:?}");
@@ -168,18 +168,18 @@ mod trace_tests {
         // declare the contract
         let declaration_result = account
             .declare(Arc::new(cairo_1_contract), casm_class_hash)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
             .unwrap();
 
         // deploy twice - should result in only 1 instance in deployed_contracts and no declares
         let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
-        for salt in (0_u32..2).map(FieldElement::from) {
+        for salt in (0_u32..2).map(Felt::from) {
             let ctor_data = vec![];
             let deployment_tx = contract_factory
                 .deploy(ctor_data.clone(), salt, false)
-                .max_fee(FieldElement::from(1e18 as u128))
+                .max_fee(Felt::from(1e18 as u128))
                 .send()
                 .await
                 .expect("Cannot deploy");
@@ -221,7 +221,7 @@ mod trace_tests {
         // define the key of the new account - dummy value
         let new_account_signer = get_deployable_account_signer();
         let account_factory = OpenZeppelinAccountFactory::new(
-            FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap(),
+            Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap(),
             constants::CHAIN_ID,
             new_account_signer.clone(),
             devnet.clone_provider(),
@@ -231,9 +231,9 @@ mod trace_tests {
 
         // deploy account
         let deployment = account_factory
-            .deploy(FieldElement::from_hex_be("0x123").unwrap())
-            .max_fee(FieldElement::from(1e18 as u128))
-            .nonce(FieldElement::ZERO)
+            .deploy(Felt::from_hex("0x123").unwrap())
+            .max_fee(Felt::from(1e18 as u128))
+            .nonce(Felt::ZERO)
             .prepared()
             .unwrap();
         let new_account_address = deployment.address();
@@ -249,21 +249,21 @@ mod trace_tests {
             let validate_invocation = deployment_trace.validate_invocation.unwrap();
             assert_eq!(
                 validate_invocation.class_hash,
-                FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+                Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
             assert_eq!(
                 validate_invocation.calldata[0],
-                FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+                Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
 
             assert_eq!(
                 deployment_trace.constructor_invocation.class_hash,
-                FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+                Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
 
             assert_eq!(
                 deployment_trace.fee_transfer_invocation.unwrap().contract_address,
-                FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
+                Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
             );
         } else {
             panic!("Could not unpack the transaction trace from {deploy_account_tx_trace:?}");
@@ -274,7 +274,7 @@ mod trace_tests {
     async fn get_traces_from_block() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        let mint_tx_hash: FieldElement = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        let mint_tx_hash: Felt = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
         // Currently, we support only one transaction per block, so if this changes in the future
         // this test also needs to be updated
@@ -295,7 +295,7 @@ mod trace_tests {
         // assert transaction hash
         assert_eq!(
             mint_tx_hash,
-            FieldElement::from_hex_be(traces["transaction_hash"].as_str().unwrap()).unwrap()
+            Felt::from_hex(traces["transaction_hash"].as_str().unwrap()).unwrap()
         );
 
         // assert validate invocation
@@ -316,13 +316,13 @@ mod trace_tests {
 
         // assert fee transfer invocation
         assert_eq!(
-            FieldElement::from_hex_be(
+            Felt::from_hex(
                 traces["trace_root"]["fee_transfer_invocation"]["contract_address"]
                     .as_str()
                     .unwrap()
             )
             .unwrap(),
-            FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
+            Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
         );
     }
 }

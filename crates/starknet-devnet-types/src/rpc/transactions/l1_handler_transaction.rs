@@ -11,21 +11,15 @@ use starknet_api::transaction::{
     TransactionHash as ApiTransactionHash, TransactionVersion as ApiTransactionVersion,
 };
 use starknet_rs_core::crypto::compute_hash_on_elements;
-use starknet_rs_core::types::FieldElement;
+use starknet_rs_core::types::Felt;
 
 use super::{deserialize_paid_fee_on_l1, serialize_paid_fee_on_l1};
+use crate::constants::PREFIX_L1_HANDLER;
 use crate::contract_address::ContractAddress;
 use crate::error::{ConversionError, DevnetResult, Error};
-use crate::felt::{Calldata, EntryPointSelector, Felt, Nonce, TransactionVersion};
+use crate::felt::{Calldata, EntryPointSelector, Nonce, TransactionVersion};
 use crate::rpc::messaging::MessageToL2;
 
-/// Cairo string for "l1_handler"
-const PREFIX_L1_HANDLER: FieldElement = FieldElement::from_mont([
-    1365666230910873368,
-    18446744073708665300,
-    18446744073709551615,
-    157895833347907735,
-]);
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -50,7 +44,7 @@ impl L1HandlerTransaction {
     /// * `chain_id` - The chain ID.
     pub fn compute_hash(&self, chain_id: Felt) -> Felt {
         // No fee on L2 for L1 handler transaction.
-        let fee = FieldElement::ZERO;
+        let fee = Felt::ZERO;
 
         compute_hash_on_elements(&[
             PREFIX_L1_HANDLER,
@@ -61,11 +55,11 @@ impl L1HandlerTransaction {
                 &self
                     .calldata
                     .iter()
-                    .map(|felt| FieldElement::from(*felt))
-                    .collect::<Vec<FieldElement>>(),
+                    .map(|felt| Felt::from(*felt))
+                    .collect::<Vec<Felt>>(),
             ),
             fee,
-            chain_id.into(),
+            chain_id,
             self.nonce.into(),
         ])
         .into()
@@ -80,7 +74,7 @@ impl L1HandlerTransaction {
             tx: ApiL1HandlerTransaction {
                 contract_address: ApiContractAddress::try_from(self.contract_address)?,
                 entry_point_selector: ApiEntryPointSelector(self.entry_point_selector.into()),
-                calldata: ApiCalldata(Arc::new(self.calldata.iter().map(|f| f.into()).collect())),
+                calldata: ApiCalldata(Arc::new(self.calldata)),
                 nonce: ApiNonce(self.nonce.into()),
                 version: ApiTransactionVersion(self.version.into()),
             },
@@ -99,7 +93,7 @@ impl L1HandlerTransaction {
     /// * `chain_id` - The L1 node chain id.
     pub fn try_from_message_to_l2(message: MessageToL2) -> DevnetResult<Self> {
         // `impl TryFrom` is not used due to the fact that chain_id is required.
-        let paid_fee_on_l1: u128 = message.paid_fee_on_l1.try_into().map_err(|_| {
+        let paid_fee_on_l1: u128 = message.paid_fee_on_l1.to_biguint().try_into().map_err(|_| {
             ConversionError::OutOfRangeError(format!(
                 "paid_fee_on_l1 is expected to be a u128 value, found: {:?}",
                 message.paid_fee_on_l1,
@@ -169,18 +163,18 @@ mod tests {
         let payload: Vec<Felt> = vec![1.into(), 2.into()];
 
         let calldata: Vec<Felt> =
-            vec![Felt::from_prefixed_hex_str(from_address).unwrap(), 1.into(), 2.into()];
+            vec![Felt::from_hex(from_address).unwrap(), 1.into(), 2.into()];
 
         let message = MessageToL2 {
             l1_contract_address: ContractAddress::new(
-                Felt::from_prefixed_hex_str(from_address).unwrap(),
+                Felt::from_hex(from_address).unwrap(),
             )
             .unwrap(),
             l2_contract_address: ContractAddress::new(
-                Felt::from_prefixed_hex_str(to_address).unwrap(),
+                Felt::from_hex(to_address).unwrap(),
             )
             .unwrap(),
-            entry_point_selector: Felt::from_prefixed_hex_str(selector).unwrap(),
+            entry_point_selector: Felt::from_hex(selector).unwrap(),
             payload,
             nonce: nonce.into(),
             paid_fee_on_l1: fee.into(),
@@ -188,7 +182,7 @@ mod tests {
 
         let chain_id = ChainId::goerli_legacy_id();
 
-        let transaction_hash = Felt::from_prefixed_hex_str(
+        let transaction_hash = Felt::from_hex(
             "0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b",
         )
         .unwrap();
@@ -204,10 +198,10 @@ mod tests {
 
         let expected_tx = L1HandlerTransaction {
             contract_address: ContractAddress::new(
-                Felt::from_prefixed_hex_str(to_address).unwrap(),
+                Felt::from_hex(to_address).unwrap(),
             )
             .unwrap(),
-            entry_point_selector: Felt::from_prefixed_hex_str(selector).unwrap(),
+            entry_point_selector: Felt::from_hex(selector).unwrap(),
             calldata,
             nonce: nonce.into(),
             paid_fee_on_l1: fee,

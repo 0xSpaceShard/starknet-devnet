@@ -43,10 +43,9 @@ mod tests {
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
-    use crate::felt::Felt;
+    use starknet_rs_core::types::Felt;
     use crate::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
     use crate::rpc::transactions::BroadcastedInvokeTransaction;
-    use crate::traits::ToHexString;
 
     #[derive(Deserialize)]
     struct FeederGatewayInvokeTransaction {
@@ -76,11 +75,7 @@ mod tests {
 
         let transaction = BroadcastedInvokeTransactionV1::new(
             ContractAddress::new(feeder_gateway_transaction.sender_address).unwrap(),
-            Fee(u128::from_str_radix(
-                &feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(),
-                16,
-            )
-            .unwrap()),
+            Fee(feeder_gateway_transaction.max_fee.to_bigint().try_into().unwrap()),
             &vec![],
             feeder_gateway_transaction.nonce,
             &feeder_gateway_transaction.calldata,

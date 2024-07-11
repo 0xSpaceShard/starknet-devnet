@@ -147,7 +147,7 @@ impl StarknetTransaction {
         let contract_deployed_event_key =
             Felt::from(get_selector_from_name("ContractDeployed").map_err(|_| Error::FormatError)?);
 
-        let udc_address = ContractAddress::new(Felt::from_prefixed_hex_str(UDC_CONTRACT_ADDRESS)?)?;
+        let udc_address = ContractAddress::new(Felt::from_hex(UDC_CONTRACT_ADDRESS)?)?;
 
         let deployed_address = events
             .iter()

@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
-use starknet_rs_core::types::FieldElement;
+use starknet_rs_core::types::Felt;
+use starknet_rs_core::types::Felt;
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
-use starknet_types::felt::Felt;
 use starknet_types::traits::HashProducer;
 
 use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT, CAIRO_1_ACCOUNT_CONTRACT_SIERRA};
@@ -52,13 +52,13 @@ impl FromStr for AccountClassWrapper {
         )?;
 
         // check that artifact is really account
-        let execute_selector: FieldElement = get_selector_from_name("__execute__").unwrap();
-        let validate_selector: FieldElement = get_selector_from_name("__validate__").unwrap();
+        let execute_selector: Felt = get_selector_from_name("__execute__").unwrap();
+        let validate_selector: Felt = get_selector_from_name("__validate__").unwrap();
         let mut has_execute = false;
         let mut has_validate = false;
         for entry_point in contract_class.entry_points_by_type.external.iter() {
             let selector_bytes = entry_point.selector.to_bytes_be();
-            match FieldElement::from_byte_slice_be(&selector_bytes) {
+            match Felt::from_byte_slice_be(&selector_bytes) {
                 Ok(selector) if selector == execute_selector => has_execute = true,
                 Ok(selector) if selector == validate_selector => has_validate = true,
                 _ => (),
@@ -82,7 +82,7 @@ impl FromStr for AccountClassWrapper {
 #[cfg(test)]
 mod tests {
     use clap::ValueEnum;
-    use starknet_types::felt::Felt;
+    use starknet_rs_core::types::Felt;
     use starknet_types::traits::HashProducer;
 
     use super::AccountContractClassChoice;
@@ -103,12 +103,12 @@ mod tests {
     fn correct_hash_calculated() {
         assert_eq!(
             AccountContractClassChoice::Cairo0.get_class_wrapper().unwrap().class_hash,
-            Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
+            Felt::from_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
         );
 
         assert_eq!(
             AccountContractClassChoice::Cairo1.get_class_wrapper().unwrap().class_hash,
-            Felt::from_prefixed_hex_str(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+            Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
         )
     }
 }

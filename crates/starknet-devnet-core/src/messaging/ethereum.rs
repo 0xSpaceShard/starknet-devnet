@@ -6,7 +6,7 @@ use ethers::prelude::*;
 use ethers::providers::{Http, Provider, ProviderError};
 use ethers::types::{Address, BlockNumber, Log};
 use k256::ecdsa::SigningKey;
-use starknet_types::felt::Felt;
+use starknet_rs_core::types::Felt;
 use starknet_types::rpc::contract_address::ContractAddress;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::traits::ToHexString;
@@ -366,7 +366,7 @@ pub fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
 ///
 /// * `v` - The `U256` to be converted.
 fn u256_to_felt_devnet(v: &U256) -> DevnetResult<Felt> {
-    Ok(Felt::from_prefixed_hex_str(format!("0x{:064x}", v).as_str())?)
+    Ok(Felt::from_hex(format!("0x{:064x}", v).as_str())?)
 }
 
 /// Converts an `Felt` into a `U256`.
@@ -399,7 +399,7 @@ fn felts_devnet_to_u256s(felts: &[Felt]) -> DevnetResult<Vec<U256>> {
 ///
 /// * `address` - The `Address` to be converted.
 fn address_to_felt_devnet(address: &Address) -> DevnetResult<Felt> {
-    Ok(Felt::from_prefixed_hex_str(format!("0x{:064x}", address).as_str())?)
+    Ok(Felt::from_hex(format!("0x{:064x}", address).as_str())?)
 }
 
 #[cfg(test)]
@@ -439,14 +439,14 @@ mod tests {
 
         let expected_message = MessageToL2 {
             l1_contract_address: ContractAddress::new(
-                Felt::from_prefixed_hex_str(from_address).unwrap(),
+                Felt::from_hex(from_address).unwrap(),
             )
             .unwrap(),
             l2_contract_address: ContractAddress::new(
-                Felt::from_prefixed_hex_str(to_address).unwrap(),
+                Felt::from_hex(to_address).unwrap(),
             )
             .unwrap(),
-            entry_point_selector: Felt::from_prefixed_hex_str(selector).unwrap(),
+            entry_point_selector: Felt::from_hex(selector).unwrap(),
             payload,
             nonce: nonce.into(),
             paid_fee_on_l1: fee.into(),

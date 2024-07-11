@@ -2,7 +2,7 @@ pub mod common;
 
 mod call {
     use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
-    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall, StarknetError};
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt, FunctionCall, StarknetError};
     use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -12,11 +12,11 @@ mod call {
     /// This test doesn't rely on devnet.get_balance because it's not supposed to call ERC20
     async fn calling_method_of_undeployed_contract() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
+        let contract_address = Felt::from_hex(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
         let entry_point_selector =
             starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
 
-        let undeployed_address = FieldElement::from_hex_be("0x1234").unwrap();
+        let undeployed_address = Felt::from_hex("0x1234").unwrap();
         let err = devnet
             .json_rpc_client
             .call(
@@ -39,7 +39,7 @@ mod call {
     #[tokio::test]
     async fn calling_nonexistent_contract_method() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
+        let contract_address = Felt::from_hex(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
         let entry_point_selector =
             starknet_rs_core::utils::get_selector_from_name("nonExistentMethod").unwrap();
 
@@ -47,8 +47,7 @@ mod call {
             .json_rpc_client
             .call(
                 FunctionCall {
-                    contract_address: FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS)
-                        .unwrap(),
+                    contract_address: Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
                     entry_point_selector,
                     calldata: vec![contract_address],
                 },

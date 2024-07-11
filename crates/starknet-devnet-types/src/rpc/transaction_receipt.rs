@@ -213,8 +213,8 @@ impl From<&blockifier::transaction::objects::TransactionExecutionInfo> for Execu
         Self {
             computation_resources,
             data_availability: DataAvailability {
-                l1_gas: execution_info.da_gas.l1_gas,
-                l1_data_gas: execution_info.da_gas.l1_data_gas,
+                l1_gas: execution_info.transaction_receipt.da_gas.l1_gas,
+                l1_data_gas: execution_info.transaction_receipt.da_gas.l1_data_gas,
             },
         }
     }

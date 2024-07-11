@@ -2,14 +2,13 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use starknet_api::core::calculate_contract_address;
-use starknet_rs_crypto::poseidon_hash_many;
+use starknet_rs_crypto::{poseidon_hash_many, Felt};
 
 use super::BroadcastedTransactionCommonV3;
 use crate::constants::PREFIX_DEPLOY_ACCOUNT;
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
-use crate::felt::{Calldata, ClassHash, ContractAddressSalt, Felt};
-use crate::utils::into_vec;
+use crate::felt::{Calldata, ClassHash, ContractAddressSalt};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -29,11 +28,11 @@ impl BroadcastedDeployAccountTransactionV3 {
     ) -> DevnetResult<Felt> {
         let common_fields = self.common.common_fields_for_hash(
             PREFIX_DEPLOY_ACCOUNT,
-            chain_id.into(),
+            *chain_id,
             contract_address.into(),
         )?;
 
-        let constructor_calldata_hash = poseidon_hash_many(&into_vec(&self.constructor_calldata));
+        let constructor_calldata_hash = poseidon_hash_many(&self.constructor_calldata);
 
         let fields_to_hash = [
             common_fields.as_slice(),
@@ -54,10 +53,10 @@ impl BroadcastedDeployAccountTransactionV3 {
         constructor_calldata: &Calldata,
     ) -> DevnetResult<ContractAddress> {
         let contract_address = calculate_contract_address(
-            starknet_api::transaction::ContractAddressSalt(contract_address_salt.into()),
-            starknet_api::core::ClassHash(class_hash.into()),
+            starknet_api::transaction::ContractAddressSalt(*contract_address_salt),
+            starknet_api::core::ClassHash(*class_hash),
             &starknet_api::transaction::Calldata(Arc::new(
-                constructor_calldata.iter().map(|felt| felt.into()).collect(),
+                *constructor_calldata,
             )),
             starknet_api::core::ContractAddress::from(0u8),
         )?;
@@ -72,7 +71,7 @@ mod tests {
     use starknet_api::transaction::{ResourceBoundsMapping, Tip};
 
     use crate::chain_id::ChainId;
-    use crate::felt::Felt;
+    use starknet_rs_core::types::Felt;
     use crate::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
     use crate::rpc::transactions::BroadcastedTransactionCommonV3;
     use crate::utils::test_utils::{

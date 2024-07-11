@@ -1,4 +1,4 @@
-use starknet_rs_ff::FieldElement;
+use starknet_rs_core::types::Felt;
 use starknet_rs_signers::SigningKey;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
@@ -43,7 +43,7 @@ impl PredeployedAccounts {
     }
 
     fn generate_public_key(&self, private_key: &Key) -> Key {
-        let private_key_field_element = FieldElement::from(*private_key);
+        let private_key_field_element = Felt::from(*private_key);
 
         Key::from(
             SigningKey::from_secret_scalar(private_key_field_element).verifying_key().scalar(),

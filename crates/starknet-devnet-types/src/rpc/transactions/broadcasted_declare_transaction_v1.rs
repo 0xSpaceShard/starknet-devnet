@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
 use starknet_rs_core::crypto::compute_hash_on_elements;
-use starknet_rs_ff::FieldElement;
+use starknet_rs_core::types::Felt;
 
 use crate::constants::PREFIX_DECLARE;
 use crate::contract_address::ContractAddress;
 use crate::contract_class::Cairo0ContractClass;
 use crate::error::DevnetResult;
-use crate::felt::{ClassHash, Felt, Nonce, TransactionSignature, TransactionVersion};
+use crate::felt::{ClassHash, Nonce, TransactionSignature, TransactionVersion};
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 use crate::traits::HashProducer;
 
@@ -54,10 +54,10 @@ impl BroadcastedDeclareTransactionV1 {
             PREFIX_DECLARE,
             self.common.version.into(),
             self.sender_address.into(),
-            FieldElement::ZERO, // entry_point_selector
-            compute_hash_on_elements(&[FieldElement::from(*class_hash)]),
+            Felt::ZERO, // entry_point_selector
+            compute_hash_on_elements(&[Felt::from(*class_hash)]),
             self.common.max_fee.0.into(),
-            FieldElement::from(*chain_id),
+            Felt::from(*chain_id),
             self.common.nonce.into(),
         ])
         .into())
@@ -72,10 +72,10 @@ mod tests {
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
     use crate::contract_class::Cairo0Json;
-    use crate::felt::Felt;
+    use starknet_rs_core::types::Felt;
     use crate::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use crate::rpc::transactions::BroadcastedDeclareTransaction;
-    use crate::traits::{HashProducer, ToHexString};
+    use crate::traits::HashProducer;
 
     #[derive(Deserialize)]
     struct FeederGatewayDeclareTransactionV1 {
@@ -110,11 +110,7 @@ mod tests {
 
         let broadcasted_tx = BroadcastedDeclareTransactionV1::new(
             ContractAddress::new(feeder_gateway_transaction.sender_address).unwrap(),
-            Fee(u128::from_str_radix(
-                &feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(),
-                16,
-            )
-            .unwrap()),
+            Fee(feeder_gateway_transaction.max_fee.to_biguint().try_into().unwrap()),
             &vec![],
             feeder_gateway_transaction.nonce,
             &cairo0.into(),

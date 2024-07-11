@@ -1,8 +1,6 @@
 use blockifier::versioned_constants::VersionedConstants;
 use serde_json::Value;
-use starknet_rs_core::types::contract::CompiledClass;
-use starknet_rs_ff::FieldElement;
-use starknet_types::felt::Felt;
+use starknet_rs_core::types::{contract::CompiledClass, Felt};
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
 use crate::error::{DevnetResult, Error};
@@ -34,7 +32,7 @@ pub(crate) fn get_storage_var_address(
 ) -> DevnetResult<StorageKey> {
     let storage_var_address = starknet_rs_core::utils::get_storage_var_address(
         storage_var_name,
-        &args.iter().map(|f| FieldElement::from(*f)).collect::<Vec<FieldElement>>(),
+        &args.iter().map(|f| Felt::from(*f)).collect::<Vec<_>>(),
     )
     .map_err(|err| crate::error::Error::UnexpectedInternalError { msg: err.to_string() })?;
 
@@ -48,7 +46,7 @@ pub(crate) fn get_versioned_constants() -> VersionedConstants {
 /// Returns the hash of a compiled class.
 /// # Arguments
 /// * `casm_json` - The compiled class in JSON format.
-pub fn calculate_casm_hash(casm_json: Value) -> DevnetResult<FieldElement> {
+pub fn calculate_casm_hash(casm_json: Value) -> DevnetResult<Felt> {
     serde_json::from_value::<CompiledClass>(casm_json)
         .map_err(|err| Error::DeserializationError { origin: err.to_string() })?
         .class_hash()
@@ -59,9 +57,9 @@ pub fn calculate_casm_hash(casm_json: Value) -> DevnetResult<FieldElement> {
 pub(crate) mod test_utils {
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use starknet_api::transaction::Fee;
+    use starknet_rs_core::types::Felt;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
-    use starknet_types::felt::Felt;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
@@ -77,7 +75,7 @@ pub(crate) mod test_utils {
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
 
     pub(crate) fn dummy_felt() -> Felt {
-        Felt::from_prefixed_hex_str("0xDD10").unwrap()
+        Felt::from_hex_unchecked("0xDD10")
     }
 
     pub(crate) fn dummy_cairo_1_contract_class() -> SierraContractClass {
@@ -95,7 +93,7 @@ pub(crate) mod test_utils {
         "0x3faafcc98742a29a5ca809bda3c827b2d2c73759c64f695e33106009e7e9fef";
 
     pub(crate) fn dummy_contract_address() -> ContractAddress {
-        ContractAddress::new(Felt::from_prefixed_hex_str("0xADD4E55").unwrap()).unwrap()
+        ContractAddress::new(Felt::from_hex_unchecked("0xADD4E55")).unwrap()
     }
 
     pub(crate) fn dummy_declare_transaction_v1() -> TransactionWithHash {

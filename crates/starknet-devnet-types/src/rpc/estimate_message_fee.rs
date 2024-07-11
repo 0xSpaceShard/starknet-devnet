@@ -10,7 +10,7 @@ use starknet_rs_core::types::{
 };
 
 use crate::error::DevnetResult;
-use crate::felt::Felt;
+use starknet_rs_core::types::Felt;
 use crate::rpc::eth_address::EthAddressWrapper;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
@@ -66,7 +66,7 @@ impl EstimateMessageFeeRequestWrapper {
         let l1_transaction = L1HandlerTransaction {
             tx: starknet_api::transaction::L1HandlerTransaction {
                 contract_address: starknet_api::core::ContractAddress::try_from(
-                    starknet_api::hash::StarkFelt::from(self.get_to_address()),
+                    Felt::from(self.get_to_address()),
                 )?,
                 entry_point_selector: EntryPointSelector(self.get_entry_point_selector().into()),
                 calldata: Calldata(Arc::new(calldata.into_iter().map(|f| f.into()).collect())),

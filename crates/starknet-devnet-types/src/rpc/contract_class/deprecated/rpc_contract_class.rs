@@ -5,7 +5,7 @@ use starknet_rs_core::types::{CompressedLegacyContractClass, LegacyEntryPointsBy
 use crate::contract_class::deprecated::abi_entry::{AbiEntry, AbiEntryType};
 use crate::contract_class::Cairo0Json;
 use crate::error::{DevnetResult, Error, JsonError};
-use crate::felt::Felt;
+use starknet_rs_core::types::Felt;
 use crate::serde_helpers::base_64_gzipped_json_string::{
     deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order,
     serialize_program_to_base64,

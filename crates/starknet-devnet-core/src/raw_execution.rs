@@ -27,7 +27,7 @@ pub struct RawExecution {
 }
 
 pub fn compute_hash_on_elements(data: &[FieldElement]) -> FieldElement {
-    let mut current_hash = FieldElement::ZERO;
+    let mut current_hash = Felt::ZERO;
 
     for item in data.iter() {
         current_hash = pedersen_hash(&current_hash, item);
@@ -64,7 +64,7 @@ impl RawExecution {
             PREFIX_INVOKE,
             FieldElement::from(SUPPORTED_TX_VERSION), // version
             address,
-            FieldElement::ZERO, // entry_point_selector
+            Felt::ZERO, // entry_point_selector
             compute_hash_on_elements(&self.raw_calldata()),
             self.max_fee,
             chain_id,

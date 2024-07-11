@@ -6,7 +6,7 @@ mod impersonated_account_tests {
     use server::test_utils::exported_test_utils::assert_contains;
     use starknet_core::constants::STRK_ERC20_CONTRACT_ADDRESS;
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
-    use starknet_rs_core::types::{BlockId, BlockTag, ExecutionResult, FieldElement};
+    use starknet_rs_core::types::{BlockId, BlockTag, ExecutionResult, Felt};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::jsonrpc::HttpTransport;
     use starknet_rs_providers::{JsonRpcClient, Provider};
@@ -19,9 +19,9 @@ mod impersonated_account_tests {
         get_simple_contract_in_sierra_and_compiled_class_hash, ImpersonationAction,
     };
 
-    const IMPERSONATED_ACCOUNT_PRIVATE_KEY: FieldElement = FieldElement::ONE;
-    // FieldElement::from(100000000000)
-    const AMOUNT_TO_TRANSFER: FieldElement = FieldElement::from_mont([
+    const IMPERSONATED_ACCOUNT_PRIVATE_KEY: Felt = Felt::ONE;
+    // Felt::from(100000000000)
+    const AMOUNT_TO_TRANSFER: Felt = Felt::from_mont([
         18446740873709551617,
         18446744073709551615,
         18446744073709551615,
@@ -30,7 +30,7 @@ mod impersonated_account_tests {
 
     async fn get_account_for_impersonation_and_private_key(
         devnet: &BackgroundDevnet,
-    ) -> (FieldElement, LocalWallet) {
+    ) -> (Felt, LocalWallet) {
         let (_, account_address) = devnet.get_first_predeployed_account().await;
         (
             account_address,
@@ -40,14 +40,14 @@ mod impersonated_account_tests {
         )
     }
 
-    fn get_invoke_transaction_request(amount_to_transfer: FieldElement) -> Call {
+    fn get_invoke_transaction_request(amount_to_transfer: Felt) -> Call {
         Call {
-            to: FieldElement::from_hex_be(STRK_ERC20_CONTRACT_ADDRESS).unwrap(),
+            to: Felt::from_hex(STRK_ERC20_CONTRACT_ADDRESS).unwrap(),
             selector: get_selector_from_name("transfer").unwrap(),
             calldata: vec![
-                FieldElement::ONE,  // recipient
+                Felt::ONE,  // recipient
                 amount_to_transfer, // low part of uint256
-                FieldElement::ZERO, // high part of uint256
+                Felt::ZERO, // high part of uint256
             ],
         }
     }
@@ -85,7 +85,7 @@ mod impersonated_account_tests {
 
         let impersonation_err = forked_devnet
             .execute_impersonation_action(&ImpersonationAction::ImpersonateAccount(
-                FieldElement::ONE,
+                Felt::ONE,
             ))
             .await
             .unwrap_err();

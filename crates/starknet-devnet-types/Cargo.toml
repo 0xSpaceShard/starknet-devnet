@@ -15,6 +15,7 @@ cairo-lang-starknet-classes = { workspace = true }
 clap = { workspace = true }
 flate2 = { workspace = true }
 starknet_api = { workspace = true }
+starknet-types-core = { workspace = true }
 thiserror = { workspace = true }
 starknet-rs-core = { workspace = true }
 starknet-rs-crypto = { workspace = true }
@@ -23,7 +24,6 @@ serde_json = { workspace = true, features = [
     "arbitrary_precision",
     "preserve_order",
 ] }
-starknet-rs-ff = { workspace = true }
 num-bigint = { workspace = true }
 bigdecimal = { workspace = true }
 usc = { workspace = true }

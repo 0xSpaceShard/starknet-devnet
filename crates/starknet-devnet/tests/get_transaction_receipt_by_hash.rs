@@ -12,8 +12,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
-        BroadcastedDeclareTransactionV1, ExecutionResult, FieldElement,
-        MaybePendingTransactionReceipt, StarknetError, TransactionReceipt,
+        BroadcastedDeclareTransactionV1, ExecutionResult, Felt, MaybePendingTransactionReceipt,
+        StarknetError, TransactionReceipt,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::{Provider, ProviderError};
@@ -30,21 +30,21 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         let signer = get_deployable_account_signer();
         let account_factory = OpenZeppelinAccountFactory::new(
-            FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            Felt::from_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
             CHAIN_ID,
             signer.clone(),
             devnet.clone_provider(),
         )
         .await
         .unwrap();
-        let new_account_nonce = FieldElement::ZERO;
-        let salt = FieldElement::THREE;
+        let new_account_nonce = Felt::ZERO;
+        let salt = Felt::THREE;
         let deployment = account_factory.deploy(salt).nonce(new_account_nonce);
         let new_account_address = deployment.address();
         devnet.mint(new_account_address, 1e18 as u128).await;
 
         let deploy_account_result =
-            deployment.max_fee(FieldElement::from(1e18 as u128)).send().await.unwrap();
+            deployment.max_fee(Felt::from(1e18 as u128)).send().await.unwrap();
 
         let deploy_account_receipt = devnet
             .json_rpc_client
@@ -78,7 +78,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let (cairo_1_contract, casm_class_hash) =
             get_events_contract_in_sierra_and_compiled_class_hash();
 
-        let max_fee = FieldElement::from(1e18 as u128);
+        let max_fee = Felt::from(1e18 as u128);
 
         // declare the contract
         let declaration_result = predeployed_account
@@ -92,8 +92,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
 
-        let salt = FieldElement::ZERO;
-        let constructor_args = Vec::<FieldElement>::new();
+        let salt = Felt::ZERO;
+        let constructor_args = Vec::<Felt>::new();
         let deployment_result = contract_factory
             .deploy(constructor_args.clone(), salt, false)
             .max_fee(max_fee)
@@ -138,7 +138,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let (cairo_1_contract, casm_class_hash) =
             get_events_contract_in_sierra_and_compiled_class_hash();
 
-        let max_fee = FieldElement::from(1e18 as u128);
+        let max_fee = Felt::from(1e18 as u128);
 
         // declare the contract
         let declaration_result = predeployed_account
@@ -152,8 +152,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
 
-        let salt = FieldElement::ZERO;
-        let invalid_constructor_args = vec![FieldElement::ONE];
+        let salt = Felt::ZERO;
+        let invalid_constructor_args = vec![Felt::ONE];
         let invalid_deployment_result = contract_factory
             .deploy(invalid_constructor_args, salt, false)
             .max_fee(max_fee)
@@ -194,12 +194,12 @@ mod get_transaction_receipt_by_hash_integration_tests {
         );
 
         let transfer_execution = predeployed_account.execute(vec![Call {
-            to: FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
+            to: Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
             selector: get_selector_from_name("transfer").unwrap(),
             calldata: vec![
-                FieldElement::ONE,                                 // recipient
-                FieldElement::from_dec_str("1000000000").unwrap(), // low part of uint256
-                FieldElement::ZERO,                                // high part of uint256
+                Felt::ONE,                                         // recipient
+                Felt::from_dec_str("1000000000").unwrap(), // low part of uint256
+                Felt::ZERO,                                        // high part of uint256
             ],
         }]);
 
@@ -207,7 +207,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         // send transaction with lower than estimated fee
         // should revert
-        let max_fee = fee.overall_fee - FieldElement::ONE;
+        let max_fee = fee.overall_fee - Felt::ONE;
         let transfer_result = transfer_execution.max_fee(max_fee).send().await.unwrap();
 
         let transfer_receipt = devnet
@@ -286,7 +286,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let result = devnet
             .json_rpc_client
-            .get_transaction_receipt(FieldElement::from_hex_be("0x0").unwrap())
+            .get_transaction_receipt(Felt::from_hex("0x0").unwrap())
             .await
             .unwrap_err();
 

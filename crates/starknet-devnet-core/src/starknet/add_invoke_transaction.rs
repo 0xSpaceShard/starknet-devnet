@@ -70,16 +70,15 @@ mod tests {
     use blockifier::state::state_api::StateReader;
     use nonzero_ext::nonzero;
     use starknet_api::core::Nonce;
-    use starknet_api::hash::StarkFelt;
     use starknet_api::transaction::{Fee, Tip};
+    use starknet_rs_core::types::Felt;
+    use starknet_rs_core::types::Felt;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_rs_core::utils::get_selector_from_name;
-    use starknet_rs_ff::FieldElement;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::contract_storage_key::ContractStorageKey;
-    use starknet_types::felt::Felt;
     use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
@@ -174,7 +173,7 @@ mod tests {
         );
         match invoke_transaction {
             BroadcastedInvokeTransaction::V3(ref mut v3) => {
-                v3.common.version = (FieldElement::from(3u8) + QUERY_VERSION_OFFSET).into();
+                v3.common.version = (Felt::from(3u8) + QUERY_VERSION_OFFSET).into();
             }
             _ => {
                 panic!("Wrong transaction type");
@@ -373,7 +372,7 @@ mod tests {
         assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(
             starknet.pending_state.get_storage_at(blockifier_address, storage_key).unwrap(),
-            StarkFelt::from_u128(25)
+            Felt::from_u128(25)
         );
     }
 
@@ -441,7 +440,7 @@ mod tests {
         let account_address: starknet_api::core::ContractAddress =
             account.get_address().try_into().unwrap();
         let initial_nonce = starknet.pending_state.get_nonce_at(account_address).unwrap();
-        assert_eq!(initial_nonce, Nonce(StarkFelt::ZERO));
+        assert_eq!(initial_nonce, Nonce(Felt::ZERO));
 
         let calldata = vec![
             Felt::from(contract_address), // contract address
@@ -468,7 +467,7 @@ mod tests {
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Reverted);
 
         let nonce_after_reverted = starknet.pending_state.get_nonce_at(account_address).unwrap();
-        assert_eq!(nonce_after_reverted, Nonce(StarkFelt::ONE));
+        assert_eq!(nonce_after_reverted, Nonce(Felt::ONE));
     }
 
     /// Initialize starknet object with: erc20 contract, account contract and  simple contract that
@@ -510,7 +509,7 @@ mod tests {
         )
         .unwrap();
         let increase_balance_selector =
-            StarkFelt::new(get_selector_from_name("increase_balance").unwrap().to_bytes_be())
+            Felt::new(get_selector_from_name("increase_balance").unwrap().to_bytes_be())
                 .unwrap();
 
         // check if increase_balance function is present in the contract class

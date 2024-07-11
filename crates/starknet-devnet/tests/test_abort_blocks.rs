@@ -3,7 +3,7 @@ pub mod common;
 mod abort_blocks_tests {
     use serde_json::json;
     use server::api::json_rpc::error::ApiError;
-    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement};
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -15,7 +15,7 @@ mod abort_blocks_tests {
     async fn abort_blocks(
         devnet: &BackgroundDevnet,
         starting_block_id: &BlockId,
-    ) -> Vec<FieldElement> {
+    ) -> Vec<Felt> {
         let mut aborted_blocks = devnet
             .send_custom_rpc(
                 "devnet_abortBlocks",
@@ -48,7 +48,7 @@ mod abort_blocks_tests {
         assert!(aborted_blocks_error.message.contains("Block abortion failed"));
     }
 
-    async fn assert_block_rejected(devnet: &BackgroundDevnet, block_hash: &FieldElement) {
+    async fn assert_block_rejected(devnet: &BackgroundDevnet, block_hash: &Felt) {
         let block_after_abort = devnet
             .send_custom_rpc(
                 "starknet_getBlockWithTxHashes",
@@ -115,7 +115,7 @@ mod abort_blocks_tests {
                 .await
                 .expect("Could not start Devnet");
 
-        let mint_hash = devnet.mint(FieldElement::ONE, 100).await;
+        let mint_hash = devnet.mint(Felt::ONE, 100).await;
 
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
@@ -167,7 +167,7 @@ mod abort_blocks_tests {
 
         let balance = devnet
             .get_balance_latest(
-                &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
+                &Felt::from_hex(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
                 FeeUnit::WEI,
             )
             .await
@@ -179,7 +179,7 @@ mod abort_blocks_tests {
 
         let balance = devnet
             .get_balance_latest(
-                &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
+                &Felt::from_hex(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
                 FeeUnit::WEI,
             )
             .await
@@ -190,7 +190,7 @@ mod abort_blocks_tests {
 
         let balance = devnet
             .get_balance_latest(
-                &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
+                &Felt::from_hex(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
                 FeeUnit::WEI,
             )
             .await
@@ -274,7 +274,7 @@ mod abort_blocks_tests {
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let pending_balance = devnet
             .get_balance_by_tag(
-                &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
+                &Felt::from_hex(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
                 FeeUnit::WEI,
                 BlockTag::Pending,
             )
@@ -285,7 +285,7 @@ mod abort_blocks_tests {
         abort_blocks(&devnet, &BlockId::Tag(BlockTag::Pending)).await;
         let latest_balance = devnet
             .get_balance_latest(
-                &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
+                &Felt::from_hex(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
                 FeeUnit::WEI,
             )
             .await

@@ -22,8 +22,8 @@ impl SystemContract {
         contract_class_json_str: &str,
     ) -> DevnetResult<Self> {
         Ok(Self {
-            class_hash: Felt::from_prefixed_hex_str(class_hash)?,
-            address: ContractAddress::new(Felt::from_prefixed_hex_str(address)?)?,
+            class_hash: Felt::from_hex(class_hash)?,
+            address: ContractAddress::new(Felt::from_hex(address)?)?,
             contract_class: Cairo0Json::raw_json_from_json_str(contract_class_json_str)?.into(),
         })
     }
@@ -34,8 +34,8 @@ impl SystemContract {
         contract_class_json_str: &str,
     ) -> DevnetResult<Self> {
         Ok(Self {
-            class_hash: Felt::from_prefixed_hex_str(class_hash)?,
-            address: ContractAddress::new(Felt::from_prefixed_hex_str(address)?)?,
+            class_hash: Felt::from_hex(class_hash)?,
+            address: ContractAddress::new(Felt::from_hex(address)?)?,
             contract_class: ContractClass::cairo_1_from_sierra_json_str(contract_class_json_str)?
                 .into(),
         })

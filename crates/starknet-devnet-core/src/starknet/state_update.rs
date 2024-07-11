@@ -21,7 +21,7 @@ mod tests {
     use starknet_api::transaction::Fee;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_class::ContractClass;
-    use starknet_types::felt::Felt;
+    use starknet_rs_core::types::Felt;
     use starknet_types::rpc::state::ThinStateDiff;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::traits::HashProducer;

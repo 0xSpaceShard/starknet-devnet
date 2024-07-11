@@ -1,7 +1,7 @@
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{EmittedEvent, Event};
-use starknet_types::felt::Felt;
+use starknet_rs_core::types::Felt;
 
 use super::Starknet;
 use crate::error::{DevnetResult, Error};
@@ -129,7 +129,7 @@ mod tests {
     use starknet_rs_core::types::BlockId;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::emitted_event::Event;
-    use starknet_types::felt::Felt;
+    use starknet_rs_core::types::Felt;
 
     use super::{check_if_filter_applies_for_event, get_events};
     use crate::starknet::events::check_if_filter_applies_for_event_keys;
@@ -427,10 +427,10 @@ mod tests {
                 order: idx,
                 event: starknet_api::transaction::EventContent {
                     keys: vec![starknet_api::transaction::EventKey(
-                        starknet_api::hash::StarkFelt::from(idx as u128 + 10),
+                        Felt::from(idx as u128 + 10),
                     )],
                     data: starknet_api::transaction::EventData(vec![
-                        starknet_api::hash::StarkFelt::from(idx as u128 + 20),
+                        Felt::from(idx as u128 + 20),
                     ]),
                 },
             };

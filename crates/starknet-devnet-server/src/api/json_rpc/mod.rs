@@ -15,7 +15,7 @@ use models::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use starknet_rs_core::types::ContractClass as CodegenContractClass;
-use starknet_types::felt::Felt;
+use starknet_rs_core::types::Felt;
 use starknet_types::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::block::{Block, PendingBlock};
 use starknet_types::rpc::estimate_message_fee::{
@@ -525,7 +525,7 @@ pub enum DevnetResponse {
 mod requests_tests {
 
     use serde_json::json;
-    use starknet_types::felt::Felt;
+    use starknet_rs_core::types::Felt;
 
     use super::JsonRpcRequest;
     use crate::rpc_core::request::RpcMethodCall;
@@ -592,7 +592,7 @@ mod requests_tests {
 
         match request {
             JsonRpcRequest::TransactionByHash(input) => {
-                assert!(input.transaction_hash == Felt::from_prefixed_hex_str("0x134134").unwrap());
+                assert!(input.transaction_hash == Felt::from_hex("0x134134").unwrap());
             }
             _ => panic!("Wrong request type"),
         }

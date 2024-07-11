@@ -5,7 +5,6 @@ use blockifier::state::cached_state::StorageEntry;
 use blockifier::state::errors::StateError;
 use blockifier::state::state_api::{StateReader, StateResult};
 use starknet_api::core::{ClassHash, CompiledClassHash, ContractAddress, Nonce};
-use starknet_api::hash::StarkFelt;
 use starknet_api::state::StorageKey;
 
 use crate::starknet::defaulter::StarknetDefaulter;
@@ -14,7 +13,7 @@ use crate::starknet::defaulter::StarknetDefaulter;
 /// Copied from blockifier test_utils, added `impl State`
 #[derive(Debug, Default, Clone)]
 pub struct DictState {
-    pub storage_view: HashMap<StorageEntry, StarkFelt>,
+    pub storage_view: HashMap<StorageEntry, Felt>,
     pub address_to_nonce: HashMap<ContractAddress, Nonce>,
     pub address_to_class_hash: HashMap<ContractAddress, ClassHash>,
     pub class_hash_to_class: HashMap<ClassHash, ContractClass>,
@@ -33,7 +32,7 @@ impl StateReader for DictState {
         &mut self,
         contract_address: ContractAddress,
         key: StorageKey,
-    ) -> StateResult<StarkFelt> {
+    ) -> StateResult<Felt> {
         let contract_storage_key = (contract_address, key);
         match self.storage_view.get(&contract_storage_key) {
             Some(value) => Ok(*value),
@@ -80,7 +79,7 @@ impl DictState {
         &mut self,
         contract_address: ContractAddress,
         key: StorageKey,
-        value: StarkFelt,
+        value: Felt,
     ) -> std::result::Result<(), blockifier::state::errors::StateError> {
         self.storage_view.insert((contract_address, key), value);
         Ok(())
@@ -90,7 +89,7 @@ impl DictState {
         let current_nonce = self.get_nonce_at(contract_address)?;
         let current_nonce_as_u64 = usize::try_from(current_nonce.0)? as u64;
         let next_nonce_val = 1_u64 + current_nonce_as_u64;
-        let next_nonce = Nonce(StarkFelt::from(next_nonce_val));
+        let next_nonce = Nonce(Felt::from(next_nonce_val));
         self.address_to_nonce.insert(contract_address, next_nonce);
 
         Ok(())

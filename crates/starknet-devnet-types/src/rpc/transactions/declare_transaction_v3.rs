@@ -1,12 +1,13 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::transaction::Tip;
+use starknet_rs_crypto::Felt;
 
 use super::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use super::ResourceBoundsWrapper;
 use crate::contract_address::ContractAddress;
 use crate::felt::{
-    ClassHash, CompiledClassHash, Felt, Nonce, TransactionSignature, TransactionVersion,
+    ClassHash, CompiledClassHash, Nonce, TransactionSignature, TransactionVersion,
 };
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]

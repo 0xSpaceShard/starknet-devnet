@@ -3,8 +3,7 @@ use std::collections::HashMap;
 use indexmap::IndexMap;
 use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus, BlockTimestamp};
 use starknet_api::data_availability::L1DataAvailabilityMode;
-use starknet_api::hash::{pedersen_hash_array, StarkFelt};
-use starknet_api::stark_felt;
+use starknet_rs_core::crypto::pedersen_hash;
 use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
@@ -300,7 +299,7 @@ impl HashProducer for StarknetBlock {
 mod tests {
     use starknet_api::block::{BlockHash, BlockHeader, BlockNumber, BlockStatus};
     use starknet_rs_core::types::{BlockId, BlockTag};
-    use starknet_types::felt::Felt;
+    use starknet_rs_core::types::Felt;
     use starknet_types::traits::HashProducer;
 
     use super::{StarknetBlock, StarknetBlocks};

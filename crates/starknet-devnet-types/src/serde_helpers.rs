@@ -61,9 +61,9 @@ pub mod hex_string {
     use serde::{Deserialize, Deserializer, Serializer};
 
     use crate::contract_address::ContractAddress;
-    use crate::felt::Felt;
     use crate::patricia_key::PatriciaKey;
     use crate::traits::ToHexString;
+    use starknet_rs_core::types::Felt;
 
     pub fn deserialize_to_prefixed_patricia_key<'de, D>(
         deserializer: D,
@@ -92,7 +92,7 @@ pub mod hex_string {
     where
         S: Serializer,
     {
-        s.serialize_str(patricia_key.to_felt().to_prefixed_hex_str().as_str())
+        s.serialize_str(&patricia_key.to_felt().to_hex_string())
     }
 
     pub fn serialize_contract_address_to_prefixed_hex<S>(
@@ -105,25 +105,6 @@ pub mod hex_string {
         s.serialize_str(contract_address.to_prefixed_hex_str().as_str())
     }
 
-    #[allow(unused)]
-    pub fn deserialize_non_prefixed_hex_string_to_felt<'de, D>(
-        deserializer: D,
-    ) -> Result<Felt, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let buf = String::deserialize(deserializer)?;
-
-        Felt::from_prefixed_hex_str(&format!("0x{buf}")).map_err(serde::de::Error::custom)
-    }
-
-    pub fn serialize_to_prefixed_hex<S>(felt: &Felt, s: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        s.serialize_str(felt.to_prefixed_hex_str().as_str())
-    }
-
     pub fn deserialize_prefixed_hex_string_to_felt<'de, D>(
         deserializer: D,
     ) -> Result<Felt, D::Error>
@@ -132,23 +113,20 @@ pub mod hex_string {
     {
         let buf = String::deserialize(deserializer)?;
 
-        Felt::from_prefixed_hex_str(&buf).map_err(serde::de::Error::custom)
+        Felt::from_hex(&buf).map_err(serde::de::Error::custom)
     }
 
     #[cfg(test)]
     mod tests {
         use serde::{Deserialize, Serialize};
-        use serde_json::json;
-        use starknet_api::serde_utils::bytes_from_hex_str;
 
         use crate::contract_address::ContractAddress;
-        use crate::felt::Felt;
         use crate::patricia_key::PatriciaKey;
         use crate::serde_helpers::hex_string::{
-            deserialize_non_prefixed_hex_string_to_felt, deserialize_prefixed_hex_string_to_felt,
             deserialize_to_prefixed_contract_address, deserialize_to_prefixed_patricia_key,
-            serialize_contract_address_to_prefixed_hex, serialize_to_prefixed_hex,
+            serialize_contract_address_to_prefixed_hex
         };
+        use starknet_rs_core::types::Felt;
 
         #[test]
         fn deserialization_of_prefixed_hex_patricia_key_should_be_successful() {
@@ -163,7 +141,7 @@ pub mod hex_string {
             let data = serde_json::from_str::<TestDeserialization>(json_str).unwrap();
             assert!(
                 data.data.to_felt()
-                    == Felt::from_prefixed_hex_str(
+                    == Felt::from_hex(
                         "0x800000000000000000000000000000000000000000000000000000000000000"
                     )
                     .unwrap()
@@ -206,77 +184,10 @@ pub mod hex_string {
                 ContractAddress,
             );
 
-            let data = TestSerialization(
-                ContractAddress::new(Felt::from_prefixed_hex_str("0x1").unwrap()).unwrap(),
-            );
+            let data =
+                TestSerialization(ContractAddress::new(Felt::from_hex("0x1").unwrap()).unwrap());
 
             assert_eq!(serde_json::to_string(&data).unwrap(), r#""0x1""#);
-        }
-
-        #[test]
-        fn deserialization_of_prefixed_hex_str() {
-            check_prefixed_hex_string_and_expected_result("0x0001", true);
-            check_prefixed_hex_string_and_expected_result(
-                "0x1000000000000000000000000000000000000000000000000000000000000001",
-                false,
-            );
-        }
-
-        #[test]
-        fn deserialization_of_non_prefixed_hex_str() {
-            check_non_prefixed_hex_string_and_expected_result("0001", true);
-            check_non_prefixed_hex_string_and_expected_result(
-                "1000000000000000000000000000000000000000000000000000000000000001",
-                false,
-            );
-        }
-
-        #[test]
-        fn correct_felt_serializiation() {
-            #[derive(Serialize)]
-            struct TestSerialzation {
-                #[serde(serialize_with = "serialize_to_prefixed_hex")]
-                felt: Felt,
-            }
-
-            let felt = TestSerialzation { felt: Felt::from(256) };
-
-            assert_eq!(serde_json::to_string(&felt).unwrap(), r#"{"felt":"0x100"}"#);
-        }
-
-        fn check_prefixed_hex_string_and_expected_result(hex_str: &str, is_correct: bool) {
-            #[derive(Deserialize)]
-            struct TestDeserialization {
-                #[serde(deserialize_with = "deserialize_prefixed_hex_string_to_felt")]
-                felt: Felt,
-            }
-
-            let json_str = json!({ "felt": hex_str });
-
-            let result = serde_json::from_value::<TestDeserialization>(json_str);
-            if is_correct {
-                assert!(result.unwrap().felt == Felt::from_prefixed_hex_str(hex_str).unwrap());
-            } else {
-                assert!(result.is_err());
-            }
-        }
-
-        fn check_non_prefixed_hex_string_and_expected_result(hex_str: &str, is_correct: bool) {
-            #[derive(Deserialize)]
-            struct TestDeserialization {
-                #[serde(deserialize_with = "deserialize_non_prefixed_hex_string_to_felt")]
-                felt: Felt,
-            }
-
-            let json_str = json!({ "felt": hex_str });
-
-            let result = serde_json::from_value::<TestDeserialization>(json_str);
-            if is_correct {
-                let bytes = bytes_from_hex_str::<32_usize, false>(hex_str).unwrap();
-                assert!(result.unwrap().felt == Felt::new(bytes).unwrap());
-            } else {
-                assert!(result.is_err());
-            }
         }
     }
 }

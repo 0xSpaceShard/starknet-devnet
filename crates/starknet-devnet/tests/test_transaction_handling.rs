@@ -6,7 +6,7 @@ mod trace_tests {
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{FieldElement, StarknetError};
+    use starknet_rs_core::types::{Felt, StarknetError};
     use starknet_rs_providers::ProviderError;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -36,7 +36,7 @@ mod trace_tests {
         // declare class
         let declaration_result = account
             .declare_legacy(contract_artifact.clone())
-            .max_fee(FieldElement::from(1e18 as u128))
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await;
 
@@ -69,11 +69,11 @@ mod trace_tests {
         ));
 
         let (contract_class, _) = get_simple_contract_in_sierra_and_compiled_class_hash();
-        let dummy_casm_hash = FieldElement::ONE;
+        let dummy_casm_hash = Felt::ONE;
 
         let declaration_result = account
             .declare(Arc::new(contract_class), dummy_casm_hash)
-            .nonce(FieldElement::ZERO)
+            .nonce(Felt::ZERO)
             .send()
             .await;
 

@@ -4,10 +4,9 @@ use blockifier::execution::contract_class::ContractClass;
 use blockifier::state::errors::StateError;
 use blockifier::state::state_api::StateResult;
 use starknet_api::core::{ClassHash, ContractAddress, Nonce, PatriciaKey};
-use starknet_api::hash::StarkFelt;
 use starknet_api::state::StorageKey;
 use starknet_types::contract_class::convert_codegen_to_blockifier_compiled_class;
-use starknet_types::felt::Felt;
+use starknet_rs_core::types::Felt;
 use starknet_types::traits::ToHexString;
 use tracing::debug;
 
@@ -111,7 +110,7 @@ impl StarknetDefaulter {
         &self,
         contract_address: ContractAddress,
         key: StorageKey,
-    ) -> StateResult<StarkFelt> {
+    ) -> StateResult<Felt> {
         if let Some(origin) = &self.origin_reader {
             origin.get_storage_at(contract_address, key)
         } else {
@@ -144,11 +143,11 @@ impl StarknetDefaulter {
     }
 }
 
-fn convert_json_value_to_stark_felt(json_value: serde_json::Value) -> StateResult<StarkFelt> {
+fn convert_json_value_to_stark_felt(json_value: serde_json::Value) -> StateResult<Felt> {
     let str_value = json_value
         .as_str()
         .ok_or(StateError::StateReadError(format!("Could not convert {json_value} to felt")))?;
-    StarkFelt::try_from(str_value).map_err(|e| StateError::StateReadError(e.to_string()))
+    Felt::try_from(str_value).map_err(|e| StateError::StateReadError(e.to_string()))
 }
 
 fn convert_patricia_key_to_hex(key: PatriciaKey) -> StateResult<String> {
@@ -162,7 +161,7 @@ impl BlockingOriginReader {
         &self,
         contract_address: ContractAddress,
         key: StorageKey,
-    ) -> StateResult<StarkFelt> {
+    ) -> StateResult<Felt> {
         let storage = match self.send_body(
             "starknet_getStorageAt",
             serde_json::json!({

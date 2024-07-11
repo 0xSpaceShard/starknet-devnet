@@ -9,7 +9,7 @@ mod advancing_time_tests {
     use server::rpc_core::error::ErrorCode::InvalidParams;
     use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt, FunctionCall};
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::Provider;
 
@@ -50,7 +50,7 @@ mod advancing_time_tests {
         assert!(val1 <= upper_limit, "Failed inequation: {val1:?} <= {upper_limit:?}");
     }
 
-    pub async fn setup_timestamp_contract(devnet: &BackgroundDevnet) -> FieldElement {
+    pub async fn setup_timestamp_contract(devnet: &BackgroundDevnet) -> Felt {
         let (signer, address) = devnet.get_first_predeployed_account().await;
         let predeployed_account = SingleOwnerAccount::new(
             devnet.clone_provider(),
@@ -65,7 +65,7 @@ mod advancing_time_tests {
             get_block_reader_contract_in_sierra_and_compiled_class_hash();
         let declaration_result = predeployed_account
             .declare(Arc::new(cairo_1_contract), casm_class_hash)
-            .max_fee(FieldElement::from(100000000000000000000u128))
+            .max_fee(Felt::from(100000000000000000000u128))
             .send()
             .await
             .unwrap();
@@ -75,14 +75,14 @@ mod advancing_time_tests {
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
         contract_factory
-            .deploy(vec![], FieldElement::ZERO, false)
-            .max_fee(FieldElement::from(100000000000000000000u128))
+            .deploy(vec![], Felt::ZERO, false)
+            .max_fee(Felt::from(100000000000000000000u128))
             .send()
             .await
             .unwrap();
 
         get_udc_deployed_address(
-            FieldElement::ZERO,
+            Felt::ZERO,
             declaration_result.class_hash,
             &starknet_rs_core::utils::UdcUniqueness::NotUnique,
             &[],
@@ -91,7 +91,7 @@ mod advancing_time_tests {
 
     pub async fn get_current_timestamp(
         devnet: &BackgroundDevnet,
-        timestamp_contract_address: FieldElement,
+        timestamp_contract_address: Felt,
     ) -> u64 {
         let call_current_timestamp = FunctionCall {
             contract_address: timestamp_contract_address,

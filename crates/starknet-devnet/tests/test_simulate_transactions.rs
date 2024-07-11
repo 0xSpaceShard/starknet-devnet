@@ -13,7 +13,7 @@ mod simulation_tests {
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedInvokeTransaction, FieldElement, FunctionCall,
+        BlockId, BlockTag, BroadcastedInvokeTransaction, Felt, FunctionCall,
     };
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
@@ -103,8 +103,8 @@ mod simulation_tests {
         let contract_artifact: Arc<LegacyContractClass> =
             Arc::new(serde_json::from_value(contract_json.inner).unwrap());
 
-        let max_fee = FieldElement::ZERO; // TODO try 1e18 as u128 instead
-        let nonce = FieldElement::ZERO;
+        let max_fee = Felt::ZERO; // TODO try 1e18 as u128 instead
+        let nonce = Felt::ZERO;
 
         let signature = account
             .declare_legacy(contract_artifact.clone())
@@ -154,7 +154,7 @@ mod simulation_tests {
             resp_no_flags,
             resp_skip_validation,
             &sender_address_hex,
-            max_fee == FieldElement::ZERO,
+            max_fee == Felt::ZERO,
         );
     }
 
@@ -176,8 +176,8 @@ mod simulation_tests {
         let (flattened_contract_artifact, casm_hash) =
             get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH);
 
-        let max_fee = FieldElement::ZERO;
-        let nonce = FieldElement::ZERO;
+        let max_fee = Felt::ZERO;
+        let nonce = Felt::ZERO;
 
         let signature = account
             .declare(Arc::new(flattened_contract_artifact.clone()), casm_hash)
@@ -228,7 +228,7 @@ mod simulation_tests {
             resp_no_flags,
             resp_skip_validation,
             &sender_address_hex,
-            max_fee == FieldElement::ZERO,
+            max_fee == Felt::ZERO,
         );
     }
 
@@ -239,7 +239,7 @@ mod simulation_tests {
         // define the key of the new account - dummy value
         let new_account_signer = get_deployable_account_signer();
         let account_factory = OpenZeppelinAccountFactory::new(
-            FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            Felt::from_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
             CHAIN_ID,
             new_account_signer.clone(),
             devnet.clone_provider(),
@@ -247,11 +247,11 @@ mod simulation_tests {
         .await
         .unwrap();
 
-        let nonce = FieldElement::ZERO;
+        let nonce = Felt::ZERO;
         let salt_hex = "0x123";
-        let max_fee = FieldElement::from(1e18 as u128);
+        let max_fee = Felt::from(1e18 as u128);
         let deployment = account_factory
-            .deploy(FieldElement::from_hex_be(salt_hex).unwrap())
+            .deploy(Felt::from_hex(salt_hex).unwrap())
             .max_fee(max_fee)
             .nonce(nonce)
             .prepared()
@@ -367,7 +367,7 @@ mod simulation_tests {
 
         // deploy instance of class
         let contract_factory = ContractFactory::new(class_hash, account.clone());
-        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let salt = Felt::from_hex("0x123").unwrap();
         let constructor_calldata = vec![];
         let contract_address = get_udc_deployed_address(
             salt,
@@ -378,7 +378,7 @@ mod simulation_tests {
         contract_factory.deploy(constructor_calldata, salt, false).send().await.unwrap();
 
         // prepare the call used in simulation
-        let increase_amount = FieldElement::from(100u128);
+        let increase_amount = Felt::from(100u128);
         let invoke_calls = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("increase_balance").unwrap(),
@@ -386,8 +386,8 @@ mod simulation_tests {
         }];
 
         // TODO fails if max_fee too low, can be used to test reverted case
-        let max_fee = FieldElement::from(1e18 as u128);
-        let nonce = FieldElement::from(2_u32); // after declare+deploy
+        let max_fee = Felt::from(1e18 as u128);
+        let nonce = Felt::from(2_u32); // after declare+deploy
         let invoke_request = match account
             .execute(invoke_calls.clone())
             .max_fee(max_fee)
@@ -450,7 +450,7 @@ mod simulation_tests {
             resp_no_flags,
             resp_skip_validation,
             &sender_address_hex,
-            max_fee == FieldElement::ZERO,
+            max_fee == Felt::ZERO,
         );
 
         // assert simulations haven't changed the balance property
@@ -466,6 +466,6 @@ mod simulation_tests {
             )
             .await
             .unwrap();
-        assert_eq!(final_balance, vec![FieldElement::ZERO]);
+        assert_eq!(final_balance, vec![Felt::ZERO]);
     }
 }

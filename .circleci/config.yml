@@ -47,7 +47,7 @@ jobs:
       cargo_cache_key:
         type: string
     docker:
-      - image: cimg/rust:1.74.0
+      - image: cimg/rust:1.76.0
     resource_class: xlarge
     steps:
       - checkout
@@ -114,7 +114,7 @@ jobs:
           name: Install Rust
           command: |
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
-              sh -s -- -y --default-toolchain=1.74.0
+              sh -s -- -y --default-toolchain=1.76.0
       - run:
           name: Compile binary
           command: ./scripts/compile_binary.sh << parameters.target_triplet >>
@@ -152,7 +152,7 @@ jobs:
 
   publish:
     docker:
-      - image: cimg/rust:1.74.0-node
+      - image: cimg/rust:1.76.0-node
     resource_class: xlarge
     steps:
       - checkout

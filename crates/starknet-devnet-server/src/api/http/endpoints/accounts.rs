@@ -3,7 +3,7 @@ use axum::Json;
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::BlockTag;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::Felt;
+use starknet_rs_core::types::Felt;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 
 use super::mint_token::{get_balance, get_erc20_address};

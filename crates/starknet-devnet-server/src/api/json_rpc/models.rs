@@ -174,9 +174,9 @@ pub struct TransactionStatusOutput {
 
 #[cfg(test)]
 mod tests {
-    use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag, FieldElement};
+    use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag, Felt};
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::Felt;
+    use starknet_rs_core::types::Felt;
     use starknet_types::patricia_key::PatriciaKey;
     use starknet_types::rpc::block::BlockId;
     use starknet_types::rpc::transactions::{
@@ -390,11 +390,11 @@ mod tests {
             super::CallInput {
                 request: super::FunctionCall {
                     contract_address: ContractAddress::new(
-                        Felt::from_prefixed_hex_str("0x01").unwrap()
+                        Felt::from_hex("0x01").unwrap()
                     )
                     .unwrap(),
-                    entry_point_selector: Felt::from_prefixed_hex_str("0x02").unwrap(),
-                    calldata: vec![Felt::from_prefixed_hex_str("0x03").unwrap()],
+                    entry_point_selector: Felt::from_hex("0x02").unwrap(),
+                    calldata: vec![Felt::from_hex("0x03").unwrap()],
                 },
                 block_id: BlockId::from(ImportedBlockId::Number(1)),
             }
@@ -420,11 +420,11 @@ mod tests {
 
         let expected_storage_input = GetStorageInput {
             block_id: BlockId::from(ImportedBlockId::Hash(
-                FieldElement::from_hex_be("0x01").unwrap(),
+                Felt::from_hex("0x01").unwrap(),
             )),
-            contract_address: ContractAddress::new(Felt::from_prefixed_hex_str("0x02").unwrap())
+            contract_address: ContractAddress::new(Felt::from_hex("0x02").unwrap())
                 .unwrap(),
-            key: PatriciaKey::new(Felt::from_prefixed_hex_str("0x03").unwrap()).unwrap(),
+            key: PatriciaKey::new(Felt::from_hex("0x03").unwrap()).unwrap(),
         };
 
         assert_get_storage_input_correctness(
@@ -608,7 +608,7 @@ mod tests {
     ) {
         let is_correct =
             serde_json::from_str::<BlockIdInput>(json_str_block_id)
-                .map(|BlockIdInput { block_id }| matches!(block_id.as_ref(), ImportedBlockId::Hash(generated_block_hash) if *generated_block_hash == FieldElement::from_hex_be(expected_block_hash).unwrap()))
+                .map(|BlockIdInput { block_id }| matches!(block_id.as_ref(), ImportedBlockId::Hash(generated_block_hash) if *generated_block_hash == Felt::from_hex(expected_block_hash).unwrap()))
         .unwrap_or(false);
 
         assert_eq!(should_be_correct, is_correct)
@@ -623,7 +623,7 @@ mod tests {
             serde_json::from_str::<super::TransactionHashInput>(json_str_transaction_hash)
         {
             transaction_hash_input.transaction_hash
-                == Felt::from_prefixed_hex_str(expected_transaction_hash).unwrap()
+                == Felt::from_hex(expected_transaction_hash).unwrap()
         } else {
             false
         };

@@ -75,12 +75,11 @@ mod tests {
 
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
-    use starknet_api::hash::StarkFelt;
     use starknet_api::transaction::{Fee, Tip};
+    use starknet_rs_core::types::Felt;
     use starknet_rs_core::types::{
         BlockId, BlockTag, TransactionExecutionStatus, TransactionFinalityStatus,
     };
-    use starknet_rs_ff::FieldElement;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::{ClassHash, Felt};
@@ -130,8 +129,7 @@ mod tests {
     fn account_deploy_transaction_v3_with_query_version_should_return_an_error() {
         let mut deploy_account_transaction =
             test_deploy_account_transaction_v3(Felt::default(), 0, 10);
-        deploy_account_transaction.common.version =
-            (FieldElement::from(3u8) + QUERY_VERSION_OFFSET).into();
+        deploy_account_transaction.common.version = (Felt::from(3u8) + QUERY_VERSION_OFFSET).into();
 
         let txn_err = Starknet::default()
             .add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(
@@ -272,7 +270,7 @@ mod tests {
                 .try_into()
                 .unwrap();
 
-        let account_balance_before_deployment = StarkFelt::from_u128(1000000);
+        let account_balance_before_deployment = Felt::from_u128(1000000);
         starknet
             .pending_state
             .set_storage_at(
@@ -312,7 +310,7 @@ mod tests {
                 .try_into()
                 .unwrap();
 
-        let account_balance_before_deployment = StarkFelt::from_u128(1000000);
+        let account_balance_before_deployment = Felt::from_u128(1000000);
         let fee_token_address =
             starknet.block_context.chain_info().fee_token_addresses.strk_fee_token_address;
         starknet
@@ -370,7 +368,7 @@ mod tests {
                 .try_into()
                 .unwrap();
 
-        let account_balance_before_deployment = StarkFelt::from_u128(1000000);
+        let account_balance_before_deployment = Felt::from_u128(1000000);
         starknet
             .pending_state
             .set_storage_at(

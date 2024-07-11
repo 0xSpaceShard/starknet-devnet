@@ -17,14 +17,13 @@ use starknet_api::block::BlockNumber;
 use starknet_api::core::calculate_contract_address;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::deprecated_contract_class::EntryPointType;
-use starknet_api::hash::StarkFelt;
 use starknet_api::transaction::{Fee, Resource, Tip};
 use starknet_rs_core::crypto::compute_hash_on_elements;
+use starknet_rs_core::types::Felt;
 use starknet_rs_core::types::{
     BlockId, ExecutionResult, ResourceBounds, ResourceBoundsMapping, TransactionFinalityStatus,
 };
 use starknet_rs_crypto::poseidon_hash_many;
-use starknet_rs_ff::FieldElement;
 
 use self::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use self::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
@@ -50,11 +49,10 @@ use crate::contract_class::{compute_sierra_class_hash, ContractClass};
 use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::felt::{
-    BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash, TransactionSignature,
+    BlockHash, Calldata, EntryPointSelector, Nonce, TransactionHash, TransactionSignature,
     TransactionVersion,
 };
 use crate::rpc::transaction_receipt::{CommonTransactionReceipt, MaybePendingProperties};
-use crate::utils::into_vec;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
 pub mod broadcasted_declare_transaction_v1;
@@ -74,7 +72,7 @@ pub mod deploy_transaction;
 pub mod invoke_transaction_v1;
 pub mod invoke_transaction_v3;
 
-/// number of bits to be shifted when encoding the data availability mode into `FieldElement` type
+/// number of bits to be shifted when encoding the data availability mode into `Felt` type
 const DATA_AVAILABILITY_MODE_BITS: u8 = 32;
 
 pub mod l1_handler_transaction;
@@ -355,7 +353,7 @@ impl BroadcastedTransactionCommonV3 {
         l1_is_zero || l2_is_not_zero
     }
 
-    /// Returns an array of FieldElements that reflects the `common_tx_fields` according to SNIP-8(https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md/#protocol-changes).
+    /// Returns an array of Felts that reflects the `common_tx_fields` according to SNIP-8(https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md/#protocol-changes).
     ///
     /// # Arguments
     /// tx_prefix - the prefix of the transaction hash
@@ -363,11 +361,11 @@ impl BroadcastedTransactionCommonV3 {
     /// address - the address of the sender
     pub(crate) fn common_fields_for_hash(
         &self,
-        tx_prefix: FieldElement,
-        chain_id: FieldElement,
-        address: FieldElement,
-    ) -> Result<Vec<FieldElement>, Error> {
-        let array: Vec<FieldElement> = vec![
+        tx_prefix: Felt,
+        chain_id: Felt,
+        address: Felt,
+    ) -> Result<Vec<Felt>, Error> {
+        let array: Vec<Felt> = vec![
             tx_prefix,                                                        // TX_PREFIX
             self.version.into(),                                              // version
             address,                                                          // address
@@ -375,8 +373,8 @@ impl BroadcastedTransactionCommonV3 {
             poseidon_hash_many(
                 self.paymaster_data
                     .iter()
-                    .map(|f| FieldElement::from(*f))
-                    .collect::<Vec<FieldElement>>()
+                    .map(|f| Felt::from(*f))
+                    .collect::<Vec<Felt>>()
                     .as_slice(),
             ), // h(paymaster_data)
             chain_id,                                                         // chain_id
@@ -388,15 +386,15 @@ impl BroadcastedTransactionCommonV3 {
         Ok(array)
     }
 
-    /// Returns the array of FieldElements that reflects (tip, resource_bounds_for_fee) from SNIP-8
-    pub(crate) fn get_resource_bounds_array(&self) -> Result<Vec<FieldElement>, Error> {
-        let mut array = Vec::<FieldElement>::new();
-        array.push(FieldElement::from(self.tip.0));
+    /// Returns the array of Felts that reflects (tip, resource_bounds_for_fee) from SNIP-8
+    pub(crate) fn get_resource_bounds_array(&self) -> Result<Vec<Felt>, Error> {
+        let mut array = Vec::<Felt>::new();
+        array.push(Felt::from(self.tip.0));
 
         fn field_element_from_resource_bounds(
             resource: Resource,
             resource_bounds: &ResourceBounds,
-        ) -> Result<FieldElement, Error> {
+        ) -> Result<Felt, Error> {
             let resource_name_as_json_string =
                 serde_json::to_value(resource).map_err(JsonError::SerdeJsonError)?;
 
@@ -418,7 +416,7 @@ impl BroadcastedTransactionCommonV3 {
             .copied()
             .collect();
 
-            Ok(FieldElement::from_byte_slice_be(bytes.as_slice())?)
+            Ok(Felt::from_bytes_be_slice(&bytes))
         }
         array.push(field_element_from_resource_bounds(
             Resource::L1Gas,
@@ -432,8 +430,8 @@ impl BroadcastedTransactionCommonV3 {
         Ok(array)
     }
 
-    /// Returns FieldElement that encodes the data availability modes of the transaction
-    pub(crate) fn get_data_availability_modes_field_element(&self) -> FieldElement {
+    /// Returns Felt that encodes the data availability modes of the transaction
+    pub(crate) fn get_data_availability_modes_field_element(&self) -> Felt {
         fn get_data_availability_mode_value_as_u64(
             data_availability_mode: DataAvailabilityMode,
         ) -> u64 {
@@ -448,7 +446,7 @@ impl BroadcastedTransactionCommonV3 {
         let da_mode =
             da_mode + get_data_availability_mode_value_as_u64(self.fee_data_availability_mode);
 
-        FieldElement::from(da_mode)
+        Felt::from(da_mode)
     }
 }
 
@@ -491,7 +489,7 @@ impl BroadcastedTransaction {
     }
 
     pub(crate) fn is_query_only_version(version: Felt) -> bool {
-        FieldElement::from(version) > QUERY_VERSION_OFFSET
+        Felt::from(version) > QUERY_VERSION_OFFSET
     }
 }
 
@@ -538,7 +536,7 @@ impl BroadcastedDeclareTransaction {
 
                 let sn_api_declare = starknet_api::transaction::DeclareTransaction::V1(
                     starknet_api::transaction::DeclareTransactionV0V1 {
-                        class_hash: class_hash.into(),
+                        class_hash: starknet_api::core::ClassHash(class_hash),
                         sender_address: v1.sender_address.try_into()?,
                         nonce: starknet_api::core::Nonce(v1.common.nonce.into()),
                         max_fee: v1.common.max_fee,
@@ -563,8 +561,10 @@ impl BroadcastedDeclareTransaction {
                             v2.common.signature.iter().map(|&felt| felt.into()).collect(),
                         ),
                         nonce: starknet_api::core::Nonce(v2.common.nonce.into()),
-                        class_hash: sierra_class_hash.into(),
-                        compiled_class_hash: v2.compiled_class_hash.into(),
+                        class_hash: starknet_api::core::ClassHash(sierra_class_hash),
+                        compiled_class_hash: starknet_api::core::CompiledClassHash(
+                            v2.compiled_class_hash,
+                        ),
                         sender_address: v2.sender_address.try_into()?,
                     },
                 );
@@ -573,10 +573,10 @@ impl BroadcastedDeclareTransaction {
                     PREFIX_DECLARE,
                     v2.common.version.into(),
                     v2.sender_address.into(),
-                    FieldElement::ZERO, // entry_point_selector
+                    Felt::ZERO, // entry_point_selector
                     compute_hash_on_elements(&[sierra_class_hash.into()]),
                     v2.common.max_fee.0.into(),
-                    FieldElement::from(chain_id),
+                    *chain_id,
                     v2.common.nonce.into(),
                     v2.compiled_class_hash.into(),
                 ])
@@ -596,22 +596,22 @@ impl BroadcastedDeclareTransaction {
                     starknet_api::transaction::DeclareTransactionV3 {
                         resource_bounds: (&v3.common.resource_bounds).into(),
                         tip: v3.common.tip,
-                        signature: starknet_api::transaction::TransactionSignature(into_vec(
-                            &v3.common.signature,
-                        )),
+                        signature: starknet_api::transaction::TransactionSignature(
+                            v3.common.signature,
+                        ),
                         nonce: starknet_api::core::Nonce(v3.common.nonce.into()),
                         class_hash: starknet_api::core::ClassHash(sierra_class_hash.into()),
                         compiled_class_hash: starknet_api::core::CompiledClassHash(
-                            v3.compiled_class_hash.into(),
+                            v3.compiled_class_hash,
                         ),
                         sender_address: v3.sender_address.try_into()?,
                         nonce_data_availability_mode: v3.common.nonce_data_availability_mode,
                         fee_data_availability_mode: v3.common.fee_data_availability_mode,
-                        paymaster_data: starknet_api::transaction::PaymasterData(into_vec(
-                            &v3.common.paymaster_data,
-                        )),
+                        paymaster_data: starknet_api::transaction::PaymasterData(
+                            v3.common.paymaster_data,
+                        ),
                         account_deployment_data: starknet_api::transaction::AccountDeploymentData(
-                            into_vec(&v3.account_deployment_data),
+                            v3.account_deployment_data,
                         ),
                     },
                 );
@@ -681,42 +681,38 @@ impl BroadcastedDeployAccountTransaction {
                 let contract_address = calculate_contract_address(
                     starknet_api::transaction::ContractAddressSalt(v1.contract_address_salt.into()),
                     starknet_api::core::ClassHash(v1.class_hash.into()),
-                    &starknet_api::transaction::Calldata(Arc::new(
-                        v1.constructor_calldata.iter().map(|felt| felt.into()).collect(),
-                    )),
+                    &starknet_api::transaction::Calldata(Arc::new(v1.constructor_calldata)),
                     starknet_api::core::ContractAddress::from(0u8),
                 )?;
 
                 let mut calldata_to_hash = vec![v1.class_hash, v1.contract_address_salt];
                 calldata_to_hash.extend(v1.constructor_calldata.iter());
 
-                let calldata_to_hash: Vec<FieldElement> =
-                    calldata_to_hash.into_iter().map(FieldElement::from).collect();
+                let calldata_to_hash: Vec<Felt> =
+                    calldata_to_hash.into_iter().map(Felt::from).collect();
 
                 let transaction_hash: Felt = compute_hash_on_elements(&[
                     PREFIX_DEPLOY_ACCOUNT,
                     v1.common.version.into(),
                     ContractAddress::from(contract_address).into(),
-                    FieldElement::ZERO, // entry_point_selector
+                    Felt::ZERO, // entry_point_selector
                     compute_hash_on_elements(&calldata_to_hash),
                     v1.common.max_fee.0.into(),
-                    chain_id.into(),
+                    *chain_id,
                     v1.common.nonce.into(),
                 ])
                 .into();
 
                 let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV1 {
                     max_fee: v1.common.max_fee,
-                    signature: starknet_api::transaction::TransactionSignature(
-                        v1.common.signature.iter().map(|felt| felt.into()).collect(),
-                    ),
+                    signature: starknet_api::transaction::TransactionSignature(v1.common.signature),
                     nonce: starknet_api::core::Nonce(v1.common.nonce.into()),
-                    class_hash: v1.class_hash.into(),
+                    class_hash: starknet_api::core::ClassHash(v1.class_hash),
                     contract_address_salt: starknet_api::transaction::ContractAddressSalt(
                         v1.contract_address_salt.into(),
                     ),
                     constructor_calldata: starknet_api::transaction::Calldata(Arc::new(
-                        v1.constructor_calldata.iter().map(|felt| felt.into()).collect(),
+                        v1.constructor_calldata,
                     )),
                 };
 
@@ -740,22 +736,20 @@ impl BroadcastedDeployAccountTransaction {
                 let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV3 {
                     resource_bounds: (&v3.common.resource_bounds).into(),
                     tip: v3.common.tip,
-                    signature: starknet_api::transaction::TransactionSignature(into_vec(
-                        &v3.common.signature,
-                    )),
+                    signature: starknet_api::transaction::TransactionSignature(v3.common.signature),
                     nonce: starknet_api::core::Nonce(v3.common.nonce.into()),
                     class_hash: starknet_api::core::ClassHash(v3.class_hash.into()),
                     nonce_data_availability_mode: v3.common.nonce_data_availability_mode,
                     fee_data_availability_mode: v3.common.fee_data_availability_mode,
-                    paymaster_data: starknet_api::transaction::PaymasterData(into_vec(
-                        &v3.common.paymaster_data,
-                    )),
+                    paymaster_data: starknet_api::transaction::PaymasterData(
+                        v3.common.paymaster_data,
+                    ),
                     contract_address_salt: starknet_api::transaction::ContractAddressSalt(
                         v3.contract_address_salt.into(),
                     ),
-                    constructor_calldata: starknet_api::transaction::Calldata(Arc::new(into_vec(
-                        &v3.constructor_calldata,
-                    ))),
+                    constructor_calldata: starknet_api::transaction::Calldata(Arc::new(
+                        v3.constructor_calldata,
+                    )),
                 };
 
                 (
@@ -817,29 +811,22 @@ impl BroadcastedInvokeTransaction {
                     PREFIX_INVOKE,
                     v1.common.version.into(), // version
                     v1.sender_address.into(),
-                    FieldElement::ZERO, // entry_point_selector
+                    Felt::ZERO, // entry_point_selector
                     compute_hash_on_elements(
-                        &v1.calldata
-                            .iter()
-                            .map(|felt| FieldElement::from(*felt))
-                            .collect::<Vec<FieldElement>>(),
+                        &v1.calldata.iter().map(|felt| Felt::from(*felt)).collect::<Vec<Felt>>(),
                     ),
                     v1.common.max_fee.0.into(),
-                    chain_id.into(),
+                    *chain_id,
                     v1.common.nonce.into(),
                 ])
                 .into();
 
                 let sn_api_transaction = starknet_api::transaction::InvokeTransactionV1 {
                     max_fee: v1.common.max_fee,
-                    signature: starknet_api::transaction::TransactionSignature(
-                        v1.common.signature.iter().map(|f| f.into()).collect(),
-                    ),
+                    signature: starknet_api::transaction::TransactionSignature(v1.common.signature),
                     nonce: starknet_api::core::Nonce(v1.common.nonce.into()),
                     sender_address: v1.sender_address.try_into()?,
-                    calldata: starknet_api::transaction::Calldata(Arc::new(
-                        v1.calldata.iter().map(StarkFelt::from).collect::<Vec<StarkFelt>>(),
-                    )),
+                    calldata: starknet_api::transaction::Calldata(Arc::new(v1.calldata)),
                 };
 
                 (
@@ -854,21 +841,17 @@ impl BroadcastedInvokeTransaction {
                 let sn_api_transaction = starknet_api::transaction::InvokeTransactionV3 {
                     resource_bounds: (&v3.common.resource_bounds).into(),
                     tip: v3.common.tip,
-                    signature: starknet_api::transaction::TransactionSignature(into_vec(
-                        &v3.common.signature,
-                    )),
+                    signature: starknet_api::transaction::TransactionSignature(v3.common.signature),
                     nonce: starknet_api::core::Nonce(v3.common.nonce.into()),
                     sender_address: v3.sender_address.try_into()?,
-                    calldata: starknet_api::transaction::Calldata(Arc::new(
-                        v3.calldata.iter().map(StarkFelt::from).collect::<Vec<StarkFelt>>(),
-                    )),
+                    calldata: starknet_api::transaction::Calldata(Arc::new(v3.calldata)),
                     nonce_data_availability_mode: v3.common.nonce_data_availability_mode,
                     fee_data_availability_mode: v3.common.fee_data_availability_mode,
                     paymaster_data: starknet_api::transaction::PaymasterData(
-                        v3.common.paymaster_data.iter().map(|f| f.into()).collect(),
+                        v3.common.paymaster_data,
                     ),
                     account_deployment_data: starknet_api::transaction::AccountDeploymentData(
-                        v3.account_deployment_data.iter().map(|f| f.into()).collect(),
+                        v3.account_deployment_data,
                     ),
                 };
 
@@ -1126,7 +1109,7 @@ impl FunctionInvocation {
             entry_point_selector: call_info.call.entry_point_selector.0.into(),
             calldata: call_info.call.calldata.0.iter().map(|f| Felt::from(*f)).collect(),
             caller_address: call_info.call.caller_address.into(),
-            class_hash: class_hash.into(),
+            class_hash: class_hash.0,
             entry_point_type: call_info.call.entry_point_type,
             call_type: match call_info.call.call_type {
                 blockifier::execution::entry_point::CallType::Call => CallType::Call,
@@ -1143,8 +1126,8 @@ impl FunctionInvocation {
 
 #[cfg(test)]
 mod tests {
+    use starknet_rs_core::types::Felt;
     use starknet_rs_crypto::poseidon_hash_many;
-    use starknet_rs_ff::FieldElement;
 
     use super::BroadcastedTransactionCommonV3;
 
@@ -1182,10 +1165,9 @@ mod tests {
         let common_fields_hash =
             poseidon_hash_many(&common_fields.get_resource_bounds_array().unwrap());
 
-        let expected_hash: FieldElement = FieldElement::from_hex_be(
-            "0x07be65f04548dfe645c70f07d1f8ead572c09e0e6e125c47d4cc22b4de3597cc",
-        )
-        .unwrap();
+        let expected_hash: Felt =
+            Felt::from_hex("0x07be65f04548dfe645c70f07d1f8ead572c09e0e6e125c47d4cc22b4de3597cc")
+                .unwrap();
 
         assert_eq!(common_fields_hash, expected_hash);
     }

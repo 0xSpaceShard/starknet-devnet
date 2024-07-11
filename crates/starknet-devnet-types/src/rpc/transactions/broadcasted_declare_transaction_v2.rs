@@ -50,10 +50,9 @@ mod tests {
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
     use crate::contract_class::ContractClass;
-    use crate::felt::Felt;
     use crate::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use crate::rpc::transactions::BroadcastedDeclareTransaction;
-    use crate::traits::ToHexString;
+    use starknet_rs_core::types::Felt;
 
     #[derive(Deserialize)]
     struct FeederGatewayDeclareTransactionV2 {
@@ -93,11 +92,7 @@ mod tests {
             &cairo_1_contract,
             feeder_gateway_transaction.compiled_class_hash,
             ContractAddress::new(feeder_gateway_transaction.sender_address).unwrap(),
-            Fee(u128::from_str_radix(
-                &feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(),
-                16,
-            )
-            .unwrap()),
+            Fee(feeder_gateway_transaction.max_fee.to_bigint().try_into().unwrap()),
             &vec![],
             feeder_gateway_transaction.nonce,
             feeder_gateway_transaction.version,
@@ -110,7 +105,7 @@ mod tests {
 
         assert_eq!(
             feeder_gateway_transaction.class_hash,
-            blockifier_declare_transaction.class_hash().into()
+            blockifier_declare_transaction.class_hash().0
         );
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,

@@ -20,7 +20,7 @@ mod dump_and_load_tests {
 
     use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::FieldElement;
+    use starknet_rs_core::types::Felt;
 
     use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
 
@@ -85,10 +85,10 @@ mod dump_and_load_tests {
         assert_eq!(last_block.block_number, 4);
 
         let loaded_balance = devnet_load
-            .get_balance_latest(&FieldElement::from(DUMMY_ADDRESS), FeeUnit::WEI)
+            .get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI)
             .await
             .unwrap();
-        assert_eq!(loaded_balance, FieldElement::from(DUMMY_AMOUNT * 2));
+        assert_eq!(loaded_balance, Felt::from(DUMMY_AMOUNT * 2));
     }
 
     #[tokio::test]
@@ -266,7 +266,7 @@ mod dump_and_load_tests {
         // declare the contract
         let declaration_result = predeployed_account
             .declare(Arc::new(cairo_1_contract), casm_class_hash)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
             .unwrap();
@@ -277,8 +277,8 @@ mod dump_and_load_tests {
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
         let deploy_result = contract_factory
-            .deploy(vec![], FieldElement::ZERO, false)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .deploy(vec![], Felt::ZERO, false)
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
             .unwrap();
@@ -454,7 +454,7 @@ mod dump_and_load_tests {
             .unwrap();
 
         let balance_result = devnet_load
-            .get_balance_latest(&FieldElement::from(DUMMY_ADDRESS), FeeUnit::WEI)
+            .get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI)
             .await
             .unwrap();
         assert_eq!(balance_result, DUMMY_AMOUNT.into());

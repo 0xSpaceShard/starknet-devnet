@@ -11,7 +11,7 @@ mod test_restart {
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
     use starknet_rs_core::utils::get_storage_var_address;
     use starknet_rs_providers::{Provider, ProviderError};
     use starknet_types::rpc::transaction_receipt::FeeUnit;
@@ -33,7 +33,7 @@ mod test_restart {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
         // generate dummy tx
-        let mint_hash = devnet.mint(FieldElement::ONE, 100).await;
+        let mint_hash = devnet.mint(Felt::ONE, 100).await;
         assert!(devnet.json_rpc_client.get_transaction_by_hash(mint_hash).await.is_ok());
 
         devnet.restart().await;
@@ -54,7 +54,7 @@ mod test_restart {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
         // change storage
-        let dummy_address = FieldElement::from_hex_be("0x1").unwrap();
+        let dummy_address = Felt::from_hex("0x1").unwrap();
         let mint_amount = 100;
         devnet.mint(dummy_address, mint_amount).await;
 
@@ -62,19 +62,19 @@ mod test_restart {
         let storage_key = get_storage_var_address("ERC20_balances", &[dummy_address]).unwrap();
         let get_storage = || {
             devnet.json_rpc_client.get_storage_at(
-                FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
+                Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
                 storage_key,
                 BlockId::Tag(BlockTag::Latest),
             )
         };
 
         let storage_value_before = get_storage().await.unwrap();
-        assert_eq!(storage_value_before, FieldElement::from(mint_amount));
+        assert_eq!(storage_value_before, Felt::from(mint_amount));
 
         devnet.restart().await;
 
         let storage_value_after = get_storage().await.unwrap();
-        assert_eq!(storage_value_after, FieldElement::ZERO);
+        assert_eq!(storage_value_after, Felt::ZERO);
     }
 
     #[tokio::test]
@@ -84,15 +84,15 @@ mod test_restart {
         // deploy new account
         let account_signer = get_deployable_account_signer();
         let account_factory = OpenZeppelinAccountFactory::new(
-            FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            Felt::from_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
             CHAIN_ID,
             account_signer.clone(),
             devnet.clone_provider(),
         )
         .await
         .unwrap();
-        let salt = FieldElement::ONE;
-        let deployment = account_factory.deploy(salt).max_fee(FieldElement::from(1e18 as u128));
+        let salt = Felt::ONE;
+        let deployment = account_factory.deploy(salt).max_fee(Felt::from(1e18 as u128));
         let deployment_address = deployment.address();
         devnet.mint(deployment_address, 1e18 as u128).await;
         deployment.send().await.unwrap();
@@ -148,7 +148,7 @@ mod test_restart {
             .estimate_fee()
             .await
             .unwrap();
-        assert_eq!(estimate_before.gas_price, FieldElement::from(expected_gas_price));
+        assert_eq!(estimate_before.gas_price, Felt::from(expected_gas_price));
 
         devnet.restart().await;
 
@@ -174,7 +174,7 @@ mod test_restart {
 
         let balance_before =
             devnet.get_balance_latest(&predeployed_account_address, FeeUnit::WEI).await.unwrap();
-        assert_eq!(balance_before, FieldElement::from(initial_balance));
+        assert_eq!(balance_before, Felt::from(initial_balance));
 
         devnet.restart().await;
 
@@ -198,7 +198,7 @@ mod test_restart {
         devnet.restart().await;
 
         // send a dummy tx; otherwise there's no dump
-        devnet.mint(FieldElement::ONE, 1).await;
+        devnet.mint(Felt::ONE, 1).await;
 
         // assert dump file not already here
         assert!(!Path::new(dump_file_name).exists());
@@ -223,7 +223,7 @@ mod test_restart {
         .unwrap();
 
         // send a dummy tx; otherwise there's no dump
-        let tx_hash = devnet.mint(FieldElement::ONE, 1).await;
+        let tx_hash = devnet.mint(Felt::ONE, 1).await;
 
         send_ctrl_c_signal_and_wait(&devnet.process).await;
         assert!(Path::new(dump_file_name).exists());

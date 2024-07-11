@@ -124,11 +124,10 @@ async fn check_forking_chain_id(
     devnet_chain_id: ChainId,
 ) -> Result<(), anyhow::Error> {
     let origin_chain_id = client.chain_id().await?;
-    let devnet_chain_id_felt = devnet_chain_id.into();
-    if origin_chain_id != devnet_chain_id_felt {
+    if origin_chain_id != devnet_chain_id {
         warn!(
             "Origin chain ID ({:#x}) does not match this Devnet's chain ID ({:#x}).",
-            origin_chain_id, devnet_chain_id_felt
+            origin_chain_id, devnet_chain_id
         );
     }
     Ok(())

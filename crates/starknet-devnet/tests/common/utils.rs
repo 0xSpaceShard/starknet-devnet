@@ -15,7 +15,7 @@ use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{
     BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult,
-    FieldElement, FlattenedSierraClass, FunctionCall,
+    Felt, FlattenedSierraClass, FunctionCall,
 };
 use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -26,8 +26,8 @@ use super::background_devnet::BackgroundDevnet;
 use super::constants::{ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_CONTRACT_PATH, CHAIN_ID};
 
 pub enum ImpersonationAction {
-    ImpersonateAccount(FieldElement),
-    StopImpersonateAccount(FieldElement),
+    ImpersonateAccount(Felt),
+    StopImpersonateAccount(Felt),
     AutoImpersonate,
     StopAutoImpersonate,
 }
@@ -36,7 +36,7 @@ pub enum ImpersonationAction {
 pub fn get_deployable_account_signer() -> LocalWallet {
     let new_account_private_key = "0xc248668388dbe9acdfa3bc734cc2d57a";
     starknet_rs_signers::LocalWallet::from(starknet_rs_signers::SigningKey::from_secret_scalar(
-        FieldElement::from_hex_be(new_account_private_key).unwrap(),
+        Felt::from_hex(new_account_private_key).unwrap(),
     ))
 }
 
@@ -59,7 +59,7 @@ pub fn load_json<T: serde::de::DeserializeOwned>(path: &str) -> T {
     loaded
 }
 
-pub type SierraWithCasmHash = (FlattenedSierraClass, FieldElement);
+pub type SierraWithCasmHash = (FlattenedSierraClass, Felt);
 
 pub fn get_flattened_sierra_contract_and_casm_hash(sierra_path: &str) -> SierraWithCasmHash {
     let sierra_string = std::fs::read_to_string(sierra_path).unwrap();
@@ -99,7 +99,7 @@ pub fn get_simple_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasm
     get_flattened_sierra_contract_and_casm_hash(&contract_path)
 }
 
-pub async fn assert_tx_successful<T: Provider>(tx_hash: &FieldElement, client: &T) {
+pub async fn assert_tx_successful<T: Provider>(tx_hash: &Felt, client: &T) {
     let receipt = client.get_transaction_receipt(tx_hash).await.unwrap();
     match receipt.execution_result() {
         ExecutionResult::Succeeded => (),
@@ -114,16 +114,16 @@ pub async fn assert_tx_successful<T: Provider>(tx_hash: &FieldElement, client: &
 
 pub async fn get_contract_balance(
     devnet: &BackgroundDevnet,
-    contract_address: FieldElement,
-) -> FieldElement {
+    contract_address: Felt,
+) -> Felt {
     get_contract_balance_by_block_id(devnet, contract_address, BlockId::Tag(BlockTag::Latest)).await
 }
 
 pub async fn get_contract_balance_by_block_id(
     devnet: &BackgroundDevnet,
-    contract_address: FieldElement,
+    contract_address: Felt,
     block_id: BlockId,
-) -> FieldElement {
+) -> Felt {
     let contract_call = FunctionCall {
         contract_address,
         entry_point_selector: get_selector_from_name("get_balance").unwrap(),
@@ -139,7 +139,7 @@ pub async fn get_contract_balance_by_block_id(
 }
 
 pub async fn assert_tx_reverted<T: Provider>(
-    tx_hash: &FieldElement,
+    tx_hash: &Felt,
     client: &T,
     expected_failure_reasons: &[&str],
 ) {
@@ -147,7 +147,7 @@ pub async fn assert_tx_reverted<T: Provider>(
     match receipt.execution_result() {
         ExecutionResult::Reverted { reason } => {
             for expected_reason in expected_failure_reasons {
-                assert_contains(reason, expected_reason);
+                assert_contains(&reason, expected_reason);
             }
         }
         other => panic!("Should have reverted; got: {other:?}; receipt: {receipt:?}"),
@@ -253,27 +253,27 @@ impl Drop for UniqueAutoDeletableFile {
 pub async fn declare_deploy(
     account: Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>,
     contract_class: FlattenedSierraClass,
-    casm_hash: FieldElement,
-    ctor_args: &[FieldElement],
-) -> Result<(FieldElement, FieldElement), anyhow::Error> {
+    casm_hash: Felt,
+    ctor_args: &[Felt],
+) -> Result<(Felt, Felt), anyhow::Error> {
     // declare the contract
     let declaration_result = account
         .declare(Arc::new(contract_class), casm_hash)
-        .max_fee(FieldElement::from(1e18 as u128))
+        .max_fee(Felt::from(1e18 as u128))
         .send()
         .await?;
 
     // deploy the contract
     let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
     contract_factory
-        .deploy(ctor_args.to_vec(), FieldElement::ZERO, false)
-        .max_fee(FieldElement::from(1e18 as u128))
+        .deploy(ctor_args.to_vec(), Felt::ZERO, false)
+        .max_fee(Felt::from(1e18 as u128))
         .send()
         .await?;
 
     // generate the address of the newly deployed contract
     let contract_address = get_udc_deployed_address(
-        FieldElement::ZERO,
+        Felt::ZERO,
         declaration_result.class_hash,
         &starknet_rs_core::utils::UdcUniqueness::NotUnique,
         ctor_args,
@@ -287,9 +287,9 @@ pub async fn deploy_oz_account(
     devnet: &BackgroundDevnet,
 ) -> Result<(DeployAccountTransactionResult, LocalWallet), anyhow::Error> {
     let signer = get_deployable_account_signer();
-    let salt = FieldElement::THREE;
+    let salt = Felt::THREE;
     let factory = OpenZeppelinAccountFactory::new(
-        FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH)?,
+        Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH)?,
         CHAIN_ID,
         signer.clone(),
         devnet.clone_provider(),
@@ -310,11 +310,11 @@ pub async fn deploy_argent_account(
     devnet: &BackgroundDevnet,
 ) -> Result<(DeployAccountTransactionResult, LocalWallet), anyhow::Error> {
     let signer = get_deployable_account_signer();
-    let salt = FieldElement::THREE;
+    let salt = Felt::THREE;
     let factory = ArgentAccountFactory::new(
-        FieldElement::from_hex_be(ARGENT_ACCOUNT_CLASS_HASH)?,
+        Felt::from_hex(ARGENT_ACCOUNT_CLASS_HASH)?,
         CHAIN_ID,
-        FieldElement::ZERO,
+        Felt::ZERO,
         signer.clone(),
         devnet.clone_provider(),
     )

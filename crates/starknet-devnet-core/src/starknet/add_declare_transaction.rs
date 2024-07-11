@@ -141,16 +141,13 @@ fn assert_casm_hash_is_valid(
 mod tests {
     use blockifier::state::state_api::StateReader;
     use starknet_api::core::CompiledClassHash;
-    use starknet_api::hash::StarkHash;
     use starknet_api::transaction::Fee;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, TransactionExecutionStatus, TransactionFinalityStatus,
+        BlockId, BlockTag, Felt, TransactionExecutionStatus, TransactionFinalityStatus
     };
-    use starknet_rs_ff::FieldElement;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
-    use starknet_types::felt::Felt;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
@@ -195,7 +192,7 @@ mod tests {
 
         let mut declare_transaction = convert_broadcasted_declare_v2_to_v3(declare_transaction);
         declare_transaction.common.version =
-            (FieldElement::from(3u8) + QUERY_VERSION_OFFSET).into();
+            (Felt::from(3u8) + QUERY_VERSION_OFFSET).into();
 
         let result = Starknet::default().add_declare_transaction(
             BroadcastedDeclareTransaction::V3(Box::new(declare_transaction)),
@@ -360,7 +357,7 @@ mod tests {
         assert!(!starknet.pending_state.is_contract_declared(expected_class_hash));
         assert_eq!(
             starknet.pending_state.get_compiled_class_hash(expected_class_hash.into()).unwrap(),
-            CompiledClassHash(StarkHash::ZERO)
+            CompiledClassHash(Felt::ZERO)
         );
         assert!(starknet.get_class(&BlockId::Tag(BlockTag::Latest), expected_class_hash).is_err());
 

@@ -9,7 +9,7 @@ mod get_transaction_by_hash_integration_tests {
         SingleOwnerAccount,
     };
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
+    use starknet_rs_core::types::{BlockId, BlockTag, StarknetError};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::{Provider, ProviderError};
 
@@ -46,7 +46,7 @@ mod get_transaction_by_hash_integration_tests {
 
         let declare_transaction = account
             .declare_legacy(Arc::new(legacy_contract_class))
-            .nonce(FieldElement::ZERO)
+            .nonce(Felt::ZERO)
             .send()
             .await
             .unwrap();
@@ -72,7 +72,7 @@ mod get_transaction_by_hash_integration_tests {
 
         let declare_result = account
             .declare(Arc::new(contract_class), casm_hash)
-            .nonce(FieldElement::ZERO)
+            .nonce(Felt::ZERO)
             .send()
             .await
             .unwrap();
@@ -87,7 +87,7 @@ mod get_transaction_by_hash_integration_tests {
         let signer = get_deployable_account_signer();
 
         let factory = OpenZeppelinAccountFactory::new(
-            FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            Felt::from_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
             constants::CHAIN_ID,
             signer,
             devnet.clone_provider(),
@@ -95,14 +95,14 @@ mod get_transaction_by_hash_integration_tests {
         .await
         .unwrap();
 
-        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let salt = Felt::from_hex("0x123").unwrap();
         let deployment = factory.deploy(salt);
         let deployment_address = deployment.address();
         let fee_estimation =
             factory.deploy(salt).fee_estimate_multiplier(1.0).estimate_fee().await.unwrap();
 
         // fund the account before deployment
-        let mint_amount = fee_estimation.overall_fee * FieldElement::TWO;
+        let mint_amount = fee_estimation.overall_fee * Felt::TWO;
         devnet.mint(deployment_address, mint_amount.try_into().unwrap()).await;
 
         let deploy_account_result = deployment.send().await.unwrap();
@@ -125,12 +125,12 @@ mod get_transaction_by_hash_integration_tests {
 
         let invoke_tx_result = account
             .execute(vec![Call {
-                to: FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
+                to: Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
                 selector: get_selector_from_name("transfer").unwrap(),
                 calldata: vec![
-                    FieldElement::ONE,                                 // recipient
-                    FieldElement::from_dec_str("1000000000").unwrap(), // low part of uint256
-                    FieldElement::ZERO,                                // high part of uint256
+                    Felt::ONE,                                 // recipient
+                    Felt::from_dec_str("1000000000").unwrap(), // low part of uint256
+                    Felt::ZERO,                                // high part of uint256
                 ],
             }])
             .send()
@@ -145,7 +145,7 @@ mod get_transaction_by_hash_integration_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let result = devnet
             .json_rpc_client
-            .get_transaction_by_hash(FieldElement::from_hex_be("0x0").unwrap())
+            .get_transaction_by_hash(Felt::from_hex("0x0").unwrap())
             .await
             .unwrap_err();
 
