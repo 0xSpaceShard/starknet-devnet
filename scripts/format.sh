@@ -2,7 +2,7 @@
 
 set -eu
 
-cargo +nightly fmt --all
+cargo +nightly-2024-07-08 fmt --all
 
 # Format documentation code
 cd website
