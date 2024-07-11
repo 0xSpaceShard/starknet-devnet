@@ -29,7 +29,7 @@ mod tests {
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
     use crate::state::state_diff::StateDiff;
     use crate::traits::HashIdentifiedMut;
-    use crate::utils::casm_hash;
+    use crate::utils::calculate_casm_hash;
     use crate::utils::test_utils::dummy_cairo_1_contract_class;
 
     #[test]
@@ -44,7 +44,7 @@ mod tests {
         let casm_contract_class_json =
             usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap()).unwrap();
 
-        let compiled_class_hash = casm_hash(casm_contract_class_json).unwrap().into();
+        let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap().into();
 
         let declare_txn = BroadcastedDeclareTransactionV2::new(
             &contract_class,

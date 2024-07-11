@@ -46,8 +46,8 @@ use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransact
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionCommon,
-    DeclareTransaction, SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace,
-    TransactionType, TransactionWithHash, TransactionWithReceipt, Transactions,
+    SimulatedTransaction, SimulationFlag, TransactionTrace, TransactionType, TransactionWithHash,
+    TransactionWithReceipt, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
@@ -371,7 +371,6 @@ impl Starknet {
     pub(crate) fn handle_transaction_result(
         &mut self,
         transaction: TransactionWithHash,
-        contract_class: Option<ContractClass>,
         transaction_result: Result<
             TransactionExecutionInfo,
             blockifier::transaction::errors::TransactionExecutionError,
@@ -379,43 +378,8 @@ impl Starknet {
     ) -> DevnetResult<()> {
         let transaction_hash = *transaction.get_transaction_hash();
 
-        fn declare_contract_class(
-            class_hash: &ClassHash,
-            contract_class: Option<ContractClass>,
-            state: &mut StarknetState,
-        ) -> DevnetResult<()> {
-            state.declare_contract_class(
-                *class_hash,
-                contract_class.ok_or(Error::UnexpectedInternalError {
-                    msg: "contract class not provided".to_string(),
-                })?,
-            )
-        }
-
-        let state = self.get_state();
-
         match transaction_result {
             Ok(tx_info) => {
-                // If transaction is not reverted
-                // then save the contract class in the state cache for Declare transactions
-                if !tx_info.is_reverted() {
-                    match &transaction.transaction {
-                        Transaction::Declare(DeclareTransaction::V1(declare_v1)) => {
-                            declare_contract_class(&declare_v1.class_hash, contract_class, state)?
-                        }
-                        Transaction::Declare(DeclareTransaction::V2(declare_v2)) => {
-                            declare_contract_class(&declare_v2.class_hash, contract_class, state)?
-                        }
-                        Transaction::Declare(DeclareTransaction::V3(declare_v3)) => {
-                            declare_contract_class(
-                                declare_v3.get_class_hash(),
-                                contract_class,
-                                state,
-                            )?
-                        }
-                        _ => {}
-                    };
-                }
                 self.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)
             }
             Err(tx_err) => {
@@ -596,12 +560,19 @@ impl Starknet {
             BlockId::Tag(BlockTag::Latest) => Ok(&mut self.latest_state),
             BlockId::Tag(BlockTag::Pending) => Ok(&mut self.pending_state),
             _ => {
+                let block = self.get_block(block_id)?;
+                let block_hash = block.block_hash();
+
+                let is_block_id_latest =
+                    self.blocks.last_block_hash.map_or(false, |hash| hash == block_hash);
+                if is_block_id_latest {
+                    return Ok(&mut self.latest_state);
+                }
+
                 if self.config.state_archive == StateArchiveCapacity::None {
                     return Err(Error::NoStateAtBlock { block_id: *block_id });
                 }
 
-                let block = self.get_block(block_id)?;
-                let block_hash = block.block_hash();
                 let state = self
                     .blocks
                     .hash_to_state
@@ -1643,8 +1614,10 @@ mod tests {
         let config =
             StarknetConfig { state_archive: StateArchiveCapacity::Full, ..Default::default() };
         let mut starknet = Starknet::new(&config).unwrap();
+        let genesis_block_hash = starknet.get_latest_block().unwrap();
         let block_hash = starknet.generate_new_block_and_state().unwrap();
         starknet.blocks.hash_to_state.remove(&block_hash);
+        starknet.blocks.last_block_hash = Some(genesis_block_hash.block_hash());
 
         match starknet.get_mut_state_at(&BlockId::Number(1)) {
             Err(Error::NoStateAtBlock { block_id: _ }) => (),

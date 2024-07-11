@@ -31,7 +31,14 @@ impl JsonRpcHandler {
         request: BroadcastedDeclareTransaction,
     ) -> StrictRpcResult {
         let (transaction_hash, class_hash) =
-            self.api.starknet.write().await.add_declare_transaction(request)?;
+            self.api.starknet.write().await.add_declare_transaction(request).map_err(|err| {
+                match err {
+                    starknet_core::error::Error::CompiledClassHashMismatch => {
+                        ApiError::CompiledClassHashMismatch
+                    }
+                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
+                }
+            })?;
 
         Ok(StarknetResponse::AddDeclareTransaction(DeclareTransactionOutput {
             transaction_hash,
@@ -77,7 +84,7 @@ impl JsonRpcHandler {
         Ok(super::JsonRpcResponse::Empty)
     }
 
-    /// devnet_stopImpersonatingAccount
+    /// devnet_stopImpersonateAccount
     pub async fn stop_impersonating_account(&self, address: ContractAddress) -> StrictRpcResult {
         let mut starknet = self.api.starknet.write().await;
         starknet.stop_impersonating_account(&address);
@@ -92,9 +99,9 @@ impl JsonRpcHandler {
     }
 
     /// devnet_dump
-    pub async fn dump(&self, path: DumpPath) -> StrictRpcResult {
-        dump_impl(&self.api, path).await.map_err(ApiError::from)?;
-        Ok(super::JsonRpcResponse::Empty)
+    pub async fn dump(&self, path: Option<DumpPath>) -> StrictRpcResult {
+        let dump = dump_impl(&self.api, path).await.map_err(ApiError::from)?;
+        Ok(DevnetResponse::DevnetDump(dump).into())
     }
 
     /// devnet_load
@@ -112,7 +119,7 @@ impl JsonRpcHandler {
     }
 
     /// devnet_postmanFlush
-    pub async fn postman_flush(&self, data: FlushParameters) -> StrictRpcResult {
+    pub async fn postman_flush(&self, data: Option<FlushParameters>) -> StrictRpcResult {
         Ok(DevnetResponse::FlushedMessages(
             postman_flush_impl(&self.api, data).await.map_err(ApiError::from)?,
         )

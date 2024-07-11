@@ -16,7 +16,7 @@ use self::state_diff::StateDiff;
 use self::state_readers::DictState;
 use crate::error::{DevnetResult, Error};
 use crate::starknet::defaulter::StarknetDefaulter;
-use crate::utils::casm_hash;
+use crate::utils::calculate_casm_hash;
 
 pub(crate) mod state_diff;
 pub(crate) mod state_readers;
@@ -40,14 +40,18 @@ pub trait CustomStateReader {
 }
 
 pub trait CustomState {
+    /// Link class with its hash; if cairo1 class: calculate casm hash, link class hash with it
     fn predeclare_contract_class(
         &mut self,
         class_hash: ClassHash,
         contract_class: ContractClass,
     ) -> DevnetResult<()>;
+
+    /// Link class with its hash; if cairo1 class: link class hash with casm hash
     fn declare_contract_class(
         &mut self,
         class_hash: ClassHash,
+        casm_hash: Option<starknet_types::felt::CompiledClassHash>,
         contract_class: ContractClass,
     ) -> DevnetResult<()>;
 
@@ -387,7 +391,7 @@ impl CustomState for StarknetState {
                 })
             })?;
 
-            let casm_hash = Felt::from(casm_hash(casm_json)?);
+            let casm_hash = Felt::from(calculate_casm_hash(casm_json)?);
 
             self.state.state.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
         };
@@ -401,22 +405,12 @@ impl CustomState for StarknetState {
     fn declare_contract_class(
         &mut self,
         class_hash: ClassHash,
+        casm_hash: Option<starknet_types::felt::CompiledClassHash>,
         contract_class: ContractClass,
     ) -> DevnetResult<()> {
         let compiled_class = contract_class.clone().try_into()?;
 
-        if let ContractClass::Cairo1(cairo_lang_contract_class) = &contract_class {
-            let casm_json = usc::compile_contract(
-                serde_json::to_value(cairo_lang_contract_class)
-                    .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
-            )
-            .map_err(|err| {
-                Error::TypesError(starknet_types::error::Error::SierraCompilationError {
-                    reason: err.to_string(),
-                })
-            })?;
-
-            let casm_hash = Felt::from(casm_hash(casm_json)?);
+        if let Some(casm_hash) = casm_hash {
             self.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
         };
 
@@ -464,9 +458,10 @@ mod tests {
         let mut state = StarknetState::default();
 
         let class_hash = dummy_felt();
+        let casm_hash = Some(dummy_felt());
         let contract_class = ContractClass::Cairo0(dummy_cairo_0_contract_class().into());
 
-        state.declare_contract_class(class_hash, contract_class).unwrap();
+        state.declare_contract_class(class_hash, casm_hash, contract_class).unwrap();
         assert!(state.is_contract_declared(dummy_felt()));
     }
 
@@ -511,6 +506,7 @@ mod tests {
     fn declare_cairo_0_contract_class_successfully() {
         let mut state = StarknetState::default();
         let class_hash = Felt::from_prefixed_hex_str("0xFE").unwrap();
+        let casm_hash = Some(dummy_felt());
 
         match state.get_compiled_contract_class(class_hash.into()) {
             Err(StateError::UndeclaredClassHash(reported_hash)) => {
@@ -521,7 +517,11 @@ mod tests {
 
         let contract_class: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
         state
-            .declare_contract_class(class_hash, contract_class.clone().try_into().unwrap())
+            .declare_contract_class(
+                class_hash,
+                casm_hash,
+                contract_class.clone().try_into().unwrap(),
+            )
             .unwrap();
 
         let block_number = 1;
@@ -613,8 +613,9 @@ mod tests {
         let address = dummy_contract_address();
         let contract_class = dummy_cairo_0_contract_class();
         let class_hash = dummy_felt();
+        let casm_hash = Some(dummy_felt());
 
-        state.declare_contract_class(class_hash, contract_class.into()).unwrap();
+        state.declare_contract_class(class_hash, casm_hash, contract_class.into()).unwrap();
         state.predeploy_contract(address, class_hash).unwrap();
 
         (state, address)

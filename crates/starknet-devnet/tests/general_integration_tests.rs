@@ -4,6 +4,10 @@ pub mod common;
 mod general_integration_tests {
     use reqwest::StatusCode;
     use serde_json::json;
+    use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
+    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement};
+    use starknet_rs_core::utils::{get_storage_var_address, parse_cairo_short_string};
+    use starknet_rs_providers::Provider;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
@@ -131,5 +135,28 @@ mod general_integration_tests {
 
         let fetched_config = devnet.get_config().await;
         assert_eq!(fetched_config, expected_config);
+    }
+
+    #[tokio::test]
+    async fn predeployed_erc20_tokens_have_expected_storage() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        for (token_address, var_name, expected_value) in [
+            (ETH_ERC20_CONTRACT_ADDRESS, "ERC20_name", "Ether"),
+            (ETH_ERC20_CONTRACT_ADDRESS, "ERC20_symbol", "ETH"),
+            (STRK_ERC20_CONTRACT_ADDRESS, "ERC20_name", "StarkNet Token"),
+            (STRK_ERC20_CONTRACT_ADDRESS, "ERC20_symbol", "STRK"),
+        ] {
+            let actual_value = devnet
+                .json_rpc_client
+                .get_storage_at(
+                    FieldElement::from_hex_be(token_address).unwrap(),
+                    get_storage_var_address(var_name, &[]).unwrap(),
+                    BlockId::Tag(BlockTag::Latest),
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(parse_cairo_short_string(&actual_value).unwrap().as_str(), expected_value);
+        }
     }
 }

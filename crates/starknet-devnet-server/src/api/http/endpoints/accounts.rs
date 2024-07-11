@@ -17,7 +17,7 @@ use crate::api::Api;
 #[derive(serde::Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct PredeployedAccountsQuery {
-    with_balance: Option<bool>,
+    pub with_balance: Option<bool>,
 }
 
 pub async fn get_predeployed_accounts(
@@ -57,7 +57,7 @@ pub(crate) async fn get_predeployed_accounts_impl(
         .collect();
 
     // handle with_balance query string
-    if params.with_balance == Some(true) {
+    if let Some(true) = params.with_balance {
         for account in predeployed_accounts.iter_mut() {
             let eth = get_balance_unit(&mut starknet, account.address, FeeUnit::WEI).await?;
             let strk = get_balance_unit(&mut starknet, account.address, FeeUnit::FRI).await?;

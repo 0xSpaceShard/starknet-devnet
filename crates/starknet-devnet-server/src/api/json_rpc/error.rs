@@ -58,6 +58,8 @@ pub enum ApiError {
     NoStateAtBlock { msg: String },
     #[error(transparent)]
     HttpApiError(#[from] HttpApiError),
+    #[error("the compiled class hash did not match the one supplied in the transaction")]
+    CompiledClassHashMismatch,
 }
 
 impl ApiError {
@@ -163,6 +165,11 @@ impl ApiError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(55),
                 message: error_message.into(),
                 data: Some(serde_json::Value::String(reason)),
+            },
+            ApiError::CompiledClassHashMismatch => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(60),
+                message: error_message.into(),
+                data: None,
             },
             ApiError::StarknetDevnetError(
                 starknet_core::error::Error::TransactionValidationError(validation_error),

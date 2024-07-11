@@ -40,17 +40,17 @@ use self::origin_forwarder::OriginForwarder;
 use super::http::endpoints::accounts::{BalanceQuery, PredeployedAccountsQuery};
 use super::http::endpoints::DevnetConfig;
 use super::http::models::{
-    AbortedBlocks, AbortingBlocks, AccountBalanceResponse, CreatedBlock, DumpPath, FlushParameters,
-    FlushedMessages, IncreaseTime, IncreaseTimeResponse, LoadPath, MessageHash,
-    MessagingLoadAddress, MintTokensRequest, MintTokensResponse, PostmanLoadL1MessagingContract,
-    SerializableAccount, SetTime, SetTimeResponse,
+    AbortedBlocks, AbortingBlocks, AccountBalanceResponse, CreatedBlock, DumpPath,
+    DumpResponseBody, FlushParameters, FlushedMessages, IncreaseTime, IncreaseTimeResponse,
+    LoadPath, MessageHash, MessagingLoadAddress, MintTokensRequest, MintTokensResponse,
+    PostmanLoadL1MessagingContract, SerializableAccount, SetTime, SetTimeResponse,
 };
 use super::Api;
 use crate::api::json_rpc::models::{
     BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper,
     BroadcastedInvokeTransactionEnumWrapper, SimulateTransactionsInput,
 };
-use crate::api::serde_helpers::empty_params;
+use crate::api::serde_helpers::{empty_params, optional_params};
 use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::ResponseResult;
@@ -344,14 +344,14 @@ pub enum JsonRpcRequest {
     AutoImpersonate,
     #[serde(rename = "devnet_stopAutoImpersonate", with = "empty_params")]
     StopAutoImpersonate,
-    #[serde(rename = "devnet_dump")]
-    Dump(DumpPath),
+    #[serde(rename = "devnet_dump", with = "optional_params")]
+    Dump(Option<DumpPath>),
     #[serde(rename = "devnet_load")]
     Load(LoadPath),
     #[serde(rename = "devnet_postmanLoad")]
     PostmanLoadL1MessagingContract(PostmanLoadL1MessagingContract),
-    #[serde(rename = "devnet_postmanFlush")]
-    PostmanFlush(FlushParameters),
+    #[serde(rename = "devnet_postmanFlush", with = "optional_params")]
+    PostmanFlush(Option<FlushParameters>),
     #[serde(rename = "devnet_postmanSendMessageToL2")]
     PostmanSendMessageToL2(MessageToL2),
     #[serde(rename = "devnet_postmanConsumeMessageFromL2")]
@@ -366,8 +366,8 @@ pub enum JsonRpcRequest {
     SetTime(SetTime),
     #[serde(rename = "devnet_increaseTime")]
     IncreaseTime(IncreaseTime),
-    #[serde(rename = "devnet_getPredeployedAccounts")]
-    PredeployedAccounts(PredeployedAccountsQuery),
+    #[serde(rename = "devnet_getPredeployedAccounts", with = "optional_params")]
+    PredeployedAccounts(Option<PredeployedAccountsQuery>),
     #[serde(rename = "devnet_getAccountBalance")]
     AccountBalance(BalanceQuery),
     #[serde(rename = "devnet_mint")]
@@ -518,6 +518,7 @@ pub enum DevnetResponse {
     AccountBalance(AccountBalanceResponse),
     MintTokens(MintTokensResponse),
     DevnetConfig(DevnetConfig),
+    DevnetDump(DumpResponseBody),
 }
 
 #[cfg(test)]
@@ -527,6 +528,7 @@ mod requests_tests {
     use starknet_types::felt::Felt;
 
     use super::JsonRpcRequest;
+    use crate::rpc_core::request::RpcMethodCall;
     use crate::test_utils::exported_test_utils::assert_contains;
 
     #[test]
@@ -1060,6 +1062,62 @@ mod requests_tests {
             }),
         ] {
             assert_deserialization_succeeds(body.to_string().as_str())
+        }
+    }
+
+    #[test]
+    fn deserialize_devnet_methods_with_optional_body() {
+        for mut body in [
+            json!({
+                "method": "devnet_dump",
+                "params": {}
+            }),
+            json!({
+                "method":"devnet_dump",
+            }),
+            json!({
+                "method":"devnet_dump",
+                "params": {"path": "path"}
+            }),
+            json!({
+                "method":"devnet_getPredeployedAccounts",
+                "params": {"with_balance": true}
+            }),
+            json!({
+                "method":"devnet_getPredeployedAccounts",
+            }),
+            json!({
+                "method":"devnet_getPredeployedAccounts",
+                "params": {}
+            }),
+            json!({
+                "method":"devnet_postmanFlush",
+                "params": {"dry_run": true}
+            }),
+            json!({
+                "method":"devnet_postmanFlush",
+            }),
+            json!({
+                "method":"devnet_postmanFlush",
+                "params": {}
+            }),
+        ] {
+            let mut json_rpc_object = json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+            });
+
+            json_rpc_object.as_object_mut().unwrap().append(body.as_object_mut().unwrap());
+
+            let RpcMethodCall { method, params, .. } =
+                serde_json::from_value(json_rpc_object).unwrap();
+            let params: serde_json::Value = params.into();
+            let deserializable_call = serde_json::json!({
+                "method": &method,
+                "params": params
+            });
+
+            assert_deserialization_succeeds(deserializable_call.to_string().as_str())
         }
     }
 

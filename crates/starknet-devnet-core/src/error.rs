@@ -67,6 +67,8 @@ pub enum Error {
     MessagingError(#[from] MessagingError),
     #[error("Transaction has no trace")]
     NoTransactionTrace,
+    #[error("the compiled class hash did not match the one supplied in the transaction")]
+    CompiledClassHashMismatch,
 }
 
 #[derive(Debug, Error)]
