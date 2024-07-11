@@ -526,10 +526,19 @@ mod blocks_generation_tests {
     }
 
     #[tokio::test]
+    /// In the following sketch, above are seconds, B means block:
+    ///
+    /// 0     1     2     3     4     5     6     7     8     9
+    /// |--|--|-----|-----|-----|--|--|-----|--|--|-----|--|--|
+    /// |  |  |                    |           |           |
+    /// B0 B1 txs                  B2          check       B3
     async fn blocks_on_interval_transactions() {
         let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "4"])
             .await
             .expect("Could not start Devnet");
+
+        // sleep a bit to allow the genesis and the first automatic block to be generated
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
 
         let tx_count = 3;
         let mut tx_hashes = Vec::new();
