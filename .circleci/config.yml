@@ -88,11 +88,11 @@ jobs:
           key: << parameters.cargo_cache_key >>
       - run:
           name: Unit tests
-          command: cargo test --jobs 7 --lib --bins --no-fail-fast
+          command: cargo test --lib --bins --no-fail-fast
       - run:
           name: Integration tests
           # fails if jobs not limited; read more in https://github.com/0xSpaceShard/starknet-devnet-rs/issues/378
-          command: cargo test --jobs 3 --test '*' --no-fail-fast
+          command: cargo test --jobs 6 --test '*' --no-fail-fast
 
   binary-build:
     parameters:
