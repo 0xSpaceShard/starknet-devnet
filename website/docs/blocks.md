@@ -111,7 +111,7 @@ To abort, send one of the following:
 ```
 POST /abort_blocks
 {
-    "starting_block_hash": BLOCK_HASH
+    "starting_block_id": BLOCK_ID
 }
 ```
 
@@ -122,7 +122,7 @@ JSON-RPC
     "id": "1",
     "method": "devnet_abortBlocks",
     "params": {
-        "starting_block_hash": BLOCK_HASH
+        "starting_block_id": BLOCK_ID
     }
 }
 ```
@@ -134,3 +134,5 @@ Response:
     "aborted": [BLOCK_HASH_0, BLOCK_HASH_1, ...]
 }
 ```
+
+Note: When aborting block with tag `pending`, block is mined and aborted as latest.

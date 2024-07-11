@@ -526,23 +526,32 @@ mod blocks_generation_tests {
     }
 
     #[tokio::test]
+    /// In the following sketch, above are seconds, B means block:
+    ///
+    /// 0     1     2     3     4     5     6     7     8     9
+    /// |--|--|-----|-----|-----|--|--|-----|--|--|-----|--|--|
+    /// |  |  |                    |           |           |
+    /// B0 B1 txs                  B2          check       B3
     async fn blocks_on_interval_transactions() {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "1"])
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "4"])
             .await
             .expect("Could not start Devnet");
 
-        let tx_count = 5;
+        // sleep a bit to allow the genesis and the first automatic block to be generated
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
+
+        let tx_count = 3;
         let mut tx_hashes = Vec::new();
         for _ in 0..tx_count {
             let mint_hash = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
             tx_hashes.push(mint_hash);
         }
 
-        // wait 1 second
-        tokio::time::sleep(time::Duration::from_secs(1)).await;
+        // wait for one and a half interval
+        tokio::time::sleep(time::Duration::from_secs(6)).await;
 
-        // first is genesis block, second block is generated instantly, third is generated after 1
-        // second
+        // first is genesis block, second block is generated instantly, third is generated after the
+        // first interval
         assert_latest_block_with_tx_hashes(&devnet, 2, tx_hashes).await;
     }
 

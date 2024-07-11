@@ -4,6 +4,7 @@ use starknet_rs_core::types::{Hash256, MsgToL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash};
 use starknet_types::num_bigint::BigUint;
+use starknet_types::rpc::block::BlockId;
 use starknet_types::rpc::eth_address::EthAddressWrapper;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transaction_receipt::FeeUnit;
@@ -54,7 +55,7 @@ pub struct CreatedBlock {
 #[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(Debug))]
 pub struct AbortingBlocks {
-    pub(crate) starting_block_hash: BlockHash,
+    pub(crate) starting_block_id: BlockId,
 }
 
 #[derive(Serialize)]
