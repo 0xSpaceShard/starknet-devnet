@@ -68,7 +68,7 @@ jobs:
           command: ./scripts/clippy_check.sh
       - run:
           name: Format check
-          command: cargo +nightly-2024-07-08 fmt --all --check
+          command: ./scripts/format_check.sh
       - run:
           name: Code spell check
           command: ./scripts/check_spelling.sh
