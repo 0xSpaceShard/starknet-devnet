@@ -1,4 +1,5 @@
 <!-- logo / title -->
+
 <p align="center" style="margin-bottom: 0px !important">
   <img width="200" src="https://github.com/0xSpaceShard/starknet-devnet-rs/assets/21069052/4791b0e4-58fc-4a44-8f87-fc0db636a5c7" alt="Devnet-RS" align="center">
 </p>
@@ -14,7 +15,7 @@
   </a>
 </p>
 
-A local testnet for Starknet... in Rust!
+Oxidized, blazingly fast, rust-powered local testnet for Starknet!
 
 ### Features
 
@@ -36,3 +37,4 @@ Find the official documentation [here](https://0xspaceshard.github.io/starknet-d
 We ❤️ and encourage all contributions and thank all the [contributors](https://github.com/0xSpaceShard/starknet-devnet-rs/graphs/contributors)!
 
 [Click here](.github/CONTRIBUTING.md) for the development guide.
+
