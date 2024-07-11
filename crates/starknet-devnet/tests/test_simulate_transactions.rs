@@ -4,7 +4,9 @@ mod simulation_tests {
     use std::sync::Arc;
 
     use serde_json::json;
-    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS};
+    use starknet_core::constants::{
+        CAIRO_0_ACCOUNT_CONTRACT_HASH, DEVNET_DEFAULT_GAS_PRICE, ETH_ERC20_CONTRACT_ADDRESS,
+    };
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
         Account, AccountFactory, Call, ExecutionEncoding, OpenZeppelinAccountFactory,
@@ -232,10 +234,7 @@ mod simulation_tests {
         );
     }
 
-    #[tokio::test]
-    async fn update_gas() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-
+    async fn update_gas_scenario(devnet: BackgroundDevnet) {
         // get account
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let account = SingleOwnerAccount::new(
@@ -285,6 +284,9 @@ mod simulation_tests {
             })
         };
 
+        let chain_id = &devnet.send_custom_rpc("starknet_chainId", json!({})).await.unwrap();
+        assert_eq!(chain_id, "0x534e5f5345504f4c4941");
+
         let params_no_flags = get_params(&[]);
         let resp_no_flags = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_no_flags.clone())
@@ -320,6 +322,9 @@ mod simulation_tests {
             &devnet.send_custom_rpc("devnet_updateGas", gas_update.clone()).await.unwrap();
         assert_eq!(updated_gas, &gas_update);
 
+        let chain_id = &devnet.send_custom_rpc("starknet_chainId", json!({})).await.unwrap();
+        assert_eq!(chain_id, "0x534e5f5345504f4c4941");
+
         let resp_no_flags = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
             .await
@@ -345,108 +350,60 @@ mod simulation_tests {
     }
 
     #[tokio::test]
+    async fn update_gas() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        update_gas_scenario(devnet).await;
+    }
+
+    #[tokio::test]
     async fn update_gas_fork() {
-        let cli_args = ["--fork-network", INTEGRATION_SEPOLIA_HTTP_URL];
+        let cli_args: [&str; 2] = ["--fork-network", INTEGRATION_SEPOLIA_HTTP_URL];
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
-        // get account
-        let (fork_signer, fork_account_address) = fork_devnet.get_first_predeployed_account().await;
-        let fork_account = SingleOwnerAccount::new(
-            fork_devnet.clone_provider(),
-            fork_signer,
-            fork_account_address,
-            CHAIN_ID,
-            ExecutionEncoding::New,
+        update_gas_scenario(fork_devnet).await;
+    }
+
+    #[tokio::test]
+    async fn update_gas_check_blocks() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        devnet.create_block().await.unwrap();
+        let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
+        assert_eq!(latest_block.block_number, 1);
+        assert_eq!(
+            latest_block.l1_gas_price.price_in_wei,
+            FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE))
+        );
+        assert_eq!(
+            latest_block.l1_gas_price.price_in_fri,
+            FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE))
         );
 
-        // get class
-        let (fork_flattened_contract_artifact, fork_casm_hash) =
-            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH);
+        let wei_price = 9000000000000000000u128;
+        let strk_price = 7000000000000000000u128;
+        let gas_update = json!({
+            "gas_price_wei": wei_price,
+            "data_gas_price_wei": 8000000000000000000u128,
+            "gas_price_strk": strk_price,
+            "data_gas_price_strk": 6000000000000000000u128,
+        });
+        let updated_gas =
+            &devnet.send_custom_rpc("devnet_updateGas", gas_update.clone()).await.unwrap();
+        assert_eq!(updated_gas, &gas_update);
 
-        let fork_max_fee = FieldElement::ZERO;
-        let fork_nonce = FieldElement::from_hex_be("0x0").unwrap();
+        let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
+        assert_eq!(latest_block.block_number, 1);
 
-        let fork_signature = fork_account
-            .declare(Arc::new(fork_flattened_contract_artifact.clone()), fork_casm_hash)
-            .max_fee(fork_max_fee)
-            .nonce(fork_nonce)
-            .prepared()
-            .unwrap()
-            .get_declare_request(false)
-            .await
-            .unwrap()
-            .signature;
+        let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
+        assert_eq!(pending_block.l1_gas_price.price_in_wei, FieldElement::from(wei_price));
+        assert_eq!(pending_block.l1_gas_price.price_in_fri, FieldElement::from(strk_price));
 
-        // println!("fork_signature: {:?}", fork_signature);
+        devnet.create_block().await.unwrap();
 
-        let fork_signature_hex: Vec<String> = iter_to_hex_felt(&fork_signature);
-
-        let fork_sender_address_hex = to_hex_felt(&fork_account_address);
-
-        let fork_get_params = |fork_simulation_flags: &[&str]| -> serde_json::Value {
-            json!({
-                "block_id": "latest",
-                "simulation_flags": fork_simulation_flags,
-                "transactions": [
-                    {
-                        "type": "DECLARE",
-                        "sender_address": fork_sender_address_hex,
-                        "compiled_class_hash": to_hex_felt(&fork_casm_hash),
-                        "max_fee": to_hex_felt(&fork_max_fee),
-                        "version": "0x2",
-                        "signature": fork_signature_hex,
-                        "nonce": to_num_as_hex(&fork_nonce),
-                        "contract_class": fork_flattened_contract_artifact,
-                    }
-                ]
-            })
-        };
-
-        let fork_params_no_flags = fork_get_params(&[]);
-        // println!("{:?}", fork_params_no_flags.to_string());
-
-        let fork_resp_no_flags = &fork_devnet
-            .send_custom_rpc("starknet_simulateTransactions", fork_params_no_flags)
-            .await
-            .unwrap()[0];
-
-        println!(
-            "Fork gas_consumed []: {:?}",
-            fork_resp_no_flags["fee_estimation"]["gas_consumed"]
-        );
-
-        let fork_params_skip_validation = fork_get_params(&["SKIP_VALIDATE"]);
-        let fork_resp_skip_validation = &fork_devnet
-            .send_custom_rpc("starknet_simulateTransactions", fork_params_skip_validation)
-            .await
-            .unwrap()[0];
-
-        println!(
-            "Fork gas_consumed [SKIP_VALIDATE]: {:?}",
-            fork_resp_skip_validation["fee_estimation"]["gas_consumed"]
-        );
-
-        assert_difference_if_validation(
-            fork_resp_no_flags,
-            fork_resp_skip_validation,
-            &fork_sender_address_hex,
-            fork_max_fee == FieldElement::ZERO,
-        );
-
-        let updated_gas = &fork_devnet
-            .send_custom_rpc(
-                "devnet_updateGas",
-                json!({
-                    "gas_price_wei": 9000000000000000000u128,
-                    "data_gas_price_wei": 9000000000000000000u128,
-                    "gas_price_strk": 9000000000000000000u128,
-                    "data_gas_price_strk": 9000000000000000000u128,
-                }),
-            )
-            .await
-            .unwrap();
-
-        println!("updated_gas: {:?}", updated_gas);
+        let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
+        assert_eq!(latest_block.block_number, 2);
+        assert_eq!(latest_block.l1_gas_price.price_in_wei, FieldElement::from(wei_price));
+        assert_eq!(latest_block.l1_gas_price.price_in_fri, FieldElement::from(strk_price));
     }
 
     #[tokio::test]

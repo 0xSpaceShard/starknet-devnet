@@ -823,20 +823,8 @@ impl Starknet {
     }
 
     pub fn update_gas(&mut self, gas_prices: GasUpdate) -> DevnetResult<GasUpdate> {
-        // TODO: add forking test to check chain_id and starting_block number logic!
-        // TODO: block on demand mode and gas changes for each transaction? is that doable?
-        // TODO: add test for block number checking in normal mode and forking mode
-        // TODO: add cairo contract with fee estimations (change need to be reflected in state)
-        // TODO: add tests with fee estimations/simulations and real transactions also...
-
-        // TODO: Why do we need this l1_gas_price l1_data_gas_price in block hedear?
-        // println!("l1_gas_price: {:?}", self.blocks.pending_block.header.l1_gas_price);
-        // println!("l1_data_gas_price: {:?}", self.blocks.pending_block.header.l1_data_gas_price);
-        // self.blocks.pending_block.header.l1_gas_price =
-        //     GasPricePerToken { price_in_fri: GasPrice(200000000000), price_in_wei:
-        // GasPrice(200000000000) }; self.blocks.pending_block.header.l1_data_gas_price =
-        //     GasPricePerToken { price_in_fri: GasPrice(200000000000), price_in_wei:
-        // GasPrice(200000000000) };
+        // TODO: add tests with real transactions and fees
+        // TODO: add cairo contract test with fees (gas changes needs to be reflected in state)
 
         // BlockContext needs to be reinitialized
         self.block_context = Starknet::init_block_context(
@@ -846,9 +834,20 @@ impl Starknet {
             gas_prices.data_gas_price_strk,
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
-            DEVNET_DEFAULT_CHAIN_ID, // TODO: fix chain id later and add tests
+            DEVNET_DEFAULT_CHAIN_ID, /* TODO: This fixed value should fail in forking test,
+                                      * maybe wait for PR with chain id update after forking? */
             self.block_context.block_info().block_number.0,
         );
+
+        // Pending block header gas data needs to be updated
+        self.blocks.pending_block.header.l1_gas_price.price_in_wei =
+            GasPrice(u128::from(gas_prices.gas_price_wei));
+        self.blocks.pending_block.header.l1_data_gas_price.price_in_wei =
+            GasPrice(u128::from(gas_prices.data_gas_price_wei));
+        self.blocks.pending_block.header.l1_gas_price.price_in_fri =
+            GasPrice(u128::from(gas_prices.gas_price_strk));
+        self.blocks.pending_block.header.l1_data_gas_price.price_in_fri =
+            GasPrice(u128::from(gas_prices.data_gas_price_strk));
 
         let gas_prices = self.block_context.block_info().gas_prices.clone();
 
