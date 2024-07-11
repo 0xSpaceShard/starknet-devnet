@@ -46,9 +46,8 @@ jobs:
     parameters:
       cargo_cache_key:
         type: string
-    docker:
-      - image: cimg/rust:1.74.0
-    resource_class: xlarge
+    machine: true
+    resource_class: spaceshard/ax41
     steps:
       - checkout
       - restore_cache:
