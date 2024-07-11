@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::LowerHex;
 use std::net::TcpListener;
 use std::process::{Child, Command, Stdio};
@@ -68,6 +68,11 @@ lazy_static! {
         ("--initial-balance", PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string()),
         ("--chain-id", CHAIN_ID_CLI_PARAM.to_string())
     ]);
+
+    // key is the element that must not be part of the CLI arguments if the value is present, when constructing the CLI arguments for starting background devnet
+    static ref CONFLICTING_CLI_SETTINGS: HashMap<&'static str, &'static str> = HashMap::from([
+        ("--chain-id", "--fork-network")
+    ]);
 }
 
 impl BackgroundDevnet {
@@ -91,27 +96,59 @@ impl BackgroundDevnet {
     /// Takes specified args and adds default values for args that are missing
     fn add_default_args<'a>(specified_args: &[&'a str]) -> Vec<&'a str> {
         let mut specified_args_vec: Vec<&str> = specified_args.to_vec();
-        let mut final_args: Vec<&str> = vec![];
+        let specified_args_map: HashMap<&str, &str> =
+            specified_args.to_vec().chunks_exact(2).map(|chunk| (chunk[0], chunk[1])).collect();
 
-        // Iterate through default args, and remove from specified args when found
-        // That way in the end we can just append the non-removed args
-        for (arg_name, default_value) in DEFAULT_CLI_MAP.iter() {
-            let value =
-                match specified_args_vec.iter().position(|arg_candidate| arg_candidate == arg_name)
-                {
-                    Some(pos) => {
-                        // arg value comes after name
-                        specified_args_vec.remove(pos);
-                        specified_args_vec.remove(pos)
-                    }
-                    None => default_value,
+        let modified_default_args_map: HashMap<&str, &str> = DEFAULT_CLI_MAP
+            .iter()
+            .filter(|(arg_name, _)| {
+                let element_not_present_in_specified_args =
+                    !specified_args_map.contains_key(*arg_name);
+                if !element_not_present_in_specified_args {
+                    return false;
+                }
+
+                let a = if let Some(conflicting_arg) = CONFLICTING_CLI_SETTINGS.get(*arg_name) {
+                    specified_args_map.contains_key(conflicting_arg)
+                } else {
+                    false
                 };
+                if !a {
+                    return false;
+                }
+
+                return true;
+            })
+            .map(|(arg_name, default_value)| (*arg_name, default_value.as_str()))
+            .collect();
+
+        let mut final_args: Vec<&str> = vec![];
+        for (arg_name, arg_value) in
+            specified_args_map.iter().chain(modified_default_args_map.iter())
+        {
             final_args.push(arg_name);
-            final_args.push(value);
+            final_args.push(arg_value);
         }
 
-        // simply append those args that don't have an entry in DEFAULT_CLI_MAP
-        final_args.append(&mut specified_args_vec);
+        // // Iterate through default args, and remove from specified args when found
+        // // That way in the end we can just append the non-removed args
+        // for (arg_name, default_value) in DEFAULT_CLI_MAP.iter() {
+        //     let value =
+        //         match specified_args_vec.iter().position(|arg_candidate| arg_candidate ==
+        // arg_name)         {
+        //             Some(pos) => {
+        //                 // arg value comes after name
+        //                 specified_args_vec.remove(pos);
+        //                 specified_args_vec.remove(pos)
+        //             }
+        //             None => default_value,
+        //         };
+        //     final_args.push(arg_name);
+        //     final_args.push(value);
+        // }
+
+        // // simply append those args that don't have an entry in DEFAULT_CLI_MAP
+        // final_args.append(&mut specified_args_vec);
         final_args
     }
 
