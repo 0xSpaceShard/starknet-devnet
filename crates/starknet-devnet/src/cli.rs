@@ -532,7 +532,6 @@ mod tests {
             ("--gas-price-strk", "GAS_PRICE_STRK", "2"),
             ("--data-gas-price", "DATA_GAS_PRICE", "3"),
             ("--data-gas-price-strk", "DATA_GAS_PRICE_STRK", "4"),
-            ("--chain-id", "CHAIN_ID", "MAINNET"),
             ("--dump-on", "DUMP_ON", "exit"),
             ("--dump-path", "DUMP_PATH", "dummy-path"),
             ("--state-archive-capacity", "STATE_ARCHIVE_CAPACITY", "full"),
