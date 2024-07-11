@@ -104,18 +104,18 @@ impl BackgroundDevnet {
         let modified_default_args_map: HashMap<&str, &str> = DEFAULT_CLI_MAP
             .iter()
             .filter(|(arg_name, _)| {
-                let element_not_present_in_specified_args =
-                    !specified_args_map.contains_key(*arg_name);
-                if !element_not_present_in_specified_args {
+                let element_is_in_specified_args = specified_args_map.contains_key(*arg_name);
+                if element_is_in_specified_args {
                     return false;
                 }
 
-                let a = if let Some(conflicting_arg) = CONFLICTING_CLI_SETTINGS.get(*arg_name) {
-                    specified_args_map.contains_key(conflicting_arg)
-                } else {
-                    false
-                };
-                if !a {
+                let conflicting_cli_param =
+                    if let Some(conflicting_arg) = CONFLICTING_CLI_SETTINGS.get(*arg_name) {
+                        specified_args_map.contains_key(conflicting_arg)
+                    } else {
+                        false
+                    };
+                if conflicting_cli_param {
                     return false;
                 }
 
