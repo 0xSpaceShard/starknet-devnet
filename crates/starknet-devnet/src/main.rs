@@ -144,7 +144,7 @@ pub async fn set_and_log_fork_config(
         _ => panic!("Unreachable"),
     };
 
-    check_forking_spec_version(&json_rpc_client).await?;
+    check_forking_spec_version(json_rpc_client).await?;
 
     Ok(())
 }
