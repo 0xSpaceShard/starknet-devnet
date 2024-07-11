@@ -46,8 +46,8 @@ use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransact
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionCommon,
-    DeclareTransaction, SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace,
-    TransactionType, TransactionWithHash, TransactionWithReceipt, Transactions,
+    SimulatedTransaction, SimulationFlag, TransactionTrace, TransactionType, TransactionWithHash,
+    TransactionWithReceipt, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
@@ -371,7 +371,6 @@ impl Starknet {
     pub(crate) fn handle_transaction_result(
         &mut self,
         transaction: TransactionWithHash,
-        contract_class: Option<ContractClass>,
         transaction_result: Result<
             TransactionExecutionInfo,
             blockifier::transaction::errors::TransactionExecutionError,
@@ -379,43 +378,8 @@ impl Starknet {
     ) -> DevnetResult<()> {
         let transaction_hash = *transaction.get_transaction_hash();
 
-        fn declare_contract_class(
-            class_hash: &ClassHash,
-            contract_class: Option<ContractClass>,
-            state: &mut StarknetState,
-        ) -> DevnetResult<()> {
-            state.declare_contract_class(
-                *class_hash,
-                contract_class.ok_or(Error::UnexpectedInternalError {
-                    msg: "contract class not provided".to_string(),
-                })?,
-            )
-        }
-
-        let state = self.get_state();
-
         match transaction_result {
             Ok(tx_info) => {
-                // If transaction is not reverted
-                // then save the contract class in the state cache for Declare transactions
-                if !tx_info.is_reverted() {
-                    match &transaction.transaction {
-                        Transaction::Declare(DeclareTransaction::V1(declare_v1)) => {
-                            declare_contract_class(&declare_v1.class_hash, contract_class, state)?
-                        }
-                        Transaction::Declare(DeclareTransaction::V2(declare_v2)) => {
-                            declare_contract_class(&declare_v2.class_hash, contract_class, state)?
-                        }
-                        Transaction::Declare(DeclareTransaction::V3(declare_v3)) => {
-                            declare_contract_class(
-                                declare_v3.get_class_hash(),
-                                contract_class,
-                                state,
-                            )?
-                        }
-                        _ => {}
-                    };
-                }
                 self.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)
             }
             Err(tx_err) => {

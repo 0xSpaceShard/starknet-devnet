@@ -7,7 +7,7 @@ use std::sync::Arc;
 use server::test_utils::exported_test_utils::assert_contains;
 use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
 use starknet_core::random_number_generator::generate_u32_random_number;
-use starknet_core::utils::casm_hash;
+use starknet_core::utils::calculate_casm_hash;
 use starknet_rs_accounts::{
     Account, AccountFactory, ArgentAccountFactory, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
@@ -65,7 +65,7 @@ pub fn get_flattened_sierra_contract_and_casm_hash(sierra_path: &str) -> SierraW
     let sierra_string = std::fs::read_to_string(sierra_path).unwrap();
     let sierra_class: SierraClass = serde_json::from_str(&sierra_string).unwrap();
     let casm_json = usc::compile_contract(serde_json::from_str(&sierra_string).unwrap()).unwrap();
-    (sierra_class.flatten().unwrap(), casm_hash(casm_json).unwrap())
+    (sierra_class.flatten().unwrap(), calculate_casm_hash(casm_json).unwrap())
 }
 
 pub fn get_messaging_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {

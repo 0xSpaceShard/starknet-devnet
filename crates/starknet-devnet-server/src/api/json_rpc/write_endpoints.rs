@@ -31,7 +31,14 @@ impl JsonRpcHandler {
         request: BroadcastedDeclareTransaction,
     ) -> StrictRpcResult {
         let (transaction_hash, class_hash) =
-            self.api.starknet.write().await.add_declare_transaction(request)?;
+            self.api.starknet.write().await.add_declare_transaction(request).map_err(|err| {
+                match err {
+                    starknet_core::error::Error::CompiledClassHashMismatch => {
+                        ApiError::CompiledClassHashMismatch
+                    }
+                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
+                }
+            })?;
 
         Ok(StarknetResponse::AddDeclareTransaction(DeclareTransactionOutput {
             transaction_hash,

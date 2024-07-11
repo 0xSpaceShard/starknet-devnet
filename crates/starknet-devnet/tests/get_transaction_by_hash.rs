@@ -70,7 +70,6 @@ mod get_transaction_by_hash_integration_tests {
         );
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
 
-        // We need to flatten the ABI into a string first
         let declare_result = account
             .declare(Arc::new(contract_class), casm_hash)
             .nonce(FieldElement::ZERO)

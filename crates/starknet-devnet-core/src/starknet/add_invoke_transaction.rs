@@ -57,7 +57,7 @@ pub fn add_invoke_transaction(
 
     let transaction = TransactionWithHash::new(transaction_hash, invoke_transaction);
 
-    starknet.handle_transaction_result(transaction, None, blockifier_execution_result)?;
+    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
     starknet.handle_dump_event(DumpEvent::AddInvokeTransaction(broadcasted_invoke_transaction))?;
 
     Ok(transaction_hash)
@@ -534,7 +534,7 @@ mod tests {
         // declare dummy contract
         starknet
             .pending_state
-            .declare_contract_class(dummy_contract_class_hash, dummy_contract.into())
+            .declare_contract_class(dummy_contract_class_hash, None, dummy_contract.into())
             .unwrap();
 
         // deploy dummy contract

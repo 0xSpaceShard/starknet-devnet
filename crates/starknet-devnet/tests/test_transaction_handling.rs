@@ -11,6 +11,7 @@ mod trace_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{CHAIN_ID, INVALID_ACCOUNT_SIERRA_PATH};
+    use crate::common::utils::get_simple_contract_in_sierra_and_compiled_class_hash;
 
     #[tokio::test]
     async fn test_failed_validation_with_expected_message() {
@@ -50,6 +51,37 @@ mod trace_tests {
                 );
             }
             other => panic!("Unexpected result: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_declaration_rejected_if_casm_hash_not_matching() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        // get account
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let account = Arc::new(SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            account_address,
+            CHAIN_ID,
+            ExecutionEncoding::New,
+        ));
+
+        let (contract_class, _) = get_simple_contract_in_sierra_and_compiled_class_hash();
+        let dummy_casm_hash = FieldElement::ONE;
+
+        let declaration_result = account
+            .declare(Arc::new(contract_class), dummy_casm_hash)
+            .nonce(FieldElement::ZERO)
+            .send()
+            .await;
+
+        match declaration_result {
+            Err(AccountError::Provider(ProviderError::StarknetError(
+                StarknetError::CompiledClassHashMismatch,
+            ))) => (),
+            other => panic!("Unexpected response: {other:?}"),
         }
     }
 }
