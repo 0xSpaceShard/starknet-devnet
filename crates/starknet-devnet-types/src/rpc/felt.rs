@@ -9,6 +9,13 @@ pub fn split_biguint(biguint: BigUint) -> (Felt, Felt) {
     (high, low)
 }
 
+/// Join high and low part of a felt as biguint
+pub fn join_felts(high: &Felt, low: &Felt) -> BigUint {
+    let high = high.to_biguint();
+    let low = low.to_biguint();
+    (high << 128) + low
+}
+
 pub type Nonce = Felt;
 pub type TransactionVersion = Felt;
 pub type TransactionSignature = Vec<Felt>;

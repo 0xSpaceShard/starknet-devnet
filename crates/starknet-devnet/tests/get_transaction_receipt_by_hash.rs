@@ -12,7 +12,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
-        BroadcastedDeclareTransactionV1, ExecutionResult, Felt, MaybePendingTransactionReceipt,
+        BroadcastedDeclareTransactionV1, ExecutionResult, Felt,
         StarknetError, TransactionReceipt,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
@@ -50,10 +50,10 @@ mod get_transaction_receipt_by_hash_integration_tests {
             .json_rpc_client
             .get_transaction_receipt(deploy_account_result.transaction_hash)
             .await
-            .unwrap();
+            .unwrap().receipt;
 
         match deploy_account_receipt {
-            MaybePendingTransactionReceipt::Receipt(TransactionReceipt::DeployAccount(receipt)) => {
+            TransactionReceipt::DeployAccount(receipt) => {
                 assert_eq!(receipt.contract_address, new_account_address);
             }
             _ => {
@@ -105,10 +105,10 @@ mod get_transaction_receipt_by_hash_integration_tests {
             .json_rpc_client
             .get_transaction_receipt(deployment_result.transaction_hash)
             .await
-            .unwrap();
+            .unwrap().receipt;
 
         match deployment_receipt {
-            MaybePendingTransactionReceipt::Receipt(TransactionReceipt::Deploy(receipt)) => {
+            TransactionReceipt::Deploy(receipt) => {
                 let expected_contract_address = get_udc_deployed_address(
                     salt,
                     declaration_result.class_hash,
@@ -165,9 +165,9 @@ mod get_transaction_receipt_by_hash_integration_tests {
             .json_rpc_client
             .get_transaction_receipt(invalid_deployment_result.transaction_hash)
             .await
-            .unwrap();
+            .unwrap().receipt;
         match invalid_deployment_receipt {
-            MaybePendingTransactionReceipt::Receipt(TransactionReceipt::Invoke(receipt)) => {
+            TransactionReceipt::Invoke(receipt) => {
                 match receipt.execution_result {
                     ExecutionResult::Reverted { reason } => {
                         assert!(reason.contains("Input too long for arguments"));
@@ -214,10 +214,10 @@ mod get_transaction_receipt_by_hash_integration_tests {
             .json_rpc_client
             .get_transaction_receipt(transfer_result.transaction_hash)
             .await
-            .unwrap();
+            .unwrap().receipt;
 
         match transfer_receipt {
-            MaybePendingTransactionReceipt::Receipt(TransactionReceipt::Invoke(receipt)) => {
+            TransactionReceipt::Invoke(receipt) => {
                 match receipt.execution_result {
                     starknet_rs_core::types::ExecutionResult::Reverted { .. } => (),
                     _ => panic!("Invalid receipt {:?}", receipt),

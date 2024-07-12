@@ -5,6 +5,7 @@ use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::contract_address::ContractAddress;
 use starknet_rs_core::types::Felt;
+use starknet_types::felt::join_felts;
 use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 
@@ -39,10 +40,9 @@ pub fn get_balance(
             error: starknet_core::error::Error::UnexpectedInternalError { msg },
         });
     }
-    let new_balance_low: BigUint = (*new_balance_raw.get(0).unwrap()).into();
-    let new_balance_high: BigUint = (*new_balance_raw.get(1).unwrap()).into();
-    let new_balance: BigUint = (new_balance_high << 128) + new_balance_low;
-    Ok(new_balance)
+    let new_balance_low = new_balance_raw.get(0).unwrap();
+    let new_balance_high = new_balance_raw.get(1).unwrap();
+    Ok(join_felts(new_balance_high, new_balance_low))
 }
 
 /// Returns the address of the ERC20 (fee token) contract associated with the unit.
@@ -70,7 +70,7 @@ pub(crate) async fn mint_impl(
     api: &Api,
     request: MintTokensRequest,
 ) -> HttpApiResult<MintTokensResponse> {
-    let mut starknet = api.starknet.write().await;
+    let mut starknet = api.starknet.lock().await;
     let unit = request.unit.unwrap_or(FeeUnit::WEI);
     let erc20_address = get_erc20_address(&unit);
 

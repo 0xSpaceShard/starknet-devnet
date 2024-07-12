@@ -17,7 +17,7 @@ impl ChainId {
     }
 
     pub fn to_felt(&self) -> Felt {
-        Felt::from(self).into()
+        Felt::from(self)
     }
 }
 

@@ -16,7 +16,6 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::{LocalWallet, SigningKey};
-use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 use tokio::sync::Mutex;
 use url::Url;
@@ -236,10 +235,9 @@ impl BackgroundDevnet {
         };
         let balance_raw = self.json_rpc_client.call(call, block_id).await?;
         assert_eq!(balance_raw.len(), 2);
-        let balance_low: BigUint = (Felt::from(*balance_raw.get(0).unwrap())).into();
-        let balance_high: BigUint = (Felt::from(*balance_raw.get(1).unwrap())).into();
-        let balance: BigUint = (balance_high << 128) + balance_low;
-        Ok(Felt::from_byte_slice_be(&balance.to_bytes_be())?)
+        let balance_low = balance_raw.get(0).unwrap().to_biguint();
+        let balance_high = balance_raw.get(1).unwrap().to_biguint();
+        Ok(Felt::from((balance_high << 128) + balance_low))
     }
 
     /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`

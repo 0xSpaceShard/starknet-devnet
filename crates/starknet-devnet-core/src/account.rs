@@ -9,7 +9,7 @@ use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::error::Error;
-use starknet_types::felt::{split_biguint, ClassHash, Key};
+use starknet_types::felt::{join_felts, split_biguint, ClassHash, Key};
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
 
@@ -179,9 +179,7 @@ impl Accounted for Account {
             self.account_address.try_into()?,
             fee_token_address.try_into()?,
         )?;
-        let low = low.to_biguint();
-        let high = high.to_biguint();
-        Ok(low + (high << 128))
+        Ok(join_felts(&high, &low))
     }
 }
 

@@ -74,8 +74,8 @@ fn log_predeployed_accounts(
 | Private key     |  {}
 | Public key      |  {}",
             account.account_address.to_prefixed_hex_str(),
-            account.private_key.to_prefixed_hex_str(),
-            account.public_key.to_prefixed_hex_str()
+            account.private_key.to_fixed_hex_string(),
+            account.public_key.to_fixed_hex_string()
         );
 
         println!("{}", formatted_str);
@@ -83,7 +83,7 @@ fn log_predeployed_accounts(
 
     if !predeployed_accounts.is_empty() {
         println!();
-        let class_hash = predeployed_accounts.get(0).unwrap().class_hash.to_prefixed_hex_str();
+        let class_hash = predeployed_accounts.get(0).unwrap().class_hash.to_fixed_hex_string();
         println!("Predeployed accounts using class with hash: {class_hash}");
         println!("Initial balance of each account: {} WEI and FRI", initial_balance);
         println!("Seed to replicate this account sequence: {seed}");
@@ -103,7 +103,7 @@ fn log_predeployed_contracts() {
 }
 
 fn log_chain_id(chain_id: ChainId) {
-    println!("Chain ID: {} ({})", chain_id, chain_id.to_felt().to_prefixed_hex_str());
+    println!("Chain ID: {} ({})", chain_id, chain_id.to_felt().to_hex_string());
 }
 
 async fn check_forking_spec_version(
@@ -124,6 +124,7 @@ async fn check_forking_chain_id(
     devnet_chain_id: ChainId,
 ) -> Result<(), anyhow::Error> {
     let origin_chain_id = client.chain_id().await?;
+    let devnet_chain_id = devnet_chain_id.to_felt();
     if origin_chain_id != devnet_chain_id {
         warn!(
             "Origin chain ID ({:#x}) does not match this Devnet's chain ID ({:#x}).",
@@ -185,7 +186,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // set block timestamp shift during startup if start time is set
     if let Some(start_time) = starknet_config.start_time {
-        api.starknet.write().await.set_block_timestamp_shift(
+        api.starknet.lock().await.set_block_timestamp_shift(
             start_time as i64 - Starknet::get_unix_timestamp_as_seconds() as i64,
         );
     };
@@ -193,7 +194,7 @@ async fn main() -> Result<(), anyhow::Error> {
     log_predeployed_contracts();
     log_chain_id(starknet_config.chain_id);
 
-    let predeployed_accounts = api.starknet.read().await.get_predeployed_accounts();
+    let predeployed_accounts = api.starknet.lock().await.get_predeployed_accounts();
     log_predeployed_accounts(
         &predeployed_accounts,
         starknet_config.seed,
@@ -239,7 +240,7 @@ async fn create_block_interval(api: Api, block_interval: u64) -> Result<(), std:
     loop {
         tokio::select! {
             _ = interval.tick() => {
-                let mut starknet = api.starknet.write().await;
+                let mut starknet = api.starknet.lock().await;
                 info!("Generating block on time interval");
 
                 starknet.create_block_dump_event(None).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?
@@ -255,7 +256,7 @@ pub async fn shutdown_signal(api: Api) {
     tokio::signal::ctrl_c().await.expect("Failed to install CTRL+C signal handler");
 
     // dump on exit scenario
-    let starknet = api.starknet.read().await;
+    let starknet = api.starknet.lock().await;
     if starknet.config.dump_on == Some(DumpOn::Exit) {
         starknet.dump_events().expect("Failed to dump starknet transactions");
     }

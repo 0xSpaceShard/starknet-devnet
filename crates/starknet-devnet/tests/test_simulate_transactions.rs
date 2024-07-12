@@ -388,7 +388,7 @@ mod simulation_tests {
         // TODO fails if max_fee too low, can be used to test reverted case
         let max_fee = Felt::from(1e18 as u128);
         let nonce = Felt::from(2_u32); // after declare+deploy
-        let invoke_request = match account
+        let invoke_request = account
             .execute(invoke_calls.clone())
             .max_fee(max_fee)
             .nonce(nonce)
@@ -396,11 +396,8 @@ mod simulation_tests {
             .unwrap()
             .get_invoke_request(false)
             .await
-            .unwrap()
-        {
-            BroadcastedInvokeTransaction::V1(invoke_v1) => invoke_v1,
-            _ => panic!("wrong txn type"),
-        };
+            .unwrap();
+
         let signature_hex: Vec<String> = iter_to_hex_felt(&invoke_request.signature);
 
         let calldata_hex: Vec<String> = iter_to_hex_felt(&invoke_request.calldata);

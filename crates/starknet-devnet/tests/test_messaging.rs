@@ -22,7 +22,7 @@ mod test_messaging {
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
         BlockId, BlockTag, Felt, FunctionCall, InvokeTransactionResult,
-        MaybePendingTransactionReceipt, TransactionExecutionStatus, TransactionReceipt,
+        TransactionExecutionStatus, TransactionReceipt, TransactionReceiptWithBlockInfo,
     };
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
@@ -329,7 +329,7 @@ mod test_messaging {
             other => panic!("Error in fetching tx: {other:?}"),
         }
         match devnet.json_rpc_client.get_transaction_receipt(tx_hash).await {
-            Ok(MaybePendingTransactionReceipt::Receipt(TransactionReceipt::L1Handler(receipt))) => {
+            Ok(TransactionReceiptWithBlockInfo { receipt: TransactionReceipt::L1Handler(receipt), .. }) => {
                 assert_eq!(receipt.transaction_hash, tx_hash);
                 assert_eq!(
                     receipt.execution_result.status(),

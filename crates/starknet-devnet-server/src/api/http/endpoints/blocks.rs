@@ -13,7 +13,7 @@ pub async fn create_block(
 }
 
 pub(crate) async fn create_block_impl(api: &Api) -> HttpApiResult<CreatedBlock> {
-    let mut starknet = api.starknet.write().await;
+    let mut starknet = api.starknet.lock().await;
     starknet
         .create_block_dump_event(None)
         .map_err(|err| HttpApiError::CreateEmptyBlockError { msg: err.to_string() })?;
@@ -36,7 +36,7 @@ pub(crate) async fn abort_blocks_impl(
     api: &Api,
     data: AbortingBlocks,
 ) -> HttpApiResult<AbortedBlocks> {
-    let mut starknet = api.starknet.write().await;
+    let mut starknet = api.starknet.lock().await;
 
     let aborted = starknet
         .abort_blocks(From::from(data.starting_block_id))

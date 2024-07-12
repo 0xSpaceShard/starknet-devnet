@@ -45,7 +45,9 @@ mod estimate_fee_tests {
     }
 
     fn multiply_field_element(field_element: Felt, multiplier: f64) -> Felt {
-        ((u64::try_from(field_element).unwrap() as f64 * multiplier) as u128).into()
+        let integer : u64 = field_element.to_biguint().try_into().unwrap();
+        let float = integer as f64;
+        ((float * multiplier) as u128).into()
     }
 
     #[tokio::test]
@@ -80,7 +82,7 @@ mod estimate_fee_tests {
 
         // fund the account before deployment
         let mint_amount = fee_estimation.overall_fee * Felt::TWO;
-        devnet.mint(deployment_address, u128::try_from(mint_amount).unwrap()).await;
+        devnet.mint(deployment_address, mint_amount.to_biguint().try_into().unwrap()).await;
 
         // try sending with insufficient max fee
         let unsuccessful_deployment_tx = account_factory

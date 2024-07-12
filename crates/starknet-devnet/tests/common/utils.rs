@@ -100,7 +100,7 @@ pub fn get_simple_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasm
 }
 
 pub async fn assert_tx_successful<T: Provider>(tx_hash: &Felt, client: &T) {
-    let receipt = client.get_transaction_receipt(tx_hash).await.unwrap();
+    let receipt = client.get_transaction_receipt(tx_hash).await.unwrap().receipt;
     match receipt.execution_result() {
         ExecutionResult::Succeeded => (),
         other => panic!("Should have succeeded; got: {other:?}"),
@@ -143,7 +143,7 @@ pub async fn assert_tx_reverted<T: Provider>(
     client: &T,
     expected_failure_reasons: &[&str],
 ) {
-    let receipt = client.get_transaction_receipt(tx_hash).await.unwrap();
+    let receipt = client.get_transaction_receipt(tx_hash).await.unwrap().receipt;
     match receipt.execution_result() {
         ExecutionResult::Reverted { reason } => {
             for expected_reason in expected_failure_reasons {

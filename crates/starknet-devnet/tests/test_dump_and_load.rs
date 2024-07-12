@@ -457,7 +457,7 @@ mod dump_and_load_tests {
             .get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI)
             .await
             .unwrap();
-        assert_eq!(balance_result, DUMMY_AMOUNT.into());
+        assert_eq!(balance_result, Felt::from(DUMMY_AMOUNT));
 
         let loaded_transaction =
             devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash).await.unwrap();
@@ -488,14 +488,14 @@ mod dump_and_load_tests {
         devnet.mint_unit(DUMMY_ADDRESS, DUMMY_AMOUNT, unit).await;
         let balance_before_dump =
             devnet.get_balance_latest(&DUMMY_ADDRESS.into(), unit).await.unwrap();
-        assert_eq!(balance_before_dump, DUMMY_AMOUNT.into());
+        assert_eq!(balance_before_dump, Felt::from(DUMMY_AMOUNT));
 
         devnet.send_custom_rpc("devnet_dump", json!({ "path": dump_file.path })).await.unwrap();
 
         devnet.mint_unit(DUMMY_ADDRESS, DUMMY_AMOUNT, unit).await;
         let balance_after_dump =
             devnet.get_balance_latest(&DUMMY_ADDRESS.into(), unit).await.unwrap();
-        assert_eq!(balance_after_dump, balance_before_dump + DUMMY_AMOUNT.into());
+        assert_eq!(balance_after_dump, balance_before_dump + Felt::from(DUMMY_AMOUNT));
 
         devnet.send_custom_rpc("devnet_load", json!({ "path": dump_file.path })).await.unwrap();
 
@@ -506,7 +506,7 @@ mod dump_and_load_tests {
         devnet.mint_unit(DUMMY_ADDRESS, DUMMY_AMOUNT, unit).await;
         let balance_after_mint_on_loaded =
             devnet.get_balance_latest(&DUMMY_ADDRESS.into(), unit).await.unwrap();
-        assert_eq!(balance_after_mint_on_loaded, balance_after_load + DUMMY_AMOUNT.into());
+        assert_eq!(balance_after_mint_on_loaded, balance_after_load + Felt::from(DUMMY_AMOUNT));
     }
 
     #[tokio::test]

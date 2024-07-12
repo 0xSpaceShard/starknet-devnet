@@ -21,11 +21,11 @@ mod impersonated_account_tests {
 
     const IMPERSONATED_ACCOUNT_PRIVATE_KEY: Felt = Felt::ONE;
     // Felt::from(100000000000)
-    const AMOUNT_TO_TRANSFER: Felt = Felt::from_mont([
-        18446740873709551617,
-        18446744073709551615,
-        18446744073709551615,
+    const AMOUNT_TO_TRANSFER: Felt = Felt::from_raw([
         576406352303423504,
+        18446744073709551615,
+        18446744073709551615,
+        18446740873709551617,
     ]);
 
     async fn get_account_for_impersonation_and_private_key(
@@ -282,7 +282,7 @@ mod impersonated_account_tests {
         let result = account.execute(vec![invoke_call]).send().await?;
 
         let receipt =
-            forked_devnet.json_rpc_client.get_transaction_receipt(result.transaction_hash).await?;
+            forked_devnet.json_rpc_client.get_transaction_receipt(result.transaction_hash).await?.receipt;
 
         assert_eq!(receipt.execution_result(), &ExecutionResult::Succeeded);
 

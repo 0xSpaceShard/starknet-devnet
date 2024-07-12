@@ -9,7 +9,7 @@ mod get_transaction_by_hash_integration_tests {
         SingleOwnerAccount,
     };
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{BlockId, BlockTag, StarknetError};
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::{Provider, ProviderError};
 
@@ -103,7 +103,7 @@ mod get_transaction_by_hash_integration_tests {
 
         // fund the account before deployment
         let mint_amount = fee_estimation.overall_fee * Felt::TWO;
-        devnet.mint(deployment_address, mint_amount.try_into().unwrap()).await;
+        devnet.mint(deployment_address, mint_amount.to_biguint().try_into().unwrap()).await;
 
         let deploy_account_result = deployment.send().await.unwrap();
         assert_tx_successful(&deploy_account_result.transaction_hash, &devnet.json_rpc_client)
