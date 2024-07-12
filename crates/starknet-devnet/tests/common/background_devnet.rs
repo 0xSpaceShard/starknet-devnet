@@ -93,7 +93,8 @@ impl BackgroundDevnet {
         &self.reqwest_client
     }
 
-    /// Takes specified args and adds default values for args that are missing
+    /// Takes specified args and adds default values for args that are missing from and are not
+    /// conflicting with the specified args
     fn add_default_args<'a>(specified_args: &[&'a str]) -> Vec<&'a str> {
         let mut specified_args_map: HashMap<&str, &str> = HashMap::new();
         let mut args_iter = specified_args.iter().peekable();
