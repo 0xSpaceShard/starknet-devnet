@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use blockifier::state::cached_state::CachedState;
-use blockifier::state::state_api::{State, StateReader};
+use blockifier::state::state_api::StateReader;
+use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
-use starknet_types::felt::{ClassHash, Felt};
+use starknet_types::felt::ClassHash;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 use starknet_types::rpc::state::{
     ClassHashes, ContractNonce, DeployedContract, StorageDiff, StorageEntry, ThinStateDiff,
@@ -37,8 +38,7 @@ impl StateDiff {
         let mut declared_contracts = Vec::<ClassHash>::new();
         let mut cairo_0_declared_contracts = Vec::<ClassHash>::new();
 
-        let diff = state.to_state_diff();
-        state.move_classes_to_global_cache();
+        let diff = state.to_state_diff()?;
 
         for (class_hash, class) in new_classes {
             match class {
@@ -53,7 +53,7 @@ impl StateDiff {
 
         // extract differences of class_hash -> compile_class_hash mapping
         let class_hash_to_compiled_class_hash = diff
-            .class_hash_to_compiled_class_hash
+            .compiled_class_hashes
             .into_iter()
             .map(|(class_hash, compiled_class_hash)| {
                 (Felt::from(class_hash.0), Felt::from(compiled_class_hash.0))
@@ -61,7 +61,7 @@ impl StateDiff {
             .collect();
 
         let address_to_class_hash = diff
-            .address_to_class_hash
+            .class_hashes
             .iter()
             .map(|(address, class_hash)| {
                 let contract_address = ContractAddress::from(*address);
@@ -72,7 +72,7 @@ impl StateDiff {
             .collect::<HashMap<ContractAddress, ClassHash>>();
 
         let address_to_nonce = diff
-            .address_to_nonce
+            .nonces
             .iter()
             .map(|(address, nonce)| {
                 let contract_address = ContractAddress::from(*address);
@@ -82,24 +82,11 @@ impl StateDiff {
             })
             .collect::<HashMap<ContractAddress, Felt>>();
 
-        let storage_updates = diff
-            .storage_updates
-            .iter()
-            .map(|(address, storage)| {
-                let contract_address = ContractAddress::from(*address);
-                let storage = storage
-                    .iter()
-                    .map(|(key, value)| {
-                        let key = PatriciaKey::from(key.0);
-                        let value = (*value).into();
-
-                        (key, value)
-                    })
-                    .collect::<HashMap<StorageKey, Felt>>();
-
-                (contract_address, storage)
-            })
-            .collect::<HashMap<ContractAddress, HashMap<StorageKey, Felt>>>();
+        let mut storage_updates = HashMap::<ContractAddress, HashMap<StorageKey, Felt>>::new();
+        diff.storage.iter().for_each(|((address, key), value)| {
+            let address_updates = storage_updates.entry((*address).into()).or_default();
+            address_updates.insert((*key).0.into(), *value);
+        });
 
         Ok(StateDiff {
             address_to_class_hash,
@@ -182,8 +169,8 @@ mod tests {
 
     use blockifier::state::state_api::State;
     use starknet_api::core::ClassHash;
-    use starknet_types::contract_class::ContractClass;
     use starknet_rs_core::types::Felt;
+    use starknet_types::contract_class::ContractClass;
 
     use super::StateDiff;
     use crate::state::{CustomState, StarknetState};

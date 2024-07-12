@@ -5793,6 +5793,7 @@ dependencies = [
  "starknet-core",
  "starknet-devnet-types",
  "starknet-signers",
+ "starknet-types-core",
  "starknet_api",
  "thiserror",
  "tracing",

@@ -9,7 +9,6 @@ use k256::ecdsa::SigningKey;
 use starknet_rs_core::types::Felt;
 use starknet_types::rpc::contract_address::ContractAddress;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
-use starknet_types::traits::ToHexString;
 use tracing::{trace, warn};
 
 use crate::error::{DevnetResult, Error, MessagingError};
@@ -375,7 +374,7 @@ fn u256_to_felt_devnet(v: &U256) -> DevnetResult<Felt> {
 ///
 /// * `v` - The `Felt` to be converted.
 fn felt_devnet_to_u256(v: &Felt) -> DevnetResult<U256> {
-    Ok(U256::from_str_radix(v.to_nonprefixed_hex_str().as_str(), 16).map_err(|e| {
+    Ok(U256::from_str_radix(v.to_hex_string().as_str(), 16).map_err(|e| {
         MessagingError::EthersError(format!("Cant't convert Felt into U256: {}", e))
     })?)
 }

@@ -176,7 +176,6 @@ pub struct TransactionStatusOutput {
 mod tests {
     use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag, Felt};
     use starknet_types::contract_address::ContractAddress;
-    use starknet_rs_core::types::Felt;
     use starknet_types::patricia_key::PatriciaKey;
     use starknet_types::rpc::block::BlockId;
     use starknet_types::rpc::transactions::{

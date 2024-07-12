@@ -4,14 +4,15 @@ use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::objects::HasRelatedFeeType;
 use blockifier::transaction::transactions::ExecutableTransaction;
+use starknet_rs_core::types::Felt;
 use starknet_rs_core::types::{BlockId, MsgFromL1, PriceUnit};
 use starknet_types::contract_address::ContractAddress;
-use starknet_rs_core::types::Felt;
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
 use starknet_types::rpc::transactions::BroadcastedTransaction;
 
+use crate::constants::USE_KZG_DA;
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
 use crate::utils::get_versioned_constants;
@@ -119,11 +120,10 @@ fn estimate_transaction_fee<S: StateReader>(
         return Err(Error::ExecutionError { revert_error });
     }
 
-    let gas_vector = fee_utils::calculate_tx_gas_vector(
-        &transaction_execution_info.actual_resources,
-        &get_versioned_constants(),
-    )?;
-
+    let gas_vector = transaction_execution_info
+        .transaction_receipt
+        .resources
+        .to_gas_vector(&get_versioned_constants(), USE_KZG_DA)?;
     let total_fee =
         fee_utils::get_fee_by_gas_vector(block_context.block_info(), gas_vector, &fee_type);
 

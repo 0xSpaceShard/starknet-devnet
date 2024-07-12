@@ -3,11 +3,11 @@ use blockifier::transaction::objects::TransactionExecutionInfo;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
-use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
+use starknet_rs_core::types::{ExecutionResult, Felt, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{Event, OrderedEvent};
-use starknet_types::felt::{BlockHash, Felt, TransactionHash};
+use starknet_types::felt::{BlockHash, TransactionHash};
 use starknet_types::messaging::MessageToL2;
 use starknet_types::rpc::messaging::{MessageToL1, OrderedMessageToL1};
 use starknet_types::rpc::transaction_receipt::{
@@ -172,7 +172,7 @@ impl StarknetTransaction {
         // L1 Handler transactions are in WEI
         // V3 transactions are in STRK(FRI)
         // Other transactions versions are in ETH(WEI)
-        let fee_amount = FeeAmount { amount: self.execution_info.actual_fee };
+        let fee_amount = FeeAmount { amount: self.execution_info.transaction_receipt.fee };
         let actual_fee_in_units = match self.inner.transaction {
             Transaction::L1Handler(_) => FeeInUnits::WEI(fee_amount),
             Transaction::Declare(DeclareTransaction::V3(_))

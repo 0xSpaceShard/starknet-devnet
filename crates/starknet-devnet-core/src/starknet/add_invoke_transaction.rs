@@ -72,7 +72,6 @@ mod tests {
     use starknet_api::core::Nonce;
     use starknet_api::transaction::{Fee, Tip};
     use starknet_rs_core::types::Felt;
-    use starknet_rs_core::types::Felt;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
@@ -98,7 +97,7 @@ mod tests {
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::{
-        cairo_0_account_without_validations, dummy_contract_address, dummy_felt, get_bytes_from_u32,
+        cairo_0_account_without_validations, dummy_contract_address, dummy_felt,
     };
 
     fn test_invoke_transaction_v1(
@@ -372,7 +371,7 @@ mod tests {
         assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(
             starknet.pending_state.get_storage_at(blockifier_address, storage_key).unwrap(),
-            Felt::from_u128(25)
+            Felt::from(25)
         );
     }
 
@@ -454,7 +453,7 @@ mod tests {
             account_address.into(),
             Fee(insufficient_max_fee),
             &vec![],
-            initial_nonce.into(),
+            initial_nonce.0,
             &calldata,
             Felt::from(1),
         );
@@ -509,8 +508,7 @@ mod tests {
         )
         .unwrap();
         let increase_balance_selector =
-            Felt::new(get_selector_from_name("increase_balance").unwrap().to_bytes_be())
-                .unwrap();
+            Felt::from_bytes_be(&get_selector_from_name("increase_balance").unwrap().to_bytes_be());
 
         // check if increase_balance function is present in the contract class
         blockifier
@@ -521,11 +519,8 @@ mod tests {
             .find(|el| el.selector.0 == increase_balance_selector)
             .unwrap();
 
-        let mut address_bytes = get_bytes_from_u32(5);
-        address_bytes.reverse();
-
         let dummy_contract_address =
-            ContractAddress::new(Felt::new(address_bytes).unwrap()).unwrap();
+            ContractAddress::new(Felt::from(5)).unwrap();
         let dummy_contract_class_hash = dummy_contract.generate_hash().unwrap();
         let storage_key = get_storage_var_address("balance", &[]).unwrap();
         let contract_storage_key = ContractStorageKey::new(dummy_contract_address, storage_key);

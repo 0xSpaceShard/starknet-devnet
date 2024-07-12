@@ -4,12 +4,12 @@ use blockifier::abi::sierra_types::next_storage_key;
 use blockifier::state::state_api::StateReader;
 use starknet_api::core::{calculate_contract_address, PatriciaKey};
 use starknet_api::transaction::{Calldata, ContractAddressSalt};
-use starknet_api::{patricia_key, stark_felt};
+use starknet_api::{felt, patricia_key};
+use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::error::Error;
-use starknet_types::felt::{split_biguint, ClassHash, Felt, Key};
-use starknet_types::num_bigint::BigUint;
+use starknet_types::felt::{split_biguint, ClassHash, Key};
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
 
@@ -92,8 +92,8 @@ impl Account {
 
     fn compute_account_address(public_key: &Key) -> DevnetResult<ContractAddress> {
         let account_address = calculate_contract_address(
-            ContractAddressSalt(stark_felt!(20u32)),
-            Felt::from_hex(ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION)?.into(),
+            ContractAddressSalt(felt!(20u32)),
+            starknet_api::core::ClassHash(Felt::from_hex(ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION)?),
             &Calldata(Arc::new(vec![(*public_key).into()])),
             starknet_api::core::ContractAddress(patricia_key!(0u32)),
         )
@@ -179,8 +179,8 @@ impl Accounted for Account {
             self.account_address.try_into()?,
             fee_token_address.try_into()?,
         )?;
-        let low: BigUint = Felt::from(low).into();
-        let high: BigUint = Felt::from(high).into();
+        let low = low.to_biguint();
+        let high = high.to_biguint();
         Ok(low + (high << 128))
     }
 }

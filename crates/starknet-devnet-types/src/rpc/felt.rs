@@ -3,7 +3,7 @@ use starknet_rs_crypto::Felt;
 
 /// Returns (high, low)
 pub fn split_biguint(biguint: BigUint) -> (Felt, Felt) {
-    let high = Felt::from(biguint >> 128);
+    let high = Felt::from(&biguint >> 128);
     let low_mask = (BigUint::from(1_u8) << 128) - 1_u8;
     let low = Felt::from(biguint & low_mask);
     (high, low)

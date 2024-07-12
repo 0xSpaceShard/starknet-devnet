@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use starknet_core::starknet::dump::DumpEvent;
-use starknet_rs_core::types::{Hash256, MsgToL1};
+use starknet_rs_core::types::{Felt, Hash256, MsgToL1};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash};
+use starknet_types::felt::{BlockHash, Calldata, EntryPointSelector, Nonce, TransactionHash};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::block::BlockId;
 use starknet_types::rpc::eth_address::EthAddressWrapper;

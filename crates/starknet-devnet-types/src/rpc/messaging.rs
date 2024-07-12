@@ -31,7 +31,7 @@ impl MessageToL2 {
             )?,
             to_address: self.l2_contract_address.into(),
             selector: self.entry_point_selector.into(),
-            payload: self.payload,
+            payload: self.payload.clone(),
             nonce: u64::try_from(self.nonce.to_bigint()).map_err(|err| {
                 Error::ConversionError(crate::error::ConversionError::OutOfRangeError(
                     err.to_string(),
@@ -87,7 +87,7 @@ impl OrderedMessageToL1 {
             message: MessageToL1 {
                 from_address,
                 to_address: msg.message.to_address.into(),
-                payload: msg.message.payload.0,
+                payload: msg.message.payload.0.clone(),
             },
         }
     }

@@ -15,6 +15,8 @@ pub enum Error {
     BlockifierStateError(#[from] blockifier::state::errors::StateError),
     #[error(transparent)]
     BlockifierTransactionError(#[from] blockifier::transaction::errors::TransactionExecutionError),
+    #[error(transparent)]
+    BlockifierExecutionError(#[from] blockifier::execution::errors::EntryPointExecutionError),
     #[error("{revert_error}")]
     ExecutionError { revert_error: String },
     #[error("Types error: {0}")]
@@ -69,6 +71,12 @@ pub enum Error {
     NoTransactionTrace,
     #[error("the compiled class hash did not match the one supplied in the transaction")]
     CompiledClassHashMismatch,
+}
+
+impl From<starknet_types_core::felt::FromStrError> for Error {
+    fn from(value: starknet_types_core::felt::FromStrError) -> Self {
+        Self::UnexpectedInternalError { msg: value.to_string() }
+    }
 }
 
 #[derive(Debug, Error)]

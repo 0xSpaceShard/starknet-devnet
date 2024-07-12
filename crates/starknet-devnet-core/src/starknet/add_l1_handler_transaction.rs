@@ -66,9 +66,7 @@ mod tests {
     use crate::state::CustomState;
     use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_l1l2_contract;
-    use crate::utils::test_utils::{
-        cairo_0_account_without_validations, dummy_felt, get_bytes_from_u32,
-    };
+    use crate::utils::test_utils::{cairo_0_account_without_validations, dummy_felt};
 
     #[test]
     fn l1_handler_transaction_hash_computation() {
@@ -134,11 +132,13 @@ mod tests {
         let result = starknet.add_l1_handler_transaction(transaction);
 
         match result {
-            Err(crate::error::Error::BlockifierTransactionError(ExecutionError(
-                EntryPointExecutionError::PreExecutionError(PreExecutionError::EntryPointNotFound(
-                    selector,
-                )),
-            ))) => {
+            Err(crate::error::Error::BlockifierTransactionError(ExecutionError {
+                error:
+                    EntryPointExecutionError::PreExecutionError(PreExecutionError::EntryPointNotFound(
+                        selector,
+                    )),
+                ..
+            })) => {
                 assert_eq!(selector.0, withdraw_selector.into())
             }
             other => panic!("Wrong result: {other:?}"),
@@ -233,11 +233,7 @@ mod tests {
             .find(|el| el.selector.0 == deposit_selector)
             .unwrap();
 
-        let mut address_bytes = get_bytes_from_u32(5);
-        address_bytes.reverse();
-
-        let dummy_contract_address =
-            ContractAddress::new(Felt::new(address_bytes).unwrap()).unwrap();
+        let dummy_contract_address = ContractAddress::new(Felt::from(5)).unwrap();
         let dummy_contract_class_hash = dummy_contract.generate_hash().unwrap();
 
         // declare dummy contract

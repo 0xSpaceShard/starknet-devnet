@@ -597,7 +597,7 @@ impl BroadcastedDeclareTransaction {
                         resource_bounds: (&v3.common.resource_bounds).into(),
                         tip: v3.common.tip,
                         signature: starknet_api::transaction::TransactionSignature(
-                            v3.common.signature,
+                            v3.common.signature.clone(),
                         ),
                         nonce: starknet_api::core::Nonce(v3.common.nonce.into()),
                         class_hash: starknet_api::core::ClassHash(sierra_class_hash.into()),
@@ -608,10 +608,10 @@ impl BroadcastedDeclareTransaction {
                         nonce_data_availability_mode: v3.common.nonce_data_availability_mode,
                         fee_data_availability_mode: v3.common.fee_data_availability_mode,
                         paymaster_data: starknet_api::transaction::PaymasterData(
-                            v3.common.paymaster_data,
+                            v3.common.paymaster_data.clone(),
                         ),
                         account_deployment_data: starknet_api::transaction::AccountDeploymentData(
-                            v3.account_deployment_data,
+                            v3.account_deployment_data.clone(),
                         ),
                     },
                 );
@@ -681,7 +681,7 @@ impl BroadcastedDeployAccountTransaction {
                 let contract_address = calculate_contract_address(
                     starknet_api::transaction::ContractAddressSalt(v1.contract_address_salt.into()),
                     starknet_api::core::ClassHash(v1.class_hash.into()),
-                    &starknet_api::transaction::Calldata(Arc::new(v1.constructor_calldata)),
+                    &starknet_api::transaction::Calldata(Arc::new(v1.constructor_calldata.clone())),
                     starknet_api::core::ContractAddress::from(0u8),
                 )?;
 
@@ -705,14 +705,14 @@ impl BroadcastedDeployAccountTransaction {
 
                 let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV1 {
                     max_fee: v1.common.max_fee,
-                    signature: starknet_api::transaction::TransactionSignature(v1.common.signature),
+                    signature: starknet_api::transaction::TransactionSignature(v1.common.signature.clone()),
                     nonce: starknet_api::core::Nonce(v1.common.nonce.into()),
                     class_hash: starknet_api::core::ClassHash(v1.class_hash),
                     contract_address_salt: starknet_api::transaction::ContractAddressSalt(
                         v1.contract_address_salt.into(),
                     ),
                     constructor_calldata: starknet_api::transaction::Calldata(Arc::new(
-                        v1.constructor_calldata,
+                        v1.constructor_calldata.clone(),
                     )),
                 };
 
@@ -736,19 +736,19 @@ impl BroadcastedDeployAccountTransaction {
                 let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV3 {
                     resource_bounds: (&v3.common.resource_bounds).into(),
                     tip: v3.common.tip,
-                    signature: starknet_api::transaction::TransactionSignature(v3.common.signature),
+                    signature: starknet_api::transaction::TransactionSignature(v3.common.signature.clone()),
                     nonce: starknet_api::core::Nonce(v3.common.nonce.into()),
                     class_hash: starknet_api::core::ClassHash(v3.class_hash.into()),
                     nonce_data_availability_mode: v3.common.nonce_data_availability_mode,
                     fee_data_availability_mode: v3.common.fee_data_availability_mode,
                     paymaster_data: starknet_api::transaction::PaymasterData(
-                        v3.common.paymaster_data,
+                        v3.common.paymaster_data.clone(),
                     ),
                     contract_address_salt: starknet_api::transaction::ContractAddressSalt(
                         v3.contract_address_salt.into(),
                     ),
                     constructor_calldata: starknet_api::transaction::Calldata(Arc::new(
-                        v3.constructor_calldata,
+                        v3.constructor_calldata.clone(),
                     )),
                 };
 
@@ -823,10 +823,10 @@ impl BroadcastedInvokeTransaction {
 
                 let sn_api_transaction = starknet_api::transaction::InvokeTransactionV1 {
                     max_fee: v1.common.max_fee,
-                    signature: starknet_api::transaction::TransactionSignature(v1.common.signature),
+                    signature: starknet_api::transaction::TransactionSignature(v1.common.signature.clone()),
                     nonce: starknet_api::core::Nonce(v1.common.nonce.into()),
                     sender_address: v1.sender_address.try_into()?,
-                    calldata: starknet_api::transaction::Calldata(Arc::new(v1.calldata)),
+                    calldata: starknet_api::transaction::Calldata(Arc::new(v1.calldata.clone())),
                 };
 
                 (
@@ -841,17 +841,17 @@ impl BroadcastedInvokeTransaction {
                 let sn_api_transaction = starknet_api::transaction::InvokeTransactionV3 {
                     resource_bounds: (&v3.common.resource_bounds).into(),
                     tip: v3.common.tip,
-                    signature: starknet_api::transaction::TransactionSignature(v3.common.signature),
+                    signature: starknet_api::transaction::TransactionSignature(v3.common.signature.clone()),
                     nonce: starknet_api::core::Nonce(v3.common.nonce.into()),
                     sender_address: v3.sender_address.try_into()?,
-                    calldata: starknet_api::transaction::Calldata(Arc::new(v3.calldata)),
+                    calldata: starknet_api::transaction::Calldata(Arc::new(v3.calldata.clone())),
                     nonce_data_availability_mode: v3.common.nonce_data_availability_mode,
                     fee_data_availability_mode: v3.common.fee_data_availability_mode,
                     paymaster_data: starknet_api::transaction::PaymasterData(
-                        v3.common.paymaster_data,
+                        v3.common.paymaster_data.clone(),
                     ),
                     account_deployment_data: starknet_api::transaction::AccountDeploymentData(
-                        v3.account_deployment_data,
+                        v3.account_deployment_data.clone(),
                     ),
                 };
 

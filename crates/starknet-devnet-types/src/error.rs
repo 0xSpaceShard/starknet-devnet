@@ -5,8 +5,6 @@ use thiserror::Error;
 pub enum Error {
     #[error(transparent)]
     StarknetApiError(#[from] starknet_api::StarknetApiError),
-    #[error("Error when calling python module")]
-    PyModuleError,
     #[error("Conversion error: {0}")]
     ConversionError(#[from] ConversionError),
     #[error(transparent)]

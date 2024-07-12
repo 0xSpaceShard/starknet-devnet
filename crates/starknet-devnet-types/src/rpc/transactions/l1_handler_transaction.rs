@@ -74,7 +74,7 @@ impl L1HandlerTransaction {
             tx: ApiL1HandlerTransaction {
                 contract_address: ApiContractAddress::try_from(self.contract_address)?,
                 entry_point_selector: ApiEntryPointSelector(self.entry_point_selector.into()),
-                calldata: ApiCalldata(Arc::new(self.calldata)),
+                calldata: ApiCalldata(Arc::new(self.calldata.clone())),
                 nonce: ApiNonce(self.nonce.into()),
                 version: ApiTransactionVersion(self.version.into()),
             },

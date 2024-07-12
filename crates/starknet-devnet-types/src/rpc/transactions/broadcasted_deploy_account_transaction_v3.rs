@@ -56,7 +56,7 @@ impl BroadcastedDeployAccountTransactionV3 {
             starknet_api::transaction::ContractAddressSalt(*contract_address_salt),
             starknet_api::core::ClassHash(*class_hash),
             &starknet_api::transaction::Calldata(Arc::new(
-                *constructor_calldata,
+                constructor_calldata.clone(),
             )),
             starknet_api::core::ContractAddress::from(0u8),
         )?;

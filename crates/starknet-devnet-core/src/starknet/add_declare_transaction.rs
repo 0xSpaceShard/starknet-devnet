@@ -1,6 +1,7 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
+use starknet_rs_core::types::Felt;
 use starknet_types::contract_class::ContractClass;
-use starknet_types::felt::{ClassHash, CompiledClassHash, Felt, TransactionHash};
+use starknet_types::felt::{ClassHash, CompiledClassHash, TransactionHash};
 use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
 use starknet_types::rpc::transactions::declare_transaction_v2::DeclareTransactionV2;
 use starknet_types::rpc::transactions::declare_transaction_v3::DeclareTransactionV3;
@@ -143,7 +144,7 @@ mod tests {
     use starknet_api::core::CompiledClassHash;
     use starknet_api::transaction::Fee;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, Felt, TransactionExecutionStatus, TransactionFinalityStatus
+        BlockId, BlockTag, Felt, TransactionExecutionStatus, TransactionFinalityStatus,
     };
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
@@ -191,8 +192,7 @@ mod tests {
         );
 
         let mut declare_transaction = convert_broadcasted_declare_v2_to_v3(declare_transaction);
-        declare_transaction.common.version =
-            (Felt::from(3u8) + QUERY_VERSION_OFFSET).into();
+        declare_transaction.common.version = (Felt::from(3u8) + QUERY_VERSION_OFFSET).into();
 
         let result = Starknet::default().add_declare_transaction(
             BroadcastedDeclareTransaction::V3(Box::new(declare_transaction)),
@@ -356,7 +356,10 @@ mod tests {
         // check if contract is not declared
         assert!(!starknet.pending_state.is_contract_declared(expected_class_hash));
         assert_eq!(
-            starknet.pending_state.get_compiled_class_hash(expected_class_hash.into()).unwrap(),
+            starknet
+                .pending_state
+                .get_compiled_class_hash(starknet_api::core::ClassHash(expected_class_hash))
+                .unwrap(),
             CompiledClassHash(Felt::ZERO)
         );
         assert!(starknet.get_class(&BlockId::Tag(BlockTag::Latest), expected_class_hash).is_err());
@@ -374,8 +377,12 @@ mod tests {
         assert_eq!(retrieved_txn.execution_result.status(), TransactionExecutionStatus::Succeeded);
         assert!(starknet.pending_state.is_contract_declared(expected_class_hash));
         assert_eq!(
-            starknet.pending_state.get_compiled_class_hash(expected_class_hash.into()).unwrap(),
-            expected_compiled_class_hash.into()
+            starknet
+                .pending_state
+                .get_compiled_class_hash(starknet_api::core::ClassHash(expected_class_hash))
+                .unwrap()
+                .0,
+            expected_compiled_class_hash
         );
     }
 

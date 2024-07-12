@@ -21,7 +21,7 @@ Felt::from_raw([
 ]);
 
 /// Cairo string for "invoke" from starknet-rs
-pub(crate) const PREFIX_INVOKE: Felt = Felt::from_raw([
+pub const PREFIX_INVOKE: Felt = Felt::from_raw([
     513398556346534256,
     18446744073709551615,
     18446744073709551615,

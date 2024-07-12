@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
 use starknet_rs_core::types::Felt;
-use starknet_rs_core::types::Felt;
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
 use starknet_types::traits::HashProducer;
@@ -58,10 +57,12 @@ impl FromStr for AccountClassWrapper {
         let mut has_validate = false;
         for entry_point in contract_class.entry_points_by_type.external.iter() {
             let selector_bytes = entry_point.selector.to_bytes_be();
-            match Felt::from_byte_slice_be(&selector_bytes) {
-                Ok(selector) if selector == execute_selector => has_execute = true,
-                Ok(selector) if selector == validate_selector => has_validate = true,
-                _ => (),
+            let selector = Felt::from_bytes_be_slice(&selector_bytes);
+            if selector == execute_selector {
+                has_execute = true;
+            }
+            if selector == validate_selector {
+                has_validate = true;
             }
         }
         if !has_execute || !has_validate {

@@ -82,7 +82,7 @@ mod tests {
     };
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::{ClassHash, Felt};
+    use starknet_types::felt::ClassHash;
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
     use starknet_types::rpc::transactions::{
@@ -270,7 +270,7 @@ mod tests {
                 .try_into()
                 .unwrap();
 
-        let account_balance_before_deployment = Felt::from_u128(1000000);
+        let account_balance_before_deployment = Felt::from(1_000_000);
         starknet
             .pending_state
             .set_storage_at(
@@ -310,7 +310,7 @@ mod tests {
                 .try_into()
                 .unwrap();
 
-        let account_balance_before_deployment = Felt::from_u128(1000000);
+        let account_balance_before_deployment = Felt::from(1_000_000);
         let fee_token_address =
             starknet.block_context.chain_info().fee_token_addresses.strk_fee_token_address;
         starknet
@@ -368,7 +368,7 @@ mod tests {
                 .try_into()
                 .unwrap();
 
-        let account_balance_before_deployment = Felt::from_u128(1000000);
+        let account_balance_before_deployment = Felt::from(1_000_000);
         starknet
             .pending_state
             .set_storage_at(

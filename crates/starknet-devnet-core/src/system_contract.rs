@@ -1,7 +1,8 @@
 use blockifier::state::state_api::StateReader;
+use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
-use starknet_types::felt::{ClassHash, Felt};
+use starknet_types::felt::ClassHash;
 use starknet_types::rpc::state::Balance;
 
 use crate::error::DevnetResult;

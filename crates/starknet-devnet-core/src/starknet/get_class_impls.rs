@@ -21,7 +21,7 @@ pub fn get_class_hash_at_impl(
     if class_hash == Default::default() {
         Err(Error::ContractNotFound)
     } else {
-        Ok(class_hash.into())
+        Ok(class_hash.0)
     }
 }
 

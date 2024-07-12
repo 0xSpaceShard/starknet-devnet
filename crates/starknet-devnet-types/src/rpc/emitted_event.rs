@@ -37,7 +37,7 @@ impl From<&blockifier::execution::call_info::OrderedEvent> for OrderedEvent {
         Self {
             order: event.order,
             keys: event.event.keys.iter().map(|k| k.0).collect(),
-            data: event.event.data.0,
+            data: event.event.data.0.clone(),
         }
     }
 }

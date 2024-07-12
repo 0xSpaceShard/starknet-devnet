@@ -231,14 +231,17 @@ impl ComputationResources {
         execution_info: &blockifier::transaction::objects::TransactionExecutionInfo,
         resource_name: &str,
     ) -> Option<usize> {
-        execution_info.actual_resources.0.get(resource_name).cloned()
+        // TODO
+        // execution_info.actual_resources.0.get(resource_name).cloned()
+        todo!()
     }
 
     fn get_resource_from_call_info(
         call_info: &blockifier::execution::call_info::CallInfo,
         resource_name: &str,
     ) -> Option<usize> {
-        call_info.resources.builtin_instance_counter.get(resource_name).cloned()
+        // call_info.resources.builtin_instance_counter.get(resource_name).cloned()
+        todo!()
     }
 }
 
