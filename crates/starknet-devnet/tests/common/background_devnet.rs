@@ -95,8 +95,27 @@ impl BackgroundDevnet {
 
     /// Takes specified args and adds default values for args that are missing
     fn add_default_args<'a>(specified_args: &[&'a str]) -> Vec<&'a str> {
-        let specified_args_map: HashMap<&str, &str> =
-            specified_args.to_vec().chunks_exact(2).map(|chunk| (chunk[0], chunk[1])).collect();
+        let mut specified_args_map: HashMap<&str, &str> = HashMap::new();
+        let mut args_iter = specified_args.iter().peekable();
+
+        while let Some(arg) = args_iter.next() {
+            if arg.starts_with("--") {
+                // It's an argument, check if it has a value
+                if let Some(value) = args_iter.peek() {
+                    if value.starts_with("--") {
+                        // It's another argument, so current argument has no value
+                        specified_args_map.insert(arg, "");
+                    } else {
+                        // It's a value, associate it with the current argument
+                        // can unwrap safely since we know args_iter.peek() returned a value
+                        specified_args_map.insert(arg, args_iter.next().unwrap());
+                    }
+                } else {
+                    // Argument with no value
+                    specified_args_map.insert(arg, "");
+                }
+            }
+        }
 
         // filter out default cli settings that are either:
         // - in the specified args
@@ -129,7 +148,9 @@ impl BackgroundDevnet {
             specified_args_map.iter().chain(modified_default_args_map.iter())
         {
             final_args.push(arg_name);
-            final_args.push(arg_value);
+            if !arg_value.is_empty() {
+                final_args.push(arg_value);
+            }
         }
 
         final_args
