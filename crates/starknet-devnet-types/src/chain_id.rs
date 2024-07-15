@@ -55,6 +55,16 @@ impl From<ChainId> for starknet_api::core::ChainId {
     }
 }
 
+impl From<starknet_api::core::ChainId> for ChainId {
+    fn from(value: starknet_api::core::ChainId) -> Self {
+        match value.0.as_str() {
+            "MAINNET" => ChainId::Mainnet,
+            "SEPOLIA" => ChainId::Testnet,
+            _ => ChainId::Testnet,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::ChainId;

@@ -802,8 +802,7 @@ impl Starknet {
             gas_prices.data_gas_price_strk,
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
-            DEVNET_DEFAULT_CHAIN_ID, /* TODO: This fixed value should fail in forking test,
-                                      * maybe wait for PR with chain id update after forking? */
+            ChainId::from(self.block_context.chain_info().chain_id.clone()),
             self.block_context.block_info().block_number.0,
         );
 

@@ -4,6 +4,7 @@ The gas fees update endpoint allows users to modify the current gas prices on a 
 
 JSON-RPC Request
 The following JSON-RPC request can be used to update gas prices:
+
 ```
 JSON-RPC
 {
@@ -21,6 +22,7 @@ JSON-RPC
 
 Response
 The expected response from the server will mirror the request parameters, confirming the updated gas prices:
+
 ```
 {
     "gas_price_wei": 10000,
