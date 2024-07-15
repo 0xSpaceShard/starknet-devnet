@@ -289,10 +289,7 @@ pub fn compute_sierra_class_hash(contract_class: &SierraContractClass) -> Devnet
     let sierra_class: SierraClass =
         serde_json::from_value(contract_class_json_value).map_err(JsonError::SerdeJsonError)?;
 
-    Ok(sierra_class
-        .class_hash()
-        .map_err(|_| Error::ConversionError(ConversionError::InvalidFormat))?
-        .into())
+    sierra_class.class_hash().map_err(|_| Error::ConversionError(ConversionError::InvalidFormat))
 }
 
 #[cfg(test)]

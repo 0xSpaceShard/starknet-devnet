@@ -51,7 +51,7 @@ impl<'de> Deserialize<'de> for BlockId {
             let block_id: BlockHashOrNumber = serde_json::from_value(value)
                 .map_err(|e| serde::de::Error::custom(format!("Invalid block ID: {e}")))?;
             match block_id {
-                BlockHashOrNumber::Hash(hash) => Ok(BlockId(ImportedBlockId::Hash(hash.into()))),
+                BlockHashOrNumber::Hash(hash) => Ok(BlockId(ImportedBlockId::Hash(hash))),
                 BlockHashOrNumber::Number(number) => Ok(BlockId(ImportedBlockId::Number(number))),
             }
         } else {

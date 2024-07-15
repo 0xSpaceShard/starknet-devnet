@@ -28,7 +28,7 @@ pub fn add_invoke_transaction(
         });
     }
 
-    let transaction_hash = blockifier_invoke_transaction.tx_hash.0.into();
+    let transaction_hash = blockifier_invoke_transaction.tx_hash.0;
 
     let invoke_transaction = match broadcasted_invoke_transaction {
         BroadcastedInvokeTransaction::V1(ref v1) => {
@@ -109,7 +109,7 @@ mod tests {
         let calldata = vec![
             Felt::from(contract_address), // contract address
             function_selector,            // function selector
-            Felt::from(1),                // calldata len
+            Felt::ONE,                    // calldata len
             param,                        // calldata
         ];
 
@@ -119,7 +119,7 @@ mod tests {
             &vec![],
             Felt::from(nonce),
             &calldata,
-            Felt::from(1),
+            Felt::ONE,
         ))
     }
 
@@ -135,13 +135,13 @@ mod tests {
         let calldata = vec![
             Felt::from(contract_address), // contract address
             function_selector,            // function selector
-            Felt::from(1),                // calldata len
+            Felt::ONE,                    // calldata len
             param,                        // calldata
         ];
 
         BroadcastedInvokeTransaction::V3(BroadcastedInvokeTransactionV3 {
             common: BroadcastedTransactionCommonV3 {
-                version: Felt::from(3),
+                version: Felt::THREE,
                 signature: vec![],
                 nonce: Felt::from(nonce),
                 resource_bounds: ResourceBoundsWrapper::new(l1_gas_amount, 1, l2_gas_amount, 1),
@@ -171,7 +171,7 @@ mod tests {
         );
         match invoke_transaction {
             BroadcastedInvokeTransaction::V3(ref mut v3) => {
-                v3.common.version = (Felt::from(3u8) + QUERY_VERSION_OFFSET).into();
+                v3.common.version = Felt::THREE + QUERY_VERSION_OFFSET;
             }
             _ => {
                 panic!("Wrong transaction type");
@@ -351,7 +351,7 @@ mod tests {
         // check storage
         assert_eq!(
             starknet.pending_state.get_storage_at(blockifier_address, storage_key).unwrap(),
-            Felt::from(10).into()
+            Felt::from(10)
         );
 
         let invoke_transaction = test_invoke_transaction_v1(
@@ -382,7 +382,7 @@ mod tests {
             &vec![],
             dummy_felt(),
             &vec![],
-            Felt::from(1),
+            Felt::ONE,
         );
 
         let result = Starknet::default()
@@ -443,7 +443,7 @@ mod tests {
         let calldata = vec![
             Felt::from(contract_address), // contract address
             increase_balance_selector,    // function selector
-            Felt::from(1),                // calldata len
+            Felt::ONE,                    // calldata len
             Felt::from(10),               // calldata
         ];
 
@@ -454,7 +454,7 @@ mod tests {
             &vec![],
             initial_nonce.0,
             &calldata,
-            Felt::from(1),
+            Felt::ONE,
         );
 
         let transaction_hash = starknet
@@ -549,12 +549,6 @@ mod tests {
 
         starknet.restart_pending_block().unwrap();
 
-        (
-            starknet,
-            account,
-            dummy_contract_address,
-            Felt::from(increase_balance_selector),
-            contract_storage_key,
-        )
+        (starknet, account, dummy_contract_address, increase_balance_selector, contract_storage_key)
     }
 }

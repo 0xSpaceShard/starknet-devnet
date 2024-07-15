@@ -71,7 +71,7 @@ mod get_events_integration_tests {
         let events_contract_call = vec![Call {
             to: new_contract_address,
             selector: get_selector_from_name("emit_event").unwrap(),
-            calldata: vec![Felt::from(1u8)],
+            calldata: vec![Felt::ONE],
         }];
 
         // invoke 10 times the contract to emit event, it should produce 10 events

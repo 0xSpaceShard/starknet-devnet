@@ -237,8 +237,8 @@ impl BackgroundDevnet {
         };
         let balance_raw = self.json_rpc_client.call(call, block_id).await?;
         assert_eq!(balance_raw.len(), 2);
-        let balance_low = balance_raw.get(0).unwrap().to_biguint();
-        let balance_high = balance_raw.get(1).unwrap().to_biguint();
+        let balance_low = balance_raw.first().unwrap().to_biguint();
+        let balance_high = balance_raw.last().unwrap().to_biguint();
         Ok(Felt::from((balance_high << 128) + balance_low))
     }
 
@@ -289,7 +289,7 @@ impl BackgroundDevnet {
         let predeployed_accounts_json =
             self.send_custom_rpc("devnet_getPredeployedAccounts", json!({})).await.unwrap();
 
-        let first_account = predeployed_accounts_json.as_array().unwrap().get(0).unwrap();
+        let first_account = predeployed_accounts_json.as_array().unwrap().first().unwrap();
 
         let account_address = Felt::from_hex(first_account["address"].as_str().unwrap()).unwrap();
         let private_key = Felt::from_hex(first_account["private_key"].as_str().unwrap()).unwrap();

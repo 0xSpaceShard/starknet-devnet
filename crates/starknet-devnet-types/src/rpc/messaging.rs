@@ -29,7 +29,7 @@ impl MessageToL2 {
                 },
             )?,
             to_address: self.l2_contract_address.into(),
-            selector: self.entry_point_selector.into(),
+            selector: self.entry_point_selector,
             payload: self.payload.clone(),
             nonce: u64::try_from(self.nonce.to_bigint()).map_err(|err| {
                 Error::ConversionError(crate::error::ConversionError::OutOfRangeError(
@@ -61,7 +61,7 @@ impl MessageToL1 {
         let msg_to_l1 = MsgToL1 {
             from_address: self.from_address.into(),
             to_address: self.to_address.inner.clone().into(),
-            payload: self.payload.clone().into_iter().map(|f| f.into()).collect(),
+            payload: self.payload.clone(),
         };
 
         msg_to_l1.hash()

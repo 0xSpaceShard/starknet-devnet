@@ -12,7 +12,7 @@ pub struct PatriciaKey(pub(crate) Felt);
 
 impl PatriciaKey {
     pub fn new(felt: Felt) -> DevnetResult<Self> {
-        if Felt::from_hex_unchecked(PATRICIA_KEY_UPPER_BOUND) < felt.into() {
+        if Felt::from_hex_unchecked(PATRICIA_KEY_UPPER_BOUND) < felt {
             return Err(Error::StarknetApiError(starknet_api::StarknetApiError::OutOfRange {
                 string: format!("[0x0, {PATRICIA_KEY_UPPER_BOUND})"),
             }));

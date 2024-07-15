@@ -144,7 +144,7 @@ pub async fn assert_tx_reverted<T: Provider>(
     match receipt.execution_result() {
         ExecutionResult::Reverted { reason } => {
             for expected_reason in expected_failure_reasons {
-                assert_contains(&reason, expected_reason);
+                assert_contains(reason, expected_reason);
             }
         }
         other => panic!("Should have reverted; got: {other:?}; receipt: {receipt:?}"),

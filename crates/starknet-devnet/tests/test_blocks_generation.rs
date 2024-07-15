@@ -267,7 +267,7 @@ mod blocks_generation_tests {
 
         assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Pending)
             .await;
-        assert_balance(&devnet, Felt::from(0_u128), BlockTag::Latest).await;
+        assert_balance(&devnet, Felt::ZERO, BlockTag::Latest).await;
 
         assert_pending_block_with_tx_hashes(&devnet, tx_count).await;
         assert_pending_block_with_txs(&devnet, tx_count).await;

@@ -1,5 +1,4 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
-use starknet_rs_core::types::Felt;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, CompiledClassHash, TransactionHash};
 use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
@@ -34,8 +33,8 @@ pub fn add_declare_transaction(
         });
     }
 
-    let transaction_hash = blockifier_declare_transaction.tx_hash().0.into();
-    let class_hash = blockifier_declare_transaction.class_hash().0.into();
+    let transaction_hash = blockifier_declare_transaction.tx_hash().0;
+    let class_hash = blockifier_declare_transaction.class_hash().0;
 
     let (declare_transaction, contract_class, casm_hash, sender_address) =
         match broadcasted_declare_transaction {
@@ -125,7 +124,7 @@ fn assert_casm_hash_is_valid(
                 Error::TypesError(starknet_types::error::Error::SierraCompilationError { reason })
             })?;
 
-            let calculated_casm_hash = Felt::from(calculate_casm_hash(casm_json)?);
+            let calculated_casm_hash = calculate_casm_hash(casm_json)?;
             if calculated_casm_hash == received_casm_hash {
                 Ok(())
             } else {
@@ -173,9 +172,9 @@ mod tests {
             sender_address,
             Fee(10000),
             &Vec::new(),
-            Felt::from(0),
+            Felt::ZERO,
             &contract_class.into(),
-            Felt::from(1),
+            Felt::ONE,
         )))
     }
 
@@ -192,7 +191,7 @@ mod tests {
         );
 
         let mut declare_transaction = convert_broadcasted_declare_v2_to_v3(declare_transaction);
-        declare_transaction.common.version = (Felt::from(3u8) + QUERY_VERSION_OFFSET).into();
+        declare_transaction.common.version = Felt::THREE + QUERY_VERSION_OFFSET;
 
         let result = Starknet::default().add_declare_transaction(
             BroadcastedDeclareTransaction::V3(Box::new(declare_transaction)),
@@ -394,7 +393,7 @@ mod tests {
             &vec![],
             dummy_felt(),
             &dummy_cairo_0_contract_class().into(),
-            Felt::from(1),
+            Felt::ONE,
         );
 
         let result = Starknet::default().add_declare_transaction(

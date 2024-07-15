@@ -244,7 +244,7 @@ impl StarknetBlock {
     }
 
     pub fn new_root(&self) -> Felt {
-        self.header.state_root.0.into()
+        self.header.state_root.0
     }
 
     pub(crate) fn set_block_hash(&mut self, block_hash: BlockHash) {
@@ -292,7 +292,7 @@ impl HashProducer for StarknetBlock {
             self.header.parent_hash.0,                   // parent_block_hash
         ]);
 
-        Ok(Felt::from(hash))
+        Ok(hash)
     }
 }
 
@@ -374,7 +374,7 @@ mod tests {
         assert!(blocks.block_number_from_block_id(&BlockId::Number(11)).is_none());
         assert!(blocks.block_number_from_block_id(&BlockId::Number(10)).is_some());
         // returns none because there is no block with the given hash
-        assert!(blocks.block_number_from_block_id(&BlockId::Hash(Felt::from(1).into())).is_none());
+        assert!(blocks.block_number_from_block_id(&BlockId::Hash(Felt::ONE)).is_none());
         assert!(
             blocks
                 .block_number_from_block_id(&BlockId::Tag(
@@ -389,7 +389,7 @@ mod tests {
                 ))
                 .is_some()
         );
-        assert!(blocks.block_number_from_block_id(&BlockId::Hash(block_hash.into())).is_some());
+        assert!(blocks.block_number_from_block_id(&BlockId::Hash(block_hash)).is_some());
     }
 
     #[test]
@@ -424,10 +424,7 @@ mod tests {
         // last block should be returned
         assert_eq!(blocks.get_blocks(Some(BlockId::Number(11)), None).unwrap().len(), 1);
         // from filter using hash
-        assert_eq!(
-            blocks.get_blocks(Some(BlockId::Hash(Felt::from(9).into())), None).unwrap().len(),
-            3
-        );
+        assert_eq!(blocks.get_blocks(Some(BlockId::Hash(Felt::from(9))), None).unwrap().len(), 3);
         // from filter using tag
         assert_eq!(blocks.get_blocks(Some(BlockId::Tag(BlockTag::Latest)), None).unwrap().len(), 1);
         assert_eq!(
@@ -441,12 +438,9 @@ mod tests {
         // to filter using invalid block number
         assert!(blocks.get_blocks(None, Some(BlockId::Number(0))).is_err());
         // to filter using hash
-        assert_eq!(
-            blocks.get_blocks(None, Some(BlockId::Hash(Felt::from(9).into()))).unwrap().len(),
-            8
-        );
+        assert_eq!(blocks.get_blocks(None, Some(BlockId::Hash(Felt::from(9)))).unwrap().len(), 8);
         // to filter using invalid hash
-        assert!(blocks.get_blocks(None, Some(BlockId::Hash(Felt::from(0).into()))).is_err());
+        assert!(blocks.get_blocks(None, Some(BlockId::Hash(Felt::ZERO))).is_err());
         // to filter using tag
         assert_eq!(
             blocks.get_blocks(None, Some(BlockId::Tag(BlockTag::Latest))).unwrap().len(),
@@ -470,7 +464,7 @@ mod tests {
         // from block number to block hash
         assert_eq!(
             blocks
-                .get_blocks(Some(BlockId::Number(2)), Some(BlockId::Hash(Felt::from(9).into())))
+                .get_blocks(Some(BlockId::Number(2)), Some(BlockId::Hash(Felt::from(9))))
                 .unwrap()
                 .len(),
             8
@@ -520,35 +514,26 @@ mod tests {
         // from block hash to block_hash
         assert_eq!(
             blocks
-                .get_blocks(
-                    Some(BlockId::Hash(Felt::from(2).into())),
-                    Some(BlockId::Hash(Felt::from(9).into()))
-                )
+                .get_blocks(Some(BlockId::Hash(Felt::TWO)), Some(BlockId::Hash(Felt::from(9))))
                 .unwrap()
                 .len(),
             8
         );
         assert!(
             blocks
-                .get_blocks(
-                    Some(BlockId::Hash(Felt::from(2).into())),
-                    Some(BlockId::Hash(Felt::from(0).into()))
-                )
+                .get_blocks(Some(BlockId::Hash(Felt::TWO)), Some(BlockId::Hash(Felt::ZERO)))
                 .is_err()
         );
         assert!(
             blocks
-                .get_blocks(
-                    Some(BlockId::Hash(Felt::from(10).into())),
-                    Some(BlockId::Hash(Felt::from(5).into()))
-                )
+                .get_blocks(Some(BlockId::Hash(Felt::from(10))), Some(BlockId::Hash(Felt::from(5))))
                 .unwrap()
                 .is_empty()
         );
         // from block hash to block number
         assert_eq!(
             blocks
-                .get_blocks(Some(BlockId::Hash(Felt::from(2).into())), Some(BlockId::Number(9)))
+                .get_blocks(Some(BlockId::Hash(Felt::TWO)), Some(BlockId::Number(9)))
                 .unwrap()
                 .len(),
             8
@@ -557,7 +542,7 @@ mod tests {
         assert_eq!(
             blocks
                 .get_blocks(
-                    Some(BlockId::Hash(Felt::from(11).into())),
+                    Some(BlockId::Hash(Felt::from(11))),
                     Some(BlockId::Tag(BlockTag::Latest))
                 )
                 .unwrap()
@@ -567,7 +552,7 @@ mod tests {
         assert_eq!(
             blocks
                 .get_blocks(
-                    Some(BlockId::Hash(Felt::from(11).into())),
+                    Some(BlockId::Hash(Felt::from(11))),
                     Some(BlockId::Tag(BlockTag::Pending))
                 )
                 .unwrap()
@@ -629,7 +614,7 @@ mod tests {
             blocks
                 .get_blocks(
                     Some(BlockId::Tag(BlockTag::Latest)),
-                    Some(BlockId::Hash(Felt::from(11).into()))
+                    Some(BlockId::Hash(Felt::from(11)))
                 )
                 .unwrap()
                 .len(),
@@ -646,7 +631,7 @@ mod tests {
             blocks
                 .get_blocks(
                     Some(BlockId::Tag(BlockTag::Pending)),
-                    Some(BlockId::Hash(Felt::from(11).into()))
+                    Some(BlockId::Hash(Felt::from(11)))
                 )
                 .unwrap()
                 .len(),
@@ -660,10 +645,7 @@ mod tests {
         );
         assert!(
             blocks
-                .get_blocks(
-                    Some(BlockId::Tag(BlockTag::Latest)),
-                    Some(BlockId::Hash(Felt::from(2).into()))
-                )
+                .get_blocks(Some(BlockId::Tag(BlockTag::Latest)), Some(BlockId::Hash(Felt::TWO)))
                 .unwrap()
                 .is_empty()
         );
@@ -684,7 +666,7 @@ mod tests {
         assert!(block_to_insert == extracted_block.clone());
 
         let extracted_block =
-            blocks.get_by_block_id(&BlockId::Hash(block_to_insert.block_hash().into())).unwrap();
+            blocks.get_by_block_id(&BlockId::Hash(block_to_insert.block_hash())).unwrap();
         assert!(block_to_insert == extracted_block.clone());
 
         let extracted_block = blocks

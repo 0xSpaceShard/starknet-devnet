@@ -96,7 +96,7 @@ impl Account {
             starknet_api::core::ClassHash(Felt::from_hex(
                 ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION,
             )?),
-            &Calldata(Arc::new(vec![(*public_key).into()])),
+            &Calldata(Arc::new(vec![*public_key])),
             starknet_api::core::ContractAddress(patricia_key!(0u32)),
         )
         .map_err(Error::StarknetApiError)?;
@@ -121,7 +121,7 @@ impl Account {
         state.state.state.set_storage_at(
             core_address,
             public_key_storage_var.try_into()?,
-            self.public_key.into(),
+            self.public_key,
         )?;
 
         Ok(())
@@ -159,14 +159,10 @@ impl Accounted for Account {
             state.set_storage_at(
                 fee_token_address.try_into()?,
                 storage_var_address_low.try_into()?,
-                low.into(),
+                low,
             )?;
 
-            state.set_storage_at(
-                fee_token_address.try_into()?,
-                storage_var_address_high,
-                high.into(),
-            )?;
+            state.set_storage_at(fee_token_address.try_into()?, storage_var_address_high, high)?;
         }
 
         Ok(())

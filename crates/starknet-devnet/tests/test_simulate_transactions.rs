@@ -385,7 +385,7 @@ mod simulation_tests {
 
         // TODO fails if max_fee too low, can be used to test reverted case
         let max_fee = Felt::from(1e18 as u128);
-        let nonce = Felt::from(2_u32); // after declare+deploy
+        let nonce = Felt::TWO; // after declare+deploy
         let invoke_request = account
             .execute_v1(invoke_calls.clone())
             .max_fee(max_fee)

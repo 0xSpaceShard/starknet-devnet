@@ -226,7 +226,7 @@ impl StarknetState {
         for (address, storage_updates) in state_diff.storage_updates {
             let core_address = address.try_into()?;
             for (key, value) in storage_updates {
-                historic_state.set_storage_at(core_address, key.try_into()?, value.into())?;
+                historic_state.set_storage_at(core_address, key.try_into()?, value)?;
             }
         }
         for class_hash in state_diff.cairo_0_declared_contracts {
@@ -479,14 +479,14 @@ mod tests {
 
         state
             .state
-            .set_class_hash_at(contract_address, starknet_api::core::ClassHash(dummy_felt().into()))
+            .set_class_hash_at(contract_address, starknet_api::core::ClassHash(dummy_felt()))
             .unwrap();
 
-        state.state.set_storage_at(contract_address, storage_key, dummy_felt().into()).unwrap();
+        state.state.set_storage_at(contract_address, storage_key, dummy_felt()).unwrap();
         state.commit_diff(1).unwrap();
 
         let storage_after = state.get_storage_at(contract_address, storage_key).unwrap();
-        assert_eq!(storage_after, dummy_felt().into());
+        assert_eq!(storage_after, dummy_felt());
     }
 
     #[test]
@@ -512,26 +512,22 @@ mod tests {
         let class_hash = starknet_api::core::ClassHash(Felt::from_hex_unchecked("0xFE"));
         let casm_hash = Some(dummy_felt());
 
-        match state.get_compiled_contract_class(class_hash.into()) {
+        match state.get_compiled_contract_class(class_hash) {
             Err(StateError::UndeclaredClassHash(reported_hash)) => {
-                assert_eq!(reported_hash, class_hash.into())
+                assert_eq!(reported_hash, class_hash);
             }
             other => panic!("Invalid result: {other:?}"),
         }
 
         let contract_class: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
         state
-            .declare_contract_class(
-                class_hash.0,
-                casm_hash,
-                contract_class.clone().try_into().unwrap(),
-            )
+            .declare_contract_class(class_hash.0, casm_hash, contract_class.clone().into())
             .unwrap();
 
         let block_number = 1;
         state.commit_diff(block_number).unwrap();
 
-        match state.get_compiled_contract_class(class_hash.into()) {
+        match state.get_compiled_contract_class(class_hash) {
             Ok(blockifier::execution::contract_class::ContractClass::V0(retrieved_class)) => {
                 assert_eq!(retrieved_class, contract_class.clone().try_into().unwrap());
             }
@@ -562,11 +558,8 @@ mod tests {
         let (contract_address, storage_key) = dummy_contract_storage_key();
         let storage_value = dummy_felt();
 
-        state.set_storage_at(contract_address, storage_key, storage_value.into()).unwrap();
-        assert_eq!(
-            state.get_storage_at(contract_address, storage_key).unwrap(),
-            storage_value.into()
-        );
+        state.set_storage_at(contract_address, storage_key, storage_value).unwrap();
+        assert_eq!(state.get_storage_at(contract_address, storage_key).unwrap(), storage_value);
     }
 
     #[test]

@@ -109,7 +109,7 @@ mod tests {
         );
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,
-            blockifier_declare_transaction.tx_hash().0.into()
+            blockifier_declare_transaction.tx_hash().0
         );
     }
 }

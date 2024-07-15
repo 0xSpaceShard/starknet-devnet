@@ -145,7 +145,7 @@ impl StarknetTransaction {
         events: &[Event],
     ) -> DevnetResult<Option<ContractAddress>> {
         let contract_deployed_event_key =
-            Felt::from(get_selector_from_name("ContractDeployed").map_err(|_| Error::FormatError)?);
+            get_selector_from_name("ContractDeployed").map_err(|_| Error::FormatError)?;
 
         let udc_address = ContractAddress::new(Felt::from_hex(UDC_CONTRACT_ADDRESS)?)?;
 
@@ -249,7 +249,7 @@ impl StarknetTransaction {
                     message: MessageToL1 {
                         to_address: m.message.to_address.into(),
                         from_address: from_address.into(),
-                        payload: m.message.payload.0.iter().map(|p| (*p).into()).collect(),
+                        payload: m.message.payload.0.clone(),
                     },
                 }
             }));

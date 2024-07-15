@@ -203,7 +203,7 @@ impl BlockingOriginReader {
         match self.send_body(
             "starknet_getClass",
             serde_json::json!({
-                "class_hash": Felt::from(class_hash.0).to_hex_string(),
+                "class_hash": class_hash.0.to_hex_string(),
             }),
         ) {
             Err(OriginError::NoResult) => Err(StateError::UndeclaredClassHash(class_hash)),

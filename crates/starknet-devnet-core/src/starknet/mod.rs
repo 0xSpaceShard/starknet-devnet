@@ -321,7 +321,7 @@ impl Starknet {
         new_block.set_timestamp(block_timestamp);
         Self::update_block_context_block_timestamp(&mut self.block_context, block_timestamp);
 
-        let new_block_hash: Felt = new_block.header.block_hash.0.into();
+        let new_block_hash = new_block.header.block_hash.0;
 
         // update txs block hash block number for each transaction in the pending block
         new_block.get_transactions().iter().for_each(|tx_hash| {
@@ -630,10 +630,8 @@ impl Starknet {
 
         let call = CallEntryPoint {
             calldata: starknet_api::transaction::Calldata(std::sync::Arc::new(calldata.clone())),
-            storage_address: Felt::from(contract_address).try_into()?,
-            entry_point_selector: starknet_api::core::EntryPointSelector(
-                entrypoint_selector.into(),
-            ),
+            storage_address: contract_address.try_into()?,
+            entry_point_selector: starknet_api::core::EntryPointSelector(entrypoint_selector),
             initial_gas: block_context.versioned_constants().tx_initial_gas(),
             ..Default::default()
         };
@@ -727,15 +725,13 @@ impl Starknet {
         erc20_address: ContractAddress,
     ) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee = self.config.gas_price_wei.get() * 1_000_000;
-        let chargeable_address_felt = Felt::from_hex(CHARGEABLE_ACCOUNT_ADDRESS)?;
+        let chargeable_address = Felt::from_hex(CHARGEABLE_ACCOUNT_ADDRESS)?;
         let state = self.get_state();
-        let nonce = state.get_nonce_at(starknet_api::core::ContractAddress::try_from(
-            Felt::from(chargeable_address_felt),
-        )?)?;
+        let nonce = state
+            .get_nonce_at(starknet_api::core::ContractAddress::try_from(chargeable_address)?)?;
 
         let (high, low) = split_biguint(amount);
-
-        let calldata = vec![Felt::from(address).into(), low.into(), high.into()];
+        let calldata = vec![Felt::from(address), low, high];
 
         let raw_execution = RawExecution {
             calls: vec![Call {
@@ -743,14 +739,12 @@ impl Starknet {
                 selector: get_selector_from_name("mint").unwrap(),
                 calldata: calldata.clone(),
             }],
-            nonce: Felt::from(nonce.0).into(),
+            nonce: nonce.0,
             max_fee: Felt::from(sufficiently_big_max_fee),
         };
 
-        // generate msg hash (not the same as tx hash)
-        let chain_id_felt: Felt = self.config.chain_id.to_felt();
-        let msg_hash_felt =
-            raw_execution.transaction_hash(chain_id_felt.into(), chargeable_address_felt.into());
+        let msg_hash =
+            raw_execution.transaction_hash(self.config.chain_id.to_felt(), chargeable_address);
 
         // generate signature by signing the msg hash
         let signer = starknet_rs_signers::LocalWallet::from(
@@ -758,16 +752,16 @@ impl Starknet {
                 Felt::from_hex(CHARGEABLE_ACCOUNT_PRIVATE_KEY).unwrap(),
             ),
         );
-        let signature = signer.sign_hash(&msg_hash_felt).await?;
+        let signature = signer.sign_hash(&msg_hash).await?;
 
         let invoke_tx = BroadcastedInvokeTransactionV1 {
-            sender_address: ContractAddress::new(chargeable_address_felt)?,
-            calldata: raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
+            sender_address: ContractAddress::new(chargeable_address)?,
+            calldata: raw_execution.raw_calldata(),
             common: BroadcastedTransactionCommon {
                 max_fee: Fee(sufficiently_big_max_fee),
-                version: Felt::from(1),
-                signature: vec![signature.r.into(), signature.s.into()],
-                nonce: nonce.0.into(),
+                version: Felt::ONE,
+                signature: vec![signature.r, signature.s],
+                nonce: nonce.0,
             },
         };
 
@@ -910,7 +904,7 @@ impl Starknet {
     ) -> DevnetResult<Felt> {
         let state = self.get_mut_state_at(block_id)?;
         state.assert_contract_deployed(contract_address)?;
-        Ok(state.get_storage_at(contract_address.try_into()?, storage_key.try_into()?)?.into())
+        Ok(state.get_storage_at(contract_address.try_into()?, storage_key.try_into()?)?)
     }
 
     pub fn get_block(&self, block_id: &BlockId) -> DevnetResult<&StarknetBlock> {
@@ -1609,7 +1603,7 @@ mod tests {
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block_and_state().unwrap();
 
-        match starknet.get_mut_state_at(&BlockId::Hash(Felt::from(0).into())) {
+        match starknet.get_mut_state_at(&BlockId::Hash(Felt::ZERO)) {
             Err(Error::NoBlock) => (),
             _ => panic!("Should fail with NoBlock"),
         }
@@ -1656,7 +1650,7 @@ mod tests {
         match starknet.call(
             &BlockId::Tag(BlockTag::Latest),
             undeployed_address,
-            entry_point_selector.into(),
+            entry_point_selector,
             vec![],
         ) {
             Err(Error::ContractNotFound) => (),
@@ -1676,7 +1670,7 @@ mod tests {
         match starknet.call(
             &BlockId::Tag(BlockTag::Latest),
             Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
-            entry_point_selector.into(),
+            entry_point_selector,
             vec![Felt::from(predeployed_account.account_address)],
         ) {
             Err(Error::BlockifierTransactionError(TransactionExecutionError::ExecutionError {
@@ -1700,7 +1694,7 @@ mod tests {
         starknet.call(
             &BlockId::Tag(BlockTag::Latest),
             Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS)?,
-            entry_point_selector.into(),
+            entry_point_selector,
             vec![Felt::from(contract_address)],
         )
     }
@@ -1829,7 +1823,7 @@ mod tests {
             .unwrap()
             .get_nonce_at(dummy_contract_address().try_into().unwrap())
             .unwrap();
-        let second_block_expected_address_nonce = Felt::from(1);
+        let second_block_expected_address_nonce = Felt::ONE;
         assert_eq!(second_block_expected_address_nonce, second_block_address_nonce.0);
 
         let third_block_address_nonce = starknet
@@ -1839,7 +1833,7 @@ mod tests {
             .unwrap()
             .get_nonce_at(dummy_contract_address().try_into().unwrap())
             .unwrap();
-        let third_block_expected_address_nonce = Felt::from(2);
+        let third_block_expected_address_nonce = Felt::TWO;
         assert_eq!(third_block_expected_address_nonce, third_block_address_nonce.0);
     }
 
@@ -1888,7 +1882,7 @@ mod tests {
         .unwrap();
 
         let dummy_hash = Felt::from_hex("0x42").unwrap();
-        match starknet.abort_blocks(BlockId::Hash(dummy_hash.into())) {
+        match starknet.abort_blocks(BlockId::Hash(dummy_hash)) {
             Err(Error::UnsupportedAction { msg }) => {
                 assert!(msg.contains("state-archive-capacity"))
             }
@@ -1905,7 +1899,7 @@ mod tests {
         .unwrap();
 
         let dummy_hash = Felt::from_hex("0x42").unwrap();
-        match starknet.abort_blocks(BlockId::Hash(dummy_hash.into())) {
+        match starknet.abort_blocks(BlockId::Hash(dummy_hash)) {
             Err(Error::NoBlock) => (),
             unexpected => panic!("Got unexpected response: {unexpected:?}"),
         }

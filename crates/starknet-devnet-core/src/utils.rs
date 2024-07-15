@@ -31,11 +31,9 @@ pub(crate) fn get_storage_var_address(
     storage_var_name: &str,
     args: &[Felt],
 ) -> DevnetResult<StorageKey> {
-    let storage_var_address = starknet_rs_core::utils::get_storage_var_address(
-        storage_var_name,
-        &args.iter().map(|f| Felt::from(*f)).collect::<Vec<_>>(),
-    )
-    .map_err(|err| crate::error::Error::UnexpectedInternalError { msg: err.to_string() })?;
+    let storage_var_address =
+        starknet_rs_core::utils::get_storage_var_address(storage_var_name, args)
+            .map_err(|err| crate::error::Error::UnexpectedInternalError { msg: err.to_string() })?;
 
     Ok(PatriciaKey::new(storage_var_address)?)
 }
@@ -106,7 +104,7 @@ pub(crate) mod test_utils {
             &vec![],
             dummy_felt(),
             &contract_class.clone().into(),
-            Felt::from(1),
+            Felt::ONE,
         );
         let class_hash = contract_class.generate_hash().unwrap();
         let transaction_hash =
@@ -129,7 +127,7 @@ pub(crate) mod test_utils {
         let casm_contract_class_json =
             usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap()).unwrap();
 
-        let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap().into();
+        let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap();
 
         BroadcastedDeclareTransactionV2::new(
             &contract_class,
@@ -137,8 +135,8 @@ pub(crate) mod test_utils {
             *sender_address,
             Fee(400000),
             &Vec::new(),
-            Felt::from(0),
-            Felt::from(2),
+            Felt::ZERO,
+            Felt::TWO,
         )
     }
 
@@ -156,7 +154,7 @@ pub(crate) mod test_utils {
     ) -> BroadcastedDeclareTransactionV3 {
         BroadcastedDeclareTransactionV3 {
             common: BroadcastedTransactionCommonV3 {
-                version: Felt::from(3),
+                version: Felt::THREE,
                 signature: declare_v2.common.signature,
                 nonce: declare_v2.common.nonce,
                 resource_bounds: ResourceBoundsWrapper::new(

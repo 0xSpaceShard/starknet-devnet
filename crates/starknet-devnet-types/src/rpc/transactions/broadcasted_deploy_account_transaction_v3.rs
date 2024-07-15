@@ -37,14 +37,14 @@ impl BroadcastedDeployAccountTransactionV3 {
         let fields_to_hash = [
             common_fields.as_slice(),
             &[constructor_calldata_hash],
-            &[self.class_hash.into()],
-            &[self.contract_address_salt.into()],
+            &[self.class_hash],
+            &[self.contract_address_salt],
         ]
         .concat();
 
         let txn_hash = poseidon_hash_many(fields_to_hash.as_slice());
 
-        Ok(txn_hash.into())
+        Ok(txn_hash)
     }
 
     pub(crate) fn calculate_contract_address(

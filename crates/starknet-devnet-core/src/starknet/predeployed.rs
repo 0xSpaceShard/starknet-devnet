@@ -34,25 +34,19 @@ pub(crate) fn initialize_erc20_at_address(
         (
             "ERC20_name",
             cairo_short_string_to_felt(erc20_name)
-                .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?
-                .into(),
+                .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?,
         ),
         (
             "ERC20_symbol",
             cairo_short_string_to_felt(erc20_symbol)
-                .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?
-                .into(),
+                .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?,
         ),
         ("ERC20_decimals", 18.into()),
         // necessary to set - otherwise minting txs cannot be executed
         ("Ownable_owner", Felt::from_hex(CHARGEABLE_ACCOUNT_ADDRESS)?),
     ] {
         let storage_var_address = get_storage_var_address(storage_var_name, &[])?.try_into()?;
-        state.set_storage_at(
-            contract_address.try_into()?,
-            storage_var_address,
-            storage_value.into(),
-        )?;
+        state.set_storage_at(contract_address.try_into()?, storage_var_address, storage_value)?;
     }
 
     Ok(())

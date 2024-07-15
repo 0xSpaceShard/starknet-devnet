@@ -21,7 +21,7 @@ impl ContractAddress {
     /// Constructs a zero address
     pub fn zero() -> Self {
         // using unwrap because we are sure it works for 0x0
-        Self::new(Felt::from(0)).unwrap()
+        Self::new(Felt::ZERO).unwrap()
     }
 }
 
@@ -60,7 +60,7 @@ impl TryFrom<ContractAddress> for starknet_api::core::ContractAddress {
 
 impl From<ContractAddress> for Felt {
     fn from(value: ContractAddress) -> Self {
-        Felt::from(value.0.0)
+        value.0.0
     }
 }
 

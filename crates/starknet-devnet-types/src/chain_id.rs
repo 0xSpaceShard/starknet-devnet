@@ -15,7 +15,7 @@ pub enum ChainId {
 impl ChainId {
     pub fn goerli_legacy_id() -> Felt {
         #[allow(deprecated)]
-        TESTNET.into()
+        TESTNET
     }
 
     pub fn to_felt(&self) -> Felt {

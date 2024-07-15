@@ -47,17 +47,14 @@ impl L1HandlerTransaction {
 
         compute_hash_on_elements(&[
             PREFIX_L1_HANDLER,
-            self.version.into(),
+            self.version,
             self.contract_address.into(),
-            self.entry_point_selector.into(),
-            compute_hash_on_elements(
-                &self.calldata.iter().map(|felt| Felt::from(*felt)).collect::<Vec<Felt>>(),
-            ),
+            self.entry_point_selector,
+            compute_hash_on_elements(&self.calldata),
             fee,
             chain_id,
-            self.nonce.into(),
+            self.nonce,
         ])
-        .into()
     }
 
     /// Creates a blockifier version of `L1HandlerTransaction`.
@@ -68,13 +65,13 @@ impl L1HandlerTransaction {
         let transaction = BlockifierL1HandlerTransaction {
             tx: ApiL1HandlerTransaction {
                 contract_address: ApiContractAddress::try_from(self.contract_address)?,
-                entry_point_selector: ApiEntryPointSelector(self.entry_point_selector.into()),
+                entry_point_selector: ApiEntryPointSelector(self.entry_point_selector),
                 calldata: ApiCalldata(Arc::new(self.calldata.clone())),
-                nonce: ApiNonce(self.nonce.into()),
-                version: ApiTransactionVersion(self.version.into()),
+                nonce: ApiNonce(self.nonce),
+                version: ApiTransactionVersion(self.version),
             },
             paid_fee_on_l1: ApiFee(self.paid_fee_on_l1),
-            tx_hash: ApiTransactionHash(self.compute_hash(chain_id).into()),
+            tx_hash: ApiTransactionHash(self.compute_hash(chain_id)),
         };
 
         Ok(transaction)
@@ -118,7 +115,7 @@ impl TryFrom<&L1HandlerTransaction> for MessageToL2 {
     type Error = Error;
 
     fn try_from(value: &L1HandlerTransaction) -> Result<Self, Self::Error> {
-        let l1_contract_address = value.calldata.get(0).ok_or(Error::ConversionError(
+        let l1_contract_address = value.calldata.first().ok_or(Error::ConversionError(
             ConversionError::InvalidInternalStructure(
                 "L1HandlerTransaction calldata is expected to have at least one element"
                     .to_string(),

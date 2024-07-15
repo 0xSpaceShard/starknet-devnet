@@ -43,7 +43,7 @@ mod tests {
         let casm_contract_class_json =
             usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap()).unwrap();
 
-        let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap().into();
+        let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap();
 
         let declare_txn = BroadcastedDeclareTransactionV2::new(
             &contract_class,
@@ -51,8 +51,8 @@ mod tests {
             acc.account_address,
             Fee(400000),
             &Vec::new(),
-            Felt::from(0),
-            Felt::from(2),
+            Felt::ZERO,
+            Felt::TWO,
         );
 
         // first execute declare v2 transaction

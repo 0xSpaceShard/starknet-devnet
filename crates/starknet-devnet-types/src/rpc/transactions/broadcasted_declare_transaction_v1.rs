@@ -52,15 +52,14 @@ impl BroadcastedDeclareTransactionV1 {
     ) -> DevnetResult<ClassHash> {
         Ok(compute_hash_on_elements(&[
             PREFIX_DECLARE,
-            self.common.version.into(),
+            self.common.version,
             self.sender_address.into(),
             Felt::ZERO, // entry_point_selector
-            compute_hash_on_elements(&[Felt::from(*class_hash)]),
+            compute_hash_on_elements(&[*class_hash]),
             self.common.max_fee.0.into(),
-            Felt::from(*chain_id),
-            self.common.nonce.into(),
-        ])
-        .into())
+            *chain_id,
+            self.common.nonce,
+        ]))
     }
 }
 
@@ -124,11 +123,11 @@ mod tests {
 
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,
-            blockifier_declare_transaction.tx_hash().0.into()
+            blockifier_declare_transaction.tx_hash().0
         );
         assert_eq!(
             feeder_gateway_transaction.class_hash,
-            blockifier_declare_transaction.class_hash().0.into()
+            blockifier_declare_transaction.class_hash().0
         );
     }
 }

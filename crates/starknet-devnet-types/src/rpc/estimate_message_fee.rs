@@ -40,15 +40,15 @@ impl EstimateMessageFeeRequestWrapper {
     }
 
     pub fn get_to_address(&self) -> Felt {
-        self.inner.message.to_address.into()
+        self.inner.message.to_address
     }
 
     pub fn get_entry_point_selector(&self) -> Felt {
-        self.inner.message.entry_point_selector.into()
+        self.inner.message.entry_point_selector
     }
 
-    pub fn get_payload(&self) -> Vec<Felt> {
-        self.inner.message.payload.iter().map(|el| (*el).into()).collect()
+    pub fn get_payload(&self) -> &[Felt] {
+        &self.inner.message.payload
     }
 
     pub fn get_block_id(&self) -> &SrBlockId {
@@ -60,15 +60,15 @@ impl EstimateMessageFeeRequestWrapper {
     }
 
     pub fn create_blockifier_l1_transaction(&self) -> DevnetResult<L1HandlerTransaction> {
-        let calldata = [&[self.get_from_address().into()], self.get_payload().as_slice()].concat();
+        let calldata = [&[self.get_from_address().into()], self.get_payload()].concat();
 
         let l1_transaction = L1HandlerTransaction {
             tx: starknet_api::transaction::L1HandlerTransaction {
-                contract_address: starknet_api::core::ContractAddress::try_from(Felt::from(
+                contract_address: starknet_api::core::ContractAddress::try_from(
                     self.get_to_address(),
-                ))?,
-                entry_point_selector: EntryPointSelector(self.get_entry_point_selector().into()),
-                calldata: Calldata(Arc::new(calldata.into_iter().map(|f| f.into()).collect())),
+                )?,
+                entry_point_selector: EntryPointSelector(self.get_entry_point_selector()),
+                calldata: Calldata(Arc::new(calldata)),
                 ..Default::default()
             },
             paid_fee_on_l1: starknet_api::transaction::Fee(1),

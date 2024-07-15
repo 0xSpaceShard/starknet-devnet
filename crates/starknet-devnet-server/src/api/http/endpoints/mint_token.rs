@@ -21,8 +21,7 @@ pub fn get_balance(
     erc20_address: ContractAddress,
     tag: BlockTag,
 ) -> Result<BigUint, ApiError> {
-    let balance_selector =
-        starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap().into();
+    let balance_selector = starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
     let new_balance_raw = starknet.call(
         &BlockId::Tag(tag),
         erc20_address.into(),
@@ -39,8 +38,8 @@ pub fn get_balance(
             error: starknet_core::error::Error::UnexpectedInternalError { msg },
         });
     }
-    let new_balance_low = new_balance_raw.get(0).unwrap();
-    let new_balance_high = new_balance_raw.get(1).unwrap();
+    let new_balance_low = new_balance_raw.first().unwrap();
+    let new_balance_high = new_balance_raw.last().unwrap();
     Ok(join_felts(new_balance_high, new_balance_low))
 }
 

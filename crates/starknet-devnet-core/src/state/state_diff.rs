@@ -55,9 +55,7 @@ impl StateDiff {
         let class_hash_to_compiled_class_hash = diff
             .compiled_class_hashes
             .into_iter()
-            .map(|(class_hash, compiled_class_hash)| {
-                (Felt::from(class_hash.0), Felt::from(compiled_class_hash.0))
-            })
+            .map(|(class_hash, compiled_class_hash)| (class_hash.0, compiled_class_hash.0))
             .collect();
 
         let address_to_class_hash = diff
@@ -65,9 +63,8 @@ impl StateDiff {
             .iter()
             .map(|(address, class_hash)| {
                 let contract_address = ContractAddress::from(*address);
-                let class_hash = class_hash.0.into();
 
-                (contract_address, class_hash)
+                (contract_address, class_hash.0)
             })
             .collect::<HashMap<ContractAddress, ClassHash>>();
 
@@ -76,16 +73,15 @@ impl StateDiff {
             .iter()
             .map(|(address, nonce)| {
                 let contract_address = ContractAddress::from(*address);
-                let nonce = nonce.0.into();
 
-                (contract_address, nonce)
+                (contract_address, nonce.0)
             })
             .collect::<HashMap<ContractAddress, Felt>>();
 
         let mut storage_updates = HashMap::<ContractAddress, HashMap<StorageKey, Felt>>::new();
         diff.storage.iter().for_each(|((address, key), value)| {
             let address_updates = storage_updates.entry((*address).into()).or_default();
-            address_updates.insert((*key).0.into(), *value);
+            address_updates.insert(key.0.into(), *value);
         });
 
         Ok(StateDiff {
@@ -194,7 +190,7 @@ mod tests {
     fn correct_difference_in_class_hash_to_compiled_class_hash() {
         let mut state = setup();
 
-        let class_hash = Felt::from(1);
+        let class_hash = Felt::ONE;
         let casm_hash = Felt::from_hex(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
 
         let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
@@ -217,7 +213,7 @@ mod tests {
     fn correct_difference_in_declared_classes() {
         let mut state = setup();
 
-        let class_hash = Felt::from(1);
+        let class_hash = Felt::ONE;
         let casm_hash = Felt::from_hex(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
         let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
         state.declare_contract_class(class_hash, Some(casm_hash), contract_class).unwrap();
@@ -238,7 +234,7 @@ mod tests {
     #[test]
     fn correct_difference_in_cairo_0_declared_classes() {
         let mut state = setup();
-        let class_hash = Felt::from(1);
+        let class_hash = Felt::ONE;
         let contract_class = ContractClass::Cairo0(dummy_cairo_0_contract_class().into());
 
         state.declare_contract_class(class_hash, None, contract_class).unwrap();
@@ -259,7 +255,7 @@ mod tests {
 
         // declare cairo0
         {
-            let class_hash = Felt::from(1);
+            let class_hash = Felt::ONE;
             let contract_class = ContractClass::Cairo0(dummy_cairo_0_contract_class().into());
 
             state.declare_contract_class(class_hash, None, contract_class).unwrap();
@@ -278,7 +274,7 @@ mod tests {
 
         // declare cairo1
         {
-            let class_hash = Felt::from(1);
+            let class_hash = Felt::ONE;
             let casm_hash = Felt::from_hex(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
             let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
             state.declare_contract_class(class_hash, Some(casm_hash), contract_class).unwrap();
@@ -305,7 +301,7 @@ mod tests {
 
         state
             .state
-            .set_class_hash_at(contract_address.try_into().unwrap(), ClassHash(class_hash.into()))
+            .set_class_hash_at(contract_address.try_into().unwrap(), ClassHash(class_hash))
             .unwrap();
 
         let block_number = 1;

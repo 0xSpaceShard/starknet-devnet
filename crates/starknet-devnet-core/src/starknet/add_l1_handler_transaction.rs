@@ -14,7 +14,7 @@ pub fn add_l1_handler_transaction(
 ) -> DevnetResult<TransactionHash> {
     let blockifier_transaction =
         transaction.create_blockifier_transaction(starknet.chain_id().to_felt())?;
-    let transaction_hash = blockifier_transaction.tx_hash.0.into();
+    let transaction_hash = blockifier_transaction.tx_hash.0;
     trace!("Executing L1 handler transaction [{:#064x}]", transaction_hash);
 
     // Fees are charges on L1 as `L1HandlerTransaction` is not executed by an
@@ -91,7 +91,7 @@ mod tests {
             Felt::from_hex("0x1b24ea8dd9e0cb603043958b27a8569635ea13568883cc155130591b7ffe37a")
                 .unwrap();
 
-        assert_eq!(transaction.version, Felt::from(0));
+        assert_eq!(transaction.version, Felt::ZERO);
         assert_eq!(l1_handler_transaction_hash, transaction_hash);
     }
 
@@ -138,7 +138,7 @@ mod tests {
                     )),
                 ..
             })) => {
-                assert_eq!(selector.0, withdraw_selector.into())
+                assert_eq!(selector.0, withdraw_selector)
             }
             other => panic!("Wrong result: {other:?}"),
         }
@@ -210,9 +210,8 @@ mod tests {
             dummy_contract.clone(),
         )
         .unwrap();
-        let withdraw_selector: Felt =
-            Felt::from(get_selector_from_name("withdraw").unwrap()).into();
-        let deposit_selector: Felt = Felt::from(get_selector_from_name("deposit").unwrap()).into();
+        let withdraw_selector = get_selector_from_name("withdraw").unwrap();
+        let deposit_selector = get_selector_from_name("deposit").unwrap();
 
         // check if withdraw function is present in the contract class
         blockifier
@@ -263,8 +262,8 @@ mod tests {
             starknet,
             account.get_address(),
             dummy_contract_address,
-            deposit_selector.into(),
-            withdraw_selector.into(),
+            deposit_selector,
+            withdraw_selector,
         )
     }
 }

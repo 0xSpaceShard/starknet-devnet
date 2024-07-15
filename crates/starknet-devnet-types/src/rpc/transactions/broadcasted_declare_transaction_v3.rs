@@ -42,21 +42,18 @@ impl BroadcastedDeclareTransactionV3 {
             self.sender_address.into(),
         )?;
 
-        let account_deployment_data_hash = poseidon_hash_many(
-            &self.account_deployment_data.iter().map(|f| Felt::from(*f)).collect::<Vec<Felt>>(),
-        );
+        let account_deployment_data_hash = poseidon_hash_many(&self.account_deployment_data);
 
         let fields_to_hash = [
             common_fields.as_slice(),
             &[account_deployment_data_hash],
-            &[class_hash.into()],
-            &[self.compiled_class_hash.into()],
+            &[class_hash],
+            &[self.compiled_class_hash],
         ]
         .concat();
 
         let txn_hash = poseidon_hash_many(fields_to_hash.as_slice());
-
-        Ok(txn_hash.into())
+        Ok(txn_hash)
     }
 }
 
