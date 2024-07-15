@@ -827,7 +827,7 @@ impl Starknet {
         })
     }
 
-    pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> DevnetResult<Vec<Felt>> {
+    pub fn abort_blocks(&mut self, mut starting_block_id: BlockId) -> DevnetResult<Vec<Felt>> {
         if self.config.state_archive != StateArchiveCapacity::Full {
             let msg = "The abort blocks feature requires state-archive-capacity set to full.";
             return Err(Error::UnsupportedAction { msg: msg.into() });
