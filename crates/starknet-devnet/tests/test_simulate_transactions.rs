@@ -12,9 +12,7 @@ mod simulation_tests {
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{
-        BlockId, BlockTag, Felt, FunctionCall,
-    };
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt, FunctionCall};
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };

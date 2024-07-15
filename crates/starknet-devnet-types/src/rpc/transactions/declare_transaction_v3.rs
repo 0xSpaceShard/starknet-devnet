@@ -6,9 +6,7 @@ use starknet_rs_crypto::Felt;
 use super::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use super::ResourceBoundsWrapper;
 use crate::contract_address::ContractAddress;
-use crate::felt::{
-    ClassHash, CompiledClassHash, Nonce, TransactionSignature, TransactionVersion,
-};
+use crate::felt::{ClassHash, CompiledClassHash, Nonce, TransactionSignature, TransactionVersion};
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]

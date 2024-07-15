@@ -12,10 +12,7 @@ mod abort_blocks_tests {
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
 
-    async fn abort_blocks(
-        devnet: &BackgroundDevnet,
-        starting_block_id: &BlockId,
-    ) -> Vec<Felt> {
+    async fn abort_blocks(devnet: &BackgroundDevnet, starting_block_id: &BlockId) -> Vec<Felt> {
         let mut aborted_blocks = devnet
             .send_custom_rpc(
                 "devnet_abortBlocks",

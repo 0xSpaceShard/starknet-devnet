@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
-use starknet_rs_core::types::{EthAddress, Hash256, MsgToL1, MsgToL2};
-use starknet_rs_core::types::Felt;
+use starknet_rs_core::types::{EthAddress, Felt, Hash256, MsgToL1, MsgToL2};
 
 use crate::contract_address::ContractAddress;
 use crate::error::{DevnetResult, Error};

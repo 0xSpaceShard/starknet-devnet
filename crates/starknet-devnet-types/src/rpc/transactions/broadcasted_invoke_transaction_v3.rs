@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use starknet_rs_crypto::poseidon_hash_many;
 use starknet_rs_core::types::Felt;
+use starknet_rs_crypto::poseidon_hash_many;
 
 use super::BroadcastedTransactionCommonV3;
 use crate::constants::PREFIX_INVOKE;
@@ -32,11 +32,7 @@ impl BroadcastedInvokeTransactionV3 {
         )?;
 
         let account_deployment_data_hash = poseidon_hash_many(
-            &self
-                .account_deployment_data
-                .iter()
-                .map(|f| Felt::from(*f))
-                .collect::<Vec<Felt>>(),
+            &self.account_deployment_data.iter().map(|f| Felt::from(*f)).collect::<Vec<Felt>>(),
         );
 
         let call_data_hash = poseidon_hash_many(
@@ -56,10 +52,10 @@ impl BroadcastedInvokeTransactionV3 {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::{ResourceBoundsMapping, Tip};
+    use starknet_rs_core::types::Felt;
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
-    use starknet_rs_core::types::Felt;
     use crate::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
     use crate::rpc::transactions::BroadcastedTransactionCommonV3;
     use crate::utils::test_utils::{

@@ -59,11 +59,11 @@ pub mod rpc_sierra_contract_class_to_sierra_contract_class {
 }
 pub mod hex_string {
     use serde::{Deserialize, Deserializer, Serializer};
+    use starknet_rs_core::types::Felt;
 
     use crate::contract_address::ContractAddress;
     use crate::patricia_key::PatriciaKey;
     use crate::traits::ToHexString;
-    use starknet_rs_core::types::Felt;
 
     pub fn deserialize_to_prefixed_patricia_key<'de, D>(
         deserializer: D,
@@ -119,14 +119,14 @@ pub mod hex_string {
     #[cfg(test)]
     mod tests {
         use serde::{Deserialize, Serialize};
+        use starknet_rs_core::types::Felt;
 
         use crate::contract_address::ContractAddress;
         use crate::patricia_key::PatriciaKey;
         use crate::serde_helpers::hex_string::{
             deserialize_to_prefixed_contract_address, deserialize_to_prefixed_patricia_key,
-            serialize_contract_address_to_prefixed_hex
+            serialize_contract_address_to_prefixed_hex,
         };
-        use starknet_rs_core::types::Felt;
 
         #[test]
         fn deserialization_of_prefixed_hex_patricia_key_should_be_successful() {

@@ -1,8 +1,8 @@
 /// Copied from https://github.com/xJonathanLEI/starknet-rs/
 use starknet_rs_core::{crypto::pedersen_hash, types::Felt};
+use starknet_types::constants::PREFIX_INVOKE;
 
 use crate::constants::SUPPORTED_TX_VERSION;
-use starknet_types::constants::PREFIX_INVOKE;
 
 #[derive(Debug, Clone)]
 pub struct Call {

@@ -1,7 +1,6 @@
-use starknet_rs_core::types::BlockId;
+use starknet_rs_core::types::{BlockId, Felt};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{EmittedEvent, Event};
-use starknet_rs_core::types::Felt;
 
 use super::Starknet;
 use crate::error::{DevnetResult, Error};
@@ -126,10 +125,9 @@ where
 #[cfg(test)]
 mod tests {
     use blockifier::execution::call_info::CallInfo;
-    use starknet_rs_core::types::BlockId;
+    use starknet_rs_core::types::{BlockId, Felt};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::emitted_event::Event;
-    use starknet_rs_core::types::Felt;
 
     use super::{check_if_filter_applies_for_event, get_events};
     use crate::starknet::events::check_if_filter_applies_for_event_keys;
@@ -426,12 +424,8 @@ mod tests {
             let event = blockifier::execution::call_info::OrderedEvent {
                 order: idx,
                 event: starknet_api::transaction::EventContent {
-                    keys: vec![starknet_api::transaction::EventKey(
-                        Felt::from(idx as u128 + 10),
-                    )],
-                    data: starknet_api::transaction::EventData(vec![
-                        Felt::from(idx as u128 + 20),
-                    ]),
+                    keys: vec![starknet_api::transaction::EventKey(Felt::from(idx as u128 + 10))],
+                    data: starknet_api::transaction::EventData(vec![Felt::from(idx as u128 + 20)]),
                 },
             };
             call_info.execution.events.push(event);

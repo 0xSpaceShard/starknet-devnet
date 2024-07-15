@@ -437,14 +437,9 @@ mod tests {
         };
 
         let expected_message = MessageToL2 {
-            l1_contract_address: ContractAddress::new(
-                Felt::from_hex(from_address).unwrap(),
-            )
-            .unwrap(),
-            l2_contract_address: ContractAddress::new(
-                Felt::from_hex(to_address).unwrap(),
-            )
-            .unwrap(),
+            l1_contract_address: ContractAddress::new(Felt::from_hex(from_address).unwrap())
+                .unwrap(),
+            l2_contract_address: ContractAddress::new(Felt::from_hex(to_address).unwrap()).unwrap(),
             entry_point_selector: Felt::from_hex(selector).unwrap(),
             payload,
             nonce: nonce.into(),

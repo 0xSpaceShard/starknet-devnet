@@ -5,8 +5,8 @@ use blockifier::state::errors::StateError;
 use blockifier::state::state_api::StateResult;
 use starknet_api::core::{ClassHash, ContractAddress, Nonce, PatriciaKey};
 use starknet_api::state::StorageKey;
-use starknet_types::contract_class::convert_codegen_to_blockifier_compiled_class;
 use starknet_rs_core::types::Felt;
+use starknet_types::contract_class::convert_codegen_to_blockifier_compiled_class;
 use tracing::debug;
 
 use super::starknet_config::ForkConfig;

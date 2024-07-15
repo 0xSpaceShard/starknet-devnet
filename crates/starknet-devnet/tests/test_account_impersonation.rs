@@ -69,8 +69,8 @@ mod impersonated_account_tests {
     }
 
     #[tokio::test]
-    async fn test_account_impersonation_have_to_return_an_error_when_account_impersonation_is_disabled(
-    ) {
+    async fn test_account_impersonation_have_to_return_an_error_when_account_impersonation_is_disabled()
+     {
         let origin_devnet =
             BackgroundDevnet::spawn_forkable_devnet().await.expect("Could not start Devnet");
 
@@ -126,8 +126,8 @@ mod impersonated_account_tests {
     }
 
     #[tokio::test]
-    async fn non_impersonated_account_fails_to_make_a_transaction_and_receives_an_error_of_invalid_signature(
-    ) {
+    async fn non_impersonated_account_fails_to_make_a_transaction_and_receives_an_error_of_invalid_signature()
+     {
         let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
         let invoke_txn_err = test_invoke_transaction(&origin_devnet, &[]).await.unwrap_err();
@@ -146,8 +146,8 @@ mod impersonated_account_tests {
     }
 
     #[tokio::test]
-    async fn test_impersonate_account_and_then_stop_impersonate_have_to_return_an_error_of_invalid_signature(
-    ) {
+    async fn test_impersonate_account_and_then_stop_impersonate_have_to_return_an_error_of_invalid_signature()
+     {
         let origin_devnet = &BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
         let (_, account_address) = origin_devnet.get_first_predeployed_account().await;
         let invoke_txn_err = test_invoke_transaction(
@@ -175,8 +175,8 @@ mod impersonated_account_tests {
     }
 
     #[tokio::test]
-    async fn test_auto_impersonate_then_stop_and_send_transaction_fails_with_invalid_signature_error(
-    ) {
+    async fn test_auto_impersonate_then_stop_and_send_transaction_fails_with_invalid_signature_error()
+     {
         let origin_devnet = &BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
         let invoke_txn_err = test_invoke_transaction(

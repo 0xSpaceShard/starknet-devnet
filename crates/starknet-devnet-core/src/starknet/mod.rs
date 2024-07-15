@@ -1370,8 +1370,7 @@ mod tests {
     use blockifier::transaction::errors::TransactionExecutionError;
     use nonzero_ext::nonzero;
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-    use starknet_rs_core::types::Felt;
-    use starknet_rs_core::types::{BlockId, BlockTag};
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::rpc::state::Balance;
     use starknet_types::traits::HashProducer;

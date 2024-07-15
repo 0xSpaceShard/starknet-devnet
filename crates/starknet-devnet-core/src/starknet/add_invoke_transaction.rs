@@ -71,8 +71,7 @@ mod tests {
     use nonzero_ext::nonzero;
     use starknet_api::core::Nonce;
     use starknet_api::transaction::{Fee, Tip};
-    use starknet_rs_core::types::Felt;
-    use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
@@ -519,8 +518,7 @@ mod tests {
             .find(|el| el.selector.0 == increase_balance_selector)
             .unwrap();
 
-        let dummy_contract_address =
-            ContractAddress::new(Felt::from(5)).unwrap();
+        let dummy_contract_address = ContractAddress::new(Felt::from(5)).unwrap();
         let dummy_contract_class_hash = dummy_contract.generate_hash().unwrap();
         let storage_key = get_storage_var_address("balance", &[]).unwrap();
         let contract_storage_key = ContractStorageKey::new(dummy_contract_address, storage_key);

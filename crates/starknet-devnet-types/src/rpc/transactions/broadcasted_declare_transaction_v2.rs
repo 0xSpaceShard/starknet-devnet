@@ -46,13 +46,13 @@ impl BroadcastedDeclareTransactionV2 {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::Fee;
+    use starknet_rs_core::types::Felt;
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
     use crate::contract_class::ContractClass;
     use crate::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use crate::rpc::transactions::BroadcastedDeclareTransaction;
-    use starknet_rs_core::types::Felt;
 
     #[derive(Deserialize)]
     struct FeederGatewayDeclareTransactionV2 {

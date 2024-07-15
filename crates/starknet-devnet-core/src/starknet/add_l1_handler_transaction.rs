@@ -47,8 +47,7 @@ mod tests {
     use blockifier::execution::errors::{EntryPointExecutionError, PreExecutionError};
     use blockifier::transaction::errors::TransactionExecutionError::ExecutionError;
     use nonzero_ext::nonzero;
-    use starknet_rs_core::types::Felt;
-    use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::chain_id::ChainId;
     use starknet_types::contract_address::ContractAddress;

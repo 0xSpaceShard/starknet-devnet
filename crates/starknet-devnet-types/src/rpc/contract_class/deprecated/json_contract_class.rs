@@ -6,14 +6,13 @@ use flate2::Compression;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Serializer as JsonSerializer, Value};
 use starknet_api::deprecated_contract_class::{EntryPoint, EntryPointType};
-use starknet_rs_core::types::CompressedLegacyContractClass;
+use starknet_rs_core::types::{CompressedLegacyContractClass, Felt};
 use starknet_types_core::hash::{Pedersen, StarkHash};
 
 use crate::contract_class::deprecated::rpc_contract_class::DeprecatedContractClass;
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::traits::HashProducer;
 use crate::utils::StarknetFormatter;
-use starknet_rs_core::types::Felt;
 
 #[derive(Clone, Eq, PartialEq, Debug, Default, Serialize, Deserialize)]
 pub struct Cairo0Json {

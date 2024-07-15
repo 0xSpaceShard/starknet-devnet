@@ -19,10 +19,7 @@ mod get_class_hash_at_integration_tests {
             .await
             .unwrap();
 
-        assert_eq!(
-            retrieved_hash,
-            Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
-        );
+        assert_eq!(retrieved_hash, Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap());
     }
 
     #[tokio::test]
@@ -65,10 +62,7 @@ mod get_class_hash_at_integration_tests {
 
         let err = devnet
             .json_rpc_client
-            .get_class_hash_at(
-                BlockId::Hash(Felt::from_hex("0x1").unwrap()),
-                contract_address,
-            )
+            .get_class_hash_at(BlockId::Hash(Felt::from_hex("0x1").unwrap()), contract_address)
             .await
             .expect_err("Should have failed");
 

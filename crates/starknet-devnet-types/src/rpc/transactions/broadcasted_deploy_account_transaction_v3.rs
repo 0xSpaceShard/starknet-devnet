@@ -55,9 +55,7 @@ impl BroadcastedDeployAccountTransactionV3 {
         let contract_address = calculate_contract_address(
             starknet_api::transaction::ContractAddressSalt(*contract_address_salt),
             starknet_api::core::ClassHash(*class_hash),
-            &starknet_api::transaction::Calldata(Arc::new(
-                constructor_calldata.clone(),
-            )),
+            &starknet_api::transaction::Calldata(Arc::new(constructor_calldata.clone())),
             starknet_api::core::ContractAddress::from(0u8),
         )?;
 
@@ -69,9 +67,9 @@ impl BroadcastedDeployAccountTransactionV3 {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::{ResourceBoundsMapping, Tip};
+    use starknet_rs_core::types::Felt;
 
     use crate::chain_id::ChainId;
-    use starknet_rs_core::types::Felt;
     use crate::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
     use crate::rpc::transactions::BroadcastedTransactionCommonV3;
     use crate::utils::test_utils::{

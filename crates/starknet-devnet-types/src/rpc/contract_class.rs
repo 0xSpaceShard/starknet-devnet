@@ -232,9 +232,7 @@ fn convert_sierra_to_codegen(
     let sierra_program = contract_class
         .sierra_program
         .iter()
-        .map(|bigint| {
-            Felt::from_bytes_be_slice(&bigint.value.to_bytes_be())
-        })
+        .map(|bigint| Felt::from_bytes_be_slice(&bigint.value.to_bytes_be()))
         .collect::<Vec<_>>();
 
     let entry_points_by_type_value =
@@ -302,7 +300,7 @@ mod tests {
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use serde::Deserialize;
     use serde_json::Deserializer;
-    use starknet_rs_core::types::LegacyEntryPointsByType;
+    use starknet_rs_core::types::{Felt, LegacyEntryPointsByType};
 
     use crate::contract_class::deprecated::rpc_contract_class::ContractClassAbiEntryWithType;
     use crate::contract_class::{
@@ -314,7 +312,6 @@ mod tests {
         CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH, CAIRO_1_CONTRACT_PATH,
         CAIRO_1_CONTRACT_SIERRA_HASH,
     };
-    use starknet_rs_core::types::Felt;
 
     #[test]
     fn cairo_1_contract_class_hash_generated_successfully() {
@@ -349,8 +346,7 @@ mod tests {
         let json_str = std::fs::read_to_string(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
         let contract_class = Cairo0Json::raw_json_from_json_str(&json_str).unwrap();
         let class_hash = contract_class.generate_hash().unwrap();
-        let expected_class_hash =
-            Felt::from_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap();
+        let expected_class_hash = Felt::from_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap();
         assert_eq!(class_hash, expected_class_hash);
     }
 
@@ -363,8 +359,8 @@ mod tests {
     /// Then it takes the same artifact as a `DeprecatedContractClass` and generates its class hash.
     /// The test checks if both hashes are the same.
     #[test]
-    fn cairo_0_contract_class_hash_generated_successfully_and_its_the_same_as_raw_json_contract_class_hash(
-    ) {
+    fn cairo_0_contract_class_hash_generated_successfully_and_its_the_same_as_raw_json_contract_class_hash()
+     {
         let contract_class = Cairo0Json::raw_json_from_path(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/test_data/ERC20_starknet_js.casm"
@@ -373,10 +369,9 @@ mod tests {
         let class_hash = contract_class.generate_hash().unwrap();
 
         // data taken from https://github.com/0xs34n/starknet.js/blob/ce57fdcaba61a8ef2382acc9233a9aac2ac8589a/__tests__/fixtures.ts#L126
-        let expected_class_hash = Felt::from_hex(
-            "0x54328a1075b8820eb43caf0caa233923148c983742402dcfc38541dd843d01a",
-        )
-        .unwrap();
+        let expected_class_hash =
+            Felt::from_hex("0x54328a1075b8820eb43caf0caa233923148c983742402dcfc38541dd843d01a")
+                .unwrap();
 
         assert_eq!(class_hash, expected_class_hash);
 

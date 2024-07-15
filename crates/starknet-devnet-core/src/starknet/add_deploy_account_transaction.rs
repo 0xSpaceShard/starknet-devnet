@@ -76,9 +76,8 @@ mod tests {
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
     use starknet_api::transaction::{Fee, Tip};
-    use starknet_rs_core::types::Felt;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, TransactionExecutionStatus, TransactionFinalityStatus,
+        BlockId, BlockTag, Felt, TransactionExecutionStatus, TransactionFinalityStatus,
     };
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;

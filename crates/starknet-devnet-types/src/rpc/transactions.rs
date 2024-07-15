@@ -19,9 +19,9 @@ use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::deprecated_contract_class::EntryPointType;
 use starknet_api::transaction::{Fee, Resource, Tip};
 use starknet_rs_core::crypto::compute_hash_on_elements;
-use starknet_rs_core::types::Felt;
 use starknet_rs_core::types::{
-    BlockId, ExecutionResult, ResourceBounds, ResourceBoundsMapping, TransactionFinalityStatus,
+    BlockId, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
+    TransactionFinalityStatus,
 };
 use starknet_rs_crypto::poseidon_hash_many;
 
@@ -705,7 +705,9 @@ impl BroadcastedDeployAccountTransaction {
 
                 let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV1 {
                     max_fee: v1.common.max_fee,
-                    signature: starknet_api::transaction::TransactionSignature(v1.common.signature.clone()),
+                    signature: starknet_api::transaction::TransactionSignature(
+                        v1.common.signature.clone(),
+                    ),
                     nonce: starknet_api::core::Nonce(v1.common.nonce.into()),
                     class_hash: starknet_api::core::ClassHash(v1.class_hash),
                     contract_address_salt: starknet_api::transaction::ContractAddressSalt(
@@ -736,7 +738,9 @@ impl BroadcastedDeployAccountTransaction {
                 let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV3 {
                     resource_bounds: (&v3.common.resource_bounds).into(),
                     tip: v3.common.tip,
-                    signature: starknet_api::transaction::TransactionSignature(v3.common.signature.clone()),
+                    signature: starknet_api::transaction::TransactionSignature(
+                        v3.common.signature.clone(),
+                    ),
                     nonce: starknet_api::core::Nonce(v3.common.nonce.into()),
                     class_hash: starknet_api::core::ClassHash(v3.class_hash.into()),
                     nonce_data_availability_mode: v3.common.nonce_data_availability_mode,
@@ -823,7 +827,9 @@ impl BroadcastedInvokeTransaction {
 
                 let sn_api_transaction = starknet_api::transaction::InvokeTransactionV1 {
                     max_fee: v1.common.max_fee,
-                    signature: starknet_api::transaction::TransactionSignature(v1.common.signature.clone()),
+                    signature: starknet_api::transaction::TransactionSignature(
+                        v1.common.signature.clone(),
+                    ),
                     nonce: starknet_api::core::Nonce(v1.common.nonce.into()),
                     sender_address: v1.sender_address.try_into()?,
                     calldata: starknet_api::transaction::Calldata(Arc::new(v1.calldata.clone())),
@@ -841,7 +847,9 @@ impl BroadcastedInvokeTransaction {
                 let sn_api_transaction = starknet_api::transaction::InvokeTransactionV3 {
                     resource_bounds: (&v3.common.resource_bounds).into(),
                     tip: v3.common.tip,
-                    signature: starknet_api::transaction::TransactionSignature(v3.common.signature.clone()),
+                    signature: starknet_api::transaction::TransactionSignature(
+                        v3.common.signature.clone(),
+                    ),
                     nonce: starknet_api::core::Nonce(v3.common.nonce.into()),
                     sender_address: v3.sender_address.try_into()?,
                     calldata: starknet_api::transaction::Calldata(Arc::new(v3.calldata.clone())),

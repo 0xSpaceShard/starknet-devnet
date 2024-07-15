@@ -14,8 +14,7 @@ use models::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use starknet_rs_core::types::ContractClass as CodegenContractClass;
-use starknet_rs_core::types::Felt;
+use starknet_rs_core::types::{ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::block::{Block, PendingBlock};
 use starknet_types::rpc::estimate_message_fee::{

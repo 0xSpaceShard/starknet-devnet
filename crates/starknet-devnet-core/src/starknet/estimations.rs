@@ -4,8 +4,7 @@ use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::objects::HasRelatedFeeType;
 use blockifier::transaction::transactions::ExecutableTransaction;
-use starknet_rs_core::types::Felt;
-use starknet_rs_core::types::{BlockId, MsgFromL1, PriceUnit};
+use starknet_rs_core::types::{BlockId, Felt, MsgFromL1, PriceUnit};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,

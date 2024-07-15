@@ -30,10 +30,8 @@ pub trait CustomStateReader {
     /// using is_contract_deployed with forked state returns that the contract is deployed on the
     /// forked side and a validation cannot be skipped when creating a transaction with
     /// impersonated account
-    fn is_contract_deployed_locally(
-        &self,
-        contract_address: ContractAddress,
-    ) -> DevnetResult<bool>;
+    fn is_contract_deployed_locally(&self, contract_address: ContractAddress)
+    -> DevnetResult<bool>;
     fn is_contract_declared(&self, class_hash: ClassHash) -> bool;
 }
 
@@ -412,7 +410,10 @@ impl CustomState for StarknetState {
 
         let class_hash = starknet_api::core::ClassHash(class_hash);
         if let Some(casm_hash) = casm_hash {
-            self.set_compiled_class_hash(class_hash, starknet_api::core::CompiledClassHash(casm_hash))?;
+            self.set_compiled_class_hash(
+                class_hash,
+                starknet_api::core::CompiledClassHash(casm_hash),
+            )?;
         };
 
         self.set_contract_class(class_hash, compiled_class)?;
@@ -428,7 +429,10 @@ impl CustomState for StarknetState {
     ) -> DevnetResult<()> {
         self.state
             .state
-            .set_class_hash_at(contract_address.try_into()?, starknet_api::core::ClassHash(class_hash))
+            .set_class_hash_at(
+                contract_address.try_into()?,
+                starknet_api::core::ClassHash(class_hash),
+            )
             .map_err(|e| e.into())
     }
 }

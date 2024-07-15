@@ -2,9 +2,8 @@ use axum::extract::State;
 use axum::Json;
 use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
 use starknet_core::starknet::Starknet;
-use starknet_rs_core::types::{BlockId, BlockTag};
+use starknet_rs_core::types::{BlockId, BlockTag, Felt};
 use starknet_types::contract_address::ContractAddress;
-use starknet_rs_core::types::Felt;
 use starknet_types::felt::join_felts;
 use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
@@ -49,12 +48,10 @@ pub fn get_balance(
 pub fn get_erc20_address(unit: &FeeUnit) -> ContractAddress {
     match unit {
         FeeUnit::WEI => {
-            ContractAddress::new(Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap())
-                .unwrap()
+            ContractAddress::new(Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap()).unwrap()
         }
         FeeUnit::FRI => {
-            ContractAddress::new(Felt::from_hex(STRK_ERC20_CONTRACT_ADDRESS).unwrap())
-                .unwrap()
+            ContractAddress::new(Felt::from_hex(STRK_ERC20_CONTRACT_ADDRESS).unwrap()).unwrap()
         }
     }
 }

@@ -84,10 +84,8 @@ mod dump_and_load_tests {
         let last_block = devnet_load.get_latest_block_with_tx_hashes().await.unwrap();
         assert_eq!(last_block.block_number, 4);
 
-        let loaded_balance = devnet_load
-            .get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI)
-            .await
-            .unwrap();
+        let loaded_balance =
+            devnet_load.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI).await.unwrap();
         assert_eq!(loaded_balance, Felt::from(DUMMY_AMOUNT * 2));
     }
 
@@ -453,10 +451,8 @@ mod dump_and_load_tests {
             .await
             .unwrap();
 
-        let balance_result = devnet_load
-            .get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI)
-            .await
-            .unwrap();
+        let balance_result =
+            devnet_load.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI).await.unwrap();
         assert_eq!(balance_result, Felt::from(DUMMY_AMOUNT));
 
         let loaded_transaction =

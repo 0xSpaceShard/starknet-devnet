@@ -1,8 +1,7 @@
-use starknet_rs_core::types::BlockId;
+use starknet_rs_core::types::{BlockId, Felt};
 use starknet_types;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_storage_key::ContractStorageKey;
-use starknet_rs_core::types::Felt;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

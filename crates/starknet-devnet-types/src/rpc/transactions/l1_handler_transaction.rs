@@ -20,7 +20,6 @@ use crate::error::{ConversionError, DevnetResult, Error};
 use crate::felt::{Calldata, EntryPointSelector, Nonce, TransactionVersion};
 use crate::rpc::messaging::MessageToL2;
 
-
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct L1HandlerTransaction {
@@ -52,11 +51,7 @@ impl L1HandlerTransaction {
             self.contract_address.into(),
             self.entry_point_selector.into(),
             compute_hash_on_elements(
-                &self
-                    .calldata
-                    .iter()
-                    .map(|felt| Felt::from(*felt))
-                    .collect::<Vec<Felt>>(),
+                &self.calldata.iter().map(|felt| Felt::from(*felt)).collect::<Vec<Felt>>(),
             ),
             fee,
             chain_id,
@@ -93,12 +88,13 @@ impl L1HandlerTransaction {
     /// * `chain_id` - The L1 node chain id.
     pub fn try_from_message_to_l2(message: MessageToL2) -> DevnetResult<Self> {
         // `impl TryFrom` is not used due to the fact that chain_id is required.
-        let paid_fee_on_l1: u128 = message.paid_fee_on_l1.to_biguint().try_into().map_err(|_| {
-            ConversionError::OutOfRangeError(format!(
-                "paid_fee_on_l1 is expected to be a u128 value, found: {:?}",
-                message.paid_fee_on_l1,
-            ))
-        })?;
+        let paid_fee_on_l1: u128 =
+            message.paid_fee_on_l1.to_biguint().try_into().map_err(|_| {
+                ConversionError::OutOfRangeError(format!(
+                    "paid_fee_on_l1 is expected to be a u128 value, found: {:?}",
+                    message.paid_fee_on_l1,
+                ))
+            })?;
 
         let mut calldata = vec![message.l1_contract_address.into()];
         for u in message.payload {
@@ -162,18 +158,12 @@ mod tests {
 
         let payload: Vec<Felt> = vec![1.into(), 2.into()];
 
-        let calldata: Vec<Felt> =
-            vec![Felt::from_hex(from_address).unwrap(), 1.into(), 2.into()];
+        let calldata: Vec<Felt> = vec![Felt::from_hex(from_address).unwrap(), 1.into(), 2.into()];
 
         let message = MessageToL2 {
-            l1_contract_address: ContractAddress::new(
-                Felt::from_hex(from_address).unwrap(),
-            )
-            .unwrap(),
-            l2_contract_address: ContractAddress::new(
-                Felt::from_hex(to_address).unwrap(),
-            )
-            .unwrap(),
+            l1_contract_address: ContractAddress::new(Felt::from_hex(from_address).unwrap())
+                .unwrap(),
+            l2_contract_address: ContractAddress::new(Felt::from_hex(to_address).unwrap()).unwrap(),
             entry_point_selector: Felt::from_hex(selector).unwrap(),
             payload,
             nonce: nonce.into(),
@@ -182,10 +172,9 @@ mod tests {
 
         let chain_id = ChainId::goerli_legacy_id();
 
-        let transaction_hash = Felt::from_hex(
-            "0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b",
-        )
-        .unwrap();
+        let transaction_hash =
+            Felt::from_hex("0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b")
+                .unwrap();
 
         // message hash string taken from:
         //  https://testnet.starkscan.co/tx/0x06182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b#messagelogs
@@ -197,10 +186,7 @@ mod tests {
         );
 
         let expected_tx = L1HandlerTransaction {
-            contract_address: ContractAddress::new(
-                Felt::from_hex(to_address).unwrap(),
-            )
-            .unwrap(),
+            contract_address: ContractAddress::new(Felt::from_hex(to_address).unwrap()).unwrap(),
             entry_point_selector: Felt::from_hex(selector).unwrap(),
             calldata,
             nonce: nonce.into(),

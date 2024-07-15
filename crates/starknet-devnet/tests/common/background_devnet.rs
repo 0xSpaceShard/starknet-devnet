@@ -10,7 +10,9 @@ use serde_json::json;
 use server::rpc_core::error::RpcError;
 use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, BlockWithTxHashes, BlockWithTxs, Felt, FunctionCall, MaybePendingBlockWithTxHashes, MaybePendingBlockWithTxs, PendingBlockWithTxHashes, PendingBlockWithTxs
+    BlockId, BlockTag, BlockWithTxHashes, BlockWithTxs, Felt, FunctionCall,
+    MaybePendingBlockWithTxHashes, MaybePendingBlockWithTxs, PendingBlockWithTxHashes,
+    PendingBlockWithTxs,
 };
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -289,10 +291,8 @@ impl BackgroundDevnet {
 
         let first_account = predeployed_accounts_json.as_array().unwrap().get(0).unwrap();
 
-        let account_address =
-            Felt::from_hex(first_account["address"].as_str().unwrap()).unwrap();
-        let private_key =
-            Felt::from_hex(first_account["private_key"].as_str().unwrap()).unwrap();
+        let account_address = Felt::from_hex(first_account["address"].as_str().unwrap()).unwrap();
+        let private_key = Felt::from_hex(first_account["private_key"].as_str().unwrap()).unwrap();
 
         let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key));
 

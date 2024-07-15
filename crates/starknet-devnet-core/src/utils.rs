@@ -1,6 +1,7 @@
 use blockifier::versioned_constants::VersionedConstants;
 use serde_json::Value;
-use starknet_rs_core::types::{contract::CompiledClass, Felt};
+use starknet_rs_core::types::contract::CompiledClass;
+use starknet_rs_core::types::Felt;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
 use crate::error::{DevnetResult, Error};

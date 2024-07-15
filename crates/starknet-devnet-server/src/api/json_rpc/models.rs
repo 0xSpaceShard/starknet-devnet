@@ -388,10 +388,8 @@ mod tests {
             call_input,
             super::CallInput {
                 request: super::FunctionCall {
-                    contract_address: ContractAddress::new(
-                        Felt::from_hex("0x01").unwrap()
-                    )
-                    .unwrap(),
+                    contract_address: ContractAddress::new(Felt::from_hex("0x01").unwrap())
+                        .unwrap(),
                     entry_point_selector: Felt::from_hex("0x02").unwrap(),
                     calldata: vec![Felt::from_hex("0x03").unwrap()],
                 },
@@ -418,11 +416,8 @@ mod tests {
         }
 
         let expected_storage_input = GetStorageInput {
-            block_id: BlockId::from(ImportedBlockId::Hash(
-                Felt::from_hex("0x01").unwrap(),
-            )),
-            contract_address: ContractAddress::new(Felt::from_hex("0x02").unwrap())
-                .unwrap(),
+            block_id: BlockId::from(ImportedBlockId::Hash(Felt::from_hex("0x01").unwrap())),
+            contract_address: ContractAddress::new(Felt::from_hex("0x02").unwrap()).unwrap(),
             key: PatriciaKey::new(Felt::from_hex("0x03").unwrap()).unwrap(),
         };
 

@@ -1,7 +1,7 @@
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::{Deserialize, Serialize};
-use starknet_rs_crypto::poseidon_hash_many;
 use starknet_rs_core::types::Felt;
+use starknet_rs_crypto::poseidon_hash_many;
 
 use super::BroadcastedTransactionCommonV3;
 use crate::constants::PREFIX_DECLARE;
@@ -43,11 +43,7 @@ impl BroadcastedDeclareTransactionV3 {
         )?;
 
         let account_deployment_data_hash = poseidon_hash_many(
-            &self
-                .account_deployment_data
-                .iter()
-                .map(|f| Felt::from(*f))
-                .collect::<Vec<Felt>>(),
+            &self.account_deployment_data.iter().map(|f| Felt::from(*f)).collect::<Vec<Felt>>(),
         );
 
         let fields_to_hash = [

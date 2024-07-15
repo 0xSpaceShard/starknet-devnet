@@ -1,7 +1,7 @@
 use blockifier::state::state_api::State;
+use starknet_rs_core::types::Felt;
 use starknet_rs_core::utils::cairo_short_string_to_felt;
 use starknet_types::contract_address::ContractAddress;
-use starknet_rs_core::types::Felt;
 
 use crate::constants::{
     CAIRO_1_ERC20_CONTRACT, CAIRO_1_ERC20_CONTRACT_CLASS_HASH, CHARGEABLE_ACCOUNT_ADDRESS,

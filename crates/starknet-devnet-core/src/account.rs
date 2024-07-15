@@ -93,7 +93,9 @@ impl Account {
     fn compute_account_address(public_key: &Key) -> DevnetResult<ContractAddress> {
         let account_address = calculate_contract_address(
             ContractAddressSalt(felt!(20u32)),
-            starknet_api::core::ClassHash(Felt::from_hex(ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION)?),
+            starknet_api::core::ClassHash(Felt::from_hex(
+                ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION,
+            )?),
             &Calldata(Arc::new(vec![(*public_key).into()])),
             starknet_api::core::ContractAddress(patricia_key!(0u32)),
         )

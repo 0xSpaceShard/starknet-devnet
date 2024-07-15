@@ -40,10 +40,10 @@ impl BroadcastedInvokeTransactionV1 {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::Fee;
+    use starknet_rs_core::types::Felt;
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
-    use starknet_rs_core::types::Felt;
     use crate::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
     use crate::rpc::transactions::BroadcastedInvokeTransaction;
 

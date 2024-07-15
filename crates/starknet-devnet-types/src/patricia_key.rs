@@ -1,11 +1,11 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use starknet_api::core::PATRICIA_KEY_UPPER_BOUND;
+use starknet_rs_core::types::Felt;
 
 use crate::error::{DevnetResult, Error};
 use crate::serde_helpers::hex_string::{
     deserialize_to_prefixed_patricia_key, serialize_patricia_key_to_prefixed_hex,
 };
-use starknet_rs_core::types::Felt;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PatriciaKey(pub(crate) Felt);
@@ -77,16 +77,19 @@ pub type StorageKey = PatriciaKey;
 
 #[cfg(test)]
 mod tests {
-    use super::PatriciaKey;
     use starknet_rs_core::types::Felt;
+
+    use super::PatriciaKey;
 
     #[test]
     fn creation_of_patricia_key_should_be_successful() {
-        assert!(PatriciaKey::new(
-            Felt::from_hex("0x7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
-                .unwrap()
-        )
-        .is_ok());
+        assert!(
+            PatriciaKey::new(
+                Felt::from_hex("0x7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+                    .unwrap()
+            )
+            .is_ok()
+        );
     }
 
     #[test]

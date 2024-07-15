@@ -210,10 +210,11 @@ impl From<&blockifier::transaction::objects::TransactionExecutionInfo> for Execu
                 execution_info,
                 &BuiltinName::keccak,
             ),
-            segment_arena_builtin_applications: ComputationResources::get_resource_from_execution_info(
-                execution_info,
-                &BuiltinName::segment_arena,
-            ),
+            segment_arena_builtin_applications:
+                ComputationResources::get_resource_from_execution_info(
+                    execution_info,
+                    &BuiltinName::segment_arena,
+                ),
         };
 
         Self {
@@ -230,11 +231,7 @@ impl ComputationResources {
     fn get_memory_holes_from_call_info(
         call_info: &Option<blockifier::execution::call_info::CallInfo>,
     ) -> usize {
-        if let Some(call) = call_info {
-            call.resources.n_memory_holes
-        } else {
-            0
-        }
+        if let Some(call) = call_info { call.resources.n_memory_holes } else { 0 }
     }
 
     fn get_resource_from_execution_info(

@@ -18,11 +18,7 @@ pub fn get_class_hash_at_impl(
     let core_address = contract_address.try_into()?;
 
     let class_hash = state.get_class_hash_at(core_address)?;
-    if class_hash == Default::default() {
-        Err(Error::ContractNotFound)
-    } else {
-        Ok(class_hash.0)
-    }
+    if class_hash == Default::default() { Err(Error::ContractNotFound) } else { Ok(class_hash.0) }
 }
 
 pub fn get_class_impl(
