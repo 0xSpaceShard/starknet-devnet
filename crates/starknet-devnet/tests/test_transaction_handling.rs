@@ -72,7 +72,7 @@ mod trace_tests {
         let dummy_casm_hash = Felt::ONE;
 
         let declaration_result = account
-            .declare(Arc::new(contract_class), dummy_casm_hash)
+            .declare_v2(Arc::new(contract_class), dummy_casm_hash)
             .nonce(Felt::ZERO)
             .send()
             .await;

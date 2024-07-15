@@ -168,7 +168,7 @@ mod test_account_selection {
             &constructor_calldata,
         );
         contract_factory
-            .deploy(constructor_calldata, salt, false)
+            .deploy_v1(constructor_calldata, salt, false)
             .send()
             .await
             .expect("Cannot deploy");
@@ -180,7 +180,7 @@ mod test_account_selection {
             selector: get_selector_from_name("increase_balance").unwrap(),
             calldata: vec![increase_amount],
         }];
-        account.execute(invoke_calls).send().await.unwrap();
+        account.execute_v1(invoke_calls).send().await.unwrap();
 
         // prepare the call used in checking the balance
         let call = FunctionCall {
@@ -210,13 +210,13 @@ mod test_account_selection {
 
         // declare the contract
         let declaration_result =
-            account.declare(Arc::new(contract_class), casm_hash).send().await.unwrap();
+            account.declare_v2(Arc::new(contract_class), casm_hash).send().await.unwrap();
 
         // deploy the contract
         let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
         let initial_value = Felt::from(10_u32);
         let ctor_args = vec![initial_value];
-        contract_factory.deploy(ctor_args.clone(), Felt::ZERO, false).send().await.unwrap();
+        contract_factory.deploy_v1(ctor_args.clone(), Felt::ZERO, false).send().await.unwrap();
 
         // generate the address of the newly deployed contract
         let contract_address = get_udc_deployed_address(
@@ -234,7 +234,7 @@ mod test_account_selection {
             calldata: vec![increment, Felt::ZERO],
         }];
 
-        let invoke_result = account.execute(contract_invoke.clone()).send().await.unwrap();
+        let invoke_result = account.execute_v1(contract_invoke.clone()).send().await.unwrap();
 
         assert_tx_successful(&invoke_result.transaction_hash, &devnet.json_rpc_client).await;
     }

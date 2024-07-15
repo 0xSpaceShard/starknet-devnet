@@ -8,9 +8,7 @@ mod test_estimate_message_fee {
     use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{
-        BlockId, BlockTag, EthAddress, Felt, MsgFromL1, StarknetError,
-    };
+    use starknet_rs_core::types::{BlockId, BlockTag, EthAddress, Felt, MsgFromL1, StarknetError};
     use starknet_rs_core::utils::{get_udc_deployed_address, UdcUniqueness};
     use starknet_rs_providers::{Provider, ProviderError};
 
@@ -59,7 +57,7 @@ mod test_estimate_message_fee {
             &constructor_calldata,
         );
         contract_factory
-            .deploy(constructor_calldata, salt, false)
+            .deploy_v1(constructor_calldata, salt, false)
             .nonce(Felt::ONE)
             // max fee implicitly estimated
             .send()

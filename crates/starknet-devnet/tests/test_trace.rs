@@ -64,11 +64,8 @@ mod trace_tests {
     #[tokio::test]
     async fn get_trace_non_existing_transaction() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let err = devnet
-            .json_rpc_client
-            .trace_transaction(Felt::ZERO)
-            .await
-            .expect_err("Should fail");
+        let err =
+            devnet.json_rpc_client.trace_transaction(Felt::ZERO).await.expect_err("Should fail");
 
         match err {
             ProviderError::StarknetError(StarknetError::TransactionHashNotFound) => (),
@@ -111,7 +108,7 @@ mod trace_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(cairo_1_contract), casm_class_hash)
+            .declare_v2(Arc::new(cairo_1_contract), casm_class_hash)
             .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
@@ -134,10 +131,8 @@ mod trace_tests {
             );
             assert_eq!(
                 validate_invocation.calldata[0],
-                Felt::from_hex(
-                    "0x113bf26d112a164297e04381212c9bd7409f07591f0a04f539bdf56693eaaf3"
-                )
-                .unwrap()
+                Felt::from_hex("0x113bf26d112a164297e04381212c9bd7409f07591f0a04f539bdf56693eaaf3")
+                    .unwrap()
             );
 
             assert_eq!(
@@ -167,7 +162,7 @@ mod trace_tests {
 
         // declare the contract
         let declaration_result = account
-            .declare(Arc::new(cairo_1_contract), casm_class_hash)
+            .declare_v2(Arc::new(cairo_1_contract), casm_class_hash)
             .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
@@ -178,7 +173,7 @@ mod trace_tests {
         for salt in (0_u32..2).map(Felt::from) {
             let ctor_data = vec![];
             let deployment_tx = contract_factory
-                .deploy(ctor_data.clone(), salt, false)
+                .deploy_v1(ctor_data.clone(), salt, false)
                 .max_fee(Felt::from(1e18 as u128))
                 .send()
                 .await
@@ -231,7 +226,7 @@ mod trace_tests {
 
         // deploy account
         let deployment = account_factory
-            .deploy(Felt::from_hex("0x123").unwrap())
+            .deploy_v1(Felt::from_hex("0x123").unwrap())
             .max_fee(Felt::from(1e18 as u128))
             .nonce(Felt::ZERO)
             .prepared()

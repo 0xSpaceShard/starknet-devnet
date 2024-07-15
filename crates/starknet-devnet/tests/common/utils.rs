@@ -14,8 +14,8 @@ use starknet_rs_accounts::{
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult,
-    Felt, FlattenedSierraClass, FunctionCall,
+    BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult, Felt,
+    FlattenedSierraClass, FunctionCall,
 };
 use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -112,10 +112,7 @@ pub async fn assert_tx_successful<T: Provider>(tx_hash: &Felt, client: &T) {
     }
 }
 
-pub async fn get_contract_balance(
-    devnet: &BackgroundDevnet,
-    contract_address: Felt,
-) -> Felt {
+pub async fn get_contract_balance(devnet: &BackgroundDevnet, contract_address: Felt) -> Felt {
     get_contract_balance_by_block_id(devnet, contract_address, BlockId::Tag(BlockTag::Latest)).await
 }
 
@@ -250,7 +247,7 @@ impl Drop for UniqueAutoDeletableFile {
 }
 
 /// Declares and deploys a Cairo 1 contract; returns class hash and contract address
-pub async fn declare_deploy(
+pub async fn declare_deploy_v1(
     account: Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>,
     contract_class: FlattenedSierraClass,
     casm_hash: Felt,
@@ -258,7 +255,7 @@ pub async fn declare_deploy(
 ) -> Result<(Felt, Felt), anyhow::Error> {
     // declare the contract
     let declaration_result = account
-        .declare(Arc::new(contract_class), casm_hash)
+        .declare_v2(Arc::new(contract_class), casm_hash)
         .max_fee(Felt::from(1e18 as u128))
         .send()
         .await?;
@@ -266,7 +263,7 @@ pub async fn declare_deploy(
     // deploy the contract
     let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
     contract_factory
-        .deploy(ctor_args.to_vec(), Felt::ZERO, false)
+        .deploy_v1(ctor_args.to_vec(), Felt::ZERO, false)
         .max_fee(Felt::from(1e18 as u128))
         .send()
         .await?;
@@ -296,7 +293,7 @@ pub async fn deploy_oz_account(
     )
     .await?;
 
-    let deployment = factory.deploy(salt);
+    let deployment = factory.deploy_v1(salt);
 
     let account_address = deployment.address();
     devnet.mint(account_address, 1e18 as u128).await;
@@ -320,7 +317,7 @@ pub async fn deploy_argent_account(
     )
     .await?;
 
-    let deployment = factory.deploy(salt);
+    let deployment = factory.deploy_v1(salt);
 
     let account_address = deployment.address();
     devnet.mint(account_address, 1e18 as u128).await;

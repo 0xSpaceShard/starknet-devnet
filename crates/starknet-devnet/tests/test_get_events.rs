@@ -34,7 +34,7 @@ mod get_events_integration_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(cairo_1_contract), casm_class_hash)
+            .declare_v2(Arc::new(cairo_1_contract), casm_class_hash)
             .max_fee(Felt::from(100000000000000000000u128))
             .send()
             .await
@@ -50,7 +50,7 @@ mod get_events_integration_tests {
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
         contract_factory
-            .deploy(vec![], Felt::ZERO, false)
+            .deploy_v1(vec![], Felt::ZERO, false)
             .max_fee(Felt::from(100000000000000000000u128))
             .send()
             .await
@@ -79,7 +79,7 @@ mod get_events_integration_tests {
         let nonce = predeployed_account.get_nonce().await.unwrap();
         for n in 0..n_events_contract_invocations {
             predeployed_account
-                .execute(events_contract_call.clone())
+                .execute_v1(events_contract_call.clone())
                 .nonce(nonce + Felt::from(n as u128))
                 .max_fee(Felt::from(100000000000000000000u128))
                 .send()

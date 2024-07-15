@@ -12,8 +12,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
-        BroadcastedDeclareTransactionV1, ExecutionResult, Felt,
-        StarknetError, TransactionReceipt,
+        BroadcastedDeclareTransactionV1, ExecutionResult, Felt, StarknetError, TransactionReceipt,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::{Provider, ProviderError};
@@ -39,7 +38,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
         .unwrap();
         let new_account_nonce = Felt::ZERO;
         let salt = Felt::THREE;
-        let deployment = account_factory.deploy(salt).nonce(new_account_nonce);
+        let deployment = account_factory.deploy_v1(salt).nonce(new_account_nonce);
         let new_account_address = deployment.address();
         devnet.mint(new_account_address, 1e18 as u128).await;
 
@@ -50,7 +49,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
             .json_rpc_client
             .get_transaction_receipt(deploy_account_result.transaction_hash)
             .await
-            .unwrap().receipt;
+            .unwrap()
+            .receipt;
 
         match deploy_account_receipt {
             TransactionReceipt::DeployAccount(receipt) => {
@@ -82,7 +82,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(cairo_1_contract), casm_class_hash)
+            .declare_v2(Arc::new(cairo_1_contract), casm_class_hash)
             .max_fee(max_fee)
             .send()
             .await
@@ -95,7 +95,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let salt = Felt::ZERO;
         let constructor_args = Vec::<Felt>::new();
         let deployment_result = contract_factory
-            .deploy(constructor_args.clone(), salt, false)
+            .deploy_v1(constructor_args.clone(), salt, false)
             .max_fee(max_fee)
             .send()
             .await
@@ -105,7 +105,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
             .json_rpc_client
             .get_transaction_receipt(deployment_result.transaction_hash)
             .await
-            .unwrap().receipt;
+            .unwrap()
+            .receipt;
 
         match deployment_receipt {
             TransactionReceipt::Deploy(receipt) => {
@@ -142,7 +143,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(cairo_1_contract), casm_class_hash)
+            .declare_v2(Arc::new(cairo_1_contract), casm_class_hash)
             .max_fee(max_fee)
             .send()
             .await
@@ -155,7 +156,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let salt = Felt::ZERO;
         let invalid_constructor_args = vec![Felt::ONE];
         let invalid_deployment_result = contract_factory
-            .deploy(invalid_constructor_args, salt, false)
+            .deploy_v1(invalid_constructor_args, salt, false)
             .max_fee(max_fee)
             .send()
             .await
@@ -165,7 +166,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
             .json_rpc_client
             .get_transaction_receipt(invalid_deployment_result.transaction_hash)
             .await
-            .unwrap().receipt;
+            .unwrap()
+            .receipt;
         match invalid_deployment_receipt {
             TransactionReceipt::Invoke(receipt) => {
                 match receipt.execution_result {
@@ -193,13 +195,13 @@ mod get_transaction_receipt_by_hash_integration_tests {
             ExecutionEncoding::New,
         );
 
-        let transfer_execution = predeployed_account.execute(vec![Call {
+        let transfer_execution = predeployed_account.execute_v1(vec![Call {
             to: Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
             selector: get_selector_from_name("transfer").unwrap(),
             calldata: vec![
-                Felt::ONE,                                         // recipient
+                Felt::ONE,                                 // recipient
                 Felt::from_dec_str("1000000000").unwrap(), // low part of uint256
-                Felt::ZERO,                                        // high part of uint256
+                Felt::ZERO,                                // high part of uint256
             ],
         }]);
 
@@ -214,7 +216,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
             .json_rpc_client
             .get_transaction_receipt(transfer_result.transaction_hash)
             .await
-            .unwrap().receipt;
+            .unwrap()
+            .receipt;
 
         match transfer_receipt {
             TransactionReceipt::Invoke(receipt) => {

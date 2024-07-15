@@ -71,7 +71,7 @@ mod get_transaction_by_hash_integration_tests {
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
 
         let declare_result = account
-            .declare(Arc::new(contract_class), casm_hash)
+            .declare_v2(Arc::new(contract_class), casm_hash)
             .nonce(Felt::ZERO)
             .send()
             .await
@@ -96,10 +96,10 @@ mod get_transaction_by_hash_integration_tests {
         .unwrap();
 
         let salt = Felt::from_hex("0x123").unwrap();
-        let deployment = factory.deploy(salt);
+        let deployment = factory.deploy_v1(salt);
         let deployment_address = deployment.address();
         let fee_estimation =
-            factory.deploy(salt).fee_estimate_multiplier(1.0).estimate_fee().await.unwrap();
+            factory.deploy_v1(salt).fee_estimate_multiplier(1.0).estimate_fee().await.unwrap();
 
         // fund the account before deployment
         let mint_amount = fee_estimation.overall_fee * Felt::TWO;
@@ -124,7 +124,7 @@ mod get_transaction_by_hash_integration_tests {
         );
 
         let invoke_tx_result = account
-            .execute(vec![Call {
+            .execute_v1(vec![Call {
                 to: Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
                 selector: get_selector_from_name("transfer").unwrap(),
                 calldata: vec![

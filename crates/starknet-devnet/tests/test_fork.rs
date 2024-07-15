@@ -12,8 +12,8 @@ mod fork_tests {
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, ContractClass, Felt, FunctionCall,
-        MaybePendingBlockWithTxHashes, StarknetError,
+        BlockId, BlockTag, ContractClass, Felt, FunctionCall, MaybePendingBlockWithTxHashes,
+        StarknetError,
     };
     use starknet_rs_core::utils::{
         get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
@@ -28,7 +28,7 @@ mod fork_tests {
         INTEGRATION_SEPOLIA_HTTP_URL,
     };
     use crate::common::utils::{
-        assert_cairo1_classes_equal, assert_tx_successful, declare_deploy,
+        assert_cairo1_classes_equal, assert_tx_successful, declare_deploy_v1,
         get_block_reader_contract_in_sierra_and_compiled_class_hash, get_contract_balance,
         get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
         send_ctrl_c_signal_and_wait,
@@ -211,7 +211,7 @@ mod fork_tests {
         let initial_value = Felt::from(10_u32);
         let ctor_args = vec![initial_value];
         let (class_hash, contract_address) =
-            declare_deploy(predeployed_account, contract_class.clone(), casm_hash, &ctor_args)
+            declare_deploy_v1(predeployed_account, contract_class.clone(), casm_hash, &ctor_args)
                 .await
                 .unwrap();
 
@@ -258,7 +258,7 @@ mod fork_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(contract_class), casm_class_hash)
+            .declare_v2(Arc::new(contract_class), casm_class_hash)
             .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
@@ -270,7 +270,7 @@ mod fork_tests {
         let initial_value = Felt::from(10_u32);
         let ctor_args = vec![initial_value];
         contract_factory
-            .deploy(ctor_args.clone(), Felt::ZERO, false)
+            .deploy_v1(ctor_args.clone(), Felt::ZERO, false)
             .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
@@ -308,7 +308,7 @@ mod fork_tests {
         }];
 
         let invoke_result = fork_predeployed_account
-            .execute(contract_invoke.clone())
+            .execute_v1(contract_invoke.clone())
             .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
@@ -343,8 +343,7 @@ mod fork_tests {
         .unwrap();
 
         let salt = Felt::from_hex("0x123").unwrap();
-        let deployment =
-            factory.deploy(salt).max_fee(Felt::from(1e18 as u128)).send().await;
+        let deployment = factory.deploy_v1(salt).max_fee(Felt::from(1e18 as u128)).send().await;
         match deployment {
             Err(AccountFactoryError::Provider(ProviderError::StarknetError(
                 StarknetError::ClassHashNotFound,
@@ -390,7 +389,7 @@ mod fork_tests {
         .unwrap();
 
         let salt = Felt::from_hex("0x123").unwrap();
-        let deployment = factory.deploy(salt).max_fee(Felt::from(1e18 as u128));
+        let deployment = factory.deploy_v1(salt).max_fee(Felt::from(1e18 as u128));
         let deployment_address = deployment.address();
         fork_devnet.mint(deployment_address, 1e18 as u128).await;
         deployment.send().await.unwrap();
@@ -550,7 +549,7 @@ mod fork_tests {
             get_block_reader_contract_in_sierra_and_compiled_class_hash();
 
         let (_, contract_address) =
-            declare_deploy(predeployed_account, contract_class, casm_hash, &[]).await.unwrap();
+            declare_deploy_v1(predeployed_account, contract_class, casm_hash, &[]).await.unwrap();
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 

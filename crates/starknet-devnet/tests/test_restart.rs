@@ -92,7 +92,7 @@ mod test_restart {
         .await
         .unwrap();
         let salt = Felt::ONE;
-        let deployment = account_factory.deploy(salt).max_fee(Felt::from(1e18 as u128));
+        let deployment = account_factory.deploy_v1(salt).max_fee(Felt::from(1e18 as u128));
         let deployment_address = deployment.address();
         devnet.mint(deployment_address, 1e18 as u128).await;
         deployment.send().await.unwrap();

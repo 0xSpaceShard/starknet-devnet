@@ -13,7 +13,7 @@ mod simulation_tests {
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedInvokeTransaction, Felt, FunctionCall,
+        BlockId, BlockTag, Felt, FunctionCall,
     };
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
@@ -180,7 +180,7 @@ mod simulation_tests {
         let nonce = Felt::ZERO;
 
         let signature = account
-            .declare(Arc::new(flattened_contract_artifact.clone()), casm_hash)
+            .declare_v2(Arc::new(flattened_contract_artifact.clone()), casm_hash)
             .max_fee(max_fee)
             .nonce(nonce)
             .prepared()
@@ -251,7 +251,7 @@ mod simulation_tests {
         let salt_hex = "0x123";
         let max_fee = Felt::from(1e18 as u128);
         let deployment = account_factory
-            .deploy(Felt::from_hex(salt_hex).unwrap())
+            .deploy_v1(Felt::from_hex(salt_hex).unwrap())
             .max_fee(max_fee)
             .nonce(nonce)
             .prepared()
@@ -375,7 +375,7 @@ mod simulation_tests {
             &UdcUniqueness::NotUnique,
             &constructor_calldata,
         );
-        contract_factory.deploy(constructor_calldata, salt, false).send().await.unwrap();
+        contract_factory.deploy_v1(constructor_calldata, salt, false).send().await.unwrap();
 
         // prepare the call used in simulation
         let increase_amount = Felt::from(100u128);
@@ -389,7 +389,7 @@ mod simulation_tests {
         let max_fee = Felt::from(1e18 as u128);
         let nonce = Felt::from(2_u32); // after declare+deploy
         let invoke_request = account
-            .execute(invoke_calls.clone())
+            .execute_v1(invoke_calls.clone())
             .max_fee(max_fee)
             .nonce(nonce)
             .prepared()

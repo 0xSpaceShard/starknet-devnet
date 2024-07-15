@@ -14,8 +14,8 @@ mod estimate_fee_tests {
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
         BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedInvokeTransaction,
-        BroadcastedInvokeTransactionV1, BroadcastedTransaction, FeeEstimate, Felt,
-        FunctionCall, StarknetError,
+        BroadcastedInvokeTransactionV1, BroadcastedTransaction, FeeEstimate, Felt, FunctionCall,
+        StarknetError,
     };
     use starknet_rs_core::utils::{
         cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
@@ -45,7 +45,7 @@ mod estimate_fee_tests {
     }
 
     fn multiply_field_element(field_element: Felt, multiplier: f64) -> Felt {
-        let integer : u64 = field_element.to_biguint().try_into().unwrap();
+        let integer: u64 = field_element.to_biguint().try_into().unwrap();
         let float = integer as f64;
         ((float * multiplier) as u128).into()
     }
@@ -69,10 +69,10 @@ mod estimate_fee_tests {
 
         // fund address
         let salt = Felt::from_hex("0x123").unwrap();
-        let deployment = account_factory.deploy(salt);
+        let deployment = account_factory.deploy_v1(salt);
         let deployment_address = deployment.address();
         let fee_estimation = account_factory
-            .deploy(salt)
+            .deploy_v1(salt)
             .fee_estimate_multiplier(1.0)
             .nonce(new_account_nonce)
             .estimate_fee()
@@ -86,7 +86,7 @@ mod estimate_fee_tests {
 
         // try sending with insufficient max fee
         let unsuccessful_deployment_tx = account_factory
-            .deploy(salt)
+            .deploy_v1(salt)
             .max_fee(fee_estimation.overall_fee - Felt::ONE)
             .nonce(new_account_nonce)
             .send()
@@ -100,7 +100,7 @@ mod estimate_fee_tests {
 
         // try sending with sufficient max fee
         let successful_deployment = account_factory
-            .deploy(salt)
+            .deploy_v1(salt)
             .max_fee(multiply_field_element(fee_estimation.overall_fee, 1.1))
             .nonce(new_account_nonce)
             .send()
@@ -128,7 +128,7 @@ mod estimate_fee_tests {
 
         let salt = Felt::from_hex("0x123").unwrap();
         let err = account_factory
-            .deploy(salt)
+            .deploy_v1(salt)
             .nonce(new_account_nonce)
             .estimate_fee()
             .await
@@ -223,7 +223,7 @@ mod estimate_fee_tests {
         let mut fee_estimations: Vec<FeeEstimate> = vec![];
         for _ in 0..2 {
             let fee_estimation = account
-                .declare(Arc::clone(&flattened_contract_artifact), casm_hash)
+                .declare_v2(Arc::clone(&flattened_contract_artifact), casm_hash)
                 .nonce(Felt::ZERO)
                 .fee_estimate_multiplier(1.0)
                 .estimate_fee()
@@ -237,7 +237,7 @@ mod estimate_fee_tests {
 
         // try sending with insufficient max fee
         let unsuccessful_declare_tx = account
-            .declare(Arc::clone(&flattened_contract_artifact), casm_hash)
+            .declare_v2(Arc::clone(&flattened_contract_artifact), casm_hash)
             .nonce(Felt::ZERO)
             .max_fee(fee_estimation.overall_fee - Felt::ONE)
             .send()
@@ -251,7 +251,7 @@ mod estimate_fee_tests {
 
         // try sending with sufficient max fee
         let successful_declare_tx = account
-            .declare(Arc::clone(&flattened_contract_artifact), casm_hash)
+            .declare_v2(Arc::clone(&flattened_contract_artifact), casm_hash)
             .nonce(Felt::ZERO)
             .max_fee(multiply_field_element(fee_estimation.overall_fee, 1.1))
             .send()
@@ -303,7 +303,7 @@ mod estimate_fee_tests {
             &constructor_calldata,
         );
         contract_factory
-            .deploy(constructor_calldata, salt, false)
+            .deploy_v1(constructor_calldata, salt, false)
             .send()
             .await
             .expect("Cannot deploy");
@@ -318,7 +318,7 @@ mod estimate_fee_tests {
 
         // estimate the fee
         let fee_estimation = account
-            .execute(invoke_calls.clone())
+            .execute_v1(invoke_calls.clone())
             .fee_estimate_multiplier(1.0)
             .estimate_fee()
             .await
@@ -335,7 +335,7 @@ mod estimate_fee_tests {
         // invoke with insufficient max_fee
         let insufficient_max_fee = fee_estimation.overall_fee - Felt::ONE;
         let unsuccessful_invoke_tx = account
-            .execute(invoke_calls.clone())
+            .execute_v1(invoke_calls.clone())
             .max_fee(insufficient_max_fee)
             .send()
             .await
@@ -357,7 +357,7 @@ mod estimate_fee_tests {
         // invoke with sufficient max_fee
         let sufficient_max_fee = multiply_field_element(fee_estimation.overall_fee, 1.1);
 
-        account.execute(invoke_calls).max_fee(sufficient_max_fee).send().await.unwrap();
+        account.execute_v1(invoke_calls).max_fee(sufficient_max_fee).send().await.unwrap();
         let balance_after_sufficient =
             devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap();
         assert_eq!(balance_after_sufficient, vec![increase_amount]);
@@ -383,8 +383,11 @@ mod estimate_fee_tests {
         let class_hash = flattened_contract_artifact.class_hash();
 
         // declare class
-        let declaration_result =
-            account.declare(Arc::new(flattened_contract_artifact), casm_hash).send().await.unwrap();
+        let declaration_result = account
+            .declare_v2(Arc::new(flattened_contract_artifact), casm_hash)
+            .send()
+            .await
+            .unwrap();
         assert_eq!(declaration_result.class_hash, class_hash);
 
         // deploy instance of class
@@ -398,7 +401,7 @@ mod estimate_fee_tests {
             &constructor_calldata,
         );
         contract_factory
-            .deploy(constructor_calldata, salt, false)
+            .deploy_v1(constructor_calldata, salt, false)
             .send()
             .await
             .expect("Cannot deploy");
@@ -411,7 +414,7 @@ mod estimate_fee_tests {
         }];
 
         let prepared = account
-            .execute(calls.clone())
+            .execute_v1(calls.clone())
             .nonce(account.get_nonce().await.unwrap())
             .max_fee(Felt::ZERO)
             .prepared()
@@ -452,8 +455,11 @@ mod estimate_fee_tests {
         let class_hash = flattened_contract_artifact.class_hash();
 
         // declare class
-        let declaration_result =
-            account.declare(Arc::new(flattened_contract_artifact), casm_hash).send().await.unwrap();
+        let declaration_result = account
+            .declare_v2(Arc::new(flattened_contract_artifact), casm_hash)
+            .send()
+            .await
+            .unwrap();
         assert_eq!(declaration_result.class_hash, class_hash);
 
         // deploy instance of class
@@ -467,7 +473,7 @@ mod estimate_fee_tests {
             &constructor_calldata,
         );
         contract_factory
-            .deploy(constructor_calldata, salt, false)
+            .deploy_v1(constructor_calldata, salt, false)
             .send()
             .await
             .expect("Cannot deploy");
@@ -479,7 +485,7 @@ mod estimate_fee_tests {
             calldata: vec![expected_version],
         }];
 
-        match account.execute(calls).estimate_fee().await {
+        match account.execute_v1(calls).estimate_fee().await {
             Ok(_) => (),
             other => panic!("Unexpected result: {other:?}"),
         }

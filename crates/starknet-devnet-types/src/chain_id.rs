@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+#[allow(deprecated)]
 use starknet_rs_core::chain_id::{MAINNET, SEPOLIA, TESTNET};
 use starknet_rs_core::utils::parse_cairo_short_string;
 use starknet_rs_crypto::Felt;
@@ -13,6 +14,7 @@ pub enum ChainId {
 
 impl ChainId {
     pub fn goerli_legacy_id() -> Felt {
+        #[allow(deprecated)]
         TESTNET.into()
     }
 

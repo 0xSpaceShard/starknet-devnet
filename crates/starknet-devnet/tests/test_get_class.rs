@@ -101,7 +101,7 @@ mod get_class_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(contract_class.clone()), casm_class_hash)
+            .declare_v2(Arc::new(contract_class.clone()), casm_class_hash)
             .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
@@ -153,7 +153,7 @@ mod get_class_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(contract_class.clone()), casm_class_hash)
+            .declare_v2(Arc::new(contract_class.clone()), casm_class_hash)
             .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
@@ -214,7 +214,7 @@ mod get_class_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(contract_class.clone()), casm_class_hash)
+            .declare_v2(Arc::new(contract_class.clone()), casm_class_hash)
             .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
@@ -286,7 +286,7 @@ mod get_class_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(contract_class.clone()), casm_class_hash)
+            .declare_v2(Arc::new(contract_class.clone()), casm_class_hash)
             .max_fee(Felt::from(1e18 as u128))
             .send()
             .await

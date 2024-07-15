@@ -121,8 +121,7 @@ mod blocks_generation_tests {
 
         for tx in latest_block["transactions"].as_array().unwrap() {
             assert_tx_successful(
-                &Felt::from_hex(tx["receipt"]["transaction_hash"].as_str().unwrap())
-                    .unwrap(),
+                &Felt::from_hex(tx["receipt"]["transaction_hash"].as_str().unwrap()).unwrap(),
                 &devnet.json_rpc_client,
             )
             .await;
@@ -145,8 +144,7 @@ mod blocks_generation_tests {
 
         for tx in pending_block["transactions"].as_array().unwrap() {
             assert_tx_successful(
-                &Felt::from_hex(tx["receipt"]["transaction_hash"].as_str().unwrap())
-                    .unwrap(),
+                &Felt::from_hex(tx["receipt"]["transaction_hash"].as_str().unwrap()).unwrap(),
                 &devnet.json_rpc_client,
             )
             .await;
@@ -237,10 +235,8 @@ mod blocks_generation_tests {
             tx_hashes.push(mint_hash);
         }
 
-        assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::Pending)
-            .await;
-        assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest)
-            .await;
+        assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::Pending).await;
+        assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest).await;
 
         assert_pending_block_with_tx_hashes(&devnet, 0).await;
         assert_pending_block_with_txs(&devnet, 0).await;
@@ -269,12 +265,8 @@ mod blocks_generation_tests {
             tx_hashes.push(mint_hash);
         }
 
-        assert_balance(
-            &devnet,
-            Felt::from(tx_count * DUMMY_AMOUNT as usize),
-            BlockTag::Pending,
-        )
-        .await;
+        assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Pending)
+            .await;
         assert_balance(&devnet, Felt::from(0_u128), BlockTag::Latest).await;
 
         assert_pending_block_with_tx_hashes(&devnet, tx_count).await;
@@ -288,18 +280,10 @@ mod blocks_generation_tests {
         // create new block from pending block
         devnet.create_block().await.unwrap();
 
-        assert_balance(
-            &devnet,
-            Felt::from(tx_count * DUMMY_AMOUNT as usize),
-            BlockTag::Pending,
-        )
-        .await;
-        assert_balance(
-            &devnet,
-            Felt::from(tx_count * DUMMY_AMOUNT as usize),
-            BlockTag::Latest,
-        )
-        .await;
+        assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Pending)
+            .await;
+        assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Latest)
+            .await;
 
         assert_pending_block_with_tx_hashes(&devnet, 0).await;
         assert_pending_block_with_txs(&devnet, 0).await;
@@ -335,7 +319,7 @@ mod blocks_generation_tests {
         let mut declaration_results = vec![];
         for (nonce, (class, casm_hash)) in classes_with_hash.iter().enumerate() {
             let declaration_result = predeployed_account
-                .declare(Arc::new(class.clone()), *casm_hash)
+                .declare_v2(Arc::new(class.clone()), *casm_hash)
                 .max_fee(Felt::from(1e18 as u128))
                 .nonce(Felt::from(nonce))
                 .send()
@@ -420,7 +404,7 @@ mod blocks_generation_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(contract_class), casm_class_hash)
+            .declare_v2(Arc::new(contract_class), casm_class_hash)
             .max_fee(Felt::from(1e18 as u128))
             .nonce(Felt::ZERO)
             .send()
@@ -435,7 +419,7 @@ mod blocks_generation_tests {
         let initial_value = Felt::from(10_u32);
         let ctor_args = vec![initial_value];
         let deploy_result = contract_factory
-            .deploy(ctor_args.clone(), Felt::ZERO, false)
+            .deploy_v1(ctor_args.clone(), Felt::ZERO, false)
             .max_fee(Felt::from(1e18 as u128))
             .nonce(Felt::ONE)
             .send()
@@ -461,7 +445,7 @@ mod blocks_generation_tests {
         let increment_count = 2;
         for i in 1..=increment_count {
             let invoke_result = predeployed_account
-                .execute(contract_invoke.clone())
+                .execute_v1(contract_invoke.clone())
                 .max_fee(Felt::from(1e18 as u128))
                 .nonce(Felt::from(i + 1_u128))
                 .send()
@@ -659,10 +643,7 @@ mod blocks_generation_tests {
 
             let class_hash =
                 devnet.json_rpc_client.get_class_hash_at(block_id, account_address).await.unwrap();
-            assert_eq!(
-                class_hash,
-                Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
-            );
+            assert_eq!(class_hash, Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap());
 
             let key = get_storage_var_address("Account_public_key", &[]).unwrap();
             let storage = devnet

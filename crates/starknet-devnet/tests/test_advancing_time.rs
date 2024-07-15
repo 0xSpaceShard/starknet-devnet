@@ -64,7 +64,7 @@ mod advancing_time_tests {
         let (cairo_1_contract, casm_class_hash) =
             get_block_reader_contract_in_sierra_and_compiled_class_hash();
         let declaration_result = predeployed_account
-            .declare(Arc::new(cairo_1_contract), casm_class_hash)
+            .declare_v2(Arc::new(cairo_1_contract), casm_class_hash)
             .max_fee(Felt::from(100000000000000000000u128))
             .send()
             .await
@@ -75,7 +75,7 @@ mod advancing_time_tests {
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
         contract_factory
-            .deploy(vec![], Felt::ZERO, false)
+            .deploy_v1(vec![], Felt::ZERO, false)
             .max_fee(Felt::from(100000000000000000000u128))
             .send()
             .await

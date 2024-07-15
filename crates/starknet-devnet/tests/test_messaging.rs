@@ -21,8 +21,8 @@ mod test_messaging {
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, Felt, FunctionCall, InvokeTransactionResult,
-        TransactionExecutionStatus, TransactionReceipt, TransactionReceiptWithBlockInfo,
+        BlockId, BlockTag, Felt, FunctionCall, InvokeTransactionResult, TransactionExecutionStatus,
+        TransactionReceipt, TransactionReceiptWithBlockInfo,
     };
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
@@ -67,7 +67,7 @@ mod test_messaging {
             calldata: vec![user, amount, l1_address],
         }];
 
-        account.execute(invoke_calls).max_fee(Felt::from(MAX_FEE)).send().await.unwrap();
+        account.execute_v1(invoke_calls).max_fee(Felt::from(MAX_FEE)).send().await.unwrap();
     }
 
     /// Increases the balance for the given user.
@@ -83,7 +83,7 @@ mod test_messaging {
             calldata: vec![user, amount],
         }];
 
-        account.execute(invoke_calls).max_fee(Felt::from(MAX_FEE)).send().await.unwrap();
+        account.execute_v1(invoke_calls).max_fee(Felt::from(MAX_FEE)).send().await.unwrap();
     }
 
     /// Gets the balance for the given user.
@@ -117,18 +117,15 @@ mod test_messaging {
             calldata: vec![user, amount, l1_address, lib_class_hash],
         }];
 
-        account.execute(invoke_calls).max_fee(Felt::from(MAX_FEE)).send().await
+        account.execute_v1(invoke_calls).max_fee(Felt::from(MAX_FEE)).send().await
     }
 
     /// Sets up a `BackgroundDevnet` with the message l1-l2 contract deployed.
     /// Returns (devnet instance, account used for deployment, l1-l2 contract address).
     async fn setup_devnet(
         devnet_args: &[&str],
-    ) -> (
-        BackgroundDevnet,
-        Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>,
-        Felt,
-    ) {
+    ) -> (BackgroundDevnet, Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>, Felt)
+    {
         let devnet = BackgroundDevnet::spawn_with_additional_args(devnet_args).await.unwrap();
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
@@ -146,7 +143,7 @@ mod test_messaging {
             get_messaging_contract_in_sierra_and_compiled_class_hash();
 
         let sierra_class_hash = sierra_class.class_hash();
-        let declaration = account.declare(Arc::new(sierra_class), casm_class_hash);
+        let declaration = account.declare_v2(Arc::new(sierra_class), casm_class_hash);
         declaration.max_fee(Felt::from(MAX_FEE)).send().await.unwrap();
 
         // deploy instance of class
@@ -160,7 +157,7 @@ mod test_messaging {
             &constructor_calldata,
         );
         contract_factory
-            .deploy(constructor_calldata, salt, false)
+            .deploy_v1(constructor_calldata, salt, false)
             .nonce(Felt::ONE)
             .max_fee(Felt::from(MAX_FEE))
             .send()
@@ -233,7 +230,7 @@ mod test_messaging {
         let lib_sierra_class_hash = sierra_class.class_hash();
 
         account
-            .declare(Arc::new(sierra_class), casm_class_hash)
+            .declare_v2(Arc::new(sierra_class), casm_class_hash)
             .max_fee(Felt::from(MAX_FEE))
             .send()
             .await
@@ -329,7 +326,10 @@ mod test_messaging {
             other => panic!("Error in fetching tx: {other:?}"),
         }
         match devnet.json_rpc_client.get_transaction_receipt(tx_hash).await {
-            Ok(TransactionReceiptWithBlockInfo { receipt: TransactionReceipt::L1Handler(receipt), .. }) => {
+            Ok(TransactionReceiptWithBlockInfo {
+                receipt: TransactionReceipt::L1Handler(receipt),
+                ..
+            }) => {
                 assert_eq!(receipt.transaction_hash, tx_hash);
                 assert_eq!(
                     receipt.execution_result.status(),
