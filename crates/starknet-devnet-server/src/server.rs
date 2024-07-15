@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use axum::body::{Body, Bytes};
-use axum::extract::{DefaultBodyLimit, Request};
+use axum::extract::{DefaultBodyLimit, Request, State};
 use axum::http::{HeaderValue, StatusCode};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
@@ -19,6 +19,7 @@ use crate::api::http::{endpoints as http, HttpApiHandler};
 use crate::api::json_rpc::origin_forwarder::OriginForwarder;
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::Api;
+use crate::restrictive_methods::is_uri_path_restricted;
 use crate::rpc_handler::RpcHandler;
 use crate::{rpc_handler, ServerConfig};
 pub type StarknetDevnetServer = axum::serve::Serve<IntoMakeService<Router>, Router>;
@@ -96,6 +97,13 @@ pub fn serve_http_api_json_rpc(
         routes = routes.layer(axum::middleware::from_fn(request_logging_middleware));
     }
 
+    if server_config.restrictive_mode.is_some() {
+        routes = routes.layer(axum::middleware::from_fn_with_state(
+            server_config.clone(),
+            restrictive_middleware,
+        ));
+    }
+
     axum::serve(tcp_listener, routes.into_make_service())
 }
 
@@ -149,4 +157,17 @@ async fn response_logging_middleware(
 
     let response = Response::from_parts(parts, body);
     Ok(response)
+}
+
+async fn restrictive_middleware(
+    State(server_config): State<ServerConfig>,
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    if let Some(restricted_paths) = server_config.restrictive_mode {
+        if is_uri_path_restricted(request.uri().path(), restricted_paths.as_slice()) {
+            return Err((StatusCode::FORBIDDEN, "Devnet is in restricted mode".to_string()));
+        }
+    }
+    Ok(next.run(request).await)
 }

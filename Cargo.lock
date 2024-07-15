@@ -5658,6 +5658,7 @@ dependencies = [
  "axum",
  "futures",
  "http-body-util",
+ "lazy_static",
  "rand",
  "rand_chacha",
  "regex_generate",

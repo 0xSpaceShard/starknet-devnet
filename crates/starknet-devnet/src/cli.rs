@@ -247,6 +247,7 @@ impl Args {
             request_body_size_limit: self.request_body_size_limit,
             log_request,
             log_response,
+            restrictive_mode: Some(vec!["devnet_mint", "devnet_createBlock"]),
         };
 
         Ok((starknet_config, server_config))

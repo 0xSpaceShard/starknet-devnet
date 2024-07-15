@@ -12,4 +12,5 @@ pub struct ServerConfig {
     pub log_request: bool,
     #[serde(skip)]
     pub log_response: bool,
+    pub restrictive_mode: Option<Vec<&'static str>>,
 }
