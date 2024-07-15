@@ -572,7 +572,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
-    async fn declare_update_gas_and_declare() {
+    async fn unsuccessful_declare_update_gas_successful_declare() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let predeployed_account = Arc::new(SingleOwnerAccount::new(
