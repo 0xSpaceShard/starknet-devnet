@@ -63,7 +63,7 @@ pub fn add_deploy_account_transaction(
         )
         .execute(&mut starknet.pending_state.state, &starknet.block_context, true, true);
 
-    starknet.handle_transaction_result(transaction, None, blockifier_execution_result)?;
+    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
     starknet.handle_dump_event(DumpEvent::AddDeployAccountTransaction(
         broadcasted_deploy_account_transaction,
     ))?;
@@ -409,7 +409,10 @@ mod tests {
         let contract_class = cairo_0_account_without_validations();
         let class_hash = contract_class.generate_hash().unwrap();
 
-        starknet.pending_state.declare_contract_class(class_hash, contract_class.into()).unwrap();
+        starknet
+            .pending_state
+            .declare_contract_class(class_hash, None, contract_class.into())
+            .unwrap();
         starknet.block_context = Starknet::init_block_context(
             nonzero!(1u128),
             nonzero!(1u128),

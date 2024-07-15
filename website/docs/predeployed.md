@@ -37,6 +37,15 @@ JSON-RPC
 {
     "jsonrpc": "2.0",
     "id": "1",
+    "method": "devnet_getPredeployedAccounts"
+}
+```
+
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
     "method": "devnet_getPredeployedAccounts",
     "params": {
         // optional; defaults to false

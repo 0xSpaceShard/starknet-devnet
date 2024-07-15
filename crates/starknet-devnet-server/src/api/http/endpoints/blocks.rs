@@ -38,8 +38,9 @@ pub(crate) async fn abort_blocks_impl(
     data: AbortingBlocks,
 ) -> HttpApiResult<AbortedBlocks> {
     let mut starknet = api.starknet.write().await;
+
     let aborted = starknet
-        .abort_blocks(data.starting_block_hash)
+        .abort_blocks(From::from(data.starting_block_id))
         .map_err(|err| HttpApiError::BlockAbortError { msg: (err.to_string()) })?;
 
     Ok(AbortedBlocks { aborted })

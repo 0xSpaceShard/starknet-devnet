@@ -13,7 +13,7 @@ mod get_class_tests {
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
     use crate::common::utils::{
         assert_cairo1_classes_equal, get_events_contract_in_sierra_and_compiled_class_hash,
-        resolve_path, to_hex_felt,
+        resolve_path,
     };
 
     #[tokio::test]
@@ -297,7 +297,7 @@ mod get_class_tests {
         devnet
             .send_custom_rpc(
                 "devnet_abortBlocks",
-                serde_json::json!({ "starting_block_hash": to_hex_felt(&abortable_block.block_hash) }),
+                serde_json::json!({ "starting_block_id": BlockId::Hash(abortable_block.block_hash) }),
             )
             .await
             .unwrap();

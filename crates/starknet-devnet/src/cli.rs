@@ -142,7 +142,6 @@ pub(crate) struct Args {
     #[arg(env = "DUMP_ON")]
     #[arg(value_name = "EVENT")]
     #[arg(help = "Specify when to dump the state of Devnet;")]
-    #[arg(requires = "dump_path")]
     dump_on: Option<DumpOn>,
 
     #[arg(long = "lite-mode")]
@@ -155,6 +154,7 @@ pub(crate) struct Args {
     #[arg(env = "DUMP_PATH")]
     #[arg(value_name = "DUMP_PATH")]
     #[arg(help = "Specify the path to dump to;")]
+    #[arg(required_if_eq_any([("dump_on", "exit"), ("dump_on", "block")]))]
     dump_path: Option<String>,
 
     #[arg(long = "block-generation-on")]
@@ -274,7 +274,9 @@ mod tests {
     use starknet_core::constants::{
         CAIRO_0_ERC20_CONTRACT_PATH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
     };
-    use starknet_core::starknet::starknet_config::{BlockGenerationOn, StateArchiveCapacity};
+    use starknet_core::starknet::starknet_config::{
+        BlockGenerationOn, DumpOn, StateArchiveCapacity,
+    };
     use tracing_subscriber::EnvFilter;
 
     use super::{Args, RequestResponseLogging};
@@ -622,13 +624,19 @@ mod tests {
     }
 
     #[test]
-    fn disallow_dump_on_if_no_dump_path_provided() {
-        match Args::try_parse_from(["--", "--dump-on", "exit"]) {
-            Ok(args) => panic!("Should have failed; got: {args:?}"),
-            Err(e) => assert_eq!(
-                get_first_line(&e.to_string()),
-                "error: the following required arguments were not provided:"
-            ),
+    fn test_when_dump_path_flag_required() {
+        for event in ["exit", "block"] {
+            match Args::try_parse_from(["--", "--dump-on", event]) {
+                Ok(args) => panic!("Should have failed; got: {args:?}"),
+                Err(e) => assert_eq!(
+                    get_first_line(&e.to_string()),
+                    "error: the following required arguments were not provided:"
+                ),
+            }
+        }
+        match Args::try_parse_from(["--", "--dump-on", "request"]) {
+            Ok(args) => assert_eq!(args.dump_on, Some(DumpOn::Request)),
+            Err(e) => panic!("Should have passed; got: {e}"),
         }
     }
 

@@ -12,8 +12,11 @@ mod blocks_generation_tests {
         BlockId, BlockStatus, BlockTag, DeclaredClassItem, FieldElement, FunctionCall,
         MaybePendingStateUpdate, NonceUpdate, StateUpdate, TransactionTrace,
     };
-    use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
+    use starknet_rs_core::utils::{
+        get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
+    };
     use starknet_rs_providers::Provider;
+    use starknet_rs_signers::Signer;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -523,23 +526,32 @@ mod blocks_generation_tests {
     }
 
     #[tokio::test]
+    /// In the following sketch, above are seconds, B means block:
+    ///
+    /// 0     1     2     3     4     5     6     7     8     9
+    /// |--|--|-----|-----|-----|--|--|-----|--|--|-----|--|--|
+    /// |  |  |                    |           |           |
+    /// B0 B1 txs                  B2          check       B3
     async fn blocks_on_interval_transactions() {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "1"])
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "4"])
             .await
             .expect("Could not start Devnet");
 
-        let tx_count = 5;
+        // sleep a bit to allow the genesis and the first automatic block to be generated
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
+
+        let tx_count = 3;
         let mut tx_hashes = Vec::new();
         for _ in 0..tx_count {
             let mint_hash = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
             tx_hashes.push(mint_hash);
         }
 
-        // wait 1 second
-        tokio::time::sleep(time::Duration::from_secs(1)).await;
+        // wait for one and a half interval
+        tokio::time::sleep(time::Duration::from_secs(6)).await;
 
-        // first is genesis block, second block is generated instantly, third is generated after 1
-        // second
+        // first is genesis block, second block is generated instantly, third is generated after the
+        // first interval
         assert_latest_block_with_tx_hashes(&devnet, 2, tx_hashes).await;
     }
 
@@ -631,5 +643,34 @@ mod blocks_generation_tests {
                 .unwrap();
 
         assert_get_class_hash_at(&devnet).await;
+    }
+
+    #[tokio::test]
+    async fn get_data_by_specifying_latest_block_hash_and_number() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+        let block_ids =
+            [BlockId::Hash(latest_block.block_hash), BlockId::Number(latest_block.block_number)];
+
+        for block_id in &block_ids {
+            let nonce = devnet.json_rpc_client.get_nonce(block_id, account_address).await.unwrap();
+            assert_eq!(nonce, FieldElement::ZERO);
+
+            let class_hash =
+                devnet.json_rpc_client.get_class_hash_at(block_id, account_address).await.unwrap();
+            assert_eq!(
+                class_hash,
+                FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+            );
+
+            let key = get_storage_var_address("Account_public_key", &[]).unwrap();
+            let storage = devnet
+                .json_rpc_client
+                .get_storage_at(account_address, key, block_id)
+                .await
+                .unwrap();
+            assert_eq!(storage, signer.get_public_key().await.unwrap().scalar());
+        }
     }
 }

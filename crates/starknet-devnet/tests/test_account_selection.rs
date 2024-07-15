@@ -22,6 +22,7 @@ mod test_account_selection {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{CHAIN_ID, MAINNET_URL};
+    use crate::common::reqwest_client::GetReqwestSender;
     use crate::common::utils::{
         assert_tx_successful, deploy_argent_account, deploy_oz_account,
         get_simple_contract_in_sierra_and_compiled_class_hash,
@@ -348,6 +349,37 @@ mod test_account_selection {
                     }
                 )
             );
+        }
+    }
+
+    #[tokio::test]
+    async fn test_http_and_json_rpc_variants_behave_the_same() {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--accounts",
+            "10",
+            "--initial-balance",
+            "1",
+        ])
+        .await
+        .unwrap();
+
+        let http_endpoint_path = "/predeployed_accounts";
+        for (json_rpc_params, http_query) in [
+            (json!({}), Some("")),
+            (serde_json::Value::Null, None),
+            (json!({"with_balance": false}), Some("with_balance=false")),
+            (json!({"with_balance": true}), Some("with_balance=true")),
+        ] {
+            let http_response: serde_json::Value = devnet
+                .reqwest_client()
+                .get_json_async(http_endpoint_path, http_query.map(|s| s.to_string()))
+                .await
+                .unwrap();
+
+            let json_rpc_response: serde_json::Value =
+                get_predeployed_accounts(&devnet, json_rpc_params).await;
+
+            assert_eq!(http_response, json_rpc_response);
         }
     }
 }

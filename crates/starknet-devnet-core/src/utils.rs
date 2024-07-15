@@ -48,7 +48,7 @@ pub(crate) fn get_versioned_constants() -> VersionedConstants {
 /// Returns the hash of a compiled class.
 /// # Arguments
 /// * `casm_json` - The compiled class in JSON format.
-pub fn casm_hash(casm_json: Value) -> DevnetResult<FieldElement> {
+pub fn calculate_casm_hash(casm_json: Value) -> DevnetResult<FieldElement> {
     serde_json::from_value::<CompiledClass>(casm_json)
         .map_err(|err| Error::DeserializationError { origin: err.to_string() })?
         .class_hash()
@@ -72,7 +72,7 @@ pub(crate) mod test_utils {
     };
     use starknet_types::traits::HashProducer;
 
-    use super::casm_hash;
+    use super::calculate_casm_hash;
     use crate::constants::DEVNET_DEFAULT_CHAIN_ID;
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
 
@@ -130,7 +130,7 @@ pub(crate) mod test_utils {
         let casm_contract_class_json =
             usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap()).unwrap();
 
-        let compiled_class_hash = casm_hash(casm_contract_class_json).unwrap().into();
+        let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap().into();
 
         BroadcastedDeclareTransactionV2::new(
             &contract_class,

@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
+use starknet_core::starknet::dump::DumpEvent;
 use starknet_rs_core::types::{Hash256, MsgToL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash};
 use starknet_types::num_bigint::BigUint;
+use starknet_types::rpc::block::BlockId;
 use starknet_types::rpc::eth_address::EthAddressWrapper;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transaction_receipt::FeeUnit;
@@ -14,7 +16,7 @@ use crate::api::http::error::HttpApiError;
 #[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(Debug))]
 pub struct DumpPath {
-    pub path: Option<String>,
+    pub path: String,
 }
 
 #[derive(Deserialize)]
@@ -41,6 +43,8 @@ pub struct MessageHash {
 pub struct TxHash {
     pub transaction_hash: TransactionHash,
 }
+// Implemented as type alias so JSON returned doesn't have extra key
+pub type DumpResponseBody = Option<Vec<DumpEvent>>;
 
 #[derive(Serialize)]
 pub struct CreatedBlock {
@@ -51,7 +55,7 @@ pub struct CreatedBlock {
 #[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(Debug))]
 pub struct AbortingBlocks {
-    pub(crate) starting_block_hash: BlockHash,
+    pub(crate) starting_block_id: BlockId,
 }
 
 #[derive(Serialize)]
@@ -152,7 +156,7 @@ pub struct FlushedMessages {
 #[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(Debug))]
 pub struct FlushParameters {
-    pub dry_run: Option<bool>,
+    pub dry_run: bool,
 }
 
 #[derive(Serialize, Deserialize)]
