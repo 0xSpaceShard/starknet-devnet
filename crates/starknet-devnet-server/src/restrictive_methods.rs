@@ -22,7 +22,7 @@ lazy_static! {
         ]);
     static ref MAPPING_RPC_METHODS_TO_HTTP_URIS: HashMap<&'static str, &'static str> =
         MAPPING_HTTP_URIS_TO_RPC_METHODS.iter().map(|(k, v)| (*v, *k)).collect();
-    pub(crate) static ref DEFAULT_RESTRICTED_JSON_RPC_METHODS: Vec<&'static str> = vec![
+    pub static ref DEFAULT_RESTRICTED_JSON_RPC_METHODS: Vec<&'static str> = vec![
         "devnet_mint",
         "devnet_restart",
         "devnet_createBlock",
@@ -30,7 +30,7 @@ lazy_static! {
         "devnet_impersonateAccount",
         "devnet_autoImpersonate"
     ];
-    pub(crate) static ref DEFAULT_RESTRICTED_HTTP_URIS: Vec<&'static str> =
+    static ref DEFAULT_RESTRICTED_HTTP_URIS: Vec<&'static str> =
         DEFAULT_RESTRICTED_JSON_RPC_METHODS
             .iter()
             .filter_map(|method| MAPPING_RPC_METHODS_TO_HTTP_URIS.get(method))

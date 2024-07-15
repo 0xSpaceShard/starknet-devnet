@@ -97,7 +97,7 @@ pub fn serve_http_api_json_rpc(
         routes = routes.layer(axum::middleware::from_fn(request_logging_middleware));
     }
 
-    if server_config.restrictive_mode.is_some() {
+    if server_config.restricted_methods.is_some() {
         routes = routes.layer(axum::middleware::from_fn_with_state(
             server_config.clone(),
             restrictive_middleware,
@@ -164,8 +164,11 @@ async fn restrictive_middleware(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-    if let Some(restricted_paths) = server_config.restrictive_mode {
-        if is_uri_path_restricted(request.uri().path(), restricted_paths.as_slice()) {
+    if let Some(restricted_paths) = &server_config.restricted_methods {
+        if is_uri_path_restricted(
+            request.uri().path(),
+            restricted_paths.iter().map(|x| x.as_str()).collect::<Vec<&str>>().as_slice(),
+        ) {
             return Err((StatusCode::FORBIDDEN, "Devnet is in restricted mode".to_string()));
         }
     }

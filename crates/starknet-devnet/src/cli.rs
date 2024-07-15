@@ -1,6 +1,7 @@
 use std::num::NonZeroU128;
 
 use clap::Parser;
+use server::restrictive_methods::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
 use server::ServerConfig;
 use starknet_core::constants::{
     DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT,
@@ -199,6 +200,14 @@ Sending POST /create_block is also an option in modes other than \"demand\".")]
     #[arg(env = "DISABLE_ACCOUNT_IMPERSONATION")]
     #[arg(help = "Disables the possibility to impersonate accounts;")]
     disable_account_impersonation: bool,
+
+    #[arg(long = "restrictive-mode")]
+    #[arg(env = "RESTRICTIVE_MODE")]
+    #[arg(num_args = 0..)]
+    #[arg(help = "Use devnet in restrictive mode; You can specify the methods that will be \
+                  fobidden (empty space separated values). If empty string is passed, then \
+                  default restricted methods are used.")]
+    restricted_methods: Option<Vec<String>>,
 }
 
 impl Args {
@@ -240,6 +249,13 @@ impl Args {
         let RequestResponseLogging { log_request, log_response } =
             RequestResponseLogging::from_rust_log_environment_variable();
 
+        let restricted_methods = self.restricted_methods.as_ref().map(|methods| {
+            if methods.is_empty() {
+                DEFAULT_RESTRICTED_JSON_RPC_METHODS.iter().map(|s| s.to_string()).collect()
+            } else {
+                methods.clone()
+            }
+        });
         let server_config = ServerConfig {
             host: self.host.inner,
             port: self.port,
@@ -247,7 +263,7 @@ impl Args {
             request_body_size_limit: self.request_body_size_limit,
             log_request,
             log_response,
-            restrictive_mode: Some(vec!["devnet_mint", "devnet_createBlock"]),
+            restricted_methods,
         };
 
         Ok((starknet_config, server_config))
