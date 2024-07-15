@@ -53,7 +53,7 @@ use crate::api::json_rpc::models::{
 use crate::api::serde_helpers::{empty_params, optional_params};
 use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
-use crate::rpc_core::response::ResponseResult;
+use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
 use crate::ServerConfig;
 
@@ -108,6 +108,37 @@ impl RpcHandler for JsonRpcHandler {
     ) -> ResponseResult {
         info!(target: "rpc", "received method in on_request {}", request);
         self.execute(request, original_call).await
+    }
+
+    async fn on_call(&mut self, call: RpcMethodCall) -> RpcResponse {
+        trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received method call");
+        let RpcMethodCall { method, params, id, .. } = call.clone();
+
+        let params: serde_json::Value = params.into();
+        let deserializable_call = serde_json::json!({
+            "method": &method,
+            "params": params
+        });
+
+        match serde_json::from_value::<Self::Request>(deserializable_call) {
+            Ok(req) => {
+                let result = self.on_request(req, call).await;
+                RpcResponse::new(id, result)
+            }
+            Err(err) => {
+                let err = err.to_string();
+                // since JSON-RPC specification requires returning a Method Not Found error,
+                // we apply a hacky way to induce this - checking the stringified error message
+                let distinctive_error = format!("unknown variant `{method}`");
+                if err.contains(&distinctive_error) {
+                    error!(target: "rpc", ?method, "failed to deserialize method due to unknown variant");
+                    RpcResponse::new(id, RpcError::method_not_found())
+                } else {
+                    error!(target: "rpc", ?method, ?err, "failed to deserialize method");
+                    RpcResponse::new(id, RpcError::invalid_params(err))
+                }
+            }
+        }
     }
 }
 
