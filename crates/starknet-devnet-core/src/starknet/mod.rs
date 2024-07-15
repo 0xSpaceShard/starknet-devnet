@@ -823,9 +823,6 @@ impl Starknet {
     }
 
     pub fn update_gas(&mut self, gas_prices: GasUpdate) -> DevnetResult<GasUpdate> {
-        // TODO: add tests with real transactions and fees
-        // TODO: add cairo contract test with fees (gas changes needs to be reflected in state)
-
         // BlockContext needs to be reinitialized
         self.block_context = Starknet::init_block_context(
             gas_prices.gas_price_wei,
