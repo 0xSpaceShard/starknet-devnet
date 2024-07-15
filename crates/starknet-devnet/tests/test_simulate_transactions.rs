@@ -313,10 +313,10 @@ mod simulation_tests {
         );
 
         let gas_update = json!({
-            "gas_price_wei": 9000000000000000000u128,
-            "data_gas_price_wei": 8000000000000000000u128,
-            "gas_price_strk": 7000000000000000000u128,
-            "data_gas_price_strk": 6000000000000000000u128,
+            "gas_price_wei": 9 * 1e18 as u128,
+            "data_gas_price_wei": 8 * 1e18 as u128,
+            "gas_price_strk": 7 * 1e18 as u128,
+            "data_gas_price_strk": 6 * 1e18 as u128,
         });
         let updated_gas =
             &devnet.send_custom_rpc("devnet_updateGas", gas_update.clone()).await.unwrap();
@@ -379,13 +379,13 @@ mod simulation_tests {
             FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE))
         );
 
-        let wei_price = 9000000000000000000u128;
-        let strk_price = 7000000000000000000u128;
+        let wei_price = 9e18 as u128;
+        let strk_price = 7e18 as u128;
         let gas_update = json!({
-            "gas_price_wei": wei_price,
-            "data_gas_price_wei": 8000000000000000000u128,
-            "gas_price_strk": strk_price,
-            "data_gas_price_strk": 6000000000000000000u128,
+            "gas_price_wei": 9e18 as u128,
+            "data_gas_price_wei": 8e18 as u128,
+            "gas_price_strk": 7e18 as u128,
+            "data_gas_price_strk": 6e18 as u128,
         });
         let updated_gas =
             &devnet.send_custom_rpc("devnet_updateGas", gas_update.clone()).await.unwrap();
