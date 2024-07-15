@@ -50,9 +50,6 @@ jobs:
     resource_class: spaceshard/ax41
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - << parameters.cargo_cache_key >>
       - run:
           name: Install nightly-2024-07-08
           command: rustup install nightly-2024-07-08
@@ -71,21 +68,6 @@ jobs:
       - run:
           name: Code spell check
           command: ./scripts/check_spelling.sh
-      - save_cache:
-          # Caching dependencies for future use
-          # Build and Clippy steps generate their own target artifacts
-          # Test also generates, but significantly more
-          # Compromise: saving before Test
-          paths:
-            - /home/circleci/.rustup/toolchains
-            - /home/circleci/.cargo/registry
-            - target/debug/.fingerprint
-            - target/debug/build
-            - target/debug/deps
-            - target/release/.fingerprint
-            - target/release/build
-            - target/release/deps
-          key: << parameters.cargo_cache_key >>
       - run:
           name: Unit tests
           command: cargo test --lib --bins --no-fail-fast
