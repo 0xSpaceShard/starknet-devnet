@@ -74,7 +74,7 @@ jobs:
       - run:
           name: Integration tests
           # fails if jobs not limited; read more in https://github.com/0xSpaceShard/starknet-devnet-rs/issues/378
-          command: cargo test --jobs 6 --test '*' --no-fail-fast
+          command: cargo test --jobs 9 --test '*' --no-fail-fast
 
   binary-build:
     parameters:
