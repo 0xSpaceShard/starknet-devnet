@@ -101,60 +101,40 @@ impl BackgroundDevnet {
 
         while let Some(arg) = args_iter.next() {
             if arg.starts_with("--") {
-                // It's an argument, check if it has a value
-                if let Some(value) = args_iter.peek() {
-                    if value.starts_with("--") {
-                        // It's another argument, so current argument has no value
-                        specified_args_map.insert(arg, "");
-                    } else {
-                        // It's a value, associate it with the current argument
-                        // can unwrap safely since we know args_iter.peek() returned a value
+                match args_iter.peek() {
+                    // If the next element is not an argument, it's a value
+                    Some(&value) if !value.starts_with("--") => {
                         specified_args_map.insert(arg, args_iter.next().unwrap());
                     }
-                } else {
-                    // Argument with no value
-                    specified_args_map.insert(arg, "");
+                    _ => {
+                        specified_args_map.insert(arg, "");
+                    }
                 }
             }
         }
 
-        // filter out default cli settings that are either:
+        // Filter out default CLI settings that are either:
         // - in the specified args
-        // - in the specified args have a conflicting CLI param with the default settings
+        // - conflicting with the specified args
         let modified_default_args_map: HashMap<&str, &str> = DEFAULT_CLI_MAP
             .iter()
             .filter(|(arg_name, _)| {
-                let element_is_in_specified_args = specified_args_map.contains_key(*arg_name);
-                if element_is_in_specified_args {
-                    return false;
-                }
-
-                let conflicting_cli_param =
-                    if let Some(conflicting_arg) = CONFLICTING_CLI_SETTINGS.get(*arg_name) {
+                !specified_args_map.contains_key(*arg_name)
+                    && !(CONFLICTING_CLI_SETTINGS.get(*arg_name).map_or(false, |conflicting_arg| {
                         specified_args_map.contains_key(conflicting_arg)
-                    } else {
-                        false
-                    };
-                if conflicting_cli_param {
-                    return false;
-                }
-
-                true
+                    }))
             })
             .map(|(arg_name, default_value)| (*arg_name, default_value.as_str()))
             .collect();
 
-        let mut final_args: Vec<&str> = vec![];
-        for (arg_name, arg_value) in
-            specified_args_map.iter().chain(modified_default_args_map.iter())
-        {
-            final_args.push(arg_name);
-            if !arg_value.is_empty() {
-                final_args.push(arg_value);
-            }
-        }
-
-        final_args
+        // Combine specified args and filtered default args into final args list
+        specified_args_map
+            .iter()
+            .chain(modified_default_args_map.iter())
+            .flat_map(|(arg_name, arg_value)| {
+                if arg_value.is_empty() { vec![*arg_name] } else { vec![*arg_name, *arg_value] }
+            })
+            .collect()
     }
 
     pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
