@@ -23,7 +23,7 @@ use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::LocalWallet;
 
 use super::background_devnet::BackgroundDevnet;
-use super::constants::{ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_CONTRACT_PATH, CHAIN_ID};
+use super::constants::{ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_CONTRACT_PATH};
 
 pub enum ImpersonationAction {
     ImpersonateAccount(FieldElement),
@@ -290,7 +290,7 @@ pub async fn deploy_oz_account(
     let salt = FieldElement::THREE;
     let factory = OpenZeppelinAccountFactory::new(
         FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH)?,
-        CHAIN_ID,
+        devnet.json_rpc_client.chain_id().await?,
         signer.clone(),
         devnet.clone_provider(),
     )
@@ -313,7 +313,7 @@ pub async fn deploy_argent_account(
     let salt = FieldElement::THREE;
     let factory = ArgentAccountFactory::new(
         FieldElement::from_hex_be(ARGENT_ACCOUNT_CLASS_HASH)?,
-        CHAIN_ID,
+        devnet.json_rpc_client.chain_id().await?,
         FieldElement::ZERO,
         signer.clone(),
         devnet.clone_provider(),
