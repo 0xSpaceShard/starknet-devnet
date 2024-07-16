@@ -1255,11 +1255,6 @@ impl Starknet {
                 msg: "Account impersonation is supported when forking mode is enabled.".to_string(),
             });
         }
-        if self.config.disable_account_impersonation {
-            return Err(Error::UnsupportedAction {
-                msg: "Account impersonation is disabled.".to_string(),
-            });
-        }
         if self.pending_state.is_contract_deployed_locally(account)? {
             return Err(Error::UnsupportedAction {
                 msg: "Account is in local state, cannot be impersonated".to_string(),
@@ -1291,11 +1286,6 @@ impl Starknet {
         if self.config.fork_config.url.is_none() {
             return Err(Error::UnsupportedAction {
                 msg: "Account impersonation is supported when forking mode is enabled.".to_string(),
-            });
-        }
-        if self.config.disable_account_impersonation {
-            return Err(Error::UnsupportedAction {
-                msg: "Account impersonation is disabled.".to_string(),
             });
         }
         self.cheats.set_auto_impersonate(auto_impersonation);

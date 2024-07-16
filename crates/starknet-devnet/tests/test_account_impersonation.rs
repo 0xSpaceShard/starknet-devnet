@@ -69,18 +69,12 @@ mod impersonated_account_tests {
     }
 
     #[tokio::test]
-    async fn test_account_impersonation_have_to_return_an_error_when_account_impersonation_is_disabled()
-     {
+    async fn test_account_impersonation_have_to_return_an_error_when_in_restrictive_mode() {
         let origin_devnet =
             BackgroundDevnet::spawn_forkable_devnet().await.expect("Could not start Devnet");
 
-        let args = [
-            "--fork-network",
-            origin_devnet.url.as_str(),
-            "--accounts",
-            "0",
-            "--disable-account-impersonation",
-        ];
+        let args =
+            ["--fork-network", origin_devnet.url.as_str(), "--accounts", "0", "--restrictive-mode"];
         let forked_devnet = BackgroundDevnet::spawn_with_additional_args(&args).await.unwrap();
 
         let impersonation_err = forked_devnet
@@ -90,20 +84,14 @@ mod impersonated_account_tests {
             .await
             .unwrap_err();
 
-        assert_anyhow_error_contains_message(
-            impersonation_err,
-            "account impersonation is disabled",
-        );
+        assert_anyhow_error_contains_message(impersonation_err, "method forbidden");
 
         let impersonation_err = forked_devnet
             .execute_impersonation_action(&ImpersonationAction::AutoImpersonate)
             .await
             .unwrap_err();
 
-        assert_anyhow_error_contains_message(
-            impersonation_err,
-            "account impersonation is disabled",
-        );
+        assert_anyhow_error_contains_message(impersonation_err, "method forbidden");
     }
 
     #[tokio::test]

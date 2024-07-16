@@ -91,7 +91,6 @@ mod general_integration_tests {
             },
             "block_generation_on": "demand",
             "lite_mode": false,
-            "disable_account_impersonation": false
         });
 
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
