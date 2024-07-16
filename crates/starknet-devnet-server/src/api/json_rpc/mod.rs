@@ -51,6 +51,7 @@ use crate::api::json_rpc::models::{
     BroadcastedInvokeTransactionEnumWrapper, SimulateTransactionsInput,
 };
 use crate::api::serde_helpers::{empty_params, optional_params};
+use crate::restrictive_methods::is_json_rpc_method_restricted;
 use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
@@ -122,6 +123,22 @@ impl RpcHandler for JsonRpcHandler {
 
         match serde_json::from_value::<Self::Request>(deserializable_call) {
             Ok(req) => {
+                if let Some(restricted_methods) = &self.server_config.restricted_methods {
+                    if is_json_rpc_method_restricted(
+                        &method,
+                        restricted_methods
+                            .iter()
+                            .map(|x| x.as_str())
+                            .collect::<Vec<&str>>()
+                            .as_slice(),
+                    ) {
+                        return RpcResponse::new(
+                            id,
+                            RpcError::new(crate::rpc_core::error::ErrorCode::MethodForbidden),
+                        );
+                    }
+                }
+                // sis_json_rpc_method_restricted(json_rpc_method, self.server_config.)
                 let result = self.on_request(req, call).await;
                 RpcResponse::new(id, result)
             }

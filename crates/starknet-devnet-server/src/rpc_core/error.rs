@@ -94,6 +94,8 @@ pub enum ErrorCode {
     TransactionRejected,
     /// Custom geth error code, <https://github.com/vapory-legacy/wiki/blob/master/JSON-RPC-Error-Codes-Improvement-Proposal.md>
     ExecutionError,
+    /// method is forbidden for execution
+    MethodForbidden,
     /// Used for server specific errors.
     ServerError(i64),
 }
@@ -107,6 +109,7 @@ impl ErrorCode {
             ErrorCode::MethodNotFound => -32601,
             ErrorCode::InvalidParams => -32602,
             ErrorCode::InternalError => -32603,
+            ErrorCode::MethodForbidden => -32604,
             ErrorCode::TransactionRejected => -32003,
             ErrorCode::ExecutionError => 3,
             ErrorCode::ServerError(c) => c,
@@ -124,6 +127,7 @@ impl ErrorCode {
             ErrorCode::TransactionRejected => "Transaction rejected",
             ErrorCode::ServerError(_) => "Server error",
             ErrorCode::ExecutionError => "Execution error",
+            ErrorCode::MethodForbidden => "Method forbidden",
         }
     }
 }
@@ -154,6 +158,7 @@ impl From<i64> for ErrorCode {
             -32601 => ErrorCode::MethodNotFound,
             -32602 => ErrorCode::InvalidParams,
             -32603 => ErrorCode::InternalError,
+            -32604 => ErrorCode::MethodForbidden,
             -32003 => ErrorCode::TransactionRejected,
             3 => ErrorCode::ExecutionError,
             _ => ErrorCode::ServerError(code),

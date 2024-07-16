@@ -34,7 +34,7 @@ lazy_static! {
         DEFAULT_RESTRICTED_JSON_RPC_METHODS
             .iter()
             .filter_map(|method| MAPPING_RPC_METHODS_TO_HTTP_URIS.get(method))
-            .map(|el| *el)
+            .copied()
             .collect();
 }
 
@@ -102,14 +102,14 @@ mod tests {
     }
 
     fn assert_is_restricted(method: &str, restricted_methods: &[&str]) {
-        if method.contains("/") {
+        if method.contains('/') {
             assert!(is_uri_path_restricted(method, restricted_methods));
         } else {
             assert!(is_json_rpc_method_restricted(method, restricted_methods));
         }
     }
     fn assert_is_not_restricted(method: &str, restricted_methods: &[&str]) {
-        if method.contains("/") {
+        if method.contains('/') {
             assert!(!is_uri_path_restricted(method, restricted_methods));
         } else {
             assert!(!is_json_rpc_method_restricted(method, restricted_methods));
