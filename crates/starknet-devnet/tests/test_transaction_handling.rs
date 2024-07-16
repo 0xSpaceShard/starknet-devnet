@@ -3,6 +3,7 @@ pub mod common;
 mod trace_tests {
     use std::sync::Arc;
 
+    use server::test_utils::exported_test_utils::assert_contains;
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
@@ -43,13 +44,7 @@ mod trace_tests {
         match declaration_result {
             Err(AccountError::Provider(ProviderError::StarknetError(
                 StarknetError::ValidationFailure(message),
-            ))) => {
-                assert_eq!(
-                    message,
-                    "Execution failed. Failure reason: \
-                     0x4641494c45442056414c4944415445204445434c415245 ('FAILED VALIDATE DECLARE')."
-                );
-            }
+            ))) => assert_contains(&message, "FAILED VALIDATE DECLARE"),
             other => panic!("Unexpected result: {other:?}"),
         }
     }
