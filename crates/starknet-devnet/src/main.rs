@@ -24,7 +24,7 @@ use starknet_types::traits::ToHexString;
 use tokio::net::TcpListener;
 use tokio::signal::unix::{signal, SignalKind};
 use tokio::task::{self};
-use tokio::time::interval;
+use tokio::time::{interval, sleep};
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
@@ -233,11 +233,14 @@ async fn main() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-async fn create_block_interval(api: Api, block_interval: u64) -> Result<(), std::io::Error> {
-    let mut interval = interval(Duration::from_secs(block_interval));
+async fn create_block_interval(api: Api, block_interval_sec: u64) -> Result<(), std::io::Error> {
+    let mut interval = interval(Duration::from_secs(block_interval_sec));
     let mut sigint = signal(SignalKind::interrupt()).expect("Failed to setup SIGINT handler");
 
     loop {
+        // avoid creating block instantly after startup
+        sleep(Duration::from_secs(block_interval_sec)).await;
+
         tokio::select! {
             _ = interval.tick() => {
                 let mut starknet = api.starknet.write().await;
