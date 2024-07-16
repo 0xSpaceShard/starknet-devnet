@@ -3,6 +3,7 @@ use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
+use starknet_rs_core::types::BlockId;
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
@@ -15,6 +16,7 @@ use crate::error::{DevnetResult, Error};
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum DumpEvent {
     CreateBlock,
+    AbortBlocks(BlockId),
     SetTime(u64),
     IncreaseTime(u64),
     AddDeclareTransaction(BroadcastedDeclareTransaction),
@@ -41,6 +43,9 @@ impl Starknet {
                 }
                 DumpEvent::CreateBlock => {
                     self.create_block_dump_event(None)?;
+                }
+                DumpEvent::AbortBlocks(block_id) => {
+                    self.abort_blocks(block_id)?;
                 }
                 DumpEvent::SetTime(timestamp) => {
                     self.set_time(timestamp, false)?;

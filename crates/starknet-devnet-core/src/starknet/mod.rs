@@ -799,6 +799,8 @@ impl Starknet {
             return Err(Error::UnsupportedAction { msg: msg.into() });
         }
 
+        let dump_event_block_id = starting_block_id.clone();
+
         if starting_block_id == BlockId::Tag(BlockTag::Pending) {
             self.create_block()?;
             starting_block_id = BlockId::Tag(BlockTag::Latest);
@@ -829,54 +831,69 @@ impl Starknet {
         let mut reached_starting_block = false;
         let mut aborted: Vec<Felt> = Vec::new();
 
-        let mut rpc_contract_classes = self.rpc_contract_classes.write();
+        // handle rpc_contract_classes RwLock lock in this section
+        {
+            let mut rpc_contract_classes = self.rpc_contract_classes.write();
 
-        // Abort blocks from latest to starting (iterating backwards) and revert transactions.
-        while !reached_starting_block {
-            reached_starting_block = next_block_to_abort_hash == starting_block_hash;
-            let block_to_abort = self.blocks.hash_to_block.get_mut(&next_block_to_abort_hash);
+            // Abort blocks from latest to starting (iterating backwards) and revert transactions.
+            while !reached_starting_block {
+                reached_starting_block = next_block_to_abort_hash == starting_block_hash;
+                let block_to_abort = self.blocks.hash_to_block.get_mut(&next_block_to_abort_hash);
 
-            if let Some(block) = block_to_abort {
-                block.status = BlockStatus::Rejected;
-                self.blocks.num_to_hash.shift_remove(&block.block_number());
+                if let Some(block) = block_to_abort {
+                    block.status = BlockStatus::Rejected;
+                    self.blocks.num_to_hash.shift_remove(&block.block_number());
 
-                // Revert transactions
-                for tx_hash in block.get_transactions() {
-                    let tx =
-                        self.transactions.get_by_hash_mut(tx_hash).ok_or(Error::NoTransaction)?;
-                    tx.execution_result =
-                        ExecutionResult::Reverted { reason: "Block aborted manually".to_string() };
+                    // Revert transactions
+                    for tx_hash in block.get_transactions() {
+                        let tx = self
+                            .transactions
+                            .get_by_hash_mut(tx_hash)
+                            .ok_or(Error::NoTransaction)?;
+                        tx.execution_result = ExecutionResult::Reverted {
+                            reason: "Block aborted manually".to_string(),
+                        };
+                    }
+
+                    rpc_contract_classes.remove_classes_at(block.block_number().0);
+                    aborted.push(block.block_hash());
+
+                    // Update next block hash to abort
+                    next_block_to_abort_hash = block.parent_hash();
                 }
-
-                rpc_contract_classes.remove_classes_at(block.block_number().0);
-                aborted.push(block.block_hash());
-
-                // Update next block hash to abort
-                next_block_to_abort_hash = block.parent_hash();
             }
+            let last_reached_block_hash = next_block_to_abort_hash;
+
+            // Update last_block_hash based on last reached block and revert state only if
+            // starting block is reached in while loop.
+            if reached_starting_block {
+                let current_block = self
+                    .blocks
+                    .hash_to_block
+                    .get(&last_reached_block_hash)
+                    .ok_or(Error::NoBlock)?;
+                self.blocks.last_block_hash = Some(current_block.block_hash());
+
+                let reverted_state =
+                    self.blocks.hash_to_state.get(&current_block.block_hash()).ok_or(
+                        Error::NoStateAtBlock {
+                            block_id: BlockId::Number(current_block.block_number().0),
+                        },
+                    )?;
+
+                // in the abort block scenario, we need to revert state and pending_state to be able
+                // to use the calls properly
+                self.latest_state = reverted_state.clone_historic();
+                self.pending_state = reverted_state.clone_historic();
+            }
+
+            self.pending_state_diff = StateDiff::default();
+            rpc_contract_classes.empty_staging();
+            self.blocks.aborted_blocks = aborted.clone();
         }
-        let last_reached_block_hash = next_block_to_abort_hash;
 
-        // Update last_block_hash based on last reached block and revert state only if
-        // starting block is reached in while loop.
-        if reached_starting_block {
-            let current_block =
-                self.blocks.hash_to_block.get(&last_reached_block_hash).ok_or(Error::NoBlock)?;
-            self.blocks.last_block_hash = Some(current_block.block_hash());
-
-            let reverted_state = self.blocks.hash_to_state.get(&current_block.block_hash()).ok_or(
-                Error::NoStateAtBlock { block_id: BlockId::Number(current_block.block_number().0) },
-            )?;
-
-            // in the abort block scenario, we need to revert state and pending_state to be able to
-            // use the calls properly
-            self.latest_state = reverted_state.clone_historic();
-            self.pending_state = reverted_state.clone_historic();
-        }
-
-        self.pending_state_diff = StateDiff::default();
-        rpc_contract_classes.empty_staging();
-        self.blocks.aborted_blocks = aborted.clone();
+        // handle abort blocks dump_event
+        self.handle_dump_event(DumpEvent::AbortBlocks(dump_event_block_id))?;
 
         Ok(aborted)
     }
