@@ -25,8 +25,8 @@ use tokio::sync::Mutex;
 use url::Url;
 
 use super::constants::{
-    ACCOUNTS, CHAIN_ID_CLI_PARAM, HEALTHCHECK_PATH, HOST, MAX_PORT, MIN_PORT,
-    PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, RPC_PATH, SEED,
+    ACCOUNTS, HEALTHCHECK_PATH, HOST, MAX_PORT, MIN_PORT, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
+    RPC_PATH, SEED,
 };
 use super::errors::TestError;
 use super::reqwest_client::{PostReqwestSender, ReqwestClient};
