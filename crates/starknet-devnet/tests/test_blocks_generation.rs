@@ -152,14 +152,8 @@ mod blocks_generation_tests {
     }
 
     async fn assert_balance(devnet: &BackgroundDevnet, expected: Felt, tag: BlockTag) {
-        let balance = devnet
-            .get_balance_by_tag(
-                &Felt::from_hex(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
-                FeeUnit::WEI,
-                tag,
-            )
-            .await
-            .unwrap();
+        let balance =
+            devnet.get_balance_by_tag(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI, tag).await.unwrap();
         assert_eq!(balance, expected);
     }
 
