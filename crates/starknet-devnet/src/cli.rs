@@ -200,8 +200,8 @@ Sending POST /create_block is also an option in modes other than \"demand\".")]
     #[arg(env = "RESTRICTIVE_MODE")]
     #[arg(num_args = 0..)]
     #[arg(help = "Use devnet in restrictive mode; You can specify the methods that will be \
-                  fobidden (empty space separated values). If empty string is passed, then \
-                  default restricted methods are used.")]
+                  fobidden (empty space separated values). If nothing is specified for this \
+                  argument, then default restricted methods are used.")]
     restricted_methods: Option<Vec<String>>,
 }
 
