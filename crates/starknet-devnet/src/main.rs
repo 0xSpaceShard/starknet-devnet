@@ -233,7 +233,10 @@ async fn main() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-async fn create_block_interval(api: Api, block_interval_seconds: u64) -> Result<(), std::io::Error> {
+async fn create_block_interval(
+    api: Api,
+    block_interval_seconds: u64,
+) -> Result<(), std::io::Error> {
     let mut interval = interval(Duration::from_secs(block_interval_seconds));
     let mut sigint = signal(SignalKind::interrupt()).expect("Failed to setup SIGINT handler");
 
