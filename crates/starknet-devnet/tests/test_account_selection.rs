@@ -124,7 +124,7 @@ mod test_account_selection {
     /// Relying on forking: the origin network is expected to have the account class declared.
     async fn can_deploy_new_argent_account() {
         let cli_args = ["--fork-network", MAINNET_URL];
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
+        let devnet = BackgroundDevnet::spawn_fork_with_args(&cli_args).await.unwrap();
 
         let (account_deployment, signer) = deploy_argent_account(&devnet).await.unwrap();
         assert_tx_successful(&account_deployment.transaction_hash, &devnet.json_rpc_client).await;

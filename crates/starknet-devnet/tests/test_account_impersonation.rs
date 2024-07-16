@@ -80,7 +80,7 @@ mod impersonated_account_tests {
             "0",
             "--disable-account-impersonation",
         ];
-        let forked_devnet = BackgroundDevnet::spawn_with_additional_args(&args).await.unwrap();
+        let forked_devnet = BackgroundDevnet::spawn_fork_with_args(&args).await.unwrap();
 
         let impersonation_err = forked_devnet
             .execute_impersonation_action(&ImpersonationAction::ImpersonateAccount(
@@ -130,7 +130,6 @@ mod impersonated_account_tests {
     async fn non_impersonated_account_fails_to_make_a_transaction_and_receives_an_error_of_invalid_signature()
      {
         let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
-
         let invoke_txn_err = test_invoke_transaction(&origin_devnet, &[]).await.unwrap_err();
         assert_anyhow_error_contains_message(invoke_txn_err, "invalid signature");
 

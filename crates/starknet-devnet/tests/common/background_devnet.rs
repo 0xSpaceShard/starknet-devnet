@@ -68,11 +68,6 @@ lazy_static! {
         ("--initial-balance", PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string()),
         ("--chain-id", CHAIN_ID_CLI_PARAM.to_string())
     ]);
-
-    // key is the element that must not be part of the CLI arguments if the value is present, when constructing the CLI arguments for starting background devnet
-    static ref CONFLICTING_CLI_SETTINGS: HashMap<&'static str, &'static str> = HashMap::from([
-        ("--chain-id", "--fork-network")
-    ]);
 }
 
 impl BackgroundDevnet {
@@ -93,51 +88,37 @@ impl BackgroundDevnet {
         &self.reqwest_client
     }
 
-    /// Takes specified args and adds default values for args that are missing from and are not
-    /// conflicting with the specified args
-    fn add_default_args<'a>(specified_args: &[&'a str]) -> Vec<&'a str> {
-        let mut specified_args_map: HashMap<&str, &str> = HashMap::new();
-        let mut args_iter = specified_args.iter().peekable();
+    /// Takes specified args and adds default values for args that are missing
+    fn add_default_args<'a>(
+        specified_args: &[&'a str],
+        default_args_map: &'a HashMap<&'static str, String>,
+    ) -> Vec<&'a str> {
+        let mut specified_args_vec: Vec<&str> = specified_args.to_vec();
+        let mut final_args: Vec<&str> = vec![];
 
-        while let Some(arg) = args_iter.next() {
-            if arg.starts_with("--") {
-                match args_iter.peek() {
-                    // If the next element is not an argument, it's a value
-                    Some(&value) if !value.starts_with("--") => {
-                        specified_args_map.insert(arg, args_iter.next().unwrap());
+        // Iterate through default args, and remove from specified args when found
+        // That way in the end we can just append the non-removed args
+        for (arg_name, default_value) in default_args_map.iter() {
+            let value =
+                match specified_args_vec.iter().position(|arg_candidate| arg_candidate == arg_name)
+                {
+                    Some(pos) => {
+                        // arg value comes after name
+                        specified_args_vec.remove(pos);
+                        specified_args_vec.remove(pos)
                     }
-                    _ => {
-                        specified_args_map.insert(arg, "");
-                    }
-                }
-            }
+                    None => default_value,
+                };
+            final_args.push(arg_name);
+            final_args.push(value);
         }
 
-        // Filter out default CLI settings that are either:
-        // - in the specified args
-        // - conflicting with the specified args
-        let modified_default_args_map: HashMap<&str, &str> = DEFAULT_CLI_MAP
-            .iter()
-            .filter(|(arg_name, _)| {
-                !specified_args_map.contains_key(*arg_name)
-                    && !(CONFLICTING_CLI_SETTINGS.get(*arg_name).map_or(false, |conflicting_arg| {
-                        specified_args_map.contains_key(conflicting_arg)
-                    }))
-            })
-            .map(|(arg_name, default_value)| (*arg_name, default_value.as_str()))
-            .collect();
-
-        // Combine specified args and filtered default args into final args list
-        specified_args_map
-            .iter()
-            .chain(modified_default_args_map.iter())
-            .flat_map(|(arg_name, arg_value)| {
-                if arg_value.is_empty() { vec![*arg_name] } else { vec![*arg_name, *arg_value] }
-            })
-            .collect()
+        // simply append those args that don't have an entry in DEFAULT_CLI_MAP
+        final_args.append(&mut specified_args_vec);
+        final_args
     }
 
-    pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
+    async fn spawn_with_args(args: &[&str]) -> Result<Self, TestError> {
         // we keep the reference, otherwise the mutex unlocks immediately
         let _mutex_guard = BACKGROUND_DEVNET_MUTEX.lock().await;
 
@@ -153,7 +134,7 @@ impl BackgroundDevnet {
                 .arg("--")
                 .arg("--port")
                 .arg(free_port.to_string())
-                .args(Self::add_default_args(args))
+                .args(args)
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
@@ -182,6 +163,11 @@ impl BackgroundDevnet {
         }
 
         Err(TestError::DevnetNotStartable)
+    }
+
+    /// Spawn devnet with default args and args passed as arguments
+    pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
+        Self::spawn_with_args(&Self::add_default_args(args, &DEFAULT_CLI_MAP)).await
     }
 
     pub async fn send_custom_rpc(
@@ -332,10 +318,20 @@ impl BackgroundDevnet {
 
     pub async fn fork(&self) -> Result<Self, TestError> {
         let args = ["--fork-network", self.url.as_str(), "--accounts", "0"];
-        BackgroundDevnet::spawn_with_additional_args(&args).await
+        let mut default_args = DEFAULT_CLI_MAP.clone();
+        default_args.remove("--chain-id");
+        BackgroundDevnet::spawn_with_args(&Self::add_default_args(&args, &default_args)).await
+    }
+
+    pub async fn spawn_fork_with_args(args: &[&str]) -> Result<Self, TestError> {
+        let mut default_args = DEFAULT_CLI_MAP.clone();
+        default_args.remove("--chain-id");
+        BackgroundDevnet::spawn_with_args(&Self::add_default_args(args, &default_args)).await
     }
 
     pub async fn fork_with_full_state_archive(&self) -> Result<Self, TestError> {
+        let mut default_args = DEFAULT_CLI_MAP.clone();
+        default_args.remove("--chain-id");
         let args = [
             "--fork-network",
             self.url.as_str(),
@@ -344,7 +340,7 @@ impl BackgroundDevnet {
             "--state-archive-capacity",
             "full",
         ];
-        BackgroundDevnet::spawn_with_additional_args(&args).await
+        BackgroundDevnet::spawn_with_args(&Self::add_default_args(&args, &default_args)).await
     }
 
     /// Mines a new block and returns its hash
