@@ -1,4 +1,5 @@
 use std::num::NonZeroU128;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use blockifier::block::BlockInfo;
@@ -802,7 +803,7 @@ impl Starknet {
             gas_prices.data_gas_price_strk,
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
-            ChainId::from(self.block_context.chain_info().chain_id.clone()),
+            ChainId::from_str(self.block_context.chain_info().chain_id.0.as_str()).expect("Chain id not supported"),
             self.block_context.block_info().block_number.0,
         );
 
