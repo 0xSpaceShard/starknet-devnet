@@ -135,7 +135,10 @@ pub(crate) struct Args {
     #[arg(env = "CHAIN_ID")]
     #[arg(value_name = "CHAIN_ID")]
     #[arg(default_value = "TESTNET")]
-    #[arg(help = "Specify the chain ID;")]
+    #[arg(help = "Specify the chain ID. Possible values are:
+- \"MAINNET\", \"TESTNET\" - predefined chain IDs
+- <USER_SUPPLIED> - custom chain ID, defined by user. Have to contain only ASCII characters.")]
+    #[arg(conflicts_with = "fork_network")]
     chain_id: ChainId,
 
     #[arg(long = "dump-on")]
@@ -529,7 +532,6 @@ mod tests {
             ("--gas-price-strk", "GAS_PRICE_STRK", "2"),
             ("--data-gas-price", "DATA_GAS_PRICE", "3"),
             ("--data-gas-price-strk", "DATA_GAS_PRICE_STRK", "4"),
-            ("--chain-id", "CHAIN_ID", "MAINNET"),
             ("--dump-on", "DUMP_ON", "exit"),
             ("--dump-path", "DUMP_PATH", "dummy-path"),
             ("--state-archive-capacity", "STATE_ARCHIVE_CAPACITY", "full"),

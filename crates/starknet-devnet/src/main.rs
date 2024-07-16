@@ -102,7 +102,7 @@ fn log_predeployed_contracts() {
     println!();
 }
 
-fn log_chain_id(chain_id: ChainId) {
+fn log_chain_id(chain_id: &ChainId) {
     println!("Chain ID: {} ({})", chain_id, chain_id.to_felt().to_prefixed_hex_str());
 }
 
@@ -119,52 +119,32 @@ async fn check_forking_spec_version(
     Ok(())
 }
 
-async fn check_forking_chain_id(
-    client: &JsonRpcClient<HttpTransport>,
-    devnet_chain_id: ChainId,
-) -> Result<(), anyhow::Error> {
-    let origin_chain_id = client.chain_id().await?;
-    let devnet_chain_id_felt = devnet_chain_id.into();
-    if origin_chain_id != devnet_chain_id_felt {
-        warn!(
-            "Origin chain ID ({:#x}) does not match this Devnet's chain ID ({:#x}).",
-            origin_chain_id, devnet_chain_id_felt
-        );
-    }
-    Ok(())
-}
-
 /// Logs forking info if forking specified. If block_number is not specified, it is set to the
 /// latest block number.
 pub async fn set_and_log_fork_config(
     fork_config: &mut ForkConfig,
-    chain_id: ChainId,
+    json_rpc_client: &JsonRpcClient<HttpTransport>,
 ) -> Result<(), anyhow::Error> {
-    if let Some(url) = &fork_config.url {
-        let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
-        let block_id =
-            fork_config.block_number.map_or(BlockId::Tag(BlockTag::Latest), BlockId::Number);
+    let block_id = fork_config.block_number.map_or(BlockId::Tag(BlockTag::Latest), BlockId::Number);
 
-        let block = json_rpc_client.get_block_with_tx_hashes(block_id).await.map_err(|e| {
-            anyhow::Error::msg(match e {
-                starknet_rs_providers::ProviderError::StarknetError(
-                    starknet_rs_core::types::StarknetError::BlockNotFound,
-                ) => format!("Forking from block {block_id:?}: block not found"),
-                _ => format!("Forking from block {block_id:?}: {e}; Check the URL"),
-            })
-        })?;
+    let block = json_rpc_client.get_block_with_tx_hashes(block_id).await.map_err(|e| {
+        anyhow::Error::msg(match e {
+            starknet_rs_providers::ProviderError::StarknetError(
+                starknet_rs_core::types::StarknetError::BlockNotFound,
+            ) => format!("Forking from block {block_id:?}: block not found"),
+            _ => format!("Forking from block {block_id:?}: {e}; Check the URL"),
+        })
+    })?;
 
-        match block {
-            MaybePendingBlockWithTxHashes::Block(b) => {
-                fork_config.block_number = Some(b.block_number);
-                println!("Forking from block: number={}, hash={:#x}", b.block_number, b.block_hash);
-            }
-            _ => panic!("Unreachable"),
-        };
+    match block {
+        MaybePendingBlockWithTxHashes::Block(b) => {
+            fork_config.block_number = Some(b.block_number);
+            println!("Forking from block: number={}, hash={:#x}", b.block_number, b.block_hash);
+        }
+        _ => panic!("Unreachable"),
+    };
 
-        check_forking_spec_version(&json_rpc_client).await?;
-        check_forking_chain_id(&json_rpc_client, chain_id).await?;
-    }
+    check_forking_spec_version(json_rpc_client).await?;
 
     Ok(())
 }
@@ -177,7 +157,13 @@ async fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
     let (mut starknet_config, server_config) = args.to_config()?;
 
-    set_and_log_fork_config(&mut starknet_config.fork_config, starknet_config.chain_id).await?;
+    // If fork url is provided, then set fork config and chain_id from forked network
+    if let Some(url) = starknet_config.fork_config.url.as_ref() {
+        let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
+        set_and_log_fork_config(&mut starknet_config.fork_config, &json_rpc_client).await?;
+
+        starknet_config.chain_id = json_rpc_client.chain_id().await?.into();
+    }
 
     let address = format!("{}:{}", server_config.host, server_config.port);
     let listener = TcpListener::bind(address.clone()).await?;
@@ -192,7 +178,7 @@ async fn main() -> Result<(), anyhow::Error> {
     };
 
     log_predeployed_contracts();
-    log_chain_id(starknet_config.chain_id);
+    log_chain_id(&starknet_config.chain_id);
 
     let predeployed_accounts = api.starknet.read().await.get_predeployed_accounts();
     log_predeployed_accounts(
