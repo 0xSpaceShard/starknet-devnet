@@ -18,6 +18,7 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::{LocalWallet, SigningKey};
+use starknet_types::felt::felt_from_prefixed_hex;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 use tokio::sync::Mutex;
 use url::Url;
@@ -221,7 +222,7 @@ impl BackgroundDevnet {
             .await
             .unwrap();
 
-        Felt::from_hex(resp_body["tx_hash"].as_str().unwrap()).unwrap()
+        felt_from_prefixed_hex(resp_body["tx_hash"].as_str().unwrap()).unwrap()
     }
 
     /// Get ETH balance at contract_address, as written in ERC20
@@ -231,7 +232,7 @@ impl BackgroundDevnet {
         block_id: BlockId,
     ) -> Result<Felt, anyhow::Error> {
         let call = FunctionCall {
-            contract_address: Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
+            contract_address: felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
             entry_point_selector: get_selector_from_name("balanceOf").unwrap(),
             calldata: vec![*address],
         };
@@ -291,8 +292,10 @@ impl BackgroundDevnet {
 
         let first_account = predeployed_accounts_json.as_array().unwrap().first().unwrap();
 
-        let account_address = Felt::from_hex(first_account["address"].as_str().unwrap()).unwrap();
-        let private_key = Felt::from_hex(first_account["private_key"].as_str().unwrap()).unwrap();
+        let account_address =
+            felt_from_prefixed_hex(first_account["address"].as_str().unwrap()).unwrap();
+        let private_key =
+            felt_from_prefixed_hex(first_account["private_key"].as_str().unwrap()).unwrap();
 
         let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key));
 
@@ -326,7 +329,7 @@ impl BackgroundDevnet {
             self.send_custom_rpc("devnet_createBlock", json!({})).await.unwrap();
 
         let block_hash_str = block_creation_resp_body["block_hash"].as_str().unwrap();
-        Ok(Felt::from_hex(block_hash_str)?)
+        Ok(felt_from_prefixed_hex(block_hash_str)?)
     }
 
     pub async fn get_latest_block_with_tx_hashes(

@@ -5,9 +5,10 @@ mod general_integration_tests {
     use reqwest::StatusCode;
     use serde_json::json;
     use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
-    use starknet_rs_core::types::{BlockId, BlockTag, Felt};
+    use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_rs_core::utils::{get_storage_var_address, parse_cairo_short_string};
     use starknet_rs_providers::Provider;
+    use starknet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
@@ -149,7 +150,7 @@ mod general_integration_tests {
             let actual_value = devnet
                 .json_rpc_client
                 .get_storage_at(
-                    Felt::from_hex(token_address).unwrap(),
+                    felt_from_prefixed_hex(token_address).unwrap(),
                     get_storage_var_address(var_name, &[]).unwrap(),
                     BlockId::Tag(BlockTag::Latest),
                 )

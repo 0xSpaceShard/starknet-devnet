@@ -77,26 +77,28 @@ pub type StorageKey = PatriciaKey;
 
 #[cfg(test)]
 mod tests {
-    use starknet_rs_core::types::Felt;
+    use crate::felt::felt_from_prefixed_hex;
 
     use super::PatriciaKey;
 
     #[test]
     fn creation_of_patricia_key_should_be_successful() {
-        assert!(
-            PatriciaKey::new(
-                Felt::from_hex("0x7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
-                    .unwrap()
+        assert!(PatriciaKey::new(
+            felt_from_prefixed_hex(
+                "0x7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
             )
-            .is_ok()
-        );
+            .unwrap()
+        )
+        .is_ok());
     }
 
     #[test]
     fn patricia_key_with_too_large_felt_should_return_error() {
         let result = PatriciaKey::new(
-            Felt::from_hex("0x800000000000000000000000000000000000000000000000000000000000001")
-                .unwrap(),
+            felt_from_prefixed_hex(
+                "0x800000000000000000000000000000000000000000000000000000000000001",
+            )
+            .unwrap(),
         );
         assert!(result.is_err());
     }

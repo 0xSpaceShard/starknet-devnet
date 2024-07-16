@@ -83,7 +83,7 @@ impl FromStr for AccountClassWrapper {
 #[cfg(test)]
 mod tests {
     use clap::ValueEnum;
-    use starknet_rs_core::types::Felt;
+    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::traits::HashProducer;
 
     use super::AccountContractClassChoice;
@@ -104,12 +104,12 @@ mod tests {
     fn correct_hash_calculated() {
         assert_eq!(
             AccountContractClassChoice::Cairo0.get_class_wrapper().unwrap().class_hash,
-            Felt::from_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
+            felt_from_prefixed_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
         );
 
         assert_eq!(
             AccountContractClassChoice::Cairo1.get_class_wrapper().unwrap().class_hash,
-            Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+            felt_from_prefixed_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
         )
     }
 }

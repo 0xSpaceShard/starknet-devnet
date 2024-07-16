@@ -9,7 +9,7 @@ use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::error::Error;
-use starknet_types::felt::{join_felts, split_biguint, ClassHash, Key};
+use starknet_types::felt::{felt_from_prefixed_hex, join_felts, split_biguint, ClassHash, Key};
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
 
@@ -58,7 +58,7 @@ impl Account {
             public_key: Key::from_hex(CHARGEABLE_ACCOUNT_PUBLIC_KEY).unwrap(),
             private_key: Key::from_hex(CHARGEABLE_ACCOUNT_PRIVATE_KEY).unwrap(),
             account_address: ContractAddress::new(
-                Felt::from_hex(CHARGEABLE_ACCOUNT_ADDRESS).unwrap(),
+                felt_from_prefixed_hex(CHARGEABLE_ACCOUNT_ADDRESS).unwrap(),
             )
             .unwrap(),
             initial_balance,
@@ -93,7 +93,7 @@ impl Account {
     fn compute_account_address(public_key: &Key) -> DevnetResult<ContractAddress> {
         let account_address = calculate_contract_address(
             ContractAddressSalt(felt!(20u32)),
-            starknet_api::core::ClassHash(Felt::from_hex(
+            starknet_api::core::ClassHash(felt_from_prefixed_hex(
                 ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION,
             )?),
             &Calldata(Arc::new(vec![*public_key])),
@@ -109,8 +109,10 @@ impl Account {
     fn simulate_constructor(&self, state: &mut StarknetState) -> DevnetResult<()> {
         let core_address = self.account_address.try_into()?;
 
-        let interface_storage_var =
-            get_storage_var_address("SRC5_supported_interfaces", &[Felt::from_hex(ISRC6_ID_HEX)?])?;
+        let interface_storage_var = get_storage_var_address(
+            "SRC5_supported_interfaces",
+            &[felt_from_prefixed_hex(ISRC6_ID_HEX)?],
+        )?;
         state.state.state.set_storage_at(
             core_address,
             interface_storage_var.try_into()?,
@@ -185,6 +187,7 @@ impl Accounted for Account {
 mod tests {
     use starknet_rs_core::types::Felt;
     use starknet_types::contract_address::ContractAddress;
+    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::state::Balance;
 
     use super::Account;
@@ -200,13 +203,17 @@ mod tests {
     #[test]
     fn account_address_should_be_equal() {
         let expected_result = ContractAddress::new(
-            Felt::from_hex("0x6e3205f9b7c4328f00f718fdecf56ab31acfb3cd6ffeb999dcbac41236ea502")
-                .unwrap(),
+            felt_from_prefixed_hex(
+                "0x6e3205f9b7c4328f00f718fdecf56ab31acfb3cd6ffeb999dcbac41236ea502",
+            )
+            .unwrap(),
         )
         .unwrap();
         let generated_result = Account::compute_account_address(
-            &Felt::from_hex("0x60dea6c1228f1db4ca1f9db11c01b6e9cce5e627f7181dcaa27d69cbdbe57b5")
-                .unwrap(),
+            &felt_from_prefixed_hex(
+                "0x60dea6c1228f1db4ca1f9db11c01b6e9cce5e627f7181dcaa27d69cbdbe57b5",
+            )
+            .unwrap(),
         )
         .unwrap();
 
@@ -216,13 +223,17 @@ mod tests {
     #[test]
     fn account_address_should_not_be_equal() {
         let expected_result = ContractAddress::new(
-            Felt::from_hex("0x6e3205f9b7c4328f00f718fdecf56ab31acfb3cd6ffeb999dcbac41236ea502")
-                .unwrap(),
+            felt_from_prefixed_hex(
+                "0x6e3205f9b7c4328f00f718fdecf56ab31acfb3cd6ffeb999dcbac41236ea502",
+            )
+            .unwrap(),
         )
         .unwrap();
         let generated_result = Account::compute_account_address(
-            &Felt::from_hex("0x60dea6c1228f1db4ca1f9db11c01b6e9cce5e627f7181dcaa27d69cbdbe57b6")
-                .unwrap(),
+            &felt_from_prefixed_hex(
+                "0x60dea6c1228f1db4ca1f9db11c01b6e9cce5e627f7181dcaa27d69cbdbe57b6",
+            )
+            .unwrap(),
         )
         .unwrap();
 
@@ -272,7 +283,7 @@ mod tests {
         state
             .predeploy_contract(
                 fee_token_address,
-                Felt::from_hex(CAIRO_1_ERC20_CONTRACT_CLASS_HASH).unwrap(),
+                felt_from_prefixed_hex(CAIRO_1_ERC20_CONTRACT_CLASS_HASH).unwrap(),
             )
             .unwrap();
 

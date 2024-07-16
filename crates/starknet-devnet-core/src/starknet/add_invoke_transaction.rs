@@ -447,7 +447,7 @@ mod tests {
             Felt::from(10),               // calldata
         ];
 
-        let insufficient_max_fee = 137; // this is minimum fee (enough for passing validation), anything lower than that is bounced back
+        let insufficient_max_fee = 139; // this is minimum fee (enough for passing validation), anything lower than that is bounced back
         let invoke_transaction = BroadcastedInvokeTransactionV1::new(
             account_address.into(),
             Fee(insufficient_max_fee),
@@ -506,8 +506,7 @@ mod tests {
             dummy_contract.clone(),
         )
         .unwrap();
-        let increase_balance_selector =
-            Felt::from_bytes_be(&get_selector_from_name("increase_balance").unwrap().to_bytes_be());
+        let increase_balance_selector = get_selector_from_name("increase_balance").unwrap();
 
         // check if increase_balance function is present in the contract class
         blockifier

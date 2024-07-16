@@ -20,6 +20,7 @@ mod fork_tests {
     };
     use starknet_rs_providers::{Provider, ProviderError};
     use starknet_rs_signers::Signer;
+    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -63,7 +64,7 @@ mod fork_tests {
         let resp = &fork_devnet
             .json_rpc_client
             .get_block_with_tx_hashes(BlockId::Hash(
-                Felt::from_hex(INTEGRATION_SEPOLIA_GENESIS_BLOCK_HASH).unwrap(),
+                felt_from_prefixed_hex(INTEGRATION_SEPOLIA_GENESIS_BLOCK_HASH).unwrap(),
             ))
             .await;
 
@@ -82,7 +83,7 @@ mod fork_tests {
         let resp = &fork_devnet
             .json_rpc_client
             .get_block_with_tx_hashes(BlockId::Hash(
-                Felt::from_hex(non_existent_block_hash).unwrap(),
+                felt_from_prefixed_hex(non_existent_block_hash).unwrap(),
             ))
             .await;
 
@@ -332,7 +333,7 @@ mod fork_tests {
 
         let (signer, _) = origin_devnet.get_first_predeployed_account().await;
 
-        let nonexistent_class_hash = Felt::from_hex("0x123").unwrap();
+        let nonexistent_class_hash = Felt::from_hex_unchecked("0x123");
         let factory = OpenZeppelinAccountFactory::new(
             nonexistent_class_hash,
             constants::CHAIN_ID,
@@ -342,7 +343,7 @@ mod fork_tests {
         .await
         .unwrap();
 
-        let salt = Felt::from_hex("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let deployment = factory.deploy_v1(salt).max_fee(Felt::from(1e18 as u128)).send().await;
         match deployment {
             Err(AccountFactoryError::Provider(ProviderError::StarknetError(
@@ -380,7 +381,7 @@ mod fork_tests {
         // deploy account using class from origin, relying on precalculated hash
         let account_hash = "0x00f7f9cd401ad39a09f095001d31f0ad3fdc2f4e532683a84a8a6c76150de858";
         let factory = OpenZeppelinAccountFactory::new(
-            Felt::from_hex(account_hash).unwrap(),
+            felt_from_prefixed_hex(account_hash).unwrap(),
             constants::CHAIN_ID,
             signer,
             fork_devnet.clone_provider(),
@@ -388,7 +389,7 @@ mod fork_tests {
         .await
         .unwrap();
 
-        let salt = Felt::from_hex("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let deployment = factory.deploy_v1(salt).max_fee(Felt::from(1e18 as u128));
         let deployment_address = deployment.address();
         fork_devnet.mint(deployment_address, 1e18 as u128).await;

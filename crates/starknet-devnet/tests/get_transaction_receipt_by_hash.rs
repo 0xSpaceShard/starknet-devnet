@@ -16,6 +16,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{self, CHAIN_ID};
@@ -29,7 +30,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         let signer = get_deployable_account_signer();
         let account_factory = OpenZeppelinAccountFactory::new(
-            Felt::from_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            felt_from_prefixed_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
             CHAIN_ID,
             signer.clone(),
             devnet.clone_provider(),
@@ -196,7 +197,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
         );
 
         let transfer_execution = predeployed_account.execute_v1(vec![Call {
-            to: Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
+            to: felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
             selector: get_selector_from_name("transfer").unwrap(),
             calldata: vec![
                 Felt::ONE,                                 // recipient
@@ -287,11 +288,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
     #[tokio::test]
     async fn get_non_existing_transaction() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let result = devnet
-            .json_rpc_client
-            .get_transaction_receipt(Felt::from_hex("0x0").unwrap())
-            .await
-            .unwrap_err();
+        let result = devnet.json_rpc_client.get_transaction_receipt(Felt::ZERO).await.unwrap_err();
 
         match result {
             ProviderError::StarknetError(StarknetError::TransactionHashNotFound) => (),

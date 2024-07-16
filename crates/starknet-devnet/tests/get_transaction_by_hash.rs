@@ -12,6 +12,7 @@ mod get_transaction_by_hash_integration_tests {
     use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
@@ -87,7 +88,7 @@ mod get_transaction_by_hash_integration_tests {
         let signer = get_deployable_account_signer();
 
         let factory = OpenZeppelinAccountFactory::new(
-            Felt::from_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            felt_from_prefixed_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
             constants::CHAIN_ID,
             signer,
             devnet.clone_provider(),
@@ -95,7 +96,7 @@ mod get_transaction_by_hash_integration_tests {
         .await
         .unwrap();
 
-        let salt = Felt::from_hex("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let deployment = factory.deploy_v1(salt);
         let deployment_address = deployment.address();
         let fee_estimation =
@@ -125,7 +126,7 @@ mod get_transaction_by_hash_integration_tests {
 
         let invoke_tx_result = account
             .execute_v1(vec![Call {
-                to: Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
+                to: felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
                 selector: get_selector_from_name("transfer").unwrap(),
                 calldata: vec![
                     Felt::ONE,                                 // recipient
@@ -143,11 +144,7 @@ mod get_transaction_by_hash_integration_tests {
     #[tokio::test]
     async fn get_non_existing_transaction() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let result = devnet
-            .json_rpc_client
-            .get_transaction_by_hash(Felt::from_hex("0x0").unwrap())
-            .await
-            .unwrap_err();
+        let result = devnet.json_rpc_client.get_transaction_by_hash(Felt::ZERO).await.unwrap_err();
 
         match result {
             ProviderError::StarknetError(StarknetError::TransactionHashNotFound) => (),

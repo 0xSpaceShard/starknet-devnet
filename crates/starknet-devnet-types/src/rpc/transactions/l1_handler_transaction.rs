@@ -140,6 +140,7 @@ mod tests {
 
     use super::*;
     use crate::chain_id::ChainId;
+    use crate::felt::felt_from_prefixed_hex;
     use crate::rpc::transactions::ContractAddress;
 
     #[test]
@@ -153,15 +154,19 @@ mod tests {
         let nonce = 783082_u128;
         let fee = 30000_u128;
 
-        let payload: Vec<Felt> = vec![1.into(), 2.into()];
+        let payload: Vec<Felt> = vec![Felt::ONE, Felt::TWO];
 
-        let calldata: Vec<Felt> = vec![Felt::from_hex(from_address).unwrap(), 1.into(), 2.into()];
+        let calldata: Vec<Felt> =
+            vec![felt_from_prefixed_hex(from_address).unwrap(), Felt::ONE, Felt::TWO];
 
         let message = MessageToL2 {
-            l1_contract_address: ContractAddress::new(Felt::from_hex(from_address).unwrap())
+            l1_contract_address: ContractAddress::new(
+                felt_from_prefixed_hex(from_address).unwrap(),
+            )
+            .unwrap(),
+            l2_contract_address: ContractAddress::new(felt_from_prefixed_hex(to_address).unwrap())
                 .unwrap(),
-            l2_contract_address: ContractAddress::new(Felt::from_hex(to_address).unwrap()).unwrap(),
-            entry_point_selector: Felt::from_hex(selector).unwrap(),
+            entry_point_selector: felt_from_prefixed_hex(selector).unwrap(),
             payload,
             nonce: nonce.into(),
             paid_fee_on_l1: fee.into(),
@@ -169,9 +174,10 @@ mod tests {
 
         let chain_id = ChainId::goerli_legacy_id();
 
-        let transaction_hash =
-            Felt::from_hex("0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b")
-                .unwrap();
+        let transaction_hash = felt_from_prefixed_hex(
+            "0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b",
+        )
+        .unwrap();
 
         // message hash string taken from:
         //  https://testnet.starkscan.co/tx/0x06182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b#messagelogs
@@ -183,8 +189,9 @@ mod tests {
         );
 
         let expected_tx = L1HandlerTransaction {
-            contract_address: ContractAddress::new(Felt::from_hex(to_address).unwrap()).unwrap(),
-            entry_point_selector: Felt::from_hex(selector).unwrap(),
+            contract_address: ContractAddress::new(felt_from_prefixed_hex(to_address).unwrap())
+                .unwrap(),
+            entry_point_selector: felt_from_prefixed_hex(selector).unwrap(),
             calldata,
             nonce: nonce.into(),
             paid_fee_on_l1: fee,

@@ -1120,8 +1120,9 @@ impl FunctionInvocation {
 
 #[cfg(test)]
 mod tests {
-    use starknet_rs_core::types::Felt;
     use starknet_rs_crypto::poseidon_hash_many;
+
+    use crate::felt::felt_from_prefixed_hex;
 
     use super::BroadcastedTransactionCommonV3;
 
@@ -1159,9 +1160,10 @@ mod tests {
         let common_fields_hash =
             poseidon_hash_many(&common_fields.get_resource_bounds_array().unwrap());
 
-        let expected_hash: Felt =
-            Felt::from_hex("0x07be65f04548dfe645c70f07d1f8ead572c09e0e6e125c47d4cc22b4de3597cc")
-                .unwrap();
+        let expected_hash = felt_from_prefixed_hex(
+            "0x07be65f04548dfe645c70f07d1f8ead572c09e0e6e125c47d4cc22b4de3597cc",
+        )
+        .unwrap();
 
         assert_eq!(common_fields_hash, expected_hash);
     }

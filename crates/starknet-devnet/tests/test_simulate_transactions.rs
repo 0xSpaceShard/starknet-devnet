@@ -18,6 +18,7 @@ mod simulation_tests {
     };
     use starknet_rs_providers::Provider;
     use starknet_rs_signers::Signer;
+    use starknet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CHAIN_ID};
@@ -237,7 +238,7 @@ mod simulation_tests {
         // define the key of the new account - dummy value
         let new_account_signer = get_deployable_account_signer();
         let account_factory = OpenZeppelinAccountFactory::new(
-            Felt::from_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            felt_from_prefixed_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
             CHAIN_ID,
             new_account_signer.clone(),
             devnet.clone_provider(),
@@ -249,7 +250,7 @@ mod simulation_tests {
         let salt_hex = "0x123";
         let max_fee = Felt::from(1e18 as u128);
         let deployment = account_factory
-            .deploy_v1(Felt::from_hex(salt_hex).unwrap())
+            .deploy_v1(felt_from_prefixed_hex(salt_hex).unwrap())
             .max_fee(max_fee)
             .nonce(nonce)
             .prepared()
@@ -365,7 +366,7 @@ mod simulation_tests {
 
         // deploy instance of class
         let contract_factory = ContractFactory::new(class_hash, account.clone());
-        let salt = Felt::from_hex("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let constructor_calldata = vec![];
         let contract_address = get_udc_deployed_address(
             salt,

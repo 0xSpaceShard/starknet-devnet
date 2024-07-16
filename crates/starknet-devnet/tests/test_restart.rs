@@ -14,6 +14,7 @@ mod test_restart {
     use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
     use starknet_rs_core::utils::get_storage_var_address;
     use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -54,7 +55,7 @@ mod test_restart {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
         // change storage
-        let dummy_address = Felt::from_hex("0x1").unwrap();
+        let dummy_address = Felt::ONE;
         let mint_amount = 100;
         devnet.mint(dummy_address, mint_amount).await;
 
@@ -62,7 +63,7 @@ mod test_restart {
         let storage_key = get_storage_var_address("ERC20_balances", &[dummy_address]).unwrap();
         let get_storage = || {
             devnet.json_rpc_client.get_storage_at(
-                Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
+                felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
                 storage_key,
                 BlockId::Tag(BlockTag::Latest),
             )
@@ -84,7 +85,7 @@ mod test_restart {
         // deploy new account
         let account_signer = get_deployable_account_signer();
         let account_factory = OpenZeppelinAccountFactory::new(
-            Felt::from_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            felt_from_prefixed_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
             CHAIN_ID,
             account_signer.clone(),
             devnet.clone_provider(),

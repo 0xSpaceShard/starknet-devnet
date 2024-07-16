@@ -22,6 +22,7 @@ mod estimate_fee_tests {
     };
     use starknet_rs_providers::{Provider, ProviderError};
     use starknet_types::constants::QUERY_VERSION_OFFSET;
+    use starknet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
@@ -58,7 +59,7 @@ mod estimate_fee_tests {
         // define the key of the new account - dummy value
         let new_account_signer = get_deployable_account_signer();
         let account_factory = OpenZeppelinAccountFactory::new(
-            Felt::from_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            felt_from_prefixed_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
             CHAIN_ID,
             new_account_signer.clone(),
             devnet.clone_provider(),
@@ -68,7 +69,7 @@ mod estimate_fee_tests {
         let new_account_nonce = Felt::ZERO;
 
         // fund address
-        let salt = Felt::from_hex("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let deployment = account_factory.deploy_v1(salt);
         let deployment_address = deployment.address();
         let fee_estimation = account_factory
@@ -115,7 +116,7 @@ mod estimate_fee_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let new_account_signer = get_deployable_account_signer();
-        let dummy_invalid_class_hash = Felt::from_hex("0x123").unwrap();
+        let dummy_invalid_class_hash = Felt::from_hex_unchecked("0x123");
         let account_factory = OpenZeppelinAccountFactory::new(
             dummy_invalid_class_hash,
             CHAIN_ID,
@@ -126,7 +127,7 @@ mod estimate_fee_tests {
         .unwrap();
         let new_account_nonce = Felt::ZERO;
 
-        let salt = Felt::from_hex("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let err = account_factory
             .deploy_v1(salt)
             .nonce(new_account_nonce)
@@ -294,7 +295,7 @@ mod estimate_fee_tests {
 
         // deploy instance of class
         let contract_factory = ContractFactory::new(class_hash, account.clone());
-        let salt = Felt::from_hex("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let constructor_calldata = vec![];
         let contract_address = get_udc_deployed_address(
             salt,
@@ -392,7 +393,7 @@ mod estimate_fee_tests {
 
         // deploy instance of class
         let contract_factory = ContractFactory::new(class_hash, account.clone());
-        let salt = Felt::from_hex("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let constructor_calldata = vec![];
         let contract_address = get_udc_deployed_address(
             salt,
@@ -464,7 +465,7 @@ mod estimate_fee_tests {
 
         // deploy instance of class
         let contract_factory = ContractFactory::new(class_hash, account.clone());
-        let salt = Felt::from_hex("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let constructor_calldata = vec![];
         let contract_address = get_udc_deployed_address(
             salt,
@@ -531,7 +532,7 @@ mod estimate_fee_tests {
                                 max_fee: Felt::ZERO,
                                 signature: declaration_signature
                                     .into_iter()
-                                    .map(|s| Felt::from_hex(s).unwrap())
+                                    .map(|s| felt_from_prefixed_hex(s).unwrap())
                                     .collect(),
                                 nonce: Felt::ZERO,
                                 sender_address: account_address,
@@ -546,7 +547,7 @@ mod estimate_fee_tests {
                             // precalculated signature
                             signature: deployment_signature
                                 .into_iter()
-                                .map(|s| Felt::from_hex(s).unwrap())
+                                .map(|s| felt_from_prefixed_hex(s).unwrap())
                                 .collect(),
                             nonce: Felt::ONE,
                             sender_address: account_address,
@@ -563,7 +564,7 @@ mod estimate_fee_tests {
                                 "0x0",
                             ]
                             .into_iter()
-                            .map(|s| Felt::from_hex(s).unwrap())
+                            .map(|s| felt_from_prefixed_hex(s).unwrap())
                             .collect(),
                             is_query: false,
                         },

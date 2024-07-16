@@ -30,6 +30,7 @@ mod test_messaging {
     use starknet_rs_providers::jsonrpc::HttpTransport;
     use starknet_rs_providers::{JsonRpcClient, Provider};
     use starknet_rs_signers::LocalWallet;
+    use starknet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_anvil::BackgroundAnvil;
     use crate::common::background_devnet::BackgroundDevnet;
@@ -148,7 +149,7 @@ mod test_messaging {
 
         // deploy instance of class
         let contract_factory = ContractFactory::new(sierra_class_hash, account.clone());
-        let salt = Felt::from_hex("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let constructor_calldata = vec![];
         let contract_address = get_udc_deployed_address(
             salt,
@@ -190,7 +191,7 @@ mod test_messaging {
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
 
         // We don't actually send a message to the L1 in this test.
-        let l1_address = Felt::from_hex(DUMMY_L1_ADDRESS).unwrap();
+        let l1_address = felt_from_prefixed_hex(DUMMY_L1_ADDRESS).unwrap();
 
         // Withdraw the 1 amount in a l2->l1 message.
         withdraw(Arc::clone(&account), l1l2_contract_address, user, user_balance, l1_address).await;
@@ -244,7 +245,7 @@ mod test_messaging {
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
 
         // We don't actually send a message to the L1 in this test.
-        let l1_address = Felt::from_hex(DUMMY_L1_ADDRESS).unwrap();
+        let l1_address = felt_from_prefixed_hex(DUMMY_L1_ADDRESS).unwrap();
 
         // Withdraw the 1 amount in an l2->l1 message.
         withdraw_from_lib(
@@ -294,7 +295,7 @@ mod test_messaging {
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
 
         // Use postman to send a message to l2 without l1 - the message increments user balance
-        let increment_amount = Felt::from_hex("0xff").unwrap();
+        let increment_amount = Felt::from_hex_unchecked("0xff");
 
         let body: serde_json::Value = devnet.send_custom_rpc("devnet_postmanSendMessageToL2", json!({
             "l1_contract_address": MESSAGING_L1_ADDRESS,
@@ -306,7 +307,7 @@ mod test_messaging {
         }))
         .await.unwrap();
         let tx_hash_hex = body.get("transaction_hash").unwrap().as_str().unwrap();
-        let tx_hash = Felt::from_hex(tx_hash_hex).unwrap();
+        let tx_hash = felt_from_prefixed_hex(tx_hash_hex).unwrap();
         assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
 
         // assert state changed
@@ -317,7 +318,7 @@ mod test_messaging {
 
         // assert tx and receipt retrievable and correct
         let expected_calldata =
-            vec![Felt::from_hex(MESSAGING_L1_ADDRESS).unwrap(), user, increment_amount];
+            vec![felt_from_prefixed_hex(MESSAGING_L1_ADDRESS).unwrap(), user, increment_amount];
         match devnet.json_rpc_client.get_transaction_by_hash(tx_hash).await {
             Ok(starknet_rs_core::types::Transaction::L1Handler(tx)) => {
                 assert_eq!(tx.transaction_hash, tx_hash);
@@ -369,7 +370,7 @@ mod test_messaging {
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
 
         // We don't need valid l1 address as we don't use L1 node.
-        let l1_address = Felt::from_hex(DUMMY_L1_ADDRESS).unwrap();
+        let l1_address = felt_from_prefixed_hex(DUMMY_L1_ADDRESS).unwrap();
 
         // Withdraw the 1 amount in a l2->l1 message.
         withdraw(Arc::clone(&account), l1l2_contract_address, user, user_balance, l1_address).await;
@@ -422,7 +423,7 @@ mod test_messaging {
         let eth_l1l2_address = anvil.deploy_l1l2_contract(l1_messaging_address).await.unwrap();
         let eth_l1l2_address_hex = format!("{eth_l1l2_address:#x}");
 
-        let eth_l1l2_address_felt = Felt::from_hex(&eth_l1l2_address_hex).unwrap();
+        let eth_l1l2_address_felt = felt_from_prefixed_hex(&eth_l1l2_address_hex).unwrap();
         let user_sn = Felt::ONE;
         let user_eth: U256 = 1.into();
 
@@ -531,7 +532,7 @@ mod test_messaging {
         assert_eq!(get_balance(&dumping_devnet, l1l2_contract_address, user).await, [user_balance]);
 
         // Use postman to send a message to l2 without l1 - the message increments user balance
-        let increment_amount = Felt::from_hex("0xff").unwrap();
+        let increment_amount = Felt::from_hex_unchecked("0xff");
 
         dumping_devnet.send_custom_rpc("devnet_postmanSendMessageToL2", json!({
             "l1_contract_address": MESSAGING_WHITELISTED_L1_CONTRACT,

@@ -1,8 +1,7 @@
 use blockifier::state::state_api::StateReader;
-use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
-use starknet_types::felt::ClassHash;
+use starknet_types::felt::{felt_from_prefixed_hex, ClassHash};
 use starknet_types::rpc::state::Balance;
 
 use crate::error::DevnetResult;
@@ -23,8 +22,8 @@ impl SystemContract {
         contract_class_json_str: &str,
     ) -> DevnetResult<Self> {
         Ok(Self {
-            class_hash: Felt::from_hex(class_hash)?,
-            address: ContractAddress::new(Felt::from_hex(address)?)?,
+            class_hash: felt_from_prefixed_hex(class_hash)?,
+            address: ContractAddress::new(felt_from_prefixed_hex(address)?)?,
             contract_class: Cairo0Json::raw_json_from_json_str(contract_class_json_str)?.into(),
         })
     }
@@ -35,8 +34,8 @@ impl SystemContract {
         contract_class_json_str: &str,
     ) -> DevnetResult<Self> {
         Ok(Self {
-            class_hash: Felt::from_hex(class_hash)?,
-            address: ContractAddress::new(Felt::from_hex(address)?)?,
+            class_hash: felt_from_prefixed_hex(class_hash)?,
+            address: ContractAddress::new(felt_from_prefixed_hex(address)?)?,
             contract_class: ContractClass::cairo_1_from_sierra_json_str(contract_class_json_str)?
                 .into(),
         })

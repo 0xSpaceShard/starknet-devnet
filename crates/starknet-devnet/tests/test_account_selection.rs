@@ -18,6 +18,7 @@ mod test_account_selection {
     };
     use starknet_rs_providers::Provider;
     use starknet_rs_signers::LocalWallet;
+    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -61,12 +62,12 @@ mod test_account_selection {
             .get_class_hash_at(BlockId::Tag(BlockTag::Latest), account_address)
             .await
             .unwrap();
-        let expected_hash = Felt::from_hex(expected_hash_hex).unwrap();
+        let expected_hash = felt_from_prefixed_hex(expected_hash_hex).unwrap();
         assert_eq!(retrieved_class_hash, expected_hash);
 
         let config = devnet.get_config().await;
         let config_class_hash_hex = config["account_contract_class_hash"].as_str().unwrap();
-        assert_eq!(Felt::from_hex(config_class_hash_hex).unwrap(), expected_hash);
+        assert_eq!(felt_from_prefixed_hex(config_class_hash_hex).unwrap(), expected_hash);
     }
 
     #[tokio::test]
@@ -159,7 +160,7 @@ mod test_account_selection {
 
         // deploy instance of class
         let contract_factory = ContractFactory::new(class_hash, account.clone());
-        let salt = Felt::from_hex("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let constructor_calldata = vec![];
         let contract_address = get_udc_deployed_address(
             salt,
@@ -262,7 +263,7 @@ mod test_account_selection {
     async fn assert_supports_isrc6(devnet: &BackgroundDevnet, account_address: Felt) {
         // https://github.com/OpenZeppelin/cairo-contracts/blob/89a450a88628ec3b86273f261b2d8d1ca9b1522b/src/account/interface.cairo#L7
         let interface_id_hex = "0x2ceccef7f994940b3962a6c67e0ba4fcd37df7d131417c604f91e03caecc1cd";
-        let interface_id = Felt::from_hex(interface_id_hex).unwrap();
+        let interface_id = felt_from_prefixed_hex(interface_id_hex).unwrap();
 
         let call = FunctionCall {
             contract_address: account_address,
@@ -331,7 +332,7 @@ mod test_account_selection {
 
         // increase balances and check again
         for account in accounts_with_balance.as_array().unwrap() {
-            let address = &Felt::from_hex(account["address"].as_str().unwrap()).unwrap();
+            let address = &felt_from_prefixed_hex(account["address"].as_str().unwrap()).unwrap();
             devnet.mint_unit(address, 1, FeeUnit::WEI).await;
             devnet.mint_unit(address, 1, FeeUnit::FRI).await;
         }

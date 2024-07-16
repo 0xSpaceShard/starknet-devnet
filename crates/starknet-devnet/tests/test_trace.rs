@@ -17,6 +17,7 @@ mod trace_tests {
     };
     use starknet_rs_core::utils::{get_udc_deployed_address, UdcUniqueness};
     use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::transactions::BlockTransactionTrace;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -31,7 +32,7 @@ mod trace_tests {
     fn assert_mint_invocation(invocation: FunctionInvocation) {
         assert_eq!(
             invocation.contract_address,
-            Felt::from_hex(CHARGEABLE_ACCOUNT_ADDRESS).unwrap()
+            felt_from_prefixed_hex(CHARGEABLE_ACCOUNT_ADDRESS).unwrap()
         );
         assert_eq!(invocation.calldata[6], Felt::from(DUMMY_ADDRESS));
         assert_eq!(invocation.calldata[7], Felt::from(DUMMY_AMOUNT));
@@ -54,7 +55,7 @@ mod trace_tests {
 
             assert_eq!(
                 invoke_trace.fee_transfer_invocation.unwrap().contract_address,
-                Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
+                felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
             );
         } else {
             panic!("Could not unpack the transaction trace from {mint_tx_trace:?}");
@@ -127,17 +128,19 @@ mod trace_tests {
             assert_eq!(validate_invocation.contract_address, account_address);
             assert_eq!(
                 validate_invocation.class_hash,
-                Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+                felt_from_prefixed_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
             assert_eq!(
                 validate_invocation.calldata[0],
-                Felt::from_hex("0x113bf26d112a164297e04381212c9bd7409f07591f0a04f539bdf56693eaaf3")
-                    .unwrap()
+                felt_from_prefixed_hex(
+                    "0x113bf26d112a164297e04381212c9bd7409f07591f0a04f539bdf56693eaaf3"
+                )
+                .unwrap()
             );
 
             assert_eq!(
                 declare_trace.fee_transfer_invocation.unwrap().contract_address,
-                Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
+                felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
             );
         } else {
             panic!("Could not unpack the transaction trace from {declare_tx_trace:?}");
@@ -216,7 +219,7 @@ mod trace_tests {
         // define the key of the new account - dummy value
         let new_account_signer = get_deployable_account_signer();
         let account_factory = OpenZeppelinAccountFactory::new(
-            Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap(),
+            felt_from_prefixed_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap(),
             constants::CHAIN_ID,
             new_account_signer.clone(),
             devnet.clone_provider(),
@@ -226,7 +229,7 @@ mod trace_tests {
 
         // deploy account
         let deployment = account_factory
-            .deploy_v1(Felt::from_hex("0x123").unwrap())
+            .deploy_v1(Felt::from_hex_unchecked("0x123"))
             .max_fee(Felt::from(1e18 as u128))
             .nonce(Felt::ZERO)
             .prepared()
@@ -244,21 +247,21 @@ mod trace_tests {
             let validate_invocation = deployment_trace.validate_invocation.unwrap();
             assert_eq!(
                 validate_invocation.class_hash,
-                Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+                felt_from_prefixed_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
             assert_eq!(
                 validate_invocation.calldata[0],
-                Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+                felt_from_prefixed_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
 
             assert_eq!(
                 deployment_trace.constructor_invocation.class_hash,
-                Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+                felt_from_prefixed_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
 
             assert_eq!(
                 deployment_trace.fee_transfer_invocation.unwrap().contract_address,
-                Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
+                felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
             );
         } else {
             panic!("Could not unpack the transaction trace from {deploy_account_tx_trace:?}");
@@ -290,7 +293,7 @@ mod trace_tests {
         // assert transaction hash
         assert_eq!(
             mint_tx_hash,
-            Felt::from_hex(traces["transaction_hash"].as_str().unwrap()).unwrap()
+            felt_from_prefixed_hex(traces["transaction_hash"].as_str().unwrap()).unwrap()
         );
 
         // assert validate invocation
@@ -311,13 +314,13 @@ mod trace_tests {
 
         // assert fee transfer invocation
         assert_eq!(
-            Felt::from_hex(
+            felt_from_prefixed_hex(
                 traces["trace_root"]["fee_transfer_invocation"]["contract_address"]
                     .as_str()
                     .unwrap()
             )
             .unwrap(),
-            Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
+            felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
         );
     }
 }

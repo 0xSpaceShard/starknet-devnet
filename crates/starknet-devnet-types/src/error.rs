@@ -33,6 +33,8 @@ pub enum ConversionError {
     InvalidInternalStructure(String),
     #[error("Value is out of range: {0}")]
     OutOfRangeError(String),
+    #[error("Error converting from hex string: {0}")]
+    CustomFromHexError(String)
 }
 
 #[derive(Error, Debug)]

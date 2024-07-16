@@ -27,7 +27,9 @@ use starknet_types::chain_id::ChainId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::emitted_event::EmittedEvent;
-use starknet_types::felt::{split_biguint, BlockHash, ClassHash, TransactionHash};
+use starknet_types::felt::{
+    felt_from_prefixed_hex, split_biguint, BlockHash, ClassHash, TransactionHash,
+};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{
@@ -725,7 +727,7 @@ impl Starknet {
         erc20_address: ContractAddress,
     ) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee = self.config.gas_price_wei.get() * 1_000_000;
-        let chargeable_address = Felt::from_hex(CHARGEABLE_ACCOUNT_ADDRESS)?;
+        let chargeable_address = felt_from_prefixed_hex(CHARGEABLE_ACCOUNT_ADDRESS)?;
         let state = self.get_state();
         let nonce = state
             .get_nonce_at(starknet_api::core::ContractAddress::try_from(chargeable_address)?)?;
@@ -749,7 +751,7 @@ impl Starknet {
         // generate signature by signing the msg hash
         let signer = starknet_rs_signers::LocalWallet::from(
             starknet_rs_signers::SigningKey::from_secret_scalar(
-                Felt::from_hex(CHARGEABLE_ACCOUNT_PRIVATE_KEY).unwrap(),
+                felt_from_prefixed_hex(CHARGEABLE_ACCOUNT_PRIVATE_KEY).unwrap(),
             ),
         );
         let signature = signer.sign_hash(&msg_hash).await?;
@@ -1361,11 +1363,13 @@ mod tests {
 
     use blockifier::execution::errors::{EntryPointExecutionError, PreExecutionError};
     use blockifier::state::state_api::{State, StateReader};
-    use blockifier::transaction::errors::TransactionExecutionError;
     use nonzero_ext::nonzero;
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
+    use starknet_api::core::EntryPointSelector;
     use starknet_rs_core::types::{BlockId, BlockTag, Felt};
+    use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
+    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::state::Balance;
     use starknet_types::traits::HashProducer;
 
@@ -1451,7 +1455,8 @@ mod tests {
 
     #[test]
     fn correct_block_context_creation() {
-        let fee_token_address = ContractAddress::new(Felt::from_hex("0xAA").unwrap()).unwrap();
+        let fee_token_address =
+            ContractAddress::new(felt_from_prefixed_hex("0xAA").unwrap()).unwrap();
         let block_ctx = Starknet::init_block_context(
             nonzero!(10u128),
             nonzero!(10u128),
@@ -1642,10 +1647,8 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        let undeployed_address_hex = "0x1234";
-        let undeployed_address = Felt::from_hex(undeployed_address_hex).unwrap();
-        let entry_point_selector =
-            starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
+        let undeployed_address = Felt::from_hex_unchecked("0x1234");
+        let entry_point_selector = get_selector_from_name("balanceOf").unwrap();
 
         match starknet.call(
             &BlockId::Tag(BlockTag::Latest),
@@ -1664,22 +1667,17 @@ mod tests {
         let mut starknet = Starknet::new(&config).unwrap();
 
         let predeployed_account = &starknet.predeployed_accounts.get_accounts()[0];
-        let entry_point_selector =
-            starknet_rs_core::utils::get_selector_from_name("nonExistentMethod").unwrap();
+        let entry_point_selector = get_selector_from_name("nonExistentMethod").unwrap();
 
         match starknet.call(
             &BlockId::Tag(BlockTag::Latest),
-            Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
+            felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
             entry_point_selector,
             vec![Felt::from(predeployed_account.account_address)],
         ) {
-            Err(Error::BlockifierTransactionError(TransactionExecutionError::ExecutionError {
-                error:
-                    EntryPointExecutionError::PreExecutionError(PreExecutionError::EntryPointNotFound(
-                        _,
-                    )),
-                ..
-            })) => (),
+            Err(Error::BlockifierExecutionError(EntryPointExecutionError::PreExecutionError(
+                PreExecutionError::EntryPointNotFound(EntryPointSelector(missing_selector)),
+            ))) => assert_eq!(missing_selector, entry_point_selector),
             unexpected => panic!("Should have failed; got {unexpected:?}"),
         }
     }
@@ -1689,11 +1687,10 @@ mod tests {
         starknet: &mut Starknet,
         contract_address: ContractAddress,
     ) -> DevnetResult<Vec<Felt>> {
-        let entry_point_selector =
-            starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
+        let entry_point_selector = get_selector_from_name("balanceOf").unwrap();
         starknet.call(
             &BlockId::Tag(BlockTag::Latest),
-            Felt::from_hex(ETH_ERC20_CONTRACT_ADDRESS)?,
+            felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS)?,
             entry_point_selector,
             vec![Felt::from(contract_address)],
         )
@@ -1708,8 +1705,8 @@ mod tests {
         let result = get_balance_at(&mut starknet, predeployed_account.account_address).unwrap();
 
         let balance_hex = format!("0x{:x}", DEVNET_DEFAULT_INITIAL_BALANCE);
-        let balance_felt = Felt::from_hex(balance_hex.as_str()).unwrap();
-        let balance_uint256 = vec![balance_felt, Felt::from_hex("0x0").unwrap()];
+        let balance_felt = felt_from_prefixed_hex(balance_hex.as_str()).unwrap();
+        let balance_uint256 = vec![balance_felt, Felt::ZERO];
         assert_eq!(result, balance_uint256);
     }
 
@@ -1718,11 +1715,10 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        let undeployed_address = ContractAddress::new(Felt::from_hex("0x1234").unwrap()).unwrap();
+        let undeployed_address = ContractAddress::new(Felt::from_hex_unchecked("0x1234")).unwrap();
         let result = get_balance_at(&mut starknet, undeployed_address).unwrap();
 
-        let zero = Felt::from_hex("0x0").unwrap();
-        let expected_balance_uint256 = vec![zero, zero];
+        let expected_balance_uint256 = vec![Felt::ZERO, Felt::ZERO];
         assert_eq!(result, expected_balance_uint256);
     }
 
@@ -1881,7 +1877,7 @@ mod tests {
         })
         .unwrap();
 
-        let dummy_hash = Felt::from_hex("0x42").unwrap();
+        let dummy_hash = felt_from_prefixed_hex("0x42").unwrap();
         match starknet.abort_blocks(BlockId::Hash(dummy_hash)) {
             Err(Error::UnsupportedAction { msg }) => {
                 assert!(msg.contains("state-archive-capacity"))
@@ -1898,7 +1894,7 @@ mod tests {
         })
         .unwrap();
 
-        let dummy_hash = Felt::from_hex("0x42").unwrap();
+        let dummy_hash = felt_from_prefixed_hex("0x42").unwrap();
         match starknet.abort_blocks(BlockId::Hash(dummy_hash)) {
             Err(Error::NoBlock) => (),
             unexpected => panic!("Got unexpected response: {unexpected:?}"),

@@ -167,6 +167,7 @@ mod tests {
     use starknet_api::core::ClassHash;
     use starknet_rs_core::types::Felt;
     use starknet_types::contract_class::ContractClass;
+    use starknet_types::felt::felt_from_prefixed_hex;
 
     use super::StateDiff;
     use crate::state::{CustomState, StarknetState};
@@ -191,7 +192,7 @@ mod tests {
         let mut state = setup();
 
         let class_hash = Felt::ONE;
-        let casm_hash = Felt::from_hex(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
+        let casm_hash = felt_from_prefixed_hex(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
 
         let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
         state.declare_contract_class(class_hash, Some(casm_hash), contract_class).unwrap();
@@ -214,7 +215,7 @@ mod tests {
         let mut state = setup();
 
         let class_hash = Felt::ONE;
-        let casm_hash = Felt::from_hex(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
+        let casm_hash = felt_from_prefixed_hex(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
         let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
         state.declare_contract_class(class_hash, Some(casm_hash), contract_class).unwrap();
 
@@ -275,7 +276,7 @@ mod tests {
         // declare cairo1
         {
             let class_hash = Felt::ONE;
-            let casm_hash = Felt::from_hex(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
+            let casm_hash = felt_from_prefixed_hex(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
             let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
             state.declare_contract_class(class_hash, Some(casm_hash), contract_class).unwrap();
 

@@ -17,6 +17,7 @@ mod blocks_generation_tests {
     };
     use starknet_rs_providers::Provider;
     use starknet_rs_signers::Signer;
+    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -121,7 +122,8 @@ mod blocks_generation_tests {
 
         for tx in latest_block["transactions"].as_array().unwrap() {
             assert_tx_successful(
-                &Felt::from_hex(tx["receipt"]["transaction_hash"].as_str().unwrap()).unwrap(),
+                &felt_from_prefixed_hex(tx["receipt"]["transaction_hash"].as_str().unwrap())
+                    .unwrap(),
                 &devnet.json_rpc_client,
             )
             .await;
@@ -144,7 +146,8 @@ mod blocks_generation_tests {
 
         for tx in pending_block["transactions"].as_array().unwrap() {
             assert_tx_successful(
-                &Felt::from_hex(tx["receipt"]["transaction_hash"].as_str().unwrap()).unwrap(),
+                &felt_from_prefixed_hex(tx["receipt"]["transaction_hash"].as_str().unwrap())
+                    .unwrap(),
                 &devnet.json_rpc_client,
             )
             .await;
@@ -204,7 +207,7 @@ mod blocks_generation_tests {
             .unwrap();
         assert_eq!(
             pending_block_class_hash,
-            Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+            felt_from_prefixed_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
         );
 
         let latest_block_class_hash = devnet
@@ -214,7 +217,7 @@ mod blocks_generation_tests {
             .unwrap();
         assert_eq!(
             latest_block_class_hash,
-            Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+            felt_from_prefixed_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
         );
     }
 
@@ -637,7 +640,10 @@ mod blocks_generation_tests {
 
             let class_hash =
                 devnet.json_rpc_client.get_class_hash_at(block_id, account_address).await.unwrap();
-            assert_eq!(class_hash, Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap());
+            assert_eq!(
+                class_hash,
+                felt_from_prefixed_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+            );
 
             let key = get_storage_var_address("Account_public_key", &[]).unwrap();
             let storage = devnet

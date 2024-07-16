@@ -11,6 +11,7 @@ use starknet_types_core::hash::{Pedersen, StarkHash};
 
 use crate::contract_class::deprecated::rpc_contract_class::DeprecatedContractClass;
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
+use crate::felt::felt_from_prefixed_hex;
 use crate::traits::HashProducer;
 use crate::utils::StarknetFormatter;
 
@@ -124,9 +125,6 @@ impl Cairo0Json {
         hashes.push(entry_points_hash_by_type(EntryPointType::L1Handler)?);
         hashes.push(entry_points_hash_by_type(EntryPointType::Constructor)?);
 
-        fn try_from_string_to_felt(s: &str) -> DevnetResult<Felt> {
-            Felt::from_hex(s).map_err(|_| Error::ConversionError(ConversionError::InvalidFormat))
-        }
 
         let program_json = json_class
             .get("program")
@@ -143,7 +141,7 @@ impl Cairo0Json {
             })
             .collect::<Vec<String>>()
             .into_iter()
-            .map(|s| try_from_string_to_felt(&s))
+            .map(|s| felt_from_prefixed_hex(&s))
             .collect::<DevnetResult<Vec<Felt>>>()?;
 
         hashes.push(Pedersen::hash_array(&builtins_encoded_as_felts));
@@ -158,7 +156,7 @@ impl Cairo0Json {
             .clone()
             .into_iter()
             .map(|v| {
-                try_from_string_to_felt(
+                felt_from_prefixed_hex(
                     v.as_str().ok_or(JsonError::Custom { msg: "expected string".into() })?,
                 )
             })

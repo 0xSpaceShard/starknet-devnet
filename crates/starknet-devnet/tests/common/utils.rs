@@ -21,6 +21,7 @@ use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::LocalWallet;
+use starknet_types::felt::felt_from_prefixed_hex;
 
 use super::background_devnet::BackgroundDevnet;
 use super::constants::{ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_CONTRACT_PATH, CHAIN_ID};
@@ -36,7 +37,7 @@ pub enum ImpersonationAction {
 pub fn get_deployable_account_signer() -> LocalWallet {
     let new_account_private_key = "0xc248668388dbe9acdfa3bc734cc2d57a";
     starknet_rs_signers::LocalWallet::from(starknet_rs_signers::SigningKey::from_secret_scalar(
-        Felt::from_hex(new_account_private_key).unwrap(),
+        felt_from_prefixed_hex(new_account_private_key).unwrap(),
     ))
 }
 
@@ -286,7 +287,7 @@ pub async fn deploy_oz_account(
     let signer = get_deployable_account_signer();
     let salt = Felt::THREE;
     let factory = OpenZeppelinAccountFactory::new(
-        Felt::from_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH)?,
+        felt_from_prefixed_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH)?,
         CHAIN_ID,
         signer.clone(),
         devnet.clone_provider(),
@@ -309,7 +310,7 @@ pub async fn deploy_argent_account(
     let signer = get_deployable_account_signer();
     let salt = Felt::THREE;
     let factory = ArgentAccountFactory::new(
-        Felt::from_hex(ARGENT_ACCOUNT_CLASS_HASH)?,
+        felt_from_prefixed_hex(ARGENT_ACCOUNT_CLASS_HASH)?,
         CHAIN_ID,
         Felt::ZERO,
         signer.clone(),

@@ -62,6 +62,7 @@ pub mod hex_string {
     use starknet_rs_core::types::Felt;
 
     use crate::contract_address::ContractAddress;
+    use crate::felt::felt_from_prefixed_hex;
     use crate::patricia_key::PatriciaKey;
     use crate::traits::ToHexString;
 
@@ -113,7 +114,7 @@ pub mod hex_string {
     {
         let buf = String::deserialize(deserializer)?;
 
-        Felt::from_hex(&buf).map_err(serde::de::Error::custom)
+        felt_from_prefixed_hex(&buf).map_err(serde::de::Error::custom)
     }
 
     #[cfg(test)]
@@ -122,6 +123,7 @@ pub mod hex_string {
         use starknet_rs_core::types::Felt;
 
         use crate::contract_address::ContractAddress;
+        use crate::felt::felt_from_prefixed_hex;
         use crate::patricia_key::PatriciaKey;
         use crate::serde_helpers::hex_string::{
             deserialize_to_prefixed_contract_address, deserialize_to_prefixed_patricia_key,
@@ -141,7 +143,7 @@ pub mod hex_string {
             let data = serde_json::from_str::<TestDeserialization>(json_str).unwrap();
             assert!(
                 data.data.to_felt()
-                    == Felt::from_hex(
+                    == felt_from_prefixed_hex(
                         "0x800000000000000000000000000000000000000000000000000000000000000"
                     )
                     .unwrap()
@@ -184,8 +186,7 @@ pub mod hex_string {
                 ContractAddress,
             );
 
-            let data =
-                TestSerialization(ContractAddress::new(Felt::from_hex("0x1").unwrap()).unwrap());
+            let data = TestSerialization(ContractAddress::new(Felt::ONE).unwrap());
 
             assert_eq!(serde_json::to_string(&data).unwrap(), r#""0x1""#);
         }
