@@ -66,7 +66,6 @@ lazy_static! {
         ("--seed", SEED.to_string()),
         ("--accounts", ACCOUNTS.to_string()),
         ("--initial-balance", PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string()),
-        ("--chain-id", CHAIN_ID_CLI_PARAM.to_string())
     ]);
 }
 
@@ -89,16 +88,13 @@ impl BackgroundDevnet {
     }
 
     /// Takes specified args and adds default values for args that are missing
-    fn add_default_args<'a>(
-        specified_args: &[&'a str],
-        default_args_map: &'a HashMap<&'static str, String>,
-    ) -> Vec<&'a str> {
+    fn add_default_args<'a>(specified_args: &[&'a str]) -> Vec<&'a str> {
         let mut specified_args_vec: Vec<&str> = specified_args.to_vec();
         let mut final_args: Vec<&str> = vec![];
 
         // Iterate through default args, and remove from specified args when found
         // That way in the end we can just append the non-removed args
-        for (arg_name, default_value) in default_args_map.iter() {
+        for (arg_name, default_value) in DEFAULT_CLI_MAP.iter() {
             let value =
                 match specified_args_vec.iter().position(|arg_candidate| arg_candidate == arg_name)
                 {
@@ -118,7 +114,7 @@ impl BackgroundDevnet {
         final_args
     }
 
-    async fn spawn_with_args(args: &[&str]) -> Result<Self, TestError> {
+    pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
         // we keep the reference, otherwise the mutex unlocks immediately
         let _mutex_guard = BACKGROUND_DEVNET_MUTEX.lock().await;
 
@@ -134,7 +130,7 @@ impl BackgroundDevnet {
                 .arg("--")
                 .arg("--port")
                 .arg(free_port.to_string())
-                .args(args)
+                .args(Self::add_default_args(args))
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
@@ -163,11 +159,6 @@ impl BackgroundDevnet {
         }
 
         Err(TestError::DevnetNotStartable)
-    }
-
-    /// Spawn devnet with default args and args passed as arguments
-    pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
-        Self::spawn_with_args(&Self::add_default_args(args, &DEFAULT_CLI_MAP)).await
     }
 
     pub async fn send_custom_rpc(
@@ -318,20 +309,10 @@ impl BackgroundDevnet {
 
     pub async fn fork(&self) -> Result<Self, TestError> {
         let args = ["--fork-network", self.url.as_str(), "--accounts", "0"];
-        let mut default_args = DEFAULT_CLI_MAP.clone();
-        default_args.remove("--chain-id");
-        BackgroundDevnet::spawn_with_args(&Self::add_default_args(&args, &default_args)).await
-    }
-
-    pub async fn spawn_fork_with_args(args: &[&str]) -> Result<Self, TestError> {
-        let mut default_args = DEFAULT_CLI_MAP.clone();
-        default_args.remove("--chain-id");
-        BackgroundDevnet::spawn_with_args(&Self::add_default_args(args, &default_args)).await
+        BackgroundDevnet::spawn_with_additional_args(&args).await
     }
 
     pub async fn fork_with_full_state_archive(&self) -> Result<Self, TestError> {
-        let mut default_args = DEFAULT_CLI_MAP.clone();
-        default_args.remove("--chain-id");
         let args = [
             "--fork-network",
             self.url.as_str(),
@@ -340,7 +321,7 @@ impl BackgroundDevnet {
             "--state-archive-capacity",
             "full",
         ];
-        BackgroundDevnet::spawn_with_args(&Self::add_default_args(&args, &default_args)).await
+        BackgroundDevnet::spawn_with_additional_args(&args).await
     }
 
     /// Mines a new block and returns its hash
