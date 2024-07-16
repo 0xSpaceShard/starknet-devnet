@@ -28,7 +28,8 @@ lazy_static! {
         "devnet_createBlock",
         "devnet_abortBlocks",
         "devnet_impersonateAccount",
-        "devnet_autoImpersonate"
+        "devnet_autoImpersonate",
+        "devnet_getPredeployedAccounts"
     ];
     static ref DEFAULT_RESTRICTED_HTTP_URIS: Vec<&'static str> =
         DEFAULT_RESTRICTED_JSON_RPC_METHODS
