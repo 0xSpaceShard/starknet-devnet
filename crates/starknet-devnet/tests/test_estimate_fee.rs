@@ -607,6 +607,7 @@ mod estimate_fee_tests {
             "data_gas_price_wei": 8e8 as u128,
             "gas_price_strk": 7e8 as u128,
             "data_gas_price_strk": 6e8 as u128,
+            "generate_block": false,
         });
         let updated_gas =
             &devnet.send_custom_rpc("devnet_updateGas", gas_update.clone()).await.unwrap();

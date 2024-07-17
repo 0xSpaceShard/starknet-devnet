@@ -317,6 +317,7 @@ mod simulation_tests {
             "data_gas_price_wei": 8 * 1e18 as u128,
             "gas_price_strk": 7 * 1e18 as u128,
             "data_gas_price_strk": 6 * 1e18 as u128,
+            "generate_block": false,
         });
         let updated_gas =
             &devnet.send_custom_rpc("devnet_updateGas", gas_update.clone()).await.unwrap();
