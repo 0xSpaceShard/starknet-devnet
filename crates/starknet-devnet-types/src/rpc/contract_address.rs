@@ -68,10 +68,6 @@ impl ToHexString for ContractAddress {
     fn to_prefixed_hex_str(&self) -> String {
         self.0.0.to_hex_string()
     }
-
-    fn to_nonprefixed_hex_str(&self) -> String {
-        self.0.0.to_hex_string()
-    }
 }
 
 impl LowerHex for ContractAddress {

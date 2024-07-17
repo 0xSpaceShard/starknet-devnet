@@ -1,8 +1,7 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-#[allow(deprecated)]
-use starknet_rs_core::chain_id::{MAINNET, SEPOLIA, TESTNET};
+use starknet_rs_core::chain_id::{MAINNET, SEPOLIA};
 use starknet_rs_core::utils::{cairo_short_string_to_felt, parse_cairo_short_string};
 use starknet_rs_crypto::Felt;
 
@@ -16,9 +15,16 @@ pub enum ChainId {
 }
 
 impl ChainId {
-    pub fn goerli_legacy_id() -> Felt {
-        #[allow(deprecated)]
-        TESTNET
+    /// Used only in tests
+    const TESTNET: Felt = Felt::from_raw([
+        398700013197595345,
+        18446744073709551615,
+        18446744073709548950,
+        3753493103916128178,
+    ]);
+
+    pub const fn goerli_legacy_id() -> Felt {
+        Self::TESTNET
     }
 
     pub fn to_felt(&self) -> Felt {
