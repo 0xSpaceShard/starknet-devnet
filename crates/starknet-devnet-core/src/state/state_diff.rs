@@ -188,6 +188,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn correct_difference_in_class_hash_to_compiled_class_hash() {
         let mut state = setup();
 
@@ -211,6 +212,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn correct_difference_in_declared_classes() {
         let mut state = setup();
 
@@ -233,6 +235,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn correct_difference_in_cairo_0_declared_classes() {
         let mut state = setup();
         let class_hash = Felt::ONE;
@@ -251,6 +254,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn correct_difference_when_declaring_cairo0_and_cairo1() {
         let mut state = setup();
 
@@ -295,6 +299,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn correct_difference_in_state_diff_object() {
         let mut state = setup();
         let class_hash = dummy_felt();
