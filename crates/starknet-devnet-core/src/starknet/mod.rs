@@ -818,7 +818,7 @@ impl Starknet {
         self.blocks.pending_block.header.l1_data_gas_price.price_in_fri =
             GasPrice(u128::from(gas_prices.data_gas_price_strk));
 
-        let gas_prices = self.block_context.block_info().gas_prices.clone();
+        let gas_prices = &self.block_context.block_info().gas_prices;
 
         Ok(GasUpdate {
             gas_price_wei: gas_prices.eth_l1_gas_price,
