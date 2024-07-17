@@ -234,14 +234,14 @@ mod simulation_tests {
         );
     }
 
-    async fn update_gas_scenario(devnet: BackgroundDevnet) {
+    async fn update_gas_scenario(devnet: BackgroundDevnet, assert_chain_id: &str) {
         // get account
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let account = SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
             account_address,
-            CHAIN_ID,
+            FieldElement::from_hex_be(assert_chain_id).unwrap(),
             ExecutionEncoding::New,
         );
 
@@ -285,7 +285,7 @@ mod simulation_tests {
         };
 
         let chain_id = &devnet.send_custom_rpc("starknet_chainId", json!({})).await.unwrap();
-        assert_eq!(chain_id, "0x534e5f5345504f4c4941");
+        assert_eq!(chain_id, assert_chain_id);
 
         let params_no_flags = get_params(&[]);
         let resp_no_flags = &devnet
@@ -323,7 +323,7 @@ mod simulation_tests {
         assert_eq!(updated_gas, &gas_update);
 
         let chain_id = &devnet.send_custom_rpc("starknet_chainId", json!({})).await.unwrap();
-        assert_eq!(chain_id, "0x534e5f5345504f4c4941");
+        assert_eq!(chain_id, assert_chain_id);
 
         let resp_no_flags = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
@@ -353,7 +353,7 @@ mod simulation_tests {
     async fn update_gas() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        update_gas_scenario(devnet).await;
+        update_gas_scenario(devnet, "0x534e5f5345504f4c4941").await;
     }
 
     #[tokio::test]
@@ -361,7 +361,7 @@ mod simulation_tests {
         let cli_args: [&str; 2] = ["--fork-network", INTEGRATION_SEPOLIA_HTTP_URL];
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
-        update_gas_scenario(fork_devnet).await;
+        update_gas_scenario(fork_devnet, "0x534e5f494e544547524154494f4e5f5345504f4c4941").await;
     }
 
     #[tokio::test]
