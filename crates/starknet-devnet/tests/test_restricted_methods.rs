@@ -6,7 +6,23 @@ mod test_restricted_methods {
     use starknet_rs_core::types::FieldElement;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
+    use crate::common::reqwest_client::{
+        GetReqwestSender, HttpEmptyResponseBody, PostReqwestSender,
+    };
+
+    #[tokio::test]
+    async fn restrictive_mode_with_default_methods_doesnt_affect_other_functionality() {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--restrictive-mode"])
+            .await
+            .expect("Could not start Devnet");
+
+        devnet
+            .reqwest_client()
+            .get_json_async("/config", None)
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap();
+    }
 
     #[tokio::test]
     async fn restrictive_mode_with_default_methods() {
