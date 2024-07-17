@@ -10,7 +10,7 @@ Devnet will restrict default methods:
 $ starknet-devnet --restrictive-mode
 ```
 
-Devnet will restrict methods passed to the argument
+Devnet will restrict methods passed to the argument (devnet_dump, devnet_config)
 
 ```
 $ starknet-devnet --restrictive-mode devnet_dump devnet_config
