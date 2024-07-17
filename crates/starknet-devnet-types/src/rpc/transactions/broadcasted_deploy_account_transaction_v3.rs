@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use starknet_api::core::calculate_contract_address;
-use starknet_rs_crypto::{poseidon_hash_many, Felt};
+use starknet_rs_crypto::poseidon_hash_many;
+use starknet_types_core::felt::Felt;
 
 use super::BroadcastedTransactionCommonV3;
 use crate::constants::PREFIX_DEPLOY_ACCOUNT;

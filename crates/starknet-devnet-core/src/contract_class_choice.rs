@@ -51,20 +51,16 @@ impl FromStr for AccountClassWrapper {
         )?;
 
         // check that artifact is really account
-        let execute_selector: Felt = get_selector_from_name("__execute__").unwrap();
-        let validate_selector: Felt = get_selector_from_name("__validate__").unwrap();
+        let execute_selector = get_selector_from_name("__execute__").unwrap();
+        let validate_selector = get_selector_from_name("__validate__").unwrap();
         let mut has_execute = false;
         let mut has_validate = false;
-        for entry_point in contract_class.entry_points_by_type.external.iter() {
-            let selector_bytes = entry_point.selector.to_bytes_be();
-            let selector = Felt::from_bytes_be_slice(&selector_bytes);
-            if selector == execute_selector {
-                has_execute = true;
-            }
-            if selector == validate_selector {
-                has_validate = true;
-            }
+        for entry_point in &contract_class.entry_points_by_type.external {
+            let selector: Felt = (&entry_point.selector).into();
+            has_execute |= selector == execute_selector;
+            has_validate |= selector == validate_selector;
         }
+
         if !has_execute || !has_validate {
             let msg = format!(
                 "Not a valid Sierra account artifact; has __execute__: {has_execute}; has \

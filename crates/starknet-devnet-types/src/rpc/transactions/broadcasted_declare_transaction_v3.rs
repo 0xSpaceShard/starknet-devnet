@@ -61,7 +61,7 @@ impl BroadcastedDeclareTransactionV3 {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::{ResourceBoundsMapping, Tip};
-    use starknet_rs_crypto::Felt;
+    use starknet_types_core::felt::Felt;
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;

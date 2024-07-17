@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::transaction::Tip;
-use starknet_rs_crypto::Felt;
+use starknet_types_core::felt::Felt;
 
 use super::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use super::ResourceBoundsWrapper;

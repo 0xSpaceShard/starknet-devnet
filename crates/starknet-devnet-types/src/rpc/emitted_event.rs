@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
-use starknet_rs_crypto::Felt;
+use starknet_types_core::felt::Felt;
 
 use crate::contract_address::ContractAddress;
 use crate::felt::{BlockHash, TransactionHash};

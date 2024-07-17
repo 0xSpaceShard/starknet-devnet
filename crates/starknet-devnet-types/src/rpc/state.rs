@@ -1,6 +1,6 @@
 use num_bigint::BigUint;
 use serde::{Deserialize, Serialize};
-use starknet_rs_crypto::Felt;
+use starknet_types_core::felt::Felt;
 
 use super::block::GlobalRootHex;
 use crate::contract_address::ContractAddress;

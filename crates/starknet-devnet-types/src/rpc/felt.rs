@@ -1,5 +1,5 @@
 use num_bigint::BigUint;
-use starknet_rs_crypto::Felt;
+use starknet_types_core::felt::Felt;
 
 use crate::error::{ConversionError, DevnetResult, Error};
 

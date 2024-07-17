@@ -1,4 +1,4 @@
-use starknet_rs_crypto::Felt;
+use starknet_types_core::felt::Felt;
 
 pub trait ToHexString {
     fn to_prefixed_hex_str(&self) -> String;
