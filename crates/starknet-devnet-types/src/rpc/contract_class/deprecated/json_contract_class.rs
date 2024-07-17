@@ -125,7 +125,6 @@ impl Cairo0Json {
         hashes.push(entry_points_hash_by_type(EntryPointType::L1Handler)?);
         hashes.push(entry_points_hash_by_type(EntryPointType::Constructor)?);
 
-
         let program_json = json_class
             .get("program")
             .ok_or(JsonError::Custom { msg: "missing program entry".to_string() })?;

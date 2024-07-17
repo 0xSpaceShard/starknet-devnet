@@ -608,7 +608,8 @@ mod requests_tests {
         );
         // TODO Errored json, hex is longer than 64 chars
         // assert_deserialization_fails(
-        //     r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"0x004134134134134134134134134134134134134134134134134134134134134134"}}"#,
+        //     r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"
+        // 0x004134134134134134134134134134134134134134134134134134134134134134"}}"#,
         //     "Bad input - expected #bytes: 32",
         // );
     }
@@ -629,7 +630,10 @@ mod requests_tests {
         let json_str = r#"{"method":"starknet_getTransactionReceipt","params":{"transaction_hash":"0xAAABB"}}"#;
         assert_deserialization_succeeds(json_str);
 
-        assert_deserialization_fails(json_str.replace("0x", "").as_str(), "Expected hex string to be prefixed by '0x'");
+        assert_deserialization_fails(
+            json_str.replace("0x", "").as_str(),
+            "Expected hex string to be prefixed by '0x'",
+        );
     }
 
     #[test]
@@ -637,7 +641,10 @@ mod requests_tests {
         let json_str = r#"{"method":"starknet_getClass","params":{"block_id":"latest","class_hash":"0xAAABB"}}"#;
         assert_deserialization_succeeds(json_str);
 
-        assert_deserialization_fails(json_str.replace("0x", "").as_str(), "Expected hex string to be prefixed by '0x'");
+        assert_deserialization_fails(
+            json_str.replace("0x", "").as_str(),
+            "Expected hex string to be prefixed by '0x'",
+        );
     }
 
     #[test]
@@ -645,7 +652,10 @@ mod requests_tests {
         let json_str = r#"{"method":"starknet_getClassHashAt","params":{"block_id":"latest","contract_address":"0xAAABB"}}"#;
         assert_deserialization_succeeds(json_str);
 
-        assert_deserialization_fails(json_str.replace("0x", "").as_str(), "Error converting from hex string");
+        assert_deserialization_fails(
+            json_str.replace("0x", "").as_str(),
+            "Error converting from hex string",
+        );
     }
 
     #[test]
@@ -1138,8 +1148,8 @@ mod response_tests {
     use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
-    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result(
-    ) {
+    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result()
+     {
         assert_eq!(
             r#"{"result":{}}"#,
             serde_json::to_string(

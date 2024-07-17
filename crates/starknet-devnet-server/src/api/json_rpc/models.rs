@@ -503,8 +503,8 @@ mod tests {
         // assert_block_id_block_hash_correctness(
         //     false,
         //     "0x01",
-        //     r#"{"block_id": {"block_hash": "0x004134134134134134134134134134134134134134134134134134134134134134"}}"#,
-        // );
+        //     r#"{"block_id": {"block_hash":
+        // "0x004134134134134134134134134134134134134134134134134134134134134134"}}"#, );
 
         // Block hash hex doesnt start with 0x
         assert_block_id_block_hash_correctness(
@@ -555,9 +555,13 @@ mod tests {
             ),
             (
                 r#"{"block_id": {"block_hash": 123}}"#,
-                "Invalid block ID: invalid type: number, expected Failed to deserialize hexadecimal string",
+                "Invalid block ID: invalid type: number, expected Failed to deserialize \
+                 hexadecimal string",
             ),
-            (r#"{"block_id": {"block_hash": ""}}"#, "Invalid block ID: Expected hex string to be prefixed by '0x"),
+            (
+                r#"{"block_id": {"block_hash": ""}}"#,
+                "Invalid block ID: Expected hex string to be prefixed by '0x",
+            ),
         ] {
             match serde_json::from_str::<BlockIdInput>(json_str) {
                 Err(err) => assert_contains(&err.to_string(), expected_msg),

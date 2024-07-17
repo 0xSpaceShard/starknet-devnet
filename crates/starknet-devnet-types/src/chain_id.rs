@@ -3,8 +3,8 @@ use std::str::FromStr;
 
 #[allow(deprecated)]
 use starknet_rs_core::chain_id::{MAINNET, SEPOLIA, TESTNET};
-use starknet_rs_crypto::Felt;
 use starknet_rs_core::utils::{cairo_short_string_to_felt, parse_cairo_short_string};
+use starknet_rs_crypto::Felt;
 
 use crate::error::ConversionError;
 

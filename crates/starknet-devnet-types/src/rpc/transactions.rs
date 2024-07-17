@@ -1122,9 +1122,8 @@ impl FunctionInvocation {
 mod tests {
     use starknet_rs_crypto::poseidon_hash_many;
 
-    use crate::felt::felt_from_prefixed_hex;
-
     use super::BroadcastedTransactionCommonV3;
+    use crate::felt::felt_from_prefixed_hex;
 
     #[test]
     fn test_dummy_transaction_hash_taken_from_papyrus() {

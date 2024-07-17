@@ -77,19 +77,20 @@ pub type StorageKey = PatriciaKey;
 
 #[cfg(test)]
 mod tests {
-    use crate::felt::felt_from_prefixed_hex;
-
     use super::PatriciaKey;
+    use crate::felt::felt_from_prefixed_hex;
 
     #[test]
     fn creation_of_patricia_key_should_be_successful() {
-        assert!(PatriciaKey::new(
-            felt_from_prefixed_hex(
-                "0x7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        assert!(
+            PatriciaKey::new(
+                felt_from_prefixed_hex(
+                    "0x7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                )
+                .unwrap()
             )
-            .unwrap()
-        )
-        .is_ok());
+            .is_ok()
+        );
     }
 
     #[test]
