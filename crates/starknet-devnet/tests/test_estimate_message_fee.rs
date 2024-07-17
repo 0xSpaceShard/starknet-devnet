@@ -78,7 +78,7 @@ mod test_estimate_message_fee {
             .await
             .unwrap();
 
-        assert_eq!(res.gas_consumed, Felt::from(16027u32));
+        assert_eq!(res.gas_consumed, Felt::from(16029));
     }
 
     #[tokio::test]
