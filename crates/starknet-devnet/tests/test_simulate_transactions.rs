@@ -382,10 +382,11 @@ mod simulation_tests {
         let wei_price = 9e18 as u128;
         let strk_price = 7e18 as u128;
         let gas_update = json!({
-            "gas_price_wei": 9e18 as u128,
+            "gas_price_wei": wei_price,
             "data_gas_price_wei": 8e18 as u128,
-            "gas_price_strk": 7e18 as u128,
+            "gas_price_strk": strk_price,
             "data_gas_price_strk": 6e18 as u128,
+            "generate_block": false,
         });
         let updated_gas =
             &devnet.send_custom_rpc("devnet_updateGas", gas_update.clone()).await.unwrap();
@@ -404,6 +405,30 @@ mod simulation_tests {
         assert_eq!(latest_block.block_number, 2);
         assert_eq!(latest_block.l1_gas_price.price_in_wei, FieldElement::from(wei_price));
         assert_eq!(latest_block.l1_gas_price.price_in_fri, FieldElement::from(strk_price));
+
+        let wei_price = 8e18 as u128;
+        let strk_price = 6e18 as u128;
+        let gas_update_with_new_block = json!({
+            "gas_price_wei": wei_price,
+            "data_gas_price_wei": 7e18 as u128,
+            "gas_price_strk": strk_price,
+            "data_gas_price_strk": 5e18 as u128,
+            "generate_block": true,
+        });
+        let updated_gas = &devnet
+            .send_custom_rpc("devnet_updateGas", gas_update_with_new_block.clone())
+            .await
+            .unwrap();
+        assert_eq!(updated_gas, &gas_update_with_new_block);
+
+        let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
+        assert_eq!(latest_block.block_number, 3);
+        assert_eq!(latest_block.l1_gas_price.price_in_wei, FieldElement::from(wei_price));
+        assert_eq!(latest_block.l1_gas_price.price_in_fri, FieldElement::from(strk_price));
+
+        let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
+        assert_eq!(pending_block.l1_gas_price.price_in_wei, FieldElement::from(wei_price));
+        assert_eq!(pending_block.l1_gas_price.price_in_fri, FieldElement::from(strk_price));
     }
 
     #[tokio::test]

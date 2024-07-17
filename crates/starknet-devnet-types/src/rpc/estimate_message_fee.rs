@@ -23,6 +23,7 @@ pub struct GasUpdate {
     pub data_gas_price_wei: NonZeroU128,
     pub gas_price_strk: NonZeroU128,
     pub data_gas_price_strk: NonZeroU128,
+    pub generate_block: Option<bool>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

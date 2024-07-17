@@ -818,6 +818,12 @@ impl Starknet {
         self.blocks.pending_block.header.l1_data_gas_price.price_in_fri =
             GasPrice(u128::from(gas_prices.data_gas_price_strk));
 
+        let generate_block = gas_prices.generate_block.unwrap_or(false);
+        if generate_block {
+            self.create_block()?;
+            self.handle_dump_event(DumpEvent::CreateBlock)?;
+        }
+
         let gas_prices = &self.block_context.block_info().gas_prices;
 
         Ok(GasUpdate {
@@ -825,6 +831,7 @@ impl Starknet {
             data_gas_price_wei: gas_prices.eth_l1_data_gas_price,
             gas_price_strk: gas_prices.strk_l1_gas_price,
             data_gas_price_strk: gas_prices.strk_l1_data_gas_price,
+            generate_block: Some(generate_block),
         })
     }
 
