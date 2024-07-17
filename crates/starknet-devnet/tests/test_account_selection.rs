@@ -22,7 +22,7 @@ mod test_account_selection {
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::{CHAIN_ID, MAINNET_URL};
+    use crate::common::constants::MAINNET_URL;
     use crate::common::reqwest_client::GetReqwestSender;
     use crate::common::utils::{
         assert_tx_successful, deploy_argent_account, deploy_oz_account,
@@ -143,7 +143,7 @@ mod test_account_selection {
             devnet.clone_provider(),
             signer,
             account_address,
-            CHAIN_ID,
+            devnet.json_rpc_client.chain_id().await.unwrap(),
             ExecutionEncoding::New,
         ));
 
@@ -203,7 +203,7 @@ mod test_account_selection {
             devnet.clone_provider(),
             signer,
             account_address,
-            CHAIN_ID,
+            devnet.json_rpc_client.chain_id().await.unwrap(),
             ExecutionEncoding::New,
         ));
 

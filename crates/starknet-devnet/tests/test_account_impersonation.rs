@@ -15,7 +15,6 @@ mod impersonated_account_tests {
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants;
     use crate::common::utils::{
         get_simple_contract_in_sierra_and_compiled_class_hash, ImpersonationAction,
     };
@@ -64,7 +63,7 @@ mod impersonated_account_tests {
             &forked_devnet.json_rpc_client,
             private_key,
             account_address,
-            constants::CHAIN_ID,
+            origin_devnet.json_rpc_client.chain_id().await.unwrap(),
             ExecutionEncoding::New,
         )
     }

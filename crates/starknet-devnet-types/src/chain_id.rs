@@ -1,15 +1,18 @@
 use std::fmt::Display;
+use std::str::FromStr;
 
 #[allow(deprecated)]
 use starknet_rs_core::chain_id::{MAINNET, SEPOLIA, TESTNET};
-use starknet_rs_core::utils::parse_cairo_short_string;
 use starknet_rs_crypto::Felt;
+use starknet_rs_core::utils::{cairo_short_string_to_felt, parse_cairo_short_string};
 
-#[derive(Clone, Copy, Debug, clap::ValueEnum)]
-#[clap(rename_all = "SCREAMING_SNAKE_CASE")]
+use crate::error::ConversionError;
+
+#[derive(Clone, Copy, Debug)]
 pub enum ChainId {
     Mainnet,
     Testnet,
+    Custom(Felt),
 }
 
 impl ChainId {
@@ -31,11 +34,31 @@ impl Display for ChainId {
     }
 }
 
+impl FromStr for ChainId {
+    type Err = ConversionError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let uppercase_chain_id_str = s.to_ascii_uppercase();
+        let chain_id = match uppercase_chain_id_str.as_str() {
+            "MAINNET" => ChainId::Mainnet,
+            "TESTNET" => ChainId::Testnet,
+            _ => {
+                let felt = cairo_short_string_to_felt(&uppercase_chain_id_str)
+                    .map_err(|err| ConversionError::OutOfRangeError(err.to_string()))?;
+                ChainId::Custom(felt)
+            }
+        };
+
+        Ok(chain_id)
+    }
+}
+
 impl From<ChainId> for Felt {
     fn from(value: ChainId) -> Self {
         match value {
             ChainId::Mainnet => MAINNET,
             ChainId::Testnet => SEPOLIA,
+            ChainId::Custom(felt) => felt,
         }
     }
 }
@@ -45,6 +68,19 @@ impl From<&ChainId> for Felt {
         match value {
             ChainId::Mainnet => MAINNET,
             ChainId::Testnet => SEPOLIA,
+            ChainId::Custom(felt) => *felt,
+        }
+    }
+}
+
+impl From<Felt> for ChainId {
+    fn from(value: Felt) -> Self {
+        if value == MAINNET {
+            ChainId::Mainnet
+        } else if value == SEPOLIA {
+            ChainId::Testnet
+        } else {
+            ChainId::Custom(value)
         }
     }
 }
@@ -54,6 +90,7 @@ impl From<ChainId> for starknet_api::core::ChainId {
         match value {
             ChainId::Mainnet => Self::Mainnet,
             ChainId::Testnet => Self::Sepolia,
+            ChainId::Custom(_) => Self::Other(format!("{value}")),
         }
     }
 }

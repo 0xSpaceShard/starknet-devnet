@@ -24,8 +24,8 @@ use tokio::sync::Mutex;
 use url::Url;
 
 use super::constants::{
-    ACCOUNTS, CHAIN_ID_CLI_PARAM, HEALTHCHECK_PATH, HOST, MAX_PORT, MIN_PORT,
-    PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, RPC_PATH, SEED,
+    ACCOUNTS, HEALTHCHECK_PATH, HOST, MAX_PORT, MIN_PORT, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
+    RPC_PATH, SEED,
 };
 use super::errors::TestError;
 use super::reqwest_client::{PostReqwestSender, ReqwestClient};
@@ -65,7 +65,6 @@ lazy_static! {
         ("--seed", SEED.to_string()),
         ("--accounts", ACCOUNTS.to_string()),
         ("--initial-balance", PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string()),
-        ("--chain-id", CHAIN_ID_CLI_PARAM.to_string())
     ]);
 }
 
