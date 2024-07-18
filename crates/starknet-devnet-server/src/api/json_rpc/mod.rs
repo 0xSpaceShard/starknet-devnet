@@ -138,7 +138,6 @@ impl RpcHandler for JsonRpcHandler {
                         );
                     }
                 }
-                // sis_json_rpc_method_restricted(json_rpc_method, self.server_config.)
                 let result = self.on_request(req, call).await;
                 RpcResponse::new(id, result)
             }
