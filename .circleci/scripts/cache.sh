@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Cache is available only on our custom runner
 if [ "$CIRCLECI_RUNNER_CLASS" != "spaceshard/ax41" ]; then
@@ -6,8 +7,8 @@ if [ "$CIRCLECI_RUNNER_CLASS" != "spaceshard/ax41" ]; then
     exit 0
 fi
 
-if [ $# -eq 0 ]; then
-    echo "Please provide a cache action argument. (save, load or cleanup)"
+if [ $# -ne 1 ]; then
+    echo "Please provide cache action as an argument. (save, load or cleanup)"
     exit 1
 fi
 
@@ -24,10 +25,8 @@ cached_dirs=("target/release/.fingerprint target/release/build target/release/de
 cache_cleanup_interval=7 
 
 
-cache_base_dir="/cache"
-cache_key=$(for file in "${cache_key_files[@]}"; do shasum "$file" | cut -c 1-10; done | paste  -sd "-" -)
-
-cache_file="$cache_base_dir/$cache_key.tar.gz"
+cache_base_dir="/cache" # dependent on runner architecture
+cache_file="$cache_base_dir/$(cat ${cache_key_files[@]} | shasum | awk '{print $1}').tar.gz"
 
 case "$action" in
     "load")
@@ -54,7 +53,7 @@ case "$action" in
         exit 0
         ;;
     *)
-        echo "Invalid action argument."
+        echo "Invalid action $action. Valid actions are save, load or cleanup".
         exit 1
         ;;
 esac
