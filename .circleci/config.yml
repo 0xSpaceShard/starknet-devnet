@@ -73,7 +73,7 @@ jobs:
           command: ./scripts/check_spelling.sh
       - run:
           name: Save cache
-          command: ./circleci/scripts/cache.sh save
+          command: .circleci/scripts/cache.sh save
       - run:
           name: Cleanup old cache
           command: .circleci/scripts/cache.sh cleanup

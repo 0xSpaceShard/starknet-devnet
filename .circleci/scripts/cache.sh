@@ -32,10 +32,12 @@ case "$action" in
             echo "Cache already exists."
             exit 0
         fi
-        tar czvf "$cache_file" $cached_dirs
+        tar czvf "$cache_file".tmp $cached_dirs # Create a temporary cache file for atomicity
+        mv czvf "$cache_file".tmp "$cache_file"
         ;;
     "cleanup")
         echo "Cleaning up cache..."
+        rm -f "$cache_base_dir"/*.tmp # Remove temporary cache files if they are leftover
         find "$cache_base_dir" -atime "+$cache_cleanup_interval" -name '*.gz' -exec rm {} \;
         exit 0
         ;;
