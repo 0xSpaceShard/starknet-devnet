@@ -234,14 +234,14 @@ mod simulation_tests {
         );
     }
 
-    async fn update_gas_scenario(devnet: BackgroundDevnet, assert_chain_id: &str) {
+    async fn update_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: &str) {
         // get account
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let account = SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
             account_address,
-            FieldElement::from_hex_be(assert_chain_id).unwrap(),
+            FieldElement::from_hex_be(expected_chain_id).unwrap(),
             ExecutionEncoding::New,
         );
 
@@ -285,7 +285,7 @@ mod simulation_tests {
         };
 
         let chain_id = &devnet.send_custom_rpc("starknet_chainId", json!({})).await.unwrap();
-        assert_eq!(chain_id, assert_chain_id);
+        assert_eq!(chain_id, expected_chain_id);
 
         let params_no_flags = get_params(&[]);
         let resp_no_flags = &devnet
@@ -324,7 +324,7 @@ mod simulation_tests {
         assert_eq!(updated_gas, &gas_update);
 
         let chain_id = &devnet.send_custom_rpc("starknet_chainId", json!({})).await.unwrap();
-        assert_eq!(chain_id, assert_chain_id);
+        assert_eq!(chain_id, expected_chain_id);
 
         let resp_no_flags = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_no_flags)

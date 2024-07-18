@@ -58,6 +58,9 @@ impl IntoResponse for HttpApiError {
             err @ HttpApiError::BlockAbortError { msg: _ } => {
                 (StatusCode::BAD_REQUEST, err.to_string())
             }
+            err @ HttpApiError::GasUpdateError { msg: _ } => {
+                (StatusCode::BAD_REQUEST, err.to_string())
+            }
             err @ HttpApiError::ReExecutionError(_) => (StatusCode::BAD_REQUEST, err.to_string()),
             err @ HttpApiError::CreateEmptyBlockError { msg: _ } => {
                 (StatusCode::BAD_REQUEST, err.to_string())
