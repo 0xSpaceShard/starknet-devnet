@@ -88,8 +88,7 @@ impl Cairo0Json {
     }
 
     fn compute_cairo_0_contract_class_hash(json_class: &Value) -> crate::error::DevnetResult<Felt> {
-        let mut hashes = vec![];
-        hashes.push(Felt::ZERO);
+        let mut hashes = vec![Felt::ZERO];
 
         let entry_points_by_type: HashMap<EntryPointType, Vec<EntryPoint>> =
             serde_json::from_value(

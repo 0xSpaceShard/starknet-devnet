@@ -24,9 +24,7 @@ impl FromStr for EthAddressWrapper {
 
 impl From<EthAddressWrapper> for Felt {
     fn from(value: EthAddressWrapper) -> Self {
-        let felt: Felt = value.inner.into();
-        let raw_felt = felt.to_bytes_be();
-        Felt::from_bytes_be(&raw_felt)
+        value.inner.into()
     }
 }
 
