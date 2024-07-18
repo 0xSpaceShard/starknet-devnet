@@ -142,7 +142,7 @@ impl StarknetDefaulter {
     }
 }
 
-fn convert_json_value_to_stark_felt(json_value: serde_json::Value) -> StateResult<Felt> {
+fn convert_json_value_to_felt(json_value: serde_json::Value) -> StateResult<Felt> {
     serde_json::from_value(json_value).map_err(|e| StateError::StateReadError(e.to_string()))
 }
 
@@ -166,7 +166,7 @@ impl BlockingOriginReader {
         ) {
             Err(OriginError::NoResult) => Default::default(),
             Err(other_error) => return Err(StateError::StateReadError(other_error.to_string())),
-            Ok(value) => convert_json_value_to_stark_felt(value)?,
+            Ok(value) => convert_json_value_to_felt(value)?,
         };
         Ok(storage)
     }
@@ -180,7 +180,7 @@ impl BlockingOriginReader {
         ) {
             Err(OriginError::NoResult) => Default::default(),
             Err(other_error) => return Err(StateError::StateReadError(other_error.to_string())),
-            Ok(value) => Nonce(convert_json_value_to_stark_felt(value)?),
+            Ok(value) => Nonce(convert_json_value_to_felt(value)?),
         };
         Ok(nonce)
     }
@@ -194,7 +194,7 @@ impl BlockingOriginReader {
         ) {
             Err(OriginError::NoResult) => Default::default(),
             Err(other_error) => return Err(StateError::StateReadError(other_error.to_string())),
-            Ok(value) => ClassHash(convert_json_value_to_stark_felt(value)?),
+            Ok(value) => ClassHash(convert_json_value_to_felt(value)?),
         };
         Ok(class_hash)
     }

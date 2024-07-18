@@ -17,7 +17,7 @@ use super::{deserialize_paid_fee_on_l1, serialize_paid_fee_on_l1};
 use crate::constants::PREFIX_L1_HANDLER;
 use crate::contract_address::ContractAddress;
 use crate::error::{ConversionError, DevnetResult, Error};
-use crate::felt::{Calldata, EntryPointSelector, Nonce, TransactionVersion};
+use crate::felt::{try_felt_to_num, Calldata, EntryPointSelector, Nonce, TransactionVersion};
 use crate::rpc::messaging::MessageToL2;
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
@@ -84,14 +84,12 @@ impl L1HandlerTransaction {
     /// * `message` - The message to be converted.
     /// * `chain_id` - The L1 node chain id.
     pub fn try_from_message_to_l2(message: MessageToL2) -> DevnetResult<Self> {
-        // `impl TryFrom` is not used due to the fact that chain_id is required.
-        let paid_fee_on_l1: u128 =
-            message.paid_fee_on_l1.to_biguint().try_into().map_err(|_| {
-                ConversionError::OutOfRangeError(format!(
-                    "paid_fee_on_l1 is expected to be a u128 value, found: {:?}",
-                    message.paid_fee_on_l1,
-                ))
-            })?;
+        let paid_fee_on_l1: u128 = try_felt_to_num(message.paid_fee_on_l1).map_err(|_| {
+            ConversionError::OutOfRangeError(format!(
+                "paid_fee_on_l1 is expected to be a u128 value, found: {:?}",
+                message.paid_fee_on_l1,
+            ))
+        })?;
 
         let mut calldata = vec![message.l1_contract_address.into()];
         for u in message.payload {

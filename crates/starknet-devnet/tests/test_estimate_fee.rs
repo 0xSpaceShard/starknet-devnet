@@ -22,7 +22,7 @@ mod estimate_fee_tests {
     };
     use starknet_rs_providers::{Provider, ProviderError};
     use starknet_types::constants::QUERY_VERSION_OFFSET;
-    use starknet_types::felt::felt_from_prefixed_hex;
+    use starknet_types::felt::{felt_from_prefixed_hex, try_felt_to_num};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
@@ -46,7 +46,7 @@ mod estimate_fee_tests {
     }
 
     fn multiply_field_element(field_element: Felt, multiplier: f64) -> Felt {
-        let integer: u64 = field_element.to_biguint().try_into().unwrap();
+        let integer: u64 = try_felt_to_num(field_element).unwrap();
         let float = integer as f64;
         ((float * multiplier) as u128).into()
     }
@@ -83,7 +83,7 @@ mod estimate_fee_tests {
 
         // fund the account before deployment
         let mint_amount = fee_estimation.overall_fee * Felt::TWO;
-        devnet.mint(deployment_address, mint_amount.to_biguint().try_into().unwrap()).await;
+        devnet.mint(deployment_address, try_felt_to_num(mint_amount).unwrap()).await;
 
         // try sending with insufficient max fee
         let unsuccessful_deployment_tx = account_factory

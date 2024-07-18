@@ -29,6 +29,10 @@ pub fn felt_from_prefixed_hex(s: &str) -> DevnetResult<Felt> {
     }
 }
 
+pub fn try_felt_to_num<T: TryFrom<BigUint>>(f: Felt) -> Result<T, <T as TryFrom<BigUint>>::Error> {
+    f.to_biguint().try_into()
+}
+
 pub type Nonce = Felt;
 pub type TransactionVersion = Felt;
 pub type TransactionSignature = Vec<Felt>;

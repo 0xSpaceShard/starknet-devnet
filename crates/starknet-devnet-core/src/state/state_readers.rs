@@ -7,6 +7,7 @@ use blockifier::state::state_api::{StateReader, StateResult};
 use starknet_api::core::{ClassHash, CompiledClassHash, ContractAddress, Nonce};
 use starknet_api::state::StorageKey;
 use starknet_rs_core::types::Felt;
+use starknet_types::felt::try_felt_to_num;
 
 use crate::starknet::defaulter::StarknetDefaulter;
 
@@ -88,7 +89,7 @@ impl DictState {
 
     pub fn increment_nonce(&mut self, contract_address: ContractAddress) -> StateResult<()> {
         let current_nonce = self.get_nonce_at(contract_address)?;
-        let current_nonce: u64 = current_nonce.0.to_biguint().try_into()?;
+        let current_nonce: u64 = try_felt_to_num(current_nonce.0)?;
         let next_nonce_val = 1_u64 + current_nonce;
         let next_nonce = Nonce(Felt::from(next_nonce_val));
         self.address_to_nonce.insert(contract_address, next_nonce);

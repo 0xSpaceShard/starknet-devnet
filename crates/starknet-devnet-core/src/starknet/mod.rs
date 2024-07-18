@@ -143,10 +143,6 @@ impl Default for Starknet {
     }
 }
 
-fn default_bouncer_config() -> BouncerConfig {
-    BouncerConfig::max()
-}
-
 impl Starknet {
     pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
         let defaulter = StarknetDefaulter::new(config.fork_config.clone());
@@ -494,12 +490,7 @@ impl Starknet {
             },
         };
 
-        BlockContext::new(
-            block_info,
-            chain_info,
-            get_versioned_constants(),
-            default_bouncer_config(),
-        )
+        BlockContext::new(block_info, chain_info, get_versioned_constants(), BouncerConfig::max())
     }
 
     /// Update block context block_number with the next one
@@ -513,7 +504,7 @@ impl Starknet {
             block_info,
             block_context.chain_info().clone(),
             get_versioned_constants(),
-            default_bouncer_config(),
+            BouncerConfig::max(),
         );
     }
 
@@ -529,7 +520,7 @@ impl Starknet {
             block_info,
             block_context.chain_info().clone(),
             get_versioned_constants(),
-            default_bouncer_config(),
+            BouncerConfig::max(),
         );
     }
 

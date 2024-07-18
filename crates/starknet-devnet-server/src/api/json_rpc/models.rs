@@ -499,7 +499,8 @@ mod tests {
             r#"{"block_id": {"block_hash": "0x01"}}"#,
         );
 
-        // TODO Block hash hex value is more than 64 chars
+        // TODO: ignored because of a Felt bug: https://github.com/starknet-io/types-rs/issues/81
+        // Block hash hex value is more than 64 chars
         // assert_block_id_block_hash_correctness(
         //     false,
         //     "0x01",
@@ -555,6 +556,7 @@ mod tests {
             ),
             (
                 r#"{"block_id": {"block_hash": 123}}"#,
+                // TODO: https://github.com/starknet-io/types-rs/issues/81#issuecomment-2230701335
                 "Invalid block ID: invalid type: number, expected Failed to deserialize \
                  hexadecimal string",
             ),

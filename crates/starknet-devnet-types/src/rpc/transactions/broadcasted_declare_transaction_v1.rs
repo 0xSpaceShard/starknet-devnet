@@ -72,6 +72,7 @@ mod tests {
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
     use crate::contract_class::Cairo0Json;
+    use crate::felt::try_felt_to_num;
     use crate::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use crate::rpc::transactions::BroadcastedDeclareTransaction;
     use crate::traits::HashProducer;
@@ -109,7 +110,7 @@ mod tests {
 
         let broadcasted_tx = BroadcastedDeclareTransactionV1::new(
             ContractAddress::new(feeder_gateway_transaction.sender_address).unwrap(),
-            Fee(feeder_gateway_transaction.max_fee.to_biguint().try_into().unwrap()),
+            Fee(try_felt_to_num(feeder_gateway_transaction.max_fee).unwrap()),
             &vec![],
             feeder_gateway_transaction.nonce,
             &cairo0.into(),

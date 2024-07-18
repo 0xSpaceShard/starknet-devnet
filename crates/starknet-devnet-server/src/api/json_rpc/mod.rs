@@ -606,7 +606,8 @@ mod requests_tests {
             r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"134134"}}"#,
             "Expected hex string to be prefixed by '0x'",
         );
-        // TODO Errored json, hex is longer than 64 chars
+        // TODO: ignored because of a Felt bug: https://github.com/starknet-io/types-rs/issues/81
+        // Errored json, hex is longer than 64 chars
         // assert_deserialization_fails(
         //     r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"
         // 0x004134134134134134134134134134134134134134134134134134134134134134"}}"#,

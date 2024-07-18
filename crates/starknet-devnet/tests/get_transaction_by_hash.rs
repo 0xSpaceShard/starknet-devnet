@@ -12,7 +12,7 @@ mod get_transaction_by_hash_integration_tests {
     use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::{Provider, ProviderError};
-    use starknet_types::felt::felt_from_prefixed_hex;
+    use starknet_types::felt::{felt_from_prefixed_hex, try_felt_to_num};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
@@ -104,7 +104,7 @@ mod get_transaction_by_hash_integration_tests {
 
         // fund the account before deployment
         let mint_amount = fee_estimation.overall_fee * Felt::TWO;
-        devnet.mint(deployment_address, mint_amount.to_biguint().try_into().unwrap()).await;
+        devnet.mint(deployment_address, try_felt_to_num(mint_amount).unwrap()).await;
 
         let deploy_account_result = deployment.send().await.unwrap();
         assert_tx_successful(&deploy_account_result.transaction_hash, &devnet.json_rpc_client)
