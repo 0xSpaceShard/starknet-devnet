@@ -1,6 +1,6 @@
 pub mod common;
 
-mod test_restricted_methods {
+mod test_restrictive_mode {
     use serde_json::json;
     use server::rpc_core::error::ErrorCode;
     use starknet_rs_core::types::FieldElement;
