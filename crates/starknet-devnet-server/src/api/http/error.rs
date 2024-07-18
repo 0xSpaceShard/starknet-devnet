@@ -29,6 +29,8 @@ pub enum HttpApiError {
     BlockIncreaseTimeError { msg: String },
     #[error("Block abortion failed: {msg}")]
     BlockAbortError { msg: String },
+    #[error("Gas update failed: {msg}")]
+    GasUpdateError { msg: String },
     #[error("Could not restart: {msg}")]
     RestartError { msg: String },
     #[error("Messaging error: {msg}")]
