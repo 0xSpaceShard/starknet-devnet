@@ -1,6 +1,11 @@
 #!/bin/bash
 
-# Check if an argument is provided
+# Cache is available only on our custom runner
+if [ "$CIRCLECI_RUNNER_CLASS" != "spaceshard/ax41" ]; then
+    echo "Custom cache available only on self-hosted spaceshard/ax41 runner"
+    exit 0
+fi
+
 if [ $# -eq 0 ]; then
     echo "Please provide a cache action argument. (save, load or cleanup)"
     exit 1
@@ -8,14 +13,18 @@ fi
 
 action="$1"
 
-cache_base_dir="/cache"
+# VARIABLES
+cache_key_files=("Cargo.lock" "rust-toolchain.toml")
+cached_dirs_array=("target/release/.fingerprint target/release/build target/release/deps")
 
-cache_key="$(sha512sum Cargo.lock | cut -c 1-10)-$(sha512sum rust-toolchain.toml | cut -c 1-10)"
+
+cache_base_dir="/cache"
+cache_key=$(for file in "${cache_key_files[@]}"; do shasum "$file" | cut -c 1-10; done | paste  -sd "-" -)
+cached_dirs=$(for dir in "${cached_dirs_array[@]}"; do echo $dir ; done | paste  -sd " " -)
 
 cache_file="$cache_base_dir/$cache_key.tar.gz"
 cache_cleanup_interval=7
 
-cached_dirs="target/release/.fingerprint target/release/build target/release/deps"
 
 case "$action" in
     "load")
