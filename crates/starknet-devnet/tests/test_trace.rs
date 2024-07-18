@@ -64,13 +64,10 @@ mod trace_tests {
 
     #[tokio::test]
     async fn get_trace_non_existing_transaction() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let err =
-            devnet.json_rpc_client.trace_transaction(Felt::ZERO).await.expect_err("Should fail");
-
-        match err {
-            ProviderError::StarknetError(StarknetError::TransactionHashNotFound) => (),
-            _ => panic!("Should fail with error"),
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        match devnet.json_rpc_client.trace_transaction(Felt::ZERO).await {
+            Err(ProviderError::StarknetError(StarknetError::TransactionHashNotFound)) => (),
+            other => panic!("Should fail with error; got: {other:?}"),
         }
     }
 

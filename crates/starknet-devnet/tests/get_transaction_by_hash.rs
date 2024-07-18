@@ -129,9 +129,9 @@ mod get_transaction_by_hash_integration_tests {
                 to: felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
                 selector: get_selector_from_name("transfer").unwrap(),
                 calldata: vec![
-                    Felt::ONE,                                 // recipient
-                    Felt::from_dec_str("1000000000").unwrap(), // low part of uint256
-                    Felt::ZERO,                                // high part of uint256
+                    Felt::ONE,                 // recipient
+                    Felt::from(1_000_000_000), // low part of uint256
+                    Felt::ZERO,                // high part of uint256
                 ],
             }])
             .send()

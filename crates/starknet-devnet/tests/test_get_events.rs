@@ -80,7 +80,7 @@ mod get_events_integration_tests {
         for n in 0..n_events_contract_invocations {
             predeployed_account
                 .execute_v1(events_contract_call.clone())
-                .nonce(nonce + Felt::from(n as u128))
+                .nonce(nonce + Felt::from(n))
                 .max_fee(Felt::from(100000000000000000000u128))
                 .send()
                 .await
