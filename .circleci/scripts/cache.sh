@@ -53,7 +53,7 @@ case "$action" in
         exit 0
         ;;
     *)
-        echo "Invalid action $action. Valid actions are save, load or cleanup".
+        echo "Invalid action $action. Valid actions are save, load, and cleanup".
         exit 1
         ;;
 esac
