@@ -4,19 +4,19 @@ The --restrictive-mode argument enables a restrictive mode for devnet, allowing 
 
 ## Usage
 
-Devnet will restrict default methods:
+### With default methods
 
 ```
 $ starknet-devnet --restrictive-mode
 ```
 
-Devnet will restrict methods passed to the argument (devnet_dump, devnet_config)
+### With a list of methods
 
 ```
 $ starknet-devnet --restrictive-mode devnet_dump devnet_config
 ```
 
-## Default Restricted Methods
+## Default restricted methods
 
 When no methods are specified, the following default methods will be restricted and their HTTP endpoints counterparts (if any):
 
