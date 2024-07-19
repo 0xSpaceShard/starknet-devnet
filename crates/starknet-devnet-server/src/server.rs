@@ -169,7 +169,7 @@ async fn restrictive_middleware(
             request.uri().path(),
             restricted_paths.iter().map(|x| x.as_str()).collect::<Vec<&str>>().as_slice(),
         ) {
-            return Err((StatusCode::FORBIDDEN, "Devnet is in restricted mode".to_string()));
+            return Err((StatusCode::FORBIDDEN, "Devnet is in restrictive mode".to_string()));
         }
     }
     Ok(next.run(request).await)
