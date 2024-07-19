@@ -232,7 +232,7 @@ fn convert_sierra_to_codegen(
     let sierra_program = contract_class
         .sierra_program
         .iter()
-        .map(|bigint| Felt::from_bytes_be_slice(&bigint.value.to_bytes_be()))
+        .map(|bigint| Felt::from(bigint.value.clone()))
         .collect::<Vec<_>>();
 
     let entry_points_by_type_value =

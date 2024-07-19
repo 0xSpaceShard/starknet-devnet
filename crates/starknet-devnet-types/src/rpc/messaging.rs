@@ -3,7 +3,7 @@ use starknet_rs_core::types::{EthAddress, Felt, Hash256, MsgToL1, MsgToL2};
 
 use crate::contract_address::ContractAddress;
 use crate::error::{DevnetResult, Error};
-use crate::felt::{Calldata, EntryPointSelector, Nonce};
+use crate::felt::{try_felt_to_num, Calldata, EntryPointSelector, Nonce};
 use crate::rpc::eth_address::EthAddressWrapper;
 
 /// An L1 to L2 message.
@@ -31,7 +31,7 @@ impl MessageToL2 {
             to_address: self.l2_contract_address.into(),
             selector: self.entry_point_selector,
             payload: self.payload.clone(),
-            nonce: u64::try_from(self.nonce.to_bigint()).map_err(|err| {
+            nonce: try_felt_to_num::<u64>(self.nonce).map_err(|err| {
                 Error::ConversionError(crate::error::ConversionError::OutOfRangeError(
                     err.to_string(),
                 ))

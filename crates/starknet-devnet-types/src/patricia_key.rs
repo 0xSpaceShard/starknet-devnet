@@ -45,7 +45,7 @@ impl<'de> Deserialize<'de> for PatriciaKey {
 
 impl From<starknet_api::core::PatriciaKey> for PatriciaKey {
     fn from(value: starknet_api::core::PatriciaKey) -> Self {
-        Self(Felt::from_bytes_be(&value.to_bytes_be()))
+        Self(*value.key())
     }
 }
 
