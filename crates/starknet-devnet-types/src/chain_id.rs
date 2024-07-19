@@ -15,7 +15,10 @@ pub enum ChainId {
 }
 
 impl ChainId {
-    /// Used only in tests
+    /// Used only in tests.
+    /// It was imported from `starknet_rs_core::chain_id`, but now gives a deprecation warning
+    /// defined [here](https://github.com/xJonathanLEI/starknet-rs/blob/f6d339c6b897fb38c839485608ca2fe374a6275d/starknet-core/src/chain_id.rs#L10).
+    /// Instead of ignoring the warning in two places, it's defined here.
     const TESTNET: Felt = Felt::from_raw([
         398700013197595345,
         18446744073709551615,
