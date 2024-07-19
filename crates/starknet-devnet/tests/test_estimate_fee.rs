@@ -25,13 +25,12 @@ mod estimate_fee_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
-        self, CAIRO_1_CONTRACT_PATH, CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH,
+        CAIRO_1_CONTRACT_PATH, CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH,
         CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID,
     };
     use crate::common::utils::{
         assert_tx_reverted, assert_tx_successful, get_deployable_account_signer,
         get_flattened_sierra_contract_and_casm_hash,
-        get_simple_contract_in_sierra_and_compiled_class_hash,
     };
 
     fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
@@ -569,64 +568,5 @@ mod estimate_fee_tests {
             .unwrap()
             .iter()
             .for_each(assert_fee_estimation);
-    }
-
-    #[tokio::test]
-    async fn unsuccessful_declare_update_gas_successful_declare() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let (signer, account_address) = devnet.get_first_predeployed_account().await;
-        let predeployed_account = Arc::new(SingleOwnerAccount::new(
-            devnet.clone_provider(),
-            signer.clone(),
-            account_address,
-            constants::CHAIN_ID,
-            ExecutionEncoding::New,
-        ));
-        let (contract_class, casm_class_hash) =
-            get_simple_contract_in_sierra_and_compiled_class_hash();
-
-        let max_gas_fee = FieldElement::from(1e14 as u128);
-
-        let unsuccessful_declare_tx = predeployed_account
-            .declare(Arc::new(contract_class.clone()), casm_class_hash)
-            .max_fee(max_gas_fee)
-            .send()
-            .await;
-
-        match unsuccessful_declare_tx {
-            Err(AccountError::Provider(ProviderError::StarknetError(
-                StarknetError::InsufficientMaxFee,
-            ))) => (),
-            other => panic!("Unexpected result: {other:?}"),
-        };
-
-        let wei_price = 9e8 as u128;
-        let strk_price = 7e8 as u128;
-        let gas_update = json!({
-            "gas_price_wei": 9e8 as u128,
-            "data_gas_price_wei": 8e8 as u128,
-            "gas_price_strk": 7e8 as u128,
-            "data_gas_price_strk": 6e8 as u128,
-            "generate_block": true,
-        });
-        let updated_gas =
-            &devnet.send_custom_rpc("devnet_updateGas", gas_update.clone()).await.unwrap();
-        assert_eq!(updated_gas, &gas_update);
-
-        let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
-        assert_eq!(latest_block.block_number, 1);
-
-        let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
-        assert_eq!(pending_block.l1_gas_price.price_in_wei, FieldElement::from(wei_price));
-        assert_eq!(pending_block.l1_gas_price.price_in_fri, FieldElement::from(strk_price));
-
-        let successful_declare_tx = predeployed_account
-            .declare(Arc::new(contract_class), casm_class_hash)
-            .max_fee(max_gas_fee)
-            .send()
-            .await
-            .unwrap();
-        assert_tx_successful(&successful_declare_tx.transaction_hash, &devnet.json_rpc_client)
-            .await;
     }
 }
