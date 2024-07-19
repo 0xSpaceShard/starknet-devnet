@@ -34,7 +34,7 @@ mod gas_update_tests {
             get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH);
 
         let max_fee = FieldElement::ZERO;
-        let nonce = FieldElement::from_hex_be("0x0").unwrap();
+        let nonce = FieldElement::ZERO;
 
         let signature = account
             .declare(Arc::new(flattened_contract_artifact.clone()), casm_hash)
