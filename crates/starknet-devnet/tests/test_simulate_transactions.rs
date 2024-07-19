@@ -313,10 +313,10 @@ mod simulation_tests {
         );
 
         let gas_update = json!({
-            "gas_price_wei": 9 * 1e18 as u128,
-            "data_gas_price_wei": 8 * 1e18 as u128,
-            "gas_price_strk": 7 * 1e18 as u128,
-            "data_gas_price_strk": 6 * 1e18 as u128,
+            "gas_price_wei": 9e18 as u128,
+            "data_gas_price_wei": 8e18 as u128,
+            "gas_price_strk": 7e18 as u128,
+            "data_gas_price_strk": 6e18 as u128,
             "generate_block": true,
         });
         let updated_gas =
