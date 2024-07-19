@@ -2,26 +2,25 @@ use std::collections::HashMap;
 
 use lazy_static::lazy_static;
 lazy_static! {
-    static ref MAPPING_HTTP_URIS_TO_RPC_METHODS: HashMap<&'static str, &'static str> =
-        HashMap::from([
-            ("/dump", "devnet_dump"),
-            ("/load", "devnet_load"),
-            ("/set_time", "devnet_setTime"),
-            ("/increase_time", "devnet_increaseTime"),
-            ("/create_block", "devnet_createBlock"),
-            ("/abort_blocks", "devnet_abortBlocks"),
-            ("/restart", "devnet_restart"),
-            ("/mint", "devnet_mint"),
-            ("/postman/load_l1_messaging_contract", "devnet_postmanLoad"),
-            ("/postman/flush", "devnet_postmanFlush"),
-            ("/postman/send_message_to_l2", "devnet_postmanSendMessageToL2"),
-            ("/postman/consume_message_from_l2", "devnet_postmanConsumeMessageFromL2"),
-            ("/predeployed_accounts", "devnet_getPredeployedAccounts"),
-            ("/account_balance", "devnet_getAccountBalance"),
-            ("/config", "devnet_getConfig"),
-        ]);
-    static ref MAPPING_RPC_METHODS_TO_HTTP_URIS: HashMap<&'static str, &'static str> =
-        MAPPING_HTTP_URIS_TO_RPC_METHODS.iter().map(|(k, v)| (*v, *k)).collect();
+    static ref HTTP_URI_TO_RPC_METHOD: HashMap<&'static str, &'static str> = HashMap::from([
+        ("/dump", "devnet_dump"),
+        ("/load", "devnet_load"),
+        ("/set_time", "devnet_setTime"),
+        ("/increase_time", "devnet_increaseTime"),
+        ("/create_block", "devnet_createBlock"),
+        ("/abort_blocks", "devnet_abortBlocks"),
+        ("/restart", "devnet_restart"),
+        ("/mint", "devnet_mint"),
+        ("/postman/load_l1_messaging_contract", "devnet_postmanLoad"),
+        ("/postman/flush", "devnet_postmanFlush"),
+        ("/postman/send_message_to_l2", "devnet_postmanSendMessageToL2"),
+        ("/postman/consume_message_from_l2", "devnet_postmanConsumeMessageFromL2"),
+        ("/predeployed_accounts", "devnet_getPredeployedAccounts"),
+        ("/account_balance", "devnet_getAccountBalance"),
+        ("/config", "devnet_getConfig"),
+    ]);
+    static ref RPC_METHOD_TO_HTTP_URI: HashMap<&'static str, &'static str> =
+        HTTP_URI_TO_RPC_METHOD.iter().map(|(k, v)| (*v, *k)).collect();
     pub static ref DEFAULT_RESTRICTED_JSON_RPC_METHODS: Vec<&'static str> = vec![
         "devnet_mint",
         "devnet_restart",
@@ -34,7 +33,7 @@ lazy_static! {
     static ref DEFAULT_RESTRICTED_HTTP_URIS: Vec<&'static str> =
         DEFAULT_RESTRICTED_JSON_RPC_METHODS
             .iter()
-            .filter_map(|method| MAPPING_RPC_METHODS_TO_HTTP_URIS.get(method))
+            .filter_map(|method| RPC_METHOD_TO_HTTP_URI.get(method))
             .copied()
             .collect();
 }
@@ -47,7 +46,7 @@ pub(crate) fn is_json_rpc_method_restricted(
         return true;
     }
 
-    match MAPPING_RPC_METHODS_TO_HTTP_URIS.get(json_rpc_method) {
+    match RPC_METHOD_TO_HTTP_URI.get(json_rpc_method) {
         Some(http_uri) => restricted_methods.contains(http_uri),
         None => false,
     }
@@ -58,7 +57,7 @@ pub(crate) fn is_uri_path_restricted(uri_path: &str, restricted_uris: &[&str]) -
         return true;
     }
 
-    match MAPPING_HTTP_URIS_TO_RPC_METHODS.get(uri_path) {
+    match HTTP_URI_TO_RPC_METHOD.get(uri_path) {
         Some(json_rpc_method) => restricted_uris.contains(json_rpc_method),
         None => false,
     }
