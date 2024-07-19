@@ -30,12 +30,6 @@ lazy_static! {
         "devnet_autoImpersonate",
         "devnet_getPredeployedAccounts"
     ];
-    static ref DEFAULT_RESTRICTED_HTTP_URIS: Vec<&'static str> =
-        DEFAULT_RESTRICTED_JSON_RPC_METHODS
-            .iter()
-            .filter_map(|method| RPC_METHOD_TO_HTTP_URI.get(method))
-            .copied()
-            .collect();
 }
 
 pub(crate) fn is_json_rpc_method_restricted(
@@ -65,8 +59,20 @@ pub(crate) fn is_uri_path_restricted(uri_path: &str, restricted_uris: &[&str]) -
 
 #[cfg(test)]
 mod tests {
-    use super::{DEFAULT_RESTRICTED_HTTP_URIS, DEFAULT_RESTRICTED_JSON_RPC_METHODS};
-    use crate::restrictive_methods::{is_json_rpc_method_restricted, is_uri_path_restricted};
+    use lazy_static::lazy_static;
+
+    use super::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
+    use crate::restrictive_methods::{
+        is_json_rpc_method_restricted, is_uri_path_restricted, RPC_METHOD_TO_HTTP_URI,
+    };
+    lazy_static! {
+        static ref DEFAULT_RESTRICTED_HTTP_URIS: Vec<&'static str> =
+            DEFAULT_RESTRICTED_JSON_RPC_METHODS
+                .iter()
+                .filter_map(|method| RPC_METHOD_TO_HTTP_URI.get(method))
+                .copied()
+                .collect();
+    }
     #[test]
     fn test_provided_method_is_restricted() {
         assert_is_restricted("devnet_mint", DEFAULT_RESTRICTED_HTTP_URIS.as_slice());
