@@ -43,12 +43,13 @@ case "$action" in
             echo "Cache already exists."
             exit 0
         fi
-        tar czvf "$cache_file".tmp ${cached_dirs[@]} # Create a temporary cache file for atomicity
-        mv "$cache_file".tmp "$cache_file"
+        tmpfile="$(mktemp -p $cache_base_dir)"
+        tar czvf "$tmpfile" ${cached_dirs[@]} # This is to handle race condition. One runner might be loading cache while another isn't done saving it. Or multple runners might be saving cache at the same time.
+        mv "$tmpfile" "$cache_file"
         ;;
     "cleanup")
         echo "Cleaning up cache..."
-        rm -f "$cache_base_dir"/*.tmp # Remove temporary cache files if they are leftover
+        find "$cache_base_dir" -amin +30 -not -name '*.gz' -exec rm {} \; # Remove temporary cache files if they are leftover (older than 30 minutes, for race condition)
         find "$cache_base_dir" -atime "+$cache_cleanup_interval" -name '*.gz' -exec rm {} \; # Remove nonactive cache files
         exit 0
         ;;
