@@ -1,6 +1,6 @@
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::estimate_message_fee::GasUpdate;
+use starknet_types::rpc::gas_update::GasUpdate;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction,

@@ -19,8 +19,9 @@ use starknet_types::felt::Felt;
 use starknet_types::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::block::{Block, PendingBlock};
 use starknet_types::rpc::estimate_message_fee::{
-    EstimateMessageFeeRequestWrapper, FeeEstimateWrapper, GasUpdate,
+    EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
+use starknet_types::rpc::gas_update::GasUpdate;
 use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{

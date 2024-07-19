@@ -1,4 +1,3 @@
-use std::num::NonZeroU128;
 use std::sync::Arc;
 
 use blockifier::transaction::transactions::L1HandlerTransaction;
@@ -14,17 +13,6 @@ use crate::error::DevnetResult;
 use crate::felt::Felt;
 use crate::rpc::eth_address::EthAddressWrapper;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
-
-// TODO: maybe move this to new file?
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct GasUpdate {
-    pub gas_price_wei: NonZeroU128,
-    pub data_gas_price_wei: NonZeroU128,
-    pub gas_price_strk: NonZeroU128,
-    pub data_gas_price_strk: NonZeroU128,
-    pub generate_block: Option<bool>,
-}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

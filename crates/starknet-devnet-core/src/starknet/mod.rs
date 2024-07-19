@@ -34,7 +34,8 @@ use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{
     Block, BlockHeader, BlockResult, PendingBlock, PendingBlockHeader,
 };
-use starknet_types::rpc::estimate_message_fee::{FeeEstimateWrapper, GasUpdate};
+use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
+use starknet_types::rpc::gas_update::GasUpdate;
 use starknet_types::rpc::state::{
     PendingStateUpdate, StateUpdate, StateUpdateResult, ThinStateDiff,
 };

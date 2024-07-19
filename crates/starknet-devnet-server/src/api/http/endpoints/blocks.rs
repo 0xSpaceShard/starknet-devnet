@@ -1,6 +1,6 @@
 use axum::extract::State;
 use axum::Json;
-use starknet_types::rpc::estimate_message_fee::GasUpdate;
+use starknet_types::rpc::gas_update::GasUpdate;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{AbortedBlocks, AbortingBlocks, CreatedBlock};
