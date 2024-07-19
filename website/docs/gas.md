@@ -2,7 +2,7 @@
 
 The gas fees update endpoint allows users to modify the current gas prices on a running devnet. This feature is particularly useful for testing purposes and for adjustments needed after forking to align with the forked network's gas prices.
 
-JSON-RPC Request
+## JSON-RPC Request
 The following JSON-RPC request can be used to update gas prices:
 
 ```
@@ -20,7 +20,7 @@ JSON-RPC
 }
 ```
 
-Response
+## Response
 The expected response from the server will mirror the request parameters, confirming the updated gas prices:
 
 ```
