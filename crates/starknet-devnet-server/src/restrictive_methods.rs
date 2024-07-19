@@ -23,6 +23,7 @@ lazy_static! {
         HTTP_URI_TO_RPC_METHOD.iter().map(|(k, v)| (*v, *k)).collect();
     pub static ref DEFAULT_RESTRICTED_JSON_RPC_METHODS: Vec<&'static str> = vec![
         "devnet_mint",
+        "devnet_load",
         "devnet_restart",
         "devnet_createBlock",
         "devnet_abortBlocks",

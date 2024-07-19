@@ -7,6 +7,7 @@ The --restrictive-mode argument enables a restrictive mode for Devnet, allowing 
 When no methods are specified, the following default methods will be restricted and their HTTP endpoints counterparts (if any):
 
 - devnet_mint
+- devnet_load
 - devnet_restart
 - devnet_createBlock
 - devnet_abortBlocks
