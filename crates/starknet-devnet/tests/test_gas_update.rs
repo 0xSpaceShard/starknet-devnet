@@ -18,6 +18,10 @@ mod gas_update_tests {
         to_num_as_hex,
     };
 
+    /// Test scenario for gas update involving simulateTransactions:
+    /// 1. Execute simulateTransactions with a declare transaction and check gas fees.
+    /// 2. Update the gas values.
+    /// 3. Execute simulateTransactions again and check gas fees.
     async fn update_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: &str) {
         // get account
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
