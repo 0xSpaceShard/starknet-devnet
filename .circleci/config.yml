@@ -43,9 +43,6 @@ executors:
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
   build-and-test:
-    parameters:
-      cargo_cache_key:
-        type: string
     machine: true
     resource_class: spaceshard/ax41
     steps:
@@ -167,8 +164,7 @@ jobs:
 workflows:
   build-test-maybe-publish:
     jobs:
-      - build-and-test:
-          cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
+      - build-and-test
       - binary-build:
           <<: *on_main
           matrix:
