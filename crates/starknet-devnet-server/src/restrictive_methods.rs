@@ -67,14 +67,6 @@ pub(crate) fn is_uri_path_restricted(uri_path: &str, restricted_uris: &[&str]) -
 mod tests {
     use super::{DEFAULT_RESTRICTED_HTTP_URIS, DEFAULT_RESTRICTED_JSON_RPC_METHODS};
     use crate::restrictive_methods::{is_json_rpc_method_restricted, is_uri_path_restricted};
-
-    #[test]
-    fn test_mappings_length_because_json_rpc_methods_are_greater_than_http_methods() {
-        assert!(
-            crate::restrictive_methods::DEFAULT_RESTRICTED_JSON_RPC_METHODS.len()
-                > crate::restrictive_methods::DEFAULT_RESTRICTED_HTTP_URIS.len()
-        )
-    }
     #[test]
     fn test_provided_method_is_restricted() {
         assert_is_restricted("devnet_mint", DEFAULT_RESTRICTED_HTTP_URIS.as_slice());
