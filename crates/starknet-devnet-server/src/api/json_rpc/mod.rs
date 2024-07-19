@@ -124,14 +124,7 @@ impl RpcHandler for JsonRpcHandler {
         match serde_json::from_value::<Self::Request>(deserializable_call) {
             Ok(req) => {
                 if let Some(restricted_methods) = &self.server_config.restricted_methods {
-                    if is_json_rpc_method_restricted(
-                        &method,
-                        restricted_methods
-                            .iter()
-                            .map(|x| x.as_str())
-                            .collect::<Vec<&str>>()
-                            .as_slice(),
-                    ) {
+                    if is_json_rpc_method_restricted(&method, restricted_methods) {
                         return RpcResponse::new(
                             id,
                             RpcError::new(crate::rpc_core::error::ErrorCode::MethodForbidden),

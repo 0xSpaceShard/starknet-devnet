@@ -2,42 +2,42 @@ use std::collections::HashMap;
 
 use lazy_static::lazy_static;
 lazy_static! {
-    static ref HTTP_URI_TO_RPC_METHOD: HashMap<&'static str, &'static str> = HashMap::from([
-        ("/dump", "devnet_dump"),
-        ("/load", "devnet_load"),
-        ("/set_time", "devnet_setTime"),
-        ("/increase_time", "devnet_increaseTime"),
-        ("/create_block", "devnet_createBlock"),
-        ("/abort_blocks", "devnet_abortBlocks"),
-        ("/restart", "devnet_restart"),
-        ("/mint", "devnet_mint"),
-        ("/postman/load_l1_messaging_contract", "devnet_postmanLoad"),
-        ("/postman/flush", "devnet_postmanFlush"),
-        ("/postman/send_message_to_l2", "devnet_postmanSendMessageToL2"),
-        ("/postman/consume_message_from_l2", "devnet_postmanConsumeMessageFromL2"),
-        ("/predeployed_accounts", "devnet_getPredeployedAccounts"),
-        ("/account_balance", "devnet_getAccountBalance"),
-        ("/config", "devnet_getConfig"),
+    static ref HTTP_URI_TO_RPC_METHOD: HashMap<&'static str, String> = HashMap::from([
+        ("/dump", "devnet_dump".into()),
+        ("/load", "devnet_load".into()),
+        ("/set_time", "devnet_setTime".into()),
+        ("/increase_time", "devnet_increaseTime".into()),
+        ("/create_block", "devnet_createBlock".into()),
+        ("/abort_blocks", "devnet_abortBlocks".into()),
+        ("/restart", "devnet_restart".into()),
+        ("/mint", "devnet_mint".into()),
+        ("/postman/load_l1_messaging_contract", "devnet_postmanLoad".into()),
+        ("/postman/flush", "devnet_postmanFlush".into()),
+        ("/postman/send_message_to_l2", "devnet_postmanSendMessageToL2".into()),
+        ("/postman/consume_message_from_l2", "devnet_postmanConsumeMessageFromL2".into()),
+        ("/predeployed_accounts", "devnet_getPredeployedAccounts".into()),
+        ("/account_balance", "devnet_getAccountBalance".into()),
+        ("/config", "devnet_getConfig".into()),
     ]);
-    static ref RPC_METHOD_TO_HTTP_URI: HashMap<&'static str, &'static str> =
-        HTTP_URI_TO_RPC_METHOD.iter().map(|(k, v)| (*v, *k)).collect();
-    pub static ref DEFAULT_RESTRICTED_JSON_RPC_METHODS: Vec<&'static str> = vec![
-        "devnet_mint",
-        "devnet_load",
-        "devnet_restart",
-        "devnet_createBlock",
-        "devnet_abortBlocks",
-        "devnet_impersonateAccount",
-        "devnet_autoImpersonate",
-        "devnet_getPredeployedAccounts"
+    static ref RPC_METHOD_TO_HTTP_URI: HashMap<String, String> =
+        HTTP_URI_TO_RPC_METHOD.iter().map(|(k, v)| (v.to_string(), String::from(*k))).collect();
+    pub static ref DEFAULT_RESTRICTED_JSON_RPC_METHODS: Vec<String> = vec![
+        "devnet_mint".into(),
+        "devnet_load".into(),
+        "devnet_restart".into(),
+        "devnet_createBlock".into(),
+        "devnet_abortBlocks".into(),
+        "devnet_impersonateAccount".into(),
+        "devnet_autoImpersonate".into(),
+        "devnet_getPredeployedAccounts".into()
     ];
 }
 
 pub(crate) fn is_json_rpc_method_restricted(
-    json_rpc_method: &str,
-    restricted_methods: &[&str],
+    json_rpc_method: &String,
+    restricted_methods: &Vec<String>,
 ) -> bool {
-    if restricted_methods.contains(&json_rpc_method) {
+    if restricted_methods.contains(json_rpc_method) {
         return true;
     }
 
@@ -47,8 +47,8 @@ pub(crate) fn is_json_rpc_method_restricted(
     }
 }
 
-pub(crate) fn is_uri_path_restricted(uri_path: &str, restricted_uris: &[&str]) -> bool {
-    if restricted_uris.contains(&uri_path) {
+pub(crate) fn is_uri_path_restricted(uri_path: &str, restricted_uris: &Vec<String>) -> bool {
+    if restricted_uris.contains(&uri_path.to_string()) {
         return true;
     }
 
@@ -67,51 +67,47 @@ mod tests {
         is_json_rpc_method_restricted, is_uri_path_restricted, RPC_METHOD_TO_HTTP_URI,
     };
     lazy_static! {
-        static ref DEFAULT_RESTRICTED_HTTP_URIS: Vec<&'static str> =
-            DEFAULT_RESTRICTED_JSON_RPC_METHODS
-                .iter()
-                .filter_map(|method| RPC_METHOD_TO_HTTP_URI.get(method))
-                .copied()
-                .collect();
+        static ref DEFAULT_RESTRICTED_HTTP_URIS: Vec<String> = DEFAULT_RESTRICTED_JSON_RPC_METHODS
+            .iter()
+            .filter_map(|method| RPC_METHOD_TO_HTTP_URI.get(method.as_str()))
+            .map(|uri| uri.to_string())
+            .collect();
     }
     #[test]
     fn test_provided_method_is_restricted() {
-        assert_is_restricted("devnet_mint", DEFAULT_RESTRICTED_HTTP_URIS.as_slice());
-        assert_is_restricted("/mint", DEFAULT_RESTRICTED_HTTP_URIS.as_slice());
-        assert_is_restricted("devnet_mint", DEFAULT_RESTRICTED_JSON_RPC_METHODS.as_slice());
-        assert_is_restricted("/mint", DEFAULT_RESTRICTED_JSON_RPC_METHODS.as_slice());
+        assert_is_restricted("devnet_mint", &DEFAULT_RESTRICTED_HTTP_URIS);
+        assert_is_restricted("/mint", &DEFAULT_RESTRICTED_HTTP_URIS);
+        assert_is_restricted("devnet_mint", &DEFAULT_RESTRICTED_JSON_RPC_METHODS);
+        assert_is_restricted("/mint", &DEFAULT_RESTRICTED_JSON_RPC_METHODS);
+        assert_is_restricted("devnet_impersonateAccount", &DEFAULT_RESTRICTED_JSON_RPC_METHODS);
         assert_is_restricted(
-            "devnet_impersonateAccount",
-            DEFAULT_RESTRICTED_JSON_RPC_METHODS.as_slice(),
+            "devnet_mint",
+            &(["/mint", "dump", "devnet_mint"].iter().map(|s| s.to_string()).collect()),
         );
-        assert_is_restricted("devnet_mint", &["/mint", "dump", "devnet_mint"]);
     }
 
     #[test]
     fn test_provided_method_is_not_restricted() {
-        assert_is_not_restricted(
-            "devnet_impersonateAccount",
-            DEFAULT_RESTRICTED_HTTP_URIS.as_slice(),
-        );
-        assert_is_not_restricted("devnet_config", DEFAULT_RESTRICTED_JSON_RPC_METHODS.as_slice());
+        assert_is_not_restricted("devnet_impersonateAccount", &DEFAULT_RESTRICTED_HTTP_URIS);
+        assert_is_not_restricted("devnet_config", &DEFAULT_RESTRICTED_JSON_RPC_METHODS);
 
-        assert_is_not_restricted("devnet_config", DEFAULT_RESTRICTED_HTTP_URIS.as_slice());
-        assert_is_not_restricted("/config", DEFAULT_RESTRICTED_JSON_RPC_METHODS.as_slice());
-        assert_is_not_restricted("/config", DEFAULT_RESTRICTED_HTTP_URIS.as_slice());
+        assert_is_not_restricted("devnet_config", &DEFAULT_RESTRICTED_HTTP_URIS);
+        assert_is_not_restricted("/config", &DEFAULT_RESTRICTED_JSON_RPC_METHODS);
+        assert_is_not_restricted("/config", &DEFAULT_RESTRICTED_HTTP_URIS);
     }
 
-    fn assert_is_restricted(method: &str, restricted_methods: &[&str]) {
+    fn assert_is_restricted(method: &str, restricted_methods: &Vec<String>) {
         if method.contains('/') {
-            assert!(is_uri_path_restricted(method, restricted_methods));
+            assert!(is_uri_path_restricted(&method.to_string(), restricted_methods));
         } else {
-            assert!(is_json_rpc_method_restricted(method, restricted_methods));
+            assert!(is_json_rpc_method_restricted(&method.to_string(), restricted_methods));
         }
     }
-    fn assert_is_not_restricted(method: &str, restricted_methods: &[&str]) {
+    fn assert_is_not_restricted(method: &str, restricted_methods: &Vec<String>) {
         if method.contains('/') {
-            assert!(!is_uri_path_restricted(method, restricted_methods));
+            assert!(!is_uri_path_restricted(&method.to_string(), restricted_methods));
         } else {
-            assert!(!is_json_rpc_method_restricted(method, restricted_methods));
+            assert!(!is_json_rpc_method_restricted(&method.to_string(), restricted_methods));
         }
     }
 }

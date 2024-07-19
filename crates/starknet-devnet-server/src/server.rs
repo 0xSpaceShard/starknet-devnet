@@ -165,10 +165,7 @@ async fn restrictive_middleware(
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     if let Some(restricted_paths) = &server_config.restricted_methods {
-        if is_uri_path_restricted(
-            request.uri().path(),
-            restricted_paths.iter().map(|x| x.as_str()).collect::<Vec<&str>>().as_slice(),
-        ) {
+        if is_uri_path_restricted(request.uri().path(), restricted_paths) {
             return Err((StatusCode::FORBIDDEN, "Devnet is in restrictive mode".to_string()));
         }
     }
