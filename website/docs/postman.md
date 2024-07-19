@@ -30,7 +30,7 @@ JSON-RPC
 
 Loads a `MockStarknetMessaging` contract. The `address` parameter is optional; if provided, the `MockStarknetMessaging` contract will be fetched from that address, otherwise a new one will be deployed.
 
-`networkUrl` is the URL of the JSON-RPC API of the L1 node you've run locally or that already exists; possibilities include, and are not limited to:
+`network_url` is the URL of the JSON-RPC API of the L1 node you've run locally or that already exists; possibilities include, and are not limited to:
 
 - [**Anvil**](https://github.com/foundry-rs/foundry/tree/master/crates/anvil)
 - [**Sepolia testnet**](https://sepolia.etherscan.io/)
@@ -154,7 +154,7 @@ Response:
 ### L2->L1
 
 Sending mock transactions from L2 to L1.
-Deployed L2 contract address `l2_contract_address` and `l1_contract_address` must be valid.
+Deployed L2 contract address `from_address` and `to_address` must be valid.
 
 A running L1 node is required for this operation.
 
