@@ -607,14 +607,14 @@ mod estimate_fee_tests {
             "data_gas_price_wei": 8e8 as u128,
             "gas_price_strk": 7e8 as u128,
             "data_gas_price_strk": 6e8 as u128,
-            "generate_block": false,
+            "generate_block": true,
         });
         let updated_gas =
             &devnet.send_custom_rpc("devnet_updateGas", gas_update.clone()).await.unwrap();
         assert_eq!(updated_gas, &gas_update);
 
         let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
-        assert_eq!(latest_block.block_number, 0);
+        assert_eq!(latest_block.block_number, 1);
 
         let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
         assert_eq!(pending_block.l1_gas_price.price_in_wei, FieldElement::from(wei_price));

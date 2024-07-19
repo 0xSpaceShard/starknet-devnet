@@ -1,5 +1,4 @@
 use std::num::NonZeroU128;
-use std::str::FromStr;
 use std::sync::Arc;
 
 use blockifier::block::BlockInfo;
@@ -62,7 +61,7 @@ use self::transaction_trace::create_trace;
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
-    self, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
+    CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
     DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
     ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS,
     STRK_ERC20_NAME, STRK_ERC20_SYMBOL,
@@ -107,6 +106,7 @@ pub struct Starknet {
     pub config: StarknetConfig,
     pub pending_block_timestamp_shift: i64,
     pub next_block_timestamp: Option<u64>,
+    pub next_block_gas_update: Option<GasUpdate>,
     pub(crate) messaging: MessagingBroker,
     pub(crate) dump_events: Vec<DumpEvent>,
     rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
@@ -135,6 +135,7 @@ impl Default for Starknet {
             config: Default::default(),
             pending_block_timestamp_shift: 0,
             next_block_timestamp: None,
+            next_block_gas_update: None,
             messaging: Default::default(),
             dump_events: Default::default(),
             rpc_contract_classes: Default::default(),
@@ -234,6 +235,7 @@ impl Starknet {
             config: config.clone(),
             pending_block_timestamp_shift: 0,
             next_block_timestamp: None,
+            next_block_gas_update: None,
             messaging: Default::default(),
             dump_events: Default::default(),
             rpc_contract_classes,
@@ -281,6 +283,24 @@ impl Starknet {
     // Initialize values for new pending block
     pub(crate) fn generate_pending_block(&mut self) -> DevnetResult<()> {
         Self::advance_block_context_block_number(&mut self.block_context);
+
+        match &self.next_block_gas_update {
+            Some(gas_prices) => {
+                Self::update_block_context_gas(&mut self.block_context, gas_prices);
+
+                // Pending block header gas data needs to be updated
+                self.blocks.pending_block.header.l1_gas_price.price_in_wei =
+                    GasPrice(u128::from(gas_prices.gas_price_wei));
+                self.blocks.pending_block.header.l1_data_gas_price.price_in_wei =
+                    GasPrice(u128::from(gas_prices.data_gas_price_wei));
+                self.blocks.pending_block.header.l1_gas_price.price_in_fri =
+                    GasPrice(u128::from(gas_prices.gas_price_strk));
+                self.blocks.pending_block.header.l1_data_gas_price.price_in_fri =
+                    GasPrice(u128::from(gas_prices.data_gas_price_strk));
+            }
+            None => {}
+        }
+
         self.restart_pending_block()?;
 
         Ok(())
@@ -500,6 +520,21 @@ impl Starknet {
     fn advance_block_context_block_number(block_context: &mut BlockContext) {
         let mut block_info = block_context.block_info().clone();
         block_info.block_number = block_info.block_number.next();
+        // TODO: update block_context via preferred method in the documentation
+        *block_context = BlockContext::new_unchecked(
+            &block_info,
+            block_context.chain_info(),
+            &get_versioned_constants(),
+        );
+    }
+
+    fn update_block_context_gas(block_context: &mut BlockContext, gas_update: &GasUpdate) {
+        let mut block_info = block_context.block_info().clone();
+        block_info.gas_prices.eth_l1_gas_price = gas_update.gas_price_wei;
+        block_info.gas_prices.eth_l1_data_gas_price = gas_update.data_gas_price_wei;
+        block_info.gas_prices.strk_l1_gas_price = gas_update.gas_price_strk;
+        block_info.gas_prices.strk_l1_data_gas_price = gas_update.data_gas_price_strk;
+
         // TODO: update block_context via preferred method in the documentation
         *block_context = BlockContext::new_unchecked(
             &block_info,
@@ -794,45 +829,18 @@ impl Starknet {
         }
     }
 
-    pub fn update_gas(&mut self, gas_prices: GasUpdate) -> DevnetResult<GasUpdate> {
-        // BlockContext needs to be reinitialized
-        self.block_context = Starknet::init_block_context(
-            gas_prices.gas_price_wei,
-            gas_prices.gas_price_strk,
-            gas_prices.data_gas_price_wei,
-            gas_prices.data_gas_price_strk,
-            constants::ETH_ERC20_CONTRACT_ADDRESS,
-            constants::STRK_ERC20_CONTRACT_ADDRESS,
-            ChainId::from_str(self.block_context.chain_info().chain_id.0.as_str())
-                .expect("Chain id not supported"),
-            self.block_context.block_info().block_number.0,
-        );
-
-        // Pending block header gas data needs to be updated
-        self.blocks.pending_block.header.l1_gas_price.price_in_wei =
-            GasPrice(u128::from(gas_prices.gas_price_wei));
-        self.blocks.pending_block.header.l1_data_gas_price.price_in_wei =
-            GasPrice(u128::from(gas_prices.data_gas_price_wei));
-        self.blocks.pending_block.header.l1_gas_price.price_in_fri =
-            GasPrice(u128::from(gas_prices.gas_price_strk));
-        self.blocks.pending_block.header.l1_data_gas_price.price_in_fri =
-            GasPrice(u128::from(gas_prices.data_gas_price_strk));
+    pub fn update_next_block_gas(&mut self, gas_prices: GasUpdate) -> DevnetResult<GasUpdate> {
+        self.next_block_gas_update = Some(gas_prices.clone());
 
         let generate_block = gas_prices.generate_block.unwrap_or(false);
         if generate_block {
-            self.create_block()?;
-            self.handle_dump_event(DumpEvent::CreateBlock)?;
+            self.create_block_dump_event(None)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?
         }
 
-        let gas_prices = &self.block_context.block_info().gas_prices;
+        let gas_prices = self.next_block_gas_update.as_ref().expect("Gas update failed.");
 
-        Ok(GasUpdate {
-            gas_price_wei: gas_prices.eth_l1_gas_price,
-            data_gas_price_wei: gas_prices.eth_l1_data_gas_price,
-            gas_price_strk: gas_prices.strk_l1_gas_price,
-            data_gas_price_strk: gas_prices.strk_l1_data_gas_price,
-            generate_block: Some(generate_block),
-        })
+        Ok(gas_prices.clone())
     }
 
     pub fn abort_blocks(&mut self, mut starting_block_id: BlockId) -> DevnetResult<Vec<Felt>> {

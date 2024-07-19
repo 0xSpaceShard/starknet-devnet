@@ -16,7 +16,7 @@ use crate::rpc::eth_address::EthAddressWrapper;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
 // TODO: maybe move this to new file?
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct GasUpdate {
     pub gas_price_wei: NonZeroU128,
