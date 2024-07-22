@@ -176,6 +176,7 @@ mod gas_update_tests {
     async fn update_gas() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
+        // Mainnet gas update test scenario
         update_gas_scenario(devnet, "0x534e5f5345504f4c4941").await;
     }
 
@@ -184,6 +185,7 @@ mod gas_update_tests {
         let cli_args: [&str; 2] = ["--fork-network", INTEGRATION_SEPOLIA_HTTP_URL];
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
+        // Sepolia fork gas update test scenario
         update_gas_scenario(fork_devnet, "0x534e5f494e544547524154494f4e5f5345504f4c4941").await;
     }
 
