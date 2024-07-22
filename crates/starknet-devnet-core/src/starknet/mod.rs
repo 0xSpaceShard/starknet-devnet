@@ -280,26 +280,52 @@ impl Starknet {
         self.predeployed_accounts.get_accounts().to_vec()
     }
 
+    fn update_gas_field(source: Option<NonZeroU128>, target: &mut GasPrice) {
+        if let Some(value) = source {
+            *target = GasPrice(u128::from(value));
+        }
+    }
+
+    fn update_if_none(target: &mut Option<NonZeroU128>, default_value: NonZeroU128) {
+        if target.is_none() {
+            *target = Some(default_value);
+        }
+    }
+
+    fn update_field<T>(source: Option<T>, target: &mut T) {
+        if let Some(value) = source {
+            *target = value;
+        }
+    }
+
     // Update block context
     // Initialize values for new pending block
     pub(crate) fn generate_pending_block(&mut self) -> DevnetResult<()> {
         Self::advance_block_context_block_number(&mut self.block_context);
 
         match &self.next_block_gas_update {
-            Some(gas_prices) => {
+            Some(gas_prices) if gas_prices.is_any_field_set() => {
                 Self::update_block_context_gas(&mut self.block_context, gas_prices);
 
-                // Pending block header gas data needs to be updated
-                self.blocks.pending_block.header.l1_gas_price.price_in_wei =
-                    GasPrice(u128::from(gas_prices.gas_price_wei));
-                self.blocks.pending_block.header.l1_data_gas_price.price_in_wei =
-                    GasPrice(u128::from(gas_prices.data_gas_price_wei));
-                self.blocks.pending_block.header.l1_gas_price.price_in_fri =
-                    GasPrice(u128::from(gas_prices.gas_price_strk));
-                self.blocks.pending_block.header.l1_data_gas_price.price_in_fri =
-                    GasPrice(u128::from(gas_prices.data_gas_price_strk));
+                // Pending block header gas data needs to be updated in case of new prices
+                Self::update_gas_field(
+                    gas_prices.gas_price_wei,
+                    &mut self.blocks.pending_block.header.l1_gas_price.price_in_wei,
+                );
+                Self::update_gas_field(
+                    gas_prices.data_gas_price_wei,
+                    &mut self.blocks.pending_block.header.l1_data_gas_price.price_in_wei,
+                );
+                Self::update_gas_field(
+                    gas_prices.gas_price_strk,
+                    &mut self.blocks.pending_block.header.l1_gas_price.price_in_fri,
+                );
+                Self::update_gas_field(
+                    gas_prices.data_gas_price_strk,
+                    &mut self.blocks.pending_block.header.l1_data_gas_price.price_in_fri,
+                );
             }
-            None => {}
+            _ => {}
         }
 
         self.restart_pending_block()?;
@@ -531,10 +557,17 @@ impl Starknet {
 
     fn update_block_context_gas(block_context: &mut BlockContext, gas_update: &GasUpdate) {
         let mut block_info = block_context.block_info().clone();
-        block_info.gas_prices.eth_l1_gas_price = gas_update.gas_price_wei;
-        block_info.gas_prices.eth_l1_data_gas_price = gas_update.data_gas_price_wei;
-        block_info.gas_prices.strk_l1_gas_price = gas_update.gas_price_strk;
-        block_info.gas_prices.strk_l1_data_gas_price = gas_update.data_gas_price_strk;
+
+        Self::update_field(gas_update.gas_price_wei, &mut block_info.gas_prices.eth_l1_gas_price);
+        Self::update_field(
+            gas_update.data_gas_price_wei,
+            &mut block_info.gas_prices.eth_l1_data_gas_price,
+        );
+        Self::update_field(gas_update.gas_price_strk, &mut block_info.gas_prices.strk_l1_gas_price);
+        Self::update_field(
+            gas_update.data_gas_price_strk,
+            &mut block_info.gas_prices.strk_l1_data_gas_price,
+        );
 
         // TODO: update block_context via preferred method in the documentation
         *block_context = BlockContext::new_unchecked(
@@ -839,7 +872,27 @@ impl Starknet {
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?
         }
 
-        let gas_prices = self.next_block_gas_update.as_ref().expect("Gas update failed.");
+        let gas_prices = self.next_block_gas_update.as_mut().expect("Gas update failed.");
+
+        // Update gas price from pending block header if it's `None`
+        Self::update_if_none(
+            &mut gas_prices.gas_price_wei,
+            NonZeroU128::new(self.blocks.pending_block.header.l1_gas_price.price_in_wei.0).unwrap(),
+        );
+        Self::update_if_none(
+            &mut gas_prices.data_gas_price_wei,
+            NonZeroU128::new(self.blocks.pending_block.header.l1_data_gas_price.price_in_wei.0)
+                .unwrap(),
+        );
+        Self::update_if_none(
+            &mut gas_prices.gas_price_strk,
+            NonZeroU128::new(self.blocks.pending_block.header.l1_gas_price.price_in_fri.0).unwrap(),
+        );
+        Self::update_if_none(
+            &mut gas_prices.data_gas_price_strk,
+            NonZeroU128::new(self.blocks.pending_block.header.l1_data_gas_price.price_in_fri.0)
+                .unwrap(),
+        );
 
         Ok(gas_prices.clone())
     }
