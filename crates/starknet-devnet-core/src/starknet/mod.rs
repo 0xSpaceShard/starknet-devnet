@@ -2,7 +2,6 @@ use std::num::NonZeroU128;
 use std::sync::Arc;
 
 use blockifier::blockifier::block::{BlockInfo, GasPrices};
-use blockifier::bouncer::BouncerConfig;
 use blockifier::context::{BlockContext, ChainInfo, TransactionContext};
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::cached_state::CachedState;
@@ -76,7 +75,7 @@ use crate::state::state_diff::StateDiff;
 use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
-use crate::utils::get_versioned_constants;
+use crate::utils::{custom_bouncer_config, get_versioned_constants};
 
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
@@ -490,7 +489,12 @@ impl Starknet {
             },
         };
 
-        BlockContext::new(block_info, chain_info, get_versioned_constants(), BouncerConfig::max())
+        BlockContext::new(
+            block_info,
+            chain_info,
+            get_versioned_constants(),
+            custom_bouncer_config(),
+        )
     }
 
     /// Update block context block_number with the next one
@@ -504,7 +508,7 @@ impl Starknet {
             block_info,
             block_context.chain_info().clone(),
             get_versioned_constants(),
-            BouncerConfig::max(),
+            custom_bouncer_config(),
         );
     }
 
@@ -520,7 +524,7 @@ impl Starknet {
             block_info,
             block_context.chain_info().clone(),
             get_versioned_constants(),
-            BouncerConfig::max(),
+            custom_bouncer_config(),
         );
     }
 

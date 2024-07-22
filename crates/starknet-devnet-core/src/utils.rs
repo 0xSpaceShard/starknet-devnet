@@ -1,3 +1,4 @@
+use blockifier::bouncer::{BouncerConfig, BouncerWeights};
 use blockifier::versioned_constants::VersionedConstants;
 use serde_json::Value;
 use starknet_rs_core::types::contract::CompiledClass;
@@ -40,6 +41,17 @@ pub(crate) fn get_storage_var_address(
 
 pub(crate) fn get_versioned_constants() -> VersionedConstants {
     VersionedConstants::create_for_testing()
+}
+
+/// Mostly max config; some values based on https://docs.starknet.io/tools/limits-and-triggers/
+pub(crate) fn custom_bouncer_config() -> BouncerConfig {
+    BouncerConfig {
+        block_max_capacity: BouncerWeights {
+            gas: 5_000_000,
+            n_steps: 40_000_000,
+            ..BouncerWeights::max()
+        },
+    }
 }
 
 /// Returns the hash of a compiled class.

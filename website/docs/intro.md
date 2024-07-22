@@ -19,3 +19,7 @@ sidebar_position: 1
 :::
 
 You may now proceed with [running Devnet](./running/install) and checking out the many features listed in the sidebar on the left.
+
+# Limits
+
+As mentioned [here], Starknet currently has a number of limits in place in order to keep the network stable and optimized for the best performance. Devnet uses the limits defined on that page, though some block-level limits might not be defined, so Devnet uses a practically infinite value for them (`usize::MAX`).
