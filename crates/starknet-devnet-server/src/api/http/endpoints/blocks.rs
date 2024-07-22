@@ -1,6 +1,5 @@
 use axum::extract::State;
 use axum::Json;
-use starknet_types::rpc::gas_update::GasUpdate;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{AbortedBlocks, AbortingBlocks, CreatedBlock};
@@ -44,20 +43,4 @@ pub(crate) async fn abort_blocks_impl(
         .map_err(|err| HttpApiError::BlockAbortError { msg: (err.to_string()) })?;
 
     Ok(AbortedBlocks { aborted })
-}
-
-pub async fn update_gas(
-    State(state): State<HttpApiHandler>,
-    Json(data): Json<GasUpdate>,
-) -> HttpApiResult<Json<GasUpdate>> {
-    update_gas_impl(&state.api, data).await.map(Json::from)
-}
-
-pub(crate) async fn update_gas_impl(api: &Api, data: GasUpdate) -> HttpApiResult<GasUpdate> {
-    let mut starknet = api.starknet.write().await;
-    let updated_gas = starknet
-        .update_next_block_gas(data)
-        .map_err(|err| HttpApiError::GasUpdateError { msg: (err.to_string()) })?;
-
-    Ok(updated_gas)
 }

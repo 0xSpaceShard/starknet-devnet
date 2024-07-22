@@ -29,8 +29,6 @@ pub enum HttpApiError {
     BlockIncreaseTimeError { msg: String },
     #[error("Block abortion failed: {msg}")]
     BlockAbortError { msg: String },
-    #[error("Gas update failed: {msg}")]
-    GasUpdateError { msg: String },
     #[error("Could not restart: {msg}")]
     RestartError { msg: String },
     #[error("Messaging error: {msg}")]
@@ -56,9 +54,6 @@ impl IntoResponse for HttpApiError {
             err @ HttpApiError::DumpError { msg: _ } => (StatusCode::BAD_REQUEST, err.to_string()),
             err @ HttpApiError::LoadError(_) => (StatusCode::BAD_REQUEST, err.to_string()),
             err @ HttpApiError::BlockAbortError { msg: _ } => {
-                (StatusCode::BAD_REQUEST, err.to_string())
-            }
-            err @ HttpApiError::GasUpdateError { msg: _ } => {
                 (StatusCode::BAD_REQUEST, err.to_string())
             }
             err @ HttpApiError::ReExecutionError(_) => (StatusCode::BAD_REQUEST, err.to_string()),

@@ -43,7 +43,6 @@ fn http_api_routes(http_api_handler: HttpApiHandler) -> Router {
             post(http::postman::postman_consume_message_from_l2),
         )
         .route("/create_block", post(http::blocks::create_block))
-        .route("/update_gas", post(http::blocks::update_gas))
         .route("/abort_blocks", post(http::blocks::abort_blocks))
         .route("/restart", post(http::restart))
         .route("/set_time", post(http::time::set_time))

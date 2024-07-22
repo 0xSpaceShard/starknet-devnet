@@ -11,7 +11,7 @@ use super::models::{
     DeclareTransactionOutput, DeployAccountTransactionOutput, TransactionHashOutput,
 };
 use super::{DevnetResponse, StarknetResponse};
-use crate::api::http::endpoints::blocks::{abort_blocks_impl, create_block_impl, update_gas_impl};
+use crate::api::http::endpoints::blocks::{abort_blocks_impl, create_block_impl};
 use crate::api::http::endpoints::dump_load::{dump_impl, load_impl};
 use crate::api::http::endpoints::mint_token::mint_impl;
 use crate::api::http::endpoints::postman::{
@@ -162,7 +162,8 @@ impl JsonRpcHandler {
 
     /// devnet_updateGas
     pub async fn update_gas(&self, data: GasUpdate) -> StrictRpcResult {
-        let updated_gas = update_gas_impl(&self.api, data).await.map_err(ApiError::from)?;
+        let updated_gas =
+            self.api.starknet.write().await.update_next_block_gas(data).map_err(ApiError::from)?;
 
         Ok(DevnetResponse::UpdatedGas(updated_gas).into())
     }
