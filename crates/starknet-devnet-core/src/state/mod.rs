@@ -470,17 +470,12 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn apply_state_updates_for_storage_successfully() {
         let mut state = StarknetState::default();
         let (contract_address, storage_key) = dummy_contract_storage_key();
 
         let storage_before = state.get_storage_at(contract_address, storage_key).unwrap();
         assert_eq!(storage_before, Felt::ZERO);
-
-        state
-            .set_class_hash_at(contract_address, starknet_api::core::ClassHash(dummy_felt()))
-            .unwrap();
 
         state.set_storage_at(contract_address, storage_key, dummy_felt()).unwrap();
 
