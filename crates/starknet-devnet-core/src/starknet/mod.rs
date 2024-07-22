@@ -280,7 +280,7 @@ impl Starknet {
         self.predeployed_accounts.get_accounts().to_vec()
     }
 
-    fn update_gas_field(source: Option<NonZeroU128>, target: &mut GasPrice) {
+    fn update_gas_price(source: Option<NonZeroU128>, target: &mut GasPrice) {
         if let Some(value) = source {
             *target = GasPrice(u128::from(value));
         }
@@ -308,19 +308,19 @@ impl Starknet {
                 Self::update_block_context_gas(&mut self.block_context, gas_prices);
 
                 // Pending block header gas data needs to be updated in case of new prices
-                Self::update_gas_field(
+                Self::update_gas_price(
                     gas_prices.gas_price_wei,
                     &mut self.blocks.pending_block.header.l1_gas_price.price_in_wei,
                 );
-                Self::update_gas_field(
+                Self::update_gas_price(
                     gas_prices.data_gas_price_wei,
                     &mut self.blocks.pending_block.header.l1_data_gas_price.price_in_wei,
                 );
-                Self::update_gas_field(
+                Self::update_gas_price(
                     gas_prices.gas_price_strk,
                     &mut self.blocks.pending_block.header.l1_gas_price.price_in_fri,
                 );
-                Self::update_gas_field(
+                Self::update_gas_price(
                     gas_prices.data_gas_price_strk,
                     &mut self.blocks.pending_block.header.l1_data_gas_price.price_in_fri,
                 );
