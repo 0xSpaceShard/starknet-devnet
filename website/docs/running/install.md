@@ -46,7 +46,7 @@ $ starknet-devnet
 If you want to save time and skip project compilation on installation, since Devnet v0.0.5, the Assets section of each [GitHub release](https://github.com/0xSpaceShard/starknet-devnet-rs/releases) contains a set of platform-specific pre-compiled binary executables. Extract and run with:
 
 ```
-$ curl https://github.com/0xSpaceShard/starknet-devnet-rs/releases/download/<VERSION>/<COMPRESSED_ARCHIVE> | tar -xvzf -C <TARGET_DIR>
+$ curl -sSfL https://github.com/0xSpaceShard/starknet-devnet-rs/releases/download/<VERSION>/<COMPRESSED_ARCHIVE> | tar -xvz -C <TARGET_DIR>
 $ <TARGET_DIR>/starknet-devnet
 ```
 
