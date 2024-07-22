@@ -6,7 +6,7 @@ mod gas_update_tests {
     use serde_json::json;
     use starknet_core::constants::DEVNET_DEFAULT_GAS_PRICE;
     use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
-    use starknet_rs_core::types::{FieldElement, StarknetError};
+    use starknet_rs_core::types::{FieldElement, ResourcePrice, StarknetError};
     use starknet_rs_providers::ProviderError;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -196,12 +196,11 @@ mod gas_update_tests {
         let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
         assert_eq!(latest_block.block_number, 1);
         assert_eq!(
-            latest_block.l1_gas_price.price_in_wei,
-            FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE))
-        );
-        assert_eq!(
-            latest_block.l1_gas_price.price_in_fri,
-            FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE))
+            latest_block.l1_gas_price,
+            ResourcePrice {
+                price_in_wei: FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+                price_in_fri: FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+            }
         );
 
         let wei_price_first_update = 9e18 as u128;
@@ -222,35 +221,32 @@ mod gas_update_tests {
 
         let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
         assert_eq!(
-            pending_block.l1_gas_price.price_in_wei,
-            FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE))
-        );
-        assert_eq!(
-            pending_block.l1_gas_price.price_in_fri,
-            FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE))
+            pending_block.l1_gas_price,
+            ResourcePrice {
+                price_in_wei: FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+                price_in_fri: FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+            }
         );
 
         devnet.create_block().await.unwrap();
 
         let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
         assert_eq!(
-            pending_block.l1_gas_price.price_in_wei,
-            FieldElement::from(wei_price_first_update)
-        );
-        assert_eq!(
-            pending_block.l1_gas_price.price_in_fri,
-            FieldElement::from(strk_price_first_update)
+            pending_block.l1_gas_price,
+            ResourcePrice {
+                price_in_wei: FieldElement::from(wei_price_first_update),
+                price_in_fri: FieldElement::from(strk_price_first_update),
+            }
         );
 
         let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
         assert_eq!(latest_block.block_number, 2);
         assert_eq!(
-            latest_block.l1_gas_price.price_in_wei,
-            FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE))
-        );
-        assert_eq!(
-            latest_block.l1_gas_price.price_in_fri,
-            FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE))
+            latest_block.l1_gas_price,
+            ResourcePrice {
+                price_in_wei: FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+                price_in_fri: FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+            }
         );
 
         let wei_price_second_update = 8e18 as u128;
@@ -271,22 +267,20 @@ mod gas_update_tests {
         let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
         assert_eq!(latest_block.block_number, 3);
         assert_eq!(
-            latest_block.l1_gas_price.price_in_wei,
-            FieldElement::from(wei_price_first_update)
-        );
-        assert_eq!(
-            latest_block.l1_gas_price.price_in_fri,
-            FieldElement::from(strk_price_first_update)
+            latest_block.l1_gas_price,
+            ResourcePrice {
+                price_in_wei: FieldElement::from(wei_price_first_update),
+                price_in_fri: FieldElement::from(strk_price_first_update),
+            }
         );
 
         let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
         assert_eq!(
-            pending_block.l1_gas_price.price_in_wei,
-            FieldElement::from(wei_price_second_update)
-        );
-        assert_eq!(
-            pending_block.l1_gas_price.price_in_fri,
-            FieldElement::from(strk_price_second_update)
+            pending_block.l1_gas_price,
+            ResourcePrice {
+                price_in_wei: FieldElement::from(wei_price_second_update),
+                price_in_fri: FieldElement::from(strk_price_second_update),
+            }
         );
     }
 
@@ -336,8 +330,13 @@ mod gas_update_tests {
         assert_eq!(latest_block.block_number, 1);
 
         let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
-        assert_eq!(pending_block.l1_gas_price.price_in_wei, FieldElement::from(wei_price));
-        assert_eq!(pending_block.l1_gas_price.price_in_fri, FieldElement::from(strk_price));
+        assert_eq!(
+            pending_block.l1_gas_price,
+            ResourcePrice {
+                price_in_wei: FieldElement::from(wei_price),
+                price_in_fri: FieldElement::from(strk_price),
+            }
+        );
 
         let successful_declare_tx = predeployed_account
             .declare(Arc::new(contract_class), casm_class_hash)
