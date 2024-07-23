@@ -1,10 +1,10 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp};
 use starknet_api::data_availability::L1DataAvailabilityMode;
-use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag as ImportedBlockTag};
+use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag as ImportedBlockTag, Felt};
 
 use crate::contract_address::ContractAddress;
-use crate::felt::{BlockHash, Felt};
+use crate::felt::BlockHash;
 use crate::rpc::transactions::Transactions;
 pub type GlobalRootHex = Felt;
 
@@ -51,7 +51,7 @@ impl<'de> Deserialize<'de> for BlockId {
             let block_id: BlockHashOrNumber = serde_json::from_value(value)
                 .map_err(|e| serde::de::Error::custom(format!("Invalid block ID: {e}")))?;
             match block_id {
-                BlockHashOrNumber::Hash(hash) => Ok(BlockId(ImportedBlockId::Hash(hash.into()))),
+                BlockHashOrNumber::Hash(hash) => Ok(BlockId(ImportedBlockId::Hash(hash))),
                 BlockHashOrNumber::Number(number) => Ok(BlockId(ImportedBlockId::Number(number))),
             }
         } else {

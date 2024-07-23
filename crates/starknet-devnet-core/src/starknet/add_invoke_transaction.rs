@@ -28,7 +28,7 @@ pub fn add_invoke_transaction(
         });
     }
 
-    let transaction_hash = blockifier_invoke_transaction.tx_hash.0.into();
+    let transaction_hash = blockifier_invoke_transaction.tx_hash.0;
 
     let invoke_transaction = match broadcasted_invoke_transaction {
         BroadcastedInvokeTransaction::V1(ref v1) => {
@@ -70,16 +70,13 @@ mod tests {
     use blockifier::state::state_api::StateReader;
     use nonzero_ext::nonzero;
     use starknet_api::core::Nonce;
-    use starknet_api::hash::StarkFelt;
     use starknet_api::transaction::{Fee, Tip};
-    use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_rs_core::utils::get_selector_from_name;
-    use starknet_rs_ff::FieldElement;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::contract_storage_key::ContractStorageKey;
-    use starknet_types::felt::Felt;
     use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
@@ -99,7 +96,7 @@ mod tests {
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::{
-        cairo_0_account_without_validations, dummy_contract_address, dummy_felt, get_bytes_from_u32,
+        cairo_0_account_without_validations, dummy_contract_address, dummy_felt,
     };
 
     fn test_invoke_transaction_v1(
@@ -112,7 +109,7 @@ mod tests {
         let calldata = vec![
             Felt::from(contract_address), // contract address
             function_selector,            // function selector
-            Felt::from(1),                // calldata len
+            Felt::ONE,                    // calldata len
             param,                        // calldata
         ];
 
@@ -122,7 +119,7 @@ mod tests {
             &vec![],
             Felt::from(nonce),
             &calldata,
-            Felt::from(1),
+            Felt::ONE,
         ))
     }
 
@@ -138,13 +135,13 @@ mod tests {
         let calldata = vec![
             Felt::from(contract_address), // contract address
             function_selector,            // function selector
-            Felt::from(1),                // calldata len
+            Felt::ONE,                    // calldata len
             param,                        // calldata
         ];
 
         BroadcastedInvokeTransaction::V3(BroadcastedInvokeTransactionV3 {
             common: BroadcastedTransactionCommonV3 {
-                version: Felt::from(3),
+                version: Felt::THREE,
                 signature: vec![],
                 nonce: Felt::from(nonce),
                 resource_bounds: ResourceBoundsWrapper::new(l1_gas_amount, 1, l2_gas_amount, 1),
@@ -174,7 +171,7 @@ mod tests {
         );
         match invoke_transaction {
             BroadcastedInvokeTransaction::V3(ref mut v3) => {
-                v3.common.version = (FieldElement::from(3u8) + QUERY_VERSION_OFFSET).into();
+                v3.common.version = Felt::THREE + QUERY_VERSION_OFFSET;
             }
             _ => {
                 panic!("Wrong transaction type");
@@ -354,7 +351,7 @@ mod tests {
         // check storage
         assert_eq!(
             starknet.pending_state.get_storage_at(blockifier_address, storage_key).unwrap(),
-            Felt::from(10).into()
+            Felt::from(10)
         );
 
         let invoke_transaction = test_invoke_transaction_v1(
@@ -373,7 +370,7 @@ mod tests {
         assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(
             starknet.pending_state.get_storage_at(blockifier_address, storage_key).unwrap(),
-            StarkFelt::from_u128(25)
+            Felt::from(25)
         );
     }
 
@@ -385,7 +382,7 @@ mod tests {
             &vec![],
             dummy_felt(),
             &vec![],
-            Felt::from(1),
+            Felt::ONE,
         );
 
         let result = Starknet::default()
@@ -441,23 +438,23 @@ mod tests {
         let account_address: starknet_api::core::ContractAddress =
             account.get_address().try_into().unwrap();
         let initial_nonce = starknet.pending_state.get_nonce_at(account_address).unwrap();
-        assert_eq!(initial_nonce, Nonce(StarkFelt::ZERO));
+        assert_eq!(initial_nonce, Nonce(Felt::ZERO));
 
         let calldata = vec![
             Felt::from(contract_address), // contract address
             increase_balance_selector,    // function selector
-            Felt::from(1),                // calldata len
+            Felt::ONE,                    // calldata len
             Felt::from(10),               // calldata
         ];
 
-        let insufficient_max_fee = 137; // this is minimum fee (enough for passing validation), anything lower than that is bounced back
+        let insufficient_max_fee = 139; // this is minimum fee (enough for passing validation), anything lower than that is bounced back
         let invoke_transaction = BroadcastedInvokeTransactionV1::new(
             account_address.into(),
             Fee(insufficient_max_fee),
             &vec![],
-            initial_nonce.into(),
+            initial_nonce.0,
             &calldata,
-            Felt::from(1),
+            Felt::ONE,
         );
 
         let transaction_hash = starknet
@@ -468,7 +465,7 @@ mod tests {
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Reverted);
 
         let nonce_after_reverted = starknet.pending_state.get_nonce_at(account_address).unwrap();
-        assert_eq!(nonce_after_reverted, Nonce(StarkFelt::ONE));
+        assert_eq!(nonce_after_reverted, Nonce(Felt::ONE));
     }
 
     /// Initialize starknet object with: erc20 contract, account contract and  simple contract that
@@ -509,9 +506,7 @@ mod tests {
             dummy_contract.clone(),
         )
         .unwrap();
-        let increase_balance_selector =
-            StarkFelt::new(get_selector_from_name("increase_balance").unwrap().to_bytes_be())
-                .unwrap();
+        let increase_balance_selector = get_selector_from_name("increase_balance").unwrap();
 
         // check if increase_balance function is present in the contract class
         blockifier
@@ -522,11 +517,7 @@ mod tests {
             .find(|el| el.selector.0 == increase_balance_selector)
             .unwrap();
 
-        let mut address_bytes = get_bytes_from_u32(5);
-        address_bytes.reverse();
-
-        let dummy_contract_address =
-            ContractAddress::new(Felt::new(address_bytes).unwrap()).unwrap();
+        let dummy_contract_address = ContractAddress::new(Felt::from(5)).unwrap();
         let dummy_contract_class_hash = dummy_contract.generate_hash().unwrap();
         let storage_key = get_storage_var_address("balance", &[]).unwrap();
         let contract_storage_key = ContractStorageKey::new(dummy_contract_address, storage_key);
@@ -557,12 +548,6 @@ mod tests {
 
         starknet.restart_pending_block().unwrap();
 
-        (
-            starknet,
-            account,
-            dummy_contract_address,
-            Felt::from(increase_balance_selector),
-            contract_storage_key,
-        )
+        (starknet, account, dummy_contract_address, increase_balance_selector, contract_storage_key)
     }
 }

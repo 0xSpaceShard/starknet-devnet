@@ -7,7 +7,7 @@ mod get_events_integration_tests {
         Account, Call, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::{BlockId, BlockTag, EventFilter, FieldElement, StarknetError};
+    use starknet_rs_core::types::{BlockId, BlockTag, EventFilter, Felt, StarknetError};
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::{Provider, ProviderError};
 
@@ -34,8 +34,8 @@ mod get_events_integration_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(cairo_1_contract), casm_class_hash)
-            .max_fee(FieldElement::from(100000000000000000000u128))
+            .declare_v2(Arc::new(cairo_1_contract), casm_class_hash)
+            .max_fee(Felt::from(100000000000000000000u128))
             .send()
             .await
             .unwrap();
@@ -50,8 +50,8 @@ mod get_events_integration_tests {
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
         contract_factory
-            .deploy(vec![], FieldElement::ZERO, false)
-            .max_fee(FieldElement::from(100000000000000000000u128))
+            .deploy_v1(vec![], Felt::ZERO, false)
+            .max_fee(Felt::from(100000000000000000000u128))
             .send()
             .await
             .unwrap();
@@ -62,7 +62,7 @@ mod get_events_integration_tests {
 
         // generate the address of the newly deployed contract
         let new_contract_address = get_udc_deployed_address(
-            FieldElement::ZERO,
+            Felt::ZERO,
             declaration_result.class_hash,
             &starknet_rs_core::utils::UdcUniqueness::NotUnique,
             &[],
@@ -71,7 +71,7 @@ mod get_events_integration_tests {
         let events_contract_call = vec![Call {
             to: new_contract_address,
             selector: get_selector_from_name("emit_event").unwrap(),
-            calldata: vec![FieldElement::from(1u8)],
+            calldata: vec![Felt::ONE],
         }];
 
         // invoke 10 times the contract to emit event, it should produce 10 events
@@ -79,9 +79,9 @@ mod get_events_integration_tests {
         let nonce = predeployed_account.get_nonce().await.unwrap();
         for n in 0..n_events_contract_invocations {
             predeployed_account
-                .execute(events_contract_call.clone())
-                .nonce(nonce + FieldElement::from(n as u128))
-                .max_fee(FieldElement::from(100000000000000000000u128))
+                .execute_v1(events_contract_call.clone())
+                .nonce(nonce + Felt::from(n))
+                .max_fee(Felt::from(100000000000000000000u128))
                 .send()
                 .await
                 .unwrap();

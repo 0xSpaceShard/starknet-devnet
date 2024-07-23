@@ -12,12 +12,13 @@ mod test_account_selection {
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt, FunctionCall};
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
     use starknet_rs_providers::Provider;
     use starknet_rs_signers::LocalWallet;
+    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -61,12 +62,12 @@ mod test_account_selection {
             .get_class_hash_at(BlockId::Tag(BlockTag::Latest), account_address)
             .await
             .unwrap();
-        let expected_hash = FieldElement::from_hex_be(expected_hash_hex).unwrap();
+        let expected_hash = felt_from_prefixed_hex(expected_hash_hex).unwrap();
         assert_eq!(retrieved_class_hash, expected_hash);
 
         let config = devnet.get_config().await;
         let config_class_hash_hex = config["account_contract_class_hash"].as_str().unwrap();
-        assert_eq!(FieldElement::from_hex_be(config_class_hash_hex).unwrap(), expected_hash);
+        assert_eq!(felt_from_prefixed_hex(config_class_hash_hex).unwrap(), expected_hash);
     }
 
     #[tokio::test]
@@ -136,7 +137,7 @@ mod test_account_selection {
     async fn can_declare_deploy_invoke_cairo0_using_account(
         devnet: &BackgroundDevnet,
         signer: &LocalWallet,
-        account_address: FieldElement,
+        account_address: Felt,
     ) {
         let account = Arc::new(SingleOwnerAccount::new(
             devnet.clone_provider(),
@@ -159,7 +160,7 @@ mod test_account_selection {
 
         // deploy instance of class
         let contract_factory = ContractFactory::new(class_hash, account.clone());
-        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let constructor_calldata = vec![];
         let contract_address = get_udc_deployed_address(
             salt,
@@ -168,19 +169,19 @@ mod test_account_selection {
             &constructor_calldata,
         );
         contract_factory
-            .deploy(constructor_calldata, salt, false)
+            .deploy_v1(constructor_calldata, salt, false)
             .send()
             .await
             .expect("Cannot deploy");
 
         // invoke
-        let increase_amount = FieldElement::from(100u128);
+        let increase_amount = Felt::from(100u128);
         let invoke_calls = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("increase_balance").unwrap(),
             calldata: vec![increase_amount],
         }];
-        account.execute(invoke_calls).send().await.unwrap();
+        account.execute_v1(invoke_calls).send().await.unwrap();
 
         // prepare the call used in checking the balance
         let call = FunctionCall {
@@ -196,7 +197,7 @@ mod test_account_selection {
     async fn can_declare_deploy_invoke_cairo1_using_account(
         devnet: &BackgroundDevnet,
         signer: &LocalWallet,
-        account_address: FieldElement,
+        account_address: Felt,
     ) {
         let account = Arc::new(SingleOwnerAccount::new(
             devnet.clone_provider(),
@@ -210,31 +211,31 @@ mod test_account_selection {
 
         // declare the contract
         let declaration_result =
-            account.declare(Arc::new(contract_class), casm_hash).send().await.unwrap();
+            account.declare_v2(Arc::new(contract_class), casm_hash).send().await.unwrap();
 
         // deploy the contract
         let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
-        let initial_value = FieldElement::from(10_u32);
+        let initial_value = Felt::from(10_u32);
         let ctor_args = vec![initial_value];
-        contract_factory.deploy(ctor_args.clone(), FieldElement::ZERO, false).send().await.unwrap();
+        contract_factory.deploy_v1(ctor_args.clone(), Felt::ZERO, false).send().await.unwrap();
 
         // generate the address of the newly deployed contract
         let contract_address = get_udc_deployed_address(
-            FieldElement::ZERO,
+            Felt::ZERO,
             declaration_result.class_hash,
             &starknet_rs_core::utils::UdcUniqueness::NotUnique,
             &ctor_args,
         );
 
         // invoke on forked devnet
-        let increment = FieldElement::from(5_u32);
+        let increment = Felt::from(5_u32);
         let contract_invoke = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("increase_balance").unwrap(),
-            calldata: vec![increment, FieldElement::ZERO],
+            calldata: vec![increment, Felt::ZERO],
         }];
 
-        let invoke_result = account.execute(contract_invoke.clone()).send().await.unwrap();
+        let invoke_result = account.execute_v1(contract_invoke.clone()).send().await.unwrap();
 
         assert_tx_successful(&invoke_result.transaction_hash, &devnet.json_rpc_client).await;
     }
@@ -259,10 +260,10 @@ mod test_account_selection {
         can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
     }
 
-    async fn assert_supports_isrc6(devnet: &BackgroundDevnet, account_address: FieldElement) {
+    async fn assert_supports_isrc6(devnet: &BackgroundDevnet, account_address: Felt) {
         // https://github.com/OpenZeppelin/cairo-contracts/blob/89a450a88628ec3b86273f261b2d8d1ca9b1522b/src/account/interface.cairo#L7
         let interface_id_hex = "0x2ceccef7f994940b3962a6c67e0ba4fcd37df7d131417c604f91e03caecc1cd";
-        let interface_id = FieldElement::from_hex_be(interface_id_hex).unwrap();
+        let interface_id = felt_from_prefixed_hex(interface_id_hex).unwrap();
 
         let call = FunctionCall {
             contract_address: account_address,
@@ -272,7 +273,7 @@ mod test_account_selection {
 
         let supports =
             devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap();
-        assert_eq!(supports, vec![FieldElement::ONE]);
+        assert_eq!(supports, vec![Felt::ONE]);
     }
 
     #[tokio::test]
@@ -331,7 +332,7 @@ mod test_account_selection {
 
         // increase balances and check again
         for account in accounts_with_balance.as_array().unwrap() {
-            let address = &FieldElement::from_hex_be(account["address"].as_str().unwrap()).unwrap();
+            let address = &felt_from_prefixed_hex(account["address"].as_str().unwrap()).unwrap();
             devnet.mint_unit(address, 1, FeeUnit::WEI).await;
             devnet.mint_unit(address, 1, FeeUnit::FRI).await;
         }

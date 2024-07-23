@@ -10,10 +10,9 @@ use starknet_rs_core::types::contract::{SierraClass, SierraClassDebugInfo};
 use starknet_rs_core::types::{
     ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContractClass,
 };
-use starknet_rs_ff::FieldElement;
+use starknet_types_core::felt::Felt;
 
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
-use crate::felt::Felt;
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 use crate::traits::HashProducer;
 
@@ -233,11 +232,8 @@ fn convert_sierra_to_codegen(
     let sierra_program = contract_class
         .sierra_program
         .iter()
-        .map(|bigint| {
-            FieldElement::from_byte_slice_be(&bigint.value.to_bytes_be())
-                .map_err(Error::StarknetFfConversionError)
-        })
-        .collect::<DevnetResult<Vec<FieldElement>>>()?;
+        .map(|bigint| Felt::from(bigint.value.clone()))
+        .collect::<Vec<_>>();
 
     let entry_points_by_type_value =
         serde_json::to_value(contract_class.entry_points_by_type.clone())
@@ -293,10 +289,7 @@ pub fn compute_sierra_class_hash(contract_class: &SierraContractClass) -> Devnet
     let sierra_class: SierraClass =
         serde_json::from_value(contract_class_json_value).map_err(JsonError::SerdeJsonError)?;
 
-    Ok(sierra_class
-        .class_hash()
-        .map_err(|_| Error::ConversionError(ConversionError::InvalidFormat))?
-        .into())
+    sierra_class.class_hash().map_err(|_| Error::ConversionError(ConversionError::InvalidFormat))
 }
 
 #[cfg(test)]
@@ -310,7 +303,7 @@ mod tests {
     use crate::contract_class::{
         convert_sierra_to_codegen, Cairo0Json, ContractClass, DeprecatedContractClass,
     };
-    use crate::felt::Felt;
+    use crate::felt::felt_from_prefixed_hex;
     use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
     use crate::traits::HashProducer;
     use crate::utils::test_utils::{
@@ -327,7 +320,7 @@ mod tests {
             .unwrap(),
         );
         assert_eq!(
-            Felt::from_prefixed_hex_str(CAIRO_1_CONTRACT_SIERRA_HASH).unwrap(),
+            felt_from_prefixed_hex(CAIRO_1_CONTRACT_SIERRA_HASH).unwrap(),
             cairo_1_contract_sierra.generate_hash().unwrap()
         );
     }
@@ -351,8 +344,7 @@ mod tests {
         let json_str = std::fs::read_to_string(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
         let contract_class = Cairo0Json::raw_json_from_json_str(&json_str).unwrap();
         let class_hash = contract_class.generate_hash().unwrap();
-        let expected_class_hash =
-            Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap();
+        let expected_class_hash = felt_from_prefixed_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap();
         assert_eq!(class_hash, expected_class_hash);
     }
 
@@ -375,7 +367,7 @@ mod tests {
         let class_hash = contract_class.generate_hash().unwrap();
 
         // data taken from https://github.com/0xs34n/starknet.js/blob/ce57fdcaba61a8ef2382acc9233a9aac2ac8589a/__tests__/fixtures.ts#L126
-        let expected_class_hash = Felt::from_prefixed_hex_str(
+        let expected_class_hash = felt_from_prefixed_hex(
             "0x54328a1075b8820eb43caf0caa233923148c983742402dcfc38541dd843d01a",
         )
         .unwrap();

@@ -3,10 +3,11 @@ pub mod common;
 mod trace_tests {
     use std::sync::Arc;
 
+    use server::test_utils::exported_test_utils::assert_contains;
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{FieldElement, StarknetError};
+    use starknet_rs_core::types::{Felt, StarknetError};
     use starknet_rs_providers::ProviderError;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -36,20 +37,14 @@ mod trace_tests {
         // declare class
         let declaration_result = account
             .declare_legacy(contract_artifact.clone())
-            .max_fee(FieldElement::from(1e18 as u128))
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await;
 
         match declaration_result {
             Err(AccountError::Provider(ProviderError::StarknetError(
                 StarknetError::ValidationFailure(message),
-            ))) => {
-                assert_eq!(
-                    message,
-                    "Execution failed. Failure reason: \
-                     0x4641494c45442056414c4944415445204445434c415245 ('FAILED VALIDATE DECLARE')."
-                );
-            }
+            ))) => assert_contains(&message, "FAILED VALIDATE DECLARE"),
             other => panic!("Unexpected result: {other:?}"),
         }
     }
@@ -69,11 +64,11 @@ mod trace_tests {
         ));
 
         let (contract_class, _) = get_simple_contract_in_sierra_and_compiled_class_hash();
-        let dummy_casm_hash = FieldElement::ONE;
+        let dummy_casm_hash = Felt::ONE;
 
         let declaration_result = account
-            .declare(Arc::new(contract_class), dummy_casm_hash)
-            .nonce(FieldElement::ZERO)
+            .declare_v2(Arc::new(contract_class), dummy_casm_hash)
+            .nonce(Felt::ZERO)
             .send()
             .await;
 

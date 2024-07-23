@@ -14,7 +14,7 @@ pub fn add_l1_handler_transaction(
 ) -> DevnetResult<TransactionHash> {
     let blockifier_transaction =
         transaction.create_blockifier_transaction(starknet.chain_id().to_felt())?;
-    let transaction_hash = blockifier_transaction.tx_hash.0.into();
+    let transaction_hash = blockifier_transaction.tx_hash.0;
     trace!("Executing L1 handler transaction [{:#064x}]", transaction_hash);
 
     // Fees are charges on L1 as `L1HandlerTransaction` is not executed by an
@@ -47,13 +47,12 @@ mod tests {
     use blockifier::execution::errors::{EntryPointExecutionError, PreExecutionError};
     use blockifier::transaction::errors::TransactionExecutionError::ExecutionError;
     use nonzero_ext::nonzero;
-    use starknet_api::hash::StarkFelt;
-    use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::chain_id::ChainId;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
-    use starknet_types::felt::Felt;
+    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
     use starknet_types::traits::HashProducer;
@@ -67,9 +66,7 @@ mod tests {
     use crate::state::CustomState;
     use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_l1l2_contract;
-    use crate::utils::test_utils::{
-        cairo_0_account_without_validations, dummy_felt, get_bytes_from_u32,
-    };
+    use crate::utils::test_utils::{cairo_0_account_without_validations, dummy_felt};
 
     #[test]
     fn l1_handler_transaction_hash_computation() {
@@ -79,14 +76,12 @@ mod tests {
         let nonce = 783082_u128;
         let fee = 30000_u128;
         let calldata: Vec<Felt> =
-            vec![Felt::from_prefixed_hex_str(from_address).unwrap(), 1.into(), 2.into()];
+            vec![felt_from_prefixed_hex(from_address).unwrap(), Felt::ONE, Felt::TWO];
 
         let transaction = L1HandlerTransaction {
-            contract_address: ContractAddress::new(
-                Felt::from_prefixed_hex_str(to_address).unwrap(),
-            )
-            .unwrap(),
-            entry_point_selector: Felt::from_prefixed_hex_str(selector).unwrap(),
+            contract_address: ContractAddress::new(felt_from_prefixed_hex(to_address).unwrap())
+                .unwrap(),
+            entry_point_selector: felt_from_prefixed_hex(selector).unwrap(),
             calldata,
             nonce: nonce.into(),
             paid_fee_on_l1: fee,
@@ -95,12 +90,12 @@ mod tests {
 
         let l1_handler_transaction_hash = transaction.compute_hash(ChainId::Testnet.to_felt());
 
-        let transaction_hash = Felt::from_prefixed_hex_str(
+        let transaction_hash = felt_from_prefixed_hex(
             "0x1b24ea8dd9e0cb603043958b27a8569635ea13568883cc155130591b7ffe37a",
         )
         .unwrap();
 
-        assert_eq!(transaction.version, Felt::from(0));
+        assert_eq!(transaction.version, Felt::ZERO);
         assert_eq!(l1_handler_transaction_hash, transaction_hash);
     }
 
@@ -109,7 +104,7 @@ mod tests {
         let (mut starknet, _account_address, contract_address, deposit_selector, _) = setup();
 
         let transaction = get_l1_handler_tx(
-            Felt::from_prefixed_hex_str(WHITELISTED_L1_ADDRESS).unwrap(),
+            felt_from_prefixed_hex(WHITELISTED_L1_ADDRESS).unwrap(),
             contract_address,
             deposit_selector,
             vec![Felt::from(11), Felt::from(9999)],
@@ -131,7 +126,7 @@ mod tests {
         let (mut starknet, _account_address, contract_address, _, withdraw_selector) = setup();
 
         let transaction = get_l1_handler_tx(
-            Felt::from_prefixed_hex_str(WHITELISTED_L1_ADDRESS).unwrap(),
+            felt_from_prefixed_hex(WHITELISTED_L1_ADDRESS).unwrap(),
             contract_address,
             withdraw_selector,
             vec![Felt::from(11), Felt::from(9999)],
@@ -140,12 +135,14 @@ mod tests {
         let result = starknet.add_l1_handler_transaction(transaction);
 
         match result {
-            Err(crate::error::Error::BlockifierTransactionError(ExecutionError(
-                EntryPointExecutionError::PreExecutionError(PreExecutionError::EntryPointNotFound(
-                    selector,
-                )),
-            ))) => {
-                assert_eq!(selector.0, withdraw_selector.into())
+            Err(crate::error::Error::BlockifierTransactionError(ExecutionError {
+                error:
+                    EntryPointExecutionError::PreExecutionError(PreExecutionError::EntryPointNotFound(
+                        selector,
+                    )),
+                ..
+            })) => {
+                assert_eq!(selector.0, withdraw_selector)
             }
             other => panic!("Wrong result: {other:?}"),
         }
@@ -217,10 +214,8 @@ mod tests {
             dummy_contract.clone(),
         )
         .unwrap();
-        let withdraw_selector: StarkFelt =
-            Felt::from(get_selector_from_name("withdraw").unwrap()).into();
-        let deposit_selector: StarkFelt =
-            Felt::from(get_selector_from_name("deposit").unwrap()).into();
+        let withdraw_selector = get_selector_from_name("withdraw").unwrap();
+        let deposit_selector = get_selector_from_name("deposit").unwrap();
 
         // check if withdraw function is present in the contract class
         blockifier
@@ -240,11 +235,7 @@ mod tests {
             .find(|el| el.selector.0 == deposit_selector)
             .unwrap();
 
-        let mut address_bytes = get_bytes_from_u32(5);
-        address_bytes.reverse();
-
-        let dummy_contract_address =
-            ContractAddress::new(Felt::new(address_bytes).unwrap()).unwrap();
+        let dummy_contract_address = ContractAddress::new(Felt::from(5)).unwrap();
         let dummy_contract_class_hash = dummy_contract.generate_hash().unwrap();
 
         // declare dummy contract
@@ -275,8 +266,8 @@ mod tests {
             starknet,
             account.get_address(),
             dummy_contract_address,
-            deposit_selector.into(),
-            withdraw_selector.into(),
+            deposit_selector,
+            withdraw_selector,
         )
     }
 }

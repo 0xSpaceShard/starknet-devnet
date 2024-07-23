@@ -18,8 +18,8 @@ thiserror = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+starknet-types-core = { workspace = true }
 starknet-rs-signers = { workspace = true }
-starknet-rs-ff = { workspace = true }
 starknet-rs-core = { workspace = true }
 starknet-types = { workspace = true }
 rand = { workspace = true }

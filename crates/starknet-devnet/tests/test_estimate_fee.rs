@@ -14,14 +14,15 @@ mod estimate_fee_tests {
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
         BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedInvokeTransaction,
-        BroadcastedInvokeTransactionV1, BroadcastedTransaction, FeeEstimate, FieldElement,
-        FunctionCall, StarknetError,
+        BroadcastedInvokeTransactionV1, BroadcastedTransaction, FeeEstimate, Felt, FunctionCall,
+        StarknetError,
     };
     use starknet_rs_core::utils::{
         cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
     use starknet_rs_providers::{Provider, ProviderError};
     use starknet_types::constants::QUERY_VERSION_OFFSET;
+    use starknet_types::felt::{felt_from_prefixed_hex, try_felt_to_num};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
@@ -39,13 +40,15 @@ mod estimate_fee_tests {
             fee_estimation.overall_fee
         );
         assert!(
-            fee_estimation.overall_fee > FieldElement::ZERO,
+            fee_estimation.overall_fee > Felt::ZERO,
             "Checking fee_estimation: {fee_estimation:?}"
         );
     }
 
-    fn multiply_field_element(field_element: FieldElement, multiplier: f64) -> FieldElement {
-        ((u64::try_from(field_element).unwrap() as f64 * multiplier) as u128).into()
+    fn multiply_field_element(field_element: Felt, multiplier: f64) -> Felt {
+        let integer: u64 = try_felt_to_num(field_element).unwrap();
+        let float = integer as f64;
+        ((float * multiplier) as u128).into()
     }
 
     #[tokio::test]
@@ -56,21 +59,21 @@ mod estimate_fee_tests {
         // define the key of the new account - dummy value
         let new_account_signer = get_deployable_account_signer();
         let account_factory = OpenZeppelinAccountFactory::new(
-            FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            felt_from_prefixed_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
             CHAIN_ID,
             new_account_signer.clone(),
             devnet.clone_provider(),
         )
         .await
         .unwrap();
-        let new_account_nonce = FieldElement::ZERO;
+        let new_account_nonce = Felt::ZERO;
 
         // fund address
-        let salt = FieldElement::from_hex_be("0x123").unwrap();
-        let deployment = account_factory.deploy(salt);
+        let salt = Felt::from_hex_unchecked("0x123");
+        let deployment = account_factory.deploy_v1(salt);
         let deployment_address = deployment.address();
         let fee_estimation = account_factory
-            .deploy(salt)
+            .deploy_v1(salt)
             .fee_estimate_multiplier(1.0)
             .nonce(new_account_nonce)
             .estimate_fee()
@@ -79,13 +82,13 @@ mod estimate_fee_tests {
         assert_fee_estimation(&fee_estimation);
 
         // fund the account before deployment
-        let mint_amount = fee_estimation.overall_fee * FieldElement::TWO;
-        devnet.mint(deployment_address, u128::try_from(mint_amount).unwrap()).await;
+        let mint_amount = fee_estimation.overall_fee * Felt::TWO;
+        devnet.mint(deployment_address, try_felt_to_num(mint_amount).unwrap()).await;
 
         // try sending with insufficient max fee
         let unsuccessful_deployment_tx = account_factory
-            .deploy(salt)
-            .max_fee(fee_estimation.overall_fee - FieldElement::ONE)
+            .deploy_v1(salt)
+            .max_fee(fee_estimation.overall_fee - Felt::ONE)
             .nonce(new_account_nonce)
             .send()
             .await;
@@ -98,7 +101,7 @@ mod estimate_fee_tests {
 
         // try sending with sufficient max fee
         let successful_deployment = account_factory
-            .deploy(salt)
+            .deploy_v1(salt)
             .max_fee(multiply_field_element(fee_estimation.overall_fee, 1.1))
             .nonce(new_account_nonce)
             .send()
@@ -113,7 +116,7 @@ mod estimate_fee_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let new_account_signer = get_deployable_account_signer();
-        let dummy_invalid_class_hash = FieldElement::from_hex_be("0x123").unwrap();
+        let dummy_invalid_class_hash = Felt::from_hex_unchecked("0x123");
         let account_factory = OpenZeppelinAccountFactory::new(
             dummy_invalid_class_hash,
             CHAIN_ID,
@@ -122,11 +125,11 @@ mod estimate_fee_tests {
         )
         .await
         .unwrap();
-        let new_account_nonce = FieldElement::ZERO;
+        let new_account_nonce = Felt::ZERO;
 
-        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let err = account_factory
-            .deploy(salt)
+            .deploy_v1(salt)
             .nonce(new_account_nonce)
             .estimate_fee()
             .await
@@ -162,7 +165,7 @@ mod estimate_fee_tests {
 
         let fee_estimation = account
             .declare_legacy(Arc::clone(&contract_artifact))
-            .nonce(FieldElement::ZERO)
+            .nonce(Felt::ZERO)
             .fee_estimate_multiplier(1.0)
             .estimate_fee()
             .await
@@ -172,8 +175,8 @@ mod estimate_fee_tests {
         // try sending with insufficient max fee
         let unsuccessful_declare_tx = account
             .declare_legacy(Arc::clone(&contract_artifact))
-            .nonce(FieldElement::ZERO)
-            .max_fee(fee_estimation.overall_fee - FieldElement::ONE)
+            .nonce(Felt::ZERO)
+            .max_fee(fee_estimation.overall_fee - Felt::ONE)
             .send()
             .await;
         match unsuccessful_declare_tx {
@@ -186,7 +189,7 @@ mod estimate_fee_tests {
         // try sending with sufficient max fee
         let successful_declare_tx = account
             .declare_legacy(contract_artifact)
-            .nonce(FieldElement::ZERO)
+            .nonce(Felt::ZERO)
             .max_fee(multiply_field_element(fee_estimation.overall_fee, 1.1))
             .send()
             .await
@@ -221,8 +224,8 @@ mod estimate_fee_tests {
         let mut fee_estimations: Vec<FeeEstimate> = vec![];
         for _ in 0..2 {
             let fee_estimation = account
-                .declare(Arc::clone(&flattened_contract_artifact), casm_hash)
-                .nonce(FieldElement::ZERO)
+                .declare_v2(Arc::clone(&flattened_contract_artifact), casm_hash)
+                .nonce(Felt::ZERO)
                 .fee_estimate_multiplier(1.0)
                 .estimate_fee()
                 .await
@@ -235,9 +238,9 @@ mod estimate_fee_tests {
 
         // try sending with insufficient max fee
         let unsuccessful_declare_tx = account
-            .declare(Arc::clone(&flattened_contract_artifact), casm_hash)
-            .nonce(FieldElement::ZERO)
-            .max_fee(fee_estimation.overall_fee - FieldElement::ONE)
+            .declare_v2(Arc::clone(&flattened_contract_artifact), casm_hash)
+            .nonce(Felt::ZERO)
+            .max_fee(fee_estimation.overall_fee - Felt::ONE)
             .send()
             .await;
         match unsuccessful_declare_tx {
@@ -249,8 +252,8 @@ mod estimate_fee_tests {
 
         // try sending with sufficient max fee
         let successful_declare_tx = account
-            .declare(Arc::clone(&flattened_contract_artifact), casm_hash)
-            .nonce(FieldElement::ZERO)
+            .declare_v2(Arc::clone(&flattened_contract_artifact), casm_hash)
+            .nonce(Felt::ZERO)
             .max_fee(multiply_field_element(fee_estimation.overall_fee, 1.1))
             .send()
             .await
@@ -283,8 +286,8 @@ mod estimate_fee_tests {
         // declare class
         let declaration_result = account
             .declare_legacy(contract_artifact.clone())
-            .nonce(FieldElement::ZERO)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .nonce(Felt::ZERO)
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
             .unwrap();
@@ -292,7 +295,7 @@ mod estimate_fee_tests {
 
         // deploy instance of class
         let contract_factory = ContractFactory::new(class_hash, account.clone());
-        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let constructor_calldata = vec![];
         let contract_address = get_udc_deployed_address(
             salt,
@@ -301,13 +304,13 @@ mod estimate_fee_tests {
             &constructor_calldata,
         );
         contract_factory
-            .deploy(constructor_calldata, salt, false)
+            .deploy_v1(constructor_calldata, salt, false)
             .send()
             .await
             .expect("Cannot deploy");
 
         // prepare the call used in estimation and actual invoke
-        let increase_amount = FieldElement::from(100u128);
+        let increase_amount = Felt::from(100u128);
         let invoke_calls = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("increase_balance").unwrap(),
@@ -316,7 +319,7 @@ mod estimate_fee_tests {
 
         // estimate the fee
         let fee_estimation = account
-            .execute(invoke_calls.clone())
+            .execute_v1(invoke_calls.clone())
             .fee_estimate_multiplier(1.0)
             .estimate_fee()
             .await
@@ -331,9 +334,9 @@ mod estimate_fee_tests {
         };
 
         // invoke with insufficient max_fee
-        let insufficient_max_fee = fee_estimation.overall_fee - FieldElement::ONE;
+        let insufficient_max_fee = fee_estimation.overall_fee - Felt::ONE;
         let unsuccessful_invoke_tx = account
-            .execute(invoke_calls.clone())
+            .execute_v1(invoke_calls.clone())
             .max_fee(insufficient_max_fee)
             .send()
             .await
@@ -343,7 +346,7 @@ mod estimate_fee_tests {
             .call(call.clone(), BlockId::Tag(BlockTag::Latest))
             .await
             .unwrap();
-        assert_eq!(balance_after_insufficient, vec![FieldElement::ZERO]);
+        assert_eq!(balance_after_insufficient, vec![Felt::ZERO]);
 
         assert_tx_reverted(
             &unsuccessful_invoke_tx.transaction_hash,
@@ -355,7 +358,7 @@ mod estimate_fee_tests {
         // invoke with sufficient max_fee
         let sufficient_max_fee = multiply_field_element(fee_estimation.overall_fee, 1.1);
 
-        account.execute(invoke_calls).max_fee(sufficient_max_fee).send().await.unwrap();
+        account.execute_v1(invoke_calls).max_fee(sufficient_max_fee).send().await.unwrap();
         let balance_after_sufficient =
             devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap();
         assert_eq!(balance_after_sufficient, vec![increase_amount]);
@@ -381,13 +384,16 @@ mod estimate_fee_tests {
         let class_hash = flattened_contract_artifact.class_hash();
 
         // declare class
-        let declaration_result =
-            account.declare(Arc::new(flattened_contract_artifact), casm_hash).send().await.unwrap();
+        let declaration_result = account
+            .declare_v2(Arc::new(flattened_contract_artifact), casm_hash)
+            .send()
+            .await
+            .unwrap();
         assert_eq!(declaration_result.class_hash, class_hash);
 
         // deploy instance of class
         let contract_factory = ContractFactory::new(class_hash, account.clone());
-        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let constructor_calldata = vec![];
         let contract_address = get_udc_deployed_address(
             salt,
@@ -396,7 +402,7 @@ mod estimate_fee_tests {
             &constructor_calldata,
         );
         contract_factory
-            .deploy(constructor_calldata, salt, false)
+            .deploy_v1(constructor_calldata, salt, false)
             .send()
             .await
             .expect("Cannot deploy");
@@ -409,9 +415,9 @@ mod estimate_fee_tests {
         }];
 
         let prepared = account
-            .execute(calls.clone())
+            .execute_v1(calls.clone())
             .nonce(account.get_nonce().await.unwrap())
-            .max_fee(FieldElement::ZERO)
+            .max_fee(Felt::ZERO)
             .prepared()
             .unwrap()
             .get_invoke_request(true)
@@ -450,13 +456,16 @@ mod estimate_fee_tests {
         let class_hash = flattened_contract_artifact.class_hash();
 
         // declare class
-        let declaration_result =
-            account.declare(Arc::new(flattened_contract_artifact), casm_hash).send().await.unwrap();
+        let declaration_result = account
+            .declare_v2(Arc::new(flattened_contract_artifact), casm_hash)
+            .send()
+            .await
+            .unwrap();
         assert_eq!(declaration_result.class_hash, class_hash);
 
         // deploy instance of class
         let contract_factory = ContractFactory::new(class_hash, account.clone());
-        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let constructor_calldata = vec![];
         let contract_address = get_udc_deployed_address(
             salt,
@@ -465,19 +474,19 @@ mod estimate_fee_tests {
             &constructor_calldata,
         );
         contract_factory
-            .deploy(constructor_calldata, salt, false)
+            .deploy_v1(constructor_calldata, salt, false)
             .send()
             .await
             .expect("Cannot deploy");
 
-        let expected_version = QUERY_VERSION_OFFSET + FieldElement::ONE;
+        let expected_version = QUERY_VERSION_OFFSET + Felt::ONE;
         let calls = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("assert_version").unwrap(),
             calldata: vec![expected_version],
         }];
 
-        match account.execute(calls).estimate_fee().await {
+        match account.execute_v1(calls).estimate_fee().await {
             Ok(_) => (),
             other => panic!("Unexpected result: {other:?}"),
         }
@@ -520,12 +529,12 @@ mod estimate_fee_tests {
                     BroadcastedTransaction::Declare(
                         starknet_rs_core::types::BroadcastedDeclareTransaction::V1(
                             BroadcastedDeclareTransactionV1 {
-                                max_fee: FieldElement::ZERO,
+                                max_fee: Felt::ZERO,
                                 signature: declaration_signature
                                     .into_iter()
-                                    .map(|s| FieldElement::from_hex_be(s).unwrap())
+                                    .map(|s| felt_from_prefixed_hex(s).unwrap())
                                     .collect(),
-                                nonce: FieldElement::ZERO,
+                                nonce: Felt::ZERO,
                                 sender_address: account_address,
                                 contract_class: contract_class.compress().unwrap().into(),
                                 is_query: false,
@@ -534,13 +543,13 @@ mod estimate_fee_tests {
                     ),
                     BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
                         BroadcastedInvokeTransactionV1 {
-                            max_fee: FieldElement::ZERO,
+                            max_fee: Felt::ZERO,
                             // precalculated signature
                             signature: deployment_signature
                                 .into_iter()
-                                .map(|s| FieldElement::from_hex_be(s).unwrap())
+                                .map(|s| felt_from_prefixed_hex(s).unwrap())
                                 .collect(),
-                            nonce: FieldElement::ONE,
+                            nonce: Felt::ONE,
                             sender_address: account_address,
                             calldata: [
                                 "0x1",
@@ -555,7 +564,7 @@ mod estimate_fee_tests {
                                 "0x0",
                             ]
                             .into_iter()
-                            .map(|s| FieldElement::from_hex_be(s).unwrap())
+                            .map(|s| felt_from_prefixed_hex(s).unwrap())
                             .collect(),
                             is_query: false,
                         },

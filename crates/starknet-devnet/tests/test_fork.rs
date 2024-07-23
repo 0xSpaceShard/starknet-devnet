@@ -12,14 +12,15 @@ mod fork_tests {
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, ContractClass, FieldElement, FunctionCall,
-        MaybePendingBlockWithTxHashes, StarknetError,
+        BlockId, BlockTag, ContractClass, Felt, FunctionCall, MaybePendingBlockWithTxHashes,
+        StarknetError,
     };
     use starknet_rs_core::utils::{
         get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
     };
     use starknet_rs_providers::{Provider, ProviderError};
     use starknet_rs_signers::Signer;
+    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -28,7 +29,7 @@ mod fork_tests {
         INTEGRATION_SEPOLIA_HTTP_URL,
     };
     use crate::common::utils::{
-        assert_cairo1_classes_equal, assert_tx_successful, declare_deploy,
+        assert_cairo1_classes_equal, assert_tx_successful, declare_deploy_v1,
         get_block_reader_contract_in_sierra_and_compiled_class_hash, get_contract_balance,
         get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
         send_ctrl_c_signal_and_wait,
@@ -63,7 +64,7 @@ mod fork_tests {
         let resp = &fork_devnet
             .json_rpc_client
             .get_block_with_tx_hashes(BlockId::Hash(
-                FieldElement::from_hex_be(INTEGRATION_SEPOLIA_GENESIS_BLOCK_HASH).unwrap(),
+                felt_from_prefixed_hex(INTEGRATION_SEPOLIA_GENESIS_BLOCK_HASH).unwrap(),
             ))
             .await;
 
@@ -82,7 +83,7 @@ mod fork_tests {
         let resp = &fork_devnet
             .json_rpc_client
             .get_block_with_tx_hashes(BlockId::Hash(
-                FieldElement::from_hex_be(non_existent_block_hash).unwrap(),
+                felt_from_prefixed_hex(non_existent_block_hash).unwrap(),
             ))
             .await;
 
@@ -127,7 +128,7 @@ mod fork_tests {
         let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
         // new origin block
-        let dummy_address = FieldElement::ONE;
+        let dummy_address = Felt::ONE;
         let mint_amount = 100;
         origin_devnet.mint(dummy_address, mint_amount).await;
 
@@ -173,7 +174,7 @@ mod fork_tests {
         // declare the contract
         let declaration_result = predeployed_account
             .declare_legacy(contract_class.clone())
-            .max_fee(FieldElement::from(1e18 as u128))
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
             .unwrap();
@@ -208,10 +209,10 @@ mod fork_tests {
 
         let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
 
-        let initial_value = FieldElement::from(10_u32);
+        let initial_value = Felt::from(10_u32);
         let ctor_args = vec![initial_value];
         let (class_hash, contract_address) =
-            declare_deploy(predeployed_account, contract_class.clone(), casm_hash, &ctor_args)
+            declare_deploy_v1(predeployed_account, contract_class.clone(), casm_hash, &ctor_args)
                 .await
                 .unwrap();
 
@@ -258,8 +259,8 @@ mod fork_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(contract_class), casm_class_hash)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .declare_v2(Arc::new(contract_class), casm_class_hash)
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
             .unwrap();
@@ -267,18 +268,18 @@ mod fork_tests {
         // deploy the contract
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
-        let initial_value = FieldElement::from(10_u32);
+        let initial_value = Felt::from(10_u32);
         let ctor_args = vec![initial_value];
         contract_factory
-            .deploy(ctor_args.clone(), FieldElement::ZERO, false)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .deploy_v1(ctor_args.clone(), Felt::ZERO, false)
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
             .unwrap();
 
         // generate the address of the newly deployed contract
         let contract_address = get_udc_deployed_address(
-            FieldElement::ZERO,
+            Felt::ZERO,
             declaration_result.class_hash,
             &starknet_rs_core::utils::UdcUniqueness::NotUnique,
             &ctor_args,
@@ -300,16 +301,16 @@ mod fork_tests {
         );
 
         // invoke on forked devnet
-        let increment = FieldElement::from(5_u32);
+        let increment = Felt::from(5_u32);
         let contract_invoke = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("increase_balance").unwrap(),
-            calldata: vec![increment, FieldElement::ZERO],
+            calldata: vec![increment, Felt::ZERO],
         }];
 
         let invoke_result = fork_predeployed_account
-            .execute(contract_invoke.clone())
-            .max_fee(FieldElement::from(1e18 as u128))
+            .execute_v1(contract_invoke.clone())
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
             .unwrap();
@@ -332,7 +333,7 @@ mod fork_tests {
 
         let (signer, _) = origin_devnet.get_first_predeployed_account().await;
 
-        let nonexistent_class_hash = FieldElement::from_hex_be("0x123").unwrap();
+        let nonexistent_class_hash = Felt::from_hex_unchecked("0x123");
         let factory = OpenZeppelinAccountFactory::new(
             nonexistent_class_hash,
             constants::CHAIN_ID,
@@ -342,9 +343,8 @@ mod fork_tests {
         .await
         .unwrap();
 
-        let salt = FieldElement::from_hex_be("0x123").unwrap();
-        let deployment =
-            factory.deploy(salt).max_fee(FieldElement::from(1e18 as u128)).send().await;
+        let salt = Felt::from_hex_unchecked("0x123");
+        let deployment = factory.deploy_v1(salt).max_fee(Felt::from(1e18 as u128)).send().await;
         match deployment {
             Err(AccountFactoryError::Provider(ProviderError::StarknetError(
                 StarknetError::ClassHashNotFound,
@@ -381,7 +381,7 @@ mod fork_tests {
         // deploy account using class from origin, relying on precalculated hash
         let account_hash = "0x00f7f9cd401ad39a09f095001d31f0ad3fdc2f4e532683a84a8a6c76150de858";
         let factory = OpenZeppelinAccountFactory::new(
-            FieldElement::from_hex_be(account_hash).unwrap(),
+            felt_from_prefixed_hex(account_hash).unwrap(),
             constants::CHAIN_ID,
             signer,
             fork_devnet.clone_provider(),
@@ -389,8 +389,8 @@ mod fork_tests {
         .await
         .unwrap();
 
-        let salt = FieldElement::from_hex_be("0x123").unwrap();
-        let deployment = factory.deploy(salt).max_fee(FieldElement::from(1e18 as u128));
+        let salt = Felt::from_hex_unchecked("0x123");
+        let deployment = factory.deploy_v1(salt).max_fee(Felt::from(1e18 as u128));
         let deployment_address = deployment.address();
         fork_devnet.mint(deployment_address, 1e18 as u128).await;
         deployment.send().await.unwrap();
@@ -400,7 +400,7 @@ mod fork_tests {
     async fn test_get_nonce_if_contract_not_deployed() {
         let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
         let fork_devnet = origin_devnet.fork().await.unwrap();
-        let dummy_address = FieldElement::ONE;
+        let dummy_address = Felt::ONE;
         match fork_devnet
             .json_rpc_client
             .get_nonce(BlockId::Tag(BlockTag::Latest), dummy_address)
@@ -423,15 +423,15 @@ mod fork_tests {
             .get_nonce(BlockId::Tag(BlockTag::Latest), account_address)
             .await
             .unwrap();
-        assert_eq!(nonce, FieldElement::ZERO);
+        assert_eq!(nonce, Felt::ZERO);
     }
 
     #[tokio::test]
     async fn test_get_storage_if_contract_not_deployed() {
         let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
         let fork_devnet = origin_devnet.fork().await.unwrap();
-        let dummy_address = FieldElement::ONE;
-        let dummy_key = FieldElement::ONE;
+        let dummy_address = Felt::ONE;
+        let dummy_key = Felt::ONE;
         match fork_devnet
             .json_rpc_client
             .get_storage_at(dummy_address, dummy_key, BlockId::Tag(BlockTag::Latest))
@@ -449,13 +449,13 @@ mod fork_tests {
 
         let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
 
-        let dummy_key = FieldElement::ONE;
+        let dummy_key = Felt::ONE;
         let dummy_value = fork_devnet
             .json_rpc_client
             .get_storage_at(account_address, dummy_key, BlockId::Tag(BlockTag::Latest))
             .await
             .unwrap();
-        assert_eq!(dummy_value, FieldElement::ZERO);
+        assert_eq!(dummy_value, Felt::ZERO);
 
         let real_key = get_storage_var_address("Account_public_key", &[]).unwrap();
         let real_value = fork_devnet
@@ -470,14 +470,14 @@ mod fork_tests {
     async fn test_fork_using_origin_token_contract() {
         let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
-        let address = FieldElement::ONE;
+        let address = Felt::ONE;
         let mint_amount = 1000_u128;
         origin_devnet.mint(address, mint_amount).await;
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
         let fork_balance = fork_devnet.get_balance_latest(&address, FeeUnit::WEI).await.unwrap();
-        assert_eq!(fork_balance, FieldElement::from(mint_amount));
+        assert_eq!(fork_balance, Felt::from(mint_amount));
     }
 
     #[tokio::test]
@@ -486,7 +486,7 @@ mod fork_tests {
         let fork_devnet = origin_devnet.fork().await.unwrap();
         send_ctrl_c_signal_and_wait(&origin_devnet.process).await;
 
-        let address = FieldElement::ONE;
+        let address = Felt::ONE;
         match fork_devnet.json_rpc_client.get_nonce(BlockId::Tag(BlockTag::Latest), address).await {
             Err(ProviderError::Other(e)) => {
                 assert_contains(&e.to_string(), "error sending request")
@@ -550,7 +550,7 @@ mod fork_tests {
             get_block_reader_contract_in_sierra_and_compiled_class_hash();
 
         let (_, contract_address) =
-            declare_deploy(predeployed_account, contract_class, casm_hash, &[]).await.unwrap();
+            declare_deploy_v1(predeployed_account, contract_class, casm_hash, &[]).await.unwrap();
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
@@ -564,7 +564,7 @@ mod fork_tests {
             .call(contract_call.clone(), BlockId::Tag(BlockTag::Latest))
             .await
             .unwrap();
-        assert_eq!(first_fork_block_number, [FieldElement::from(4_u8)]); // origin block + declare + deploy
+        assert_eq!(first_fork_block_number, [Felt::from(4_u8)]); // origin block + declare + deploy
 
         fork_devnet.create_block().await.unwrap();
 
@@ -573,7 +573,7 @@ mod fork_tests {
             .call(contract_call, BlockId::Tag(BlockTag::Latest))
             .await
             .unwrap();
-        assert_eq!(second_fork_block_number, [FieldElement::from(5_u8)]); // origin block + declare + deploy
+        assert_eq!(second_fork_block_number, [Felt::from(5_u8)]); // origin block + declare + deploy
     }
 
     #[tokio::test]

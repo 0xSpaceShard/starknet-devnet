@@ -1,8 +1,8 @@
+use blockifier::bouncer::{BouncerConfig, BouncerWeights, BuiltinCount};
 use blockifier::versioned_constants::VersionedConstants;
 use serde_json::Value;
 use starknet_rs_core::types::contract::CompiledClass;
-use starknet_rs_ff::FieldElement;
-use starknet_types::felt::Felt;
+use starknet_rs_core::types::Felt;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
 use crate::error::{DevnetResult, Error};
@@ -32,23 +32,48 @@ pub(crate) fn get_storage_var_address(
     storage_var_name: &str,
     args: &[Felt],
 ) -> DevnetResult<StorageKey> {
-    let storage_var_address = starknet_rs_core::utils::get_storage_var_address(
-        storage_var_name,
-        &args.iter().map(|f| FieldElement::from(*f)).collect::<Vec<FieldElement>>(),
-    )
-    .map_err(|err| crate::error::Error::UnexpectedInternalError { msg: err.to_string() })?;
+    let storage_var_address =
+        starknet_rs_core::utils::get_storage_var_address(storage_var_name, args)
+            .map_err(|err| crate::error::Error::UnexpectedInternalError { msg: err.to_string() })?;
 
-    Ok(PatriciaKey::new(Felt::new(storage_var_address.to_bytes_be())?)?)
+    Ok(PatriciaKey::new(storage_var_address)?)
 }
 
 pub(crate) fn get_versioned_constants() -> VersionedConstants {
     VersionedConstants::create_for_testing()
 }
 
+/// Values not present here: https://docs.starknet.io/tools/limits-and-triggers/
+/// Asked the blockifier team about the values, they provided them here:
+/// https://spaceshard.slack.com/archives/C029F9AN8LX/p1721657837687799?thread_ts=1721400009.781699&cid=C029F9AN8LX
+pub(crate) fn custom_bouncer_config() -> BouncerConfig {
+    BouncerConfig {
+        block_max_capacity: BouncerWeights {
+            n_steps: 40_000_000,
+            gas: 4_950_000,
+            state_diff_size: 4_000,
+            n_events: 5_000,
+            builtin_count: BuiltinCount {
+                pedersen: 1_250_000,
+                poseidon: 1_250_000,
+                range_check: 250_000,
+                range_check96: 250_000,
+                add_mod: 250_000,
+                mul_mod: 250_000,
+                ecdsa: 19_531,
+                bitwise: 625_000,
+                ec_op: 39_062,
+                keccak: 19_531,
+            },
+            ..BouncerWeights::max()
+        },
+    }
+}
+
 /// Returns the hash of a compiled class.
 /// # Arguments
 /// * `casm_json` - The compiled class in JSON format.
-pub fn calculate_casm_hash(casm_json: Value) -> DevnetResult<FieldElement> {
+pub fn calculate_casm_hash(casm_json: Value) -> DevnetResult<Felt> {
     serde_json::from_value::<CompiledClass>(casm_json)
         .map_err(|err| Error::DeserializationError { origin: err.to_string() })?
         .class_hash()
@@ -59,9 +84,9 @@ pub fn calculate_casm_hash(casm_json: Value) -> DevnetResult<FieldElement> {
 pub(crate) mod test_utils {
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use starknet_api::transaction::Fee;
+    use starknet_rs_core::types::Felt;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
-    use starknet_types::felt::Felt;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
@@ -77,7 +102,7 @@ pub(crate) mod test_utils {
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
 
     pub(crate) fn dummy_felt() -> Felt {
-        Felt::from_prefixed_hex_str("0xDD10").unwrap()
+        Felt::from_hex_unchecked("0xDD10")
     }
 
     pub(crate) fn dummy_cairo_1_contract_class() -> SierraContractClass {
@@ -95,7 +120,7 @@ pub(crate) mod test_utils {
         "0x3faafcc98742a29a5ca809bda3c827b2d2c73759c64f695e33106009e7e9fef";
 
     pub(crate) fn dummy_contract_address() -> ContractAddress {
-        ContractAddress::new(Felt::from_prefixed_hex_str("0xADD4E55").unwrap()).unwrap()
+        ContractAddress::new(Felt::from_hex_unchecked("0xADD4E55")).unwrap()
     }
 
     pub(crate) fn dummy_declare_transaction_v1() -> TransactionWithHash {
@@ -107,7 +132,7 @@ pub(crate) mod test_utils {
             &vec![],
             dummy_felt(),
             &contract_class.clone().into(),
-            Felt::from(1),
+            Felt::ONE,
         );
         let class_hash = contract_class.generate_hash().unwrap();
         let transaction_hash =
@@ -130,7 +155,7 @@ pub(crate) mod test_utils {
         let casm_contract_class_json =
             usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap()).unwrap();
 
-        let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap().into();
+        let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap();
 
         BroadcastedDeclareTransactionV2::new(
             &contract_class,
@@ -138,8 +163,8 @@ pub(crate) mod test_utils {
             *sender_address,
             Fee(400000),
             &Vec::new(),
-            Felt::from(0),
-            Felt::from(2),
+            Felt::ZERO,
+            Felt::TWO,
         )
     }
 
@@ -152,23 +177,12 @@ pub(crate) mod test_utils {
         Cairo0Json::raw_json_from_path(account_json_path).unwrap().into()
     }
 
-    pub(crate) fn get_bytes_from_u32(num: u32) -> [u8; 32] {
-        let num_bytes = num.to_be_bytes();
-        let mut result = [0u8; 32];
-        let starting_idx = result.len() - num_bytes.len();
-        let ending_idx = result.len();
-
-        result[starting_idx..ending_idx].copy_from_slice(&num_bytes[..(ending_idx - starting_idx)]);
-
-        result
-    }
-
     pub(crate) fn convert_broadcasted_declare_v2_to_v3(
         declare_v2: BroadcastedDeclareTransactionV2,
     ) -> BroadcastedDeclareTransactionV3 {
         BroadcastedDeclareTransactionV3 {
             common: BroadcastedTransactionCommonV3 {
-                version: Felt::from(3),
+                version: Felt::THREE,
                 signature: declare_v2.common.signature,
                 nonce: declare_v2.common.nonce,
                 resource_bounds: ResourceBoundsWrapper::new(
@@ -219,16 +233,8 @@ pub mod exported_test_utils {
 
 #[cfg(test)]
 mod tests {
-    use starknet_types::traits::ToHexString;
-
     use super::get_storage_var_address;
-    use super::test_utils::{self, get_bytes_from_u32};
-
-    #[test]
-    fn correct_bytes_from_number() {
-        let result = get_bytes_from_u32(123);
-        assert!(result[31] == 123)
-    }
+    use super::test_utils::{self};
 
     #[test]
     fn correct_simple_storage_var_address_generated() {
@@ -237,26 +243,24 @@ mod tests {
         let generated_storage_var_address = get_storage_var_address("simple", &[]).unwrap();
 
         assert_eq!(
-            expected_storage_var_address.0.key().bytes(),
-            generated_storage_var_address.to_felt().bytes()
+            expected_storage_var_address.0.key().to_bytes_be(),
+            generated_storage_var_address.to_felt().to_bytes_be()
         );
     }
 
     #[test]
     fn correct_complex_storage_var_address_generated() {
-        let prefixed_hex_felt_string = test_utils::dummy_felt().to_prefixed_hex_str();
-
         let expected_storage_var_address = blockifier::abi::abi_utils::get_storage_var_address(
             "complex",
-            &[prefixed_hex_felt_string.as_str().try_into().unwrap()],
+            &[test_utils::dummy_felt()],
         );
 
         let generated_storage_var_address =
             get_storage_var_address("complex", &[test_utils::dummy_felt()]).unwrap();
 
         assert_eq!(
-            expected_storage_var_address.0.key().bytes(),
-            generated_storage_var_address.to_felt().bytes()
+            expected_storage_var_address.0.key().to_bytes_be(),
+            generated_storage_var_address.to_felt().to_bytes_be()
         );
     }
 }

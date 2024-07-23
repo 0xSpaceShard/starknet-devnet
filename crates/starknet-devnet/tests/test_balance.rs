@@ -2,7 +2,7 @@ pub mod common;
 
 mod balance_tests {
     use serde_json::json;
-    use starknet_rs_core::types::FieldElement;
+    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -13,13 +13,13 @@ mod balance_tests {
     #[tokio::test]
     async fn getting_balance_of_predeployed_contract() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
+        let contract_address = felt_from_prefixed_hex(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
 
         let retrieved_result =
             devnet.get_balance_latest(&contract_address, FeeUnit::WEI).await.unwrap();
 
         let expected_hex_balance = format!("0x{PREDEPLOYED_ACCOUNT_INITIAL_BALANCE:x}");
-        let expected_balance = FieldElement::from_hex_be(expected_hex_balance.as_str()).unwrap();
+        let expected_balance = felt_from_prefixed_hex(expected_hex_balance.as_str()).unwrap();
         assert_eq!(retrieved_result, expected_balance);
     }
 

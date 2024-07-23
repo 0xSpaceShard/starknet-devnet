@@ -18,7 +18,7 @@ pub(crate) async fn dump_impl(
     api: &Api,
     path: Option<DumpPath>,
 ) -> HttpApiResult<DumpResponseBody> {
-    let starknet = api.starknet.read().await;
+    let starknet = api.starknet.lock().await;
 
     if starknet.config.dump_on.is_none() {
         return Err(HttpApiError::DumpError {
@@ -64,7 +64,7 @@ pub(crate) async fn load_impl(api: &Api, path: LoadPath) -> HttpApiResult<()> {
         return Err(HttpApiError::FileNotFound);
     }
 
-    let mut starknet = api.starknet.write().await;
+    let mut starknet = api.starknet.lock().await;
     starknet.restart().map_err(|e| HttpApiError::RestartError { msg: e.to_string() })?;
     let events = starknet
         .load_events_custom_path(Some(path.path))

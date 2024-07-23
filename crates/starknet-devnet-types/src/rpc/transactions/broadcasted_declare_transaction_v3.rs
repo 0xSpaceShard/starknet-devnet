@@ -1,13 +1,13 @@
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::{Deserialize, Serialize};
+use starknet_rs_core::types::Felt;
 use starknet_rs_crypto::poseidon_hash_many;
-use starknet_rs_ff::FieldElement;
 
 use super::BroadcastedTransactionCommonV3;
 use crate::constants::PREFIX_DECLARE;
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
-use crate::felt::{ClassHash, CompiledClassHash, Felt};
+use crate::felt::{ClassHash, CompiledClassHash};
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -38,29 +38,22 @@ impl BroadcastedDeclareTransactionV3 {
     ) -> DevnetResult<Felt> {
         let common_fields = self.common.common_fields_for_hash(
             PREFIX_DECLARE,
-            chain_id.into(),
+            *chain_id,
             self.sender_address.into(),
         )?;
 
-        let account_deployment_data_hash = poseidon_hash_many(
-            &self
-                .account_deployment_data
-                .iter()
-                .map(|f| FieldElement::from(*f))
-                .collect::<Vec<FieldElement>>(),
-        );
+        let account_deployment_data_hash = poseidon_hash_many(&self.account_deployment_data);
 
         let fields_to_hash = [
             common_fields.as_slice(),
             &[account_deployment_data_hash],
-            &[class_hash.into()],
-            &[self.compiled_class_hash.into()],
+            &[class_hash],
+            &[self.compiled_class_hash],
         ]
         .concat();
 
         let txn_hash = poseidon_hash_many(fields_to_hash.as_slice());
-
-        Ok(txn_hash.into())
+        Ok(txn_hash)
     }
 }
 
@@ -68,11 +61,12 @@ impl BroadcastedDeclareTransactionV3 {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::{ResourceBoundsMapping, Tip};
+    use starknet_types_core::felt::Felt;
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
     use crate::contract_class::ContractClass;
-    use crate::felt::{ClassHash, CompiledClassHash, Felt};
+    use crate::felt::{ClassHash, CompiledClassHash};
     use crate::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
     use crate::rpc::transactions::BroadcastedTransactionCommonV3;
     use crate::utils::test_utils::{

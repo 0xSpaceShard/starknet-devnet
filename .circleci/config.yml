@@ -43,13 +43,13 @@ executors:
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
   build-and-test:
-    parameters:
-      cargo_cache_key:
-        type: string
     machine: true
     resource_class: spaceshard/ax41
     steps:
       - checkout
+      - run:
+          name: Load cache
+          command: .circleci/scripts/cache.sh load
       - run:
           name: Install nightly-2024-07-08
           command: rustup install nightly-2024-07-08
@@ -68,6 +68,12 @@ jobs:
       - run:
           name: Code spell check
           command: ./scripts/check_spelling.sh
+      - run:
+          name: Save cache
+          command: .circleci/scripts/cache.sh save
+      - run:
+          name: Cleanup old cache
+          command: .circleci/scripts/cache.sh cleanup
       - run:
           name: Unit tests
           command: cargo test --lib --bins --no-fail-fast
@@ -95,7 +101,7 @@ jobs:
           name: Install Rust
           command: |
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
-              sh -s -- -y --default-toolchain=1.74.0
+              sh -s -- -y --default-toolchain=1.76.0
       - run:
           name: Compile binary
           command: ./scripts/compile_binary.sh << parameters.target_triplet >>
@@ -133,7 +139,7 @@ jobs:
 
   publish:
     docker:
-      - image: cimg/rust:1.74.0-node
+      - image: cimg/rust:1.76.0-node
     resource_class: xlarge
     steps:
       - checkout
@@ -158,8 +164,7 @@ jobs:
 workflows:
   build-test-maybe-publish:
     jobs:
-      - build-and-test:
-          cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
+      - build-and-test
       - binary-build:
           <<: *on_main
           matrix:

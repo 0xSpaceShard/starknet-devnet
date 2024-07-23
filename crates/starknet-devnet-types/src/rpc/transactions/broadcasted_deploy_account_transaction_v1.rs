@@ -44,13 +44,13 @@ impl BroadcastedDeployAccountTransactionV1 {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::Fee;
+    use starknet_rs_core::types::Felt;
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
-    use crate::felt::Felt;
+    use crate::felt::try_felt_to_num;
     use crate::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
     use crate::rpc::transactions::BroadcastedDeployAccountTransaction;
-    use crate::traits::ToHexString;
 
     #[derive(Deserialize)]
     struct FeederGatewayDeployAccountTransaction {
@@ -80,11 +80,7 @@ mod tests {
 
         let broadcasted_tx = BroadcastedDeployAccountTransactionV1::new(
             &feeder_gateway_transaction.constructor_calldata,
-            Fee(u128::from_str_radix(
-                &feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(),
-                16,
-            )
-            .unwrap()),
+            Fee(try_felt_to_num(feeder_gateway_transaction.max_fee).unwrap()),
             &vec![],
             feeder_gateway_transaction.nonce,
             feeder_gateway_transaction.class_hash,
@@ -106,7 +102,7 @@ mod tests {
 
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,
-            blockifier_deploy_account_transaction.tx_hash.0.into()
+            blockifier_deploy_account_transaction.tx_hash.0
         );
     }
 }
