@@ -80,7 +80,10 @@ mod gas_update_tests {
             .send_custom_rpc("starknet_simulateTransactions", params_no_flags.clone())
             .await
             .unwrap()[0];
-        assert_eq!(resp_no_flags["fee_estimation"]["gas_price"], format!("0x{:x}", DEVNET_DEFAULT_GAS_PRICE));
+        assert_eq!(
+            resp_no_flags["fee_estimation"]["gas_price"],
+            format!("0x{:x}", DEVNET_DEFAULT_GAS_PRICE)
+        );
         assert_eq!(
             resp_no_flags["fee_estimation"]["data_gas_price"],
             format!("0x{:x}", DEVNET_DEFAULT_GAS_PRICE)
