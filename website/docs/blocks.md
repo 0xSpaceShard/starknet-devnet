@@ -1,6 +1,12 @@
 # Blocks
 
+## Genesis block
+
 By default, Devnet starts with a genesis block labelled with number zero. In [forking mode](./forking), the genesis block number is equal to the forked block number plus one.
+
+## Limits
+
+To read more about block limits, see [this](./intro#limits).
 
 ## Creating blocks on transaction
 
