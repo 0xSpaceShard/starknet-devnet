@@ -71,7 +71,7 @@ pub struct DataAvailability {
     pub l1_data_gas: u128,
 }
 
-/// custom implementation, because serde_json doesnt support deserializing to u128
+/// custom implementation, because serde_json doesn't support deserializing to u128
 /// if the struct is being used as a field in another struct that have #[serde(flatten)] or
 /// #[serde(untagged)]
 impl<'de> Deserialize<'de> for DataAvailability {
