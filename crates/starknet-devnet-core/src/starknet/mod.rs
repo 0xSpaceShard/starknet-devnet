@@ -575,10 +575,11 @@ impl Starknet {
         );
 
         // TODO: update block_context via preferred method in the documentation
-        *block_context = BlockContext::new_unchecked(
-            &block_info,
-            block_context.chain_info(),
-            &get_versioned_constants(),
+        *block_context = BlockContext::new(
+            block_info,
+            block_context.chain_info().clone(),
+            get_versioned_constants(),
+            custom_bouncer_config(),
         );
     }
 

@@ -163,7 +163,7 @@ impl JsonRpcHandler {
     /// devnet_updateGas
     pub async fn update_gas(&self, data: GasUpdate) -> StrictRpcResult {
         let updated_gas =
-            self.api.starknet.write().await.update_next_block_gas(data).map_err(ApiError::from)?;
+            self.api.starknet.lock().await.update_next_block_gas(data).map_err(ApiError::from)?;
 
         Ok(DevnetResponse::UpdatedGas(updated_gas).into())
     }

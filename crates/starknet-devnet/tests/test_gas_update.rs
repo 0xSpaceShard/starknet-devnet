@@ -6,8 +6,9 @@ mod gas_update_tests {
     use serde_json::json;
     use starknet_core::constants::DEVNET_DEFAULT_GAS_PRICE;
     use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
-    use starknet_rs_core::types::{FieldElement, ResourcePrice, StarknetError};
+    use starknet_rs_core::types::{Felt, ResourcePrice, StarknetError};
     use starknet_rs_providers::ProviderError;
+    use starknet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{self, CAIRO_1_CONTRACT_PATH, INTEGRATION_SEPOLIA_HTTP_URL};
@@ -29,7 +30,7 @@ mod gas_update_tests {
             devnet.clone_provider(),
             signer,
             account_address,
-            FieldElement::from_hex_be(expected_chain_id).unwrap(),
+            felt_from_prefixed_hex(expected_chain_id).unwrap(),
             ExecutionEncoding::New,
         );
 
@@ -37,11 +38,11 @@ mod gas_update_tests {
         let (flattened_contract_artifact, casm_hash) =
             get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH);
 
-        let max_fee = FieldElement::ZERO;
-        let nonce = FieldElement::ZERO;
+        let max_fee = Felt::ZERO;
+        let nonce = Felt::ZERO;
 
         let signature = account
-            .declare(Arc::new(flattened_contract_artifact.clone()), casm_hash)
+            .declare_v2(Arc::new(flattened_contract_artifact.clone()), casm_hash)
             .max_fee(max_fee)
             .nonce(nonce)
             .prepared()
@@ -90,7 +91,7 @@ mod gas_update_tests {
         );
         assert_eq!(
             resp_no_flags["fee_estimation"]["overall_fee"],
-            format!("0x{:x}", 1268 * 1e11 as u128)
+            format!("0x{:x}", 29406 * 1e11 as u128)
         );
 
         let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
@@ -108,14 +109,14 @@ mod gas_update_tests {
         );
         assert_eq!(
             resp_skip_validation["fee_estimation"]["overall_fee"],
-            format!("0x{:x}", 1267 * 1e11 as u128)
+            format!("0x{:x}", 29404 * 1e11 as u128)
         );
 
         assert_difference_if_validation(
             resp_no_flags,
             resp_skip_validation,
             &sender_address_hex,
-            max_fee == FieldElement::ZERO,
+            max_fee == Felt::ZERO,
         );
 
         let wei_price = 9e18 as u128;
@@ -146,7 +147,7 @@ mod gas_update_tests {
         );
         assert_eq!(
             resp_no_flags["fee_estimation"]["overall_fee"],
-            format!("0x{:x}", 1122 * 1e19 as u128)
+            format!("0x{:x}", 264462 * 1e18 as u128)
         );
 
         let resp_skip_validation = &devnet
@@ -163,14 +164,14 @@ mod gas_update_tests {
         );
         assert_eq!(
             resp_skip_validation["fee_estimation"]["overall_fee"],
-            format!("0x{:x}", 11211 * 1e18 as u128)
+            format!("0x{:x}", 264444 * 1e18 as u128)
         );
 
         assert_difference_if_validation(
             resp_no_flags,
             resp_skip_validation,
             &sender_address_hex,
-            max_fee == FieldElement::ZERO,
+            max_fee == Felt::ZERO,
         );
     }
 
@@ -200,8 +201,8 @@ mod gas_update_tests {
         assert_eq!(
             latest_block.l1_gas_price,
             ResourcePrice {
-                price_in_wei: FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
-                price_in_fri: FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+                price_in_wei: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+                price_in_fri: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
             }
         );
 
@@ -225,8 +226,8 @@ mod gas_update_tests {
         assert_eq!(
             pending_block.l1_gas_price,
             ResourcePrice {
-                price_in_wei: FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
-                price_in_fri: FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+                price_in_wei: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+                price_in_fri: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
             }
         );
 
@@ -236,8 +237,8 @@ mod gas_update_tests {
         assert_eq!(
             pending_block.l1_gas_price,
             ResourcePrice {
-                price_in_wei: FieldElement::from(wei_price_first_update),
-                price_in_fri: FieldElement::from(strk_price_first_update),
+                price_in_wei: Felt::from(wei_price_first_update),
+                price_in_fri: Felt::from(strk_price_first_update),
             }
         );
 
@@ -246,8 +247,8 @@ mod gas_update_tests {
         assert_eq!(
             latest_block.l1_gas_price,
             ResourcePrice {
-                price_in_wei: FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
-                price_in_fri: FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+                price_in_wei: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+                price_in_fri: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
             }
         );
 
@@ -271,8 +272,8 @@ mod gas_update_tests {
         assert_eq!(
             latest_block.l1_gas_price,
             ResourcePrice {
-                price_in_wei: FieldElement::from(wei_price_first_update),
-                price_in_fri: FieldElement::from(strk_price_first_update),
+                price_in_wei: Felt::from(wei_price_first_update),
+                price_in_fri: Felt::from(strk_price_first_update),
             }
         );
 
@@ -280,8 +281,8 @@ mod gas_update_tests {
         assert_eq!(
             pending_block.l1_gas_price,
             ResourcePrice {
-                price_in_wei: FieldElement::from(wei_price_second_update),
-                price_in_fri: FieldElement::from(strk_price_second_update),
+                price_in_wei: Felt::from(wei_price_second_update),
+                price_in_fri: Felt::from(strk_price_second_update),
             }
         );
     }
@@ -300,10 +301,10 @@ mod gas_update_tests {
         let (contract_class, casm_class_hash) =
             get_simple_contract_in_sierra_and_compiled_class_hash();
 
-        let max_gas_fee = FieldElement::from(1e14 as u128);
+        let max_gas_fee = Felt::from(1e14 as u128);
 
         let unsuccessful_declare_tx = predeployed_account
-            .declare(Arc::new(contract_class.clone()), casm_class_hash)
+            .declare_v2(Arc::new(contract_class.clone()), casm_class_hash)
             .max_fee(max_gas_fee)
             .send()
             .await;
@@ -335,13 +336,13 @@ mod gas_update_tests {
         assert_eq!(
             pending_block.l1_gas_price,
             ResourcePrice {
-                price_in_wei: FieldElement::from(wei_price),
-                price_in_fri: FieldElement::from(strk_price),
+                price_in_wei: Felt::from(wei_price),
+                price_in_fri: Felt::from(strk_price),
             }
         );
 
         let successful_declare_tx = predeployed_account
-            .declare(Arc::new(contract_class), casm_class_hash)
+            .declare_v2(Arc::new(contract_class), casm_class_hash)
             .max_fee(max_gas_fee)
             .send()
             .await
@@ -358,8 +359,8 @@ mod gas_update_tests {
         assert_eq!(
             latest_block.l1_gas_price,
             ResourcePrice {
-                price_in_wei: FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
-                price_in_fri: FieldElement::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+                price_in_wei: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+                price_in_fri: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
             }
         );
 
