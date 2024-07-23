@@ -22,7 +22,10 @@ use starknet_types::chain_id::ChainId;
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::ToHexString;
 use tokio::net::TcpListener;
+#[cfg(unix)]
 use tokio::signal::unix::{signal, SignalKind};
+#[cfg(windows)]
+use tokio::signal::windows::ctrl_c;
 use tokio::task::{self};
 use tokio::time::{interval, sleep};
 use tracing::{info, warn};
@@ -224,7 +227,15 @@ async fn create_block_interval(
     block_interval_seconds: u64,
 ) -> Result<(), std::io::Error> {
     let mut interval = interval(Duration::from_secs(block_interval_seconds));
-    let mut sigint = signal(SignalKind::interrupt()).expect("Failed to setup SIGINT handler");
+
+    #[cfg(unix)]
+    let mut sigint = { signal(SignalKind::interrupt()).expect("Failed to setup SIGINT handler") };
+
+    #[cfg(windows)]
+    let mut sigint = {
+        let ctrl_c_signal = ctrl_c().expect("Failed to setup Ctrl+C handler");
+        Box::pin(ctrl_c_signal)
+    };
 
     loop {
         // avoid creating block instantly after startup
