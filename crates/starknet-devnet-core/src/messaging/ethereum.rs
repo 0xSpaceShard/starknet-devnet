@@ -6,10 +6,10 @@ use ethers::prelude::*;
 use ethers::providers::{Http, Provider, ProviderError};
 use ethers::types::{Address, BlockNumber, Log};
 use k256::ecdsa::SigningKey;
-use starknet_types::felt::Felt;
+use starknet_rs_core::types::Felt;
+use starknet_types::felt::felt_from_prefixed_hex;
 use starknet_types::rpc::contract_address::ContractAddress;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
-use starknet_types::traits::ToHexString;
 use tracing::{trace, warn};
 
 use crate::error::{DevnetResult, Error, MessagingError};
@@ -366,7 +366,7 @@ pub fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
 ///
 /// * `v` - The `U256` to be converted.
 fn u256_to_felt_devnet(v: &U256) -> DevnetResult<Felt> {
-    Ok(Felt::from_prefixed_hex_str(format!("0x{:064x}", v).as_str())?)
+    Ok(felt_from_prefixed_hex(format!("0x{:064x}", v).as_str())?)
 }
 
 /// Converts an `Felt` into a `U256`.
@@ -375,7 +375,7 @@ fn u256_to_felt_devnet(v: &U256) -> DevnetResult<Felt> {
 ///
 /// * `v` - The `Felt` to be converted.
 fn felt_devnet_to_u256(v: &Felt) -> DevnetResult<U256> {
-    Ok(U256::from_str_radix(v.to_nonprefixed_hex_str().as_str(), 16).map_err(|e| {
+    Ok(U256::from_str_radix(v.to_hex_string().as_str(), 16).map_err(|e| {
         MessagingError::EthersError(format!("Cant't convert Felt into U256: {}", e))
     })?)
 }
@@ -399,7 +399,7 @@ fn felts_devnet_to_u256s(felts: &[Felt]) -> DevnetResult<Vec<U256>> {
 ///
 /// * `address` - The `Address` to be converted.
 fn address_to_felt_devnet(address: &Address) -> DevnetResult<Felt> {
-    Ok(Felt::from_prefixed_hex_str(format!("0x{:064x}", address).as_str())?)
+    Ok(felt_from_prefixed_hex(format!("0x{:064x}", address).as_str())?)
 }
 
 #[cfg(test)]
@@ -439,14 +439,12 @@ mod tests {
 
         let expected_message = MessageToL2 {
             l1_contract_address: ContractAddress::new(
-                Felt::from_prefixed_hex_str(from_address).unwrap(),
+                felt_from_prefixed_hex(from_address).unwrap(),
             )
             .unwrap(),
-            l2_contract_address: ContractAddress::new(
-                Felt::from_prefixed_hex_str(to_address).unwrap(),
-            )
-            .unwrap(),
-            entry_point_selector: Felt::from_prefixed_hex_str(selector).unwrap(),
+            l2_contract_address: ContractAddress::new(felt_from_prefixed_hex(to_address).unwrap())
+                .unwrap(),
+            entry_point_selector: felt_from_prefixed_hex(selector).unwrap(),
             payload,
             nonce: nonce.into(),
             paid_fee_on_l1: fee.into(),

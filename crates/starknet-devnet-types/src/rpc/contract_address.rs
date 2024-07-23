@@ -1,10 +1,9 @@
 use std::fmt::LowerHex;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use starknet_rs_ff::FieldElement;
+use starknet_rs_core::types::Felt;
 
 use crate::error::{DevnetResult, Error};
-use crate::felt::Felt;
 use crate::patricia_key::PatriciaKey;
 use crate::serde_helpers::hex_string::{
     deserialize_to_prefixed_contract_address, serialize_contract_address_to_prefixed_hex,
@@ -22,7 +21,7 @@ impl ContractAddress {
     /// Constructs a zero address
     pub fn zero() -> Self {
         // using unwrap because we are sure it works for 0x0
-        Self::new(Felt::from(0)).unwrap()
+        Self::new(Felt::ZERO).unwrap()
     }
 }
 
@@ -59,24 +58,20 @@ impl TryFrom<ContractAddress> for starknet_api::core::ContractAddress {
     }
 }
 
-impl From<ContractAddress> for FieldElement {
+impl From<ContractAddress> for Felt {
     fn from(value: ContractAddress) -> Self {
-        FieldElement::from(value.0.0)
+        value.0.0
     }
 }
 
 impl ToHexString for ContractAddress {
     fn to_prefixed_hex_str(&self) -> String {
-        self.0.0.to_prefixed_hex_str()
-    }
-
-    fn to_nonprefixed_hex_str(&self) -> String {
-        self.0.0.to_nonprefixed_hex_str()
+        self.0.0.to_hex_string()
     }
 }
 
 impl LowerHex for ContractAddress {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.0.0.to_prefixed_hex_str().as_str())
+        f.write_str(self.0.0.to_hex_string().as_str())
     }
 }

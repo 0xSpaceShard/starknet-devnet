@@ -9,7 +9,7 @@ mod blocks_generation_tests {
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
-        BlockId, BlockStatus, BlockTag, DeclaredClassItem, FieldElement, FunctionCall,
+        BlockId, BlockStatus, BlockTag, DeclaredClassItem, Felt, FunctionCall,
         MaybePendingStateUpdate, NonceUpdate, StateUpdate, TransactionTrace,
     };
     use starknet_rs_core::utils::{
@@ -17,6 +17,7 @@ mod blocks_generation_tests {
     };
     use starknet_rs_providers::Provider;
     use starknet_rs_signers::Signer;
+    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -51,7 +52,7 @@ mod blocks_generation_tests {
     async fn assert_latest_block_with_tx_hashes(
         devnet: &BackgroundDevnet,
         block_number: u64,
-        transactions: Vec<FieldElement>,
+        transactions: Vec<Felt>,
     ) {
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
@@ -121,7 +122,7 @@ mod blocks_generation_tests {
 
         for tx in latest_block["transactions"].as_array().unwrap() {
             assert_tx_successful(
-                &FieldElement::from_hex_be(tx["receipt"]["transaction_hash"].as_str().unwrap())
+                &felt_from_prefixed_hex(tx["receipt"]["transaction_hash"].as_str().unwrap())
                     .unwrap(),
                 &devnet.json_rpc_client,
             )
@@ -145,7 +146,7 @@ mod blocks_generation_tests {
 
         for tx in pending_block["transactions"].as_array().unwrap() {
             assert_tx_successful(
-                &FieldElement::from_hex_be(tx["receipt"]["transaction_hash"].as_str().unwrap())
+                &felt_from_prefixed_hex(tx["receipt"]["transaction_hash"].as_str().unwrap())
                     .unwrap(),
                 &devnet.json_rpc_client,
             )
@@ -153,15 +154,9 @@ mod blocks_generation_tests {
         }
     }
 
-    async fn assert_balance(devnet: &BackgroundDevnet, expected: FieldElement, tag: BlockTag) {
-        let balance = devnet
-            .get_balance_by_tag(
-                &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
-                FeeUnit::WEI,
-                tag,
-            )
-            .await
-            .unwrap();
+    async fn assert_balance(devnet: &BackgroundDevnet, expected: Felt, tag: BlockTag) {
+        let balance =
+            devnet.get_balance_by_tag(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI, tag).await.unwrap();
         assert_eq!(balance, expected);
     }
 
@@ -173,33 +168,33 @@ mod blocks_generation_tests {
             .get_nonce(BlockId::Tag(BlockTag::Pending), account_address)
             .await
             .unwrap();
-        assert_eq!(pending_block_nonce, FieldElement::ZERO);
+        assert_eq!(pending_block_nonce, Felt::ZERO);
 
         let latest_block_nonce = devnet
             .json_rpc_client
             .get_nonce(BlockId::Tag(BlockTag::Latest), account_address)
             .await
             .unwrap();
-        assert_eq!(latest_block_nonce, FieldElement::ZERO);
+        assert_eq!(latest_block_nonce, Felt::ZERO);
     }
 
     async fn assert_get_storage_at(devnet: &BackgroundDevnet) {
         let (_, account_address) = devnet.get_first_predeployed_account().await;
-        let key = FieldElement::ZERO;
+        let key = Felt::ZERO;
 
         let pending_block_storage = devnet
             .json_rpc_client
             .get_storage_at(account_address, key, BlockId::Tag(BlockTag::Pending))
             .await
             .unwrap();
-        assert_eq!(pending_block_storage, FieldElement::ZERO);
+        assert_eq!(pending_block_storage, Felt::ZERO);
 
         let latest_block_storage = devnet
             .json_rpc_client
             .get_storage_at(account_address, key, BlockId::Tag(BlockTag::Latest))
             .await
             .unwrap();
-        assert_eq!(latest_block_storage, FieldElement::ZERO);
+        assert_eq!(latest_block_storage, Felt::ZERO);
     }
 
     async fn assert_get_class_hash_at(devnet: &BackgroundDevnet) {
@@ -212,7 +207,7 @@ mod blocks_generation_tests {
             .unwrap();
         assert_eq!(
             pending_block_class_hash,
-            FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+            felt_from_prefixed_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
         );
 
         let latest_block_class_hash = devnet
@@ -222,7 +217,7 @@ mod blocks_generation_tests {
             .unwrap();
         assert_eq!(
             latest_block_class_hash,
-            FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+            felt_from_prefixed_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
         );
     }
 
@@ -237,10 +232,8 @@ mod blocks_generation_tests {
             tx_hashes.push(mint_hash);
         }
 
-        assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Pending)
-            .await;
-        assert_balance(&devnet, FieldElement::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest)
-            .await;
+        assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::Pending).await;
+        assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest).await;
 
         assert_pending_block_with_tx_hashes(&devnet, 0).await;
         assert_pending_block_with_txs(&devnet, 0).await;
@@ -269,13 +262,9 @@ mod blocks_generation_tests {
             tx_hashes.push(mint_hash);
         }
 
-        assert_balance(
-            &devnet,
-            FieldElement::from(tx_count * DUMMY_AMOUNT as usize),
-            BlockTag::Pending,
-        )
-        .await;
-        assert_balance(&devnet, FieldElement::from(0_u128), BlockTag::Latest).await;
+        assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Pending)
+            .await;
+        assert_balance(&devnet, Felt::ZERO, BlockTag::Latest).await;
 
         assert_pending_block_with_tx_hashes(&devnet, tx_count).await;
         assert_pending_block_with_txs(&devnet, tx_count).await;
@@ -288,18 +277,10 @@ mod blocks_generation_tests {
         // create new block from pending block
         devnet.create_block().await.unwrap();
 
-        assert_balance(
-            &devnet,
-            FieldElement::from(tx_count * DUMMY_AMOUNT as usize),
-            BlockTag::Pending,
-        )
-        .await;
-        assert_balance(
-            &devnet,
-            FieldElement::from(tx_count * DUMMY_AMOUNT as usize),
-            BlockTag::Latest,
-        )
-        .await;
+        assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Pending)
+            .await;
+        assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Latest)
+            .await;
 
         assert_pending_block_with_tx_hashes(&devnet, 0).await;
         assert_pending_block_with_txs(&devnet, 0).await;
@@ -335,9 +316,9 @@ mod blocks_generation_tests {
         let mut declaration_results = vec![];
         for (nonce, (class, casm_hash)) in classes_with_hash.iter().enumerate() {
             let declaration_result = predeployed_account
-                .declare(Arc::new(class.clone()), *casm_hash)
-                .max_fee(FieldElement::from(1e18 as u128))
-                .nonce(FieldElement::from(nonce))
+                .declare_v2(Arc::new(class.clone()), *casm_hash)
+                .max_fee(Felt::from(1e18 as u128))
+                .nonce(Felt::from(nonce))
                 .send()
                 .await
                 .unwrap();
@@ -369,7 +350,7 @@ mod blocks_generation_tests {
                         state_diff.nonces,
                         vec![NonceUpdate {
                             contract_address: account_address,
-                            nonce: FieldElement::from(expected_nonce)
+                            nonce: Felt::from(expected_nonce)
                         }]
                     )
                 }
@@ -381,7 +362,7 @@ mod blocks_generation_tests {
         // assert block state update - should include diff of all txs from pending block
         let expected_block_nonce_update = vec![NonceUpdate {
             contract_address: account_address,
-            nonce: FieldElement::from(classes_with_hash.len()),
+            nonce: Felt::from(classes_with_hash.len()),
         }];
         for block_id in [BlockId::Tag(BlockTag::Latest), BlockId::Hash(declaration_block_hash)] {
             match devnet.json_rpc_client.get_state_update(block_id).await {
@@ -420,9 +401,9 @@ mod blocks_generation_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(contract_class), casm_class_hash)
-            .max_fee(FieldElement::from(1e18 as u128))
-            .nonce(FieldElement::ZERO)
+            .declare_v2(Arc::new(contract_class), casm_class_hash)
+            .max_fee(Felt::from(1e18 as u128))
+            .nonce(Felt::ZERO)
             .send()
             .await
             .unwrap();
@@ -432,12 +413,12 @@ mod blocks_generation_tests {
         // deploy the contract
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
-        let initial_value = FieldElement::from(10_u32);
+        let initial_value = Felt::from(10_u32);
         let ctor_args = vec![initial_value];
         let deploy_result = contract_factory
-            .deploy(ctor_args.clone(), FieldElement::ZERO, false)
-            .max_fee(FieldElement::from(1e18 as u128))
-            .nonce(FieldElement::ONE)
+            .deploy_v1(ctor_args.clone(), Felt::ZERO, false)
+            .max_fee(Felt::from(1e18 as u128))
+            .nonce(Felt::ONE)
             .send()
             .await
             .unwrap();
@@ -446,24 +427,24 @@ mod blocks_generation_tests {
 
         // generate the address of the newly deployed contract
         let contract_address = get_udc_deployed_address(
-            FieldElement::ZERO,
+            Felt::ZERO,
             declaration_result.class_hash,
             &starknet_rs_core::utils::UdcUniqueness::NotUnique,
             &ctor_args,
         );
 
-        let increment = FieldElement::from(5_u32);
+        let increment = Felt::from(5_u32);
         let contract_invoke = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("increase_balance").unwrap(),
-            calldata: vec![increment, FieldElement::ZERO],
+            calldata: vec![increment, Felt::ZERO],
         }];
         let increment_count = 2;
         for i in 1..=increment_count {
             let invoke_result = predeployed_account
-                .execute(contract_invoke.clone())
-                .max_fee(FieldElement::from(1e18 as u128))
-                .nonce(FieldElement::from(i + 1_u128))
+                .execute_v1(contract_invoke.clone())
+                .max_fee(Felt::from(1e18 as u128))
+                .nonce(Felt::from(i + 1_u128))
                 .send()
                 .await
                 .unwrap();
@@ -473,7 +454,7 @@ mod blocks_generation_tests {
             tx_hashes.push(invoke_result.transaction_hash);
         }
 
-        let expected_balance = initial_value + (increment * FieldElement::from(increment_count));
+        let expected_balance = initial_value + (increment * Felt::from(increment_count));
 
         assert_eq!(
             get_contract_balance_by_block_id(
@@ -643,13 +624,13 @@ mod blocks_generation_tests {
 
         for block_id in &block_ids {
             let nonce = devnet.json_rpc_client.get_nonce(block_id, account_address).await.unwrap();
-            assert_eq!(nonce, FieldElement::ZERO);
+            assert_eq!(nonce, Felt::ZERO);
 
             let class_hash =
                 devnet.json_rpc_client.get_class_hash_at(block_id, account_address).await.unwrap();
             assert_eq!(
                 class_hash,
-                FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+                felt_from_prefixed_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
 
             let key = get_storage_var_address("Account_public_key", &[]).unwrap();

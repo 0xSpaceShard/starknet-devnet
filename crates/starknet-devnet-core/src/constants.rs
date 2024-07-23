@@ -55,7 +55,7 @@ pub const UDC_CONTRACT_ADDRESS: &str =
 /// https://github.com/OpenZeppelin/cairo-contracts/blob/89a450a88628ec3b86273f261b2d8d1ca9b1522b/src/account/interface.cairo#L7
 pub const ISRC6_ID_HEX: &str = "0x2ceccef7f994940b3962a6c67e0ba4fcd37df7d131417c604f91e03caecc1cd";
 
-pub const STARKNET_VERSION: &str = "0.13.1.1";
+pub const STARKNET_VERSION: &str = "0.13.2";
 
 /// ERC20 contracts storage variables
 /// taken from starkcan urls:
@@ -80,6 +80,7 @@ pub const DEVNET_DEFAULT_STARTING_BLOCK_NUMBER: u64 = 0;
 pub const DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT: usize = 2_000_000;
 
 pub const SUPPORTED_TX_VERSION: u32 = 1;
+pub const USE_KZG_DA: bool = true;
 
 // chargeable account
 pub const CHARGEABLE_ACCOUNT_PUBLIC_KEY: &str =

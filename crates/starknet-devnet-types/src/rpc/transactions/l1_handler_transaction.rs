@@ -11,21 +11,14 @@ use starknet_api::transaction::{
     TransactionHash as ApiTransactionHash, TransactionVersion as ApiTransactionVersion,
 };
 use starknet_rs_core::crypto::compute_hash_on_elements;
-use starknet_rs_core::types::FieldElement;
+use starknet_rs_core::types::Felt;
 
 use super::{deserialize_paid_fee_on_l1, serialize_paid_fee_on_l1};
+use crate::constants::PREFIX_L1_HANDLER;
 use crate::contract_address::ContractAddress;
 use crate::error::{ConversionError, DevnetResult, Error};
-use crate::felt::{Calldata, EntryPointSelector, Felt, Nonce, TransactionVersion};
+use crate::felt::{try_felt_to_num, Calldata, EntryPointSelector, Nonce, TransactionVersion};
 use crate::rpc::messaging::MessageToL2;
-
-/// Cairo string for "l1_handler"
-const PREFIX_L1_HANDLER: FieldElement = FieldElement::from_mont([
-    1365666230910873368,
-    18446744073708665300,
-    18446744073709551615,
-    157895833347907735,
-]);
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -50,25 +43,18 @@ impl L1HandlerTransaction {
     /// * `chain_id` - The chain ID.
     pub fn compute_hash(&self, chain_id: Felt) -> Felt {
         // No fee on L2 for L1 handler transaction.
-        let fee = FieldElement::ZERO;
+        let fee = Felt::ZERO;
 
         compute_hash_on_elements(&[
             PREFIX_L1_HANDLER,
-            self.version.into(),
+            self.version,
             self.contract_address.into(),
-            self.entry_point_selector.into(),
-            compute_hash_on_elements(
-                &self
-                    .calldata
-                    .iter()
-                    .map(|felt| FieldElement::from(*felt))
-                    .collect::<Vec<FieldElement>>(),
-            ),
+            self.entry_point_selector,
+            compute_hash_on_elements(&self.calldata),
             fee,
-            chain_id.into(),
-            self.nonce.into(),
+            chain_id,
+            self.nonce,
         ])
-        .into()
     }
 
     /// Creates a blockifier version of `L1HandlerTransaction`.
@@ -79,13 +65,13 @@ impl L1HandlerTransaction {
         let transaction = BlockifierL1HandlerTransaction {
             tx: ApiL1HandlerTransaction {
                 contract_address: ApiContractAddress::try_from(self.contract_address)?,
-                entry_point_selector: ApiEntryPointSelector(self.entry_point_selector.into()),
-                calldata: ApiCalldata(Arc::new(self.calldata.iter().map(|f| f.into()).collect())),
-                nonce: ApiNonce(self.nonce.into()),
-                version: ApiTransactionVersion(self.version.into()),
+                entry_point_selector: ApiEntryPointSelector(self.entry_point_selector),
+                calldata: ApiCalldata(Arc::new(self.calldata.clone())),
+                nonce: ApiNonce(self.nonce),
+                version: ApiTransactionVersion(self.version),
             },
             paid_fee_on_l1: ApiFee(self.paid_fee_on_l1),
-            tx_hash: ApiTransactionHash(self.compute_hash(chain_id).into()),
+            tx_hash: ApiTransactionHash(self.compute_hash(chain_id)),
         };
 
         Ok(transaction)
@@ -98,8 +84,7 @@ impl L1HandlerTransaction {
     /// * `message` - The message to be converted.
     /// * `chain_id` - The L1 node chain id.
     pub fn try_from_message_to_l2(message: MessageToL2) -> DevnetResult<Self> {
-        // `impl TryFrom` is not used due to the fact that chain_id is required.
-        let paid_fee_on_l1: u128 = message.paid_fee_on_l1.try_into().map_err(|_| {
+        let paid_fee_on_l1: u128 = try_felt_to_num(message.paid_fee_on_l1).map_err(|_| {
             ConversionError::OutOfRangeError(format!(
                 "paid_fee_on_l1 is expected to be a u128 value, found: {:?}",
                 message.paid_fee_on_l1,
@@ -128,7 +113,7 @@ impl TryFrom<&L1HandlerTransaction> for MessageToL2 {
     type Error = Error;
 
     fn try_from(value: &L1HandlerTransaction) -> Result<Self, Self::Error> {
-        let l1_contract_address = value.calldata.get(0).ok_or(Error::ConversionError(
+        let l1_contract_address = value.calldata.first().ok_or(Error::ConversionError(
             ConversionError::InvalidInternalStructure(
                 "L1HandlerTransaction calldata is expected to have at least one element"
                     .to_string(),
@@ -153,6 +138,7 @@ mod tests {
 
     use super::*;
     use crate::chain_id::ChainId;
+    use crate::felt::felt_from_prefixed_hex;
     use crate::rpc::transactions::ContractAddress;
 
     #[test]
@@ -166,21 +152,19 @@ mod tests {
         let nonce = 783082_u128;
         let fee = 30000_u128;
 
-        let payload: Vec<Felt> = vec![1.into(), 2.into()];
+        let payload: Vec<Felt> = vec![Felt::ONE, Felt::TWO];
 
         let calldata: Vec<Felt> =
-            vec![Felt::from_prefixed_hex_str(from_address).unwrap(), 1.into(), 2.into()];
+            vec![felt_from_prefixed_hex(from_address).unwrap(), Felt::ONE, Felt::TWO];
 
         let message = MessageToL2 {
             l1_contract_address: ContractAddress::new(
-                Felt::from_prefixed_hex_str(from_address).unwrap(),
+                felt_from_prefixed_hex(from_address).unwrap(),
             )
             .unwrap(),
-            l2_contract_address: ContractAddress::new(
-                Felt::from_prefixed_hex_str(to_address).unwrap(),
-            )
-            .unwrap(),
-            entry_point_selector: Felt::from_prefixed_hex_str(selector).unwrap(),
+            l2_contract_address: ContractAddress::new(felt_from_prefixed_hex(to_address).unwrap())
+                .unwrap(),
+            entry_point_selector: felt_from_prefixed_hex(selector).unwrap(),
             payload,
             nonce: nonce.into(),
             paid_fee_on_l1: fee.into(),
@@ -188,7 +172,7 @@ mod tests {
 
         let chain_id = ChainId::goerli_legacy_id();
 
-        let transaction_hash = Felt::from_prefixed_hex_str(
+        let transaction_hash = felt_from_prefixed_hex(
             "0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b",
         )
         .unwrap();
@@ -203,11 +187,9 @@ mod tests {
         );
 
         let expected_tx = L1HandlerTransaction {
-            contract_address: ContractAddress::new(
-                Felt::from_prefixed_hex_str(to_address).unwrap(),
-            )
-            .unwrap(),
-            entry_point_selector: Felt::from_prefixed_hex_str(selector).unwrap(),
+            contract_address: ContractAddress::new(felt_from_prefixed_hex(to_address).unwrap())
+                .unwrap(),
+            entry_point_selector: felt_from_prefixed_hex(selector).unwrap(),
             calldata,
             nonce: nonce.into(),
             paid_fee_on_l1: fee,

@@ -2,8 +2,9 @@ pub mod common;
 
 mod get_class_hash_at_integration_tests {
     use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
-    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
     use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
@@ -11,7 +12,7 @@ mod get_class_hash_at_integration_tests {
     #[tokio::test]
     async fn get_class_hash_at_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
+        let contract_address = felt_from_prefixed_hex(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
 
         let retrieved_hash = devnet
             .json_rpc_client
@@ -21,14 +22,14 @@ mod get_class_hash_at_integration_tests {
 
         assert_eq!(
             retrieved_hash,
-            FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+            felt_from_prefixed_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
         );
     }
 
     #[tokio::test]
     async fn get_class_hash_at_for_undeployed_address() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let undeployed_address = FieldElement::from_hex_be("0x1234").unwrap();
+        let undeployed_address = Felt::from_hex_unchecked("0x1234");
 
         let err = devnet
             .json_rpc_client
@@ -48,7 +49,7 @@ mod get_class_hash_at_integration_tests {
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
                 .expect("Could not start Devnet");
-        let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
+        let contract_address = felt_from_prefixed_hex(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
 
         let result =
             devnet.json_rpc_client.get_class_hash_at(BlockId::Number(0), contract_address).await;
@@ -61,14 +62,11 @@ mod get_class_hash_at_integration_tests {
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
                 .expect("Could not start Devnet");
-        let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
+        let contract_address = felt_from_prefixed_hex(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
 
         let err = devnet
             .json_rpc_client
-            .get_class_hash_at(
-                BlockId::Hash(FieldElement::from_hex_be("0x1").unwrap()),
-                contract_address,
-            )
+            .get_class_hash_at(BlockId::Hash(Felt::ONE), contract_address)
             .await
             .expect_err("Should have failed");
 

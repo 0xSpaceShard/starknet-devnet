@@ -6,8 +6,9 @@ mod get_class_tests {
     use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{BlockId, BlockTag, ContractClass, FieldElement, StarknetError};
+    use starknet_rs_core::types::{BlockId, BlockTag, ContractClass, Felt, StarknetError};
     use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
@@ -19,7 +20,7 @@ mod get_class_tests {
     #[tokio::test]
     async fn test_getting_class_at() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
+        let contract_address = felt_from_prefixed_hex(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
 
         devnet
             .json_rpc_client
@@ -31,7 +32,7 @@ mod get_class_tests {
     #[tokio::test]
     async fn test_getting_class() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
+        let contract_address = felt_from_prefixed_hex(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
 
         let retrieved_hash = devnet
             .json_rpc_client
@@ -69,7 +70,7 @@ mod get_class_tests {
         // declare the contract
         let declaration_result = predeployed_account
             .declare_legacy(contract_class.clone())
-            .max_fee(FieldElement::from(1e18 as u128))
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
             .unwrap();
@@ -101,8 +102,8 @@ mod get_class_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(contract_class.clone()), casm_class_hash)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .declare_v2(Arc::new(contract_class.clone()), casm_class_hash)
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
             .unwrap();
@@ -120,7 +121,7 @@ mod get_class_tests {
     #[tokio::test]
     async fn test_getting_class_at_invalid_address() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let contract_address = FieldElement::from_hex_be("0x22").unwrap();
+        let contract_address = Felt::from_hex_unchecked("0x22");
 
         let err = devnet
             .json_rpc_client
@@ -153,8 +154,8 @@ mod get_class_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(contract_class.clone()), casm_class_hash)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .declare_v2(Arc::new(contract_class.clone()), casm_class_hash)
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
             .unwrap();
@@ -214,8 +215,8 @@ mod get_class_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(contract_class.clone()), casm_class_hash)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .declare_v2(Arc::new(contract_class.clone()), casm_class_hash)
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
             .unwrap();
@@ -286,8 +287,8 @@ mod get_class_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(contract_class.clone()), casm_class_hash)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .declare_v2(Arc::new(contract_class.clone()), casm_class_hash)
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
             .unwrap();

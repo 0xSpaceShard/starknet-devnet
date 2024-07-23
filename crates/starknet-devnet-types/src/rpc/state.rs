@@ -1,9 +1,10 @@
 use num_bigint::BigUint;
 use serde::{Deserialize, Serialize};
+use starknet_types_core::felt::Felt;
 
 use super::block::GlobalRootHex;
 use crate::contract_address::ContractAddress;
-use crate::felt::{BlockHash, ClassHash, Felt, Nonce};
+use crate::felt::{BlockHash, ClassHash, Nonce};
 use crate::patricia_key::PatriciaKey;
 
 pub type CompiledClassHashHex = Felt;

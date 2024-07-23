@@ -3,11 +3,11 @@ use blockifier::transaction::objects::TransactionExecutionInfo;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
-use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
+use starknet_rs_core::types::{ExecutionResult, Felt, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{Event, OrderedEvent};
-use starknet_types::felt::{BlockHash, Felt, TransactionHash};
+use starknet_types::felt::{felt_from_prefixed_hex, BlockHash, TransactionHash};
 use starknet_types::messaging::MessageToL2;
 use starknet_types::rpc::messaging::{MessageToL1, OrderedMessageToL1};
 use starknet_types::rpc::transaction_receipt::{
@@ -145,9 +145,9 @@ impl StarknetTransaction {
         events: &[Event],
     ) -> DevnetResult<Option<ContractAddress>> {
         let contract_deployed_event_key =
-            Felt::from(get_selector_from_name("ContractDeployed").map_err(|_| Error::FormatError)?);
+            get_selector_from_name("ContractDeployed").map_err(|_| Error::FormatError)?;
 
-        let udc_address = ContractAddress::new(Felt::from_prefixed_hex_str(UDC_CONTRACT_ADDRESS)?)?;
+        let udc_address = ContractAddress::new(felt_from_prefixed_hex(UDC_CONTRACT_ADDRESS)?)?;
 
         let deployed_address = events
             .iter()
@@ -172,7 +172,7 @@ impl StarknetTransaction {
         // L1 Handler transactions are in WEI
         // V3 transactions are in STRK(FRI)
         // Other transactions versions are in ETH(WEI)
-        let fee_amount = FeeAmount { amount: self.execution_info.actual_fee };
+        let fee_amount = FeeAmount { amount: self.execution_info.transaction_receipt.fee };
         let actual_fee_in_units = match self.inner.transaction {
             Transaction::L1Handler(_) => FeeInUnits::WEI(fee_amount),
             Transaction::Declare(DeclareTransaction::V3(_))
@@ -249,7 +249,7 @@ impl StarknetTransaction {
                     message: MessageToL1 {
                         to_address: m.message.to_address.into(),
                         from_address: from_address.into(),
-                        payload: m.message.payload.0.iter().map(|p| (*p).into()).collect(),
+                        payload: m.message.payload.0.clone(),
                     },
                 }
             }));

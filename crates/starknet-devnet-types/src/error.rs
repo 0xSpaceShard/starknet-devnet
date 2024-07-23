@@ -5,10 +5,6 @@ use thiserror::Error;
 pub enum Error {
     #[error(transparent)]
     StarknetApiError(#[from] starknet_api::StarknetApiError),
-    #[error(transparent)]
-    StarknetFfConversionError(#[from] starknet_rs_ff::FromByteSliceError),
-    #[error("Error when calling python module")]
-    PyModuleError,
     #[error("Conversion error: {0}")]
     ConversionError(#[from] ConversionError),
     #[error(transparent)]
@@ -37,6 +33,8 @@ pub enum ConversionError {
     InvalidInternalStructure(String),
     #[error("Value is out of range: {0}")]
     OutOfRangeError(String),
+    #[error("Error converting from hex string: {0}")]
+    CustomFromHexError(String),
 }
 
 #[derive(Error, Debug)]

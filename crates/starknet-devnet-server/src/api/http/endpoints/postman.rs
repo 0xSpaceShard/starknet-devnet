@@ -46,7 +46,7 @@ pub(crate) async fn postman_load_impl(
     api: &Api,
     data: PostmanLoadL1MessagingContract,
 ) -> HttpApiResult<MessagingLoadAddress> {
-    let mut starknet = api.starknet.write().await;
+    let mut starknet = api.starknet.lock().await;
 
     let messaging_contract_address = starknet
         .configure_messaging(&data.network_url, data.address.as_deref())
@@ -62,7 +62,7 @@ pub(crate) async fn postman_flush_impl(
 ) -> HttpApiResult<FlushedMessages> {
     // Need to handle L1 to L2 first in case that those messages
     // will create L2 to L1 messages.
-    let mut starknet = api.starknet.write().await;
+    let mut starknet = api.starknet.lock().await;
 
     let is_dry_run = if let Some(params) = data { params.dry_run } else { false };
 
@@ -108,7 +108,7 @@ pub async fn postman_send_message_to_l2_impl(
     api: &Api,
     message: MessageToL2,
 ) -> HttpApiResult<TxHash> {
-    let mut starknet = api.starknet.write().await;
+    let mut starknet = api.starknet.lock().await;
 
     let transaction = L1HandlerTransaction::try_from_message_to_l2(message).map_err(|_| {
         HttpApiError::InvalidValueError {
@@ -127,7 +127,7 @@ pub async fn postman_consume_message_from_l2_impl(
     api: &Api,
     message: MessageToL1,
 ) -> HttpApiResult<MessageHash> {
-    let mut starknet = api.starknet.write().await;
+    let mut starknet = api.starknet.lock().await;
 
     let message_hash = starknet
         .consume_l2_to_l1_message(&message)

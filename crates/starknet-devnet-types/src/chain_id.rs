@@ -1,33 +1,43 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-use starknet_rs_core::chain_id::{MAINNET, SEPOLIA, TESTNET};
+use starknet_rs_core::chain_id::{MAINNET, SEPOLIA};
 use starknet_rs_core::utils::{cairo_short_string_to_felt, parse_cairo_short_string};
-use starknet_rs_ff::FieldElement;
+use starknet_types_core::felt::Felt;
 
 use crate::error::ConversionError;
-use crate::felt::Felt;
 
 #[derive(Clone, Copy, Debug)]
 pub enum ChainId {
     Mainnet,
     Testnet,
-    Custom(FieldElement),
+    Custom(Felt),
 }
 
 impl ChainId {
-    pub fn goerli_legacy_id() -> Felt {
-        TESTNET.into()
+    /// Used only in tests.
+    /// It was imported from `starknet_rs_core::chain_id`, but now gives a deprecation warning
+    /// defined [here](https://github.com/xJonathanLEI/starknet-rs/blob/f6d339c6b897fb38c839485608ca2fe374a6275d/starknet-core/src/chain_id.rs#L10).
+    /// Instead of ignoring the warning in two places, it's defined here.
+    const TESTNET: Felt = Felt::from_raw([
+        398700013197595345,
+        18446744073709551615,
+        18446744073709548950,
+        3753493103916128178,
+    ]);
+
+    pub const fn goerli_legacy_id() -> Felt {
+        Self::TESTNET
     }
 
     pub fn to_felt(&self) -> Felt {
-        FieldElement::from(self).into()
+        Felt::from(self)
     }
 }
 
 impl Display for ChainId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let felt = FieldElement::from(self);
+        let felt = Felt::from(self);
         let str = parse_cairo_short_string(&felt).map_err(|_| std::fmt::Error)?;
         f.write_str(&str)
     }
@@ -52,7 +62,7 @@ impl FromStr for ChainId {
     }
 }
 
-impl From<ChainId> for FieldElement {
+impl From<ChainId> for Felt {
     fn from(value: ChainId) -> Self {
         match value {
             ChainId::Mainnet => MAINNET,
@@ -62,7 +72,7 @@ impl From<ChainId> for FieldElement {
     }
 }
 
-impl From<&ChainId> for FieldElement {
+impl From<&ChainId> for Felt {
     fn from(value: &ChainId) -> Self {
         match value {
             ChainId::Mainnet => MAINNET,
@@ -72,8 +82,8 @@ impl From<&ChainId> for FieldElement {
     }
 }
 
-impl From<FieldElement> for ChainId {
-    fn from(value: FieldElement) -> Self {
+impl From<Felt> for ChainId {
+    fn from(value: Felt) -> Self {
         if value == MAINNET {
             ChainId::Mainnet
         } else if value == SEPOLIA {
@@ -86,21 +96,24 @@ impl From<FieldElement> for ChainId {
 
 impl From<ChainId> for starknet_api::core::ChainId {
     fn from(value: ChainId) -> Self {
-        starknet_api::core::ChainId(value.to_string())
+        match value {
+            ChainId::Mainnet => Self::Mainnet,
+            ChainId::Testnet => Self::Sepolia,
+            ChainId::Custom(_) => Self::Other(format!("{value}")),
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::ChainId;
-    use crate::traits::ToHexString;
 
     #[test]
     fn check_conversion_to_starknet_api() {
         let t = ChainId::Testnet;
         let sat: starknet_api::core::ChainId = t.into();
 
-        assert_eq!(t.to_felt().to_prefixed_hex_str(), sat.as_hex());
+        assert_eq!(t.to_felt().to_hex_string(), sat.as_hex());
     }
 
     #[test]

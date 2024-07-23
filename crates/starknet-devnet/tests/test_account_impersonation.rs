@@ -6,11 +6,12 @@ mod impersonated_account_tests {
     use server::test_utils::exported_test_utils::assert_contains;
     use starknet_core::constants::STRK_ERC20_CONTRACT_ADDRESS;
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
-    use starknet_rs_core::types::{BlockId, BlockTag, ExecutionResult, FieldElement};
+    use starknet_rs_core::types::{BlockId, BlockTag, ExecutionResult, Felt};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::jsonrpc::HttpTransport;
     use starknet_rs_providers::{JsonRpcClient, Provider};
     use starknet_rs_signers::{LocalWallet, SigningKey};
+    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -18,18 +19,18 @@ mod impersonated_account_tests {
         get_simple_contract_in_sierra_and_compiled_class_hash, ImpersonationAction,
     };
 
-    const IMPERSONATED_ACCOUNT_PRIVATE_KEY: FieldElement = FieldElement::ONE;
-    // FieldElement::from(100000000000)
-    const AMOUNT_TO_TRANSFER: FieldElement = FieldElement::from_mont([
-        18446740873709551617,
-        18446744073709551615,
-        18446744073709551615,
+    const IMPERSONATED_ACCOUNT_PRIVATE_KEY: Felt = Felt::ONE;
+    // Felt::from(100000000000)
+    const AMOUNT_TO_TRANSFER: Felt = Felt::from_raw([
         576406352303423504,
+        18446744073709551615,
+        18446744073709551615,
+        18446740873709551617,
     ]);
 
     async fn get_account_for_impersonation_and_private_key(
         devnet: &BackgroundDevnet,
-    ) -> (FieldElement, LocalWallet) {
+    ) -> (Felt, LocalWallet) {
         let (_, account_address) = devnet.get_first_predeployed_account().await;
         (
             account_address,
@@ -39,14 +40,14 @@ mod impersonated_account_tests {
         )
     }
 
-    fn get_invoke_transaction_request(amount_to_transfer: FieldElement) -> Call {
+    fn get_invoke_transaction_request(amount_to_transfer: Felt) -> Call {
         Call {
-            to: FieldElement::from_hex_be(STRK_ERC20_CONTRACT_ADDRESS).unwrap(),
+            to: felt_from_prefixed_hex(STRK_ERC20_CONTRACT_ADDRESS).unwrap(),
             selector: get_selector_from_name("transfer").unwrap(),
             calldata: vec![
-                FieldElement::ONE,  // recipient
+                Felt::ONE,          // recipient
                 amount_to_transfer, // low part of uint256
-                FieldElement::ZERO, // high part of uint256
+                Felt::ZERO,         // high part of uint256
             ],
         }
     }
@@ -83,9 +84,7 @@ mod impersonated_account_tests {
         let forked_devnet = BackgroundDevnet::spawn_with_additional_args(&args).await.unwrap();
 
         let impersonation_err = forked_devnet
-            .execute_impersonation_action(&ImpersonationAction::ImpersonateAccount(
-                FieldElement::ONE,
-            ))
+            .execute_impersonation_action(&ImpersonationAction::ImpersonateAccount(Felt::ONE))
             .await
             .unwrap_err();
 
@@ -224,7 +223,7 @@ mod impersonated_account_tests {
             }
 
             let simulation_result =
-                account.execute(invoke_calls.clone()).simulate(!do_validate, false).await;
+                account.execute_v1(invoke_calls.clone()).simulate(!do_validate, false).await;
             if let Some(error_msg) = expected_error_message {
                 let simulation_err = simulation_result.expect_err("Expected simulation to fail");
                 assert_contains(&format!("{:?}", simulation_err).to_lowercase(), error_msg);
@@ -254,7 +253,7 @@ mod impersonated_account_tests {
 
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
 
-        account.declare(Arc::new(flattened_class), compiled_class_hash).send().await?;
+        account.declare_v2(Arc::new(flattened_class), compiled_class_hash).send().await?;
 
         Ok(())
     }
@@ -278,10 +277,13 @@ mod impersonated_account_tests {
 
         let invoke_call = get_invoke_transaction_request(AMOUNT_TO_TRANSFER);
 
-        let result = account.execute(vec![invoke_call]).send().await?;
+        let result = account.execute_v1(vec![invoke_call]).send().await?;
 
-        let receipt =
-            forked_devnet.json_rpc_client.get_transaction_receipt(result.transaction_hash).await?;
+        let receipt = forked_devnet
+            .json_rpc_client
+            .get_transaction_receipt(result.transaction_hash)
+            .await?
+            .receipt;
 
         assert_eq!(receipt.execution_result(), &ExecutionResult::Succeeded);
 

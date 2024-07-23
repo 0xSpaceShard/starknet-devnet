@@ -3,7 +3,8 @@ pub mod common;
 mod minting_tests {
     use reqwest::StatusCode;
     use serde_json::json;
-    use starknet_rs_core::types::FieldElement;
+    use starknet_rs_core::types::Felt;
+    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::num_bigint::BigUint;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
@@ -51,11 +52,11 @@ mod minting_tests {
         assert!(tx_hash_value.as_str().unwrap().starts_with("0x"));
 
         let new_balance = devnet
-            .get_balance_latest(&FieldElement::from_hex_be(address).unwrap(), unit)
+            .get_balance_latest(&felt_from_prefixed_hex(address).unwrap(), unit)
             .await
             .unwrap();
 
-        let final_balance = FieldElement::from_dec_str(&final_balance.to_str_radix(10)).unwrap();
+        let final_balance = Felt::from_dec_str(&final_balance.to_str_radix(10)).unwrap();
         assert_eq!(final_balance, new_balance);
     }
 

@@ -54,7 +54,7 @@ pub fn add_deploy_account_transaction(
     if !starknet.pending_state.is_contract_declared(class_hash) {
         return Err(Error::StateError(crate::error::StateError::NoneClassHash(class_hash)));
     }
-    let transaction_hash = blockifier_deploy_account_transaction.tx_hash.0.into();
+    let transaction_hash = blockifier_deploy_account_transaction.tx_hash.0;
     let transaction = TransactionWithHash::new(transaction_hash, deploy_account_transaction);
 
     let blockifier_execution_result =
@@ -75,15 +75,13 @@ mod tests {
 
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
-    use starknet_api::hash::StarkFelt;
     use starknet_api::transaction::{Fee, Tip};
     use starknet_rs_core::types::{
-        BlockId, BlockTag, TransactionExecutionStatus, TransactionFinalityStatus,
+        BlockId, BlockTag, Felt, TransactionExecutionStatus, TransactionFinalityStatus,
     };
-    use starknet_rs_ff::FieldElement;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::{ClassHash, Felt};
+    use starknet_types::felt::ClassHash;
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
     use starknet_types::rpc::transactions::{
@@ -109,7 +107,7 @@ mod tests {
     ) -> BroadcastedDeployAccountTransactionV3 {
         BroadcastedDeployAccountTransactionV3 {
             common: BroadcastedTransactionCommonV3 {
-                version: Felt::from(3),
+                version: Felt::THREE,
                 signature: vec![],
                 nonce: Felt::from(nonce),
                 resource_bounds: ResourceBoundsWrapper::new(l1_gas_amount, 1, 0, 0),
@@ -130,8 +128,7 @@ mod tests {
     fn account_deploy_transaction_v3_with_query_version_should_return_an_error() {
         let mut deploy_account_transaction =
             test_deploy_account_transaction_v3(Felt::default(), 0, 10);
-        deploy_account_transaction.common.version =
-            (FieldElement::from(3u8) + QUERY_VERSION_OFFSET).into();
+        deploy_account_transaction.common.version = Felt::THREE + QUERY_VERSION_OFFSET;
 
         let txn_err = Starknet::default()
             .add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(
@@ -208,10 +205,10 @@ mod tests {
             &vec![],
             Fee(fee_raw),
             &vec![],
-            Felt::from(0),
+            Felt::ZERO,
             account_class_hash,
             Felt::from(13),
-            Felt::from(1),
+            Felt::ONE,
         );
 
         match starknet
@@ -254,10 +251,10 @@ mod tests {
             &vec![],
             Fee(fee_raw),
             &vec![],
-            Felt::from(0),
+            Felt::ZERO,
             account_class_hash,
             Felt::from(13),
-            Felt::from(1),
+            Felt::ONE,
         );
 
         let blockifier_transaction = BroadcastedDeployAccountTransaction::V1(transaction.clone())
@@ -272,7 +269,7 @@ mod tests {
                 .try_into()
                 .unwrap();
 
-        let account_balance_before_deployment = StarkFelt::from_u128(1000000);
+        let account_balance_before_deployment = Felt::from(1_000_000);
         starknet
             .pending_state
             .set_storage_at(
@@ -312,7 +309,7 @@ mod tests {
                 .try_into()
                 .unwrap();
 
-        let account_balance_before_deployment = StarkFelt::from_u128(1000000);
+        let account_balance_before_deployment = Felt::from(1_000_000);
         let fee_token_address =
             starknet.block_context.chain_info().fee_token_addresses.strk_fee_token_address;
         starknet
@@ -353,10 +350,10 @@ mod tests {
             &vec![],
             Fee(4000),
             &vec![],
-            Felt::from(0),
+            Felt::ZERO,
             account_class_hash,
             Felt::from(13),
-            Felt::from(1),
+            Felt::ONE,
         );
         let blockifier_transaction = BroadcastedDeployAccountTransaction::V1(transaction.clone())
             .create_blockifier_deploy_account(&DEVNET_DEFAULT_CHAIN_ID.to_felt())
@@ -370,7 +367,7 @@ mod tests {
                 .try_into()
                 .unwrap();
 
-        let account_balance_before_deployment = StarkFelt::from_u128(1000000);
+        let account_balance_before_deployment = Felt::from(1_000_000);
         starknet
             .pending_state
             .set_storage_at(
