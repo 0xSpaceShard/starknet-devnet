@@ -866,11 +866,15 @@ impl Starknet {
     pub fn update_next_block_gas(&mut self, gas_prices: GasUpdate) -> DevnetResult<GasUpdate> {
         self.next_block_gas_update = Some(gas_prices.clone());
 
-        let generate_block = gas_prices.generate_block.unwrap_or(false);
-        if generate_block {
-            self.create_block_dump_event(None)
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?
-        }
+        // If generate_block is true, generate new block
+        gas_prices
+            .generate_block
+            .unwrap_or(false)
+            .then(|| {
+                self.create_block_dump_event(None)
+                    .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+            })
+            .transpose()?;
 
         let gas_prices = self.next_block_gas_update.as_mut().expect("Gas update failed.");
 

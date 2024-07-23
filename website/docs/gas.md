@@ -13,7 +13,7 @@ JSON-RPC
     "id": "1",
     "method": "devnet_updateGas"
     "params": {
-        "gas_price_wei": 10000,
+        "gas_price_wei": 1000000,
         "data_gas_price_wei": 10000,
         "gas_price_strk": 10000,
         "data_gas_price_strk": 10000,
@@ -28,7 +28,7 @@ The expected response from the server will mirror the request parameters, confir
 
 ```
 {
-    "gas_price_wei": 10000,
+    "gas_price_wei": 1000000,
     "data_gas_price_wei": 10000,
     "gas_price_strk": 10000,
     "data_gas_price_strk": 10000,
