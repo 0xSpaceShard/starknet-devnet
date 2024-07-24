@@ -140,7 +140,7 @@ impl<'a> Visitor for RandDataGenerator<'a> {
 
     fn do_for_one_of(&self, element: &OneOf) -> Result<serde_json::Value, String> {
         let idx = rand::thread_rng().gen_range(0..element.one_of.len());
-        let schema = element.one_of.get(idx).ok_or("OneOf schema doesnt have entry".to_string())?;
+        let schema = element.one_of.get(idx).ok_or("OneOf schema doesn't have entry".to_string())?;
 
         generate_schema_value(schema, self.schemas, self.depth)
     }
