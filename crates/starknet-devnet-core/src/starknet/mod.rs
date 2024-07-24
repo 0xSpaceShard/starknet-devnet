@@ -842,14 +842,9 @@ impl Starknet {
 
         // If generate_block is true, generate new block, for now custom dump_event is None but in
         // future it will change to GasUpdateEvent with self.next_block_gas_update data
-        gas_prices
-            .generate_block
-            .unwrap_or(false)
-            .then(|| {
-                self.create_block_dump_event(None)
-                    .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
-            })
-            .transpose()?;
+        if let Some(true) = gas_prices.generate_block {
+            self.create_block_dump_event(None)?
+        }
 
         Ok(self.next_block_gas_update.clone())
     }
