@@ -507,7 +507,7 @@ mod tests {
         //     r#"{"block_id": {"block_hash":
         // "0x004134134134134134134134134134134134134134134134134134134134134134"}}"#, );
 
-        // Block hash hex doesnt start with 0x
+        // Block hash hex doesn't start with 0x
         assert_block_id_block_hash_correctness(
             false,
             "0x01",

@@ -1,6 +1,6 @@
 [package]
 name = "starknet-devnet-types"
-version = "0.1.2"
+version = "0.2.0-rc.1"
 edition = "2021"
 description = "Starknet types for the devnet"
 repository.workspace = true
