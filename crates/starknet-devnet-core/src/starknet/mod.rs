@@ -839,7 +839,8 @@ impl Starknet {
     ) -> DevnetResult<GasUpdate> {
         self.next_block_gas_update.update(gas_prices.clone());
 
-        // If generate_block is true, generate new block
+        // If generate_block is true, generate new block, for now custom dump_event is None but in
+        // future it will chnage to GasUpdateEvent with self.next_block_gas_update data
         gas_prices
             .generate_block
             .unwrap_or(false)
