@@ -542,7 +542,7 @@ impl Starknet {
     fn update_block_context_gas(block_context: &mut BlockContext, gas_update: &GasUpdate) {
         let mut block_info = block_context.block_info().clone();
 
-        // Block info gas update needs to be updated here
+        // Block info gas needs to be updated here
         block_info.gas_prices.eth_l1_gas_price = gas_update.gas_price_wei;
         block_info.gas_prices.eth_l1_data_gas_price = gas_update.data_gas_price_wei;
         block_info.gas_prices.strk_l1_gas_price = gas_update.gas_price_strk;
