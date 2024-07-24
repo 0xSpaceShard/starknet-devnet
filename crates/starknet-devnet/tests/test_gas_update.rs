@@ -90,10 +90,7 @@ mod gas_update_tests {
             resp_no_flags["fee_estimation"]["data_gas_price"],
             format!("0x{:x}", DEVNET_DEFAULT_GAS_PRICE)
         );
-        assert_eq!(
-            resp_no_flags["fee_estimation"]["overall_fee"],
-            "0xa7275ca6d3000"
-        );
+        assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0xa7275ca6d3000");
 
         let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
         let resp_skip_validation = &devnet
@@ -108,10 +105,7 @@ mod gas_update_tests {
             resp_skip_validation["fee_estimation"]["data_gas_price"],
             format!("0x{:x}", DEVNET_DEFAULT_GAS_PRICE)
         );
-        assert_eq!(
-            resp_skip_validation["fee_estimation"]["overall_fee"],
-            "0xa7247397f6000"
-        );
+        assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0xa7247397f6000");
 
         assert_difference_if_validation(
             resp_no_flags,
@@ -152,10 +146,7 @@ mod gas_update_tests {
             resp_no_flags["fee_estimation"]["data_gas_price"],
             format!("0x{:x}", wei_price_data)
         );
-        assert_eq!(
-            resp_no_flags["fee_estimation"]["overall_fee"],
-            "0x38008384ec45ab780000"
-        );
+        assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x38008384ec45ab780000");
 
         let resp_skip_validation = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
@@ -169,10 +160,7 @@ mod gas_update_tests {
             resp_skip_validation["fee_estimation"]["data_gas_price"],
             format!("0x{:x}", wei_price_data)
         );
-        assert_eq!(
-            resp_skip_validation["fee_estimation"]["overall_fee"],
-            "0x37ff89b813a3e6700000"
-        );
+        assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x37ff89b813a3e6700000");
 
         assert_difference_if_validation(
             resp_no_flags,
