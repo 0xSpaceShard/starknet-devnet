@@ -70,34 +70,34 @@ bigdecimal = { version = "0.4.5" }
 # Starknet dependencies
 starknet-types-core = "0.1.5"
 starknet_api = { version = "0.13.0-rc.0", features = ["testing"] }
-blockifier = { version = "0.8.0-rc.0" }
+blockifier = { version = "0.8.0-rc.1" }
 starknet-rs-signers = { version = "0.9.0", package = "starknet-signers" }
 starknet-rs-core = { version = "0.11.0", package = "starknet-core" }
 starknet-rs-providers = { version = "0.11.0", package = "starknet-providers" }
 starknet-rs-accounts = { version = "0.10.0", package = "starknet-accounts" }
 starknet-rs-contract = { version = "0.10.0", package = "starknet-contract" }
 starknet-rs-crypto = { version = "0.7.0", package = "starknet-crypto" }
-cairo-vm = "1.0.0-rc4"
+cairo-vm = "1.0.0-rc5"
 
 # Cairo-lang dependencies
-cairo-lang-starknet-classes = "=2.7.0-rc.1"
-cairo-lang-compiler = "=2.7.0-rc.1"
-cairo-lang-casm = "=2.7.0-rc.1"
-cairo-lang-defs = "=2.7.0-rc.1"
-cairo-lang-diagnostics = "=2.7.0-rc.1"
-cairo-lang-filesystem = "=2.7.0-rc.1"
-cairo-lang-lowering = "=2.7.0-rc.1"
-cairo-lang-semantic = "=2.7.0-rc.1"
-cairo-lang-sierra = "=2.7.0-rc.1"
-cairo-lang-sierra-generator = "=2.7.0-rc.1"
-cairo-lang-sierra-to-casm = "=2.7.0-rc.1"
-cairo-lang-syntax = "=2.7.0-rc.1"
-cairo-lang-utils = "=2.7.0-rc.1"
+cairo-lang-starknet-classes = "=2.7.0-rc.3"
+cairo-lang-compiler = "=2.7.0-rc.3"
+cairo-lang-casm = "=2.7.0-rc.3"
+cairo-lang-defs = "=2.7.0-rc.3"
+cairo-lang-diagnostics = "=2.7.0-rc.3"
+cairo-lang-filesystem = "=2.7.0-rc.3"
+cairo-lang-lowering = "=2.7.0-rc.3"
+cairo-lang-semantic = "=2.7.0-rc.3"
+cairo-lang-sierra = "=2.7.0-rc.3"
+cairo-lang-sierra-generator = "=2.7.0-rc.3"
+cairo-lang-sierra-to-casm = "=2.7.0-rc.3"
+cairo-lang-syntax = "=2.7.0-rc.3"
+cairo-lang-utils = "=2.7.0-rc.3"
 
 # Inner dependencies
-starknet-types = { version = "0.2.0-rc.0", path = "crates/starknet-devnet-types", package = "starknet-devnet-types" }
-starknet-core = { version = "0.2.0-rc.0", path = "crates/starknet-devnet-core", package = "starknet-devnet-core" }
-server = { version = "0.2.0-rc.0", path = "crates/starknet-devnet-server", package = "starknet-devnet-server" }
+starknet-types = { version = "0.2.0-rc.1", path = "crates/starknet-devnet-types", package = "starknet-devnet-types" }
+starknet-core = { version = "0.2.0-rc.1", path = "crates/starknet-devnet-core", package = "starknet-devnet-core" }
+server = { version = "0.2.0-rc.1", path = "crates/starknet-devnet-server", package = "starknet-devnet-server" }
 
 # Dependabot alerts
 zerocopy = "0.7.31"

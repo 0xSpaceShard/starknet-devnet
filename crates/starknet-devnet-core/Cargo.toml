@@ -1,6 +1,6 @@
 [package]
 name = "starknet-devnet-core"
-version = "0.2.0-rc.0"
+version = "0.2.0-rc.1"
 edition.workspace = true
 repository.workspace = true
 license-file.workspace = true
@@ -43,5 +43,5 @@ test_utils = []
 [package.metadata.cargo-machete]
 ignored = [
     # read note above
-    "openssl"
+    "openssl",
 ]

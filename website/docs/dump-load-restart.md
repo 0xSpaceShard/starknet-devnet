@@ -16,13 +16,17 @@ $ starknet-devnet --dump-on exit --dump-path <PATH>
 $ starknet-devnet --dump-on block --dump-path <PATH>
 ```
 
-- Dumping on request, which requires providing `--dump-on request` on startup. You can request dumping by sending `POST` to `/dump` or via JSON-RPC. Body is not required. Optionally custom path to a file can be provided.
+- Dumping on request, which requires providing `--dump-on request` on startup. You can also dump on request if you specified any of the other `--dump-on` modes.
+
+### Dumping on request
+
+You can request dumping by sending `POST` to `/dump` or via JSON-RPC. An optional file path can be provided in the request or on startup via `--dump-path <FILE>` (the HTTP request parameter takes precedence). If no dumping path is specified, the dump is included in the response body. This means that if you request dumping via [`curl`](https://curl.se/), it will be printed to STDOUT, which you can then redirect to a destination of your choice.
 
 ```
-$ starknet-devnet --dump-on exit --dump-path <DEFAULT_PATH>
+$ starknet-devnet --dump-on <MODE> [--dump-path <FILE>]
 ```
 
-- No body:
+- No body parameters:
 
 ```
 POST /dump
@@ -37,7 +41,7 @@ JSON-RPC
 }
 ```
 
-- Custom path:
+- With a custom path:
 
 ```
 POST /dump
@@ -59,8 +63,6 @@ JSON-RPC
     }
 }
 ```
-
-If a dump path is not provided either via `--dump-path` or in the request, the dump is included in the response body. This means that if you request dumping via curl, it will be printed to STDOUT, which you can then redirect to a destination of your choice.
 
 ## Loading
 
