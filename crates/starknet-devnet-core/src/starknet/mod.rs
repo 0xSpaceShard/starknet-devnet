@@ -35,7 +35,7 @@ use starknet_types::rpc::block::{
     Block, BlockHeader, BlockResult, PendingBlock, PendingBlockHeader,
 };
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
-use starknet_types::rpc::gas_update::GasUpdate;
+use starknet_types::rpc::gas_update::{GasUpdate, GasUpdateRequest};
 use starknet_types::rpc::state::{
     PendingStateUpdate, StateUpdate, StateUpdateResult, ThinStateDiff,
 };
@@ -107,7 +107,7 @@ pub struct Starknet {
     pub config: StarknetConfig,
     pub pending_block_timestamp_shift: i64,
     pub next_block_timestamp: Option<u64>,
-    pub next_block_gas_update: Option<GasUpdate>,
+    pub next_block_gas_update: GasUpdate,
     pub(crate) messaging: MessagingBroker,
     pub(crate) dump_events: Vec<DumpEvent>,
     rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
@@ -136,7 +136,12 @@ impl Default for Starknet {
             config: Default::default(),
             pending_block_timestamp_shift: 0,
             next_block_timestamp: None,
-            next_block_gas_update: None,
+            next_block_gas_update: GasUpdate {
+                gas_price_wei: DEVNET_DEFAULT_GAS_PRICE,
+                data_gas_price_wei: DEVNET_DEFAULT_DATA_GAS_PRICE,
+                gas_price_strk: DEVNET_DEFAULT_GAS_PRICE,
+                data_gas_price_strk: DEVNET_DEFAULT_DATA_GAS_PRICE,
+            },
             messaging: Default::default(),
             dump_events: Default::default(),
             rpc_contract_classes: Default::default(),
@@ -236,7 +241,12 @@ impl Starknet {
             config: config.clone(),
             pending_block_timestamp_shift: 0,
             next_block_timestamp: None,
-            next_block_gas_update: None,
+            next_block_gas_update: GasUpdate {
+                gas_price_wei: config.gas_price_wei,
+                data_gas_price_wei: config.data_gas_price_wei,
+                gas_price_strk: config.gas_price_strk,
+                data_gas_price_strk: config.data_gas_price_strk,
+            },
             messaging: Default::default(),
             dump_events: Default::default(),
             rpc_contract_classes,
@@ -280,53 +290,22 @@ impl Starknet {
         self.predeployed_accounts.get_accounts().to_vec()
     }
 
-    fn update_gas_price(source: Option<NonZeroU128>, target: &mut GasPrice) {
-        if let Some(value) = source {
-            *target = GasPrice(u128::from(value));
-        }
-    }
-
-    fn update_if_none(target: &mut Option<NonZeroU128>, default_value: NonZeroU128) {
-        if target.is_none() {
-            *target = Some(default_value);
-        }
-    }
-
-    fn update_field<T>(source: Option<T>, target: &mut T) {
-        if let Some(value) = source {
-            *target = value;
-        }
-    }
-
     // Update block context
     // Initialize values for new pending block
     pub(crate) fn generate_pending_block(&mut self) -> DevnetResult<()> {
         Self::advance_block_context_block_number(&mut self.block_context);
 
-        match &self.next_block_gas_update {
-            Some(gas_prices) if gas_prices.is_any_field_set() => {
-                Self::update_block_context_gas(&mut self.block_context, gas_prices);
+        Self::update_block_context_gas(&mut self.block_context, &self.next_block_gas_update);
 
-                // Pending block header gas data needs to be updated in case of new prices
-                Self::update_gas_price(
-                    gas_prices.gas_price_wei,
-                    &mut self.blocks.pending_block.header.l1_gas_price.price_in_wei,
-                );
-                Self::update_gas_price(
-                    gas_prices.data_gas_price_wei,
-                    &mut self.blocks.pending_block.header.l1_data_gas_price.price_in_wei,
-                );
-                Self::update_gas_price(
-                    gas_prices.gas_price_strk,
-                    &mut self.blocks.pending_block.header.l1_gas_price.price_in_fri,
-                );
-                Self::update_gas_price(
-                    gas_prices.data_gas_price_strk,
-                    &mut self.blocks.pending_block.header.l1_data_gas_price.price_in_fri,
-                );
-            }
-            _ => {}
-        }
+        // Pending block header gas data needs to be updated
+        self.blocks.pending_block.header.l1_gas_price.price_in_wei =
+            GasPrice(u128::from(self.next_block_gas_update.gas_price_wei));
+        self.blocks.pending_block.header.l1_data_gas_price.price_in_wei =
+            GasPrice(u128::from(self.next_block_gas_update.data_gas_price_wei));
+        self.blocks.pending_block.header.l1_gas_price.price_in_fri =
+            GasPrice(u128::from(self.next_block_gas_update.gas_price_strk));
+        self.blocks.pending_block.header.l1_data_gas_price.price_in_fri =
+            GasPrice(u128::from(self.next_block_gas_update.data_gas_price_strk));
 
         self.restart_pending_block()?;
 
@@ -563,16 +542,10 @@ impl Starknet {
     fn update_block_context_gas(block_context: &mut BlockContext, gas_update: &GasUpdate) {
         let mut block_info = block_context.block_info().clone();
 
-        Self::update_field(gas_update.gas_price_wei, &mut block_info.gas_prices.eth_l1_gas_price);
-        Self::update_field(
-            gas_update.data_gas_price_wei,
-            &mut block_info.gas_prices.eth_l1_data_gas_price,
-        );
-        Self::update_field(gas_update.gas_price_strk, &mut block_info.gas_prices.strk_l1_gas_price);
-        Self::update_field(
-            gas_update.data_gas_price_strk,
-            &mut block_info.gas_prices.strk_l1_data_gas_price,
-        );
+        block_info.gas_prices.eth_l1_gas_price = gas_update.gas_price_wei;
+        block_info.gas_prices.eth_l1_data_gas_price = gas_update.data_gas_price_wei;
+        block_info.gas_prices.strk_l1_gas_price = gas_update.gas_price_strk;
+        block_info.gas_prices.strk_l1_data_gas_price = gas_update.data_gas_price_strk;
 
         // TODO: update block_context via preferred method in the documentation
         *block_context = BlockContext::new(
@@ -860,8 +833,11 @@ impl Starknet {
         }
     }
 
-    pub fn update_next_block_gas(&mut self, gas_prices: GasUpdate) -> DevnetResult<GasUpdate> {
-        self.next_block_gas_update = Some(gas_prices.clone());
+    pub fn update_next_block_gas(
+        &mut self,
+        gas_prices: GasUpdateRequest,
+    ) -> DevnetResult<GasUpdate> {
+        self.next_block_gas_update.update(gas_prices.clone());
 
         // If generate_block is true, generate new block
         gas_prices
@@ -873,29 +849,7 @@ impl Starknet {
             })
             .transpose()?;
 
-        let gas_prices = self.next_block_gas_update.as_mut().expect("Gas update failed.");
-
-        // Update gas price from pending block header if it's `None`
-        Self::update_if_none(
-            &mut gas_prices.gas_price_wei,
-            NonZeroU128::new(self.blocks.pending_block.header.l1_gas_price.price_in_wei.0).unwrap(),
-        );
-        Self::update_if_none(
-            &mut gas_prices.data_gas_price_wei,
-            NonZeroU128::new(self.blocks.pending_block.header.l1_data_gas_price.price_in_wei.0)
-                .unwrap(),
-        );
-        Self::update_if_none(
-            &mut gas_prices.gas_price_strk,
-            NonZeroU128::new(self.blocks.pending_block.header.l1_gas_price.price_in_fri.0).unwrap(),
-        );
-        Self::update_if_none(
-            &mut gas_prices.data_gas_price_strk,
-            NonZeroU128::new(self.blocks.pending_block.header.l1_data_gas_price.price_in_fri.0)
-                .unwrap(),
-        );
-
-        Ok(gas_prices.clone())
+        Ok(self.next_block_gas_update.clone())
     }
 
     pub fn abort_blocks(&mut self, mut starting_block_id: BlockId) -> DevnetResult<Vec<Felt>> {

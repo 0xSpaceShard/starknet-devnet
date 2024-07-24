@@ -20,7 +20,7 @@ use starknet_types::rpc::block::{Block, PendingBlock};
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
-use starknet_types::rpc::gas_update::GasUpdate;
+use starknet_types::rpc::gas_update::{GasUpdate, GasUpdateRequest};
 use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
@@ -362,7 +362,7 @@ pub enum JsonRpcRequest {
     #[serde(rename = "devnet_abortBlocks")]
     AbortBlocks(AbortingBlocks),
     #[serde(rename = "devnet_updateGas")]
-    UpdateGas(GasUpdate),
+    UpdateGas(GasUpdateRequest),
     #[serde(rename = "devnet_restart", with = "empty_params")]
     Restart,
     #[serde(rename = "devnet_setTime")]

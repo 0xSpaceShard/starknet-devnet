@@ -1,6 +1,6 @@
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::gas_update::GasUpdate;
+use starknet_types::rpc::gas_update::GasUpdateRequest;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction,
@@ -161,7 +161,7 @@ impl JsonRpcHandler {
     }
 
     /// devnet_updateGas
-    pub async fn update_gas(&self, data: GasUpdate) -> StrictRpcResult {
+    pub async fn update_gas(&self, data: GasUpdateRequest) -> StrictRpcResult {
         let updated_gas =
             self.api.starknet.lock().await.update_next_block_gas(data).map_err(ApiError::from)?;
 

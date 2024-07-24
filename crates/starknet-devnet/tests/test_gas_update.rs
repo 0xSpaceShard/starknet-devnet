@@ -121,7 +121,7 @@ mod gas_update_tests {
 
         let wei_price = 9e18 as u128;
         let wei_price_data = 8e18 as u128;
-        let gas_update = json!({
+        let gas_update_request = json!({
             "gas_price_wei": wei_price,
             "data_gas_price_wei": wei_price_data,
             "gas_price_strk": 7e18 as u128,
@@ -129,8 +129,14 @@ mod gas_update_tests {
             "generate_block": true,
         });
         let updated_gas =
-            &devnet.send_custom_rpc("devnet_updateGas", gas_update.clone()).await.unwrap();
-        assert_eq!(updated_gas, &gas_update);
+            &devnet.send_custom_rpc("devnet_updateGas", gas_update_request.clone()).await.unwrap();
+        let gas_update_response = json!({
+            "gas_price_wei": wei_price,
+            "data_gas_price_wei": wei_price_data,
+            "gas_price_strk": 7e18 as u128,
+            "data_gas_price_strk": 6e18 as u128,
+        });
+        assert_eq!(updated_gas, &gas_update_response);
 
         let chain_id = &devnet.send_custom_rpc("starknet_chainId", json!({})).await.unwrap();
         assert_eq!(chain_id, expected_chain_id);
@@ -208,7 +214,7 @@ mod gas_update_tests {
 
         let wei_price_first_update = 9e18 as u128;
         let strk_price_first_update = 7e18 as u128;
-        let gas_update = json!({
+        let gas_update_request = json!({
             "gas_price_wei": wei_price_first_update,
             "data_gas_price_wei": 8e18 as u128,
             "gas_price_strk": strk_price_first_update,
@@ -216,8 +222,14 @@ mod gas_update_tests {
             "generate_block": false,
         });
         let updated_gas =
-            &devnet.send_custom_rpc("devnet_updateGas", gas_update.clone()).await.unwrap();
-        assert_eq!(updated_gas, &gas_update);
+            &devnet.send_custom_rpc("devnet_updateGas", gas_update_request.clone()).await.unwrap();
+        let gas_update_response = json!({
+            "gas_price_wei": wei_price_first_update,
+            "data_gas_price_wei": 8e18 as u128,
+            "gas_price_strk": strk_price_first_update,
+            "data_gas_price_strk": 6e18 as u128,
+        });
+        assert_eq!(updated_gas, &gas_update_response);
 
         let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
         assert_eq!(latest_block.block_number, 0);
@@ -254,7 +266,7 @@ mod gas_update_tests {
 
         let wei_price_second_update = 8e18 as u128;
         let strk_price_second_update = 6e18 as u128;
-        let gas_update_with_new_block = json!({
+        let gas_update_block_request = json!({
             "gas_price_wei": wei_price_second_update,
             "data_gas_price_wei": 7e18 as u128,
             "gas_price_strk": strk_price_second_update,
@@ -262,10 +274,16 @@ mod gas_update_tests {
             "generate_block": true,
         });
         let updated_gas = &devnet
-            .send_custom_rpc("devnet_updateGas", gas_update_with_new_block.clone())
+            .send_custom_rpc("devnet_updateGas", gas_update_block_request.clone())
             .await
             .unwrap();
-        assert_eq!(updated_gas, &gas_update_with_new_block);
+        let gas_update_block_response = json!({
+            "gas_price_wei": wei_price_second_update,
+            "data_gas_price_wei": 7e18 as u128,
+            "gas_price_strk": strk_price_second_update,
+            "data_gas_price_strk": 5e18 as u128,
+        });
+        assert_eq!(updated_gas, &gas_update_block_response);
 
         let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
         assert_eq!(latest_block.block_number, 2);
@@ -318,7 +336,7 @@ mod gas_update_tests {
 
         let wei_price = 9e8 as u128;
         let strk_price = 7e8 as u128;
-        let gas_update = json!({
+        let gas_update_request = json!({
             "gas_price_wei": 9e8 as u128,
             "data_gas_price_wei": 8e8 as u128,
             "gas_price_strk": 7e8 as u128,
@@ -326,8 +344,14 @@ mod gas_update_tests {
             "generate_block": true,
         });
         let updated_gas =
-            &devnet.send_custom_rpc("devnet_updateGas", gas_update.clone()).await.unwrap();
-        assert_eq!(updated_gas, &gas_update);
+            &devnet.send_custom_rpc("devnet_updateGas", gas_update_request.clone()).await.unwrap();
+        let gas_update_response = json!({
+            "gas_price_wei": 9e8 as u128,
+            "data_gas_price_wei": 8e8 as u128,
+            "gas_price_strk": 7e8 as u128,
+            "data_gas_price_strk": 6e8 as u128,
+        });
+        assert_eq!(updated_gas, &gas_update_response);
 
         let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
         assert_eq!(latest_block.block_number, 1);
@@ -377,7 +401,6 @@ mod gas_update_tests {
                 "data_gas_price_wei": DEVNET_DEFAULT_GAS_PRICE,
                 "gas_price_strk": DEVNET_DEFAULT_GAS_PRICE,
                 "data_gas_price_strk": DEVNET_DEFAULT_GAS_PRICE,
-                "generate_block": false,
         });
         assert_eq!(gas_data, &initial_gas_update_response);
 
@@ -418,7 +441,6 @@ mod gas_update_tests {
             "data_gas_price_wei": 8e18 as u128,
             "gas_price_strk": 7e18 as u128,
             "data_gas_price_strk": 6e18 as u128,
-            "generate_block": false,
         });
         assert_eq!(gas_data, &final_gas_update_response);
     }
