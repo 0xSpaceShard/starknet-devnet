@@ -92,7 +92,7 @@ mod gas_update_tests {
         );
         assert_eq!(
             resp_no_flags["fee_estimation"]["overall_fee"],
-            format!("0x{:x}", 29406 * 1e11 as u128)
+            "0xa7275ca6d3000"
         );
 
         let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
@@ -110,7 +110,7 @@ mod gas_update_tests {
         );
         assert_eq!(
             resp_skip_validation["fee_estimation"]["overall_fee"],
-            format!("0x{:x}", 29404 * 1e11 as u128)
+            "0xa7247397f6000"
         );
 
         assert_difference_if_validation(
@@ -154,7 +154,7 @@ mod gas_update_tests {
         );
         assert_eq!(
             resp_no_flags["fee_estimation"]["overall_fee"],
-            format!("0x{:x}", 264462 * 1e18 as u128)
+            "0x38008384ec45ab780000"
         );
 
         let resp_skip_validation = &devnet
@@ -171,7 +171,7 @@ mod gas_update_tests {
         );
         assert_eq!(
             resp_skip_validation["fee_estimation"]["overall_fee"],
-            format!("0x{:x}", 264444 * 1e18 as u128)
+            "0x37ff89b813a3e6700000"
         );
 
         assert_difference_if_validation(
