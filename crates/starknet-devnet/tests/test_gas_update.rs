@@ -8,6 +8,7 @@ mod gas_update_tests {
     use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::types::{Felt, ResourcePrice, StarknetError};
     use starknet_rs_providers::ProviderError;
+    use starknet_types::chain_id::ChainId;
     use starknet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -185,8 +186,8 @@ mod gas_update_tests {
     async fn update_gas() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        // Mainnet gas update test scenario
-        update_gas_scenario(devnet, "0x534e5f5345504f4c4941").await;
+        // Testnet gas update test scenario
+        update_gas_scenario(devnet, ChainId::Testnet.to_felt().to_hex_string().as_str()).await;
     }
 
     #[tokio::test]
