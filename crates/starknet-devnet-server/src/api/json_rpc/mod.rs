@@ -20,6 +20,7 @@ use starknet_types::rpc::block::{Block, PendingBlock};
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
+use starknet_types::rpc::gas_modification::{GasModification, GasModificationRequest};
 use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
@@ -238,6 +239,7 @@ impl JsonRpcHandler {
             }
             JsonRpcRequest::CreateBlock => self.create_block().await,
             JsonRpcRequest::AbortBlocks(data) => self.abort_blocks(data).await,
+            JsonRpcRequest::SetGasPrice(data) => self.set_gas_price(data).await,
             JsonRpcRequest::Restart => self.restart().await,
             JsonRpcRequest::SetTime(data) => self.set_time(data).await,
             JsonRpcRequest::IncreaseTime(data) => self.increase_time(data).await,
@@ -359,6 +361,8 @@ pub enum JsonRpcRequest {
     CreateBlock,
     #[serde(rename = "devnet_abortBlocks")]
     AbortBlocks(AbortingBlocks),
+    #[serde(rename = "devnet_setGasPrice")]
+    SetGasPrice(GasModificationRequest),
     #[serde(rename = "devnet_restart", with = "empty_params")]
     Restart,
     #[serde(rename = "devnet_setTime")]
@@ -441,6 +445,7 @@ impl std::fmt::Display for JsonRpcRequest {
             }
             JsonRpcRequest::CreateBlock => write!(f, "devnet_createBlock"),
             JsonRpcRequest::AbortBlocks(_) => write!(f, "devnet_abortBlocks"),
+            JsonRpcRequest::SetGasPrice(_) => write!(f, "devnet_setGasPrice"),
             JsonRpcRequest::Restart => write!(f, "devnet_restart"),
             JsonRpcRequest::SetTime(_) => write!(f, "devnet_setTime"),
             JsonRpcRequest::IncreaseTime(_) => write!(f, "devnet_increaseTime"),
@@ -510,6 +515,7 @@ pub enum DevnetResponse {
     MessageHash(MessageHash),
     CreatedBlock(CreatedBlock),
     AbortedBlocks(AbortedBlocks),
+    GasModification(GasModification),
     SetTime(SetTimeResponse),
     IncreaseTime(IncreaseTimeResponse),
     TransactionHash(TransactionHashOutput),
