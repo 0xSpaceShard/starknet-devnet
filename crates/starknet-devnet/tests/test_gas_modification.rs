@@ -20,7 +20,7 @@ mod gas_modification_tests {
         to_num_as_hex,
     };
 
-    /// Test scenario for gas set involving simulateTransactions:
+    /// Test scenario for gas modification involving simulateTransactions:
     /// 1. Execute simulateTransactions with a declare transaction and check gas fees.
     /// 2. Set the gas values.
     /// 3. Execute simulateTransactions again and check gas fees.
@@ -174,7 +174,7 @@ mod gas_modification_tests {
     async fn set_gas() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        // Testnet gas set test scenario
+        // Testnet gas modification test scenario
         set_gas_scenario(devnet, ChainId::Testnet.to_felt().to_hex_string().as_str()).await;
     }
 
@@ -183,7 +183,7 @@ mod gas_modification_tests {
         let cli_args: [&str; 2] = ["--fork-network", INTEGRATION_SEPOLIA_HTTP_URL];
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
-        // Sepolia fork gas set test scenario
+        // Sepolia fork gas modification test scenario
         set_gas_scenario(fork_devnet, "0x534e5f494e544547524154494f4e5f5345504f4c4941").await;
     }
 
@@ -376,59 +376,55 @@ mod gas_modification_tests {
         );
 
         // set nothing, get initial gas information and assert
-        let initial_gas_update_request = json!({
+        let gas_request = json!({
             "generate_block": false,
         });
-        let gas_data = &devnet
-            .send_custom_rpc("devnet_setGasPrice", initial_gas_update_request.clone())
-            .await
-            .unwrap();
-        let initial_gas_update_response = json!({
+        let gas_response =
+            &devnet.send_custom_rpc("devnet_setGasPrice", gas_request.clone()).await.unwrap();
+        let expected_gas_response = json!({
                 "gas_price_wei": DEVNET_DEFAULT_GAS_PRICE,
                 "data_gas_price_wei": DEVNET_DEFAULT_GAS_PRICE,
                 "gas_price_strk": DEVNET_DEFAULT_GAS_PRICE,
                 "data_gas_price_strk": DEVNET_DEFAULT_GAS_PRICE,
         });
-        assert_eq!(gas_data, &initial_gas_update_response);
+        assert_eq!(gas_response, &expected_gas_response);
 
-        let gas_data = [
+        let gas_test_data = [
             ("gas_price_wei", 9e18 as u128),
             ("data_gas_price_wei", 8e18 as u128),
             ("gas_price_strk", 7e18 as u128),
             ("data_gas_price_strk", 6e18 as u128),
         ];
-        for gas_set_parameter in gas_data.iter() {
+        for gas_parameter in gas_test_data.iter() {
             // Construct the JSON request dynamically based on the parameter
-            let optional_gas_update_request = json!({
-                gas_set_parameter.0: gas_set_parameter.1,
+            let optional_gas_request = json!({
+                gas_parameter.0: gas_parameter.1,
                 "generate_block": true,
             });
             let gas_response = &devnet
-                .send_custom_rpc("devnet_setGasPrice", optional_gas_update_request.clone())
+                .send_custom_rpc("devnet_setGasPrice", optional_gas_request.clone())
                 .await
                 .unwrap();
 
-            let value = gas_response[gas_set_parameter.0]
+            let value = gas_response[gas_parameter.0]
                 .as_u64()
                 .expect("Failed to get value from JSON response") as u128;
-            assert_eq!(value, gas_set_parameter.1);
+            assert_eq!(value, gas_parameter.1);
         }
 
         // set nothing, get final gas information and assert
-        let final_gas_data_request = json!({
+        let gas_request = json!({
             "generate_block": false,
         });
-        let gas_data = &devnet
-            .send_custom_rpc("devnet_setGasPrice", final_gas_data_request.clone())
-            .await
-            .unwrap();
-
-        let final_gas_response = json!({
+        let gas_response =
+            &devnet.send_custom_rpc("devnet_setGasPrice", gas_request.clone()).await.unwrap();
+        let expected_gas_response = json!({
             "gas_price_wei": 9e18 as u128,
             "data_gas_price_wei": 8e18 as u128,
             "gas_price_strk": 7e18 as u128,
             "data_gas_price_strk": 6e18 as u128,
         });
-        assert_eq!(gas_data, &final_gas_response);
+
+        assert_eq!(gas_response, &expected_gas_response);
     }
 }
