@@ -160,10 +160,10 @@ impl JsonRpcHandler {
         Ok(DevnetResponse::AbortedBlocks(aborted_blocks).into())
     }
 
-    /// devnet_updateGas
-    pub async fn update_gas(&self, data: GasUpdateRequest) -> StrictRpcResult {
+    /// devnet_setGasPrice
+    pub async fn set_gas_price(&self, data: GasUpdateRequest) -> StrictRpcResult {
         let updated_gas =
-            self.api.starknet.lock().await.update_next_block_gas(data).map_err(ApiError::from)?;
+            self.api.starknet.lock().await.set_next_block_gas(data).map_err(ApiError::from)?;
 
         Ok(DevnetResponse::UpdatedGas(updated_gas).into())
     }

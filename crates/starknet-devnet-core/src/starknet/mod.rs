@@ -834,10 +834,7 @@ impl Starknet {
         }
     }
 
-    pub fn update_next_block_gas(
-        &mut self,
-        gas_prices: GasUpdateRequest,
-    ) -> DevnetResult<GasUpdate> {
+    pub fn set_next_block_gas(&mut self, gas_prices: GasUpdateRequest) -> DevnetResult<GasUpdate> {
         self.next_block_gas_update.update(gas_prices.clone());
 
         // If generate_block is true, generate new block, for now custom dump_event is None but in

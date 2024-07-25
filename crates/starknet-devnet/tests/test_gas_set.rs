@@ -1,6 +1,6 @@
 pub mod common;
 
-mod gas_update_tests {
+mod gas_set_tests {
     use std::sync::Arc;
 
     use serde_json::json;
@@ -20,11 +20,11 @@ mod gas_update_tests {
         to_num_as_hex,
     };
 
-    /// Test scenario for gas update involving simulateTransactions:
+    /// Test scenario for gas set involving simulateTransactions:
     /// 1. Execute simulateTransactions with a declare transaction and check gas fees.
-    /// 2. Update the gas values.
+    /// 2. Set the gas values.
     /// 3. Execute simulateTransactions again and check gas fees.
-    async fn update_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: &str) {
+    async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: &str) {
         // get account
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let account = SingleOwnerAccount::new(
@@ -116,22 +116,22 @@ mod gas_update_tests {
 
         let wei_price = 9e18 as u128;
         let wei_price_data = 8e18 as u128;
-        let gas_update_request = json!({
+        let gas_request = json!({
             "gas_price_wei": wei_price,
             "data_gas_price_wei": wei_price_data,
             "gas_price_strk": 7e18 as u128,
             "data_gas_price_strk": 6e18 as u128,
             "generate_block": true,
         });
-        let updated_gas =
-            &devnet.send_custom_rpc("devnet_updateGas", gas_update_request.clone()).await.unwrap();
-        let gas_update_response = json!({
+        let gas_response =
+            &devnet.send_custom_rpc("devnet_setGasPrice", gas_request.clone()).await.unwrap();
+        let expected_gas_response = json!({
             "gas_price_wei": wei_price,
             "data_gas_price_wei": wei_price_data,
             "gas_price_strk": 7e18 as u128,
             "data_gas_price_strk": 6e18 as u128,
         });
-        assert_eq!(updated_gas, &gas_update_response);
+        assert_eq!(gas_response, &expected_gas_response);
 
         let chain_id = &devnet.send_custom_rpc("starknet_chainId", json!({})).await.unwrap();
         assert_eq!(chain_id, expected_chain_id);
@@ -171,24 +171,24 @@ mod gas_update_tests {
     }
 
     #[tokio::test]
-    async fn update_gas() {
+    async fn set_gas() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        // Testnet gas update test scenario
-        update_gas_scenario(devnet, ChainId::Testnet.to_felt().to_hex_string().as_str()).await;
+        // Testnet gas set test scenario
+        set_gas_scenario(devnet, ChainId::Testnet.to_felt().to_hex_string().as_str()).await;
     }
 
     #[tokio::test]
-    async fn update_gas_fork() {
+    async fn set_gas_fork() {
         let cli_args: [&str; 2] = ["--fork-network", INTEGRATION_SEPOLIA_HTTP_URL];
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
-        // Sepolia fork gas update test scenario
-        update_gas_scenario(fork_devnet, "0x534e5f494e544547524154494f4e5f5345504f4c4941").await;
+        // Sepolia fork gas set test scenario
+        set_gas_scenario(fork_devnet, "0x534e5f494e544547524154494f4e5f5345504f4c4941").await;
     }
 
     #[tokio::test]
-    async fn update_gas_check_blocks() {
+    async fn set_gas_check_blocks() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
@@ -203,22 +203,22 @@ mod gas_update_tests {
 
         let wei_price_first_update = 9e18 as u128;
         let strk_price_first_update = 7e18 as u128;
-        let gas_update_request = json!({
+        let gas_request = json!({
             "gas_price_wei": wei_price_first_update,
             "data_gas_price_wei": 8e18 as u128,
             "gas_price_strk": strk_price_first_update,
             "data_gas_price_strk": 6e18 as u128,
             "generate_block": false,
         });
-        let updated_gas =
-            &devnet.send_custom_rpc("devnet_updateGas", gas_update_request.clone()).await.unwrap();
-        let gas_update_response = json!({
+        let gas_response =
+            &devnet.send_custom_rpc("devnet_setGasPrice", gas_request.clone()).await.unwrap();
+        let expected_gas_response = json!({
             "gas_price_wei": wei_price_first_update,
             "data_gas_price_wei": 8e18 as u128,
             "gas_price_strk": strk_price_first_update,
             "data_gas_price_strk": 6e18 as u128,
         });
-        assert_eq!(updated_gas, &gas_update_response);
+        assert_eq!(gas_response, &expected_gas_response);
 
         let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
         assert_eq!(latest_block.block_number, 0);
@@ -255,24 +255,22 @@ mod gas_update_tests {
 
         let wei_price_second_update = 8e18 as u128;
         let strk_price_second_update = 6e18 as u128;
-        let gas_update_block_request = json!({
+        let gas_request = json!({
             "gas_price_wei": wei_price_second_update,
             "data_gas_price_wei": 7e18 as u128,
             "gas_price_strk": strk_price_second_update,
             "data_gas_price_strk": 5e18 as u128,
             "generate_block": true,
         });
-        let updated_gas = &devnet
-            .send_custom_rpc("devnet_updateGas", gas_update_block_request.clone())
-            .await
-            .unwrap();
-        let gas_update_block_response = json!({
+        let gas_response =
+            &devnet.send_custom_rpc("devnet_setGasPrice", gas_request.clone()).await.unwrap();
+        let expected_gas_response = json!({
             "gas_price_wei": wei_price_second_update,
             "data_gas_price_wei": 7e18 as u128,
             "gas_price_strk": strk_price_second_update,
             "data_gas_price_strk": 5e18 as u128,
         });
-        assert_eq!(updated_gas, &gas_update_block_response);
+        assert_eq!(gas_response, &expected_gas_response);
 
         let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
         assert_eq!(latest_block.block_number, 2);
@@ -295,7 +293,7 @@ mod gas_update_tests {
     }
 
     #[tokio::test]
-    async fn unsuccessful_declare_update_gas_successful_declare() {
+    async fn unsuccessful_declare_set_gas_successful_declare() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let predeployed_account = Arc::new(SingleOwnerAccount::new(
@@ -325,22 +323,22 @@ mod gas_update_tests {
 
         let wei_price = 9e8 as u128;
         let strk_price = 7e8 as u128;
-        let gas_update_request = json!({
+        let gas_request = json!({
             "gas_price_wei": 9e8 as u128,
             "data_gas_price_wei": 8e8 as u128,
             "gas_price_strk": 7e8 as u128,
             "data_gas_price_strk": 6e8 as u128,
             "generate_block": true,
         });
-        let updated_gas =
-            &devnet.send_custom_rpc("devnet_updateGas", gas_update_request.clone()).await.unwrap();
-        let gas_update_response = json!({
+        let gas_response =
+            &devnet.send_custom_rpc("devnet_setGasPrice", gas_request.clone()).await.unwrap();
+        let expected_gas_response = json!({
             "gas_price_wei": 9e8 as u128,
             "data_gas_price_wei": 8e8 as u128,
             "gas_price_strk": 7e8 as u128,
             "data_gas_price_strk": 6e8 as u128,
         });
-        assert_eq!(updated_gas, &gas_update_response);
+        assert_eq!(gas_response, &expected_gas_response);
 
         let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
         assert_eq!(latest_block.block_number, 1);
@@ -365,7 +363,7 @@ mod gas_update_tests {
     }
 
     #[tokio::test]
-    async fn update_gas_optional_parameters() {
+    async fn set_gas_optional_parameters() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
@@ -382,7 +380,7 @@ mod gas_update_tests {
             "generate_block": false,
         });
         let gas_data = &devnet
-            .send_custom_rpc("devnet_updateGas", initial_gas_update_request.clone())
+            .send_custom_rpc("devnet_setGasPrice", initial_gas_update_request.clone())
             .await
             .unwrap();
         let initial_gas_update_response = json!({
@@ -393,27 +391,27 @@ mod gas_update_tests {
         });
         assert_eq!(gas_data, &initial_gas_update_response);
 
-        let gas_update_data = [
+        let gas_data = [
             ("gas_price_wei", 9e18 as u128),
             ("data_gas_price_wei", 8e18 as u128),
             ("gas_price_strk", 7e18 as u128),
             ("data_gas_price_strk", 6e18 as u128),
         ];
-        for gas_update_parameter in gas_update_data.iter() {
+        for gas_set_parameter in gas_data.iter() {
             // Construct the JSON request dynamically based on the parameter
             let optional_gas_update_request = json!({
-                gas_update_parameter.0: gas_update_parameter.1,
+                gas_set_parameter.0: gas_set_parameter.1,
                 "generate_block": true,
             });
-            let updated_gas = &devnet
-                .send_custom_rpc("devnet_updateGas", optional_gas_update_request.clone())
+            let gas_response = &devnet
+                .send_custom_rpc("devnet_setGasPrice", optional_gas_update_request.clone())
                 .await
                 .unwrap();
 
-            let value = updated_gas[gas_update_parameter.0]
+            let value = gas_response[gas_set_parameter.0]
                 .as_u64()
                 .expect("Failed to get value from JSON response") as u128;
-            assert_eq!(value, gas_update_parameter.1);
+            assert_eq!(value, gas_set_parameter.1);
         }
 
         // set nothing, get final gas information and assert
@@ -421,16 +419,16 @@ mod gas_update_tests {
             "generate_block": false,
         });
         let gas_data = &devnet
-            .send_custom_rpc("devnet_updateGas", final_gas_data_request.clone())
+            .send_custom_rpc("devnet_setGasPrice", final_gas_data_request.clone())
             .await
             .unwrap();
 
-        let final_gas_update_response = json!({
+        let final_gas_response = json!({
             "gas_price_wei": 9e18 as u128,
             "data_gas_price_wei": 8e18 as u128,
             "gas_price_strk": 7e18 as u128,
             "data_gas_price_strk": 6e18 as u128,
         });
-        assert_eq!(gas_data, &final_gas_update_response);
+        assert_eq!(gas_data, &final_gas_response);
     }
 }

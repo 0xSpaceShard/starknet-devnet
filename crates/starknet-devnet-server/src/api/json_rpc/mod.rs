@@ -239,7 +239,7 @@ impl JsonRpcHandler {
             }
             JsonRpcRequest::CreateBlock => self.create_block().await,
             JsonRpcRequest::AbortBlocks(data) => self.abort_blocks(data).await,
-            JsonRpcRequest::UpdateGas(data) => self.update_gas(data).await,
+            JsonRpcRequest::SetGasPrice(data) => self.set_gas_price(data).await,
             JsonRpcRequest::Restart => self.restart().await,
             JsonRpcRequest::SetTime(data) => self.set_time(data).await,
             JsonRpcRequest::IncreaseTime(data) => self.increase_time(data).await,
@@ -361,8 +361,8 @@ pub enum JsonRpcRequest {
     CreateBlock,
     #[serde(rename = "devnet_abortBlocks")]
     AbortBlocks(AbortingBlocks),
-    #[serde(rename = "devnet_updateGas")]
-    UpdateGas(GasUpdateRequest),
+    #[serde(rename = "devnet_setGasPrice")]
+    SetGasPrice(GasUpdateRequest),
     #[serde(rename = "devnet_restart", with = "empty_params")]
     Restart,
     #[serde(rename = "devnet_setTime")]
@@ -445,7 +445,7 @@ impl std::fmt::Display for JsonRpcRequest {
             }
             JsonRpcRequest::CreateBlock => write!(f, "devnet_createBlock"),
             JsonRpcRequest::AbortBlocks(_) => write!(f, "devnet_abortBlocks"),
-            JsonRpcRequest::UpdateGas(_) => write!(f, "devnet_updateGas"),
+            JsonRpcRequest::SetGasPrice(_) => write!(f, "devnet_setGasPrice"),
             JsonRpcRequest::Restart => write!(f, "devnet_restart"),
             JsonRpcRequest::SetTime(_) => write!(f, "devnet_setTime"),
             JsonRpcRequest::IncreaseTime(_) => write!(f, "devnet_increaseTime"),
