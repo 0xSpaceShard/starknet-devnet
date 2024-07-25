@@ -77,7 +77,7 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::contract_storage_key::ContractStorageKey;
-    use starknet_types::rpc::gas_update::GasUpdate;
+    use starknet_types::rpc::gas_modification::GasModification;
     use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
@@ -546,7 +546,7 @@ mod tests {
             DEVNET_DEFAULT_CHAIN_ID,
             DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
-        starknet.next_block_gas_update = GasUpdate {
+        starknet.next_block_gas = GasModification {
             gas_price_wei: nonzero!(1u128),
             data_gas_price_wei: nonzero!(1u128),
             gas_price_strk: nonzero!(1u128),

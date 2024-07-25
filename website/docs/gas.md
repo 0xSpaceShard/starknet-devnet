@@ -33,7 +33,7 @@ JSON-RPC
 
 ## Response
 
-The expected response from the server will mirror the request parameters, confirming the modification of gas prices:
+The expected response from the server will mirror the request gas parameters, confirming the modification of gas prices:
 
 ```
 {
