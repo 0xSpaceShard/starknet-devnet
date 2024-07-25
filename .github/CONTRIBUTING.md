@@ -147,7 +147,32 @@ To measure and benchmark memory it is best to use external tools such as Valgrin
 
 ### Updating OpenZeppelin contracts
 
-Tests in devnet require an erc20 contract with the `Mintable` feature, keep in mind that before the compilation process of [cairo-contracts](https://github.com/OpenZeppelin/cairo-contracts/) you need to mark the `Mintable` check box in this [wizard](https://wizard.openzeppelin.com/cairo) and copy this implementation to `/src/presets/erc20.cairo`.
+#### ERC20
+
+To update ERC20 OpenZeppelin contract please follow steps below:
+
+1. Create new project with scarb.
+```
+scarb new contract_update
+```
+
+2. Go to [wizard](https://wizard.openzeppelin.com/cairo) and select ERC20 contract with the `Mintable` feature, and copy code to `contract_update/src/lib.cairo`
+
+3. Make sure that you will set target `sierra` for true:
+
+```
+[[target.starknet-contract]]
+sierra = true
+```
+
+3. Build with scarb
+```
+scarb build
+```
+
+#### Account 
+
+To update Account OpenZeppelin contract compile [cairo-contracts](https://github.com/OpenZeppelin/cairo-contracts) project and use compiled [acccount](https://github.com/OpenZeppelin/cairo-contracts/blob/main/src/account/account.cairo) contract.
 
 If smart contract constructor logic has changed, Devnet's predeployment logic needs to be changed, e.g. `simulate_constructor` in `crates/starknet-devnet-core/src/account.rs`.
 
