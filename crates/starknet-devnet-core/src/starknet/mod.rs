@@ -295,9 +295,9 @@ impl Starknet {
     pub(crate) fn generate_pending_block(&mut self) -> DevnetResult<()> {
         Self::advance_block_context_block_number(&mut self.block_context);
 
-        Self::update_block_context_gas(&mut self.block_context, &self.next_block_gas);
+        Self::set_block_context_gas(&mut self.block_context, &self.next_block_gas);
 
-        // Pending block header gas data needs to be updated
+        // Pending block header gas data needs to be set
         self.blocks.pending_block.header.l1_gas_price.price_in_wei =
             GasPrice(u128::from(self.next_block_gas.gas_price_wei));
         self.blocks.pending_block.header.l1_data_gas_price.price_in_wei =
@@ -539,14 +539,14 @@ impl Starknet {
         );
     }
 
-    fn update_block_context_gas(block_context: &mut BlockContext, gas_update: &GasModification) {
+    fn set_block_context_gas(block_context: &mut BlockContext, gas_modification: &GasModification) {
         let mut block_info = block_context.block_info().clone();
 
-        // Block info gas needs to be updated here
-        block_info.gas_prices.eth_l1_gas_price = gas_update.gas_price_wei;
-        block_info.gas_prices.eth_l1_data_gas_price = gas_update.data_gas_price_wei;
-        block_info.gas_prices.strk_l1_gas_price = gas_update.gas_price_strk;
-        block_info.gas_prices.strk_l1_data_gas_price = gas_update.data_gas_price_strk;
+        // Block info gas needs to be sest here
+        block_info.gas_prices.eth_l1_gas_price = gas_modification.gas_price_wei;
+        block_info.gas_prices.eth_l1_data_gas_price = gas_modification.data_gas_price_wei;
+        block_info.gas_prices.strk_l1_gas_price = gas_modification.gas_price_strk;
+        block_info.gas_prices.strk_l1_data_gas_price = gas_modification.data_gas_price_strk;
 
         // TODO: update block_context via preferred method in the documentation
         *block_context = BlockContext::new(
@@ -841,7 +841,7 @@ impl Starknet {
         self.next_block_gas.update(gas_prices.clone());
 
         // If generate_block is true, generate new block, for now custom dump_event is None but in
-        // future it will change to GasUpdateEvent with self.next_block_gas_update data
+        // future it will change to GasSetEvent with self.next_block_gas data
         if let Some(true) = gas_prices.generate_block {
             self.create_block_dump_event(None)?
         }

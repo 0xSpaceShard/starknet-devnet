@@ -1,6 +1,6 @@
 pub mod common;
 
-mod gas_set_tests {
+mod gas_modification_tests {
     use std::sync::Arc;
 
     use serde_json::json;

@@ -515,7 +515,7 @@ pub enum DevnetResponse {
     MessageHash(MessageHash),
     CreatedBlock(CreatedBlock),
     AbortedBlocks(AbortedBlocks),
-    UpdatedGas(GasModification),
+    GasModification(GasModification),
     SetTime(SetTimeResponse),
     IncreaseTime(IncreaseTimeResponse),
     TransactionHash(TransactionHashOutput),

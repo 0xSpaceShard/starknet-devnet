@@ -162,10 +162,10 @@ impl JsonRpcHandler {
 
     /// devnet_setGasPrice
     pub async fn set_gas_price(&self, data: GasModificationRequest) -> StrictRpcResult {
-        let updated_gas =
+        let modified_gas =
             self.api.starknet.lock().await.set_next_block_gas(data).map_err(ApiError::from)?;
 
-        Ok(DevnetResponse::UpdatedGas(updated_gas).into())
+        Ok(DevnetResponse::GasModification(modified_gas).into())
     }
 
     /// devnet_restart
