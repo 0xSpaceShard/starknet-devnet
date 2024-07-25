@@ -170,9 +170,9 @@ sierra = true
 scarb build
 ```
 
-#### Account 
+#### Account & Universal Deployer (UDC)
 
-To update Account OpenZeppelin contract compile [cairo-contracts](https://github.com/OpenZeppelin/cairo-contracts) project and use compiled [acccount](https://github.com/OpenZeppelin/cairo-contracts/blob/main/src/account/account.cairo) contract.
+To update Account and Universal Deployer (UDC) OpenZeppelin contracts compile [cairo-contracts](https://github.com/OpenZeppelin/cairo-contracts) project and use compiled [acccount](https://github.com/OpenZeppelin/cairo-contracts/blob/main/src/account/account.cairo) and UDC contracts.
 
 If smart contract constructor logic has changed, Devnet's predeployment logic needs to be changed, e.g. `simulate_constructor` in `crates/starknet-devnet-core/src/account.rs`.
 
