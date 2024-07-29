@@ -35,7 +35,7 @@ lazy_static! {
 
 pub(crate) fn is_json_rpc_method_restricted(
     json_rpc_method: &String,
-    restricted_methods: &Vec<String>,
+    restricted_methods: &[String],
 ) -> bool {
     if restricted_methods.contains(json_rpc_method) {
         return true;
@@ -47,7 +47,7 @@ pub(crate) fn is_json_rpc_method_restricted(
     }
 }
 
-pub(crate) fn is_uri_path_restricted(uri_path: &str, restricted_uris: &Vec<String>) -> bool {
+pub(crate) fn is_uri_path_restricted(uri_path: &str, restricted_uris: &[String]) -> bool {
     if restricted_uris.contains(&uri_path.to_string()) {
         return true;
     }
@@ -82,7 +82,10 @@ mod tests {
         assert_is_restricted("devnet_impersonateAccount", &DEFAULT_RESTRICTED_JSON_RPC_METHODS);
         assert_is_restricted(
             "devnet_mint",
-            &(["/mint", "dump", "devnet_mint"].iter().map(|s| s.to_string()).collect()),
+            &(["/mint", "dump", "devnet_mint"]
+                .iter()
+                .map(|s| s.to_string())
+                .collect::<Vec<String>>()),
         );
     }
 
@@ -96,16 +99,16 @@ mod tests {
         assert_is_not_restricted("/config", &DEFAULT_RESTRICTED_HTTP_URIS);
     }
 
-    fn assert_is_restricted(method: &str, restricted_methods: &Vec<String>) {
+    fn assert_is_restricted(method: &str, restricted_methods: &[String]) {
         if method.contains('/') {
-            assert!(is_uri_path_restricted(&method.to_string(), restricted_methods));
+            assert!(is_uri_path_restricted(method, restricted_methods));
         } else {
             assert!(is_json_rpc_method_restricted(&method.to_string(), restricted_methods));
         }
     }
-    fn assert_is_not_restricted(method: &str, restricted_methods: &Vec<String>) {
+    fn assert_is_not_restricted(method: &str, restricted_methods: &[String]) {
         if method.contains('/') {
-            assert!(!is_uri_path_restricted(&method.to_string(), restricted_methods));
+            assert!(!is_uri_path_restricted(method, restricted_methods));
         } else {
             assert!(!is_json_rpc_method_restricted(&method.to_string(), restricted_methods));
         }
