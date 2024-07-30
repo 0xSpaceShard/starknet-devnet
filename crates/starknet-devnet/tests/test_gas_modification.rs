@@ -202,11 +202,11 @@ mod gas_modification_tests {
         );
 
         let wei_price_first_update = 9e18 as u128;
-        let strk_price_first_update = 7e18 as u128;
+        let fri_price_first_update = 7e18 as u128;
         let gas_request = json!({
             "gas_price_wei": wei_price_first_update,
             "data_gas_price_wei": 8e18 as u128,
-            "gas_price_fri": strk_price_first_update,
+            "gas_price_fri": fri_price_first_update,
             "data_gas_price_fri": 6e18 as u128,
             "generate_block": false,
         });
@@ -215,7 +215,7 @@ mod gas_modification_tests {
         let expected_gas_response = json!({
             "gas_price_wei": wei_price_first_update,
             "data_gas_price_wei": 8e18 as u128,
-            "gas_price_fri": strk_price_first_update,
+            "gas_price_fri": fri_price_first_update,
             "data_gas_price_fri": 6e18 as u128,
         });
         assert_eq!(gas_response, &expected_gas_response);
@@ -239,7 +239,7 @@ mod gas_modification_tests {
             pending_block.l1_gas_price,
             ResourcePrice {
                 price_in_wei: Felt::from(wei_price_first_update),
-                price_in_fri: Felt::from(strk_price_first_update),
+                price_in_fri: Felt::from(fri_price_first_update),
             }
         );
 
@@ -254,11 +254,11 @@ mod gas_modification_tests {
         );
 
         let wei_price_second_update = 8e18 as u128;
-        let strk_price_second_update = 6e18 as u128;
+        let fri_price_second_update = 6e18 as u128;
         let gas_request = json!({
             "gas_price_wei": wei_price_second_update,
             "data_gas_price_wei": 7e18 as u128,
-            "gas_price_fri": strk_price_second_update,
+            "gas_price_fri": fri_price_second_update,
             "data_gas_price_fri": 5e18 as u128,
             "generate_block": true,
         });
@@ -267,7 +267,7 @@ mod gas_modification_tests {
         let expected_gas_response = json!({
             "gas_price_wei": wei_price_second_update,
             "data_gas_price_wei": 7e18 as u128,
-            "gas_price_fri": strk_price_second_update,
+            "gas_price_fri": fri_price_second_update,
             "data_gas_price_fri": 5e18 as u128,
         });
         assert_eq!(gas_response, &expected_gas_response);
@@ -278,7 +278,7 @@ mod gas_modification_tests {
             latest_block.l1_gas_price,
             ResourcePrice {
                 price_in_wei: Felt::from(wei_price_first_update),
-                price_in_fri: Felt::from(strk_price_first_update),
+                price_in_fri: Felt::from(fri_price_first_update),
             }
         );
 
@@ -287,7 +287,7 @@ mod gas_modification_tests {
             pending_block.l1_gas_price,
             ResourcePrice {
                 price_in_wei: Felt::from(wei_price_second_update),
-                price_in_fri: Felt::from(strk_price_second_update),
+                price_in_fri: Felt::from(fri_price_second_update),
             }
         );
     }
@@ -322,7 +322,7 @@ mod gas_modification_tests {
         };
 
         let wei_price = 9e8 as u128;
-        let strk_price = 7e8 as u128;
+        let fri_price = 7e8 as u128;
         let gas_request = json!({
             "gas_price_wei": 9e8 as u128,
             "data_gas_price_wei": 8e8 as u128,
@@ -348,7 +348,7 @@ mod gas_modification_tests {
             pending_block.l1_gas_price,
             ResourcePrice {
                 price_in_wei: Felt::from(wei_price),
-                price_in_fri: Felt::from(strk_price),
+                price_in_fri: Felt::from(fri_price),
             }
         );
 
