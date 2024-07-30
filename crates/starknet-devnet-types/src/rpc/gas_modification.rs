@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 pub struct GasModificationRequest {
     pub gas_price_wei: Option<NonZeroU128>,
     pub data_gas_price_wei: Option<NonZeroU128>,
-    pub gas_price_strk: Option<NonZeroU128>,
-    pub data_gas_price_strk: Option<NonZeroU128>,
+    pub gas_price_fri: Option<NonZeroU128>,
+    pub data_gas_price_fri: Option<NonZeroU128>,
     pub generate_block: Option<bool>,
 }
 
@@ -17,8 +17,8 @@ pub struct GasModificationRequest {
 pub struct GasModification {
     pub gas_price_wei: NonZeroU128,
     pub data_gas_price_wei: NonZeroU128,
-    pub gas_price_strk: NonZeroU128,
-    pub data_gas_price_strk: NonZeroU128,
+    pub gas_price_fri: NonZeroU128,
+    pub data_gas_price_fri: NonZeroU128,
 }
 
 impl GasModification {
@@ -29,11 +29,11 @@ impl GasModification {
         if let Some(data_gas_price_wei) = request.data_gas_price_wei {
             self.data_gas_price_wei = data_gas_price_wei;
         }
-        if let Some(gas_price_strk) = request.gas_price_strk {
-            self.gas_price_strk = gas_price_strk;
+        if let Some(gas_price_fri) = request.gas_price_fri {
+            self.gas_price_fri = gas_price_fri;
         }
-        if let Some(data_gas_price_strk) = request.data_gas_price_strk {
-            self.data_gas_price_strk = data_gas_price_strk;
+        if let Some(data_gas_price_fri) = request.data_gas_price_fri {
+            self.data_gas_price_fri = data_gas_price_fri;
         }
     }
 }

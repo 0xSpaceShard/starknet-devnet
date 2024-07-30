@@ -107,13 +107,13 @@ pub(crate) struct Args {
     #[arg(help = "Specify the gas price in wei per gas unit;")]
     gas_price_wei: NonZeroU128,
 
-    // Gas price in strk
-    #[arg(long = "gas-price-strk")]
-    #[arg(env = "GAS_PRICE_STRK")]
-    #[arg(value_name = "STRK_PER_GAS_UNIT")]
+    // Gas price in fri
+    #[arg(long = "gas-price-fri")]
+    #[arg(env = "GAS_PRICE_FRI")]
+    #[arg(value_name = "FRI_PER_GAS_UNIT")]
     #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
-    #[arg(help = "Specify the gas price in strk per gas unit;")]
-    gas_price_strk: NonZeroU128,
+    #[arg(help = "Specify the gas price in fri per gas unit;")]
+    gas_price_fri: NonZeroU128,
 
     // Gas price in wei
     #[arg(long = "data-gas-price")]
@@ -123,13 +123,13 @@ pub(crate) struct Args {
     #[arg(help = "Specify the gas price in wei per data gas unit;")]
     data_gas_price_wei: NonZeroU128,
 
-    // Gas price in strk
-    #[arg(long = "data-gas-price-strk")]
-    #[arg(env = "DATA_GAS_PRICE_STRK")]
-    #[arg(value_name = "STRK_PER_GAS_UNIT")]
+    // Gas price in fri
+    #[arg(long = "data-gas-price-fri")]
+    #[arg(env = "DATA_GAS_PRICE_FRI")]
+    #[arg(value_name = "FRI_PER_GAS_UNIT")]
     #[arg(default_value_t = DEVNET_DEFAULT_DATA_GAS_PRICE)]
-    #[arg(help = "Specify the gas price in strk per data gas unit;")]
-    data_gas_price_strk: NonZeroU128,
+    #[arg(help = "Specify the gas price in fri per data gas unit;")]
+    data_gas_price_fri: NonZeroU128,
 
     #[arg(long = "chain-id")]
     #[arg(env = "CHAIN_ID")]
@@ -223,9 +223,9 @@ impl Args {
             predeployed_accounts_initial_balance: self.initial_balance.0.clone(),
             start_time: self.start_time,
             gas_price_wei: self.gas_price_wei,
-            gas_price_strk: self.gas_price_strk,
+            gas_price_fri: self.gas_price_fri,
             data_gas_price_wei: self.data_gas_price_wei,
-            data_gas_price_strk: self.data_gas_price_strk,
+            data_gas_price_fri: self.data_gas_price_fri,
             chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
@@ -529,9 +529,9 @@ mod tests {
             ("--start-time", "START_TIME", "123"),
             ("--timeout", "TIMEOUT", "12"),
             ("--gas-price", "GAS_PRICE", "1"),
-            ("--gas-price-strk", "GAS_PRICE_STRK", "2"),
+            ("--gas-price-fri", "GAS_PRICE_FRI", "2"),
             ("--data-gas-price", "DATA_GAS_PRICE", "3"),
-            ("--data-gas-price-strk", "DATA_GAS_PRICE_STRK", "4"),
+            ("--data-gas-price-fri", "DATA_GAS_PRICE_FRI", "4"),
             ("--dump-on", "DUMP_ON", "exit"),
             ("--dump-path", "DUMP_PATH", "dummy-path"),
             ("--state-archive-capacity", "STATE_ARCHIVE_CAPACITY", "full"),

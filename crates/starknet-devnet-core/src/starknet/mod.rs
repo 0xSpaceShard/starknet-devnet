@@ -139,8 +139,8 @@ impl Default for Starknet {
             next_block_gas: GasModification {
                 gas_price_wei: DEVNET_DEFAULT_GAS_PRICE,
                 data_gas_price_wei: DEVNET_DEFAULT_DATA_GAS_PRICE,
-                gas_price_strk: DEVNET_DEFAULT_GAS_PRICE,
-                data_gas_price_strk: DEVNET_DEFAULT_DATA_GAS_PRICE,
+                gas_price_fri: DEVNET_DEFAULT_GAS_PRICE,
+                data_gas_price_fri: DEVNET_DEFAULT_DATA_GAS_PRICE,
             },
             messaging: Default::default(),
             dump_events: Default::default(),
@@ -228,9 +228,9 @@ impl Starknet {
             predeployed_accounts,
             block_context: Self::init_block_context(
                 config.gas_price_wei,
-                config.gas_price_strk,
+                config.gas_price_fri,
                 config.data_gas_price_wei,
-                config.data_gas_price_strk,
+                config.data_gas_price_fri,
                 ETH_ERC20_CONTRACT_ADDRESS,
                 STRK_ERC20_CONTRACT_ADDRESS,
                 config.chain_id,
@@ -244,8 +244,8 @@ impl Starknet {
             next_block_gas: GasModification {
                 gas_price_wei: config.gas_price_wei,
                 data_gas_price_wei: config.data_gas_price_wei,
-                gas_price_strk: config.gas_price_strk,
-                data_gas_price_strk: config.data_gas_price_strk,
+                gas_price_fri: config.gas_price_fri,
+                data_gas_price_fri: config.data_gas_price_fri,
             },
             messaging: Default::default(),
             dump_events: Default::default(),
@@ -303,9 +303,9 @@ impl Starknet {
         self.blocks.pending_block.header.l1_data_gas_price.price_in_wei =
             GasPrice(u128::from(self.next_block_gas.data_gas_price_wei));
         self.blocks.pending_block.header.l1_gas_price.price_in_fri =
-            GasPrice(u128::from(self.next_block_gas.gas_price_strk));
+            GasPrice(u128::from(self.next_block_gas.gas_price_fri));
         self.blocks.pending_block.header.l1_data_gas_price.price_in_fri =
-            GasPrice(u128::from(self.next_block_gas.data_gas_price_strk));
+            GasPrice(u128::from(self.next_block_gas.data_gas_price_fri));
 
         self.restart_pending_block()?;
 
@@ -482,9 +482,9 @@ impl Starknet {
     #[allow(clippy::too_many_arguments)]
     fn init_block_context(
         gas_price_wei: NonZeroU128,
-        gas_price_strk: NonZeroU128,
+        gas_price_fri: NonZeroU128,
         data_gas_price_wei: NonZeroU128,
-        data_gas_price_strk: NonZeroU128,
+        data_gas_price_fri: NonZeroU128,
         eth_fee_token_address: &str,
         strk_fee_token_address: &str,
         chain_id: ChainId,
@@ -501,9 +501,9 @@ impl Starknet {
             sequencer_address: contract_address!("0x1000"),
             gas_prices: GasPrices {
                 eth_l1_gas_price: gas_price_wei,
-                strk_l1_gas_price: gas_price_strk,
+                strk_l1_gas_price: gas_price_fri,
                 eth_l1_data_gas_price: data_gas_price_wei,
-                strk_l1_data_gas_price: data_gas_price_strk,
+                strk_l1_data_gas_price: data_gas_price_fri,
             },
             use_kzg_da: USE_KZG_DA,
         };
@@ -545,8 +545,8 @@ impl Starknet {
         // Block info gas needs to be set here
         block_info.gas_prices.eth_l1_gas_price = gas_modification.gas_price_wei;
         block_info.gas_prices.eth_l1_data_gas_price = gas_modification.data_gas_price_wei;
-        block_info.gas_prices.strk_l1_gas_price = gas_modification.gas_price_strk;
-        block_info.gas_prices.strk_l1_data_gas_price = gas_modification.data_gas_price_strk;
+        block_info.gas_prices.strk_l1_gas_price = gas_modification.gas_price_fri;
+        block_info.gas_prices.strk_l1_data_gas_price = gas_modification.data_gas_price_fri;
 
         // TODO: update block_context via preferred method in the documentation
         *block_context = BlockContext::new(
@@ -1452,9 +1452,9 @@ mod tests {
     ) -> (Starknet, Account) {
         let mut starknet = Starknet::new(&StarknetConfig {
             gas_price_wei: nonzero!(1u128),
-            gas_price_strk: nonzero!(1u128),
+            gas_price_fri: nonzero!(1u128),
             data_gas_price_wei: nonzero!(1u128),
-            data_gas_price_strk: nonzero!(1u128),
+            data_gas_price_fri: nonzero!(1u128),
             state_archive,
             ..Default::default()
         })
