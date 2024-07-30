@@ -203,7 +203,7 @@ Sending POST /create_block is also an option in modes other than \"demand\".")]
     #[arg(env = "RESTRICTIVE_MODE")]
     #[arg(num_args = 0..)]
     #[arg(help = "Use Devnet in restrictive mode; You can specify the methods that will be \
-                  forbidden with empty space separated values (https://0xspaceshard.github.io/starknet-devnet-rs/docs/restrictive#with-a-list-of-methods). If nothing is specified for this \
+                  forbidden with whitespace-separated values (https://0xspaceshard.github.io/starknet-devnet-rs/docs/restrictive#with-a-list-of-methods). If nothing is specified for this \
                   argument, then default restricted methods are used (https://0xspaceshard.github.io/starknet-devnet-rs/docs/restrictive#default-restricted-methods).")]
     restricted_methods: Option<Vec<String>>,
 }
