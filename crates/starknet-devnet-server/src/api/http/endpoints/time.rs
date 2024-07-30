@@ -21,7 +21,7 @@ pub async fn increase_time(
 }
 
 pub(crate) async fn set_time_impl(api: &Api, data: SetTime) -> HttpApiResult<SetTimeResponse> {
-    let mut starknet = api.starknet.write().await;
+    let mut starknet = api.starknet.lock().await;
     let generate_block = data.generate_block.unwrap_or(true);
 
     starknet
@@ -46,7 +46,7 @@ pub(crate) async fn increase_time_impl(
     api: &Api,
     data: IncreaseTime,
 ) -> HttpApiResult<IncreaseTimeResponse> {
-    let mut starknet = api.starknet.write().await;
+    let mut starknet = api.starknet.lock().await;
     starknet
         .increase_time(data.time)
         .map_err(|err| HttpApiError::BlockIncreaseTimeError { msg: err.to_string() })?;

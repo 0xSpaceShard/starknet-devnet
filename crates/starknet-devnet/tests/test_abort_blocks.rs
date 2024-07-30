@@ -3,7 +3,7 @@ pub mod common;
 mod abort_blocks_tests {
     use serde_json::json;
     use server::api::json_rpc::error::ApiError;
-    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement};
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -12,10 +12,7 @@ mod abort_blocks_tests {
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
 
-    async fn abort_blocks(
-        devnet: &BackgroundDevnet,
-        starting_block_id: &BlockId,
-    ) -> Vec<FieldElement> {
+    async fn abort_blocks(devnet: &BackgroundDevnet, starting_block_id: &BlockId) -> Vec<Felt> {
         let mut aborted_blocks = devnet
             .send_custom_rpc(
                 "devnet_abortBlocks",
@@ -48,7 +45,7 @@ mod abort_blocks_tests {
         assert!(aborted_blocks_error.message.contains("Block abortion failed"));
     }
 
-    async fn assert_block_rejected(devnet: &BackgroundDevnet, block_hash: &FieldElement) {
+    async fn assert_block_rejected(devnet: &BackgroundDevnet, block_hash: &Felt) {
         let block_after_abort = devnet
             .send_custom_rpc(
                 "starknet_getBlockWithTxHashes",
@@ -115,7 +112,7 @@ mod abort_blocks_tests {
                 .await
                 .expect("Could not start Devnet");
 
-        let mint_hash = devnet.mint(FieldElement::ONE, 100).await;
+        let mint_hash = devnet.mint(Felt::ONE, 100).await;
 
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
@@ -165,36 +162,21 @@ mod abort_blocks_tests {
         let aborted_blocks = abort_blocks(&devnet, &BlockId::Hash(second_block.block_hash)).await;
         assert_eq!(aborted_blocks, vec![second_block.block_hash]);
 
-        let balance = devnet
-            .get_balance_latest(
-                &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
-                FeeUnit::WEI,
-            )
-            .await
-            .unwrap();
+        let balance =
+            devnet.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI).await.unwrap();
         assert_eq!(balance.to_string(), DUMMY_AMOUNT.to_string());
 
         let aborted_blocks = abort_blocks(&devnet, &BlockId::Hash(first_block.block_hash)).await;
         assert_eq!(aborted_blocks, vec![first_block.block_hash]);
 
-        let balance = devnet
-            .get_balance_latest(
-                &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
-                FeeUnit::WEI,
-            )
-            .await
-            .unwrap();
+        let balance =
+            devnet.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI).await.unwrap();
         assert_eq!(balance.to_string(), "0");
 
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
-        let balance = devnet
-            .get_balance_latest(
-                &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
-                FeeUnit::WEI,
-            )
-            .await
-            .unwrap();
+        let balance =
+            devnet.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI).await.unwrap();
         assert_eq!(balance.to_string(), DUMMY_AMOUNT.to_string());
 
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
@@ -273,23 +255,14 @@ mod abort_blocks_tests {
         devnet.create_block().await.unwrap();
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let pending_balance = devnet
-            .get_balance_by_tag(
-                &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
-                FeeUnit::WEI,
-                BlockTag::Pending,
-            )
+            .get_balance_by_tag(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI, BlockTag::Pending)
             .await
             .unwrap();
         assert_eq!(pending_balance, (2 * DUMMY_AMOUNT).into());
 
         abort_blocks(&devnet, &BlockId::Tag(BlockTag::Pending)).await;
-        let latest_balance = devnet
-            .get_balance_latest(
-                &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
-                FeeUnit::WEI,
-            )
-            .await
-            .unwrap();
+        let latest_balance =
+            devnet.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI).await.unwrap();
         assert_eq!(latest_balance, DUMMY_AMOUNT.into());
     }
 }

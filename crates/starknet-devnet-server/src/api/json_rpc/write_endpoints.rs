@@ -1,5 +1,6 @@
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::messaging::{MessageToL1, MessageToL2};
+use starknet_types::rpc::gas_modification::GasModificationRequest;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction,
@@ -31,14 +32,14 @@ impl JsonRpcHandler {
         request: BroadcastedDeclareTransaction,
     ) -> StrictRpcResult {
         let (transaction_hash, class_hash) =
-            self.api.starknet.write().await.add_declare_transaction(request).map_err(|err| {
-                match err {
+            self.api.starknet.lock().await.add_declare_transaction(request).map_err(
+                |err| match err {
                     starknet_core::error::Error::CompiledClassHashMismatch => {
                         ApiError::CompiledClassHashMismatch
                     }
                     unknown_error => ApiError::StarknetDevnetError(unknown_error),
-                }
-            })?;
+                },
+            )?;
 
         Ok(StarknetResponse::AddDeclareTransaction(DeclareTransactionOutput {
             transaction_hash,
@@ -52,7 +53,7 @@ impl JsonRpcHandler {
         request: BroadcastedDeployAccountTransaction,
     ) -> StrictRpcResult {
         let (transaction_hash, contract_address) =
-            self.api.starknet.write().await.add_deploy_account_transaction(request).map_err(
+            self.api.starknet.lock().await.add_deploy_account_transaction(request).map_err(
                 |err| match err {
                     starknet_core::error::Error::StateError(
                         starknet_core::error::StateError::NoneClassHash(_),
@@ -72,28 +73,28 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedInvokeTransaction,
     ) -> StrictRpcResult {
-        let transaction_hash = self.api.starknet.write().await.add_invoke_transaction(request)?;
+        let transaction_hash = self.api.starknet.lock().await.add_invoke_transaction(request)?;
 
         Ok(StarknetResponse::TransactionHash(TransactionHashOutput { transaction_hash }).into())
     }
 
     /// devnet_impersonateAccount
     pub async fn impersonate_account(&self, address: ContractAddress) -> StrictRpcResult {
-        let mut starknet = self.api.starknet.write().await;
+        let mut starknet = self.api.starknet.lock().await;
         starknet.impersonate_account(address)?;
         Ok(super::JsonRpcResponse::Empty)
     }
 
     /// devnet_stopImpersonateAccount
     pub async fn stop_impersonating_account(&self, address: ContractAddress) -> StrictRpcResult {
-        let mut starknet = self.api.starknet.write().await;
+        let mut starknet = self.api.starknet.lock().await;
         starknet.stop_impersonating_account(&address);
         Ok(super::JsonRpcResponse::Empty)
     }
 
     /// devnet_autoImpersonate | devnet_stopAutoImpersonate
     pub async fn set_auto_impersonate(&self, auto_impersonation: bool) -> StrictRpcResult {
-        let mut starknet = self.api.starknet.write().await;
+        let mut starknet = self.api.starknet.lock().await;
         starknet.set_auto_impersonate_account(auto_impersonation)?;
         Ok(super::JsonRpcResponse::Empty)
     }
@@ -157,6 +158,14 @@ impl JsonRpcHandler {
         let aborted_blocks = abort_blocks_impl(&self.api, data).await.map_err(ApiError::from)?;
 
         Ok(DevnetResponse::AbortedBlocks(aborted_blocks).into())
+    }
+
+    /// devnet_setGasPrice
+    pub async fn set_gas_price(&self, data: GasModificationRequest) -> StrictRpcResult {
+        let modified_gas =
+            self.api.starknet.lock().await.set_next_block_gas(data).map_err(ApiError::from)?;
+
+        Ok(DevnetResponse::GasModification(modified_gas).into())
     }
 
     /// devnet_restart

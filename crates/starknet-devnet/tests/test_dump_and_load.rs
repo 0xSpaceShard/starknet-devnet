@@ -20,7 +20,7 @@ mod dump_and_load_tests {
 
     use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::FieldElement;
+    use starknet_rs_core::types::Felt;
 
     use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
 
@@ -84,11 +84,9 @@ mod dump_and_load_tests {
         let last_block = devnet_load.get_latest_block_with_tx_hashes().await.unwrap();
         assert_eq!(last_block.block_number, 4);
 
-        let loaded_balance = devnet_load
-            .get_balance_latest(&FieldElement::from(DUMMY_ADDRESS), FeeUnit::WEI)
-            .await
-            .unwrap();
-        assert_eq!(loaded_balance, FieldElement::from(DUMMY_AMOUNT * 2));
+        let loaded_balance =
+            devnet_load.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI).await.unwrap();
+        assert_eq!(loaded_balance, Felt::from(DUMMY_AMOUNT * 2));
     }
 
     #[tokio::test]
@@ -265,8 +263,8 @@ mod dump_and_load_tests {
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(cairo_1_contract), casm_class_hash)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .declare_v2(Arc::new(cairo_1_contract), casm_class_hash)
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
             .unwrap();
@@ -277,8 +275,8 @@ mod dump_and_load_tests {
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
         let deploy_result = contract_factory
-            .deploy(vec![], FieldElement::ZERO, false)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .deploy_v1(vec![], Felt::ZERO, false)
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
             .unwrap();
@@ -453,11 +451,9 @@ mod dump_and_load_tests {
             .await
             .unwrap();
 
-        let balance_result = devnet_load
-            .get_balance_latest(&FieldElement::from(DUMMY_ADDRESS), FeeUnit::WEI)
-            .await
-            .unwrap();
-        assert_eq!(balance_result, DUMMY_AMOUNT.into());
+        let balance_result =
+            devnet_load.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI).await.unwrap();
+        assert_eq!(balance_result, Felt::from(DUMMY_AMOUNT));
 
         let loaded_transaction =
             devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash).await.unwrap();
@@ -488,14 +484,14 @@ mod dump_and_load_tests {
         devnet.mint_unit(DUMMY_ADDRESS, DUMMY_AMOUNT, unit).await;
         let balance_before_dump =
             devnet.get_balance_latest(&DUMMY_ADDRESS.into(), unit).await.unwrap();
-        assert_eq!(balance_before_dump, DUMMY_AMOUNT.into());
+        assert_eq!(balance_before_dump, Felt::from(DUMMY_AMOUNT));
 
         devnet.send_custom_rpc("devnet_dump", json!({ "path": dump_file.path })).await.unwrap();
 
         devnet.mint_unit(DUMMY_ADDRESS, DUMMY_AMOUNT, unit).await;
         let balance_after_dump =
             devnet.get_balance_latest(&DUMMY_ADDRESS.into(), unit).await.unwrap();
-        assert_eq!(balance_after_dump, balance_before_dump + DUMMY_AMOUNT.into());
+        assert_eq!(balance_after_dump, balance_before_dump + Felt::from(DUMMY_AMOUNT));
 
         devnet.send_custom_rpc("devnet_load", json!({ "path": dump_file.path })).await.unwrap();
 
@@ -506,7 +502,7 @@ mod dump_and_load_tests {
         devnet.mint_unit(DUMMY_ADDRESS, DUMMY_AMOUNT, unit).await;
         let balance_after_mint_on_loaded =
             devnet.get_balance_latest(&DUMMY_ADDRESS.into(), unit).await.unwrap();
-        assert_eq!(balance_after_mint_on_loaded, balance_after_load + DUMMY_AMOUNT.into());
+        assert_eq!(balance_after_mint_on_loaded, balance_after_load + Felt::from(DUMMY_AMOUNT));
     }
 
     #[tokio::test]

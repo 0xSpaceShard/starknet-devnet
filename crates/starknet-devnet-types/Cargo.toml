@@ -1,6 +1,6 @@
 [package]
 name = "starknet-devnet-types"
-version = "0.1.2"
+version = "0.2.0-rc.1"
 edition = "2021"
 description = "Starknet types for the devnet"
 repository.workspace = true
@@ -12,18 +12,18 @@ license-file.workspace = true
 base64 = { workspace = true }
 blockifier = { workspace = true }
 cairo-lang-starknet-classes = { workspace = true }
-clap = { workspace = true }
 flate2 = { workspace = true }
 starknet_api = { workspace = true }
+starknet-types-core = { workspace = true }
 thiserror = { workspace = true }
 starknet-rs-core = { workspace = true }
 starknet-rs-crypto = { workspace = true }
+cairo-vm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true, features = [
     "arbitrary_precision",
     "preserve_order",
 ] }
-starknet-rs-ff = { workspace = true }
 num-bigint = { workspace = true }
 bigdecimal = { workspace = true }
 usc = { workspace = true }

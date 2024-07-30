@@ -2,7 +2,7 @@ pub mod common;
 
 mod get_transaction_by_block_id_and_index_integration_tests {
 
-    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
     use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -10,7 +10,7 @@ mod get_transaction_by_block_id_and_index_integration_tests {
     #[tokio::test]
     async fn get_transaction_by_block_id_and_index_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let tx_hash_value = devnet.mint(FieldElement::ONE, 1).await;
+        let tx_hash_value = devnet.mint(Felt::ONE, 1).await;
 
         let result = devnet
             .json_rpc_client
@@ -32,7 +32,7 @@ mod get_transaction_by_block_id_and_index_integration_tests {
     async fn get_transaction_by_block_id_and_index_wrong_index() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        devnet.mint(FieldElement::ONE, 1).await;
+        devnet.mint(Felt::ONE, 1).await;
 
         let result = devnet
             .json_rpc_client

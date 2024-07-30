@@ -1,12 +1,9 @@
+use cairo_vm::types::builtin_name::BuiltinName;
 use serde::{Deserialize, Deserializer, Serialize};
 use starknet_api::block::BlockNumber;
 use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{ExecutionResult, Hash256, TransactionFinalityStatus};
 
-use crate::constants::{
-    BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME, N_STEPS,
-    POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
-};
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
 use crate::felt::{BlockHash, TransactionHash};
@@ -74,7 +71,7 @@ pub struct DataAvailability {
     pub l1_data_gas: u128,
 }
 
-/// custom implementation, because serde_json doesnt support deserializing to u128
+/// custom implementation, because serde_json doesn't support deserializing to u128
 /// if the struct is being used as a field in another struct that have #[serde(flatten)] or
 /// #[serde(untagged)]
 impl<'de> Deserialize<'de> for DataAvailability {
@@ -122,6 +119,8 @@ pub struct ComputationResources {
     pub bitwise_builtin_applications: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub keccak_builtin_applications: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub segment_arena_builtin_applications: Option<usize>,
 }
 
 impl From<&blockifier::execution::call_info::CallInfo> for ComputationResources {
@@ -135,31 +134,35 @@ impl From<&blockifier::execution::call_info::CallInfo> for ComputationResources 
             },
             range_check_builtin_applications: Self::get_resource_from_call_info(
                 call_info,
-                RANGE_CHECK_BUILTIN_NAME,
+                &BuiltinName::range_check,
             ),
             pedersen_builtin_applications: Self::get_resource_from_call_info(
                 call_info,
-                HASH_BUILTIN_NAME,
+                &BuiltinName::pedersen,
             ),
             poseidon_builtin_applications: Self::get_resource_from_call_info(
                 call_info,
-                POSEIDON_BUILTIN_NAME,
+                &BuiltinName::poseidon,
             ),
             ec_op_builtin_applications: Self::get_resource_from_call_info(
                 call_info,
-                EC_OP_BUILTIN_NAME,
+                &BuiltinName::ec_op,
             ),
             ecdsa_builtin_applications: Self::get_resource_from_call_info(
                 call_info,
-                SIGNATURE_BUILTIN_NAME,
+                &BuiltinName::ecdsa,
             ),
             bitwise_builtin_applications: Self::get_resource_from_call_info(
                 call_info,
-                BITWISE_BUILTIN_NAME,
+                &BuiltinName::bitwise,
             ),
             keccak_builtin_applications: Self::get_resource_from_call_info(
                 call_info,
-                KECCAK_BUILTIN_NAME,
+                &BuiltinName::keccak,
+            ),
+            segment_arena_builtin_applications: Self::get_resource_from_call_info(
+                call_info,
+                &BuiltinName::segment_arena,
             ),
         }
     }
@@ -176,45 +179,49 @@ impl From<&blockifier::transaction::objects::TransactionExecutionInfo> for Execu
         );
 
         let computation_resources = ComputationResources {
-            steps: ComputationResources::get_resource_from_execution_info(execution_info, N_STEPS)
-                .unwrap_or_default(),
+            steps: execution_info.transaction_receipt.resources.total_charged_steps(),
             memory_holes: if total_memory_holes == 0 { None } else { Some(total_memory_holes) },
             range_check_builtin_applications:
                 ComputationResources::get_resource_from_execution_info(
                     execution_info,
-                    RANGE_CHECK_BUILTIN_NAME,
+                    &BuiltinName::range_check,
                 ),
             pedersen_builtin_applications: ComputationResources::get_resource_from_execution_info(
                 execution_info,
-                HASH_BUILTIN_NAME,
+                &BuiltinName::pedersen,
             ),
             poseidon_builtin_applications: ComputationResources::get_resource_from_execution_info(
                 execution_info,
-                POSEIDON_BUILTIN_NAME,
+                &BuiltinName::poseidon,
             ),
             ec_op_builtin_applications: ComputationResources::get_resource_from_execution_info(
                 execution_info,
-                EC_OP_BUILTIN_NAME,
+                &BuiltinName::ec_op,
             ),
             ecdsa_builtin_applications: ComputationResources::get_resource_from_execution_info(
                 execution_info,
-                SIGNATURE_BUILTIN_NAME,
+                &BuiltinName::ecdsa,
             ),
             bitwise_builtin_applications: ComputationResources::get_resource_from_execution_info(
                 execution_info,
-                BITWISE_BUILTIN_NAME,
+                &BuiltinName::bitwise,
             ),
             keccak_builtin_applications: ComputationResources::get_resource_from_execution_info(
                 execution_info,
-                KECCAK_BUILTIN_NAME,
+                &BuiltinName::keccak,
             ),
+            segment_arena_builtin_applications:
+                ComputationResources::get_resource_from_execution_info(
+                    execution_info,
+                    &BuiltinName::segment_arena,
+                ),
         };
 
         Self {
             computation_resources,
             data_availability: DataAvailability {
-                l1_gas: execution_info.da_gas.l1_gas,
-                l1_data_gas: execution_info.da_gas.l1_data_gas,
+                l1_gas: execution_info.transaction_receipt.da_gas.l1_gas,
+                l1_data_gas: execution_info.transaction_receipt.da_gas.l1_data_gas,
             },
         }
     }
@@ -229,14 +236,20 @@ impl ComputationResources {
 
     fn get_resource_from_execution_info(
         execution_info: &blockifier::transaction::objects::TransactionExecutionInfo,
-        resource_name: &str,
+        resource_name: &BuiltinName,
     ) -> Option<usize> {
-        execution_info.actual_resources.0.get(resource_name).cloned()
+        execution_info
+            .transaction_receipt
+            .resources
+            .vm_resources
+            .builtin_instance_counter
+            .get(resource_name)
+            .cloned()
     }
 
     fn get_resource_from_call_info(
         call_info: &blockifier::execution::call_info::CallInfo,
-        resource_name: &str,
+        resource_name: &BuiltinName,
     ) -> Option<usize> {
         call_info.resources.builtin_instance_counter.get(resource_name).cloned()
     }

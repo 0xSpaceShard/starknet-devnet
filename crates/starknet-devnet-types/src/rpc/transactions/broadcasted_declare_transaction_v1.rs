@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
 use starknet_rs_core::crypto::compute_hash_on_elements;
-use starknet_rs_ff::FieldElement;
+use starknet_rs_core::types::Felt;
 
 use crate::constants::PREFIX_DECLARE;
 use crate::contract_address::ContractAddress;
 use crate::contract_class::Cairo0ContractClass;
 use crate::error::DevnetResult;
-use crate::felt::{ClassHash, Felt, Nonce, TransactionSignature, TransactionVersion};
+use crate::felt::{ClassHash, Nonce, TransactionSignature, TransactionVersion};
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 use crate::traits::HashProducer;
 
@@ -52,15 +52,14 @@ impl BroadcastedDeclareTransactionV1 {
     ) -> DevnetResult<ClassHash> {
         Ok(compute_hash_on_elements(&[
             PREFIX_DECLARE,
-            self.common.version.into(),
+            self.common.version,
             self.sender_address.into(),
-            FieldElement::ZERO, // entry_point_selector
-            compute_hash_on_elements(&[FieldElement::from(*class_hash)]),
+            Felt::ZERO, // entry_point_selector
+            compute_hash_on_elements(&[*class_hash]),
             self.common.max_fee.0.into(),
-            FieldElement::from(*chain_id),
-            self.common.nonce.into(),
-        ])
-        .into())
+            *chain_id,
+            self.common.nonce,
+        ]))
     }
 }
 
@@ -68,14 +67,15 @@ impl BroadcastedDeclareTransactionV1 {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::Fee;
+    use starknet_rs_core::types::Felt;
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
     use crate::contract_class::Cairo0Json;
-    use crate::felt::Felt;
+    use crate::felt::try_felt_to_num;
     use crate::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use crate::rpc::transactions::BroadcastedDeclareTransaction;
-    use crate::traits::{HashProducer, ToHexString};
+    use crate::traits::HashProducer;
 
     #[derive(Deserialize)]
     struct FeederGatewayDeclareTransactionV1 {
@@ -110,11 +110,7 @@ mod tests {
 
         let broadcasted_tx = BroadcastedDeclareTransactionV1::new(
             ContractAddress::new(feeder_gateway_transaction.sender_address).unwrap(),
-            Fee(u128::from_str_radix(
-                &feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(),
-                16,
-            )
-            .unwrap()),
+            Fee(try_felt_to_num(feeder_gateway_transaction.max_fee).unwrap()),
             &vec![],
             feeder_gateway_transaction.nonce,
             &cairo0.into(),
@@ -128,11 +124,11 @@ mod tests {
 
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,
-            blockifier_declare_transaction.tx_hash().0.into()
+            blockifier_declare_transaction.tx_hash().0
         );
         assert_eq!(
             feeder_gateway_transaction.class_hash,
-            blockifier_declare_transaction.class_hash().0.into()
+            blockifier_declare_transaction.class_hash().0
         );
     }
 }

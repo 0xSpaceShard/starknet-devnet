@@ -38,7 +38,7 @@ pub async fn restart(State(state): State<HttpApiHandler>) -> HttpApiResult<()> {
 
 pub(crate) async fn restart_impl(api: &Api) -> HttpApiResult<()> {
     api.starknet
-        .write()
+        .lock()
         .await
         .restart()
         .map_err(|err| HttpApiError::RestartError { msg: err.to_string() })?;
@@ -58,7 +58,7 @@ pub async fn get_devnet_config(
     State(state): State<HttpApiHandler>,
 ) -> HttpApiResult<Json<DevnetConfig>> {
     Ok(Json(DevnetConfig {
-        starknet_config: state.api.starknet.read().await.config.clone(),
+        starknet_config: state.api.starknet.lock().await.config.clone(),
         server_config: state.server_config.clone(),
     }))
 }

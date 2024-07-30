@@ -4,11 +4,9 @@ use blockifier::execution::contract_class::ContractClass;
 use blockifier::state::errors::StateError;
 use blockifier::state::state_api::StateResult;
 use starknet_api::core::{ClassHash, ContractAddress, Nonce, PatriciaKey};
-use starknet_api::hash::StarkFelt;
 use starknet_api::state::StorageKey;
+use starknet_rs_core::types::Felt;
 use starknet_types::contract_class::convert_codegen_to_blockifier_compiled_class;
-use starknet_types::felt::Felt;
-use starknet_types::traits::ToHexString;
 use tracing::debug;
 
 use super::starknet_config::ForkConfig;
@@ -111,7 +109,7 @@ impl StarknetDefaulter {
         &self,
         contract_address: ContractAddress,
         key: StorageKey,
-    ) -> StateResult<StarkFelt> {
+    ) -> StateResult<Felt> {
         if let Some(origin) = &self.origin_reader {
             origin.get_storage_at(contract_address, key)
         } else {
@@ -144,16 +142,12 @@ impl StarknetDefaulter {
     }
 }
 
-fn convert_json_value_to_stark_felt(json_value: serde_json::Value) -> StateResult<StarkFelt> {
-    let str_value = json_value
-        .as_str()
-        .ok_or(StateError::StateReadError(format!("Could not convert {json_value} to felt")))?;
-    StarkFelt::try_from(str_value).map_err(|e| StateError::StateReadError(e.to_string()))
+fn convert_json_value_to_felt(json_value: serde_json::Value) -> StateResult<Felt> {
+    serde_json::from_value(json_value).map_err(|e| StateError::StateReadError(e.to_string()))
 }
 
-fn convert_patricia_key_to_hex(key: PatriciaKey) -> StateResult<String> {
-    let felt = Felt::try_from(key).map_err(|e| StateError::StateReadError(e.to_string()))?;
-    Ok(felt.to_prefixed_hex_str())
+fn convert_patricia_key_to_hex(key: PatriciaKey) -> String {
+    key.key().to_hex_string()
 }
 
 // Same as StateReader, but with &self instead of &mut self
@@ -162,17 +156,17 @@ impl BlockingOriginReader {
         &self,
         contract_address: ContractAddress,
         key: StorageKey,
-    ) -> StateResult<StarkFelt> {
+    ) -> StateResult<Felt> {
         let storage = match self.send_body(
             "starknet_getStorageAt",
             serde_json::json!({
-                "contract_address": convert_patricia_key_to_hex(contract_address.0)?,
-                "key": convert_patricia_key_to_hex(key.0)?,
+                "contract_address": convert_patricia_key_to_hex(contract_address.0),
+                "key": convert_patricia_key_to_hex(key.0),
             }),
         ) {
             Err(OriginError::NoResult) => Default::default(),
             Err(other_error) => return Err(StateError::StateReadError(other_error.to_string())),
-            Ok(value) => convert_json_value_to_stark_felt(value)?,
+            Ok(value) => convert_json_value_to_felt(value)?,
         };
         Ok(storage)
     }
@@ -181,12 +175,12 @@ impl BlockingOriginReader {
         let nonce = match self.send_body(
             "starknet_getNonce",
             serde_json::json!({
-                "contract_address": convert_patricia_key_to_hex(contract_address.0)?,
+                "contract_address": convert_patricia_key_to_hex(contract_address.0),
             }),
         ) {
             Err(OriginError::NoResult) => Default::default(),
             Err(other_error) => return Err(StateError::StateReadError(other_error.to_string())),
-            Ok(value) => Nonce(convert_json_value_to_stark_felt(value)?),
+            Ok(value) => Nonce(convert_json_value_to_felt(value)?),
         };
         Ok(nonce)
     }
@@ -195,12 +189,12 @@ impl BlockingOriginReader {
         let class_hash = match self.send_body(
             "starknet_getClassHashAt",
             serde_json::json!({
-                "contract_address": convert_patricia_key_to_hex(contract_address.0)?,
+                "contract_address": convert_patricia_key_to_hex(contract_address.0),
             }),
         ) {
             Err(OriginError::NoResult) => Default::default(),
             Err(other_error) => return Err(StateError::StateReadError(other_error.to_string())),
-            Ok(value) => ClassHash(convert_json_value_to_stark_felt(value)?),
+            Ok(value) => ClassHash(convert_json_value_to_felt(value)?),
         };
         Ok(class_hash)
     }
@@ -209,7 +203,7 @@ impl BlockingOriginReader {
         match self.send_body(
             "starknet_getClass",
             serde_json::json!({
-                "class_hash": Felt::from(class_hash.0).to_prefixed_hex_str(),
+                "class_hash": class_hash.0.to_hex_string(),
             }),
         ) {
             Err(OriginError::NoResult) => Err(StateError::UndeclaredClassHash(class_hash)),

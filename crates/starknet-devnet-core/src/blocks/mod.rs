@@ -3,15 +3,15 @@ use std::collections::HashMap;
 use indexmap::IndexMap;
 use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus, BlockTimestamp};
 use starknet_api::data_availability::L1DataAvailabilityMode;
-use starknet_api::hash::{pedersen_hash_array, StarkFelt};
-use starknet_api::stark_felt;
-use starknet_rs_core::types::{BlockId, BlockTag};
+use starknet_api::felt;
+use starknet_rs_core::types::{BlockId, BlockTag, Felt};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{BlockHash, Felt, TransactionHash};
+use starknet_types::felt::{BlockHash, TransactionHash};
 use starknet_types::rpc::block::{
     BlockHeader as TypesBlockHeader, PendingBlockHeader as TypesPendingBlockHeader, ResourcePrice,
 };
 use starknet_types::traits::HashProducer;
+use starknet_types_core::hash::{Pedersen, StarkHash};
 
 use crate::constants::{DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, STARKNET_VERSION};
 use crate::error::{DevnetResult, Error};
@@ -66,8 +66,8 @@ impl StarknetBlocks {
     /// Inserts a block in the collection and modifies the block parent hash to match the last block
     /// hash
     pub fn insert(&mut self, mut block: StarknetBlock, state_diff: StateDiff) {
-        if self.last_block_hash.is_some() {
-            block.header.parent_hash = self.last_block_hash.unwrap().into();
+        if let Some(last_block_hash) = self.last_block_hash {
+            block.header.parent_hash = starknet_api::block::BlockHash(last_block_hash);
         }
 
         let hash = block.block_hash();
@@ -96,7 +96,7 @@ impl StarknetBlocks {
 
     pub fn get_by_block_id(&self, block_id: &BlockId) -> Option<&StarknetBlock> {
         match block_id {
-            BlockId::Hash(hash) => self.get_by_hash(Felt::from(hash)),
+            BlockId::Hash(hash) => self.get_by_hash(*hash),
             BlockId::Number(block_number) => self.get_by_num(&BlockNumber(*block_number)),
             BlockId::Tag(BlockTag::Pending) => Some(&self.pending_block),
             BlockId::Tag(BlockTag::Latest) => self.get_by_latest_hash(),
@@ -228,11 +228,11 @@ impl StarknetBlock {
     }
 
     pub fn block_hash(&self) -> BlockHash {
-        self.header.block_hash.into()
+        self.header.block_hash.0
     }
 
     pub fn parent_hash(&self) -> BlockHash {
-        self.header.parent_hash.into()
+        self.header.parent_hash.0
     }
 
     pub fn sequencer_address(&self) -> ContractAddress {
@@ -244,11 +244,11 @@ impl StarknetBlock {
     }
 
     pub fn new_root(&self) -> Felt {
-        self.header.state_root.0.into()
+        self.header.state_root.0
     }
 
     pub(crate) fn set_block_hash(&mut self, block_hash: BlockHash) {
-        self.header.block_hash = block_hash.into();
+        self.header.block_hash = starknet_api::block::BlockHash(block_hash);
     }
 
     pub fn block_number(&self) -> BlockNumber {
@@ -278,29 +278,28 @@ impl StarknetBlock {
 impl HashProducer for StarknetBlock {
     type Error = Error;
     fn generate_hash(&self) -> DevnetResult<BlockHash> {
-        let hash = pedersen_hash_array(&[
-            stark_felt!(self.header.block_number.0), // block number
-            self.header.state_root.0,                // global_state_root
-            *self.header.sequencer.0.key(),          // sequencer_address
-            stark_felt!(self.header.timestamp.0),    // block_timestamp
-            stark_felt!(self.transaction_hashes.len() as u64), // transaction_count
-            stark_felt!(0_u8),                       // transaction_commitment
-            stark_felt!(0_u8),                       // event_count
-            stark_felt!(0_u8),                       // event_commitment
-            stark_felt!(0_u8),                       // protocol_version
-            stark_felt!(0_u8),                       // extra_data
-            stark_felt!(self.header.parent_hash.0),  // parent_block_hash
+        let hash = Pedersen::hash_array(&[
+            felt!(self.header.block_number.0),           // block number
+            self.header.state_root.0,                    // global_state_root
+            *self.header.sequencer.0.key(),              // sequencer_address
+            felt!(self.header.timestamp.0),              // block_timestamp
+            felt!(self.transaction_hashes.len() as u64), // transaction_count
+            Felt::ZERO,                                  // transaction_commitment
+            Felt::ZERO,                                  // event_count
+            Felt::ZERO,                                  // event_commitment
+            Felt::ZERO,                                  // protocol_version
+            Felt::ZERO,                                  // extra_data
+            self.header.parent_hash.0,                   // parent_block_hash
         ]);
 
-        Ok(Felt::from(hash))
+        Ok(hash)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use starknet_api::block::{BlockHash, BlockHeader, BlockNumber, BlockStatus};
-    use starknet_rs_core::types::{BlockId, BlockTag};
-    use starknet_types::felt::Felt;
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_types::traits::HashProducer;
 
     use super::{StarknetBlock, StarknetBlocks};
@@ -313,7 +312,8 @@ mod tests {
         for block_number in 1..=10 {
             let mut block_to_insert = StarknetBlock::create_pending_block();
             block_to_insert.header.block_number = BlockNumber(block_number);
-            block_to_insert.header.block_hash = Felt::from(block_number as u128).into();
+            block_to_insert.header.block_hash =
+                starknet_api::block::BlockHash(Felt::from(block_number as u128));
             blocks.insert(block_to_insert, StateDiff::default());
         }
 
@@ -366,7 +366,7 @@ mod tests {
 
         let block_hash = block_to_insert.generate_hash().unwrap();
         block_to_insert.header.block_number = BlockNumber(10);
-        block_to_insert.header.block_hash = block_hash.into();
+        block_to_insert.header.block_hash = starknet_api::block::BlockHash(block_hash);
 
         blocks.insert(block_to_insert, StateDiff::default());
 
@@ -374,7 +374,7 @@ mod tests {
         assert!(blocks.block_number_from_block_id(&BlockId::Number(11)).is_none());
         assert!(blocks.block_number_from_block_id(&BlockId::Number(10)).is_some());
         // returns none because there is no block with the given hash
-        assert!(blocks.block_number_from_block_id(&BlockId::Hash(Felt::from(1).into())).is_none());
+        assert!(blocks.block_number_from_block_id(&BlockId::Hash(Felt::ONE)).is_none());
         assert!(
             blocks
                 .block_number_from_block_id(&BlockId::Tag(
@@ -389,7 +389,7 @@ mod tests {
                 ))
                 .is_some()
         );
-        assert!(blocks.block_number_from_block_id(&BlockId::Hash(block_hash.into())).is_some());
+        assert!(blocks.block_number_from_block_id(&BlockId::Hash(block_hash)).is_some());
     }
 
     #[test]
@@ -400,7 +400,8 @@ mod tests {
         for block_number in 2..=last_block_number {
             let mut block_to_insert = StarknetBlock::create_pending_block();
             block_to_insert.header.block_number = BlockNumber(block_number);
-            block_to_insert.header.block_hash = Felt::from(block_number as u128).into();
+            block_to_insert.header.block_hash =
+                starknet_api::block::BlockHash(Felt::from(block_number as u128));
             blocks.insert(block_to_insert.clone(), StateDiff::default());
 
             // last block will be a pending block
@@ -423,10 +424,7 @@ mod tests {
         // last block should be returned
         assert_eq!(blocks.get_blocks(Some(BlockId::Number(11)), None).unwrap().len(), 1);
         // from filter using hash
-        assert_eq!(
-            blocks.get_blocks(Some(BlockId::Hash(Felt::from(9).into())), None).unwrap().len(),
-            3
-        );
+        assert_eq!(blocks.get_blocks(Some(BlockId::Hash(Felt::from(9))), None).unwrap().len(), 3);
         // from filter using tag
         assert_eq!(blocks.get_blocks(Some(BlockId::Tag(BlockTag::Latest)), None).unwrap().len(), 1);
         assert_eq!(
@@ -440,12 +438,9 @@ mod tests {
         // to filter using invalid block number
         assert!(blocks.get_blocks(None, Some(BlockId::Number(0))).is_err());
         // to filter using hash
-        assert_eq!(
-            blocks.get_blocks(None, Some(BlockId::Hash(Felt::from(9).into()))).unwrap().len(),
-            8
-        );
+        assert_eq!(blocks.get_blocks(None, Some(BlockId::Hash(Felt::from(9)))).unwrap().len(), 8);
         // to filter using invalid hash
-        assert!(blocks.get_blocks(None, Some(BlockId::Hash(Felt::from(0).into()))).is_err());
+        assert!(blocks.get_blocks(None, Some(BlockId::Hash(Felt::ZERO))).is_err());
         // to filter using tag
         assert_eq!(
             blocks.get_blocks(None, Some(BlockId::Tag(BlockTag::Latest))).unwrap().len(),
@@ -469,7 +464,7 @@ mod tests {
         // from block number to block hash
         assert_eq!(
             blocks
-                .get_blocks(Some(BlockId::Number(2)), Some(BlockId::Hash(Felt::from(9).into())))
+                .get_blocks(Some(BlockId::Number(2)), Some(BlockId::Hash(Felt::from(9))))
                 .unwrap()
                 .len(),
             8
@@ -519,35 +514,26 @@ mod tests {
         // from block hash to block_hash
         assert_eq!(
             blocks
-                .get_blocks(
-                    Some(BlockId::Hash(Felt::from(2).into())),
-                    Some(BlockId::Hash(Felt::from(9).into()))
-                )
+                .get_blocks(Some(BlockId::Hash(Felt::TWO)), Some(BlockId::Hash(Felt::from(9))))
                 .unwrap()
                 .len(),
             8
         );
         assert!(
             blocks
-                .get_blocks(
-                    Some(BlockId::Hash(Felt::from(2).into())),
-                    Some(BlockId::Hash(Felt::from(0).into()))
-                )
+                .get_blocks(Some(BlockId::Hash(Felt::TWO)), Some(BlockId::Hash(Felt::ZERO)))
                 .is_err()
         );
         assert!(
             blocks
-                .get_blocks(
-                    Some(BlockId::Hash(Felt::from(10).into())),
-                    Some(BlockId::Hash(Felt::from(5).into()))
-                )
+                .get_blocks(Some(BlockId::Hash(Felt::from(10))), Some(BlockId::Hash(Felt::from(5))))
                 .unwrap()
                 .is_empty()
         );
         // from block hash to block number
         assert_eq!(
             blocks
-                .get_blocks(Some(BlockId::Hash(Felt::from(2).into())), Some(BlockId::Number(9)))
+                .get_blocks(Some(BlockId::Hash(Felt::TWO)), Some(BlockId::Number(9)))
                 .unwrap()
                 .len(),
             8
@@ -556,7 +542,7 @@ mod tests {
         assert_eq!(
             blocks
                 .get_blocks(
-                    Some(BlockId::Hash(Felt::from(11).into())),
+                    Some(BlockId::Hash(Felt::from(11))),
                     Some(BlockId::Tag(BlockTag::Latest))
                 )
                 .unwrap()
@@ -566,7 +552,7 @@ mod tests {
         assert_eq!(
             blocks
                 .get_blocks(
-                    Some(BlockId::Hash(Felt::from(11).into())),
+                    Some(BlockId::Hash(Felt::from(11))),
                     Some(BlockId::Tag(BlockTag::Pending))
                 )
                 .unwrap()
@@ -628,7 +614,7 @@ mod tests {
             blocks
                 .get_blocks(
                     Some(BlockId::Tag(BlockTag::Latest)),
-                    Some(BlockId::Hash(Felt::from(11).into()))
+                    Some(BlockId::Hash(Felt::from(11)))
                 )
                 .unwrap()
                 .len(),
@@ -645,7 +631,7 @@ mod tests {
             blocks
                 .get_blocks(
                     Some(BlockId::Tag(BlockTag::Pending)),
-                    Some(BlockId::Hash(Felt::from(11).into()))
+                    Some(BlockId::Hash(Felt::from(11)))
                 )
                 .unwrap()
                 .len(),
@@ -659,10 +645,7 @@ mod tests {
         );
         assert!(
             blocks
-                .get_blocks(
-                    Some(BlockId::Tag(BlockTag::Latest)),
-                    Some(BlockId::Hash(Felt::from(2).into()))
-                )
+                .get_blocks(Some(BlockId::Tag(BlockTag::Latest)), Some(BlockId::Hash(Felt::TWO)))
                 .unwrap()
                 .is_empty()
         );
@@ -672,7 +655,8 @@ mod tests {
     fn get_by_block_id_is_correct() {
         let mut blocks = StarknetBlocks::default();
         let mut block_to_insert = StarknetBlock::create_pending_block();
-        block_to_insert.header.block_hash = block_to_insert.generate_hash().unwrap().into();
+        block_to_insert.header.block_hash =
+            starknet_api::block::BlockHash(block_to_insert.generate_hash().unwrap());
         block_to_insert.header.block_number = BlockNumber(10);
         blocks.pending_block = block_to_insert.clone();
 
@@ -682,7 +666,7 @@ mod tests {
         assert!(block_to_insert == extracted_block.clone());
 
         let extracted_block =
-            blocks.get_by_block_id(&BlockId::Hash(block_to_insert.block_hash().into())).unwrap();
+            blocks.get_by_block_id(&BlockId::Hash(block_to_insert.block_hash())).unwrap();
         assert!(block_to_insert == extracted_block.clone());
 
         let extracted_block = blocks
@@ -736,7 +720,8 @@ mod tests {
     fn get_by_hash_is_correct() {
         let mut blocks = StarknetBlocks::default();
         let mut block_to_insert = StarknetBlock::create_pending_block();
-        block_to_insert.header.block_hash = block_to_insert.generate_hash().unwrap().into();
+        block_to_insert.header.block_hash =
+            starknet_api::block::BlockHash(block_to_insert.generate_hash().unwrap());
         block_to_insert.header.block_number = BlockNumber(1);
 
         blocks.insert(block_to_insert.clone(), StateDiff::default());

@@ -10,7 +10,7 @@ use serde_json::json;
 use server::rpc_core::error::RpcError;
 use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, BlockWithTxHashes, BlockWithTxs, FieldElement, FunctionCall,
+    BlockId, BlockTag, BlockWithTxHashes, BlockWithTxs, Felt, FunctionCall,
     MaybePendingBlockWithTxHashes, MaybePendingBlockWithTxs, PendingBlockWithTxHashes,
     PendingBlockWithTxs,
 };
@@ -18,8 +18,7 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::{LocalWallet, SigningKey};
-use starknet_types::felt::Felt;
-use starknet_types::num_bigint::BigUint;
+use starknet_types::felt::felt_from_prefixed_hex;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 use tokio::sync::Mutex;
 use url::Url;
@@ -200,7 +199,7 @@ impl BackgroundDevnet {
         JsonRpcClient::new(HttpTransport::new(self.rpc_url.clone()))
     }
 
-    pub async fn mint(&self, address: impl LowerHex, mint_amount: u128) -> FieldElement {
+    pub async fn mint(&self, address: impl LowerHex, mint_amount: u128) -> Felt {
         self.mint_unit(address, mint_amount, FeeUnit::WEI).await
     }
 
@@ -209,7 +208,7 @@ impl BackgroundDevnet {
         address: impl LowerHex,
         mint_amount: u128,
         unit: FeeUnit,
-    ) -> FieldElement {
+    ) -> Felt {
         let resp_body: serde_json::Value = self
             .send_custom_rpc(
                 "devnet_mint",
@@ -222,35 +221,34 @@ impl BackgroundDevnet {
             .await
             .unwrap();
 
-        FieldElement::from_hex_be(resp_body["tx_hash"].as_str().unwrap()).unwrap()
+        felt_from_prefixed_hex(resp_body["tx_hash"].as_str().unwrap()).unwrap()
     }
 
     /// Get ETH balance at contract_address, as written in ERC20
     pub async fn get_balance_at_block(
         &self,
-        address: &FieldElement,
+        address: &Felt,
         block_id: BlockId,
-    ) -> Result<FieldElement, anyhow::Error> {
+    ) -> Result<Felt, anyhow::Error> {
         let call = FunctionCall {
-            contract_address: FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
+            contract_address: felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
             entry_point_selector: get_selector_from_name("balanceOf").unwrap(),
             calldata: vec![*address],
         };
         let balance_raw = self.json_rpc_client.call(call, block_id).await?;
         assert_eq!(balance_raw.len(), 2);
-        let balance_low: BigUint = (Felt::from(*balance_raw.get(0).unwrap())).into();
-        let balance_high: BigUint = (Felt::from(*balance_raw.get(1).unwrap())).into();
-        let balance: BigUint = (balance_high << 128) + balance_low;
-        Ok(FieldElement::from_byte_slice_be(&balance.to_bytes_be())?)
+        let balance_low = balance_raw.first().unwrap().to_biguint();
+        let balance_high = balance_raw.last().unwrap().to_biguint();
+        Ok(Felt::from((balance_high << 128) + balance_low))
     }
 
     /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`
     /// from latest state
     pub async fn get_balance_latest(
         &self,
-        address: &FieldElement,
+        address: &Felt,
         unit: FeeUnit,
-    ) -> Result<FieldElement, anyhow::Error> {
+    ) -> Result<Felt, anyhow::Error> {
         Self::get_balance_by_tag(self, address, unit, BlockTag::Latest).await
     }
 
@@ -258,10 +256,10 @@ impl BackgroundDevnet {
     /// from pending state or latest state
     pub async fn get_balance_by_tag(
         &self,
-        address: &FieldElement,
+        address: &Felt,
         unit: FeeUnit,
         tag: BlockTag,
-    ) -> Result<FieldElement, anyhow::Error> {
+    ) -> Result<Felt, anyhow::Error> {
         let json_resp = self
             .send_custom_rpc(
                 "devnet_getAccountBalance",
@@ -276,7 +274,7 @@ impl BackgroundDevnet {
 
         // response validity asserted in test_balance.rs::assert_balance_endpoint_response
         let amount_raw = json_resp["amount"].as_str().unwrap();
-        Ok(FieldElement::from_dec_str(amount_raw)?)
+        Ok(Felt::from_dec_str(amount_raw)?)
     }
 
     fn tag_to_str(tag: BlockTag) -> &'static str {
@@ -287,16 +285,16 @@ impl BackgroundDevnet {
     }
 
     /// This method returns the private key and the address of the first predeployed account
-    pub async fn get_first_predeployed_account(&self) -> (LocalWallet, FieldElement) {
+    pub async fn get_first_predeployed_account(&self) -> (LocalWallet, Felt) {
         let predeployed_accounts_json =
             self.send_custom_rpc("devnet_getPredeployedAccounts", json!({})).await.unwrap();
 
-        let first_account = predeployed_accounts_json.as_array().unwrap().get(0).unwrap();
+        let first_account = predeployed_accounts_json.as_array().unwrap().first().unwrap();
 
         let account_address =
-            FieldElement::from_hex_be(first_account["address"].as_str().unwrap()).unwrap();
+            felt_from_prefixed_hex(first_account["address"].as_str().unwrap()).unwrap();
         let private_key =
-            FieldElement::from_hex_be(first_account["private_key"].as_str().unwrap()).unwrap();
+            felt_from_prefixed_hex(first_account["private_key"].as_str().unwrap()).unwrap();
 
         let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key));
 
@@ -325,12 +323,12 @@ impl BackgroundDevnet {
     }
 
     /// Mines a new block and returns its hash
-    pub async fn create_block(&self) -> Result<FieldElement, anyhow::Error> {
+    pub async fn create_block(&self) -> Result<Felt, anyhow::Error> {
         let block_creation_resp_body: serde_json::Value =
             self.send_custom_rpc("devnet_createBlock", json!({})).await.unwrap();
 
         let block_hash_str = block_creation_resp_body["block_hash"].as_str().unwrap();
-        Ok(FieldElement::from_hex_be(block_hash_str)?)
+        Ok(felt_from_prefixed_hex(block_hash_str)?)
     }
 
     pub async fn get_latest_block_with_tx_hashes(

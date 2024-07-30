@@ -12,78 +12,21 @@ mod simulation_tests {
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedInvokeTransaction, FieldElement, FunctionCall,
-    };
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt, FunctionCall};
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
     use starknet_rs_providers::Provider;
     use starknet_rs_signers::Signer;
+    use starknet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CHAIN_ID};
+    use crate::common::fees::{assert_difference_if_validation, assert_fee_in_resp_at_least_equal};
     use crate::common::utils::{
         get_deployable_account_signer, get_flattened_sierra_contract_and_casm_hash,
         iter_to_hex_felt, to_hex_felt, to_num_as_hex,
     };
-
-    fn extract_overall_fee(simulation_result: &serde_json::Value) -> u128 {
-        let fee_hex = simulation_result["fee_estimation"]["overall_fee"].as_str().unwrap();
-        let fee_hex_stripped = fee_hex.strip_prefix("0x").unwrap();
-        u128::from_str_radix(fee_hex_stripped, 16).unwrap()
-    }
-
-    /// Calculating the fee of a transaction depends on fee weights of vm resources and the resource
-    /// usage. The fee from vm usage is the heaviest product of cairo resource usage multiplied
-    /// by cairo resource fee cost, rounded down to the nearest integer. There is a
-    /// possibility that although some of the resources present in the resp_no_flags are not in
-    /// resp_skip_validation, this doesnt mean that the fee will be higher, for example:
-    /// the fee from vm usage is determined from the `steps` and the transaction that skips
-    /// validation might have less steps, but due to the rounding if the multiplied product
-    /// falls in the range (7,8] both will be rounded to 7
-    fn assert_fee_in_resp_at_least_equal(
-        resp_no_flags: &serde_json::Value,
-        resp_skip_validation: &serde_json::Value,
-    ) {
-        let no_flags_fee = extract_overall_fee(resp_no_flags);
-        let skip_validation_fee = extract_overall_fee(resp_skip_validation);
-        assert!(no_flags_fee.ge(&skip_validation_fee));
-    }
-
-    fn assert_difference_if_validation(
-        resp_no_flags: &serde_json::Value,
-        resp_skip_validation: &serde_json::Value,
-        expected_contract_address: &str,
-        should_skip_fee_invocation: bool,
-    ) {
-        let no_flags_trace = &resp_no_flags["transaction_trace"];
-        assert_eq!(
-            no_flags_trace["validate_invocation"]["contract_address"].as_str().unwrap(),
-            expected_contract_address
-        );
-        assert!(no_flags_trace["state_diff"].as_object().is_some());
-
-        let skip_validation_trace = &resp_skip_validation["transaction_trace"];
-        assert!(skip_validation_trace["validate_invocation"].as_object().is_none());
-        assert!(skip_validation_trace["state_diff"].as_object().is_some());
-
-        assert_eq!(
-            skip_validation_trace["fee_transfer_invocation"].as_object().is_none(),
-            should_skip_fee_invocation
-        );
-        assert_eq!(
-            no_flags_trace["fee_transfer_invocation"].as_object().is_none(),
-            should_skip_fee_invocation
-        );
-
-        assert!(
-            no_flags_trace["execution_resources"]["steps"].as_u64().unwrap()
-                > skip_validation_trace["execution_resources"]["steps"].as_u64().unwrap()
-        );
-
-        assert_fee_in_resp_at_least_equal(resp_no_flags, resp_skip_validation);
-    }
 
     #[tokio::test]
     async fn simulate_declare_v1() {
@@ -103,8 +46,8 @@ mod simulation_tests {
         let contract_artifact: Arc<LegacyContractClass> =
             Arc::new(serde_json::from_value(contract_json.inner).unwrap());
 
-        let max_fee = FieldElement::ZERO; // TODO try 1e18 as u128 instead
-        let nonce = FieldElement::ZERO;
+        let max_fee = Felt::ZERO; // TODO try 1e18 as u128 instead
+        let nonce = Felt::ZERO;
 
         let signature = account
             .declare_legacy(contract_artifact.clone())
@@ -154,7 +97,7 @@ mod simulation_tests {
             resp_no_flags,
             resp_skip_validation,
             &sender_address_hex,
-            max_fee == FieldElement::ZERO,
+            max_fee == Felt::ZERO,
         );
     }
 
@@ -176,11 +119,11 @@ mod simulation_tests {
         let (flattened_contract_artifact, casm_hash) =
             get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH);
 
-        let max_fee = FieldElement::ZERO;
-        let nonce = FieldElement::ZERO;
+        let max_fee = Felt::ZERO;
+        let nonce = Felt::ZERO;
 
         let signature = account
-            .declare(Arc::new(flattened_contract_artifact.clone()), casm_hash)
+            .declare_v2(Arc::new(flattened_contract_artifact.clone()), casm_hash)
             .max_fee(max_fee)
             .nonce(nonce)
             .prepared()
@@ -228,7 +171,7 @@ mod simulation_tests {
             resp_no_flags,
             resp_skip_validation,
             &sender_address_hex,
-            max_fee == FieldElement::ZERO,
+            max_fee == Felt::ZERO,
         );
     }
 
@@ -239,7 +182,7 @@ mod simulation_tests {
         // define the key of the new account - dummy value
         let new_account_signer = get_deployable_account_signer();
         let account_factory = OpenZeppelinAccountFactory::new(
-            FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            felt_from_prefixed_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
             CHAIN_ID,
             new_account_signer.clone(),
             devnet.clone_provider(),
@@ -247,11 +190,11 @@ mod simulation_tests {
         .await
         .unwrap();
 
-        let nonce = FieldElement::ZERO;
+        let nonce = Felt::ZERO;
         let salt_hex = "0x123";
-        let max_fee = FieldElement::from(1e18 as u128);
+        let max_fee = Felt::from(1e18 as u128);
         let deployment = account_factory
-            .deploy(FieldElement::from_hex_be(salt_hex).unwrap())
+            .deploy_v1(felt_from_prefixed_hex(salt_hex).unwrap())
             .max_fee(max_fee)
             .nonce(nonce)
             .prepared()
@@ -367,7 +310,7 @@ mod simulation_tests {
 
         // deploy instance of class
         let contract_factory = ContractFactory::new(class_hash, account.clone());
-        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let constructor_calldata = vec![];
         let contract_address = get_udc_deployed_address(
             salt,
@@ -375,10 +318,10 @@ mod simulation_tests {
             &UdcUniqueness::NotUnique,
             &constructor_calldata,
         );
-        contract_factory.deploy(constructor_calldata, salt, false).send().await.unwrap();
+        contract_factory.deploy_v1(constructor_calldata, salt, false).send().await.unwrap();
 
         // prepare the call used in simulation
-        let increase_amount = FieldElement::from(100u128);
+        let increase_amount = Felt::from(100u128);
         let invoke_calls = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("increase_balance").unwrap(),
@@ -386,21 +329,18 @@ mod simulation_tests {
         }];
 
         // TODO fails if max_fee too low, can be used to test reverted case
-        let max_fee = FieldElement::from(1e18 as u128);
-        let nonce = FieldElement::from(2_u32); // after declare+deploy
-        let invoke_request = match account
-            .execute(invoke_calls.clone())
+        let max_fee = Felt::from(1e18 as u128);
+        let nonce = Felt::TWO; // after declare+deploy
+        let invoke_request = account
+            .execute_v1(invoke_calls.clone())
             .max_fee(max_fee)
             .nonce(nonce)
             .prepared()
             .unwrap()
             .get_invoke_request(false)
             .await
-            .unwrap()
-        {
-            BroadcastedInvokeTransaction::V1(invoke_v1) => invoke_v1,
-            _ => panic!("wrong txn type"),
-        };
+            .unwrap();
+
         let signature_hex: Vec<String> = iter_to_hex_felt(&invoke_request.signature);
 
         let calldata_hex: Vec<String> = iter_to_hex_felt(&invoke_request.calldata);
@@ -450,7 +390,7 @@ mod simulation_tests {
             resp_no_flags,
             resp_skip_validation,
             &sender_address_hex,
-            max_fee == FieldElement::ZERO,
+            max_fee == Felt::ZERO,
         );
 
         // assert simulations haven't changed the balance property
@@ -466,6 +406,6 @@ mod simulation_tests {
             )
             .await
             .unwrap();
-        assert_eq!(final_balance, vec![FieldElement::ZERO]);
+        assert_eq!(final_balance, vec![Felt::ZERO]);
     }
 }

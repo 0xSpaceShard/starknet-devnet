@@ -6,12 +6,12 @@ use flate2::Compression;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Serializer as JsonSerializer, Value};
 use starknet_api::deprecated_contract_class::{EntryPoint, EntryPointType};
-use starknet_api::hash::{pedersen_hash_array, StarkFelt};
-use starknet_rs_core::types::CompressedLegacyContractClass;
+use starknet_rs_core::types::{CompressedLegacyContractClass, Felt};
+use starknet_types_core::hash::{Pedersen, StarkHash};
 
 use crate::contract_class::deprecated::rpc_contract_class::DeprecatedContractClass;
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
-use crate::felt::Felt;
+use crate::felt::felt_from_prefixed_hex;
 use crate::traits::HashProducer;
 use crate::utils::StarknetFormatter;
 
@@ -48,13 +48,13 @@ impl Cairo0Json {
     /// In rust serde_json library when deserializing a JSON object, internally it uses a Map either
     /// HashMap or IndexMap. Depending on the feature enabled if [preserver_order] is not enabled
     /// HashMap will be used. In HashMap the keys order of insertion is not preserved and they
-    /// are sorted alphabetically, which doesnt work for our case, because the contract artifact
+    /// are sorted alphabetically, which doesn't work for our case, because the contract artifact
     /// contains keys under the "hints" property that are only numbers. So we use IndexMap to
     /// preserve order of the keys, but its disadvantage is removing entries from the json object,
-    /// because it uses swap_remove method on IndexMap, which doesnt preserve order.
+    /// because it uses swap_remove method on IndexMap, which doesn't preserve order.
     /// So we traverse the JSON object and remove all entries with key - attributes or
     /// accessible_scopes if they are empty arrays.
-    fn compute_hinted_class_hash(contract_class: &Value) -> crate::error::DevnetResult<StarkFelt> {
+    fn compute_hinted_class_hash(contract_class: &Value) -> crate::error::DevnetResult<Felt> {
         let mut abi_program_json = json!({
             "abi": contract_class.get("abi").unwrap_or(&Value::Null),
             "program": contract_class.get("program").unwrap_or(&Value::Null)
@@ -84,13 +84,11 @@ impl Cairo0Json {
         let mut serializer = JsonSerializer::with_formatter(&mut buffer, StarknetFormatter);
         modified_abi_program_json.serialize(&mut serializer).map_err(JsonError::SerdeJsonError)?;
 
-        let keccak = starknet_rs_core::utils::starknet_keccak(&buffer);
-        Ok(StarkFelt::new(keccak.to_bytes_be())?)
+        Ok(starknet_rs_core::utils::starknet_keccak(&buffer))
     }
 
     fn compute_cairo_0_contract_class_hash(json_class: &Value) -> crate::error::DevnetResult<Felt> {
-        let mut hashes = Vec::<StarkFelt>::new();
-        hashes.push(StarkFelt::from(0u128));
+        let mut hashes = vec![Felt::ZERO];
 
         let entry_points_by_type: HashMap<EntryPointType, Vec<EntryPoint>> =
             serde_json::from_value(
@@ -103,24 +101,23 @@ impl Cairo0Json {
             )
             .unwrap();
 
-        let entry_points_hash_by_type =
-            |entry_point_type: EntryPointType| -> DevnetResult<StarkFelt> {
-                let felts: Vec<StarkFelt> = entry_points_by_type
-                    .get(&entry_point_type)
-                    .ok_or(ConversionError::InvalidInternalStructure(
-                        "Missing entry point type".to_string(),
-                    ))?
-                    .iter()
-                    .flat_map(|entry_point| {
-                        let selector = entry_point.selector.0;
-                        let offset = StarkFelt::from(entry_point.offset.0 as u128);
+        let entry_points_hash_by_type = |entry_point_type: EntryPointType| -> DevnetResult<Felt> {
+            let felts: Vec<Felt> = entry_points_by_type
+                .get(&entry_point_type)
+                .ok_or(ConversionError::InvalidInternalStructure(
+                    "Missing entry point type".to_string(),
+                ))?
+                .iter()
+                .flat_map(|entry_point| {
+                    let selector = entry_point.selector.0;
+                    let offset = Felt::from(entry_point.offset.0 as u128);
 
-                        vec![selector, offset]
-                    })
-                    .collect();
+                    vec![selector, offset]
+                })
+                .collect();
 
-                Ok(pedersen_hash_array(&felts))
-            };
+            Ok(Pedersen::hash_array(&felts))
+        };
 
         hashes.push(entry_points_hash_by_type(EntryPointType::External)?);
         hashes.push(entry_points_hash_by_type(EntryPointType::L1Handler)?);
@@ -141,10 +138,10 @@ impl Cairo0Json {
             })
             .collect::<Vec<String>>()
             .into_iter()
-            .map(|el| StarkFelt::try_from(el.as_str()).map_err(Error::StarknetApiError))
-            .collect::<DevnetResult<Vec<StarkFelt>>>()?;
+            .map(|s| felt_from_prefixed_hex(&s))
+            .collect::<DevnetResult<Vec<Felt>>>()?;
 
-        hashes.push(pedersen_hash_array(&builtins_encoded_as_felts));
+        hashes.push(Pedersen::hash_array(&builtins_encoded_as_felts));
 
         hashes.push(Cairo0Json::compute_hinted_class_hash(json_class)?);
 
@@ -155,17 +152,16 @@ impl Cairo0Json {
             .unwrap_or(&Vec::<serde_json::Value>::new())
             .clone()
             .into_iter()
-            .map(|str| {
-                StarkFelt::try_from(
-                    str.as_str().ok_or(JsonError::Custom { msg: "expected string".to_string() })?,
+            .map(|v| {
+                felt_from_prefixed_hex(
+                    v.as_str().ok_or(JsonError::Custom { msg: "expected string".into() })?,
                 )
-                .map_err(Error::StarknetApiError)
             })
-            .collect::<DevnetResult<Vec<StarkFelt>>>()?;
+            .collect::<DevnetResult<Vec<Felt>>>()?;
 
-        hashes.push(pedersen_hash_array(&program_data_felts));
+        hashes.push(Pedersen::hash_array(&program_data_felts));
 
-        Ok(Felt::from(pedersen_hash_array(&hashes)))
+        Ok(Pedersen::hash_array(&hashes))
     }
 }
 

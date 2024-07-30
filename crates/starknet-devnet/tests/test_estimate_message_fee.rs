@@ -8,11 +8,10 @@ mod test_estimate_message_fee {
     use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{
-        BlockId, BlockTag, EthAddress, FieldElement, MsgFromL1, StarknetError,
-    };
+    use starknet_rs_core::types::{BlockId, BlockTag, EthAddress, Felt, MsgFromL1, StarknetError};
     use starknet_rs_core::utils::{get_udc_deployed_address, UdcUniqueness};
     use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
@@ -42,15 +41,15 @@ mod test_estimate_message_fee {
         // declare class
         account
             .declare_legacy(contract_artifact.clone())
-            .nonce(FieldElement::ZERO)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .nonce(Felt::ZERO)
+            .max_fee(Felt::from(1e18 as u128))
             .send()
             .await
             .unwrap();
 
         // deploy instance of class
         let contract_factory = ContractFactory::new(class_hash, account.clone());
-        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let salt = Felt::from_hex_unchecked("0x123");
         let constructor_calldata = vec![];
         let contract_address = get_udc_deployed_address(
             salt,
@@ -59,8 +58,8 @@ mod test_estimate_message_fee {
             &constructor_calldata,
         );
         contract_factory
-            .deploy(constructor_calldata, salt, false)
-            .nonce(FieldElement::ONE)
+            .deploy_v1(constructor_calldata, salt, false)
+            .nonce(Felt::ONE)
             // max fee implicitly estimated
             .send()
             .await.expect("Cannot deploy");
@@ -71,7 +70,7 @@ mod test_estimate_message_fee {
                 MsgFromL1 {
                     from_address: EthAddress::from_hex(MESSAGING_WHITELISTED_L1_CONTRACT).unwrap(),
                     to_address: contract_address,
-                    entry_point_selector: FieldElement::from_hex_be(L1_HANDLER_SELECTOR).unwrap(),
+                    entry_point_selector: felt_from_prefixed_hex(L1_HANDLER_SELECTOR).unwrap(),
                     payload: [(1_u32).into(), (10_u32).into()].to_vec(),
                 },
                 BlockId::Tag(BlockTag::Latest),
@@ -79,7 +78,7 @@ mod test_estimate_message_fee {
             .await
             .unwrap();
 
-        assert_eq!(res.gas_consumed, FieldElement::from(16027u32));
+        assert_eq!(res.gas_consumed, Felt::from(16029));
     }
 
     #[tokio::test]
@@ -91,8 +90,8 @@ mod test_estimate_message_fee {
             .estimate_message_fee(
                 MsgFromL1 {
                     from_address: EthAddress::from_hex(MESSAGING_WHITELISTED_L1_CONTRACT).unwrap(),
-                    to_address: FieldElement::from_hex_be("0x1").unwrap(),
-                    entry_point_selector: FieldElement::from_hex_be(L1_HANDLER_SELECTOR).unwrap(),
+                    to_address: Felt::ONE,
+                    entry_point_selector: felt_from_prefixed_hex(L1_HANDLER_SELECTOR).unwrap(),
                     payload: [(1_u32).into(), (10_u32).into()].to_vec(),
                 },
                 BlockId::Tag(BlockTag::Latest),
@@ -118,8 +117,8 @@ mod test_estimate_message_fee {
             .estimate_message_fee(
                 MsgFromL1 {
                     from_address: EthAddress::from_hex(MESSAGING_WHITELISTED_L1_CONTRACT).unwrap(),
-                    to_address: FieldElement::from_hex_be("0x1").unwrap(),
-                    entry_point_selector: FieldElement::from_hex_be(L1_HANDLER_SELECTOR).unwrap(),
+                    to_address: Felt::ONE,
+                    entry_point_selector: felt_from_prefixed_hex(L1_HANDLER_SELECTOR).unwrap(),
                     payload: [(1_u32).into(), (10_u32).into()].to_vec(),
                 },
                 BlockId::Number(101),

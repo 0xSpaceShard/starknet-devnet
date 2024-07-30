@@ -1,12 +1,10 @@
 use std::num::NonZeroU128;
 use std::sync::Arc;
 
-use blockifier::block::BlockInfo;
+use blockifier::blockifier::block::{BlockInfo, GasPrices};
 use blockifier::context::{BlockContext, ChainInfo, TransactionContext};
 use blockifier::execution::entry_point::CallEntryPoint;
-use blockifier::state::cached_state::{
-    CachedState, GlobalContractCache, GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST,
-};
+use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::errors::TransactionPreValidationError;
@@ -15,26 +13,29 @@ use blockifier::transaction::transactions::ExecutableTransaction;
 use parking_lot::RwLock;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, GasPricePerToken};
 use starknet_api::core::SequencerContractAddress;
+use starknet_api::felt;
 use starknet_api::transaction::Fee;
 use starknet_config::BlockGenerationOn;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, ExecutionResult, MsgFromL1, TransactionExecutionStatus,
+    BlockId, BlockTag, ExecutionResult, Felt, MsgFromL1, TransactionExecutionStatus,
     TransactionFinalityStatus,
 };
 use starknet_rs_core::utils::get_selector_from_name;
-use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::emitted_event::EmittedEvent;
-use starknet_types::felt::{split_biguint, BlockHash, ClassHash, Felt, TransactionHash};
+use starknet_types::felt::{
+    felt_from_prefixed_hex, split_biguint, BlockHash, ClassHash, TransactionHash,
+};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{
     Block, BlockHeader, BlockResult, PendingBlock, PendingBlockHeader,
 };
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
+use starknet_types::rpc::gas_modification::{GasModification, GasModificationRequest};
 use starknet_types::rpc::state::{
     PendingStateUpdate, StateUpdate, StateUpdateResult, ThinStateDiff,
 };
@@ -64,7 +65,7 @@ use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
     DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
     ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS,
-    STRK_ERC20_NAME, STRK_ERC20_SYMBOL,
+    STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
 };
 use crate::contract_class_choice::AccountContractClassChoice;
 use crate::error::{DevnetResult, Error, TransactionValidationError};
@@ -75,7 +76,7 @@ use crate::state::state_diff::StateDiff;
 use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
-use crate::utils::get_versioned_constants;
+use crate::utils::{custom_bouncer_config, get_versioned_constants};
 
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
@@ -106,6 +107,7 @@ pub struct Starknet {
     pub config: StarknetConfig,
     pub pending_block_timestamp_shift: i64,
     pub next_block_timestamp: Option<u64>,
+    pub next_block_gas: GasModification,
     pub(crate) messaging: MessagingBroker,
     pub(crate) dump_events: Vec<DumpEvent>,
     rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
@@ -134,6 +136,12 @@ impl Default for Starknet {
             config: Default::default(),
             pending_block_timestamp_shift: 0,
             next_block_timestamp: None,
+            next_block_gas: GasModification {
+                gas_price_wei: DEVNET_DEFAULT_GAS_PRICE,
+                data_gas_price_wei: DEVNET_DEFAULT_DATA_GAS_PRICE,
+                gas_price_strk: DEVNET_DEFAULT_GAS_PRICE,
+                data_gas_price_strk: DEVNET_DEFAULT_DATA_GAS_PRICE,
+            },
             messaging: Default::default(),
             dump_events: Default::default(),
             rpc_contract_classes: Default::default(),
@@ -233,6 +241,12 @@ impl Starknet {
             config: config.clone(),
             pending_block_timestamp_shift: 0,
             next_block_timestamp: None,
+            next_block_gas: GasModification {
+                gas_price_wei: config.gas_price_wei,
+                data_gas_price_wei: config.data_gas_price_wei,
+                gas_price_strk: config.gas_price_strk,
+                data_gas_price_strk: config.data_gas_price_strk,
+            },
             messaging: Default::default(),
             dump_events: Default::default(),
             rpc_contract_classes,
@@ -280,6 +294,19 @@ impl Starknet {
     // Initialize values for new pending block
     pub(crate) fn generate_pending_block(&mut self) -> DevnetResult<()> {
         Self::advance_block_context_block_number(&mut self.block_context);
+
+        Self::set_block_context_gas(&mut self.block_context, &self.next_block_gas);
+
+        // Pending block header gas data needs to be set
+        self.blocks.pending_block.header.l1_gas_price.price_in_wei =
+            GasPrice(u128::from(self.next_block_gas.gas_price_wei));
+        self.blocks.pending_block.header.l1_data_gas_price.price_in_wei =
+            GasPrice(u128::from(self.next_block_gas.data_gas_price_wei));
+        self.blocks.pending_block.header.l1_gas_price.price_in_fri =
+            GasPrice(u128::from(self.next_block_gas.gas_price_strk));
+        self.blocks.pending_block.header.l1_data_gas_price.price_in_fri =
+            GasPrice(u128::from(self.next_block_gas.data_gas_price_strk));
+
         self.restart_pending_block()?;
 
         Ok(())
@@ -306,7 +333,7 @@ impl Starknet {
 
         // set new block header
         new_block.set_block_hash(if self.config.lite_mode {
-            BlockHash::from_prefixed_hex_str(&format!("{:#x}", new_block_number.0))?
+            BlockHash::from_hex(&format!("{:#x}", new_block_number.0))?
         } else {
             new_block.generate_hash()?
         });
@@ -318,7 +345,7 @@ impl Starknet {
         new_block.set_timestamp(block_timestamp);
         Self::update_block_context_block_timestamp(&mut self.block_context, block_timestamp);
 
-        let new_block_hash: Felt = new_block.header.block_hash.0.into();
+        let new_block_hash = new_block.header.block_hash.0;
 
         // update txs block hash block number for each transaction in the pending block
         new_block.get_transactions().iter().for_each(|tx_hash| {
@@ -412,8 +439,8 @@ impl Starknet {
                     ) => match_tx_fee_error(err),
                     blockifier::transaction::errors::TransactionExecutionError::TransactionFeeError(err)
                       => match_tx_fee_error(err),
-                    blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError(err) => {
-                        Err(TransactionValidationError::ValidationFailure { reason: err.to_string() }.into())
+                    blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError { .. } => {
+                        Err(TransactionValidationError::ValidationFailure { reason: tx_err.to_string() }.into())
                     }
                     _ => Err(tx_err.into())
                 }
@@ -464,7 +491,6 @@ impl Starknet {
         block_number: u64,
     ) -> BlockContext {
         use starknet_api::core::{ContractAddress, PatriciaKey};
-        use starknet_api::hash::StarkHash;
         use starknet_api::{contract_address, patricia_key};
 
         // Create a BlockContext based on BlockContext::create_for_testing()
@@ -473,13 +499,13 @@ impl Starknet {
             block_number: BlockNumber(block_number),
             block_timestamp: BlockTimestamp(0),
             sequencer_address: contract_address!("0x1000"),
-            gas_prices: blockifier::block::GasPrices {
+            gas_prices: GasPrices {
                 eth_l1_gas_price: gas_price_wei,
                 strk_l1_gas_price: gas_price_strk,
                 eth_l1_data_gas_price: data_gas_price_wei,
                 strk_l1_data_gas_price: data_gas_price_strk,
             },
-            use_kzg_da: true,
+            use_kzg_da: USE_KZG_DA,
         };
 
         let chain_info = ChainInfo {
@@ -490,7 +516,12 @@ impl Starknet {
             },
         };
 
-        BlockContext::new_unchecked(&block_info, &chain_info, &get_versioned_constants())
+        BlockContext::new(
+            block_info,
+            chain_info,
+            get_versioned_constants(),
+            custom_bouncer_config(),
+        )
     }
 
     /// Update block context block_number with the next one
@@ -498,12 +529,31 @@ impl Starknet {
     /// * `block_context` - BlockContext to be updated
     fn advance_block_context_block_number(block_context: &mut BlockContext) {
         let mut block_info = block_context.block_info().clone();
-        block_info.block_number = block_info.block_number.next();
+        block_info.block_number = block_info.block_number.next().unwrap_or_default();
         // TODO: update block_context via preferred method in the documentation
-        *block_context = BlockContext::new_unchecked(
-            &block_info,
-            block_context.chain_info(),
-            &get_versioned_constants(),
+        *block_context = BlockContext::new(
+            block_info,
+            block_context.chain_info().clone(),
+            get_versioned_constants(),
+            custom_bouncer_config(),
+        );
+    }
+
+    fn set_block_context_gas(block_context: &mut BlockContext, gas_modification: &GasModification) {
+        let mut block_info = block_context.block_info().clone();
+
+        // Block info gas needs to be set here
+        block_info.gas_prices.eth_l1_gas_price = gas_modification.gas_price_wei;
+        block_info.gas_prices.eth_l1_data_gas_price = gas_modification.data_gas_price_wei;
+        block_info.gas_prices.strk_l1_gas_price = gas_modification.gas_price_strk;
+        block_info.gas_prices.strk_l1_data_gas_price = gas_modification.data_gas_price_strk;
+
+        // TODO: update block_context via preferred method in the documentation
+        *block_context = BlockContext::new(
+            block_info,
+            block_context.chain_info().clone(),
+            get_versioned_constants(),
+            custom_bouncer_config(),
         );
     }
 
@@ -515,10 +565,11 @@ impl Starknet {
         block_info.block_timestamp = block_timestamp;
 
         // TODO: update block_context via preferred method in the documentation
-        *block_context = BlockContext::new_unchecked(
-            &block_info,
-            block_context.chain_info(),
-            &get_versioned_constants(),
+        *block_context = BlockContext::new(
+            block_info,
+            block_context.chain_info().clone(),
+            get_versioned_constants(),
+            custom_bouncer_config(),
         );
     }
 
@@ -620,13 +671,9 @@ impl Starknet {
         state.assert_contract_deployed(ContractAddress::new(contract_address)?)?;
 
         let call = CallEntryPoint {
-            calldata: starknet_api::transaction::Calldata(std::sync::Arc::new(
-                calldata.iter().map(|f| f.into()).collect(),
-            )),
-            storage_address: starknet_api::hash::StarkFelt::from(contract_address).try_into()?,
-            entry_point_selector: starknet_api::core::EntryPointSelector(
-                entrypoint_selector.into(),
-            ),
+            calldata: starknet_api::transaction::Calldata(std::sync::Arc::new(calldata.clone())),
+            storage_address: contract_address.try_into()?,
+            entry_point_selector: starknet_api::core::EntryPointSelector(entrypoint_selector),
             initial_gas: block_context.versioned_constants().tx_initial_gas(),
             ..Default::default()
         };
@@ -644,15 +691,13 @@ impl Starknet {
             )?;
 
         let mut transactional_state = CachedState::create_transactional(&mut state.state);
-        let res = call
-            .execute(&mut transactional_state, &mut Default::default(), &mut execution_context)
-            .map_err(|err| {
-                Error::BlockifierTransactionError(
-                    blockifier::transaction::errors::TransactionExecutionError::ExecutionError(err),
-                )
-            })?;
+        let res = call.execute(
+            &mut transactional_state,
+            &mut Default::default(),
+            &mut execution_context,
+        )?;
 
-        Ok(res.execution.retdata.0.into_iter().map(Felt::from).collect())
+        Ok(res.execution.retdata.0)
     }
 
     pub fn estimate_fee(
@@ -722,15 +767,13 @@ impl Starknet {
         erc20_address: ContractAddress,
     ) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee = self.config.gas_price_wei.get() * 1_000_000;
-        let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
+        let chargeable_address = felt_from_prefixed_hex(CHARGEABLE_ACCOUNT_ADDRESS)?;
         let state = self.get_state();
-        let nonce = state.get_nonce_at(starknet_api::core::ContractAddress::try_from(
-            starknet_api::hash::StarkFelt::from(chargeable_address_felt),
-        )?)?;
+        let nonce = state
+            .get_nonce_at(starknet_api::core::ContractAddress::try_from(chargeable_address)?)?;
 
-        let (high, low) = split_biguint(amount)?;
-
-        let calldata = vec![Felt::from(address).into(), low.into(), high.into()];
+        let (high, low) = split_biguint(amount);
+        let calldata = vec![Felt::from(address), low, high];
 
         let raw_execution = RawExecution {
             calls: vec![Call {
@@ -738,31 +781,29 @@ impl Starknet {
                 selector: get_selector_from_name("mint").unwrap(),
                 calldata: calldata.clone(),
             }],
-            nonce: Felt::from(nonce.0).into(),
-            max_fee: FieldElement::from(sufficiently_big_max_fee),
+            nonce: nonce.0,
+            max_fee: Felt::from(sufficiently_big_max_fee),
         };
 
-        // generate msg hash (not the same as tx hash)
-        let chain_id_felt: Felt = self.config.chain_id.to_felt();
-        let msg_hash_felt =
-            raw_execution.transaction_hash(chain_id_felt.into(), chargeable_address_felt.into());
+        let msg_hash =
+            raw_execution.transaction_hash(self.config.chain_id.to_felt(), chargeable_address);
 
         // generate signature by signing the msg hash
         let signer = starknet_rs_signers::LocalWallet::from(
             starknet_rs_signers::SigningKey::from_secret_scalar(
-                FieldElement::from_hex_be(CHARGEABLE_ACCOUNT_PRIVATE_KEY).unwrap(),
+                felt_from_prefixed_hex(CHARGEABLE_ACCOUNT_PRIVATE_KEY).unwrap(),
             ),
         );
-        let signature = signer.sign_hash(&msg_hash_felt).await?;
+        let signature = signer.sign_hash(&msg_hash).await?;
 
         let invoke_tx = BroadcastedInvokeTransactionV1 {
-            sender_address: ContractAddress::new(chargeable_address_felt)?,
-            calldata: raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
+            sender_address: ContractAddress::new(chargeable_address)?,
+            calldata: raw_execution.raw_calldata(),
             common: BroadcastedTransactionCommon {
                 max_fee: Fee(sufficiently_big_max_fee),
-                version: Felt::from(1),
-                signature: vec![signature.r.into(), signature.s.into()],
-                nonce: nonce.0.into(),
+                version: Felt::ONE,
+                signature: vec![signature.r, signature.s],
+                nonce: nonce.0,
             },
         };
 
@@ -791,6 +832,21 @@ impl Starknet {
                 state_diff,
             }))
         }
+    }
+
+    pub fn set_next_block_gas(
+        &mut self,
+        gas_prices: GasModificationRequest,
+    ) -> DevnetResult<GasModification> {
+        self.next_block_gas.update(gas_prices.clone());
+
+        // If generate_block is true, generate new block, for now custom dump_event is None but in
+        // future it will change to GasSetEvent with self.next_block_gas data
+        if let Some(true) = gas_prices.generate_block {
+            self.create_block_dump_event(None)?
+        }
+
+        Ok(self.next_block_gas.clone())
     }
 
     pub fn abort_blocks(&mut self, mut starting_block_id: BlockId) -> DevnetResult<Vec<Felt>> {
@@ -893,7 +949,8 @@ impl Starknet {
     ) -> DevnetResult<Felt> {
         let state = self.get_mut_state_at(block_id)?;
         state.assert_contract_deployed(contract_address)?;
-        Ok(state.get_nonce_at(contract_address.try_into()?)?.into())
+        let nonce = state.get_nonce_at(contract_address.try_into()?)?;
+        Ok(nonce.0)
     }
 
     pub fn contract_storage_at_block(
@@ -904,7 +961,7 @@ impl Starknet {
     ) -> DevnetResult<Felt> {
         let state = self.get_mut_state_at(block_id)?;
         state.assert_contract_deployed(contract_address)?;
-        Ok(state.get_storage_at(contract_address.try_into()?, storage_key.try_into()?)?.into())
+        Ok(state.get_storage_at(contract_address.try_into()?, storage_key.try_into()?)?)
     }
 
     pub fn get_block(&self, block_id: &BlockId) -> DevnetResult<&StarknetBlock> {
@@ -1119,10 +1176,8 @@ impl Starknet {
 
         let transactional_rpc_contract_classes =
             Arc::new(RwLock::new(state.clone_rpc_contract_classes()));
-        let mut transactional_state = CachedState::new(
-            CachedState::create_transactional(&mut state.state),
-            GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
-        );
+        let mut transactional_state =
+            CachedState::new(CachedState::create_transactional(&mut state.state));
 
         for (blockifier_transaction, transaction_type, skip_validate_due_to_impersonation) in
             blockifier_transactions.into_iter()
@@ -1351,13 +1406,15 @@ mod tests {
     use std::thread;
     use std::time::Duration;
 
+    use blockifier::execution::errors::{EntryPointExecutionError, PreExecutionError};
     use blockifier::state::state_api::{State, StateReader};
-    use blockifier::transaction::errors::TransactionExecutionError;
     use nonzero_ext::nonzero;
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-    use starknet_rs_core::types::{BlockId, BlockTag};
+    use starknet_api::core::EntryPointSelector;
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt};
+    use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::Felt;
+    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::state::Balance;
     use starknet_types::traits::HashProducer;
 
@@ -1444,7 +1501,7 @@ mod tests {
     #[test]
     fn correct_block_context_creation() {
         let fee_token_address =
-            ContractAddress::new(Felt::from_prefixed_hex_str("0xAA").unwrap()).unwrap();
+            ContractAddress::new(felt_from_prefixed_hex("0xAA").unwrap()).unwrap();
         let block_ctx = Starknet::init_block_context(
             nonzero!(10u128),
             nonzero!(10u128),
@@ -1471,7 +1528,10 @@ mod tests {
         let initial_block_number = starknet.block_context.block_info().block_number;
         starknet.generate_pending_block().unwrap();
 
-        assert_eq!(starknet.pending_block().header.block_number, initial_block_number.next());
+        assert_eq!(
+            starknet.pending_block().header.block_number,
+            initial_block_number.next().unwrap()
+        );
     }
 
     #[test]
@@ -1569,7 +1629,7 @@ mod tests {
         let initial_block_number = block_ctx.block_info().block_number;
         Starknet::advance_block_context_block_number(&mut block_ctx);
 
-        assert_eq!(block_ctx.block_info().block_number, initial_block_number.next());
+        assert_eq!(block_ctx.block_info().block_number, initial_block_number.next().unwrap());
     }
 
     #[test]
@@ -1593,7 +1653,7 @@ mod tests {
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block_and_state().unwrap();
 
-        match starknet.get_mut_state_at(&BlockId::Hash(Felt::from(0).into())) {
+        match starknet.get_mut_state_at(&BlockId::Hash(Felt::ZERO)) {
             Err(Error::NoBlock) => (),
             _ => panic!("Should fail with NoBlock"),
         }
@@ -1632,15 +1692,13 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        let undeployed_address_hex = "0x1234";
-        let undeployed_address = Felt::from_prefixed_hex_str(undeployed_address_hex).unwrap();
-        let entry_point_selector =
-            starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
+        let undeployed_address = Felt::from_hex_unchecked("0x1234");
+        let entry_point_selector = get_selector_from_name("balanceOf").unwrap();
 
         match starknet.call(
             &BlockId::Tag(BlockTag::Latest),
             undeployed_address,
-            entry_point_selector.into(),
+            entry_point_selector,
             vec![],
         ) {
             Err(Error::ContractNotFound) => (),
@@ -1654,20 +1712,17 @@ mod tests {
         let mut starknet = Starknet::new(&config).unwrap();
 
         let predeployed_account = &starknet.predeployed_accounts.get_accounts()[0];
-        let entry_point_selector =
-            starknet_rs_core::utils::get_selector_from_name("nonExistentMethod").unwrap();
+        let entry_point_selector = get_selector_from_name("nonExistentMethod").unwrap();
 
         match starknet.call(
             &BlockId::Tag(BlockTag::Latest),
-            Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
-            entry_point_selector.into(),
+            felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
+            entry_point_selector,
             vec![Felt::from(predeployed_account.account_address)],
         ) {
-            Err(Error::BlockifierTransactionError(TransactionExecutionError::ExecutionError(
-                blockifier::execution::errors::EntryPointExecutionError::PreExecutionError(
-                    blockifier::execution::errors::PreExecutionError::EntryPointNotFound(_),
-                ),
-            ))) => (),
+            Err(Error::BlockifierExecutionError(EntryPointExecutionError::PreExecutionError(
+                PreExecutionError::EntryPointNotFound(EntryPointSelector(missing_selector)),
+            ))) => assert_eq!(missing_selector, entry_point_selector),
             unexpected => panic!("Should have failed; got {unexpected:?}"),
         }
     }
@@ -1677,12 +1732,11 @@ mod tests {
         starknet: &mut Starknet,
         contract_address: ContractAddress,
     ) -> DevnetResult<Vec<Felt>> {
-        let entry_point_selector =
-            starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
+        let entry_point_selector = get_selector_from_name("balanceOf").unwrap();
         starknet.call(
             &BlockId::Tag(BlockTag::Latest),
-            Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS)?,
-            entry_point_selector.into(),
+            felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS)?,
+            entry_point_selector,
             vec![Felt::from(contract_address)],
         )
     }
@@ -1696,8 +1750,8 @@ mod tests {
         let result = get_balance_at(&mut starknet, predeployed_account.account_address).unwrap();
 
         let balance_hex = format!("0x{:x}", DEVNET_DEFAULT_INITIAL_BALANCE);
-        let balance_felt = Felt::from_prefixed_hex_str(balance_hex.as_str()).unwrap();
-        let balance_uint256 = vec![balance_felt, Felt::from_prefixed_hex_str("0x0").unwrap()];
+        let balance_felt = felt_from_prefixed_hex(balance_hex.as_str()).unwrap();
+        let balance_uint256 = vec![balance_felt, Felt::ZERO];
         assert_eq!(result, balance_uint256);
     }
 
@@ -1706,12 +1760,10 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        let undeployed_address =
-            ContractAddress::new(Felt::from_prefixed_hex_str("0x1234").unwrap()).unwrap();
+        let undeployed_address = ContractAddress::new(Felt::from_hex_unchecked("0x1234")).unwrap();
         let result = get_balance_at(&mut starknet, undeployed_address).unwrap();
 
-        let zero = Felt::from_prefixed_hex_str("0x0").unwrap();
-        let expected_balance_uint256 = vec![zero, zero];
+        let expected_balance_uint256 = vec![Felt::ZERO, Felt::ZERO];
         assert_eq!(result, expected_balance_uint256);
     }
 
@@ -1812,8 +1864,8 @@ mod tests {
             .unwrap()
             .get_nonce_at(dummy_contract_address().try_into().unwrap())
             .unwrap();
-        let second_block_expected_address_nonce = Felt::from(1);
-        assert_eq!(second_block_expected_address_nonce, second_block_address_nonce.into());
+        let second_block_expected_address_nonce = Felt::ONE;
+        assert_eq!(second_block_expected_address_nonce, second_block_address_nonce.0);
 
         let third_block_address_nonce = starknet
             .blocks
@@ -1822,8 +1874,8 @@ mod tests {
             .unwrap()
             .get_nonce_at(dummy_contract_address().try_into().unwrap())
             .unwrap();
-        let third_block_expected_address_nonce = Felt::from(2);
-        assert_eq!(third_block_expected_address_nonce, third_block_address_nonce.into());
+        let third_block_expected_address_nonce = Felt::TWO;
+        assert_eq!(third_block_expected_address_nonce, third_block_address_nonce.0);
     }
 
     #[test]
@@ -1870,8 +1922,8 @@ mod tests {
         })
         .unwrap();
 
-        let dummy_hash = Felt::from_prefixed_hex_str("0x42").unwrap();
-        match starknet.abort_blocks(BlockId::Hash(dummy_hash.into())) {
+        let dummy_hash = felt_from_prefixed_hex("0x42").unwrap();
+        match starknet.abort_blocks(BlockId::Hash(dummy_hash)) {
             Err(Error::UnsupportedAction { msg }) => {
                 assert!(msg.contains("state-archive-capacity"))
             }
@@ -1887,8 +1939,8 @@ mod tests {
         })
         .unwrap();
 
-        let dummy_hash = Felt::from_prefixed_hex_str("0x42").unwrap();
-        match starknet.abort_blocks(BlockId::Hash(dummy_hash.into())) {
+        let dummy_hash = felt_from_prefixed_hex("0x42").unwrap();
+        match starknet.abort_blocks(BlockId::Hash(dummy_hash)) {
             Err(Error::NoBlock) => (),
             unexpected => panic!("Got unexpected response: {unexpected:?}"),
         }

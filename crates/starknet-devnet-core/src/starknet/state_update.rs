@@ -19,9 +19,8 @@ pub fn state_update_by_block_id(
 mod tests {
 
     use starknet_api::transaction::Fee;
-    use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_class::ContractClass;
-    use starknet_types::felt::Felt;
     use starknet_types::rpc::state::ThinStateDiff;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::traits::HashProducer;
@@ -44,7 +43,7 @@ mod tests {
         let casm_contract_class_json =
             usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap()).unwrap();
 
-        let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap().into();
+        let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap();
 
         let declare_txn = BroadcastedDeclareTransactionV2::new(
             &contract_class,
@@ -52,8 +51,8 @@ mod tests {
             acc.account_address,
             Fee(400000),
             &Vec::new(),
-            Felt::from(0),
-            Felt::from(2),
+            Felt::ZERO,
+            Felt::TWO,
         );
 
         // first execute declare v2 transaction

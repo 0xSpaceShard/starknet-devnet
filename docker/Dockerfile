@@ -1,4 +1,4 @@
-FROM rust:1.74.0-slim-buster as builder
+FROM rust:1.76.0-slim-buster as builder
 
 COPY . .
 
