@@ -34,7 +34,7 @@ mod test_restrictive_mode {
             .post_json_async(
                 "/mint",
                 json!({
-                    "address": format!("0x{:x}",Felt::ONE),
+                    "address": format!("0x{:x}", Felt::ONE),
                     "amount": 1
                 }),
             )
@@ -47,7 +47,7 @@ mod test_restrictive_mode {
             .send_custom_rpc(
                 "devnet_mint",
                 json!({
-                    "address": format!("0x{:x}",Felt::ONE),
+                    "address": format!("0x{:x}", Felt::ONE),
                     "amount": 1
                 }),
             )
@@ -79,7 +79,7 @@ mod test_restrictive_mode {
             .send_custom_rpc(
                 "devnet_mint",
                 json!({
-                    "address": format!("0x{:x}",Felt::ONE),
+                    "address": format!("0x{:x}", Felt::ONE),
                     "amount": 1
                 }),
             )
