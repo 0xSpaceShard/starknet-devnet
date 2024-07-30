@@ -63,7 +63,7 @@ mod tests {
     use lazy_static::lazy_static;
 
     use super::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
-    use crate::restrictive_methods::{
+    use crate::restrictive_mode::{
         is_json_rpc_method_restricted, is_uri_path_restricted, RPC_METHOD_TO_HTTP_URI,
     };
     lazy_static! {

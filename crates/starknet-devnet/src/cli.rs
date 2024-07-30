@@ -1,7 +1,7 @@
 use std::num::NonZeroU128;
 
 use clap::Parser;
-use server::restrictive_methods::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
+use server::restrictive_mode::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
 use server::ServerConfig;
 use starknet_core::constants::{
     DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT,

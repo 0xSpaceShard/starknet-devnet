@@ -19,7 +19,7 @@ use crate::api::http::{endpoints as http, HttpApiHandler};
 use crate::api::json_rpc::origin_forwarder::OriginForwarder;
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::Api;
-use crate::restrictive_methods::is_uri_path_restricted;
+use crate::restrictive_mode::is_uri_path_restricted;
 use crate::rpc_handler::RpcHandler;
 use crate::{rpc_handler, ServerConfig};
 pub type StarknetDevnetServer = axum::serve::Serve<IntoMakeService<Router>, Router>;
