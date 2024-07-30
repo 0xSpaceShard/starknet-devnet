@@ -1,21 +1,21 @@
 use std::collections::HashMap;
 
 // Constants for URIs
-const URI_DUMP: &str = "/dump";
-const URI_LOAD: &str = "/load";
-const URI_SET_TIME: &str = "/set_time";
-const URI_INCREASE_TIME: &str = "/increase_time";
-const URI_CREATE_BLOCK: &str = "/create_block";
-const URI_ABORT_BLOCKS: &str = "/abort_blocks";
-const URI_RESTART: &str = "/restart";
-const URI_MINT: &str = "/mint";
-const URI_POSTMAN_LOAD_L1_MESSAGING_CONTRACT: &str = "/postman/load_l1_messaging_contract";
-const URI_POSTMAN_FLUSH: &str = "/postman/flush";
-const URI_POSTMAN_SEND_MESSAGE_TO_L2: &str = "/postman/send_message_to_l2";
-const URI_POSTMAN_CONSUME_MESSAGE_FROM_L2: &str = "/postman/consume_message_from_l2";
-const URI_PREDEPLOYED_ACCOUNTS: &str = "/predeployed_accounts";
-const URI_ACCOUNT_BALANCE: &str = "/account_balance";
-const URI_CONFIG: &str = "/config";
+const URI_DUMP: &str = "dump";
+const URI_LOAD: &str = "load";
+const URI_SET_TIME: &str = "set_time";
+const URI_INCREASE_TIME: &str = "increase_time";
+const URI_CREATE_BLOCK: &str = "create_block";
+const URI_ABORT_BLOCKS: &str = "abort_blocks";
+const URI_RESTART: &str = "restart";
+const URI_MINT: &str = "mint";
+const URI_POSTMAN_LOAD_L1_MESSAGING_CONTRACT: &str = "postman/load_l1_messaging_contract";
+const URI_POSTMAN_FLUSH: &str = "postman/flush";
+const URI_POSTMAN_SEND_MESSAGE_TO_L2: &str = "postman/send_message_to_l2";
+const URI_POSTMAN_CONSUME_MESSAGE_FROM_L2: &str = "postman/consume_message_from_l2";
+const URI_PREDEPLOYED_ACCOUNTS: &str = "predeployed_accounts";
+const URI_ACCOUNT_BALANCE: &str = "account_balance";
+const URI_CONFIG: &str = "config";
 
 // Constants for JSON RPC method names
 const RPC_METHOD_DUMP: &str = "devnet_dump";
@@ -84,11 +84,12 @@ pub(crate) fn is_json_rpc_method_restricted(
 }
 
 pub(crate) fn is_uri_path_restricted(uri_path: &str, restricted_uris: &[String]) -> bool {
-    if restricted_uris.contains(&uri_path.to_string()) {
+    let uri_path_without_leading_slash = uri_path.trim_start_matches('/');
+    if restricted_uris.contains(&uri_path_without_leading_slash.to_string()) {
         return true;
     }
 
-    match HTTP_URI_TO_RPC_METHOD.get(uri_path) {
+    match HTTP_URI_TO_RPC_METHOD.get(uri_path_without_leading_slash) {
         Some(json_rpc_method) => restricted_uris.contains(json_rpc_method),
         None => false,
     }
@@ -122,6 +123,10 @@ mod tests {
                 .iter()
                 .map(|s| s.to_string())
                 .collect::<Vec<String>>()),
+        );
+        assert_is_restricted(
+            "/mint",
+            &(["mint", "dump"].iter().map(|s| s.to_string()).collect::<Vec<String>>()),
         );
     }
 

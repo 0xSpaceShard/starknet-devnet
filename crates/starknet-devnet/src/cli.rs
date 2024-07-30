@@ -250,7 +250,8 @@ impl Args {
             if methods.is_empty() {
                 DEFAULT_RESTRICTED_JSON_RPC_METHODS.iter().map(|s| s.to_string()).collect()
             } else {
-                methods.clone()
+                // remove leading slashes
+                methods.iter().map(|s| s.trim_start_matches('/').to_string()).collect()
             }
         });
         let server_config = ServerConfig {
