@@ -26,25 +26,18 @@ pub(crate) async fn dump_impl(
         });
     }
 
-    let path: String = path_wrapper.map_or(String::new(), |s| s.path.clone());
+    let path = path_wrapper
+        .as_ref()
+        .map(|DumpPath { path }| path.as_str())
+        .or_else(|| starknet.config.dump_path.as_deref())
+        .unwrap_or("");
+
     if path.is_empty() {
-        match &starknet.config.dump_path {
-            Some(path) => {
-                // dump_path is present
-                starknet
-                    .dump_events(path)
-                    .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
-                Ok(None)
-            }
-            None => {
-                // dump_path is not present
-                let json_dump = starknet.read_dump_events();
-                Ok(Some(json_dump.clone()))
-            }
-        }
+        let json_dump = starknet.read_dump_events();
+        Ok(Some(json_dump.clone()))
     } else {
         starknet
-            .dump_events(&path)
+            .dump_events(path)
             .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
         Ok(None)
     }
