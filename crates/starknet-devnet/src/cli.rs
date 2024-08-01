@@ -231,7 +231,6 @@ impl Args {
             dump_path: self.dump_path.clone(),
             block_generation_on: self.block_generation_on,
             lite_mode: self.lite_mode,
-            re_execute_on_init: true,
             state_archive: self.state_archive,
             fork_config: ForkConfig {
                 url: self.fork_network.clone(),
