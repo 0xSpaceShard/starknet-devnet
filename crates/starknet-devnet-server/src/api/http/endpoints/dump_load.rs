@@ -16,7 +16,7 @@ pub async fn dump(
 
 pub(crate) async fn dump_impl(
     api: &Api,
-    path: Option<DumpPath>,
+    path_wrapper: Option<DumpPath>,
 ) -> HttpApiResult<DumpResponseBody> {
     let starknet = api.starknet.lock().await;
 
@@ -26,14 +26,13 @@ pub(crate) async fn dump_impl(
         });
     }
 
-    let path = path.map_or(String::new(), |s| s.path.clone());
-
+    let path: String = path_wrapper.map_or(String::new(), |s| s.path.clone());
     if path.is_empty() {
         match &starknet.config.dump_path {
             Some(path) => {
                 // dump_path is present
                 starknet
-                    .dump_events_custom_path(Some(path.clone()))
+                    .dump_events(path)
                     .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
                 Ok(None)
             }
@@ -45,7 +44,7 @@ pub(crate) async fn dump_impl(
         }
     } else {
         starknet
-            .dump_events_custom_path(Some(path))
+            .dump_events(&path)
             .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
         Ok(None)
     }

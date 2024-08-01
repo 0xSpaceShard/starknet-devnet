@@ -196,7 +196,6 @@ async fn main() -> Result<(), anyhow::Error> {
     );
 
     let server = serve_http_api_json_rpc(listener, api.clone(), &starknet_config, &server_config);
-
     info!("Starknet Devnet listening on {}", address);
 
     let mut tasks = vec![];
@@ -265,8 +264,10 @@ pub async fn shutdown_signal(api: Api) {
 
     // dump on exit scenario
     let starknet = api.starknet.lock().await;
-    if starknet.config.dump_on == Some(DumpOn::Exit) {
-        starknet.dump_events().expect("Failed to dump starknet transactions");
+    if let (Some(DumpOn::Exit), Some(dump_path)) =
+        (starknet.config.dump_on, &starknet.config.dump_path)
+    {
+        starknet.dump_events(dump_path).expect("Failed to dump starknet transactions");
     }
 }
 

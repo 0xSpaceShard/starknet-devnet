@@ -126,28 +126,18 @@ impl Starknet {
         }
     }
 
-    pub fn dump_events(&self) -> DevnetResult<()> {
-        self.dump_events_custom_path(None)
-    }
+    /// Save Devnet events to file at `path`
+    pub fn dump_events(&self, path: &str) -> DevnetResult<()> {
+        let events = &self.dump_events;
 
-    /// save starknet events to file
-    pub fn dump_events_custom_path(&self, custom_path: Option<String>) -> DevnetResult<()> {
-        let dump_path = if custom_path.is_some() { &custom_path } else { &self.config.dump_path };
-        match dump_path {
-            Some(path) => {
-                let events = &self.dump_events;
-
-                // dump only if there are events to dump
-                if !events.is_empty() {
-                    let events_dump = serde_json::to_string(events)
-                        .map_err(|e| Error::SerializationError { origin: e.to_string() })?;
-                    fs::write(Path::new(&path), events_dump)?;
-                }
-
-                Ok(())
-            }
-            None => Err(Error::FormatError),
+        // dump only if there are events to dump
+        if !events.is_empty() {
+            let events_dump = serde_json::to_string(events)
+                .map_err(|e| Error::SerializationError { origin: e.to_string() })?;
+            fs::write(Path::new(&path), events_dump)?;
         }
+
+        Ok(())
     }
 
     pub fn read_dump_events(&self) -> &Vec<DumpEvent> {
