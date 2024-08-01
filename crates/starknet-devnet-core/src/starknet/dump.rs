@@ -25,6 +25,7 @@ pub enum DumpEvent {
 }
 
 impl Starknet {
+    /// Create an instance of Starknet with the state generated from the events loaded from `path`.
     pub fn load(config: &StarknetConfig, path: &str) -> DevnetResult<Self> {
         let mut this = Self::new(config)?;
 
@@ -151,27 +152,23 @@ impl Starknet {
         &self.dump_events
     }
 
-    /// Load starknet events from the provided `path`
+    /// Returns Devnet events from the provided `path`
     pub fn load_events(&self, path: &str) -> DevnetResult<Vec<DumpEvent>> {
         let file_path = Path::new(path);
-
-        // load only if the file exists, if config.dump_path is set but the file doesn't
-        // exist it means that it's first execution and in that case return an empty vector,
-        // in case of load from HTTP endpoint return FileNotFound error
-        if file_path.exists() {
-            let file = File::open(file_path).map_err(Error::IoError)?;
-            let events: Vec<DumpEvent> = serde_json::from_reader(file)
-                .map_err(|e| Error::DeserializationError { origin: e.to_string() })?;
-
-            // to avoid doublets in block mode during load, we need to remove the file
-            // because they will be re-executed and saved again
-            if self.config.dump_on == Some(DumpOn::Block) {
-                fs::remove_file(file_path).map_err(Error::IoError)?;
-            }
-
-            Ok(events)
-        } else {
-            Err(Error::FileNotFound)
+        if path.is_empty() || !file_path.exists() {
+            return Err(Error::FileNotFound);
         }
+
+        let file = File::open(file_path).map_err(Error::IoError)?;
+        let events: Vec<DumpEvent> = serde_json::from_reader(file)
+            .map_err(|e| Error::DeserializationError { origin: e.to_string() })?;
+
+        // to avoid doublets in block mode during load, we need to remove the file
+        // because they will be re-executed and saved again
+        if self.config.dump_on == Some(DumpOn::Block) {
+            fs::remove_file(file_path).map_err(Error::IoError)?;
+        }
+
+        Ok(events)
     }
 }
