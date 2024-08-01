@@ -351,23 +351,15 @@ mod dump_and_load_tests {
 
     #[tokio::test]
     async fn dump_endpoint_fail_with_wrong_request() {
-        let devnet_dump = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let rpc_error = devnet_dump
-            .send_custom_rpc(
-                "devnet_dump",
-                json!({
-                    "test": ""
-                }),
-            )
-            .await
-            .unwrap_err();
-        assert_eq!(rpc_error.code, InvalidParams);
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let err = devnet.send_custom_rpc("devnet_dump", json!({ "test": "" })).await.unwrap_err();
+        assert_eq!(err.code, InvalidParams);
     }
 
     #[tokio::test]
     async fn dump_endpoint_fail_with_wrong_file_name() {
         let dump_file = UniqueAutoDeletableFile::new("dump_wrong_file_name");
-        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--dump-path",
             &dump_file.path,
             "--dump-on",
@@ -376,45 +368,27 @@ mod dump_and_load_tests {
         .await
         .expect("Could not start Devnet");
 
-        devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-        let rpc_error = devnet_dump
-            .send_custom_rpc(
-                "devnet_dump",
-                json!({
-                    "path": "///"
-                }),
-            )
-            .await
-            .unwrap_err();
-        assert!(rpc_error.message.contains("I/O error"));
+        devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        let err =
+            devnet.send_custom_rpc("devnet_dump", json!({ "path": "///" })).await.unwrap_err();
+        assert!(err.message.contains("I/O error"));
     }
 
     #[tokio::test]
     async fn load_endpoint_fail_with_wrong_request() {
-        let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-
-        let rpc_error = devnet_load
-            .send_custom_rpc(
-                "devnet_load",
-                json!({
-                    "test": ""
-                }),
-            )
-            .await
-            .unwrap_err();
-
-        assert_eq!(rpc_error.code, InvalidParams);
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let err = devnet.send_custom_rpc("devnet_load", json!({ "test": "" })).await.unwrap_err();
+        assert_eq!(err.code, InvalidParams);
     }
 
     #[tokio::test]
     async fn load_endpoint_fail_with_wrong_path() {
-        let load_file_name = "load_file_name";
-        let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let result = devnet_load
-            .send_custom_rpc("devnet_load", json!({ "path": load_file_name }))
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let err = devnet
+            .send_custom_rpc("devnet_load", json!({ "path": "load_file_name" }))
             .await
             .unwrap_err();
-        assert!(result.message.contains("file does not exist"));
+        assert!(err.message.contains("file does not exist"));
     }
 
     #[tokio::test]
