@@ -29,7 +29,7 @@ impl Starknet {
         let mut this = Self::new(config)?;
 
         // Try to load transactions from dump_path, if there is no file skip this step
-        match this.load_events_custom_path(path) {
+        match this.load_events(path) {
             Ok(events) => this.re_execute(events)?,
             Err(Error::FileNotFound) => {}
             Err(err) => return Err(err),
@@ -151,8 +151,8 @@ impl Starknet {
         &self.dump_events
     }
 
-    // load starknet events from file
-    pub fn load_events_custom_path(&self, path: &str) -> DevnetResult<Vec<DumpEvent>> {
+    /// Load starknet events from the provided `path`
+    pub fn load_events(&self, path: &str) -> DevnetResult<Vec<DumpEvent>> {
         let file_path = Path::new(path);
 
         // load only if the file exists, if config.dump_path is set but the file doesn't

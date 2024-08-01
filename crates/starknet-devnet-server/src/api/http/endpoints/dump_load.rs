@@ -53,9 +53,9 @@ pub(crate) async fn dump_impl(
 
 pub async fn load(
     State(state): State<HttpApiHandler>,
-    Json(path): Json<LoadPath>,
+    Json(path_wrapper): Json<LoadPath>,
 ) -> HttpApiResult<()> {
-    load_impl(&state.api, path).await
+    load_impl(&state.api, path_wrapper).await
 }
 
 pub(crate) async fn load_impl(api: &Api, path_wrapper: LoadPath) -> HttpApiResult<()> {
@@ -67,7 +67,7 @@ pub(crate) async fn load_impl(api: &Api, path_wrapper: LoadPath) -> HttpApiResul
     let mut starknet = api.starknet.lock().await;
     starknet.restart().map_err(|e| HttpApiError::RestartError { msg: e.to_string() })?;
     let events = starknet
-        .load_events_custom_path(&path_wrapper.path)
+        .load_events(&path_wrapper.path)
         .map_err(|e| HttpApiError::LoadError(e.to_string()))?;
     starknet.re_execute(events).map_err(|e| HttpApiError::ReExecutionError(e.to_string()))?;
 
