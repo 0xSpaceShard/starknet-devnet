@@ -549,8 +549,8 @@ mod tests {
         starknet.next_block_gas = GasModification {
             gas_price_wei: nonzero!(1u128),
             data_gas_price_wei: nonzero!(1u128),
-            gas_price_strk: nonzero!(1u128),
-            data_gas_price_strk: nonzero!(1u128),
+            gas_price_fri: nonzero!(1u128),
+            data_gas_price_fri: nonzero!(1u128),
         };
 
         starknet.restart_pending_block().unwrap();
