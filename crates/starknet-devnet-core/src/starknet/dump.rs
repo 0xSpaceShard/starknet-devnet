@@ -29,7 +29,9 @@ impl Starknet {
     pub fn load(config: &StarknetConfig, path: &str) -> DevnetResult<Self> {
         let mut this = Self::new(config)?;
 
-        // Try to load transactions from dump_path, if there is no file skip this step
+        // Try to load events from the path. Since the same CLI parameter is used for dump and load
+        // path, it may be the case that there is no file at the path. This means that the file will
+        // be created during Devnet's lifetime via dumping, so its non-existence is here ignored.
         match this.load_events(path) {
             Ok(events) => this.re_execute(events)?,
             Err(Error::FileNotFound) => {}
