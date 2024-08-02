@@ -171,7 +171,12 @@ async fn main() -> Result<(), anyhow::Error> {
     let address = format!("{}:{}", server_config.host, server_config.port);
     let listener = TcpListener::bind(address.clone()).await?;
 
-    let api = Api::new(Starknet::new(&starknet_config)?);
+    let starknet = if let Some(dump_path) = &starknet_config.dump_path {
+        Starknet::load(&starknet_config, dump_path)?
+    } else {
+        Starknet::new(&starknet_config)?
+    };
+    let api = Api::new(starknet);
 
     // set block timestamp shift during startup if start time is set
     if let Some(start_time) = starknet_config.start_time {

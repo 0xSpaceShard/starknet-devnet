@@ -9,6 +9,7 @@ use starknet_types::rpc::transactions::{
     BroadcastedInvokeTransaction,
 };
 
+use super::starknet_config::StarknetConfig;
 use super::{DumpOn, Starknet};
 use crate::error::{DevnetResult, Error};
 
@@ -24,6 +25,22 @@ pub enum DumpEvent {
 }
 
 impl Starknet {
+    /// Create an instance of Starknet with the state generated from the events loaded from `path`.
+    pub fn load(config: &StarknetConfig, path: &str) -> DevnetResult<Self> {
+        let mut this = Self::new(config)?;
+
+        // Try to load events from the path. Since the same CLI parameter is used for dump and load
+        // path, it may be the case that there is no file at the path. This means that the file will
+        // be created during Devnet's lifetime via dumping, so its non-existence is here ignored.
+        match this.load_events(path) {
+            Ok(events) => this.re_execute(events)?,
+            Err(Error::FileNotFound) => {}
+            Err(err) => return Err(err),
+        };
+
+        Ok(this)
+    }
+
     pub fn re_execute(&mut self, events: Vec<DumpEvent>) -> DevnetResult<()> {
         for event in events.into_iter() {
             match event {
@@ -137,40 +154,23 @@ impl Starknet {
         &self.dump_events
     }
 
-    pub fn load_events(&self) -> DevnetResult<Vec<DumpEvent>> {
-        self.load_events_custom_path(None)
-    }
-
-    // load starknet events from file
-    pub fn load_events_custom_path(
-        &self,
-        custom_path: Option<String>,
-    ) -> DevnetResult<Vec<DumpEvent>> {
-        let dump_path = if custom_path.is_some() { &custom_path } else { &self.config.dump_path };
-        match dump_path {
-            Some(path) => {
-                let file_path = Path::new(path);
-
-                // load only if the file exists, if config.dump_path is set but the file doesn't
-                // exist it means that it's first execution and in that case return an empty vector,
-                // in case of load from HTTP endpoint return FileNotFound error
-                if file_path.exists() {
-                    let file = File::open(file_path).map_err(Error::IoError)?;
-                    let events: Vec<DumpEvent> = serde_json::from_reader(file)
-                        .map_err(|e| Error::DeserializationError { origin: e.to_string() })?;
-
-                    // to avoid doublets in block mode during load, we need to remove the file
-                    // because they will be re-executed and saved again
-                    if self.config.dump_on == Some(DumpOn::Block) {
-                        fs::remove_file(file_path).map_err(Error::IoError)?;
-                    }
-
-                    Ok(events)
-                } else {
-                    Err(Error::FileNotFound)
-                }
-            }
-            None => Err(Error::FormatError),
+    /// Returns Devnet events from the provided `path`
+    pub fn load_events(&self, path: &str) -> DevnetResult<Vec<DumpEvent>> {
+        let file_path = Path::new(path);
+        if path.is_empty() || !file_path.exists() {
+            return Err(Error::FileNotFound);
         }
+
+        let file = File::open(file_path).map_err(Error::IoError)?;
+        let events: Vec<DumpEvent> = serde_json::from_reader(file)
+            .map_err(|e| Error::DeserializationError { origin: e.to_string() })?;
+
+        // to avoid doublets in block mode during load, we need to remove the file
+        // because they will be re-executed and saved again
+        if self.config.dump_on == Some(DumpOn::Block) {
+            fs::remove_file(file_path).map_err(Error::IoError)?;
+        }
+
+        Ok(events)
     }
 }

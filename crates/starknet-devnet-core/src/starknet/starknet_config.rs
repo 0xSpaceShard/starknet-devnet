@@ -113,9 +113,6 @@ pub struct StarknetConfig {
     pub dump_path: Option<String>,
     pub block_generation_on: BlockGenerationOn,
     pub lite_mode: bool,
-    /// on initialization, re-execute loaded txs (if any)
-    #[serde(skip_serializing)]
-    pub re_execute_on_init: bool,
     pub state_archive: StateArchiveCapacity,
     pub fork_config: ForkConfig,
     pub disable_account_impersonation: bool,
@@ -143,7 +140,6 @@ impl Default for StarknetConfig {
             dump_path: None,
             block_generation_on: BlockGenerationOn::Transaction,
             lite_mode: false,
-            re_execute_on_init: true,
             state_archive: StateArchiveCapacity::default(),
             fork_config: ForkConfig::default(),
             disable_account_impersonation: false,

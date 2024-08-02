@@ -53,23 +53,22 @@ pub(crate) async fn dump_impl(
 
 pub async fn load(
     State(state): State<HttpApiHandler>,
-    Json(path): Json<LoadPath>,
+    Json(path_wrapper): Json<LoadPath>,
 ) -> HttpApiResult<()> {
-    load_impl(&state.api, path).await
+    load_impl(&state.api, path_wrapper).await
 }
 
-pub(crate) async fn load_impl(api: &Api, path: LoadPath) -> HttpApiResult<()> {
-    let file_path = std::path::Path::new(&path.path);
-    if path.path.is_empty() || !file_path.exists() {
-        return Err(HttpApiError::FileNotFound);
-    }
-
+pub(crate) async fn load_impl(api: &Api, path_wrapper: LoadPath) -> HttpApiResult<()> {
     let mut starknet = api.starknet.lock().await;
-    starknet.restart().map_err(|e| HttpApiError::RestartError { msg: e.to_string() })?;
-    let events = starknet
-        .load_events_custom_path(Some(path.path))
-        .map_err(|e| HttpApiError::LoadError(e.to_string()))?;
-    starknet.re_execute(events).map_err(|e| HttpApiError::ReExecutionError(e.to_string()))?;
 
-    Ok(())
+    // necessary to restart before loading
+    starknet.restart().map_err(|e| HttpApiError::RestartError { msg: e.to_string() })?;
+
+    match starknet.load_events(&path_wrapper.path) {
+        Ok(events) => {
+            starknet.re_execute(events).map_err(|e| HttpApiError::ReExecutionError(e.to_string()))
+        }
+        Err(starknet_core::error::Error::FileNotFound) => Err(HttpApiError::FileNotFound),
+        Err(e) => Err(HttpApiError::LoadError(e.to_string())),
+    }
 }

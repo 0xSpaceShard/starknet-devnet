@@ -261,16 +261,6 @@ impl Starknet {
         };
         this.create_block()?;
 
-        // Load starknet transactions
-        if this.config.dump_path.is_some() && this.config.re_execute_on_init {
-            // Try to load transactions from dump_path, if there is no file skip this step
-            match this.load_events() {
-                Ok(events) => this.re_execute(events)?,
-                Err(Error::FileNotFound) => {}
-                Err(err) => return Err(err),
-            };
-        }
-
         Ok(this)
     }
 
@@ -279,7 +269,6 @@ impl Starknet {
     }
 
     pub fn restart(&mut self) -> DevnetResult<()> {
-        self.config.re_execute_on_init = false;
         *self = Starknet::new(&self.config)?;
         info!("Starknet Devnet restarted");
 
