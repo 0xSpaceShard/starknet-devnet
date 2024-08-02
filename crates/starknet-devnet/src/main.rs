@@ -13,6 +13,7 @@ use starknet_core::constants::{
     CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
+use starknet_core::starknet::dump::dump_events;
 use starknet_core::starknet::starknet_config::{BlockGenerationOn, DumpOn, ForkConfig};
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::{BlockId, BlockTag, MaybePendingBlockWithTxHashes};
@@ -267,7 +268,8 @@ pub async fn shutdown_signal(api: Api) {
     if let (Some(DumpOn::Exit), Some(dump_path)) =
         (starknet.config.dump_on, &starknet.config.dump_path)
     {
-        starknet.dump_events(dump_path).expect("Failed to dump starknet transactions");
+        let events = api.dumpable_events.lock().await;
+        dump_events(&events, dump_path).expect("Failed to dump.");
     }
 }
 

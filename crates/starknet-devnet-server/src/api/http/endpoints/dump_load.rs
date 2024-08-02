@@ -1,5 +1,6 @@
 use axum::extract::State;
 use axum::Json;
+use starknet_core::starknet::dump::dump_events;
 
 use super::extract_optional_json_from_request;
 use crate::api::http::error::HttpApiError;
@@ -28,16 +29,17 @@ pub(crate) async fn dump_impl(
 
     let path = path_wrapper
         .as_ref()
-        .map(|DumpPath { path }| path.as_str())
-        .or_else(|| starknet.config.dump_path.as_deref())
-        .unwrap_or("");
+        .map(|DumpPath { path }| path.clone())
+        .or_else(|| starknet.config.dump_path.clone())
+        .unwrap_or_default();
+
+    drop(starknet);
+    let dumpable_events = api.dumpable_events.lock().await;
 
     if path.is_empty() {
-        let json_dump = starknet.read_dump_events();
-        Ok(Some(json_dump.clone()))
+        Ok(Some(dumpable_events.clone()))
     } else {
-        starknet
-            .dump_events(path)
+        dump_events(&dumpable_events, &path)
             .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
         Ok(None)
     }

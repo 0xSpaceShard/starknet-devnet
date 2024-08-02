@@ -109,7 +109,6 @@ pub struct Starknet {
     pub next_block_timestamp: Option<u64>,
     pub next_block_gas: GasModification,
     pub(crate) messaging: MessagingBroker,
-    pub(crate) dump_events: Vec<DumpEvent>,
     rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
     cheats: Cheats,
 }
@@ -143,7 +142,6 @@ impl Default for Starknet {
                 data_gas_price_strk: DEVNET_DEFAULT_DATA_GAS_PRICE,
             },
             messaging: Default::default(),
-            dump_events: Default::default(),
             rpc_contract_classes: Default::default(),
             cheats: Default::default(),
         }
@@ -248,7 +246,6 @@ impl Starknet {
                 data_gas_price_strk: config.data_gas_price_strk,
             },
             messaging: Default::default(),
-            dump_events: Default::default(),
             rpc_contract_classes,
             cheats: Default::default(),
         };

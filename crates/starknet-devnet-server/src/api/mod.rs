@@ -4,6 +4,7 @@ pub mod serde_helpers;
 
 use std::sync::Arc;
 
+use starknet_core::starknet::dump::DumpEvent;
 use starknet_core::starknet::Starknet;
 use tokio::sync::Mutex;
 
@@ -13,10 +14,11 @@ use tokio::sync::Mutex;
 pub struct Api {
     // maybe the config should be added here next to the starknet instance
     pub starknet: Arc<Mutex<Starknet>>,
+    pub dumpable_events: Arc<Mutex<Vec<DumpEvent>>>,
 }
 
 impl Api {
     pub fn new(starknet: Starknet) -> Self {
-        Self { starknet: Arc::new(Mutex::new(starknet)) }
+        Self { starknet: Arc::new(Mutex::new(starknet)), dumpable_events: Default::default() }
     }
 }

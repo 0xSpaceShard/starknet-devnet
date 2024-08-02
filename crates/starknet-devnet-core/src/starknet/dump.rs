@@ -24,6 +24,17 @@ pub enum DumpEvent {
     AddL1HandlerTransaction(L1HandlerTransaction),
 }
 
+/// Save Devnet `events` to file at `path`. If `events` is empty, does nothing.
+pub fn dump_events(events: &Vec<DumpEvent>, path: &str) -> DevnetResult<()> {
+    if !events.is_empty() {
+        let events_dump = serde_json::to_string(events)
+            .map_err(|e| Error::SerializationError { origin: e.to_string() })?;
+        fs::write(Path::new(&path), events_dump)?;
+    }
+
+    Ok(())
+}
+
 impl Starknet {
     /// Create an instance of Starknet with the state generated from the events loaded from `path`.
     pub fn load(config: &StarknetConfig, path: &str) -> DevnetResult<Self> {
@@ -73,75 +84,51 @@ impl Starknet {
 
     // add starknet dump event
     pub fn handle_dump_event(&mut self, event: DumpEvent) -> DevnetResult<()> {
-        match self.config.dump_on {
-            Some(DumpOn::Block) => self.dump_event(event),
-            Some(DumpOn::Request | DumpOn::Exit) => {
-                self.dump_events.push(event);
+        match (self.config.dump_on, &self.config.dump_path) {
+            (Some(DumpOn::Block), Some(path)) => self.dump_event(event, &path),
+            (Some(DumpOn::Request | DumpOn::Exit), _) => {
+                todo!("dump_events.push(event);");
 
                 Ok(())
             }
-            None => Ok(()),
+            (None | Some(DumpOn::Block), _) => Ok(()),
         }
     }
 
-    /// attach starknet event to end of existing file
-    pub fn dump_event(&self, event: DumpEvent) -> DevnetResult<()> {
-        match &self.config.dump_path {
-            Some(path) => {
-                let file_path = Path::new(path);
-                if file_path.exists() {
-                    // attach to file
-                    let event_dump = serde_json::to_string(&event)
-                        .map_err(|e| Error::SerializationError { origin: e.to_string() })?;
-                    let mut file = OpenOptions::new()
-                        .append(true)
-                        .read(true)
-                        .open(file_path)
-                        .map_err(Error::IoError)?;
-                    let mut buffer = [0; 1];
-                    file.seek(SeekFrom::End(-1))?;
-                    file.read_exact(&mut buffer)?;
-                    if String::from_utf8_lossy(&buffer).into_owned() == "]" {
-                        // if the last character is "]", remove it and add event at the end
-                        let length = file.seek(SeekFrom::End(0)).map_err(Error::IoError)?;
-                        file.set_len(length - 1).map_err(Error::IoError)?; // remove last "]" with set_len
-                        file.write_all(format!(", {event_dump}]").as_bytes())
-                            .map_err(Error::IoError)?;
-                    } else {
-                        // if the last character is not "]" it means that it's a wrongly formatted
-                        // file
-                        return Err(Error::FormatError);
-                    }
-                } else {
-                    // create file
-                    let events = vec![event];
-                    let events_dump = serde_json::to_string(&events)
-                        .map_err(|e| Error::SerializationError { origin: e.to_string() })?;
-                    fs::write(Path::new(&path), events_dump)?;
-                }
-
-                Ok(())
+    /// Attach starknet event to end of the file at `path`. If no file present, creates it.
+    pub fn dump_event(&self, event: DumpEvent, path: &str) -> DevnetResult<()> {
+        let file_path = Path::new(path);
+        if file_path.exists() {
+            // attach to file
+            let event_dump = serde_json::to_string(&event)
+                .map_err(|e| Error::SerializationError { origin: e.to_string() })?;
+            let mut file = OpenOptions::new()
+                .append(true)
+                .read(true)
+                .open(file_path)
+                .map_err(Error::IoError)?;
+            let mut buffer = [0; 1];
+            file.seek(SeekFrom::End(-1))?;
+            file.read_exact(&mut buffer)?;
+            if String::from_utf8_lossy(&buffer).into_owned() == "]" {
+                // if the last character is "]", remove it and add event at the end
+                let length = file.seek(SeekFrom::End(0)).map_err(Error::IoError)?;
+                file.set_len(length - 1).map_err(Error::IoError)?; // remove last "]" with set_len
+                file.write_all(format!(", {event_dump}]").as_bytes()).map_err(Error::IoError)?;
+            } else {
+                // if the last character is not "]" it means that it's a wrongly formatted
+                // file
+                return Err(Error::FormatError);
             }
-            None => Err(Error::FormatError),
-        }
-    }
-
-    /// Save Devnet events to file at `path`
-    pub fn dump_events(&self, path: &str) -> DevnetResult<()> {
-        let events = &self.dump_events;
-
-        // dump only if there are events to dump
-        if !events.is_empty() {
-            let events_dump = serde_json::to_string(events)
+        } else {
+            // create file
+            let events = vec![event];
+            let events_dump = serde_json::to_string(&events)
                 .map_err(|e| Error::SerializationError { origin: e.to_string() })?;
             fs::write(Path::new(&path), events_dump)?;
         }
 
         Ok(())
-    }
-
-    pub fn read_dump_events(&self) -> &Vec<DumpEvent> {
-        &self.dump_events
     }
 
     /// Returns Devnet events from the provided `path`
