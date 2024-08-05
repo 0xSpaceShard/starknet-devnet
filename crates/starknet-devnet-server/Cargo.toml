@@ -30,6 +30,7 @@ serde = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 lazy_static = { workspace = true }
+enum-helper-macros = { workspace = true }
 
 # devnet
 starknet-core = { workspace = true }

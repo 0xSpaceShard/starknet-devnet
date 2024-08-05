@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::future::IntoFuture;
 use std::result::Result::Ok;
 use std::time::Duration;
@@ -5,9 +6,9 @@ use std::time::Duration;
 use clap::Parser;
 use cli::Args;
 use futures::future::join_all;
-use server::api::json_rpc::RPC_SPEC_VERSION;
+use server::api::json_rpc::{JsonRpcRequest, RPC_SPEC_VERSION};
 use server::api::Api;
-use server::server::serve_http_api_json_rpc;
+use server::server::{serve_http_api_json_rpc, HTTP_API_ROUTES_WITHOUT_LEADING_SLASH};
 use starknet_core::account::Account;
 use starknet_core::constants::{
     CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
@@ -189,6 +190,23 @@ async fn main() -> Result<(), anyhow::Error> {
         starknet_config.seed,
         starknet_config.predeployed_accounts_initial_balance.clone(),
     );
+
+    // check restricted methods of server_config
+    if let Some(restricted_methods) = server_config.restricted_methods.as_ref() {
+        let json_rpc_methods = JsonRpcRequest::all_variants_serde_renames();
+        let all_methods: HashSet<_> = HashSet::from_iter(
+            json_rpc_methods.iter().chain(HTTP_API_ROUTES_WITHOUT_LEADING_SLASH.iter()),
+        );
+        if restricted_methods
+            .iter()
+            .any(|restricted_method| !all_methods.contains(restricted_method))
+        {
+            return Err(anyhow::anyhow!(
+                "Restricted methods contain JSON-RPC methods and/or HTTP routes that are not \
+                 supported by the server."
+            ));
+        }
+    }
 
     let server = serve_http_api_json_rpc(listener, api.clone(), &starknet_config, &server_config);
 

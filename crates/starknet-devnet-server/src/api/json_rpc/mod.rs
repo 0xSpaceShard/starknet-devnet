@@ -8,6 +8,7 @@ mod write_endpoints;
 
 pub const RPC_SPEC_VERSION: &str = "0.7.1";
 
+use enum_helper_macros::AllVariantsSerdeRenames;
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput, TransactionHashOutput,
@@ -315,7 +316,7 @@ impl JsonRpcHandler {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, AllVariantsSerdeRenames)]
 #[cfg_attr(test, derive(Debug))]
 #[serde(tag = "method", content = "params")]
 pub enum JsonRpcRequest {
@@ -419,81 +420,71 @@ pub enum JsonRpcRequest {
     DevnetConfig,
 }
 
-impl std::fmt::Display for JsonRpcRequest {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl JsonRpcRequest {
+    pub fn method_name(&self) -> &'static str {
         match self {
-            JsonRpcRequest::SpecVersion => write!(f, "starknet_specVersion"),
-            JsonRpcRequest::BlockWithTransactionHashes(_) => {
-                write!(f, "starknet_getBlockWithTxHashes")
-            }
-            JsonRpcRequest::BlockWithFullTransactions(_) => write!(f, "starknet_getBlockWithTxs"),
-            JsonRpcRequest::BlockWithReceipts(_) => write!(f, "starknet_getBlockWithReceipts"),
-            JsonRpcRequest::StateUpdate(_) => write!(f, "starknet_getStateUpdate"),
-            JsonRpcRequest::StorageAt(_) => write!(f, "starknet_getStorageAt"),
-            JsonRpcRequest::TransactionByHash(_) => write!(f, "starknet_getTransactionByHash"),
-            JsonRpcRequest::TransactionStatusByHash(_) => {
-                write!(f, "starknet_getTransactionStatus")
-            }
+            JsonRpcRequest::SpecVersion => "starknet_specVersion",
+            JsonRpcRequest::BlockWithTransactionHashes(_) => "starknet_getBlockWithTxHashes",
+            JsonRpcRequest::BlockWithFullTransactions(_) => "starknet_getBlockWithTxs",
+            JsonRpcRequest::BlockWithReceipts(_) => "starknet_getBlockWithReceipts",
+            JsonRpcRequest::StateUpdate(_) => "starknet_getStateUpdate",
+            JsonRpcRequest::StorageAt(_) => "starknet_getStorageAt",
+            JsonRpcRequest::TransactionByHash(_) => "starknet_getTransactionByHash",
+            JsonRpcRequest::TransactionStatusByHash(_) => "starknet_getTransactionStatus",
             JsonRpcRequest::TransactionByBlockAndIndex(_) => {
-                write!(f, "starknet_getTransactionByBlockIdAndIndex")
+                "starknet_getTransactionByBlockIdAndIndex"
             }
             JsonRpcRequest::TransactionReceiptByTransactionHash(_) => {
-                write!(f, "starknet_getTransactionReceipt")
+                "starknet_getTransactionReceipt"
             }
-            JsonRpcRequest::ClassByHash(_) => write!(f, "starknet_getClass"),
-            JsonRpcRequest::ClassHashAtContractAddress(_) => write!(f, "starknet_getClassHashAt"),
-            JsonRpcRequest::ClassAtContractAddress(_) => write!(f, "starknet_getClassAt"),
-            JsonRpcRequest::BlockTransactionCount(_) => {
-                write!(f, "starknet_getBlockTransactionCount")
-            }
-            JsonRpcRequest::Call(_) => write!(f, "starknet_call"),
-            JsonRpcRequest::EstimateFee(_) => write!(f, "starknet_estimateFee"),
-            JsonRpcRequest::BlockNumber => write!(f, "starknet_blockNumber"),
-            JsonRpcRequest::BlockHashAndNumber => write!(f, "starknet_blockHashAndNumber"),
-            JsonRpcRequest::ChainId => write!(f, "starknet_chainId"),
-            JsonRpcRequest::Syncing => write!(f, "starknet_syncing"),
-            JsonRpcRequest::Events(_) => write!(f, "starknet_getEvents"),
-            JsonRpcRequest::ContractNonce(_) => write!(f, "starknet_getNonce"),
-            JsonRpcRequest::AddDeclareTransaction(_) => {
-                write!(f, "starknet_addDeclareTransaction")
-            }
+            JsonRpcRequest::ClassByHash(_) => "starknet_getClass",
+            JsonRpcRequest::ClassHashAtContractAddress(_) => "starknet_getClassHashAt",
+            JsonRpcRequest::ClassAtContractAddress(_) => "starknet_getClassAt",
+            JsonRpcRequest::BlockTransactionCount(_) => "starknet_getBlockTransactionCount",
+            JsonRpcRequest::Call(_) => "starknet_call",
+            JsonRpcRequest::EstimateFee(_) => "starknet_estimateFee",
+            JsonRpcRequest::BlockNumber => "starknet_blockNumber",
+            JsonRpcRequest::BlockHashAndNumber => "starknet_blockHashAndNumber",
+            JsonRpcRequest::ChainId => "starknet_chainId",
+            JsonRpcRequest::Syncing => "starknet_syncing",
+            JsonRpcRequest::Events(_) => "starknet_getEvents",
+            JsonRpcRequest::ContractNonce(_) => "starknet_getNonce",
+            JsonRpcRequest::AddDeclareTransaction(_) => "starknet_addDeclareTransaction",
             JsonRpcRequest::AddDeployAccountTransaction(_) => {
-                write!(f, "starknet_addDeployAccountTransaction")
+                "starknet_addDeployAccountTransaction"
             }
-            JsonRpcRequest::AddInvokeTransaction(_) => write!(f, "starknet_addInvokeTransaction"),
-            JsonRpcRequest::EstimateMessageFee(_) => write!(f, "starknet_estimateMessageFee"),
-            JsonRpcRequest::SimulateTransactions(_) => write!(f, "starknet_simulateTransactions"),
-            JsonRpcRequest::TraceTransaction(_) => write!(f, "starknet_traceTransaction"),
-            JsonRpcRequest::BlockTransactionTraces(_) => {
-                write!(f, "starknet_traceBlockTransactions")
-            }
-            JsonRpcRequest::ImpersonateAccount(_) => write!(f, "devnet_impersonateAccount"),
-            JsonRpcRequest::StopImpersonateAccount(_) => {
-                write!(f, "devnet_stopImpersonateAccount")
-            }
-            JsonRpcRequest::AutoImpersonate => write!(f, "devnet_autoImpersonate"),
-            JsonRpcRequest::StopAutoImpersonate => write!(f, "devnet_stopAutoImpersonate"),
-            JsonRpcRequest::Dump(_) => write!(f, "devnet_dump"),
-            JsonRpcRequest::Load(_) => write!(f, "devnet_load"),
-            JsonRpcRequest::PostmanLoadL1MessagingContract(_) => write!(f, "devnet_postmanLoad"),
-            JsonRpcRequest::PostmanFlush(_) => write!(f, "devnet_postmanFlush"),
-            JsonRpcRequest::PostmanSendMessageToL2(_) => {
-                write!(f, "devnet_postmanSendMessageToL2")
-            }
-            JsonRpcRequest::PostmanConsumeMessageFromL2(_) => {
-                write!(f, "devnet_postmanConsumeMessageFromL2")
-            }
-            JsonRpcRequest::CreateBlock => write!(f, "devnet_createBlock"),
-            JsonRpcRequest::AbortBlocks(_) => write!(f, "devnet_abortBlocks"),
-            JsonRpcRequest::SetGasPrice(_) => write!(f, "devnet_setGasPrice"),
-            JsonRpcRequest::Restart => write!(f, "devnet_restart"),
-            JsonRpcRequest::SetTime(_) => write!(f, "devnet_setTime"),
-            JsonRpcRequest::IncreaseTime(_) => write!(f, "devnet_increaseTime"),
-            JsonRpcRequest::PredeployedAccounts(_) => write!(f, "devnet_getPredeployedAccounts"),
-            JsonRpcRequest::AccountBalance(_) => write!(f, "devnet_getAccountBalance"),
-            JsonRpcRequest::Mint(_) => write!(f, "devnet_mint"),
-            JsonRpcRequest::DevnetConfig => write!(f, "devnet_getConfig"),
+            JsonRpcRequest::AddInvokeTransaction(_) => "starknet_addInvokeTransaction",
+            JsonRpcRequest::EstimateMessageFee(_) => "starknet_estimateMessageFee",
+            JsonRpcRequest::SimulateTransactions(_) => "starknet_simulateTransactions",
+            JsonRpcRequest::TraceTransaction(_) => "starknet_traceTransaction",
+            JsonRpcRequest::BlockTransactionTraces(_) => "starknet_traceBlockTransactions",
+            JsonRpcRequest::ImpersonateAccount(_) => "devnet_impersonateAccount",
+            JsonRpcRequest::StopImpersonateAccount(_) => "devnet_stopImpersonateAccount",
+            JsonRpcRequest::AutoImpersonate => "devnet_autoImpersonate",
+            JsonRpcRequest::StopAutoImpersonate => "devnet_stopAutoImpersonate",
+            JsonRpcRequest::Dump(_) => "devnet_dump",
+            JsonRpcRequest::Load(_) => "devnet_load",
+            JsonRpcRequest::PostmanLoadL1MessagingContract(_) => "devnet_postmanLoad",
+            JsonRpcRequest::PostmanFlush(_) => "devnet_postmanFlush",
+            JsonRpcRequest::PostmanSendMessageToL2(_) => "devnet_postmanSendMessageToL2",
+            JsonRpcRequest::PostmanConsumeMessageFromL2(_) => "devnet_postmanConsumeMessageFromL2",
+            JsonRpcRequest::CreateBlock => "devnet_createBlock",
+            JsonRpcRequest::AbortBlocks(_) => "devnet_abortBlocks",
+            JsonRpcRequest::SetGasPrice(_) => "devnet_setGasPrice",
+            JsonRpcRequest::Restart => "devnet_restart",
+            JsonRpcRequest::SetTime(_) => "devnet_setTime",
+            JsonRpcRequest::IncreaseTime(_) => "devnet_increaseTime",
+            JsonRpcRequest::PredeployedAccounts(_) => "devnet_getPredeployedAccounts",
+            JsonRpcRequest::AccountBalance(_) => "devnet_getAccountBalance",
+            JsonRpcRequest::Mint(_) => "devnet_mint",
+            JsonRpcRequest::DevnetConfig => "devnet_getConfig",
         }
+    }
+}
+
+impl std::fmt::Display for JsonRpcRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.method_name())
     }
 }
 
