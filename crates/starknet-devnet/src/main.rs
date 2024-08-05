@@ -29,7 +29,7 @@ use tokio::signal::unix::{signal, SignalKind};
 use tokio::signal::windows::ctrl_c;
 use tokio::task::{self};
 use tokio::time::{interval, sleep};
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 
 mod cli;
@@ -281,10 +281,10 @@ fn assert_all_restricted_methods_correct(
 
     for restricted_method in restricted_methods {
         if !all_methods.contains(restricted_method) {
-            return Err(anyhow::anyhow!(
-                "Restricted methods contain JSON-RPC methods and/or HTTP routes that are not \
-                 supported by the server."
-            ));
+            let error_msg = "Restricted methods contain JSON-RPC methods and/or HTTP routes that \
+                             are not supported by the server.";
+            error!("{}", error_msg);
+            anyhow::bail!(error_msg);
         }
     }
     Ok(())
