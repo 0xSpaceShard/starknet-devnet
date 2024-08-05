@@ -161,6 +161,11 @@ async fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
     let (mut starknet_config, server_config) = args.to_config()?;
 
+    // check restricted methods of server_config
+    if let Some(restricted_methods) = server_config.restricted_methods.as_ref() {
+        assert_all_restricted_methods_correct(restricted_methods)?;
+    }
+
     // If fork url is provided, then set fork config and chain_id from forked network
     if let Some(url) = starknet_config.fork_config.url.as_ref() {
         let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
@@ -190,11 +195,6 @@ async fn main() -> Result<(), anyhow::Error> {
         starknet_config.seed,
         starknet_config.predeployed_accounts_initial_balance.clone(),
     );
-
-    // check restricted methods of server_config
-    if let Some(restricted_methods) = server_config.restricted_methods.as_ref() {
-        assert_all_restricted_methods_correct(restricted_methods)?;
-    }
 
     let server = serve_http_api_json_rpc(listener, api.clone(), &starknet_config, &server_config);
 
