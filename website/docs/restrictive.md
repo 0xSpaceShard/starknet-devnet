@@ -25,6 +25,8 @@ $ starknet-devnet --restrictive-mode
 
 ### With a list of methods
 
+Note! Devnet will fail to start if any of the methods/routes is misspelled.
+
 ```
 $ starknet-devnet --restrictive-mode devnet_dump devnet_config
 ```
