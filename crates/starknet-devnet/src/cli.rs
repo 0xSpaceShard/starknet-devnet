@@ -252,25 +252,36 @@ impl Args {
         // if restricted_methods are not specified, use default ones
         let restricted_methods = self.restricted_methods.as_ref().map(|methods| {
             if methods.is_empty() {
-                DEFAULT_RESTRICTED_JSON_RPC_METHODS.iter().map(|s| s.to_string()).collect()
+                DEFAULT_RESTRICTED_JSON_RPC_METHODS
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<String>>()
             } else {
                 // remove leading slashes
-                methods.iter().map(|s| s.trim_start_matches('/').to_string()).collect()
+                methods
+                    .iter()
+                    .map(|s| s.trim_start_matches('/').to_string())
+                    .collect::<Vec<String>>()
             }
         });
         // validate restricted methods
-        if let Some(restricted_methods) = restricted_methods.as_ref() {
+        if let Some(methods) = restricted_methods.as_ref() {
             let json_rpc_methods = JsonRpcRequest::all_variants_serde_renames();
             let all_methods: HashSet<_> = HashSet::from_iter(
                 json_rpc_methods.iter().chain(HTTP_API_ROUTES_WITHOUT_LEADING_SLASH.iter()),
             );
-
-            for restricted_method in restricted_methods {
-                if !all_methods.contains(restricted_method) {
-                    let error_msg = "Restricted methods contain JSON-RPC methods and/or HTTP \
-                                     routes that are not supported by the server.";
-                    anyhow::bail!(error_msg);
+            let mut wrong_restricted_methods = vec![];
+            for method in methods {
+                if !all_methods.contains(method) {
+                    wrong_restricted_methods.push(method.clone());
                 }
+            }
+            if !wrong_restricted_methods.is_empty() {
+                anyhow::bail!(
+                    "Restricted methods contain JSON-RPC methods and/or HTTP routes that are not \
+                     supported by the server: {}",
+                    wrong_restricted_methods.join(" ")
+                );
             }
         }
 
