@@ -698,12 +698,11 @@ mod tests {
 
     #[test]
     fn check_if_method_with_incorrect_name_will_produce_an_error() {
-        let args = Args::parse_from(["--", "--restrictive-mode", "devnet_dump devnet_loadd"]);
+        let args = Args::parse_from(["--", "--restrictive-mode", "devnet_dump", "devnet_loadd"]);
         let err = args.to_config().unwrap_err();
-
         assert!(err.to_string().contains(
             "Restricted methods contain JSON-RPC methods and/or HTTP routes that are not \
-             supported by the server."
+             supported by the server: devnet_loadd"
         ));
     }
 
