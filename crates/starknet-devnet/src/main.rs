@@ -193,19 +193,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // check restricted methods of server_config
     if let Some(restricted_methods) = server_config.restricted_methods.as_ref() {
-        let json_rpc_methods = JsonRpcRequest::all_variants_serde_renames();
-        let all_methods: HashSet<_> = HashSet::from_iter(
-            json_rpc_methods.iter().chain(HTTP_API_ROUTES_WITHOUT_LEADING_SLASH.iter()),
-        );
-        if restricted_methods
-            .iter()
-            .any(|restricted_method| !all_methods.contains(restricted_method))
-        {
-            return Err(anyhow::anyhow!(
-                "Restricted methods contain JSON-RPC methods and/or HTTP routes that are not \
-                 supported by the server."
-            ));
-        }
+        assert_all_restricted_methods_correct(restricted_methods)?;
     }
 
     let server = serve_http_api_json_rpc(listener, api.clone(), &starknet_config, &server_config);
@@ -283,16 +271,56 @@ pub async fn shutdown_signal(api: Api) {
     }
 }
 
+fn assert_all_restricted_methods_correct(
+    restricted_methods: &Vec<String>,
+) -> Result<(), anyhow::Error> {
+    let json_rpc_methods = JsonRpcRequest::all_variants_serde_renames();
+    let all_methods: HashSet<_> = HashSet::from_iter(
+        json_rpc_methods.iter().chain(HTTP_API_ROUTES_WITHOUT_LEADING_SLASH.iter()),
+    );
+
+    for restricted_method in restricted_methods {
+        if !all_methods.contains(restricted_method) {
+            return Err(anyhow::anyhow!(
+                "Restricted methods contain JSON-RPC methods and/or HTTP routes that are not \
+                 supported by the server."
+            ));
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use tracing::level_filters::LevelFilter;
     use tracing_subscriber::EnvFilter;
 
-    use crate::configure_tracing;
+    use crate::{assert_all_restricted_methods_correct, configure_tracing};
 
     #[test]
     fn test_generated_log_level_from_empty_environment_variable_is_info() {
         assert_environment_variable_sets_expected_log_level("", LevelFilter::INFO);
+    }
+
+    #[test]
+    fn check_if_method_with_incorrect_name_will_produce_an_error() {
+        let err = assert_all_restricted_methods_correct(
+            &["devnet_dump".to_string(), "devnet_loadd".to_string()].to_vec(),
+        )
+        .unwrap_err();
+
+        assert!(err.to_string().contains(
+            "Restricted methods contain JSON-RPC methods and/or HTTP routes that are not \
+             supported by the server."
+        ));
+    }
+
+    #[test]
+    fn check_if_methods_with_correct_names_will_not_produce_an_error() {
+        assert_all_restricted_methods_correct(
+            &["devnet_dump".to_string(), "devnet_load".to_string()].to_vec(),
+        )
+        .unwrap();
     }
 
     fn assert_environment_variable_sets_expected_log_level(
