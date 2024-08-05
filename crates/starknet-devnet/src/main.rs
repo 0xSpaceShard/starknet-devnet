@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::future::IntoFuture;
 use std::result::Result::Ok;
 use std::time::Duration;
@@ -6,9 +5,9 @@ use std::time::Duration;
 use clap::Parser;
 use cli::Args;
 use futures::future::join_all;
-use server::api::json_rpc::{JsonRpcRequest, RPC_SPEC_VERSION};
+use server::api::json_rpc::RPC_SPEC_VERSION;
 use server::api::Api;
-use server::server::{serve_http_api_json_rpc, HTTP_API_ROUTES_WITHOUT_LEADING_SLASH};
+use server::server::serve_http_api_json_rpc;
 use starknet_core::account::Account;
 use starknet_core::constants::{
     CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
@@ -29,7 +28,7 @@ use tokio::signal::unix::{signal, SignalKind};
 use tokio::signal::windows::ctrl_c;
 use tokio::task::{self};
 use tokio::time::{interval, sleep};
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
 mod cli;
@@ -161,11 +160,6 @@ async fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
     let (mut starknet_config, server_config) = args.to_config()?;
 
-    // check restricted methods of server_config
-    if let Some(restricted_methods) = server_config.restricted_methods.as_ref() {
-        assert_all_restricted_methods_correct(restricted_methods)?;
-    }
-
     // If fork url is provided, then set fork config and chain_id from forked network
     if let Some(url) = starknet_config.fork_config.url.as_ref() {
         let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
@@ -271,56 +265,16 @@ pub async fn shutdown_signal(api: Api) {
     }
 }
 
-fn assert_all_restricted_methods_correct(
-    restricted_methods: &Vec<String>,
-) -> Result<(), anyhow::Error> {
-    let json_rpc_methods = JsonRpcRequest::all_variants_serde_renames();
-    let all_methods: HashSet<_> = HashSet::from_iter(
-        json_rpc_methods.iter().chain(HTTP_API_ROUTES_WITHOUT_LEADING_SLASH.iter()),
-    );
-
-    for restricted_method in restricted_methods {
-        if !all_methods.contains(restricted_method) {
-            let error_msg = "Restricted methods contain JSON-RPC methods and/or HTTP routes that \
-                             are not supported by the server.";
-            error!("{}", error_msg);
-            anyhow::bail!(error_msg);
-        }
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use tracing::level_filters::LevelFilter;
     use tracing_subscriber::EnvFilter;
 
-    use crate::{assert_all_restricted_methods_correct, configure_tracing};
+    use crate::configure_tracing;
 
     #[test]
     fn test_generated_log_level_from_empty_environment_variable_is_info() {
         assert_environment_variable_sets_expected_log_level("", LevelFilter::INFO);
-    }
-
-    #[test]
-    fn check_if_method_with_incorrect_name_will_produce_an_error() {
-        let err = assert_all_restricted_methods_correct(
-            &["devnet_dump".to_string(), "devnet_loadd".to_string()].to_vec(),
-        )
-        .unwrap_err();
-
-        assert!(err.to_string().contains(
-            "Restricted methods contain JSON-RPC methods and/or HTTP routes that are not \
-             supported by the server."
-        ));
-    }
-
-    #[test]
-    fn check_if_methods_with_correct_names_will_not_produce_an_error() {
-        assert_all_restricted_methods_correct(
-            &["devnet_dump".to_string(), "devnet_load".to_string()].to_vec(),
-        )
-        .unwrap();
     }
 
     fn assert_environment_variable_sets_expected_log_level(
