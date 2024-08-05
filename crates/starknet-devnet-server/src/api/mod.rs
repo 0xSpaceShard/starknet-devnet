@@ -4,9 +4,10 @@ pub mod serde_helpers;
 
 use std::sync::Arc;
 
-use starknet_core::starknet::dump::DumpEvent;
 use starknet_core::starknet::Starknet;
 use tokio::sync::Mutex;
+
+use crate::dump::DumpEvent;
 
 /// Data that can be shared between threads with read write lock access
 /// Whatever needs to be accessed as information outside of Starknet could be added to this struct

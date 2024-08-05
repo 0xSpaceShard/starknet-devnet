@@ -12,7 +12,7 @@ use super::models::{
 };
 use super::{DevnetResponse, StarknetResponse};
 use crate::api::http::endpoints::blocks::{abort_blocks_impl, create_block_impl};
-use crate::api::http::endpoints::dump_load::{dump_impl, load_impl};
+use crate::api::http::endpoints::dump_load::dump_impl;
 use crate::api::http::endpoints::mint_token::mint_impl;
 use crate::api::http::endpoints::postman::{
     postman_consume_message_from_l2_impl, postman_flush_impl, postman_load_impl,
@@ -103,12 +103,6 @@ impl JsonRpcHandler {
     pub async fn dump(&self, path: Option<DumpPath>) -> StrictRpcResult {
         let dump = dump_impl(&self.api, path).await.map_err(ApiError::from)?;
         Ok(DevnetResponse::DevnetDump(dump).into())
-    }
-
-    /// devnet_load
-    pub async fn load(&self, path: LoadPath) -> StrictRpcResult {
-        load_impl(&self.api, path).await.map_err(ApiError::from)?;
-        Ok(super::JsonRpcResponse::Empty)
     }
 
     /// devnet_postmanLoad

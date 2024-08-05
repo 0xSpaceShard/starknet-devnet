@@ -14,6 +14,7 @@ use models::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use starknet_core::starknet::starknet_config::DumpOn;
 use starknet_rs_core::types::{ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::block::{Block, PendingBlock};
@@ -46,11 +47,13 @@ use super::http::models::{
     PostmanLoadL1MessagingContract, SerializableAccount, SetTime, SetTimeResponse,
 };
 use super::Api;
+use crate::api::http::error::HttpApiError;
 use crate::api::json_rpc::models::{
     BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper,
     BroadcastedInvokeTransactionEnumWrapper, SimulateTransactionsInput,
 };
 use crate::api::serde_helpers::{empty_params, optional_params};
+use crate::dump::{dump_event, load_events};
 use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::ResponseResult;
@@ -228,7 +231,19 @@ impl JsonRpcHandler {
             JsonRpcRequest::AutoImpersonate => self.set_auto_impersonate(true).await,
             JsonRpcRequest::StopAutoImpersonate => self.set_auto_impersonate(false).await,
             JsonRpcRequest::Dump(path) => self.dump(path).await,
-            JsonRpcRequest::Load(path) => self.load(path).await,
+            // devnet_load
+            JsonRpcRequest::Load(path_wrapper) => {
+                match load_events(&path_wrapper.path) {
+                    Ok(events) => {
+                        for event in events {
+                            self.on_call(event).await;
+                        }
+                        Ok(JsonRpcResponse::Empty)
+                    },
+                    Err(starknet_core::error::Error::FileNotFound) => Err(error::ApiError::HttpApiError(HttpApiError::FileNotFound)),
+                    Err(e) => Err(error::ApiError::HttpApiError(HttpApiError::LoadError(e.to_string()))),
+                }
+            },
             JsonRpcRequest::PostmanLoadL1MessagingContract(data) => self.postman_load(data).await,
             JsonRpcRequest::PostmanFlush(data) => self.postman_flush(data).await,
             JsonRpcRequest::PostmanSendMessageToL2(message) => {
@@ -249,6 +264,7 @@ impl JsonRpcHandler {
             JsonRpcRequest::DevnetConfig => self.get_devnet_config().await,
         };
 
+        // If locally we got an eror and forking is set up, forward the request to the origin
         if let (Err(err), Some(forwarder)) = (&starknet_resp, &self.origin_caller) {
             match err {
                 // if a block or state is requested that was only added to origin after
@@ -269,6 +285,21 @@ impl JsonRpcHandler {
                 }
                 _other_error => (),
             }
+        }
+
+        if starknet_resp.is_ok() {
+            // TODO how to handle /load and /restart?
+            // TODO perhaps don't lock mutex on every call - specify on construction
+            let starknet = self.api.starknet.lock().await;
+            if let (Some(dump_on), Some(dump_path)) =
+                (starknet.config.dump_on, starknet.config.dump_path.clone())
+            {
+                match dump_on {
+                    DumpOn::Block => dump_event(original_call, &dump_path).unwrap(),
+                        // .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?,
+                    DumpOn::Request | DumpOn::Exit => self.api.dumpable_events.lock().await.push(original_call),
+                };
+            };
         }
 
         starknet_resp.to_rpc_result()
@@ -1155,8 +1186,8 @@ mod response_tests {
     use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
-    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result()
-     {
+    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result(
+    ) {
         assert_eq!(
             r#"{"result":{}}"#,
             serde_json::to_string(

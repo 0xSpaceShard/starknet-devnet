@@ -32,7 +32,7 @@ pub trait RpcHandler: Clone + Send + Sync + 'static {
     ///
     /// **Note**: override this function if the expected `Request` deviates from `{ "method" :
     /// "<name>", "params": "<params>" }`
-    async fn on_call(&mut self, call: RpcMethodCall) -> RpcResponse {
+    async fn on_call(&self, call: RpcMethodCall) -> RpcResponse {
         trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received method call");
         let RpcMethodCall { method, params, id, .. } = call.clone();
 
@@ -108,7 +108,7 @@ pub async fn handle_request<THandler: RpcHandler>(
 /// handle a single RPC method call
 async fn handle_call<THandler: RpcHandler>(
     call: RpcCall,
-    mut handler: THandler,
+    handler: THandler,
 ) -> Option<RpcResponse> {
     match call {
         RpcCall::MethodCall(call) => {

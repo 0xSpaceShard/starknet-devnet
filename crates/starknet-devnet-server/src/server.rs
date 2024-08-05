@@ -19,6 +19,7 @@ use crate::api::http::{endpoints as http, HttpApiHandler};
 use crate::api::json_rpc::origin_forwarder::OriginForwarder;
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::Api;
+use crate::dump::DumpEvent;
 use crate::rpc_handler::RpcHandler;
 use crate::{rpc_handler, ServerConfig};
 pub type StarknetDevnetServer = axum::serve::Serve<IntoMakeService<Router>, Router>;
@@ -55,11 +56,12 @@ fn http_api_routes(http_api_handler: HttpApiHandler) -> Router {
 }
 
 /// Configures an [axum::Server] that handles related JSON-RPC calls and WEB API calls via HTTP
-pub fn serve_http_api_json_rpc(
+pub async fn serve_http_api_json_rpc(
     tcp_listener: TcpListener,
     api: Api,
     starknet_config: &StarknetConfig,
     server_config: &ServerConfig,
+    loadable_events: &[DumpEvent],
 ) -> StarknetDevnetServer {
     let http_handler = HttpApiHandler { api: api.clone(), server_config: server_config.clone() };
     let origin_caller = if let (Some(url), Some(block_number)) =
@@ -70,8 +72,11 @@ pub fn serve_http_api_json_rpc(
         None
     };
 
-    let json_rpc_handler =
+    let mut json_rpc_handler =
         JsonRpcHandler { api, origin_caller, server_config: server_config.clone() };
+
+    json_rpc_handler.on_call(loadable_events[0].clone()).await;
+
     let json_rpc_routes = json_rpc_routes(json_rpc_handler);
     let http_api_routes = http_api_routes(http_handler);
 
@@ -80,6 +85,8 @@ pub fn serve_http_api_json_rpc(
     if server_config.log_response {
         routes = routes.layer(axum::middleware::from_fn(response_logging_middleware));
     };
+
+    routes = routes.layer(axum::middleware::from_fn(rpc_conversion_middleware));
 
     routes = routes
         .layer(TimeoutLayer::new(Duration::from_secs(server_config.timeout.into())))
@@ -148,5 +155,83 @@ async fn response_logging_middleware(
     let body = log_body_and_path(body, None).await?;
 
     let response = Response::from_parts(parts, body);
+    Ok(response)
+}
+
+async fn body_as_json_value(body: Body) -> Result<serde_json::Value, (StatusCode, String)> {
+    let body_bytes = body
+        .collect()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .to_bytes();
+
+    serde_json::from_slice(&body_bytes)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+}
+
+fn json_value_to_body(value: &serde_json::Value) -> Result<Body, (StatusCode, String)> {
+    let bytes = serde_json::to_vec(value)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    Ok(Body::from(bytes))
+}
+
+async fn rpc_conversion_middleware(
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    let (mut parts, mut body) = request.into_parts();
+
+    // TODO check if method is POST?
+
+    let dumpable_rpc_method_suffix = match parts.uri.to_string().as_str() {
+        "/dump" => Some("dump"),
+        "/load" => Some("load"),
+        "/postman/load_l1_messaging_contract" => Some("postmanLoad"),
+        "/postman/flush" => Some("postmanFlush"),
+        "/postman/send_message_to_l2" => Some("postmanSendMessageToL2"),
+        "/postman/consume_message_from_l2" => Some("postmanConsumeMessageFromL2"),
+        "/create_block" => Some("createBlock"),
+        "/abort_blocks" => Some("abortBlocks"),
+        "/restart" => Some("restart"),
+        "/set_time" => Some("setTime"),
+        "/increase_time" => Some("increaseTime"),
+        "/predeployed_accounts" => Some("getPredeployedAccounts"),
+        "/account_balance" => Some("getAccountBalance"),
+        "/mint" => Some("mint"),
+        "/config" => Some("config"),
+        _ => None,
+    };
+
+    if let Some(rpc_suffix) = dumpable_rpc_method_suffix {
+        parts.uri = axum::http::Uri::from_static("/rpc");
+
+        let rpc_params = body_as_json_value(body).await?;
+        let rpc_body = serde_json::json!({
+            "method": format!("devnet_{rpc_suffix}"),
+            "jsonrpc": "2.0",
+            "id": "1",
+            "params": rpc_params,
+        });
+        body = json_value_to_body(&rpc_body)?;
+    }
+
+    let mut response = next.run(Request::from_parts(parts, body)).await;
+
+    if dumpable_rpc_method_suffix.is_some() {
+        let (parts, mut body) = response.into_parts();
+
+        let resp_value = body_as_json_value(body).await?;
+        let extracted = if let Some(result) = resp_value.get("result") {
+            result
+        } else if let Some(error) = resp_value.get("error") {
+            error
+        } else {
+            &resp_value
+        };
+
+        body = json_value_to_body(extracted)?;
+        response = Response::from_parts(parts, body);
+    }
+
     Ok(response)
 }

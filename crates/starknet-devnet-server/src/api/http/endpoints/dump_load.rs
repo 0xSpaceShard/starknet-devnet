@@ -1,12 +1,12 @@
 use axum::extract::State;
 use axum::Json;
-use starknet_core::starknet::dump::dump_events;
 
 use super::extract_optional_json_from_request;
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{DumpPath, DumpResponseBody, LoadPath};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 use crate::api::Api;
+use crate::dump::{dump_events, load_events};
 
 pub async fn dump(
     State(state): State<HttpApiHandler>,
@@ -49,20 +49,24 @@ pub async fn load(
     State(state): State<HttpApiHandler>,
     Json(path_wrapper): Json<LoadPath>,
 ) -> HttpApiResult<()> {
-    load_impl(&state.api, path_wrapper).await
+    // load_impl(&state.api, path_wrapper).await
+    Ok(())
 }
 
-pub(crate) async fn load_impl(api: &Api, path_wrapper: LoadPath) -> HttpApiResult<()> {
-    let mut starknet = api.starknet.lock().await;
+// TODO consider completely removing these _impl methods
 
-    // necessary to restart before loading
-    starknet.restart().map_err(|e| HttpApiError::RestartError { msg: e.to_string() })?;
+// pub(crate) async fn load_impl(api: &Api, path_wrapper: LoadPath) -> HttpApiResult<()> {
+//     let mut starknet = api.starknet.lock().await;
 
-    match starknet.load_events(&path_wrapper.path) {
-        Ok(events) => {
-            starknet.re_execute(events).map_err(|e| HttpApiError::ReExecutionError(e.to_string()))
-        }
-        Err(starknet_core::error::Error::FileNotFound) => Err(HttpApiError::FileNotFound),
-        Err(e) => Err(HttpApiError::LoadError(e.to_string())),
-    }
-}
+//     // necessary to restart before loading
+//     starknet.restart().map_err(|e| HttpApiError::RestartError { msg: e.to_string() })?;
+
+//     // TODO perform these actions on a Starknet instance?
+//     match load_events(&path_wrapper.path) {
+//         Ok(events) => {
+//             re_execute(events).map_err(|e| HttpApiError::ReExecutionError(e.to_string()))
+//         }
+//         Err(starknet_core::error::Error::FileNotFound) => Err(HttpApiError::FileNotFound),
+//         Err(e) => Err(HttpApiError::LoadError(e.to_string())),
+//     }
+// }

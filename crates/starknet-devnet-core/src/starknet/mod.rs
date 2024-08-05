@@ -55,9 +55,8 @@ use tracing::{error, info};
 
 use self::cheats::Cheats;
 use self::defaulter::StarknetDefaulter;
-use self::dump::DumpEvent;
 use self::predeployed::initialize_erc20_at_address;
-use self::starknet_config::{DumpOn, StarknetConfig, StateArchiveCapacity};
+use self::starknet_config::{StarknetConfig, StateArchiveCapacity};
 use self::transaction_trace::create_trace;
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
@@ -84,7 +83,6 @@ mod add_invoke_transaction;
 mod add_l1_handler_transaction;
 mod cheats;
 pub(crate) mod defaulter;
-pub mod dump;
 mod estimations;
 mod events;
 mod get_class_impls;
@@ -829,7 +827,7 @@ impl Starknet {
         // If generate_block is true, generate new block, for now custom dump_event is None but in
         // future it will change to GasSetEvent with self.next_block_gas data
         if let Some(true) = gas_prices.generate_block {
-            self.create_block_dump_event(None)?
+            self.create_block()?
         }
 
         Ok(self.next_block_gas.clone())
@@ -1226,37 +1224,15 @@ impl Starknet {
         Ok(())
     }
 
-    // Create block and add DumpEvent
-    pub fn create_block_dump_event(
-        &mut self,
-        dump_event: Option<DumpEvent>,
-    ) -> DevnetResult<(), Error> {
-        self.create_block()?;
-
-        // handle custom event if provided e.g. SetTime, IncreaseTime, otherwise log create block
-        // events
-        match dump_event {
-            Some(event) => self.handle_dump_event(event)?,
-            None => self.handle_dump_event(DumpEvent::CreateBlock)?,
-        }
-
-        Ok(())
-    }
-
     // Set time and optionally create a new block
     pub fn set_time(&mut self, timestamp: u64, create_block: bool) -> DevnetResult<(), Error> {
         self.set_block_timestamp_shift(
             timestamp as i64 - Starknet::get_unix_timestamp_as_seconds() as i64,
         );
 
+        self.set_next_block_timestamp(timestamp);
         if create_block {
-            self.set_next_block_timestamp(timestamp);
             self.create_block()?;
-            self.handle_dump_event(DumpEvent::SetTime(timestamp))?;
-            self.handle_dump_event(DumpEvent::CreateBlock)?;
-        } else {
-            self.set_next_block_timestamp(timestamp);
-            self.handle_dump_event(DumpEvent::SetTime(timestamp))?;
         }
 
         Ok(())
@@ -1265,7 +1241,7 @@ impl Starknet {
     // Set timestamp shift and create empty block
     pub fn increase_time(&mut self, time_shift: u64) -> DevnetResult<(), Error> {
         self.set_block_timestamp_shift(self.pending_block_timestamp_shift + time_shift as i64);
-        self.create_block_dump_event(Some(DumpEvent::IncreaseTime(time_shift)))
+        self.create_block()
     }
 
     // Set timestamp shift for next blocks

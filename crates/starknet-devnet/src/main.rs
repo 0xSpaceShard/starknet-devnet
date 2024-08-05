@@ -7,13 +7,14 @@ use cli::Args;
 use futures::future::join_all;
 use server::api::json_rpc::RPC_SPEC_VERSION;
 use server::api::Api;
+use server::dump::{dump_events, load_events, DumpEvent};
+use server::rpc_core::request::{Id, RequestParams, Version};
 use server::server::serve_http_api_json_rpc;
 use starknet_core::account::Account;
 use starknet_core::constants::{
     CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
-use starknet_core::starknet::dump::dump_events;
 use starknet_core::starknet::starknet_config::{BlockGenerationOn, DumpOn, ForkConfig};
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::{BlockId, BlockTag, MaybePendingBlockWithTxHashes};
@@ -172,12 +173,21 @@ async fn main() -> Result<(), anyhow::Error> {
     let address = format!("{}:{}", server_config.host, server_config.port);
     let listener = TcpListener::bind(address.clone()).await?;
 
-    let starknet = if let Some(dump_path) = &starknet_config.dump_path {
-        Starknet::load(&starknet_config, dump_path)?
-    } else {
-        Starknet::new(&starknet_config)?
-    };
+    let starknet = Starknet::new(&starknet_config)?;
     let api = Api::new(starknet);
+
+    let loadable_events = if let Some(dump_path) = &starknet_config.dump_path {
+        // Try to load events from the path. Since the same CLI parameter is used for dump and load
+        // path, it may be the case that there is no file at the path. This means that the file will
+        // be created during Devnet's lifetime via dumping, so its non-existence is here ignored.
+        match load_events(dump_path) {
+            Ok(events) => events,
+            Err(starknet_core::error::Error::FileNotFound) => vec![],
+            Err(err) => return Err(err),
+        }
+    } else {
+        vec![]
+    };
 
     // set block timestamp shift during startup if start time is set
     if let Some(start_time) = starknet_config.start_time {
@@ -196,7 +206,14 @@ async fn main() -> Result<(), anyhow::Error> {
         starknet_config.predeployed_accounts_initial_balance.clone(),
     );
 
-    let server = serve_http_api_json_rpc(listener, api.clone(), &starknet_config, &server_config);
+    let server = serve_http_api_json_rpc(
+        listener,
+        api.clone(),
+        &starknet_config,
+        &server_config,
+        &loadable_events,
+    )
+    .await;
     info!("Starknet Devnet listening on {}", address);
 
     let mut tasks = vec![];
@@ -231,8 +248,6 @@ async fn create_block_interval(
     api: Api,
     block_interval_seconds: u64,
 ) -> Result<(), std::io::Error> {
-    let mut interval = interval(Duration::from_secs(block_interval_seconds));
-
     #[cfg(unix)]
     let mut sigint = { signal(SignalKind::interrupt()).expect("Failed to setup SIGINT handler") };
 
@@ -242,16 +257,21 @@ async fn create_block_interval(
         Box::pin(ctrl_c_signal)
     };
 
+    let mut interval = interval(Duration::from_secs(block_interval_seconds));
     loop {
+        // TODO does this need to be inside of the loop? or outside?
         // avoid creating block instantly after startup
         sleep(Duration::from_secs(block_interval_seconds)).await;
 
         tokio::select! {
             _ = interval.tick() => {
                 let mut starknet = api.starknet.lock().await;
+                let mut dumpable_events = api.dumpable_events.lock().await;
                 info!("Generating block on time interval");
 
-                starknet.create_block_dump_event(None).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?
+                // TODO consider creating a client and sending a request to server
+                starknet.create_block().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+                dumpable_events.push(DumpEvent { jsonrpc: Version::V2, method: "devnet_createBlock".into(), params: RequestParams::None, id: Id::Number(0) });
             }
             _ = sigint.recv() => {
                 return Ok(())

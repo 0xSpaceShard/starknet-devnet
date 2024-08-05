@@ -7,7 +7,6 @@ use starknet_types::rpc::transactions::{
     BroadcastedDeployAccountTransaction, DeployAccountTransaction, Transaction, TransactionWithHash,
 };
 
-use super::dump::DumpEvent;
 use super::Starknet;
 use crate::error::{DevnetResult, Error};
 use crate::state::CustomStateReader;
@@ -64,9 +63,6 @@ pub fn add_deploy_account_transaction(
         .execute(&mut starknet.pending_state.state, &starknet.block_context, true, true);
 
     starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
-    starknet.handle_dump_event(DumpEvent::AddDeployAccountTransaction(
-        broadcasted_deploy_account_transaction,
-    ))?;
 
     Ok((transaction_hash, address))
 }

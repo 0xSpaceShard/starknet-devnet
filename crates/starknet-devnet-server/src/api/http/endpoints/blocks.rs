@@ -15,7 +15,7 @@ pub async fn create_block(
 pub(crate) async fn create_block_impl(api: &Api) -> HttpApiResult<CreatedBlock> {
     let mut starknet = api.starknet.lock().await;
     starknet
-        .create_block_dump_event(None)
+        .create_block()
         .map_err(|err| HttpApiError::CreateEmptyBlockError { msg: err.to_string() })?;
 
     let last_block = starknet.get_latest_block();
