@@ -257,7 +257,9 @@ impl EthereumMessaging {
         // `sendMessageToL2` topic.
         let log_msg_to_l2_topic =
             H256::from_str("0xdb80dd488acf86d17c747445b0eabb5d57c541d3bd7b6b87af987858e5066b2b")
-                .expect("Invalid MessageToL2 topic");
+                .map_err(|err| {
+                    Error::MessagingError(MessagingError::ConversionError(err.to_string()))
+                })?;
 
         let filters = Filter {
             block_option: FilterBlockOption::Range {

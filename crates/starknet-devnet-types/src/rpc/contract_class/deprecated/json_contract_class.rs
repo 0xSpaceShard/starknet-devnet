@@ -75,9 +75,12 @@ impl Cairo0Json {
         // if they are empty arrays.
         let modified_abi_program_json =
             crate::utils::traverse_and_exclude_recursively(&abi_program_json, &|key, value| {
-                return (key == "attributes" || key == "accessible_scopes")
-                    && value.is_array()
-                    && value.as_array().expect("Not a valid JSON array").is_empty();
+                match value.as_array() {
+                    Some(array) if array.is_empty() => {
+                        key == "attributes" || key == "accessible_scopes"
+                    }
+                    _ => false,
+                }
             });
 
         let mut buffer = Vec::with_capacity(128);
