@@ -183,7 +183,7 @@ async fn main() -> Result<(), anyhow::Error> {
         match load_events(dump_path) {
             Ok(events) => events,
             Err(starknet_core::error::Error::FileNotFound) => vec![],
-            Err(err) => return Err(err),
+            Err(err) => return Err(err.into()),
         }
     } else {
         vec![]
