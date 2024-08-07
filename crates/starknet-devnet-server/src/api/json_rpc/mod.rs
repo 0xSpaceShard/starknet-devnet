@@ -285,19 +285,29 @@ impl JsonRpcHandler {
         starknet_resp.to_rpc_result()
     }
 
+    const DUMPABLE_METHODS: &'static [&'static str] = &[
+        "devnet_impersonateAccount",
+        "devnet_stopImpersonateAccount",
+        "devnet_autoImpersonate",
+        "devnet_stopAutoImpersonate",
+        "devnet_postmanSendMessageToL2",
+        "devnet_postmanConsumeMessageFromL2",
+        "devnet_createBlock",
+        "devnet_abortBlocks",
+        "devnet_setGasPrice",
+        "devnet_setTime",
+        "devnet_increaseTime",
+        "devnet_mint",
+        "starknet_addInvokeTransaction",
+        "starknet_addDeclareTransaction",
+        "starknet_addDeployAccountTransaction",
+    ];
+
     async fn update_dump(&self, event: &RpcMethodCall) -> Result<(), RpcError> {
         // TODO don't lock mutex on every call - specify dumping options on construction
         let starknet = self.api.starknet.lock().await;
         if let Some(dump_on) = starknet.config.dump_on {
-            let undumpable_methods = [
-                "devnet_restart",
-                "devnet_load",
-                "devnet_dump",
-                "devnet_postmanLoad",
-                "devnet_postmanFlush",
-            ];
-
-            if undumpable_methods.contains(&event.method.as_str()) {
+            if !Self::DUMPABLE_METHODS.contains(&event.method.as_str()) {
                 return Ok(());
             }
 
