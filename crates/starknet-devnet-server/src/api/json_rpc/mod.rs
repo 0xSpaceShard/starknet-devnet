@@ -276,6 +276,7 @@ impl JsonRpcHandler {
             }
         }
 
+        // TODO is there a case when is_err but we need to dump?
         if starknet_resp.is_ok() {
             if let Err(e) = self.update_dump(&original_call).await {
                 return ResponseResult::Error(e);
@@ -290,6 +291,8 @@ impl JsonRpcHandler {
         "devnet_stopImpersonateAccount",
         "devnet_autoImpersonate",
         "devnet_stopAutoImpersonate",
+        "devnet_postmanLoad",
+        "devnet_postmanFlush",
         "devnet_postmanSendMessageToL2",
         "devnet_postmanConsumeMessageFromL2",
         "devnet_createBlock",
