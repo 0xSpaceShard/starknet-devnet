@@ -86,13 +86,13 @@ pub async fn serve_http_api_json_rpc(
     let json_rpc_routes = json_rpc_routes(json_rpc_handler);
     let http_api_routes = http_api_routes(http_handler);
 
-    let mut routes = http_api_routes.merge(json_rpc_routes).layer(TraceLayer::new_for_http());
+    let mut routes = Router::new()
+        .layer(axum::middleware::from_fn(rpc_conversion_middleware))
+        .merge(http_api_routes.merge(json_rpc_routes).layer(TraceLayer::new_for_http()));
 
     if server_config.log_response {
         routes = routes.layer(axum::middleware::from_fn(response_logging_middleware));
     };
-
-    routes = routes.layer(axum::middleware::from_fn(rpc_conversion_middleware));
 
     routes = routes
         .layer(TimeoutLayer::new(Duration::from_secs(server_config.timeout.into())))
@@ -188,7 +188,7 @@ async fn rpc_conversion_middleware(
     let (mut parts, mut body) = request.into_parts();
 
     // TODO check if method is POST?
-
+    // TODO define mapping outside
     let dumpable_rpc_method_suffix = match parts.uri.to_string().as_str() {
         "/dump" => Some("dump"),
         "/load" => Some("load"),
