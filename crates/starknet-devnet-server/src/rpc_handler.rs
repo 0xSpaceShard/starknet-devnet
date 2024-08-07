@@ -32,6 +32,7 @@ pub trait RpcHandler: Clone + Send + Sync + 'static {
     ///
     /// **Note**: override this function if the expected `Request` deviates from `{ "method" :
     /// "<name>", "params": "<params>" }`
+    /// TODO can call be a reference? could prevent cloning in other parts of the code
     async fn on_call(&self, call: RpcMethodCall) -> RpcResponse {
         trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received method call");
         let RpcMethodCall { method, params, id, .. } = call.clone();

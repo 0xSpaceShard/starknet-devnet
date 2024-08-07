@@ -47,13 +47,12 @@ use super::http::models::{
     PostmanLoadL1MessagingContract, SerializableAccount, SetTime, SetTimeResponse,
 };
 use super::Api;
-use crate::api::http::error::HttpApiError;
 use crate::api::json_rpc::models::{
     BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper,
     BroadcastedInvokeTransactionEnumWrapper, SimulateTransactionsInput,
 };
 use crate::api::serde_helpers::{empty_params, optional_params};
-use crate::dump::{dump_event, load_events};
+use crate::dump::dump_event;
 use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::ResponseResult;
@@ -233,27 +232,7 @@ impl JsonRpcHandler {
             JsonRpcRequest::StopAutoImpersonate => self.set_auto_impersonate(false).await,
             JsonRpcRequest::Dump(path) => self.dump(path).await,
             // devnet_load
-            JsonRpcRequest::Load(path_wrapper) => {
-                // necessary to restart beore loading
-                if let Err(e) = self.restart().await {
-                    Err(e)
-                } else {
-                    match load_events(self.starknet_config.dump_on, &path_wrapper.path) {
-                        Ok(events) => {
-                            for event in events {
-                                self.on_call(event).await;
-                            }
-                            Ok(JsonRpcResponse::Empty)
-                        }
-                        Err(starknet_core::error::Error::FileNotFound) => {
-                            Err(error::ApiError::HttpApiError(HttpApiError::FileNotFound))
-                        }
-                        Err(e) => Err(error::ApiError::HttpApiError(HttpApiError::LoadError(
-                            e.to_string(),
-                        ))),
-                    }
-                }
-            }
+            JsonRpcRequest::Load(LoadPath { path }) => self.load(path).await,
             JsonRpcRequest::PostmanLoadL1MessagingContract(data) => self.postman_load(data).await,
             JsonRpcRequest::PostmanFlush(data) => self.postman_flush(data).await,
             JsonRpcRequest::PostmanSendMessageToL2(message) => {
@@ -298,40 +277,59 @@ impl JsonRpcHandler {
         }
 
         if starknet_resp.is_ok() {
-            // TODO refactor this into a separate method
-            // TODO how to handle /load and /restart?
-            // TODO maybe don't lock mutex on every call - specify dumping options on construction
-            let starknet = self.api.starknet.lock().await;
-            if let Some(dump_on) = starknet.config.dump_on {
-                let undumpable_methods = ["devnet_restart", "devnet_load", "devnet_dump"];
-
-                if !undumpable_methods.contains(&original_call.method.as_str()) {
-                    match dump_on {
-                        DumpOn::Block => {
-                            let dump_path = match &starknet.config.dump_path {
-                                Some(dump_path) => dump_path,
-                                None => {
-                                    return ResponseResult::Error(RpcError::internal_error_with(
-                                        "No dump_path configured",
-                                    ));
-                                }
-                            };
-
-                            if let Err(e) = dump_event(&original_call, dump_path) {
-                                return ResponseResult::Error(RpcError::internal_error_with(
-                                    format!("Failed dumping of {}: {e}", original_call.method),
-                                ));
-                            }
-                        }
-                        DumpOn::Request | DumpOn::Exit => {
-                            self.api.dumpable_events.lock().await.push(original_call)
-                        }
-                    }
-                };
-            };
+            if let Err(e) = self.update_dump(&original_call).await {
+                return ResponseResult::Error(e);
+            }
         }
 
         starknet_resp.to_rpc_result()
+    }
+
+    async fn update_dump(&self, event: &RpcMethodCall) -> Result<(), RpcError> {
+        // TODO don't lock mutex on every call - specify dumping options on construction
+        let starknet = self.api.starknet.lock().await;
+        if let Some(dump_on) = starknet.config.dump_on {
+            let undumpable_methods = [
+                "devnet_restart",
+                "devnet_load",
+                "devnet_dump",
+                "devnet_postmanLoad",
+                "devnet_postmanFlush",
+            ];
+
+            if undumpable_methods.contains(&event.method.as_str()) {
+                return Ok(());
+            }
+
+            match dump_on {
+                DumpOn::Block => {
+                    let dump_path = starknet
+                        .config
+                        .dump_path
+                        .as_deref()
+                        .ok_or(RpcError::internal_error_with("Undefined dump_path"))?;
+
+                    dump_event(event, dump_path).map_err(|e| {
+                        let msg = format!("Failed dumping of {}: {e}", event.method);
+                        RpcError::internal_error_with(msg)
+                    })?;
+                }
+                DumpOn::Request | DumpOn::Exit => {
+                    self.api.dumpable_events.lock().await.push(event.clone())
+                }
+            }
+        };
+
+        Ok(())
+    }
+
+    pub(crate) async fn re_execute(&self, events: &[RpcMethodCall]) -> Result<(), RpcError> {
+        for event in events {
+            if let ResponseResult::Error(e) = self.on_call(event.clone()).await.result {
+                return Err(e);
+            }
+        }
+        Ok(())
     }
 }
 

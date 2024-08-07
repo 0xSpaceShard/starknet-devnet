@@ -213,7 +213,7 @@ async fn main() -> Result<(), anyhow::Error> {
         &server_config,
         &loadable_events,
     )
-    .await;
+    .await?;
     info!("Starknet Devnet listening on {}", address);
 
     let mut tasks = vec![];

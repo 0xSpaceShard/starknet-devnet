@@ -62,7 +62,7 @@ pub async fn serve_http_api_json_rpc(
     starknet_config: &StarknetConfig,
     server_config: &ServerConfig,
     loadable_events: &[DumpEvent],
-) -> StarknetDevnetServer {
+) -> Result<StarknetDevnetServer, anyhow::Error> {
     let http_handler = HttpApiHandler { api: api.clone(), server_config: server_config.clone() };
     let origin_caller = if let (Some(url), Some(block_number)) =
         (&starknet_config.fork_config.url, starknet_config.fork_config.block_number)
@@ -79,9 +79,10 @@ pub async fn serve_http_api_json_rpc(
         server_config: server_config.clone(),
     };
 
-    for event in loadable_events {
-        json_rpc_handler.on_call(event.clone()).await;
-    }
+    json_rpc_handler
+        .re_execute(loadable_events)
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to load Devnet: {e}"))?;
 
     let json_rpc_routes = json_rpc_routes(json_rpc_handler);
     let http_api_routes = http_api_routes(http_handler);
@@ -109,7 +110,7 @@ pub async fn serve_http_api_json_rpc(
         routes = routes.layer(axum::middleware::from_fn(request_logging_middleware));
     }
 
-    axum::serve(tcp_listener, routes.into_make_service())
+    Ok(axum::serve(tcp_listener, routes.into_make_service()))
 }
 
 async fn log_body_and_path<T>(

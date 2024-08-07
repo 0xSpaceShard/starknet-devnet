@@ -20,11 +20,13 @@ use crate::api::http::endpoints::postman::{
 };
 use crate::api::http::endpoints::restart_impl;
 use crate::api::http::endpoints::time::{increase_time_impl, set_time_impl};
+use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
     AbortingBlocks, DumpPath, FlushParameters, IncreaseTime, MintTokensRequest,
     PostmanLoadL1MessagingContract, SetTime,
 };
 use crate::api::json_rpc::JsonRpcHandler;
+use crate::dump::load_events;
 
 impl JsonRpcHandler {
     pub async fn add_declare_transaction(
@@ -105,7 +107,21 @@ impl JsonRpcHandler {
         Ok(DevnetResponse::DevnetDump(dump).into())
     }
 
-    /// devnet_load - handled elsewhere
+    /// devnet_load
+    pub async fn load(&self, path: String) -> StrictRpcResult {
+        // necessary to restart before loading
+        if let Err(e) = self.restart().await {
+            Err(e)
+        } else {
+            match load_events(self.starknet_config.dump_on, &path) {
+                Ok(events) => match self.re_execute(&events).await {
+                    Ok(_) => Ok(super::JsonRpcResponse::Empty),
+                    Err(e) => Err(ApiError::HttpApiError(HttpApiError::LoadError(e.to_string()))),
+                },
+                Err(e) => Err(ApiError::HttpApiError(HttpApiError::LoadError(e.to_string()))),
+            }
+        }
+    }
 
     /// devnet_postmanLoad
     pub async fn postman_load(&self, data: PostmanLoadL1MessagingContract) -> StrictRpcResult {
