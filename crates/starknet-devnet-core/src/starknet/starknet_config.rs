@@ -120,6 +120,7 @@ pub struct StarknetConfig {
 
 impl Default for StarknetConfig {
     fn default() -> Self {
+        // unwraping is safe here because the contract is hardcoded and we know it wont fail
         let account_contract_class: ContractClass =
             ContractClass::cairo_1_from_sierra_json_str(CAIRO_1_ACCOUNT_CONTRACT_SIERRA)
                 .unwrap()

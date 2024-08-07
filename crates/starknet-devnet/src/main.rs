@@ -84,9 +84,9 @@ fn log_predeployed_accounts(
         println!("{}", formatted_str);
     }
 
-    if !predeployed_accounts.is_empty() {
+    if let Some(predeployed_account) = predeployed_accounts.first() {
         println!();
-        let class_hash = predeployed_accounts.first().unwrap().class_hash.to_fixed_hex_string();
+        let class_hash = predeployed_account.class_hash.to_fixed_hex_string();
         println!("Predeployed accounts using class with hash: {class_hash}");
         println!("Initial balance of each account: {} WEI and FRI", initial_balance);
         println!("Seed to replicate this account sequence: {seed}");
