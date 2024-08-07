@@ -180,7 +180,7 @@ async fn main() -> Result<(), anyhow::Error> {
         // Try to load events from the path. Since the same CLI parameter is used for dump and load
         // path, it may be the case that there is no file at the path. This means that the file will
         // be created during Devnet's lifetime via dumping, so its non-existence is here ignored.
-        match load_events(dump_path) {
+        match load_events(starknet_config.dump_on, dump_path) {
             Ok(events) => events,
             Err(starknet_core::error::Error::FileNotFound) => vec![],
             Err(err) => return Err(err.into()),

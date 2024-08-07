@@ -443,7 +443,7 @@ mod dump_and_load_tests {
 
     #[tokio::test]
     async fn mint_and_dump_and_load_on_same_devnet() {
-        let dump_file = UniqueAutoDeletableFile::new("dump_set_time");
+        let dump_file = UniqueAutoDeletableFile::new("dump");
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--dump-on",
             "exit",

@@ -6,7 +6,7 @@ use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{DumpPath, DumpResponseBody, LoadPath};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 use crate::api::Api;
-use crate::dump::{dump_events, load_events};
+use crate::dump::dump_events;
 
 pub async fn dump(
     State(state): State<HttpApiHandler>,
@@ -15,6 +15,7 @@ pub async fn dump(
     dump_impl(&state.api, extract_optional_json_from_request(optional_path)).await.map(Json::from)
 }
 
+// TODO consider completely removing these _impl methods
 pub(crate) async fn dump_impl(
     api: &Api,
     path_wrapper: Option<DumpPath>,
@@ -46,27 +47,9 @@ pub(crate) async fn dump_impl(
 }
 
 pub async fn load(
-    State(state): State<HttpApiHandler>,
-    Json(path_wrapper): Json<LoadPath>,
+    State(_state): State<HttpApiHandler>,
+    Json(_path_wrapper): Json<LoadPath>,
 ) -> HttpApiResult<()> {
-    // load_impl(&state.api, path_wrapper).await
+    // TODO load_impl(&state.api, path_wrapper).await
     Ok(())
 }
-
-// TODO consider completely removing these _impl methods
-
-// pub(crate) async fn load_impl(api: &Api, path_wrapper: LoadPath) -> HttpApiResult<()> {
-//     let mut starknet = api.starknet.lock().await;
-
-//     // necessary to restart before loading
-//     starknet.restart().map_err(|e| HttpApiError::RestartError { msg: e.to_string() })?;
-
-//     // TODO perform these actions on a Starknet instance?
-//     match load_events(&path_wrapper.path) {
-//         Ok(events) => {
-//             re_execute(events).map_err(|e| HttpApiError::ReExecutionError(e.to_string()))
-//         }
-//         Err(starknet_core::error::Error::FileNotFound) => Err(HttpApiError::FileNotFound),
-//         Err(e) => Err(HttpApiError::LoadError(e.to_string())),
-//     }
-// }

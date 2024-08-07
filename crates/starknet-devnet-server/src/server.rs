@@ -72,10 +72,16 @@ pub async fn serve_http_api_json_rpc(
         None
     };
 
-    let mut json_rpc_handler =
-        JsonRpcHandler { api, origin_caller, server_config: server_config.clone() };
+    let json_rpc_handler = JsonRpcHandler {
+        api,
+        origin_caller,
+        starknet_config: starknet_config.clone(),
+        server_config: server_config.clone(),
+    };
 
-    json_rpc_handler.on_call(loadable_events[0].clone()).await;
+    for event in loadable_events {
+        json_rpc_handler.on_call(event.clone()).await;
+    }
 
     let json_rpc_routes = json_rpc_routes(json_rpc_handler);
     let http_api_routes = http_api_routes(http_handler);

@@ -21,7 +21,7 @@ use crate::api::http::endpoints::postman::{
 use crate::api::http::endpoints::restart_impl;
 use crate::api::http::endpoints::time::{increase_time_impl, set_time_impl};
 use crate::api::http::models::{
-    AbortingBlocks, DumpPath, FlushParameters, IncreaseTime, LoadPath, MintTokensRequest,
+    AbortingBlocks, DumpPath, FlushParameters, IncreaseTime, MintTokensRequest,
     PostmanLoadL1MessagingContract, SetTime,
 };
 use crate::api::json_rpc::JsonRpcHandler;
@@ -104,6 +104,8 @@ impl JsonRpcHandler {
         let dump = dump_impl(&self.api, path).await.map_err(ApiError::from)?;
         Ok(DevnetResponse::DevnetDump(dump).into())
     }
+
+    /// devnet_load - handled elsewhere
 
     /// devnet_postmanLoad
     pub async fn postman_load(&self, data: PostmanLoadL1MessagingContract) -> StrictRpcResult {

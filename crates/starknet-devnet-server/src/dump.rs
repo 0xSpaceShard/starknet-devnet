@@ -5,6 +5,8 @@ use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
 use starknet_core::error::{DevnetResult, Error};
+use starknet_core::starknet::starknet_config::DumpOn;
+
 use crate::rpc_core::request::RpcMethodCall;
 
 pub type DumpEvent = RpcMethodCall;
@@ -21,11 +23,11 @@ pub fn dump_events(events: &Vec<DumpEvent>, path: &str) -> DevnetResult<()> {
 }
 
 /// Attaches starknet event to the end of the file at `path`. If no file present, creates it.
-pub fn dump_event(event: DumpEvent, path: &str) -> DevnetResult<()> {
+pub fn dump_event(event: &DumpEvent, path: &str) -> DevnetResult<()> {
     let file_path = Path::new(path);
     if file_path.exists() {
         // attach to file
-        let event_dump = serde_json::to_string(&event)
+        let event_dump = serde_json::to_string(event)
             .map_err(|e| Error::SerializationError { origin: e.to_string() })?;
         let mut file =
             OpenOptions::new().append(true).read(true).open(file_path).map_err(Error::IoError)?;
@@ -54,7 +56,7 @@ pub fn dump_event(event: DumpEvent, path: &str) -> DevnetResult<()> {
 }
 
 /// Returns Devnet events from the provided `path`
-pub fn load_events(path: &str) -> DevnetResult<Vec<DumpEvent>> {
+pub fn load_events(dump_on: Option<DumpOn>, path: &str) -> DevnetResult<Vec<DumpEvent>> {
     let file_path = Path::new(path);
     if path.is_empty() || !file_path.exists() {
         return Err(Error::FileNotFound);
@@ -66,11 +68,10 @@ pub fn load_events(path: &str) -> DevnetResult<Vec<DumpEvent>> {
 
     // to avoid doublets in block mode during load, we need to remove the file
     // because they will be re-executed and saved again
-    todo!();
-    // if config.dump_on == Some(DumpOn::Block) {
-    //     // TODO this shouldn't be the responsibility of this method
-    //     fs::remove_file(file_path).map_err(Error::IoError)?;
-    // }
+    if dump_on == Some(DumpOn::Block) {
+        // TODO this shouldn't be the responsibility of this method
+        fs::remove_file(file_path).map_err(Error::IoError)?;
+    }
 
-    // Ok(events)
+    Ok(events)
 }
