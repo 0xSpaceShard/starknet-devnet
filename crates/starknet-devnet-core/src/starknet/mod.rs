@@ -1282,6 +1282,7 @@ impl Starknet {
         self.next_block_timestamp = Some(timestamp);
     }
 
+    #[allow(clippy::expect_used)]
     pub fn get_unix_timestamp_as_seconds() -> u64 {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
