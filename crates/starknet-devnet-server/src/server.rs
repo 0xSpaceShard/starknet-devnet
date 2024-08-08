@@ -87,7 +87,7 @@ pub fn serve_http_api_json_rpc(
         .layer(
             CorsLayer::new()
                     // More details: https://docs.rs/tower-http/latest/tower_http/cors/index.html
-                    .allow_origin("*".parse::<HeaderValue>().unwrap())
+                    .allow_origin(HeaderValue::from_static("*"))
                     .allow_headers(vec![header::CONTENT_TYPE])
                     .allow_methods(vec![Method::GET, Method::POST]),
         );
