@@ -4,7 +4,7 @@ use std::path::Path;
 use std::process::{Child, Command};
 use std::sync::Arc;
 
-use server::test_utils::exported_test_utils::assert_contains;
+use server::test_utils::assert_contains;
 use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
 use starknet_core::random_number_generator::generate_u32_random_number;
 use starknet_core::utils::calculate_casm_hash;

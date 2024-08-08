@@ -6,6 +6,7 @@
 //! * get_balance -> gets the balance of a user.
 //! * withdraw -> withdraw from a user the given amount, sending the amount to a l2->l1 message.
 //! * deposit -> deposit the given amount from a l1->l2 message (l1 handler function).
+#![cfg(test)]
 
 // must use `pub`: https://github.com/rust-lang/rust/issues/46379#issuecomment-548787629
 pub mod common;
