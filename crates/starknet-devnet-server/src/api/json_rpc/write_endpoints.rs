@@ -202,7 +202,7 @@ mod tests {
     use crate::api::json_rpc::models::{
         BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper,
     };
-    use crate::test_utils::exported_test_utils::{declare_v1_str, deploy_account_str};
+    use crate::test_utils::{declare_v1_str, deploy_account_str};
 
     #[test]
     fn check_correct_deserialization_of_deploy_account_transaction_request() {
