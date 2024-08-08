@@ -227,6 +227,7 @@ async fn main() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+#[allow(clippy::expect_used)]
 async fn create_block_interval(
     api: Api,
     block_interval_seconds: u64,
@@ -260,6 +261,7 @@ async fn create_block_interval(
     }
 }
 
+#[allow(clippy::expect_used)]
 pub async fn shutdown_signal(api: Api) {
     tokio::signal::ctrl_c().await.expect("Failed to install CTRL+C signal handler");
 
