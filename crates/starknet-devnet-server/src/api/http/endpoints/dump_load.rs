@@ -1,18 +1,19 @@
 use axum::extract::State;
 use axum::Json;
 
-use super::extract_optional_json_from_request;
 use crate::api::http::error::HttpApiError;
-use crate::api::http::models::{DumpPath, DumpResponseBody, LoadPath};
+use crate::api::http::models::{DumpPath, DumpResponseBody};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 use crate::api::Api;
 use crate::dump::dump_events;
 
 pub async fn dump(
-    State(state): State<HttpApiHandler>,
-    optional_path: Option<Json<DumpPath>>,
+    State(_state): State<HttpApiHandler>,
+    _optional_path: Option<Json<DumpPath>>,
 ) -> HttpApiResult<Json<DumpResponseBody>> {
-    dump_impl(&state.api, extract_optional_json_from_request(optional_path)).await.map(Json::from)
+    todo!("should never be called");
+    // dump_impl(&state.api,
+    // extract_optional_json_from_request(optional_path)).await.map(Json::from)
 }
 
 // TODO consider completely removing these _impl methods
@@ -48,8 +49,9 @@ pub(crate) async fn dump_impl(
 
 pub async fn load(
     State(_state): State<HttpApiHandler>,
-    Json(_path_wrapper): Json<LoadPath>,
+    Json(_path_wrapper): Json<serde_json::Value>,
 ) -> HttpApiResult<()> {
-    // TODO load_impl(&state.api, path_wrapper).await
+    // todo!("should never be called");
+    // load_impl(&state.api, path_wrapper).await
     Ok(())
 }

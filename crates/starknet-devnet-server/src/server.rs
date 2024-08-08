@@ -82,14 +82,16 @@ pub async fn serve_http_api_json_rpc(
     json_rpc_handler
         .re_execute(loadable_events)
         .await
-        .map_err(|e| anyhow::anyhow!("Failed to load Devnet: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("Failed to re-execute dumped Devnet: {e}"))?;
 
     let json_rpc_routes = json_rpc_routes(json_rpc_handler);
-    let http_api_routes = http_api_routes(http_handler);
+    let http_api_routes =
+        http_api_routes(http_handler).route_layer(axum::middleware::from_fn(convert_to_rpc));
 
     let mut routes = Router::new()
-        .layer(axum::middleware::from_fn(rpc_conversion_middleware))
-        .merge(http_api_routes.merge(json_rpc_routes).layer(TraceLayer::new_for_http()));
+        .merge(http_api_routes)
+        .merge(json_rpc_routes)
+        .layer(TraceLayer::new_for_http());
 
     if server_config.log_response {
         routes = routes.layer(axum::middleware::from_fn(response_logging_middleware));
@@ -99,11 +101,11 @@ pub async fn serve_http_api_json_rpc(
         .layer(TimeoutLayer::new(Duration::from_secs(server_config.timeout.into())))
         .layer(DefaultBodyLimit::max(server_config.request_body_size_limit))
         .layer(
+            // More details: https://docs.rs/tower-http/latest/tower_http/cors/index.html
             CorsLayer::new()
-                    // More details: https://docs.rs/tower-http/latest/tower_http/cors/index.html
-                    .allow_origin("*".parse::<HeaderValue>().unwrap())
-                    .allow_headers(vec![header::CONTENT_TYPE])
-                    .allow_methods(vec![Method::GET, Method::POST]),
+                .allow_origin("*".parse::<HeaderValue>().unwrap())
+                .allow_headers(vec![header::CONTENT_TYPE])
+                .allow_methods(vec![Method::GET, Method::POST]),
         );
 
     if server_config.log_request {
@@ -172,8 +174,14 @@ async fn body_as_json_value(body: Body) -> Result<serde_json::Value, (StatusCode
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .to_bytes();
 
-    serde_json::from_slice(&body_bytes)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+    if body_bytes.is_empty() {
+        // TODO this case was added when I didn't know that the redirection was unsuccessful and
+        // that the dummy response from load_impl was being returned
+        Ok(serde_json::json!({}))
+    } else {
+        serde_json::from_slice(&body_bytes)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+    }
 }
 
 fn json_value_to_body(value: &serde_json::Value) -> Result<Body, (StatusCode, String)> {
@@ -182,61 +190,63 @@ fn json_value_to_body(value: &serde_json::Value) -> Result<Body, (StatusCode, St
     Ok(Body::from(bytes))
 }
 
-async fn rpc_conversion_middleware(
-    request: Request,
+async fn convert_to_rpc(
+    mut request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-    let (mut parts, mut body) = request.into_parts();
-
     // TODO check if method is POST?
     // TODO define mapping outside
-    let dumpable_rpc_method_suffix = match parts.uri.to_string().as_str() {
-        "/dump" => Some("dump"),
-        "/load" => Some("load"),
-        "/postman/load_l1_messaging_contract" => Some("postmanLoad"),
-        "/postman/flush" => Some("postmanFlush"),
-        "/postman/send_message_to_l2" => Some("postmanSendMessageToL2"),
-        "/postman/consume_message_from_l2" => Some("postmanConsumeMessageFromL2"),
-        "/create_block" => Some("createBlock"),
-        "/abort_blocks" => Some("abortBlocks"),
-        "/restart" => Some("restart"),
-        "/set_time" => Some("setTime"),
-        "/increase_time" => Some("increaseTime"),
-        "/predeployed_accounts" => Some("getPredeployedAccounts"),
-        "/account_balance" => Some("getAccountBalance"),
-        "/mint" => Some("mint"),
-        "/config" => Some("config"),
+    let rpc_method = match request.uri().to_string().as_str() {
+        "/dump" => Some("devnet_dump"),
+        "/load" => Some("devnet_load"),
+        "/postman/load_l1_messaging_contract" => Some("devnet_postmanLoad"),
+        "/postman/flush" => Some("devnet_postmanFlush"),
+        "/postman/send_message_to_l2" => Some("devnet_postmanSendMessageToL2"),
+        "/postman/consume_message_from_l2" => Some("devnet_postmanConsumeMessageFromL2"),
+        "/create_block" => Some("devnet_createBlock"),
+        "/abort_blocks" => Some("devnet_abortBlocks"),
+        "/restart" => Some("devnet_restart"),
+        "/set_time" => Some("devnet_setTime"),
+        "/increase_time" => Some("devnet_increaseTime"),
+        "/predeployed_accounts" => Some("devnet_getPredeployedAccounts"),
+        "/account_balance" => Some("devnet_getAccountBalance"),
+        "/mint" => Some("devnet_mint"),
+        "/config" => Some("devnet_config"),
         _ => None,
     };
 
-    if let Some(rpc_suffix) = dumpable_rpc_method_suffix {
-        parts.uri = axum::http::Uri::from_static("/rpc");
-
-        let rpc_params = body_as_json_value(body).await?;
-        let rpc_body = serde_json::json!({
-            "method": format!("devnet_{rpc_suffix}"),
+    if let Some(rpc_method) = rpc_method {
+        let rpc_params = body_as_json_value(request.into_body()).await?;
+        let new_body = json_value_to_body(&serde_json::json!({
+            "method": rpc_method,
             "jsonrpc": "2.0",
             "id": "1",
             "params": rpc_params,
-        });
-        body = json_value_to_body(&rpc_body)?;
+        }))?;
+        request = Request::builder()
+            .uri("/rpc")
+            .header("content-type", "application/json")
+            .header("accept", "application/json")
+            .body(new_body)
+            .unwrap();
     }
 
-    let mut response = next.run(Request::from_parts(parts, body)).await;
+    let mut response = next.run(request).await;
 
-    if dumpable_rpc_method_suffix.is_some() {
+    if rpc_method.is_some() {
+        // TODO perhaps only modify response if status 200?
         let (parts, mut body) = response.into_parts();
 
-        let resp_value = body_as_json_value(body).await?;
-        let extracted = if let Some(result) = resp_value.get("result") {
+        let rpc_resp = body_as_json_value(body).await?;
+        let non_rpc_resp = if let Some(result) = rpc_resp.get("result") {
             result
-        } else if let Some(error) = resp_value.get("error") {
+        } else if let Some(error) = rpc_resp.get("error") {
             error
         } else {
-            &resp_value
+            &rpc_resp
         };
 
-        body = json_value_to_body(extracted)?;
+        body = json_value_to_body(non_rpc_resp)?;
         response = Response::from_parts(parts, body);
     }
 
