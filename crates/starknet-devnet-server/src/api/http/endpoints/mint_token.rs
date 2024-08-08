@@ -21,7 +21,10 @@ pub fn get_balance(
     erc20_address: ContractAddress,
     tag: BlockTag,
 ) -> Result<BigUint, ApiError> {
-    let balance_selector = starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
+    let balance_selector =
+        starknet_rs_core::utils::get_selector_from_name("balanceOf").map_err(|err| {
+            starknet_core::error::Error::UnexpectedInternalError { msg: err.to_string() }
+        })?;
     let new_balance_raw = starknet.call(
         &BlockId::Tag(tag),
         erc20_address.into(),
@@ -29,21 +32,25 @@ pub fn get_balance(
         vec![Felt::from(address)], // calldata = the address being queried
     )?;
 
-    // format balance for output - initially it is a 2-member vector (low, high)
-    if new_balance_raw.len() != 2 {
-        let msg =
-            format!("Fee token contract expected to return 2 values; got: {:?}", new_balance_raw);
+    match new_balance_raw.as_slice() {
+        // format balance for output - initially it is a 2-member vector (low, high)
+        [new_balance_low, new_balance_high] => Ok(join_felts(new_balance_high, new_balance_low)),
+        _ => {
+            let msg = format!(
+                "Fee token contract expected to return 2 values; got: {:?}",
+                new_balance_raw
+            );
 
-        return Err(ApiError::ContractError {
-            error: starknet_core::error::Error::UnexpectedInternalError { msg },
-        });
+            Err(ApiError::ContractError {
+                error: starknet_core::error::Error::UnexpectedInternalError { msg },
+            })
+        }
     }
-    let new_balance_low = new_balance_raw.first().unwrap();
-    let new_balance_high = new_balance_raw.last().unwrap();
-    Ok(join_felts(new_balance_high, new_balance_low))
 }
 
+#[allow(clippy::unwrap_used)]
 /// Returns the address of the ERC20 (fee token) contract associated with the unit.
+// unwraps are safe to use, because those are constants from mainnet
 pub fn get_erc20_address(unit: &FeeUnit) -> ContractAddress {
     match unit {
         FeeUnit::WEI => {
