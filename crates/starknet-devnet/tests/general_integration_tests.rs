@@ -46,7 +46,7 @@ mod general_integration_tests {
         let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await.unwrap();
 
         // subtract enough so that the rest of the json body doesn't overflow the limit
-        let ok_path = "0".repeat(limit - 12); // TODO determine the new subtrahend
+        let ok_path = "0".repeat(limit - 20);
         let error = devnet
             .reqwest_client()
             .post_json_async("/load", json!({ "path": ok_path }))
@@ -57,7 +57,7 @@ mod general_integration_tests {
         assert_eq!(error.status(), StatusCode::BAD_REQUEST);
         assert_eq!(
             error.error_message(),
-            json!({ "error": "The file does not exist" }).to_string()
+            json!({ "error": "The load operation failed: The file does not exist" }).to_string()
         );
     }
 
@@ -159,14 +159,5 @@ mod general_integration_tests {
 
             assert_eq!(parse_cairo_short_string(&actual_value).unwrap().as_str(), expected_value);
         }
-    }
-
-    #[tokio::test]
-    async fn test_non_rpc_works() {
-        todo!(
-            "The idea of this test is to assert that, after the introduction of rpc conversion \
-             middleware, non-rpc requests are still acceptable. This is important because almost \
-             all of our tests rely on the JSON-RPC API"
-        );
     }
 }

@@ -98,6 +98,8 @@ macro_rules! http_rpc_router {
             use $crate::rpc_core::request::Request;
             use $crate::rpc_core::response::Response;
             use $crate::rpc_handler::handle_request;
+            use $crate::api::http::HttpApiResult;
+            use $crate::api::http::error::HttpApiError;
 
             let mut router = Router::new();
             $(
@@ -105,31 +107,31 @@ macro_rules! http_rpc_router {
                 pub async fn $rpc_method_name<THandler: RpcHandler>(
                     State(handler): State<THandler>,
                     Json(request): Json<serde_json::Map<String, serde_json::Value>>,
-                ) -> Json<serde_json::Value>{
+                ) -> HttpApiResult<Json<serde_json::Value>>{
                     let rpc_req = Json(Request::Single(RpcCall::MethodCall(RpcMethodCall {
                         jsonrpc: Version::V2,
                         method: stringify!($rpc_method_name).to_string(),
                         params: RequestParams::Object(request),
                         id: Id::Number(0),
                     })));
+
                     let rpc_resp: Response = handle_request(rpc_req.0, handler)
                         .await
                         .unwrap_or_else(|| Response::error(RpcError::invalid_request()))
                         .into();
 
-                    let rpc_resp = match serde_json::to_value(rpc_resp) {
-                        Ok(r) => r,
-                        Err(e) => return Json(serde_json::json!({ "error": e.to_string() }))
-                    };
+                    let rpc_resp_serialized = serde_json::to_value(rpc_resp)
+                        .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
 
-                    let non_rpc_resp: serde_json::Value = if let Some(result) = rpc_resp.get("result") {
-                        result.clone()
-                    } else if let Some(error) = rpc_resp.get("error") {
-                        error.clone()
+                    if let Some(result) = rpc_resp_serialized.get("result") {
+                        Ok(Json(result.clone()))
+                    } else if let Some(err_msg) = rpc_resp_serialized.get("error")
+                        .and_then(|e: &serde_json::Value| e.get("message"))
+                        .and_then(|m| m.as_str()) {
+                        Err(HttpApiError::GeneralError(err_msg.to_string()))
                     } else {
-                        rpc_resp
-                    };
-                    Json(non_rpc_resp)
+                        Err(HttpApiError::GeneralError(rpc_resp_serialized.to_string()))
+                    }
                 }
 
                 router = router.route($http_path, post($rpc_method_name::<JsonRpcHandler>));

@@ -62,3 +62,7 @@ pub async fn get_devnet_config(
         server_config: state.server_config.clone(),
     }))
 }
+
+pub(crate) fn extract_optional_json_from_request<T>(optional_json: Option<Json<T>>) -> Option<T> {
+    optional_json.map(|json| Some(json.0)).unwrap_or(Option::None)
+}
