@@ -82,8 +82,10 @@ pub async fn handle<THandler: RpcHandler>(
 }
 
 #[macro_export]
+/// Match a list of comma-separated pairs enclosed in square brackets. First pair member is the HTTP
+/// path which is mapped to an RPC request with the method that is the second pair member. Using the
+/// same identifier for the handler function name and the method name provided in the RPC request.
 macro_rules! http_rpc_router {
-    // Match a list of pairs enclosed in parentheses
     ( $( ( $http_path:expr, $rpc_method_name:ident ) ),* $(,)?  ) => {
         {
             use axum::extract::State;
@@ -107,6 +109,7 @@ macro_rules! http_rpc_router {
                     State(handler): State<THandler>,
                     Json(request): Json<serde_json::Map<String, serde_json::Value>>,
                 ) -> HttpApiResult<Json<serde_json::Value>>{
+                    // Convert normal HTTP request to RPC by wrapping
                     let rpc_req = Json(Request::Single(RpcCall::MethodCall(RpcMethodCall {
                         jsonrpc: Version::V2,
                         method: stringify!($rpc_method_name).to_string(),
@@ -114,14 +117,17 @@ macro_rules! http_rpc_router {
                         id: Id::Number(0),
                     })));
 
+                    // Obtain RPC response
                     let rpc_resp: Response = handle_request(rpc_req.0, handler)
                         .await
                         .unwrap_or_else(|| Response::error(RpcError::invalid_request()))
                         .into();
 
+                    // Convert the response from RPC to normal HTTP format by extracting
                     let rpc_resp_serialized = serde_json::to_value(rpc_resp)
                         .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
 
+                    // Separately handle if successful or error
                     if let Some(result) = rpc_resp_serialized.get("result") {
                         Ok(Json(result.clone()))
                     } else if let Some(err_msg) = rpc_resp_serialized.get("error")
