@@ -21,7 +21,7 @@ use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::Api;
 use crate::dump::DumpEvent;
 use crate::rpc_handler::RpcHandler;
-use crate::{rpc_handler, ServerConfig};
+use crate::{http_rpc_router, rpc_handler, ServerConfig};
 pub type StarknetDevnetServer = axum::serve::Serve<IntoMakeService<Router>, Router>;
 
 fn json_rpc_routes<TJsonRpcHandler: RpcHandler>(json_rpc_handler: TJsonRpcHandler) -> Router {
@@ -36,23 +36,27 @@ fn http_api_routes(http_api_handler: HttpApiHandler) -> Router {
         .route("/is_alive", get(http::is_alive))
         .route("/dump", post(http::dump_load::dump))
         .route("/load", post(http::dump_load::load))
-        .route("/postman/load_l1_messaging_contract", post(http::postman::postman_load))
-        .route("/postman/flush", post(http::postman::postman_flush))
-        .route("/postman/send_message_to_l2", post(http::postman::postman_send_message_to_l2))
-        .route(
-            "/postman/consume_message_from_l2",
-            post(http::postman::postman_consume_message_from_l2),
-        )
-        .route("/create_block", post(http::blocks::create_block))
-        .route("/abort_blocks", post(http::blocks::abort_blocks))
-        .route("/restart", post(http::restart))
-        .route("/set_time", post(http::time::set_time))
-        .route("/increase_time", post(http::time::increase_time))
         .route("/predeployed_accounts", get(http::accounts::get_predeployed_accounts))
         .route("/account_balance", get(http::accounts::get_account_balance))
-        .route("/mint", post(http::mint_token::mint))
         .route("/config", get(http::get_devnet_config))
         .with_state(http_api_handler)
+}
+
+// TODO make type generic as in fn json_rpc_routes
+fn converted_http_api_routes(json_rpc_handler: JsonRpcHandler) -> Router {
+    http_rpc_router![
+        ("/postman/load_l1_messaging_contract", devnet_postmanLoad),
+        ("/postman/flush", devnet_postmanFlush),
+        ("/postman/send_message_to_l2", devnet_postmanSendMessageToL2),
+        ("/postman/consume_message_from_l2", devnet_postmanConsumeMessageFromL2),
+        ("/create_block", devnet_createBlock),
+        ("/abort_blocks", devnet_abortBlocks),
+        ("/restart", devnet_restart),
+        ("/set_time", devnet_setTime),
+        ("/increase_time", devnet_increaseTime),
+        ("/mint", devnet_mint),
+    ]
+    .with_state(json_rpc_handler)
 }
 
 /// Configures an [axum::Server] that handles related JSON-RPC calls and WEB API calls via HTTP
@@ -84,13 +88,10 @@ pub async fn serve_http_api_json_rpc(
         .await
         .map_err(|e| anyhow::anyhow!("Failed to re-execute dumped Devnet: {e}"))?;
 
-    let json_rpc_routes = json_rpc_routes(json_rpc_handler);
-    let http_api_routes =
-        http_api_routes(http_handler).route_layer(axum::middleware::from_fn(convert_to_rpc));
-
     let mut routes = Router::new()
-        .merge(http_api_routes)
-        .merge(json_rpc_routes)
+        .merge(json_rpc_routes(json_rpc_handler.clone()))
+        .merge(http_api_routes(http_handler))
+        .merge(converted_http_api_routes(json_rpc_handler))
         .layer(TraceLayer::new_for_http());
 
     if server_config.log_response {
@@ -164,91 +165,5 @@ async fn response_logging_middleware(
     let body = log_body_and_path(body, None).await?;
 
     let response = Response::from_parts(parts, body);
-    Ok(response)
-}
-
-async fn body_as_json_value(body: Body) -> Result<serde_json::Value, (StatusCode, String)> {
-    let body_bytes = body
-        .collect()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .to_bytes();
-
-    if body_bytes.is_empty() {
-        // TODO this case was added when I didn't know that the redirection was unsuccessful and
-        // that the dummy response from load_impl was being returned
-        Ok(serde_json::json!({}))
-    } else {
-        serde_json::from_slice(&body_bytes)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
-    }
-}
-
-fn json_value_to_body(value: &serde_json::Value) -> Result<Body, (StatusCode, String)> {
-    let bytes = serde_json::to_vec(value)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    Ok(Body::from(bytes))
-}
-
-async fn convert_to_rpc(
-    mut request: Request,
-    next: Next,
-) -> Result<impl IntoResponse, (StatusCode, String)> {
-    // TODO check if method is POST?
-    // TODO define mapping outside
-    let rpc_method = match request.uri().to_string().as_str() {
-        "/dump" => Some("devnet_dump"),
-        "/load" => Some("devnet_load"),
-        "/postman/load_l1_messaging_contract" => Some("devnet_postmanLoad"),
-        "/postman/flush" => Some("devnet_postmanFlush"),
-        "/postman/send_message_to_l2" => Some("devnet_postmanSendMessageToL2"),
-        "/postman/consume_message_from_l2" => Some("devnet_postmanConsumeMessageFromL2"),
-        "/create_block" => Some("devnet_createBlock"),
-        "/abort_blocks" => Some("devnet_abortBlocks"),
-        "/restart" => Some("devnet_restart"),
-        "/set_time" => Some("devnet_setTime"),
-        "/increase_time" => Some("devnet_increaseTime"),
-        "/predeployed_accounts" => Some("devnet_getPredeployedAccounts"),
-        "/account_balance" => Some("devnet_getAccountBalance"),
-        "/mint" => Some("devnet_mint"),
-        "/config" => Some("devnet_config"),
-        _ => None,
-    };
-
-    if let Some(rpc_method) = rpc_method {
-        let rpc_params = body_as_json_value(request.into_body()).await?;
-        let new_body = json_value_to_body(&serde_json::json!({
-            "method": rpc_method,
-            "jsonrpc": "2.0",
-            "id": "1",
-            "params": rpc_params,
-        }))?;
-        request = Request::builder()
-            .uri("/rpc")
-            .header("content-type", "application/json")
-            .header("accept", "application/json")
-            .body(new_body)
-            .unwrap();
-    }
-
-    let mut response = next.run(request).await;
-
-    if rpc_method.is_some() {
-        // TODO perhaps only modify response if status 200?
-        let (parts, mut body) = response.into_parts();
-
-        let rpc_resp = body_as_json_value(body).await?;
-        let non_rpc_resp = if let Some(result) = rpc_resp.get("result") {
-            result
-        } else if let Some(error) = rpc_resp.get("error") {
-            error
-        } else {
-            &rpc_resp
-        };
-
-        body = json_value_to_body(non_rpc_resp)?;
-        response = Response::from_parts(parts, body);
-    }
-
     Ok(response)
 }

@@ -1,5 +1,3 @@
-use axum::extract::State;
-use axum::Json;
 use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::{BlockId, BlockTag, Felt};
@@ -10,7 +8,7 @@ use starknet_types::rpc::transaction_receipt::FeeUnit;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{MintTokensRequest, MintTokensResponse};
-use crate::api::http::{HttpApiHandler, HttpApiResult};
+use crate::api::http::HttpApiResult;
 use crate::api::json_rpc::error::ApiError;
 use crate::api::Api;
 
@@ -55,13 +53,6 @@ pub fn get_erc20_address(unit: &FeeUnit) -> ContractAddress {
                 .unwrap()
         }
     }
-}
-
-pub async fn mint(
-    State(state): State<HttpApiHandler>,
-    Json(request): Json<MintTokensRequest>,
-) -> HttpApiResult<Json<MintTokensResponse>> {
-    mint_impl(&state.api, request).await.map(Json::from)
 }
 
 pub(crate) async fn mint_impl(

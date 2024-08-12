@@ -82,6 +82,63 @@ pub async fn handle<THandler: RpcHandler>(
     }
 }
 
+#[macro_export]
+macro_rules! http_rpc_router {
+    // Match a list of pairs enclosed in parentheses
+    ( $( ( $http_path:expr, $rpc_method_name:ident ) ),* $(,)?  ) => {
+        {
+            use axum::extract::State;
+            use axum::Json;
+            use $crate::rpc_core::error::RpcError;
+            use $crate::rpc_core::request::Version;
+            use $crate::rpc_core::request::Id;
+            use $crate::rpc_core::request::RpcCall;
+            use $crate::rpc_core::request::RpcMethodCall;
+            use $crate::rpc_core::request::RequestParams;
+            use $crate::rpc_core::request::Request;
+            use $crate::rpc_core::response::Response;
+            use $crate::rpc_handler::handle_request;
+
+            let mut router = Router::new();
+            $(
+                #[allow(non_snake_case)]
+                pub async fn $rpc_method_name<THandler: RpcHandler>(
+                    State(handler): State<THandler>,
+                    Json(request): Json<serde_json::Map<String, serde_json::Value>>,
+                ) -> Json<serde_json::Value>{
+                    let rpc_req = Json(Request::Single(RpcCall::MethodCall(RpcMethodCall {
+                        jsonrpc: Version::V2,
+                        method: stringify!($rpc_method_name).to_string(),
+                        params: RequestParams::Object(request),
+                        id: Id::Number(0),
+                    })));
+                    let rpc_resp: Response = handle_request(rpc_req.0, handler)
+                        .await
+                        .unwrap_or_else(|| Response::error(RpcError::invalid_request()))
+                        .into();
+
+                    let rpc_resp = match serde_json::to_value(rpc_resp) {
+                        Ok(r) => r,
+                        Err(e) => return Json(serde_json::json!({ "error": e.to_string() }))
+                    };
+
+                    let non_rpc_resp: serde_json::Value = if let Some(result) = rpc_resp.get("result") {
+                        result.clone()
+                    } else if let Some(error) = rpc_resp.get("error") {
+                        error.clone()
+                    } else {
+                        rpc_resp
+                    };
+                    Json(non_rpc_resp)
+                }
+
+                router = router.route($http_path, post($rpc_method_name::<JsonRpcHandler>));
+            )*
+            router
+        }
+    };
+}
+
 /// Handle the JSON-RPC [Request]
 ///
 /// This will try to deserialize the payload into the request type of the handler and if successful
