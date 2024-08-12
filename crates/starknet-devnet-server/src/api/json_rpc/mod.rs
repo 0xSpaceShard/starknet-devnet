@@ -52,7 +52,7 @@ use crate::api::json_rpc::models::{
     BroadcastedInvokeTransactionEnumWrapper, SimulateTransactionsInput,
 };
 use crate::api::serde_helpers::{empty_params, optional_params};
-use crate::dump::dump_event;
+use crate::dump_util::dump_event;
 use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::ResponseResult;
@@ -306,17 +306,15 @@ impl JsonRpcHandler {
     ];
 
     async fn update_dump(&self, event: &RpcMethodCall) -> Result<(), RpcError> {
-        // TODO don't lock mutex on every call - specify dumping options on construction
-        let starknet = self.api.starknet.lock().await;
-        if let Some(dump_on) = starknet.config.dump_on {
+        if let Some(dump_on) = self.starknet_config.dump_on {
             if !Self::DUMPABLE_METHODS.contains(&event.method.as_str()) {
                 return Ok(());
             }
 
             match dump_on {
                 DumpOn::Block => {
-                    let dump_path = starknet
-                        .config
+                    let dump_path = self
+                        .starknet_config
                         .dump_path
                         .as_deref()
                         .ok_or(RpcError::internal_error_with("Undefined dump_path"))?;

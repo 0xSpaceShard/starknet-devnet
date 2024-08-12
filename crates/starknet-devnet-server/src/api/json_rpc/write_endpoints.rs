@@ -25,7 +25,7 @@ use crate::api::http::models::{
     PostmanLoadL1MessagingContract, SetTime,
 };
 use crate::api::json_rpc::JsonRpcHandler;
-use crate::dump::load_events;
+use crate::dump_util::load_events;
 
 impl JsonRpcHandler {
     pub async fn add_declare_transaction(

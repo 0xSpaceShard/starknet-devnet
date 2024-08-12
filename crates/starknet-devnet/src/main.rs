@@ -7,7 +7,7 @@ use cli::Args;
 use futures::future::join_all;
 use server::api::json_rpc::RPC_SPEC_VERSION;
 use server::api::Api;
-use server::dump::{dump_events, load_events, DumpEvent};
+use server::dump_util::{dump_events, load_events, DumpEvent};
 use server::rpc_core::request::{Id, RequestParams, Version};
 use server::server::serve_http_api_json_rpc;
 use starknet_core::account::Account;
@@ -269,7 +269,7 @@ async fn create_block_interval(
                 let mut dumpable_events = api.dumpable_events.lock().await;
                 info!("Generating block on time interval");
 
-                // TODO consider creating a client and sending a request to server
+                // manually add event for dumping; alternative: create a client and send request
                 starknet.create_block().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
                 dumpable_events.push(DumpEvent { jsonrpc: Version::V2, method: "devnet_createBlock".into(), params: RequestParams::None, id: Id::Number(0) });
             }
