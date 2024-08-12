@@ -22,7 +22,7 @@ Devnet allows you to use impersonated account from mainnet/testnet. This means t
 
 ## Disabling impersonation
 
-Users can disable account impersonation by starting Devnet with CLI flag `--restrictive-mode` or by setting environment variable `RESTRICTIVE_MODE`. Refer to [Restrictive mode](./restrictive.md) for more details.
+Click [here](./restrictive.md) to learn how to disable account impersonation.
 
 ## API
 
