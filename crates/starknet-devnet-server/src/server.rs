@@ -59,7 +59,9 @@ fn converted_http_api_routes(json_rpc_handler: JsonRpcHandler) -> Router {
     .with_state(json_rpc_handler)
 }
 
-/// Configures an [axum::Server] that handles related JSON-RPC calls and WEB API calls via HTTP
+/// Configures an [axum::Server] that handles related JSON-RPC calls and web API calls via HTTP.
+/// Handles `loadable_events` because their re-execution requires RPC handler, which only exists in
+/// this function.
 pub async fn serve_http_api_json_rpc(
     tcp_listener: TcpListener,
     api: Api,

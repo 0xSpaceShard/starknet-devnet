@@ -231,7 +231,6 @@ impl JsonRpcHandler {
             JsonRpcRequest::AutoImpersonate => self.set_auto_impersonate(true).await,
             JsonRpcRequest::StopAutoImpersonate => self.set_auto_impersonate(false).await,
             JsonRpcRequest::Dump(path) => self.dump(path).await,
-            // devnet_load
             JsonRpcRequest::Load(LoadPath { path }) => self.load(path).await,
             JsonRpcRequest::PostmanLoadL1MessagingContract(data) => self.postman_load(data).await,
             JsonRpcRequest::PostmanFlush(data) => self.postman_flush(data).await,
