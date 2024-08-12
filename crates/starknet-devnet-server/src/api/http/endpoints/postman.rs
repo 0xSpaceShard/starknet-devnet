@@ -1,5 +1,3 @@
-use axum::extract::State;
-use axum::Json;
 use starknet_rs_core::types::Felt;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
@@ -10,44 +8,12 @@ use crate::api::http::models::{
     FlushParameters, FlushedMessages, MessageHash, MessagingLoadAddress,
     PostmanLoadL1MessagingContract, TxHash,
 };
-use crate::api::http::{HttpApiHandler, HttpApiResult};
+use crate::api::http::HttpApiResult;
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::Api;
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::ResponseResult;
 use crate::rpc_handler::RpcHandler;
-
-pub async fn postman_load(
-    State(state): State<HttpApiHandler>,
-    Json(data): Json<PostmanLoadL1MessagingContract>,
-) -> HttpApiResult<Json<MessagingLoadAddress>> {
-    postman_load_impl(&state.api, data).await.map(Json::from)
-}
-
-pub async fn postman_flush(
-    State(_state): State<HttpApiHandler>,
-    _optional_data: Option<Json<FlushParameters>>,
-) -> HttpApiResult<Json<FlushedMessages>> {
-    todo!("Should never be called");
-    // postman_flush_impl(&state.api, extract_optional_json_from_request(optional_data))
-    //     .await
-    //     .map(Json::from)
-}
-
-pub async fn postman_send_message_to_l2(
-    State(_state): State<HttpApiHandler>,
-    Json(_message): Json<MessageToL2>,
-) -> HttpApiResult<Json<TxHash>> {
-    todo!("Should never be called");
-    // postman_send_message_to_l2_impl(&state.api, message).await.map(Json::from)
-}
-
-pub async fn postman_consume_message_from_l2(
-    State(state): State<HttpApiHandler>,
-    Json(message): Json<MessageToL1>,
-) -> HttpApiResult<Json<MessageHash>> {
-    postman_consume_message_from_l2_impl(&state.api, message).await.map(Json::from)
-}
 
 pub(crate) async fn postman_load_impl(
     api: &Api,

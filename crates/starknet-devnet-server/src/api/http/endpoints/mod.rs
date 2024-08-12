@@ -3,9 +3,7 @@ use axum::Json;
 use serde::Serialize;
 use starknet_core::starknet::starknet_config::StarknetConfig;
 
-use super::error::HttpApiError;
 use super::{HttpApiHandler, HttpApiResult};
-use crate::api::Api;
 use crate::ServerConfig;
 
 /// Dumping and loading
@@ -29,21 +27,6 @@ pub mod mint_token;
 /// Is alive
 pub async fn is_alive() -> HttpApiResult<String> {
     Ok("Alive!!!".to_string())
-}
-
-/// Restart
-pub async fn restart(State(state): State<HttpApiHandler>) -> HttpApiResult<()> {
-    restart_impl(&state.api).await
-}
-
-pub(crate) async fn restart_impl(api: &Api) -> HttpApiResult<()> {
-    api.starknet
-        .lock()
-        .await
-        .restart()
-        .map_err(|err| HttpApiError::RestartError { msg: err.to_string() })?;
-
-    Ok(())
 }
 
 #[derive(Serialize)]

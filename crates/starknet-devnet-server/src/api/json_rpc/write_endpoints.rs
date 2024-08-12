@@ -18,7 +18,6 @@ use crate::api::http::endpoints::postman::{
     postman_consume_message_from_l2_impl, postman_flush_impl, postman_load_impl,
     postman_send_message_to_l2_impl,
 };
-use crate::api::http::endpoints::restart_impl;
 use crate::api::http::endpoints::time::{increase_time_impl, set_time_impl};
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
@@ -180,7 +179,14 @@ impl JsonRpcHandler {
 
     /// devnet_restart
     pub async fn restart(&self) -> StrictRpcResult {
-        restart_impl(&self.api).await.map_err(ApiError::from)?;
+        self.api.dumpable_events.lock().await.clear();
+
+        self.api
+            .starknet
+            .lock()
+            .await
+            .restart()
+            .map_err(|err| HttpApiError::RestartError { msg: err.to_string() })?;
 
         Ok(super::JsonRpcResponse::Empty)
     }

@@ -1,24 +1,7 @@
-use axum::extract::State;
-use axum::Json;
-
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{IncreaseTime, IncreaseTimeResponse, SetTime, SetTimeResponse};
-use crate::api::http::{HttpApiHandler, HttpApiResult};
+use crate::api::http::HttpApiResult;
 use crate::api::Api;
-
-pub async fn set_time(
-    State(state): State<HttpApiHandler>,
-    Json(data): Json<SetTime>,
-) -> HttpApiResult<Json<SetTimeResponse>> {
-    set_time_impl(&state.api, data).await.map(Json::from)
-}
-
-pub async fn increase_time(
-    State(state): State<HttpApiHandler>,
-    Json(data): Json<IncreaseTime>,
-) -> HttpApiResult<Json<IncreaseTimeResponse>> {
-    increase_time_impl(&state.api, data).await.map(Json::from)
-}
 
 pub(crate) async fn set_time_impl(api: &Api, data: SetTime) -> HttpApiResult<SetTimeResponse> {
     let mut starknet = api.starknet.lock().await;
