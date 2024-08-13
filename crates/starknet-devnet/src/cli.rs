@@ -708,7 +708,8 @@ mod tests {
 
     #[test]
     fn check_if_methods_with_correct_names_will_not_produce_an_error() {
-        let args = Args::parse_from(["--", "--restrictive-mode"]);
-        args.to_config().unwrap();
+        Args::parse_from(["--", "--restrictive-mode"]).to_config().unwrap();
+
+        Args::parse_from(["--", "--restrictive-mode", "devnet_dump", "/mint"]).to_config().unwrap();
     }
 }
