@@ -6,6 +6,9 @@
 <h1 align="center" style="margin-top: 12px !important">Starknet Devnet RS</h1>
 
 <p align="center" dir="auto">
+  <a href="https://crates.io/crates/starknet-devnet" target="_blank">
+    <img src="https://img.shields.io/crates/v/starknet-devnet?color=yellow" style="max-width: 100%;">
+  </a>
   <a href="https://hub.docker.com/r/shardlabs/starknet-devnet-rs/tags" target="_blank">
     <img src="https://img.shields.io/badge/dockerhub-images-important.svg?logo=Docker" style="max-width: 100%;">
   </a>
