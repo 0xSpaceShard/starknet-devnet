@@ -48,20 +48,19 @@ pub fn get_balance(
     }
 }
 
-#[allow(clippy::unwrap_used)]
 /// Returns the address of the ERC20 (fee token) contract associated with the unit.
 // unwraps are safe to use, because those are constants from mainnet
-pub fn get_erc20_address(unit: &FeeUnit) -> ContractAddress {
-    match unit {
-        FeeUnit::WEI => {
-            ContractAddress::new(felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap())
-                .unwrap()
-        }
-        FeeUnit::FRI => {
-            ContractAddress::new(felt_from_prefixed_hex(STRK_ERC20_CONTRACT_ADDRESS).unwrap())
-                .unwrap()
-        }
-    }
+pub fn get_erc20_address(unit: &FeeUnit) -> HttpApiResult<ContractAddress> {
+    let erc20_contract_address_string = match unit {
+        FeeUnit::WEI => ETH_ERC20_CONTRACT_ADDRESS,
+        FeeUnit::FRI => STRK_ERC20_CONTRACT_ADDRESS,
+    };
+
+    ContractAddress::new(
+        felt_from_prefixed_hex(erc20_contract_address_string)
+            .map_err(|err| HttpApiError::InvalidValueError { msg: err.to_string() })?,
+    )
+    .map_err(|err| HttpApiError::InvalidValueError { msg: err.to_string() })
 }
 
 pub async fn mint(
@@ -77,7 +76,7 @@ pub(crate) async fn mint_impl(
 ) -> HttpApiResult<MintTokensResponse> {
     let mut starknet = api.starknet.lock().await;
     let unit = request.unit.unwrap_or(FeeUnit::WEI);
-    let erc20_address = get_erc20_address(&unit);
+    let erc20_address = get_erc20_address(&unit)?;
 
     // increase balance
     let tx_hash = starknet
