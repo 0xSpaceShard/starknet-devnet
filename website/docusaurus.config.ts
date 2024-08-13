@@ -64,6 +64,12 @@ const config: Config = {
           label: 'Docs',
         },
         {
+          type: 'doc',
+          position: 'left',
+          docId: 'examples',
+          label: 'Examples',
+        },
+        {
           type: 'docsVersionDropdown',
           position: 'left',
           dropdownItemsAfter: [],
@@ -109,9 +115,13 @@ const config: Config = {
           title: 'More',
           items: [
             {
-              label: 'GitHub',
+              label: 'Source code',
               href: GITHUB_REPO_URL,
             },
+            {
+              label: 'starknet-devnet-js',
+              href: 'https://github.com/0xspaceShard/starknet-devnet-js',
+            }
           ],
         },
       ],
