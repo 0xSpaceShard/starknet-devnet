@@ -121,7 +121,7 @@ const config: Config = {
             {
               label: 'starknet-devnet-js',
               href: 'https://github.com/0xspaceShard/starknet-devnet-js',
-            }
+            },
           ],
         },
       ],
