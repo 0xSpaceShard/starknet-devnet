@@ -4,7 +4,7 @@ sidebar_position: 2.3
 
 # CLI options
 
-Configure your Devnet instance by specifying CLI parameters on startup.
+Configure your Devnet instance by specifying CLI parameters on startup. To read more about HTTP and logging configuration, check out the [server config](../server-config) page.
 
 ## Help
 
