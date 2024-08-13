@@ -1,9 +1,10 @@
+#![cfg(test)]
 pub mod common;
 
 mod impersonated_account_tests {
     use std::sync::Arc;
 
-    use server::test_utils::exported_test_utils::assert_contains;
+    use server::test_utils::assert_contains;
     use starknet_core::constants::STRK_ERC20_CONTRACT_ADDRESS;
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::types::{BlockId, BlockTag, ExecutionResult, Felt};

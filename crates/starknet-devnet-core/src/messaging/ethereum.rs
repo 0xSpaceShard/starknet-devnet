@@ -1,3 +1,4 @@
+#![allow(clippy::expect_used)]
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -257,7 +258,9 @@ impl EthereumMessaging {
         // `sendMessageToL2` topic.
         let log_msg_to_l2_topic =
             H256::from_str("0xdb80dd488acf86d17c747445b0eabb5d57c541d3bd7b6b87af987858e5066b2b")
-                .expect("Invalid MessageToL2 topic");
+                .map_err(|err| {
+                    Error::MessagingError(MessagingError::ConversionError(err.to_string()))
+                })?;
 
         let filters = Filter {
             block_option: FilterBlockOption::Range {
@@ -268,25 +271,20 @@ impl EthereumMessaging {
             topics: [Some(ValueOrArray::Value(Some(log_msg_to_l2_topic))), None, None, None],
         };
 
-        for log in self
-            .provider
-            .get_logs(&filters)
-            .await?
-            .into_iter()
-            .filter(|log| log.block_number.is_some())
-        {
-            // Safe to unwrap, we filtered with `is_some()` only.
-            let block_number = log.block_number.unwrap().try_into().map_err(|e| {
-                Error::MessagingError(MessagingError::EthersError(format!(
-                    "Ethereum block number into u64: {}",
-                    e
-                )))
-            })?;
+        for log in self.provider.get_logs(&filters).await?.into_iter() {
+            if let Some(block_number) = log.block_number {
+                let block_number = block_number.try_into().map_err(|e| {
+                    Error::MessagingError(MessagingError::EthersError(format!(
+                        "Ethereum block number into u64: {}",
+                        e
+                    )))
+                })?;
 
-            block_to_logs
-                .entry(block_number)
-                .and_modify(|v| v.push(log.clone()))
-                .or_insert(vec![log]);
+                block_to_logs
+                    .entry(block_number)
+                    .and_modify(|v| v.push(log.clone()))
+                    .or_insert(vec![log]);
+            }
         }
 
         Ok(block_to_logs)

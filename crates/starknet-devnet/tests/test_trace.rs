@@ -1,3 +1,4 @@
+#![cfg(test)]
 pub mod common;
 
 mod trace_tests {

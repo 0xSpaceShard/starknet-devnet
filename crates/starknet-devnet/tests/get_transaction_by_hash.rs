@@ -1,3 +1,4 @@
+#![cfg(test)]
 pub mod common;
 
 mod get_transaction_by_hash_integration_tests {

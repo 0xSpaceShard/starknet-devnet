@@ -118,8 +118,10 @@ pub struct StarknetConfig {
     pub disable_account_impersonation: bool,
 }
 
+#[allow(clippy::unwrap_used)]
 impl Default for StarknetConfig {
     fn default() -> Self {
+        // unwrapping is safe here because the contract is hardcoded and we know it wont fail
         let account_contract_class: ContractClass =
             ContractClass::cairo_1_from_sierra_json_str(CAIRO_1_ACCOUNT_CONTRACT_SIERRA)
                 .unwrap()
@@ -127,6 +129,7 @@ impl Default for StarknetConfig {
         StarknetConfig {
             seed: DEVNET_DEFAULT_TEST_SEED,
             total_accounts: DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+            // same here
             account_contract_class_hash: account_contract_class.generate_hash().unwrap(),
             account_contract_class,
             predeployed_accounts_initial_balance: DEVNET_DEFAULT_INITIAL_BALANCE.into(),

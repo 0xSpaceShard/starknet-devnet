@@ -41,10 +41,9 @@ where
             for value in array {
                 let inner_val = traverse_and_exclude_recursively(value, exclude_condition);
 
-                if !(inner_val.is_object()
-                    && inner_val.as_object().expect("Not a valid JSON object").is_empty())
-                {
-                    inner_arr.push(inner_val)
+                match inner_val.as_object() {
+                    Some(inner_obj) if inner_obj.is_empty() => {}
+                    _ => inner_arr.push(inner_val),
                 }
             }
 
@@ -162,7 +161,7 @@ mod tests {
                     "state": "Any"
                 },
                 "should_be_removed": [],
-                "scores": 
+                "scores":
                 [
                     {
                         "street": "AAA",
@@ -186,7 +185,7 @@ mod tests {
                     "city": "Anytown",
                     "state": "Any"
                 },
-                "scores": 
+                "scores":
                 [
                     {
                         "street": "AAA",
