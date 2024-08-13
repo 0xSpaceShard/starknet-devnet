@@ -57,6 +57,9 @@ jobs:
           name: Install foundry
           command: ./scripts/install_foundry.sh
       - run:
+          name: Verify lockfile
+          command: cargo update -w --locked
+      - run:
           name: Build
           command: cargo build --release
       - run:
