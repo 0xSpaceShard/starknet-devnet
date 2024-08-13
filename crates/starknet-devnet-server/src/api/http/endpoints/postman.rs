@@ -1,5 +1,4 @@
-use starknet_rs_core::types::Felt;
-use starknet_types::felt::TransactionHash;
+use starknet_types::felt::{felt_from_prefixed_hex, TransactionHash};
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 
@@ -44,7 +43,7 @@ async fn execute_rpc_tx(
                 .ok_or(HttpApiError::MessagingError {
                     msg: format!("Result contains invalid transaction hash: {result:?}"),
                 })?;
-            let tx_hash = Felt::from_hex(tx_hash_hex).map_err(|e| {
+            let tx_hash = felt_from_prefixed_hex(tx_hash_hex).map_err(|e| {
                 HttpApiError::MessagingError { msg: format!("Invalid tx hash: {tx_hash_hex}: {e}") }
             })?;
             Ok(tx_hash)
