@@ -103,7 +103,7 @@ const config: Config = {
           items: [
             {
               label: 'Discord',
-              href: 'https://discordapp.com/channels/793094838509764618/985824027950055434',
+              href: 'https://discord.com/channels/793094838509764618/1270120259659239424',
             },
             {
               label: 'Starknet',
