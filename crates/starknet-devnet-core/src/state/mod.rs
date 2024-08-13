@@ -151,6 +151,7 @@ pub struct StarknetState {
     /// concerns). Knowing which class was added when is made possible by storing the class
     /// together with the block number.
     rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
+    /// Used for old state preservation purposes.
     historic_state: DictState,
 }
 
