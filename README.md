@@ -19,7 +19,7 @@
 
 A local testnet for Starknet... in Rust!
 
-### Features
+## Features
 
 - [Forking](https://0xspaceshard.github.io/starknet-devnet-rs/docs/forking) - interact with contracts deployed on mainnet or testnet
 - [Account impersonation](https://0xspaceshard.github.io/starknet-devnet-rs/docs/account-impersonation)
@@ -33,6 +33,10 @@ A local testnet for Starknet... in Rust!
 ## 🌐 Documentation
 
 Find the official documentation [here](https://0xspaceshard.github.io/starknet-devnet-rs/).
+
+## starknet-devnet-js
+
+Simplify the installation, spawning and usage of Devnet in your tests by relying on the official JavaScript wrapper. Read more [here](https://github.com/0xspaceShard/starknet-devnet-js).
 
 ## ✏️ Contributing
 
