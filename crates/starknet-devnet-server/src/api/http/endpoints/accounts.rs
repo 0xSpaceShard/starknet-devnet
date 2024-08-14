@@ -31,7 +31,7 @@ pub(crate) async fn get_balance_unit(
     address: ContractAddress,
     unit: FeeUnit,
 ) -> HttpApiResult<AccountBalanceResponse> {
-    let erc20_address = get_erc20_address(&unit);
+    let erc20_address = get_erc20_address(&unit)?;
     let amount = get_balance(starknet, address, erc20_address, BlockTag::Pending)
         .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
 
@@ -90,7 +90,7 @@ pub(crate) async fn get_account_balance_impl(
     let account_address = ContractAddress::new(params.address)
         .map_err(|e| HttpApiError::InvalidValueError { msg: e.to_string() })?;
     let unit = params.unit.unwrap_or(FeeUnit::WEI);
-    let erc20_address = get_erc20_address(&unit);
+    let erc20_address = get_erc20_address(&unit)?;
 
     let mut starknet = api.starknet.lock().await;
 

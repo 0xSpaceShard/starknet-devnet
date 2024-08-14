@@ -51,8 +51,10 @@ impl FromStr for AccountClassWrapper {
         )?;
 
         // check that artifact is really account
-        let execute_selector = get_selector_from_name("__execute__").unwrap();
-        let validate_selector = get_selector_from_name("__validate__").unwrap();
+        let execute_selector = get_selector_from_name("__execute__")
+            .map_err(|err| crate::error::Error::UnexpectedInternalError { msg: err.to_string() })?;
+        let validate_selector = get_selector_from_name("__validate__")
+            .map_err(|err| crate::error::Error::UnexpectedInternalError { msg: err.to_string() })?;
         let mut has_execute = false;
         let mut has_validate = false;
         for entry_point in &contract_class.entry_points_by_type.external {

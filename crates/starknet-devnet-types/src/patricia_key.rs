@@ -10,6 +10,8 @@ use crate::serde_helpers::hex_string::{
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PatriciaKey(pub(crate) Felt);
 
+pub(crate) const PATRICIA_KEY_ZERO: PatriciaKey = PatriciaKey(Felt::ZERO);
+
 impl PatriciaKey {
     pub fn new(felt: Felt) -> DevnetResult<Self> {
         if Felt::from_hex_unchecked(PATRICIA_KEY_UPPER_BOUND) < felt {

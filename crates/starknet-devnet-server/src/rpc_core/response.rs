@@ -42,13 +42,6 @@ pub enum ResponseResult {
 }
 
 impl ResponseResult {
-    pub fn success<S>(content: S) -> Self
-    where
-        S: Serialize + 'static,
-    {
-        ResponseResult::Success(serde_json::to_value(&content).unwrap())
-    }
-
     pub fn error(error: RpcError) -> Self {
         ResponseResult::Error(error)
     }

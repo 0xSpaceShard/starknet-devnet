@@ -75,9 +75,12 @@ impl Cairo0Json {
         // if they are empty arrays.
         let modified_abi_program_json =
             crate::utils::traverse_and_exclude_recursively(&abi_program_json, &|key, value| {
-                return (key == "attributes" || key == "accessible_scopes")
-                    && value.is_array()
-                    && value.as_array().expect("Not a valid JSON array").is_empty();
+                match value.as_array() {
+                    Some(array) if array.is_empty() => {
+                        key == "attributes" || key == "accessible_scopes"
+                    }
+                    _ => false,
+                }
             });
 
         let mut buffer = Vec::with_capacity(128);
@@ -99,7 +102,7 @@ impl Cairo0Json {
                     })?
                     .clone(),
             )
-            .unwrap();
+            .map_err(JsonError::SerdeJsonError)?;
 
         let entry_points_hash_by_type = |entry_point_type: EntryPointType| -> DevnetResult<Felt> {
             let felts: Vec<Felt> = entry_points_by_type
@@ -126,19 +129,23 @@ impl Cairo0Json {
         let program_json = json_class
             .get("program")
             .ok_or(JsonError::Custom { msg: "missing program entry".to_string() })?;
+
         let builtins_encoded_as_felts = program_json
             .get("builtins")
-            .unwrap_or(&serde_json::Value::Null)
-            .as_array()
-            .unwrap_or(&Vec::<serde_json::Value>::new())
+            .and_then(|v| v.as_array())
+            .unwrap_or(&vec![])
             .iter()
             .map(|el| {
-                let bytes = el.as_str().unwrap().as_bytes();
-                bytes.iter().fold(String::from("0x"), |acc, b| format!("{acc}{b:02x}"))
+                el.as_str()
+                    .map(|s| {
+                        let hex_str = s
+                            .as_bytes()
+                            .iter()
+                            .fold(String::from("0x"), |acc, &b| format!("{acc}{:02x}", b));
+                        felt_from_prefixed_hex(&hex_str)
+                    })
+                    .ok_or(JsonError::Custom { msg: "expected string".into() })?
             })
-            .collect::<Vec<String>>()
-            .into_iter()
-            .map(|s| felt_from_prefixed_hex(&s))
             .collect::<DevnetResult<Vec<Felt>>>()?;
 
         hashes.push(Pedersen::hash_array(&builtins_encoded_as_felts));

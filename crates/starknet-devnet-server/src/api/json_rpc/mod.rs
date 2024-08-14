@@ -534,7 +534,7 @@ mod requests_tests {
 
     use super::JsonRpcRequest;
     use crate::rpc_core::request::RpcMethodCall;
-    use crate::test_utils::exported_test_utils::assert_contains;
+    use crate::test_utils::assert_contains;
 
     #[test]
     fn deserialize_get_block_with_transaction_hashes_request() {

@@ -1,3 +1,4 @@
+#![cfg(test)]
 // must use `pub`: https://github.com/rust-lang/rust/issues/46379#issuecomment-548787629
 pub mod common;
 
