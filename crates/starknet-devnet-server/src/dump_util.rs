@@ -67,7 +67,7 @@ pub fn load_events(dump_on: Option<DumpOn>, path: &str) -> DevnetResult<Vec<Dump
     // to avoid doublets in block mode during load, we need to remove the file
     // because they will be re-executed and saved again
     if dump_on == Some(DumpOn::Block) {
-        // TODO shouldn't this be the responsibility of this method
+        // TODO refactor: this shouldn't be the responsibility of this method
         fs::remove_file(file_path).map_err(Error::IoError)?;
     }
 
