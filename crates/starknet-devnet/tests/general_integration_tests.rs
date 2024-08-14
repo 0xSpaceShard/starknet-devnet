@@ -160,4 +160,17 @@ mod general_integration_tests {
             assert_eq!(parse_cairo_short_string(&actual_value).unwrap().as_str(), expected_value);
         }
     }
+
+    #[tokio::test]
+    async fn test_mapping_to_rpc() {
+        // Ever since the introduction of non-rpc to rpc mapper, it is worth testing if non-rpc requests
+        // do what we want. Especially since the vast majority of our e2e tests rely on the JSON-RPC
+        // API.
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        // e.g. mint
+        // e.g. create block
+        // e.g. abort block
+        // e.g. set time and create block
+        unimplemented!()
+    }
 }

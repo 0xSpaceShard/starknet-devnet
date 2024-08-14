@@ -521,4 +521,17 @@ mod dump_and_load_tests {
         assert_eq!(latest_block.block_number, 1);
         assert_eq!(latest_block.timestamp, past_time);
     }
+
+    #[tokio::test]
+    async fn test_dumping_of_non_rpc_requests() {
+        // Ever since the introduction of non-rpc to rpc mapper, it is worth testing if non-rpc requests
+        // do what we want. Especially since the vast majority of our e2e tests rely on the JSON-RPC
+        // API.
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        // e.g. mint
+        // e.g. create block
+        // e.g. abort block
+        // e.g. set time and create block
+        unimplemented!()
+    }
 }
