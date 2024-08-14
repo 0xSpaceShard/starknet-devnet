@@ -2367,6 +2367,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "enum-helper-macros"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88e74ec022b3c286b2b309351d34723b56245d85d2e5297a69a1377fa822f585"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "env_logger"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5808,8 +5819,10 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum",
+ "enum-helper-macros",
  "futures",
  "http-body-util",
+ "lazy_static",
  "rand",
  "rand_chacha",
  "regex_generate",

@@ -1,13 +1,14 @@
 use std::time::Duration;
 
 use axum::body::{Body, Bytes};
-use axum::extract::{DefaultBodyLimit, Request};
+use axum::extract::{DefaultBodyLimit, Request, State};
 use axum::http::{HeaderValue, StatusCode};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
-use axum::routing::{get, post, IntoMakeService};
+use axum::routing::{get, post, IntoMakeService, MethodRouter};
 use axum::Router;
 use http_body_util::BodyExt;
+use lazy_static::lazy_static;
 use reqwest::{header, Method};
 use starknet_core::starknet::starknet_config::StarknetConfig;
 use tokio::net::TcpListener;
@@ -19,9 +20,36 @@ use crate::api::http::{endpoints as http, HttpApiHandler};
 use crate::api::json_rpc::origin_forwarder::OriginForwarder;
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::Api;
+use crate::restrictive_mode::is_uri_path_restricted;
 use crate::rpc_handler::RpcHandler;
 use crate::{rpc_handler, ServerConfig};
 pub type StarknetDevnetServer = axum::serve::Serve<IntoMakeService<Router>, Router>;
+
+lazy_static! {
+    static ref HTTP_API_ROUTES_WITH_HANDLERS: [(&'static str, MethodRouter<HttpApiHandler>); 16] = [
+        ("/is_alive", get(http::is_alive)),
+        ("/dump", post(http::dump_load::dump)),
+        ("/load", post(http::dump_load::load)),
+        ("/postman/load_l1_messaging_contract", post(http::postman::postman_load)),
+        ("/postman/flush", post(http::postman::postman_flush)),
+        ("/postman/send_message_to_l2", post(http::postman::postman_send_message_to_l2)),
+        ("/postman/consume_message_from_l2", post(http::postman::postman_consume_message_from_l2),),
+        ("/create_block", post(http::blocks::create_block)),
+        ("/abort_blocks", post(http::blocks::abort_blocks)),
+        ("/restart", post(http::restart)),
+        ("/set_time", post(http::time::set_time)),
+        ("/increase_time", post(http::time::increase_time)),
+        ("/predeployed_accounts", get(http::accounts::get_predeployed_accounts)),
+        ("/account_balance", get(http::accounts::get_account_balance)),
+        ("/mint", post(http::mint_token::mint)),
+        ("/config", get(http::get_devnet_config))
+    ];
+    pub static ref HTTP_API_ROUTES_WITHOUT_LEADING_SLASH: Vec<String> =
+        HTTP_API_ROUTES_WITH_HANDLERS
+            .iter()
+            .map(|(path, _)| String::from((*path).trim_start_matches('/')))
+            .collect::<Vec<String>>();
+}
 
 fn json_rpc_routes<TJsonRpcHandler: RpcHandler>(json_rpc_handler: TJsonRpcHandler) -> Router {
     Router::new()
@@ -31,27 +59,12 @@ fn json_rpc_routes<TJsonRpcHandler: RpcHandler>(json_rpc_handler: TJsonRpcHandle
 }
 
 fn http_api_routes(http_api_handler: HttpApiHandler) -> Router {
-    Router::new()
-        .route("/is_alive", get(http::is_alive))
-        .route("/dump", post(http::dump_load::dump))
-        .route("/load", post(http::dump_load::load))
-        .route("/postman/load_l1_messaging_contract", post(http::postman::postman_load))
-        .route("/postman/flush", post(http::postman::postman_flush))
-        .route("/postman/send_message_to_l2", post(http::postman::postman_send_message_to_l2))
-        .route(
-            "/postman/consume_message_from_l2",
-            post(http::postman::postman_consume_message_from_l2),
-        )
-        .route("/create_block", post(http::blocks::create_block))
-        .route("/abort_blocks", post(http::blocks::abort_blocks))
-        .route("/restart", post(http::restart))
-        .route("/set_time", post(http::time::set_time))
-        .route("/increase_time", post(http::time::increase_time))
-        .route("/predeployed_accounts", get(http::accounts::get_predeployed_accounts))
-        .route("/account_balance", get(http::accounts::get_account_balance))
-        .route("/mint", post(http::mint_token::mint))
-        .route("/config", get(http::get_devnet_config))
-        .with_state(http_api_handler)
+    let mut router = Router::new();
+    for (path, method_router) in HTTP_API_ROUTES_WITH_HANDLERS.iter() {
+        let method_router = method_router.clone();
+        router = router.route(path, method_router);
+    }
+    router.with_state(http_api_handler)
 }
 
 /// Configures an [axum::Server] that handles related JSON-RPC calls and WEB API calls via HTTP
@@ -94,6 +107,13 @@ pub fn serve_http_api_json_rpc(
 
     if server_config.log_request {
         routes = routes.layer(axum::middleware::from_fn(request_logging_middleware));
+    }
+
+    if server_config.restricted_methods.is_some() {
+        routes = routes.layer(axum::middleware::from_fn_with_state(
+            server_config.clone(),
+            restrictive_middleware,
+        ));
     }
 
     axum::serve(tcp_listener, routes.into_make_service())
@@ -149,4 +169,17 @@ async fn response_logging_middleware(
 
     let response = Response::from_parts(parts, body);
     Ok(response)
+}
+
+async fn restrictive_middleware(
+    State(server_config): State<ServerConfig>,
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    if let Some(restricted_paths) = &server_config.restricted_methods {
+        if is_uri_path_restricted(request.uri().path(), restricted_paths) {
+            return Err((StatusCode::FORBIDDEN, "Devnet is in restrictive mode".to_string()));
+        }
+    }
+    Ok(next.run(request).await)
 }

@@ -115,7 +115,6 @@ pub struct StarknetConfig {
     pub lite_mode: bool,
     pub state_archive: StateArchiveCapacity,
     pub fork_config: ForkConfig,
-    pub disable_account_impersonation: bool,
 }
 
 #[allow(clippy::unwrap_used)]
@@ -145,7 +144,6 @@ impl Default for StarknetConfig {
             lite_mode: false,
             state_archive: StateArchiveCapacity::default(),
             fork_config: ForkConfig::default(),
-            disable_account_impersonation: false,
         }
     }
 }

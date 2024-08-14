@@ -8,6 +8,7 @@ mod write_endpoints;
 
 pub const RPC_SPEC_VERSION: &str = "0.7.1";
 
+use enum_helper_macros::{AllVariantsSerdeRenames, VariantName};
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput, TransactionHashOutput,
@@ -51,9 +52,10 @@ use crate::api::json_rpc::models::{
     BroadcastedInvokeTransactionEnumWrapper, SimulateTransactionsInput,
 };
 use crate::api::serde_helpers::{empty_params, optional_params};
+use crate::restrictive_mode::is_json_rpc_method_restricted;
 use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
-use crate::rpc_core::response::ResponseResult;
+use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
 use crate::ServerConfig;
 
@@ -108,6 +110,45 @@ impl RpcHandler for JsonRpcHandler {
     ) -> ResponseResult {
         info!(target: "rpc", "received method in on_request {}", request);
         self.execute(request, original_call).await
+    }
+
+    async fn on_call(&mut self, call: RpcMethodCall) -> RpcResponse {
+        trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received method call");
+        let RpcMethodCall { method, params, id, .. } = call.clone();
+
+        let params: serde_json::Value = params.into();
+        let deserializable_call = serde_json::json!({
+            "method": &method,
+            "params": params
+        });
+
+        match serde_json::from_value::<Self::Request>(deserializable_call) {
+            Ok(req) => {
+                if let Some(restricted_methods) = &self.server_config.restricted_methods {
+                    if is_json_rpc_method_restricted(&method, restricted_methods) {
+                        return RpcResponse::new(
+                            id,
+                            RpcError::new(crate::rpc_core::error::ErrorCode::MethodForbidden),
+                        );
+                    }
+                }
+                let result = self.on_request(req, call).await;
+                RpcResponse::new(id, result)
+            }
+            Err(err) => {
+                let err = err.to_string();
+                // since JSON-RPC specification requires returning a Method Not Found error,
+                // we apply a hacky way to induce this - checking the stringified error message
+                let distinctive_error = format!("unknown variant `{method}`");
+                if err.contains(&distinctive_error) {
+                    error!(target: "rpc", ?method, "failed to deserialize method due to unknown variant");
+                    RpcResponse::new(id, RpcError::method_not_found())
+                } else {
+                    error!(target: "rpc", ?method, ?err, "failed to deserialize method");
+                    RpcResponse::new(id, RpcError::invalid_params(err))
+                }
+            }
+        }
     }
 }
 
@@ -275,7 +316,7 @@ impl JsonRpcHandler {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, AllVariantsSerdeRenames, VariantName)]
 #[cfg_attr(test, derive(Debug))]
 #[serde(tag = "method", content = "params")]
 pub enum JsonRpcRequest {
@@ -378,82 +419,9 @@ pub enum JsonRpcRequest {
     #[serde(rename = "devnet_getConfig", with = "empty_params")]
     DevnetConfig,
 }
-
 impl std::fmt::Display for JsonRpcRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            JsonRpcRequest::SpecVersion => write!(f, "starknet_specVersion"),
-            JsonRpcRequest::BlockWithTransactionHashes(_) => {
-                write!(f, "starknet_getBlockWithTxHashes")
-            }
-            JsonRpcRequest::BlockWithFullTransactions(_) => write!(f, "starknet_getBlockWithTxs"),
-            JsonRpcRequest::BlockWithReceipts(_) => write!(f, "starknet_getBlockWithReceipts"),
-            JsonRpcRequest::StateUpdate(_) => write!(f, "starknet_getStateUpdate"),
-            JsonRpcRequest::StorageAt(_) => write!(f, "starknet_getStorageAt"),
-            JsonRpcRequest::TransactionByHash(_) => write!(f, "starknet_getTransactionByHash"),
-            JsonRpcRequest::TransactionStatusByHash(_) => {
-                write!(f, "starknet_getTransactionStatus")
-            }
-            JsonRpcRequest::TransactionByBlockAndIndex(_) => {
-                write!(f, "starknet_getTransactionByBlockIdAndIndex")
-            }
-            JsonRpcRequest::TransactionReceiptByTransactionHash(_) => {
-                write!(f, "starknet_getTransactionReceipt")
-            }
-            JsonRpcRequest::ClassByHash(_) => write!(f, "starknet_getClass"),
-            JsonRpcRequest::ClassHashAtContractAddress(_) => write!(f, "starknet_getClassHashAt"),
-            JsonRpcRequest::ClassAtContractAddress(_) => write!(f, "starknet_getClassAt"),
-            JsonRpcRequest::BlockTransactionCount(_) => {
-                write!(f, "starknet_getBlockTransactionCount")
-            }
-            JsonRpcRequest::Call(_) => write!(f, "starknet_call"),
-            JsonRpcRequest::EstimateFee(_) => write!(f, "starknet_estimateFee"),
-            JsonRpcRequest::BlockNumber => write!(f, "starknet_blockNumber"),
-            JsonRpcRequest::BlockHashAndNumber => write!(f, "starknet_blockHashAndNumber"),
-            JsonRpcRequest::ChainId => write!(f, "starknet_chainId"),
-            JsonRpcRequest::Syncing => write!(f, "starknet_syncing"),
-            JsonRpcRequest::Events(_) => write!(f, "starknet_getEvents"),
-            JsonRpcRequest::ContractNonce(_) => write!(f, "starknet_getNonce"),
-            JsonRpcRequest::AddDeclareTransaction(_) => {
-                write!(f, "starknet_addDeclareTransaction")
-            }
-            JsonRpcRequest::AddDeployAccountTransaction(_) => {
-                write!(f, "starknet_addDeployAccountTransaction")
-            }
-            JsonRpcRequest::AddInvokeTransaction(_) => write!(f, "starknet_addInvokeTransaction"),
-            JsonRpcRequest::EstimateMessageFee(_) => write!(f, "starknet_estimateMessageFee"),
-            JsonRpcRequest::SimulateTransactions(_) => write!(f, "starknet_simulateTransactions"),
-            JsonRpcRequest::TraceTransaction(_) => write!(f, "starknet_traceTransaction"),
-            JsonRpcRequest::BlockTransactionTraces(_) => {
-                write!(f, "starknet_traceBlockTransactions")
-            }
-            JsonRpcRequest::ImpersonateAccount(_) => write!(f, "devnet_impersonateAccount"),
-            JsonRpcRequest::StopImpersonateAccount(_) => {
-                write!(f, "devnet_stopImpersonateAccount")
-            }
-            JsonRpcRequest::AutoImpersonate => write!(f, "devnet_autoImpersonate"),
-            JsonRpcRequest::StopAutoImpersonate => write!(f, "devnet_stopAutoImpersonate"),
-            JsonRpcRequest::Dump(_) => write!(f, "devnet_dump"),
-            JsonRpcRequest::Load(_) => write!(f, "devnet_load"),
-            JsonRpcRequest::PostmanLoadL1MessagingContract(_) => write!(f, "devnet_postmanLoad"),
-            JsonRpcRequest::PostmanFlush(_) => write!(f, "devnet_postmanFlush"),
-            JsonRpcRequest::PostmanSendMessageToL2(_) => {
-                write!(f, "devnet_postmanSendMessageToL2")
-            }
-            JsonRpcRequest::PostmanConsumeMessageFromL2(_) => {
-                write!(f, "devnet_postmanConsumeMessageFromL2")
-            }
-            JsonRpcRequest::CreateBlock => write!(f, "devnet_createBlock"),
-            JsonRpcRequest::AbortBlocks(_) => write!(f, "devnet_abortBlocks"),
-            JsonRpcRequest::SetGasPrice(_) => write!(f, "devnet_setGasPrice"),
-            JsonRpcRequest::Restart => write!(f, "devnet_restart"),
-            JsonRpcRequest::SetTime(_) => write!(f, "devnet_setTime"),
-            JsonRpcRequest::IncreaseTime(_) => write!(f, "devnet_increaseTime"),
-            JsonRpcRequest::PredeployedAccounts(_) => write!(f, "devnet_getPredeployedAccounts"),
-            JsonRpcRequest::AccountBalance(_) => write!(f, "devnet_getAccountBalance"),
-            JsonRpcRequest::Mint(_) => write!(f, "devnet_mint"),
-            JsonRpcRequest::DevnetConfig => write!(f, "devnet_getConfig"),
-        }
+        write!(f, "{}", self.variant_name())
     }
 }
 

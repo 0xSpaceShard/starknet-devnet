@@ -1,6 +1,10 @@
+use std::collections::HashSet;
 use std::num::NonZeroU128;
 
 use clap::Parser;
+use server::api::json_rpc::JsonRpcRequest;
+use server::restrictive_mode::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
+use server::server::HTTP_API_ROUTES_WITHOUT_LEADING_SLASH;
 use server::ServerConfig;
 use starknet_core::constants::{
     DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT,
@@ -198,10 +202,13 @@ Sending POST /create_block is also an option in modes other than \"demand\".")]
     #[arg(default_value_t = DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT)]
     request_body_size_limit: usize,
 
-    #[arg(long = "disable-account-impersonation")]
-    #[arg(env = "DISABLE_ACCOUNT_IMPERSONATION")]
-    #[arg(help = "Disables the possibility to impersonate accounts;")]
-    disable_account_impersonation: bool,
+    #[arg(long = "restrictive-mode")]
+    #[arg(env = "RESTRICTIVE_MODE")]
+    #[arg(num_args = 0..)]
+    #[arg(help = "Use Devnet in restrictive mode; You can specify the methods that will be \
+                  forbidden with whitespace-separated values (https://0xspaceshard.github.io/starknet-devnet-rs/docs/restrictive#with-a-list-of-methods). If nothing is specified for this \
+                  argument, then default restricted methods are used (https://0xspaceshard.github.io/starknet-devnet-rs/docs/restrictive#default-restricted-methods).")]
+    restricted_methods: Option<Vec<String>>,
 }
 
 impl Args {
@@ -236,11 +243,46 @@ impl Args {
                 url: self.fork_network.clone(),
                 block_number: self.fork_block,
             },
-            disable_account_impersonation: self.disable_account_impersonation,
         };
 
         let RequestResponseLogging { log_request, log_response } =
             RequestResponseLogging::from_rust_log_environment_variable();
+
+        // if restricted_methods are not specified, use default ones
+        let restricted_methods = self.restricted_methods.as_ref().map(|methods| {
+            if methods.is_empty() {
+                DEFAULT_RESTRICTED_JSON_RPC_METHODS
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<String>>()
+            } else {
+                // remove leading slashes
+                methods
+                    .iter()
+                    .map(|s| s.trim_start_matches('/').to_string())
+                    .collect::<Vec<String>>()
+            }
+        });
+        // validate restricted methods
+        if let Some(methods) = restricted_methods.as_ref() {
+            let json_rpc_methods = JsonRpcRequest::all_variants_serde_renames();
+            let all_methods: HashSet<_> = HashSet::from_iter(
+                json_rpc_methods.iter().chain(HTTP_API_ROUTES_WITHOUT_LEADING_SLASH.iter()),
+            );
+            let mut wrong_restricted_methods = vec![];
+            for method in methods {
+                if !all_methods.contains(method) {
+                    wrong_restricted_methods.push(method.clone());
+                }
+            }
+            if !wrong_restricted_methods.is_empty() {
+                anyhow::bail!(
+                    "Restricted methods contain JSON-RPC methods and/or HTTP routes that are not \
+                     supported by the server: {}",
+                    wrong_restricted_methods.join(" ")
+                );
+            }
+        }
 
         let server_config = ServerConfig {
             host: self.host.inner,
@@ -249,6 +291,7 @@ impl Args {
             request_body_size_limit: self.request_body_size_limit,
             log_request,
             log_response,
+            restricted_methods,
         };
 
         Ok((starknet_config, server_config))
@@ -650,5 +693,22 @@ mod tests {
                 "error: invalid value 'e' for '--dump-on <EVENT>'"
             ),
         }
+    }
+
+    #[test]
+    fn check_if_method_with_incorrect_name_will_produce_an_error() {
+        let args = Args::parse_from(["--", "--restrictive-mode", "devnet_dump", "devnet_loadd"]);
+        let err = args.to_config().unwrap_err();
+        assert!(err.to_string().contains(
+            "Restricted methods contain JSON-RPC methods and/or HTTP routes that are not \
+             supported by the server: devnet_loadd"
+        ));
+    }
+
+    #[test]
+    fn check_if_methods_with_correct_names_will_not_produce_an_error() {
+        Args::parse_from(["--", "--restrictive-mode"]).to_config().unwrap();
+
+        Args::parse_from(["--", "--restrictive-mode", "devnet_dump", "/mint"]).to_config().unwrap();
     }
 }
