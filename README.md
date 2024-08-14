@@ -6,6 +6,9 @@
 <h1 align="center" style="margin-top: 12px !important">Starknet Devnet RS</h1>
 
 <p align="center" dir="auto">
+  <a href="https://crates.io/crates/starknet-devnet" target="_blank">
+    <img src="https://img.shields.io/crates/v/starknet-devnet?color=yellow" style="max-width: 100%;">
+  </a>
   <a href="https://hub.docker.com/r/shardlabs/starknet-devnet-rs/tags" target="_blank">
     <img src="https://img.shields.io/badge/dockerhub-images-important.svg?logo=Docker" style="max-width: 100%;">
   </a>
@@ -16,7 +19,7 @@
 
 A local testnet for Starknet... in Rust!
 
-### Features
+## Features
 
 - [Forking](https://0xspaceshard.github.io/starknet-devnet-rs/docs/forking) - interact with contracts deployed on mainnet or testnet
 - [Account impersonation](https://0xspaceshard.github.io/starknet-devnet-rs/docs/account-impersonation)
@@ -30,6 +33,10 @@ A local testnet for Starknet... in Rust!
 ## 🌐 Documentation
 
 Find the official documentation [here](https://0xspaceshard.github.io/starknet-devnet-rs/).
+
+## starknet-devnet-js
+
+Simplify the installation, spawning and usage of Devnet in your tests by relying on the official JavaScript wrapper. Read more [here](https://github.com/0xspaceShard/starknet-devnet-js).
 
 ## ✏️ Contributing
 
