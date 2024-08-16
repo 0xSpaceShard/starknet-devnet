@@ -58,7 +58,7 @@ mod general_integration_tests {
         assert_eq!(error.status(), StatusCode::BAD_REQUEST);
         assert_eq!(
             error.error_message(),
-            json!({ "error": "The load operation failed: The file does not exist" }).to_string()
+            json!({ "error": "The file does not exist" }).to_string()
         );
     }
 
