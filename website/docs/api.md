@@ -10,7 +10,7 @@ Unlike Pythonic Devnet, which also supported Starknet's gateway and feeder gatew
 
 ### Devnet API
 
-Devnet has many additional features which are available via their own endpoints and JSON-RPC, which are all mentioned throughout the documentation.
+Devnet has many additional features which are available via their own endpoints and [JSON-RPC](https://github.com/0xSpaceShard/starknet-devnet-rs/website/static/devnet_api.json), which are all mentioned throughout the documentation.
 
 ## Interacting with Devnet in JavaScript and TypeScript
 
