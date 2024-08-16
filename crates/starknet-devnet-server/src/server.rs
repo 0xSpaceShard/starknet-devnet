@@ -94,7 +94,7 @@ pub async fn serve_http_api_json_rpc(
     api: Api,
     server_config: &ServerConfig,
     json_rpc_handler: JsonRpcHandler,
-) -> Result<StarknetDevnetServer, anyhow::Error> {
+) -> StarknetDevnetServer {
     let http_handler = HttpApiHandler { api: api.clone(), server_config: server_config.clone() };
 
     let mut routes = Router::new()
@@ -129,7 +129,7 @@ pub async fn serve_http_api_json_rpc(
         ));
     }
 
-    Ok(axum::serve(tcp_listener, routes.into_make_service()))
+    axum::serve(tcp_listener, routes.into_make_service())
 }
 
 async fn log_body_and_path<T>(

@@ -209,7 +209,7 @@ async fn main() -> Result<(), anyhow::Error> {
     };
 
     let server =
-        serve_http_api_json_rpc(listener, api.clone(), &server_config, json_rpc_handler).await?;
+        serve_http_api_json_rpc(listener, api.clone(), &server_config, json_rpc_handler).await;
     info!("Starknet Devnet listening on {}", address);
 
     let mut tasks = vec![];
