@@ -735,101 +735,94 @@
                 ]
               }
             },
-            "starknet_config": {
-              "title": "Starknet config",
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "seed": {
-                    "title": "Seed",
-                    "type": "integer"
-                  },
-                  "total_accounts": {
-                    "title": "Total accounts",
-                    "type": "integer"
-                  },
-                  "account_contract_class_hash": {
-                    "title": "Account contract class hash",
-                    "$ref": "#/components/schemas/FELT"
-                  },
-                  "predeployed_accounts_initial_balance": {
-                    "title": "Predeployed accounts initial balance",
-                    "type": "string"
-                  },
-                  "start_time": {
-                    "title": "Start time",
-                    "type": "integer"
-                  },
-                  "gas_price_wei": {
-                    "title": "Gas price in WEI",
-                    "$ref": "#/components/schemas/u128"
-                  },
-                  "data_gas_price_wei": {
-                    "title": "Data gas price in WEI",
-                    "$ref": "#/components/schemas/u128"
-                  },
-                  "gas_price_fri": {
-                    "title": "Gas price in FRI",
-                    "$ref": "#/components/schemas/u128"
-                  },
-                  "data_gas_price_fri": {
-                    "title": "Data gas price in FRI",
-                    "$ref": "#/components/schemas/u128"
-                  },
-                  "chain_id": {
-                    "title": "Chain id",
-                    "type": "string"
-                  },
-                  "dump_on": {
-                    "title": "Dump on",
-                    "type": "string"
-                  },
-                  "dump_path": {
-                    "title": "Dump path",
-                    "type": "string"
-                  },
-                  "block_generation_on": {
-                    "title": "Block generation on",
-                    "type": "string"
-                  },
-                  "lite_mode": {
-                    "title": "Lite mode",
-                    "type": "boolean"
-                  },
-                  "state_archive": {
-                    "title": "State archive capacity mode",
-                    "type": "string"
-                  },
-                  "fork_config": {
-                    "type": "object",
-                    "properties": {
-                      "url": {
-                        "type": "string"
-                      },
-                      "block_number": {
-                        "type": "integer"
-                      }
-                    }
-                  }
+            "seed": {
+              "title": "Seed",
+              "type": "integer"
+            },
+            "total_accounts": {
+              "title": "Total accounts",
+              "type": "integer"
+            },
+            "account_contract_class_hash": {
+              "title": "Account contract class hash",
+              "$ref": "#/components/schemas/FELT"
+            },
+            "predeployed_accounts_initial_balance": {
+              "title": "Predeployed accounts initial balance",
+              "type": "string"
+            },
+            "start_time": {
+              "title": "Start time",
+              "type": "integer"
+            },
+            "gas_price_wei": {
+              "title": "Gas price in WEI",
+              "$ref": "#/components/schemas/u128"
+            },
+            "data_gas_price_wei": {
+              "title": "Data gas price in WEI",
+              "$ref": "#/components/schemas/u128"
+            },
+            "gas_price_fri": {
+              "title": "Gas price in FRI",
+              "$ref": "#/components/schemas/u128"
+            },
+            "data_gas_price_fri": {
+              "title": "Data gas price in FRI",
+              "$ref": "#/components/schemas/u128"
+            },
+            "chain_id": {
+              "title": "Chain id",
+              "type": "string"
+            },
+            "dump_on": {
+              "title": "Dump on",
+              "type": "string"
+            },
+            "dump_path": {
+              "title": "Dump path",
+              "type": "string"
+            },
+            "block_generation_on": {
+              "title": "Block generation on",
+              "type": "string"
+            },
+            "lite_mode": {
+              "title": "Lite mode",
+              "type": "boolean"
+            },
+            "state_archive": {
+              "title": "State archive capacity mode",
+              "type": "string"
+            },
+            "fork_config": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
                 },
-                "required": [
-                  "seed",
-                  "total_accounts",
-                  "account_contract_class_hash",
-                  "predeployed_accounts_initial_balance",
-                  "start_time",
-                  "gas_price_fri",
-                  "gas_price_wei",
-                  "data_gas_price_fri",
-                  "data_gas_price_wei",
-                  "chain_id",
-                  "block_generation_on",
-                  "lite_mode",
-                  "state_archive"
-                ]
+                "block_number": {
+                  "type": "integer"
+                }
               }
             }
-          }
+          },
+          "required": [
+            "seed",
+            "total_accounts",
+            "account_contract_class_hash",
+            "predeployed_accounts_initial_balance",
+            "start_time",
+            "gas_price_fri",
+            "gas_price_wei",
+            "data_gas_price_fri",
+            "data_gas_price_wei",
+            "chain_id",
+            "block_generation_on",
+            "lite_mode",
+            "state_archive",
+            "server_config"
+          ]
         }
       },
       "errors": [
