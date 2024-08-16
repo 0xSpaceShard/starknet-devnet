@@ -142,11 +142,7 @@ impl JsonRpcHandler {
 
     /// devnet_postmanConsumeMessageFromL2
     pub async fn postman_consume_message_from_l2(&self, message: MessageToL1) -> StrictRpcResult {
-        let message_hash = postman_consume_message_from_l2_impl(&self.api, message)
-            .await
-            .map_err(ApiError::from)?;
-
-        Ok(DevnetResponse::MessageHash(message_hash).into())
+        postman_consume_message_from_l2_impl(&self.api, message).await
     }
 
     /// devnet_createBlock

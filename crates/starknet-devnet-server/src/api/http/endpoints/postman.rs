@@ -119,13 +119,7 @@ pub async fn postman_send_message_to_l2_impl(api: &Api, message: MessageToL2) ->
 pub async fn postman_consume_message_from_l2_impl(
     api: &Api,
     message: MessageToL1,
-) -> HttpApiResult<MessageHash> {
-    let mut starknet = api.starknet.lock().await;
-
-    let message_hash = starknet
-        .consume_l2_to_l1_message(&message)
-        .await
-        .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
-
-    Ok(MessageHash { message_hash })
+) -> StrictRpcResult {
+    let message_hash = api.starknet.lock().await.consume_l2_to_l1_message(&message).await?;
+    Ok(DevnetResponse::MessageHash(MessageHash { message_hash }).into())
 }
