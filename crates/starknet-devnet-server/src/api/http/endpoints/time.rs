@@ -1,28 +1,24 @@
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{IncreaseTime, IncreaseTimeResponse, SetTime, SetTimeResponse};
 use crate::api::http::HttpApiResult;
+use crate::api::json_rpc::error::StrictRpcResult;
+use crate::api::json_rpc::DevnetResponse;
 use crate::api::Api;
 
-pub(crate) async fn set_time_impl(api: &Api, data: SetTime) -> HttpApiResult<SetTimeResponse> {
+pub(crate) async fn set_time_impl(api: &Api, data: SetTime) -> StrictRpcResult {
     let mut starknet = api.starknet.lock().await;
     let generate_block = data.generate_block.unwrap_or(true);
 
-    starknet
-        .set_time(data.time, generate_block)
-        .map_err(|err| HttpApiError::BlockSetTimeError { msg: err.to_string() })?;
+    starknet.set_time(data.time, generate_block)?;
 
-    if !generate_block {
-        return Ok(SetTimeResponse { block_timestamp: data.time, block_hash: None });
-    }
+    let block_hash = if generate_block {
+        let last_block = starknet.get_latest_block()?;
+        Some(last_block.block_hash())
+    } else {
+        None
+    };
 
-    let last_block = starknet.get_latest_block();
-    match last_block {
-        Ok(block) => Ok(SetTimeResponse {
-            block_timestamp: block.timestamp().0,
-            block_hash: Some(block.block_hash()),
-        }),
-        Err(err) => Err(HttpApiError::CreateEmptyBlockError { msg: err.to_string() }),
-    }
+    Ok(DevnetResponse::SetTime(SetTimeResponse { block_timestamp: data.time, block_hash }).into())
 }
 
 pub(crate) async fn increase_time_impl(
