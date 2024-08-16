@@ -1,6 +1,5 @@
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{IncreaseTime, IncreaseTimeResponse, SetTime, SetTimeResponse};
-use crate::api::http::HttpApiResult;
 use crate::api::json_rpc::error::StrictRpcResult;
 use crate::api::json_rpc::DevnetResponse;
 use crate::api::Api;
@@ -21,21 +20,17 @@ pub(crate) async fn set_time_impl(api: &Api, data: SetTime) -> StrictRpcResult {
     Ok(DevnetResponse::SetTime(SetTimeResponse { block_timestamp: data.time, block_hash }).into())
 }
 
-pub(crate) async fn increase_time_impl(
-    api: &Api,
-    data: IncreaseTime,
-) -> HttpApiResult<IncreaseTimeResponse> {
+pub(crate) async fn increase_time_impl(api: &Api, data: IncreaseTime) -> StrictRpcResult {
     let mut starknet = api.starknet.lock().await;
     starknet
         .increase_time(data.time)
         .map_err(|err| HttpApiError::BlockIncreaseTimeError { msg: err.to_string() })?;
 
-    let last_block = starknet.get_latest_block();
-    match last_block {
-        Ok(block) => Ok(IncreaseTimeResponse {
-            timestamp_increased_by: data.time,
-            block_hash: block.block_hash(),
-        }),
-        Err(err) => Err(HttpApiError::CreateEmptyBlockError { msg: err.to_string() }),
-    }
+    let last_block = starknet.get_latest_block()?;
+
+    Ok(DevnetResponse::IncreaseTime(IncreaseTimeResponse {
+        timestamp_increased_by: data.time,
+        block_hash: last_block.block_hash(),
+    })
+    .into())
 }

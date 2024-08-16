@@ -197,10 +197,7 @@ impl JsonRpcHandler {
 
     /// devnet_increaseTime
     pub async fn increase_time(&self, data: IncreaseTime) -> StrictRpcResult {
-        let increase_time_response =
-            increase_time_impl(&self.api, data).await.map_err(ApiError::from)?;
-
-        Ok(DevnetResponse::IncreaseTime(increase_time_response).into())
+        increase_time_impl(&self.api, data).await
     }
 
     /// devnet_mint
