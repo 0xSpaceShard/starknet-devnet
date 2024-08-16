@@ -2,7 +2,6 @@ use starknet_types::felt::{felt_from_prefixed_hex, TransactionHash};
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 
-use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
     FlushParameters, FlushedMessages, MessageHash, MessagingLoadAddress,
     PostmanLoadL1MessagingContract,
@@ -33,26 +32,26 @@ pub(crate) async fn postman_load_impl(
 async fn execute_rpc_tx(
     rpc_handler: &JsonRpcHandler,
     rpc_call: RpcMethodCall,
-) -> Result<TransactionHash, HttpApiError> {
+) -> Result<TransactionHash, ApiError> {
     match rpc_handler.on_call(rpc_call).await.result {
         ResponseResult::Success(result) => {
             let tx_hash_hex = result
                 .get("transaction_hash")
-                .ok_or(HttpApiError::MessagingError {
-                    msg: format!("Message execution did not yield a transaction hash: {result:?}"),
-                })?
+                .ok_or(ApiError::RpcError(RpcError::internal_error_with(format!(
+                    "Message execution did not yield a transaction hash: {result:?}"
+                ))))?
                 .as_str()
-                .ok_or(HttpApiError::MessagingError {
-                    msg: format!("Result contains invalid transaction hash: {result:?}"),
-                })?;
+                .ok_or(ApiError::RpcError(RpcError::internal_error_with(format!(
+                    "Message execution result contains invalid transaction hash: {result:?}"
+                ))))?;
             let tx_hash = felt_from_prefixed_hex(tx_hash_hex).map_err(|e| {
-                HttpApiError::MessagingError { msg: format!("Invalid tx hash: {tx_hash_hex}: {e}") }
+                ApiError::RpcError(RpcError::internal_error_with(format!(
+                    "Message execution resulted in an invalid tx hash: {tx_hash_hex}: {e}"
+                )))
             })?;
             Ok(tx_hash)
         }
-        ResponseResult::Error(e) => {
-            Err(HttpApiError::MessagingError { msg: format!("Transaction execution error: {e}") })
-        }
+        ResponseResult::Error(e) => Err(ApiError::RpcError(e)),
     }
 }
 
