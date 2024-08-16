@@ -107,16 +107,10 @@ impl JsonRpcHandler {
 
     /// devnet_load
     pub async fn load(&self, path: String) -> StrictRpcResult {
-        match load_events(self.starknet_config.dump_on, &path) {
-            Ok(events) => {
-                self.restart().await?; // necessary to restart before loading
-                match self.re_execute(&events).await {
-                    Ok(_) => Ok(super::JsonRpcResponse::Empty),
-                    Err(e) => Err(ApiError::HttpApiError(HttpApiError::LoadError(e.to_string()))),
-                }
-            }
-            Err(e) => Err(ApiError::HttpApiError(HttpApiError::LoadError(e.to_string()))),
-        }
+        let events = load_events(self.starknet_config.dump_on, &path)?;
+        self.restart().await?; // necessary to restart before loading
+        self.re_execute(&events).await.map_err(ApiError::RpcError)?;
+        Ok(super::JsonRpcResponse::Empty)
     }
 
     /// devnet_postmanLoad
