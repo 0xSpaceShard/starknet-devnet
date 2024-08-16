@@ -1,3 +1,4 @@
+#![cfg(test)]
 pub mod common;
 
 mod get_events_integration_tests {

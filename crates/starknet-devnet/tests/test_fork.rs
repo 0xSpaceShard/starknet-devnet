@@ -1,10 +1,11 @@
+#![cfg(test)]
 pub mod common;
 
 mod fork_tests {
     use std::str::FromStr;
     use std::sync::Arc;
 
-    use server::test_utils::exported_test_utils::assert_contains;
+    use server::test_utils::assert_contains;
     use starknet_rs_accounts::{
         Account, AccountFactory, AccountFactoryError, Call, ExecutionEncoding,
         OpenZeppelinAccountFactory, SingleOwnerAccount,

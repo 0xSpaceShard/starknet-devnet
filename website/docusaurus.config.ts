@@ -64,6 +64,12 @@ const config: Config = {
           label: 'Docs',
         },
         {
+          type: 'doc',
+          position: 'left',
+          docId: 'examples',
+          label: 'Examples',
+        },
+        {
           type: 'docsVersionDropdown',
           position: 'left',
           dropdownItemsAfter: [],
@@ -97,7 +103,7 @@ const config: Config = {
           items: [
             {
               label: 'Discord',
-              href: 'https://discordapp.com/channels/793094838509764618/985824027950055434',
+              href: 'https://discord.com/channels/793094838509764618/1270120259659239424',
             },
             {
               label: 'Starknet',
@@ -109,8 +115,12 @@ const config: Config = {
           title: 'More',
           items: [
             {
-              label: 'GitHub',
+              label: 'Source code',
               href: GITHUB_REPO_URL,
+            },
+            {
+              label: 'starknet-devnet-js',
+              href: 'https://github.com/0xspaceShard/starknet-devnet-js',
             },
           ],
         },

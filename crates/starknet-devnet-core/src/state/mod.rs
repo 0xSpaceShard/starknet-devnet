@@ -151,9 +151,8 @@ pub struct StarknetState {
     /// concerns). Knowing which class was added when is made possible by storing the class
     /// together with the block number.
     rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
-    /// - initially `None`
-    /// - indicates the state hasn't yet been cloned for old-state preservation purpose
-    historic_state: Option<DictState>,
+    /// Used for old state preservation purposes.
+    historic_state: DictState,
 }
 
 impl Default for StarknetState {
@@ -239,16 +238,15 @@ impl StarknetState {
             let compiled_class = self.get_compiled_contract_class(class_hash)?;
             historic_state.set_contract_class(class_hash, compiled_class)?;
         }
-        self.historic_state = Some(historic_state);
-        Ok(self.historic_state.as_ref().unwrap())
+        self.historic_state = historic_state;
+        Ok(&self.historic_state)
     }
 
     pub fn clone_historic(&self) -> Self {
-        let historic_state = self.historic_state.as_ref().unwrap().clone();
         Self {
-            state: CachedState::new(historic_state),
+            state: CachedState::new(self.historic_state.clone()),
             rpc_contract_classes: self.rpc_contract_classes.clone(),
-            historic_state: Some(self.historic_state.as_ref().unwrap().clone()),
+            historic_state: self.historic_state.clone(),
         }
     }
 }

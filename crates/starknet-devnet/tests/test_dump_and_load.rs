@@ -1,3 +1,4 @@
+#![cfg(test)]
 pub mod common;
 
 mod dump_and_load_tests {

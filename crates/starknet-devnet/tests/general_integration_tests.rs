@@ -1,3 +1,4 @@
+#![cfg(test)]
 // must use `pub`: https://github.com/rust-lang/rust/issues/46379#issuecomment-548787629
 pub mod common;
 
@@ -88,10 +89,10 @@ mod general_integration_tests {
                 // expected port added after spawning; determined by port-acquiring logic
                 "timeout": 121,
                 "request_body_size_limit": 1000,
+                "restricted_methods": null,
             },
             "block_generation_on": "demand",
             "lite_mode": false,
-            "disable_account_impersonation": false,
         });
 
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
