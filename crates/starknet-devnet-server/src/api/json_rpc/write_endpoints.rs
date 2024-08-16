@@ -121,10 +121,7 @@ impl JsonRpcHandler {
 
     /// devnet_postmanLoad
     pub async fn postman_load(&self, data: PostmanLoadL1MessagingContract) -> StrictRpcResult {
-        Ok(DevnetResponse::MessagingContractAddress(
-            postman_load_impl(&self.api, data).await.map_err(ApiError::from)?,
-        )
-        .into())
+        postman_load_impl(&self.api, data).await
     }
 
     /// devnet_postmanFlush

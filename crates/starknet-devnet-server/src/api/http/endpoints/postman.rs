@@ -19,15 +19,17 @@ use crate::rpc_handler::RpcHandler;
 pub(crate) async fn postman_load_impl(
     api: &Api,
     data: PostmanLoadL1MessagingContract,
-) -> HttpApiResult<MessagingLoadAddress> {
+) -> StrictRpcResult {
     let mut starknet = api.starknet.lock().await;
-
     let messaging_contract_address = starknet
         .configure_messaging(&data.network_url, data.address.as_deref())
         .await
         .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
 
-    Ok(MessagingLoadAddress { messaging_contract_address })
+    Ok(DevnetResponse::MessagingContractAddress(MessagingLoadAddress {
+        messaging_contract_address,
+    })
+    .into())
 }
 
 async fn execute_rpc_tx(
