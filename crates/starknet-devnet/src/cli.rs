@@ -679,8 +679,8 @@ mod tests {
             }
         }
         match Args::try_parse_from(["--", "--dump-on", "request"]) {
-            Ok(args) => assert_eq!(args.dump_on, Some(DumpOn::Request)),
-            Err(e) => panic!("Should have passed; got: {e}"),
+            Ok(Args { dump_on: Some(DumpOn::Request), .. }) => (),
+            other => panic!("Invalid arg parse result: {other:?}"),
         }
     }
 

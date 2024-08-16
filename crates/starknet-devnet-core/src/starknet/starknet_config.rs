@@ -15,7 +15,7 @@ use crate::constants::{
     DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum, Serialize)]
+#[derive(Copy, Clone, Debug, clap::ValueEnum, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DumpOn {
     Exit,
