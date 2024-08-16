@@ -11,7 +11,6 @@ use super::models::{
     DeclareTransactionOutput, DeployAccountTransactionOutput, TransactionHashOutput,
 };
 use super::{DevnetResponse, StarknetResponse};
-use crate::api::http::endpoints::blocks::{abort_blocks_impl, create_block_impl};
 use crate::api::http::endpoints::dump_load::dump_impl;
 use crate::api::http::endpoints::mint_token::mint_impl;
 use crate::api::http::endpoints::postman::{
@@ -21,8 +20,8 @@ use crate::api::http::endpoints::postman::{
 use crate::api::http::endpoints::time::{increase_time_impl, set_time_impl};
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
-    AbortingBlocks, DumpPath, FlushParameters, IncreaseTime, MintTokensRequest,
-    PostmanLoadL1MessagingContract, SetTime,
+    AbortedBlocks, AbortingBlocks, CreatedBlock, DumpPath, FlushParameters, IncreaseTime,
+    MintTokensRequest, PostmanLoadL1MessagingContract, SetTime,
 };
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::dump_util::load_events;
@@ -158,15 +157,31 @@ impl JsonRpcHandler {
 
     /// devnet_createBlock
     pub async fn create_block(&self) -> StrictRpcResult {
-        let created_block = create_block_impl(&self.api).await.map_err(ApiError::from)?;
-        Ok(DevnetResponse::CreatedBlock(created_block).into())
+        let mut starknet = self.api.starknet.lock().await;
+        starknet
+            .create_block()
+            .map_err(|err| HttpApiError::CreateEmptyBlockError { msg: err.to_string() })?;
+
+        match starknet.get_latest_block() {
+            Ok(block) => {
+                Ok(DevnetResponse::CreatedBlock(CreatedBlock { block_hash: block.block_hash() })
+                    .into())
+            }
+            Err(e) => Err(HttpApiError::CreateEmptyBlockError { msg: e.to_string() }.into()),
+        }
     }
 
     /// devnet_abortBlocks
     pub async fn abort_blocks(&self, data: AbortingBlocks) -> StrictRpcResult {
-        let aborted_blocks = abort_blocks_impl(&self.api, data).await.map_err(ApiError::from)?;
+        let aborted = self
+            .api
+            .starknet
+            .lock()
+            .await
+            .abort_blocks(From::from(data.starting_block_id))
+            .map_err(|err| HttpApiError::BlockAbortError { msg: (err.to_string()) })?;
 
-        Ok(DevnetResponse::AbortedBlocks(aborted_blocks).into())
+        Ok(DevnetResponse::AbortedBlocks(AbortedBlocks { aborted }).into())
     }
 
     /// devnet_setGasPrice

@@ -12,9 +12,6 @@ pub mod dump_load;
 /// Postman
 pub mod postman;
 
-/// Blocks
-pub mod blocks;
-
 /// Time
 pub mod time;
 
