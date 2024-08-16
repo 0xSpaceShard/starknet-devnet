@@ -1,4 +1,3 @@
-use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{IncreaseTime, IncreaseTimeResponse, SetTime, SetTimeResponse};
 use crate::api::json_rpc::error::StrictRpcResult;
 use crate::api::json_rpc::DevnetResponse;
@@ -22,9 +21,7 @@ pub(crate) async fn set_time_impl(api: &Api, data: SetTime) -> StrictRpcResult {
 
 pub(crate) async fn increase_time_impl(api: &Api, data: IncreaseTime) -> StrictRpcResult {
     let mut starknet = api.starknet.lock().await;
-    starknet
-        .increase_time(data.time)
-        .map_err(|err| HttpApiError::BlockIncreaseTimeError { msg: err.to_string() })?;
+    starknet.increase_time(data.time)?;
 
     let last_block = starknet.get_latest_block()?;
 

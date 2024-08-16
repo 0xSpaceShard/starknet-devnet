@@ -7,10 +7,11 @@ use crate::api::http::models::{
     FlushParameters, FlushedMessages, MessageHash, MessagingLoadAddress,
     PostmanLoadL1MessagingContract,
 };
-use crate::api::json_rpc::error::StrictRpcResult;
+use crate::api::json_rpc::error::{ApiError, StrictRpcResult};
 use crate::api::json_rpc::models::TransactionHashOutput;
 use crate::api::json_rpc::{DevnetResponse, JsonRpcHandler};
 use crate::api::Api;
+use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::ResponseResult;
 use crate::rpc_handler::RpcHandler;
@@ -20,10 +21,8 @@ pub(crate) async fn postman_load_impl(
     data: PostmanLoadL1MessagingContract,
 ) -> StrictRpcResult {
     let mut starknet = api.starknet.lock().await;
-    let messaging_contract_address = starknet
-        .configure_messaging(&data.network_url, data.address.as_deref())
-        .await
-        .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
+    let messaging_contract_address =
+        starknet.configure_messaging(&data.network_url, data.address.as_deref()).await?;
 
     Ok(DevnetResponse::MessagingContractAddress(MessagingLoadAddress {
         messaging_contract_address,
@@ -72,14 +71,18 @@ pub(crate) async fn postman_flush_impl(
     if !is_dry_run {
         // Fetch and execute messages to L2.
         messages_to_l2 = starknet.fetch_messages_to_l2().await.map_err(|e| {
-            HttpApiError::MessagingError { msg: format!("Error in fetching messages to l2: {e}") }
+            ApiError::RpcError(RpcError::internal_error_with(format!(
+                "Error in fetching messages to L2: {e}"
+            )))
         })?;
 
         drop(starknet); // drop to avoid deadlock, later re-acquire
 
         for message in &messages_to_l2 {
             let rpc_call = message.try_into().map_err(|e: crate::error::Error| {
-                HttpApiError::MessagingError { msg: e.to_string() }
+                ApiError::RpcError(RpcError::internal_error_with(format!(
+                    "Error in converting message to L2 RPC call: {e}"
+                )))
             })?;
             let tx_hash = execute_rpc_tx(rpc_handler, rpc_call).await?;
             generated_l2_transactions.push(tx_hash);
@@ -90,14 +93,18 @@ pub(crate) async fn postman_flush_impl(
 
     // Collect and send messages to L1.
     let messages_to_l1 = starknet.collect_messages_to_l1().await.map_err(|e| {
-        HttpApiError::MessagingError { msg: format!("collect messages to l1 error: {}", e) }
+        ApiError::RpcError(RpcError::internal_error_with(format!(
+            "Error in collecting messages to L1: {e}"
+        )))
     })?;
 
     let l1_provider = if is_dry_run {
         "dry_run".to_string()
     } else {
-        starknet.send_messages_to_l1().await.map_err(|e| HttpApiError::MessagingError {
-            msg: format!("Error in sending messages to L1: {e}"),
+        starknet.send_messages_to_l1().await.map_err(|e| {
+            ApiError::RpcError(RpcError::internal_error_with(format!(
+                "Error in sending messages to L1: {e}"
+            )))
         })?;
         starknet.get_ethereum_url().unwrap_or("Not set".to_string())
     };

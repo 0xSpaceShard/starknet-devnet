@@ -18,7 +18,6 @@ use crate::api::http::endpoints::postman::{
     postman_send_message_to_l2_impl,
 };
 use crate::api::http::endpoints::time::{increase_time_impl, set_time_impl};
-use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
     AbortedBlocks, AbortingBlocks, CreatedBlock, DumpPath, FlushParameters, IncreaseTime,
     MintTokensRequest, PostmanLoadL1MessagingContract, SetTime,
@@ -110,6 +109,7 @@ impl JsonRpcHandler {
         let events = load_events(self.starknet_config.dump_on, &path)?;
         self.restart().await?; // necessary to restart before loading
         self.re_execute(&events).await.map_err(ApiError::RpcError)?;
+
         Ok(super::JsonRpcResponse::Empty)
     }
 
@@ -136,29 +136,16 @@ impl JsonRpcHandler {
     /// devnet_createBlock
     pub async fn create_block(&self) -> StrictRpcResult {
         let mut starknet = self.api.starknet.lock().await;
-        starknet
-            .create_block()
-            .map_err(|err| HttpApiError::CreateEmptyBlockError { msg: err.to_string() })?;
 
-        match starknet.get_latest_block() {
-            Ok(block) => {
-                Ok(DevnetResponse::CreatedBlock(CreatedBlock { block_hash: block.block_hash() })
-                    .into())
-            }
-            Err(e) => Err(HttpApiError::CreateEmptyBlockError { msg: e.to_string() }.into()),
-        }
+        starknet.create_block()?;
+        let block = starknet.get_latest_block()?;
+
+        Ok(DevnetResponse::CreatedBlock(CreatedBlock { block_hash: block.block_hash() }).into())
     }
 
     /// devnet_abortBlocks
     pub async fn abort_blocks(&self, data: AbortingBlocks) -> StrictRpcResult {
-        let aborted = self
-            .api
-            .starknet
-            .lock()
-            .await
-            .abort_blocks(From::from(data.starting_block_id))
-            .map_err(|err| HttpApiError::BlockAbortError { msg: (err.to_string()) })?;
-
+        let aborted = self.api.starknet.lock().await.abort_blocks(data.starting_block_id.into())?;
         Ok(DevnetResponse::AbortedBlocks(AbortedBlocks { aborted }).into())
     }
 
@@ -173,13 +160,7 @@ impl JsonRpcHandler {
     /// devnet_restart
     pub async fn restart(&self) -> StrictRpcResult {
         self.api.dumpable_events.lock().await.clear();
-
-        self.api
-            .starknet
-            .lock()
-            .await
-            .restart()
-            .map_err(|err| HttpApiError::RestartError { msg: err.to_string() })?;
+        self.api.starknet.lock().await.restart()?;
 
         Ok(super::JsonRpcResponse::Empty)
     }
