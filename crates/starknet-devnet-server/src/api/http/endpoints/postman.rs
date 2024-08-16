@@ -99,7 +99,7 @@ pub(crate) async fn postman_flush_impl(
     })?;
 
     let l1_provider = if is_dry_run {
-        "dry_run".to_string()
+        "dry run".to_string()
     } else {
         starknet.send_messages_to_l1().await.map_err(|e| {
             ApiError::RpcError(RpcError::internal_error_with(format!(
