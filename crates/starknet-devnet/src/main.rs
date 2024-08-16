@@ -5,7 +5,7 @@ use std::time::Duration;
 use clap::Parser;
 use cli::Args;
 use futures::future::join_all;
-use server::api::json_rpc::RPC_SPEC_VERSION;
+use server::api::json_rpc::{JsonRpcHandler, RPC_SPEC_VERSION};
 use server::api::Api;
 use server::dump_util::{dump_events, load_events, DumpEvent};
 use server::rpc_core::request::{Id, RequestParams, Version};
@@ -176,19 +176,6 @@ async fn main() -> Result<(), anyhow::Error> {
     let starknet = Starknet::new(&starknet_config)?;
     let api = Api::new(starknet);
 
-    let loadable_events = if let Some(dump_path) = &starknet_config.dump_path {
-        // Try to load events from the path. Since the same CLI parameter is used for dump and load
-        // path, it may be the case that there is no file at the path. This means that the file will
-        // be created during Devnet's lifetime via dumping, so its non-existence is here ignored.
-        match load_events(starknet_config.dump_on, dump_path) {
-            Ok(events) => events,
-            Err(starknet_core::error::Error::FileNotFound) => vec![],
-            Err(err) => return Err(err.into()),
-        }
-    } else {
-        vec![]
-    };
-
     // set block timestamp shift during startup if start time is set
     if let Some(start_time) = starknet_config.start_time {
         api.starknet.lock().await.set_block_timestamp_shift(
@@ -206,14 +193,23 @@ async fn main() -> Result<(), anyhow::Error> {
         starknet_config.predeployed_accounts_initial_balance.clone(),
     );
 
-    let server = serve_http_api_json_rpc(
-        listener,
-        api.clone(),
-        &starknet_config,
-        &server_config,
-        &loadable_events,
-    )
-    .await?;
+    let json_rpc_handler = JsonRpcHandler::new(api.clone(), &starknet_config, &server_config);
+    if let Some(dump_path) = &starknet_config.dump_path {
+        // Try to load events from the path. Since the same CLI parameter is used for dump and load
+        // path, it may be the case that there is no file at the path. This means that the file will
+        // be created during Devnet's lifetime via dumping, so its non-existence is here ignored.
+        match load_events(starknet_config.dump_on, dump_path) {
+            Ok(loadable_events) => json_rpc_handler
+                .re_execute(&loadable_events)
+                .await
+                .map_err(|e| anyhow::anyhow!("Failed to re-execute dumped Devnet: {e}"))?,
+            Err(starknet_core::error::Error::FileNotFound) => (),
+            Err(err) => return Err(err.into()),
+        }
+    };
+
+    let server =
+        serve_http_api_json_rpc(listener, api.clone(), &server_config, json_rpc_handler).await?;
     info!("Starknet Devnet listening on {}", address);
 
     let mut tasks = vec![];

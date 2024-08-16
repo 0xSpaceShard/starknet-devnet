@@ -10,17 +10,14 @@ use axum::Router;
 use http_body_util::BodyExt;
 use lazy_static::lazy_static;
 use reqwest::{header, Method};
-use starknet_core::starknet::starknet_config::StarknetConfig;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::api::http::{endpoints as http, HttpApiHandler};
-use crate::api::json_rpc::origin_forwarder::OriginForwarder;
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::Api;
-use crate::dump_util::DumpEvent;
 use crate::restrictive_mode::is_uri_path_restricted;
 use crate::rpc_handler::RpcHandler;
 use crate::{http_rpc_router, rpc_handler, ServerConfig};
@@ -95,30 +92,10 @@ fn converted_http_api_routes(json_rpc_handler: JsonRpcHandler) -> Router {
 pub async fn serve_http_api_json_rpc(
     tcp_listener: TcpListener,
     api: Api,
-    starknet_config: &StarknetConfig,
     server_config: &ServerConfig,
-    loadable_events: &[DumpEvent],
+    json_rpc_handler: JsonRpcHandler,
 ) -> Result<StarknetDevnetServer, anyhow::Error> {
     let http_handler = HttpApiHandler { api: api.clone(), server_config: server_config.clone() };
-    let origin_caller = if let (Some(url), Some(block_number)) =
-        (&starknet_config.fork_config.url, starknet_config.fork_config.block_number)
-    {
-        Some(OriginForwarder::new(url.to_string(), block_number))
-    } else {
-        None
-    };
-
-    let json_rpc_handler = JsonRpcHandler {
-        api,
-        origin_caller,
-        starknet_config: starknet_config.clone(),
-        server_config: server_config.clone(),
-    };
-
-    json_rpc_handler
-        .re_execute(loadable_events)
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to re-execute dumped Devnet: {e}"))?;
 
     let mut routes = Router::new()
         .merge(json_rpc_routes(json_rpc_handler.clone()))

@@ -156,6 +156,27 @@ impl RpcHandler for JsonRpcHandler {
 }
 
 impl JsonRpcHandler {
+    pub fn new(
+        api: Api,
+        starknet_config: &StarknetConfig,
+        server_config: &ServerConfig,
+    ) -> JsonRpcHandler {
+        let origin_caller = if let (Some(url), Some(block_number)) =
+            (&starknet_config.fork_config.url, starknet_config.fork_config.block_number)
+        {
+            Some(OriginForwarder::new(url.to_string(), block_number))
+        } else {
+            None
+        };
+
+        JsonRpcHandler {
+            api,
+            origin_caller,
+            starknet_config: starknet_config.clone(),
+            server_config: server_config.clone(),
+        }
+    }
+
     /// The method matches the request to the corresponding enum variant and executes the request
     async fn execute(
         &self,
@@ -372,7 +393,7 @@ impl JsonRpcHandler {
         Ok(())
     }
 
-    pub(crate) async fn re_execute(&self, events: &[RpcMethodCall]) -> Result<(), RpcError> {
+    pub async fn re_execute(&self, events: &[RpcMethodCall]) -> Result<(), RpcError> {
         for event in events {
             if let ResponseResult::Error(e) = self.on_call(event.clone()).await.result {
                 return Err(e);
