@@ -23,6 +23,7 @@ mod blocks_generation_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
+    use crate::common::reqwest_client::PostReqwestSender;
     use crate::common::utils::{
         assert_equal_elements, assert_tx_successful, get_contract_balance,
         get_contract_balance_by_block_id, get_events_contract_in_sierra_and_compiled_class_hash,
@@ -642,5 +643,19 @@ mod blocks_generation_tests {
                 .unwrap();
             assert_eq!(storage, signer.get_public_key().await.unwrap().scalar());
         }
+    }
+
+    #[tokio::test]
+    async fn block_generation_via_non_rpc() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        let last_block_before = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+
+        let _: serde_json::Value =
+            devnet.reqwest_client().post_json_async("/create_block", json!({})).await.unwrap();
+
+        let last_block_after = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+
+        assert_eq!(last_block_after.block_number, last_block_before.block_number + 1);
     }
 }

@@ -8,6 +8,7 @@ mod abort_blocks_tests {
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
+    use crate::common::reqwest_client::PostReqwestSender;
     use crate::common::utils::{assert_tx_reverted, to_hex_felt};
 
     static DUMMY_ADDRESS: u128 = 1;
@@ -265,5 +266,33 @@ mod abort_blocks_tests {
         let latest_balance =
             devnet.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI).await.unwrap();
         assert_eq!(latest_balance, DUMMY_AMOUNT.into());
+    }
+
+    #[tokio::test]
+    async fn block_abortion_via_non_rpc() {
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .unwrap();
+
+        let created_block_hash = devnet.create_block().await.unwrap();
+
+        let last_block_before_abortion = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+
+        let _: serde_json::Value = devnet
+            .reqwest_client()
+            .post_json_async(
+                "/abort_blocks",
+                json!({ "starting_block_id": { "block_hash": created_block_hash } }),
+            )
+            .await
+            .unwrap();
+
+        let last_block_after_abortion = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+
+        assert_eq!(
+            last_block_after_abortion.block_number,
+            last_block_before_abortion.block_number - 1
+        );
     }
 }

@@ -12,6 +12,7 @@ mod dump_and_load_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
+    use crate::common::reqwest_client::PostReqwestSender;
     use crate::common::utils::{send_ctrl_c_signal_and_wait, UniqueAutoDeletableFile};
 
     static DUMMY_ADDRESS: u128 = 1;
@@ -523,16 +524,84 @@ mod dump_and_load_tests {
         assert_eq!(latest_block.timestamp, past_time);
     }
 
+    /// Ever since the introduction of non-rpc to rpc mapper, it is worth testing if non-rpc
+    /// requests do what we want. Especially since the vast majority of our e2e tests
+    /// rely on the JSON-RPC API.
     #[tokio::test]
     async fn test_dumping_of_non_rpc_requests() {
-        // Ever since the introduction of non-rpc to rpc mapper, it is worth testing if non-rpc
-        // requests do what we want. Especially since the vast majority of our e2e tests
-        // rely on the JSON-RPC API.
-        let _devnet = BackgroundDevnet::spawn().await.unwrap();
-        // e.g. mint
-        // e.g. create block
-        // e.g. abort block
-        // e.g. set time and create block
-        unimplemented!()
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-on",
+            "request",
+            "--state-archive-capacity",
+            "full",
+        ])
+        .await
+        .unwrap();
+
+        // mint, create block, abort block, create block
+        let address = "0x1";
+        let mint_amount = 100;
+        let _: serde_json::Value = devnet
+            .reqwest_client()
+            .post_json_async("/mint", json!({ "address": address, "amount": mint_amount }))
+            .await
+            .unwrap();
+
+        let first_created_block: serde_json::Value =
+            devnet.reqwest_client().post_json_async("/create_block", json!({})).await.unwrap();
+
+        let second_created_block: serde_json::Value =
+            devnet.reqwest_client().post_json_async("/create_block", json!({})).await.unwrap();
+
+        let _: serde_json::Value = devnet
+            .reqwest_client()
+            .post_json_async(
+                "/abort_blocks",
+                json!({ "starting_block_id": { "block_hash": second_created_block["block_hash"] } }),
+            )
+            .await
+            .unwrap();
+
+        // dump and spawn a new devnet by loading
+        let dump_file = UniqueAutoDeletableFile::new("non-rpc-dump");
+        devnet.send_custom_rpc("devnet_dump", json!({ "path": dump_file.path })).await.unwrap();
+
+        let loaded_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            &dump_file.path,
+            "--state-archive-capacity",
+            "full",
+        ])
+        .await
+        .unwrap();
+
+        let loaded_balance = loaded_devnet
+            .get_balance_latest(&Felt::from_hex_unchecked(address), FeeUnit::WEI)
+            .await
+            .unwrap();
+        assert_eq!(loaded_balance, Felt::from(mint_amount));
+
+        let loaded_latest_block = loaded_devnet.get_latest_block_with_tx_hashes().await.unwrap();
+        assert_eq!(
+            loaded_latest_block.block_hash,
+            Felt::from_hex_unchecked(first_created_block["block_hash"].as_str().unwrap())
+        );
+    }
+
+    #[tokio::test]
+    async fn test_dumping_after_restart() {
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--dump-on", "request"]).await.unwrap();
+
+        // mint, restart, assert dump empty
+        let address = Felt::ONE;
+        let mint_amount = 100;
+        devnet.mint(address, mint_amount).await;
+
+        devnet.restart().await;
+
+        let dump_resp =
+            devnet.send_custom_rpc("devnet_dump", serde_json::Value::Null).await.unwrap();
+        assert_eq!(dump_resp, json!([]));
     }
 }

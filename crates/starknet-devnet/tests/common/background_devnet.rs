@@ -42,7 +42,7 @@ lazy_static! {
 
 #[derive(Debug)]
 pub struct BackgroundDevnet {
-    pub reqwest_client: ReqwestClient,
+    reqwest_client: ReqwestClient,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
     pub process: Child,
     pub port: u16,
