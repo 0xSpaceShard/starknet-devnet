@@ -75,10 +75,10 @@ fn http_api_routes(http_api_handler: HttpApiHandler) -> Router {
 fn converted_http_api_routes(json_rpc_handler: JsonRpcHandler) -> Router {
     http_rpc_router![
         ("/postman/load_l1_messaging_contract", devnet_postmanLoad),
-        ("/load", devnet_load), // not here for dumping purposes; needs access to json_rpc_handler
         ("/postman/flush", devnet_postmanFlush),
         ("/postman/send_message_to_l2", devnet_postmanSendMessageToL2),
         ("/postman/consume_message_from_l2", devnet_postmanConsumeMessageFromL2),
+        ("/load", devnet_load), // not here for dumping purposes; needs access to json_rpc_handler
         ("/create_block", devnet_createBlock),
         ("/abort_blocks", devnet_abortBlocks),
         ("/restart", devnet_restart),

@@ -9,7 +9,8 @@ use starknet_types::rpc::transaction_receipt::FeeUnit;
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{MintTokensRequest, MintTokensResponse};
 use crate::api::http::HttpApiResult;
-use crate::api::json_rpc::error::ApiError;
+use crate::api::json_rpc::error::{ApiError, StrictRpcResult};
+use crate::api::json_rpc::DevnetResponse;
 use crate::api::Api;
 
 /// get the balance of the `address`
@@ -61,22 +62,17 @@ pub fn get_erc20_address(unit: &FeeUnit) -> HttpApiResult<ContractAddress> {
     .map_err(|err| HttpApiError::InvalidValueError { msg: err.to_string() })
 }
 
-pub(crate) async fn mint_impl(
-    api: &Api,
-    request: MintTokensRequest,
-) -> HttpApiResult<MintTokensResponse> {
+pub(crate) async fn mint_impl(api: &Api, request: MintTokensRequest) -> StrictRpcResult {
     let mut starknet = api.starknet.lock().await;
     let unit = request.unit.unwrap_or(FeeUnit::WEI);
     let erc20_address = get_erc20_address(&unit)?;
 
     // increase balance
-    let tx_hash = starknet
-        .mint(request.address, request.amount, erc20_address)
-        .await
-        .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
+    let tx_hash = starknet.mint(request.address, request.amount, erc20_address).await?;
 
-    let new_balance = get_balance(&mut starknet, request.address, erc20_address, BlockTag::Pending)
-        .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
+    let new_balance =
+        get_balance(&mut starknet, request.address, erc20_address, BlockTag::Pending)?;
+    let new_balance = new_balance.to_str_radix(10);
 
-    Ok(MintTokensResponse { new_balance: new_balance.to_str_radix(10), unit, tx_hash })
+    Ok(DevnetResponse::MintTokens(MintTokensResponse { new_balance, unit, tx_hash }).into())
 }

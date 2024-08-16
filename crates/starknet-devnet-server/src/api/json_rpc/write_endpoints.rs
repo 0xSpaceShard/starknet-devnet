@@ -206,9 +206,7 @@ impl JsonRpcHandler {
 
     /// devnet_mint
     pub async fn mint(&self, request: MintTokensRequest) -> StrictRpcResult {
-        let mint_tokens_response = mint_impl(&self.api, request).await.map_err(ApiError::from)?;
-
-        Ok(DevnetResponse::MintTokens(mint_tokens_response).into())
+        mint_impl(&self.api, request).await
     }
 }
 
