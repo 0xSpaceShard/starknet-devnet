@@ -1,3 +1,4 @@
+#![cfg(test)]
 pub mod common;
 
 mod get_block_txs_count_tests {

@@ -762,7 +762,8 @@ impl Starknet {
         let raw_execution = RawExecution {
             calls: vec![Call {
                 to: erc20_address.into(),
-                selector: get_selector_from_name("mint").unwrap(),
+                selector: get_selector_from_name("mint")
+                    .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?,
                 calldata: calldata.clone(),
             }],
             nonce: nonce.0,
@@ -774,9 +775,9 @@ impl Starknet {
 
         // generate signature by signing the msg hash
         let signer = starknet_rs_signers::LocalWallet::from(
-            starknet_rs_signers::SigningKey::from_secret_scalar(
-                felt_from_prefixed_hex(CHARGEABLE_ACCOUNT_PRIVATE_KEY).unwrap(),
-            ),
+            starknet_rs_signers::SigningKey::from_secret_scalar(felt_from_prefixed_hex(
+                CHARGEABLE_ACCOUNT_PRIVATE_KEY,
+            )?),
         );
         let signature = signer.sign_hash(&msg_hash).await?;
 
@@ -1254,6 +1255,7 @@ impl Starknet {
         self.next_block_timestamp = Some(timestamp);
     }
 
+    #[allow(clippy::expect_used)]
     pub fn get_unix_timestamp_as_seconds() -> u64 {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -1270,11 +1272,6 @@ impl Starknet {
         if self.config.fork_config.url.is_none() {
             return Err(Error::UnsupportedAction {
                 msg: "Account impersonation is supported when forking mode is enabled.".to_string(),
-            });
-        }
-        if self.config.disable_account_impersonation {
-            return Err(Error::UnsupportedAction {
-                msg: "Account impersonation is disabled.".to_string(),
             });
         }
         if self.pending_state.is_contract_deployed_locally(account)? {
@@ -1308,11 +1305,6 @@ impl Starknet {
         if self.config.fork_config.url.is_none() {
             return Err(Error::UnsupportedAction {
                 msg: "Account impersonation is supported when forking mode is enabled.".to_string(),
-            });
-        }
-        if self.config.disable_account_impersonation {
-            return Err(Error::UnsupportedAction {
-                msg: "Account impersonation is disabled.".to_string(),
             });
         }
         self.cheats.set_auto_impersonate(auto_impersonation);

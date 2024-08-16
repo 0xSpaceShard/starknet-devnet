@@ -80,20 +80,12 @@ impl MessagingBroker {
 
     /// Returns a reference to the ethereum instance if configured, an error otherwise.
     pub fn ethereum_ref(&self) -> DevnetResult<&EthereumMessaging> {
-        if self.ethereum.is_none() {
-            return Err(Error::MessagingError(MessagingError::NotConfigured));
-        }
-
-        Ok(self.ethereum.as_ref().unwrap())
+        self.ethereum.as_ref().ok_or(Error::MessagingError(MessagingError::NotConfigured))
     }
 
     /// Returns a mutable reference to the ethereum instance if configured, an error otherwise.
     pub fn ethereum_mut(&mut self) -> DevnetResult<&mut EthereumMessaging> {
-        if self.ethereum.is_none() {
-            return Err(Error::MessagingError(MessagingError::NotConfigured));
-        }
-
-        Ok(self.ethereum.as_mut().unwrap())
+        self.ethereum.as_mut().ok_or(Error::MessagingError(MessagingError::NotConfigured))
     }
 }
 

@@ -184,7 +184,7 @@ mod tests {
     };
 
     use super::{BlockIdInput, EstimateFeeInput, GetStorageInput};
-    use crate::test_utils::exported_test_utils::assert_contains;
+    use crate::test_utils::assert_contains;
 
     #[test]
     fn errored_deserialization_of_estimate_fee_with_broadcasted_declare_transaction() {

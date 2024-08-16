@@ -1,3 +1,4 @@
+#![cfg(test)]
 // must use `pub`: https://github.com/rust-lang/rust/issues/46379#issuecomment-548787629
 pub mod common;
 
@@ -88,10 +89,10 @@ mod general_integration_tests {
                 // expected port added after spawning; determined by port-acquiring logic
                 "timeout": 121,
                 "request_body_size_limit": 1000,
+                "restricted_methods": null,
             },
             "block_generation_on": "demand",
             "lite_mode": false,
-            "disable_account_impersonation": false,
         });
 
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
@@ -163,10 +164,10 @@ mod general_integration_tests {
 
     #[tokio::test]
     async fn test_mapping_to_rpc() {
-        // Ever since the introduction of non-rpc to rpc mapper, it is worth testing if non-rpc requests
-        // do what we want. Especially since the vast majority of our e2e tests rely on the JSON-RPC
-        // API.
-        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        // Ever since the introduction of non-rpc to rpc mapper, it is worth testing if non-rpc
+        // requests do what we want. Especially since the vast majority of our e2e tests
+        // rely on the JSON-RPC API.
+        let _devnet = BackgroundDevnet::spawn().await.unwrap();
         // e.g. mint
         // e.g. create block
         // e.g. abort block

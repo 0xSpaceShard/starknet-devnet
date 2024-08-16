@@ -1,3 +1,4 @@
+#![cfg(test)]
 pub mod common;
 
 mod dump_and_load_tests {
@@ -524,10 +525,10 @@ mod dump_and_load_tests {
 
     #[tokio::test]
     async fn test_dumping_of_non_rpc_requests() {
-        // Ever since the introduction of non-rpc to rpc mapper, it is worth testing if non-rpc requests
-        // do what we want. Especially since the vast majority of our e2e tests rely on the JSON-RPC
-        // API.
-        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        // Ever since the introduction of non-rpc to rpc mapper, it is worth testing if non-rpc
+        // requests do what we want. Especially since the vast majority of our e2e tests
+        // rely on the JSON-RPC API.
+        let _devnet = BackgroundDevnet::spawn().await.unwrap();
         // e.g. mint
         // e.g. create block
         // e.g. abort block

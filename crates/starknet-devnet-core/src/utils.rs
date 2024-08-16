@@ -207,6 +207,7 @@ pub(crate) mod test_utils {
 }
 
 #[cfg(any(test, feature = "test_utils"))]
+#[allow(clippy::unwrap_used)]
 pub mod exported_test_utils {
     use starknet_types::contract_class::Cairo0Json;
 

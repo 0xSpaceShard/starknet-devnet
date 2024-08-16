@@ -30,11 +30,6 @@ impl From<EthAddressWrapper> for Felt {
 
 impl From<ApiEthAddress> for EthAddressWrapper {
     fn from(value: ApiEthAddress) -> Self {
-        // Can be simplified if https://github.com/xJonathanLEI/starknet-rs/pull/506 is merged.
-        let eth_address = format!("{:?}", value.0);
-        let eth_address = eth_address.strip_prefix("0x").unwrap_or(&eth_address);
-        let eth_address: EthAddress = EthAddress::from_hex(eth_address)
-            .expect("EthAddress from starknet_api is out of range");
-        EthAddressWrapper { inner: eth_address }
+        EthAddressWrapper { inner: EthAddress::from_bytes(value.0.to_fixed_bytes()) }
     }
 }

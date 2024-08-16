@@ -1,9 +1,10 @@
+#![cfg(test)]
 pub mod common;
 
 mod trace_tests {
     use std::sync::Arc;
 
-    use server::test_utils::exported_test_utils::assert_contains;
+    use server::test_utils::assert_contains;
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
