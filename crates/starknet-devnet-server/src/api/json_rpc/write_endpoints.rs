@@ -126,10 +126,7 @@ impl JsonRpcHandler {
 
     /// devnet_postmanFlush
     pub async fn postman_flush(&self, data: Option<FlushParameters>) -> StrictRpcResult {
-        Ok(DevnetResponse::FlushedMessages(
-            postman_flush_impl(&self.api, data, self).await.map_err(ApiError::from)?,
-        )
-        .into())
+        postman_flush_impl(&self.api, data, self).await
     }
 
     /// devnet_postmanSendMessageToL2

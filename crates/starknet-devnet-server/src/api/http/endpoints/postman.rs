@@ -7,7 +7,6 @@ use crate::api::http::models::{
     FlushParameters, FlushedMessages, MessageHash, MessagingLoadAddress,
     PostmanLoadL1MessagingContract,
 };
-use crate::api::http::HttpApiResult;
 use crate::api::json_rpc::error::StrictRpcResult;
 use crate::api::json_rpc::models::TransactionHashOutput;
 use crate::api::json_rpc::{DevnetResponse, JsonRpcHandler};
@@ -62,7 +61,7 @@ pub(crate) async fn postman_flush_impl(
     api: &Api,
     data: Option<FlushParameters>,
     rpc_handler: &JsonRpcHandler,
-) -> HttpApiResult<FlushedMessages> {
+) -> StrictRpcResult {
     // Need to handle L1 to L2 first in case those messages create L2 to L1 messages.
     let mut starknet = api.starknet.lock().await;
 
@@ -94,22 +93,19 @@ pub(crate) async fn postman_flush_impl(
         HttpApiError::MessagingError { msg: format!("collect messages to l1 error: {}", e) }
     })?;
 
-    if is_dry_run {
-        return Ok(FlushedMessages {
-            messages_to_l1,
-            messages_to_l2,
-            generated_l2_transactions,
-            l1_provider: "dry run".to_string(),
-        });
-    }
+    let l1_provider = if is_dry_run {
+        "dry_run".to_string()
+    } else {
+        starknet.send_messages_to_l1().await.map_err(|e| HttpApiError::MessagingError {
+            msg: format!("Error in sending messages to L1: {e}"),
+        })?;
+        starknet.get_ethereum_url().unwrap_or("Not set".to_string())
+    };
 
-    starknet.send_messages_to_l1().await.map_err(|e| HttpApiError::MessagingError {
-        msg: format!("send messages to l1 error: {}", e),
-    })?;
+    let flushed_messages =
+        FlushedMessages { messages_to_l1, messages_to_l2, generated_l2_transactions, l1_provider };
 
-    let l1_provider = starknet.get_ethereum_url().unwrap_or("Not set".to_string());
-
-    Ok(FlushedMessages { messages_to_l1, messages_to_l2, generated_l2_transactions, l1_provider })
+    Ok(DevnetResponse::FlushedMessages(flushed_messages).into())
 }
 
 pub async fn postman_send_message_to_l2_impl(api: &Api, message: MessageToL2) -> StrictRpcResult {
