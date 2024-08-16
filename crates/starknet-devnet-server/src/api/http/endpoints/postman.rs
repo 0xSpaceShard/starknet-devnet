@@ -32,26 +32,26 @@ pub(crate) async fn postman_load_impl(
 async fn execute_rpc_tx(
     rpc_handler: &JsonRpcHandler,
     rpc_call: RpcMethodCall,
-) -> Result<TransactionHash, ApiError> {
+) -> Result<TransactionHash, RpcError> {
     match rpc_handler.on_call(rpc_call).await.result {
         ResponseResult::Success(result) => {
             let tx_hash_hex = result
                 .get("transaction_hash")
-                .ok_or(ApiError::RpcError(RpcError::internal_error_with(format!(
+                .ok_or(RpcError::internal_error_with(format!(
                     "Message execution did not yield a transaction hash: {result:?}"
-                ))))?
+                )))?
                 .as_str()
-                .ok_or(ApiError::RpcError(RpcError::internal_error_with(format!(
+                .ok_or(RpcError::internal_error_with(format!(
                     "Message execution result contains invalid transaction hash: {result:?}"
-                ))))?;
+                )))?;
             let tx_hash = felt_from_prefixed_hex(tx_hash_hex).map_err(|e| {
-                ApiError::RpcError(RpcError::internal_error_with(format!(
+                RpcError::internal_error_with(format!(
                     "Message execution resulted in an invalid tx hash: {tx_hash_hex}: {e}"
-                )))
+                ))
             })?;
             Ok(tx_hash)
         }
-        ResponseResult::Error(e) => Err(ApiError::RpcError(e)),
+        ResponseResult::Error(e) => Err(e),
     }
 }
 
@@ -78,12 +78,13 @@ pub(crate) async fn postman_flush_impl(
         drop(starknet); // drop to avoid deadlock, later re-acquire
 
         for message in &messages_to_l2 {
-            let rpc_call = message.try_into().map_err(|e: crate::error::Error| {
+            let rpc_call = message.try_into().map_err(|e| {
                 ApiError::RpcError(RpcError::internal_error_with(format!(
                     "Error in converting message to L2 RPC call: {e}"
                 )))
             })?;
-            let tx_hash = execute_rpc_tx(rpc_handler, rpc_call).await?;
+            let tx_hash =
+                execute_rpc_tx(rpc_handler, rpc_call).await.map_err(ApiError::RpcError)?;
             generated_l2_transactions.push(tx_hash);
         }
 
