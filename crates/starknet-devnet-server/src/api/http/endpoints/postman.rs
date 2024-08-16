@@ -5,10 +5,12 @@ use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransact
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
     FlushParameters, FlushedMessages, MessageHash, MessagingLoadAddress,
-    PostmanLoadL1MessagingContract, TxHash,
+    PostmanLoadL1MessagingContract,
 };
 use crate::api::http::HttpApiResult;
-use crate::api::json_rpc::JsonRpcHandler;
+use crate::api::json_rpc::error::StrictRpcResult;
+use crate::api::json_rpc::models::TransactionHashOutput;
+use crate::api::json_rpc::{DevnetResponse, JsonRpcHandler};
 use crate::api::Api;
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::ResponseResult;
@@ -108,20 +110,10 @@ pub(crate) async fn postman_flush_impl(
     Ok(FlushedMessages { messages_to_l1, messages_to_l2, generated_l2_transactions, l1_provider })
 }
 
-pub async fn postman_send_message_to_l2_impl(
-    api: &Api,
-    message: MessageToL2,
-) -> HttpApiResult<TxHash> {
-    let mut starknet = api.starknet.lock().await;
-
-    let transaction = L1HandlerTransaction::try_from_message_to_l2(message)
-        .map_err(|e| HttpApiError::InvalidValueError { msg: e.to_string() })?;
-
-    let transaction_hash = starknet
-        .add_l1_handler_transaction(transaction)
-        .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
-
-    Ok(TxHash { transaction_hash })
+pub async fn postman_send_message_to_l2_impl(api: &Api, message: MessageToL2) -> StrictRpcResult {
+    let transaction = L1HandlerTransaction::try_from_message_to_l2(message)?;
+    let transaction_hash = api.starknet.lock().await.add_l1_handler_transaction(transaction)?;
+    Ok(DevnetResponse::TransactionHash(TransactionHashOutput { transaction_hash }).into())
 }
 
 pub async fn postman_consume_message_from_l2_impl(

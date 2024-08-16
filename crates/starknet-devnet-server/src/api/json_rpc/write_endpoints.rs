@@ -137,13 +137,7 @@ impl JsonRpcHandler {
 
     /// devnet_postmanSendMessageToL2
     pub async fn postman_send_message_to_l2(&self, message: MessageToL2) -> StrictRpcResult {
-        let transaction_hash =
-            postman_send_message_to_l2_impl(&self.api, message).await.map_err(ApiError::from)?;
-
-        Ok(DevnetResponse::TransactionHash(TransactionHashOutput {
-            transaction_hash: transaction_hash.transaction_hash,
-        })
-        .into())
+        postman_send_message_to_l2_impl(&self.api, message).await
     }
 
     /// devnet_postmanConsumeMessageFromL2
