@@ -61,15 +61,9 @@ macro_rules! http_rpc_router {
         {
             use axum::extract::State;
             use axum::Json;
-            use $crate::rpc_core::error::RpcError;
-            use $crate::rpc_core::request::Version;
-            use $crate::rpc_core::request::Id;
-            use $crate::rpc_core::request::RpcCall;
-            use $crate::rpc_core::request::RpcMethodCall;
-            use $crate::rpc_core::request::RequestParams;
-            use $crate::rpc_core::request::Request;
-            use $crate::rpc_core::response::Response;
-            use $crate::rpc_handler::handle_request;
+            use $crate::rpc_core::request::{Version, Id, RpcCall, RpcMethodCall, RequestParams};
+            use $crate::rpc_core::response::{RpcResponse, ResponseResult};
+            use $crate::rpc_handler::handle_call;
             use $crate::api::http::HttpApiResult;
             use $crate::api::http::error::HttpApiError;
 
@@ -81,32 +75,23 @@ macro_rules! http_rpc_router {
                     Json(request): Json<serde_json::Map<String, serde_json::Value>>,
                 ) -> HttpApiResult<Json<serde_json::Value>>{
                     // Convert normal HTTP request to RPC by wrapping
-                    let rpc_req = Json(Request::Single(RpcCall::MethodCall(RpcMethodCall {
+                    let rpc_call = RpcCall::MethodCall(RpcMethodCall {
                         jsonrpc: Version::V2,
                         method: stringify!($rpc_method_name).to_string(),
                         params: RequestParams::Object(request),
                         id: Id::Number(0),
-                    })));
+                    });
 
-                    // Obtain RPC response
-                    let rpc_resp: Response = handle_request(rpc_req.0, handler)
+                    // Obtain the RPC response
+                    let rpc_resp: RpcResponse = handle_call(rpc_call, handler)
                         .await
-                        .unwrap_or_else(|| Response::error(RpcError::invalid_request()))
+                        .unwrap_or_else(|| RpcResponse::invalid_request(Id::Number(-1)))
                         .into();
 
-                    // Convert the response from RPC to normal HTTP format by extracting
-                    let rpc_resp_serialized = serde_json::to_value(rpc_resp)
-                        .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
-
-                    // Separately handle if successful or error
-                    if let Some(result) = rpc_resp_serialized.get("result") {
-                        Ok(Json(result.clone()))
-                    } else if let Some(err_msg) = rpc_resp_serialized.get("error")
-                        .and_then(|e: &serde_json::Value| e.get("message"))
-                        .and_then(|m| m.as_str()) {
-                        Err(HttpApiError::GeneralError(err_msg.to_string()))
-                    } else {
-                        Err(HttpApiError::GeneralError(rpc_resp_serialized.to_string()))
+                    // Convert the response from RPC to normal HTTP: extract the result/error
+                    match rpc_resp.result {
+                        ResponseResult::Success(result) => Ok(Json(result)),
+                        ResponseResult::Error(e) => Err(HttpApiError::GeneralError(e.message.into())),
                     }
                 }
 
@@ -142,7 +127,7 @@ pub async fn handle_request<THandler: RpcHandler>(
 }
 
 /// handle a single RPC method call
-async fn handle_call<THandler: RpcHandler>(
+pub(crate) async fn handle_call<THandler: RpcHandler>(
     call: RpcCall,
     handler: THandler,
 ) -> Option<RpcResponse> {
