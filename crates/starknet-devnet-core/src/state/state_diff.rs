@@ -8,7 +8,8 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 use starknet_types::rpc::state::{
-    ClassHashes, ContractNonce, DeployedContract, StorageDiff, StorageEntry, ThinStateDiff,
+    ClassHashes, ContractNonce, DeployedContract, ReplacedClasses, StorageDiff, StorageEntry,
+    ThinStateDiff,
 };
 
 use crate::error::DevnetResult;
@@ -26,6 +27,8 @@ pub struct StateDiff {
     pub(crate) declared_contracts: Vec<ClassHash>,
     // cairo 0 declared contracts
     pub(crate) cairo_0_declared_contracts: Vec<ClassHash>,
+    // collection of old class hash to new class hash
+    pub(crate) replaced_classes: Vec<ReplacedClasses>,
 }
 
 impl Eq for StateDiff {}
@@ -37,6 +40,7 @@ impl StateDiff {
     ) -> DevnetResult<Self> {
         let mut declared_contracts = Vec::<ClassHash>::new();
         let mut cairo_0_declared_contracts = Vec::<ClassHash>::new();
+        let mut replaced_classes = vec![];
 
         let diff = state.to_state_diff()?;
 
@@ -68,6 +72,18 @@ impl StateDiff {
             })
             .collect::<HashMap<ContractAddress, ClassHash>>();
 
+        for (contract_address, class_hash) in diff.class_hashes {
+            let old_class_hash = state.state.get_class_hash_at(contract_address)?;
+            if old_class_hash != class_hash
+                && old_class_hash != starknet_api::core::ClassHash::default()
+            {
+                replaced_classes.push(ReplacedClasses {
+                    contract_address: contract_address.into(),
+                    class_hash: class_hash.0,
+                });
+            }
+        }
+
         let address_to_nonce = diff
             .nonces
             .iter()
@@ -91,6 +107,7 @@ impl StateDiff {
             class_hash_to_compiled_class_hash,
             cairo_0_declared_contracts,
             declared_contracts,
+            replaced_classes,
         })
     }
 
@@ -155,7 +172,7 @@ impl From<StateDiff> for ThinStateDiff {
                         .collect(),
                 })
                 .collect(),
-            replaced_classes: vec![],
+            replaced_classes: value.replaced_classes,
         }
     }
 }
@@ -189,6 +206,32 @@ mod tests {
 
     #[test]
     fn correct_difference_on_cairo1_class_declaration() {
+        let mut state = setup();
+
+        let class_hash = ClassHash(Felt::ONE);
+        let casm_hash = felt_from_prefixed_hex(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
+
+        // necessary to prevent blockifier's state subtraction panic
+        state.get_compiled_contract_class(class_hash).expect_err("Shouldn't yet be declared");
+
+        let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
+        state.declare_contract_class(class_hash.0, Some(casm_hash), contract_class).unwrap();
+
+        let block_number = 1;
+        let new_classes = state.rpc_contract_classes.write().commit(block_number);
+        let generated_diff = StateDiff::generate(&mut state.state, new_classes).unwrap();
+
+        let expected_diff = StateDiff {
+            declared_contracts: vec![class_hash.0],
+            class_hash_to_compiled_class_hash: HashMap::from([(class_hash.0, casm_hash)]),
+            ..Default::default()
+        };
+
+        assert_eq!(generated_diff, expected_diff);
+    }
+
+    #[test]
+    fn correct_difference_on_cairo1_class_replacement() {
         let mut state = setup();
 
         let class_hash = ClassHash(Felt::ONE);
