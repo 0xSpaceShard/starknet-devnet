@@ -185,13 +185,19 @@ mod tests {
     use starknet_rs_core::types::Felt;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::felt_from_prefixed_hex;
+    use starknet_types::rpc::state::Balance;
+    use starknet_types::traits::HashProducer;
 
     use super::StateDiff;
+    use crate::account::Account;
+    use crate::constants::ETH_ERC20_CONTRACT_ADDRESS;
+    use crate::starknet::Starknet;
     use crate::state::{CustomState, StarknetState};
+    use crate::traits::Deployed;
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
-        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
-        DUMMY_CAIRO_1_COMPILED_CLASS_HASH,
+        cairo_0_account_without_validations, dummy_cairo_1_contract_class, dummy_contract_address,
+        dummy_felt, DUMMY_CAIRO_1_COMPILED_CLASS_HASH,
     };
 
     #[test]
@@ -324,6 +330,28 @@ mod tests {
         };
 
         assert_eq!(generated_diff, expected_diff);
+    }
+
+    #[test]
+    fn test_class_replacement_produces_correct_state_diff() {
+        let mut starknet = Starknet::default();
+
+        let account_without_validations_contract_class = cairo_0_account_without_validations();
+        let account_without_validations_class_hash =
+            account_without_validations_contract_class.generate_hash().unwrap();
+
+        let account = Account::new(
+            Balance::from(10000_u32),
+            dummy_felt(),
+            dummy_felt(),
+            account_without_validations_class_hash,
+            ContractClass::Cairo0(account_without_validations_contract_class),
+            Default::default(),
+            Default::default(),
+        )
+        .unwrap();
+
+        account.deploy(&mut starknet.pending_state).unwrap();
     }
 
     fn setup() -> StarknetState {
