@@ -33,9 +33,7 @@
 use std::collections::HashMap;
 
 use starknet_rs_core::types::{BlockId, ExecutionResult, Hash256};
-use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 
 use crate::error::{DevnetResult, Error, MessagingError};
 use crate::starknet::Starknet;
@@ -206,27 +204,6 @@ impl Starknet {
         let ethereum = self.messaging.ethereum_mut()?;
         let messages = ethereum.fetch_messages().await?;
         Ok(messages)
-    }
-
-    /// Executes all given `MessageToL2` in a `L1HandlerTransaction`.
-    ///
-    /// # Arguments
-    ///
-    /// * `messages` - Messages to execute.
-    pub async fn execute_messages_to_l2(
-        &mut self,
-        messages: &[MessageToL2],
-    ) -> DevnetResult<Vec<TransactionHash>> {
-        let mut transactions_hashes = vec![];
-
-        for message in messages {
-            let transaction = L1HandlerTransaction::try_from_message_to_l2(message.clone())?;
-
-            let transaction_hash = self.add_l1_handler_transaction(transaction)?;
-            transactions_hashes.push(transaction_hash);
-        }
-
-        Ok(transactions_hashes)
     }
 
     /// Collects all messages for all the transactions of the given block.

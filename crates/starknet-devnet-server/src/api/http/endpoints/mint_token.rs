@@ -1,6 +1,5 @@
-use axum::extract::State;
-use axum::Json;
 use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
+use starknet_core::error::DevnetResult;
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::{BlockId, BlockTag, Felt};
 use starknet_types::contract_address::ContractAddress;
@@ -8,10 +7,9 @@ use starknet_types::felt::{felt_from_prefixed_hex, join_felts};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 
-use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{MintTokensRequest, MintTokensResponse};
-use crate::api::http::{HttpApiHandler, HttpApiResult};
-use crate::api::json_rpc::error::ApiError;
+use crate::api::json_rpc::error::{ApiError, StrictRpcResult};
+use crate::api::json_rpc::DevnetResponse;
 use crate::api::Api;
 
 /// get the balance of the `address`
@@ -49,43 +47,26 @@ pub fn get_balance(
 }
 
 /// Returns the address of the ERC20 (fee token) contract associated with the unit.
-// unwraps are safe to use, because those are constants from mainnet
-pub fn get_erc20_address(unit: &FeeUnit) -> HttpApiResult<ContractAddress> {
+pub fn get_erc20_address(unit: &FeeUnit) -> DevnetResult<ContractAddress> {
     let erc20_contract_address_string = match unit {
         FeeUnit::WEI => ETH_ERC20_CONTRACT_ADDRESS,
         FeeUnit::FRI => STRK_ERC20_CONTRACT_ADDRESS,
     };
 
-    ContractAddress::new(
-        felt_from_prefixed_hex(erc20_contract_address_string)
-            .map_err(|err| HttpApiError::InvalidValueError { msg: err.to_string() })?,
-    )
-    .map_err(|err| HttpApiError::InvalidValueError { msg: err.to_string() })
+    Ok(ContractAddress::new(felt_from_prefixed_hex(erc20_contract_address_string)?)?)
 }
 
-pub async fn mint(
-    State(state): State<HttpApiHandler>,
-    Json(request): Json<MintTokensRequest>,
-) -> HttpApiResult<Json<MintTokensResponse>> {
-    mint_impl(&state.api, request).await.map(Json::from)
-}
-
-pub(crate) async fn mint_impl(
-    api: &Api,
-    request: MintTokensRequest,
-) -> HttpApiResult<MintTokensResponse> {
+pub(crate) async fn mint_impl(api: &Api, request: MintTokensRequest) -> StrictRpcResult {
     let mut starknet = api.starknet.lock().await;
     let unit = request.unit.unwrap_or(FeeUnit::WEI);
     let erc20_address = get_erc20_address(&unit)?;
 
     // increase balance
-    let tx_hash = starknet
-        .mint(request.address, request.amount, erc20_address)
-        .await
-        .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
+    let tx_hash = starknet.mint(request.address, request.amount, erc20_address).await?;
 
-    let new_balance = get_balance(&mut starknet, request.address, erc20_address, BlockTag::Pending)
-        .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
+    let new_balance =
+        get_balance(&mut starknet, request.address, erc20_address, BlockTag::Pending)?;
+    let new_balance = new_balance.to_str_radix(10);
 
-    Ok(MintTokensResponse { new_balance: new_balance.to_str_radix(10), unit, tx_hash })
+    Ok(DevnetResponse::MintTokens(MintTokensResponse { new_balance, unit, tx_hash }).into())
 }

@@ -1,6 +1,9 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
+use starknet_types::messaging::MessageToL2;
+
+use crate::error::Error;
 
 /// A JSON-RPC request object, a method call
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -22,6 +25,34 @@ pub struct RpcMethodCall {
 impl RpcMethodCall {
     pub fn id(&self) -> Id {
         self.id.clone()
+    }
+}
+
+impl TryFrom<MessageToL2> for RpcMethodCall {
+    type Error = Error;
+
+    fn try_from(message: MessageToL2) -> Result<Self, Self::Error> {
+        (&message).try_into()
+    }
+}
+
+impl TryFrom<&MessageToL2> for RpcMethodCall {
+    type Error = Error;
+
+    fn try_from(message: &MessageToL2) -> Result<Self, Self::Error> {
+        let message_serialized =
+            serde_json::to_value(message).map_err(|e| Error::ConversionError(e.to_string()))?;
+
+        let params = message_serialized
+            .as_object()
+            .ok_or(Error::ConversionError("Message not convertible to JSON object".into()))?;
+
+        Ok(Self {
+            jsonrpc: Version::V2,
+            method: "devnet_postmanSendMessageToL2".into(),
+            params: RequestParams::Object(params.clone()),
+            id: Id::Number(0),
+        })
     }
 }
 

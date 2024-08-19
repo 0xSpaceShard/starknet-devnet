@@ -5,8 +5,10 @@ use std::time::Duration;
 use clap::Parser;
 use cli::Args;
 use futures::future::join_all;
-use server::api::json_rpc::RPC_SPEC_VERSION;
+use server::api::json_rpc::{JsonRpcHandler, RPC_SPEC_VERSION};
 use server::api::Api;
+use server::dump_util::{dump_events, load_events, DumpEvent};
+use server::rpc_core::request::{Id, RequestParams, Version};
 use server::server::serve_http_api_json_rpc;
 use starknet_core::account::Account;
 use starknet_core::constants::{
@@ -171,11 +173,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let address = format!("{}:{}", server_config.host, server_config.port);
     let listener = TcpListener::bind(address.clone()).await?;
 
-    let starknet = if let Some(dump_path) = &starknet_config.dump_path {
-        Starknet::load(&starknet_config, dump_path)?
-    } else {
-        Starknet::new(&starknet_config)?
-    };
+    let starknet = Starknet::new(&starknet_config)?;
     let api = Api::new(starknet);
 
     // set block timestamp shift during startup if start time is set
@@ -195,8 +193,23 @@ async fn main() -> Result<(), anyhow::Error> {
         starknet_config.predeployed_accounts_initial_balance.clone(),
     );
 
-    let server = serve_http_api_json_rpc(listener, api.clone(), &starknet_config, &server_config);
+    let json_rpc_handler = JsonRpcHandler::new(api.clone(), &starknet_config, &server_config);
+    if let Some(dump_path) = &starknet_config.dump_path {
+        // Try to load events from the path. Since the same CLI parameter is used for dump and load
+        // path, it may be the case that there is no file at the path. This means that the file will
+        // be created during Devnet's lifetime via dumping, so its non-existence is here ignored.
+        match load_events(starknet_config.dump_on, dump_path) {
+            Ok(loadable_events) => json_rpc_handler
+                .re_execute(&loadable_events)
+                .await
+                .map_err(|e| anyhow::anyhow!("Failed to re-execute dumped Devnet: {e}"))?,
+            Err(starknet_core::error::Error::FileNotFound) => (),
+            Err(err) => return Err(err.into()),
+        }
+    };
 
+    let server =
+        serve_http_api_json_rpc(listener, api.clone(), &server_config, json_rpc_handler).await;
     info!("Starknet Devnet listening on {}", address);
 
     let mut tasks = vec![];
@@ -232,8 +245,6 @@ async fn create_block_interval(
     api: Api,
     block_interval_seconds: u64,
 ) -> Result<(), std::io::Error> {
-    let mut interval = interval(Duration::from_secs(block_interval_seconds));
-
     #[cfg(unix)]
     let mut sigint = { signal(SignalKind::interrupt()).expect("Failed to setup SIGINT handler") };
 
@@ -243,16 +254,21 @@ async fn create_block_interval(
         Box::pin(ctrl_c_signal)
     };
 
+    let mut interval = interval(Duration::from_secs(block_interval_seconds));
     loop {
+        // TODO does this need to be inside of the loop? or outside?
         // avoid creating block instantly after startup
         sleep(Duration::from_secs(block_interval_seconds)).await;
 
         tokio::select! {
             _ = interval.tick() => {
                 let mut starknet = api.starknet.lock().await;
+                let mut dumpable_events = api.dumpable_events.lock().await;
                 info!("Generating block on time interval");
 
-                starknet.create_block_dump_event(None).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?
+                // manually add event for dumping; alternative: create a client and send request
+                starknet.create_block().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+                dumpable_events.push(DumpEvent { jsonrpc: Version::V2, method: "devnet_createBlock".into(), params: RequestParams::None, id: Id::Number(0) });
             }
             _ = sigint.recv() => {
                 return Ok(())
@@ -267,8 +283,11 @@ pub async fn shutdown_signal(api: Api) {
 
     // dump on exit scenario
     let starknet = api.starknet.lock().await;
-    if starknet.config.dump_on == Some(DumpOn::Exit) {
-        starknet.dump_events().expect("Failed to dump starknet transactions");
+    if let (Some(DumpOn::Exit), Some(dump_path)) =
+        (starknet.config.dump_on, &starknet.config.dump_path)
+    {
+        let events = api.dumpable_events.lock().await;
+        dump_events(&events, dump_path).expect("Failed to dump.");
     }
 }
 

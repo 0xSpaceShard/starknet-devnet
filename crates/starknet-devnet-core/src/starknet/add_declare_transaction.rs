@@ -8,7 +8,6 @@ use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, DeclareTransaction, Transaction, TransactionWithHash,
 };
 
-use super::dump::DumpEvent;
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
 use crate::state::CustomState;
@@ -99,9 +98,6 @@ pub fn add_declare_transaction(
 
     // do the steps required in all transactions
     starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
-
-    starknet
-        .handle_dump_event(DumpEvent::AddDeclareTransaction(broadcasted_declare_transaction))?;
 
     Ok((transaction_hash, class_hash))
 }

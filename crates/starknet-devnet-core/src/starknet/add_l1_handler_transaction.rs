@@ -6,7 +6,6 @@ use tracing::trace;
 
 use super::Starknet;
 use crate::error::DevnetResult;
-use crate::starknet::dump::DumpEvent;
 
 pub fn add_l1_handler_transaction(
     starknet: &mut Starknet,
@@ -34,7 +33,6 @@ pub fn add_l1_handler_transaction(
         TransactionWithHash::new(transaction_hash, Transaction::L1Handler(transaction.clone())),
         blockifier_execution_result,
     )?;
-    starknet.handle_dump_event(DumpEvent::AddL1HandlerTransaction(transaction))?;
 
     Ok(transaction_hash)
 }

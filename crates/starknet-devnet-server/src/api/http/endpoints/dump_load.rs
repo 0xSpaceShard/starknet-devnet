@@ -3,9 +3,10 @@ use axum::Json;
 
 use super::extract_optional_json_from_request;
 use crate::api::http::error::HttpApiError;
-use crate::api::http::models::{DumpPath, DumpResponseBody, LoadPath};
+use crate::api::http::models::{DumpPath, DumpResponseBody};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 use crate::api::Api;
+use crate::dump_util::dump_events;
 
 pub async fn dump(
     State(state): State<HttpApiHandler>,
@@ -16,7 +17,7 @@ pub async fn dump(
 
 pub(crate) async fn dump_impl(
     api: &Api,
-    path: Option<DumpPath>,
+    path_wrapper: Option<DumpPath>,
 ) -> HttpApiResult<DumpResponseBody> {
     let starknet = api.starknet.lock().await;
 
@@ -26,49 +27,20 @@ pub(crate) async fn dump_impl(
         });
     }
 
-    let path = path.map_or(String::new(), |s| s.path.clone());
+    let path = path_wrapper
+        .as_ref()
+        .map(|DumpPath { path }| path.clone())
+        .or_else(|| starknet.config.dump_path.clone())
+        .unwrap_or_default();
+
+    drop(starknet);
+    let dumpable_events = api.dumpable_events.lock().await;
 
     if path.is_empty() {
-        match &starknet.config.dump_path {
-            Some(path) => {
-                // dump_path is present
-                starknet
-                    .dump_events_custom_path(Some(path.clone()))
-                    .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
-                Ok(None)
-            }
-            None => {
-                // dump_path is not present
-                let json_dump = starknet.read_dump_events();
-                Ok(Some(json_dump.clone()))
-            }
-        }
+        Ok(Some(dumpable_events.clone()))
     } else {
-        starknet
-            .dump_events_custom_path(Some(path))
+        dump_events(&dumpable_events, &path)
             .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
         Ok(None)
-    }
-}
-
-pub async fn load(
-    State(state): State<HttpApiHandler>,
-    Json(path_wrapper): Json<LoadPath>,
-) -> HttpApiResult<()> {
-    load_impl(&state.api, path_wrapper).await
-}
-
-pub(crate) async fn load_impl(api: &Api, path_wrapper: LoadPath) -> HttpApiResult<()> {
-    let mut starknet = api.starknet.lock().await;
-
-    // necessary to restart before loading
-    starknet.restart().map_err(|e| HttpApiError::RestartError { msg: e.to_string() })?;
-
-    match starknet.load_events(&path_wrapper.path) {
-        Ok(events) => {
-            starknet.re_execute(events).map_err(|e| HttpApiError::ReExecutionError(e.to_string()))
-        }
-        Err(starknet_core::error::Error::FileNotFound) => Err(HttpApiError::FileNotFound),
-        Err(e) => Err(HttpApiError::LoadError(e.to_string())),
     }
 }

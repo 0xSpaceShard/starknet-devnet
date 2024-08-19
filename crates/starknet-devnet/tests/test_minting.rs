@@ -4,6 +4,7 @@ pub mod common;
 mod minting_tests {
     use reqwest::StatusCode;
     use serde_json::json;
+    use server::test_utils::assert_contains;
     use starknet_rs_core::types::Felt;
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::num_bigint::BigUint;
@@ -13,7 +14,9 @@ mod minting_tests {
     use crate::common::constants::{
         PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
     };
-    use crate::common::reqwest_client::{GetReqwestSender, HttpEmptyResponseBody};
+    use crate::common::reqwest_client::{
+        GetReqwestSender, HttpEmptyResponseBody, PostReqwestSender,
+    };
 
     static DUMMY_ADDRESS: &str = "0x42";
     static DUMMY_AMOUNT: u128 = 42;
@@ -202,5 +205,28 @@ mod minting_tests {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         reject_bad_balance_query(&devnet, "address=0x1&unit=INVALID").await;
         reject_bad_json_rpc_request(&devnet, json!({ "address": "0x1", "unit": "INVALID" })).await;
+    }
+
+    #[tokio::test]
+    async fn minting_via_non_rpc() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        let dummy_address = "0x1";
+
+        match devnet
+            .reqwest_client()
+            .post_json_async("/mint", json!({ "address": dummy_address, "invalid_param": 2 }))
+            .await
+            .map(|_: serde_json::Value| ())
+        {
+            Err(e) => assert_contains(&e.error_message(), "unknown field `invalid_param`"),
+            other => panic!("Invalid response: {other:?}"),
+        }
+
+        let _: serde_json::Value = devnet
+            .reqwest_client()
+            .post_json_async("/mint", json!({ "address": dummy_address, "amount": 1 }))
+            .await
+            .unwrap();
     }
 }

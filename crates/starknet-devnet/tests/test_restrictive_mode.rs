@@ -3,7 +3,6 @@ pub mod common;
 mod test_restrictive_mode {
     use serde_json::json;
     use server::rpc_core::error::ErrorCode;
-    use starknet_rs_core::types::Felt;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::reqwest_client::{
@@ -31,26 +30,14 @@ mod test_restrictive_mode {
             .expect("Could not start Devnet");
         let http_err = devnet
             .reqwest_client()
-            .post_json_async(
-                "/mint",
-                json!({
-                    "address": format!("0x{:x}", Felt::ONE),
-                    "amount": 1
-                }),
-            )
+            .post_json_async("/mint", json!({ "address": "0x1", "amount": 1 }))
             .await
             .map(|_: HttpEmptyResponseBody| ())
             .unwrap_err();
         assert_eq!(http_err.status(), reqwest::StatusCode::FORBIDDEN);
 
         let json_rpc_error = devnet
-            .send_custom_rpc(
-                "devnet_mint",
-                json!({
-                    "address": format!("0x{:x}", Felt::ONE),
-                    "amount": 1
-                }),
-            )
+            .send_custom_rpc("devnet_mint", json!({ "address": "0x1", "amount": 1 }))
             .await
             .unwrap_err();
 
@@ -76,13 +63,7 @@ mod test_restrictive_mode {
         assert_eq!(err.status(), reqwest::StatusCode::FORBIDDEN);
 
         let json_rpc_error = devnet
-            .send_custom_rpc(
-                "devnet_mint",
-                json!({
-                    "address": format!("0x{:x}", Felt::ONE),
-                    "amount": 1
-                }),
-            )
+            .send_custom_rpc("devnet_mint", json!({ "address": "0x1", "amount": 1 }))
             .await
             .unwrap_err();
 

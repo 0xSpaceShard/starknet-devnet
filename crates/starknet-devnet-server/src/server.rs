@@ -10,44 +10,45 @@ use axum::Router;
 use http_body_util::BodyExt;
 use lazy_static::lazy_static;
 use reqwest::{header, Method};
-use starknet_core::starknet::starknet_config::StarknetConfig;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::api::http::{endpoints as http, HttpApiHandler};
-use crate::api::json_rpc::origin_forwarder::OriginForwarder;
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::Api;
 use crate::restrictive_mode::is_uri_path_restricted;
 use crate::rpc_handler::RpcHandler;
-use crate::{rpc_handler, ServerConfig};
+use crate::{http_rpc_router, rpc_handler, ServerConfig};
 pub type StarknetDevnetServer = axum::serve::Serve<IntoMakeService<Router>, Router>;
 
 lazy_static! {
-    static ref HTTP_API_ROUTES_WITH_HANDLERS: [(&'static str, MethodRouter<HttpApiHandler>); 16] = [
+    static ref HTTP_API_ROUTES_WITH_HANDLERS: [(&'static str, MethodRouter<HttpApiHandler>); 5] = [
         ("/is_alive", get(http::is_alive)),
         ("/dump", post(http::dump_load::dump)),
-        ("/load", post(http::dump_load::load)),
-        ("/postman/load_l1_messaging_contract", post(http::postman::postman_load)),
-        ("/postman/flush", post(http::postman::postman_flush)),
-        ("/postman/send_message_to_l2", post(http::postman::postman_send_message_to_l2)),
-        ("/postman/consume_message_from_l2", post(http::postman::postman_consume_message_from_l2),),
-        ("/create_block", post(http::blocks::create_block)),
-        ("/abort_blocks", post(http::blocks::abort_blocks)),
-        ("/restart", post(http::restart)),
-        ("/set_time", post(http::time::set_time)),
-        ("/increase_time", post(http::time::increase_time)),
         ("/predeployed_accounts", get(http::accounts::get_predeployed_accounts)),
         ("/account_balance", get(http::accounts::get_account_balance)),
-        ("/mint", post(http::mint_token::mint)),
         ("/config", get(http::get_devnet_config))
     ];
     pub static ref HTTP_API_ROUTES_WITHOUT_LEADING_SLASH: Vec<String> =
         HTTP_API_ROUTES_WITH_HANDLERS
             .iter()
-            .map(|(path, _)| String::from((*path).trim_start_matches('/')))
+            .map(|(path, _)| path)
+            .chain(&[
+                "/load",
+                "/postman/load_l1_messaging_contract",
+                "/postman/flush",
+                "/postman/send_message_to_l2",
+                "/postman/consume_message_from_l2",
+                "/create_block",
+                "/abort_blocks",
+                "/restart",
+                "/set_time",
+                "/increase_time",
+                "/mint"
+            ])
+            .map(|path| String::from((*path).trim_start_matches('/')))
             .collect::<Vec<String>>();
 }
 
@@ -67,28 +68,40 @@ fn http_api_routes(http_api_handler: HttpApiHandler) -> Router {
     router.with_state(http_api_handler)
 }
 
-/// Configures an [axum::Server] that handles related JSON-RPC calls and WEB API calls via HTTP
-pub fn serve_http_api_json_rpc(
+// TODO make type generic as in fn json_rpc_routes
+fn converted_http_api_routes(json_rpc_handler: JsonRpcHandler) -> Router {
+    http_rpc_router![
+        ("/postman/load_l1_messaging_contract", devnet_postmanLoad),
+        ("/postman/flush", devnet_postmanFlush),
+        ("/postman/send_message_to_l2", devnet_postmanSendMessageToL2),
+        ("/postman/consume_message_from_l2", devnet_postmanConsumeMessageFromL2),
+        ("/load", devnet_load), // not here for dumping purposes; needs access to json_rpc_handler
+        ("/create_block", devnet_createBlock),
+        ("/abort_blocks", devnet_abortBlocks),
+        ("/restart", devnet_restart),
+        ("/set_time", devnet_setTime),
+        ("/increase_time", devnet_increaseTime),
+        ("/mint", devnet_mint),
+    ]
+    .with_state(json_rpc_handler)
+}
+
+/// Configures an [axum::Server] that handles related JSON-RPC calls and web API calls via HTTP.
+/// Handles `loadable_events` because their re-execution requires RPC handler, which only exists in
+/// this function.
+pub async fn serve_http_api_json_rpc(
     tcp_listener: TcpListener,
     api: Api,
-    starknet_config: &StarknetConfig,
     server_config: &ServerConfig,
+    json_rpc_handler: JsonRpcHandler,
 ) -> StarknetDevnetServer {
     let http_handler = HttpApiHandler { api: api.clone(), server_config: server_config.clone() };
-    let origin_caller = if let (Some(url), Some(block_number)) =
-        (&starknet_config.fork_config.url, starknet_config.fork_config.block_number)
-    {
-        Some(OriginForwarder::new(url.to_string(), block_number))
-    } else {
-        None
-    };
 
-    let json_rpc_handler =
-        JsonRpcHandler { api, origin_caller, server_config: server_config.clone() };
-    let json_rpc_routes = json_rpc_routes(json_rpc_handler);
-    let http_api_routes = http_api_routes(http_handler);
-
-    let mut routes = http_api_routes.merge(json_rpc_routes).layer(TraceLayer::new_for_http());
+    let mut routes = Router::new()
+        .merge(json_rpc_routes(json_rpc_handler.clone()))
+        .merge(http_api_routes(http_handler))
+        .merge(converted_http_api_routes(json_rpc_handler))
+        .layer(TraceLayer::new_for_http());
 
     if server_config.log_response {
         routes = routes.layer(axum::middleware::from_fn(response_logging_middleware));
@@ -98,11 +111,11 @@ pub fn serve_http_api_json_rpc(
         .layer(TimeoutLayer::new(Duration::from_secs(server_config.timeout.into())))
         .layer(DefaultBodyLimit::max(server_config.request_body_size_limit))
         .layer(
+            // More details: https://docs.rs/tower-http/latest/tower_http/cors/index.html
             CorsLayer::new()
-                    // More details: https://docs.rs/tower-http/latest/tower_http/cors/index.html
-                    .allow_origin(HeaderValue::from_static("*"))
-                    .allow_headers(vec![header::CONTENT_TYPE])
-                    .allow_methods(vec![Method::GET, Method::POST]),
+                .allow_origin(HeaderValue::from_static("*"))
+                .allow_headers(vec![header::CONTENT_TYPE])
+                .allow_methods(vec![Method::GET, Method::POST]),
         );
 
     if server_config.log_request {

@@ -4,10 +4,12 @@ pub mod common;
 mod abort_blocks_tests {
     use serde_json::json;
     use server::api::json_rpc::error::ApiError;
+    use server::test_utils::assert_contains;
     use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
+    use crate::common::reqwest_client::PostReqwestSender;
     use crate::common::utils::{assert_tx_reverted, to_hex_felt};
 
     static DUMMY_ADDRESS: u128 = 1;
@@ -32,7 +34,11 @@ mod abort_blocks_tests {
             .collect()
     }
 
-    async fn abort_blocks_error(devnet: &BackgroundDevnet, starting_block_id: &BlockId) {
+    async fn abort_blocks_error(
+        devnet: &BackgroundDevnet,
+        starting_block_id: &BlockId,
+        expected_message_substring: &str,
+    ) {
         let aborted_blocks_error = devnet
             .send_custom_rpc(
                 "devnet_abortBlocks",
@@ -42,8 +48,7 @@ mod abort_blocks_tests {
             )
             .await
             .unwrap_err();
-
-        assert!(aborted_blocks_error.message.contains("Block abortion failed"));
+        assert_contains(&aborted_blocks_error.message, expected_message_substring);
     }
 
     async fn assert_block_rejected(devnet: &BackgroundDevnet, block_hash: &Felt) {
@@ -86,7 +91,12 @@ mod abort_blocks_tests {
 
         assert_block_rejected(&devnet, &new_block_hash).await;
 
-        abort_blocks_error(&devnet, &BlockId::Hash(genesis_block_hash)).await;
+        abort_blocks_error(
+            &devnet,
+            &BlockId::Hash(genesis_block_hash),
+            "Genesis block can't be aborted",
+        )
+        .await;
     }
 
     #[tokio::test]
@@ -189,7 +199,12 @@ mod abort_blocks_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let new_block_hash = devnet.create_block().await.unwrap();
-        abort_blocks_error(&devnet, &BlockId::Hash(new_block_hash)).await;
+        abort_blocks_error(
+            &devnet,
+            &BlockId::Hash(new_block_hash),
+            "The abort blocks feature requires state-archive-capacity set to full",
+        )
+        .await;
     }
 
     #[tokio::test]
@@ -205,8 +220,10 @@ mod abort_blocks_tests {
         let aborted_blocks = abort_blocks(&devnet, &BlockId::Hash(first_block_hash)).await;
         assert_eq!(aborted_blocks, vec![second_block_hash, first_block_hash]);
 
-        abort_blocks_error(&devnet, &BlockId::Hash(first_block_hash)).await;
-        abort_blocks_error(&devnet, &BlockId::Hash(second_block_hash)).await;
+        abort_blocks_error(&devnet, &BlockId::Hash(first_block_hash), "Block is already aborted")
+            .await;
+        abort_blocks_error(&devnet, &BlockId::Hash(second_block_hash), "Block is already aborted")
+            .await;
     }
 
     #[tokio::test]
@@ -223,7 +240,12 @@ mod abort_blocks_tests {
         let aborted_blocks = abort_blocks(&fork_devnet, &BlockId::Hash(fork_block_hash)).await;
         assert_eq!(aborted_blocks, vec![fork_block_hash]);
 
-        abort_blocks_error(&fork_devnet, &BlockId::Hash(fork_block_hash)).await;
+        abort_blocks_error(
+            &fork_devnet,
+            &BlockId::Hash(fork_block_hash),
+            "Block is already aborted",
+        )
+        .await;
     }
 
     #[tokio::test]
@@ -239,7 +261,12 @@ mod abort_blocks_tests {
         for _ in 0..3 {
             abort_blocks(&devnet, &BlockId::Tag(BlockTag::Latest)).await;
         }
-        abort_blocks_error(&devnet, &BlockId::Tag(BlockTag::Latest)).await; // Rolled back to genesis block, should not be possible to abort
+        abort_blocks_error(
+            &devnet,
+            &BlockId::Tag(BlockTag::Latest),
+            "Genesis block can't be aborted",
+        )
+        .await;
     }
     #[tokio::test]
     async fn abort_pending_block() {
@@ -265,5 +292,33 @@ mod abort_blocks_tests {
         let latest_balance =
             devnet.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI).await.unwrap();
         assert_eq!(latest_balance, DUMMY_AMOUNT.into());
+    }
+
+    #[tokio::test]
+    async fn block_abortion_via_non_rpc() {
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .unwrap();
+
+        let created_block_hash = devnet.create_block().await.unwrap();
+
+        let last_block_before_abortion = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+
+        let _: serde_json::Value = devnet
+            .reqwest_client()
+            .post_json_async(
+                "/abort_blocks",
+                json!({ "starting_block_id": { "block_hash": created_block_hash } }),
+            )
+            .await
+            .unwrap();
+
+        let last_block_after_abortion = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+
+        assert_eq!(
+            last_block_after_abortion.block_number,
+            last_block_before_abortion.block_number - 1
+        );
     }
 }

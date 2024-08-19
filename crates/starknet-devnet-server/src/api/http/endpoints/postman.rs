@@ -1,138 +1,130 @@
-use axum::extract::State;
-use axum::Json;
+use starknet_types::felt::{felt_from_prefixed_hex, TransactionHash};
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 
-use super::extract_optional_json_from_request;
-use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
     FlushParameters, FlushedMessages, MessageHash, MessagingLoadAddress,
-    PostmanLoadL1MessagingContract, TxHash,
+    PostmanLoadL1MessagingContract,
 };
-use crate::api::http::{HttpApiHandler, HttpApiResult};
+use crate::api::json_rpc::error::{ApiError, StrictRpcResult};
+use crate::api::json_rpc::models::TransactionHashOutput;
+use crate::api::json_rpc::{DevnetResponse, JsonRpcHandler};
 use crate::api::Api;
-
-pub async fn postman_load(
-    State(state): State<HttpApiHandler>,
-    Json(data): Json<PostmanLoadL1MessagingContract>,
-) -> HttpApiResult<Json<MessagingLoadAddress>> {
-    postman_load_impl(&state.api, data).await.map(Json::from)
-}
-
-pub async fn postman_flush(
-    State(state): State<HttpApiHandler>,
-    optional_data: Option<Json<FlushParameters>>,
-) -> HttpApiResult<Json<FlushedMessages>> {
-    postman_flush_impl(&state.api, extract_optional_json_from_request(optional_data))
-        .await
-        .map(Json::from)
-}
-
-pub async fn postman_send_message_to_l2(
-    State(state): State<HttpApiHandler>,
-    Json(message): Json<MessageToL2>,
-) -> HttpApiResult<Json<TxHash>> {
-    postman_send_message_to_l2_impl(&state.api, message).await.map(Json::from)
-}
-
-pub async fn postman_consume_message_from_l2(
-    State(state): State<HttpApiHandler>,
-    Json(message): Json<MessageToL1>,
-) -> HttpApiResult<Json<MessageHash>> {
-    postman_consume_message_from_l2_impl(&state.api, message).await.map(Json::from)
-}
+use crate::rpc_core::error::RpcError;
+use crate::rpc_core::request::RpcMethodCall;
+use crate::rpc_core::response::ResponseResult;
+use crate::rpc_handler::RpcHandler;
 
 pub(crate) async fn postman_load_impl(
     api: &Api,
     data: PostmanLoadL1MessagingContract,
-) -> HttpApiResult<MessagingLoadAddress> {
+) -> StrictRpcResult {
     let mut starknet = api.starknet.lock().await;
+    let messaging_contract_address =
+        starknet.configure_messaging(&data.network_url, data.address.as_deref()).await?;
 
-    let messaging_contract_address = starknet
-        .configure_messaging(&data.network_url, data.address.as_deref())
-        .await
-        .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
+    Ok(DevnetResponse::MessagingContractAddress(MessagingLoadAddress {
+        messaging_contract_address,
+    })
+    .into())
+}
 
-    Ok(MessagingLoadAddress { messaging_contract_address })
+async fn execute_rpc_tx(
+    rpc_handler: &JsonRpcHandler,
+    rpc_call: RpcMethodCall,
+) -> Result<TransactionHash, RpcError> {
+    match rpc_handler.on_call(rpc_call).await.result {
+        ResponseResult::Success(result) => {
+            let tx_hash_hex = result
+                .get("transaction_hash")
+                .ok_or(RpcError::internal_error_with(format!(
+                    "Message execution did not yield a transaction hash: {result:?}"
+                )))?
+                .as_str()
+                .ok_or(RpcError::internal_error_with(format!(
+                    "Message execution result contains invalid transaction hash: {result:?}"
+                )))?;
+            let tx_hash = felt_from_prefixed_hex(tx_hash_hex).map_err(|e| {
+                RpcError::internal_error_with(format!(
+                    "Message execution resulted in an invalid tx hash: {tx_hash_hex}: {e}"
+                ))
+            })?;
+            Ok(tx_hash)
+        }
+        ResponseResult::Error(e) => Err(e),
+    }
 }
 
 pub(crate) async fn postman_flush_impl(
     api: &Api,
     data: Option<FlushParameters>,
-) -> HttpApiResult<FlushedMessages> {
-    // Need to handle L1 to L2 first in case that those messages
-    // will create L2 to L1 messages.
+    rpc_handler: &JsonRpcHandler,
+) -> StrictRpcResult {
+    // Need to handle L1 to L2 first in case those messages create L2 to L1 messages.
     let mut starknet = api.starknet.lock().await;
 
     let is_dry_run = if let Some(params) = data { params.dry_run } else { false };
 
-    // Fetch and execute messages to l2.
-    let (messages_to_l2, generated_l2_transactions) = if is_dry_run {
-        (vec![], vec![])
-    } else {
-        let messages = starknet.fetch_messages_to_l2().await.map_err(|e| {
-            HttpApiError::MessagingError { msg: format!("fetch messages to l2: {}", e) }
+    let mut messages_to_l2 = vec![];
+    let mut generated_l2_transactions = vec![];
+    if !is_dry_run {
+        // Fetch and execute messages to L2.
+        messages_to_l2 = starknet.fetch_messages_to_l2().await.map_err(|e| {
+            ApiError::RpcError(RpcError::internal_error_with(format!(
+                "Error in fetching messages to L2: {e}"
+            )))
         })?;
 
-        let tx_hashes = starknet.execute_messages_to_l2(&messages).await.map_err(|e| {
-            HttpApiError::MessagingError { msg: format!("execute messages to l2: {}", e) }
-        })?;
+        drop(starknet); // drop to avoid deadlock, later re-acquire
 
-        (messages, tx_hashes)
+        for message in &messages_to_l2 {
+            let rpc_call = message.try_into().map_err(|e| {
+                ApiError::RpcError(RpcError::internal_error_with(format!(
+                    "Error in converting message to L2 RPC call: {e}"
+                )))
+            })?;
+            let tx_hash =
+                execute_rpc_tx(rpc_handler, rpc_call).await.map_err(ApiError::RpcError)?;
+            generated_l2_transactions.push(tx_hash);
+        }
+
+        starknet = api.starknet.lock().await;
     };
 
     // Collect and send messages to L1.
     let messages_to_l1 = starknet.collect_messages_to_l1().await.map_err(|e| {
-        HttpApiError::MessagingError { msg: format!("collect messages to l1 error: {}", e) }
+        ApiError::RpcError(RpcError::internal_error_with(format!(
+            "Error in collecting messages to L1: {e}"
+        )))
     })?;
 
-    if is_dry_run {
-        return Ok(FlushedMessages {
-            messages_to_l1,
-            messages_to_l2,
-            generated_l2_transactions,
-            l1_provider: "dry run".to_string(),
-        });
-    }
+    let l1_provider = if is_dry_run {
+        "dry run".to_string()
+    } else {
+        starknet.send_messages_to_l1().await.map_err(|e| {
+            ApiError::RpcError(RpcError::internal_error_with(format!(
+                "Error in sending messages to L1: {e}"
+            )))
+        })?;
+        starknet.get_ethereum_url().unwrap_or("Not set".to_string())
+    };
 
-    starknet.send_messages_to_l1().await.map_err(|e| HttpApiError::MessagingError {
-        msg: format!("send messages to l1 error: {}", e),
-    })?;
+    let flushed_messages =
+        FlushedMessages { messages_to_l1, messages_to_l2, generated_l2_transactions, l1_provider };
 
-    let l1_provider = starknet.get_ethereum_url().unwrap_or("Not set".to_string());
-
-    Ok(FlushedMessages { messages_to_l1, messages_to_l2, generated_l2_transactions, l1_provider })
+    Ok(DevnetResponse::FlushedMessages(flushed_messages).into())
 }
 
-pub async fn postman_send_message_to_l2_impl(
-    api: &Api,
-    message: MessageToL2,
-) -> HttpApiResult<TxHash> {
-    let mut starknet = api.starknet.lock().await;
-
-    let transaction = L1HandlerTransaction::try_from_message_to_l2(message).map_err(|_| {
-        HttpApiError::InvalidValueError {
-            msg: "The `paid_fee_on_l1` is out of range, expecting u128 value".to_string(),
-        }
-    })?;
-
-    let transaction_hash = starknet
-        .add_l1_handler_transaction(transaction)
-        .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
-
-    Ok(TxHash { transaction_hash })
+pub async fn postman_send_message_to_l2_impl(api: &Api, message: MessageToL2) -> StrictRpcResult {
+    let transaction = L1HandlerTransaction::try_from_message_to_l2(message)?;
+    let transaction_hash = api.starknet.lock().await.add_l1_handler_transaction(transaction)?;
+    Ok(DevnetResponse::TransactionHash(TransactionHashOutput { transaction_hash }).into())
 }
 
 pub async fn postman_consume_message_from_l2_impl(
     api: &Api,
     message: MessageToL1,
-) -> HttpApiResult<MessageHash> {
-    let mut starknet = api.starknet.lock().await;
-
-    let message_hash = starknet
-        .consume_l2_to_l1_message(&message)
-        .await
-        .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
-
-    Ok(MessageHash { message_hash })
+) -> StrictRpcResult {
+    let message_hash = api.starknet.lock().await.consume_l2_to_l1_message(&message).await?;
+    Ok(DevnetResponse::MessageHash(MessageHash { message_hash }).into())
 }

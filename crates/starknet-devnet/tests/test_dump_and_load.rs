@@ -12,6 +12,7 @@ mod dump_and_load_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
+    use crate::common::reqwest_client::PostReqwestSender;
     use crate::common::utils::{send_ctrl_c_signal_and_wait, UniqueAutoDeletableFile};
 
     static DUMMY_ADDRESS: u128 = 1;
@@ -352,23 +353,15 @@ mod dump_and_load_tests {
 
     #[tokio::test]
     async fn dump_endpoint_fail_with_wrong_request() {
-        let devnet_dump = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let rpc_error = devnet_dump
-            .send_custom_rpc(
-                "devnet_dump",
-                json!({
-                    "test": ""
-                }),
-            )
-            .await
-            .unwrap_err();
-        assert_eq!(rpc_error.code, InvalidParams);
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let err = devnet.send_custom_rpc("devnet_dump", json!({ "test": "" })).await.unwrap_err();
+        assert_eq!(err.code, InvalidParams);
     }
 
     #[tokio::test]
     async fn dump_endpoint_fail_with_wrong_file_name() {
         let dump_file = UniqueAutoDeletableFile::new("dump_wrong_file_name");
-        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--dump-path",
             &dump_file.path,
             "--dump-on",
@@ -377,45 +370,27 @@ mod dump_and_load_tests {
         .await
         .expect("Could not start Devnet");
 
-        devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-        let rpc_error = devnet_dump
-            .send_custom_rpc(
-                "devnet_dump",
-                json!({
-                    "path": "///"
-                }),
-            )
-            .await
-            .unwrap_err();
-        assert!(rpc_error.message.contains("I/O error"));
+        devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        let err =
+            devnet.send_custom_rpc("devnet_dump", json!({ "path": "///" })).await.unwrap_err();
+        assert!(err.message.contains("I/O error"));
     }
 
     #[tokio::test]
     async fn load_endpoint_fail_with_wrong_request() {
-        let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-
-        let rpc_error = devnet_load
-            .send_custom_rpc(
-                "devnet_load",
-                json!({
-                    "test": ""
-                }),
-            )
-            .await
-            .unwrap_err();
-
-        assert_eq!(rpc_error.code, InvalidParams);
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let err = devnet.send_custom_rpc("devnet_load", json!({ "test": "" })).await.unwrap_err();
+        assert_eq!(err.code, InvalidParams);
     }
 
     #[tokio::test]
     async fn load_endpoint_fail_with_wrong_path() {
-        let load_file_name = "load_file_name";
-        let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let result = devnet_load
-            .send_custom_rpc("devnet_load", json!({ "path": load_file_name }))
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let err = devnet
+            .send_custom_rpc("devnet_load", json!({ "path": "load_file_name" }))
             .await
             .unwrap_err();
-        assert!(result.message.contains("file does not exist"));
+        assert!(err.message.contains("file does not exist"));
     }
 
     #[tokio::test]
@@ -470,7 +445,7 @@ mod dump_and_load_tests {
 
     #[tokio::test]
     async fn mint_and_dump_and_load_on_same_devnet() {
-        let dump_file = UniqueAutoDeletableFile::new("dump_set_time");
+        let dump_file = UniqueAutoDeletableFile::new("dump");
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--dump-on",
             "exit",
@@ -547,5 +522,86 @@ mod dump_and_load_tests {
 
         assert_eq!(latest_block.block_number, 1);
         assert_eq!(latest_block.timestamp, past_time);
+    }
+
+    /// Ever since the introduction of non-rpc to rpc mapper, it is worth testing if non-rpc
+    /// requests do what we want. Especially since the vast majority of our e2e tests
+    /// rely on the JSON-RPC API.
+    #[tokio::test]
+    async fn test_dumping_of_non_rpc_requests() {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-on",
+            "request",
+            "--state-archive-capacity",
+            "full",
+        ])
+        .await
+        .unwrap();
+
+        // mint, create block, abort block, create block
+        let address = "0x1";
+        let mint_amount = 100;
+        let _: serde_json::Value = devnet
+            .reqwest_client()
+            .post_json_async("/mint", json!({ "address": address, "amount": mint_amount }))
+            .await
+            .unwrap();
+
+        let first_created_block: serde_json::Value =
+            devnet.reqwest_client().post_json_async("/create_block", json!({})).await.unwrap();
+
+        let second_created_block: serde_json::Value =
+            devnet.reqwest_client().post_json_async("/create_block", json!({})).await.unwrap();
+
+        let _: serde_json::Value = devnet
+            .reqwest_client()
+            .post_json_async(
+                "/abort_blocks",
+                json!({ "starting_block_id": { "block_hash": second_created_block["block_hash"] } }),
+            )
+            .await
+            .unwrap();
+
+        // dump and spawn a new devnet by loading
+        let dump_file = UniqueAutoDeletableFile::new("non-rpc-dump");
+        devnet.send_custom_rpc("devnet_dump", json!({ "path": dump_file.path })).await.unwrap();
+
+        let loaded_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            &dump_file.path,
+            "--state-archive-capacity",
+            "full",
+        ])
+        .await
+        .unwrap();
+
+        let loaded_balance = loaded_devnet
+            .get_balance_latest(&Felt::from_hex_unchecked(address), FeeUnit::WEI)
+            .await
+            .unwrap();
+        assert_eq!(loaded_balance, Felt::from(mint_amount));
+
+        let loaded_latest_block = loaded_devnet.get_latest_block_with_tx_hashes().await.unwrap();
+        assert_eq!(
+            loaded_latest_block.block_hash,
+            Felt::from_hex_unchecked(first_created_block["block_hash"].as_str().unwrap())
+        );
+    }
+
+    #[tokio::test]
+    async fn test_dumping_after_restart() {
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--dump-on", "request"]).await.unwrap();
+
+        // mint, restart, assert dump empty
+        let address = Felt::ONE;
+        let mint_amount = 100;
+        devnet.mint(address, mint_amount).await;
+
+        devnet.restart().await;
+
+        let dump_resp =
+            devnet.send_custom_rpc("devnet_dump", serde_json::Value::Null).await.unwrap();
+        assert_eq!(dump_resp, json!([]));
     }
 }
