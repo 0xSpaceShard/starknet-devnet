@@ -17,7 +17,6 @@ use tower_http::trace::TraceLayer;
 
 use crate::api::http::{endpoints as http, HttpApiHandler};
 use crate::api::json_rpc::JsonRpcHandler;
-use crate::api::Api;
 use crate::restrictive_mode::is_uri_path_restricted;
 use crate::rpc_handler::RpcHandler;
 use crate::{http_rpc_router, rpc_handler, ServerConfig};
@@ -87,16 +86,12 @@ fn converted_http_api_routes(json_rpc_handler: JsonRpcHandler) -> Router {
 }
 
 /// Configures an [axum::Server] that handles related JSON-RPC calls and web API calls via HTTP.
-/// Handles `loadable_events` because their re-execution requires RPC handler, which only exists in
-/// this function.
 pub async fn serve_http_api_json_rpc(
     tcp_listener: TcpListener,
-    api: Api,
     server_config: &ServerConfig,
     json_rpc_handler: JsonRpcHandler,
+    http_handler: HttpApiHandler,
 ) -> StarknetDevnetServer {
-    let http_handler = HttpApiHandler { api: api.clone(), server_config: server_config.clone() };
-
     let mut routes = Router::new()
         .merge(json_rpc_routes(json_rpc_handler.clone()))
         .merge(http_api_routes(http_handler))

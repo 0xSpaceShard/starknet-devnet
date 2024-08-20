@@ -5,6 +5,7 @@ use std::time::Duration;
 use clap::Parser;
 use cli::Args;
 use futures::future::join_all;
+use server::api::http::HttpApiHandler;
 use server::api::json_rpc::{JsonRpcHandler, RPC_SPEC_VERSION};
 use server::api::Api;
 use server::dump_util::{dump_events, load_events, DumpEvent};
@@ -208,8 +209,11 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     };
 
+    let http_api_handler =
+        HttpApiHandler { api: api.clone(), server_config: server_config.clone() };
+
     let server =
-        serve_http_api_json_rpc(listener, api.clone(), &server_config, json_rpc_handler).await;
+        serve_http_api_json_rpc(listener, &server_config, json_rpc_handler, http_api_handler).await;
     info!("Starknet Devnet listening on {}", address);
 
     let mut tasks = vec![];

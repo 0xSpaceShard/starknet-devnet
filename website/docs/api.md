@@ -14,7 +14,7 @@ Unlike Pythonic Devnet, which also supported Starknet's gateway and feeder gatew
 
 ### Devnet API
 
-Devnet has many additional features which are available via their own endpoints and JSON-RPC, which are all mentioned throughout the documentation. New features are only supported as part of the JSON-RPC API. Older non-RPC requests are still supported, but considered deprecated - they will be removed in the future, except the [healthcheck endpoint](#healthcheck).
+Devnet has many additional features which are available via their own endpoints and [JSON-RPC](https://github.com/0xSpaceShard/starknet-devnet-rs/website/static/devnet_api.json), which are all mentioned throughout the documentation. New features are only supported as part of the JSON-RPC API. Older non-RPC requests are still supported, but considered deprecated - they will be removed in the future, except the [healthcheck endpoint](#healthcheck).
 
 #### Healthcheck
 
