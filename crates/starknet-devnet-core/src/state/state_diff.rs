@@ -446,10 +446,10 @@ mod tests {
 
         let func_selector = get_selector_from_name("test_replace_class").unwrap();
         let calldata = vec![
-            Felt::ONE,     // contract address
-            func_selector, // function selector
-            Felt::ONE,     // calldata len
-            ContractClass::Cairo1(events_contract.clone()).generate_hash().unwrap(), // calldata
+            Felt::ONE,
+            func_selector,
+            Felt::ONE,
+            ContractClass::Cairo1(events_contract.clone()).generate_hash().unwrap(),
         ];
 
         let invoke_txn = BroadcastedInvokeTransaction::V1(BroadcastedInvokeTransactionV1::new(
