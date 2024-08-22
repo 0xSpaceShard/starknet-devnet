@@ -446,7 +446,7 @@ mod tests {
 
         let func_selector = get_selector_from_name("test_replace_class").unwrap();
         let calldata = vec![
-            Felt::ONE,                                                               /* contract address */
+            Felt::ONE,     // contract address
             func_selector, // function selector
             Felt::ONE,     // calldata len
             ContractClass::Cairo1(events_contract.clone()).generate_hash().unwrap(), // calldata
