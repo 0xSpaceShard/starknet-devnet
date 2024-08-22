@@ -1,4 +1,5 @@
 use blockifier::state::state_api::State;
+use starknet_rs_core::types::Felt;
 use starknet_rs_core::utils::cairo_short_string_to_felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::felt_from_prefixed_hex;
@@ -13,7 +14,7 @@ use crate::utils::get_storage_var_address;
 
 pub(crate) fn create_erc20_at_address_extended(
     contract_address: &str,
-    class_hash: &str,
+    class_hash: Felt,
     contract_class_json_str: &str,
 ) -> DevnetResult<SystemContract> {
     let erc20_fee_contract =

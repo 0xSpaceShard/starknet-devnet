@@ -279,12 +279,7 @@ mod tests {
         let fee_token_address = dummy_contract_address();
 
         // deploy the erc20 contract
-        state
-            .predeploy_contract(
-                fee_token_address,
-                felt_from_prefixed_hex(CAIRO_1_ERC20_CONTRACT_CLASS_HASH).unwrap(),
-            )
-            .unwrap();
+        state.predeploy_contract(fee_token_address, CAIRO_1_ERC20_CONTRACT_CLASS_HASH).unwrap();
 
         (
             Account::new(

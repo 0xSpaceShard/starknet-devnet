@@ -2,6 +2,7 @@ use std::net::{IpAddr, Ipv4Addr};
 use std::num::NonZeroU128;
 
 use nonzero_ext::nonzero;
+use starknet_rs_core::types::Felt;
 use starknet_types::chain_id::ChainId;
 
 pub const CAIRO_0_ACCOUNT_CONTRACT: &str =
@@ -28,8 +29,8 @@ pub const CAIRO_1_ERC20_CONTRACT: &str =
 /// ERC20 class hash is hardcoded to be the same as OZ class hash ERC20.cairo although it should be
 /// different, due to commented key attributes in struct Approval (owner and spender), and add of
 /// mintable feature: https://docs.openzeppelin.com/contracts-cairo/0.8.1/presets
-pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: &str =
-    "0x046ded64ae2dead6448e247234bab192a9c483644395b66f2155f2614e5804b0";
+pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: Felt =
+    Felt::from_hex_unchecked("0x046ded64ae2dead6448e247234bab192a9c483644395b66f2155f2614e5804b0");
 
 /// only used in tests; if artifact needed in production, add a new constant that uses include_str!
 pub const CAIRO_0_ERC20_CONTRACT_PATH: &str =

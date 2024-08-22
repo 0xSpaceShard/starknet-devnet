@@ -29,12 +29,12 @@ impl SystemContract {
     }
 
     pub(crate) fn new_cairo1(
-        class_hash: &str,
+        class_hash: ClassHash,
         address: &str,
         contract_class_json_str: &str,
     ) -> DevnetResult<Self> {
         Ok(Self {
-            class_hash: felt_from_prefixed_hex(class_hash)?,
+            class_hash,
             address: ContractAddress::new(felt_from_prefixed_hex(address)?)?,
             contract_class: ContractClass::cairo_1_from_sierra_json_str(contract_class_json_str)?
                 .into(),

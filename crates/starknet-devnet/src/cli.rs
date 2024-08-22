@@ -243,6 +243,7 @@ impl Args {
                 url: self.fork_network.clone(),
                 block_number: self.fork_block,
             },
+            ..Default::default()
         };
 
         let RequestResponseLogging { log_request, log_response } =
