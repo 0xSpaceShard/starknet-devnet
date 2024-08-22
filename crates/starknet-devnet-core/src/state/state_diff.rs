@@ -192,9 +192,8 @@ mod tests {
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-    use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
-    use starknet_types::rpc::transactions::{BroadcastedInvokeTransaction, BroadcastedTransaction};
+    use starknet_types::rpc::transactions::BroadcastedInvokeTransaction;
     use starknet_types::traits::HashProducer;
 
     use super::StateDiff;
@@ -205,9 +204,9 @@ mod tests {
     };
     use crate::starknet::starknet_config::StarknetConfig;
     use crate::starknet::Starknet;
-    use crate::state::{self, CustomState, CustomStateReader, StarknetState};
+    use crate::state::{CustomState, StarknetState};
     use crate::system_contract::SystemContract;
-    use crate::traits::{Accounted, Deployed};
+    use crate::traits::Deployed;
     use crate::utils::calculate_casm_hash;
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
@@ -432,7 +431,7 @@ mod tests {
                 )
                 .unwrap();
         }
-        let replaceable_contract_address = ContractAddress::new(Felt::ONE).unwrap();
+        let _replaceable_contract_address = ContractAddress::new(Felt::ONE).unwrap();
         starknet
             .pending_state
             .predeploy_contract(
@@ -447,7 +446,7 @@ mod tests {
 
         let func_selector = get_selector_from_name("test_replace_class").unwrap();
         let calldata = vec![
-            Felt::ONE,                                                               /* contract address */
+            Felt::ONE,     // contract address
             func_selector, // function selector
             Felt::ONE,     // calldata len
             ContractClass::Cairo1(events_contract.clone()).generate_hash().unwrap(), // calldata
@@ -461,6 +460,8 @@ mod tests {
             &calldata,
             Felt::ONE,
         ));
+
+        starknet.add_invoke_transaction(invoke_txn).unwrap();
 
         let state_update = starknet
             .block_state_update(&starknet_rs_core::types::BlockId::Tag(

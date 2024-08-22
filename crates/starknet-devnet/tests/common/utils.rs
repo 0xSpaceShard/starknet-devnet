@@ -343,7 +343,7 @@ where
 mod test_unique_auto_deletable_file {
     use std::path::Path;
 
-    use super::UniqueAutoDeletableFile;
+    use crate::common::utils::UniqueAutoDeletableFile;
 
     #[test]
     fn test_deleted() {
