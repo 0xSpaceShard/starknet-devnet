@@ -4,20 +4,20 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::felt_from_prefixed_hex;
 
 use crate::constants::{
-    CAIRO_1_ERC20_CONTRACT, CAIRO_1_ERC20_CONTRACT_CLASS_HASH, CHARGEABLE_ACCOUNT_ADDRESS,
-    UDC_CONTRACT, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
+    CHARGEABLE_ACCOUNT_ADDRESS, UDC_CONTRACT, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
 use crate::error::{DevnetResult, Error};
 use crate::state::StarknetState;
 use crate::system_contract::SystemContract;
 use crate::utils::get_storage_var_address;
 
-pub(crate) fn create_erc20_at_address(contract_address: &str) -> DevnetResult<SystemContract> {
-    let erc20_fee_contract = SystemContract::new_cairo1(
-        CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
-        contract_address,
-        CAIRO_1_ERC20_CONTRACT,
-    )?;
+pub(crate) fn create_erc20_at_address_extended(
+    contract_address: &str,
+    class_hash: &str,
+    contract_class_json_str: &str,
+) -> DevnetResult<SystemContract> {
+    let erc20_fee_contract =
+        SystemContract::new_cairo1(class_hash, contract_address, contract_class_json_str)?;
     Ok(erc20_fee_contract)
 }
 
@@ -57,4 +57,20 @@ pub(crate) fn create_udc() -> DevnetResult<SystemContract> {
         SystemContract::new_cairo0(UDC_CONTRACT_CLASS_HASH, UDC_CONTRACT_ADDRESS, UDC_CONTRACT)?;
 
     Ok(udc_contract)
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use crate::constants::{CAIRO_1_ERC20_CONTRACT, CAIRO_1_ERC20_CONTRACT_CLASS_HASH};
+    use crate::error::DevnetResult;
+    use crate::system_contract::SystemContract;
+
+    pub(crate) fn create_erc20_at_address(contract_address: &str) -> DevnetResult<SystemContract> {
+        let erc20_fee_contract = SystemContract::new_cairo1(
+            CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
+            contract_address,
+            CAIRO_1_ERC20_CONTRACT,
+        )?;
+        Ok(erc20_fee_contract)
+    }
 }

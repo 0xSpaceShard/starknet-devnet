@@ -181,11 +181,11 @@ mod tests {
 
         // deploy erc20 contract
         let eth_erc_20_contract =
-            predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
+            predeployed::tests::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
         eth_erc_20_contract.deploy(&mut starknet.pending_state).unwrap();
 
         let strk_erc_20_contract =
-            predeployed::create_erc20_at_address(STRK_ERC20_CONTRACT_ADDRESS).unwrap();
+            predeployed::tests::create_erc20_at_address(STRK_ERC20_CONTRACT_ADDRESS).unwrap();
         strk_erc_20_contract.deploy(&mut starknet.pending_state).unwrap();
 
         // deploy account contract

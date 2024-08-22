@@ -18,7 +18,7 @@ use starknet_core::constants::{
 };
 use starknet_core::starknet::starknet_config::{BlockGenerationOn, DumpOn, ForkConfig};
 use starknet_core::starknet::Starknet;
-use starknet_rs_core::types::{BlockId, BlockTag, MaybePendingBlockWithTxHashes};
+use starknet_rs_core::types::{BlockId, BlockTag, Felt, MaybePendingBlockWithTxHashes};
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_types::chain_id::ChainId;
@@ -167,6 +167,13 @@ async fn main() -> Result<(), anyhow::Error> {
     if let Some(url) = starknet_config.fork_config.url.as_ref() {
         let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
         set_and_log_fork_config(&mut starknet_config.fork_config, &json_rpc_client).await?;
+        let eth_erc20_class_hash = json_rpc_client
+            .get_class_hash_at(
+                BlockId::Number(starknet_config.fork_config.block_number.unwrap()),
+                Felt::from_hex_unchecked(ETH_ERC20_CONTRACT_ADDRESS),
+            )
+            .await?;
+        println!("ETH ERC20 class hash: 0{eth_erc20_class_hash:#x}");
 
         starknet_config.chain_id = json_rpc_client.chain_id().await?.into();
     }
