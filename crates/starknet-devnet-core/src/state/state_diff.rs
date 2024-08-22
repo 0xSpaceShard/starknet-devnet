@@ -120,6 +120,7 @@ impl StateDiff {
         self.class_hash_to_compiled_class_hash.extend(&other.class_hash_to_compiled_class_hash);
         self.cairo_0_declared_contracts.extend(&other.cairo_0_declared_contracts);
         self.declared_contracts.extend(&other.declared_contracts);
+        self.replaced_classes.extend(other.replaced_classes.clone());
     }
 }
 
@@ -190,6 +191,8 @@ mod tests {
     use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::state::Balance;
+    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+    use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
     use starknet_types::rpc::transactions::{BroadcastedInvokeTransaction, BroadcastedTransaction};
     use starknet_types::traits::HashProducer;
@@ -202,7 +205,7 @@ mod tests {
     };
     use crate::starknet::starknet_config::StarknetConfig;
     use crate::starknet::Starknet;
-    use crate::state::{self, CustomState, StarknetState};
+    use crate::state::{self, CustomState, CustomStateReader, StarknetState};
     use crate::system_contract::SystemContract;
     use crate::traits::{Accounted, Deployed};
     use crate::utils::calculate_casm_hash;
@@ -389,56 +392,86 @@ mod tests {
 
         account.deploy(&mut starknet.pending_state).unwrap();
 
+        starknet.commit_diff().unwrap();
+        starknet.generate_new_block_and_state().unwrap();
+        starknet.restart_pending_block().unwrap();
+
         // dummy contract
-        let contract_class = dummy_cairo_1_contract_class();
+        let replaceable_contract = dummy_cairo_1_contract_class();
 
-        let sierra_class_hash =
-            ContractClass::Cairo1(contract_class.clone()).generate_hash().unwrap();
+        let events_contract = ContractClass::cairo_1_from_sierra_json_str(
+            &std::fs::read_to_string(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/test_artifacts/events_cairo1.sierra",
+            ))
+            .unwrap(),
+        )
+        .unwrap();
 
-        let casm_contract_class_json =
-            usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap()).unwrap();
+        for (contract_class, nonce) in
+            [(replaceable_contract.clone(), Felt::ZERO), (events_contract.clone(), Felt::ONE)]
+        {
+            let casm_contract_class_json =
+                usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap())
+                    .unwrap();
+            let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap();
 
-        let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap();
-        let new_class_hash = Felt::THREE;
-
-        for class_hash in [sierra_class_hash, new_class_hash] {
             starknet
-                .pending_state
-                .declare_contract_class(
-                    class_hash,
-                    Some(compiled_class_hash),
-                    ContractClass::Cairo1(contract_class.clone()),
+                .add_declare_transaction(
+                    starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V2(Box::new(
+                        BroadcastedDeclareTransactionV2::new(
+                            &contract_class,
+                            compiled_class_hash,
+                            account.account_address,
+                            Fee(1e16 as u128),
+                            &vec![],
+                            nonce,
+                            Felt::TWO,
+                        ),
+                    )),
                 )
                 .unwrap();
         }
+        let replaceable_contract_address = ContractAddress::new(Felt::ONE).unwrap();
+        starknet
+            .pending_state
+            .predeploy_contract(
+                ContractAddress::new(Felt::ONE).unwrap(),
+                ContractClass::Cairo1(replaceable_contract.clone()).generate_hash().unwrap(),
+            )
+            .unwrap();
 
-        let contract_address = ContractAddress::new(Felt::ONE).unwrap();
-        starknet.pending_state.predeploy_contract(contract_address, sierra_class_hash).unwrap();
+        starknet.commit_diff().unwrap();
+        starknet.generate_new_block_and_state().unwrap();
+        starknet.restart_pending_block().unwrap();
 
         let func_selector = get_selector_from_name("test_replace_class").unwrap();
         let calldata = vec![
-            Felt::from(contract_address), // contract address
-            func_selector,                // function selector
-            Felt::ONE,                    // calldata len
-            new_class_hash,               // calldata
+            Felt::ONE,                                                               /* contract address */
+            func_selector, // function selector
+            Felt::ONE,     // calldata len
+            ContractClass::Cairo1(events_contract.clone()).generate_hash().unwrap(), // calldata
         ];
 
         let invoke_txn = BroadcastedInvokeTransaction::V1(BroadcastedInvokeTransactionV1::new(
             account.account_address,
             Fee(1e16 as u128),
             &vec![],
-            Felt::from(0),
+            Felt::TWO,
             &calldata,
             Felt::ONE,
         ));
 
-        starknet.generate_new_block_and_state().unwrap();
-        println!(
-            "{:?}",
-            account.get_balance(&mut starknet.pending_state, crate::account::FeeToken::ETH)
-        );
+        let state_update = starknet
+            .block_state_update(&starknet_rs_core::types::BlockId::Tag(
+                starknet_rs_core::types::BlockTag::Latest,
+            ))
+            .unwrap();
 
-        starknet.add_invoke_transaction(invoke_txn).unwrap();
+        assert_eq!(
+            state_update.get_state_diff().replaced_classes.first().unwrap().class_hash,
+            ContractClass::Cairo1(events_contract.clone()).generate_hash().unwrap()
+        );
     }
 
     fn setup() -> StarknetState {

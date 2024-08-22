@@ -562,7 +562,7 @@ impl Starknet {
     }
 
     /// Restarts pending block with information from block_context
-    fn restart_pending_block(&mut self) -> DevnetResult<()> {
+    pub(crate) fn restart_pending_block(&mut self) -> DevnetResult<()> {
         let mut block = StarknetBlock::create_pending_block();
 
         block.header.block_number = self.block_context.block_info().block_number;
