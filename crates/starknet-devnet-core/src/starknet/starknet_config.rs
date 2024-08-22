@@ -118,11 +118,11 @@ pub struct StarknetConfig {
     #[serde(skip_serializing)]
     pub eth_erc20_class_hash: Felt,
     #[serde(skip_serializing)]
-    pub eth_erc20_contract_class: &'static str,
+    pub eth_erc20_contract_class: String,
     #[serde(skip_serializing)]
     pub strk_erc20_class_hash: Felt,
     #[serde(skip_serializing)]
-    pub strk_erc20_contract_class: &'static str,
+    pub strk_erc20_contract_class: String,
 }
 
 #[allow(clippy::unwrap_used)]
@@ -154,8 +154,8 @@ impl Default for StarknetConfig {
             fork_config: ForkConfig::default(),
             eth_erc20_class_hash: CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
             strk_erc20_class_hash: CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
-            eth_erc20_contract_class: CAIRO_1_ERC20_CONTRACT,
-            strk_erc20_contract_class: CAIRO_1_ERC20_CONTRACT,
+            eth_erc20_contract_class: CAIRO_1_ERC20_CONTRACT.to_string(),
+            strk_erc20_contract_class: CAIRO_1_ERC20_CONTRACT.to_string(),
         }
     }
 }

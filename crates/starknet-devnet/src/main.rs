@@ -5,6 +5,7 @@ use std::time::Duration;
 use clap::Parser;
 use cli::Args;
 use futures::future::join_all;
+use serde::de::IntoDeserializer;
 use server::api::http::HttpApiHandler;
 use server::api::json_rpc::{JsonRpcHandler, RPC_SPEC_VERSION};
 use server::api::Api;
@@ -18,11 +19,13 @@ use starknet_core::constants::{
 };
 use starknet_core::starknet::starknet_config::{BlockGenerationOn, DumpOn, ForkConfig};
 use starknet_core::starknet::Starknet;
-use starknet_rs_core::types::{BlockId, BlockTag, MaybePendingBlockWithTxHashes};
+use starknet_rs_core::types::ContractClass::{Legacy, Sierra};
+use starknet_rs_core::types::{BlockId, BlockTag, Felt, MaybePendingBlockWithTxHashes};
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_types::chain_id::ChainId;
 use starknet_types::rpc::state::Balance;
+use starknet_types::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 use starknet_types::traits::ToHexString;
 use tokio::net::TcpListener;
 #[cfg(unix)]
@@ -168,13 +171,70 @@ async fn main() -> Result<(), anyhow::Error> {
         let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
         set_and_log_fork_config(&mut starknet_config.fork_config, &json_rpc_client).await?;
 
-        // let _eth_class_hash = json_rpc_client
-        // .get_class_hash_at(
-        // BlockId::Number(starknet_config.fork_config.block_number.unwrap()),
-        // Felt::from_hex_unchecked(ETH_ERC20_CONTRACT_ADDRESS),
-        // )
-        // .await?;
+        let block_id = BlockId::Number(
+            starknet_config
+                .fork_config
+                .block_number
+                .ok_or(anyhow::anyhow!("Forking block number is not set"))?,
+        );
 
+        async fn get_origin_class_hash_and_contract_class_if_different_from_default(
+            json_rpc_client: &JsonRpcClient<HttpTransport>,
+            block_id: BlockId,
+            contract_address: &str,
+            default_class_hash: Felt,
+        ) -> Result<Option<(Felt, String)>, anyhow::Error> {
+            let origin_class_hash = json_rpc_client
+                .get_class_hash_at(block_id, Felt::from_hex_unchecked(contract_address))
+                .await?;
+
+            if origin_class_hash != default_class_hash {
+                let origin_contract_class =
+                    json_rpc_client.get_class(block_id, origin_class_hash).await?;
+
+                let contract_class_json_str = match origin_contract_class {
+                    Sierra(_) => {
+                        let contract_class_json_value =
+                            serde_json::to_value(origin_contract_class)?;
+                        let sierra_contract_class = deserialize_to_sierra_contract_class(
+                            contract_class_json_value.into_deserializer(),
+                        )?;
+                        serde_json::to_string(&sierra_contract_class)?
+                    }
+                    Legacy(_) => serde_json::to_string(&origin_contract_class)?,
+                };
+
+                Ok(Some((origin_class_hash, contract_class_json_str)))
+            } else {
+                Ok(None)
+            }
+        }
+
+        if let Some((class_hash, contract_class)) =
+            get_origin_class_hash_and_contract_class_if_different_from_default(
+                &json_rpc_client,
+                block_id,
+                ETH_ERC20_CONTRACT_ADDRESS,
+                starknet_config.eth_erc20_class_hash,
+            )
+            .await?
+        {
+            starknet_config.eth_erc20_class_hash = class_hash;
+            starknet_config.eth_erc20_contract_class = contract_class;
+        }
+
+        if let Some((class_hash, contract_class)) =
+            get_origin_class_hash_and_contract_class_if_different_from_default(
+                &json_rpc_client,
+                block_id,
+                STRK_ERC20_CONTRACT_ADDRESS,
+                starknet_config.strk_erc20_class_hash,
+            )
+            .await?
+        {
+            starknet_config.strk_erc20_class_hash = class_hash;
+            starknet_config.strk_erc20_contract_class = contract_class;
+        }
         starknet_config.chain_id = json_rpc_client.chain_id().await?.into();
     }
 

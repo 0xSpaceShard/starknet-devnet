@@ -61,10 +61,10 @@ use self::transaction_trace::create_trace;
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
-    CAIRO_1_ERC20_CONTRACT, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE,
-    DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME,
-    ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
+    CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
+    DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
+    ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS,
+    STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
 };
 use crate::contract_class_choice::AccountContractClassChoice;
 use crate::error::{DevnetResult, Error, TransactionValidationError};
@@ -167,12 +167,12 @@ impl Starknet {
         let eth_erc20_fee_contract = predeployed::create_erc20_at_address_extended(
             ETH_ERC20_CONTRACT_ADDRESS,
             config.eth_erc20_class_hash,
-            CAIRO_1_ERC20_CONTRACT,
+            &config.eth_erc20_contract_class,
         )?;
         let strk_erc20_fee_contract = predeployed::create_erc20_at_address_extended(
             STRK_ERC20_CONTRACT_ADDRESS,
             config.strk_erc20_class_hash,
-            CAIRO_1_ERC20_CONTRACT,
+            &config.strk_erc20_contract_class,
         )?;
 
         let udc_contract = predeployed::create_udc()?;
