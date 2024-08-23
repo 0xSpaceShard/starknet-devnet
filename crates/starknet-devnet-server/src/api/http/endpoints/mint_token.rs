@@ -3,7 +3,7 @@ use starknet_core::error::DevnetResult;
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::{BlockId, BlockTag, Felt};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{felt_from_prefixed_hex, join_felts};
+use starknet_types::felt::join_felts;
 use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 
@@ -48,12 +48,12 @@ pub fn get_balance(
 
 /// Returns the address of the ERC20 (fee token) contract associated with the unit.
 pub fn get_erc20_address(unit: &FeeUnit) -> DevnetResult<ContractAddress> {
-    let erc20_contract_address_string = match unit {
+    let erc20_contract_address = match unit {
         FeeUnit::WEI => ETH_ERC20_CONTRACT_ADDRESS,
         FeeUnit::FRI => STRK_ERC20_CONTRACT_ADDRESS,
     };
 
-    Ok(ContractAddress::new(felt_from_prefixed_hex(erc20_contract_address_string)?)?)
+    Ok(ContractAddress::new(erc20_contract_address)?)
 }
 
 pub(crate) async fn mint_impl(api: &Api, request: MintTokensRequest) -> StrictRpcResult {

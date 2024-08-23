@@ -13,7 +13,7 @@ use crate::system_contract::SystemContract;
 use crate::utils::get_storage_var_address;
 
 pub(crate) fn create_erc20_at_address_extended(
-    contract_address: &str,
+    contract_address: Felt,
     class_hash: Felt,
     contract_class_json_str: &str,
 ) -> DevnetResult<SystemContract> {
@@ -25,11 +25,11 @@ pub(crate) fn create_erc20_at_address_extended(
 /// Set initial values of ERC20 contract storage
 pub(crate) fn initialize_erc20_at_address(
     state: &mut StarknetState,
-    contract_address: &str,
+    contract_address: Felt,
     erc20_name: &str,
     erc20_symbol: &str,
 ) -> DevnetResult<()> {
-    let contract_address = ContractAddress::new(felt_from_prefixed_hex(contract_address)?)?;
+    let contract_address = ContractAddress::new(contract_address)?;
 
     for (storage_var_name, storage_value) in [
         (
@@ -62,11 +62,13 @@ pub(crate) fn create_udc() -> DevnetResult<SystemContract> {
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use starknet_rs_core::types::Felt;
+
     use crate::constants::{CAIRO_1_ERC20_CONTRACT, CAIRO_1_ERC20_CONTRACT_CLASS_HASH};
     use crate::error::DevnetResult;
     use crate::system_contract::SystemContract;
 
-    pub(crate) fn create_erc20_at_address(contract_address: &str) -> DevnetResult<SystemContract> {
+    pub(crate) fn create_erc20_at_address(contract_address: Felt) -> DevnetResult<SystemContract> {
         let erc20_fee_contract = SystemContract::new_cairo1(
             CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
             contract_address,

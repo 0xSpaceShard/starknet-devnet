@@ -9,7 +9,6 @@ mod general_integration_tests {
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_rs_core::utils::{get_storage_var_address, parse_cairo_short_string};
     use starknet_rs_providers::Provider;
-    use starknet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
@@ -151,7 +150,7 @@ mod general_integration_tests {
             let actual_value = devnet
                 .json_rpc_client
                 .get_storage_at(
-                    felt_from_prefixed_hex(token_address).unwrap(),
+                    token_address,
                     get_storage_var_address(var_name, &[]).unwrap(),
                     BlockId::Tag(BlockTag::Latest),
                 )

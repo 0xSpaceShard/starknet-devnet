@@ -181,12 +181,11 @@ async fn main() -> Result<(), anyhow::Error> {
         async fn get_origin_class_hash_and_contract_class_if_different_from_default(
             json_rpc_client: &JsonRpcClient<HttpTransport>,
             block_id: BlockId,
-            contract_address: &str,
+            contract_address: Felt,
             default_class_hash: Felt,
         ) -> Result<Option<(Felt, String)>, anyhow::Error> {
-            let origin_class_hash = json_rpc_client
-                .get_class_hash_at(block_id, Felt::from_hex_unchecked(contract_address))
-                .await?;
+            let origin_class_hash =
+                json_rpc_client.get_class_hash_at(block_id, contract_address).await?;
 
             if origin_class_hash != default_class_hash {
                 let origin_contract_class =

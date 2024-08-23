@@ -56,7 +56,7 @@ mod trace_tests {
 
             assert_eq!(
                 invoke_trace.fee_transfer_invocation.unwrap().contract_address,
-                felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
+                ETH_ERC20_CONTRACT_ADDRESS
             );
         } else {
             panic!("Could not unpack the transaction trace from {mint_tx_trace:?}");
@@ -138,7 +138,7 @@ mod trace_tests {
 
             assert_eq!(
                 declare_trace.fee_transfer_invocation.unwrap().contract_address,
-                felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
+                ETH_ERC20_CONTRACT_ADDRESS
             );
         } else {
             panic!("Could not unpack the transaction trace from {declare_tx_trace:?}");
@@ -259,7 +259,7 @@ mod trace_tests {
 
             assert_eq!(
                 deployment_trace.fee_transfer_invocation.unwrap().contract_address,
-                felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
+                ETH_ERC20_CONTRACT_ADDRESS
             );
         } else {
             panic!("Could not unpack the transaction trace from {deploy_account_tx_trace:?}");
@@ -318,7 +318,7 @@ mod trace_tests {
                     .unwrap()
             )
             .unwrap(),
-            felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
+            ETH_ERC20_CONTRACT_ADDRESS
         );
     }
 }

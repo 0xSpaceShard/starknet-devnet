@@ -242,8 +242,10 @@ mod simulation_tests {
             account_address_hex
         );
         assert_eq!(
-            no_flags_trace["fee_transfer_invocation"]["contract_address"].as_str().unwrap(),
-            ETH_ERC20_CONTRACT_ADDRESS.to_lowercase()
+            Felt::from_hex_unchecked(
+                no_flags_trace["fee_transfer_invocation"]["contract_address"].as_str().unwrap()
+            ),
+            ETH_ERC20_CONTRACT_ADDRESS
         );
         assert_eq!(
             no_flags_trace["constructor_invocation"]["contract_address"].as_str().unwrap(),
@@ -259,8 +261,12 @@ mod simulation_tests {
         let skip_validation_trace = &resp_skip_validation["transaction_trace"];
         assert!(skip_validation_trace["validate_invocation"].as_object().is_none());
         assert_eq!(
-            skip_validation_trace["fee_transfer_invocation"]["contract_address"].as_str().unwrap(),
-            ETH_ERC20_CONTRACT_ADDRESS.to_lowercase()
+            Felt::from_hex_unchecked(
+                skip_validation_trace["fee_transfer_invocation"]["contract_address"]
+                    .as_str()
+                    .unwrap()
+            ),
+            ETH_ERC20_CONTRACT_ADDRESS
         );
         assert_eq!(
             skip_validation_trace["constructor_invocation"]["contract_address"].as_str().unwrap(),

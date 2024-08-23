@@ -49,7 +49,7 @@ mod call {
             .json_rpc_client
             .call(
                 FunctionCall {
-                    contract_address: felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
+                    contract_address: ETH_ERC20_CONTRACT_ADDRESS,
                     entry_point_selector,
                     calldata: vec![contract_address],
                 },

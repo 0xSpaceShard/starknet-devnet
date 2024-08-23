@@ -475,8 +475,8 @@ impl Starknet {
         gas_price_fri: NonZeroU128,
         data_gas_price_wei: NonZeroU128,
         data_gas_price_fri: NonZeroU128,
-        eth_fee_token_address: &str,
-        strk_fee_token_address: &str,
+        eth_fee_token_address: Felt,
+        strk_fee_token_address: Felt,
         chain_id: ChainId,
         block_number: u64,
     ) -> BlockContext {
@@ -501,8 +501,12 @@ impl Starknet {
         let chain_info = ChainInfo {
             chain_id: chain_id.into(),
             fee_token_addresses: blockifier::context::FeeTokenAddresses {
-                eth_fee_token_address: contract_address!(eth_fee_token_address),
-                strk_fee_token_address: contract_address!(strk_fee_token_address),
+                eth_fee_token_address: contract_address!(
+                    eth_fee_token_address.to_hex_string().as_str()
+                ),
+                strk_fee_token_address: contract_address!(
+                    strk_fee_token_address.to_hex_string().as_str()
+                ),
             },
         };
 
@@ -1477,7 +1481,7 @@ mod tests {
             nonzero!(10u128),
             nonzero!(10u128),
             nonzero!(10u128),
-            "0xAA",
+            felt_from_prefixed_hex("0xAA").unwrap(),
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
             DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
@@ -1686,7 +1690,7 @@ mod tests {
 
         match starknet.call(
             &BlockId::Tag(BlockTag::Latest),
-            felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
+            ETH_ERC20_CONTRACT_ADDRESS,
             entry_point_selector,
             vec![Felt::from(predeployed_account.account_address)],
         ) {
@@ -1705,7 +1709,7 @@ mod tests {
         let entry_point_selector = get_selector_from_name("balanceOf").unwrap();
         starknet.call(
             &BlockId::Tag(BlockTag::Latest),
-            felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS)?,
+            ETH_ERC20_CONTRACT_ADDRESS,
             entry_point_selector,
             vec![Felt::from(contract_address)],
         )

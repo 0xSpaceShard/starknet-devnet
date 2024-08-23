@@ -1,4 +1,5 @@
 use blockifier::state::state_api::StateReader;
+use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::felt::{felt_from_prefixed_hex, ClassHash};
@@ -30,12 +31,12 @@ impl SystemContract {
 
     pub(crate) fn new_cairo1(
         class_hash: ClassHash,
-        address: &str,
+        address: Felt,
         contract_class_json_str: &str,
     ) -> DevnetResult<Self> {
         Ok(Self {
             class_hash,
-            address: ContractAddress::new(felt_from_prefixed_hex(address)?)?,
+            address: ContractAddress::new(address)?,
             contract_class: ContractClass::cairo_1_from_sierra_json_str(contract_class_json_str)?
                 .into(),
         })
