@@ -115,12 +115,10 @@ pub struct StarknetConfig {
     pub lite_mode: bool,
     pub state_archive: StateArchiveCapacity,
     pub fork_config: ForkConfig,
-    #[serde(skip_serializing)]
     pub eth_erc20_class_hash: Felt,
+    pub strk_erc20_class_hash: Felt,
     #[serde(skip_serializing)]
     pub eth_erc20_contract_class: String,
-    #[serde(skip_serializing)]
-    pub strk_erc20_class_hash: Felt,
     #[serde(skip_serializing)]
     pub strk_erc20_contract_class: String,
 }

@@ -5,7 +5,9 @@ pub mod common;
 mod general_integration_tests {
     use reqwest::StatusCode;
     use serde_json::json;
-    use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
+    use starknet_core::constants::{
+        CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
+    };
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_rs_core::utils::{get_storage_var_address, parse_cairo_short_string};
     use starknet_rs_providers::Provider;
@@ -92,6 +94,8 @@ mod general_integration_tests {
             },
             "block_generation_on": "demand",
             "lite_mode": false,
+            "eth_erc20_class_hash": format!("0x{:x}", CAIRO_1_ERC20_CONTRACT_CLASS_HASH),
+            "strk_erc20_class_hash": format!("0x{:x}", CAIRO_1_ERC20_CONTRACT_CLASS_HASH),
         });
 
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
