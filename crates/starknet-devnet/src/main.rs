@@ -234,6 +234,7 @@ async fn main() -> Result<(), anyhow::Error> {
             starknet_config.strk_erc20_class_hash = class_hash;
             starknet_config.strk_erc20_contract_class = contract_class;
         }
+        // TODO: Add check for UDC contract
         starknet_config.chain_id = json_rpc_client.chain_id().await?.into();
     }
 
