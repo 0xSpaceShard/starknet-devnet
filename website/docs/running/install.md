@@ -33,6 +33,10 @@ $ cargo install starknet-devnet
 $ cargo install --git https://github.com/0xSpaceShard/starknet-devnet-rs.git --locked
 ```
 
+### Install with `asdf`
+
+- Follow the instructions from the [asdf-starknet-devnet](https://github.com/ptisserand/asdf-starknet-devnet) repo.
+
 ### Run the installed executable
 
 When `cargo install` finishes, follow the output in your terminal. If properly configured, you should be able to run Devnet with:
