@@ -8,7 +8,8 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 use starknet_types::rpc::state::{
-    ClassHashes, ContractNonce, DeployedContract, StorageDiff, StorageEntry, ThinStateDiff,
+    ClassHashes, ContractNonce, DeployedContract, ReplacedClasses, StorageDiff, StorageEntry,
+    ThinStateDiff,
 };
 
 use crate::error::DevnetResult;
@@ -26,6 +27,8 @@ pub struct StateDiff {
     pub(crate) declared_contracts: Vec<ClassHash>,
     // cairo 0 declared contracts
     pub(crate) cairo_0_declared_contracts: Vec<ClassHash>,
+    // collection of old class hash to new class hash
+    pub(crate) replaced_classes: Vec<ReplacedClasses>,
 }
 
 impl Eq for StateDiff {}
@@ -37,6 +40,7 @@ impl StateDiff {
     ) -> DevnetResult<Self> {
         let mut declared_contracts = Vec::<ClassHash>::new();
         let mut cairo_0_declared_contracts = Vec::<ClassHash>::new();
+        let mut replaced_classes = vec![];
 
         let diff = state.to_state_diff()?;
 
@@ -68,6 +72,18 @@ impl StateDiff {
             })
             .collect::<HashMap<ContractAddress, ClassHash>>();
 
+        for (contract_address, class_hash) in diff.class_hashes {
+            let old_class_hash = state.state.get_class_hash_at(contract_address)?;
+            if old_class_hash != class_hash
+                && old_class_hash != starknet_api::core::ClassHash::default()
+            {
+                replaced_classes.push(ReplacedClasses {
+                    contract_address: contract_address.into(),
+                    class_hash: class_hash.0,
+                });
+            }
+        }
+
         let address_to_nonce = diff
             .nonces
             .iter()
@@ -91,6 +107,7 @@ impl StateDiff {
             class_hash_to_compiled_class_hash,
             cairo_0_declared_contracts,
             declared_contracts,
+            replaced_classes,
         })
     }
 
@@ -103,6 +120,7 @@ impl StateDiff {
         self.class_hash_to_compiled_class_hash.extend(&other.class_hash_to_compiled_class_hash);
         self.cairo_0_declared_contracts.extend(&other.cairo_0_declared_contracts);
         self.declared_contracts.extend(&other.declared_contracts);
+        self.replaced_classes.extend(other.replaced_classes.clone());
     }
 }
 
@@ -155,7 +173,7 @@ impl From<StateDiff> for ThinStateDiff {
                         .collect(),
                 })
                 .collect(),
-            replaced_classes: vec![],
+            replaced_classes: value.replaced_classes,
         }
     }
 }
@@ -164,17 +182,36 @@ mod tests {
     use std::collections::HashMap;
 
     use blockifier::state::state_api::{State, StateReader};
+    use nonzero_ext::nonzero;
     use starknet_api::core::ClassHash;
+    use starknet_api::transaction::Fee;
     use starknet_rs_core::types::Felt;
+    use starknet_rs_core::utils::get_selector_from_name;
+    use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::felt_from_prefixed_hex;
+    use starknet_types::rpc::state::Balance;
+    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+    use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+    use starknet_types::rpc::transactions::BroadcastedInvokeTransaction;
+    use starknet_types::traits::HashProducer;
 
     use super::StateDiff;
+    use crate::account::Account;
+    use crate::constants::{
+        CAIRO_1_ERC20_CONTRACT, CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS,
+        STRK_ERC20_CONTRACT_ADDRESS,
+    };
+    use crate::starknet::starknet_config::StarknetConfig;
+    use crate::starknet::Starknet;
     use crate::state::{CustomState, StarknetState};
+    use crate::system_contract::SystemContract;
+    use crate::traits::Deployed;
+    use crate::utils::calculate_casm_hash;
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
-        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
-        DUMMY_CAIRO_1_COMPILED_CLASS_HASH,
+        cairo_0_account_without_validations, dummy_cairo_1_contract_class, dummy_contract_address,
+        dummy_felt, DUMMY_CAIRO_1_COMPILED_CLASS_HASH,
     };
 
     #[test]
@@ -189,6 +226,32 @@ mod tests {
 
     #[test]
     fn correct_difference_on_cairo1_class_declaration() {
+        let mut state = setup();
+
+        let class_hash = ClassHash(Felt::ONE);
+        let casm_hash = felt_from_prefixed_hex(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
+
+        // necessary to prevent blockifier's state subtraction panic
+        state.get_compiled_contract_class(class_hash).expect_err("Shouldn't yet be declared");
+
+        let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
+        state.declare_contract_class(class_hash.0, Some(casm_hash), contract_class).unwrap();
+
+        let block_number = 1;
+        let new_classes = state.rpc_contract_classes.write().commit(block_number);
+        let generated_diff = StateDiff::generate(&mut state.state, new_classes).unwrap();
+
+        let expected_diff = StateDiff {
+            declared_contracts: vec![class_hash.0],
+            class_hash_to_compiled_class_hash: HashMap::from([(class_hash.0, casm_hash)]),
+            ..Default::default()
+        };
+
+        assert_eq!(generated_diff, expected_diff);
+    }
+
+    #[test]
+    fn correct_difference_on_cairo1_class_replacement() {
         let mut state = setup();
 
         let class_hash = ClassHash(Felt::ONE);
@@ -281,6 +344,135 @@ mod tests {
         };
 
         assert_eq!(generated_diff, expected_diff);
+    }
+
+    #[test]
+    fn test_class_replacement_produces_correct_state_diff() {
+        let mut starknet = Starknet::new(&StarknetConfig {
+            gas_price_wei: nonzero!(1u128),
+            gas_price_fri: nonzero!(1u128),
+            data_gas_price_wei: nonzero!(1u128),
+            data_gas_price_fri: nonzero!(1u128),
+            ..Default::default()
+        })
+        .unwrap();
+
+        let eth_erc20 = SystemContract::new_cairo1(
+            CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
+            ETH_ERC20_CONTRACT_ADDRESS,
+            CAIRO_1_ERC20_CONTRACT,
+        )
+        .unwrap();
+
+        let strk_erc20 = SystemContract::new_cairo1(
+            CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
+            STRK_ERC20_CONTRACT_ADDRESS,
+            CAIRO_1_ERC20_CONTRACT,
+        )
+        .unwrap();
+
+        eth_erc20.deploy(&mut starknet.pending_state).unwrap();
+        strk_erc20.deploy(&mut starknet.pending_state).unwrap();
+
+        let account_without_validations_contract_class = cairo_0_account_without_validations();
+        let account_without_validations_class_hash =
+            account_without_validations_contract_class.generate_hash().unwrap();
+
+        let account = Account::new(
+            Balance::from(u128::MAX),
+            dummy_felt(),
+            dummy_felt(),
+            account_without_validations_class_hash,
+            ContractClass::Cairo0(account_without_validations_contract_class),
+            eth_erc20.get_address(),
+            strk_erc20.get_address(),
+        )
+        .unwrap();
+
+        account.deploy(&mut starknet.pending_state).unwrap();
+
+        starknet.commit_diff().unwrap();
+        starknet.generate_new_block_and_state().unwrap();
+        starknet.restart_pending_block().unwrap();
+
+        // dummy contract
+        let replaceable_contract = dummy_cairo_1_contract_class();
+
+        let events_contract = ContractClass::cairo_1_from_sierra_json_str(
+            &std::fs::read_to_string(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/test_artifacts/events_cairo1.sierra",
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+
+        for (contract_class, nonce) in
+            [(replaceable_contract.clone(), Felt::ZERO), (events_contract.clone(), Felt::ONE)]
+        {
+            let casm_contract_class_json =
+                usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap())
+                    .unwrap();
+            let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap();
+
+            starknet
+                .add_declare_transaction(
+                    starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V2(Box::new(
+                        BroadcastedDeclareTransactionV2::new(
+                            &contract_class,
+                            compiled_class_hash,
+                            account.account_address,
+                            Fee(1e16 as u128),
+                            &vec![],
+                            nonce,
+                            Felt::TWO,
+                        ),
+                    )),
+                )
+                .unwrap();
+        }
+        let _replaceable_contract_address = ContractAddress::new(Felt::ONE).unwrap();
+        starknet
+            .pending_state
+            .predeploy_contract(
+                ContractAddress::new(Felt::ONE).unwrap(),
+                ContractClass::Cairo1(replaceable_contract.clone()).generate_hash().unwrap(),
+            )
+            .unwrap();
+
+        starknet.commit_diff().unwrap();
+        starknet.generate_new_block_and_state().unwrap();
+        starknet.restart_pending_block().unwrap();
+
+        let func_selector = get_selector_from_name("test_replace_class").unwrap();
+        let calldata = vec![
+            Felt::ONE,
+            func_selector,
+            Felt::ONE,
+            ContractClass::Cairo1(events_contract.clone()).generate_hash().unwrap(),
+        ];
+
+        let invoke_txn = BroadcastedInvokeTransaction::V1(BroadcastedInvokeTransactionV1::new(
+            account.account_address,
+            Fee(1e16 as u128),
+            &vec![],
+            Felt::TWO,
+            &calldata,
+            Felt::ONE,
+        ));
+
+        starknet.add_invoke_transaction(invoke_txn).unwrap();
+
+        let state_update = starknet
+            .block_state_update(&starknet_rs_core::types::BlockId::Tag(
+                starknet_rs_core::types::BlockTag::Latest,
+            ))
+            .unwrap();
+
+        assert_eq!(
+            state_update.get_state_diff().replaced_classes.first().unwrap().class_hash,
+            ContractClass::Cairo1(events_contract.clone()).generate_hash().unwrap()
+        );
     }
 
     fn setup() -> StarknetState {
