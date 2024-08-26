@@ -20,9 +20,11 @@ use starknet_core::constants::{
 use starknet_core::starknet::starknet_config::{BlockGenerationOn, DumpOn, ForkConfig};
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::ContractClass::{Legacy, Sierra};
-use starknet_rs_core::types::{BlockId, BlockTag, Felt, MaybePendingBlockWithTxHashes};
+use starknet_rs_core::types::{
+    BlockId, BlockTag, Felt, MaybePendingBlockWithTxHashes, StarknetError,
+};
 use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_providers::{JsonRpcClient, Provider};
+use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
 use starknet_types::chain_id::ChainId;
 use starknet_types::rpc::state::Balance;
 use starknet_types::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
@@ -184,28 +186,32 @@ async fn main() -> Result<(), anyhow::Error> {
             contract_address: Felt,
             default_class_hash: Felt,
         ) -> Result<Option<(Felt, String)>, anyhow::Error> {
-            let origin_class_hash =
-                json_rpc_client.get_class_hash_at(block_id, contract_address).await?;
+            match json_rpc_client.get_class_hash_at(block_id, contract_address).await {
+                Ok(origin_class_hash) => {
+                    if origin_class_hash != default_class_hash {
+                        let origin_contract_class =
+                            json_rpc_client.get_class(block_id, origin_class_hash).await?;
+                        let contract_class_json_str = match origin_contract_class {
+                            Sierra(_) => {
+                                let contract_class_json_value =
+                                    serde_json::to_value(origin_contract_class)?;
+                                let sierra_contract_class = deserialize_to_sierra_contract_class(
+                                    contract_class_json_value.into_deserializer(),
+                                )?;
+                                serde_json::to_string(&sierra_contract_class)?
+                            }
+                            Legacy(_) => serde_json::to_string(&origin_contract_class)?,
+                        };
 
-            if origin_class_hash != default_class_hash {
-                let origin_contract_class =
-                    json_rpc_client.get_class(block_id, origin_class_hash).await?;
-
-                let contract_class_json_str = match origin_contract_class {
-                    Sierra(_) => {
-                        let contract_class_json_value =
-                            serde_json::to_value(origin_contract_class)?;
-                        let sierra_contract_class = deserialize_to_sierra_contract_class(
-                            contract_class_json_value.into_deserializer(),
-                        )?;
-                        serde_json::to_string(&sierra_contract_class)?
+                        Ok(Some((origin_class_hash, contract_class_json_str)))
+                    } else {
+                        Ok(None)
                     }
-                    Legacy(_) => serde_json::to_string(&origin_contract_class)?,
-                };
-
-                Ok(Some((origin_class_hash, contract_class_json_str)))
-            } else {
-                Ok(None)
+                }
+                // if the contract is not found, then dont return an error. It means that the
+                // contract was not deployed at this state of the origin blockchain
+                Err(ProviderError::StarknetError(StarknetError::ContractNotFound)) => Ok(None),
+                Err(err) => Err(err.into()),
             }
         }
 
