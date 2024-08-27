@@ -103,9 +103,9 @@ fn log_predeployed_accounts(
 
 fn log_predeployed_contracts() {
     println!("Predeployed FeeToken");
-    println!("ETH Address: {ETH_ERC20_CONTRACT_ADDRESS}");
-    println!("STRK Address: {STRK_ERC20_CONTRACT_ADDRESS}");
-    println!("Class Hash: {CAIRO_1_ERC20_CONTRACT_CLASS_HASH}");
+    println!("ETH Address: 0x{ETH_ERC20_CONTRACT_ADDRESS}");
+    println!("STRK Address: 0x{STRK_ERC20_CONTRACT_ADDRESS}");
+    println!("Class Hash: 0x{CAIRO_1_ERC20_CONTRACT_CLASS_HASH}");
     println!();
     println!("Predeployed UDC");
     println!("Address: {UDC_CONTRACT_ADDRESS}");
