@@ -554,12 +554,12 @@ mod estimate_fee_tests {
                             sender_address: account_address,
                             calldata: [
                                 "0x1",
-                                UDC_CONTRACT_ADDRESS,
+                                format!("0x{:x}", UDC_CONTRACT_ADDRESS).as_str(),
                                 deployment_selector.as_str(),
                                 "0x0",
                                 "0x4",
                                 "0x4",
-                                format!("{:x}", class_hash).as_str(),
+                                format!("0x{:x}", class_hash).as_str(),
                                 "0x123", // salt
                                 "0x0",
                                 "0x0",

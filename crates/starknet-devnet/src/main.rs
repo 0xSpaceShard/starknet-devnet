@@ -111,8 +111,8 @@ fn log_predeployed_contracts(config: &StarknetConfig) {
     println!("Class Hash: 0x{:X}", config.strk_erc20_class_hash);
     println!();
     println!("Predeployed UDC");
-    println!("Address: {UDC_CONTRACT_ADDRESS}");
-    println!("Class Hash: {UDC_CONTRACT_CLASS_HASH}");
+    println!("Address: 0x{:X}", UDC_CONTRACT_ADDRESS);
+    println!("Class Hash: 0x{:X}", UDC_CONTRACT_CLASS_HASH);
     println!();
 }
 

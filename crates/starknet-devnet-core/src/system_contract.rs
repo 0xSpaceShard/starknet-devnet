@@ -2,7 +2,7 @@ use blockifier::state::state_api::StateReader;
 use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
-use starknet_types::felt::{felt_from_prefixed_hex, ClassHash};
+use starknet_types::felt::ClassHash;
 use starknet_types::rpc::state::Balance;
 
 use crate::error::DevnetResult;
@@ -18,13 +18,13 @@ pub(crate) struct SystemContract {
 
 impl SystemContract {
     pub(crate) fn new_cairo0(
-        class_hash: &str,
-        address: &str,
+        class_hash: Felt,
+        address: Felt,
         contract_class_json_str: &str,
     ) -> DevnetResult<Self> {
         Ok(Self {
-            class_hash: felt_from_prefixed_hex(class_hash)?,
-            address: ContractAddress::new(felt_from_prefixed_hex(address)?)?,
+            class_hash,
+            address: ContractAddress::new(address)?,
             contract_class: Cairo0Json::raw_json_from_json_str(contract_class_json_str)?.into(),
         })
     }

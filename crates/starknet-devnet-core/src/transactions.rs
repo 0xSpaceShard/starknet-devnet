@@ -7,7 +7,7 @@ use starknet_rs_core::types::{ExecutionResult, Felt, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{Event, OrderedEvent};
-use starknet_types::felt::{felt_from_prefixed_hex, BlockHash, TransactionHash};
+use starknet_types::felt::{BlockHash, TransactionHash};
 use starknet_types::messaging::MessageToL2;
 use starknet_types::rpc::messaging::{MessageToL1, OrderedMessageToL1};
 use starknet_types::rpc::transaction_receipt::{
@@ -147,7 +147,7 @@ impl StarknetTransaction {
         let contract_deployed_event_key =
             get_selector_from_name("ContractDeployed").map_err(|_| Error::FormatError)?;
 
-        let udc_address = ContractAddress::new(felt_from_prefixed_hex(UDC_CONTRACT_ADDRESS)?)?;
+        let udc_address = ContractAddress::new(UDC_CONTRACT_ADDRESS)?;
 
         let deployed_address = events
             .iter()
