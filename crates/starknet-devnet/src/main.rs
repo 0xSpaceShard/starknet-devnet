@@ -182,7 +182,7 @@ async fn set_erc20_contract_class_and_class_hash_if_different_than_default(
 
     if let Some((class_hash, contract_class)) =
         get_origin_class_hash_and_contract_class_if_different_from_default(
-            &json_rpc_client,
+            json_rpc_client,
             block_id,
             ETH_ERC20_CONTRACT_ADDRESS,
             starknet_config.eth_erc20_class_hash,
@@ -195,7 +195,7 @@ async fn set_erc20_contract_class_and_class_hash_if_different_than_default(
 
     if let Some((class_hash, contract_class)) =
         get_origin_class_hash_and_contract_class_if_different_from_default(
-            &json_rpc_client,
+            json_rpc_client,
             block_id,
             STRK_ERC20_CONTRACT_ADDRESS,
             starknet_config.strk_erc20_class_hash,
