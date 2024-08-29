@@ -11,6 +11,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::error::Error;
 use starknet_types::felt::{felt_from_prefixed_hex, join_felts, split_biguint, ClassHash, Key};
+use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
 
@@ -53,7 +54,8 @@ impl Account {
         let account_contract_class = Cairo0Json::raw_json_from_json_str(CAIRO_0_ACCOUNT_CONTRACT)?;
         let class_hash = account_contract_class.generate_hash()?;
 
-        let initial_balance = u128::MAX.into();
+        // very big number
+        let initial_balance = BigUint::from(u128::MAX) << 10;
 
         Ok(Self {
             public_key: Key::from_hex(CHARGEABLE_ACCOUNT_PUBLIC_KEY)?,
