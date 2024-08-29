@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::u128;
 
 use blockifier::abi::sierra_types::next_storage_key;
 use blockifier::state::state_api::StateReader;
@@ -10,7 +11,6 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::error::Error;
 use starknet_types::felt::{felt_from_prefixed_hex, join_felts, split_biguint, ClassHash, Key};
-use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
 
@@ -49,10 +49,11 @@ impl Account {
     pub(crate) fn new_chargeable(
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
-        initial_balance: BigUint,
     ) -> DevnetResult<Self> {
         let account_contract_class = Cairo0Json::raw_json_from_json_str(CAIRO_0_ACCOUNT_CONTRACT)?;
         let class_hash = account_contract_class.generate_hash()?;
+
+        let initial_balance = u128::MAX.into();
 
         Ok(Self {
             public_key: Key::from_hex(CHARGEABLE_ACCOUNT_PUBLIC_KEY)?,

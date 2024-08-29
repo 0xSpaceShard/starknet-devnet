@@ -27,7 +27,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{
-    biguint_max, felt_from_prefixed_hex, split_biguint, BlockHash, ClassHash, TransactionHash,
+    felt_from_prefixed_hex, split_biguint, BlockHash, ClassHash, TransactionHash,
 };
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
@@ -210,15 +210,9 @@ impl Starknet {
             account.deploy(&mut state)?;
         }
 
-        // chargeable account is the last account in the predeployed accounts, it serves as the
-        // minter of the ERC20 token contract (by sending tokens )
-        let chargeable_account_initial_balance = biguint_max()
-            - config.total_accounts * config.predeployed_accounts_initial_balance.clone();
-
         let chargeable_account = Account::new_chargeable(
             eth_erc20_fee_contract.get_address(),
             strk_erc20_fee_contract.get_address(),
-            chargeable_account_initial_balance,
         )?;
         chargeable_account.deploy(&mut state)?;
 
