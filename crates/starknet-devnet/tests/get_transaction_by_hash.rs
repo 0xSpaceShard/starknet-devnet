@@ -127,7 +127,7 @@ mod get_transaction_by_hash_integration_tests {
 
         let invoke_tx_result = account
             .execute_v1(vec![Call {
-                to: felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
+                to: ETH_ERC20_CONTRACT_ADDRESS,
                 selector: get_selector_from_name("transfer").unwrap(),
                 calldata: vec![
                     Felt::ONE,                 // recipient

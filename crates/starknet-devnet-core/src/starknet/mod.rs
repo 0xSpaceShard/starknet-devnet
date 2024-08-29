@@ -164,10 +164,16 @@ impl Starknet {
         }
 
         // deploy udc, eth erc20 and strk erc20 contracts
-        let eth_erc20_fee_contract =
-            predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS)?;
-        let strk_erc20_fee_contract =
-            predeployed::create_erc20_at_address(STRK_ERC20_CONTRACT_ADDRESS)?;
+        let eth_erc20_fee_contract = predeployed::create_erc20_at_address_extended(
+            ETH_ERC20_CONTRACT_ADDRESS,
+            config.eth_erc20_class_hash,
+            &config.eth_erc20_contract_class,
+        )?;
+        let strk_erc20_fee_contract = predeployed::create_erc20_at_address_extended(
+            STRK_ERC20_CONTRACT_ADDRESS,
+            config.strk_erc20_class_hash,
+            &config.strk_erc20_contract_class,
+        )?;
 
         let udc_contract = predeployed::create_udc()?;
         udc_contract.deploy(&mut state)?;
@@ -469,8 +475,8 @@ impl Starknet {
         gas_price_fri: NonZeroU128,
         data_gas_price_wei: NonZeroU128,
         data_gas_price_fri: NonZeroU128,
-        eth_fee_token_address: &str,
-        strk_fee_token_address: &str,
+        eth_fee_token_address: Felt,
+        strk_fee_token_address: Felt,
         chain_id: ChainId,
         block_number: u64,
     ) -> BlockContext {
@@ -495,8 +501,12 @@ impl Starknet {
         let chain_info = ChainInfo {
             chain_id: chain_id.into(),
             fee_token_addresses: blockifier::context::FeeTokenAddresses {
-                eth_fee_token_address: contract_address!(eth_fee_token_address),
-                strk_fee_token_address: contract_address!(strk_fee_token_address),
+                eth_fee_token_address: contract_address!(
+                    eth_fee_token_address.to_hex_string().as_str()
+                ),
+                strk_fee_token_address: contract_address!(
+                    strk_fee_token_address.to_hex_string().as_str()
+                ),
             },
         };
 
@@ -744,6 +754,7 @@ impl Starknet {
     }
 
     /// Creates an invoke tx for minting, using the chargeable account.
+    /// Uses transfer function of the ERC20 contract
     pub async fn mint(
         &mut self,
         address: ContractAddress,
@@ -762,7 +773,7 @@ impl Starknet {
         let raw_execution = RawExecution {
             calls: vec![Call {
                 to: erc20_address.into(),
-                selector: get_selector_from_name("mint")
+                selector: get_selector_from_name("transfer")
                     .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?,
                 calldata: calldata.clone(),
             }],
@@ -1471,7 +1482,7 @@ mod tests {
             nonzero!(10u128),
             nonzero!(10u128),
             nonzero!(10u128),
-            "0xAA",
+            felt_from_prefixed_hex("0xAA").unwrap(),
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
             DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
@@ -1680,7 +1691,7 @@ mod tests {
 
         match starknet.call(
             &BlockId::Tag(BlockTag::Latest),
-            felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
+            ETH_ERC20_CONTRACT_ADDRESS,
             entry_point_selector,
             vec![Felt::from(predeployed_account.account_address)],
         ) {
@@ -1699,7 +1710,7 @@ mod tests {
         let entry_point_selector = get_selector_from_name("balanceOf").unwrap();
         starknet.call(
             &BlockId::Tag(BlockTag::Latest),
-            felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS)?,
+            ETH_ERC20_CONTRACT_ADDRESS,
             entry_point_selector,
             vec![Felt::from(contract_address)],
         )

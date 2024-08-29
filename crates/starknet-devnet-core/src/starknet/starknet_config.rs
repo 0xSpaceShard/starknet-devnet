@@ -10,9 +10,9 @@ use starknet_types::traits::HashProducer;
 use url::Url;
 
 use crate::constants::{
-    CAIRO_1_ACCOUNT_CONTRACT_SIERRA, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_DATA_GAS_PRICE,
-    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_TEST_SEED,
-    DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    CAIRO_1_ACCOUNT_CONTRACT_SIERRA, CAIRO_1_ERC20_CONTRACT, CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
+    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE,
+    DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_TEST_SEED, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 
 #[derive(Copy, Clone, Debug, clap::ValueEnum, Serialize)]
@@ -115,6 +115,12 @@ pub struct StarknetConfig {
     pub lite_mode: bool,
     pub state_archive: StateArchiveCapacity,
     pub fork_config: ForkConfig,
+    pub eth_erc20_class_hash: Felt,
+    pub strk_erc20_class_hash: Felt,
+    #[serde(skip_serializing)]
+    pub eth_erc20_contract_class: String,
+    #[serde(skip_serializing)]
+    pub strk_erc20_contract_class: String,
 }
 
 #[allow(clippy::unwrap_used)]
@@ -144,6 +150,10 @@ impl Default for StarknetConfig {
             lite_mode: false,
             state_archive: StateArchiveCapacity::default(),
             fork_config: ForkConfig::default(),
+            eth_erc20_class_hash: CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
+            strk_erc20_class_hash: CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
+            eth_erc20_contract_class: CAIRO_1_ERC20_CONTRACT.to_string(),
+            strk_erc20_contract_class: CAIRO_1_ERC20_CONTRACT.to_string(),
         }
     }
 }

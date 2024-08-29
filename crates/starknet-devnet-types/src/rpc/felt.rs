@@ -3,6 +3,10 @@ use starknet_types_core::felt::Felt;
 
 use crate::error::{ConversionError, DevnetResult, Error};
 
+pub fn biguint_max() -> BigUint {
+    (BigUint::from(1_u8) << 256) - 1_u8
+}
+
 /// Returns (high, low)
 pub fn split_biguint(biguint: BigUint) -> (Felt, Felt) {
     let high = Felt::from(&biguint >> 128);

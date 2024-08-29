@@ -6,6 +6,7 @@ mod fork_tests {
     use std::sync::Arc;
 
     use server::test_utils::assert_contains;
+    use starknet_core::constants::CAIRO_1_ERC20_CONTRACT_CLASS_HASH;
     use starknet_rs_accounts::{
         Account, AccountFactory, AccountFactoryError, Call, ExecutionEncoding,
         OpenZeppelinAccountFactory, SingleOwnerAccount,
@@ -26,8 +27,8 @@ mod fork_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
-        self, INTEGRATION_SEPOLIA_GENESIS_BLOCK_HASH, INTEGRATION_SEPOLIA_HTTPS_URL,
-        INTEGRATION_SEPOLIA_HTTP_URL,
+        self, INTEGRATION_SEPOLIA_GENESIS_BLOCK_HASH, INTEGRATION_SEPOLIA_HTTP_URL,
+        MAINNET_HTTPS_URL, MAINNET_URL,
     };
     use crate::common::utils::{
         assert_cairo1_classes_equal, assert_tx_successful, declare_deploy_v1,
@@ -579,7 +580,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_forking_https() {
-        let origin_url = INTEGRATION_SEPOLIA_HTTPS_URL;
+        let origin_url = MAINNET_HTTPS_URL;
         let fork_block = 2;
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--fork-network",
@@ -596,5 +597,35 @@ mod fork_tests {
             .get_block_with_tx_hashes(BlockId::Number(fork_block - 1))
             .await
             .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_forked_devnet_uses_different_contract_class_for_predeployed_tokens() {
+        let origin_url = MAINNET_URL;
+        let fork_block = 668276; // data taken from https://github.com/0xSpaceShard/starknet-devnet-rs/issues/587
+        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--fork-network",
+            origin_url,
+            "--fork-block",
+            &fork_block.to_string(),
+        ])
+        .await
+        .unwrap();
+
+        assert_ne!(
+            felt_from_prefixed_hex(
+                fork_devnet.get_config().await["eth_erc20_class_hash"].as_str().unwrap()
+            )
+            .unwrap(),
+            CAIRO_1_ERC20_CONTRACT_CLASS_HASH
+        );
+
+        assert_ne!(
+            felt_from_prefixed_hex(
+                fork_devnet.get_config().await["strk_erc20_class_hash"].as_str().unwrap()
+            )
+            .unwrap(),
+            CAIRO_1_ERC20_CONTRACT_CLASS_HASH
+        );
     }
 }

@@ -64,7 +64,7 @@ mod test_restart {
         let storage_key = get_storage_var_address("ERC20_balances", &[dummy_address]).unwrap();
         let get_storage = || {
             devnet.json_rpc_client.get_storage_at(
-                felt_from_prefixed_hex(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
+                ETH_ERC20_CONTRACT_ADDRESS,
                 storage_key,
                 BlockId::Tag(BlockTag::Latest),
             )

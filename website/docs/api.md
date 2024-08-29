@@ -53,9 +53,12 @@ To retrieve the current configuration of Devnet, as specified via [CLI](running/
     "host": "127.0.0.1",
     "port": 5050,
     "timeout": 120,
-    "request_body_size_limit": 2000000
+    "request_body_size_limit": 2000000,
+    "restricted_methods": null
   },
   "block_generation": null,
-  "lite_mode": false
+  "lite_mode": false,
+  "eth_erc20_class_hash": "0x046ded64ae2dead6448e247234bab192a9c483644395b66f2155f2614e5804b0",
+  "strk_erc20_class_hash": "0x046ded64ae2dead6448e247234bab192a9c483644395b66f2155f2614e5804b0"
 }
 ```

@@ -2,6 +2,7 @@ use std::net::{IpAddr, Ipv4Addr};
 use std::num::NonZeroU128;
 
 use nonzero_ext::nonzero;
+use starknet_rs_core::types::Felt;
 use starknet_types::chain_id::ChainId;
 
 pub const CAIRO_0_ACCOUNT_CONTRACT: &str =
@@ -28,8 +29,8 @@ pub const CAIRO_1_ERC20_CONTRACT: &str =
 /// ERC20 class hash is hardcoded to be the same as OZ class hash ERC20.cairo although it should be
 /// different, due to commented key attributes in struct Approval (owner and spender), and add of
 /// mintable feature: https://docs.openzeppelin.com/contracts-cairo/0.8.1/presets
-pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: &str =
-    "0x046ded64ae2dead6448e247234bab192a9c483644395b66f2155f2614e5804b0";
+pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: Felt =
+    Felt::from_hex_unchecked("0x046ded64ae2dead6448e247234bab192a9c483644395b66f2155f2614e5804b0");
 
 /// only used in tests; if artifact needed in production, add a new constant that uses include_str!
 pub const CAIRO_0_ERC20_CONTRACT_PATH: &str =
@@ -38,19 +39,19 @@ pub const CAIRO_0_ERC20_CONTRACT_PATH: &str =
 pub const CAIRO_0_ERC20_CONTRACT_CLASS_HASH: &str =
     "0x6A22BF63C7BC07EFFA39A25DFBD21523D211DB0100A0AFD054D172B81840EAF";
 
-pub const ETH_ERC20_CONTRACT_ADDRESS: &str =
-    "0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7";
+pub const ETH_ERC20_CONTRACT_ADDRESS: Felt =
+    Felt::from_hex_unchecked("0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7");
 
-pub const STRK_ERC20_CONTRACT_ADDRESS: &str =
-    "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
+pub const STRK_ERC20_CONTRACT_ADDRESS: Felt =
+    Felt::from_hex_unchecked("0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d");
 
 pub(crate) const UDC_CONTRACT: &str = include_str!("../accounts_artifacts/UDC_OZ_0.5.0.json");
 
-pub const UDC_CONTRACT_CLASS_HASH: &str =
-    "0x7B3E05F48F0C69E4A65CE5E076A66271A527AFF2C34CE1083EC6E1526997A69";
+pub const UDC_CONTRACT_CLASS_HASH: Felt =
+    Felt::from_hex_unchecked("0x7B3E05F48F0C69E4A65CE5E076A66271A527AFF2C34CE1083EC6E1526997A69");
 
-pub const UDC_CONTRACT_ADDRESS: &str =
-    "0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF";
+pub const UDC_CONTRACT_ADDRESS: Felt =
+    Felt::from_hex_unchecked("0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF");
 
 /// https://github.com/OpenZeppelin/cairo-contracts/blob/89a450a88628ec3b86273f261b2d8d1ca9b1522b/src/account/interface.cairo#L7
 pub const ISRC6_ID_HEX: &str = "0x2ceccef7f994940b3962a6c67e0ba4fcd37df7d131417c604f91e03caecc1cd";

@@ -12,7 +12,6 @@ mod impersonated_account_tests {
     use starknet_rs_providers::jsonrpc::HttpTransport;
     use starknet_rs_providers::{JsonRpcClient, Provider};
     use starknet_rs_signers::{LocalWallet, SigningKey};
-    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -43,7 +42,7 @@ mod impersonated_account_tests {
 
     fn get_invoke_transaction_request(amount_to_transfer: Felt) -> Call {
         Call {
-            to: felt_from_prefixed_hex(STRK_ERC20_CONTRACT_ADDRESS).unwrap(),
+            to: STRK_ERC20_CONTRACT_ADDRESS,
             selector: get_selector_from_name("transfer").unwrap(),
             calldata: vec![
                 Felt::ONE,          // recipient

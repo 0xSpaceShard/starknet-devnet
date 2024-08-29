@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::u128;
 
 use blockifier::abi::sierra_types::next_storage_key;
 use blockifier::state::state_api::StateReader;
@@ -10,6 +11,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::error::Error;
 use starknet_types::felt::{felt_from_prefixed_hex, join_felts, split_biguint, ClassHash, Key};
+use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
 
@@ -52,8 +54,9 @@ impl Account {
         let account_contract_class = Cairo0Json::raw_json_from_json_str(CAIRO_0_ACCOUNT_CONTRACT)?;
         let class_hash = account_contract_class.generate_hash()?;
 
-        // insanely big - should practically never run out of funds
-        let initial_balance = Balance::from(u128::MAX);
+        // very big number
+        let initial_balance = BigUint::from(u128::MAX) << 10;
+
         Ok(Self {
             public_key: Key::from_hex(CHARGEABLE_ACCOUNT_PUBLIC_KEY)?,
             private_key: Key::from_hex(CHARGEABLE_ACCOUNT_PRIVATE_KEY)?,
@@ -154,16 +157,43 @@ impl Accounted for Account {
             get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
         let storage_var_address_high = next_storage_key(&storage_var_address_low.try_into()?)?;
 
+        let total_supply_storage_address_low =
+            get_storage_var_address("ERC20_total_supply", &[])?.try_into()?;
+        let total_supply_storage_address_high =
+            next_storage_key(&total_supply_storage_address_low)?;
+
         let (high, low) = split_biguint(self.initial_balance.clone());
 
         for fee_token_address in [self.eth_fee_token_address, self.strk_fee_token_address] {
+            let token_address = fee_token_address.try_into()?;
+
+            let total_supply_low =
+                state.get_storage_at(token_address, total_supply_storage_address_low)?;
+            let total_supply_high =
+                state.get_storage_at(token_address, total_supply_storage_address_high)?;
+
+            let new_total_supply =
+                join_felts(&total_supply_high, &total_supply_low) + self.initial_balance.clone();
+
+            let (new_total_supply_high, new_total_supply_low) = split_biguint(new_total_supply);
+
+            // set balance in ERC20_balances
+            state.set_storage_at(token_address, storage_var_address_low.try_into()?, low)?;
+
+            state.set_storage_at(token_address, storage_var_address_high, high)?;
+
+            // set total supply in ERC20_total_supply
             state.set_storage_at(
-                fee_token_address.try_into()?,
-                storage_var_address_low.try_into()?,
-                low,
+                token_address,
+                total_supply_storage_address_low,
+                new_total_supply_low,
             )?;
 
-            state.set_storage_at(fee_token_address.try_into()?, storage_var_address_high, high)?;
+            state.set_storage_at(
+                token_address,
+                total_supply_storage_address_high,
+                new_total_supply_high,
+            )?;
         }
 
         Ok(())
@@ -279,12 +309,7 @@ mod tests {
         let fee_token_address = dummy_contract_address();
 
         // deploy the erc20 contract
-        state
-            .predeploy_contract(
-                fee_token_address,
-                felt_from_prefixed_hex(CAIRO_1_ERC20_CONTRACT_CLASS_HASH).unwrap(),
-            )
-            .unwrap();
+        state.predeploy_contract(fee_token_address, CAIRO_1_ERC20_CONTRACT_CLASS_HASH).unwrap();
 
         (
             Account::new(
