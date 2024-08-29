@@ -17,7 +17,9 @@ use starknet_core::constants::{
     CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
-use starknet_core::starknet::starknet_config::{BlockGenerationOn, DumpOn, ForkConfig};
+use starknet_core::starknet::starknet_config::{
+    BlockGenerationOn, DumpOn, ForkConfig, StarknetConfig,
+};
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::ContractClass::{Legacy, Sierra};
 use starknet_rs_core::types::{
@@ -130,6 +132,83 @@ async fn check_forking_spec_version(
     Ok(())
 }
 
+// Sets in the starknet_config the class hash and contract class of the ERC20 contracts if they are
+// different from the default ones.
+async fn set_erc20_contract_class_and_class_hash_if_different_than_default(
+    json_rpc_client: &JsonRpcClient<HttpTransport>,
+    starknet_config: &mut StarknetConfig,
+) -> Result<(), anyhow::Error> {
+    let block_id = BlockId::Number(
+        starknet_config
+            .fork_config
+            .block_number
+            .ok_or(anyhow::anyhow!("Forking block number is not set"))?,
+    );
+
+    async fn get_origin_class_hash_and_contract_class_if_different_from_default(
+        json_rpc_client: &JsonRpcClient<HttpTransport>,
+        block_id: BlockId,
+        contract_address: Felt,
+        default_class_hash: Felt,
+    ) -> Result<Option<(Felt, String)>, anyhow::Error> {
+        match json_rpc_client.get_class_hash_at(block_id, contract_address).await {
+            Ok(origin_class_hash) => {
+                if origin_class_hash != default_class_hash {
+                    let origin_contract_class =
+                        json_rpc_client.get_class(block_id, origin_class_hash).await?;
+                    let contract_class_json_str = match origin_contract_class {
+                        Sierra(_) => {
+                            let contract_class_json_value =
+                                serde_json::to_value(origin_contract_class)?;
+                            let sierra_contract_class = deserialize_to_sierra_contract_class(
+                                contract_class_json_value.into_deserializer(),
+                            )?;
+                            serde_json::to_string(&sierra_contract_class)?
+                        }
+                        Legacy(_) => serde_json::to_string(&origin_contract_class)?,
+                    };
+
+                    Ok(Some((origin_class_hash, contract_class_json_str)))
+                } else {
+                    Ok(None)
+                }
+            }
+            // if the contract is not found, then dont return an error. It means that the
+            // contract was not deployed at this state of the origin blockchain
+            Err(ProviderError::StarknetError(StarknetError::ContractNotFound)) => Ok(None),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    if let Some((class_hash, contract_class)) =
+        get_origin_class_hash_and_contract_class_if_different_from_default(
+            &json_rpc_client,
+            block_id,
+            ETH_ERC20_CONTRACT_ADDRESS,
+            starknet_config.eth_erc20_class_hash,
+        )
+        .await?
+    {
+        starknet_config.eth_erc20_class_hash = class_hash;
+        starknet_config.eth_erc20_contract_class = contract_class;
+    }
+
+    if let Some((class_hash, contract_class)) =
+        get_origin_class_hash_and_contract_class_if_different_from_default(
+            &json_rpc_client,
+            block_id,
+            STRK_ERC20_CONTRACT_ADDRESS,
+            starknet_config.strk_erc20_class_hash,
+        )
+        .await?
+    {
+        starknet_config.strk_erc20_class_hash = class_hash;
+        starknet_config.strk_erc20_contract_class = contract_class;
+    }
+
+    Ok(())
+}
+
 /// Logs forking info if forking specified. If block_number is not specified, it is set to the
 /// latest block number.
 pub async fn set_and_log_fork_config(
@@ -172,74 +251,11 @@ async fn main() -> Result<(), anyhow::Error> {
     if let Some(url) = starknet_config.fork_config.url.as_ref() {
         let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
         set_and_log_fork_config(&mut starknet_config.fork_config, &json_rpc_client).await?;
-
-        let block_id = BlockId::Number(
-            starknet_config
-                .fork_config
-                .block_number
-                .ok_or(anyhow::anyhow!("Forking block number is not set"))?,
-        );
-
-        async fn get_origin_class_hash_and_contract_class_if_different_from_default(
-            json_rpc_client: &JsonRpcClient<HttpTransport>,
-            block_id: BlockId,
-            contract_address: Felt,
-            default_class_hash: Felt,
-        ) -> Result<Option<(Felt, String)>, anyhow::Error> {
-            match json_rpc_client.get_class_hash_at(block_id, contract_address).await {
-                Ok(origin_class_hash) => {
-                    if origin_class_hash != default_class_hash {
-                        let origin_contract_class =
-                            json_rpc_client.get_class(block_id, origin_class_hash).await?;
-                        let contract_class_json_str = match origin_contract_class {
-                            Sierra(_) => {
-                                let contract_class_json_value =
-                                    serde_json::to_value(origin_contract_class)?;
-                                let sierra_contract_class = deserialize_to_sierra_contract_class(
-                                    contract_class_json_value.into_deserializer(),
-                                )?;
-                                serde_json::to_string(&sierra_contract_class)?
-                            }
-                            Legacy(_) => serde_json::to_string(&origin_contract_class)?,
-                        };
-
-                        Ok(Some((origin_class_hash, contract_class_json_str)))
-                    } else {
-                        Ok(None)
-                    }
-                }
-                // if the contract is not found, then dont return an error. It means that the
-                // contract was not deployed at this state of the origin blockchain
-                Err(ProviderError::StarknetError(StarknetError::ContractNotFound)) => Ok(None),
-                Err(err) => Err(err.into()),
-            }
-        }
-
-        if let Some((class_hash, contract_class)) =
-            get_origin_class_hash_and_contract_class_if_different_from_default(
-                &json_rpc_client,
-                block_id,
-                ETH_ERC20_CONTRACT_ADDRESS,
-                starknet_config.eth_erc20_class_hash,
-            )
-            .await?
-        {
-            starknet_config.eth_erc20_class_hash = class_hash;
-            starknet_config.eth_erc20_contract_class = contract_class;
-        }
-
-        if let Some((class_hash, contract_class)) =
-            get_origin_class_hash_and_contract_class_if_different_from_default(
-                &json_rpc_client,
-                block_id,
-                STRK_ERC20_CONTRACT_ADDRESS,
-                starknet_config.strk_erc20_class_hash,
-            )
-            .await?
-        {
-            starknet_config.strk_erc20_class_hash = class_hash;
-            starknet_config.strk_erc20_contract_class = contract_class;
-        }
+        set_erc20_contract_class_and_class_hash_if_different_than_default(
+            &json_rpc_client,
+            &mut starknet_config,
+        )
+        .await?;
         // TODO: Add check for UDC contract
         starknet_config.chain_id = json_rpc_client.chain_id().await?.into();
     }
