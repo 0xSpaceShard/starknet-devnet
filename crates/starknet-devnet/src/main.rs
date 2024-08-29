@@ -14,8 +14,8 @@ use server::rpc_core::request::{Id, RequestParams, Version};
 use server::server::serve_http_api_json_rpc;
 use starknet_core::account::Account;
 use starknet_core::constants::{
-    CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
-    UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
+    ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS,
+    UDC_CONTRACT_CLASS_HASH,
 };
 use starknet_core::starknet::starknet_config::{
     BlockGenerationOn, DumpOn, ForkConfig, StarknetConfig,
@@ -103,11 +103,12 @@ fn log_predeployed_accounts(
     }
 }
 
-fn log_predeployed_contracts() {
+fn log_predeployed_contracts(config: &StarknetConfig) {
     println!("Predeployed FeeToken");
-    println!("ETH Address: 0x{ETH_ERC20_CONTRACT_ADDRESS}");
-    println!("STRK Address: 0x{STRK_ERC20_CONTRACT_ADDRESS}");
-    println!("Class Hash: 0x{CAIRO_1_ERC20_CONTRACT_CLASS_HASH}");
+    println!("ETH Address: 0x{:X}", ETH_ERC20_CONTRACT_ADDRESS);
+    println!("Class Hash: 0x{:X}", config.eth_erc20_class_hash);
+    println!("STRK Address: 0x{:X}", STRK_ERC20_CONTRACT_ADDRESS);
+    println!("Class Hash: 0x{:X}", config.strk_erc20_class_hash);
     println!();
     println!("Predeployed UDC");
     println!("Address: {UDC_CONTRACT_ADDRESS}");
@@ -273,7 +274,7 @@ async fn main() -> Result<(), anyhow::Error> {
         );
     };
 
-    log_predeployed_contracts();
+    log_predeployed_contracts(&starknet_config);
     log_chain_id(&starknet_config.chain_id);
 
     let predeployed_accounts = api.starknet.lock().await.get_predeployed_accounts();
