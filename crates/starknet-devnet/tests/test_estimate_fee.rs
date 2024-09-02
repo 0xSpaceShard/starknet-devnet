@@ -32,7 +32,7 @@ mod estimate_fee_tests {
     };
     use crate::common::utils::{
         assert_tx_reverted, assert_tx_successful, get_deployable_account_signer,
-        get_flattened_sierra_contract_and_casm_hash,
+        get_flattened_sierra_contract_and_casm_hash, to_hex_felt,
     };
 
     fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
@@ -554,12 +554,12 @@ mod estimate_fee_tests {
                             sender_address: account_address,
                             calldata: [
                                 "0x1",
-                                format!("0x{:x}", UDC_CONTRACT_ADDRESS).as_str(),
+                                &to_hex_felt(&UDC_CONTRACT_ADDRESS),
                                 deployment_selector.as_str(),
                                 "0x0",
                                 "0x4",
                                 "0x4",
-                                format!("0x{:x}", class_hash).as_str(),
+                                &to_hex_felt(&class_hash),
                                 "0x123", // salt
                                 "0x0",
                                 "0x0",

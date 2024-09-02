@@ -3,6 +3,7 @@ pub mod common;
 
 mod balance_tests {
     use serde_json::json;
+    use starknet_rs_core::types::Felt;
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
@@ -19,9 +20,7 @@ mod balance_tests {
         let retrieved_result =
             devnet.get_balance_latest(&contract_address, FeeUnit::WEI).await.unwrap();
 
-        let expected_hex_balance = format!("0x{PREDEPLOYED_ACCOUNT_INITIAL_BALANCE:x}");
-        let expected_balance = felt_from_prefixed_hex(expected_hex_balance.as_str()).unwrap();
-        assert_eq!(retrieved_result, expected_balance);
+        assert_eq!(retrieved_result, Felt::from(PREDEPLOYED_ACCOUNT_INITIAL_BALANCE));
     }
 
     #[tokio::test]

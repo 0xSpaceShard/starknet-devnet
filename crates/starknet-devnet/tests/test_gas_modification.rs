@@ -85,11 +85,11 @@ mod gas_modification_tests {
             .unwrap()[0];
         assert_eq!(
             resp_no_flags["fee_estimation"]["gas_price"],
-            format!("0x{:x}", DEVNET_DEFAULT_GAS_PRICE)
+            to_hex_felt(&DEVNET_DEFAULT_GAS_PRICE)
         );
         assert_eq!(
             resp_no_flags["fee_estimation"]["data_gas_price"],
-            format!("0x{:x}", DEVNET_DEFAULT_GAS_PRICE)
+            to_hex_felt(&DEVNET_DEFAULT_GAS_PRICE)
         );
         assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0xa7275ca6d3000");
 
@@ -100,11 +100,11 @@ mod gas_modification_tests {
             .unwrap()[0];
         assert_eq!(
             resp_skip_validation["fee_estimation"]["gas_price"],
-            format!("0x{:x}", DEVNET_DEFAULT_GAS_PRICE)
+            to_hex_felt(&DEVNET_DEFAULT_GAS_PRICE)
         );
         assert_eq!(
             resp_skip_validation["fee_estimation"]["data_gas_price"],
-            format!("0x{:x}", DEVNET_DEFAULT_GAS_PRICE)
+            to_hex_felt(&DEVNET_DEFAULT_GAS_PRICE)
         );
         assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0xa7247397f6000");
 
@@ -142,24 +142,18 @@ mod gas_modification_tests {
             .await
             .unwrap()[0];
 
-        assert_eq!(resp_no_flags["fee_estimation"]["gas_price"], format!("0x{:x}", wei_price));
-        assert_eq!(
-            resp_no_flags["fee_estimation"]["data_gas_price"],
-            format!("0x{:x}", wei_price_data)
-        );
+        assert_eq!(resp_no_flags["fee_estimation"]["gas_price"], to_hex_felt(&wei_price));
+        assert_eq!(resp_no_flags["fee_estimation"]["data_gas_price"], to_hex_felt(&wei_price_data));
         assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x38008384ec45ab780000");
 
         let resp_skip_validation = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
             .await
             .unwrap()[0];
-        assert_eq!(
-            resp_skip_validation["fee_estimation"]["gas_price"],
-            format!("0x{:x}", wei_price)
-        );
+        assert_eq!(resp_skip_validation["fee_estimation"]["gas_price"], to_hex_felt(&wei_price));
         assert_eq!(
             resp_skip_validation["fee_estimation"]["data_gas_price"],
-            format!("0x{:x}", wei_price_data)
+            to_hex_felt(&wei_price_data)
         );
         assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x37ff89b813a3e6700000");
 

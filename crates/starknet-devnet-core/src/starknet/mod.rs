@@ -1724,9 +1724,7 @@ mod tests {
         let predeployed_account = &starknet.predeployed_accounts.get_accounts()[0].clone();
         let result = get_balance_at(&mut starknet, predeployed_account.account_address).unwrap();
 
-        let balance_hex = format!("0x{:x}", DEVNET_DEFAULT_INITIAL_BALANCE);
-        let balance_felt = felt_from_prefixed_hex(balance_hex.as_str()).unwrap();
-        let balance_uint256 = vec![balance_felt, Felt::ZERO];
+        let balance_uint256 = vec![Felt::from(DEVNET_DEFAULT_INITIAL_BALANCE), Felt::ZERO];
         assert_eq!(result, balance_uint256);
     }
 
