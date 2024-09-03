@@ -185,12 +185,12 @@ mod tests {
     use nonzero_ext::nonzero;
     use starknet_api::core::ClassHash;
     use starknet_api::transaction::Fee;
-    use starknet_rs_core::types::Felt;
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::felt_from_prefixed_hex;
-    use starknet_types::rpc::state::Balance;
+    use starknet_types::rpc::state::{Balance, ReplacedClasses};
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
     use starknet_types::rpc::transactions::BroadcastedInvokeTransaction;
@@ -198,14 +198,10 @@ mod tests {
 
     use super::StateDiff;
     use crate::account::Account;
-    use crate::constants::{
-        CAIRO_1_ERC20_CONTRACT, CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS,
-        STRK_ERC20_CONTRACT_ADDRESS,
-    };
+    use crate::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
     use crate::starknet::starknet_config::StarknetConfig;
     use crate::starknet::Starknet;
     use crate::state::{CustomState, StarknetState};
-    use crate::system_contract::SystemContract;
     use crate::traits::Deployed;
     use crate::utils::calculate_casm_hash;
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
@@ -251,32 +247,6 @@ mod tests {
     }
 
     #[test]
-    fn correct_difference_on_cairo1_class_replacement() {
-        let mut state = setup();
-
-        let class_hash = ClassHash(Felt::ONE);
-        let casm_hash = felt_from_prefixed_hex(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
-
-        // necessary to prevent blockifier's state subtraction panic
-        state.get_compiled_contract_class(class_hash).expect_err("Shouldn't yet be declared");
-
-        let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
-        state.declare_contract_class(class_hash.0, Some(casm_hash), contract_class).unwrap();
-
-        let block_number = 1;
-        let new_classes = state.rpc_contract_classes.write().commit(block_number);
-        let generated_diff = StateDiff::generate(&mut state.state, new_classes).unwrap();
-
-        let expected_diff = StateDiff {
-            declared_contracts: vec![class_hash.0],
-            class_hash_to_compiled_class_hash: HashMap::from([(class_hash.0, casm_hash)]),
-            ..Default::default()
-        };
-
-        assert_eq!(generated_diff, expected_diff);
-    }
-
-    #[test]
     fn correct_difference_in_cairo_0_declared_classes() {
         let mut state = setup();
         let class_hash = starknet_api::core::ClassHash(Felt::ONE);
@@ -284,7 +254,6 @@ mod tests {
 
         // necessary to prevent blockifier's state subtraction panic
         state.get_compiled_contract_class(class_hash).expect_err("Shouldn't yet be declared");
-
         state.declare_contract_class(class_hash.0, None, contract_class).unwrap();
 
         let block_number = 1;
@@ -293,31 +262,6 @@ mod tests {
 
         let expected_diff =
             StateDiff { cairo_0_declared_contracts: vec![class_hash.0], ..StateDiff::default() };
-
-        assert_eq!(generated_diff, expected_diff);
-    }
-
-    #[test]
-    fn correct_difference_when_declaring_cairo1() {
-        let mut state = setup();
-        let class_hash = starknet_api::core::ClassHash(Felt::ONE);
-        let casm_hash = felt_from_prefixed_hex(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
-        let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
-
-        // necessary to prevent blockifier's state subtraction panic
-        state.get_compiled_contract_class(class_hash).expect_err("Shouldn't yet be declared");
-
-        state.declare_contract_class(class_hash.0, Some(casm_hash), contract_class).unwrap();
-
-        let block_number = 1;
-        let new_classes = state.rpc_contract_classes.write().commit(block_number);
-        let generated_diff = StateDiff::generate(&mut state.state, new_classes).unwrap();
-
-        let expected_diff = StateDiff {
-            declared_contracts: vec![class_hash.0],
-            class_hash_to_compiled_class_hash: HashMap::from([(class_hash.0, casm_hash)]),
-            ..Default::default()
-        };
 
         assert_eq!(generated_diff, expected_diff);
     }
@@ -357,23 +301,6 @@ mod tests {
         })
         .unwrap();
 
-        let eth_erc20 = SystemContract::new_cairo1(
-            CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
-            ETH_ERC20_CONTRACT_ADDRESS,
-            CAIRO_1_ERC20_CONTRACT,
-        )
-        .unwrap();
-
-        let strk_erc20 = SystemContract::new_cairo1(
-            CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
-            STRK_ERC20_CONTRACT_ADDRESS,
-            CAIRO_1_ERC20_CONTRACT,
-        )
-        .unwrap();
-
-        eth_erc20.deploy(&mut starknet.pending_state).unwrap();
-        strk_erc20.deploy(&mut starknet.pending_state).unwrap();
-
         let account_without_validations_contract_class = cairo_0_account_without_validations();
         let account_without_validations_class_hash =
             account_without_validations_contract_class.generate_hash().unwrap();
@@ -384,8 +311,8 @@ mod tests {
             dummy_felt(),
             account_without_validations_class_hash,
             ContractClass::Cairo0(account_without_validations_contract_class),
-            eth_erc20.get_address(),
-            strk_erc20.get_address(),
+            ContractAddress::new(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
+            ContractAddress::new(STRK_ERC20_CONTRACT_ADDRESS).unwrap(),
         )
         .unwrap();
 
@@ -431,13 +358,13 @@ mod tests {
                 )
                 .unwrap();
         }
-        let _replaceable_contract_address = ContractAddress::new(Felt::ONE).unwrap();
+
+        let replaceable_contract_address = ContractAddress::new(Felt::ONE).unwrap();
+        let old_class_hash =
+            ContractClass::Cairo1(replaceable_contract.clone()).generate_hash().unwrap();
         starknet
             .pending_state
-            .predeploy_contract(
-                ContractAddress::new(Felt::ONE).unwrap(),
-                ContractClass::Cairo1(replaceable_contract.clone()).generate_hash().unwrap(),
-            )
+            .predeploy_contract(replaceable_contract_address, old_class_hash)
             .unwrap();
 
         starknet.commit_diff().unwrap();
@@ -445,12 +372,9 @@ mod tests {
         starknet.restart_pending_block().unwrap();
 
         let func_selector = get_selector_from_name("test_replace_class").unwrap();
-        let calldata = vec![
-            Felt::ONE,
-            func_selector,
-            Felt::ONE,
-            ContractClass::Cairo1(events_contract.clone()).generate_hash().unwrap(),
-        ];
+        let new_class_hash =
+            ContractClass::Cairo1(events_contract.clone()).generate_hash().unwrap();
+        let calldata = vec![Felt::ONE, func_selector, Felt::ONE, new_class_hash];
 
         let invoke_txn = BroadcastedInvokeTransaction::V1(BroadcastedInvokeTransactionV1::new(
             account.account_address,
@@ -463,15 +387,14 @@ mod tests {
 
         starknet.add_invoke_transaction(invoke_txn).unwrap();
 
-        let state_update = starknet
-            .block_state_update(&starknet_rs_core::types::BlockId::Tag(
-                starknet_rs_core::types::BlockTag::Latest,
-            ))
-            .unwrap();
+        let state_update = starknet.block_state_update(&BlockId::Tag(BlockTag::Latest)).unwrap();
 
         assert_eq!(
-            state_update.get_state_diff().replaced_classes.first().unwrap().class_hash,
-            ContractClass::Cairo1(events_contract.clone()).generate_hash().unwrap()
+            state_update.get_state_diff().replaced_classes,
+            vec![ReplacedClasses {
+                contract_address: replaceable_contract_address,
+                class_hash: new_class_hash
+            }]
         );
     }
 
