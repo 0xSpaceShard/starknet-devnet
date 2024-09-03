@@ -14,7 +14,7 @@ mod general_integration_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
-    use crate::common::utils::UniqueAutoDeletableFile;
+    use crate::common::utils::{to_hex_felt, UniqueAutoDeletableFile};
 
     #[tokio::test]
     /// Asserts that a background instance can be spawned
@@ -94,8 +94,8 @@ mod general_integration_tests {
             },
             "block_generation_on": "demand",
             "lite_mode": false,
-            "eth_erc20_class_hash": format!("0x{:x}", CAIRO_1_ERC20_CONTRACT_CLASS_HASH),
-            "strk_erc20_class_hash": format!("0x{:x}", CAIRO_1_ERC20_CONTRACT_CLASS_HASH),
+            "eth_erc20_class_hash": to_hex_felt(&CAIRO_1_ERC20_CONTRACT_CLASS_HASH),
+            "strk_erc20_class_hash": to_hex_felt(&CAIRO_1_ERC20_CONTRACT_CLASS_HASH),
         });
 
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
