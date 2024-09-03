@@ -1,6 +1,8 @@
 # L1-L2 interaction via Postman
 
-Postman is a Starknet utility that allows testing L1-L2 interaction. Ensure you have an L1 node and a Devnet (L2 node) running, [load](#load) a messaging contract, and [flush](#flush) the queue when needed. You can use [**`starknet-devnet-js`**](https://github.com/0xSpaceShard/starknet-devnet-js) to perform these actions, as witnessed in [**this example**](https://github.com/0xSpaceShard/starknet-devnet-js/blob/master/test/postman.test.ts), or directly send requests to the endpoints specified below.
+Postman is a Starknet utility that allows testing L1-L2 interaction. It is **unrelated** to the [Postman API platform](https://www.postman.com/). Ensure you have an L1 node and a Devnet (L2 node) running, [load](#load) a messaging contract, and [flush](#flush) the queue to transmit the messages to their destinations. The functionality relies on two internal message queues: one for L1->L2 messages, another for L2->L1 messages.
+
+You can use [**`starknet-devnet-js`**](https://github.com/0xSpaceShard/starknet-devnet-js) to perform these actions, as witnessed in [**this example**](https://github.com/0xSpaceShard/starknet-devnet-js/blob/master/test/l1-l2-postman.test.ts), or directly send requests to the endpoints specified below.
 
 ## Load
 
@@ -53,7 +55,7 @@ JSON-RPC
 }
 ```
 
-Goes through the newly enqueued messages, sending them from L1 to L2 and from L2 to L1. Requires no body. Optionally, set the `dry_run` specifier to just see the result of flushing, without actually triggering it:
+Goes through the newly enqueued messages since the last flush, consuming and sending them from L1 to L2 and from L2 to L1. Use it for end-to-end testing. Requires no body. Optionally, set the `dry_run` boolean flag to just see the result of flushing, without actually triggering it:
 
 ```
 POST /postman/flush
@@ -99,11 +101,15 @@ constructor(MockStarknetMessaging mockStarknetMessaging_) public {
 
 ### L1->L2
 
-Sending mock transactions from L1 to L2 without the need for running L1. Deployed L2 contract address `l2_contract_address` and `entry_point_selector` must be valid otherwise new block will not be created.
-
-Normally `nonce` is calculated by L1 StarknetContract and it's used in L1 and L2. In this case, we need to provide it manually.
+:::note
 
 A running L1 node is **not** required for this operation.
+
+:::
+
+Sends a mock transactions to L2, as if coming from L1, without the need for running L1. The deployed L2 contract address `l2_contract_address` and `entry_point_selector` must be valid, otherwise a new block will not be created.
+
+Normally `nonce` is calculated by the L1 Starknet contract and it is used in L1 and L2. In this case, it needs to be provided manually.
 
 ```
 POST /postman/send_message_to_l2
@@ -153,10 +159,15 @@ Response:
 
 ### L2->L1
 
-Sending mock transactions from L2 to L1.
-Deployed L2 contract address `from_address` and `to_address` must be valid.
+Sends a mock transaction from L2 to L1. The deployed L2 contract address `from_address` and `to_address` must be valid.
+
+It is a mock message, but only in the sense that you are mocking an L2 contract's action, which would normally be triggered by invoking the contract via a transaction. So keep in mind the following:
+
+:::note
 
 A running L1 node is required for this operation.
+
+:::
 
 ```
 POST /postman/consume_message_from_l2
