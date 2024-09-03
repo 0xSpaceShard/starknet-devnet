@@ -1,5 +1,5 @@
 #![allow(clippy::expect_used)]
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -250,10 +250,10 @@ impl EthereumMessaging {
         &self,
         from_block: u64,
         to_block: u64,
-    ) -> DevnetResult<HashMap<u64, Vec<Log>>> {
+    ) -> DevnetResult<BTreeMap<u64, Vec<Log>>> {
         trace!("Fetching logs for blocks {} - {}.", from_block, to_block);
 
-        let mut block_to_logs: HashMap<u64, Vec<Log>> = HashMap::new();
+        let mut block_to_logs = BTreeMap::<u64, Vec<Log>>::new();
 
         // `sendMessageToL2` topic.
         let log_msg_to_l2_topic =
@@ -275,15 +275,11 @@ impl EthereumMessaging {
             if let Some(block_number) = log.block_number {
                 let block_number = block_number.try_into().map_err(|e| {
                     Error::MessagingError(MessagingError::EthersError(format!(
-                        "Ethereum block number into u64: {}",
-                        e
+                        "Ethereum block number into u64: {e}",
                     )))
                 })?;
 
-                block_to_logs
-                    .entry(block_number)
-                    .and_modify(|v| v.push(log.clone()))
-                    .or_insert(vec![log]);
+                block_to_logs.entry(block_number).or_default().push(log);
             }
         }
 
