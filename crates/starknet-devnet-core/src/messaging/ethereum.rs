@@ -214,19 +214,15 @@ impl EthereumMessaging {
                 .map_err(|e| Error::MessagingError(MessagingError::EthersError(
                     format!("Error sending transaction on ethereum: {}", e)
                 )))?
-            // wait for the tx to be mined
-                .await?
+                .await? // wait for the tx to be mined
             {
-                Some(receipt) => {
-                    trace!(
-                        "Message {:064x} sent on L1 with transaction hash {:#x}",
-                        message_hash, receipt.transaction_hash,
-                    );
-                }
+                Some(receipt) => trace!(
+                    "Message {message_hash:064x} sent on L1 with transaction hash {:#x}",
+                    receipt.transaction_hash,
+                ),
                 None => {
                     return Err(Error::MessagingError(MessagingError::EthersError(format!(
-                        "No receipt found for the tx of message hash: {:064x}",
-                        message_hash
+                        "No receipt found for the tx of message hash: {message_hash:064x}",
                     ))));
                 }
             };
