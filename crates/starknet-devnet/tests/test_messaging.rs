@@ -100,7 +100,7 @@ mod test_messaging {
             calldata: vec![user],
         };
 
-        devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap()
+        devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Pending)).await.unwrap()
     }
 
     /// Withdraws the given amount from a user and send this amount in a l2->l1 message
@@ -564,5 +564,93 @@ mod test_messaging {
             get_balance(&loading_devnet, l1l2_contract_address, user).await,
             [user_balance + increment_amount]
         );
+    }
+
+    #[tokio::test]
+    async fn test_correct_message_order() {
+        let anvil = BackgroundAnvil::spawn().await.unwrap();
+        let (devnet, sn_account, sn_l1l2_contract) =
+            setup_devnet(&["--block-generation-on", "demand"]).await;
+
+        // Load l1 messaging contract.
+        let load_resp: serde_json::Value = devnet
+            .send_custom_rpc("devnet_postmanLoad", json!({ "network_url": anvil.url }))
+            .await
+            .expect("deploy l1 messaging contract failed");
+
+        assert_eq!(
+            load_resp.get("messaging_contract_address").unwrap().as_str().unwrap(),
+            MESSAGING_L1_ADDRESS
+        );
+
+        // Deploy the L1L2 testing contract on L1 (on L2 it's already pre-deployed).
+        let l1_messaging_address = H160::from_str(MESSAGING_L1_ADDRESS).unwrap();
+        let eth_l1l2_address = anvil.deploy_l1l2_contract(l1_messaging_address).await.unwrap();
+        let eth_l1l2_address_hex = format!("{eth_l1l2_address:#x}");
+
+        let eth_l1l2_address_felt = felt_from_prefixed_hex(&eth_l1l2_address_hex).unwrap();
+        let user_sn = Felt::ONE;
+        let user_eth: U256 = 1.into();
+
+        // Set balance to 1 for the user 1 on L2.
+        let user_balance = Felt::ONE;
+        devnet.create_block().await.unwrap(); // to update nonce
+        increase_balance(Arc::clone(&sn_account), sn_l1l2_contract, user_sn, user_balance).await;
+        assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [user_balance]);
+
+        // Withdraw the amount 1 from user 1 balance on L2 to send it on L1 with a l2->l1 message.
+        devnet.create_block().await.unwrap(); // to update nonce
+        withdraw(
+            Arc::clone(&sn_account),
+            sn_l1l2_contract,
+            user_sn,
+            user_balance,
+            eth_l1l2_address_felt,
+        )
+        .await;
+        assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ZERO]);
+
+        // Flush to send the messages.
+        devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.expect("flush failed");
+        devnet.create_block().await.unwrap(); // to update nonce
+
+        // Check that the balance is 0 on L1 before consuming the message.
+        let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
+        assert_eq!(user_balance_eth, 0.into());
+
+        let sn_l1l2_contract_u256 =
+            U256::from_str_radix(&format!("0x{:64x}", sn_l1l2_contract), 16).unwrap();
+
+        // Consume the message to increase the balance.
+        devnet.create_block().await.unwrap(); // to update nonce
+        anvil
+            .withdraw_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, 1.into())
+            .await
+            .unwrap();
+
+        let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
+        assert_eq!(user_balance_eth, 1.into());
+
+        // Send back the amount 1 to the user 1 on L2.
+        anvil
+            .deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, 1.into())
+            .await
+            .unwrap();
+
+        let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
+
+        // Balances on both layers is 0 at this point.
+        assert_eq!(user_balance_eth, 0.into());
+        assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ZERO]);
+
+        // Flush messages to have MessageToL2 executed.
+        let flush_body =
+            devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.expect("flush failed");
+
+        // Ensure the balance is back to 1 on L2.
+        assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ONE]);
+
+        println!("DEBUG flush body: {flush_body}");
+        // TODO add to this test something that will cause multiple messages - then assert order
     }
 }
