@@ -72,13 +72,13 @@ macro_rules! http_rpc_router {
                 #[allow(non_snake_case)]
                 pub async fn $rpc_method_name<THandler: RpcHandler>(
                     State(handler): State<THandler>,
-                    Json(request): Json<serde_json::Map<String, serde_json::Value>>,
+                    request: Option<Json<serde_json::Map<String, serde_json::Value>>>,
                 ) -> HttpApiResult<Json<serde_json::Value>>{
                     // Convert normal HTTP request to RPC by wrapping
                     let rpc_call = RpcCall::MethodCall(RpcMethodCall {
                         jsonrpc: Version::V2,
                         method: stringify!($rpc_method_name).to_string(),
-                        params: RequestParams::Object(request),
+                        params: RequestParams::Object(request.unwrap_or_default().0),
                         id: Id::Number(0),
                     });
 

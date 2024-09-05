@@ -47,6 +47,11 @@ impl ReqwestClient {
             request_builder.json(&body).send().await.map_err(ReqwestError::Error)
         }
     }
+
+    pub async fn post_no_body(&self, path: &str) -> Result<reqwest::Response, ReqwestError> {
+        let url = format!("{}{}", self.url, path);
+        self.reqwest_client.post(&url).send().await.map_err(ReqwestError::Error)
+    }
 }
 
 #[async_trait::async_trait]

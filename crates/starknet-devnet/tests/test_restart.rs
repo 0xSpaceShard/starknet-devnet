@@ -245,4 +245,18 @@ mod test_restart {
 
         remove_file(dump_file_name);
     }
+
+    #[tokio::test]
+    async fn restarting_via_non_rpc() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        let dummy_address = Felt::ONE;
+        let mint_amount = 100;
+        devnet.mint(dummy_address, mint_amount).await;
+
+        devnet.reqwest_client().post_no_body("/restart").await.unwrap();
+
+        let balance_after = devnet.get_balance_latest(&dummy_address, FeeUnit::WEI).await.unwrap();
+        assert_eq!(balance_after, Felt::ZERO);
+    }
 }
