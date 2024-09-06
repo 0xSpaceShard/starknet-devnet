@@ -7,7 +7,7 @@ use std::time;
 use lazy_static::lazy_static;
 use reqwest::{Client, StatusCode};
 use serde_json::json;
-use server::rpc_core::error::RpcError;
+use server::rpc_core::error::{ErrorCode, RpcError};
 use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
 use starknet_rs_core::types::{
     BlockId, BlockTag, BlockWithTxHashes, BlockWithTxs, Felt, FunctionCall,
@@ -180,11 +180,14 @@ impl BackgroundDevnet {
             })
         };
 
-        let json_rpc_result: serde_json::Value = self
-            .reqwest_client()
-            .post_json_async(RPC_PATH, body_json)
-            .await
-            .map_err(|err| RpcError::internal_error_with(err.error_message()))?;
+        let json_rpc_result: serde_json::Value =
+            self.reqwest_client().post_json_async(RPC_PATH, body_json).await.map_err(|err| {
+                RpcError {
+                    code: ErrorCode::ServerError(err.status().as_u16().into()),
+                    message: err.error_message().into(),
+                    data: None,
+                }
+            })?;
 
         if let Some(result) = json_rpc_result.get("result") {
             Ok(result.clone())
