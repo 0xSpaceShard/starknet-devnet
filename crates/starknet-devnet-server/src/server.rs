@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use axum::body::{Body, Bytes};
-use axum::extract::{DefaultBodyLimit, Request, State};
+use axum::extract::{Request, State};
 use axum::http::{HeaderValue, StatusCode};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
@@ -104,7 +104,8 @@ pub async fn serve_http_api_json_rpc(
 
     routes = routes
         .layer(TimeoutLayer::new(Duration::from_secs(server_config.timeout.into())))
-        .layer(DefaultBodyLimit::max(server_config.request_body_size_limit))
+        // .layer(DefaultBodyLimit::max(server_config.request_body_size_limit))
+        .layer(axum::middleware::from_fn_with_state(server_config.request_body_size_limit, reject_too_big))
         .layer(
             // More details: https://docs.rs/tower-http/latest/tower_http/cors/index.html
             CorsLayer::new()
@@ -163,6 +164,40 @@ async fn request_logging_middleware(
 
     let body = log_body_and_path(body, Some(parts.uri.clone())).await?;
     Ok(next.run(Request::from_parts(parts, body)).await)
+}
+
+async fn reject_too_big(
+    State(body_size_limit): State<usize>,
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    if let Some(content_length_header_value) =
+        request.headers().get(reqwest::header::CONTENT_LENGTH)
+    {
+        match content_length_header_value.to_str() {
+            Ok(content_length_raw) => match content_length_raw.parse::<usize>() {
+                Ok(content_length) => {
+                    if content_length > body_size_limit {
+                        return Err((
+                            StatusCode::PAYLOAD_TOO_LARGE,
+                            format!(
+                                "Received payload: {content_length} bytes, maximum payload \
+                                 (specifiable via --request-body-size-limit): {body_size_limit} \
+                                 bytes"
+                            ),
+                        ));
+                    }
+                }
+                Err(e) => {
+                    return Err((StatusCode::BAD_REQUEST, format!("Invalid Content-Length: {e}")));
+                }
+            },
+            Err(err) => return Err((StatusCode::BAD_REQUEST, err.to_string())),
+        }
+    }
+
+    let response = next.run(request).await;
+    Ok(response)
 }
 
 async fn response_logging_middleware(

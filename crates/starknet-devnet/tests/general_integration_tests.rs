@@ -3,8 +3,8 @@
 pub mod common;
 
 mod general_integration_tests {
-    use reqwest::StatusCode;
     use serde_json::json;
+    use server::rpc_core::error::{ErrorCode, RpcError};
     use starknet_core::constants::{
         CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
@@ -23,43 +23,64 @@ mod general_integration_tests {
     }
 
     #[tokio::test]
-    async fn too_big_request_rejected() {
+    async fn too_big_request_rejected_via_non_rpc() {
         let limit = 1_000;
         let args = ["--request-body-size-limit", &limit.to_string()];
         let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await.unwrap();
 
-        let too_big_path = "a".repeat(limit);
-        let reqwest_error =
-            PostReqwestSender::<serde_json::Value, HttpEmptyResponseBody>::post_json_async(
-                devnet.reqwest_client(),
-                "/load",
-                json!({"path": too_big_path}),
-            )
-            .await
-            .expect_err("Request should have been rejected");
+        let too_big_path = "a".repeat(limit + 100);
+        let err = PostReqwestSender::<serde_json::Value, HttpEmptyResponseBody>::post_json_async(
+            devnet.reqwest_client(),
+            "/load",
+            json!({"path": too_big_path}),
+        )
+        .await
+        .expect_err("Request should have been rejected");
 
-        assert_eq!(reqwest_error.status(), reqwest::StatusCode::PAYLOAD_TOO_LARGE);
+        assert_eq!(err.status(), reqwest::StatusCode::PAYLOAD_TOO_LARGE);
+
+        // subtract enough so that the rest of the json body doesn't overflow the limit
+        let nonexistent_path = "a".repeat(limit - 100);
+        let err = PostReqwestSender::<serde_json::Value, HttpEmptyResponseBody>::post_json_async(
+            devnet.reqwest_client(),
+            "/load",
+            json!({"path": nonexistent_path}),
+        )
+        .await
+        .expect_err("Request should have been rejected");
+
+        assert_eq!(err.status(), reqwest::StatusCode::BAD_REQUEST);
+        assert_eq!(err.error_message(), json!({ "error": "The file does not exist" }).to_string());
     }
 
     #[tokio::test]
-    async fn request_size_below_limit() {
-        let limit = 100;
+    async fn too_big_request_rejected_via_rpc() {
+        let limit = 1_000;
         let args = ["--request-body-size-limit", &limit.to_string()];
         let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await.unwrap();
 
-        // subtract enough so that the rest of the json body doesn't overflow the limit
-        let ok_path = "0".repeat(limit - 20);
+        let too_big_path = "a".repeat(limit + 100);
         let error = devnet
-            .reqwest_client()
-            .post_json_async("/load", json!({ "path": ok_path }))
+            .send_custom_rpc("devnet_load", serde_json::json!({ "path": too_big_path }))
             .await
-            .map(|_: HttpEmptyResponseBody| ())
-            .unwrap_err();
+            .expect_err("Request should have been rejected");
 
-        assert_eq!(error.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(error.code, ErrorCode::ServerError(413));
+
+        // subtract enough so that the rest of the json body doesn't overflow the limit
+        let nonexistent_path = "a".repeat(limit - 100);
+        let error = devnet
+            .send_custom_rpc("devnet_load", serde_json::json!({ "path": nonexistent_path }))
+            .await
+            .expect_err("Request should have been rejected");
+
         assert_eq!(
-            error.error_message(),
-            json!({ "error": "The file does not exist" }).to_string()
+            error,
+            RpcError {
+                code: ErrorCode::ServerError(-1),
+                message: "The file does not exist".into(),
+                data: None,
+            }
         );
     }
 
