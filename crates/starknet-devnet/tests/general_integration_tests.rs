@@ -29,11 +29,11 @@ mod general_integration_tests {
         let args = ["--request-body-size-limit", &limit.to_string()];
         let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await.unwrap();
 
-        let too_big_path = "a".repeat(limit + 100);
+        let too_long_path = "a".repeat(limit + 100);
         let err = PostReqwestSender::<serde_json::Value, HttpEmptyResponseBody>::post_json_async(
             devnet.reqwest_client(),
             "/load",
-            json!({"path": too_big_path}),
+            json!({"path": too_long_path}),
         )
         .await
         .expect_err("Request should have been rejected");
@@ -60,9 +60,9 @@ mod general_integration_tests {
         let args = ["--request-body-size-limit", &limit.to_string()];
         let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await.unwrap();
 
-        let too_big_path = "a".repeat(limit + 100);
+        let too_long_path = "a".repeat(limit + 100);
         let error = devnet
-            .send_custom_rpc("devnet_load", serde_json::json!({ "path": too_big_path }))
+            .send_custom_rpc("devnet_load", serde_json::json!({ "path": too_long_path }))
             .await
             .expect_err("Request should have been rejected");
 
