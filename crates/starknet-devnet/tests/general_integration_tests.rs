@@ -3,6 +3,7 @@
 pub mod common;
 
 mod general_integration_tests {
+    use reqwest::StatusCode;
     use serde_json::json;
     use server::rpc_core::error::{ErrorCode, RpcError};
     use starknet_core::constants::{
@@ -37,7 +38,7 @@ mod general_integration_tests {
         .await
         .expect_err("Request should have been rejected");
 
-        assert_eq!(err.status(), reqwest::StatusCode::PAYLOAD_TOO_LARGE);
+        assert_eq!(err.status(), StatusCode::PAYLOAD_TOO_LARGE);
 
         // subtract enough so that the rest of the json body doesn't overflow the limit
         let nonexistent_path = "a".repeat(limit - 100);
@@ -49,7 +50,7 @@ mod general_integration_tests {
         .await
         .expect_err("Request should have been rejected");
 
-        assert_eq!(err.status(), reqwest::StatusCode::BAD_REQUEST);
+        assert_eq!(err.status(), StatusCode::BAD_REQUEST);
         assert_eq!(err.error_message(), json!({ "error": "The file does not exist" }).to_string());
     }
 
@@ -65,7 +66,10 @@ mod general_integration_tests {
             .await
             .expect_err("Request should have been rejected");
 
-        assert_eq!(error.code, ErrorCode::ServerError(413));
+        assert_eq!(
+            error.code,
+            ErrorCode::ServerError(StatusCode::PAYLOAD_TOO_LARGE.as_u16().into())
+        );
 
         // subtract enough so that the rest of the json body doesn't overflow the limit
         let nonexistent_path = "a".repeat(limit - 100);

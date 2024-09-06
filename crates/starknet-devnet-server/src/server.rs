@@ -104,8 +104,10 @@ pub async fn serve_http_api_json_rpc(
 
     routes = routes
         .layer(TimeoutLayer::new(Duration::from_secs(server_config.timeout.into())))
-        // .layer(DefaultBodyLimit::max(server_config.request_body_size_limit))
-        .layer(axum::middleware::from_fn_with_state(server_config.request_body_size_limit, reject_too_big))
+        .layer(axum::middleware::from_fn_with_state(
+            server_config.request_body_size_limit,
+            reject_too_big,
+        ))
         .layer(
             // More details: https://docs.rs/tower-http/latest/tower_http/cors/index.html
             CorsLayer::new()
