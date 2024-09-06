@@ -167,32 +167,25 @@ async fn request_logging_middleware(
 }
 
 async fn reject_too_big(
-    State(body_size_limit): State<usize>,
+    State(payload_limit): State<usize>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-    if let Some(content_length_header_value) =
-        request.headers().get(reqwest::header::CONTENT_LENGTH)
-    {
-        match content_length_header_value.to_str() {
-            Ok(content_length_raw) => match content_length_raw.parse::<usize>() {
-                Ok(content_length) => {
-                    if content_length > body_size_limit {
-                        return Err((
-                            StatusCode::PAYLOAD_TOO_LARGE,
-                            format!(
-                                "Received payload: {content_length} bytes, maximum payload \
-                                 (specifiable via --request-body-size-limit): {body_size_limit} \
-                                 bytes"
-                            ),
-                        ));
-                    }
-                }
-                Err(e) => {
-                    return Err((StatusCode::BAD_REQUEST, format!("Invalid Content-Length: {e}")));
-                }
-            },
-            Err(err) => return Err((StatusCode::BAD_REQUEST, err.to_string())),
+    if let Some(content_length) = request.headers().get(header::CONTENT_LENGTH) {
+        let content_length: usize = content_length
+            .to_str()
+            .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid Content-Length: {e}")))?
+            .parse()
+            .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid Content-Length: {e}")))?;
+
+        if content_length > payload_limit {
+            return Err((
+                StatusCode::PAYLOAD_TOO_LARGE,
+                format!(
+                    "Received: {content_length} bytes, maximum (specifiable via \
+                     --request-body-size-limit): {payload_limit} bytes"
+                ),
+            ));
         }
     }
 
