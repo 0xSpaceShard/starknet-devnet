@@ -85,7 +85,7 @@ mod tests {
 
         let chain_id = ChainId::goerli_legacy_id();
         let blockifier_transaction = BroadcastedInvokeTransaction::V1(transaction)
-            .create_blockifier_invoke_transaction(&chain_id)
+            .create_blockifier_invoke_transaction(&chain_id, false)
             .unwrap();
 
         assert_eq!(feeder_gateway_transaction.transaction_hash, blockifier_transaction.tx_hash.0);

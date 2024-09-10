@@ -101,7 +101,7 @@ mod tests {
 
         let blockifier_declare_transaction =
             BroadcastedDeclareTransaction::V2(Box::new(broadcasted_declare_transaction))
-                .create_blockifier_declare(&ChainId::goerli_legacy_id())
+                .create_blockifier_declare(&ChainId::goerli_legacy_id(), false)
                 .unwrap();
 
         assert_eq!(

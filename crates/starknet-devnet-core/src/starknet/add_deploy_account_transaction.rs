@@ -21,7 +21,7 @@ pub fn add_deploy_account_transaction(
         });
     }
     let blockifier_deploy_account_transaction = broadcasted_deploy_account_transaction
-        .create_blockifier_deploy_account(&starknet.chain_id().to_felt())?;
+        .create_blockifier_deploy_account(&starknet.chain_id().to_felt(), false)?;
 
     if blockifier_deploy_account_transaction.only_query {
         return Err(Error::UnsupportedAction {
@@ -254,7 +254,7 @@ mod tests {
         );
 
         let blockifier_transaction = BroadcastedDeployAccountTransaction::V1(transaction.clone())
-            .create_blockifier_deploy_account(&DEVNET_DEFAULT_CHAIN_ID.to_felt())
+            .create_blockifier_deploy_account(&DEVNET_DEFAULT_CHAIN_ID.to_felt(), false)
             .unwrap();
 
         // change balance at address
@@ -294,7 +294,7 @@ mod tests {
         let transaction = test_deploy_account_transaction_v3(account_class_hash, 0, 4000);
 
         let blockifier_transaction = BroadcastedDeployAccountTransaction::V3(transaction.clone())
-            .create_blockifier_deploy_account(&DEVNET_DEFAULT_CHAIN_ID.to_felt())
+            .create_blockifier_deploy_account(&DEVNET_DEFAULT_CHAIN_ID.to_felt(), false)
             .unwrap();
 
         // change balance at address
@@ -352,7 +352,7 @@ mod tests {
             Felt::ONE,
         );
         let blockifier_transaction = BroadcastedDeployAccountTransaction::V1(transaction.clone())
-            .create_blockifier_deploy_account(&DEVNET_DEFAULT_CHAIN_ID.to_felt())
+            .create_blockifier_deploy_account(&DEVNET_DEFAULT_CHAIN_ID.to_felt(), false)
             .unwrap();
 
         // change balance at address

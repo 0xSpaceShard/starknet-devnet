@@ -24,7 +24,7 @@ pub fn add_declare_transaction(
     }
 
     let blockifier_declare_transaction = broadcasted_declare_transaction
-        .create_blockifier_declare(&starknet.chain_id().to_felt())?;
+        .create_blockifier_declare(&starknet.chain_id().to_felt(), false)?;
 
     if blockifier_declare_transaction.only_query() {
         return Err(Error::UnsupportedAction {
