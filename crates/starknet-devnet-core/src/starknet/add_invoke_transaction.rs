@@ -18,9 +18,9 @@ pub fn add_invoke_transaction(
         return Err(Error::MaxFeeZeroError { tx_type: broadcasted_invoke_transaction.to_string() });
     }
 
-    if broadcasted_invoke_transaction.is_query_only() {
+    if broadcasted_invoke_transaction.is_only_query() {
         return Err(Error::UnsupportedAction {
-            msg: "query-only transactions are not supported".to_string(),
+            msg: "only-query transactions are not supported".to_string(),
         });
     }
 
@@ -180,7 +180,7 @@ mod tests {
         let result = Starknet::default().add_invoke_transaction(invoke_transaction);
         match result {
             Err(crate::error::Error::UnsupportedAction { msg }) => {
-                assert_eq!(msg, "query-only transactions are not supported")
+                assert_eq!(msg, "only-query transactions are not supported")
             }
             other => panic!("Unexpected result: {other:?}"),
         };

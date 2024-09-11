@@ -23,9 +23,9 @@ pub fn add_declare_transaction(
         });
     }
 
-    if broadcasted_declare_transaction.is_query_only() {
+    if broadcasted_declare_transaction.is_only_query() {
         return Err(Error::UnsupportedAction {
-            msg: "query-only transactions are not supported".to_string(),
+            msg: "only-query transactions are not supported".to_string(),
         });
     }
 
@@ -195,7 +195,7 @@ mod tests {
 
         match result {
             Err(crate::error::Error::UnsupportedAction { msg }) => {
-                assert_eq!(msg, "query-only transactions are not supported")
+                assert_eq!(msg, "only-query transactions are not supported")
             }
             other => panic!("Unexpected result: {other:?}"),
         };

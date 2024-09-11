@@ -269,7 +269,7 @@ pub struct BroadcastedTransactionCommon {
     pub nonce: Nonce,
 }
 
-fn is_query_only_common(version: &Felt) -> bool {
+fn is_only_query_common(version: &Felt) -> bool {
     version >= &QUERY_VERSION_OFFSET
 }
 
@@ -278,8 +278,8 @@ impl BroadcastedTransactionCommon {
         self.max_fee.0 == 0
     }
 
-    pub fn is_query_only(&self) -> bool {
-        is_query_only_common(&self.version)
+    pub fn is_only_query(&self) -> bool {
+        is_only_query_common(&self.version)
     }
 }
 
@@ -361,8 +361,8 @@ impl BroadcastedTransactionCommonV3 {
         l1_is_zero || l2_is_not_zero
     }
 
-    pub fn is_query_only(&self) -> bool {
-        is_query_only_common(&self.version)
+    pub fn is_only_query(&self) -> bool {
+        is_only_query_common(&self.version)
     }
 
     /// Returns an array of Felts that reflects the `common_tx_fields` according to SNIP-8(https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md/#protocol-changes).
@@ -524,11 +524,11 @@ impl BroadcastedDeclareTransaction {
         }
     }
 
-    pub fn is_query_only(&self) -> bool {
+    pub fn is_only_query(&self) -> bool {
         match self {
-            BroadcastedDeclareTransaction::V1(tx) => tx.common.is_query_only(),
-            BroadcastedDeclareTransaction::V2(tx) => tx.common.is_query_only(),
-            BroadcastedDeclareTransaction::V3(tx) => tx.common.is_query_only(),
+            BroadcastedDeclareTransaction::V1(tx) => tx.common.is_only_query(),
+            BroadcastedDeclareTransaction::V2(tx) => tx.common.is_only_query(),
+            BroadcastedDeclareTransaction::V3(tx) => tx.common.is_only_query(),
         }
     }
 
@@ -678,10 +678,10 @@ impl BroadcastedDeployAccountTransaction {
         }
     }
 
-    pub fn is_query_only(&self) -> bool {
+    pub fn is_only_query(&self) -> bool {
         match self {
-            BroadcastedDeployAccountTransaction::V1(tx) => tx.common.is_query_only(),
-            BroadcastedDeployAccountTransaction::V3(tx) => tx.common.is_query_only(),
+            BroadcastedDeployAccountTransaction::V1(tx) => tx.common.is_only_query(),
+            BroadcastedDeployAccountTransaction::V3(tx) => tx.common.is_only_query(),
         }
     }
 
@@ -812,10 +812,10 @@ impl BroadcastedInvokeTransaction {
         }
     }
 
-    pub fn is_query_only(&self) -> bool {
+    pub fn is_only_query(&self) -> bool {
         match self {
-            BroadcastedInvokeTransaction::V1(tx) => tx.common.is_query_only(),
-            BroadcastedInvokeTransaction::V3(tx) => tx.common.is_query_only(),
+            BroadcastedInvokeTransaction::V1(tx) => tx.common.is_only_query(),
+            BroadcastedInvokeTransaction::V3(tx) => tx.common.is_only_query(),
         }
     }
 
