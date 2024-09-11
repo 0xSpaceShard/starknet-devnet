@@ -19,10 +19,13 @@ mod simulation_tests {
     };
     use starknet_rs_providers::Provider;
     use starknet_rs_signers::Signer;
+    use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CHAIN_ID};
+    use crate::common::constants::{
+        CAIRO_1_CONTRACT_PATH, CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID,
+    };
     use crate::common::fees::{assert_difference_if_validation, assert_fee_in_resp_at_least_equal};
     use crate::common::utils::{
         get_deployable_account_signer, get_flattened_sierra_contract_and_casm_hash,
@@ -414,5 +417,90 @@ mod simulation_tests {
             .await
             .unwrap();
         assert_eq!(final_balance, vec![Felt::ZERO]);
+    }
+
+    #[tokio::test]
+    async fn using_query_version_if_simulating() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        // get account
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let account = Arc::new(SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            account_address,
+            CHAIN_ID,
+            ExecutionEncoding::New,
+        ));
+
+        // get class
+        let (flattened_contract_artifact, casm_hash) =
+            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_VERSION_ASSERTER_SIERRA_PATH);
+        let class_hash = flattened_contract_artifact.class_hash();
+
+        // declare class
+        let declaration_result = account
+            .declare_v2(Arc::new(flattened_contract_artifact), casm_hash)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(declaration_result.class_hash, class_hash);
+
+        // deploy instance of class
+        let contract_factory = ContractFactory::new(class_hash, account.clone());
+        let salt = Felt::from_hex_unchecked("0x123");
+        let constructor_calldata = vec![];
+        let contract_address = get_udc_deployed_address(
+            salt,
+            class_hash,
+            &UdcUniqueness::NotUnique,
+            &constructor_calldata,
+        );
+        contract_factory
+            .deploy_v1(constructor_calldata, salt, false)
+            .send()
+            .await
+            .expect("Cannot deploy");
+
+        // let expected_version = Felt::ONE;
+        let expected_version = QUERY_VERSION_OFFSET + Felt::ONE;
+        let calls = vec![Call {
+            to: contract_address,
+            selector: get_selector_from_name("assert_version").unwrap(),
+            calldata: vec![expected_version],
+        }];
+
+        let max_fee = Felt::from(1e18 as u128);
+        let nonce = Felt::TWO; // after declare+deploy
+        let invoke_request = account
+            .execute_v1(calls.clone())
+            .max_fee(max_fee)
+            .nonce(nonce)
+            .prepared()
+            .unwrap()
+            .get_invoke_request(false)
+            .await
+            .unwrap();
+
+        let invoke_simulation_body = json!({
+            "block_id": "latest",
+            "simulation_flags": [],
+            "transactions": [
+                {
+                    "type": "INVOKE",
+                    "max_fee": max_fee.to_hex_string(),
+                    "version": "0x1",
+                    "signature": iter_to_hex_felt(&invoke_request.signature),
+                    "nonce": to_num_as_hex(&nonce),
+                    "calldata": iter_to_hex_felt(&invoke_request.calldata),
+                    "sender_address": account.address().to_hex_string(),
+                }
+            ]
+        });
+
+        devnet
+            .send_custom_rpc("starknet_simulateTransactions", invoke_simulation_body)
+            .await
+            .unwrap();
     }
 }
