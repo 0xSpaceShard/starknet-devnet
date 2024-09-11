@@ -23,14 +23,14 @@ pub fn add_declare_transaction(
         });
     }
 
-    let blockifier_declare_transaction = broadcasted_declare_transaction
-        .create_blockifier_declare(&starknet.chain_id().to_felt(), false)?;
-
-    if blockifier_declare_transaction.only_query() {
+    if broadcasted_declare_transaction.is_query_only() {
         return Err(Error::UnsupportedAction {
             msg: "query-only transactions are not supported".to_string(),
         });
     }
+
+    let blockifier_declare_transaction = broadcasted_declare_transaction
+        .create_blockifier_declare(&starknet.chain_id().to_felt(), false)?;
 
     let transaction_hash = blockifier_declare_transaction.tx_hash().0;
     let class_hash = blockifier_declare_transaction.class_hash().0;
@@ -193,15 +193,12 @@ mod tests {
             BroadcastedDeclareTransaction::V3(Box::new(declare_transaction)),
         );
 
-        assert!(result.is_err());
-        match result.err().unwrap() {
-            err @ crate::error::Error::UnsupportedAction { .. } => {
-                assert_eq!(err.to_string(), "query-only transactions are not supported")
+        match result {
+            Err(crate::error::Error::UnsupportedAction { msg }) => {
+                assert_eq!(msg, "query-only transactions are not supported")
             }
-            _ => {
-                panic!("Wrong error type")
-            }
-        }
+            other => panic!("Unexpected result: {other:?}"),
+        };
     }
 
     #[test]

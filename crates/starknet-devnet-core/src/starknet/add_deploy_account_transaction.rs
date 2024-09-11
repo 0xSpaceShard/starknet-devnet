@@ -20,14 +20,15 @@ pub fn add_deploy_account_transaction(
             tx_type: broadcasted_deploy_account_transaction.to_string(),
         });
     }
-    let blockifier_deploy_account_transaction = broadcasted_deploy_account_transaction
-        .create_blockifier_deploy_account(&starknet.chain_id().to_felt(), false)?;
 
-    if blockifier_deploy_account_transaction.only_query {
+    if broadcasted_deploy_account_transaction.is_query_only() {
         return Err(Error::UnsupportedAction {
             msg: "query-only transactions are not supported".to_string(),
         });
     }
+
+    let blockifier_deploy_account_transaction = broadcasted_deploy_account_transaction
+        .create_blockifier_deploy_account(&starknet.chain_id().to_felt(), false)?;
 
     let address = blockifier_deploy_account_transaction.contract_address.into();
 
@@ -126,18 +127,16 @@ mod tests {
             test_deploy_account_transaction_v3(Felt::default(), 0, 10);
         deploy_account_transaction.common.version = Felt::THREE + QUERY_VERSION_OFFSET;
 
-        let txn_err = Starknet::default()
-            .add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(
-                deploy_account_transaction,
-            ))
-            .unwrap_err();
+        let result = Starknet::default().add_deploy_account_transaction(
+            BroadcastedDeployAccountTransaction::V3(deploy_account_transaction),
+        );
 
-        match txn_err {
-            Error::UnsupportedAction { msg } => {
+        match result {
+            Err(crate::error::Error::UnsupportedAction { msg }) => {
                 assert_eq!(msg, "query-only transactions are not supported")
             }
-            _ => panic!("Wrong error type"),
-        }
+            other => panic!("Unexpected result: {other:?}"),
+        };
     }
 
     #[test]

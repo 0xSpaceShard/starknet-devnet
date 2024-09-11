@@ -41,7 +41,9 @@ use super::state::ThinStateDiff;
 use super::transaction_receipt::{
     ComputationResources, ExecutionResources, FeeInUnits, TransactionReceipt,
 };
-use crate::constants::{PREFIX_DECLARE, PREFIX_DEPLOY_ACCOUNT, PREFIX_INVOKE};
+use crate::constants::{
+    PREFIX_DECLARE, PREFIX_DEPLOY_ACCOUNT, PREFIX_INVOKE, QUERY_VERSION_OFFSET,
+};
 use crate::contract_address::ContractAddress;
 use crate::contract_class::{compute_sierra_class_hash, ContractClass};
 use crate::emitted_event::{Event, OrderedEvent};
@@ -267,9 +269,17 @@ pub struct BroadcastedTransactionCommon {
     pub nonce: Nonce,
 }
 
+fn is_query_only_common(version: &Felt) -> bool {
+    version >= &QUERY_VERSION_OFFSET
+}
+
 impl BroadcastedTransactionCommon {
     pub fn is_max_fee_zero_value(&self) -> bool {
         self.max_fee.0 == 0
+    }
+
+    pub fn is_query_only(&self) -> bool {
+        is_query_only_common(&self.version)
     }
 }
 
@@ -349,6 +359,10 @@ impl BroadcastedTransactionCommonV3 {
             == 0;
 
         l1_is_zero || l2_is_not_zero
+    }
+
+    pub fn is_query_only(&self) -> bool {
+        is_query_only_common(&self.version)
     }
 
     /// Returns an array of Felts that reflects the `common_tx_fields` according to SNIP-8(https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md/#protocol-changes).
@@ -509,6 +523,15 @@ impl BroadcastedDeclareTransaction {
             BroadcastedDeclareTransaction::V3(v3) => v3.common.is_l1_gas_zero_or_l2_gas_not_zero(),
         }
     }
+
+    pub fn is_query_only(&self) -> bool {
+        match self {
+            BroadcastedDeclareTransaction::V1(tx) => tx.common.is_query_only(),
+            BroadcastedDeclareTransaction::V2(tx) => tx.common.is_query_only(),
+            BroadcastedDeclareTransaction::V3(tx) => tx.common.is_query_only(),
+        }
+    }
+
     /// Creates a blockifier declare transaction from the current transaction.
     /// The transaction hash is computed using the given chain id.
     ///
@@ -654,6 +677,14 @@ impl BroadcastedDeployAccountTransaction {
             }
         }
     }
+
+    pub fn is_query_only(&self) -> bool {
+        match self {
+            BroadcastedDeployAccountTransaction::V1(tx) => tx.common.is_query_only(),
+            BroadcastedDeployAccountTransaction::V3(tx) => tx.common.is_query_only(),
+        }
+    }
+
     /// Creates a blockifier deploy account transaction from the current transaction.
     /// The transaction hash is computed using the given chain id.
     ///
@@ -780,6 +811,14 @@ impl BroadcastedInvokeTransaction {
             BroadcastedInvokeTransaction::V3(v3) => v3.common.is_l1_gas_zero_or_l2_gas_not_zero(),
         }
     }
+
+    pub fn is_query_only(&self) -> bool {
+        match self {
+            BroadcastedInvokeTransaction::V1(tx) => tx.common.is_query_only(),
+            BroadcastedInvokeTransaction::V3(tx) => tx.common.is_query_only(),
+        }
+    }
+
     /// Creates a blockifier invoke transaction from the current transaction.
     /// The transaction hash is computed using the given chain id.
     ///
