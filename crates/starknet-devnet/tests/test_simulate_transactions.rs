@@ -462,12 +462,10 @@ mod simulation_tests {
             .await
             .expect("Cannot deploy");
 
-        // let expected_version = Felt::ONE;
-        let expected_version = QUERY_VERSION_OFFSET + Felt::ONE;
         let calls = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("assert_version").unwrap(),
-            calldata: vec![expected_version],
+            calldata: vec![QUERY_VERSION_OFFSET + Felt::ONE], // expected version
         }];
 
         let max_fee = Felt::from(1e18 as u128);
