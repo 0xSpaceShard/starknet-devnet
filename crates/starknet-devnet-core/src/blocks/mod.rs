@@ -279,10 +279,13 @@ impl HashProducer for StarknetBlock {
     type Error = Error;
     fn generate_hash(&self) -> DevnetResult<BlockHash> {
         let hash = Pedersen::hash_array(&[
-            felt!(self.header.block_number.0),           // block number
-            self.header.state_root.0,                    // global_state_root
-            *self.header.sequencer.0.key(),              // sequencer_address
-            felt!(self.header.timestamp.0),              // block_timestamp
+            felt!(self.header.block_number.0), // block number
+            self.header.state_root.0,          // global_state_root
+            *self.header.sequencer.0.key(),    // sequencer_address
+            Felt::ZERO,                        /* block_timestamp; would normally be
+                                                * felt!(self.header.timestamp.0), but
+                                                * is modified to enable replicability
+                                                * in re-execution on loading on dump */
             felt!(self.transaction_hashes.len() as u64), // transaction_count
             Felt::ZERO,                                  // transaction_commitment
             Felt::ZERO,                                  // event_count

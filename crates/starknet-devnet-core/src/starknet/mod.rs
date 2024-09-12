@@ -595,6 +595,8 @@ impl Starknet {
         block.header.sequencer =
             SequencerContractAddress(self.block_context.block_info().sequencer_address);
 
+        block.set_timestamp(self.block_context.block_info().block_timestamp);
+
         self.blocks.pending_block = block;
 
         Ok(())

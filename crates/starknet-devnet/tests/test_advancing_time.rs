@@ -569,4 +569,39 @@ mod advancing_time_tests {
         assert_eq!(latest_block.block_number, 1);
         assert_eq!(latest_block.timestamp, past_time);
     }
+
+    #[tokio::test]
+    async fn correct_pending_block_timestamp() {
+        let initial_time = get_unix_timestamp_as_seconds();
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--start-time",
+            &initial_time.to_string(),
+        ])
+        .await
+        .unwrap();
+
+        let block = devnet.get_pending_block_with_txs().await.unwrap();
+        assert_eq!(block.timestamp, initial_time);
+    }
+
+    #[tokio::test]
+    async fn correct_pending_block_timestamp_after_setting() {
+        let initial_time = get_unix_timestamp_as_seconds();
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--start-time",
+            &initial_time.to_string(),
+        ])
+        .await
+        .unwrap();
+
+        let block = devnet.get_pending_block_with_txs().await.unwrap();
+        assert_eq!(block.timestamp, initial_time);
+
+        // wait 1 second and send a dummy tx to create a new block
+        tokio::time::sleep(time::Duration::from_secs(1)).await;
+        devnet.mint(Felt::ONE, 1).await;
+
+        let block = devnet.get_pending_block_with_txs().await.unwrap();
+        assert_gt_with_buffer(block.timestamp, initial_time);
+    }
 }
