@@ -17,7 +17,7 @@ use starknet_api::felt;
 use starknet_api::transaction::Fee;
 use starknet_config::BlockGenerationOn;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, ExecutionResult, Felt, MsgFromL1, TransactionExecutionStatus,
+    BlockId, BlockTag, Call, ExecutionResult, Felt, MsgFromL1, TransactionExecutionStatus,
     TransactionFinalityStatus,
 };
 use starknet_rs_core::utils::get_selector_from_name;
@@ -70,7 +70,7 @@ use crate::contract_class_choice::AccountContractClassChoice;
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
-use crate::raw_execution::{Call, RawExecutionV1};
+use crate::raw_execution::RawExecutionV1;
 use crate::state::state_diff::StateDiff;
 use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};

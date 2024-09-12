@@ -1,14 +1,7 @@
 /// Copied from https://github.com/xJonathanLEI/starknet-rs/
-use starknet_rs_core::{crypto::pedersen_hash, types::Felt};
+use starknet_rs_core::crypto::pedersen_hash;
+use starknet_rs_core::types::{Call, Felt};
 use starknet_types::constants::PREFIX_INVOKE;
-
-#[derive(Debug, Clone)]
-pub struct Call {
-    // TODO replace with imported Call
-    pub to: Felt,
-    pub selector: Felt,
-    pub calldata: Vec<Felt>,
-}
 
 #[derive(Debug)]
 pub struct RawExecutionV1 {
