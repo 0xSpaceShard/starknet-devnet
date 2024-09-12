@@ -18,14 +18,14 @@ pub fn add_invoke_transaction(
         return Err(Error::MaxFeeZeroError { tx_type: broadcasted_invoke_transaction.to_string() });
     }
 
-    let blockifier_invoke_transaction = broadcasted_invoke_transaction
-        .create_blockifier_invoke_transaction(&starknet.chain_id().to_felt())?;
-
-    if blockifier_invoke_transaction.only_query {
+    if broadcasted_invoke_transaction.is_only_query() {
         return Err(Error::UnsupportedAction {
-            msg: "query-only transactions are not supported".to_string(),
+            msg: "only-query transactions are not supported".to_string(),
         });
     }
+
+    let blockifier_invoke_transaction = broadcasted_invoke_transaction
+        .create_blockifier_invoke_transaction(&starknet.chain_id().to_felt(), false)?;
 
     let transaction_hash = blockifier_invoke_transaction.tx_hash.0;
 
@@ -177,13 +177,13 @@ mod tests {
             }
         }
 
-        let txn_err = Starknet::default().add_invoke_transaction(invoke_transaction).unwrap_err();
-        match txn_err {
-            crate::error::Error::UnsupportedAction { msg } => {
-                assert_eq!(msg, "query-only transactions are not supported".to_string());
+        let result = Starknet::default().add_invoke_transaction(invoke_transaction);
+        match result {
+            Err(crate::error::Error::UnsupportedAction { msg }) => {
+                assert_eq!(msg, "only-query transactions are not supported")
             }
-            _ => panic!("Wrong error type"),
-        }
+            other => panic!("Unexpected result: {other:?}"),
+        };
     }
 
     #[test]

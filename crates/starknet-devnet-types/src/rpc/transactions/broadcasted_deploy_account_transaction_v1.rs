@@ -92,7 +92,7 @@ mod tests {
 
         let blockifier_deploy_account_transaction =
             BroadcastedDeployAccountTransaction::V1(broadcasted_tx)
-                .create_blockifier_deploy_account(&chain_id)
+                .create_blockifier_deploy_account(&chain_id, false)
                 .unwrap();
 
         assert_eq!(

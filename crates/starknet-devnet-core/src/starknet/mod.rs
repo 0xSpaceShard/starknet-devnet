@@ -1162,7 +1162,7 @@ impl Starknet {
                 .iter()
                 .map(|txn| {
                     Ok((
-                        txn.to_blockifier_account_transaction(&chain_id)?,
+                        txn.to_blockifier_account_transaction(&chain_id, true)?,
                         txn.get_type(),
                         Starknet::should_transaction_skip_validation_if_sender_is_impersonated(
                             state, &cheats, txn,

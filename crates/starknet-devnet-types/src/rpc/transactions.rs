@@ -269,9 +269,17 @@ pub struct BroadcastedTransactionCommon {
     pub nonce: Nonce,
 }
 
+fn is_only_query_common(version: &Felt) -> bool {
+    version >= &QUERY_VERSION_OFFSET
+}
+
 impl BroadcastedTransactionCommon {
     pub fn is_max_fee_zero_value(&self) -> bool {
         self.max_fee.0 == 0
+    }
+
+    pub fn is_only_query(&self) -> bool {
+        is_only_query_common(&self.version)
     }
 }
 
@@ -351,6 +359,10 @@ impl BroadcastedTransactionCommonV3 {
             == 0;
 
         l1_is_zero || l2_is_not_zero
+    }
+
+    pub fn is_only_query(&self) -> bool {
+        is_only_query_common(&self.version)
     }
 
     /// Returns an array of Felts that reflects the `common_tx_fields` according to SNIP-8(https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md/#protocol-changes).
@@ -456,17 +468,18 @@ impl BroadcastedTransaction {
     pub fn to_blockifier_account_transaction(
         &self,
         chain_id: &Felt,
+        only_query: bool,
     ) -> DevnetResult<blockifier::transaction::account_transaction::AccountTransaction> {
         let blockifier_transaction = match self {
             BroadcastedTransaction::Invoke(invoke_txn) => AccountTransaction::Invoke(
-                invoke_txn.create_blockifier_invoke_transaction(chain_id)?,
+                invoke_txn.create_blockifier_invoke_transaction(chain_id, only_query)?,
             ),
-            BroadcastedTransaction::Declare(declare_txn) => {
-                AccountTransaction::Declare(declare_txn.create_blockifier_declare(chain_id)?)
-            }
+            BroadcastedTransaction::Declare(declare_txn) => AccountTransaction::Declare(
+                declare_txn.create_blockifier_declare(chain_id, only_query)?,
+            ),
             BroadcastedTransaction::DeployAccount(deploy_account_txn) => {
                 AccountTransaction::DeployAccount(
-                    deploy_account_txn.create_blockifier_deploy_account(chain_id)?,
+                    deploy_account_txn.create_blockifier_deploy_account(chain_id, only_query)?,
                 )
             }
         };
@@ -480,10 +493,6 @@ impl BroadcastedTransaction {
             BroadcastedTransaction::Declare(_) => TransactionType::Declare,
             BroadcastedTransaction::DeployAccount(_) => TransactionType::DeployAccount,
         }
-    }
-
-    pub(crate) fn is_query_only_version(version: Felt) -> bool {
-        version > QUERY_VERSION_OFFSET
     }
 }
 
@@ -514,6 +523,15 @@ impl BroadcastedDeclareTransaction {
             BroadcastedDeclareTransaction::V3(v3) => v3.common.is_l1_gas_zero_or_l2_gas_not_zero(),
         }
     }
+
+    pub fn is_only_query(&self) -> bool {
+        match self {
+            BroadcastedDeclareTransaction::V1(tx) => tx.common.is_only_query(),
+            BroadcastedDeclareTransaction::V2(tx) => tx.common.is_only_query(),
+            BroadcastedDeclareTransaction::V3(tx) => tx.common.is_only_query(),
+        }
+    }
+
     /// Creates a blockifier declare transaction from the current transaction.
     /// The transaction hash is computed using the given chain id.
     ///
@@ -522,8 +540,9 @@ impl BroadcastedDeclareTransaction {
     pub fn create_blockifier_declare(
         &self,
         chain_id: &Felt,
+        only_query: bool,
     ) -> DevnetResult<blockifier::transaction::transactions::DeclareTransaction> {
-        let (transaction_hash, sn_api_transaction, class_info, version) = match self {
+        let (transaction_hash, sn_api_transaction, class_info) = match self {
             BroadcastedDeclareTransaction::V1(v1) => {
                 let class_hash = v1.generate_class_hash()?;
                 let transaction_hash = v1.calculate_transaction_hash(chain_id, &class_hash)?;
@@ -543,7 +562,7 @@ impl BroadcastedDeclareTransaction {
                 let class_info: ClassInfo =
                     ContractClass::Cairo0(v1.contract_class.clone()).try_into()?;
 
-                (transaction_hash, sn_api_declare, class_info, v1.common.version)
+                (transaction_hash, sn_api_declare, class_info)
             }
             BroadcastedDeclareTransaction::V2(v2) => {
                 let sierra_class_hash: Felt = compute_sierra_class_hash(&v2.contract_class)?;
@@ -578,7 +597,7 @@ impl BroadcastedDeclareTransaction {
                 let class_info: ClassInfo =
                     ContractClass::Cairo1(v2.contract_class.clone()).try_into()?;
 
-                (txn_hash, sn_api_declare, class_info, v2.common.version)
+                (txn_hash, sn_api_declare, class_info)
             }
             BroadcastedDeclareTransaction::V3(v3) => {
                 let sierra_class_hash = compute_sierra_class_hash(&v3.contract_class)?;
@@ -612,11 +631,9 @@ impl BroadcastedDeclareTransaction {
                 let class_info: ClassInfo =
                     ContractClass::Cairo1(v3.contract_class.clone()).try_into()?;
 
-                (transaction_hash, sn_api_declare, class_info, v3.common.version)
+                (transaction_hash, sn_api_declare, class_info)
             }
         };
-
-        let only_query = BroadcastedTransaction::is_query_only_version(version);
 
         if only_query {
             Ok(blockifier::transaction::transactions::DeclareTransaction::new_for_query(
@@ -660,6 +677,14 @@ impl BroadcastedDeployAccountTransaction {
             }
         }
     }
+
+    pub fn is_only_query(&self) -> bool {
+        match self {
+            BroadcastedDeployAccountTransaction::V1(tx) => tx.common.is_only_query(),
+            BroadcastedDeployAccountTransaction::V3(tx) => tx.common.is_only_query(),
+        }
+    }
+
     /// Creates a blockifier deploy account transaction from the current transaction.
     /// The transaction hash is computed using the given chain id.
     ///
@@ -668,8 +693,9 @@ impl BroadcastedDeployAccountTransaction {
     pub fn create_blockifier_deploy_account(
         &self,
         chain_id: &Felt,
+        only_query: bool,
     ) -> DevnetResult<blockifier::transaction::transactions::DeployAccountTransaction> {
-        let (transaction_hash, sn_api_transaction, contract_address, version) = match self {
+        let (transaction_hash, sn_api_transaction, contract_address) = match self {
             BroadcastedDeployAccountTransaction::V1(v1) => {
                 let contract_address = calculate_contract_address(
                     starknet_api::transaction::ContractAddressSalt(v1.contract_address_salt),
@@ -711,7 +737,6 @@ impl BroadcastedDeployAccountTransaction {
                     transaction_hash,
                     starknet_api::transaction::DeployAccountTransaction::V1(sn_api_transaction),
                     contract_address,
-                    v1.common.version,
                 )
             }
             BroadcastedDeployAccountTransaction::V3(v3) => {
@@ -749,12 +774,9 @@ impl BroadcastedDeployAccountTransaction {
                     transaction_hash,
                     starknet_api::transaction::DeployAccountTransaction::V3(sn_api_transaction),
                     contract_address.try_into()?,
-                    v3.common.version,
                 )
             }
         };
-
-        let only_query = BroadcastedTransaction::is_query_only_version(version);
 
         Ok(blockifier::transaction::transactions::DeployAccountTransaction {
             tx: sn_api_transaction,
@@ -789,6 +811,14 @@ impl BroadcastedInvokeTransaction {
             BroadcastedInvokeTransaction::V3(v3) => v3.common.is_l1_gas_zero_or_l2_gas_not_zero(),
         }
     }
+
+    pub fn is_only_query(&self) -> bool {
+        match self {
+            BroadcastedInvokeTransaction::V1(tx) => tx.common.is_only_query(),
+            BroadcastedInvokeTransaction::V3(tx) => tx.common.is_only_query(),
+        }
+    }
+
     /// Creates a blockifier invoke transaction from the current transaction.
     /// The transaction hash is computed using the given chain id.
     ///
@@ -797,8 +827,9 @@ impl BroadcastedInvokeTransaction {
     pub fn create_blockifier_invoke_transaction(
         &self,
         chain_id: &Felt,
+        only_query: bool,
     ) -> DevnetResult<blockifier::transaction::transactions::InvokeTransaction> {
-        let (transaction_hash, sn_api_transaction, version) = match self {
+        let (transaction_hash, sn_api_transaction) = match self {
             BroadcastedInvokeTransaction::V1(v1) => {
                 let txn_hash = compute_hash_on_elements(&[
                     PREFIX_INVOKE,
@@ -821,11 +852,7 @@ impl BroadcastedInvokeTransaction {
                     calldata: starknet_api::transaction::Calldata(Arc::new(v1.calldata.clone())),
                 };
 
-                (
-                    txn_hash,
-                    starknet_api::transaction::InvokeTransaction::V1(sn_api_transaction),
-                    v1.common.version,
-                )
+                (txn_hash, starknet_api::transaction::InvokeTransaction::V1(sn_api_transaction))
             }
             BroadcastedInvokeTransaction::V3(v3) => {
                 let txn_hash = v3.calculate_transaction_hash(chain_id)?;
@@ -849,15 +876,9 @@ impl BroadcastedInvokeTransaction {
                     ),
                 };
 
-                (
-                    txn_hash,
-                    starknet_api::transaction::InvokeTransaction::V3(sn_api_transaction),
-                    v3.common.version,
-                )
+                (txn_hash, starknet_api::transaction::InvokeTransaction::V3(sn_api_transaction))
             }
         };
-
-        let only_query = BroadcastedTransaction::is_query_only_version(version);
 
         Ok(blockifier::transaction::transactions::InvokeTransaction {
             tx: sn_api_transaction,
