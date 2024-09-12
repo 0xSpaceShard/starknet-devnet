@@ -18,12 +18,12 @@ mod test_messaging {
     use ethers::prelude::*;
     use serde_json::{json, Value};
     use starknet_rs_accounts::{
-        Account, AccountError, Call, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
+        Account, AccountError, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, Felt, FunctionCall, InvokeTransactionResult, TransactionExecutionStatus,
-        TransactionReceipt, TransactionReceiptWithBlockInfo,
+        BlockId, BlockTag, Call, Felt, FunctionCall, InvokeTransactionResult,
+        TransactionExecutionStatus, TransactionReceipt, TransactionReceiptWithBlockInfo,
     };
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,

@@ -2,17 +2,16 @@
 use starknet_rs_core::{crypto::pedersen_hash, types::Felt};
 use starknet_types::constants::PREFIX_INVOKE;
 
-use crate::constants::SUPPORTED_TX_VERSION;
-
 #[derive(Debug, Clone)]
 pub struct Call {
+    // TODO replace with imported Call
     pub to: Felt,
     pub selector: Felt,
     pub calldata: Vec<Felt>,
 }
 
 #[derive(Debug)]
-pub struct RawExecution {
+pub struct RawExecutionV1 {
     pub calls: Vec<Call>,
     pub nonce: Felt,
     pub max_fee: Felt,
@@ -29,7 +28,7 @@ pub fn compute_hash_on_elements(data: &[Felt]) -> Felt {
     pedersen_hash(&current_hash, &data_len)
 }
 
-impl RawExecution {
+impl RawExecutionV1 {
     pub fn raw_calldata(&self) -> Vec<Felt> {
         let mut concated_calldata: Vec<Felt> = vec![];
         let mut execute_calldata: Vec<Felt> = vec![self.calls.len().into()];
@@ -54,7 +53,7 @@ impl RawExecution {
     pub fn transaction_hash(&self, chain_id: Felt, address: Felt) -> Felt {
         compute_hash_on_elements(&[
             PREFIX_INVOKE,
-            Felt::from(SUPPORTED_TX_VERSION), // version
+            Felt::ONE, // version
             address,
             Felt::ZERO, // entry_point_selector
             compute_hash_on_elements(&self.raw_calldata()),

@@ -8,13 +8,13 @@ mod fork_tests {
     use server::test_utils::assert_contains;
     use starknet_core::constants::CAIRO_1_ERC20_CONTRACT_CLASS_HASH;
     use starknet_rs_accounts::{
-        Account, AccountFactory, AccountFactoryError, Call, ExecutionEncoding,
+        Account, AccountFactory, AccountFactoryError, ExecutionEncoding,
         OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, ContractClass, Felt, FunctionCall, MaybePendingBlockWithTxHashes,
+        BlockId, BlockTag, Call, ContractClass, Felt, FunctionCall, MaybePendingBlockWithTxHashes,
         StarknetError,
     };
     use starknet_rs_core::utils::{

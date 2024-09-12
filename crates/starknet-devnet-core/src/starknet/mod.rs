@@ -70,7 +70,7 @@ use crate::contract_class_choice::AccountContractClassChoice;
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
-use crate::raw_execution::{Call, RawExecution};
+use crate::raw_execution::{Call, RawExecutionV1};
 use crate::state::state_diff::StateDiff;
 use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
@@ -772,7 +772,7 @@ impl Starknet {
         let (high, low) = split_biguint(amount);
         let calldata = vec![Felt::from(address), low, high];
 
-        let raw_execution = RawExecution {
+        let raw_execution = RawExecutionV1 {
             calls: vec![Call {
                 to: erc20_address.into(),
                 selector: get_selector_from_name("transfer")

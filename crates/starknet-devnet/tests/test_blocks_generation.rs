@@ -7,10 +7,10 @@ mod blocks_generation_tests {
 
     use serde_json::json;
     use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
-    use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
+    use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
-        BlockId, BlockStatus, BlockTag, DeclaredClassItem, Felt, FunctionCall,
+        BlockId, BlockStatus, BlockTag, Call, DeclaredClassItem, Felt, FunctionCall,
         MaybePendingStateUpdate, NonceUpdate, StateUpdate, TransactionTrace,
     };
     use starknet_rs_core::utils::{

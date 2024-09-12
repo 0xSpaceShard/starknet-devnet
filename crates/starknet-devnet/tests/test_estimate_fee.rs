@@ -4,19 +4,19 @@ pub mod common;
 mod estimate_fee_tests {
     use std::sync::Arc;
 
-    use serde_json::json;
+    use server::test_utils::assert_contains;
     use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, UDC_CONTRACT_ADDRESS};
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
-        Account, AccountError, AccountFactory, AccountFactoryError, Call, ConnectedAccount,
+        Account, AccountError, AccountFactory, AccountFactoryError, ConnectedAccount,
         ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
         BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedInvokeTransaction,
-        BroadcastedInvokeTransactionV1, BroadcastedTransaction, FeeEstimate, Felt, FunctionCall,
-        StarknetError,
+        BroadcastedInvokeTransactionV1, BroadcastedTransaction, Call, ContractErrorData,
+        FeeEstimate, Felt, FunctionCall, StarknetError,
     };
     use starknet_rs_core::utils::{
         cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
@@ -415,26 +415,20 @@ mod estimate_fee_tests {
             calldata: vec![cairo_short_string_to_felt(panic_reason).unwrap()],
         }];
 
-        let prepared = account
+        let invoke_err = account
             .execute_v1(calls.clone())
             .nonce(account.get_nonce().await.unwrap())
             .max_fee(Felt::ZERO)
-            .prepared()
-            .unwrap()
-            .get_invoke_request(true)
+            .estimate_fee()
             .await
-            .unwrap();
+            .unwrap_err();
 
-        let params = json!({
-            "block_id": "latest",
-            "simulation_flags": [],
-            "request": [
-                serde_json::to_value(prepared).unwrap()
-            ]
-        });
-
-        let rpc_error = devnet.send_custom_rpc("starknet_estimateFee", params).await.unwrap_err();
-        assert!(rpc_error.data.unwrap()["revert_error"].as_str().unwrap().contains(panic_reason));
+        match invoke_err {
+            AccountError::Provider(ProviderError::StarknetError(StarknetError::ContractError(
+                ContractErrorData { revert_error },
+            ))) => assert_contains(&revert_error, panic_reason),
+            other => panic!("Invalid err: {other:?}"),
+        };
     }
 
     #[tokio::test]
