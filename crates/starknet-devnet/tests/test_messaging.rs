@@ -17,6 +17,8 @@ mod test_messaging {
 
     use ethers::prelude::*;
     use serde_json::{json, Value};
+    use server::rpc_core::error::RpcError;
+    use server::test_utils::assert_contains;
     use starknet_rs_accounts::{
         Account, AccountError, Call, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
     };
@@ -629,5 +631,32 @@ mod test_messaging {
 
         let expected_nonces: Vec<_> = (0..init_balance).collect();
         assert_eq!(flushed_message_nonces, expected_nonces);
+    }
+
+    #[tokio::test]
+    async fn test_dumpability_of_messaging_contract_loading() {
+        let dump_file = UniqueAutoDeletableFile::new("dump");
+        let devnet_args = ["--dump-path", &dump_file.path, "--dump-on", "exit"];
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+        let anvil = BackgroundAnvil::spawn().await.unwrap();
+
+        devnet
+            .send_custom_rpc("devnet_postmanLoad", json!({ "network_url": anvil.url }))
+            .await
+            .unwrap();
+
+        // assert loadability while Anvil is still alive
+        devnet.send_custom_rpc("devnet_dump", Value::Null).await.unwrap();
+        devnet.send_custom_rpc("devnet_load", json!({ "path": dump_file.path })).await.unwrap();
+
+        // assert loading fails if anvil not alive
+        send_ctrl_c_signal_and_wait(&anvil.process).await;
+        match devnet.send_custom_rpc("devnet_load", json!({ "path": dump_file.path })).await {
+            Err(RpcError { message, .. }) => {
+                assert_contains(&message, "error sending request for url");
+                assert_contains(&message, &anvil.url);
+            }
+            other => panic!("Unexpected response: {other:?}"),
+        };
     }
 }
