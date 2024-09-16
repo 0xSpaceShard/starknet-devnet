@@ -33,6 +33,10 @@ impl BackgroundAnvil {
     /// Anvil on this port (as Anvil will actually open the socket right after binding).
     #[allow(dead_code)] // dead_code needed to pass clippy
     pub(crate) async fn spawn() -> Result<Self, TestError> {
+        BackgroundAnvil::spawn_with_additional_args(&[]).await
+    }
+
+    pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
         // Relies on `background_devnet::BackgroundDevnet` starting its check from smaller values
         // (1025). Relies on the probability of M simultaneously spawned Anvils occupying
         // different ports being fairly big (N*(N-1)*...*(N-M+1) / N**M; N=65_000-20_000+1)
@@ -42,6 +46,7 @@ impl BackgroundAnvil {
             .arg("--port")
             .arg(port.to_string())
             .arg("--silent")
+            .args(args)
             .spawn()
             .expect("Could not start background Anvil");
 
