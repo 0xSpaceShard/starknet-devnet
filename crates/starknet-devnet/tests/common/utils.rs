@@ -4,6 +4,7 @@ use std::path::Path;
 use std::process::{Child, Command};
 use std::sync::Arc;
 
+use ethers::types::U256;
 use server::test_utils::assert_contains;
 use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
 use starknet_core::random_number_generator::generate_u32_random_number;
@@ -337,6 +338,11 @@ where
     for e in iterable1 {
         assert!(iterable2.contains(e));
     }
+}
+
+/// Shall succeed if `f` fits into u128
+pub fn felt_to_u256(f: Felt) -> Result<U256, anyhow::Error> {
+    Ok(u128::try_from(f.to_biguint())?.into())
 }
 
 #[cfg(test)]
