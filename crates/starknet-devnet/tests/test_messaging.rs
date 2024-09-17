@@ -596,12 +596,12 @@ mod test_messaging {
         let user_sn = Felt::ONE;
         let user_eth: U256 = 1.into();
 
-        // Set balance to 1 for the user 1 on L2.
+        // Set balance for the user on L2.
         let init_balance = 5_u64;
         increase_balance(Arc::clone(&sn_account), sn_l1l2_contract, user_sn, init_balance.into())
             .await;
 
-        // Withdraw the amount 1 from user 1 balance on L2 to send it on L1 with a l2->l1 message.
+        // Withdraw the set amount from user 1 balance on L2 to send it on L1 with a l2->l1 message.
         withdraw(
             Arc::clone(&sn_account),
             sn_l1l2_contract,
