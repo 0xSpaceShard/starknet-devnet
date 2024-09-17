@@ -121,13 +121,13 @@ impl BackgroundAnvil {
             .await
             .map_err(|e| {
                 TestError::EthersError(format!(
-                    "tx for withdraw l1l2 contract on ethereum failed: {e}"
+                    "tx for withdrawing from l1-l2 contract on ethereum failed: {e}"
                 ))
             })?
             .await
             .map_err(|e| {
                 TestError::EthersError(format!(
-                    "tx for withdraw l1l2 contract on ethereum has no receipt: {e}"
+                    "tx for withdrawing from l1-l2 contract on ethereum has no receipt: {e}"
                 ))
             })?;
 
