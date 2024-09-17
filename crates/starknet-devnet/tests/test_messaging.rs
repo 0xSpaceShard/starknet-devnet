@@ -293,7 +293,7 @@ mod test_messaging {
 
         // Set balance to 1 for user.
         let user_balance = Felt::ONE;
-        increase_balance(Arc::clone(&account), l1l2_contract_address, user, user_balance).await;
+        increase_balance(account, l1l2_contract_address, user, user_balance).await;
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
 
         // Use postman to send a message to l2 without l1 - the message increments user balance
@@ -431,18 +431,11 @@ mod test_messaging {
 
         // Set balance to 1 for the user 1 on L2.
         let user_balance = Felt::ONE;
-        increase_balance(Arc::clone(&sn_account), sn_l1l2_contract, user_sn, user_balance).await;
+        increase_balance(sn_account.clone(), sn_l1l2_contract, user_sn, user_balance).await;
         assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [user_balance]);
 
         // Withdraw the amount 1 from user 1 balance on L2 to send it on L1 with a l2->l1 message.
-        withdraw(
-            Arc::clone(&sn_account),
-            sn_l1l2_contract,
-            user_sn,
-            user_balance,
-            eth_l1l2_address_felt,
-        )
-        .await;
+        withdraw(sn_account, sn_l1l2_contract, user_sn, user_balance, eth_l1l2_address_felt).await;
         assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ZERO]);
 
         // Flush to send the messages.
@@ -598,18 +591,11 @@ mod test_messaging {
 
         // Set balance for the user on L2.
         let init_balance = 5_u64;
-        increase_balance(Arc::clone(&sn_account), sn_l1l2_contract, user_sn, init_balance.into())
-            .await;
+        increase_balance(sn_account.clone(), sn_l1l2_contract, user_sn, init_balance.into()).await;
 
         // Withdraw the set amount from user 1 balance on L2 to send it on L1 with a l2->l1 message.
-        withdraw(
-            Arc::clone(&sn_account),
-            sn_l1l2_contract,
-            user_sn,
-            init_balance.into(),
-            eth_l1l2_address_felt,
-        )
-        .await;
+        withdraw(sn_account, sn_l1l2_contract, user_sn, init_balance.into(), eth_l1l2_address_felt)
+            .await;
 
         // Flush to send the messages.
         devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.expect("flush failed");
@@ -622,7 +608,7 @@ mod test_messaging {
             .await
             .unwrap();
 
-        // Send back the amount 1 to the user 1 on L2. Do it n times to have n transactions,
+        // Send back an amount of 1 to the user on L2. Do it n times to have n transactions,
         // for the purpose of message order testing (n = init_balance)
         for _ in 0..init_balance {
             anvil
@@ -632,12 +618,10 @@ mod test_messaging {
         }
 
         // Flush messages to have MessageToL2 executed.
-        let flush_resp =
-            devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.expect("flush failed");
+        let flush_resp = devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
+        let generated_l2_txs = flush_resp["messages_to_l2"].as_array().unwrap();
 
-        let flushed_message_nonces: Vec<u64> = flush_resp["messages_to_l2"]
-            .as_array()
-            .unwrap()
+        let flushed_message_nonces: Vec<_> = generated_l2_txs
             .iter()
             .map(|msg| msg["nonce"].as_str().unwrap())
             .map(|nonce| u64::from_str_radix(nonce.strip_prefix("0x").unwrap(), 16).unwrap())
