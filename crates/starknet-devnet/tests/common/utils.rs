@@ -340,7 +340,6 @@ where
     }
 }
 
-/// Shall succeed if `f` fits into u128
 pub fn felt_to_u256(f: Felt) -> U256 {
     U256::from_big_endian(&f.to_bytes_be())
 }
