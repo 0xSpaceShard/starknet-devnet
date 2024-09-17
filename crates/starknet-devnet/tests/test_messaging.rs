@@ -452,7 +452,7 @@ mod test_messaging {
         let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
         assert_eq!(user_balance_eth, 0.into());
 
-        let sn_l1l2_contract_u256 = felt_to_u256(sn_l1l2_contract).unwrap();
+        let sn_l1l2_contract_u256 = felt_to_u256(sn_l1l2_contract);
 
         // Consume the message to increase the balance.
         anvil
@@ -614,7 +614,7 @@ mod test_messaging {
         // Flush to send the messages.
         devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.expect("flush failed");
 
-        let sn_l1l2_contract_u256 = felt_to_u256(sn_l1l2_contract).unwrap();
+        let sn_l1l2_contract_u256 = felt_to_u256(sn_l1l2_contract);
 
         // Consume the message to increase the L1 balance.
         anvil
@@ -623,7 +623,7 @@ mod test_messaging {
             .unwrap();
 
         // Send back the amount 1 to the user 1 on L2. Do it n times to have n transactions,
-        // for the purpose of message order testing (n = init balance)
+        // for the purpose of message order testing (n = init_balance)
         for _ in 0..init_balance {
             anvil
                 .deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, 1.into())
@@ -639,7 +639,8 @@ mod test_messaging {
             .as_array()
             .unwrap()
             .iter()
-            .map(|msg| msg["nonce"].as_u64().unwrap())
+            .map(|msg| msg["nonce"].as_str().unwrap())
+            .map(|nonce| u64::from_str_radix(nonce.strip_prefix("0x").unwrap(), 16).unwrap())
             .collect();
 
         let expected_nonces: Vec<_> = (0..init_balance).collect();
