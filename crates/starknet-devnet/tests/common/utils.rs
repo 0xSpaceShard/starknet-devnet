@@ -4,6 +4,7 @@ use std::path::Path;
 use std::process::{Child, Command};
 use std::sync::Arc;
 
+use ethers::types::U256;
 use server::test_utils::assert_contains;
 use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
 use starknet_core::random_number_generator::generate_u32_random_number;
@@ -337,6 +338,10 @@ where
     for e in iterable1 {
         assert!(iterable2.contains(e));
     }
+}
+
+pub fn felt_to_u256(f: Felt) -> U256 {
+    U256::from_big_endian(&f.to_bytes_be())
 }
 
 #[cfg(test)]
