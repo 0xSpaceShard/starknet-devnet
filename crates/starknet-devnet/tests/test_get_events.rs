@@ -4,11 +4,9 @@ pub mod common;
 mod get_events_integration_tests {
     use std::sync::Arc;
 
-    use starknet_rs_accounts::{
-        Account, Call, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
-    };
+    use starknet_rs_accounts::{Account, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::{BlockId, BlockTag, EventFilter, Felt, StarknetError};
+    use starknet_rs_core::types::{BlockId, BlockTag, Call, EventFilter, Felt, StarknetError};
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::{Provider, ProviderError};
 

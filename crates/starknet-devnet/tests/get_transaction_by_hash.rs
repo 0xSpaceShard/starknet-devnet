@@ -6,11 +6,10 @@ mod get_transaction_by_hash_integration_tests {
 
     use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS};
     use starknet_rs_accounts::{
-        Account, AccountFactory, Call, ExecutionEncoding, OpenZeppelinAccountFactory,
-        SingleOwnerAccount,
+        Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
+    use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, StarknetError};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::{Provider, ProviderError};
     use starknet_types::felt::{felt_from_prefixed_hex, try_felt_to_num};

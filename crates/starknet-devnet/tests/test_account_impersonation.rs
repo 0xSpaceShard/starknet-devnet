@@ -6,8 +6,8 @@ mod impersonated_account_tests {
 
     use server::test_utils::assert_contains;
     use starknet_core::constants::STRK_ERC20_CONTRACT_ADDRESS;
-    use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
-    use starknet_rs_core::types::{BlockId, BlockTag, ExecutionResult, Felt};
+    use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+    use starknet_rs_core::types::{BlockId, BlockTag, Call, ExecutionResult, Felt};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::jsonrpc::HttpTransport;
     use starknet_rs_providers::{JsonRpcClient, Provider};

@@ -119,8 +119,7 @@ mod trace_tests {
             .await
             .unwrap();
 
-        if let starknet_rs_core::types::TransactionTrace::Declare(declare_trace) = declare_tx_trace
-        {
+        if let TransactionTrace::Declare(declare_trace) = declare_tx_trace {
             let validate_invocation = declare_trace.validate_invocation.unwrap();
 
             assert_eq!(validate_invocation.contract_address, account_address);
@@ -236,11 +235,12 @@ mod trace_tests {
         devnet.mint(new_account_address, 1e18 as u128).await;
         deployment.send().await.unwrap();
 
-        let deploy_account_tx_trace =
-            devnet.json_rpc_client.trace_transaction(deployment.transaction_hash()).await.unwrap();
+        let deployment_hash = deployment.transaction_hash(false);
+        let deployment_trace =
+            devnet.json_rpc_client.trace_transaction(deployment_hash).await.unwrap();
 
         if let starknet_rs_core::types::TransactionTrace::DeployAccount(deployment_trace) =
-            deploy_account_tx_trace
+            deployment_trace
         {
             let validate_invocation = deployment_trace.validate_invocation.unwrap();
             assert_eq!(
@@ -262,7 +262,7 @@ mod trace_tests {
                 ETH_ERC20_CONTRACT_ADDRESS
             );
         } else {
-            panic!("Could not unpack the transaction trace from {deploy_account_tx_trace:?}");
+            panic!("Could not unpack the transaction trace from {deployment_trace:?}");
         }
     }
 

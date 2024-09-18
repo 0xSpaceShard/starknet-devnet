@@ -8,12 +8,12 @@ mod simulation_tests {
     use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS};
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
-        Account, AccountFactory, Call, ExecutionEncoding, OpenZeppelinAccountFactory,
+        Account, AccountFactory, ExecutionEncoder, ExecutionEncoding, OpenZeppelinAccountFactory,
         SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{BlockId, BlockTag, Felt, FunctionCall};
+    use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, FunctionCall};
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
@@ -40,7 +40,7 @@ mod simulation_tests {
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let account = SingleOwnerAccount::new(
             devnet.clone_provider(),
-            signer,
+            signer.clone(),
             account_address,
             CHAIN_ID,
             ExecutionEncoding::New,
@@ -53,20 +53,16 @@ mod simulation_tests {
         let max_fee = Felt::ZERO; // TODO try 1e18 as u128 instead
         let nonce = Felt::ZERO;
 
-        let signature = account
+        let declaration = account
             .declare_legacy(contract_artifact.clone())
             .max_fee(max_fee)
             .nonce(nonce)
             .prepared()
-            .unwrap()
-            .get_declare_request(false)
-            .await
-            .unwrap()
-            .signature;
-        let signature_hex: Vec<String> = iter_to_hex_felt(&signature);
+            .unwrap();
+        let declaration_hash = declaration.transaction_hash(false).unwrap();
+        let signature = signer.sign_hash(&declaration_hash).await.unwrap();
 
-        let sender_address_hex = to_hex_felt(&account_address);
-
+        let sender_address_hex = account.address().to_hex_string();
         let get_params = |simulation_flags: &[&str]| -> serde_json::Value {
             json!({
                 "block_id": "latest",
@@ -77,7 +73,7 @@ mod simulation_tests {
                         "sender_address": sender_address_hex,
                         "max_fee": to_hex_felt(&max_fee),
                         "version": "0x1",
-                        "signature": signature_hex,
+                        "signature": iter_to_hex_felt(&[signature.r, signature.s]),
                         "nonce": to_num_as_hex(&nonce),
                         "contract_class": contract_artifact.compress().unwrap(),
                     }
@@ -113,7 +109,7 @@ mod simulation_tests {
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let account = SingleOwnerAccount::new(
             devnet.clone_provider(),
-            signer,
+            signer.clone(),
             account_address,
             CHAIN_ID,
             ExecutionEncoding::New,
@@ -126,17 +122,15 @@ mod simulation_tests {
         let max_fee = Felt::ZERO;
         let nonce = Felt::ZERO;
 
-        let signature = account
+        let declaration = account
             .declare_v2(Arc::new(flattened_contract_artifact.clone()), casm_hash)
             .max_fee(max_fee)
             .nonce(nonce)
             .prepared()
-            .unwrap()
-            .get_declare_request(false)
-            .await
-            .unwrap()
-            .signature;
-        let signature_hex: Vec<String> = iter_to_hex_felt(&signature);
+            .unwrap();
+
+        let declaration_hash = declaration.transaction_hash(false);
+        let signature = signer.sign_hash(&declaration_hash).await.unwrap();
 
         let sender_address_hex = to_hex_felt(&account_address);
 
@@ -151,7 +145,7 @@ mod simulation_tests {
                         "compiled_class_hash": to_hex_felt(&casm_hash),
                         "max_fee": to_hex_felt(&max_fee),
                         "version": "0x2",
-                        "signature": signature_hex,
+                        "signature": iter_to_hex_felt(&[signature.r, signature.s]),
                         "nonce": to_num_as_hex(&nonce),
                         "contract_class": flattened_contract_artifact,
                     }
@@ -203,7 +197,7 @@ mod simulation_tests {
             .nonce(nonce)
             .prepared()
             .unwrap();
-        let deployment_tx_hash = deployment.transaction_hash();
+        let deployment_tx_hash = deployment.transaction_hash(false);
 
         let signature = new_account_signer.sign_hash(&deployment_tx_hash).await.unwrap();
         let signature_hex: Vec<String> = iter_to_hex_felt(&[signature.r, signature.s]);
@@ -301,7 +295,7 @@ mod simulation_tests {
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let account = Arc::new(SingleOwnerAccount::new(
             devnet.clone_provider(),
-            signer,
+            signer.clone(),
             account_address,
             CHAIN_ID,
             ExecutionEncoding::New,
@@ -332,7 +326,7 @@ mod simulation_tests {
 
         // prepare the call used in simulation
         let increase_amount = Felt::from(100u128);
-        let invoke_calls = vec![Call {
+        let calls = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("increase_balance").unwrap(),
             calldata: vec![increase_amount],
@@ -341,20 +335,10 @@ mod simulation_tests {
         // TODO fails if max_fee too low, can be used to test reverted case
         let max_fee = Felt::from(1e18 as u128);
         let nonce = Felt::TWO; // after declare+deploy
-        let invoke_request = account
-            .execute_v1(invoke_calls.clone())
-            .max_fee(max_fee)
-            .nonce(nonce)
-            .prepared()
-            .unwrap()
-            .get_invoke_request(false)
-            .await
-            .unwrap();
+        let invoke_request =
+            account.execute_v1(calls.clone()).max_fee(max_fee).nonce(nonce).prepared().unwrap();
 
-        let signature_hex: Vec<String> = iter_to_hex_felt(&invoke_request.signature);
-
-        let calldata_hex: Vec<String> = iter_to_hex_felt(&invoke_request.calldata);
-
+        let signature = signer.sign_hash(&invoke_request.transaction_hash(false)).await.unwrap();
         let sender_address_hex = to_hex_felt(&account.address());
 
         let get_params = |simulation_flags: &[&str]| -> serde_json::Value {
@@ -366,9 +350,9 @@ mod simulation_tests {
                         "type": "INVOKE",
                         "max_fee": to_hex_felt(&max_fee),
                         "version": "0x1",
-                        "signature": signature_hex,
+                        "signature": iter_to_hex_felt(&[signature.r, signature.s]),
                         "nonce": to_num_as_hex(&nonce),
-                        "calldata": calldata_hex,
+                        "calldata": iter_to_hex_felt(&account.encode_calls(&calls)),
                         "sender_address": sender_address_hex,
                     }
                 ]
@@ -427,7 +411,7 @@ mod simulation_tests {
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let account = Arc::new(SingleOwnerAccount::new(
             devnet.clone_provider(),
-            signer,
+            signer.clone(),
             account_address,
             CHAIN_ID,
             ExecutionEncoding::New,
@@ -470,16 +454,10 @@ mod simulation_tests {
 
         let max_fee = Felt::from(1e18 as u128);
         let nonce = Felt::TWO; // after declare+deploy
-        let invoke_request = account
-            .execute_v1(calls.clone())
-            .max_fee(max_fee)
-            .nonce(nonce)
-            .prepared()
-            .unwrap()
-            .get_invoke_request(false)
-            .await
-            .unwrap();
+        let invoke_request =
+            account.execute_v1(calls.clone()).max_fee(max_fee).nonce(nonce).prepared().unwrap();
 
+        let signature = signer.sign_hash(&invoke_request.transaction_hash(false)).await.unwrap();
         let invoke_simulation_body = json!({
             "block_id": "latest",
             "simulation_flags": [],
@@ -488,9 +466,9 @@ mod simulation_tests {
                     "type": "INVOKE",
                     "max_fee": max_fee.to_hex_string(),
                     "version": "0x1",
-                    "signature": iter_to_hex_felt(&invoke_request.signature),
+                    "signature": iter_to_hex_felt(&[signature.r, signature.s]),
                     "nonce": to_num_as_hex(&nonce),
-                    "calldata": iter_to_hex_felt(&invoke_request.calldata),
+                    "calldata": iter_to_hex_felt(&account.encode_calls(&calls)),
                     "sender_address": account.address().to_hex_string(),
                 }
             ]

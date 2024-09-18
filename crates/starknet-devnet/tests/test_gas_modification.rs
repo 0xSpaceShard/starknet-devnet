@@ -9,6 +9,7 @@ mod gas_modification_tests {
     use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::types::{Felt, ResourcePrice, StarknetError};
     use starknet_rs_providers::ProviderError;
+    use starknet_rs_signers::Signer;
     use starknet_types::chain_id::ChainId;
     use starknet_types::felt::felt_from_prefixed_hex;
 
@@ -30,7 +31,7 @@ mod gas_modification_tests {
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let account = SingleOwnerAccount::new(
             devnet.clone_provider(),
-            signer,
+            signer.clone(),
             account_address,
             felt_from_prefixed_hex(expected_chain_id).unwrap(),
             ExecutionEncoding::New,
@@ -43,18 +44,14 @@ mod gas_modification_tests {
         let max_fee = Felt::ZERO;
         let nonce = Felt::ZERO;
 
-        let signature = account
+        let declaration = account
             .declare_v2(Arc::new(flattened_contract_artifact.clone()), casm_hash)
             .max_fee(max_fee)
             .nonce(nonce)
             .prepared()
-            .unwrap()
-            .get_declare_request(false)
-            .await
-            .unwrap()
-            .signature;
+            .unwrap();
+        let signature = signer.sign_hash(&declaration.transaction_hash(false)).await.unwrap();
 
-        let signature_hex: Vec<String> = iter_to_hex_felt(&signature);
         let sender_address_hex = to_hex_felt(&account_address);
         let get_params = |simulation_flags: &[&str]| -> serde_json::Value {
             json!({
@@ -67,7 +64,7 @@ mod gas_modification_tests {
                         "compiled_class_hash": to_hex_felt(&casm_hash),
                         "max_fee": to_hex_felt(&max_fee),
                         "version": "0x2",
-                        "signature": signature_hex,
+                        "signature": iter_to_hex_felt(&[signature.r, signature.s]),
                         "nonce": to_num_as_hex(&nonce),
                         "contract_class": flattened_contract_artifact,
                     }

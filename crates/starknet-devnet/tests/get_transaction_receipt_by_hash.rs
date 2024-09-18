@@ -8,12 +8,12 @@ mod get_transaction_receipt_by_hash_integration_tests {
     use server::test_utils::declare_v1_str;
     use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS};
     use starknet_rs_accounts::{
-        Account, AccountFactory, Call, ExecutionEncoding, OpenZeppelinAccountFactory,
-        SingleOwnerAccount,
+        Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
-        BroadcastedDeclareTransactionV1, ExecutionResult, Felt, StarknetError, TransactionReceipt,
+        BroadcastedDeclareTransactionV1, Call, ExecutionResult, Felt, StarknetError,
+        TransactionReceipt,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::{Provider, ProviderError};
