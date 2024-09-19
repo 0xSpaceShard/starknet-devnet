@@ -326,11 +326,7 @@ mod tests {
         let replaceable_contract = dummy_cairo_1_contract_class();
 
         let events_contract = ContractClass::cairo_1_from_sierra_json_str(
-            &std::fs::read_to_string(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/test_artifacts/events_cairo1.sierra",
-            ))
-            .unwrap(),
+            &std::fs::read_to_string("../../contracts/events_cairo1.sierra").unwrap(),
         )
         .unwrap();
 
