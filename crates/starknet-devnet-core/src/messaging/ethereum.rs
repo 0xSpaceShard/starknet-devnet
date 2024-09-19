@@ -30,20 +30,12 @@ pub const ETH_ACCOUNT_DEFAULT: EthDevnetAccount = EthDevnetAccount {
 
 // The provided artifact must contain "abi" and "bytecode" objects.
 // The config check is required as the macro expects a literal string,
-// and the path of the file is relative to the $CARGO_MANIFEST_DIR
-// which differs depending the configuration (workspace or crate level).
-// For this reason, the current approach is having the
-// "contracts/artifacts/MockStarknetMessaging.json" path being valid at the
-// crate level, and the workspace level.
-// This is due to the fact that depending on the cargo command being run, the
-// cargo manifest directory is not the same.
-// This limitation is induced by the fact that the artifact path must be
-// a literal string.
+// and the path of the file is relative to the $CARGO_MANIFEST_DIR.
 mod abigen {
     use ethers::prelude::abigen;
     abigen!(
         MockStarknetMessaging,
-        "contracts/artifacts/MockStarknetMessaging.json",
+        "../../contracts/l1-l2-artifacts/MockStarknetMessaging.json",
         event_derives(serde::Serialize, serde::Deserialize)
     );
 }
@@ -398,6 +390,7 @@ mod tests {
 
     #[test]
     fn test_message_to_l2_from_log() {
+        println!("{}", env!("CARGO_MANIFEST_DIR"));
         // Test based on Goerli tx hash:
         // 0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b
 
