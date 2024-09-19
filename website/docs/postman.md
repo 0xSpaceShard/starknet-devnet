@@ -40,6 +40,12 @@ Loads a `MockStarknetMessaging` contract. The `address` parameter is optional; i
 - [**Geth**](https://github.com/ethereum/go-ethereum#docker-quick-start)
 - [**Hardhat node**](https://hardhat.org/hardhat-network/#running-stand-alone-in-order-to-support-wallets-and-other-software)
 
+:::info Dumping and Loading
+
+Loading a messaging contract is a dumpable event, meaning that, if you've enabled dumping, a messaging-contract-loading event will be dumped. Keep in mind that, if you rely on Devnet deploying a new contract, i.e. if you don't specify a contract address of an already deployed messaging contract, a new contract will be deployed at a new address on each loading of the dump. Read more about dumping [here](./dump-load-restart#dumping).
+
+:::
+
 ## Flush
 
 ```
@@ -78,6 +84,12 @@ JSON-RPC
 ```
 
 A running L1 node is required if `dry_run` is not set.
+
+:::info Dumping and Loading
+
+Flushing is not dumpable, meaning that, if you've enabled dumping, a flushing event will not itself be re-executed on loading. This is because it produces L2 messaging events that are themselves dumped. No L1-side actions are dumped, you need to take care of those yourself. Read more about dumping [here](./dump-load-restart#dumping).
+
+:::
 
 ## Disclaimer
 
