@@ -641,7 +641,7 @@ mod test_messaging {
     }
 
     #[tokio::test]
-    async fn flushing_only_new_messages() {
+    async fn flushing_only_new_messages_after_restart() {
         let anvil = BackgroundAnvil::spawn().await.unwrap();
         let (devnet, sn_account, sn_l1l2_contract) = setup_devnet(&[]).await;
 
@@ -665,12 +665,12 @@ mod test_messaging {
         let user_sn = Felt::ONE;
         let user_eth: U256 = 1.into();
 
-        // Set balance to 1 for the user 1 on L2.
+        // Set balance to for the user 1 on L2.
         let user_balance = Felt::TWO;
         increase_balance(sn_account.clone(), sn_l1l2_contract, user_sn, user_balance).await;
         assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [user_balance]);
 
-        // Withdraw the amount 1 from user 1 balance on L2 to send it on L1 with a l2->l1 message.
+        // Withdraw on L2 to send it to L1 with a l2->l1 message.
         withdraw(
             sn_account.clone(),
             sn_l1l2_contract,
@@ -724,9 +724,10 @@ mod test_messaging {
 
         devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
 
-        // Restart, reload
+        // Restart Devnet and re-enable messaging
         devnet.restart().await;
 
+        // Reload messaging contract at the same address where it was
         let load_resp = devnet
             .send_custom_rpc(
                 "devnet_postmanLoad",
@@ -738,6 +739,8 @@ mod test_messaging {
             load_resp.get("messaging_contract_address").unwrap().as_str().unwrap(),
             MESSAGING_L1_ADDRESS
         );
+
+        // Make sure flushing doesn't process old messages
         let flush_after_restart =
             devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
         assert_eq!(flush_after_restart["messages_to_l1"], json!([]));
@@ -754,8 +757,8 @@ mod test_messaging {
             .await
             .unwrap();
 
+        // After depositing, there should be no funds on L1; also no funds on L2 before flushing.
         let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
-
         assert_eq!(user_balance_eth, 0.into()); // 2 - 1 - 1
         assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ZERO]);
 
