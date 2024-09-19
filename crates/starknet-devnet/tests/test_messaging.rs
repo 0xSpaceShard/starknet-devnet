@@ -634,6 +634,7 @@ mod test_messaging {
     }
 
     #[tokio::test]
+    /// Here we test if the devnet_postmanLoad method call is indeed dumped and then used in a load.
     async fn test_dumpability_of_messaging_contract_loading() {
         let dump_file = UniqueAutoDeletableFile::new("dump");
         let devnet_args = ["--dump-path", &dump_file.path, "--dump-on", "exit"];

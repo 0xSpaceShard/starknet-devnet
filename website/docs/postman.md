@@ -42,7 +42,7 @@ Loads a `MockStarknetMessaging` contract. The `address` parameter is optional; i
 
 :::info Dumping and Loading
 
-Loading a messaging contract is a dumpable event, meaning that, if you've enabled dumping, a messaging-contract-loading event will be dumped. Keep in mind that, if you rely on Devnet deploying a new contract, i.e. if you don't specify a contract address of an already deployed messaging contract, a new contract will be deployed on each loading of the dump. Read more about dumping [here](./dump-load-restart#dumping).
+Loading a messaging contract is a dumpable event, meaning that, if you've enabled dumping, a messaging-contract-loading event will be dumped. Keep in mind that, if you rely on Devnet deploying a new contract, i.e. if you don't specify a contract address of an already deployed messaging contract, a new contract will be deployed at a new address on each loading of the dump. Read more about dumping [here](./dump-load-restart#dumping).
 
 :::
 
