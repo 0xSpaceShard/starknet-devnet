@@ -117,6 +117,8 @@ pub enum MessagingError {
     EthersError(String),
     #[error("Message to L1 with hash {0} is not present (never received OR already consumed).")]
     MessageToL1NotPresent(String),
+    #[error("L1 not compatible: {0}")]
+    IncompatibleL1(String),
 }
 
 pub type DevnetResult<T, E = Error> = Result<T, E>;

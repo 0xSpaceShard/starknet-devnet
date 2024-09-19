@@ -123,6 +123,39 @@ mod test_messaging {
         account.execute_v1(invoke_calls).max_fee(Felt::from(MAX_FEE)).send().await
     }
 
+    /// Returns the deployment address
+    async fn deploy_l2_msg_contract(
+        account: Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>,
+    ) -> Result<Felt, anyhow::Error> {
+        // Declare l1l2 contract with storage (meant to be deployed).
+        let (sierra_class, casm_class_hash) =
+            get_messaging_contract_in_sierra_and_compiled_class_hash();
+
+        let sierra_class_hash = sierra_class.class_hash();
+        let declaration = account.declare_v2(Arc::new(sierra_class), casm_class_hash);
+        declaration.max_fee(Felt::from(MAX_FEE)).send().await?;
+
+        // deploy instance of class
+        let contract_factory = ContractFactory::new(sierra_class_hash, account.clone());
+        let salt = Felt::from_hex_unchecked("0x123");
+        let constructor_calldata = vec![];
+        let contract_address = get_udc_deployed_address(
+            salt,
+            sierra_class_hash,
+            &UdcUniqueness::NotUnique,
+            &constructor_calldata,
+        );
+        contract_factory
+            .deploy_v1(constructor_calldata, salt, false)
+            .nonce(Felt::ONE)
+            .max_fee(Felt::from(MAX_FEE))
+            .send()
+            .await
+            .unwrap();
+
+        Ok(contract_address)
+    }
+
     /// Sets up a `BackgroundDevnet` with the message l1-l2 contract deployed.
     /// Returns (devnet instance, account used for deployment, l1-l2 contract address).
     async fn setup_devnet(
@@ -141,31 +174,7 @@ mod test_messaging {
             ExecutionEncoding::New,
         ));
 
-        // Declare l1l2 contract with storage (meant to be deployed).
-        let (sierra_class, casm_class_hash) =
-            get_messaging_contract_in_sierra_and_compiled_class_hash();
-
-        let sierra_class_hash = sierra_class.class_hash();
-        let declaration = account.declare_v2(Arc::new(sierra_class), casm_class_hash);
-        declaration.max_fee(Felt::from(MAX_FEE)).send().await.unwrap();
-
-        // deploy instance of class
-        let contract_factory = ContractFactory::new(sierra_class_hash, account.clone());
-        let salt = Felt::from_hex_unchecked("0x123");
-        let constructor_calldata = vec![];
-        let contract_address = get_udc_deployed_address(
-            salt,
-            sierra_class_hash,
-            &UdcUniqueness::NotUnique,
-            &constructor_calldata,
-        );
-        contract_factory
-            .deploy_v1(constructor_calldata, salt, false)
-            .nonce(Felt::ONE)
-            .max_fee(Felt::from(MAX_FEE))
-            .send()
-            .await
-            .expect("Cannot deploy");
+        let contract_address = deploy_l2_msg_contract(account.clone()).await.unwrap();
 
         (devnet, account, contract_address)
     }
@@ -629,5 +638,128 @@ mod test_messaging {
 
         let expected_nonces: Vec<_> = (0..init_balance).collect();
         assert_eq!(flushed_message_nonces, expected_nonces);
+    }
+
+    #[tokio::test]
+    async fn flushing_only_new_messages() {
+        let anvil = BackgroundAnvil::spawn().await.unwrap();
+        let (devnet, sn_account, sn_l1l2_contract) = setup_devnet(&[]).await;
+
+        // Load l1 messaging contract.
+        let load_resp = devnet
+            .send_custom_rpc("devnet_postmanLoad", json!({ "network_url": anvil.url }))
+            .await
+            .unwrap();
+
+        assert_eq!(
+            load_resp.get("messaging_contract_address").unwrap().as_str().unwrap(),
+            MESSAGING_L1_ADDRESS
+        );
+
+        // Deploy the L1L2 testing contract on L1 (on L2 it's already pre-deployed).
+        let l1_messaging_address = H160::from_str(MESSAGING_L1_ADDRESS).unwrap();
+        let eth_l1l2_address = anvil.deploy_l1l2_contract(l1_messaging_address).await.unwrap();
+        let eth_l1l2_address_hex = format!("{eth_l1l2_address:#x}");
+
+        let eth_l1l2_address_felt = felt_from_prefixed_hex(&eth_l1l2_address_hex).unwrap();
+        let user_sn = Felt::ONE;
+        let user_eth: U256 = 1.into();
+
+        // Set balance to 1 for the user 1 on L2.
+        let user_balance = Felt::TWO;
+        increase_balance(sn_account.clone(), sn_l1l2_contract, user_sn, user_balance).await;
+        assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [user_balance]);
+
+        // Withdraw the amount 1 from user 1 balance on L2 to send it on L1 with a l2->l1 message.
+        withdraw(
+            sn_account.clone(),
+            sn_l1l2_contract,
+            user_sn,
+            user_balance,
+            eth_l1l2_address_felt,
+        )
+        .await;
+        assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ZERO]);
+
+        // Flush to send the messages.
+        devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
+
+        // Check that the balance is 0 on L1 before consuming the message.
+        let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
+        assert_eq!(user_balance_eth, 0.into());
+
+        let sn_l1l2_contract_u256 = felt_to_u256(sn_l1l2_contract);
+
+        // Consume the message to increase the balance.
+        anvil
+            .withdraw_l1l2(
+                eth_l1l2_address,
+                sn_l1l2_contract_u256,
+                user_eth,
+                felt_to_u256(user_balance),
+            )
+            .await
+            .unwrap();
+
+        let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
+        assert_eq!(user_balance_eth, felt_to_u256(user_balance));
+
+        // Send back the amount 1 to the user 1 on L2.
+        let deposit_amount = 1;
+        anvil
+            .deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, deposit_amount.into())
+            .await
+            .unwrap();
+
+        let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
+
+        assert_eq!(user_balance_eth, 1.into()); // 2 - 1
+        assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ZERO]);
+
+        // Flush messages to have MessageToL2 executed.
+        devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
+
+        assert_eq!(user_balance_eth, deposit_amount.into());
+        assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ONE]);
+
+        devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
+
+        // Restart, reload
+        devnet.restart().await;
+
+        let load_resp = devnet
+            .send_custom_rpc(
+                "devnet_postmanLoad",
+                json!({ "network_url": anvil.url, "address": MESSAGING_L1_ADDRESS }),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            load_resp.get("messaging_contract_address").unwrap().as_str().unwrap(),
+            MESSAGING_L1_ADDRESS
+        );
+        let flush_after_restart =
+            devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
+        assert_eq!(flush_after_restart["messages_to_l1"], json!([]));
+        assert_eq!(flush_after_restart["messages_to_l2"], json!([]));
+
+        // Redeploy
+        let sn_l1l2_contract = deploy_l2_msg_contract(sn_account).await.unwrap();
+        let sn_l1l2_contract_u256 = felt_to_u256(sn_l1l2_contract);
+        assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ZERO]);
+
+        // Trigger a new action to return funds to L2
+        anvil
+            .deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, deposit_amount.into())
+            .await
+            .unwrap();
+
+        let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
+
+        assert_eq!(user_balance_eth, 0.into()); // 2 - 1 - 1
+        assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ZERO]);
+
+        devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
+        assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ONE]);
     }
 }
