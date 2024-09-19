@@ -26,10 +26,7 @@ mod get_transaction_by_hash_integration_tests {
         let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo0"])
             .await
             .expect("Could not start Devnet");
-        let json_string = std::fs::read_to_string(resolve_path(
-            "../starknet-devnet-core/test_artifacts/cairo_0_test.json",
-        ))
-        .unwrap();
+        let json_string = std::fs::read_to_string("../../contracts/cairo_0_test.json").unwrap();
 
         let legacy_contract_class: LegacyContractClass =
             serde_json::from_str(&json_string).unwrap();

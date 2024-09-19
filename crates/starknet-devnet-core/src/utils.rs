@@ -106,11 +106,7 @@ pub(crate) mod test_utils {
     }
 
     pub(crate) fn dummy_cairo_1_contract_class() -> SierraContractClass {
-        let json_str = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/cairo_1_test.json"
-        ))
-        .unwrap();
+        let json_str = std::fs::read_to_string("../../contracts/cairo_1_test.json").unwrap();
 
         ContractClass::cairo_1_from_sierra_json_str(&json_str).unwrap()
     }
@@ -209,21 +205,13 @@ pub mod exported_test_utils {
     use starknet_types::contract_class::Cairo0Json;
 
     pub fn dummy_cairo_l1l2_contract() -> Cairo0Json {
-        let json_str = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/cairo_0_l1l2.json"
-        ))
-        .unwrap();
+        let json_str = std::fs::read_to_string("../../contracts/cairo_0_l1l2.json").unwrap();
 
         Cairo0Json::raw_json_from_json_str(&json_str).unwrap()
     }
 
     pub fn dummy_cairo_0_contract_class() -> Cairo0Json {
-        let json_str = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/cairo_0_test.json"
-        ))
-        .unwrap();
+        let json_str = std::fs::read_to_string("../../contracts/cairo_0_test.json").unwrap();
 
         Cairo0Json::raw_json_from_json_str(&json_str).unwrap()
     }
