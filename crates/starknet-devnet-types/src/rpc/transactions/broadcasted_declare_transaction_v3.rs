@@ -70,7 +70,7 @@ mod tests {
     use crate::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
     use crate::rpc::transactions::BroadcastedTransactionCommonV3;
     use crate::utils::test_utils::{
-        convert_from_sn_api_resource_bounds_mapping, from_u8_to_da_mode,
+        convert_from_sn_api_resource_bounds_mapping, from_u8_to_da_mode, CAIRO_1_CONTRACT_PATH,
     };
 
     #[derive(Deserialize)]
@@ -110,11 +110,9 @@ mod tests {
         // cairo_1_contract is only needed for constructing BroadcastedDeclareTransactionV3
         // the class_hash and compiled_class_hash will be provided from
         // FeederGatewayDeclareTransactionV3
-        let sierra_contract_path =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/events_cairo1.sierra");
 
         let cairo_1_contract = ContractClass::cairo_1_from_sierra_json_str(
-            &std::fs::read_to_string(sierra_contract_path).unwrap(),
+            &std::fs::read_to_string(CAIRO_1_CONTRACT_PATH).unwrap(),
         )
         .unwrap();
 

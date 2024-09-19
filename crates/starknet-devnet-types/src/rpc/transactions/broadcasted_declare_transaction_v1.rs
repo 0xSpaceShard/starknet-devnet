@@ -90,11 +90,7 @@ mod tests {
     #[test]
     /// test_artifact is taken from starknet-rs. https://github.com/xJonathanLEI/starknet-rs/blob/starknet-core/v0.5.1/starknet-core/test-data/contracts/cairo0/artifacts/event_example.txt
     fn correct_transaction_hash_computation_compared_to_a_transaction_from_feeder_gateway() {
-        let json_str = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_data/events_cairo0.json"
-        ))
-        .unwrap();
+        let json_str = std::fs::read_to_string("../../contracts/events_cairo0.json").unwrap();
         let cairo0 = Cairo0Json::raw_json_from_json_str(&json_str).unwrap();
 
         // this is declare v1 transaction send with starknet-rs
