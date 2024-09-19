@@ -352,6 +352,7 @@ impl JsonRpcHandler {
         "devnet_autoImpersonate",
         "devnet_stopAutoImpersonate",
         // "devnet_postmanFlush", - not dumped because it creates new RPC calls which get dumped
+        "devnet_postmanLoad",
         "devnet_postmanSendMessageToL2",
         "devnet_postmanConsumeMessageFromL2",
         "devnet_createBlock",
