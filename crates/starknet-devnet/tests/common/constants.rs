@@ -29,11 +29,11 @@ pub const CASM_COMPILED_CLASS_HASH: &str =
 
 // Simple contract with a failable (panicking) function
 pub const CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH: &str =
-    "test_data/cairo1/panicking_contract/panicking_contract.sierra";
+    "../../contracts/cairo1/panicking_contract/panicking_contract.sierra";
 
 // Contract which asserts the tx version
 pub const CAIRO_1_VERSION_ASSERTER_SIERRA_PATH: &str =
-    "test_data/cairo1/version_asserter/version_asserter.sierra";
+    "../../contracts/cairo1/version_asserter/version_asserter.sierra";
 
 // L1 L2 pre-registered addresses.
 /// Hardcoded in the cairo0 l1l2 contract
@@ -49,7 +49,7 @@ pub const MESSAGING_L1_CONTRACT_ADDRESS: &str = "0xe7f1725e7734ce288f8367e1bb143
 
 /// Cairo 1 account which panics on validation
 pub const INVALID_ACCOUNT_SIERRA_PATH: &str =
-    "test_data/cairo1/invalid_account/invalid_account.sierra";
+    "../../contracts/cairo1/invalid_account/invalid_account.sierra";
 
 /// hash of the sierra artifact at commit d9f5220059c1e61ff87e4a5752522569135e464c of
 /// argentlabs/argent-contracts-starknet:main
