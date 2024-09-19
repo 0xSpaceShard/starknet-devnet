@@ -92,7 +92,7 @@ mod tests {
     fn correct_transaction_hash_computation_compared_to_a_transaction_from_feeder_gateway() {
         let json_str = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test_data/events_cairo0.casm"
+            "/test_data/events_cairo0.json"
         ))
         .unwrap();
         let cairo0 = Cairo0Json::raw_json_from_json_str(&json_str).unwrap();
