@@ -15,7 +15,6 @@ mod get_class_tests {
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
     use crate::common::utils::{
         assert_cairo1_classes_equal, get_events_contract_in_sierra_and_compiled_class_hash,
-        resolve_path,
     };
 
     #[tokio::test]

@@ -18,7 +18,7 @@ mod get_transaction_by_hash_integration_tests {
     use crate::common::constants;
     use crate::common::utils::{
         assert_tx_successful, get_deployable_account_signer,
-        get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
+        get_simple_contract_in_sierra_and_compiled_class_hash,
     };
 
     #[tokio::test]
