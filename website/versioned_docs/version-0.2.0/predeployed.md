@@ -4,6 +4,17 @@ Devnet predeploys a [UDC](https://docs.openzeppelin.com/contracts-cairo/0.6.1/ud
 
 The set of accounts can be controlled via [CLI options](./running/cli): `--accounts <NUMBER_OF>`, `--initial-balance <WEI>`, `--seed <VALUE>`.
 
+## Predeployed account preservation
+
+:::note
+
+Once you shut down your Devnet, the predeployed account you used ceases to exist. This may be a problem with tools such as `starkli` which hardcode your account details in a local file. One option then is to delete your account entry from `starkli`'s account file. Another option is to spawn the same account on next Devnet startup. To do this, you can use:
+
+- the `--seed <VALUE>` CLI option which always predeploys the same set of accounts if using the same `<VALUE>` (the seed is logged on startup)
+- the [dump and load feature](./dump-load-restart)
+
+:::
+
 ## Account class selection
 
 Choose between predeploying Cairo 0 (OpenZeppelin 0.5.1) or Cairo 1 (default; OpenZeppelin 0.8.1) accounts by using:
