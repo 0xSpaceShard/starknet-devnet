@@ -46,7 +46,7 @@ pub use ethereum::EthereumMessaging;
 #[derive(Default)]
 pub struct MessagingBroker {
     /// The ethereum broker to send transaction / call contracts using ethers.
-    ethereum: Option<EthereumMessaging>,
+    pub(crate) ethereum: Option<EthereumMessaging>,
     /// The last local (starknet) block for which messages have been collected
     /// and sent.
     pub last_local_block: u64,

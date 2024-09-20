@@ -79,9 +79,7 @@ pub struct EthereumMessaging {
     provider_signer: Arc<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
     messaging_contract_address: Address,
     /// This value must be dumped to avoid re-fetching already processed messages.
-    last_fetched_block: u64,
-    /// The latest L1 block timestamp at the time of the creation of this EthereumMessaging.
-    creation_timestamp: U256,
+    pub(crate) last_fetched_block: u64,
     // A nonce verification may be added, with a nonce counter here.
     // If so, it must be dumped too.
 }
@@ -103,10 +101,6 @@ impl EthereumMessaging {
             )))
         })?;
 
-        let latest_block = provider.get_block(BlockNumber::Latest).await?.ok_or(
-            Error::MessagingError(MessagingError::IncompatibleL1("No latest block".into())),
-        )?;
-
         let chain_id = provider.get_chainid().await?;
 
         let private_key = ETH_ACCOUNT_DEFAULT.private_key;
@@ -121,14 +115,12 @@ impl EthereumMessaging {
             provider_signer: Arc::new(provider_signer),
             messaging_contract_address: Address::zero(),
             last_fetched_block: 0,
-            creation_timestamp: latest_block.timestamp,
         };
 
         if let Some(address) = contract_address {
             ethereum.messaging_contract_address = Address::from_str(address).map_err(|e| {
                 Error::MessagingError(MessagingError::EthersError(format!(
-                    "Address can't be parsed from string: {} ({})",
-                    address, e
+                    "Address {address} can't be parsed from string: {e}",
                 )))
             })?;
         } else {
@@ -277,11 +269,7 @@ impl EthereumMessaging {
         for log in self.provider.get_logs(&filters).await?.into_iter() {
             if let Some(block_number) = log.block_number {
                 let block_number = block_number.as_u64();
-                if let Ok(Some(block)) = self.provider.get_block(block_number).await {
-                    if self.creation_timestamp < block.timestamp {
-                        block_to_logs.entry(block_number).or_default().push(log);
-                    }
-                }
+                block_to_logs.entry(block_number).or_default().push(log);
             }
         }
 

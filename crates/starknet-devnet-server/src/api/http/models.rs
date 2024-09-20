@@ -159,3 +159,10 @@ pub struct FlushParameters {
 pub struct MessagingLoadAddress {
     pub messaging_contract_address: String,
 }
+
+#[derive(Serialize, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(test, derive(Debug))]
+pub struct RestartParameters {
+    pub restart_messages_to_l2: bool,
+}

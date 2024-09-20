@@ -269,10 +269,22 @@ impl Starknet {
         &mut self.pending_state
     }
 
-    pub fn restart(&mut self) -> DevnetResult<()> {
-        *self = Starknet::new(&self.config)?;
-        info!("Starknet Devnet restarted");
+    pub fn restart(&mut self, restart_messages_to_l2: bool) -> DevnetResult<()> {
+        let last_fetched_l1_block = if !restart_messages_to_l2 {
+            self.messaging.ethereum.as_ref().map(|ethereum| ethereum.last_fetched_block)
+        } else {
+            None
+        };
 
+        *self = Starknet::new(&self.config)?;
+
+        if let (Some(block), Some(ethereum)) =
+            (last_fetched_l1_block, self.messaging.ethereum.as_mut())
+        {
+            ethereum.last_fetched_block = block;
+        }
+
+        info!("Starknet Devnet restarted");
         Ok(())
     }
 
