@@ -164,5 +164,5 @@ pub struct MessagingLoadAddress {
 #[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(Debug))]
 pub struct RestartParameters {
-    pub restart_l1_l2_messaging: bool,
+    pub restart_messaging_to_l2: bool,
 }

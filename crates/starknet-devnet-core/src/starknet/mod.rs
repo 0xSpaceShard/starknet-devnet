@@ -269,9 +269,9 @@ impl Starknet {
         &mut self.pending_state
     }
 
-    pub fn restart(&mut self, restart_l1_l2_messaging: bool) -> DevnetResult<()> {
+    pub fn restart(&mut self, restart_messaging_to_l2: bool) -> DevnetResult<()> {
         let new_messsaging_ethereum =
-            if restart_l1_l2_messaging { None } else { self.messaging.ethereum.clone() };
+            if restart_messaging_to_l2 { None } else { self.messaging.ethereum.clone() };
 
         *self = Starknet::new(&self.config)?;
         self.messaging.ethereum = new_messsaging_ethereum;
