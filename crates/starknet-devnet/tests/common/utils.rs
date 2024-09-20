@@ -65,22 +65,24 @@ pub fn get_flattened_sierra_contract_and_casm_hash(sierra_path: &str) -> SierraW
 }
 
 pub fn get_messaging_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
-    let sierra_path = "../../contracts/cairo1/messaging/cairo_1_l1l2.sierra";
+    let sierra_path = "../../contracts/l1-l2-artifacts/cairo_l1_l2.contract_class.sierra";
     get_flattened_sierra_contract_and_casm_hash(sierra_path)
 }
 
 pub fn get_messaging_lib_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
-    let sierra_path = "../../contracts/cairo1/messaging/cairo_1_l1l2_lib.sierra";
+    let sierra_path = "../../contracts/l1-l2-artifacts/cairo_l1_l2_lib.contract_class.sierra";
     get_flattened_sierra_contract_and_casm_hash(sierra_path)
 }
 
 pub fn get_events_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
-    let events_sierra_path = "../../contracts/cairo1/events/events_2.0.1_compiler.sierra";
+    let events_sierra_path =
+        "../../contracts/test_artifacts/cairo1/events/events_2.0.1_compiler.sierra";
     get_flattened_sierra_contract_and_casm_hash(events_sierra_path)
 }
 
 pub fn get_block_reader_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
-    let timestamp_sierra_path = "../../contracts/cairo1/block_reader/block_reader.sierra";
+    let timestamp_sierra_path =
+        "../../contracts/test_artifacts/cairo1/block_reader/block_reader.sierra";
     get_flattened_sierra_contract_and_casm_hash(timestamp_sierra_path)
 }
 
