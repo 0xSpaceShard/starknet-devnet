@@ -42,12 +42,6 @@ pub fn get_deployable_account_signer() -> LocalWallet {
     ))
 }
 
-/// resolve a path relative to the current directory (starknet-server)
-pub fn resolve_path(relative_path: &str) -> String {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-    format!("{manifest_dir}/{relative_path}")
-}
-
 pub fn remove_file(path: &str) {
     let file_path = Path::new(path);
     if file_path.exists() {

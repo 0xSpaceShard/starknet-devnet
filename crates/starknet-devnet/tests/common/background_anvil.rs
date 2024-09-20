@@ -23,7 +23,7 @@ mod abigen {
     use ethers::prelude::abigen;
     abigen!(
         L1L2Example,
-        "test_data/solidity/L1L2Example.json",
+        "../../contracts/solidity/L1L2Example.json",
         event_derives(serde::Serialize, serde::Deserialize)
     );
 }

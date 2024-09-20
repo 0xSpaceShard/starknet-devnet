@@ -33,8 +33,7 @@ mod fork_tests {
     use crate::common::utils::{
         assert_cairo1_classes_equal, assert_tx_successful, declare_deploy_v1,
         get_block_reader_contract_in_sierra_and_compiled_class_hash, get_contract_balance,
-        get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
-        send_ctrl_c_signal_and_wait,
+        get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
     };
 
     #[tokio::test]
@@ -363,10 +362,7 @@ mod fork_tests {
             "--state-archive-capacity",
             "full",
             "--account-class-custom",
-            &resolve_path(
-                "../starknet-devnet-core/accounts_artifacts/OpenZeppelin/0.8.0/Account.cairo/\
-                 Account.sierra",
-            ),
+            "../../contracts/accounts_artifacts/OpenZeppelin/0.8.0/Account.cairo/Account.sierra",
         ])
         .await
         .unwrap();
