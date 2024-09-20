@@ -166,7 +166,7 @@ mod fork_tests {
         ));
 
         let json_string =
-            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/cairo_0_test.json")
+            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
                 .unwrap();
         let contract_class: Arc<LegacyContractClass> =
             Arc::new(serde_json::from_str(&json_string).unwrap());

@@ -27,7 +27,7 @@ mod get_transaction_by_hash_integration_tests {
             .await
             .expect("Could not start Devnet");
         let json_string =
-            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/cairo_0_test.json")
+            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
                 .unwrap();
 
         let legacy_contract_class: LegacyContractClass =

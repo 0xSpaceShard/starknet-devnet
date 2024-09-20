@@ -439,7 +439,7 @@ mod tests {
     #[test]
     fn not_allowing_regular_cairo1_contract_as_custom_account() {
         // path to a regular cairo1 contract (not an account)
-        let custom_path = "../../contracts/test_artifacts/cairo1/simple_contract/output.json";
+        let custom_path = "../../contracts/test_artifacts/cairo1/simple_contract/output.sierra";
         match Args::try_parse_from(["--", "--account-class-custom", custom_path]) {
             Err(err) => assert_eq!(
                 get_first_line(&err.to_string()),

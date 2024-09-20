@@ -168,7 +168,7 @@ pub(crate) mod test_utils {
 
     pub(crate) fn cairo_0_account_without_validations() -> Cairo0ContractClass {
         let account_json_path =
-            "../../contracts/test_artifacts/account_without_validations/account.json";
+            "../../contracts/test_artifacts/cairo0/account_without_validations/account.json";
 
         Cairo0Json::raw_json_from_path(account_json_path).unwrap().into()
     }
@@ -209,15 +209,14 @@ pub mod exported_test_utils {
 
     pub fn dummy_cairo_l1l2_contract() -> Cairo0Json {
         let json_str =
-            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/cairo_0_l1l2.json")
-                .unwrap();
+            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/l1l2.json").unwrap();
 
         Cairo0Json::raw_json_from_json_str(&json_str).unwrap()
     }
 
     pub fn dummy_cairo_0_contract_class() -> Cairo0Json {
         let json_str =
-            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/cairo_0_test.json")
+            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
                 .unwrap();
 
         Cairo0Json::raw_json_from_json_str(&json_str).unwrap()

@@ -91,7 +91,7 @@ pub(crate) mod test_utils {
     use crate::rpc::transactions::ResourceBoundsWrapper;
 
     pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str =
-        "../../contracts/test_artifacts/cairo0/Cairo0_contract.json";
+        "../../contracts/test_artifacts/cairo0/account.json";
 
     pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
         "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
