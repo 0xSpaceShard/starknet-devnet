@@ -73,6 +73,7 @@ impl From<WalletError> for Error {
     }
 }
 
+#[derive(Clone)]
 /// Ethereum related configuration and types.
 pub struct EthereumMessaging {
     provider: Arc<Provider<Http>>,

@@ -754,21 +754,8 @@ mod test_messaging {
 
         devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
 
-        // Restart Devnet and re-enable messaging
+        // Restart Devnet, l1-l2 messaging should be intact
         devnet.restart().await;
-
-        // Reload messaging contract at the same address where it was
-        let load_resp = devnet
-            .send_custom_rpc(
-                "devnet_postmanLoad",
-                json!({ "network_url": anvil.url, "address": MESSAGING_L1_ADDRESS }),
-            )
-            .await
-            .unwrap();
-        assert_eq!(
-            load_resp.get("messaging_contract_address").unwrap().as_str().unwrap(),
-            MESSAGING_L1_ADDRESS
-        );
 
         // Make sure flushing doesn't process old messages
         let flush_after_restart =
