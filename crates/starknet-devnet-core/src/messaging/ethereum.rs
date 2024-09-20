@@ -149,16 +149,6 @@ impl EthereumMessaging {
         // For now we fetch all the blocks, without attempting to limit
         // the number of block as the RPC of dev nodes are more permissive.
         let to_block = chain_latest_block;
-        match to_block.cmp(&self.last_fetched_block) {
-            std::cmp::Ordering::Less => {
-                return Err(Error::MessagingError(MessagingError::IncompatibleL1(format!(
-                    "Latest block number is less than expected ({to_block} < {})",
-                    self.last_fetched_block
-                ))));
-            }
-            std::cmp::Ordering::Equal => return Ok(vec![]),
-            std::cmp::Ordering::Greater => (), // handled below
-        }
 
         // +1 exclude the latest fetched block the last time this function was called.
         let from_block = self.last_fetched_block + 1;
