@@ -85,8 +85,7 @@ pub fn get_block_reader_contract_in_sierra_and_compiled_class_hash() -> SierraWi
 }
 
 pub fn get_simple_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
-    let contract_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), CAIRO_1_CONTRACT_PATH);
-    get_flattened_sierra_contract_and_casm_hash(&contract_path)
+    get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH)
 }
 
 pub async fn assert_tx_successful<T: Provider>(tx_hash: &Felt, client: &T) {
