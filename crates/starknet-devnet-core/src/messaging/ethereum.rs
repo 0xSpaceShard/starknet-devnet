@@ -390,7 +390,6 @@ mod tests {
 
     #[test]
     fn test_message_to_l2_from_log() {
-        println!("{}", env!("CARGO_MANIFEST_DIR"));
         // Test based on Goerli tx hash:
         // 0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b
 
