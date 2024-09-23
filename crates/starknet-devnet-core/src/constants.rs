@@ -6,7 +6,7 @@ use starknet_rs_core::types::Felt;
 use starknet_types::chain_id::ChainId;
 
 pub const CAIRO_0_ACCOUNT_CONTRACT: &str = include_str!(
-    "../../../contracts/accounts_artifacts/OpenZeppelin/0.5.1/Account.cairo/Account.casm"
+    "../../../contracts/accounts_artifacts/OpenZeppelin/0.5.1/Account.cairo/Account.json"
 );
 
 pub const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
@@ -24,7 +24,7 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
     "0x061dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f";
 
 pub const CAIRO_1_ERC20_CONTRACT: &str =
-    include_str!("../../../contracts/accounts_artifacts/ERC20_Mintable_OZ_0.8.1.json");
+    include_str!("../../../contracts/accounts_artifacts/ERC20_Mintable_OZ_0.8.1.sierra");
 
 /// ERC20 class hash is hardcoded to be the same as OZ class hash ERC20.cairo although it should be
 /// different, due to commented key attributes in struct Approval (owner and spender), and add of
