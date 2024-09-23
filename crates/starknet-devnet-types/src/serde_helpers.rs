@@ -299,14 +299,18 @@ pub mod base_64_gzipped_json_string {
 
     #[cfg(test)]
     mod tests {
+        use std::fs::File;
+
         use serde::Deserialize;
+        use serde_json::json;
 
         use crate::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
-        use crate::utils::test_utils::CAIRO_0_ZIPPED_PROGRAM_PATH;
+        use crate::utils::test_utils::CAIRO_0_RPC_CONTRACT_PATH;
 
         #[test]
         fn deserialize_successfully_starknet_api_program() {
-            let json_str = std::fs::read_to_string(CAIRO_0_ZIPPED_PROGRAM_PATH).unwrap();
+            let json_value: serde_json::Value =
+                serde_json::from_reader(File::open(CAIRO_0_RPC_CONTRACT_PATH).unwrap()).unwrap();
 
             #[derive(Deserialize)]
             struct TestDeserialization {
@@ -317,7 +321,10 @@ pub mod base_64_gzipped_json_string {
                 program: serde_json::Value,
             }
 
-            serde_json::from_str::<TestDeserialization>(&json_str).unwrap();
+            serde_json::from_str::<TestDeserialization>(
+                &serde_json::to_string(&json!({ "program": json_value["program"]})).unwrap(),
+            )
+            .unwrap();
         }
     }
 }

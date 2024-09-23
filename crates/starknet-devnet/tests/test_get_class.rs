@@ -15,7 +15,6 @@ mod get_class_tests {
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
     use crate::common::utils::{
         assert_cairo1_classes_equal, get_events_contract_in_sierra_and_compiled_class_hash,
-        resolve_path,
     };
 
     #[tokio::test]
@@ -61,10 +60,9 @@ mod get_class_tests {
             ExecutionEncoding::New,
         ));
 
-        let json_string = std::fs::read_to_string(resolve_path(
-            "../starknet-devnet-core/test_artifacts/cairo_0_test.json",
-        ))
-        .unwrap();
+        let json_string =
+            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
+                .unwrap();
         let contract_class: Arc<LegacyContractClass> =
             Arc::new(serde_json::from_str(&json_string).unwrap());
 

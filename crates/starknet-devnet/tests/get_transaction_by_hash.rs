@@ -18,7 +18,7 @@ mod get_transaction_by_hash_integration_tests {
     use crate::common::constants;
     use crate::common::utils::{
         assert_tx_successful, get_deployable_account_signer,
-        get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
+        get_simple_contract_in_sierra_and_compiled_class_hash,
     };
 
     #[tokio::test]
@@ -26,10 +26,9 @@ mod get_transaction_by_hash_integration_tests {
         let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo0"])
             .await
             .expect("Could not start Devnet");
-        let json_string = std::fs::read_to_string(resolve_path(
-            "../starknet-devnet-core/test_artifacts/cairo_0_test.json",
-        ))
-        .unwrap();
+        let json_string =
+            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
+                .unwrap();
 
         let legacy_contract_class: LegacyContractClass =
             serde_json::from_str(&json_string).unwrap();

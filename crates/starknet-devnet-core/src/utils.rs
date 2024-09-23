@@ -106,11 +106,9 @@ pub(crate) mod test_utils {
     }
 
     pub(crate) fn dummy_cairo_1_contract_class() -> SierraContractClass {
-        let json_str = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/cairo_1_test.json"
-        ))
-        .unwrap();
+        let json_str =
+            std::fs::read_to_string("../../contracts/test_artifacts/cairo1/cairo_1_test.sierra")
+                .unwrap();
 
         ContractClass::cairo_1_from_sierra_json_str(&json_str).unwrap()
     }
@@ -169,10 +167,8 @@ pub(crate) mod test_utils {
     }
 
     pub(crate) fn cairo_0_account_without_validations() -> Cairo0ContractClass {
-        let account_json_path = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/account_without_validations/account.json"
-        );
+        let account_json_path =
+            "../../contracts/test_artifacts/cairo0/account_without_validations/account.json";
 
         Cairo0Json::raw_json_from_path(account_json_path).unwrap().into()
     }
@@ -212,21 +208,16 @@ pub mod exported_test_utils {
     use starknet_types::contract_class::Cairo0Json;
 
     pub fn dummy_cairo_l1l2_contract() -> Cairo0Json {
-        let json_str = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/cairo_0_l1l2.json"
-        ))
-        .unwrap();
+        let json_str =
+            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/l1l2.json").unwrap();
 
         Cairo0Json::raw_json_from_json_str(&json_str).unwrap()
     }
 
     pub fn dummy_cairo_0_contract_class() -> Cairo0Json {
-        let json_str = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/cairo_0_test.json"
-        ))
-        .unwrap();
+        let json_str =
+            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
+                .unwrap();
 
         Cairo0Json::raw_json_from_json_str(&json_str).unwrap()
     }
