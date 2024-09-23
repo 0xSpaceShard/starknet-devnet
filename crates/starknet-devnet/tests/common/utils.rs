@@ -42,12 +42,6 @@ pub fn get_deployable_account_signer() -> LocalWallet {
     ))
 }
 
-/// resolve a path relative to the current directory (starknet-server)
-pub fn resolve_path(relative_path: &str) -> String {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-    format!("{manifest_dir}/{relative_path}")
-}
-
 pub fn remove_file(path: &str) {
     let file_path = Path::new(path);
     if file_path.exists() {
@@ -71,34 +65,29 @@ pub fn get_flattened_sierra_contract_and_casm_hash(sierra_path: &str) -> SierraW
 }
 
 pub fn get_messaging_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
-    let sierra_path =
-        concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/messaging/cairo_1_l1l2.sierra");
+    let sierra_path = "../../contracts/l1-l2-artifacts/cairo_l1_l2.contract_class.sierra";
     get_flattened_sierra_contract_and_casm_hash(sierra_path)
 }
 
 pub fn get_messaging_lib_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
-    let sierra_path =
-        concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/messaging/cairo_1_l1l2_lib.sierra");
+    let sierra_path = "../../contracts/l1-l2-artifacts/cairo_l1_l2_lib.contract_class.sierra";
     get_flattened_sierra_contract_and_casm_hash(sierra_path)
 }
 
 pub fn get_events_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
-    let events_sierra_path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/test_data/cairo1/events/events_2.0.1_compiler.sierra"
-    );
+    let events_sierra_path =
+        "../../contracts/test_artifacts/cairo1/events/events_2.0.1_compiler.sierra";
     get_flattened_sierra_contract_and_casm_hash(events_sierra_path)
 }
 
 pub fn get_block_reader_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
     let timestamp_sierra_path =
-        concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/block_reader/block_reader.sierra");
+        "../../contracts/test_artifacts/cairo1/block_reader/block_reader.sierra";
     get_flattened_sierra_contract_and_casm_hash(timestamp_sierra_path)
 }
 
 pub fn get_simple_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
-    let contract_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), CAIRO_1_CONTRACT_PATH);
-    get_flattened_sierra_contract_and_casm_hash(&contract_path)
+    get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH)
 }
 
 pub async fn assert_tx_successful<T: Provider>(tx_hash: &Felt, client: &T) {

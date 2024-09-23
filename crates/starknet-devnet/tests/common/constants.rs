@@ -23,17 +23,18 @@ pub const PREDEPLOYED_ACCOUNT_PUBLIC_KEY: &str =
 pub const PREDEPLOYED_ACCOUNT_INITIAL_BALANCE: u128 = DEVNET_DEFAULT_INITIAL_BALANCE / 2;
 
 // Example contract with basic storage read and write - Cairo 1
-pub const CAIRO_1_CONTRACT_PATH: &str = "test_data/rpc/contract_cairo_v1/output.json";
+pub const CAIRO_1_CONTRACT_PATH: &str =
+    "../../contracts/test_artifacts/cairo1/simple_contract/output.sierra";
 pub const CASM_COMPILED_CLASS_HASH: &str =
     "0x63b33a5f2f46b1445d04c06d7832c48c48ad087ce0803b71f2b8d96353716ca";
 
 // Simple contract with a failable (panicking) function
 pub const CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH: &str =
-    "test_data/cairo1/panicking_contract/panicking_contract.sierra";
+    "../../contracts/test_artifacts/cairo1/panicking_contract/panicking_contract.sierra";
 
 // Contract which asserts the tx version
 pub const CAIRO_1_VERSION_ASSERTER_SIERRA_PATH: &str =
-    "test_data/cairo1/version_asserter/version_asserter.sierra";
+    "../../contracts/test_artifacts/cairo1/version_asserter/version_asserter.sierra";
 
 // L1 L2 pre-registered addresses.
 /// Hardcoded in the cairo0 l1l2 contract
@@ -49,7 +50,7 @@ pub const MESSAGING_L1_CONTRACT_ADDRESS: &str = "0xe7f1725e7734ce288f8367e1bb143
 
 /// Cairo 1 account which panics on validation
 pub const INVALID_ACCOUNT_SIERRA_PATH: &str =
-    "test_data/cairo1/invalid_account/invalid_account.sierra";
+    "../../contracts/test_artifacts/cairo1/invalid_account/invalid_account.sierra";
 
 /// hash of the sierra artifact at commit d9f5220059c1e61ff87e4a5752522569135e464c of
 /// argentlabs/argent-contracts-starknet:main
