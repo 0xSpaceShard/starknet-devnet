@@ -322,10 +322,7 @@ pub mod base_64_gzipped_json_string {
             }
 
             serde_json::from_str::<TestDeserialization>(
-                &serde_json::to_string(&json!({
-                    "program": json_value["program"]
-                }))
-                .unwrap(),
+                &serde_json::to_string(&json!({ "program": json_value["program"]})).unwrap(),
             )
             .unwrap();
         }
