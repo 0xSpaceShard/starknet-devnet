@@ -100,7 +100,8 @@ pub(crate) mod test_utils {
         concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo_0_rpc.json");
 
     /// contract declared in transaction https://alpha4.starknet.io/feeder_gateway/get_transaction?transactionHash=0x01b852f1fe2b13db21a44f8884bc4b7760dc277bb3820b970dba929860275617
-    pub(crate) const CAIRO_1_CONTRACT_PATH: &str =
+    /// cairo code is in the same directory as the sierra artifacts
+    pub(crate) const CAIRO_1_EVENTS_CONTRACT_PATH: &str =
         "../../contracts/test_artifacts/cairo1/events/events_2.0.1_compiler.sierra";
 
     pub(crate) const CAIRO_1_CONTRACT_SIERRA_HASH: &str =

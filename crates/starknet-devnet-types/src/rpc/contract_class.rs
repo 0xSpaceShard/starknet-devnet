@@ -314,15 +314,15 @@ mod tests {
     use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
     use crate::traits::HashProducer;
     use crate::utils::test_utils::{
-        CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH, CAIRO_1_CONTRACT_PATH,
-        CAIRO_1_CONTRACT_SIERRA_HASH,
+        CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH, CAIRO_1_CONTRACT_SIERRA_HASH,
+        CAIRO_1_EVENTS_CONTRACT_PATH,
     };
 
     #[test]
     fn cairo_1_contract_class_hash_generated_successfully() {
         let cairo_1_contract_sierra = ContractClass::Cairo1(
             ContractClass::cairo_1_from_sierra_json_str(
-                &std::fs::read_to_string(CAIRO_1_CONTRACT_PATH).unwrap(),
+                &std::fs::read_to_string(CAIRO_1_EVENTS_CONTRACT_PATH).unwrap(),
             )
             .unwrap(),
         );

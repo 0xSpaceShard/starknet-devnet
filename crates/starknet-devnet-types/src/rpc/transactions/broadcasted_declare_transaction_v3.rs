@@ -70,7 +70,8 @@ mod tests {
     use crate::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
     use crate::rpc::transactions::BroadcastedTransactionCommonV3;
     use crate::utils::test_utils::{
-        convert_from_sn_api_resource_bounds_mapping, from_u8_to_da_mode, CAIRO_1_CONTRACT_PATH,
+        convert_from_sn_api_resource_bounds_mapping, from_u8_to_da_mode,
+        CAIRO_1_EVENTS_CONTRACT_PATH,
     };
 
     #[derive(Deserialize)]
@@ -112,7 +113,7 @@ mod tests {
         // FeederGatewayDeclareTransactionV3
 
         let cairo_1_contract = ContractClass::cairo_1_from_sierra_json_str(
-            &std::fs::read_to_string(CAIRO_1_CONTRACT_PATH).unwrap(),
+            &std::fs::read_to_string(CAIRO_1_EVENTS_CONTRACT_PATH).unwrap(),
         )
         .unwrap();
 

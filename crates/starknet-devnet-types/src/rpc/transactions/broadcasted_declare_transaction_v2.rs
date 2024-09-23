@@ -54,7 +54,7 @@ mod tests {
     use crate::felt::try_felt_to_num;
     use crate::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use crate::rpc::transactions::BroadcastedDeclareTransaction;
-    use crate::utils::test_utils::CAIRO_1_CONTRACT_PATH;
+    use crate::utils::test_utils::CAIRO_1_EVENTS_CONTRACT_PATH;
 
     #[derive(Deserialize)]
     struct FeederGatewayDeclareTransactionV2 {
@@ -84,7 +84,7 @@ mod tests {
             serde_json::from_value(json_obj.get("transaction").unwrap().clone()).unwrap();
 
         let cairo_1_contract = ContractClass::cairo_1_from_sierra_json_str(
-            &std::fs::read_to_string(CAIRO_1_CONTRACT_PATH).unwrap(),
+            &std::fs::read_to_string(CAIRO_1_EVENTS_CONTRACT_PATH).unwrap(),
         )
         .unwrap();
         let broadcasted_declare_transaction = BroadcastedDeclareTransactionV2::new(
