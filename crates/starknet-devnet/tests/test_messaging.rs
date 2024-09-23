@@ -742,17 +742,15 @@ mod test_messaging {
             .unwrap();
 
         let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
-
         assert_eq!(user_balance_eth, 1.into()); // 2 - 1
         assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ZERO]);
 
         // Flush messages to have MessageToL2 executed.
         devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
 
+        let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
         assert_eq!(user_balance_eth, deposit_amount.into());
         assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ONE]);
-
-        devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
 
         // Restart Devnet, l1-l2 messaging should be intact
         devnet.restart().await;
