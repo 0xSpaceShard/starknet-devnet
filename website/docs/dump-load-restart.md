@@ -107,7 +107,7 @@ Devnet can be restarted by making a `POST /restart` request (no body required) o
 
 ### Restarting and L1-L2 messaging
 
-If you're doing [L1-L2 message exchange](./postman), restarting will by default not affect Devnet's connection with L1 nor the L1->L2 message queue. The effect that L1-L2 messages may have had on Devnet before restarting shall be reverted, including any L2 contracts used for messaging. Also, calling [`flush`](./postman#flush) will not have new messages to read until they are actually sent. If you wish to re-process the already-seen L1->L2 messages when you restart, make them accessible again by setting the `restart_messaging_to_l2` parameter shown below. If you set this flag:
+If you're doing [L1-L2 message exchange](./postman), restarting will by default not affect Devnet's connection with L1 nor the L1->L2 message queue. The effect that L1-L2 messages may have had on Devnet before restarting shall be reverted, including any L2 contracts used for messaging. Also, calling [`flush`](./postman#flush) will not have new messages to read until they are actually sent. If you wish to re-process the already-seen L1->L2 messages when you restart, make them accessible again by setting the `restart_l1_to_l2_messaging` parameter shown below. If you set this flag:
 
 - you will need to [reload the L1-side messaging contract](./postman#load)
 - the L1->L2 messages won't be restarted in the sense of being deleted, but access to them shall be regained via [`flush`](./postman#flush)
@@ -121,7 +121,7 @@ JSON-RPC
     "method": "devnet_restart",
     "params": {
         // optional parameter, defaults to false
-        "restart_messaging_to_l2": true | false
+        "restart_l1_to_l2_messaging": true | false
     }
 }
 ```

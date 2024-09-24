@@ -108,7 +108,7 @@ impl JsonRpcHandler {
     pub async fn load(&self, path: String) -> StrictRpcResult {
         let events = load_events(self.starknet_config.dump_on, &path)?;
         // Necessary to restart before loading; restarting messaging to allow re-execution
-        self.restart(Some(RestartParameters { restart_messaging_to_l2: true })).await?;
+        self.restart(Some(RestartParameters { restart_l1_to_l2_messaging: true })).await?;
         self.re_execute(&events).await.map_err(ApiError::RpcError)?;
 
         Ok(super::JsonRpcResponse::Empty)
@@ -163,7 +163,7 @@ impl JsonRpcHandler {
         self.api.dumpable_events.lock().await.clear();
 
         let restart_params = data.unwrap_or_default();
-        self.api.starknet.lock().await.restart(restart_params.restart_messaging_to_l2)?;
+        self.api.starknet.lock().await.restart(restart_params.restart_l1_to_l2_messaging)?;
 
         Ok(super::JsonRpcResponse::Empty)
     }
