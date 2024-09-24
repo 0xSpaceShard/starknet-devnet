@@ -5,7 +5,8 @@ mod minting_tests {
     use reqwest::StatusCode;
     use serde_json::json;
     use server::test_utils::assert_contains;
-    use starknet_rs_core::types::Felt;
+    use starknet_rs_core::types::{BlockHashAndNumber, BlockId, Felt};
+    use starknet_rs_providers::Provider;
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::num_bigint::BigUint;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
@@ -228,5 +229,34 @@ mod minting_tests {
             .post_json_async("/mint", json!({ "address": dummy_address, "amount": 1 }))
             .await
             .unwrap();
+    }
+
+    #[tokio::test]
+    async fn minting_in_multiple_steps_and_getting_balance_at_each_block() {
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .unwrap();
+
+        // create a block if there are no blocks before starting minting
+        devnet.create_block().await.unwrap();
+
+        let address = Felt::ONE;
+
+        let mint_amount = 1e18 as u128;
+        let unit = FeeUnit::WEI;
+
+        for _ in 0..3 {
+            let BlockHashAndNumber { block_hash, .. } =
+                devnet.json_rpc_client.block_hash_and_number().await.unwrap();
+
+            devnet.mint(address, mint_amount).await;
+
+            let balance_at_block =
+                devnet.get_balance_at_block(&address, BlockId::Hash(block_hash)).await.unwrap();
+            let latest_balance = devnet.get_balance_latest(&address, unit).await.unwrap();
+
+            assert!(balance_at_block + Felt::from(mint_amount) == latest_balance);
+        }
     }
 }
