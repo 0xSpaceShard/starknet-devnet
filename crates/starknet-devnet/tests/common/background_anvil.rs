@@ -54,7 +54,7 @@ impl BackgroundAnvil {
         let anvil_url = format!("http://{address}:{port}");
 
         let client = reqwest::Client::new();
-        let max_retries = 10;
+        let max_retries = 30;
         for _ in 0..max_retries {
             if let Ok(anvil_block_rsp) = send_dummy_request(&client, &anvil_url).await {
                 assert_eq!(anvil_block_rsp.status(), StatusCode::OK);
