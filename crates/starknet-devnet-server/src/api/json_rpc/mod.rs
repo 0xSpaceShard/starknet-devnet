@@ -45,7 +45,8 @@ use super::http::models::{
     AbortedBlocks, AbortingBlocks, AccountBalanceResponse, CreatedBlock, DumpPath,
     DumpResponseBody, FlushParameters, FlushedMessages, IncreaseTime, IncreaseTimeResponse,
     LoadPath, MessageHash, MessagingLoadAddress, MintTokensRequest, MintTokensResponse,
-    PostmanLoadL1MessagingContract, SerializableAccount, SetTime, SetTimeResponse,
+    PostmanLoadL1MessagingContract, RestartParameters, SerializableAccount, SetTime,
+    SetTimeResponse,
 };
 use super::Api;
 use crate::api::json_rpc::models::{
@@ -305,7 +306,7 @@ impl JsonRpcHandler {
             JsonRpcRequest::CreateBlock => self.create_block().await,
             JsonRpcRequest::AbortBlocks(data) => self.abort_blocks(data).await,
             JsonRpcRequest::SetGasPrice(data) => self.set_gas_price(data).await,
-            JsonRpcRequest::Restart => self.restart().await,
+            JsonRpcRequest::Restart(data) => self.restart(data).await,
             JsonRpcRequest::SetTime(data) => self.set_time(data).await,
             JsonRpcRequest::IncreaseTime(data) => self.increase_time(data).await,
             JsonRpcRequest::PredeployedAccounts(data) => self.get_predeployed_accounts(data).await,
@@ -492,8 +493,8 @@ pub enum JsonRpcRequest {
     AbortBlocks(AbortingBlocks),
     #[serde(rename = "devnet_setGasPrice")]
     SetGasPrice(GasModificationRequest),
-    #[serde(rename = "devnet_restart", with = "empty_params")]
-    Restart,
+    #[serde(rename = "devnet_restart", with = "optional_params")]
+    Restart(Option<RestartParameters>),
     #[serde(rename = "devnet_setTime")]
     SetTime(SetTime),
     #[serde(rename = "devnet_increaseTime")]

@@ -65,14 +65,14 @@ impl From<WalletError> for Error {
     }
 }
 
+#[derive(Clone)]
 /// Ethereum related configuration and types.
 pub struct EthereumMessaging {
     provider: Arc<Provider<Http>>,
     provider_signer: Arc<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
     messaging_contract_address: Address,
-    // This value must be dumped to avoid re-fetching already processed
-    // messages.
-    last_fetched_block: u64,
+    /// This value must be dumped to avoid re-fetching already processed messages.
+    pub(crate) last_fetched_block: u64,
     // A nonce verification may be added, with a nonce counter here.
     // If so, it must be dumped too.
 }
@@ -90,8 +90,7 @@ impl EthereumMessaging {
     ) -> DevnetResult<EthereumMessaging> {
         let provider = Provider::<Http>::try_from(rpc_url).map_err(|e| {
             Error::MessagingError(MessagingError::EthersError(format!(
-                "Can't parse L1 node URL: {} ({})",
-                rpc_url, e
+                "Can't parse L1 node URL: {rpc_url} ({e})"
             )))
         })?;
 
@@ -114,8 +113,7 @@ impl EthereumMessaging {
         if let Some(address) = contract_address {
             ethereum.messaging_contract_address = Address::from_str(address).map_err(|e| {
                 Error::MessagingError(MessagingError::EthersError(format!(
-                    "Address can't be parsed from string: {} ({})",
-                    address, e
+                    "Address {address} can't be parsed from string: {e}",
                 )))
             })?;
         } else {
@@ -139,34 +137,26 @@ impl EthereumMessaging {
 
     /// Fetches all the messages that were not already fetched from the L1 node.
     pub async fn fetch_messages(&mut self) -> DevnetResult<Vec<MessageToL2>> {
-        let chain_latest_block: u64 =
-            self.provider.get_block_number().await?.try_into().map_err(|e| {
-                Error::MessagingError(MessagingError::EthersError(format!(
-                    "Can't convert ethereum latest block number into u64: {}",
-                    e
-                )))
-            })?;
+        let chain_latest_block = self.provider.get_block_number().await?.as_u64();
 
         // For now we fetch all the blocks, without attempting to limit
         // the number of block as the RPC of dev nodes are more permissive.
         let to_block = chain_latest_block;
+
         // +1 exclude the latest fetched block the last time this function was called.
         let from_block = self.last_fetched_block + 1;
-
         let mut messages = vec![];
 
         self.fetch_logs(from_block, to_block).await?.into_iter().for_each(
             |(block_number, block_logs)| {
                 trace!(
-                    "Converting logs of block {block_number} into MessageToL2 ({} logs)",
+                    "Converting {} logs of block {block_number} into MessageToL2",
                     block_logs.len(),
                 );
 
                 block_logs.into_iter().for_each(|log| match message_to_l2_from_log(log) {
                     Ok(m) => messages.push(m),
-                    Err(e) => {
-                        warn!("Log from L1 node couldn't be converted to `MessageToL2`: {}", e)
-                    }
+                    Err(e) => warn!("Log from L1 node cannot be converted to MessageToL2: {e}"),
                 })
             },
         );
@@ -261,12 +251,7 @@ impl EthereumMessaging {
 
         for log in self.provider.get_logs(&filters).await?.into_iter() {
             if let Some(block_number) = log.block_number {
-                let block_number = block_number.try_into().map_err(|e| {
-                    Error::MessagingError(MessagingError::EthersError(format!(
-                        "Ethereum block number into u64: {e}",
-                    )))
-                })?;
-
+                let block_number = block_number.as_u64();
                 block_to_logs.entry(block_number).or_default().push(log);
             }
         }

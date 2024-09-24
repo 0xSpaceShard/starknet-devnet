@@ -105,6 +105,27 @@ If you dumped a Devnet utilizing one class for account predeployment (e.g. `--ac
 
 Devnet can be restarted by making a `POST /restart` request (no body required) or `JSON-RPC` request with method name `devnet_restart`. All of the deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests that may have been loaded from a dump file on startup.
 
+### Restarting and L1-L2 messaging
+
+If you're doing [L1-L2 message exchange](./postman), restarting will by default not affect Devnet's connection with L1 nor the L1->L2 message queue. The effect that L1-L2 messages may have had on Devnet before restarting shall be reverted, including any L2 contracts used for messaging. Also, calling [`flush`](./postman#flush) will not have new messages to read until they are actually sent. If you wish to re-process the already-seen L1->L2 messages when you restart, make them accessible again by setting the `restart_l1_to_l2_messaging` parameter shown below. If you set this flag:
+
+- you will need to [reload the L1-side messaging contract](./postman#load)
+- the L1->L2 messages won't be restarted in the sense of being deleted, but access to them shall be regained via [`flush`](./postman#flush)
+- the L2->L1 message queue is restarted regardless of the flag
+
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_restart",
+    "params": {
+        // optional parameter, defaults to false
+        "restart_l1_to_l2_messaging": true | false
+    }
+}
+```
+
 ## Docker
 
 To enable dumping and loading with dockerized Devnet, you must bind the container path to the path on your host machine.
