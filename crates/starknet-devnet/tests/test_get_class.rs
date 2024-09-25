@@ -378,7 +378,7 @@ mod get_class_tests {
             .unwrap_err()
         {
             ProviderError::StarknetError(StarknetError::ClassHashNotFound) => {}
-            error => panic!("Unexpect error {error:?}"),
+            error => panic!("Unexpected error {error:?}"),
         }
     }
 }
