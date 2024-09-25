@@ -1,12 +1,14 @@
 use std::time::Duration;
 
 use axum::body::{Body, Bytes};
-use axum::extract::{Request, State};
+use axum::extract::ws::{Message, WebSocket};
+use axum::extract::{Request, State, WebSocketUpgrade};
 use axum::http::{HeaderValue, StatusCode};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post, IntoMakeService, MethodRouter};
 use axum::Router;
+use futures::StreamExt;
 use http_body_util::BodyExt;
 use lazy_static::lazy_static;
 use reqwest::{header, Method};
@@ -96,6 +98,7 @@ pub async fn serve_http_api_json_rpc(
         .merge(json_rpc_routes(json_rpc_handler.clone()))
         .merge(http_api_routes(http_handler))
         .merge(converted_http_api_routes(json_rpc_handler))
+        .route("/ws", get(ws_handler))
         .layer(TraceLayer::new_for_http());
 
     if server_config.log_response {
@@ -220,4 +223,36 @@ async fn restrictive_middleware(
         }
     }
     Ok(next.run(request).await)
+}
+
+async fn ws_handler(ws: WebSocketUpgrade) -> impl IntoResponse {
+    tracing::info!("New websocket connection!");
+    ws.on_failed_upgrade(|e| tracing::error!("Failed websocket upgrade: {e:?}"))
+        .on_upgrade(handle_socket)
+}
+
+// Function to handle the WebSocket connection
+async fn handle_socket(mut socket: WebSocket) {
+    while let Some(msg) = socket.next().await {
+        match msg {
+            Ok(Message::Text(text)) => {
+                println!("Received: {}", text);
+
+                // Echo the received message back
+                if let Err(e) = socket.send(Message::Text(text)).await {
+                    tracing::error!("Error sending message: {}", e);
+                    return;
+                }
+            }
+            Ok(Message::Close(_)) => {
+                tracing::info!("Websocket disconnected");
+                return;
+            }
+            other => {
+                tracing::error!("Socket handler got an unexpected packet: {other:?}")
+            }
+        }
+    }
+
+    tracing::error!("Failed socket read");
 }
