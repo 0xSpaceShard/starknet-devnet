@@ -15,3 +15,7 @@ The value passed to `--fork-network` should be the URL to a Starknet JSON-RPC AP
 ## Deploying an undeclared account
 
 [Here](./predeployed#deploying-an-undeclared-account) you can read about deploying an account not declared on Devnet.
+
+## Checking forking status
+
+To see if your Devnet instance is using forking or not, [fetch the current configuration](./api#config-api), and check the `url` property of its `fork_config` property. If Devnet is forked, this property contains the string of the origin URL specified on startup.

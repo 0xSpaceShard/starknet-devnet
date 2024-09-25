@@ -6,7 +6,7 @@ All values should be set in [Unix time seconds](https://en.wikipedia.org/wiki/Un
 
 ## Set time
 
-Sets the exact time and generates a new block.
+The following sets the exact time and generates a new block:
 
 ```
 POST /set_time
@@ -27,7 +27,7 @@ JSON-RPC
 }
 ```
 
-Doesn't generate a new block, but sets the exact time for the next generated block.
+The following doesn't generate a new block, but sets the exact time for the next generated block:
 
 ```
 POST /set_time
@@ -77,8 +77,8 @@ JSON-RPC
 
 ## Start time argument
 
-Devnet can be started with `--start-time` CLI argument, where `START_TIME_IN_SECONDS` should be greater than 0.
+Devnet's time can be defined on startup via CLI by providing a positive value to `--start-time`:
 
 ```
-$ starknet-devnet --start-time <START_TIME_IN_SECONDS>
+$ starknet-devnet --start-time <SECONDS>
 ```

@@ -22,24 +22,7 @@ In case of demanding block creation with no pending transactions, a new empty bl
 
 The creation of the genesis block is not affected by this feature.
 
-```
-POST /create_block
-```
-
-```
-JSON-RPC
-{
-    "jsonrpc": "2.0",
-    "id": "1",
-    "method": "devnet_createBlock"
-}
-```
-
-Response:
-
-```
-{'block_hash': '0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67'}
-```
+The specifications of a block-creating request can be found [below](#request-new-block-creation).
 
 ## Automatic periodic block creation
 
@@ -89,6 +72,10 @@ Response:
 ```
 
 The newly created block will contain all pending transactions, if any, since the last block creation.
+
+### Timestamp manipulation
+
+To affect the timestamp of the newly created block, check out [this page](./starknet-time#set-time)
 
 ## Abort blocks
 
