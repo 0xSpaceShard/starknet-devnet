@@ -28,7 +28,7 @@ keywords = ["starknet", "cairo", "testnet", "local", "server"]
 [workspace.dependencies]
 
 # axum
-axum = { version = "0.7" }
+axum = { version = "0.7", features = ["ws"] }
 http-body-util = { version = "0.1" }
 tower-http = { version = "0.5", features = ["full"] }
 
