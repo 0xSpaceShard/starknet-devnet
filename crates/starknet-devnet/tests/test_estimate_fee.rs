@@ -9,7 +9,8 @@ mod estimate_fee_tests {
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
         Account, AccountError, AccountFactory, AccountFactoryError, ConnectedAccount,
-        ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
+        ExecutionEncoder, ExecutionEncoding, OpenZeppelinAccountFactory, RawLegacyDeclaration,
+        SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
@@ -22,6 +23,7 @@ mod estimate_fee_tests {
         cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
     use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_rs_signers::Signer;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::felt::{felt_from_prefixed_hex, try_felt_to_num};
 
@@ -37,7 +39,8 @@ mod estimate_fee_tests {
 
     fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
         assert_eq!(
-            fee_estimation.gas_price * fee_estimation.gas_consumed,
+            fee_estimation.gas_price * fee_estimation.gas_consumed
+                + fee_estimation.data_gas_consumed * fee_estimation.data_gas_price,
             fee_estimation.overall_fee
         );
         assert!(
@@ -53,7 +56,6 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
-    #[ignore = "Starknet-rs does not support rpc 0.7.0"]
     async fn estimate_fee_of_deploy_account() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -144,7 +146,6 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
-    #[ignore = "Starknet-rs does not support rpc 0.7.0"]
     async fn estimate_fee_of_declare_v1() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -200,7 +201,6 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
-    #[ignore = "Starknet-rs does not support rpc 0.7.0"]
     async fn estimate_fee_of_declare_v2() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -264,7 +264,6 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
-    #[ignore = "Starknet-rs does not support rpc 0.7.0"]
     async fn estimate_fee_of_invoke() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -352,7 +351,7 @@ mod estimate_fee_tests {
         assert_tx_reverted(
             &unsuccessful_invoke_tx.transaction_hash,
             &devnet.json_rpc_client,
-            &["Calculated fee", "exceeds max fee"],
+            &["Insufficient max fee"],
         )
         .await;
 
