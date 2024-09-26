@@ -9,8 +9,7 @@ mod estimate_fee_tests {
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
         Account, AccountError, AccountFactory, AccountFactoryError, ConnectedAccount,
-        ExecutionEncoder, ExecutionEncoding, OpenZeppelinAccountFactory, RawLegacyDeclaration,
-        SingleOwnerAccount,
+        ExecutionEncoder, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
@@ -34,7 +33,7 @@ mod estimate_fee_tests {
     };
     use crate::common::utils::{
         assert_tx_reverted, assert_tx_successful, get_deployable_account_signer,
-        get_flattened_sierra_contract_and_casm_hash, to_hex_felt,
+        get_flattened_sierra_contract_and_casm_hash,
     };
 
     fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
