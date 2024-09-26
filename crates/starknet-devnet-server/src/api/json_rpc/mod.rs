@@ -162,12 +162,17 @@ impl RpcHandler for JsonRpcHandler {
         while let Some(msg) = socket.next().await {
             match msg {
                 Ok(Message::Text(text)) => {
-                    println!("Received: {}", text);
-
-                    // Echo the received message back
-                    if let Err(e) = socket.send(Message::Text(text)).await {
-                        tracing::error!("Error sending message: {}", e);
-                        return;
+                    match serde_json::from_str::<RpcMethodCall>(&text) {
+                        Ok(call) => {
+                            let resp = self.on_call(call).await;
+                            let resp_serialized = serde_json::to_string(&resp).unwrap();
+                            // tracing::error!("Error sending message: {}", e);
+                            socket.send(Message::Text(resp_serialized)).await.unwrap();
+                        }
+                        Err(e) => {
+                            // tracing::error!("Error sending message: {}", e);
+                            socket.send(Message::Text(e.to_string())).await.unwrap();
+                        }
                     }
                 }
                 Ok(Message::Close(_)) => {
