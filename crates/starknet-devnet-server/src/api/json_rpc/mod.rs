@@ -8,7 +8,9 @@ mod write_endpoints;
 
 pub const RPC_SPEC_VERSION: &str = "0.7.1";
 
+use axum::extract::ws::{Message, WebSocket};
 use enum_helper_macros::{AllVariantsSerdeRenames, VariantName};
+use futures::StreamExt;
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput, TransactionHashOutput,
@@ -153,6 +155,32 @@ impl RpcHandler for JsonRpcHandler {
                 }
             }
         }
+    }
+
+    // Function to handle the WebSocket connection
+    async fn on_websocket(&self, mut socket: WebSocket) {
+        while let Some(msg) = socket.next().await {
+            match msg {
+                Ok(Message::Text(text)) => {
+                    println!("Received: {}", text);
+
+                    // Echo the received message back
+                    if let Err(e) = socket.send(Message::Text(text)).await {
+                        tracing::error!("Error sending message: {}", e);
+                        return;
+                    }
+                }
+                Ok(Message::Close(_)) => {
+                    tracing::info!("Websocket disconnected");
+                    return;
+                }
+                other => {
+                    tracing::error!("Socket handler got an unexpected packet: {other:?}")
+                }
+            }
+        }
+
+        tracing::error!("Failed socket read");
     }
 }
 

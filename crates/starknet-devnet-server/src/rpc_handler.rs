@@ -1,7 +1,9 @@
 use std::fmt::{self};
 
 use axum::extract::rejection::JsonRejection;
-use axum::extract::State;
+use axum::extract::ws::WebSocket;
+use axum::extract::{State, WebSocketUpgrade};
+use axum::response::IntoResponse;
 use axum::Json;
 use futures::{future, FutureExt};
 use serde::de::DeserializeOwned;
@@ -33,6 +35,9 @@ pub trait RpcHandler: Clone + Send + Sync + 'static {
     /// **Note**: override this function if the expected `Request` deviates from `{ "method" :
     /// "<name>", "params": "<params>" }`
     async fn on_call(&self, call: RpcMethodCall) -> RpcResponse;
+
+    /// Handles websocket connection, from start to finish.
+    async fn on_websocket(&self, mut socket: WebSocket);
 }
 
 /// Handles incoming JSON-RPC Request
@@ -50,6 +55,21 @@ pub async fn handle<THandler: RpcHandler>(
             Response::error(RpcError::invalid_request()).into()
         }
     }
+}
+
+pub async fn handle_socket<THandler: RpcHandler>(
+    ws_upgrade: WebSocketUpgrade,
+    State(handler): State<THandler>,
+) -> impl IntoResponse {
+    tracing::info!("New websocket connection!");
+    ws_upgrade.on_failed_upgrade(|e| tracing::error!("Failed websocket upgrade: {e:?}")).on_upgrade(
+        move |socket| {
+            // let handler_clone = handler.clone();
+            async move {
+                handler.on_websocket(socket).await;
+            }
+        },
+    )
 }
 
 #[macro_export]
