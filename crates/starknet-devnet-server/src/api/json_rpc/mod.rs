@@ -157,30 +157,37 @@ impl RpcHandler for JsonRpcHandler {
         }
     }
 
-    // Function to handle the WebSocket connection
     async fn on_websocket(&self, mut socket: WebSocket) {
         while let Some(msg) = socket.next().await {
             match msg {
-                Ok(Message::Text(text)) => {
-                    match serde_json::from_str::<RpcMethodCall>(&text) {
-                        Ok(call) => {
-                            let resp = self.on_call(call).await;
-                            let resp_serialized = serde_json::to_string(&resp).unwrap();
-                            // tracing::error!("Error sending message: {}", e);
-                            socket.send(Message::Text(resp_serialized)).await.unwrap();
-                        }
-                        Err(e) => {
-                            // tracing::error!("Error sending message: {}", e);
-                            socket.send(Message::Text(e.to_string())).await.unwrap();
+                Ok(Message::Text(text)) => match serde_json::from_str::<RpcMethodCall>(&text) {
+                    Ok(call) => {
+                        let resp = self.on_call(call).await;
+                        let resp_serialized = serde_json::to_string(&resp).unwrap_or_else(|e| {
+                            let err_msg = format!("Error converting RPC response to string: {e}");
+                            tracing::error!(err_msg);
+                            err_msg
+                        });
+
+                        if let Err(e) = socket.send(Message::Text(resp_serialized)).await {
+                            tracing::error!("Error sending websocket message: {e}");
                         }
                     }
+                    Err(e) => {
+                        if let Err(e) = socket.send(Message::Text(e.to_string())).await {
+                            tracing::error!("Error sending websocket message: {e}");
+                        }
+                    }
+                },
+                Ok(Message::Binary(_bytes)) => {
+                    todo!("Perhaps cover this case, too");
                 }
                 Ok(Message::Close(_)) => {
                     tracing::info!("Websocket disconnected");
                     return;
                 }
                 other => {
-                    tracing::error!("Socket handler got an unexpected packet: {other:?}")
+                    tracing::error!("Socket handler got an unexpected message: {other:?}")
                 }
             }
         }
