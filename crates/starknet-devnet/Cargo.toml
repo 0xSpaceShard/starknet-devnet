@@ -53,6 +53,7 @@ usc = { workspace = true }
 reqwest = { workspace = true }
 criterion = { workspace = true }
 serial_test = { workspace = true }
+tokio-tungstenite = { workspace = true }
 
 
 [[bench]]

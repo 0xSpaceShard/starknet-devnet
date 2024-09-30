@@ -25,7 +25,7 @@ use url::Url;
 
 use super::constants::{
     ACCOUNTS, HEALTHCHECK_PATH, HOST, MAX_PORT, MIN_PORT, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
-    RPC_PATH, SEED,
+    RPC_PATH, SEED, WS_PATH,
 };
 use super::errors::TestError;
 use super::reqwest_client::{PostReqwestSender, ReqwestClient};
@@ -158,6 +158,10 @@ impl BackgroundDevnet {
         }
 
         Err(TestError::DevnetNotStartable)
+    }
+
+    pub fn ws_url(&self) -> String {
+        format!("ws://{HOST}:{}{WS_PATH}", self.port)
     }
 
     pub async fn send_custom_rpc(

@@ -63,11 +63,8 @@ pub async fn handle_socket<THandler: RpcHandler>(
 ) -> impl IntoResponse {
     tracing::info!("New websocket connection!");
     ws_upgrade.on_failed_upgrade(|e| tracing::error!("Failed websocket upgrade: {e:?}")).on_upgrade(
-        move |socket| {
-            // let handler_clone = handler.clone();
-            async move {
-                handler.on_websocket(socket).await;
-            }
+        move |socket| async move {
+            handler.on_websocket(socket).await;
         },
     )
 }
