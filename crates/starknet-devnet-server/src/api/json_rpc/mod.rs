@@ -160,27 +160,11 @@ impl RpcHandler for JsonRpcHandler {
     async fn on_websocket(&self, mut socket: WebSocket) {
         while let Some(msg) = socket.next().await {
             match msg {
-                Ok(Message::Text(text)) => match serde_json::from_str::<RpcMethodCall>(&text) {
-                    Ok(call) => {
-                        let resp = self.on_call(call).await;
-                        let resp_serialized = serde_json::to_string(&resp).unwrap_or_else(|e| {
-                            let err_msg = format!("Error converting RPC response to string: {e}");
-                            tracing::error!(err_msg);
-                            err_msg
-                        });
-
-                        if let Err(e) = socket.send(Message::Text(resp_serialized)).await {
-                            tracing::error!("Error sending websocket message: {e}");
-                        }
-                    }
-                    Err(e) => {
-                        if let Err(e) = socket.send(Message::Text(e.to_string())).await {
-                            tracing::error!("Error sending websocket message: {e}");
-                        }
-                    }
-                },
-                Ok(Message::Binary(_bytes)) => {
-                    todo!("Perhaps cover this case, too");
+                Ok(Message::Text(text)) => {
+                    self.handle_websocket_call(text.as_bytes(), &mut socket).await;
+                }
+                Ok(Message::Binary(bytes)) => {
+                    self.handle_websocket_call(&bytes, &mut socket).await;
                 }
                 Ok(Message::Close(_)) => {
                     tracing::info!("Websocket disconnected");
@@ -385,6 +369,29 @@ impl JsonRpcHandler {
         }
 
         starknet_resp.to_rpc_result()
+    }
+
+    /// Takes `bytes` to be an encoded RPC call, executes it, and sends the response back via `ws`.
+    async fn handle_websocket_call(&self, bytes: &[u8], ws: &mut WebSocket) {
+        match serde_json::from_slice(bytes) {
+            Ok(call) => {
+                let resp = self.on_call(call).await;
+                let resp_serialized = serde_json::to_string(&resp).unwrap_or_else(|e| {
+                    let err_msg = format!("Error converting RPC response to string: {e}");
+                    tracing::error!(err_msg);
+                    err_msg
+                });
+
+                if let Err(e) = ws.send(Message::Text(resp_serialized)).await {
+                    tracing::error!("Error sending websocket message: {e}");
+                }
+            }
+            Err(e) => {
+                if let Err(e) = ws.send(Message::Text(e.to_string())).await {
+                    tracing::error!("Error sending websocket message: {e}");
+                }
+            }
+        }
     }
 
     const DUMPABLE_METHODS: &'static [&'static str] = &[

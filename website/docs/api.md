@@ -28,7 +28,7 @@ To check if a Devnet instance is alive, send an HTTP request `GET /is_alive`. If
 
 ### WebSocket
 
-All JSON-RPC methods can be accessed via the WebSocket protocol. Devnet is listening for new WebSocket connections at `ws://<HOST>:<PORT>/ws` (notice the protocol scheme). Any request body you would send to `/rpc` you can send as a text message via WebSocket. E.g. using [`wscat`](https://www.npmjs.com/package/wscat) on the same computer where Devnet is spawned at default host and port:
+All JSON-RPC methods can be accessed via the WebSocket protocol. Devnet is listening for new WebSocket connections at `ws://<HOST>:<PORT>/ws` (notice the protocol scheme). Any request body you would send to `/rpc` you can send as a text (or binary) message via WebSocket. E.g. using [`wscat`](https://www.npmjs.com/package/wscat) on the same computer where Devnet is spawned at default host and port:
 
 ```
 $ wscat -c ws://127.0.0.1:5050/ws
