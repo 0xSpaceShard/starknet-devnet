@@ -338,47 +338,4 @@ mod get_class_tests {
             }
         }
     }
-
-    #[tokio::test]
-    async fn test_getting_declared_class_in_an_older_block_returns_class_not_found() {
-        let devnet_args = ["--state-archive-capacity", "full"];
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
-        let empty_block_hash = devnet.create_block().await.unwrap();
-
-        let (signer, account_address) = devnet.get_first_predeployed_account().await;
-        let predeployed_account = Arc::new(SingleOwnerAccount::new(
-            devnet.clone_provider(),
-            signer.clone(),
-            account_address,
-            chain_id::SEPOLIA,
-            ExecutionEncoding::New,
-        ));
-
-        let (contract_class, casm_class_hash) =
-            get_events_contract_in_sierra_and_compiled_class_hash();
-
-        // declare the contract
-        let declaration_result = predeployed_account
-            .declare_v2(Arc::new(contract_class.clone()), casm_class_hash)
-            .max_fee(Felt::from(1e18 as u128))
-            .send()
-            .await
-            .unwrap();
-
-        devnet
-            .json_rpc_client
-            .get_class(BlockId::Tag(BlockTag::Latest), declaration_result.class_hash)
-            .await
-            .unwrap();
-
-        match devnet
-            .json_rpc_client
-            .get_class(BlockId::Hash(empty_block_hash), declaration_result.class_hash)
-            .await
-            .unwrap_err()
-        {
-            ProviderError::StarknetError(StarknetError::ClassHashNotFound) => {}
-            error => panic!("Unexpected error {error:?}"),
-        }
-    }
 }

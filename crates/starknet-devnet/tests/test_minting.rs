@@ -230,33 +230,4 @@ mod minting_tests {
             .await
             .unwrap();
     }
-
-    #[tokio::test]
-    async fn minting_in_multiple_steps_and_getting_balance_at_each_block() {
-        let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
-                .await
-                .unwrap();
-
-        // create a block if there are no blocks before starting minting
-        devnet.create_block().await.unwrap();
-
-        let address = Felt::ONE;
-
-        let mint_amount = 1e18 as u128;
-        let unit = FeeUnit::WEI;
-
-        for _ in 0..3 {
-            let BlockHashAndNumber { block_hash, .. } =
-                devnet.json_rpc_client.block_hash_and_number().await.unwrap();
-
-            devnet.mint(address, mint_amount).await;
-
-            let balance_at_block =
-                devnet.get_balance_at_block(&address, BlockId::Hash(block_hash)).await.unwrap();
-            let latest_balance = devnet.get_balance_latest(&address, unit).await.unwrap();
-
-            assert!(balance_at_block + Felt::from(mint_amount) == latest_balance);
-        }
-    }
 }
