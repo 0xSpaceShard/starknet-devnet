@@ -91,4 +91,13 @@ mod websocket_support {
             .unwrap();
         assert_eq!(balance, Felt::from(single_mint_amount * iterations));
     }
+
+    #[tokio::test]
+    async fn invalid_request() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        let resp = send_rpc_via_ws(&mut ws, "devnet_mint", json!({})).await.unwrap();
+        assert_eq!(resp["error"]["message"], "missing field `address`");
+    }
 }
