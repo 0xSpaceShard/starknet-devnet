@@ -161,10 +161,10 @@ impl RpcHandler for JsonRpcHandler {
         while let Some(msg) = socket.next().await {
             match msg {
                 Ok(Message::Text(text)) => {
-                    self.handle_websocket_call(text.as_bytes(), &mut socket).await;
+                    self.on_websocket_rpc_call(text.as_bytes(), &mut socket).await;
                 }
                 Ok(Message::Binary(bytes)) => {
-                    self.handle_websocket_call(&bytes, &mut socket).await;
+                    self.on_websocket_rpc_call(&bytes, &mut socket).await;
                 }
                 Ok(Message::Close(_)) => {
                     tracing::info!("Websocket disconnected");
@@ -372,7 +372,7 @@ impl JsonRpcHandler {
     }
 
     /// Takes `bytes` to be an encoded RPC call, executes it, and sends the response back via `ws`.
-    async fn handle_websocket_call(&self, bytes: &[u8], ws: &mut WebSocket) {
+    async fn on_websocket_rpc_call(&self, bytes: &[u8], ws: &mut WebSocket) {
         match serde_json::from_slice(bytes) {
             Ok(call) => {
                 let resp = self.on_call(call).await;
