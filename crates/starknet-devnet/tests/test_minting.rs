@@ -5,8 +5,7 @@ mod minting_tests {
     use reqwest::StatusCode;
     use serde_json::json;
     use server::test_utils::assert_contains;
-    use starknet_rs_core::types::{BlockHashAndNumber, BlockId, Felt};
-    use starknet_rs_providers::Provider;
+    use starknet_rs_core::types::Felt;
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::num_bigint::BigUint;
     use starknet_types::rpc::transaction_receipt::FeeUnit;

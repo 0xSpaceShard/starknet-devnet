@@ -194,7 +194,7 @@ mod old_state {
                         is_query: true,
                     },
                 )),
-                &[SimulationFlag::SkipValidate],
+                [SimulationFlag::SkipValidate],
             )
             .await
             .unwrap_err();
