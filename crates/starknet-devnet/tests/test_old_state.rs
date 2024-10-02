@@ -9,8 +9,8 @@ mod old_state {
     use starknet_rs_core::chain_id::SEPOLIA;
     use starknet_rs_core::types::{
         BlockHashAndNumber, BlockId, BlockTag, BroadcastedInvokeTransaction,
-        BroadcastedInvokeTransactionV1, BroadcastedTransaction, Call, ContractErrorData, Felt,
-        SimulationFlag, SimulationFlagForEstimateFee, StarknetError,
+        BroadcastedInvokeTransactionV1, BroadcastedTransaction, Call, ContractClass,
+        ContractErrorData, Felt, SimulationFlag, SimulationFlagForEstimateFee, StarknetError,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_storage_var_address};
     use starknet_rs_providers::{Provider, ProviderError};
@@ -19,7 +19,7 @@ mod old_state {
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{self, CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID};
     use crate::common::utils::{
-        get_events_contract_in_sierra_and_compiled_class_hash,
+        assert_cairo1_classes_equal, get_events_contract_in_sierra_and_compiled_class_hash,
         get_flattened_sierra_contract_and_casm_hash,
     };
 
@@ -209,10 +209,9 @@ mod old_state {
     }
 
     #[tokio::test]
-    async fn test_getting_declared_class_in_an_older_block_returns_class_not_found() {
+    async fn test_getting_class_at_various_blocks() {
         let devnet_args = ["--state-archive-capacity", "full"];
         let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
-        let empty_block_hash = devnet.create_block().await.unwrap();
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let predeployed_account = Arc::new(SingleOwnerAccount::new(
@@ -234,20 +233,37 @@ mod old_state {
             .await
             .unwrap();
 
-        devnet
-            .json_rpc_client
-            .get_class(BlockId::Tag(BlockTag::Latest), declaration_result.class_hash)
-            .await
-            .unwrap();
+        let declaration_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
-        match devnet
-            .json_rpc_client
-            .get_class(BlockId::Hash(empty_block_hash), declaration_result.class_hash)
-            .await
-            .unwrap_err()
-        {
-            ProviderError::StarknetError(StarknetError::ClassHashNotFound) => {}
-            error => panic!("Unexpected error {error:?}"),
+        // create an extra block so the declaration block is no longer the latest
+        devnet.create_block().await.unwrap();
+
+        // getting class at the following block IDs should be successful
+        let expected_class = ContractClass::Sierra(contract_class);
+        for block_id in [
+            BlockId::Tag(BlockTag::Latest),
+            BlockId::Tag(BlockTag::Pending),
+            BlockId::Number(declaration_block.block_number),
+            BlockId::Number(declaration_block.block_number + 1),
+            BlockId::Hash(declaration_block.block_hash),
+        ] {
+            let retrieved_class = devnet
+                .json_rpc_client
+                .get_class(block_id, declaration_result.class_hash)
+                .await
+                .unwrap();
+
+            assert_cairo1_classes_equal(&retrieved_class, &expected_class).unwrap();
+        }
+
+        // getting class at the following block IDs should NOT be successful
+        for block_id in [BlockId::Number(declaration_block.block_number - 1)] {
+            let retrieved =
+                devnet.json_rpc_client.get_class(block_id, declaration_result.class_hash).await;
+            match retrieved {
+                Err(ProviderError::StarknetError(StarknetError::ClassHashNotFound)) => (),
+                other => panic!("Unexpected response: {other:?}"),
+            }
         }
     }
 
