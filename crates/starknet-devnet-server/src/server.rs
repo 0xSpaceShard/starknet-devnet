@@ -55,6 +55,7 @@ fn json_rpc_routes<TJsonRpcHandler: RpcHandler>(json_rpc_handler: TJsonRpcHandle
     Router::new()
         .route("/", post(rpc_handler::handle::<TJsonRpcHandler>))
         .route("/rpc", post(rpc_handler::handle::<TJsonRpcHandler>))
+        .route("/ws", get(rpc_handler::handle_socket::<TJsonRpcHandler>))
         .with_state(json_rpc_handler)
 }
 

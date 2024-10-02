@@ -28,7 +28,7 @@ keywords = ["starknet", "cairo", "testnet", "local", "server"]
 [workspace.dependencies]
 
 # axum
-axum = { version = "0.7" }
+axum = { version = "0.7", features = ["ws"] }
 http-body-util = { version = "0.1" }
 tower-http = { version = "0.5", features = ["full"] }
 
@@ -115,6 +115,7 @@ parking_lot = "0.12.3"
 serial_test = "3.1.1"
 hex = "0.4.3"
 lazy_static = { version = "1.4.0" }
+tokio-tungstenite = { version = "0.21.0" }
 
 # Benchmarking
 criterion = { version = "0.3.4", features = ["async_tokio"] }
