@@ -12,6 +12,7 @@ pub const CHAIN_ID_CLI_PARAM: &str = "TESTNET";
 // URL paths
 pub const RPC_PATH: &str = "/rpc";
 pub const HEALTHCHECK_PATH: &str = "/is_alive";
+pub const WS_PATH: &str = "/ws";
 
 // predeployed account info with seed=42
 pub const PREDEPLOYED_ACCOUNT_ADDRESS: &str =

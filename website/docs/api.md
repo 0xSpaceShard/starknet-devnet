@@ -26,6 +26,17 @@ New features are only supported as part of the JSON-RPC API. Older non-RPC reque
 
 To check if a Devnet instance is alive, send an HTTP request `GET /is_alive`. If alive, the Devnet will reply with a `200 OK` and an appropriate message.
 
+### WebSocket
+
+All JSON-RPC methods can be accessed via the WebSocket protocol. Devnet is listening for new WebSocket connections at `ws://<HOST>:<PORT>/ws` (notice the protocol scheme). Any request body you would send to `/rpc` you can send as a text (or binary) message via WebSocket. E.g. using [`wscat`](https://www.npmjs.com/package/wscat) on the same computer where Devnet is spawned at default host and port:
+
+```
+$ wscat -c ws://127.0.0.1:5050/ws
+Connected (press CTRL+C to quit)
+> { "jsonrpc": "2.0", "id": 0, "method": "devnet_mint", "params": { "amount": 10, "address": "0xabc" } }
+< {"jsonrpc":"2.0","id":0,"result":{"new_balance":"10","unit":"WEI","tx_hash":"0x22aef5a981d547b4e8100b83d4ef82e69dff28e5888c6b1320f38da3a379ad5"}}
+```
+
 ## Interacting with Devnet in JavaScript and TypeScript
 
 To spawn Devnet and interact with it using the [Devnet API](#devnet-api), you can use [`starknet-devnet-js`](https://github.com/0xSpaceShard/starknet-devnet-js/). This can be especially useful in achieving [L1-L2 communication](./postman.md#l1-l2-interaction-via-postman).
