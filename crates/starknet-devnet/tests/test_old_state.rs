@@ -165,8 +165,7 @@ mod old_state {
                 [BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
                     BroadcastedInvokeTransactionV1 {
                         max_fee: Felt::ZERO,
-                        // precalculated signature
-                        signature: [].to_vec(),
+                        signature: vec![],
                         nonce: Felt::ZERO,
                         sender_address: account_address,
                         calldata: calldata.clone(),
@@ -186,8 +185,7 @@ mod old_state {
                 BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
                     BroadcastedInvokeTransactionV1 {
                         max_fee: Felt::from(1e18 as u128),
-                        // precalculated signature
-                        signature: [].to_vec(),
+                        signature: vec![],
                         nonce: Felt::ZERO,
                         sender_address: account_address,
                         calldata,
