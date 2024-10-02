@@ -9,7 +9,7 @@ mod estimate_fee_tests {
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
         Account, AccountError, AccountFactory, AccountFactoryError, ConnectedAccount,
-        ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
+        ExecutionEncoder, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
@@ -22,6 +22,7 @@ mod estimate_fee_tests {
         cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
     use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_rs_signers::Signer;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::felt::{felt_from_prefixed_hex, try_felt_to_num};
 
@@ -32,12 +33,13 @@ mod estimate_fee_tests {
     };
     use crate::common::utils::{
         assert_tx_reverted, assert_tx_successful, get_deployable_account_signer,
-        get_flattened_sierra_contract_and_casm_hash, to_hex_felt,
+        get_flattened_sierra_contract_and_casm_hash,
     };
 
     fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
         assert_eq!(
-            fee_estimation.gas_price * fee_estimation.gas_consumed,
+            fee_estimation.gas_price * fee_estimation.gas_consumed
+                + fee_estimation.data_gas_consumed * fee_estimation.data_gas_price,
             fee_estimation.overall_fee
         );
         assert!(
@@ -53,7 +55,6 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
-    #[ignore = "Starknet-rs does not support rpc 0.7.0"]
     async fn estimate_fee_of_deploy_account() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -144,7 +145,6 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
-    #[ignore = "Starknet-rs does not support rpc 0.7.0"]
     async fn estimate_fee_of_declare_v1() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -200,7 +200,6 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
-    #[ignore = "Starknet-rs does not support rpc 0.7.0"]
     async fn estimate_fee_of_declare_v2() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -264,7 +263,6 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
-    #[ignore = "Starknet-rs does not support rpc 0.7.0"]
     async fn estimate_fee_of_invoke() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -352,7 +350,7 @@ mod estimate_fee_tests {
         assert_tx_reverted(
             &unsuccessful_invoke_tx.transaction_hash,
             &devnet.json_rpc_client,
-            &["Calculated fee", "exceeds max fee"],
+            &["Insufficient max fee"],
         )
         .await;
 
@@ -489,33 +487,59 @@ mod estimate_fee_tests {
 
     #[tokio::test]
     /// estimate fee of declare + deploy (invoke udc)
-    #[ignore = "Starknet-rs does not support rpc 0.7.0"]
     async fn estimate_fee_of_multiple_txs() {
         let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo0"])
             .await
             .expect("Could not start Devnet");
 
         // get account
-        let (_, account_address) = devnet.get_first_predeployed_account().await;
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let mut account = SingleOwnerAccount::new(
+            &devnet.json_rpc_client,
+            signer.clone(),
+            account_address,
+            devnet.json_rpc_client.chain_id().await.unwrap(),
+            ExecutionEncoding::Legacy,
+        );
+        account.set_block_id(BlockId::Tag(BlockTag::Latest));
 
         // get class
         let contract_json = dummy_cairo_0_contract_class();
         let contract_class: Arc<LegacyContractClass> =
             Arc::new(serde_json::from_value(contract_json.inner).unwrap());
+
         let class_hash = contract_class.class_hash().unwrap();
+        let prepared_legacy_declaration = account
+            .declare_legacy(contract_class.clone())
+            .max_fee(Felt::ZERO)
+            .nonce(Felt::ZERO)
+            .prepared()
+            .unwrap();
 
-        let deployment_selector =
-            format!("{:x}", get_selector_from_name("deployContract").unwrap());
+        let query_only = false;
+        let declaration_signature = signer
+            .sign_hash(&prepared_legacy_declaration.transaction_hash(query_only).unwrap())
+            .await
+            .unwrap();
 
-        // precalculated signatures
-        let declaration_signature = [
-            "0x419d7466b316867092abdc63556471002a94077f67b929d14aaec7e2f367de8",
-            "0x619b4ee80392a8d11e44de3bd9919a2db870a55f6dfe0c1eb6aefaf947bf3a7",
-        ];
-        let deployment_signature = [
-            "0x30311fbdb604cb08e54e7cc3ab0a4442e30a6f637d440d9e3c6590cc827a183",
-            "0x650acb8c4d9f1041cb20a078f5c7afcdfacd2333c3f9774c8cf2ea043246316",
-        ];
+        let calls = vec![Call {
+            to: UDC_CONTRACT_ADDRESS,
+            selector: get_selector_from_name("deployContract").unwrap(),
+            calldata: vec![
+                class_hash,
+                Felt::from_hex_unchecked("0x123"), // salt
+                Felt::ZERO,
+                Felt::ZERO,
+            ],
+        }];
+
+        let calldata = account.encode_calls(&calls);
+
+        let prepared_invoke =
+            account.execute_v1(calls).nonce(Felt::ONE).max_fee(Felt::ZERO).prepared().unwrap();
+
+        let deployment_signature =
+            signer.sign_hash(&prepared_invoke.transaction_hash(query_only)).await.unwrap();
 
         devnet
             .json_rpc_client
@@ -525,14 +549,12 @@ mod estimate_fee_tests {
                         starknet_rs_core::types::BroadcastedDeclareTransaction::V1(
                             BroadcastedDeclareTransactionV1 {
                                 max_fee: Felt::ZERO,
-                                signature: declaration_signature
-                                    .into_iter()
-                                    .map(|s| felt_from_prefixed_hex(s).unwrap())
-                                    .collect(),
+                                signature: [declaration_signature.r, declaration_signature.s]
+                                    .to_vec(),
                                 nonce: Felt::ZERO,
                                 sender_address: account_address,
                                 contract_class: contract_class.compress().unwrap().into(),
-                                is_query: false,
+                                is_query: query_only,
                             },
                         ),
                     ),
@@ -540,28 +562,11 @@ mod estimate_fee_tests {
                         BroadcastedInvokeTransactionV1 {
                             max_fee: Felt::ZERO,
                             // precalculated signature
-                            signature: deployment_signature
-                                .into_iter()
-                                .map(|s| felt_from_prefixed_hex(s).unwrap())
-                                .collect(),
+                            signature: [deployment_signature.r, deployment_signature.s].to_vec(),
                             nonce: Felt::ONE,
                             sender_address: account_address,
-                            calldata: [
-                                "0x1",
-                                &to_hex_felt(&UDC_CONTRACT_ADDRESS),
-                                deployment_selector.as_str(),
-                                "0x0",
-                                "0x4",
-                                "0x4",
-                                &to_hex_felt(&class_hash),
-                                "0x123", // salt
-                                "0x0",
-                                "0x0",
-                            ]
-                            .into_iter()
-                            .map(|s| felt_from_prefixed_hex(s).unwrap())
-                            .collect(),
-                            is_query: false,
+                            calldata,
+                            is_query: query_only,
                         },
                     )),
                 ],
