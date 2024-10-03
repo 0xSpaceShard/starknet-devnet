@@ -8,12 +8,18 @@ mod trace_tests {
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{Felt, StarknetError};
+    use starknet_rs_core::types::{Call, Felt, InvokeTransactionResult, StarknetError};
+    use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::ProviderError;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::{CHAIN_ID, INVALID_ACCOUNT_SIERRA_PATH};
-    use crate::common::utils::get_simple_contract_in_sierra_and_compiled_class_hash;
+    use crate::common::constants::{
+        CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH, CHAIN_ID, INVALID_ACCOUNT_SIERRA_PATH,
+    };
+    use crate::common::utils::{
+        declare_deploy_v1, get_flattened_sierra_contract_and_casm_hash,
+        get_simple_contract_in_sierra_and_compiled_class_hash,
+    };
 
     #[tokio::test]
     async fn test_failed_validation_with_expected_message() {
@@ -79,5 +85,52 @@ mod trace_tests {
             ))) => (),
             other => panic!("Unexpected response: {other:?}"),
         }
+    }
+
+    #[tokio::test]
+    async fn test_tx_status_content_on_failure() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let account = Arc::new(SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            account_address,
+            CHAIN_ID,
+            ExecutionEncoding::New,
+        ));
+
+        let (sierra, casm_hash) =
+            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH);
+
+        let (_, contract_address) =
+            declare_deploy_v1(account.clone(), sierra, casm_hash, &[]).await.unwrap();
+
+        let InvokeTransactionResult { transaction_hash } = account
+            .execute_v1(vec![Call {
+                to: contract_address,
+                selector: get_selector_from_name("create_panic").unwrap(),
+                calldata: vec![],
+            }])
+            .max_fee(Felt::from(1e18 as u128))
+            .send()
+            .await
+            .unwrap();
+
+        // TODO sending a custom request until starknet-rs is adapted to include failure reason
+        let tx_status = devnet
+            .send_custom_rpc(
+                "starknet_getTransactionStatus",
+                serde_json::json!({ "transaction_hash": transaction_hash }),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(tx_status["finality_status"], "ACCEPTED_ON_L2");
+        assert_contains(
+            tx_status["failure_reason"].as_str().unwrap(),
+            "Error in the called contract",
+        );
+        assert_eq!(tx_status["execution_status"], "REVERTED");
     }
 }
