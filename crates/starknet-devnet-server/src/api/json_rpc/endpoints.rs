@@ -13,7 +13,7 @@ use starknet_types::rpc::transactions::{
 use starknet_types::starknet_api::block::BlockStatus;
 
 use super::error::{ApiError, StrictRpcResult};
-use super::models::{BlockHashAndNumberOutput, SyncingOutput, TransactionStatusOutput};
+use super::models::{BlockHashAndNumberOutput, SyncingOutput};
 use super::{DevnetResponse, JsonRpcHandler, JsonRpcResponse, StarknetResponse, RPC_SPEC_VERSION};
 use crate::api::http::endpoints::accounts::{
     get_account_balance_impl, get_predeployed_accounts_impl, BalanceQuery, PredeployedAccountsQuery,
@@ -159,13 +159,7 @@ impl JsonRpcHandler {
             .await
             .get_transaction_execution_and_finality_status(transaction_hash)
         {
-            Ok((execution_status, finality_status)) => {
-                Ok(StarknetResponse::TransactionStatusByHash(TransactionStatusOutput {
-                    execution_status,
-                    finality_status,
-                })
-                .into())
-            }
+            Ok(tx_status) => Ok(StarknetResponse::TransactionStatusByHash(tx_status).into()),
             Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
             Err(err) => Err(err.into()),
         }

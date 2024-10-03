@@ -17,8 +17,7 @@ use starknet_api::felt;
 use starknet_api::transaction::Fee;
 use starknet_config::BlockGenerationOn;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, Call, ExecutionResult, Felt, MsgFromL1, TransactionExecutionStatus,
-    TransactionFinalityStatus,
+    BlockId, BlockTag, Call, ExecutionResult, Felt, MsgFromL1, TransactionFinalityStatus,
 };
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_signers::Signer;
@@ -47,8 +46,8 @@ use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransact
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionCommon,
-    SimulatedTransaction, SimulationFlag, TransactionTrace, TransactionType, TransactionWithHash,
-    TransactionWithReceipt, Transactions,
+    SimulatedTransaction, SimulationFlag, TransactionStatus, TransactionTrace, TransactionType,
+    TransactionWithHash, TransactionWithReceipt, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
@@ -1131,10 +1130,14 @@ impl Starknet {
     pub fn get_transaction_execution_and_finality_status(
         &self,
         transaction_hash: TransactionHash,
-    ) -> DevnetResult<(TransactionExecutionStatus, TransactionFinalityStatus)> {
+    ) -> DevnetResult<TransactionStatus> {
         let transaction = self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
 
-        Ok((transaction.execution_result.status(), transaction.finality_status))
+        Ok(TransactionStatus {
+            finality_status: transaction.finality_status,
+            failure_reason: transaction.execution_info.revert_error.clone(),
+            execution_status: transaction.execution_result.status(),
+        })
     }
 
     pub fn simulate_transactions(
