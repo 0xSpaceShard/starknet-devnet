@@ -58,9 +58,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
             TransactionReceipt::DeployAccount(receipt) => {
                 assert_eq!(receipt.contract_address, new_account_address);
             }
-            _ => {
-                panic!("Invalid receipt {:?}", deploy_account_receipt);
-            }
+            _ => panic!("Invalid receipt {:?}", deploy_account_receipt),
         }
     }
 
@@ -249,9 +247,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         match declare_transaction_result {
             Err(ProviderError::StarknetError(StarknetError::InsufficientMaxFee)) => (),
-            _ => {
-                panic!("Invalid result: {:?}", declare_transaction_result);
-            }
+            _ => panic!("Invalid result: {:?}", declare_transaction_result),
         }
     }
 

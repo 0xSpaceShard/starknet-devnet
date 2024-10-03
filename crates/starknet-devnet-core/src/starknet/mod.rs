@@ -7,7 +7,7 @@ use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
-use blockifier::transaction::errors::TransactionPreValidationError;
+use blockifier::transaction::errors::{TransactionFeeError, TransactionPreValidationError};
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use parking_lot::RwLock;
@@ -404,18 +404,17 @@ impl Starknet {
             }
             Err(tx_err) => {
                 /// utility to avoid duplication
-                fn match_tx_fee_error(
-                    err: blockifier::transaction::errors::TransactionFeeError,
-                ) -> DevnetResult<()> {
+                fn match_tx_fee_error(err: TransactionFeeError) -> DevnetResult<()> {
                     match err {
-                        blockifier::transaction::errors::TransactionFeeError::FeeTransferError { .. }
-                        | blockifier::transaction::errors::TransactionFeeError::MaxFeeTooLow { .. } => Err(
-                            TransactionValidationError::InsufficientResourcesForValidate.into()
-                        ),
-                        blockifier::transaction::errors::TransactionFeeError::MaxFeeExceedsBalance { .. } | blockifier::transaction::errors::TransactionFeeError::L1GasBoundsExceedBalance { .. } => Err(
-                            TransactionValidationError::InsufficientAccountBalance.into()
-                        ),
-                        _ => Err(err.into())
+                        TransactionFeeError::FeeTransferError { .. }
+                        | TransactionFeeError::MaxFeeTooLow { .. } => {
+                            Err(TransactionValidationError::InsufficientResourcesForValidate.into())
+                        }
+                        TransactionFeeError::MaxFeeExceedsBalance { .. }
+                        | TransactionFeeError::L1GasBoundsExceedBalance { .. } => {
+                            Err(TransactionValidationError::InsufficientAccountBalance.into())
+                        }
+                        _ => Err(err.into()),
                     }
                 }
 
