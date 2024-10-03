@@ -46,8 +46,8 @@ pub enum ApiError {
     UnsupportedAction { msg: String },
     #[error("Invalid transaction nonce")]
     InvalidTransactionNonce,
-    #[error("Max fee is smaller than the minimal transaction cost (validation plus fee transfer)")]
-    InsufficientMaxFee,
+    #[error("The transaction's resources don't cover validation or the minimal transaction fee")]
+    InsufficientResourcesForValidate,
     #[error("Account balance is smaller than the transaction's max_fee")]
     InsufficientAccountBalance,
     #[error("Account validation failed")]
@@ -146,7 +146,7 @@ impl ApiError {
                 message: msg.into(),
                 data: None,
             },
-            ApiError::InsufficientMaxFee => RpcError {
+            ApiError::InsufficientResourcesForValidate => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(53),
                 message: error_message.into(),
                 data: None,
@@ -175,7 +175,7 @@ impl ApiError {
                 starknet_core::error::Error::TransactionValidationError(validation_error),
             ) => {
                 let api_err = match validation_error {
-                    starknet_core::error::TransactionValidationError::InsufficientMaxFee => ApiError::InsufficientMaxFee,
+                    starknet_core::error::TransactionValidationError::InsufficientResourcesForValidate => ApiError::InsufficientResourcesForValidate,
                     starknet_core::error::TransactionValidationError::InvalidTransactionNonce => ApiError::InvalidTransactionNonce,
                     starknet_core::error::TransactionValidationError::InsufficientAccountBalance => ApiError::InsufficientAccountBalance,
                     starknet_core::error::TransactionValidationError::ValidationFailure { reason } => ApiError::ValidationFailure { reason },
@@ -324,17 +324,17 @@ mod tests {
     fn insufficient_max_fee_error() {
         let devnet_error =
             ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
-                starknet_core::error::TransactionValidationError::InsufficientMaxFee,
+                starknet_core::error::TransactionValidationError::InsufficientResourcesForValidate,
             ));
 
         assert_eq!(
             devnet_error.api_error_to_rpc_error(),
-            ApiError::InsufficientMaxFee.api_error_to_rpc_error()
+            ApiError::InsufficientResourcesForValidate.api_error_to_rpc_error()
         );
         error_expected_code_and_message(
-            ApiError::InsufficientMaxFee,
+            ApiError::InsufficientResourcesForValidate,
             53,
-            "Max fee is smaller than the minimal transaction cost (validation plus fee transfer)",
+            "The transaction's resources don't cover validation or the minimal transaction fee",
         );
     }
 

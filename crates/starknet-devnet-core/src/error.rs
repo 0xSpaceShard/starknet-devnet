@@ -94,8 +94,8 @@ pub enum StateError {
 
 #[derive(Debug, Error)]
 pub enum TransactionValidationError {
-    #[error("Provided max fee is not enough to cover the transaction cost.")]
-    InsufficientMaxFee,
+    #[error("The transaction's resources don't cover validation or the minimal transaction fee.")]
+    InsufficientResourcesForValidate,
     #[error("Account transaction nonce is invalid.")]
     InvalidTransactionNonce,
     #[error("Account balance is not enough to cover the transaction cost.")]

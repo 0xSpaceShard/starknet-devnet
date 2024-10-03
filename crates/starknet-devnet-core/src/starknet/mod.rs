@@ -410,7 +410,7 @@ impl Starknet {
                     match err {
                         blockifier::transaction::errors::TransactionFeeError::FeeTransferError { .. }
                         | blockifier::transaction::errors::TransactionFeeError::MaxFeeTooLow { .. } => Err(
-                            TransactionValidationError::InsufficientMaxFee.into()
+                            TransactionValidationError::InsufficientResourcesForValidate.into()
                         ),
                         blockifier::transaction::errors::TransactionFeeError::MaxFeeExceedsBalance { .. } | blockifier::transaction::errors::TransactionFeeError::L1GasBoundsExceedBalance { .. } => Err(
                             TransactionValidationError::InsufficientAccountBalance.into()
@@ -426,7 +426,7 @@ impl Starknet {
                         TransactionPreValidationError::InvalidNonce { .. }
                     ) => Err(TransactionValidationError::InvalidTransactionNonce.into()),
                     blockifier::transaction::errors::TransactionExecutionError::FeeCheckError { .. } =>
-                        Err(TransactionValidationError::InsufficientMaxFee.into()),
+                        Err(TransactionValidationError::InsufficientResourcesForValidate.into()),
                     blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
                         TransactionPreValidationError::TransactionFeeError(err)
                     ) => match_tx_fee_error(err),
