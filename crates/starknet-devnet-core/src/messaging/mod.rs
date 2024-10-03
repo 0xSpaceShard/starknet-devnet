@@ -228,4 +228,9 @@ impl Starknet {
 
         Ok(messages)
     }
+
+    /// 
+    fn get_l1_handler_transactions(&self) -> DevnetResult<Vec<L1HandlerTransactionStatus>> {
+
+    }
 }

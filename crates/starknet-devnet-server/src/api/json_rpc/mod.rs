@@ -12,8 +12,7 @@ use axum::extract::ws::{Message, WebSocket};
 use enum_helper_macros::{AllVariantsSerdeRenames, VariantName};
 use futures::StreamExt;
 use models::{
-    BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
-    EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput, TransactionHashOutput,
+    BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput, EstimateFeeInput, EventsInput, GetStorageInput, L1TransactionHashInput, TransactionHashInput, TransactionHashOutput
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -337,6 +336,7 @@ impl JsonRpcHandler {
             JsonRpcRequest::AccountBalance(data) => self.get_account_balance(data).await,
             JsonRpcRequest::Mint(data) => self.mint(data).await,
             JsonRpcRequest::DevnetConfig => self.get_devnet_config().await,
+            JsonRpcRequest::MessagesStatusByL1Hash(data) => self.get_messages_status(data).await,
         };
 
         // If locally we got an error and forking is set up, forward the request to the origin
@@ -476,6 +476,8 @@ pub enum JsonRpcRequest {
     TransactionReceiptByTransactionHash(TransactionHashInput),
     #[serde(rename = "starknet_getTransactionStatus")]
     TransactionStatusByHash(TransactionHashInput),
+    #[serde(rename = "starknet_getMessagesStatus")]
+    MessagesStatusByL1Hash(L1TransactionHashInput),
     #[serde(rename = "starknet_getClass")]
     ClassByHash(BlockAndClassHashInput),
     #[serde(rename = "starknet_getClassHashAt")]

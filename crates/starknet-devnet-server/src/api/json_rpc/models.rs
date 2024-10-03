@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
+use starknet_rs_core::types::{Hash256, TransactionExecutionStatus, TransactionFinalityStatus};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
@@ -170,6 +170,12 @@ pub struct SimulateTransactionsInput {
 pub struct TransactionStatusOutput {
     pub finality_status: TransactionFinalityStatus,
     pub execution_status: TransactionExecutionStatus,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct L1TransactionHashInput {
+    pub transaction_hash: Hash256,
 }
 
 #[cfg(test)]

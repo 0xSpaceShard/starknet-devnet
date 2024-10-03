@@ -13,7 +13,9 @@ use starknet_types::rpc::transactions::{
 use starknet_types::starknet_api::block::BlockStatus;
 
 use super::error::{ApiError, StrictRpcResult};
-use super::models::{BlockHashAndNumberOutput, SyncingOutput, TransactionStatusOutput};
+use super::models::{
+    BlockHashAndNumberOutput, L1TransactionHashInput, SyncingOutput, TransactionStatusOutput,
+};
 use super::{DevnetResponse, JsonRpcHandler, JsonRpcResponse, StarknetResponse, RPC_SPEC_VERSION};
 use crate::api::http::endpoints::accounts::{
     get_account_balance_impl, get_predeployed_accounts_impl, BalanceQuery, PredeployedAccountsQuery,
@@ -461,6 +463,11 @@ impl JsonRpcHandler {
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(err) => Err(err.into()),
         }
+    }
+
+    /// starknet_getMessagesStatus
+    pub async fn get_messages_status(&self, hash: L1TransactionHashInput) -> StrictRpcResult {
+        let starknet = self.api.starknet.lock().await;
     }
 
     /// devnet_getPredeployedAccounts
