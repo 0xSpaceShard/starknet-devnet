@@ -17,7 +17,7 @@ use starknet_api::felt;
 use starknet_api::transaction::Fee;
 use starknet_config::BlockGenerationOn;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, Call, ExecutionResult, Felt, MsgFromL1, TransactionExecutionStatus,
+    BlockId, BlockTag, Call, ExecutionResult, Felt, Hash256, MsgFromL1, TransactionExecutionStatus,
     TransactionFinalityStatus,
 };
 use starknet_rs_core::utils::get_selector_from_name;
@@ -47,8 +47,8 @@ use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransact
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionCommon,
-    SimulatedTransaction, SimulationFlag, TransactionTrace, TransactionType, TransactionWithHash,
-    TransactionWithReceipt, Transactions,
+    L1TransactionStatus, SimulatedTransaction, SimulationFlag, TransactionTrace, TransactionType,
+    TransactionWithHash, TransactionWithReceipt, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
@@ -1378,6 +1378,26 @@ impl Starknet {
             Starknet::is_account_impersonated(state, cheats, sender_address)
         } else {
             Ok(false)
+        }
+    }
+
+    pub fn get_messages_status(&self, l1_tx_hash: Hash256) -> Option<Vec<L1TransactionStatus>> {
+        match self.messaging.l1_to_l2_message_statuses.get(l1_tx_hash.as_bytes()) {
+            Some(l2_tx_hashes) => {
+                let mut statuses = vec![];
+                for l2_tx_hash in l2_tx_hashes {
+                    match self.transactions.get(l2_tx_hash) {
+                        Some(l2_tx) => statuses.push(L1TransactionStatus {
+                            transaction_hash: *l2_tx_hash,
+                            finality_status: l2_tx.finality_status,
+                            failure_reason: l2_tx.execution_info.revert_error.clone(),
+                        }),
+                        None => return None,
+                    }
+                }
+                Some(statuses)
+            }
+            None => None,
         }
     }
 }

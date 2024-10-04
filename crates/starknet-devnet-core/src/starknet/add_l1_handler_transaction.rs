@@ -29,8 +29,17 @@ pub fn add_l1_handler_transaction(
         validate,
     );
 
+    if let Some(l1_tx_hash) = transaction.l1_transaction_hash {
+        starknet
+            .messaging
+            .l1_to_l2_message_statuses
+            .entry(*l1_tx_hash.as_bytes())
+            .or_default()
+            .push(transaction_hash);
+    }
+
     starknet.handle_transaction_result(
-        TransactionWithHash::new(transaction_hash, Transaction::L1Handler(transaction.clone())),
+        TransactionWithHash::new(transaction_hash, Transaction::L1Handler(transaction)),
         blockifier_execution_result,
     )?;
 

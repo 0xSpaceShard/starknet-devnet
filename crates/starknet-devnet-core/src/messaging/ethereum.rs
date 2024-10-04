@@ -7,7 +7,7 @@ use ethers::prelude::*;
 use ethers::providers::{Http, Provider, ProviderError};
 use ethers::types::{Address, BlockNumber, Log};
 use k256::ecdsa::SigningKey;
-use starknet_rs_core::types::Felt;
+use starknet_rs_core::types::{Felt, Hash256};
 use starknet_types::felt::felt_from_prefixed_hex;
 use starknet_types::rpc::contract_address::ContractAddress;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
@@ -302,9 +302,10 @@ impl EthereumMessaging {
 ///
 /// * `log` - The log to be converted.
 pub fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
-    let parsed_log = <LogMessageToL2 as EthLogDecode>::decode_log(&log.into()).map_err(|e| {
-        Error::MessagingError(MessagingError::EthersError(format!("Log parsing failed {}", e)))
-    })?;
+    let parsed_log =
+        <LogMessageToL2 as EthLogDecode>::decode_log(&log.clone().into()).map_err(|e| {
+            Error::MessagingError(MessagingError::EthersError(format!("Log parsing failed {}", e)))
+        })?;
 
     let from_address = address_to_felt_devnet(&parsed_log.from_address)?;
     let contract_address = ContractAddress::new(u256_to_felt_devnet(&parsed_log.to_address)?)?;
@@ -318,6 +319,7 @@ pub fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
     }
 
     Ok(MessageToL2 {
+        l1_transaction_hash: log.transaction_hash.map(|h| Hash256::from_bytes(h.to_fixed_bytes())),
         l2_contract_address: contract_address,
         entry_point_selector,
         l1_contract_address: ContractAddress::new(from_address)?,
@@ -405,6 +407,7 @@ mod tests {
         };
 
         let expected_message = MessageToL2 {
+            l1_transaction_hash: None, // TODO tmp
             l1_contract_address: ContractAddress::new(
                 felt_from_prefixed_hex(from_address).unwrap(),
             )

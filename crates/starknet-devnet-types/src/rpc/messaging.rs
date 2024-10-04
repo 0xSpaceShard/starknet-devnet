@@ -10,6 +10,7 @@ use crate::rpc::eth_address::EthAddressWrapper;
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct MessageToL2 {
+    pub l1_transaction_hash: Option<Hash256>,
     pub l2_contract_address: ContractAddress,
     pub entry_point_selector: EntryPointSelector,
     pub l1_contract_address: ContractAddress,

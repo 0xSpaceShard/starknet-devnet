@@ -12,7 +12,9 @@ use axum::extract::ws::{Message, WebSocket};
 use enum_helper_macros::{AllVariantsSerdeRenames, VariantName};
 use futures::StreamExt;
 use models::{
-    BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput, EstimateFeeInput, EventsInput, GetStorageInput, L1TransactionHashInput, TransactionHashInput, TransactionHashOutput
+    BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
+    EstimateFeeInput, EventsInput, GetStorageInput, L1TransactionHashInput, TransactionHashInput,
+    TransactionHashOutput,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -27,7 +29,8 @@ use starknet_types::rpc::gas_modification::{GasModification, GasModificationRequ
 use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
-    BlockTransactionTrace, EventsChunk, SimulatedTransaction, TransactionTrace, TransactionWithHash,
+    BlockTransactionTrace, EventsChunk, L1TransactionStatus, SimulatedTransaction,
+    TransactionTrace, TransactionWithHash,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 use tracing::{error, info, trace};
@@ -611,6 +614,7 @@ pub enum StarknetResponse {
     SimulateTransactions(Vec<SimulatedTransaction>),
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
+    L1HandlerStatuses(Vec<L1TransactionStatus>),
 }
 
 #[derive(Serialize)]

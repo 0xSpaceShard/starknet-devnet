@@ -11,7 +11,7 @@ use starknet_api::transaction::{
     TransactionHash as ApiTransactionHash, TransactionVersion as ApiTransactionVersion,
 };
 use starknet_rs_core::crypto::compute_hash_on_elements;
-use starknet_rs_core::types::Felt;
+use starknet_rs_core::types::{Felt, Hash256};
 
 use super::{deserialize_paid_fee_on_l1, serialize_paid_fee_on_l1};
 use crate::constants::PREFIX_L1_HANDLER;
@@ -23,6 +23,8 @@ use crate::rpc::messaging::MessageToL2;
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct L1HandlerTransaction {
+    /// The hash of the L1 transaction that triggered this L1 handler execution.
+    pub l1_transaction_hash: Option<Hash256>,
     pub version: TransactionVersion,
     pub nonce: Nonce,
     pub contract_address: ContractAddress,
@@ -122,6 +124,7 @@ impl TryFrom<&L1HandlerTransaction> for MessageToL2 {
 
         let payload = value.calldata[1..].to_vec();
         Ok(MessageToL2 {
+            l1_transaction_hash: value.l1_transaction_hash,
             l2_contract_address: value.contract_address,
             entry_point_selector: value.entry_point_selector,
             l1_contract_address: ContractAddress::new(*l1_contract_address)?,
@@ -158,6 +161,7 @@ mod tests {
             vec![felt_from_prefixed_hex(from_address).unwrap(), Felt::ONE, Felt::TWO];
 
         let message = MessageToL2 {
+            l1_transaction_hash: None, // TODO tmp
             l1_contract_address: ContractAddress::new(
                 felt_from_prefixed_hex(from_address).unwrap(),
             )

@@ -32,7 +32,7 @@
 //! contract (`mockSendMessageFromL2` entrypoint).
 use std::collections::HashMap;
 
-use starknet_rs_core::types::{BlockId, ExecutionResult, Hash256};
+use starknet_rs_core::types::{BlockId, ExecutionResult, Felt, Hash256};
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 
 use crate::error::{DevnetResult, Error, MessagingError};
@@ -61,6 +61,9 @@ pub struct MessagingBroker {
     pub l2_to_l1_messages_hashes: HashMap<String, u64>,
     /// This list of messages that will be sent to L1 node at the next `postman/flush`.
     pub l2_to_l1_messages_to_flush: Vec<MessageToL1>,
+    /// Mapping of L1 transaction hash to a chronological sequence of generated L2 transactions.
+    /// Using array of bytes to prevent format confusion with converting hash to hex.
+    pub l1_to_l2_message_statuses: HashMap<[u8; 32], Vec<Felt>>,
 }
 
 impl MessagingBroker {
@@ -227,10 +230,5 @@ impl Starknet {
         });
 
         Ok(messages)
-    }
-
-    /// 
-    fn get_l1_handler_transactions(&self) -> DevnetResult<Vec<L1HandlerTransactionStatus>> {
-
     }
 }

@@ -466,8 +466,15 @@ impl JsonRpcHandler {
     }
 
     /// starknet_getMessagesStatus
-    pub async fn get_messages_status(&self, hash: L1TransactionHashInput) -> StrictRpcResult {
+    pub async fn get_messages_status(
+        &self,
+        L1TransactionHashInput { transaction_hash }: L1TransactionHashInput,
+    ) -> StrictRpcResult {
         let starknet = self.api.starknet.lock().await;
+        match starknet.get_messages_status(transaction_hash) {
+            Some(statuses) => Ok(StarknetResponse::L1HandlerStatuses(statuses).into()),
+            None => Err(ApiError::TransactionNotFound),
+        }
     }
 
     /// devnet_getPredeployedAccounts
