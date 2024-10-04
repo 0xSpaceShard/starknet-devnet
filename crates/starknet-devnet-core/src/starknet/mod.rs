@@ -7,7 +7,9 @@ use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
-use blockifier::transaction::errors::{TransactionFeeError, TransactionPreValidationError};
+use blockifier::transaction::errors::{
+    TransactionExecutionError, TransactionFeeError, TransactionPreValidationError,
+};
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use parking_lot::RwLock;
@@ -391,10 +393,7 @@ impl Starknet {
     pub(crate) fn handle_transaction_result(
         &mut self,
         transaction: TransactionWithHash,
-        transaction_result: Result<
-            TransactionExecutionInfo,
-            blockifier::transaction::errors::TransactionExecutionError,
-        >,
+        transaction_result: Result<TransactionExecutionInfo, TransactionExecutionError>,
     ) -> DevnetResult<()> {
         let transaction_hash = *transaction.get_transaction_hash();
 
@@ -421,20 +420,23 @@ impl Starknet {
                 // based on this https://community.starknet.io/t/efficient-utilization-of-sequencer-capacity-in-starknet-v0-12-1/95607#the-validation-phase-in-the-gateway-5
                 // we should not save transactions that failed with one of the following errors
                 match tx_err {
-                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
-                        TransactionPreValidationError::InvalidNonce { .. }
+                    TransactionExecutionError::TransactionPreValidationError(
+                        TransactionPreValidationError::InvalidNonce { .. },
                     ) => Err(TransactionValidationError::InvalidTransactionNonce.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::FeeCheckError { .. } =>
-                        Err(TransactionValidationError::InsufficientResourcesForValidate.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
-                        TransactionPreValidationError::TransactionFeeError(err)
-                    ) => match_tx_fee_error(err),
-                    blockifier::transaction::errors::TransactionExecutionError::TransactionFeeError(err)
-                      => match_tx_fee_error(err),
-                    blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError { .. } => {
-                        Err(TransactionValidationError::ValidationFailure { reason: tx_err.to_string() }.into())
+                    TransactionExecutionError::FeeCheckError { .. } => {
+                        Err(TransactionValidationError::InsufficientResourcesForValidate.into())
                     }
-                    _ => Err(tx_err.into())
+                    TransactionExecutionError::TransactionPreValidationError(
+                        TransactionPreValidationError::TransactionFeeError(err),
+                    ) => match_tx_fee_error(err),
+                    TransactionExecutionError::TransactionFeeError(err) => match_tx_fee_error(err),
+                    TransactionExecutionError::ValidateTransactionError { .. } => {
+                        Err(TransactionValidationError::ValidationFailure {
+                            reason: tx_err.to_string(),
+                        }
+                        .into())
+                    }
+                    _ => Err(tx_err.into()),
                 }
             }
         }
