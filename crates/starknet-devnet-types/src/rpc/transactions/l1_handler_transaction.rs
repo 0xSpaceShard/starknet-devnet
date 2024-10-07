@@ -161,7 +161,7 @@ mod tests {
             vec![felt_from_prefixed_hex(from_address).unwrap(), Felt::ONE, Felt::TWO];
 
         let message = MessageToL2 {
-            l1_transaction_hash: None, // TODO tmp
+            l1_transaction_hash: None,
             l1_contract_address: ContractAddress::new(
                 felt_from_prefixed_hex(from_address).unwrap(),
             )
@@ -173,8 +173,6 @@ mod tests {
             nonce: nonce.into(),
             paid_fee_on_l1: fee.into(),
         };
-
-        let chain_id = ChainId::goerli_legacy_id();
 
         let transaction_hash = felt_from_prefixed_hex(
             "0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b",
@@ -203,6 +201,6 @@ mod tests {
         let transaction = L1HandlerTransaction::try_from_message_to_l2(message).unwrap();
 
         assert_eq!(transaction, expected_tx);
-        assert_eq!(transaction.compute_hash(chain_id), transaction_hash);
+        assert_eq!(transaction.compute_hash(ChainId::goerli_legacy_id()), transaction_hash);
     }
 }

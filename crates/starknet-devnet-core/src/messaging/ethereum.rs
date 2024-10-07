@@ -407,7 +407,7 @@ mod tests {
         };
 
         let expected_message = MessageToL2 {
-            l1_transaction_hash: None, // TODO tmp
+            l1_transaction_hash: None,
             l1_contract_address: ContractAddress::new(
                 felt_from_prefixed_hex(from_address).unwrap(),
             )
