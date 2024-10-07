@@ -35,7 +35,31 @@ $ cargo install --git https://github.com/0xSpaceShard/starknet-devnet-rs.git --l
 
 ### Install with `asdf`
 
-- Follow the instructions from the [asdf-starknet-devnet](https://github.com/ptisserand/asdf-starknet-devnet) repo.
+- Run the following to add the `starknet-devnet` plugin
+
+```
+$ asdf plugin add starknet-devnet
+```
+
+- Show all installable versions:
+
+```
+$ asdf list-all starknet-devnet
+```
+
+- Install latest version:
+
+```
+$ asdf install starknet-devnet latest
+```
+
+- Install specific version:
+
+```
+$ asdf install starknet-devnet 0.2.0
+```
+
+Check [asdf guide](https://asdf-vm.com/guide/getting-started.html) for more instructions on how to install & manage versions.
 
 ### Run the installed executable
 
