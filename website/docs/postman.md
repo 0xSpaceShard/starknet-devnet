@@ -119,7 +119,7 @@ A running L1 node is **not** required for this operation.
 
 :::
 
-Sends a mock transactions to L2, as if coming from L1, without the need for running L1. The deployed L2 contract address `l2_contract_address` and `entry_point_selector` must be valid, otherwise a new block will not be created.
+Sends a mock transactions to L2, as if coming from L1, without the need for running L1. The deployed L2 contract address `l2_contract_address` and `entry_point_selector` must be valid, otherwise a new block will not be created. The `l1_transaction_hash` property is optional and, if provided, enables future `starknet_getMessagesStatus` possible with that hash value provided.
 
 Normally `nonce` is calculated by the L1 Starknet contract and it is used in L1 and L2. In this case, it needs to be provided manually.
 
@@ -139,7 +139,8 @@ Request:
       "0x2"
     ],
     "paid_fee_on_l1": "0x123456abcdef",
-    "nonce":"0x0"
+    "nonce":"0x0",
+    "l1_transaction_hash": "0x000abc123", // optional
 }
 ```
 
@@ -158,7 +159,8 @@ JSON-RPC
         "0x2"
       ],
       "paid_fee_on_l1": "0x123456abcdef",
-      "nonce":"0x0"
+      "nonce":"0x0",
+      "l1_transaction_hash": "0x000abc123", // optional
   }
 }
 ```
