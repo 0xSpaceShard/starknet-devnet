@@ -823,6 +823,84 @@ mod test_messaging {
 
     #[tokio::test]
     async fn test_getting_status_of_real_message() {
-        unimplemented!();
+        let anvil = BackgroundAnvil::spawn().await.unwrap();
+        let (devnet, sn_account, sn_l1l2_contract) = setup_devnet(&[]).await;
+
+        // Load l1 messaging contract.
+        let body: serde_json::Value = devnet
+            .send_custom_rpc("devnet_postmanLoad", json!({ "network_url": anvil.url }))
+            .await
+            .expect("deploy l1 messaging contract failed");
+
+        assert_eq!(
+            body.get("messaging_contract_address").unwrap().as_str().unwrap(),
+            MESSAGING_L1_ADDRESS
+        );
+
+        // Deploy the L1L2 testing contract on L1 (on L2 it's already pre-deployed).
+        let l1_messaging_address = H160::from_str(MESSAGING_L1_ADDRESS).unwrap();
+        let eth_l1l2_address = anvil.deploy_l1l2_contract(l1_messaging_address).await.unwrap();
+
+        let eth_l1l2_address_hex = format!("{eth_l1l2_address:#x}");
+        let eth_l1l2_address_felt = felt_from_prefixed_hex(&eth_l1l2_address_hex).unwrap();
+
+        // Set balance to 1 for the user 1 on L2 and withdraw to L1.
+        let user_sn = Felt::ONE;
+        let user_balance = Felt::ONE;
+        increase_balance(sn_account.clone(), sn_l1l2_contract, user_sn, user_balance).await;
+        withdraw(sn_account, sn_l1l2_contract, user_sn, user_balance, eth_l1l2_address_felt).await;
+
+        // Flush to send the messages.
+        devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
+
+        let user_eth = 1.into();
+        let sn_l1l2_contract_u256 = felt_to_u256(sn_l1l2_contract);
+
+        // Consume the message to increase the balance on L1
+        anvil
+            .withdraw_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, 1.into())
+            .await
+            .unwrap();
+
+        // Send back the amount 1 to the user 1 on L2.
+        anvil
+            .deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, 1.into())
+            .await
+            .unwrap();
+
+        // Flush to trigger L2 transaction generation.
+        let generated_l2_txs_raw =
+            &devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap()
+                ["generated_l2_transactions"];
+        let generated_l2_txs = generated_l2_txs_raw.as_array().unwrap();
+        assert_eq!(generated_l2_txs.len(), 1);
+        let generated_l2_tx = &generated_l2_txs[0];
+
+        let latest_l1_txs = anvil
+            .provider
+            .get_block(ethers::types::BlockId::Number(ethers::types::BlockNumber::Latest))
+            .await
+            .unwrap()
+            .unwrap()
+            .transactions;
+
+        assert_eq!(latest_l1_txs.len(), 1);
+        let latest_l1_tx = latest_l1_txs[0];
+
+        let messages_status = devnet
+            .send_custom_rpc(
+                "starknet_getMessagesStatus",
+                json!({ "transaction_hash": latest_l1_tx }),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            messages_status,
+            json!([{
+                "transaction_hash": generated_l2_tx,
+                "finality_status": "ACCEPTED_ON_L2",
+                "failure_reason": null,
+            }])
+        )
     }
 }
