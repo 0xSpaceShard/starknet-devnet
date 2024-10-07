@@ -62,8 +62,8 @@ pub struct MessagingBroker {
     /// This list of messages that will be sent to L1 node at the next `postman/flush`.
     pub l2_to_l1_messages_to_flush: Vec<MessageToL1>,
     /// Mapping of L1 transaction hash to a chronological sequence of generated L2 transactions.
-    /// Using array of bytes to prevent format confusion with converting hash to hex.
-    pub l1_to_l2_message_statuses: HashMap<[u8; 32], Vec<Felt>>,
+    /// Using array of bytes as key to prevent format confusion with converting hash to hex.
+    pub l1_to_l2_tx_hashes: HashMap<[u8; 32], Vec<Felt>>,
 }
 
 impl MessagingBroker {

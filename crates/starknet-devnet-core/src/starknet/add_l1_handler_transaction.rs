@@ -32,7 +32,7 @@ pub fn add_l1_handler_transaction(
     if let Some(l1_tx_hash) = transaction.l1_transaction_hash {
         starknet
             .messaging
-            .l1_to_l2_message_statuses
+            .l1_to_l2_tx_hashes
             .entry(*l1_tx_hash.as_bytes())
             .or_default()
             .push(transaction_hash);
