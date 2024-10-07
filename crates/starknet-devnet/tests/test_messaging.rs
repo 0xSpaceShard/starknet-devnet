@@ -780,4 +780,49 @@ mod test_messaging {
         devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
         assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ONE]);
     }
+
+    #[tokio::test]
+    async fn test_getting_status_of_mock_message() {
+        let (devnet, _, l1l2_contract_address) = setup_devnet(&[]).await;
+
+        // Use postman to send a message to l2 without l1 - the message increments user balance
+        let increment_amount = Felt::from(0xff);
+
+        let user = Felt::ONE;
+        let l1_tx_hash = Felt::from(0xabc);
+        let mock_msg_body = json!({
+            "l1_contract_address": MESSAGING_L1_ADDRESS,
+            "l2_contract_address": l1l2_contract_address,
+            "entry_point_selector": get_selector_from_name("deposit").unwrap(),
+            "payload": [user, increment_amount],
+            "paid_fee_on_l1": "0x1234",
+            "nonce": "0x1",
+            "l1_transaction_hash": l1_tx_hash,
+        });
+
+        let mock_msg_resp =
+            devnet.send_custom_rpc("devnet_postmanSendMessageToL2", mock_msg_body).await.unwrap();
+        assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [increment_amount]);
+
+        let messages_status = devnet
+            .send_custom_rpc(
+                "starknet_getMessagesStatus",
+                json!({ "transaction_hash": l1_tx_hash }),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            messages_status,
+            json!([{
+                "transaction_hash": mock_msg_resp["transaction_hash"],
+                "finality_status": "ACCEPTED_ON_L2",
+                "failure_reason": null,
+            }])
+        );
+    }
+
+    #[tokio::test]
+    async fn test_getting_status_of_real_message() {
+        unimplemented!();
+    }
 }

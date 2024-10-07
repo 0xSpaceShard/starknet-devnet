@@ -104,9 +104,8 @@ impl L1HandlerTransaction {
             calldata,
             nonce: message.nonce,
             paid_fee_on_l1,
-            // Currently, only version 0 is supported, which
-            // is ensured by default initialization.
-            ..Default::default()
+            l1_transaction_hash: message.l1_transaction_hash,
+            version: Felt::ZERO, // currently, only version 0 is supported
         })
     }
 }
