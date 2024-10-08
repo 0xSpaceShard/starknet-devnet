@@ -29,7 +29,13 @@ pub fn add_l1_handler_transaction(
         validate,
     );
 
-    // If L1 tx hash present, store the generated L2 tx hash in its messaging entry
+    starknet.handle_transaction_result(
+        TransactionWithHash::new(transaction_hash, Transaction::L1Handler(transaction.clone())),
+        blockifier_execution_result,
+    )?;
+
+    // If L1 tx hash present, store the generated L2 tx hash in its messaging entry.
+    // Not done as part of `handle_transaction_result` as it is specific to this tx type.
     if let Some(l1_tx_hash) = transaction.l1_transaction_hash {
         starknet
             .messaging
@@ -38,11 +44,6 @@ pub fn add_l1_handler_transaction(
             .or_default()
             .push(transaction_hash);
     }
-
-    starknet.handle_transaction_result(
-        TransactionWithHash::new(transaction_hash, Transaction::L1Handler(transaction)),
-        blockifier_execution_result,
-    )?;
 
     Ok(transaction_hash)
 }
