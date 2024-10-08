@@ -24,6 +24,7 @@ use crate::rpc::messaging::MessageToL2;
 #[serde(deny_unknown_fields)]
 pub struct L1HandlerTransaction {
     /// The hash of the L1 transaction that triggered this L1 handler execution.
+    /// Omissible if received via mock (devnet_postmanSendMessageToL2)
     pub l1_transaction_hash: Option<Hash256>,
     pub version: TransactionVersion,
     pub nonce: Nonce,
