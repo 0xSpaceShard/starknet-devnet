@@ -505,12 +505,12 @@ impl Starknet {
         let chain_info = ChainInfo {
             chain_id: chain_id.into(),
             fee_token_addresses: blockifier::context::FeeTokenAddresses {
-                eth_fee_token_address: contract_address!(eth_fee_token_address
-                    .to_hex_string()
-                    .as_str()),
-                strk_fee_token_address: contract_address!(strk_fee_token_address
-                    .to_hex_string()
-                    .as_str()),
+                eth_fee_token_address: contract_address!(
+                    eth_fee_token_address.to_hex_string().as_str()
+                ),
+                strk_fee_token_address: contract_address!(
+                    strk_fee_token_address.to_hex_string().as_str()
+                ),
             },
         };
 
