@@ -472,7 +472,7 @@ impl JsonRpcHandler {
     ) -> StrictRpcResult {
         let starknet = self.api.starknet.lock().await;
         match starknet.get_messages_status(transaction_hash) {
-            Some(statuses) => Ok(StarknetResponse::L1HandlerStatuses(statuses).into()),
+            Some(statuses) => Ok(StarknetResponse::MessagesStatusByL1Hash(statuses).into()),
             None => Err(ApiError::TransactionNotFound),
         }
     }

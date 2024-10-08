@@ -614,7 +614,7 @@ pub enum StarknetResponse {
     SimulateTransactions(Vec<SimulatedTransaction>),
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
-    L1HandlerStatuses(Vec<L1HandlerTransactionStatus>),
+    MessagesStatusByL1Hash(Vec<L1HandlerTransactionStatus>),
 }
 
 #[derive(Serialize)]
