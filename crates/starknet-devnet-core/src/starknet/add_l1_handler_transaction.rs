@@ -29,6 +29,7 @@ pub fn add_l1_handler_transaction(
         validate,
     );
 
+    // If L1 tx hash present, store the generated L2 tx hash in its messaging entry
     if let Some(l1_tx_hash) = transaction.l1_transaction_hash {
         starknet
             .messaging

@@ -1141,7 +1141,7 @@ impl FunctionInvocation {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct L1TransactionStatus {
+pub struct L1HandlerTransactionStatus {
     pub transaction_hash: TransactionHash,
     pub finality_status: TransactionFinalityStatus,
     pub failure_reason: Option<String>,

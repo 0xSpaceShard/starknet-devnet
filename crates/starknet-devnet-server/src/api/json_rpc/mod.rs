@@ -29,7 +29,7 @@ use starknet_types::rpc::gas_modification::{GasModification, GasModificationRequ
 use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
-    BlockTransactionTrace, EventsChunk, L1TransactionStatus, SimulatedTransaction,
+    BlockTransactionTrace, EventsChunk, L1HandlerTransactionStatus, SimulatedTransaction,
     TransactionTrace, TransactionWithHash,
 };
 use starknet_types::starknet_api::block::BlockNumber;
@@ -614,7 +614,7 @@ pub enum StarknetResponse {
     SimulateTransactions(Vec<SimulatedTransaction>),
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
-    L1HandlerStatuses(Vec<L1TransactionStatus>),
+    L1HandlerStatuses(Vec<L1HandlerTransactionStatus>),
 }
 
 #[derive(Serialize)]
