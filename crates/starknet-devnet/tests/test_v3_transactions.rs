@@ -12,8 +12,8 @@ mod test_v3_transactions {
         ExecutionEncoding, ExecutionV3, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_core::types::{
-        BlockId, BlockTag, Call, FeeEstimate, Felt, FlattenedSierraClass, NonZeroFelt,
-        StarknetError,
+        BlockId, BlockTag, Call, ExecutionResult, FeeEstimate, Felt, FlattenedSierraClass,
+        InvokeTransactionResult, NonZeroFelt, StarknetError,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -229,7 +229,7 @@ mod test_v3_transactions {
             ExecutionEncoding::New,
         );
 
-        transaction_with_less_gas_units_and_or_less_gas_price_should_return_error(
+        transaction_with_less_gas_units_and_or_less_gas_price_should_return_error_or_be_accepted_as_reverted(
             Action::Execution(vec![Call {
                 to: STRK_ERC20_CONTRACT_ADDRESS,
                 selector: get_selector_from_name("transfer").unwrap(),
@@ -275,7 +275,7 @@ mod test_v3_transactions {
             )
             .await;
 
-        transaction_with_less_gas_units_and_or_less_gas_price_should_return_error(
+        transaction_with_less_gas_units_and_or_less_gas_price_should_return_error_or_be_accepted_as_reverted(
             Action::AccountDeployment(salt),
             Option::<&SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>::None,
             Some(&factory),
@@ -311,7 +311,7 @@ mod test_v3_transactions {
 
         let sierra_artifact = Arc::new(sierra_artifact);
 
-        transaction_with_less_gas_units_and_or_less_gas_price_should_return_error(
+        transaction_with_less_gas_units_and_or_less_gas_price_should_return_error_or_be_accepted_as_reverted(
             Action::Declaration(sierra_artifact, casm_hash),
             Some(&account),
             Option::<&OpenZeppelinAccountFactory<LocalWallet, JsonRpcClient<HttpTransport>>>::None,
@@ -359,7 +359,7 @@ mod test_v3_transactions {
 
         (gas_units.to_le_digits().first().cloned().unwrap(), gas_price)
     }
-    async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_error<
+    async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_error_or_be_accepted_as_reverted<
         A: ConnectedAccount + Sync,
         F: AccountFactory + Sync,
     >(
@@ -394,7 +394,7 @@ mod test_v3_transactions {
             (Some(estimated_gas_units - 1), None),
             (None, Some(gas_price - 1)),
         ] {
-            let provider_error = match &transaction_action {
+            match &transaction_action {
                 Action::Declaration(sierra_class, casm_hash) => {
                     let mut declaration =
                         DeclarationV3::new(sierra_class.clone(), *casm_hash, account.unwrap());
@@ -406,9 +406,12 @@ mod test_v3_transactions {
                         declaration = declaration.gas_price(gas_price);
                     }
                     match declaration.send().await.unwrap_err() {
-                        starknet_rs_accounts::AccountError::Provider(provider_error) => {
-                            provider_error
-                        }
+                        starknet_rs_accounts::AccountError::Provider(
+                            ProviderError::StarknetError(StarknetError::InsufficientMaxFee),
+                        ) => {}
+                        starknet_rs_accounts::AccountError::Provider(ProviderError::Other(
+                            other,
+                        )) if other.to_string().contains("is lower than the actual gas price") => {}
                         other => panic!("Unexpected error: {:?}", other),
                     }
                 }
@@ -422,9 +425,12 @@ mod test_v3_transactions {
                         account_deployment = account_deployment.gas_price(gas_price);
                     }
                     match account_deployment.send().await.unwrap_err() {
-                        starknet_rs_accounts::AccountFactoryError::Provider(provider_error) => {
-                            provider_error
-                        }
+                        starknet_rs_accounts::AccountFactoryError::Provider(
+                            ProviderError::StarknetError(StarknetError::InsufficientMaxFee),
+                        ) => {}
+                        starknet_rs_accounts::AccountFactoryError::Provider(
+                            ProviderError::Other(other),
+                        ) if other.to_string().contains("is lower than the actual gas price") => {}
                         other => panic!("Unexpected error: {:?}", other),
                     }
                 }
@@ -436,21 +442,31 @@ mod test_v3_transactions {
                     if let Some(gas_price) = gas_price {
                         execution = execution.gas_price(gas_price);
                     }
-                    match execution.send().await.unwrap_err() {
-                        starknet_rs_accounts::AccountError::Provider(provider_error) => {
-                            provider_error
+                    let transaction_result = execution.send().await;
+
+                    match transaction_result {
+                        Ok(InvokeTransactionResult { transaction_hash }) => {
+                            let receipt = account
+                                .unwrap()
+                                .provider()
+                                .get_transaction_receipt(transaction_hash)
+                                .await
+                                .unwrap();
+                            let execution_result = receipt.receipt.execution_result();
+                            match execution_result {
+                                ExecutionResult::Reverted { reason } => {
+                                    assert!(reason.contains("Insufficient max L1 gas"));
+                                }
+                                other => panic!("Unexpected result: {:?}", other),
+                            }
                         }
-                        other => panic!("Unexpected error: {:?}", other),
+                        Err(starknet_rs_accounts::AccountError::Provider(
+                            ProviderError::Other(other),
+                        )) if other.to_string().contains("is lower than the actual gas price") => {}
+                        other => panic!("Unexpected result: {:?}", other),
                     }
                 }
             };
-
-            match provider_error {
-                ProviderError::StarknetError(StarknetError::InsufficientMaxFee) => {}
-                ProviderError::Other(other)
-                    if other.to_string().contains("is lower than the actual gas price") => {}
-                other => panic!("Unexpected error: {:?}", other),
-            }
         }
     }
 }
