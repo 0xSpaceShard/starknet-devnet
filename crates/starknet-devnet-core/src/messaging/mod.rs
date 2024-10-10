@@ -62,7 +62,9 @@ pub struct MessagingBroker {
     /// This list of messages that will be sent to L1 node at the next `postman/flush`.
     pub l2_to_l1_messages_to_flush: Vec<MessageToL1>,
     /// Mapping of L1 transaction hash to a chronological sequence of generated L2 transactions.
-    /// Using array of bytes as key to prevent format confusion with converting hash to hex.
+    /// Hash256 (original type of L1 hash) is not hashable, but instead of converting to string
+    /// ("0x1" and "0x01" don't produce the same hash despite being the same number), we use byte
+    /// array as key.
     pub l1_to_l2_tx_hashes: HashMap<[u8; 32], Vec<Felt>>,
 }
 
