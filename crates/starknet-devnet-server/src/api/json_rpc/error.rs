@@ -1,4 +1,4 @@
-use starknet_core::stack_trace::ErrorStack;
+use starknet_core::stack_trace::{ErrorStack, Frame};
 use starknet_types;
 use thiserror::Error;
 use tracing::error;
@@ -95,7 +95,7 @@ impl ApiError {
             ApiError::ContractError { error: error_stack } => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(40),
                 message: error_message.into(),
-                data: Some(serialize_error_stack(error_stack)),
+                data: Some(serialize_error_stack(&error_stack)),
             },
             ApiError::NoBlocks => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(32),
@@ -199,8 +199,27 @@ impl ApiError {
     }
 }
 
-fn serialize_error_stack(_error_stack: ErrorStack) -> serde_json::Value {
-    todo!()
+fn serialize_error_stack(error_stack: &ErrorStack) -> serde_json::Value {
+    let mut nested_err = serde_json::json!(null);
+
+    // TODO rev?
+    for frame in error_stack.stack.iter().rev() {
+        nested_err = match frame {
+            Frame::EntryPoint(entry_point_error_frame) => {
+                serde_json::json!({
+                    "contract_address": entry_point_error_frame.storage_address,
+                    "class_hash": entry_point_error_frame.class_hash,
+                    "selector": entry_point_error_frame.selector,
+                    "error": nested_err,
+                })
+            }
+            Frame::Vm(vm_exception_frame) => serde_json::to_value(vm_exception_frame)
+                .unwrap_or(serde_json::json!("Invalid VM exception frame")), // TODO or to string?
+            Frame::StringFrame(msg) => serde_json::json!(*msg),
+        };
+    }
+
+    nested_err
 }
 
 pub type StrictRpcResult = Result<JsonRpcResponse, ApiError>;
