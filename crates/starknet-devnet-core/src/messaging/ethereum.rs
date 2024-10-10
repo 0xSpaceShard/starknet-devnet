@@ -302,10 +302,10 @@ impl EthereumMessaging {
 ///
 /// * `log` - The log to be converted.
 pub fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
-    let parsed_log =
-        <LogMessageToL2 as EthLogDecode>::decode_log(&log.clone().into()).map_err(|e| {
-            Error::MessagingError(MessagingError::EthersError(format!("Log parsing failed {}", e)))
-        })?;
+    let l1_transaction_hash = log.transaction_hash.map(|h| Hash256::from_bytes(h.to_fixed_bytes()));
+    let parsed_log = <LogMessageToL2 as EthLogDecode>::decode_log(&log.into()).map_err(|e| {
+        Error::MessagingError(MessagingError::EthersError(format!("Log parsing failed {}", e)))
+    })?;
 
     let from_address = address_to_felt_devnet(&parsed_log.from_address)?;
     let contract_address = ContractAddress::new(u256_to_felt_devnet(&parsed_log.to_address)?)?;
@@ -319,7 +319,7 @@ pub fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
     }
 
     Ok(MessageToL2 {
-        l1_transaction_hash: log.transaction_hash.map(|h| Hash256::from_bytes(h.to_fixed_bytes())),
+        l1_transaction_hash,
         l2_contract_address: contract_address,
         entry_point_selector,
         l1_contract_address: ContractAddress::new(from_address)?,
