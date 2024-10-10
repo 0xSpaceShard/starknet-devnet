@@ -4,6 +4,8 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_storage_key::ContractStorageKey;
 use thiserror::Error;
 
+use crate::stack_trace::{gen_tx_execution_error_trace, ErrorStack};
+
 #[derive(Error, Debug)]
 pub enum Error {
     #[error(transparent)]
@@ -11,13 +13,9 @@ pub enum Error {
     #[error(transparent)]
     StateError(#[from] StateError),
     #[error(transparent)]
-    BlockifierStateError(#[from] blockifier::state::errors::StateError),
-    #[error(transparent)]
-    BlockifierTransactionError(#[from] blockifier::transaction::errors::TransactionExecutionError),
-    #[error(transparent)]
-    BlockifierExecutionError(#[from] blockifier::execution::errors::EntryPointExecutionError),
-    #[error("{revert_error}")]
-    ExecutionError { revert_error: String },
+    BlockifierStateError(#[from] blockifier::state::errors::StateError), // TODO remove?
+    #[error("{0:?}")]
+    ContractExecutionError(ErrorStack),
     #[error("Types error: {0}")]
     TypesError(#[from] starknet_types::error::Error),
     #[error("I/O error: {0}")]
@@ -75,6 +73,12 @@ pub enum Error {
 impl From<starknet_types_core::felt::FromStrError> for Error {
     fn from(value: starknet_types_core::felt::FromStrError) -> Self {
         Self::UnexpectedInternalError { msg: value.to_string() }
+    }
+}
+
+impl From<blockifier::transaction::errors::TransactionExecutionError> for Error {
+    fn from(e: blockifier::transaction::errors::TransactionExecutionError) -> Self {
+        Self::ContractExecutionError(gen_tx_execution_error_trace(&e))
     }
 }
 

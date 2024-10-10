@@ -42,8 +42,6 @@ mod tests {
     // Constants taken from test_estimate_message_fee.rs.
     const WHITELISTED_L1_ADDRESS: &str = "0x8359E4B0152ed5A731162D3c7B0D8D56edB165A0";
 
-    use blockifier::execution::errors::{EntryPointExecutionError, PreExecutionError};
-    use blockifier::transaction::errors::TransactionExecutionError::ExecutionError;
     use nonzero_ext::nonzero;
     use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_rs_core::utils::get_selector_from_name;
@@ -133,14 +131,8 @@ mod tests {
         let result = starknet.add_l1_handler_transaction(transaction);
 
         match result {
-            Err(crate::error::Error::BlockifierTransactionError(ExecutionError {
-                error:
-                    EntryPointExecutionError::PreExecutionError(PreExecutionError::EntryPointNotFound(
-                        selector,
-                    )),
-                ..
-            })) => {
-                assert_eq!(selector.0, withdraw_selector)
+            Err(crate::error::Error::ContractExecutionError(e)) => {
+                todo!("{e:?}")
             }
             other => panic!("Wrong result: {other:?}"),
         }

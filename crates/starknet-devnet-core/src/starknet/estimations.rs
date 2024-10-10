@@ -13,6 +13,7 @@ use starknet_types::rpc::transactions::BroadcastedTransaction;
 
 use crate::constants::USE_KZG_DA;
 use crate::error::{DevnetResult, Error};
+use crate::stack_trace::ErrorStack;
 use crate::starknet::Starknet;
 use crate::utils::get_versioned_constants;
 
@@ -116,7 +117,7 @@ fn estimate_transaction_fee<S: StateReader>(
     )?;
 
     if let Some(revert_error) = transaction_execution_info.revert_error {
-        return Err(Error::ExecutionError { revert_error });
+        return Err(Error::ContractExecutionError(ErrorStack::from_str_err(&revert_error)));
     }
 
     let gas_vector = transaction_execution_info

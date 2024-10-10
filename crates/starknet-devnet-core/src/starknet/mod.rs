@@ -72,6 +72,7 @@ use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::RawExecutionV1;
+use crate::stack_trace::gen_tx_execution_error_trace;
 use crate::state::state_diff::StateDiff;
 use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
@@ -669,12 +670,15 @@ impl Starknet {
         let state = self.get_mut_state_at(block_id)?;
 
         state.assert_contract_deployed(ContractAddress::new(contract_address)?)?;
+        let storage_address = contract_address.try_into()?;
+        let class_hash = state.get_class_hash_at(storage_address)?;
 
         let call = CallEntryPoint {
             calldata: starknet_api::transaction::Calldata(std::sync::Arc::new(calldata.clone())),
             storage_address: contract_address.try_into()?,
             entry_point_selector: starknet_api::core::EntryPointSelector(entrypoint_selector),
             initial_gas: block_context.versioned_constants().tx_initial_gas(),
+            class_hash: Some(class_hash), // TODO needed?
             ..Default::default()
         };
 
@@ -691,11 +695,18 @@ impl Starknet {
             )?;
 
         let mut transactional_state = CachedState::create_transactional(&mut state.state);
-        let res = call.execute(
-            &mut transactional_state,
-            &mut Default::default(),
-            &mut execution_context,
-        )?;
+        let res = call
+            .execute(&mut transactional_state, &mut Default::default(), &mut execution_context)
+            .map_err(|error| {
+                Error::ContractExecutionError(gen_tx_execution_error_trace(
+                    &TransactionExecutionError::ExecutionError {
+                        error,
+                        class_hash,
+                        storage_address,
+                        selector: starknet_api::core::EntryPointSelector(entrypoint_selector),
+                    },
+                ))
+            })?;
 
         Ok(res.execution.retdata.0)
     }
@@ -1391,11 +1402,9 @@ mod tests {
     use std::thread;
     use std::time::Duration;
 
-    use blockifier::execution::errors::{EntryPointExecutionError, PreExecutionError};
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-    use starknet_api::core::EntryPointSelector;
     use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
@@ -1705,9 +1714,7 @@ mod tests {
             entry_point_selector,
             vec![Felt::from(predeployed_account.account_address)],
         ) {
-            Err(Error::BlockifierExecutionError(EntryPointExecutionError::PreExecutionError(
-                PreExecutionError::EntryPointNotFound(EntryPointSelector(missing_selector)),
-            ))) => assert_eq!(missing_selector, entry_point_selector),
+            Err(Error::ContractExecutionError(e)) => todo!("{e:?}"),
             unexpected => panic!("Should have failed; got {unexpected:?}"),
         }
     }

@@ -1,4 +1,5 @@
 use starknet_core::error::{Error, StateError};
+use starknet_core::stack_trace::ErrorStack;
 use starknet_rs_core::types::{BlockId as ImportedBlockId, MsgFromL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
@@ -285,7 +286,10 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(err) => Err(ApiError::ContractError { error: err }),
+            Err(Error::ContractExecutionError(error)) => Err(ApiError::ContractError { error }),
+            Err(e) => {
+                Err(ApiError::ContractError { error: ErrorStack::from_str_err(&e.to_string()) })
+            }
         }
     }
 
@@ -304,7 +308,9 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(err) => Err(ApiError::ContractError { error: err }),
+            Err(e) => {
+                Err(ApiError::ContractError { error: ErrorStack::from_str_err(&e.to_string()) })
+            }
         }
     }
 
@@ -320,7 +326,9 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(err) => Err(ApiError::ContractError { error: err }),
+            Err(e) => {
+                Err(ApiError::ContractError { error: ErrorStack::from_str_err(&e.to_string()) })
+            } // TODO handle ContractExecutionError
         }
     }
 
@@ -429,7 +437,9 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(err) => Err(ApiError::ContractError { error: err }),
+            Err(e) => {
+                Err(ApiError::ContractError { error: ErrorStack::from_str_err(&e.to_string()) })
+            }
         }
     }
 

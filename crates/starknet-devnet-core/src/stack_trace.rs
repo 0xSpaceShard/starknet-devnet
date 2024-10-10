@@ -15,7 +15,7 @@ use starknet_api::core::{ClassHash, ContractAddress, EntryPointSelector};
 pub const TRACE_LENGTH_CAP: usize = 15000;
 pub const TRACE_EXTRA_CHARS_SLACK: usize = 100;
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub enum PreambleType {
     CallContract,
     LibraryCall,
@@ -32,7 +32,7 @@ impl PreambleType {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct EntryPointErrorFrame {
     pub depth: usize,
     pub preamble_type: PreambleType,
@@ -64,7 +64,7 @@ impl From<&EntryPointErrorFrame> for String {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct VmExceptionFrame {
     pub pc: Relocatable,
     pub error_attr_value: Option<String>,
@@ -87,7 +87,7 @@ impl From<&VmExceptionFrame> for String {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub enum Frame {
     EntryPoint(EntryPointErrorFrame),
     Vm(VmExceptionFrame),
@@ -122,12 +122,16 @@ impl From<String> for Frame {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Default)]
+#[derive(serde::Serialize, serde::Deserialize, Default, Debug)]
 pub struct ErrorStack {
     pub stack: Vec<Frame>,
 }
 
 impl ErrorStack {
+    pub fn from_str_err(s: &str) -> Self {
+        Self { stack: vec![Frame::StringFrame(s.into())] }
+    }
+
     pub fn push(&mut self, frame: Frame) {
         self.stack.push(frame);
     }

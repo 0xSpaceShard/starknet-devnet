@@ -1,4 +1,4 @@
-use serde_json::json;
+use starknet_core::stack_trace::ErrorStack;
 use starknet_types;
 use thiserror::Error;
 use tracing::error;
@@ -27,7 +27,7 @@ pub enum ApiError {
     #[error("Class hash not found")]
     ClassHashNotFound,
     #[error("Contract error")]
-    ContractError { error: starknet_core::error::Error },
+    ContractError { error: ErrorStack },
     #[error("There are no blocks")]
     NoBlocks,
     #[error("Requested page size is too big")]
@@ -92,14 +92,10 @@ impl ApiError {
                 message: error_message.into(),
                 data: None,
             },
-            ApiError::ContractError { error: inner_error } => RpcError {
+            ApiError::ContractError { error: error_stack } => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(40),
                 message: error_message.into(),
-                data: Some(json!(
-                    {
-                        "revert_error": anyhow::format_err!(inner_error).root_cause().to_string()
-                    }
-                )),
+                data: Some(serialize_error_stack(error_stack)),
             },
             ApiError::NoBlocks => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(32),
@@ -203,10 +199,16 @@ impl ApiError {
     }
 }
 
+fn serialize_error_stack(_error_stack: ErrorStack) -> serde_json::Value {
+    todo!()
+}
+
 pub type StrictRpcResult = Result<JsonRpcResponse, ApiError>;
 
 #[cfg(test)]
 mod tests {
+    use starknet_core::stack_trace::ErrorStack;
+
     use super::StrictRpcResult;
     use crate::api::json_rpc::error::ApiError;
     use crate::api::json_rpc::ToRpcResponseResult;
@@ -288,13 +290,14 @@ mod tests {
         let error_expected_message = anyhow::format_err!(test_error()).root_cause().to_string();
 
         error_expected_code_and_message(
-            ApiError::ContractError { error: test_error() },
+            ApiError::ContractError { error: ErrorStack::from_str_err("some_reason") },
             40,
             "Contract error",
         );
 
         // check contract error data property
-        let error = ApiError::ContractError { error: test_error() }.api_error_to_rpc_error();
+        let error = ApiError::ContractError { error: ErrorStack::from_str_err("some reason") }
+            .api_error_to_rpc_error();
 
         assert_eq!(
             error.data.unwrap().get("revert_error").unwrap().as_str().unwrap(),
