@@ -32,6 +32,7 @@
 //! contract (`mockSendMessageFromL2` entrypoint).
 use std::collections::HashMap;
 
+use ethers::types::H256;
 use starknet_rs_core::types::{BlockId, ExecutionResult, Felt, Hash256};
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 
@@ -54,18 +55,11 @@ pub struct MessagingBroker {
     /// For each time a message is supposed to be sent to L1, it is stored in this
     /// queue. The user may consume those messages using `consume_message_from_l2`
     /// to actually test `MessageToL1` emitted without running L1 node.
-    ///
-    /// Note:
-    /// `Hash256` is not directly supported as a HashMap key due to missing trait.
-    /// Using `String` instead.
-    pub l2_to_l1_messages_hashes: HashMap<String, u64>,
+    pub l2_to_l1_messages_hashes: HashMap<H256, u64>,
     /// This list of messages that will be sent to L1 node at the next `postman/flush`.
     pub l2_to_l1_messages_to_flush: Vec<MessageToL1>,
     /// Mapping of L1 transaction hash to a chronological sequence of generated L2 transactions.
-    /// Hash256 (original type of L1 hash) is not hashable, but instead of converting to string
-    /// ("0x1" and "0x01" don't produce the same hash despite being the same number), we use byte
-    /// array as key.
-    pub l1_to_l2_tx_hashes: HashMap<[u8; 32], Vec<Felt>>,
+    pub l1_to_l2_tx_hashes: HashMap<H256, Vec<Felt>>,
 }
 
 impl MessagingBroker {
@@ -147,7 +141,7 @@ impl Starknet {
                 }
 
                 for message in &messages {
-                    let hash = format!("{}", message.hash());
+                    let hash = H256(*message.hash().as_bytes());
                     let count = self.messaging.l2_to_l1_messages_hashes.entry(hash).or_insert(0);
                     *count += 1;
                 }
@@ -193,14 +187,14 @@ impl Starknet {
         // Ensure latest messages are collected before consuming the message.
         self.collect_messages_to_l1().await?;
 
-        let hash = format!("{}", message.hash());
-        let count = self.messaging.l2_to_l1_messages_hashes.entry(hash.clone()).or_insert(0);
+        let hash = H256(*message.hash().as_bytes());
+        let count = self.messaging.l2_to_l1_messages_hashes.entry(hash).or_insert(0);
 
         if *count > 0 {
             *count -= 1;
             Ok(message.hash())
         } else {
-            Err(Error::MessagingError(MessagingError::MessageToL1NotPresent(hash)))
+            Err(Error::MessagingError(MessagingError::MessageToL1NotPresent(hash.to_string())))
         }
     }
 

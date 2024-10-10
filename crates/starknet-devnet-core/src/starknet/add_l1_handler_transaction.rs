@@ -1,4 +1,5 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
+use ethers::types::H256;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 use starknet_types::rpc::transactions::{Transaction, TransactionWithHash};
@@ -40,7 +41,7 @@ pub fn add_l1_handler_transaction(
         starknet
             .messaging
             .l1_to_l2_tx_hashes
-            .entry(*l1_tx_hash.as_bytes())
+            .entry(H256(*l1_tx_hash.as_bytes()))
             .or_default()
             .push(transaction_hash);
     }

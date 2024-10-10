@@ -10,6 +10,7 @@ use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::errors::TransactionPreValidationError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
+use ethers::types::H256;
 use parking_lot::RwLock;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, GasPricePerToken};
 use starknet_api::core::SequencerContractAddress;
@@ -1385,7 +1386,7 @@ impl Starknet {
         &self,
         l1_tx_hash: Hash256,
     ) -> Option<Vec<L1HandlerTransactionStatus>> {
-        match self.messaging.l1_to_l2_tx_hashes.get(l1_tx_hash.as_bytes()) {
+        match self.messaging.l1_to_l2_tx_hashes.get(&H256(*l1_tx_hash.as_bytes())) {
             Some(l2_tx_hashes) => {
                 let mut statuses = vec![];
                 for l2_tx_hash in l2_tx_hashes {
