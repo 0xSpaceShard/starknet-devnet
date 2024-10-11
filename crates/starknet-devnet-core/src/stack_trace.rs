@@ -1,4 +1,5 @@
-// Copied with minor modifications from blockifier/src/execution/stack_trace.rs
+// Copied with minor modifications from blockifier/src/execution/stack_trace.rs.
+// Try removing once included in a blockifier release.
 
 use blockifier::execution::deprecated_syscalls::hint_processor::DeprecatedSyscallExecutionError;
 use blockifier::execution::errors::{
