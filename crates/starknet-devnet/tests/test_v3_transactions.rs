@@ -400,7 +400,7 @@ mod test_v3_transactions {
                             let execution_result = receipt.receipt.execution_result();
                             match execution_result {
                                 ExecutionResult::Reverted { reason } => {
-                                    assert_contains(&reason, "Insufficient max L1 gas");
+                                    assert_contains(reason.as_str(), "Insufficient max L1 gas");
                                 }
                                 other => panic!("Unexpected result: {:?}", other),
                             }
