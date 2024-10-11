@@ -326,9 +326,10 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
+            Err(Error::ContractExecutionError(error)) => Err(ApiError::ContractError { error }),
             Err(e) => {
                 Err(ApiError::ContractError { error: ErrorStack::from_str_err(&e.to_string()) })
-            } // TODO handle ContractExecutionError
+            }
         }
     }
 
