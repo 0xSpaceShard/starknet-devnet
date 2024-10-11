@@ -13,7 +13,7 @@ pub enum Error {
     #[error(transparent)]
     StateError(#[from] StateError),
     #[error(transparent)]
-    BlockifierStateError(#[from] blockifier::state::errors::StateError), // TODO remove?
+    BlockifierStateError(#[from] blockifier::state::errors::StateError),
     #[error("{0:?}")]
     ContractExecutionError(ErrorStack),
     #[error("Types error: {0}")]
