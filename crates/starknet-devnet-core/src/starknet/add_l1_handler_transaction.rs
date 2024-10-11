@@ -58,6 +58,7 @@ mod tests {
         self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
+    use crate::stack_trace::Frame;
     use crate::starknet::{predeployed, Starknet};
     use crate::state::CustomState;
     use crate::traits::{Deployed, HashIdentifiedMut};
@@ -128,11 +129,18 @@ mod tests {
             vec![Felt::from(11), Felt::from(9999)],
         );
 
-        let result = starknet.add_l1_handler_transaction(transaction);
-
-        match result {
-            Err(crate::error::Error::ContractExecutionError(e)) => {
-                todo!("{e:?}")
+        match starknet.add_l1_handler_transaction(transaction) {
+            Err(crate::error::Error::ContractExecutionError(error_stack)) => {
+                assert_eq!(error_stack.stack.len(), 2);
+                match &error_stack.stack[0] {
+                    Frame::EntryPoint(entry_point_frame) => {
+                        assert_eq!(
+                            entry_point_frame.selector,
+                            Some(starknet_api::core::EntryPointSelector(withdraw_selector))
+                        )
+                    }
+                    other => panic!("Unexpected error frame: {other:?}"),
+                }
             }
             other => panic!("Wrong result: {other:?}"),
         }

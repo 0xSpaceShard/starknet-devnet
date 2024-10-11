@@ -1421,6 +1421,7 @@ mod tests {
         STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{DevnetResult, Error};
+    use crate::stack_trace::Frame;
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::traits::{Accounted, Deployed, HashIdentified};
     use crate::utils::test_utils::{
@@ -1714,7 +1715,18 @@ mod tests {
             entry_point_selector,
             vec![Felt::from(predeployed_account.account_address)],
         ) {
-            Err(Error::ContractExecutionError(e)) => todo!("{e:?}"),
+            Err(Error::ContractExecutionError(error_stack)) => {
+                assert_eq!(error_stack.stack.len(), 2);
+                match &error_stack.stack[0] {
+                    Frame::EntryPoint(entry_point_frame) => {
+                        assert_eq!(
+                            entry_point_frame.selector,
+                            Some(starknet_api::core::EntryPointSelector(entry_point_selector))
+                        )
+                    }
+                    other => panic!("Unexpected error frame: {other:?}"),
+                }
+            }
             unexpected => panic!("Should have failed; got {unexpected:?}"),
         }
     }
