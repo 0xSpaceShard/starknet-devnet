@@ -127,14 +127,7 @@ mod test_v3_transactions {
     }
     #[tokio::test]
     async fn declare_from_an_account_with_insufficient_strk_tokens_balance() {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
-            "--gas-price-fri",
-            "10",
-            "--data-gas-price-fri",
-            "100",
-        ])
-        .await
-        .expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let account = SingleOwnerAccount::new(
@@ -194,14 +187,7 @@ mod test_v3_transactions {
 
     #[tokio::test]
     async fn invoke_with_insufficient_gas_price_and_or_gas_units_should_fail() {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
-            "--gas-price-fri",
-            "10",
-            "--data-gas-price-fri",
-            "100",
-        ])
-        .await
-        .expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let account = SingleOwnerAccount::new(
@@ -230,14 +216,7 @@ mod test_v3_transactions {
 
     #[tokio::test]
     async fn deploy_account_with_insufficient_gas_price_and_or_gas_units_should_fail() {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
-            "--gas-price-fri",
-            "10",
-            "--data-gas-price-fri",
-            "100",
-        ])
-        .await
-        .expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let signer = get_deployable_account_signer();
         let factory = OpenZeppelinAccountFactory::new(
@@ -262,14 +241,7 @@ mod test_v3_transactions {
 
     #[tokio::test]
     async fn declare_with_insufficient_gas_price_and_or_gas_units_should_fail() {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
-            "--gas-price-fri",
-            "10",
-            "--data-gas-price-fri",
-            "100",
-        ])
-        .await
-        .expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let (sierra_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
