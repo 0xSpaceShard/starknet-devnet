@@ -91,8 +91,8 @@ mod test_v3_transactions {
             selector: get_selector_from_name("deployContract").unwrap(),
             calldata: vec![
                 declare_transaction.class_hash,
-                salt,            // salt
-                unique,          // unique
+                salt,
+                unique,
                 Felt::ONE,       // constructor length
                 constructor_arg, // constructor arguments
             ],
