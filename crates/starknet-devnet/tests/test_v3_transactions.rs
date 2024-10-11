@@ -4,6 +4,7 @@ pub mod common;
 mod test_v3_transactions {
     use std::sync::Arc;
 
+    use server::test_utils::assert_contains;
     use starknet_core::constants::{
         CAIRO_0_ACCOUNT_CONTRACT_HASH, STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS,
     };
@@ -353,10 +354,10 @@ mod test_v3_transactions {
                         starknet_rs_accounts::AccountError::Provider(
                             ProviderError::StarknetError(StarknetError::InsufficientMaxFee),
                         ) => {}
-                        starknet_rs_accounts::AccountError::Provider(ProviderError::Other(
-                            other,
-                        )) if other.to_string().contains("is lower than the actual gas price") => {}
-                        other => panic!("Unexpected error: {:?}", other),
+                        other => assert_contains(
+                            &other.to_string(),
+                            "is lower than the actual gas price",
+                        ),
                     }
                 }
                 Action::AccountDeployment(salt) => {
@@ -372,10 +373,10 @@ mod test_v3_transactions {
                         starknet_rs_accounts::AccountFactoryError::Provider(
                             ProviderError::StarknetError(StarknetError::InsufficientMaxFee),
                         ) => {}
-                        starknet_rs_accounts::AccountFactoryError::Provider(
-                            ProviderError::Other(other),
-                        ) if other.to_string().contains("is lower than the actual gas price") => {}
-                        other => panic!("Unexpected error: {:?}", other),
+                        other => assert_contains(
+                            &other.to_string(),
+                            "is lower than the actual gas price",
+                        ),
                     }
                 }
                 Action::Execution(calls) => {
@@ -399,15 +400,17 @@ mod test_v3_transactions {
                             let execution_result = receipt.receipt.execution_result();
                             match execution_result {
                                 ExecutionResult::Reverted { reason } => {
-                                    assert!(reason.contains("Insufficient max L1 gas"));
+                                    assert_contains(&reason, "Insufficient max L1 gas");
                                 }
                                 other => panic!("Unexpected result: {:?}", other),
                             }
                         }
-                        Err(starknet_rs_accounts::AccountError::Provider(
-                            ProviderError::Other(other),
-                        )) if other.to_string().contains("is lower than the actual gas price") => {}
-                        other => panic!("Unexpected result: {:?}", other),
+                        Err(error) => {
+                            assert_contains(
+                                &error.to_string(),
+                                "is lower than the actual gas price",
+                            );
+                        }
                     }
                 }
             };
