@@ -84,7 +84,6 @@ mod test_v3_transactions {
             .await
             .unwrap();
         let salt = Felt::from_hex_unchecked("0x123");
-        let unique = Felt::ZERO;
         let constructor_arg = Felt::from(10);
         let deploy_call = vec![Call {
             to: UDC_CONTRACT_ADDRESS,
@@ -92,7 +91,7 @@ mod test_v3_transactions {
             calldata: vec![
                 declare_transaction.class_hash,
                 salt,
-                unique,
+                Felt::ZERO,      // unique
                 Felt::ONE,       // constructor length
                 constructor_arg, // constructor arguments
             ],
