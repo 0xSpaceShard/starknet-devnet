@@ -27,7 +27,9 @@ pub enum ApiError {
     #[error("Class hash not found")]
     ClassHashNotFound,
     #[error("Contract error")]
-    ContractError { error: ErrorStack },
+    ContractError { error_stack: ErrorStack },
+    #[error("Transaction execution error")]
+    TransactionExecutionError { failure_index: u64, error_stack: ErrorStack },
     #[error("There are no blocks")]
     NoBlocks,
     #[error("Requested page size is too big")]
@@ -92,10 +94,18 @@ impl ApiError {
                 message: error_message.into(),
                 data: None,
             },
-            ApiError::ContractError { error: error_stack } => RpcError {
+            ApiError::ContractError { error_stack } => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(40),
                 message: error_message.into(),
                 data: Some(serialize_error_stack(&error_stack)),
+            },
+            ApiError::TransactionExecutionError { error_stack, failure_index } => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(41),
+                message: error_message.into(),
+                data: Some(serde_json::json!({
+                    "transaction_index": failure_index,
+                    "execution_error": serialize_error_stack(&error_stack),
+                })),
             },
             ApiError::NoBlocks => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(32),
@@ -231,6 +241,7 @@ mod tests {
     use super::StrictRpcResult;
     use crate::api::json_rpc::error::ApiError;
     use crate::api::json_rpc::ToRpcResponseResult;
+    use crate::rpc_core::error::RpcError;
 
     #[test]
     fn contract_not_found_error() {
