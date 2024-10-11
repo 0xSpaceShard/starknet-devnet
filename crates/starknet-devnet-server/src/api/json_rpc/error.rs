@@ -299,29 +299,17 @@ mod tests {
 
     #[test]
     fn contract_error() {
-        fn test_error() -> starknet_core::error::Error {
-            starknet_core::error::Error::TransactionValidationError(
-                starknet_core::error::TransactionValidationError::ValidationFailure {
-                    reason: "some reason".into(),
-                },
-            )
-        }
-        let error_expected_message = anyhow::format_err!(test_error()).root_cause().to_string();
+        let api_error =
+            ApiError::ContractError { error_stack: ErrorStack::from_str_err("some_reason") };
 
-        error_expected_code_and_message(
-            ApiError::ContractError { error: ErrorStack::from_str_err("some_reason") },
-            40,
-            "Contract error",
-        );
+        error_expected_code_and_message(api_error, 40, "Contract error");
 
         // check contract error data property
-        let error = ApiError::ContractError { error: ErrorStack::from_str_err("some reason") }
-            .api_error_to_rpc_error();
+        let error =
+            ApiError::ContractError { error_stack: ErrorStack::from_str_err("some_reason") }
+                .api_error_to_rpc_error();
 
-        assert_eq!(
-            error.data.unwrap().get("revert_error").unwrap().as_str().unwrap(),
-            &error_expected_message
-        );
+        assert_eq!(error.data.unwrap().as_str().unwrap(), "some reason");
     }
 
     #[test]
