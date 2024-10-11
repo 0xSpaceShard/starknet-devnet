@@ -327,6 +327,10 @@ mod test_v3_transactions {
 
         (gas_units.to_le_digits().first().cloned().unwrap(), gas_price)
     }
+
+    /// This function sets the gas price and/or gas units to a value that is less than the estimated
+    /// then sends the transaction. The expected result is that the transaction will either fail or
+    /// be accepted as reverted.
     async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_error_or_be_accepted_as_reverted<
         A: ConnectedAccount + Sync,
         F: AccountFactory + Sync,
