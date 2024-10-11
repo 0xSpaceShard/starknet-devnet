@@ -58,7 +58,7 @@ mod test_v3_transactions {
     }
 
     #[tokio::test]
-    async fn declare_deploy_invoke_happy_path() {
+    async fn declare_deploy_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let (sierra_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
 
