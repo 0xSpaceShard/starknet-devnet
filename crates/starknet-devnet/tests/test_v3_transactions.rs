@@ -21,6 +21,7 @@ mod test_v3_transactions {
     use starknet_rs_signers::LocalWallet;
     use starknet_types::felt::split_biguint;
     use starknet_types::num_bigint::BigUint;
+    use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
@@ -150,11 +151,7 @@ mod test_v3_transactions {
         let estimate_fee = declaration.estimate_fee().await.unwrap();
 
         let account_strk_balance = devnet
-            .get_balance_by_tag(
-                &account_address,
-                starknet_types::rpc::transaction_receipt::FeeUnit::FRI,
-                BlockTag::Latest,
-            )
+            .get_balance_by_tag(&account_address, FeeUnit::FRI, BlockTag::Latest)
             .await
             .unwrap();
 
@@ -182,11 +179,7 @@ mod test_v3_transactions {
         assert_tx_successful(&invoke_txn_result.transaction_hash, &devnet.json_rpc_client).await;
 
         let account_strk_balance = devnet
-            .get_balance_by_tag(
-                &account_address,
-                starknet_types::rpc::transaction_receipt::FeeUnit::FRI,
-                BlockTag::Latest,
-            )
+            .get_balance_by_tag(&account_address, FeeUnit::FRI, BlockTag::Latest)
             .await
             .unwrap();
         assert!(estimate_fee.overall_fee > account_strk_balance);
@@ -257,13 +250,7 @@ mod test_v3_transactions {
         .unwrap();
 
         let salt = Felt::THREE;
-        devnet
-            .mint_unit(
-                factory.deploy_v3(salt).address(),
-                1e18 as u128,
-                starknet_types::rpc::transaction_receipt::FeeUnit::FRI,
-            )
-            .await;
+        devnet.mint_unit(factory.deploy_v3(salt).address(), 1e18 as u128, FeeUnit::FRI).await;
 
         transaction_with_less_gas_units_and_or_less_gas_price_should_return_error_or_be_accepted_as_reverted(
             Action::AccountDeployment(salt),
@@ -322,13 +309,7 @@ mod test_v3_transactions {
 
         let deploy_v3 = factory.deploy_v3(Felt::THREE);
         let account_address = deploy_v3.address();
-        devnet
-            .mint_unit(
-                account_address,
-                1e18 as u128,
-                starknet_types::rpc::transaction_receipt::FeeUnit::FRI,
-            )
-            .await;
+        devnet.mint_unit(account_address, 1e18 as u128, FeeUnit::FRI).await;
 
         let fee_estimate = deploy_v3.estimate_fee().await.unwrap();
 
