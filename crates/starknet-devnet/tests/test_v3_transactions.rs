@@ -64,10 +64,7 @@ mod test_v3_transactions {
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
 
-        let mut account: SingleOwnerAccount<
-            &starknet_rs_providers::JsonRpcClient<starknet_rs_providers::jsonrpc::HttpTransport>,
-            starknet_rs_signers::LocalWallet,
-        > = SingleOwnerAccount::new(
+        let mut account = SingleOwnerAccount::new(
             &devnet.json_rpc_client,
             signer,
             account_address,
@@ -140,10 +137,7 @@ mod test_v3_transactions {
         .expect("Could not start Devnet");
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
-        let account: SingleOwnerAccount<
-            &starknet_rs_providers::JsonRpcClient<starknet_rs_providers::jsonrpc::HttpTransport>,
-            starknet_rs_signers::LocalWallet,
-        > = SingleOwnerAccount::new(
+        let account = SingleOwnerAccount::new(
             &devnet.json_rpc_client,
             signer,
             account_address,
@@ -218,10 +212,7 @@ mod test_v3_transactions {
         .expect("Could not start Devnet");
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
-        let account: SingleOwnerAccount<
-            &starknet_rs_providers::JsonRpcClient<starknet_rs_providers::jsonrpc::HttpTransport>,
-            starknet_rs_signers::LocalWallet,
-        > = SingleOwnerAccount::new(
+        let account = SingleOwnerAccount::new(
             &devnet.json_rpc_client,
             signer,
             account_address,
@@ -297,10 +288,7 @@ mod test_v3_transactions {
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
 
-        let mut account: SingleOwnerAccount<
-            &starknet_rs_providers::JsonRpcClient<starknet_rs_providers::jsonrpc::HttpTransport>,
-            starknet_rs_signers::LocalWallet,
-        > = SingleOwnerAccount::new(
+        let mut account = SingleOwnerAccount::new(
             &devnet.json_rpc_client,
             signer,
             account_address,
