@@ -19,8 +19,10 @@ use starknet_rs_core::types::{
     FlattenedSierraClass, FunctionCall,
 };
 use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
-use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_providers::{JsonRpcClient, Provider};
+use starknet_rs_providers::jsonrpc::{
+    HttpTransport, HttpTransportError, JsonRpcClientError, JsonRpcError,
+};
+use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
 use starknet_rs_signers::LocalWallet;
 use starknet_types::felt::felt_from_prefixed_hex;
 
@@ -331,6 +333,24 @@ where
 
 pub fn felt_to_u256(f: Felt) -> U256 {
     U256::from_big_endian(&f.to_bytes_be())
+}
+
+/// Helper for extracting JSON RPC error from the provider instance of `ProviderError`.
+/// To be used when there are discrepancies between starknet-rs and the target RPC spec.
+pub fn extract_json_rpc_error(error: ProviderError) -> Result<JsonRpcError, anyhow::Error> {
+    match error {
+        ProviderError::Other(provider_impl_error) => {
+            let impl_specific_error: &JsonRpcClientError<HttpTransportError> =
+                provider_impl_error.as_any().downcast_ref().unwrap();
+            match impl_specific_error {
+                JsonRpcClientError::JsonRpcError(json_rpc_error) => Ok(json_rpc_error.clone()),
+                other => {
+                    Err(anyhow::Error::msg(format!("Cannot extract RPC error from: {:?}", other)))
+                }
+            }
+        }
+        other => Err(anyhow::Error::msg(format!("Cannot extract RPC error from: {:?}", other))),
+    }
 }
 
 #[cfg(test)]

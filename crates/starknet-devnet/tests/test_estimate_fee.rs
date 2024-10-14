@@ -15,8 +15,8 @@ mod estimate_fee_tests {
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
         BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedInvokeTransaction,
-        BroadcastedInvokeTransactionV1, BroadcastedTransaction, Call, ContractErrorData,
-        FeeEstimate, Felt, FunctionCall, StarknetError,
+        BroadcastedInvokeTransactionV1, BroadcastedTransaction, Call, FeeEstimate, Felt,
+        FunctionCall, StarknetError, TransactionExecutionErrorData,
     };
     use starknet_rs_core::utils::{
         cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
@@ -32,8 +32,8 @@ mod estimate_fee_tests {
         CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID,
     };
     use crate::common::utils::{
-        assert_tx_reverted, assert_tx_successful, get_deployable_account_signer,
-        get_flattened_sierra_contract_and_casm_hash,
+        assert_tx_reverted, assert_tx_successful, extract_json_rpc_error,
+        get_deployable_account_signer, get_flattened_sierra_contract_and_casm_hash,
     };
 
     fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
@@ -136,10 +136,31 @@ mod estimate_fee_tests {
             .estimate_fee()
             .await
             .expect_err("Should have failed");
+
         match err {
-            AccountFactoryError::Provider(ProviderError::StarknetError(
-                StarknetError::ContractError(_),
-            )) => (),
+            AccountFactoryError::Provider(provider_error) => {
+                let json_rpc_error = extract_json_rpc_error(provider_error).unwrap();
+                assert_eq!(
+                    (
+                        json_rpc_error.code,
+                        json_rpc_error.message.as_str(),
+                        json_rpc_error.data.as_ref()
+                    ),
+                    (
+                        41,
+                        "Transaction execution error",
+                        Some(&serde_json::json!({
+                            "transaction_index": 0,
+                            "execution_error": {
+                                "contract_address": "0x2743ca6c3eb9b42eaef1326f30a977fe5c07856801e49b703ad353a55967fbf",
+                                "class_hash": "0x123",
+                                "selector": null,
+                                "error": "Class with hash 0x0000000000000000000000000000000000000000000000000000000000000123 is not declared.\n"
+                            }
+                        }))
+                    )
+                )
+            }
             _ => panic!("Invalid error: {err:?}"),
         }
     }
@@ -422,9 +443,15 @@ mod estimate_fee_tests {
             .unwrap_err();
 
         match invoke_err {
-            AccountError::Provider(ProviderError::StarknetError(StarknetError::ContractError(
-                ContractErrorData { revert_error },
-            ))) => assert_contains(&revert_error, panic_reason),
+            AccountError::Provider(ProviderError::StarknetError(
+                StarknetError::TransactionExecutionError(TransactionExecutionErrorData {
+                    transaction_index,
+                    execution_error,
+                }),
+            )) => {
+                assert_eq!(transaction_index, 0);
+                assert_contains(&execution_error, panic_reason);
+            }
             other => panic!("Invalid err: {other:?}"),
         };
     }

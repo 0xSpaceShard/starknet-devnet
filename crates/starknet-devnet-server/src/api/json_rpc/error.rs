@@ -223,8 +223,11 @@ fn serialize_error_stack(error_stack: &ErrorStack) -> serde_json::Value {
                     "error": nested_err,
                 })
             }
-            Frame::Vm(vm_exception_frame) => serde_json::to_value(vm_exception_frame)
-                .unwrap_or(serde_json::json!("Invalid VM exception frame")), // TODO or to string?
+            Frame::Vm(vm_exception_frame) => {
+                // TODO or to string? or perhaps skip vm frame
+                serde_json::to_value(vm_exception_frame)
+                    .unwrap_or(serde_json::json!("Invalid VM exception frame"))
+            }
             Frame::StringFrame(msg) => serde_json::json!(*msg),
         };
     }
