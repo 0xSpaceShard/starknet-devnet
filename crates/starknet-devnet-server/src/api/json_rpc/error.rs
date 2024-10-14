@@ -319,7 +319,28 @@ mod tests {
             ApiError::ContractError { error_stack: ErrorStack::from_str_err("some_reason") }
                 .api_error_to_rpc_error();
 
-        assert_eq!(error.data.unwrap().as_str().unwrap(), "some reason");
+        assert_eq!(error.data.unwrap().as_str().unwrap(), "some_reason");
+    }
+
+    #[test]
+    fn transaction_execution_error() {
+        error_expected_code_and_message(
+            ApiError::TransactionExecutionError {
+                failure_index: 0,
+                error_stack: ErrorStack::from_str_err("anything"),
+            },
+            41,
+            "Transaction execution error",
+        );
+
+        error_expected_code_and_data(
+            ApiError::TransactionExecutionError {
+                failure_index: 1,
+                error_stack: ErrorStack::from_str_err("anything"),
+            },
+            41,
+            &serde_json::json!({ "transaction_index": 1, "execution_error": "anything" }),
+        );
     }
 
     #[test]
@@ -399,7 +420,7 @@ mod tests {
         error_expected_code_and_data(
             ApiError::ValidationFailure { reason: reason.clone() },
             55,
-            &reason,
+            &serde_json::json!(reason),
         );
     }
 
@@ -414,12 +435,16 @@ mod tests {
         }
     }
 
-    fn error_expected_code_and_data(err: ApiError, expected_code: i64, expected_data: &str) {
+    fn error_expected_code_and_data(
+        err: ApiError,
+        expected_code: i64,
+        expected_data: &serde_json::Value,
+    ) {
         let error_result = StrictRpcResult::Err(err).to_rpc_result();
         match error_result {
             crate::rpc_core::response::ResponseResult::Success(_) => panic!("Expected error"),
             crate::rpc_core::response::ResponseResult::Error(err) => {
-                assert_eq!(err.data.unwrap().as_str().unwrap(), expected_data);
+                assert_eq!(&err.data.unwrap(), expected_data);
                 assert_eq!(err.code, crate::rpc_core::error::ErrorCode::ServerError(expected_code))
             }
         }
