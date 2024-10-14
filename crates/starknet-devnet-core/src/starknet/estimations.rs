@@ -45,24 +45,28 @@ pub fn estimate_fee(
 
     let mut transactional_state = CachedState::create_transactional(&mut state.state);
 
-    transactions
-        .into_iter()
-        .map(|(transaction, skip_validate_due_to_impersonation)| {
-            estimate_transaction_fee(
-                &mut transactional_state,
-                &block_context,
-                blockifier::transaction::transaction_execution::Transaction::AccountTransaction(
-                    transaction,
-                ),
-                charge_fee,
-                skip_validate_due_to_impersonation.then_some(false).or(validate), /* if skip validate is true, then
-                                                              * this means that this transaction
-                                                              * has to skip validation, because
-                                                              * the sender is impersonated.
-                                                              * Otherwise use the validate parameter that is passed to the estimateFee request */
-            )
-        })
-        .collect()
+    let mut estimations = vec![];
+    for (i, (tx, skip_validate_due_to_impersonation)) in transactions.into_iter().enumerate() {
+        // If skip validate is true, this tx has to skip validation, because the sender is
+        // impersonated. Otherwise use the validate parameter passed to the estimateFee request.
+        let validate = skip_validate_due_to_impersonation.then_some(false).or(validate);
+        let estimation = estimate_transaction_fee(
+            &mut transactional_state,
+            &block_context,
+            blockifier::transaction::transaction_execution::Transaction::AccountTransaction(tx),
+            charge_fee,
+            validate,
+        )
+        .map_err(|e| match e {
+            Error::ContractExecutionError(error_stack) => {
+                Error::ContractExecutionErrorInSimulation { failure_index: i as u64, error_stack }
+            }
+            other => other,
+        })?;
+        estimations.push(estimation);
+    }
+
+    Ok(estimations)
 }
 
 pub fn estimate_message_fee(

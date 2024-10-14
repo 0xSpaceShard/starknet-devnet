@@ -16,6 +16,8 @@ pub enum Error {
     BlockifierStateError(#[from] blockifier::state::errors::StateError),
     #[error("{0:?}")]
     ContractExecutionError(ErrorStack),
+    #[error("Execution error in simulating transaction no. {failure_index}: {error_stack:?}")]
+    ContractExecutionErrorInSimulation { failure_index: u64, error_stack: ErrorStack },
     #[error("Types error: {0}")]
     TypesError(#[from] starknet_types::error::Error),
     #[error("I/O error: {0}")]

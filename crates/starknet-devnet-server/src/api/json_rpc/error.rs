@@ -241,7 +241,6 @@ mod tests {
     use super::StrictRpcResult;
     use crate::api::json_rpc::error::ApiError;
     use crate::api::json_rpc::ToRpcResponseResult;
-    use crate::rpc_core::error::RpcError;
 
     #[test]
     fn contract_not_found_error() {
