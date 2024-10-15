@@ -5,7 +5,9 @@ mod estimate_fee_tests {
     use std::sync::Arc;
 
     use server::test_utils::assert_contains;
-    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, UDC_CONTRACT_ADDRESS};
+    use starknet_core::constants::{
+        CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS,
+    };
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
         Account, AccountError, AccountFactory, AccountFactoryError, ConnectedAccount,
@@ -533,11 +535,13 @@ mod estimate_fee_tests {
         let contract_class: Arc<LegacyContractClass> =
             Arc::new(serde_json::from_value(contract_json.inner).unwrap());
 
+        let declaration_nonce = Felt::ZERO;
+        let declaration_max_fee = Felt::ZERO;
         let class_hash = contract_class.class_hash().unwrap();
         let prepared_legacy_declaration = account
             .declare_legacy(contract_class.clone())
-            .max_fee(Felt::ZERO)
-            .nonce(Felt::ZERO)
+            .max_fee(declaration_max_fee)
+            .nonce(declaration_nonce)
             .prepared()
             .unwrap();
 
@@ -560,8 +564,14 @@ mod estimate_fee_tests {
 
         let calldata = account.encode_calls(&calls);
 
-        let prepared_invoke =
-            account.execute_v1(calls).nonce(Felt::ONE).max_fee(Felt::ZERO).prepared().unwrap();
+        let invocation_nonce = Felt::ONE;
+        let invocation_max_fee = Felt::ZERO;
+        let prepared_invoke = account
+            .execute_v1(calls)
+            .nonce(invocation_nonce)
+            .max_fee(invocation_max_fee)
+            .prepared()
+            .unwrap();
 
         let deployment_signature =
             signer.sign_hash(&prepared_invoke.transaction_hash(query_only)).await.unwrap();
@@ -573,10 +583,9 @@ mod estimate_fee_tests {
                     BroadcastedTransaction::Declare(
                         starknet_rs_core::types::BroadcastedDeclareTransaction::V1(
                             BroadcastedDeclareTransactionV1 {
-                                max_fee: Felt::ZERO,
-                                signature: [declaration_signature.r, declaration_signature.s]
-                                    .to_vec(),
-                                nonce: Felt::ZERO,
+                                max_fee: declaration_max_fee,
+                                signature: vec![declaration_signature.r, declaration_signature.s],
+                                nonce: declaration_nonce,
                                 sender_address: account_address,
                                 contract_class: contract_class.compress().unwrap().into(),
                                 is_query: query_only,
@@ -585,10 +594,9 @@ mod estimate_fee_tests {
                     ),
                     BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
                         BroadcastedInvokeTransactionV1 {
-                            max_fee: Felt::ZERO,
-                            // precalculated signature
-                            signature: [deployment_signature.r, deployment_signature.s].to_vec(),
-                            nonce: Felt::ONE,
+                            max_fee: invocation_max_fee,
+                            signature: vec![deployment_signature.r, deployment_signature.s],
+                            nonce: invocation_nonce,
                             sender_address: account_address,
                             calldata,
                             is_query: query_only,
@@ -602,5 +610,114 @@ mod estimate_fee_tests {
             .unwrap()
             .iter()
             .for_each(assert_fee_estimation);
+    }
+
+    #[tokio::test]
+    async fn estimate_fee_of_multiple_txs_with_second_failing() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let account = Arc::new(SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer.clone(),
+            account_address,
+            CHAIN_ID,
+            ExecutionEncoding::New,
+        ));
+
+        let valid_call = vec![Call {
+            to: ETH_ERC20_CONTRACT_ADDRESS,
+            selector: get_selector_from_name("transfer").unwrap(),
+            calldata: vec![
+                Felt::ONE,                 // recipient
+                Felt::from(1_000_000_000), // low part of uint256
+                Felt::ZERO,                // high part of uint256
+            ],
+        }];
+
+        let query_only = false;
+
+        // valid call - TODO consider adding a helper method for abstraction - also apply elsewhere
+        let valid_call_calldata = account.encode_calls(&valid_call);
+
+        let valid_call_nonce = Felt::ZERO;
+        let valid_call_max_fee = Felt::ZERO;
+        let prepared_valid_invoke = account
+            .execute_v1(valid_call)
+            .nonce(valid_call_nonce)
+            .max_fee(valid_call_max_fee)
+            .prepared()
+            .unwrap();
+
+        let valid_call_signature =
+            signer.sign_hash(&prepared_valid_invoke.transaction_hash(query_only)).await.unwrap();
+
+        // invalid call
+        let non_existent_selector = get_selector_from_name("nonExistentMethod").unwrap();
+        let invalid_call = vec![Call {
+            to: ETH_ERC20_CONTRACT_ADDRESS,
+            selector: non_existent_selector,
+            calldata: vec![],
+        }];
+
+        let invalid_call_calldata = account.encode_calls(&invalid_call);
+
+        let invalid_call_nonce = Felt::ONE;
+        let invalid_call_max_fee = Felt::ZERO;
+        let prepared_invalid_invoke = account
+            .execute_v1(invalid_call)
+            .nonce(invalid_call_nonce)
+            .max_fee(invalid_call_max_fee)
+            .prepared()
+            .unwrap();
+
+        let invalid_call_signature =
+            signer.sign_hash(&prepared_invalid_invoke.transaction_hash(query_only)).await.unwrap();
+
+        let err = devnet
+            .json_rpc_client
+            .estimate_fee(
+                [
+                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
+                        BroadcastedInvokeTransactionV1 {
+                            max_fee: valid_call_max_fee,
+                            signature: vec![valid_call_signature.r, valid_call_signature.s],
+                            nonce: valid_call_nonce,
+                            sender_address: account_address,
+                            calldata: valid_call_calldata,
+                            is_query: query_only,
+                        },
+                    )),
+                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
+                        BroadcastedInvokeTransactionV1 {
+                            max_fee: invalid_call_max_fee,
+                            signature: vec![invalid_call_signature.r, invalid_call_signature.s],
+                            nonce: invalid_call_nonce,
+                            sender_address: account_address,
+                            calldata: invalid_call_calldata,
+                            is_query: query_only,
+                        },
+                    )),
+                ],
+                [], // simulation_flags
+                BlockId::Tag(BlockTag::Latest),
+            )
+            .await
+            .unwrap_err();
+
+        match err {
+            ProviderError::StarknetError(StarknetError::TransactionExecutionError(
+                TransactionExecutionErrorData { transaction_index, execution_error },
+            )) => {
+                assert_eq!(transaction_index, 1);
+                assert_contains(
+                    &execution_error,
+                    &format!(
+                        "Entry point EntryPointSelector({}) not found in contract",
+                        non_existent_selector.to_hex_string()
+                    ),
+                );
+            }
+            _ => panic!("Unexpected error: {err}"),
+        };
     }
 }

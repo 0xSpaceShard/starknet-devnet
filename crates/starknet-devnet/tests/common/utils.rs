@@ -254,7 +254,7 @@ pub async fn declare_deploy_v1(
         .await?;
 
     // deploy the contract
-    let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
+    let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
     contract_factory
         .deploy_v1(ctor_args.to_vec(), Felt::ZERO, false)
         .max_fee(Felt::from(1e18 as u128))
