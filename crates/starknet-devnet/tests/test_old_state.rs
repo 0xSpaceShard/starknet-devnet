@@ -9,8 +9,8 @@ mod old_state {
     use starknet_rs_core::chain_id::SEPOLIA;
     use starknet_rs_core::types::{
         BlockHashAndNumber, BlockId, BlockTag, BroadcastedInvokeTransaction,
-        BroadcastedInvokeTransactionV1, BroadcastedTransaction, Call, ContractClass,
-        ContractErrorData, Felt, SimulationFlag, SimulationFlagForEstimateFee, StarknetError,
+        BroadcastedInvokeTransactionV1, BroadcastedTransaction, Call, ContractClass, Felt,
+        SimulationFlag, SimulationFlagForEstimateFee, StarknetError, TransactionExecutionErrorData,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_storage_var_address};
     use starknet_rs_providers::{Provider, ProviderError};
@@ -199,9 +199,12 @@ mod old_state {
 
         let estimate_fee_error_string = format!("{:?}", estimate_fee_error);
         match estimate_fee_error {
-            ProviderError::StarknetError(StarknetError::ContractError(ContractErrorData {
-                revert_error,
-            })) => assert_contains(&revert_error, "not declared"),
+            ProviderError::StarknetError(StarknetError::TransactionExecutionError(
+                TransactionExecutionErrorData { transaction_index, execution_error },
+            )) => {
+                assert_eq!(transaction_index, 0);
+                assert_contains(&execution_error, "not declared");
+            }
             other => panic!("Unexpected error: {other:?}"),
         }
 

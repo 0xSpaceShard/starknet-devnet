@@ -353,6 +353,10 @@ pub fn extract_json_rpc_error(error: ProviderError) -> Result<JsonRpcError, anyh
     }
 }
 
+pub fn assert_json_rpc_errors_equal(e1: JsonRpcError, e2: JsonRpcError) {
+    assert_eq!((e1.code, e1.message, e1.data), (e2.code, e2.message, e2.data));
+}
+
 #[cfg(test)]
 mod test_unique_auto_deletable_file {
     use std::path::Path;

@@ -21,6 +21,7 @@ mod estimate_fee_tests {
     use starknet_rs_core::utils::{
         cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
+    use starknet_rs_providers::jsonrpc::JsonRpcError;
     use starknet_rs_providers::{Provider, ProviderError};
     use starknet_rs_signers::Signer;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
@@ -32,8 +33,9 @@ mod estimate_fee_tests {
         CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID,
     };
     use crate::common::utils::{
-        assert_tx_reverted, assert_tx_successful, extract_json_rpc_error,
-        get_deployable_account_signer, get_flattened_sierra_contract_and_casm_hash,
+        assert_json_rpc_errors_equal, assert_tx_reverted, assert_tx_successful,
+        extract_json_rpc_error, get_deployable_account_signer,
+        get_flattened_sierra_contract_and_casm_hash,
     };
 
     fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
@@ -140,16 +142,12 @@ mod estimate_fee_tests {
         match err {
             AccountFactoryError::Provider(provider_error) => {
                 let json_rpc_error = extract_json_rpc_error(provider_error).unwrap();
-                assert_eq!(
-                    (
-                        json_rpc_error.code,
-                        json_rpc_error.message.as_str(),
-                        json_rpc_error.data.as_ref()
-                    ),
-                    (
-                        41,
-                        "Transaction execution error",
-                        Some(&serde_json::json!({
+                assert_json_rpc_errors_equal(
+                    json_rpc_error,
+                    JsonRpcError {
+                        code: 41,
+                        message: "Transaction execution error".into(),
+                        data: Some(serde_json::json!({
                             "transaction_index": 0,
                             "execution_error": {
                                 "contract_address": "0x2743ca6c3eb9b42eaef1326f30a977fe5c07856801e49b703ad353a55967fbf",
@@ -157,8 +155,8 @@ mod estimate_fee_tests {
                                 "selector": null,
                                 "error": "Class with hash 0x0000000000000000000000000000000000000000000000000000000000000123 is not declared.\n"
                             }
-                        }))
-                    )
+                        })),
+                    },
                 )
             }
             _ => panic!("Invalid error: {err:?}"),
