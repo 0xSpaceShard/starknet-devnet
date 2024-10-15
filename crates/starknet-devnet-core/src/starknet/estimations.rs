@@ -11,7 +11,6 @@ use starknet_types::rpc::estimate_message_fee::{
 };
 use starknet_types::rpc::transactions::BroadcastedTransaction;
 
-use crate::constants::USE_KZG_DA;
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
 use crate::utils::get_versioned_constants;
@@ -122,7 +121,7 @@ fn estimate_transaction_fee<S: StateReader>(
     let gas_vector = transaction_execution_info
         .transaction_receipt
         .resources
-        .to_gas_vector(&get_versioned_constants(), USE_KZG_DA)?;
+        .to_gas_vector(&get_versioned_constants(), block_context.block_info().use_kzg_da)?;
     let total_fee =
         fee_utils::get_fee_by_gas_vector(block_context.block_info(), gas_vector, &fee_type);
 
