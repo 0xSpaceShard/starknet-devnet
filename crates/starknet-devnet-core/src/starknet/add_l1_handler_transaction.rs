@@ -1,4 +1,5 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
+use ethers::types::H256;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 use starknet_types::rpc::transactions::{Transaction, TransactionWithHash};
@@ -33,6 +34,17 @@ pub fn add_l1_handler_transaction(
         TransactionWithHash::new(transaction_hash, Transaction::L1Handler(transaction.clone())),
         blockifier_execution_result,
     )?;
+
+    // If L1 tx hash present, store the generated L2 tx hash in its messaging entry.
+    // Not done as part of `handle_transaction_result` as it is specific to this tx type.
+    if let Some(l1_tx_hash) = transaction.l1_transaction_hash {
+        starknet
+            .messaging
+            .l1_to_l2_tx_hashes
+            .entry(H256(*l1_tx_hash.as_bytes()))
+            .or_default()
+            .push(transaction_hash);
+    }
 
     Ok(transaction_hash)
 }
