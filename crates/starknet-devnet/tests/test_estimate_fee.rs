@@ -23,9 +23,9 @@ mod estimate_fee_tests {
     use starknet_rs_core::utils::{
         cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
-    use starknet_rs_providers::jsonrpc::JsonRpcError;
-    use starknet_rs_providers::{Provider, ProviderError};
-    use starknet_rs_signers::Signer;
+    use starknet_rs_providers::jsonrpc::{HttpTransport, JsonRpcError};
+    use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
+    use starknet_rs_signers::{LocalWallet, Signer};
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::felt::{felt_from_prefixed_hex, try_felt_to_num};
 
@@ -512,6 +512,35 @@ mod estimate_fee_tests {
         }
     }
 
+    async fn broadcasted_invoke_v1_for_estimation(
+        account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
+        signer: &LocalWallet,
+        to_address: Felt,
+        selector: Felt,
+        calldata: &[Felt],
+        nonce: Felt,
+    ) -> Result<BroadcastedTransaction, anyhow::Error> {
+        let calls = vec![Call { to: to_address, selector, calldata: calldata.to_vec() }];
+        let calldata = account.encode_calls(&calls);
+
+        let max_fee = Felt::ZERO;
+        let prepared_invoke = account.execute_v1(calls).nonce(nonce).max_fee(max_fee).prepared()?;
+
+        let is_query = false;
+        let signature = signer.sign_hash(&prepared_invoke.transaction_hash(is_query)).await?;
+
+        Ok(BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
+            BroadcastedInvokeTransactionV1 {
+                max_fee,
+                signature: vec![signature.r, signature.s],
+                nonce,
+                sender_address: account.address(),
+                calldata,
+                is_query,
+            },
+        )))
+    }
+
     #[tokio::test]
     /// estimate fee of declare + deploy (invoke udc)
     async fn estimate_fee_of_multiple_txs() {
@@ -551,31 +580,6 @@ mod estimate_fee_tests {
             .await
             .unwrap();
 
-        let calls = vec![Call {
-            to: UDC_CONTRACT_ADDRESS,
-            selector: get_selector_from_name("deployContract").unwrap(),
-            calldata: vec![
-                class_hash,
-                Felt::from_hex_unchecked("0x123"), // salt
-                Felt::ZERO,
-                Felt::ZERO,
-            ],
-        }];
-
-        let calldata = account.encode_calls(&calls);
-
-        let invocation_nonce = Felt::ONE;
-        let invocation_max_fee = Felt::ZERO;
-        let prepared_invoke = account
-            .execute_v1(calls)
-            .nonce(invocation_nonce)
-            .max_fee(invocation_max_fee)
-            .prepared()
-            .unwrap();
-
-        let deployment_signature =
-            signer.sign_hash(&prepared_invoke.transaction_hash(query_only)).await.unwrap();
-
         devnet
             .json_rpc_client
             .estimate_fee(
@@ -592,16 +596,21 @@ mod estimate_fee_tests {
                             },
                         ),
                     ),
-                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
-                        BroadcastedInvokeTransactionV1 {
-                            max_fee: invocation_max_fee,
-                            signature: vec![deployment_signature.r, deployment_signature.s],
-                            nonce: invocation_nonce,
-                            sender_address: account_address,
-                            calldata,
-                            is_query: query_only,
-                        },
-                    )),
+                    broadcasted_invoke_v1_for_estimation(
+                        &account,
+                        &signer,
+                        UDC_CONTRACT_ADDRESS,
+                        get_selector_from_name("deployContract").unwrap(),
+                        &[
+                            class_hash,
+                            Felt::from_hex_unchecked("0x123"), // salt
+                            Felt::ZERO,
+                            Felt::ZERO,
+                        ],
+                        Felt::ONE,
+                    )
+                    .await
+                    .unwrap(),
                 ],
                 [], // simulation_flags
                 BlockId::Tag(BlockTag::Latest),
@@ -616,87 +625,44 @@ mod estimate_fee_tests {
     async fn estimate_fee_of_multiple_txs_with_second_failing() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
-        let account = Arc::new(SingleOwnerAccount::new(
-            devnet.clone_provider(),
+        let account = SingleOwnerAccount::new(
+            &devnet.json_rpc_client,
             signer.clone(),
             account_address,
             CHAIN_ID,
             ExecutionEncoding::New,
-        ));
+        );
 
-        let valid_call = vec![Call {
-            to: ETH_ERC20_CONTRACT_ADDRESS,
-            selector: get_selector_from_name("transfer").unwrap(),
-            calldata: vec![
-                Felt::ONE,                 // recipient
-                Felt::from(1_000_000_000), // low part of uint256
-                Felt::ZERO,                // high part of uint256
-            ],
-        }];
-
-        let query_only = false;
-
-        // valid call - TODO consider adding a helper method for abstraction - also apply elsewhere
-        let valid_call_calldata = account.encode_calls(&valid_call);
-
-        let valid_call_nonce = Felt::ZERO;
-        let valid_call_max_fee = Felt::ZERO;
-        let prepared_valid_invoke = account
-            .execute_v1(valid_call)
-            .nonce(valid_call_nonce)
-            .max_fee(valid_call_max_fee)
-            .prepared()
-            .unwrap();
-
-        let valid_call_signature =
-            signer.sign_hash(&prepared_valid_invoke.transaction_hash(query_only)).await.unwrap();
-
-        // invalid call
         let non_existent_selector = get_selector_from_name("nonExistentMethod").unwrap();
-        let invalid_call = vec![Call {
-            to: ETH_ERC20_CONTRACT_ADDRESS,
-            selector: non_existent_selector,
-            calldata: vec![],
-        }];
-
-        let invalid_call_calldata = account.encode_calls(&invalid_call);
-
-        let invalid_call_nonce = Felt::ONE;
-        let invalid_call_max_fee = Felt::ZERO;
-        let prepared_invalid_invoke = account
-            .execute_v1(invalid_call)
-            .nonce(invalid_call_nonce)
-            .max_fee(invalid_call_max_fee)
-            .prepared()
-            .unwrap();
-
-        let invalid_call_signature =
-            signer.sign_hash(&prepared_invalid_invoke.transaction_hash(query_only)).await.unwrap();
 
         let err = devnet
             .json_rpc_client
             .estimate_fee(
                 [
-                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
-                        BroadcastedInvokeTransactionV1 {
-                            max_fee: valid_call_max_fee,
-                            signature: vec![valid_call_signature.r, valid_call_signature.s],
-                            nonce: valid_call_nonce,
-                            sender_address: account_address,
-                            calldata: valid_call_calldata,
-                            is_query: query_only,
-                        },
-                    )),
-                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
-                        BroadcastedInvokeTransactionV1 {
-                            max_fee: invalid_call_max_fee,
-                            signature: vec![invalid_call_signature.r, invalid_call_signature.s],
-                            nonce: invalid_call_nonce,
-                            sender_address: account_address,
-                            calldata: invalid_call_calldata,
-                            is_query: query_only,
-                        },
-                    )),
+                    broadcasted_invoke_v1_for_estimation(
+                        &account,
+                        &signer,
+                        ETH_ERC20_CONTRACT_ADDRESS,
+                        get_selector_from_name("transfer").unwrap(),
+                        &[
+                            Felt::ONE,                 // recipient
+                            Felt::from(1_000_000_000), // low part of uint256
+                            Felt::ZERO,                // high part of uint256
+                        ],
+                        Felt::ZERO,
+                    )
+                    .await
+                    .unwrap(),
+                    broadcasted_invoke_v1_for_estimation(
+                        &account,
+                        &signer,
+                        ETH_ERC20_CONTRACT_ADDRESS,
+                        non_existent_selector,
+                        &[],
+                        Felt::ONE,
+                    )
+                    .await
+                    .unwrap(),
                 ],
                 [], // simulation_flags
                 BlockId::Tag(BlockTag::Latest),
