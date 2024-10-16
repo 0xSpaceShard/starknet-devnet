@@ -57,13 +57,13 @@ pub fn add_deploy_account_transaction(
     let transaction_hash = blockifier_deploy_account_transaction.tx_hash.0;
     let transaction = TransactionWithHash::new(transaction_hash, deploy_account_transaction);
 
-    let blockifier_execution_result =
+    let blockifier_execution_info =
         blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(
             blockifier_deploy_account_transaction,
         )
-        .execute(&mut starknet.pending_state.state, &starknet.block_context, true, true);
+        .execute(&mut starknet.pending_state.state, &starknet.block_context, true, true)?;
 
-    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+    starknet.handle_accepted_transaction(transaction, blockifier_execution_info)?;
 
     Ok((transaction_hash, address))
 }

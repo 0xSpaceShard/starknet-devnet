@@ -79,7 +79,7 @@ pub fn add_declare_transaction(
     )?);
 
     let transaction = TransactionWithHash::new(transaction_hash, declare_transaction);
-    let blockifier_execution_result =
+    let blockifier_execution_info =
         blockifier::transaction::account_transaction::AccountTransaction::Declare(
             blockifier_declare_transaction,
         )
@@ -88,16 +88,15 @@ pub fn add_declare_transaction(
             &starknet.block_context,
             true,
             validate,
-        );
+        )?;
 
     // if tx successful, store the class
-    if blockifier_execution_result.as_ref().is_ok_and(|res| !res.is_reverted()) {
+    if !blockifier_execution_info.is_reverted() {
         let state = starknet.get_state();
         state.declare_contract_class(class_hash, casm_hash, contract_class)?;
     }
 
-    // do the steps required in all transactions
-    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+    starknet.handle_accepted_transaction(transaction, blockifier_execution_info)?;
 
     Ok((transaction_hash, class_hash))
 }

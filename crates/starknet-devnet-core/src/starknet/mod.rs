@@ -7,7 +7,6 @@ use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
-use blockifier::transaction::errors::TransactionPreValidationError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use parking_lot::RwLock;
@@ -67,7 +66,7 @@ use crate::constants::{
     STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
 };
 use crate::contract_class_choice::AccountContractClassChoice;
-use crate::error::{DevnetResult, Error, TransactionValidationError};
+use crate::error::{DevnetResult, Error};
 use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::RawExecutionV1;
@@ -381,76 +380,15 @@ impl Starknet {
         Ok(state_diff)
     }
 
-    /// Handles transaction result either Ok or Error and updates the state accordingly.
-    ///
-    /// # Arguments
-    ///
-    /// * `transaction` - Transaction to be added in the collection of transactions.
-    /// * `contract_class` - Contract class to be added in the state cache. Only in declare
-    ///   transactions.
-    /// * `transaction_result` - Result with transaction_execution_info
-    pub(crate) fn handle_transaction_result(
-        &mut self,
-        transaction: TransactionWithHash,
-        transaction_result: Result<
-            TransactionExecutionInfo,
-            blockifier::transaction::errors::TransactionExecutionError,
-        >,
-    ) -> DevnetResult<()> {
-        let transaction_hash = *transaction.get_transaction_hash();
-
-        match transaction_result {
-            Ok(tx_info) => {
-                self.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)
-            }
-            Err(tx_err) => {
-                /// utility to avoid duplication
-                fn match_tx_fee_error(
-                    err: blockifier::transaction::errors::TransactionFeeError,
-                ) -> DevnetResult<()> {
-                    match err {
-                        blockifier::transaction::errors::TransactionFeeError::FeeTransferError { .. }
-                        | blockifier::transaction::errors::TransactionFeeError::MaxFeeTooLow { .. } => Err(
-                            TransactionValidationError::InsufficientMaxFee.into()
-                        ),
-                        blockifier::transaction::errors::TransactionFeeError::MaxFeeExceedsBalance { .. } | blockifier::transaction::errors::TransactionFeeError::L1GasBoundsExceedBalance { .. } => Err(
-                            TransactionValidationError::InsufficientAccountBalance.into()
-                        ),
-                        _ => Err(err.into())
-                    }
-                }
-
-                // based on this https://community.starknet.io/t/efficient-utilization-of-sequencer-capacity-in-starknet-v0-12-1/95607#the-validation-phase-in-the-gateway-5
-                // we should not save transactions that failed with one of the following errors
-                match tx_err {
-                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
-                        TransactionPreValidationError::InvalidNonce { .. }
-                    ) => Err(TransactionValidationError::InvalidTransactionNonce.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::FeeCheckError { .. } =>
-                        Err(TransactionValidationError::InsufficientMaxFee.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
-                        TransactionPreValidationError::TransactionFeeError(err)
-                    ) => match_tx_fee_error(err),
-                    blockifier::transaction::errors::TransactionExecutionError::TransactionFeeError(err)
-                      => match_tx_fee_error(err),
-                    blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError { .. } => {
-                        Err(TransactionValidationError::ValidationFailure { reason: tx_err.to_string() }.into())
-                    }
-                    _ => Err(tx_err.into())
-                }
-            }
-        }
-    }
-
     /// Handles succeeded and reverted transactions. The tx is stored and potentially dumped. A new
     /// block is generated in block-generation-on-transaction mode.
     pub(crate) fn handle_accepted_transaction(
         &mut self,
-        transaction_hash: &TransactionHash,
-        transaction: &TransactionWithHash,
+        transaction: TransactionWithHash,
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
         let state_diff = self.commit_diff()?;
+        let transaction_hash = transaction.get_transaction_hash();
 
         let trace = create_trace(
             &mut self.pending_state.state,
@@ -458,7 +396,7 @@ impl Starknet {
             &tx_info,
             state_diff.clone().into(),
         )?;
-        let transaction_to_add = StarknetTransaction::create_accepted(transaction, tx_info, trace);
+        let transaction_to_add = StarknetTransaction::create_accepted(&transaction, tx_info, trace);
 
         // add accepted transaction to pending block
         self.blocks.pending_block.add_transaction(*transaction_hash);

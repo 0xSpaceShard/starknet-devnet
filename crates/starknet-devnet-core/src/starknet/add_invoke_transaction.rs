@@ -48,15 +48,15 @@ pub fn add_invoke_transaction(
 
     let state = &mut starknet.get_state().state;
 
-    let blockifier_execution_result =
+    let blockifier_execution_info =
         blockifier::transaction::account_transaction::AccountTransaction::Invoke(
             blockifier_invoke_transaction,
         )
-        .execute(state, &block_context, true, validate);
+        .execute(state, &block_context, true, validate)?;
 
     let transaction = TransactionWithHash::new(transaction_hash, invoke_transaction);
 
-    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+    starknet.handle_accepted_transaction(transaction, blockifier_execution_info)?;
 
     Ok(transaction_hash)
 }
