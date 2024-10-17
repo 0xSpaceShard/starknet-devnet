@@ -239,6 +239,31 @@ impl Drop for UniqueAutoDeletableFile {
     }
 }
 
+/// Deploys an instance of the class whose sierra hash is provided as `class_hash`. Uses a v1 invoke
+/// transaction. Returns the address of the newly deployed contract.
+pub async fn deploy_v1(
+    account: Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>,
+    class_hash: Felt,
+    ctor_args: &[Felt],
+) -> Result<Felt, anyhow::Error> {
+    let contract_factory = ContractFactory::new(class_hash, account);
+    contract_factory
+        .deploy_v1(ctor_args.to_vec(), Felt::ZERO, false)
+        .max_fee(Felt::from(1e18 as u128))
+        .send()
+        .await?;
+
+    // generate the address of the newly deployed contract
+    let contract_address = get_udc_deployed_address(
+        Felt::ZERO,
+        class_hash,
+        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        ctor_args,
+    );
+
+    Ok(contract_address)
+}
+
 /// Declares and deploys a Cairo 1 contract; returns class hash and contract address
 pub async fn declare_deploy_v1(
     account: Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>,
@@ -253,21 +278,7 @@ pub async fn declare_deploy_v1(
         .send()
         .await?;
 
-    // deploy the contract
-    let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
-    contract_factory
-        .deploy_v1(ctor_args.to_vec(), Felt::ZERO, false)
-        .max_fee(Felt::from(1e18 as u128))
-        .send()
-        .await?;
-
-    // generate the address of the newly deployed contract
-    let contract_address = get_udc_deployed_address(
-        Felt::ZERO,
-        declaration_result.class_hash,
-        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
-        ctor_args,
-    );
+    let contract_address = deploy_v1(account, declaration_result.class_hash, ctor_args).await?;
 
     Ok((declaration_result.class_hash, contract_address))
 }
