@@ -15,8 +15,8 @@ use starknet_rs_accounts::{
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult, Felt,
-    FlattenedSierraClass, FunctionCall,
+    BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult, FeeEstimate,
+    Felt, FlattenedSierraClass, FunctionCall, NonZeroFelt,
 };
 use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -331,6 +331,16 @@ where
 
 pub fn felt_to_u256(f: Felt) -> U256 {
     U256::from_big_endian(&f.to_bytes_be())
+}
+
+pub fn get_gas_units_and_gas_price(fee_estimate: FeeEstimate) -> (u64, u128) {
+    let gas_price =
+        u128::from_le_bytes(fee_estimate.gas_price.to_bytes_le()[0..16].try_into().unwrap());
+    let gas_units = fee_estimate
+        .overall_fee
+        .field_div(&NonZeroFelt::from_felt_unchecked(fee_estimate.gas_price));
+
+    (gas_units.to_le_digits().first().cloned().unwrap(), gas_price)
 }
 
 #[cfg(test)]

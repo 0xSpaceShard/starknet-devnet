@@ -14,9 +14,11 @@ mod estimate_fee_tests {
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedInvokeTransaction,
-        BroadcastedInvokeTransactionV1, BroadcastedTransaction, Call, ContractErrorData,
-        FeeEstimate, Felt, FunctionCall, StarknetError,
+        BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedDeclareTransactionV3,
+        BroadcastedInvokeTransaction, BroadcastedInvokeTransactionV1,
+        BroadcastedInvokeTransactionV3, BroadcastedTransaction, Call, DataAvailabilityMode,
+        FeeEstimate, Felt, FunctionCall, ResourceBounds, ResourceBoundsMapping,
+        SimulationFlagForEstimateFee, StarknetError, TransactionExecutionErrorData,
     };
     use starknet_rs_core::utils::{
         cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
@@ -138,7 +140,7 @@ mod estimate_fee_tests {
             .expect_err("Should have failed");
         match err {
             AccountFactoryError::Provider(ProviderError::StarknetError(
-                StarknetError::ContractError(_),
+                StarknetError::TransactionExecutionError(_),
             )) => (),
             _ => panic!("Invalid error: {err:?}"),
         }
@@ -364,7 +366,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
-    async fn message_available_if_estimation_panics() {
+    async fn message_available_if_estimation_reverts() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // get account
@@ -422,9 +424,12 @@ mod estimate_fee_tests {
             .unwrap_err();
 
         match invoke_err {
-            AccountError::Provider(ProviderError::StarknetError(StarknetError::ContractError(
-                ContractErrorData { revert_error },
-            ))) => assert_contains(&revert_error, panic_reason),
+            AccountError::Provider(ProviderError::StarknetError(
+                StarknetError::TransactionExecutionError(TransactionExecutionErrorData {
+                    execution_error,
+                    ..
+                }),
+            )) => assert_contains(&execution_error, panic_reason),
             other => panic!("Invalid err: {other:?}"),
         };
     }
@@ -577,5 +582,202 @@ mod estimate_fee_tests {
             .unwrap()
             .iter()
             .for_each(assert_fee_estimation);
+    }
+
+    #[tokio::test]
+    async fn estimate_fee_of_multiple_txs_should_return_correct_index_if_one_of_them_fails() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start devnet");
+
+        // get account
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let mut account = SingleOwnerAccount::new(
+            &devnet.json_rpc_client,
+            signer.clone(),
+            account_address,
+            devnet.json_rpc_client.chain_id().await.unwrap(),
+            ExecutionEncoding::New,
+        );
+
+        account.set_block_id(BlockId::Tag(BlockTag::Latest));
+
+        let (flattened_contract_artifact, casm_hash) =
+            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH);
+        let class_hash = flattened_contract_artifact.class_hash();
+
+        let estimate_fee_resource_bounds = ResourceBoundsMapping {
+            l1_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
+            l2_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
+        };
+
+        // call non existent method in UDC
+        let calls = vec![Call {
+            to: UDC_CONTRACT_ADDRESS,
+            selector: get_selector_from_name("no_such_method").unwrap(),
+            calldata: vec![
+                class_hash,
+                Felt::from_hex_unchecked("0x123"), // salt
+                Felt::ZERO,
+                Felt::ZERO,
+            ],
+        }];
+
+        let calldata = account.encode_calls(&calls);
+
+        let is_query = true;
+        let nonce_data_availability_mode = DataAvailabilityMode::L1;
+        let fee_data_availability_mode = DataAvailabilityMode::L1;
+
+        let expected_error = devnet
+            .json_rpc_client
+            .estimate_fee(
+                [
+                    BroadcastedTransaction::Declare(
+                        starknet_rs_core::types::BroadcastedDeclareTransaction::V3(
+                            BroadcastedDeclareTransactionV3 {
+                                sender_address: account_address,
+                                compiled_class_hash: casm_hash,
+                                signature: vec![],
+                                nonce: Felt::ZERO,
+                                contract_class: Arc::new(flattened_contract_artifact.clone()),
+                                resource_bounds: estimate_fee_resource_bounds.clone(),
+                                tip: 0,
+                                paymaster_data: vec![],
+                                account_deployment_data: vec![],
+                                nonce_data_availability_mode,
+                                fee_data_availability_mode,
+                                is_query,
+                            },
+                        ),
+                    ),
+                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V3(
+                        BroadcastedInvokeTransactionV3 {
+                            sender_address: account_address,
+                            calldata,
+                            signature: vec![],
+                            nonce: Felt::ONE,
+                            resource_bounds: estimate_fee_resource_bounds,
+                            tip: 0,
+                            paymaster_data: vec![],
+                            account_deployment_data: vec![],
+                            nonce_data_availability_mode,
+                            fee_data_availability_mode,
+                            is_query,
+                        },
+                    )),
+                ],
+                [SimulationFlagForEstimateFee::SkipValidate],
+                account.block_id(),
+            )
+            .await
+            .unwrap_err();
+
+        match expected_error {
+            ProviderError::StarknetError(StarknetError::TransactionExecutionError(
+                TransactionExecutionErrorData { transaction_index, execution_error },
+            )) => {
+                assert_eq!(transaction_index, 1);
+                assert_contains(&execution_error, "not found in contract");
+            }
+            other => panic!("Unexpected error: {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn estimate_fee_of_multiple_failing_txs_should_return_index_of_the_first_failing_transaction()
+     {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start devnet");
+
+        // get account
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let mut account = SingleOwnerAccount::new(
+            &devnet.json_rpc_client,
+            signer.clone(),
+            account_address,
+            devnet.json_rpc_client.chain_id().await.unwrap(),
+            ExecutionEncoding::New,
+        );
+
+        account.set_block_id(BlockId::Tag(BlockTag::Latest));
+
+        let (flattened_contract_artifact, casm_hash) =
+            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH);
+        let class_hash = flattened_contract_artifact.class_hash();
+
+        let estimate_fee_resource_bounds = ResourceBoundsMapping {
+            l1_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
+            l2_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
+        };
+
+        // call non existent method in UDC
+        let calls = vec![Call {
+            to: UDC_CONTRACT_ADDRESS,
+            selector: get_selector_from_name("no_such_method").unwrap(),
+            calldata: vec![
+                class_hash,
+                Felt::from_hex_unchecked("0x123"), // salt
+                Felt::ZERO,
+                Felt::ZERO,
+            ],
+        }];
+
+        let calldata = account.encode_calls(&calls);
+
+        let is_query = true;
+        let nonce_data_availability_mode = DataAvailabilityMode::L1;
+        let fee_data_availability_mode = DataAvailabilityMode::L1;
+
+        let expected_error = devnet
+            .json_rpc_client
+            .estimate_fee(
+                [
+                    BroadcastedTransaction::Declare(
+                        starknet_rs_core::types::BroadcastedDeclareTransaction::V3(
+                            BroadcastedDeclareTransactionV3 {
+                                sender_address: account_address,
+                                compiled_class_hash: casm_hash,
+                                signature: vec![],
+                                nonce: Felt::ZERO,
+                                contract_class: Arc::new(flattened_contract_artifact.clone()),
+                                resource_bounds: estimate_fee_resource_bounds.clone(),
+                                tip: 0,
+                                paymaster_data: vec![],
+                                account_deployment_data: vec![],
+                                nonce_data_availability_mode,
+                                fee_data_availability_mode,
+                                is_query,
+                            },
+                        ),
+                    ),
+                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V3(
+                        BroadcastedInvokeTransactionV3 {
+                            sender_address: account_address,
+                            calldata,
+                            signature: vec![],
+                            nonce: Felt::ONE,
+                            resource_bounds: estimate_fee_resource_bounds.clone(),
+                            tip: 0,
+                            paymaster_data: vec![],
+                            account_deployment_data: vec![],
+                            nonce_data_availability_mode,
+                            fee_data_availability_mode,
+                            is_query,
+                        },
+                    )),
+                ],
+                [],
+                account.block_id(),
+            )
+            .await
+            .unwrap_err();
+
+        match expected_error {
+            ProviderError::StarknetError(StarknetError::TransactionExecutionError(
+                TransactionExecutionErrorData { transaction_index, execution_error },
+            )) => {
+                assert_eq!(transaction_index, 0);
+                assert_contains(&execution_error, "invalid signature");
+            }
+            other => panic!("Unexpected error: {:?}", other),
+        }
     }
 }
