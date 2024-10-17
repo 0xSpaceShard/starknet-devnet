@@ -1451,7 +1451,7 @@ mod tests {
         STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{DevnetResult, Error};
-    use crate::stack_trace::Frame;
+    use crate::stack_trace::{ErrorStack, Frame};
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::traits::{Accounted, Deployed, HashIdentified};
     use crate::utils::test_utils::{
@@ -1745,18 +1745,22 @@ mod tests {
             entry_point_selector,
             vec![Felt::from(predeployed_account.account_address)],
         ) {
-            Err(Error::ContractExecutionError(error_stack)) => {
-                assert_eq!(error_stack.stack.len(), 2);
-                match &error_stack.stack[0] {
-                    Frame::EntryPoint(entry_point_frame) => {
-                        assert_eq!(
-                            entry_point_frame.selector,
-                            Some(starknet_api::core::EntryPointSelector(entry_point_selector))
+            Err(Error::ContractExecutionError(ErrorStack { stack })) => match &stack[..] {
+                [Frame::EntryPoint(entry_point_frame), Frame::StringFrame(error_msg)] => {
+                    assert_eq!(
+                        entry_point_frame.selector,
+                        Some(starknet_api::core::EntryPointSelector(entry_point_selector))
+                    );
+                    assert_eq!(
+                        error_msg,
+                        &format!(
+                            "Entry point EntryPointSelector({}) not found in contract.\n",
+                            entry_point_selector.to_hex_string()
                         )
-                    }
-                    other => panic!("Unexpected error frame: {other:?}"),
+                    );
                 }
-            }
+                _ => panic!("Unexpected error stack: {stack:?}"),
+            },
             unexpected => panic!("Should have failed; got {unexpected:?}"),
         }
     }

@@ -124,7 +124,8 @@ fn estimate_transaction_fee<S: StateReader>(
 
     // if error not handled by execute, it means it reverted during the process, e.g. due to panic
     if let Some(revert_error) = transaction_execution_info.revert_error {
-        // TODO construct a structured error from revert_error - hacky?
+        // TODO until blockifier makes the actual stack trace available, we return the stringified
+        // error. The RPC spec would prefer a structured one, but a string is allowed.
         return Err(Error::ContractExecutionError(ErrorStack::from_str_err(&revert_error)));
     }
 

@@ -487,9 +487,8 @@ mod fork_tests {
         let address = Felt::ONE;
         match fork_devnet.json_rpc_client.get_nonce(BlockId::Tag(BlockTag::Latest), address).await {
             Err(provider_error) => {
-                let json_rpc_error = extract_json_rpc_error(provider_error).unwrap();
                 assert_json_rpc_errors_equal(
-                    json_rpc_error,
+                    extract_json_rpc_error(provider_error).unwrap(),
                     JsonRpcError {
                         code: -1,
                         message: format!(

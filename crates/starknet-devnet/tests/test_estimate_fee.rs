@@ -122,46 +122,36 @@ mod estimate_fee_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let new_account_signer = get_deployable_account_signer();
-        let dummy_invalid_class_hash = Felt::from_hex_unchecked("0x123");
+        let invalid_class_hash = Felt::from_hex_unchecked("0x123");
         let account_factory = OpenZeppelinAccountFactory::new(
-            dummy_invalid_class_hash,
+            invalid_class_hash,
             CHAIN_ID,
             new_account_signer,
             devnet.clone_provider(),
         )
         .await
         .unwrap();
-        let new_account_nonce = Felt::ZERO;
 
         let salt = Felt::from_hex_unchecked("0x123");
-        let err = account_factory
-            .deploy_v1(salt)
-            .nonce(new_account_nonce)
-            .estimate_fee()
-            .await
-            .expect_err("Should have failed");
-
-        match err {
-            AccountFactoryError::Provider(provider_error) => {
-                let json_rpc_error = extract_json_rpc_error(provider_error).unwrap();
-                assert_json_rpc_errors_equal(
-                    json_rpc_error,
-                    JsonRpcError {
-                        code: 41,
-                        message: "Transaction execution error".into(),
-                        data: Some(serde_json::json!({
-                            "transaction_index": 0,
-                            "execution_error": {
-                                "contract_address": "0x2743ca6c3eb9b42eaef1326f30a977fe5c07856801e49b703ad353a55967fbf",
-                                "class_hash": "0x123",
-                                "selector": null,
-                                "error": "Class with hash 0x0000000000000000000000000000000000000000000000000000000000000123 is not declared.\n"
-                            }
-                        })),
-                    },
-                )
-            }
-            _ => panic!("Invalid error: {err:?}"),
+        let deployment = account_factory.deploy_v1(salt);
+        match deployment.estimate_fee().await {
+            Err(AccountFactoryError::Provider(provider_error)) => assert_json_rpc_errors_equal(
+                extract_json_rpc_error(provider_error).unwrap(),
+                JsonRpcError {
+                    code: 41,
+                    message: "Transaction execution error".into(),
+                    data: Some(serde_json::json!({
+                        "transaction_index": 0,
+                        "execution_error": {
+                            "contract_address": deployment.address(),
+                            "class_hash": invalid_class_hash,
+                            "selector": null,
+                            "error": format!("Class with hash {} is not declared.\n", invalid_class_hash.to_fixed_hex_string())
+                        }
+                    })),
+                },
+            ),
+            other => panic!("Unexpected response: {other:?}"),
         }
     }
 
@@ -649,7 +639,7 @@ mod estimate_fee_tests {
                             Felt::from(1_000_000_000), // low part of uint256
                             Felt::ZERO,                // high part of uint256
                         ],
-                        Felt::ZERO,
+                        Felt::ZERO, // original nonce
                     )
                     .await
                     .unwrap(),
@@ -659,7 +649,7 @@ mod estimate_fee_tests {
                         ETH_ERC20_CONTRACT_ADDRESS,
                         non_existent_selector,
                         &[],
-                        Felt::ONE,
+                        Felt::ONE, // nonce incremented after 1st tx
                     )
                     .await
                     .unwrap(),

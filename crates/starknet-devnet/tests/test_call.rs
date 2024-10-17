@@ -67,10 +67,9 @@ mod call {
             .await
             .expect_err("Should have failed");
 
-        let json_rpc_error = extract_json_rpc_error(err).unwrap();
         let selector_hex = entry_point_selector.to_hex_string();
         assert_json_rpc_errors_equal(
-            json_rpc_error,
+            extract_json_rpc_error(err).unwrap(),
             JsonRpcError {
                 code: 40,
                 message: "Contract error".into(),
@@ -118,10 +117,9 @@ mod call {
             )
             .await
             .unwrap_err();
-        let json_rpc_error = extract_json_rpc_error(err).unwrap();
 
         assert_json_rpc_errors_equal(
-            json_rpc_error,
+            extract_json_rpc_error(err).unwrap(),
             JsonRpcError {
                 code: 40,
                 message: "Contract error".into(),

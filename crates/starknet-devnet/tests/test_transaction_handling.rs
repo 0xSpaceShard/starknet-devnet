@@ -88,7 +88,7 @@ mod trace_tests {
     }
 
     #[tokio::test]
-    async fn test_tx_status_content_on_failure() {
+    async fn test_tx_status_content_of_failed_invoke() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
