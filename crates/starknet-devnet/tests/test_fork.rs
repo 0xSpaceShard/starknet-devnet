@@ -5,7 +5,6 @@ mod fork_tests {
     use std::str::FromStr;
     use std::sync::Arc;
 
-    use server::test_utils::assert_contains;
     use starknet_core::constants::CAIRO_1_ERC20_CONTRACT_CLASS_HASH;
     use starknet_rs_accounts::{
         Account, AccountFactory, AccountFactoryError, ExecutionEncoding,
@@ -20,6 +19,7 @@ mod fork_tests {
     use starknet_rs_core::utils::{
         get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
     };
+    use starknet_rs_providers::jsonrpc::JsonRpcError;
     use starknet_rs_providers::{Provider, ProviderError};
     use starknet_rs_signers::Signer;
     use starknet_types::felt::felt_from_prefixed_hex;
@@ -31,7 +31,8 @@ mod fork_tests {
         MAINNET_HTTPS_URL, MAINNET_URL,
     };
     use crate::common::utils::{
-        assert_cairo1_classes_equal, assert_tx_successful, declare_deploy_v1,
+        assert_cairo1_classes_equal, assert_json_rpc_errors_equal, assert_tx_successful,
+        declare_deploy_v1, extract_json_rpc_error,
         get_block_reader_contract_in_sierra_and_compiled_class_hash, get_contract_balance,
         get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
     };
@@ -485,8 +486,20 @@ mod fork_tests {
 
         let address = Felt::ONE;
         match fork_devnet.json_rpc_client.get_nonce(BlockId::Tag(BlockTag::Latest), address).await {
-            Err(ProviderError::Other(e)) => {
-                assert_contains(&e.to_string(), "error sending request")
+            Err(provider_error) => {
+                let json_rpc_error = extract_json_rpc_error(provider_error).unwrap();
+                assert_json_rpc_errors_equal(
+                    json_rpc_error,
+                    JsonRpcError {
+                        code: -1,
+                        message: format!(
+                            "Failed to read from state: Error in communication with origin: error \
+                             sending request for url ({}/).",
+                            origin_devnet.url
+                        ),
+                        data: None,
+                    },
+                );
             }
             unexpected => panic!("Got unexpected resp: {unexpected:?}"),
         }
