@@ -17,8 +17,8 @@ pub enum Error {
     BlockifierTransactionError(blockifier::transaction::errors::TransactionExecutionError),
     #[error(transparent)]
     BlockifierExecutionError(#[from] blockifier::execution::errors::EntryPointExecutionError),
-    #[error("{revert_error}")]
-    ExecutionError { revert_error: String },
+    #[error("{execution_error}")]
+    ExecutionError { execution_error: String, index: usize },
     #[error("Types error: {0}")]
     TypesError(#[from] starknet_types::error::Error),
     #[error("I/O error: {0}")]

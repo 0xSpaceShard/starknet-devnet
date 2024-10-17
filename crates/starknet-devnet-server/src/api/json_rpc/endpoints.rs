@@ -310,7 +310,10 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(err) => Err(ApiError::ContractError { error: err }),
+            Err(Error::ExecutionError { execution_error, index }) => {
+                Err(ApiError::ExecutionError { execution_error, index })
+            }
+            Err(err) => Err(err.into()),
         }
     }
 
@@ -428,14 +431,19 @@ impl JsonRpcHandler {
     ) -> StrictRpcResult {
         // borrowing as write/mutable because trace calculation requires so
         let mut starknet = self.api.starknet.lock().await;
-        match starknet.simulate_transactions(block_id.as_ref(), &transactions, simulation_flags) {
+        let res =
+            starknet.simulate_transactions(block_id.as_ref(), &transactions, simulation_flags);
+        match res {
             Ok(result) => Ok(StarknetResponse::SimulateTransactions(result).into()),
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(err) => Err(ApiError::ContractError { error: err }),
+            Err(Error::ExecutionError { execution_error, index }) => {
+                Err(ApiError::ExecutionError { execution_error, index })
+            }
+            Err(err) => Err(err.into()),
         }
     }
 

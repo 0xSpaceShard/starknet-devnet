@@ -398,11 +398,8 @@ mod tests {
                 execute_call_info: Some(dummy_call_info(idx + 1)),
                 ..Default::default()
             };
-            let transaction_hash = Felt::from(idx as u128 + 100);
 
-            starknet
-                .handle_accepted_transaction(&transaction_hash, &transaction, txn_info)
-                .unwrap();
+            starknet.handle_accepted_transaction(transaction.clone(), txn_info).unwrap();
         }
 
         assert_eq!(starknet.blocks.get_blocks(None, None).unwrap().len(), 6);
