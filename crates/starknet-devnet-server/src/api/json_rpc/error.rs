@@ -209,30 +209,30 @@ impl ApiError {
     }
 }
 
+/// Constructs a recursive object from the provided `error_stack`. The topmost call (the first in
+/// the stack's vector) is the outermost in the returned object. Vm frames are skipped as they don't
+/// support nesting (no recursive properties).
 fn serialize_error_stack(error_stack: &ErrorStack) -> serde_json::Value {
-    let mut nested_err = serde_json::json!(null);
+    let mut recursive_error = serde_json::json!(null);
 
-    // TODO rev?
     for frame in error_stack.stack.iter().rev() {
-        nested_err = match frame {
+        match frame {
             Frame::EntryPoint(entry_point_error_frame) => {
-                serde_json::json!({
+                recursive_error = serde_json::json!({
                     "contract_address": entry_point_error_frame.storage_address,
                     "class_hash": entry_point_error_frame.class_hash,
                     "selector": entry_point_error_frame.selector,
-                    "error": nested_err,
-                })
+                    "error": recursive_error,
+                });
             }
-            Frame::Vm(vm_exception_frame) => {
-                // TODO or to string? or perhaps skip vm frame
-                serde_json::to_value(vm_exception_frame)
-                    .unwrap_or(serde_json::json!("Invalid VM exception frame"))
+            Frame::Vm(_) => { /* do nothing */ }
+            Frame::StringFrame(msg) => {
+                recursive_error = serde_json::json!(*msg);
             }
-            Frame::StringFrame(msg) => serde_json::json!(*msg),
         };
     }
 
-    nested_err
+    recursive_error
 }
 
 pub type StrictRpcResult = Result<JsonRpcResponse, ApiError>;

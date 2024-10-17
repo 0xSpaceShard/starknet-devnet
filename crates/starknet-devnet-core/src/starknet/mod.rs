@@ -679,7 +679,7 @@ impl Starknet {
             storage_address: contract_address.try_into()?,
             entry_point_selector: starknet_api::core::EntryPointSelector(entrypoint_selector),
             initial_gas: block_context.versioned_constants().tx_initial_gas(),
-            class_hash: Some(class_hash), // TODO needed?
+            class_hash: Some(class_hash),
             ..Default::default()
         };
 
