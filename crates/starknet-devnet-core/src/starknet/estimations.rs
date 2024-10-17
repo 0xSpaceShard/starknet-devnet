@@ -127,7 +127,7 @@ fn estimate_transaction_fee<S: StateReader>(
 
     // reverted transactions can only be Invoke transactions
     if return_error_on_reverted_execution && transaction_execution_info.is_reverted() {
-        // unwraping here will give the value contained in revert_error
+        // unwrapping here will give the value contained in revert_error
         return Err(Error::UnexpectedInternalError {
             msg: transaction_execution_info.revert_error.unwrap_or_default(),
         });
