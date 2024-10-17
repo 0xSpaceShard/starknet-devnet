@@ -1197,10 +1197,10 @@ impl Starknet {
         let mut transactional_state =
             CachedState::new(CachedState::create_transactional(&mut state.state));
 
-        for (i, (blockifier_transaction, transaction_type, skip_validate_due_to_impersonation)) in
+        for (tx_i, (blockifier_tx, transaction_type, skip_validate_due_to_impersonation)) in
             blockifier_transactions.into_iter().enumerate()
         {
-            let tx_execution_info = blockifier_transaction
+            let tx_execution_info = blockifier_tx
                 .execute(
                     &mut transactional_state,
                     &block_context,
@@ -1208,7 +1208,7 @@ impl Starknet {
                     !(skip_validate || skip_validate_due_to_impersonation),
                 )
                 .map_err(|e| Error::ContractExecutionErrorInSimulation {
-                    failure_index: i as u64,
+                    failure_index: tx_i as u64,
                     error_stack: gen_tx_execution_error_trace(&e),
                 })?;
 
