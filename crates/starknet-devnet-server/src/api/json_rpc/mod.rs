@@ -60,7 +60,7 @@ use crate::api::json_rpc::models::{
 use crate::api::serde_helpers::{empty_params, optional_params};
 use crate::dump_util::dump_event;
 use crate::restrictive_mode::is_json_rpc_method_restricted;
-use crate::rpc_core::error::RpcError;
+use crate::rpc_core::error::{ErrorCode, RpcError};
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
@@ -134,10 +134,7 @@ impl RpcHandler for JsonRpcHandler {
             Ok(req) => {
                 if let Some(restricted_methods) = &self.server_config.restricted_methods {
                     if is_json_rpc_method_restricted(&method, restricted_methods) {
-                        return RpcResponse::new(
-                            id,
-                            RpcError::new(crate::rpc_core::error::ErrorCode::MethodForbidden),
-                        );
+                        return RpcResponse::new(id, RpcError::new(ErrorCode::MethodForbidden));
                     }
                 }
                 let result = self.on_request(req, call).await;
