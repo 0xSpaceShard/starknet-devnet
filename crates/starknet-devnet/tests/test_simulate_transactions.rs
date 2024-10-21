@@ -41,9 +41,10 @@ mod simulation_tests {
     };
     use crate::common::fees::{assert_difference_if_validation, assert_fee_in_resp_at_least_equal};
     use crate::common::utils::{
-        get_deployable_account_signer, get_flattened_sierra_contract_and_casm_hash,
-        get_gas_units_and_gas_price, get_simple_contract_in_sierra_and_compiled_class_hash,
-        iter_to_hex_felt, to_hex_felt, to_num_as_hex,
+        declare_v3_deploy_v3, get_deployable_account_signer,
+        get_flattened_sierra_contract_and_casm_hash, get_gas_units_and_gas_price,
+        get_simple_contract_in_sierra_and_compiled_class_hash, iter_to_hex_felt, to_hex_felt,
+        to_num_as_hex,
     };
 
     #[tokio::test]
@@ -423,42 +424,24 @@ mod simulation_tests {
 
         // get account
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
-        let account = Arc::new(SingleOwnerAccount::new(
-            devnet.clone_provider(),
+        let account = SingleOwnerAccount::new(
+            &devnet.json_rpc_client,
             signer.clone(),
             account_address,
             CHAIN_ID,
             ExecutionEncoding::New,
-        ));
+        );
 
         // get class
         let (flattened_contract_artifact, casm_hash) =
             get_flattened_sierra_contract_and_casm_hash(CAIRO_1_VERSION_ASSERTER_SIERRA_PATH);
         let class_hash = flattened_contract_artifact.class_hash();
 
-        // declare class
-        let declaration_result = account
-            .declare_v2(Arc::new(flattened_contract_artifact), casm_hash)
-            .send()
-            .await
-            .unwrap();
-        assert_eq!(declaration_result.class_hash, class_hash);
-
-        // deploy instance of class
-        let contract_factory = ContractFactory::new(class_hash, account.clone());
-        let salt = Felt::from_hex_unchecked("0x123");
-        let constructor_calldata = vec![];
-        let contract_address = get_udc_deployed_address(
-            salt,
-            class_hash,
-            &UdcUniqueness::NotUnique,
-            &constructor_calldata,
-        );
-        contract_factory
-            .deploy_v1(constructor_calldata, salt, false)
-            .send()
-            .await
-            .expect("Cannot deploy");
+        let (generated_class_hash, contract_address) =
+            declare_v3_deploy_v3(&account, flattened_contract_artifact, casm_hash, &[])
+                .await
+                .unwrap();
+        assert_eq!(generated_class_hash, class_hash);
 
         let calls = vec![Call {
             to: contract_address,
@@ -948,42 +931,16 @@ mod simulation_tests {
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
 
-        let mut account = SingleOwnerAccount::new(
+        let account = SingleOwnerAccount::new(
             &devnet.json_rpc_client,
             signer,
             account_address,
             constants::CHAIN_ID,
             ExecutionEncoding::New,
         );
-        account.set_block_id(BlockId::Tag(BlockTag::Latest));
 
-        let declare_result =
-            account.declare_v3(Arc::new(sierra_artifact.clone()), casm_hash).send().await.unwrap();
-
-        let salt = Felt::from_hex_unchecked("0x123");
-
-        account
-            .execute_v3(vec![Call {
-                to: UDC_CONTRACT_ADDRESS,
-                selector: get_selector_from_name("deployContract").unwrap(),
-                calldata: vec![
-                    declare_result.class_hash,
-                    salt,
-                    Felt::ZERO, // is_unique
-                    Felt::ZERO, // constructor data length
-                ],
-            }])
-            .send()
-            .await
-            .unwrap();
-
-        // generate the address of the newly deployed contract
-        let contract_address = get_udc_deployed_address(
-            salt,
-            declare_result.class_hash,
-            &starknet_rs_core::utils::UdcUniqueness::NotUnique,
-            &[],
-        );
+        let (_, contract_address) =
+            declare_v3_deploy_v3(&account, sierra_artifact, casm_hash, &[]).await.unwrap();
 
         let panic_reason = "custom little reason";
 

@@ -31,7 +31,7 @@ mod fork_tests {
         MAINNET_HTTPS_URL, MAINNET_URL,
     };
     use crate::common::utils::{
-        assert_cairo1_classes_equal, assert_tx_successful, declare_deploy_v1,
+        assert_cairo1_classes_equal, assert_tx_successful, declare_v3_deploy_v3,
         get_block_reader_contract_in_sierra_and_compiled_class_hash, get_contract_balance,
         get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
     };
@@ -199,22 +199,26 @@ mod fork_tests {
                 .unwrap();
 
         let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
-        let predeployed_account = Arc::new(SingleOwnerAccount::new(
-            origin_devnet.clone_provider(),
+        let predeployed_account = SingleOwnerAccount::new(
+            &origin_devnet.json_rpc_client,
             signer.clone(),
             account_address,
             constants::CHAIN_ID,
             ExecutionEncoding::New,
-        ));
+        );
 
         let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
 
         let initial_value = Felt::from(10_u32);
         let ctor_args = vec![initial_value];
-        let (class_hash, contract_address) =
-            declare_deploy_v1(predeployed_account, contract_class.clone(), casm_hash, &ctor_args)
-                .await
-                .unwrap();
+        let (class_hash, contract_address) = declare_v3_deploy_v3(
+            &predeployed_account,
+            contract_class.clone(),
+            casm_hash,
+            &ctor_args,
+        )
+        .await
+        .unwrap();
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
@@ -535,19 +539,21 @@ mod fork_tests {
         let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
         let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
-        let predeployed_account = Arc::new(SingleOwnerAccount::new(
-            origin_devnet.clone_provider(),
+        let predeployed_account = SingleOwnerAccount::new(
+            &origin_devnet.json_rpc_client,
             signer.clone(),
             account_address,
             constants::CHAIN_ID,
             ExecutionEncoding::New,
-        ));
+        );
 
         let (contract_class, casm_hash) =
             get_block_reader_contract_in_sierra_and_compiled_class_hash();
 
         let (_, contract_address) =
-            declare_deploy_v1(predeployed_account, contract_class, casm_hash, &[]).await.unwrap();
+            declare_v3_deploy_v3(&predeployed_account, contract_class, casm_hash, &[])
+                .await
+                .unwrap();
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 

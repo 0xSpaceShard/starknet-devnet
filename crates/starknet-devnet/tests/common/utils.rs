@@ -238,30 +238,22 @@ impl Drop for UniqueAutoDeletableFile {
 }
 
 /// Declares and deploys a Cairo 1 contract; returns class hash and contract address
-pub async fn declare_deploy_v1(
-    account: Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>,
+pub async fn declare_v3_deploy_v3(
+    account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
     contract_class: FlattenedSierraClass,
     casm_hash: Felt,
     ctor_args: &[Felt],
 ) -> Result<(Felt, Felt), anyhow::Error> {
-    // declare the contract
-    let declaration_result = account
-        .declare_v2(Arc::new(contract_class), casm_hash)
-        .max_fee(Felt::from(1e18 as u128))
-        .send()
-        .await?;
+    let salt = Felt::ZERO;
+    let declaration_result = account.declare_v3(Arc::new(contract_class), casm_hash).send().await?;
 
     // deploy the contract
-    let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
-    contract_factory
-        .deploy_v1(ctor_args.to_vec(), Felt::ZERO, false)
-        .max_fee(Felt::from(1e18 as u128))
-        .send()
-        .await?;
+    let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
+    contract_factory.deploy_v3(ctor_args.to_vec(), salt, false).send().await?;
 
     // generate the address of the newly deployed contract
     let contract_address = get_udc_deployed_address(
-        Felt::ZERO,
+        salt,
         declaration_result.class_hash,
         &starknet_rs_core::utils::UdcUniqueness::NotUnique,
         ctor_args,
