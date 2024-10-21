@@ -1,4 +1,7 @@
-use blockifier::transaction::errors::{TransactionExecutionError, TransactionPreValidationError};
+use blockifier::fee::fee_checks::FeeCheckError;
+use blockifier::transaction::errors::{
+    TransactionExecutionError, TransactionFeeError, TransactionPreValidationError,
+};
 use starknet_rs_core::types::{BlockId, Felt};
 use starknet_types;
 use starknet_types::contract_address::ContractAddress;
@@ -14,7 +17,7 @@ pub enum Error {
     #[error(transparent)]
     BlockifierStateError(#[from] blockifier::state::errors::StateError),
     #[error(transparent)]
-    BlockifierTransactionError(blockifier::transaction::errors::TransactionExecutionError),
+    BlockifierTransactionError(TransactionExecutionError),
     #[error(transparent)]
     BlockifierExecutionError(#[from] blockifier::execution::errors::EntryPointExecutionError),
     #[error("{execution_error}")]
@@ -108,55 +111,48 @@ pub enum TransactionValidationError {
 impl From<TransactionExecutionError> for Error {
     fn from(value: TransactionExecutionError) -> Self {
         match value {
-            blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
-                TransactionPreValidationError::InvalidNonce { .. }
-            ) =>TransactionValidationError::InvalidTransactionNonce.into(),
-            blockifier::transaction::errors::TransactionExecutionError::FeeCheckError(err ) =>
-                err.into(),
-            blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
-                TransactionPreValidationError::TransactionFeeError(err)
+            TransactionExecutionError::TransactionPreValidationError(
+                TransactionPreValidationError::InvalidNonce { .. },
+            ) => TransactionValidationError::InvalidTransactionNonce.into(),
+            TransactionExecutionError::FeeCheckError(err) => err.into(),
+            TransactionExecutionError::TransactionPreValidationError(
+                TransactionPreValidationError::TransactionFeeError(err),
             ) => err.into(),
-            blockifier::transaction::errors::TransactionExecutionError::TransactionFeeError(err)
-              => err.into(),
-            blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError { .. } => {
+            TransactionExecutionError::TransactionFeeError(err) => err.into(),
+            TransactionExecutionError::ValidateTransactionError { .. } => {
                 TransactionValidationError::ValidationFailure { reason: value.to_string() }.into()
             }
-            other => Self::BlockifierTransactionError(other)
+            other => Self::BlockifierTransactionError(other),
         }
     }
 }
 
-impl From<blockifier::fee::fee_checks::FeeCheckError> for Error {
-    fn from(value: blockifier::fee::fee_checks::FeeCheckError) -> Self {
+impl From<FeeCheckError> for Error {
+    fn from(value: FeeCheckError) -> Self {
         match value {
-            blockifier::fee::fee_checks::FeeCheckError::MaxL1GasAmountExceeded { .. }
-            | blockifier::fee::fee_checks::FeeCheckError::MaxFeeExceeded { .. } => {
+            FeeCheckError::MaxL1GasAmountExceeded { .. } | FeeCheckError::MaxFeeExceeded { .. } => {
                 TransactionValidationError::InsufficientMaxFee.into()
             }
-            blockifier::fee::fee_checks::FeeCheckError::InsufficientFeeTokenBalance { .. } => {
+            FeeCheckError::InsufficientFeeTokenBalance { .. } => {
                 TransactionValidationError::InsufficientAccountBalance.into()
             }
         }
     }
 }
 
-impl From<blockifier::transaction::errors::TransactionFeeError> for Error {
-    fn from(value: blockifier::transaction::errors::TransactionFeeError) -> Self {
+impl From<TransactionFeeError> for Error {
+    fn from(value: TransactionFeeError) -> Self {
         match value {
-            blockifier::transaction::errors::TransactionFeeError::FeeTransferError { .. }
-            | blockifier::transaction::errors::TransactionFeeError::MaxFeeTooLow { .. }
-            | blockifier::transaction::errors::TransactionFeeError::MaxL1GasPriceTooLow {
-                ..
+            TransactionFeeError::FeeTransferError { .. }
+            | TransactionFeeError::MaxFeeTooLow { .. }
+            | TransactionFeeError::MaxL1GasPriceTooLow { .. }
+            | TransactionFeeError::MaxL1GasAmountTooLow { .. } => {
+                TransactionValidationError::InsufficientMaxFee.into()
             }
-            | blockifier::transaction::errors::TransactionFeeError::MaxL1GasAmountTooLow {
-                ..
-            } => TransactionValidationError::InsufficientMaxFee.into(),
-            blockifier::transaction::errors::TransactionFeeError::MaxFeeExceedsBalance {
-                ..
+            TransactionFeeError::MaxFeeExceedsBalance { .. }
+            | TransactionFeeError::L1GasBoundsExceedBalance { .. } => {
+                TransactionValidationError::InsufficientAccountBalance.into()
             }
-            | blockifier::transaction::errors::TransactionFeeError::L1GasBoundsExceedBalance {
-                ..
-            } => TransactionValidationError::InsufficientAccountBalance.into(),
             err => Error::TransactionFeeError(err),
         }
     }
