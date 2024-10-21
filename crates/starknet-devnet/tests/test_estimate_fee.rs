@@ -585,7 +585,8 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
-    async fn estimate_fee_of_multiple_txs_should_return_correct_index_if_one_of_them_fails() {
+    async fn estimate_fee_of_declare_and_deploy_via_udc_returns_index_of_second_transaction_when_executed_with_non_existing_method()
+     {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start devnet");
 
         // get account
