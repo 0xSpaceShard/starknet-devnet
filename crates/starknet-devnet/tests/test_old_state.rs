@@ -177,7 +177,7 @@ mod old_state {
                     },
                 ))],
                 [SimulationFlagForEstimateFee::SkipValidate],
-                BlockId::Hash(block_hash),
+                block_id,
             )
             .await
             .unwrap_err();
