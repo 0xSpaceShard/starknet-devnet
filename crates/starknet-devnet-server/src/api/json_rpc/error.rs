@@ -1,4 +1,4 @@
-use serde_json::json;
+use starknet_core::stack_trace::{ErrorStack, Frame};
 use starknet_types;
 use thiserror::Error;
 use tracing::error;
@@ -27,7 +27,9 @@ pub enum ApiError {
     #[error("Class hash not found")]
     ClassHashNotFound,
     #[error("Contract error")]
-    ContractError { error: starknet_core::error::Error },
+    ContractError { error_stack: ErrorStack },
+    #[error("Transaction execution error")]
+    TransactionExecutionError { failure_index: u64, error_stack: ErrorStack },
     #[error("There are no blocks")]
     NoBlocks,
     #[error("Requested page size is too big")]
@@ -46,8 +48,8 @@ pub enum ApiError {
     UnsupportedAction { msg: String },
     #[error("Invalid transaction nonce")]
     InvalidTransactionNonce,
-    #[error("Max fee is smaller than the minimal transaction cost (validation plus fee transfer)")]
-    InsufficientMaxFee,
+    #[error("The transaction's resources don't cover validation or the minimal transaction fee")]
+    InsufficientResourcesForValidate,
     #[error("Account balance is smaller than the transaction's max_fee")]
     InsufficientAccountBalance,
     #[error("Account validation failed")]
@@ -92,14 +94,18 @@ impl ApiError {
                 message: error_message.into(),
                 data: None,
             },
-            ApiError::ContractError { error: inner_error } => RpcError {
+            ApiError::ContractError { error_stack } => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(40),
                 message: error_message.into(),
-                data: Some(json!(
-                    {
-                        "revert_error": anyhow::format_err!(inner_error).root_cause().to_string()
-                    }
-                )),
+                data: Some(serialize_error_stack(&error_stack)),
+            },
+            ApiError::TransactionExecutionError { error_stack, failure_index } => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(41),
+                message: error_message.into(),
+                data: Some(serde_json::json!({
+                    "transaction_index": failure_index,
+                    "execution_error": serialize_error_stack(&error_stack),
+                })),
             },
             ApiError::NoBlocks => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(32),
@@ -146,7 +152,7 @@ impl ApiError {
                 message: msg.into(),
                 data: None,
             },
-            ApiError::InsufficientMaxFee => RpcError {
+            ApiError::InsufficientResourcesForValidate => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(53),
                 message: error_message.into(),
                 data: None,
@@ -175,7 +181,7 @@ impl ApiError {
                 starknet_core::error::Error::TransactionValidationError(validation_error),
             ) => {
                 let api_err = match validation_error {
-                    starknet_core::error::TransactionValidationError::InsufficientMaxFee => ApiError::InsufficientMaxFee,
+                    starknet_core::error::TransactionValidationError::InsufficientResourcesForValidate => ApiError::InsufficientResourcesForValidate,
                     starknet_core::error::TransactionValidationError::InvalidTransactionNonce => ApiError::InvalidTransactionNonce,
                     starknet_core::error::TransactionValidationError::InsufficientAccountBalance => ApiError::InsufficientAccountBalance,
                     starknet_core::error::TransactionValidationError::ValidationFailure { reason } => ApiError::ValidationFailure { reason },
@@ -203,10 +209,38 @@ impl ApiError {
     }
 }
 
+/// Constructs a recursive object from the provided `error_stack`. The topmost call (the first in
+/// the stack's vector) is the outermost in the returned object. Vm frames are skipped as they don't
+/// support nesting (no recursive properties).
+fn serialize_error_stack(error_stack: &ErrorStack) -> serde_json::Value {
+    let mut recursive_error = serde_json::json!(null);
+
+    for frame in error_stack.stack.iter().rev() {
+        match frame {
+            Frame::EntryPoint(entry_point_error_frame) => {
+                recursive_error = serde_json::json!({
+                    "contract_address": entry_point_error_frame.storage_address,
+                    "class_hash": entry_point_error_frame.class_hash,
+                    "selector": entry_point_error_frame.selector,
+                    "error": recursive_error,
+                });
+            }
+            Frame::Vm(_) => { /* do nothing */ }
+            Frame::StringFrame(msg) => {
+                recursive_error = serde_json::json!(*msg);
+            }
+        };
+    }
+
+    recursive_error
+}
+
 pub type StrictRpcResult = Result<JsonRpcResponse, ApiError>;
 
 #[cfg(test)]
 mod tests {
+    use starknet_core::stack_trace::ErrorStack;
+
     use super::StrictRpcResult;
     use crate::api::json_rpc::error::ApiError;
     use crate::api::json_rpc::ToRpcResponseResult;
@@ -278,27 +312,37 @@ mod tests {
 
     #[test]
     fn contract_error() {
-        fn test_error() -> starknet_core::error::Error {
-            starknet_core::error::Error::TransactionValidationError(
-                starknet_core::error::TransactionValidationError::ValidationFailure {
-                    reason: "some reason".into(),
-                },
-            )
-        }
-        let error_expected_message = anyhow::format_err!(test_error()).root_cause().to_string();
+        let api_error =
+            ApiError::ContractError { error_stack: ErrorStack::from_str_err("some_reason") };
 
-        error_expected_code_and_message(
-            ApiError::ContractError { error: test_error() },
-            40,
-            "Contract error",
-        );
+        error_expected_code_and_message(api_error, 40, "Contract error");
 
         // check contract error data property
-        let error = ApiError::ContractError { error: test_error() }.api_error_to_rpc_error();
+        let error =
+            ApiError::ContractError { error_stack: ErrorStack::from_str_err("some_reason") }
+                .api_error_to_rpc_error();
 
-        assert_eq!(
-            error.data.unwrap().get("revert_error").unwrap().as_str().unwrap(),
-            &error_expected_message
+        assert_eq!(error.data.unwrap().as_str().unwrap(), "some_reason");
+    }
+
+    #[test]
+    fn transaction_execution_error() {
+        error_expected_code_and_message(
+            ApiError::TransactionExecutionError {
+                failure_index: 0,
+                error_stack: ErrorStack::from_str_err("anything"),
+            },
+            41,
+            "Transaction execution error",
+        );
+
+        error_expected_code_and_data(
+            ApiError::TransactionExecutionError {
+                failure_index: 1,
+                error_stack: ErrorStack::from_str_err("anything"),
+            },
+            41,
+            &serde_json::json!({ "transaction_index": 1, "execution_error": "anything" }),
         );
     }
 
@@ -324,17 +368,17 @@ mod tests {
     fn insufficient_max_fee_error() {
         let devnet_error =
             ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
-                starknet_core::error::TransactionValidationError::InsufficientMaxFee,
+                starknet_core::error::TransactionValidationError::InsufficientResourcesForValidate,
             ));
 
         assert_eq!(
             devnet_error.api_error_to_rpc_error(),
-            ApiError::InsufficientMaxFee.api_error_to_rpc_error()
+            ApiError::InsufficientResourcesForValidate.api_error_to_rpc_error()
         );
         error_expected_code_and_message(
-            ApiError::InsufficientMaxFee,
+            ApiError::InsufficientResourcesForValidate,
             53,
-            "Max fee is smaller than the minimal transaction cost (validation plus fee transfer)",
+            "The transaction's resources don't cover validation or the minimal transaction fee",
         );
     }
 
@@ -379,7 +423,7 @@ mod tests {
         error_expected_code_and_data(
             ApiError::ValidationFailure { reason: reason.clone() },
             55,
-            &reason,
+            &serde_json::json!(reason),
         );
     }
 
@@ -394,12 +438,16 @@ mod tests {
         }
     }
 
-    fn error_expected_code_and_data(err: ApiError, expected_code: i64, expected_data: &str) {
+    fn error_expected_code_and_data(
+        err: ApiError,
+        expected_code: i64,
+        expected_data: &serde_json::Value,
+    ) {
         let error_result = StrictRpcResult::Err(err).to_rpc_result();
         match error_result {
             crate::rpc_core::response::ResponseResult::Success(_) => panic!("Expected error"),
             crate::rpc_core::response::ResponseResult::Error(err) => {
-                assert_eq!(err.data.unwrap().as_str().unwrap(), expected_data);
+                assert_eq!(&err.data.unwrap(), expected_data);
                 assert_eq!(err.code, crate::rpc_core::error::ErrorCode::ServerError(expected_code))
             }
         }

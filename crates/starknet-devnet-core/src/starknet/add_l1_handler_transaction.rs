@@ -54,8 +54,6 @@ mod tests {
     // Constants taken from test_estimate_message_fee.rs.
     const WHITELISTED_L1_ADDRESS: &str = "0x8359E4B0152ed5A731162D3c7B0D8D56edB165A0";
 
-    use blockifier::execution::errors::{EntryPointExecutionError, PreExecutionError};
-    use blockifier::transaction::errors::TransactionExecutionError::ExecutionError;
     use nonzero_ext::nonzero;
     use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_rs_core::utils::get_selector_from_name;
@@ -72,6 +70,7 @@ mod tests {
         self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
+    use crate::stack_trace::Frame;
     use crate::starknet::{predeployed, Starknet};
     use crate::state::CustomState;
     use crate::traits::{Deployed, HashIdentifiedMut};
@@ -142,17 +141,18 @@ mod tests {
             vec![Felt::from(11), Felt::from(9999)],
         );
 
-        let result = starknet.add_l1_handler_transaction(transaction);
-
-        match result {
-            Err(crate::error::Error::BlockifierTransactionError(ExecutionError {
-                error:
-                    EntryPointExecutionError::PreExecutionError(PreExecutionError::EntryPointNotFound(
-                        selector,
-                    )),
-                ..
-            })) => {
-                assert_eq!(selector.0, withdraw_selector)
+        match starknet.add_l1_handler_transaction(transaction) {
+            Err(crate::error::Error::ContractExecutionError(error_stack)) => {
+                assert_eq!(error_stack.stack.len(), 2);
+                match &error_stack.stack[0] {
+                    Frame::EntryPoint(entry_point_frame) => {
+                        assert_eq!(
+                            entry_point_frame.selector,
+                            Some(starknet_api::core::EntryPointSelector(withdraw_selector))
+                        )
+                    }
+                    other => panic!("Unexpected error frame: {other:?}"),
+                }
             }
             other => panic!("Wrong result: {other:?}"),
         }

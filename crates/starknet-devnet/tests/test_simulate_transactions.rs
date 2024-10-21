@@ -5,6 +5,8 @@ mod simulation_tests {
     use std::sync::Arc;
 
     use serde_json::json;
+    use server::rpc_core::error::ErrorCode;
+    use server::test_utils::assert_contains;
     use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS};
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
@@ -13,9 +15,11 @@ mod simulation_tests {
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, FunctionCall};
+    use starknet_rs_core::types::{
+        BlockId, BlockTag, Call, Felt, FunctionCall, TransactionExecutionErrorData,
+    };
     use starknet_rs_core::utils::{
-        get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
+        cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
     use starknet_rs_providers::Provider;
     use starknet_rs_signers::Signer;
@@ -24,12 +28,13 @@ mod simulation_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
-        CAIRO_1_CONTRACT_PATH, CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID,
+        CAIRO_1_CONTRACT_PATH, CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH,
+        CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID,
     };
     use crate::common::fees::{assert_difference_if_validation, assert_fee_in_resp_at_least_equal};
     use crate::common::utils::{
-        get_deployable_account_signer, get_flattened_sierra_contract_and_casm_hash,
-        iter_to_hex_felt, to_hex_felt, to_num_as_hex,
+        declare_deploy_v1, get_deployable_account_signer,
+        get_flattened_sierra_contract_and_casm_hash, iter_to_hex_felt, to_hex_felt, to_num_as_hex,
     };
 
     #[tokio::test]
@@ -464,12 +469,12 @@ mod simulation_tests {
             "transactions": [
                 {
                     "type": "INVOKE",
-                    "max_fee": max_fee.to_hex_string(),
+                    "max_fee": max_fee,
                     "version": "0x1",
-                    "signature": iter_to_hex_felt(&[signature.r, signature.s]),
-                    "nonce": to_num_as_hex(&nonce),
-                    "calldata": iter_to_hex_felt(&account.encode_calls(&calls)),
-                    "sender_address": account.address().to_hex_string(),
+                    "signature": [signature.r, signature.s],
+                    "nonce": nonce,
+                    "calldata": account.encode_calls(&calls),
+                    "sender_address": account.address(),
                 }
             ]
         });
@@ -478,5 +483,74 @@ mod simulation_tests {
             .send_custom_rpc("starknet_simulateTransactions", invoke_simulation_body)
             .await
             .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_simulation_of_panicking_invoke() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let account = Arc::new(SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer.clone(),
+            account_address,
+            devnet.json_rpc_client.chain_id().await.unwrap(),
+            starknet_rs_accounts::ExecutionEncoding::New,
+        ));
+
+        let (contract_class, casm_hash) =
+            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH);
+
+        let (_, contract_address) =
+            declare_deploy_v1(account.clone(), contract_class, casm_hash, &[]).await.unwrap();
+
+        let top_selector = get_selector_from_name("create_panic").unwrap();
+        let panic_message_text = "funny_text";
+        let panic_message = cairo_short_string_to_felt(panic_message_text).unwrap();
+
+        let calls = vec![Call {
+            to: contract_address,
+            selector: top_selector,
+            calldata: vec![panic_message],
+        }];
+
+        let max_fee = Felt::from(1e18 as u128);
+        let nonce = Felt::TWO; // after declare + deploy
+        let encoded_calldata = account.encode_calls(&calls);
+        let invoke_request =
+            account.execute_v1(calls).max_fee(max_fee).nonce(nonce).prepared().unwrap();
+
+        let signature = signer.sign_hash(&invoke_request.transaction_hash(false)).await.unwrap();
+
+        let invoke_simulation_body = json!({
+            "block_id": "latest",
+            "simulation_flags": [],
+            "transactions": [
+                {
+                    "type": "INVOKE",
+                    "max_fee": max_fee,
+                    "version": "0x1",
+                    "signature": [signature.r, signature.s],
+                    "nonce": nonce,
+                    "calldata": encoded_calldata,
+                    "sender_address": account.address(),
+                }
+            ]
+        });
+
+        let err = devnet
+            .send_custom_rpc("starknet_simulateTransactions", invoke_simulation_body)
+            .await
+            .unwrap_err();
+
+        assert_eq!(
+            (err.code, err.message),
+            (ErrorCode::ServerError(41), "Transaction execution error".into())
+        );
+
+        let error_data: TransactionExecutionErrorData =
+            serde_json::from_value(err.data.unwrap()).unwrap();
+        assert_eq!(error_data.transaction_index, 0);
+        assert_contains(&error_data.execution_error, panic_message_text);
     }
 }

@@ -19,8 +19,10 @@ use starknet_rs_core::types::{
     FlattenedSierraClass, FunctionCall,
 };
 use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
-use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_providers::{JsonRpcClient, Provider};
+use starknet_rs_providers::jsonrpc::{
+    HttpTransport, HttpTransportError, JsonRpcClientError, JsonRpcError,
+};
+use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
 use starknet_rs_signers::LocalWallet;
 use starknet_types::felt::felt_from_prefixed_hex;
 
@@ -237,6 +239,31 @@ impl Drop for UniqueAutoDeletableFile {
     }
 }
 
+/// Deploys an instance of the class whose sierra hash is provided as `class_hash`. Uses a v1 invoke
+/// transaction. Returns the address of the newly deployed contract.
+pub async fn deploy_v1(
+    account: Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>,
+    class_hash: Felt,
+    ctor_args: &[Felt],
+) -> Result<Felt, anyhow::Error> {
+    let contract_factory = ContractFactory::new(class_hash, account);
+    contract_factory
+        .deploy_v1(ctor_args.to_vec(), Felt::ZERO, false)
+        .max_fee(Felt::from(1e18 as u128))
+        .send()
+        .await?;
+
+    // generate the address of the newly deployed contract
+    let contract_address = get_udc_deployed_address(
+        Felt::ZERO,
+        class_hash,
+        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        ctor_args,
+    );
+
+    Ok(contract_address)
+}
+
 /// Declares and deploys a Cairo 1 contract; returns class hash and contract address
 pub async fn declare_deploy_v1(
     account: Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>,
@@ -251,21 +278,7 @@ pub async fn declare_deploy_v1(
         .send()
         .await?;
 
-    // deploy the contract
-    let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
-    contract_factory
-        .deploy_v1(ctor_args.to_vec(), Felt::ZERO, false)
-        .max_fee(Felt::from(1e18 as u128))
-        .send()
-        .await?;
-
-    // generate the address of the newly deployed contract
-    let contract_address = get_udc_deployed_address(
-        Felt::ZERO,
-        declaration_result.class_hash,
-        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
-        ctor_args,
-    );
+    let contract_address = deploy_v1(account, declaration_result.class_hash, ctor_args).await?;
 
     Ok((declaration_result.class_hash, contract_address))
 }
@@ -331,6 +344,28 @@ where
 
 pub fn felt_to_u256(f: Felt) -> U256 {
     U256::from_big_endian(&f.to_bytes_be())
+}
+
+/// Helper for extracting JSON RPC error from the provider instance of `ProviderError`.
+/// To be used when there are discrepancies between starknet-rs and the target RPC spec.
+pub fn extract_json_rpc_error(error: ProviderError) -> Result<JsonRpcError, anyhow::Error> {
+    match error {
+        ProviderError::Other(provider_impl_error) => {
+            let impl_specific_error: &JsonRpcClientError<HttpTransportError> =
+                provider_impl_error.as_any().downcast_ref().unwrap();
+            match impl_specific_error {
+                JsonRpcClientError::JsonRpcError(json_rpc_error) => Ok(json_rpc_error.clone()),
+                other => {
+                    Err(anyhow::Error::msg(format!("Cannot extract RPC error from: {:?}", other)))
+                }
+            }
+        }
+        other => Err(anyhow::Error::msg(format!("Cannot extract RPC error from: {:?}", other))),
+    }
+}
+
+pub fn assert_json_rpc_errors_equal(e1: JsonRpcError, e2: JsonRpcError) {
+    assert_eq!((e1.code, e1.message, e1.data), (e2.code, e2.message, e2.data));
 }
 
 #[cfg(test)]

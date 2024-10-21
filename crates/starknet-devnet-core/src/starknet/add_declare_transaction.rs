@@ -422,7 +422,7 @@ mod tests {
 
         match starknet.add_declare_transaction(declare_txn).unwrap_err() {
             crate::error::Error::TransactionValidationError(
-                crate::error::TransactionValidationError::InsufficientMaxFee,
+                crate::error::TransactionValidationError::InsufficientResourcesForValidate,
             ) => {}
             err => {
                 panic!("Wrong error type received {:?}", err);

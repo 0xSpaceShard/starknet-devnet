@@ -1,4 +1,5 @@
 use starknet_core::error::{Error, StateError};
+use starknet_core::stack_trace::ErrorStack;
 use starknet_rs_core::types::{BlockId as ImportedBlockId, MsgFromL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
@@ -13,9 +14,7 @@ use starknet_types::rpc::transactions::{
 use starknet_types::starknet_api::block::BlockStatus;
 
 use super::error::{ApiError, StrictRpcResult};
-use super::models::{
-    BlockHashAndNumberOutput, L1TransactionHashInput, SyncingOutput, TransactionStatusOutput,
-};
+use super::models::{BlockHashAndNumberOutput, L1TransactionHashInput, SyncingOutput};
 use super::{DevnetResponse, JsonRpcHandler, JsonRpcResponse, StarknetResponse, RPC_SPEC_VERSION};
 use crate::api::http::endpoints::accounts::{
     get_account_balance_impl, get_predeployed_accounts_impl, BalanceQuery, PredeployedAccountsQuery,
@@ -161,13 +160,7 @@ impl JsonRpcHandler {
             .await
             .get_transaction_execution_and_finality_status(transaction_hash)
         {
-            Ok((execution_status, finality_status)) => {
-                Ok(StarknetResponse::TransactionStatusByHash(TransactionStatusOutput {
-                    execution_status,
-                    finality_status,
-                })
-                .into())
-            }
+            Ok(tx_status) => Ok(StarknetResponse::TransactionStatusByHash(tx_status).into()),
             Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
             Err(err) => Err(err.into()),
         }
@@ -293,7 +286,12 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(err) => Err(ApiError::ContractError { error: err }),
+            Err(Error::ContractExecutionError(error_stack)) => {
+                Err(ApiError::ContractError { error_stack })
+            }
+            Err(e) => Err(ApiError::ContractError {
+                error_stack: ErrorStack::from_str_err(&e.to_string()),
+            }),
         }
     }
 
@@ -312,7 +310,12 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(err) => Err(ApiError::ContractError { error: err }),
+            Err(Error::ContractExecutionErrorInSimulation { failure_index, error_stack }) => {
+                Err(ApiError::TransactionExecutionError { failure_index, error_stack })
+            }
+            Err(e) => Err(ApiError::ContractError {
+                error_stack: ErrorStack::from_str_err(&e.to_string()),
+            }),
         }
     }
 
@@ -328,7 +331,12 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(err) => Err(ApiError::ContractError { error: err }),
+            Err(Error::ContractExecutionError(error)) => {
+                Err(ApiError::ContractError { error_stack: error })
+            }
+            Err(e) => Err(ApiError::ContractError {
+                error_stack: ErrorStack::from_str_err(&e.to_string()),
+            }),
         }
     }
 
@@ -437,7 +445,12 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(err) => Err(ApiError::ContractError { error: err }),
+            Err(Error::ContractExecutionErrorInSimulation { failure_index, error_stack }) => {
+                Err(ApiError::TransactionExecutionError { failure_index, error_stack })
+            }
+            Err(e) => Err(ApiError::ContractError {
+                error_stack: ErrorStack::from_str_err(&e.to_string()),
+            }),
         }
     }
 

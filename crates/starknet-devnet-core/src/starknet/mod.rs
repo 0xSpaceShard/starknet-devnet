@@ -7,7 +7,9 @@ use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
-use blockifier::transaction::errors::TransactionPreValidationError;
+use blockifier::transaction::errors::{
+    TransactionExecutionError, TransactionFeeError, TransactionPreValidationError,
+};
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use ethers::types::H256;
@@ -18,8 +20,7 @@ use starknet_api::felt;
 use starknet_api::transaction::Fee;
 use starknet_config::BlockGenerationOn;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, Call, ExecutionResult, Felt, Hash256, MsgFromL1, TransactionExecutionStatus,
-    TransactionFinalityStatus,
+    BlockId, BlockTag, Call, ExecutionResult, Felt, Hash256, MsgFromL1, TransactionFinalityStatus,
 };
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_signers::Signer;
@@ -48,8 +49,8 @@ use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransact
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionCommon,
-    L1HandlerTransactionStatus, SimulatedTransaction, SimulationFlag, TransactionTrace,
-    TransactionType, TransactionWithHash, TransactionWithReceipt, Transactions,
+    L1HandlerTransactionStatus, SimulatedTransaction, SimulationFlag, TransactionStatus,
+    TransactionTrace, TransactionType, TransactionWithHash, TransactionWithReceipt, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
@@ -72,6 +73,7 @@ use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::RawExecutionV1;
+use crate::stack_trace::gen_tx_execution_error_trace;
 use crate::state::state_diff::StateDiff;
 use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
@@ -393,10 +395,7 @@ impl Starknet {
     pub(crate) fn handle_transaction_result(
         &mut self,
         transaction: TransactionWithHash,
-        transaction_result: Result<
-            TransactionExecutionInfo,
-            blockifier::transaction::errors::TransactionExecutionError,
-        >,
+        transaction_result: Result<TransactionExecutionInfo, TransactionExecutionError>,
     ) -> DevnetResult<()> {
         let transaction_hash = *transaction.get_transaction_hash();
 
@@ -406,38 +405,40 @@ impl Starknet {
             }
             Err(tx_err) => {
                 /// utility to avoid duplication
-                fn match_tx_fee_error(
-                    err: blockifier::transaction::errors::TransactionFeeError,
-                ) -> DevnetResult<()> {
+                fn match_tx_fee_error(err: TransactionFeeError) -> DevnetResult<()> {
                     match err {
-                        blockifier::transaction::errors::TransactionFeeError::FeeTransferError { .. }
-                        | blockifier::transaction::errors::TransactionFeeError::MaxFeeTooLow { .. } => Err(
-                            TransactionValidationError::InsufficientMaxFee.into()
-                        ),
-                        blockifier::transaction::errors::TransactionFeeError::MaxFeeExceedsBalance { .. } | blockifier::transaction::errors::TransactionFeeError::L1GasBoundsExceedBalance { .. } => Err(
-                            TransactionValidationError::InsufficientAccountBalance.into()
-                        ),
-                        _ => Err(err.into())
+                        TransactionFeeError::FeeTransferError { .. }
+                        | TransactionFeeError::MaxFeeTooLow { .. } => {
+                            Err(TransactionValidationError::InsufficientResourcesForValidate.into())
+                        }
+                        TransactionFeeError::MaxFeeExceedsBalance { .. }
+                        | TransactionFeeError::L1GasBoundsExceedBalance { .. } => {
+                            Err(TransactionValidationError::InsufficientAccountBalance.into())
+                        }
+                        _ => Err(err.into()),
                     }
                 }
 
                 // based on this https://community.starknet.io/t/efficient-utilization-of-sequencer-capacity-in-starknet-v0-12-1/95607#the-validation-phase-in-the-gateway-5
                 // we should not save transactions that failed with one of the following errors
                 match tx_err {
-                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
-                        TransactionPreValidationError::InvalidNonce { .. }
+                    TransactionExecutionError::TransactionPreValidationError(
+                        TransactionPreValidationError::InvalidNonce { .. },
                     ) => Err(TransactionValidationError::InvalidTransactionNonce.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::FeeCheckError { .. } =>
-                        Err(TransactionValidationError::InsufficientMaxFee.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
-                        TransactionPreValidationError::TransactionFeeError(err)
-                    ) => match_tx_fee_error(err),
-                    blockifier::transaction::errors::TransactionExecutionError::TransactionFeeError(err)
-                      => match_tx_fee_error(err),
-                    blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError { .. } => {
-                        Err(TransactionValidationError::ValidationFailure { reason: tx_err.to_string() }.into())
+                    TransactionExecutionError::FeeCheckError { .. } => {
+                        Err(TransactionValidationError::InsufficientResourcesForValidate.into())
                     }
-                    _ => Err(tx_err.into())
+                    TransactionExecutionError::TransactionPreValidationError(
+                        TransactionPreValidationError::TransactionFeeError(err),
+                    ) => match_tx_fee_error(err),
+                    TransactionExecutionError::TransactionFeeError(err) => match_tx_fee_error(err),
+                    TransactionExecutionError::ValidateTransactionError { .. } => {
+                        Err(TransactionValidationError::ValidationFailure {
+                            reason: tx_err.to_string(),
+                        }
+                        .into())
+                    }
+                    _ => Err(tx_err.into()),
                 }
             }
         }
@@ -670,12 +671,15 @@ impl Starknet {
         let state = self.get_mut_state_at(block_id)?;
 
         state.assert_contract_deployed(ContractAddress::new(contract_address)?)?;
+        let storage_address = contract_address.try_into()?;
+        let class_hash = state.get_class_hash_at(storage_address)?;
 
         let call = CallEntryPoint {
             calldata: starknet_api::transaction::Calldata(std::sync::Arc::new(calldata.clone())),
             storage_address: contract_address.try_into()?,
             entry_point_selector: starknet_api::core::EntryPointSelector(entrypoint_selector),
             initial_gas: block_context.versioned_constants().tx_initial_gas(),
+            class_hash: Some(class_hash),
             ..Default::default()
         };
 
@@ -692,11 +696,18 @@ impl Starknet {
             )?;
 
         let mut transactional_state = CachedState::create_transactional(&mut state.state);
-        let res = call.execute(
-            &mut transactional_state,
-            &mut Default::default(),
-            &mut execution_context,
-        )?;
+        let res = call
+            .execute(&mut transactional_state, &mut Default::default(), &mut execution_context)
+            .map_err(|error| {
+                Error::ContractExecutionError(gen_tx_execution_error_trace(
+                    &TransactionExecutionError::ExecutionError {
+                        error,
+                        class_hash,
+                        storage_address,
+                        selector: starknet_api::core::EntryPointSelector(entrypoint_selector),
+                    },
+                ))
+            })?;
 
         Ok(res.execution.retdata.0)
     }
@@ -1132,10 +1143,14 @@ impl Starknet {
     pub fn get_transaction_execution_and_finality_status(
         &self,
         transaction_hash: TransactionHash,
-    ) -> DevnetResult<(TransactionExecutionStatus, TransactionFinalityStatus)> {
+    ) -> DevnetResult<TransactionStatus> {
         let transaction = self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
 
-        Ok((transaction.execution_result.status(), transaction.finality_status))
+        Ok(TransactionStatus {
+            finality_status: transaction.finality_status,
+            failure_reason: transaction.execution_info.revert_error.clone(),
+            execution_status: transaction.execution_result.status(),
+        })
     }
 
     pub fn simulate_transactions(
@@ -1182,15 +1197,20 @@ impl Starknet {
         let mut transactional_state =
             CachedState::new(CachedState::create_transactional(&mut state.state));
 
-        for (blockifier_transaction, transaction_type, skip_validate_due_to_impersonation) in
-            blockifier_transactions.into_iter()
+        for (tx_i, (blockifier_tx, transaction_type, skip_validate_due_to_impersonation)) in
+            blockifier_transactions.into_iter().enumerate()
         {
-            let tx_execution_info = blockifier_transaction.execute(
-                &mut transactional_state,
-                &block_context,
-                !skip_fee_charge,
-                !(skip_validate || skip_validate_due_to_impersonation),
-            )?;
+            let tx_execution_info = blockifier_tx
+                .execute(
+                    &mut transactional_state,
+                    &block_context,
+                    !skip_fee_charge,
+                    !(skip_validate || skip_validate_due_to_impersonation),
+                )
+                .map_err(|e| Error::ContractExecutionErrorInSimulation {
+                    failure_index: tx_i as u64,
+                    error_stack: gen_tx_execution_error_trace(&e),
+                })?;
 
             let block_number = block_context.block_info().block_number.0;
             let new_classes = transactional_rpc_contract_classes.write().commit(block_number);
@@ -1412,11 +1432,9 @@ mod tests {
     use std::thread;
     use std::time::Duration;
 
-    use blockifier::execution::errors::{EntryPointExecutionError, PreExecutionError};
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-    use starknet_api::core::EntryPointSelector;
     use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
@@ -1433,6 +1451,7 @@ mod tests {
         STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{DevnetResult, Error};
+    use crate::stack_trace::{ErrorStack, Frame};
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::traits::{Accounted, Deployed, HashIdentified};
     use crate::utils::test_utils::{
@@ -1726,9 +1745,22 @@ mod tests {
             entry_point_selector,
             vec![Felt::from(predeployed_account.account_address)],
         ) {
-            Err(Error::BlockifierExecutionError(EntryPointExecutionError::PreExecutionError(
-                PreExecutionError::EntryPointNotFound(EntryPointSelector(missing_selector)),
-            ))) => assert_eq!(missing_selector, entry_point_selector),
+            Err(Error::ContractExecutionError(ErrorStack { stack })) => match &stack[..] {
+                [Frame::EntryPoint(entry_point_frame), Frame::StringFrame(error_msg)] => {
+                    assert_eq!(
+                        entry_point_frame.selector,
+                        Some(starknet_api::core::EntryPointSelector(entry_point_selector))
+                    );
+                    assert_eq!(
+                        error_msg,
+                        &format!(
+                            "Entry point EntryPointSelector({}) not found in contract.\n",
+                            entry_point_selector.to_hex_string()
+                        )
+                    );
+                }
+                _ => panic!("Unexpected error stack: {stack:?}"),
+            },
             unexpected => panic!("Should have failed; got {unexpected:?}"),
         }
     }

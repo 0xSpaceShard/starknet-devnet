@@ -21,7 +21,7 @@ use starknet_api::transaction::{Fee, Resource, Tip};
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_core::types::{
     BlockId, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
-    TransactionFinalityStatus,
+    TransactionExecutionStatus, TransactionFinalityStatus,
 };
 use starknet_rs_crypto::poseidon_hash_many;
 
@@ -184,6 +184,14 @@ impl TransactionWithHash {
 pub struct TransactionWithReceipt {
     pub receipt: TransactionReceipt,
     pub transaction: Transaction,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TransactionStatus {
+    pub finality_status: TransactionFinalityStatus,
+    pub failure_reason: Option<String>,
+    pub execution_status: TransactionExecutionStatus,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]

@@ -11,6 +11,7 @@ description = "Starknet core logic for devnet"
 [dependencies]
 blockifier = { workspace = true, features = ["testing"] }
 cairo-lang-starknet-classes = { workspace = true }
+cairo-vm = { workspace = true }
 clap = { workspace = true }
 ethers = { workspace = true }
 starknet_api = { workspace = true, features = ["testing"] }

@@ -4,6 +4,8 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_storage_key::ContractStorageKey;
 use thiserror::Error;
 
+use crate::stack_trace::{gen_tx_execution_error_trace, ErrorStack};
+
 #[derive(Error, Debug)]
 pub enum Error {
     #[error(transparent)]
@@ -12,12 +14,10 @@ pub enum Error {
     StateError(#[from] StateError),
     #[error(transparent)]
     BlockifierStateError(#[from] blockifier::state::errors::StateError),
-    #[error(transparent)]
-    BlockifierTransactionError(#[from] blockifier::transaction::errors::TransactionExecutionError),
-    #[error(transparent)]
-    BlockifierExecutionError(#[from] blockifier::execution::errors::EntryPointExecutionError),
-    #[error("{revert_error}")]
-    ExecutionError { revert_error: String },
+    #[error("{0:?}")]
+    ContractExecutionError(ErrorStack),
+    #[error("Execution error in simulating transaction no. {failure_index}: {error_stack:?}")]
+    ContractExecutionErrorInSimulation { failure_index: u64, error_stack: ErrorStack },
     #[error("Types error: {0}")]
     TypesError(#[from] starknet_types::error::Error),
     #[error("I/O error: {0}")]
@@ -78,6 +78,12 @@ impl From<starknet_types_core::felt::FromStrError> for Error {
     }
 }
 
+impl From<blockifier::transaction::errors::TransactionExecutionError> for Error {
+    fn from(e: blockifier::transaction::errors::TransactionExecutionError) -> Self {
+        Self::ContractExecutionError(gen_tx_execution_error_trace(&e))
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum StateError {
     #[error("No class hash {0:x} found")]
@@ -94,8 +100,8 @@ pub enum StateError {
 
 #[derive(Debug, Error)]
 pub enum TransactionValidationError {
-    #[error("Provided max fee is not enough to cover the transaction cost.")]
-    InsufficientMaxFee,
+    #[error("The transaction's resources don't cover validation or the minimal transaction fee.")]
+    InsufficientResourcesForValidate,
     #[error("Account transaction nonce is invalid.")]
     InvalidTransactionNonce,
     #[error("Account balance is not enough to cover the transaction cost.")]

@@ -30,7 +30,7 @@ use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, EventsChunk, L1HandlerTransactionStatus, SimulatedTransaction,
-    TransactionTrace, TransactionWithHash,
+    TransactionStatus, TransactionTrace, TransactionWithHash,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 use tracing::{error, info, trace};
@@ -40,7 +40,7 @@ use self::models::{
     AccountAddressInput, BlockHashAndNumberOutput, BlockIdInput,
     BroadcastedDeclareTransactionInput, BroadcastedDeployAccountTransactionInput,
     BroadcastedInvokeTransactionInput, DeclareTransactionOutput, DeployAccountTransactionOutput,
-    SyncingOutput, TransactionStatusOutput,
+    SyncingOutput,
 };
 use self::origin_forwarder::OriginForwarder;
 use super::http::endpoints::accounts::{BalanceQuery, PredeployedAccountsQuery};
@@ -597,7 +597,7 @@ pub enum StarknetResponse {
     Felt(Felt),
     Transaction(TransactionWithHash),
     TransactionReceiptByTransactionHash(Box<TransactionReceipt>),
-    TransactionStatusByHash(TransactionStatusOutput),
+    TransactionStatusByHash(TransactionStatus),
     ContractClass(CodegenContractClass),
     BlockTransactionCount(u64),
     Call(Vec<Felt>),
