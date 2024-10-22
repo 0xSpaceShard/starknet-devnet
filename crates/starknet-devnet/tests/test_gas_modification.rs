@@ -75,9 +75,9 @@ mod gas_modification_tests {
         let chain_id = &devnet.send_custom_rpc("starknet_chainId", json!({})).await.unwrap();
         assert_eq!(chain_id, expected_chain_id);
 
-        let params_no_flags = get_params(&[]);
+        let params_skip_fee_charge = get_params(&["SKIP_FEE_CHARGE"]);
         let resp_no_flags = &devnet
-            .send_custom_rpc("starknet_simulateTransactions", params_no_flags.clone())
+            .send_custom_rpc("starknet_simulateTransactions", params_skip_fee_charge.clone())
             .await
             .unwrap()[0];
         assert_eq!(
@@ -90,9 +90,13 @@ mod gas_modification_tests {
         );
         assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x7398c659d800");
 
-        let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
+        let params_skip_validation_and_fee_charge =
+            get_params(&["SKIP_VALIDATE", "SKIP_FEE_CHARGE"]);
         let resp_skip_validation = &devnet
-            .send_custom_rpc("starknet_simulateTransactions", params_skip_validation.clone())
+            .send_custom_rpc(
+                "starknet_simulateTransactions",
+                params_skip_validation_and_fee_charge.clone(),
+            )
             .await
             .unwrap()[0];
         assert_eq!(
@@ -135,7 +139,7 @@ mod gas_modification_tests {
         assert_eq!(chain_id, expected_chain_id);
 
         let resp_no_flags = &devnet
-            .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
+            .send_custom_rpc("starknet_simulateTransactions", params_skip_fee_charge)
             .await
             .unwrap()[0];
 
@@ -144,7 +148,7 @@ mod gas_modification_tests {
         assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x261b37abed7125c0000");
 
         let resp_skip_validation = &devnet
-            .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
+            .send_custom_rpc("starknet_simulateTransactions", params_skip_validation_and_fee_charge)
             .await
             .unwrap()[0];
         assert_eq!(resp_skip_validation["fee_estimation"]["gas_price"], to_hex_felt(&wei_price));

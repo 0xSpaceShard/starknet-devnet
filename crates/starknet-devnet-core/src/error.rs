@@ -60,10 +60,6 @@ pub enum Error {
     SerializationError { origin: String },
     #[error("Serialization not supported: {obj_name}")]
     SerializationNotSupported { obj_name: String },
-    #[error(
-        "{tx_type}: max_fee cannot be zero (exception is v3 transaction where l2 gas must be zero)"
-    )]
-    MaxFeeZeroError { tx_type: String },
     #[error(transparent)]
     TransactionValidationError(#[from] TransactionValidationError),
     #[error(transparent)]

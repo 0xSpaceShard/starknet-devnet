@@ -96,15 +96,16 @@ mod simulation_tests {
             })
         };
 
-        let params_no_flags = get_params(&[]);
         let resp_no_flags = &devnet
-            .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
+            .send_custom_rpc("starknet_simulateTransactions", get_params(&["SKIP_FEE_CHARGE"]))
             .await
             .unwrap()[0];
 
-        let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
         let resp_skip_validation = &devnet
-            .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
+            .send_custom_rpc(
+                "starknet_simulateTransactions",
+                get_params(&["SKIP_VALIDATE", "SKIP_FEE_CHARGE"]),
+            )
             .await
             .unwrap()[0];
 
@@ -112,7 +113,7 @@ mod simulation_tests {
             resp_no_flags,
             resp_skip_validation,
             &sender_address_hex,
-            max_fee == Felt::ZERO,
+            true,
         );
     }
 
@@ -168,15 +169,16 @@ mod simulation_tests {
             })
         };
 
-        let params_no_flags = get_params(&[]);
         let resp_no_flags = &devnet
-            .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
+            .send_custom_rpc("starknet_simulateTransactions", get_params(&["SKIP_FEE_CHARGE"]))
             .await
             .unwrap()[0];
 
-        let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
         let resp_skip_validation = &devnet
-            .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
+            .send_custom_rpc(
+                "starknet_simulateTransactions",
+                get_params(&["SKIP_VALIDATE", "SKIP_FEE_CHARGE"]),
+            )
             .await
             .unwrap()[0];
 
@@ -184,7 +186,7 @@ mod simulation_tests {
             resp_no_flags,
             resp_skip_validation,
             &sender_address_hex,
-            max_fee == Felt::ZERO,
+            true,
         );
     }
 
@@ -559,7 +561,7 @@ mod simulation_tests {
                         },
                     )),
                 ],
-                [SimulationFlag::SkipValidate],
+                [SimulationFlag::SkipValidate, SimulationFlag::SkipFeeCharge],
             )
             .await
             .unwrap();
@@ -715,7 +717,8 @@ mod simulation_tests {
     }
 
     #[tokio::test]
-    async fn simulate_v3_deploy_account_declare_deploy_via_invoke_to_udc_happy_path() {
+    async fn simulate_v3_with_skip_fee_charge_deploy_account_declare_deploy_via_invoke_to_udc_happy_path()
+     {
         let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo1"])
             .await
             .expect("Could not start Devnet");
@@ -756,7 +759,7 @@ mod simulation_tests {
         let nonce = Felt::ZERO;
         let account_deployment =
             account_factory.deploy_v3(salt).nonce(nonce).gas(gas).gas_price(gas_price);
-        account_deployment.simulate(false, false).await.unwrap();
+
         let account_address = account_deployment.address();
         let txn_hash = account_deployment.prepared().unwrap().transaction_hash(is_query);
         let signature = signer.sign_hash(&txn_hash).await.unwrap();
@@ -868,7 +871,7 @@ mod simulation_tests {
                         invoke_transaction,
                     )),
                 ],
-                [],
+                [SimulationFlag::SkipFeeCharge],
             )
             .await
             .unwrap();
@@ -923,6 +926,148 @@ mod simulation_tests {
     }
 
     #[tokio::test]
+    async fn simulate_invoke_declare_deploy_account_with_either_gas_or_gas_price_set_to_zero_or_both_will_revert_if_skip_fee_charge_is_not_set()
+     {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo1"])
+            .await
+            .expect("Could not start Devnet");
+
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+
+        let account = SingleOwnerAccount::new(
+            &devnet.json_rpc_client,
+            signer,
+            account_address,
+            constants::CHAIN_ID,
+            ExecutionEncoding::New,
+        );
+
+        let call = Call {
+            to: ETH_ERC20_CONTRACT_ADDRESS,
+            selector: get_selector_from_name("transfer").unwrap(),
+            calldata: vec![
+                Felt::ONE,         // recipient
+                Felt::from(1_000), // low part of uint256
+                Felt::ZERO,        // high part of uint256
+            ],
+        };
+
+        let calldata = account.encode_calls(&[call]);
+
+        let new_account_private_key = Felt::from(7777);
+        let signer =
+            LocalWallet::from_signing_key(SigningKey::from_secret_scalar(new_account_private_key));
+        let public_key = signer.get_public_key().await.unwrap().scalar();
+
+        let (sierra_artifact, casm_hash) =
+            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH);
+
+        let account_class_hash = Felt::from_hex_unchecked(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH);
+
+        let nonce_data_availability_mode = DataAvailabilityMode::L1;
+        let fee_data_availability_mode = DataAvailabilityMode::L1;
+        let tip = 0;
+
+        let nonce = Felt::ZERO;
+        let sierra_artifact = Arc::new(sierra_artifact);
+        let block_id = BlockId::Tag(BlockTag::Latest);
+        let is_query = true;
+
+        for (gas_units, gas_price) in [(0, 0), (0, 1e18 as u128), (1e18 as u64, 0)] {
+            let resource_bounds = ResourceBoundsMapping {
+                l1_gas: ResourceBounds { max_amount: gas_units, max_price_per_unit: gas_price },
+                l2_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
+            };
+
+            let invoke_transaction = BroadcastedInvokeTransactionV3 {
+                sender_address: account_address,
+                calldata: calldata.clone(),
+                signature: vec![],
+                nonce,
+                resource_bounds: resource_bounds.clone(),
+                tip,
+                paymaster_data: vec![],
+                account_deployment_data: vec![],
+                nonce_data_availability_mode,
+                fee_data_availability_mode,
+                is_query,
+            };
+
+            let invoke_transaction = BroadcastedTransaction::Invoke(
+                BroadcastedInvokeTransaction::V3(invoke_transaction),
+            );
+
+            let deploy_account_transaction = BroadcastedDeployAccountTransactionV3 {
+                signature: vec![],
+                nonce,
+                contract_address_salt: Felt::ZERO,
+                constructor_calldata: vec![public_key],
+                class_hash: account_class_hash,
+                resource_bounds: resource_bounds.clone(),
+                tip,
+                paymaster_data: vec![],
+                nonce_data_availability_mode,
+                fee_data_availability_mode,
+                is_query,
+            };
+
+            let deploy_account_transaction = BroadcastedTransaction::DeployAccount(
+                BroadcastedDeployAccountTransaction::V3(deploy_account_transaction),
+            );
+
+            let declare_transaction = BroadcastedDeclareTransactionV3 {
+                sender_address: account_address,
+                compiled_class_hash: casm_hash,
+                signature: vec![],
+                nonce,
+                contract_class: sierra_artifact.clone(),
+                resource_bounds,
+                tip,
+                paymaster_data: vec![],
+                account_deployment_data: vec![],
+                nonce_data_availability_mode,
+                fee_data_availability_mode,
+                is_query,
+            };
+
+            let declare_transaction = BroadcastedTransaction::Declare(
+                BroadcastedDeclareTransaction::V3(declare_transaction),
+            );
+
+            for transaction in [deploy_account_transaction, declare_transaction, invoke_transaction]
+            {
+                let simulation_error = devnet
+                    .json_rpc_client
+                    .simulate_transaction(block_id, &transaction, [SimulationFlag::SkipValidate])
+                    .await
+                    .unwrap_err();
+
+                match simulation_error {
+                    ProviderError::StarknetError(StarknetError::TransactionExecutionError(
+                        TransactionExecutionErrorData { execution_error, .. },
+                    )) => {
+                        assert_eq!(
+                            execution_error,
+                            "Provided max fee is not enough to cover the transaction cost."
+                        );
+                    }
+                    other => panic!("Unexpected error: {:?}", other),
+                }
+
+                devnet
+                    .json_rpc_client
+                    .simulate_transaction(
+                        block_id,
+                        &transaction,
+                        [SimulationFlag::SkipValidate, SimulationFlag::SkipFeeCharge],
+                    )
+                    .await
+                    .unwrap();
+            }
+        }
+    }
+
+    #[tokio::test]
     async fn simulate_invoke_v3_with_failing_execution_should_return_a_trace_of_reverted_transaction()
      {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
@@ -950,7 +1095,7 @@ mod simulation_tests {
                 selector: get_selector_from_name("create_panic").unwrap(),
                 calldata: vec![cairo_short_string_to_felt(panic_reason).unwrap()],
             }])
-            .simulate(false, false)
+            .simulate(false, true)
             .await
             .unwrap();
 

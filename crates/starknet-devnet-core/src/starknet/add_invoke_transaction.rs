@@ -8,14 +8,14 @@ use starknet_types::rpc::transactions::{
 };
 
 use super::Starknet;
-use crate::error::{DevnetResult, Error};
+use crate::error::{DevnetResult, Error, TransactionValidationError};
 
 pub fn add_invoke_transaction(
     starknet: &mut Starknet,
     broadcasted_invoke_transaction: BroadcastedInvokeTransaction,
 ) -> DevnetResult<TransactionHash> {
     if broadcasted_invoke_transaction.is_max_fee_zero_value() {
-        return Err(Error::MaxFeeZeroError { tx_type: broadcasted_invoke_transaction.to_string() });
+        return Err(TransactionValidationError::InsufficientMaxFee.into());
     }
 
     if broadcasted_invoke_transaction.is_only_query() {
@@ -89,6 +89,7 @@ mod tests {
         self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         ETH_ERC20_CONTRACT_ADDRESS,
     };
+    use crate::error::{Error, TransactionValidationError};
     use crate::starknet::{predeployed, Starknet};
     use crate::state::CustomState;
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
@@ -206,14 +207,7 @@ mod tests {
             .expect_err("Expected MaxFeeZeroError");
 
         match invoke_v3_txn_error {
-            err @ crate::error::Error::MaxFeeZeroError { .. } => {
-                assert_eq!(
-                    err.to_string(),
-                    "Invoke transaction V3: max_fee cannot be zero (exception is v3 transaction \
-                     where l2 gas must be zero)"
-                        .to_string()
-                );
-            }
+            Error::TransactionValidationError(TransactionValidationError::InsufficientMaxFee) => {}
             _ => panic!("Wrong error type"),
         }
     }
@@ -282,13 +276,9 @@ mod tests {
 
             assert!(transaction.is_err());
             match transaction.err().unwrap() {
-                err @ crate::error::Error::MaxFeeZeroError { .. } => {
-                    assert_eq!(
-                        err.to_string(),
-                        "Invoke transaction V3: max_fee cannot be zero (exception is v3 \
-                         transaction where l2 gas must be zero)"
-                    )
-                }
+                Error::TransactionValidationError(
+                    TransactionValidationError::InsufficientMaxFee,
+                ) => {}
                 _ => {
                     panic!("Wrong error type")
                 }
@@ -389,13 +379,7 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            err @ crate::error::Error::MaxFeeZeroError { .. } => {
-                assert_eq!(
-                    err.to_string(),
-                    "Invoke transaction V1: max_fee cannot be zero (exception is v3 transaction \
-                     where l2 gas must be zero)"
-                )
-            }
+            Error::TransactionValidationError(TransactionValidationError::InsufficientMaxFee) => {}
             _ => panic!("Wrong error type"),
         }
     }

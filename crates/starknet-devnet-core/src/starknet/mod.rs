@@ -66,7 +66,7 @@ use crate::constants::{
     STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
 };
 use crate::contract_class_choice::AccountContractClassChoice;
-use crate::error::{DevnetResult, Error};
+use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::RawExecutionV1;
@@ -1102,7 +1102,16 @@ impl Starknet {
         let blockifier_transactions = {
             transactions
                 .iter()
-                .map(|txn| {
+                .enumerate()
+                .map(|(idx, txn)| {
+                    if txn.is_max_fee_zero_value() && !skip_fee_charge {
+                        return Err(Error::ExecutionError {
+                            execution_error: TransactionValidationError::InsufficientMaxFee
+                                .to_string(),
+                            index: idx,
+                        });
+                    }
+
                     Ok((
                         txn.to_blockifier_account_transaction(&chain_id, true)?,
                         txn.get_type(),
