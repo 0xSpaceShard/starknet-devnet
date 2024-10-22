@@ -494,6 +494,20 @@ impl BroadcastedTransaction {
             BroadcastedTransaction::DeployAccount(_) => TransactionType::DeployAccount,
         }
     }
+
+    pub fn is_max_fee_zero_value(&self) -> bool {
+        match self {
+            BroadcastedTransaction::Invoke(broadcasted_invoke_transaction) => {
+                broadcasted_invoke_transaction.is_max_fee_zero_value()
+            }
+            BroadcastedTransaction::Declare(broadcasted_declare_transaction) => {
+                broadcasted_declare_transaction.is_max_fee_zero_value()
+            }
+            BroadcastedTransaction::DeployAccount(broadcasted_deploy_account_transaction) => {
+                broadcasted_deploy_account_transaction.is_max_fee_zero_value()
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
