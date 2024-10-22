@@ -1142,20 +1142,21 @@ mod simulation_tests {
                 .gas_price(gas_price - 1)
                 .simulate(false, skip_fee_charge)
                 .await;
-            if skip_fee_charge {
-                simulation_result.unwrap();
-            } else {
-                match simulation_result.unwrap_err() {
-                    AccountError::Provider(ProviderError::StarknetError(
+
+            match (simulation_result, skip_fee_charge) {
+                (Ok(_), true) => {}
+                (
+                    Err(AccountError::Provider(ProviderError::StarknetError(
                         StarknetError::TransactionExecutionError(TransactionExecutionErrorData {
                             execution_error,
                             ..
                         }),
-                    )) => {
-                        assert_contains(&execution_error, "max fee is not enough");
-                    }
-                    other_error => panic!("Unexpected error {other_error:?}"),
+                    ))),
+                    false,
+                ) => {
+                    assert_contains(&execution_error, "max fee is not enough");
                 }
+                invalid_combination => panic!("Invalid combination: {invalid_combination:?}"),
             }
         }
     }
