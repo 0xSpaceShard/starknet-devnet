@@ -65,7 +65,8 @@ pub fn estimate_fee(
 
             match estimate_fee_result {
                 Ok(estimated_fee) => Ok(estimated_fee),
-                Err(Error::UnexpectedInternalError { msg }) => Err(Error::ExecutionError { execution_error: msg, index: idx }),
+                // reverted transactions are failing with ExecutionError, but index is set to 0, so we override the index property
+                Err(Error::ExecutionError { execution_error , ..}) => Err(Error::ExecutionError { execution_error, index: idx }),
                 Err(err) => Err(Error::ExecutionError { execution_error: err.to_string(), index: idx }),
             }
         })
@@ -126,11 +127,10 @@ fn estimate_transaction_fee<S: StateReader>(
     )?;
 
     // reverted transactions can only be Invoke transactions
-    if return_error_on_reverted_execution && transaction_execution_info.is_reverted() {
-        // unwrapping here will give the value contained in revert_error
-        return Err(Error::UnexpectedInternalError {
-            msg: transaction_execution_info.revert_error.unwrap_or_default(),
-        });
+    if let (true, Some(revert_error)) =
+        (return_error_on_reverted_execution, transaction_execution_info.revert_error)
+    {
+        return Err(Error::ExecutionError { execution_error: revert_error, index: 0 });
     }
 
     let gas_vector = transaction_execution_info
