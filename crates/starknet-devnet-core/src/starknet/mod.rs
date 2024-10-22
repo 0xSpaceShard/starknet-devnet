@@ -1104,6 +1104,10 @@ impl Starknet {
                 .iter()
                 .enumerate()
                 .map(|(idx, txn)| {
+                    // According to this conversation https://spaceshard.slack.com/archives/C03HL8DH52N/p1710683496750409, simulating a transaction will:
+                    // fail if the fee provided is 0
+                    // succeed if the fee provided is 0 and SKIP_FEE_CHARGE is set
+                    // succeed if the fee provided is > 0
                     if txn.is_max_fee_zero_value() && !skip_fee_charge {
                         return Err(Error::ExecutionError {
                             execution_error: TransactionValidationError::InsufficientMaxFee
