@@ -8,7 +8,7 @@ use starknet_types::rpc::transactions::{
 };
 
 use super::Starknet;
-use crate::error::{DevnetResult, Error};
+use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::state::CustomStateReader;
 
 pub fn add_deploy_account_transaction(
@@ -16,9 +16,7 @@ pub fn add_deploy_account_transaction(
     broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransaction,
 ) -> DevnetResult<(TransactionHash, ContractAddress)> {
     if broadcasted_deploy_account_transaction.is_max_fee_zero_value() {
-        return Err(Error::MaxFeeZeroError {
-            tx_type: broadcasted_deploy_account_transaction.to_string(),
-        });
+        return Err(TransactionValidationError::InsufficientMaxFee.into());
     }
 
     if broadcasted_deploy_account_transaction.is_only_query() {
@@ -57,13 +55,13 @@ pub fn add_deploy_account_transaction(
     let transaction_hash = blockifier_deploy_account_transaction.tx_hash.0;
     let transaction = TransactionWithHash::new(transaction_hash, deploy_account_transaction);
 
-    let blockifier_execution_result =
+    let blockifier_execution_info =
         blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(
             blockifier_deploy_account_transaction,
         )
-        .execute(&mut starknet.pending_state.state, &starknet.block_context, true, true);
+        .execute(&mut starknet.pending_state.state, &starknet.block_context, true, true)?;
 
-    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+    starknet.handle_accepted_transaction(transaction, blockifier_execution_info)?;
 
     Ok((transaction_hash, address))
 }
@@ -90,7 +88,7 @@ mod tests {
         self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
-    use crate::error::Error;
+    use crate::error::{Error, TransactionValidationError};
     use crate::starknet::{predeployed, Starknet};
     use crate::state::CustomState;
     use crate::traits::{Deployed, HashIdentifiedMut};
@@ -157,13 +155,7 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            err @ crate::error::Error::MaxFeeZeroError { .. } => {
-                assert_eq!(
-                    err.to_string(),
-                    "Deploy account transaction V1: max_fee cannot be zero (exception is v3 \
-                     transaction where l2 gas must be zero)"
-                )
-            }
+            Error::TransactionValidationError(TransactionValidationError::InsufficientMaxFee) => {}
             _ => panic!("Wrong error type"),
         }
     }
@@ -180,13 +172,7 @@ mod tests {
             ))
             .unwrap_err();
         match txn_err {
-            err @ crate::error::Error::MaxFeeZeroError { .. } => {
-                assert_eq!(
-                    err.to_string(),
-                    "Deploy account transaction V3: max_fee cannot be zero (exception is v3 \
-                     transaction where l2 gas must be zero)"
-                )
-            }
+            Error::TransactionValidationError(TransactionValidationError::InsufficientMaxFee) => {}
             _ => panic!("Wrong error type"),
         }
     }

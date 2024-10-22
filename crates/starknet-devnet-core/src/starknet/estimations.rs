@@ -21,6 +21,7 @@ pub fn estimate_fee(
     transactions: &[BroadcastedTransaction],
     charge_fee: Option<bool>,
     validate: Option<bool>,
+    return_error_on_reverted_execution: bool,
 ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
     let chain_id = starknet.chain_id().to_felt();
     let block_context = starknet.block_context.clone();
@@ -45,8 +46,9 @@ pub fn estimate_fee(
 
     transactions
         .into_iter()
-        .map(|(transaction, skip_validate_due_to_impersonation)| {
-            estimate_transaction_fee(
+        .enumerate()
+        .map(|(idx,(transaction, skip_validate_due_to_impersonation))| {
+            let estimate_fee_result = estimate_transaction_fee(
                 &mut transactional_state,
                 &block_context,
                 blockifier::transaction::transaction_execution::Transaction::AccountTransaction(
@@ -58,7 +60,15 @@ pub fn estimate_fee(
                                                               * has to skip validation, because
                                                               * the sender is impersonated.
                                                               * Otherwise use the validate parameter that is passed to the estimateFee request */
-            )
+                return_error_on_reverted_execution
+            );
+
+            match estimate_fee_result {
+                Ok(estimated_fee) => Ok(estimated_fee),
+                // reverted transactions are failing with ExecutionError, but index is set to 0, so we override the index property
+                Err(Error::ExecutionError { execution_error , ..}) => Err(Error::ExecutionError { execution_error, index: idx }),
+                Err(err) => Err(Error::ExecutionError { execution_error: err.to_string(), index: idx }),
+            }
         })
         .collect()
 }
@@ -88,6 +98,7 @@ pub fn estimate_message_fee(
         ),
         None,
         None,
+        true,
     )
 }
 
@@ -97,6 +108,7 @@ fn estimate_transaction_fee<S: StateReader>(
     transaction: blockifier::transaction::transaction_execution::Transaction,
     charge_fee: Option<bool>,
     validate: Option<bool>,
+    return_error_on_reverted_execution: bool,
 ) -> DevnetResult<FeeEstimateWrapper> {
     let fee_type = match transaction {
         blockifier::transaction::transaction_execution::Transaction::AccountTransaction(ref tx) => {
@@ -114,8 +126,11 @@ fn estimate_transaction_fee<S: StateReader>(
         validate.unwrap_or(true),
     )?;
 
-    if let Some(revert_error) = transaction_execution_info.revert_error {
-        return Err(Error::ExecutionError { revert_error });
+    // reverted transactions can only be Invoke transactions
+    if let (true, Some(revert_error)) =
+        (return_error_on_reverted_execution, transaction_execution_info.revert_error)
+    {
+        return Err(Error::ExecutionError { execution_error: revert_error, index: 0 });
     }
 
     let gas_vector = transaction_execution_info

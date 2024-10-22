@@ -15,8 +15,8 @@ use starknet_rs_accounts::{
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult, Felt,
-    FlattenedSierraClass, FunctionCall,
+    BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult, FeeEstimate,
+    Felt, FlattenedSierraClass, FunctionCall, NonZeroFelt,
 };
 use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -238,30 +238,22 @@ impl Drop for UniqueAutoDeletableFile {
 }
 
 /// Declares and deploys a Cairo 1 contract; returns class hash and contract address
-pub async fn declare_deploy_v1(
-    account: Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>,
+pub async fn declare_v3_deploy_v3(
+    account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
     contract_class: FlattenedSierraClass,
     casm_hash: Felt,
     ctor_args: &[Felt],
 ) -> Result<(Felt, Felt), anyhow::Error> {
-    // declare the contract
-    let declaration_result = account
-        .declare_v2(Arc::new(contract_class), casm_hash)
-        .max_fee(Felt::from(1e18 as u128))
-        .send()
-        .await?;
+    let salt = Felt::ZERO;
+    let declaration_result = account.declare_v3(Arc::new(contract_class), casm_hash).send().await?;
 
     // deploy the contract
-    let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
-    contract_factory
-        .deploy_v1(ctor_args.to_vec(), Felt::ZERO, false)
-        .max_fee(Felt::from(1e18 as u128))
-        .send()
-        .await?;
+    let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
+    contract_factory.deploy_v3(ctor_args.to_vec(), salt, false).send().await?;
 
     // generate the address of the newly deployed contract
     let contract_address = get_udc_deployed_address(
-        Felt::ZERO,
+        salt,
         declaration_result.class_hash,
         &starknet_rs_core::utils::UdcUniqueness::NotUnique,
         ctor_args,
@@ -331,6 +323,16 @@ where
 
 pub fn felt_to_u256(f: Felt) -> U256 {
     U256::from_big_endian(&f.to_bytes_be())
+}
+
+pub fn get_gas_units_and_gas_price(fee_estimate: FeeEstimate) -> (u64, u128) {
+    let gas_price =
+        u128::from_le_bytes(fee_estimate.gas_price.to_bytes_le()[0..16].try_into().unwrap());
+    let gas_units = fee_estimate
+        .overall_fee
+        .field_div(&NonZeroFelt::from_felt_unchecked(fee_estimate.gas_price));
+
+    (gas_units.to_le_digits().first().cloned().unwrap(), gas_price)
 }
 
 #[cfg(test)]

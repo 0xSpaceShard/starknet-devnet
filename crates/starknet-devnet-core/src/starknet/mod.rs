@@ -7,7 +7,6 @@ use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
-use blockifier::transaction::errors::TransactionPreValidationError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use parking_lot::RwLock;
@@ -381,76 +380,15 @@ impl Starknet {
         Ok(state_diff)
     }
 
-    /// Handles transaction result either Ok or Error and updates the state accordingly.
-    ///
-    /// # Arguments
-    ///
-    /// * `transaction` - Transaction to be added in the collection of transactions.
-    /// * `contract_class` - Contract class to be added in the state cache. Only in declare
-    ///   transactions.
-    /// * `transaction_result` - Result with transaction_execution_info
-    pub(crate) fn handle_transaction_result(
-        &mut self,
-        transaction: TransactionWithHash,
-        transaction_result: Result<
-            TransactionExecutionInfo,
-            blockifier::transaction::errors::TransactionExecutionError,
-        >,
-    ) -> DevnetResult<()> {
-        let transaction_hash = *transaction.get_transaction_hash();
-
-        match transaction_result {
-            Ok(tx_info) => {
-                self.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)
-            }
-            Err(tx_err) => {
-                /// utility to avoid duplication
-                fn match_tx_fee_error(
-                    err: blockifier::transaction::errors::TransactionFeeError,
-                ) -> DevnetResult<()> {
-                    match err {
-                        blockifier::transaction::errors::TransactionFeeError::FeeTransferError { .. }
-                        | blockifier::transaction::errors::TransactionFeeError::MaxFeeTooLow { .. } => Err(
-                            TransactionValidationError::InsufficientMaxFee.into()
-                        ),
-                        blockifier::transaction::errors::TransactionFeeError::MaxFeeExceedsBalance { .. } | blockifier::transaction::errors::TransactionFeeError::L1GasBoundsExceedBalance { .. } => Err(
-                            TransactionValidationError::InsufficientAccountBalance.into()
-                        ),
-                        _ => Err(err.into())
-                    }
-                }
-
-                // based on this https://community.starknet.io/t/efficient-utilization-of-sequencer-capacity-in-starknet-v0-12-1/95607#the-validation-phase-in-the-gateway-5
-                // we should not save transactions that failed with one of the following errors
-                match tx_err {
-                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
-                        TransactionPreValidationError::InvalidNonce { .. }
-                    ) => Err(TransactionValidationError::InvalidTransactionNonce.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::FeeCheckError { .. } =>
-                        Err(TransactionValidationError::InsufficientMaxFee.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
-                        TransactionPreValidationError::TransactionFeeError(err)
-                    ) => match_tx_fee_error(err),
-                    blockifier::transaction::errors::TransactionExecutionError::TransactionFeeError(err)
-                      => match_tx_fee_error(err),
-                    blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError { .. } => {
-                        Err(TransactionValidationError::ValidationFailure { reason: tx_err.to_string() }.into())
-                    }
-                    _ => Err(tx_err.into())
-                }
-            }
-        }
-    }
-
     /// Handles succeeded and reverted transactions. The tx is stored and potentially dumped. A new
     /// block is generated in block-generation-on-transaction mode.
     pub(crate) fn handle_accepted_transaction(
         &mut self,
-        transaction_hash: &TransactionHash,
-        transaction: &TransactionWithHash,
+        transaction: TransactionWithHash,
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
         let state_diff = self.commit_diff()?;
+        let transaction_hash = transaction.get_transaction_hash();
 
         let trace = create_trace(
             &mut self.pending_state.state,
@@ -458,7 +396,7 @@ impl Starknet {
             &tx_info,
             state_diff.clone().into(),
         )?;
-        let transaction_to_add = StarknetTransaction::create_accepted(transaction, tx_info, trace);
+        let transaction_to_add = StarknetTransaction::create_accepted(&transaction, tx_info, trace);
 
         // add accepted transaction to pending block
         self.blocks.pending_block.add_transaction(*transaction_hash);
@@ -712,7 +650,7 @@ impl Starknet {
                 skip_validate = true;
             }
         }
-        estimations::estimate_fee(self, block_id, transactions, None, Some(!skip_validate))
+        estimations::estimate_fee(self, block_id, transactions, None, Some(!skip_validate), true)
     }
 
     pub fn estimate_message_fee(
@@ -1164,7 +1102,20 @@ impl Starknet {
         let blockifier_transactions = {
             transactions
                 .iter()
-                .map(|txn| {
+                .enumerate()
+                .map(|(idx, txn)| {
+                    // According to this conversation https://spaceshard.slack.com/archives/C03HL8DH52N/p1710683496750409, simulating a transaction will:
+                    // fail if the fee provided is 0
+                    // succeed if the fee provided is 0 and SKIP_FEE_CHARGE is set
+                    // succeed if the fee provided is > 0
+                    if txn.is_max_fee_zero_value() && !skip_fee_charge {
+                        return Err(Error::ExecutionError {
+                            execution_error: TransactionValidationError::InsufficientMaxFee
+                                .to_string(),
+                            index: idx,
+                        });
+                    }
+
                     Ok((
                         txn.to_blockifier_account_transaction(&chain_id, true)?,
                         txn.get_type(),
@@ -1181,15 +1132,20 @@ impl Starknet {
         let mut transactional_state =
             CachedState::new(CachedState::create_transactional(&mut state.state));
 
-        for (blockifier_transaction, transaction_type, skip_validate_due_to_impersonation) in
-            blockifier_transactions.into_iter()
+        for (idx, (blockifier_transaction, transaction_type, skip_validate_due_to_impersonation)) in
+            blockifier_transactions.into_iter().enumerate()
         {
-            let tx_execution_info = blockifier_transaction.execute(
-                &mut transactional_state,
-                &block_context,
-                !skip_fee_charge,
-                !(skip_validate || skip_validate_due_to_impersonation),
-            )?;
+            let tx_execution_info = blockifier_transaction
+                .execute(
+                    &mut transactional_state,
+                    &block_context,
+                    !skip_fee_charge,
+                    !(skip_validate || skip_validate_due_to_impersonation),
+                )
+                .map_err(|err| Error::ExecutionError {
+                    execution_error: Error::from(err).to_string(),
+                    index: idx,
+                })?;
 
             let block_number = block_context.block_info().block_number.0;
             let new_classes = transactional_rpc_contract_classes.write().commit(block_number);
@@ -1210,6 +1166,7 @@ impl Starknet {
             transactions,
             Some(!skip_fee_charge),
             Some(!skip_validate),
+            false,
         )?;
 
         // if the underlying simulation is correct, this should never be the case

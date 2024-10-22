@@ -1,4 +1,3 @@
-use core::fmt;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -98,18 +97,6 @@ pub enum TransactionType {
     Invoke,
     #[serde(rename(deserialize = "L1_HANDLER", serialize = "L1_HANDLER"))]
     L1Handler,
-}
-
-impl fmt::Display for TransactionType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            TransactionType::Declare => write!(f, "Declare transaction"),
-            TransactionType::Deploy => write!(f, "Deploy transaction"),
-            TransactionType::DeployAccount => write!(f, "Deploy account transaction"),
-            TransactionType::Invoke => write!(f, "Invoke transaction"),
-            TransactionType::L1Handler => write!(f, "L1 handler transaction"),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -494,6 +481,20 @@ impl BroadcastedTransaction {
             BroadcastedTransaction::DeployAccount(_) => TransactionType::DeployAccount,
         }
     }
+
+    pub fn is_max_fee_zero_value(&self) -> bool {
+        match self {
+            BroadcastedTransaction::Invoke(broadcasted_invoke_transaction) => {
+                broadcasted_invoke_transaction.is_max_fee_zero_value()
+            }
+            BroadcastedTransaction::Declare(broadcasted_declare_transaction) => {
+                broadcasted_declare_transaction.is_max_fee_zero_value()
+            }
+            BroadcastedTransaction::DeployAccount(broadcasted_deploy_account_transaction) => {
+                broadcasted_deploy_account_transaction.is_max_fee_zero_value()
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -502,17 +503,6 @@ pub enum BroadcastedDeclareTransaction {
     V1(Box<BroadcastedDeclareTransactionV1>),
     V2(Box<BroadcastedDeclareTransactionV2>),
     V3(Box<BroadcastedDeclareTransactionV3>),
-}
-
-impl fmt::Display for BroadcastedDeclareTransaction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let txn_type = TransactionType::Declare;
-        match self {
-            BroadcastedDeclareTransaction::V1(_) => write!(f, "{} V1", txn_type),
-            BroadcastedDeclareTransaction::V2(_) => write!(f, "{} V2", txn_type),
-            BroadcastedDeclareTransaction::V3(_) => write!(f, "{} V3", txn_type),
-        }
-    }
 }
 
 impl BroadcastedDeclareTransaction {
@@ -658,16 +648,6 @@ pub enum BroadcastedDeployAccountTransaction {
     V3(BroadcastedDeployAccountTransactionV3),
 }
 
-impl fmt::Display for BroadcastedDeployAccountTransaction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let txn_type = TransactionType::DeployAccount;
-        match self {
-            BroadcastedDeployAccountTransaction::V1(_) => write!(f, "{} V1", txn_type),
-            BroadcastedDeployAccountTransaction::V3(_) => write!(f, "{} V3", txn_type),
-        }
-    }
-}
-
 impl BroadcastedDeployAccountTransaction {
     pub fn is_max_fee_zero_value(&self) -> bool {
         match self {
@@ -792,16 +772,6 @@ impl BroadcastedDeployAccountTransaction {
 pub enum BroadcastedInvokeTransaction {
     V1(BroadcastedInvokeTransactionV1),
     V3(BroadcastedInvokeTransactionV3),
-}
-
-impl fmt::Display for BroadcastedInvokeTransaction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let txn_type = TransactionType::Invoke;
-        match self {
-            BroadcastedInvokeTransaction::V1(_) => write!(f, "{} V1", txn_type),
-            BroadcastedInvokeTransaction::V3(_) => write!(f, "{} V3", txn_type),
-        }
-    }
 }
 
 impl BroadcastedInvokeTransaction {

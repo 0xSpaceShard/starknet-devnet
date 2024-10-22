@@ -13,7 +13,7 @@ mod test_v3_transactions {
         ExecutionEncoding, ExecutionV3, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_core::types::{
-        BlockId, BlockTag, Call, ExecutionResult, FeeEstimate, Felt, FlattenedSierraClass,
+        BlockId, BlockTag, Call, ExecutionResult, Felt, FlattenedSierraClass,
         InvokeTransactionResult, NonZeroFelt, StarknetError,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
@@ -27,7 +27,7 @@ mod test_v3_transactions {
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
     use crate::common::utils::{
-        assert_tx_successful, get_deployable_account_signer,
+        assert_tx_successful, get_deployable_account_signer, get_gas_units_and_gas_price,
         get_simple_contract_in_sierra_and_compiled_class_hash,
     };
 
@@ -291,16 +291,6 @@ mod test_v3_transactions {
         assert_tx_successful(&result.transaction_hash, &devnet.json_rpc_client).await;
     }
 
-    fn get_gas_units_and_gas_price(fee_estimate: FeeEstimate) -> (u64, u128) {
-        let gas_price =
-            u128::from_le_bytes(fee_estimate.gas_price.to_bytes_le()[0..16].try_into().unwrap());
-        let gas_units = fee_estimate
-            .overall_fee
-            .field_div(&NonZeroFelt::from_felt_unchecked(fee_estimate.gas_price));
-
-        (gas_units.to_le_digits().first().cloned().unwrap(), gas_price)
-    }
-
     /// This function sets the gas price and/or gas units to a value that is less than the estimated
     /// then sends the transaction. The expected result is that the transaction will either fail or
     /// be accepted as reverted.
@@ -354,10 +344,7 @@ mod test_v3_transactions {
                         starknet_rs_accounts::AccountError::Provider(
                             ProviderError::StarknetError(StarknetError::InsufficientMaxFee),
                         ) => {}
-                        other => assert_contains(
-                            &other.to_string(),
-                            "is lower than the actual gas price",
-                        ),
+                        other => panic!("Unexpected error {:?}", other),
                     }
                 }
                 Action::AccountDeployment(salt) => {
@@ -373,10 +360,7 @@ mod test_v3_transactions {
                         starknet_rs_accounts::AccountFactoryError::Provider(
                             ProviderError::StarknetError(StarknetError::InsufficientMaxFee),
                         ) => {}
-                        other => assert_contains(
-                            &other.to_string(),
-                            "is lower than the actual gas price",
-                        ),
+                        other => panic!("Unexpected error {:?}", other),
                     }
                 }
                 Action::Execution(calls) => {
@@ -405,12 +389,10 @@ mod test_v3_transactions {
                                 other => panic!("Unexpected result: {:?}", other),
                             }
                         }
-                        Err(error) => {
-                            assert_contains(
-                                &error.to_string(),
-                                "is lower than the actual gas price",
-                            );
-                        }
+                        Err(starknet_rs_accounts::AccountError::Provider(
+                            ProviderError::StarknetError(StarknetError::InsufficientMaxFee),
+                        )) => {}
+                        Err(error) => panic!("Unexpected error {:?}", error),
                     }
                 }
             };
