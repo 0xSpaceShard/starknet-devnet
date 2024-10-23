@@ -8,10 +8,12 @@ mod write_endpoints;
 
 pub const RPC_SPEC_VERSION: &str = "0.7.1";
 
+use std::sync::Arc;
+
 use axum::extract::ws::{Message, WebSocket};
 use enum_helper_macros::{AllVariantsSerdeRenames, VariantName};
-use futures::{SinkExt, StreamExt};
 use futures::stream::SplitSink;
+use futures::{SinkExt, StreamExt};
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     EstimateFeeInput, EventsInput, GetStorageInput, L1TransactionHashInput, TransactionHashInput,
@@ -34,6 +36,7 @@ use starknet_types::rpc::transactions::{
     TransactionStatus, TransactionTrace, TransactionWithHash,
 };
 use starknet_types::starknet_api::block::BlockNumber;
+use tokio::sync::Mutex;
 use tracing::{error, info, trace};
 
 use self::error::StrictRpcResult;
@@ -158,30 +161,44 @@ impl RpcHandler for JsonRpcHandler {
     }
 
     async fn on_websocket(&self, socket: WebSocket) {
-        let (mut socket_writer, mut socket_reader) = socket.split();
-        let (sender, receiver) = std::sync::mpsc::channel();
+        let (socket_writer, mut socket_reader) = socket.split();
+        let socket_writer = Arc::new(Mutex::new(socket_writer));
+
+        // TODO capacity
+        let (event_sender, event_receiver) = tokio::sync::mpsc::channel::<u32>(10);
+
         // TODO pass the subscription ID around
         // TODO do this in a loop until a new ID is generated
         let subscription_id = rand::random();
-        self.api.starknet_event_senders.lock().await.insert(subscription_id, sender);
+        self.api.starknet_event_senders.lock().await.insert(subscription_id, event_sender);
 
-        // listen to new Starknet events that can be sent to the socket client
-        let starknet_events_task = tokio::task::spawn(move || {
-            while let Some(starknet_event) = receiver.recv() {
-                socket_writer.send().await;
-                // TODO define in an async helepr function, wrap socket_writer in Arc<Mutex<>>
+        async fn listen_to_starknet_events(
+            socket_writer: Arc<Mutex<SplitSink<WebSocket, Message>>>,
+            mut event_receiver: tokio::sync::mpsc::Receiver<u32>,
+        ) {
+            while let Some(starknet_event) = event_receiver.recv().await {
+                let mut socket_writer_lock = socket_writer.lock().await;
+                let message = Message::Text(starknet_event.to_string());
+                if let Err(e) = socket_writer_lock.send(message).await {
+                    tracing::error!("Failed sending event to subscriber: {e:?}");
+                }
             }
-        });
+        }
+
+        let starknet_events_task =
+            tokio::task::spawn(listen_to_starknet_events(socket_writer.clone(), event_receiver));
 
         // listen to new messages coming through the socket
         let mut socket_safely_closed = false;
         while let Some(msg) = socket_reader.next().await {
+            // TODO consider passing the Arc<Mutex<>> instead of the lock
+            let mut socket_writer_lock = socket_writer.lock().await;
             match msg {
                 Ok(Message::Text(text)) => {
-                    self.on_websocket_rpc_call(text.as_bytes(), &mut socket_writer).await;
+                    self.on_websocket_rpc_call(text.as_bytes(), &mut socket_writer_lock).await;
                 }
                 Ok(Message::Binary(bytes)) => {
-                    self.on_websocket_rpc_call(&bytes, &mut socket_writer).await;
+                    self.on_websocket_rpc_call(&bytes, &mut socket_writer_lock).await;
                 }
                 Ok(Message::Close(_)) => {
                     socket_safely_closed = true;
@@ -1286,8 +1303,8 @@ mod response_tests {
     use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
-    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result(
-    ) {
+    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result()
+     {
         assert_eq!(
             r#"{"result":{}}"#,
             serde_json::to_string(

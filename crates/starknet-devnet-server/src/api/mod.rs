@@ -3,10 +3,10 @@ pub mod json_rpc;
 pub mod serde_helpers;
 
 use std::collections::HashMap;
-use std::sync::mpsc::Sender;
 use std::sync::Arc;
 
 use starknet_core::starknet::Starknet;
+use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
 
 use crate::dump_util::DumpEvent;
@@ -20,7 +20,7 @@ pub struct Api {
     // maybe the config should be added here next to the starknet instance
     pub starknet: Arc<Mutex<Starknet>>,
     pub dumpable_events: Arc<Mutex<Vec<DumpEvent>>>,
-    // TODO temporary set message type to u32, of course it shall be something more complex
+    // TODO temporary message type is u32, of course it shall be something more complex
     pub starknet_event_senders: Arc<Mutex<HashMap<SubscriptionId, Sender<u32>>>>,
 }
 
