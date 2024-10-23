@@ -6,12 +6,10 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use starknet_core::starknet::Starknet;
-use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
 
 use crate::dump_util::DumpEvent;
-
-type SubscriptionId = u64;
+use crate::websocket_types::{SocketContext, SocketId};
 
 /// Data that can be shared between threads with read write lock access
 /// Whatever needs to be accessed as information outside of Starknet could be added to this struct
@@ -20,8 +18,7 @@ pub struct Api {
     // maybe the config should be added here next to the starknet instance
     pub starknet: Arc<Mutex<Starknet>>,
     pub dumpable_events: Arc<Mutex<Vec<DumpEvent>>>,
-    // TODO temporary message type is u32, of course it shall be something more complex
-    pub starknet_event_senders: Arc<Mutex<HashMap<SubscriptionId, Sender<u32>>>>,
+    pub sockets: Arc<Mutex<HashMap<SocketId, SocketContext>>>,
 }
 
 impl Api {
@@ -29,7 +26,7 @@ impl Api {
         Self {
             starknet: Arc::new(Mutex::new(starknet)),
             dumpable_events: Default::default(),
-            starknet_event_senders: Arc::new(Mutex::new(HashMap::new())),
+            sockets: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 }

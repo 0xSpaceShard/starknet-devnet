@@ -9,5 +9,6 @@ pub mod rpc_handler;
 pub mod server;
 #[cfg(any(test, feature = "test_utils"))]
 pub mod test_utils;
+pub mod websocket_types;
 
 pub use config::ServerConfig;

@@ -9,6 +9,7 @@ mod write_endpoints;
 pub const RPC_SPEC_VERSION: &str = "0.7.1";
 
 use std::sync::Arc;
+use tokio::sync::mpsc::{channel, Receiver};
 
 use axum::extract::ws::{Message, WebSocket};
 use enum_helper_macros::{AllVariantsSerdeRenames, VariantName};
@@ -68,6 +69,7 @@ use crate::rpc_core::error::{ErrorCode, RpcError};
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
+use crate::websocket_types::{SocketContext, SocketId, SubscriptionResponse};
 use crate::ServerConfig;
 
 /// Helper trait to easily convert results to rpc results
@@ -165,28 +167,29 @@ impl RpcHandler for JsonRpcHandler {
         let socket_writer = Arc::new(Mutex::new(socket_writer));
 
         // TODO capacity
-        let (event_sender, event_receiver) = tokio::sync::mpsc::channel::<u32>(10);
+        let (sender, receiver) = channel::<SubscriptionResponse>(10);
 
-        // TODO pass the subscription ID around
         // TODO do this in a loop until a new ID is generated
-        let subscription_id = rand::random();
-        self.api.starknet_event_senders.lock().await.insert(subscription_id, event_sender);
+        let socket_id = rand::random();
+        self.api.sockets.lock().await.insert(socket_id, SocketContext::from_sender(sender));
 
-        async fn listen_to_starknet_events(
+        async fn listen_to_starknet_subscription_responses(
             socket_writer: Arc<Mutex<SplitSink<WebSocket, Message>>>,
-            mut event_receiver: tokio::sync::mpsc::Receiver<u32>,
+            mut subscription_response_receiver: Receiver<SubscriptionResponse>,
         ) {
-            while let Some(starknet_event) = event_receiver.recv().await {
+            while let Some(subscription_response) = subscription_response_receiver.recv().await {
                 let mut socket_writer_lock = socket_writer.lock().await;
-                let message = Message::Text(starknet_event.to_string());
+                let message = Message::Text(subscription_response.to_string());
                 if let Err(e) = socket_writer_lock.send(message).await {
                     tracing::error!("Failed sending event to subscriber: {e:?}");
                 }
             }
         }
 
-        let starknet_events_task =
-            tokio::task::spawn(listen_to_starknet_events(socket_writer.clone(), event_receiver));
+        let starknet_listener = tokio::task::spawn(listen_to_starknet_subscription_responses(
+            socket_writer.clone(),
+            receiver,
+        ));
 
         // listen to new messages coming through the socket
         let mut socket_safely_closed = false;
@@ -195,10 +198,10 @@ impl RpcHandler for JsonRpcHandler {
             let mut socket_writer_lock = socket_writer.lock().await;
             match msg {
                 Ok(Message::Text(text)) => {
-                    self.on_websocket_rpc_call(text.as_bytes(), &mut socket_writer_lock).await;
+                    self.on_websocket_rpc_call(text.as_bytes(), &mut socket_writer_lock, socket_id).await;
                 }
                 Ok(Message::Binary(bytes)) => {
-                    self.on_websocket_rpc_call(&bytes, &mut socket_writer_lock).await;
+                    self.on_websocket_rpc_call(&bytes, &mut socket_writer_lock, socket_id).await;
                 }
                 Ok(Message::Close(_)) => {
                     socket_safely_closed = true;
@@ -211,8 +214,8 @@ impl RpcHandler for JsonRpcHandler {
         }
 
         if socket_safely_closed {
-            self.api.starknet_event_senders.lock().await.remove(&subscription_id);
-            starknet_events_task.abort();
+            self.api.sockets.lock().await.remove(&socket_id);
+            starknet_listener.abort();
             tracing::info!("Websocket disconnected");
         } else {
             tracing::error!("Failed socket read");
@@ -413,11 +416,12 @@ impl JsonRpcHandler {
     }
 
     /// Takes `bytes` to be an encoded RPC call, executes it, and sends the response back via `ws`.
-    async fn on_websocket_rpc_call(&self, bytes: &[u8], ws: &mut SplitSink<WebSocket, Message>) {
+    async fn on_websocket_rpc_call(&self, bytes: &[u8], ws: &mut SplitSink<WebSocket, Message>, socket_id: SocketId) {
         match serde_json::from_slice(bytes) {
             Ok(call) => {
                 let resp = self.on_call(call).await;
                 let resp_serialized = serde_json::to_string(&resp).unwrap_or_else(|e| {
+                    // TODO perhaps make json error
                     let err_msg = format!("Error converting RPC response to string: {e}");
                     tracing::error!(err_msg);
                     err_msg
@@ -1303,8 +1307,8 @@ mod response_tests {
     use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
-    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result()
-     {
+    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result(
+    ) {
         assert_eq!(
             r#"{"result":{}}"#,
             serde_json::to_string(
