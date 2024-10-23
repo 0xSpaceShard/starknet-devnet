@@ -17,7 +17,7 @@ mod trace_tests {
         CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH, CHAIN_ID, INVALID_ACCOUNT_SIERRA_PATH,
     };
     use crate::common::utils::{
-        declare_deploy_v1, get_flattened_sierra_contract_and_casm_hash,
+        declare_v3_deploy_v3, get_flattened_sierra_contract_and_casm_hash,
         get_simple_contract_in_sierra_and_compiled_class_hash,
     };
 
@@ -92,19 +92,19 @@ mod trace_tests {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
-        let account = Arc::new(SingleOwnerAccount::new(
-            devnet.clone_provider(),
+        let account = SingleOwnerAccount::new(
+            &devnet.json_rpc_client,
             signer,
             account_address,
             CHAIN_ID,
             ExecutionEncoding::New,
-        ));
+        );
 
         let (sierra, casm_hash) =
             get_flattened_sierra_contract_and_casm_hash(CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH);
 
         let (_, contract_address) =
-            declare_deploy_v1(account.clone(), sierra, casm_hash, &[]).await.unwrap();
+            declare_v3_deploy_v3(&account, sierra, casm_hash, &[]).await.unwrap();
 
         let InvokeTransactionResult { transaction_hash } = account
             .execute_v1(vec![Call {

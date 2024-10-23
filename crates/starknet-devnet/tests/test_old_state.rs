@@ -114,8 +114,8 @@ mod old_state {
     // estimate fee of invoke transaction that reverts must fail, but simulating the same invoke
     // transaction have to produce trace of a reverted transaction
     #[tokio::test]
-    async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old_block_should_not_produce_the_same_error(
-    ) {
+    async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old_block_should_not_produce_the_same_error()
+     {
         let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await

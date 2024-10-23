@@ -7,9 +7,7 @@ use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
-use blockifier::transaction::errors::{
-    TransactionExecutionError, TransactionFeeError, TransactionPreValidationError,
-};
+use blockifier::transaction::errors::TransactionExecutionError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use ethers::types::H256;
@@ -73,7 +71,7 @@ use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::RawExecutionV1;
-use crate::stack_trace::gen_tx_execution_error_trace;
+use crate::stack_trace::{gen_tx_execution_error_trace, ErrorStack};
 use crate::state::state_diff::StateDiff;
 use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
@@ -447,12 +445,12 @@ impl Starknet {
         let chain_info = ChainInfo {
             chain_id: chain_id.into(),
             fee_token_addresses: blockifier::context::FeeTokenAddresses {
-                eth_fee_token_address: contract_address!(eth_fee_token_address
-                    .to_hex_string()
-                    .as_str()),
-                strk_fee_token_address: contract_address!(strk_fee_token_address
-                    .to_hex_string()
-                    .as_str()),
+                eth_fee_token_address: contract_address!(
+                    eth_fee_token_address.to_hex_string().as_str()
+                ),
+                strk_fee_token_address: contract_address!(
+                    strk_fee_token_address.to_hex_string().as_str()
+                ),
             },
         };
 
@@ -1121,16 +1119,18 @@ impl Starknet {
             transactions
                 .iter()
                 .enumerate()
-                .map(|(idx, txn)| {
+                .map(|(tx_idx, txn)| {
                     // According to this conversation https://spaceshard.slack.com/archives/C03HL8DH52N/p1710683496750409, simulating a transaction will:
                     // fail if the fee provided is 0
                     // succeed if the fee provided is 0 and SKIP_FEE_CHARGE is set
                     // succeed if the fee provided is > 0
                     if txn.is_max_fee_zero_value() && !skip_fee_charge {
-                        return Err(Error::ExecutionError {
-                            execution_error: TransactionValidationError::InsufficientMaxFee
-                                .to_string(),
-                            index: idx,
+                        return Err(Error::ContractExecutionErrorInSimulation {
+                            failure_index: tx_idx,
+                            error_stack: ErrorStack::from_str_err(
+                                &TransactionValidationError::InsufficientResourcesForValidate
+                                    .to_string(),
+                            ),
                         });
                     }
 
@@ -1150,7 +1150,7 @@ impl Starknet {
         let mut transactional_state =
             CachedState::new(CachedState::create_transactional(&mut state.state));
 
-        for (tx_i, (blockifier_tx, transaction_type, skip_validate_due_to_impersonation)) in
+        for (tx_idx, (blockifier_tx, transaction_type, skip_validate_due_to_impersonation)) in
             blockifier_transactions.into_iter().enumerate()
         {
             let tx_execution_info = blockifier_tx
@@ -1161,7 +1161,7 @@ impl Starknet {
                     !(skip_validate || skip_validate_due_to_impersonation),
                 )
                 .map_err(|e| Error::ContractExecutionErrorInSimulation {
-                    failure_index: tx_i as u64,
+                    failure_index: tx_idx,
                     error_stack: gen_tx_execution_error_trace(&e),
                 })?;
 

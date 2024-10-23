@@ -29,7 +29,7 @@ pub enum ApiError {
     #[error("Contract error")]
     ContractError { error_stack: ErrorStack },
     #[error("Transaction execution error")]
-    TransactionExecutionError { failure_index: u64, error_stack: ErrorStack },
+    TransactionExecutionError { failure_index: usize, error_stack: ErrorStack },
     #[error("There are no blocks")]
     NoBlocks,
     #[error("Requested page size is too big")]
@@ -62,8 +62,6 @@ pub enum ApiError {
     HttpApiError(#[from] HttpApiError),
     #[error("the compiled class hash did not match the one supplied in the transaction")]
     CompiledClassHashMismatch,
-    #[error("Transaction execution error")]
-    ExecutionError { execution_error: String, index: usize },
 }
 
 impl ApiError {
@@ -205,14 +203,6 @@ impl ApiError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
                 message: error_message.into(),
                 data: None,
-            },
-            ApiError::ExecutionError { execution_error, index } => RpcError {
-                code: crate::rpc_core::error::ErrorCode::ServerError(41),
-                message: error_message.into(),
-                data: Some(json!({
-                    "transaction_index": index,
-                    "execution_error": execution_error
-                })),
             },
             ApiError::HttpApiError(http_api_error) => http_api_error.http_api_error_to_rpc_error(),
         }

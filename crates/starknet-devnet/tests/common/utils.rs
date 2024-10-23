@@ -242,7 +242,7 @@ impl Drop for UniqueAutoDeletableFile {
 /// Deploys an instance of the class whose sierra hash is provided as `class_hash`. Uses a v1 invoke
 /// transaction. Returns the address of the newly deployed contract.
 pub async fn deploy_v1(
-    account: Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>,
+    account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
     class_hash: Felt,
     ctor_args: &[Felt],
 ) -> Result<Felt, anyhow::Error> {

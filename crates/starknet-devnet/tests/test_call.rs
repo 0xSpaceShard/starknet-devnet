@@ -2,7 +2,6 @@
 pub mod common;
 
 mod call {
-    use std::sync::Arc;
 
     use starknet_core::constants::{CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS};
     use starknet_rs_accounts::SingleOwnerAccount;
@@ -17,7 +16,7 @@ mod call {
         CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH, PREDEPLOYED_ACCOUNT_ADDRESS,
     };
     use crate::common::utils::{
-        assert_json_rpc_errors_equal, declare_deploy_v1, deploy_v1, extract_json_rpc_error,
+        assert_json_rpc_errors_equal, declare_v3_deploy_v3, deploy_v1, extract_json_rpc_error,
         get_flattened_sierra_contract_and_casm_hash,
     };
 
@@ -88,20 +87,20 @@ mod call {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
-        let account = Arc::new(SingleOwnerAccount::new(
-            devnet.clone_provider(),
+        let account = SingleOwnerAccount::new(
+            &devnet.json_rpc_client,
             signer,
             account_address,
             devnet.json_rpc_client.chain_id().await.unwrap(),
             starknet_rs_accounts::ExecutionEncoding::New,
-        ));
+        );
 
         let (contract_class, casm_hash) =
             get_flattened_sierra_contract_and_casm_hash(CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH);
 
         let (class_hash, contract_address) =
-            declare_deploy_v1(account.clone(), contract_class, casm_hash, &[]).await.unwrap();
-        let other_contract_address = deploy_v1(account, class_hash, &[]).await.unwrap();
+            declare_v3_deploy_v3(&account, contract_class, casm_hash, &[]).await.unwrap();
+        let other_contract_address = deploy_v1(&account, class_hash, &[]).await.unwrap();
 
         let top_selector = get_selector_from_name("create_panic_in_another_contract").unwrap();
         let panic_message = cairo_short_string_to_felt("funny_text").unwrap();
