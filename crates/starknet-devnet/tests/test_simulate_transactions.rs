@@ -6,7 +6,6 @@ mod simulation_tests {
     use std::{u128, u64};
 
     use serde_json::json;
-    use server::rpc_core::error::ErrorCode;
     use server::test_utils::assert_contains;
     use starknet_core::constants::{
         CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
@@ -511,42 +510,23 @@ mod simulation_tests {
 
         let max_fee = Felt::from(1e18 as u128);
         let nonce = Felt::TWO; // after declare + deploy
-        let encoded_calldata = account.encode_calls(&calls);
-        let invoke_request =
-            account.execute_v1(calls).max_fee(max_fee).nonce(nonce).prepared().unwrap();
-
-        let signature = signer.sign_hash(&invoke_request.transaction_hash(false)).await.unwrap();
-
-        let invoke_simulation_body = json!({
-            "block_id": "latest",
-            "simulation_flags": [],
-            "transactions": [
-                {
-                    "type": "INVOKE",
-                    "max_fee": max_fee,
-                    "version": "0x1",
-                    "signature": [signature.r, signature.s],
-                    "nonce": nonce,
-                    "calldata": encoded_calldata,
-                    "sender_address": account.address(),
-                }
-            ]
-        });
-
-        let err = devnet
-            .send_custom_rpc("starknet_simulateTransactions", invoke_simulation_body)
+        let simulation = account
+            .execute_v1(calls)
+            .max_fee(max_fee)
+            .nonce(nonce)
+            .simulate(false, false)
             .await
-            .unwrap_err();
+            .unwrap();
 
-        assert_eq!(
-            (err.code, err.message),
-            (ErrorCode::ServerError(41), "Transaction execution error".into())
-        );
-
-        let error_data: TransactionExecutionErrorData =
-            serde_json::from_value(err.data.unwrap()).unwrap();
-        assert_eq!(error_data.transaction_index, 0);
-        assert_contains(&error_data.execution_error, panic_message_text);
+        match simulation.transaction_trace {
+            TransactionTrace::Invoke(InvokeTransactionTrace {
+                execute_invocation: ExecuteInvocation::Reverted(reverted_invocation),
+                ..
+            }) => {
+                assert_contains(&reverted_invocation.revert_reason, &panic_message_text);
+            }
+            other_trace => panic!("Unexpected trace {other_trace:?}"),
+        }
     }
 
     #[tokio::test]
@@ -774,10 +754,7 @@ mod simulation_tests {
                     ..
                 }),
             )) => {
-                assert_contains(
-                    &execution_error,
-                    "Account balance is not enough to cover the transaction cost.",
-                );
+                assert_contains(&execution_error, "exceed balance");
             }
             other => panic!("Unexpected error {other:?}"),
         }
@@ -1118,7 +1095,8 @@ mod simulation_tests {
                     )) => {
                         assert_eq!(
                             execution_error,
-                            "Provided max fee is not enough to cover the transaction cost."
+                            "The transaction's resources don't cover validation or the minimal \
+                             transaction fee."
                         );
                     }
                     other => panic!("Unexpected error: {:?}", other),
@@ -1205,11 +1183,13 @@ mod simulation_tests {
 
         let (gas_units, gas_price) = get_gas_units_and_gas_price(fee_estimate);
 
+        let used_gas_price = gas_price - 1;
+
         for skip_fee_charge in [true, false] {
             let simulation_result = account
                 .declare_v3(Arc::new(sierra_artifact.clone()), casm_hash)
                 .gas(gas_units)
-                .gas_price(gas_price - 1)
+                .gas_price(used_gas_price)
                 .simulate(false, skip_fee_charge)
                 .await;
 
@@ -1224,7 +1204,13 @@ mod simulation_tests {
                     ))),
                     false,
                 ) => {
-                    assert_contains(&execution_error, "max fee is not enough");
+                    assert_contains(
+                        &execution_error,
+                        &format!(
+                            "Max L1 gas price ({}) is lower than the actual gas price: {}.",
+                            used_gas_price, gas_price
+                        ),
+                    );
                 }
                 invalid_combination => panic!("Invalid combination: {invalid_combination:?}"),
             }

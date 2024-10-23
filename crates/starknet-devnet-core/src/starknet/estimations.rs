@@ -46,7 +46,7 @@ pub fn estimate_fee(
     let mut transactional_state = CachedState::create_transactional(&mut state.state);
 
     let mut estimations = vec![];
-    for (tx_i, (tx, skip_validate_due_to_impersonation)) in transactions.into_iter().enumerate() {
+    for (tx_idx, (tx, skip_validate_due_to_impersonation)) in transactions.into_iter().enumerate() {
         // If skip validate is true, this tx has to skip validation, because the sender is
         // impersonated. Otherwise use the validate parameter passed to the estimateFee request.
         let validate = skip_validate_due_to_impersonation.then_some(false).or(validate);
@@ -60,9 +60,12 @@ pub fn estimate_fee(
         )
         .map_err(|e| match e {
             Error::ContractExecutionError(error_stack) => {
-                Error::ContractExecutionErrorInSimulation { failure_index: tx_i, error_stack }
+                Error::ContractExecutionErrorInSimulation { failure_index: tx_idx, error_stack }
             }
-            other => other,
+            other => Error::ContractExecutionErrorInSimulation {
+                failure_index: tx_idx,
+                error_stack: ErrorStack::from_str_err(&other.to_string()),
+            },
         })?;
         estimations.push(estimation);
     }
