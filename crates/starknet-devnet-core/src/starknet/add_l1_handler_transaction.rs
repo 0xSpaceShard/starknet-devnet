@@ -23,16 +23,16 @@ pub fn add_l1_handler_transaction(
     let charge_fee = false;
     let validate = true;
 
-    let blockifier_execution_result = blockifier_transaction.execute(
+    let blockifier_execution_info = blockifier_transaction.execute(
         &mut starknet.pending_state.state,
         &starknet.block_context,
         charge_fee,
         validate,
-    );
+    )?;
 
-    starknet.handle_transaction_result(
+    starknet.handle_accepted_transaction(
         TransactionWithHash::new(transaction_hash, Transaction::L1Handler(transaction.clone())),
-        blockifier_execution_result,
+        blockifier_execution_info,
     )?;
 
     // If L1 tx hash present, store the generated L2 tx hash in its messaging entry.

@@ -1,3 +1,7 @@
+use blockifier::fee::fee_checks::FeeCheckError;
+use blockifier::transaction::errors::{
+    TransactionExecutionError, TransactionFeeError, TransactionPreValidationError,
+};
 use starknet_rs_core::types::{BlockId, Felt};
 use starknet_types;
 use starknet_types::contract_address::ContractAddress;
@@ -56,14 +60,10 @@ pub enum Error {
     SerializationError { origin: String },
     #[error("Serialization not supported: {obj_name}")]
     SerializationNotSupported { obj_name: String },
-    #[error(
-        "{tx_type}: max_fee cannot be zero (exception is v3 transaction where l2 gas must be zero)"
-    )]
-    MaxFeeZeroError { tx_type: String },
     #[error(transparent)]
     TransactionValidationError(#[from] TransactionValidationError),
     #[error(transparent)]
-    TransactionFeeError(#[from] blockifier::transaction::errors::TransactionFeeError),
+    TransactionFeeError(blockifier::transaction::errors::TransactionFeeError),
     #[error(transparent)]
     MessagingError(#[from] MessagingError),
     #[error("Transaction has no trace")]
@@ -108,6 +108,56 @@ pub enum TransactionValidationError {
     InsufficientAccountBalance,
     #[error("Account validation failed: {reason}")]
     ValidationFailure { reason: String },
+}
+
+impl From<TransactionExecutionError> for Error {
+    fn from(value: TransactionExecutionError) -> Self {
+        match value {
+            TransactionExecutionError::TransactionPreValidationError(
+                TransactionPreValidationError::InvalidNonce { .. },
+            ) => TransactionValidationError::InvalidTransactionNonce.into(),
+            TransactionExecutionError::FeeCheckError(err) => err.into(),
+            TransactionExecutionError::TransactionPreValidationError(
+                TransactionPreValidationError::TransactionFeeError(err),
+            ) => err.into(),
+            TransactionExecutionError::TransactionFeeError(err) => err.into(),
+            TransactionExecutionError::ValidateTransactionError { .. } => {
+                TransactionValidationError::ValidationFailure { reason: value.to_string() }.into()
+            }
+            other => Self::BlockifierTransactionError(other),
+        }
+    }
+}
+
+impl From<FeeCheckError> for Error {
+    fn from(value: FeeCheckError) -> Self {
+        match value {
+            FeeCheckError::MaxL1GasAmountExceeded { .. } | FeeCheckError::MaxFeeExceeded { .. } => {
+                TransactionValidationError::InsufficientMaxFee.into()
+            }
+            FeeCheckError::InsufficientFeeTokenBalance { .. } => {
+                TransactionValidationError::InsufficientAccountBalance.into()
+            }
+        }
+    }
+}
+
+impl From<TransactionFeeError> for Error {
+    fn from(value: TransactionFeeError) -> Self {
+        match value {
+            TransactionFeeError::FeeTransferError { .. }
+            | TransactionFeeError::MaxFeeTooLow { .. }
+            | TransactionFeeError::MaxL1GasPriceTooLow { .. }
+            | TransactionFeeError::MaxL1GasAmountTooLow { .. } => {
+                TransactionValidationError::InsufficientMaxFee.into()
+            }
+            TransactionFeeError::MaxFeeExceedsBalance { .. }
+            | TransactionFeeError::L1GasBoundsExceedBalance { .. } => {
+                TransactionValidationError::InsufficientAccountBalance.into()
+            }
+            err => Error::TransactionFeeError(err),
+        }
+    }
 }
 
 #[derive(Debug, Error)]
