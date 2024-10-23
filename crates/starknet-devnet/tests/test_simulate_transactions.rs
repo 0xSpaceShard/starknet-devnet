@@ -523,7 +523,7 @@ mod simulation_tests {
                 execute_invocation: ExecuteInvocation::Reverted(reverted_invocation),
                 ..
             }) => {
-                assert_contains(&reverted_invocation.revert_reason, &panic_message_text);
+                assert_contains(&reverted_invocation.revert_reason, panic_message_text);
             }
             other_trace => panic!("Unexpected trace {other_trace:?}"),
         }
