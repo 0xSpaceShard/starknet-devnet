@@ -1,6 +1,8 @@
 use blockifier::state::state_api::StateReader;
+use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use starknet_api::block::BlockStatus;
 use starknet_rs_core::types::BlockId;
+use starknet_types::compile_sierra_contract;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
@@ -37,6 +39,7 @@ pub fn get_class_impl(
         BlockStatus::Rejected => return Err(Error::NoBlock),
     };
 
+    // Returns sierra for cairo1; returns the only artifact for cairo0.
     match starknet.rpc_contract_classes.read().get_class(&class_hash, &block_number_or_pending) {
         Some(class) => Ok(class.clone()),
         None => Err(Error::StateError(StateError::NoneClassHash(class_hash))),
@@ -50,6 +53,20 @@ pub fn get_class_at_impl(
 ) -> DevnetResult<ContractClass> {
     let class_hash = starknet.get_class_hash_at(block_id, contract_address)?;
     starknet.get_class(block_id, class_hash)
+}
+
+pub fn get_compiled_casm_impl(
+    starknet: &Starknet,
+    block_id: &BlockId,
+    class_hash: ClassHash,
+) -> DevnetResult<CasmContractClass> {
+    let contract_class = get_class_impl(starknet, block_id, class_hash)?;
+    match contract_class {
+        ContractClass::Cairo1(sierra_contract_class) => {
+            Ok(compile_sierra_contract(&sierra_contract_class)?)
+        }
+        ContractClass::Cairo0(_) => Err(Error::StateError(StateError::NoneCasmClass(class_hash))),
+    }
 }
 
 #[cfg(test)]

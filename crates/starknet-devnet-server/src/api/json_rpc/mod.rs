@@ -19,6 +19,7 @@ use models::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
+use starknet_core::CasmContractClass;
 use starknet_rs_core::types::{ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::block::{Block, PendingBlock};
@@ -599,6 +600,7 @@ pub enum StarknetResponse {
     TransactionReceiptByTransactionHash(Box<TransactionReceipt>),
     TransactionStatusByHash(TransactionStatus),
     ContractClass(CodegenContractClass),
+    CompiledCasm(CasmContractClass),
     BlockTransactionCount(u64),
     Call(Vec<Felt>),
     EstimateFee(Vec<FeeEstimateWrapper>),

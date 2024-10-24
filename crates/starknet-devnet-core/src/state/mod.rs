@@ -6,6 +6,7 @@ use blockifier::state::state_api::{State, StateReader};
 use parking_lot::RwLock;
 use starknet_api::core::CompiledClassHash;
 use starknet_rs_core::types::Felt;
+use starknet_types::compile_sierra_contract;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
@@ -14,7 +15,6 @@ use self::state_diff::StateDiff;
 use self::state_readers::DictState;
 use crate::error::{DevnetResult, Error};
 use crate::starknet::defaulter::StarknetDefaulter;
-use crate::utils::calculate_casm_hash;
 
 pub(crate) mod state_diff;
 pub(crate) mod state_readers;
@@ -59,27 +59,41 @@ pub trait CustomState {
     ) -> DevnetResult<()>;
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 /// Utility structure that makes it easier to calculate state diff later on. Classes are first
 /// inserted into the staging area (pending state), later to be committed (assigned a block number
 /// to mark when they were added). Committed doesn't necessarily mean the class is a part of the
 /// latest state, just that it is bound to be. Since there is no way of telling if a class is in the
 /// latest state or no, retrieving from the latest state has to be done via block number.
-pub struct CommittedClassStorage {
-    staging: HashMap<ClassHash, ContractClass>,
-    committed: HashMap<ClassHash, (ContractClass, u64)>,
+pub struct CommittedClassStorage<TClassHash, TContractClass> {
+    staging: HashMap<TClassHash, TContractClass>,
+    committed: HashMap<TClassHash, (TContractClass, u64)>,
     /// Remembers all classes committed at a block
-    block_number_to_classes: HashMap<u64, Vec<ClassHash>>,
+    block_number_to_classes: HashMap<u64, Vec<TClassHash>>,
 }
 
-impl CommittedClassStorage {
+impl<K, V> Default for CommittedClassStorage<K, V> {
+    fn default() -> Self {
+        Self {
+            staging: Default::default(),
+            committed: Default::default(),
+            block_number_to_classes: Default::default(),
+        }
+    }
+}
+
+impl<TClassHash, TContractClass> CommittedClassStorage<TClassHash, TContractClass>
+where
+    TClassHash: std::cmp::Eq + std::hash::Hash + Copy,
+    TContractClass: Clone,
+{
     /// Insert a new class into the staging area. Once it can be committed, call `commit`.
-    pub fn insert(&mut self, class_hash: ClassHash, contract_class: ContractClass) {
+    pub fn insert(&mut self, class_hash: TClassHash, contract_class: TContractClass) {
         self.staging.insert(class_hash, contract_class);
     }
 
     /// Commits all of the staged classes and returns them, together with their hashes.
-    pub fn commit(&mut self, block_number: u64) -> HashMap<ClassHash, ContractClass> {
+    pub fn commit(&mut self, block_number: u64) -> HashMap<TClassHash, TContractClass> {
         let mut newly_committed = HashMap::new();
 
         let hashes_at_this_block = self.block_number_to_classes.entry(block_number).or_default();
@@ -94,12 +108,11 @@ impl CommittedClassStorage {
         newly_committed
     }
 
-    /// Returns sierra for cairo1; returns the only artifact for cairo0.
     pub fn get_class(
         &self,
-        class_hash: &ClassHash,
+        class_hash: &TClassHash,
         block_number_or_pending: &BlockNumberOrPending,
-    ) -> Option<ContractClass> {
+    ) -> Option<TContractClass> {
         if let Some((class, storage_block_number)) = self.committed.get(class_hash) {
             // If we're here, the requested class was committed at some point, need to see when.
             match block_number_or_pending {
@@ -150,7 +163,7 @@ pub struct StarknetState {
     /// The class storage is meant to be shared between states to prevent copying (due to memory
     /// concerns). Knowing which class was added when is made possible by storing the class
     /// together with the block number.
-    rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
+    rpc_contract_classes: Arc<RwLock<CommittedClassStorage<ClassHash, ContractClass>>>,
     /// Used for old state preservation purposes.
     historic_state: DictState,
 }
@@ -168,7 +181,7 @@ impl Default for StarknetState {
 impl StarknetState {
     pub fn new(
         defaulter: StarknetDefaulter,
-        rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
+        rpc_contract_classes: Arc<RwLock<CommittedClassStorage<ClassHash, ContractClass>>>,
     ) -> Self {
         Self {
             state: CachedState::new(DictState::new(defaulter)),
@@ -177,7 +190,7 @@ impl StarknetState {
         }
     }
 
-    pub fn clone_rpc_contract_classes(&self) -> CommittedClassStorage {
+    pub fn clone_rpc_contract_classes(&self) -> CommittedClassStorage<ClassHash, ContractClass> {
         self.rpc_contract_classes.read().clone()
     }
 
@@ -377,19 +390,13 @@ impl CustomState for StarknetState {
         let class_hash = starknet_api::core::ClassHash(class_hash);
 
         if let ContractClass::Cairo1(cairo_lang_contract_class) = &contract_class {
-            let casm_json = usc::compile_contract(
-                serde_json::to_value(cairo_lang_contract_class)
-                    .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
-            )
-            .map_err(|err| {
-                Error::TypesError(starknet_types::error::Error::SierraCompilationError {
-                    reason: err.to_string(),
-                })
-            })?;
+            let casm_hash =
+                compile_sierra_contract(cairo_lang_contract_class)?.compiled_class_hash();
 
-            let casm_hash = starknet_api::core::CompiledClassHash(calculate_casm_hash(casm_json)?);
-
-            self.state.state.set_compiled_class_hash(class_hash, casm_hash)?;
+            self.state.state.set_compiled_class_hash(
+                class_hash,
+                starknet_api::core::CompiledClassHash(casm_hash),
+            )?;
         };
 
         self.state.state.set_contract_class(class_hash, compiled_class)?;
