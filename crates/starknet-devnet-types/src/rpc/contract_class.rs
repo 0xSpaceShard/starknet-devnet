@@ -2,7 +2,6 @@ use core::fmt::Debug;
 use std::cmp::{Eq, PartialEq};
 
 use blockifier::execution::contract_class::ClassInfo;
-use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::de::IntoDeserializer;
 use serde::{Serialize, Serializer};
@@ -15,6 +14,7 @@ use starknet_types_core::felt::Felt;
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 use crate::traits::HashProducer;
+use crate::utils::compile_sierra_contract;
 
 pub mod deprecated;
 pub use deprecated::json_contract_class::Cairo0Json;
@@ -113,14 +113,7 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractC
                 ))
             }
             ContractClass::Cairo1(sierra_contract_class) => {
-                let casm_json =
-                    usc::compile_contract(serde_json::to_value(sierra_contract_class).map_err(
-                        |err| Error::JsonError(JsonError::Custom { msg: err.to_string() }),
-                    )?)
-                    .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
-
-                let casm = serde_json::from_value::<CasmContractClass>(casm_json)
-                    .map_err(|err| Error::JsonError(JsonError::Custom { msg: err.to_string() }))?;
+                let casm = compile_sierra_contract(&sierra_contract_class)?;
 
                 let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
                     casm.try_into().map_err(|_| Error::ProgramError)?;
@@ -253,13 +246,12 @@ pub fn convert_codegen_to_blockifier_compiled_class(
     class: CodegenContractClass,
 ) -> Result<blockifier::execution::contract_class::ContractClass, Error> {
     Ok(match class {
-        CodegenContractClass::Sierra(_) => {
-            let json_value = serde_json::to_value(class).map_err(JsonError::SerdeJsonError)?;
-            let casm_json = usc::compile_contract(json_value)
-                .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
-
-            let casm = serde_json::from_value::<CasmContractClass>(casm_json)
-                .map_err(|err| Error::JsonError(JsonError::Custom { msg: err.to_string() }))?;
+        CodegenContractClass::Sierra(sierra) => {
+            let json_value = serde_json::to_value(sierra).map_err(JsonError::SerdeJsonError)?;
+            let contract_class =
+                deserialize_to_sierra_contract_class(json_value.into_deserializer())
+                    .map_err(JsonError::SerdeJsonError)?;
+            let casm = compile_sierra_contract(&contract_class)?;
 
             let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
                 casm.try_into().map_err(|_| Error::ProgramError)?;

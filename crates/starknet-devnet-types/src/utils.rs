@@ -1,7 +1,11 @@
 use std::io;
 
+use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
+use cairo_lang_starknet_classes::contract_class::ContractClass;
 use serde_json::ser::Formatter;
 use serde_json::{Map, Value};
+
+use crate::error::{DevnetResult, Error, JsonError};
 
 /// The preserve_order feature enabled in the serde_json crate
 /// removing a key from the object changes the order of the keys
@@ -81,6 +85,23 @@ impl Formatter for StarknetFormatter {
     {
         if first { Ok(()) } else { writer.write_all(b", ") }
     }
+}
+
+pub fn compile_sierra_contract(sierra_contract: &ContractClass) -> DevnetResult<CasmContractClass> {
+    let sierra_contract_json = serde_json::to_value(sierra_contract)
+        .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err)))?;
+
+    compile_sierra_contract_json(sierra_contract_json)
+}
+
+pub fn compile_sierra_contract_json(
+    sierra_contract_json: serde_json::Value,
+) -> DevnetResult<CasmContractClass> {
+    let casm_json = usc::compile_contract(sierra_contract_json)
+        .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+
+    serde_json::from_value::<CasmContractClass>(casm_json)
+        .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err)))
 }
 
 #[cfg(test)]
