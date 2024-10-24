@@ -19,8 +19,8 @@ mod estimate_fee_tests {
         BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedDeclareTransactionV3,
         BroadcastedInvokeTransaction, BroadcastedInvokeTransactionV1,
         BroadcastedInvokeTransactionV3, BroadcastedTransaction, Call, DataAvailabilityMode,
-        FeeEstimate, Felt, FunctionCall, ResourceBounds, ResourceBoundsMapping,
-        SimulationFlagForEstimateFee, StarknetError, TransactionExecutionErrorData,
+        FeeEstimate, Felt, FunctionCall, ResourceBounds, ResourceBoundsMapping, StarknetError,
+        TransactionExecutionErrorData,
     };
     use starknet_rs_core::utils::{
         cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
