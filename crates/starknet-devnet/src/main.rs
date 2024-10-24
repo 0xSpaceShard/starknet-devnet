@@ -360,6 +360,7 @@ async fn create_block_interval(
                 let mut dumpable_events = api.dumpable_events.lock().await;
                 info!("Generating block on time interval");
 
+                // TODO may be a problem for event broadcast via socket, perhaps execute via RPC
                 // manually add event for dumping; alternative: create a client and send request
                 starknet.create_block().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
                 dumpable_events.push(DumpEvent { jsonrpc: Version::V2, method: "devnet_createBlock".into(), params: RequestParams::None, id: Id::Number(0) });

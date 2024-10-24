@@ -9,7 +9,6 @@ mod write_endpoints;
 pub const RPC_SPEC_VERSION: &str = "0.7.1";
 
 use std::sync::Arc;
-use tokio::sync::mpsc::{channel, Receiver};
 
 use axum::extract::ws::{Message, WebSocket};
 use enum_helper_macros::{AllVariantsSerdeRenames, VariantName};
@@ -23,9 +22,9 @@ use models::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
-use starknet_rs_core::types::{ContractClass as CodegenContractClass, Felt};
+use starknet_rs_core::types::{BlockId, BlockTag, ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::block::{Block, PendingBlock};
+use starknet_types::rpc::block::{Block, BlockResult, PendingBlock};
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
@@ -37,6 +36,7 @@ use starknet_types::rpc::transactions::{
     TransactionStatus, TransactionTrace, TransactionWithHash,
 };
 use starknet_types::starknet_api::block::BlockNumber;
+use tokio::sync::mpsc::{channel, Receiver};
 use tokio::sync::Mutex;
 use tracing::{error, info, trace};
 
@@ -198,7 +198,8 @@ impl RpcHandler for JsonRpcHandler {
             let mut socket_writer_lock = socket_writer.lock().await;
             match msg {
                 Ok(Message::Text(text)) => {
-                    self.on_websocket_rpc_call(text.as_bytes(), &mut socket_writer_lock, socket_id).await;
+                    self.on_websocket_rpc_call(text.as_bytes(), &mut socket_writer_lock, socket_id)
+                        .await;
                 }
                 Ok(Message::Binary(bytes)) => {
                     self.on_websocket_rpc_call(&bytes, &mut socket_writer_lock, socket_id).await;
@@ -243,6 +244,23 @@ impl JsonRpcHandler {
             starknet_config: starknet_config.clone(),
             server_config: server_config.clone(),
         }
+    }
+
+    async fn broadcast_changes(&self, old_latest_block: BlockResult) {
+        let starknet = self.api.starknet.lock().await;
+        let new_latest_block =
+            starknet.get_block_with_receipts(&BlockId::Tag(BlockTag::Latest)).unwrap();
+
+        // if new_latest_block.number == old_latest_block.number:
+        //   - return // nothing to do
+
+        // if new_latest_block.number < old_latest_block.number:
+        //   - REORG!
+
+        // if new_latest_block.number > old_latest_block.number
+        //   - construct differences
+        //   - iterate through subscribers:
+        //     - send requested diff
     }
 
     /// The method matches the request to the corresponding enum variant and executes the request
@@ -406,6 +424,9 @@ impl JsonRpcHandler {
             }
         }
 
+        // TODO if request.modifies_state() { ... }
+        self.broadcast_changes(todo!()).await;
+
         if starknet_resp.is_ok() {
             if let Err(e) = self.update_dump(&original_call).await {
                 return ResponseResult::Error(e);
@@ -416,7 +437,12 @@ impl JsonRpcHandler {
     }
 
     /// Takes `bytes` to be an encoded RPC call, executes it, and sends the response back via `ws`.
-    async fn on_websocket_rpc_call(&self, bytes: &[u8], ws: &mut SplitSink<WebSocket, Message>, socket_id: SocketId) {
+    async fn on_websocket_rpc_call(
+        &self,
+        bytes: &[u8],
+        ws: &mut SplitSink<WebSocket, Message>,
+        socket_id: SocketId,
+    ) {
         match serde_json::from_slice(bytes) {
             Ok(call) => {
                 let resp = self.on_call(call).await;
@@ -1307,8 +1333,8 @@ mod response_tests {
     use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
-    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result(
-    ) {
+    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result()
+     {
         assert_eq!(
             r#"{"result":{}}"#,
             serde_json::to_string(
