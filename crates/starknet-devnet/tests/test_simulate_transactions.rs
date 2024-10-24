@@ -42,9 +42,8 @@ mod simulation_tests {
     use crate::common::fees::{assert_difference_if_validation, assert_fee_in_resp_at_least_equal};
     use crate::common::utils::{
         declare_v3_deploy_v3, get_deployable_account_signer,
-        get_flattened_sierra_contract_and_casm_hash, get_gas_units_and_gas_price,
-        get_simple_contract_in_sierra_and_compiled_class_hash, iter_to_hex_felt, to_hex_felt,
-        to_num_as_hex,
+        get_flattened_sierra_contract_and_casm_hash, get_gas_units_and_gas_price, iter_to_hex_felt,
+        to_hex_felt, to_num_as_hex,
     };
 
     #[tokio::test]
