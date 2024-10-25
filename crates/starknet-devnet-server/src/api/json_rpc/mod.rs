@@ -246,6 +246,10 @@ impl JsonRpcHandler {
             JsonRpcRequest::ClassByHash(BlockAndClassHashInput { block_id, class_hash }) => {
                 self.get_class(block_id, class_hash).await
             }
+            JsonRpcRequest::CompiledCasmByClassHash(BlockAndClassHashInput {
+                block_id,
+                class_hash,
+            }) => self.get_compiled_casm(block_id, class_hash).await,
             JsonRpcRequest::ClassHashAtContractAddress(BlockAndContractAddressInput {
                 block_id,
                 contract_address,
@@ -484,6 +488,8 @@ pub enum JsonRpcRequest {
     MessagesStatusByL1Hash(L1TransactionHashInput),
     #[serde(rename = "starknet_getClass")]
     ClassByHash(BlockAndClassHashInput),
+    #[serde(rename = "starknet_getCompiledCasm")]
+    CompiledCasmByClassHash(BlockAndClassHashInput),
     #[serde(rename = "starknet_getClassHashAt")]
     ClassHashAtContractAddress(BlockAndContractAddressInput),
     #[serde(rename = "starknet_getClassAt")]
