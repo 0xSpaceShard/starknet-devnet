@@ -22,6 +22,7 @@ pub fn estimate_fee(
     transactions: &[BroadcastedTransaction],
     charge_fee: Option<bool>,
     validate: Option<bool>,
+    return_error_on_reverted_execution: bool,
 ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
     let chain_id = starknet.chain_id().to_felt();
     let block_context = starknet.block_context.clone();
@@ -45,7 +46,7 @@ pub fn estimate_fee(
     let mut transactional_state = CachedState::create_transactional(&mut state.state);
 
     let mut estimations = vec![];
-    for (tx_i, (tx, skip_validate_due_to_impersonation)) in transactions.into_iter().enumerate() {
+    for (tx_idx, (tx, skip_validate_due_to_impersonation)) in transactions.into_iter().enumerate() {
         // If skip validate is true, this tx has to skip validation, because the sender is
         // impersonated. Otherwise use the validate parameter passed to the estimateFee request.
         let validate = skip_validate_due_to_impersonation.then_some(false).or(validate);
@@ -55,15 +56,16 @@ pub fn estimate_fee(
             blockifier::transaction::transaction_execution::Transaction::AccountTransaction(tx),
             charge_fee,
             validate,
+            return_error_on_reverted_execution,
         )
         .map_err(|e| match e {
             Error::ContractExecutionError(error_stack) => {
-                Error::ContractExecutionErrorInSimulation {
-                    failure_index: tx_i as u64,
-                    error_stack,
-                }
+                Error::ContractExecutionErrorInSimulation { failure_index: tx_idx, error_stack }
             }
-            other => other,
+            other => Error::ContractExecutionErrorInSimulation {
+                failure_index: tx_idx,
+                error_stack: ErrorStack::from_str_err(&other.to_string()),
+            },
         })?;
         estimations.push(estimation);
     }
@@ -96,6 +98,7 @@ pub fn estimate_message_fee(
         ),
         None,
         None,
+        true,
     )
 }
 
@@ -105,6 +108,7 @@ fn estimate_transaction_fee<S: StateReader>(
     transaction: blockifier::transaction::transaction_execution::Transaction,
     charge_fee: Option<bool>,
     validate: Option<bool>,
+    return_error_on_reverted_execution: bool,
 ) -> DevnetResult<FeeEstimateWrapper> {
     let fee_type = match transaction {
         blockifier::transaction::transaction_execution::Transaction::AccountTransaction(ref tx) => {
@@ -122,8 +126,10 @@ fn estimate_transaction_fee<S: StateReader>(
         validate.unwrap_or(true),
     )?;
 
-    // if error not handled by execute, it means it reverted during the process, e.g. due to panic
-    if let Some(revert_error) = transaction_execution_info.revert_error {
+    // reverted transactions can only be Invoke transactions
+    if let (true, Some(revert_error)) =
+        (return_error_on_reverted_execution, transaction_execution_info.revert_error)
+    {
         // TODO until blockifier makes the actual stack trace available, we return the stringified
         // error. The RPC spec would prefer a structured one, but a string is allowed.
         return Err(Error::ContractExecutionError(ErrorStack::from_str_err(&revert_error)));

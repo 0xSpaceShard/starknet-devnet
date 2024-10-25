@@ -29,7 +29,7 @@ pub enum ApiError {
     #[error("Contract error")]
     ContractError { error_stack: ErrorStack },
     #[error("Transaction execution error")]
-    TransactionExecutionError { failure_index: u64, error_stack: ErrorStack },
+    TransactionExecutionError { failure_index: usize, error_stack: ErrorStack },
     #[error("There are no blocks")]
     NoBlocks,
     #[error("Requested page size is too big")]

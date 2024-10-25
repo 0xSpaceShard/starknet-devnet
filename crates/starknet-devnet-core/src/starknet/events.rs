@@ -128,6 +128,7 @@ mod tests {
     use starknet_rs_core::types::{BlockId, Felt};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::emitted_event::Event;
+    use starknet_types::rpc::transactions::TransactionWithHash;
 
     use super::{check_if_filter_applies_for_event, get_events};
     use crate::starknet::events::check_if_filter_applies_for_event_keys;
@@ -391,7 +392,7 @@ mod tests {
         // each transaction should have events count equal to the order of the transaction
         let mut starknet = Starknet::new(&StarknetConfig::default()).unwrap();
 
-        let transaction = dummy_declare_transaction_v1();
+        let mut transaction = dummy_declare_transaction_v1();
 
         for idx in 0..5 {
             let txn_info = blockifier::transaction::objects::TransactionExecutionInfo {
@@ -399,10 +400,9 @@ mod tests {
                 ..Default::default()
             };
             let transaction_hash = Felt::from(idx as u128 + 100);
+            transaction = TransactionWithHash::new(transaction_hash, transaction.transaction);
 
-            starknet
-                .handle_accepted_transaction(&transaction_hash, &transaction, txn_info)
-                .unwrap();
+            starknet.handle_accepted_transaction(transaction.clone(), txn_info).unwrap();
         }
 
         assert_eq!(starknet.blocks.get_blocks(None, None).unwrap().len(), 6);

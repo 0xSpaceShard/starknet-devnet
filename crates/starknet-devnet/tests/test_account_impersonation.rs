@@ -211,7 +211,7 @@ mod impersonated_account_tests {
             }
 
             let simulation_result =
-                account.execute_v1(invoke_calls.clone()).simulate(!do_validate, false).await;
+                account.execute_v1(invoke_calls.clone()).simulate(!do_validate, true).await;
             if let Some(error_msg) = expected_error_message {
                 let simulation_err = simulation_result.expect_err("Expected simulation to fail");
                 assert_contains(&format!("{:?}", simulation_err).to_lowercase(), error_msg);
