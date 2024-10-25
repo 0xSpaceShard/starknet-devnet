@@ -8,7 +8,7 @@ use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, DeclareTransaction, Transaction, TransactionWithHash,
 };
 
-use crate::error::{DevnetResult, Error};
+use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::starknet::Starknet;
 use crate::state::CustomState;
 use crate::utils::calculate_casm_hash;
@@ -18,9 +18,7 @@ pub fn add_declare_transaction(
     broadcasted_declare_transaction: BroadcastedDeclareTransaction,
 ) -> DevnetResult<(TransactionHash, ClassHash)> {
     if broadcasted_declare_transaction.is_max_fee_zero_value() {
-        return Err(Error::MaxFeeZeroError {
-            tx_type: broadcasted_declare_transaction.to_string(),
-        });
+        return Err(TransactionValidationError::InsufficientResourcesForValidate.into());
     }
 
     if broadcasted_declare_transaction.is_only_query() {
@@ -79,7 +77,7 @@ pub fn add_declare_transaction(
     )?);
 
     let transaction = TransactionWithHash::new(transaction_hash, declare_transaction);
-    let blockifier_execution_result =
+    let blockifier_execution_info =
         blockifier::transaction::account_transaction::AccountTransaction::Declare(
             blockifier_declare_transaction,
         )
@@ -88,16 +86,15 @@ pub fn add_declare_transaction(
             &starknet.block_context,
             true,
             validate,
-        );
+        )?;
 
     // if tx successful, store the class
-    if blockifier_execution_result.as_ref().is_ok_and(|res| !res.is_reverted()) {
+    if !blockifier_execution_info.is_reverted() {
         let state = starknet.get_state();
         state.declare_contract_class(class_hash, casm_hash, contract_class)?;
     }
 
-    // do the steps required in all transactions
-    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+    starknet.handle_accepted_transaction(transaction, blockifier_execution_info)?;
 
     Ok((transaction_hash, class_hash))
 }
@@ -149,6 +146,7 @@ mod tests {
     use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
     use starknet_types::traits::HashProducer;
 
+    use crate::error::{Error, TransactionValidationError};
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
     use crate::starknet::Starknet;
     use crate::state::{BlockNumberOrPending, CustomStateReader};
@@ -221,13 +219,9 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            err @ crate::error::Error::MaxFeeZeroError { .. } => {
-                assert_eq!(
-                    err.to_string(),
-                    "Declare transaction V3: max_fee cannot be zero (exception is v3 transaction \
-                     where l2 gas must be zero)"
-                )
-            }
+            Error::TransactionValidationError(
+                TransactionValidationError::InsufficientResourcesForValidate,
+            ) => {}
             _ => panic!("Wrong error type"),
         }
     }
@@ -250,13 +244,9 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            err @ crate::error::Error::MaxFeeZeroError { .. } => {
-                assert_eq!(
-                    err.to_string(),
-                    "Declare transaction V2: max_fee cannot be zero (exception is v3 transaction \
-                     where l2 gas must be zero)"
-                )
-            }
+            Error::TransactionValidationError(
+                TransactionValidationError::InsufficientResourcesForValidate,
+            ) => {}
             _ => panic!("Wrong error type"),
         }
     }
@@ -397,13 +387,9 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            err @ crate::error::Error::MaxFeeZeroError { .. } => {
-                assert_eq!(
-                    err.to_string(),
-                    "Declare transaction V1: max_fee cannot be zero (exception is v3 transaction \
-                     where l2 gas must be zero)"
-                )
-            }
+            Error::TransactionValidationError(
+                TransactionValidationError::InsufficientResourcesForValidate,
+            ) => {}
             _ => panic!("Wrong error type"),
         }
     }

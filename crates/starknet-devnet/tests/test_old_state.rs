@@ -9,8 +9,10 @@ mod old_state {
     use starknet_rs_core::chain_id::SEPOLIA;
     use starknet_rs_core::types::{
         BlockHashAndNumber, BlockId, BlockTag, BroadcastedInvokeTransaction,
-        BroadcastedInvokeTransactionV1, BroadcastedTransaction, Call, ContractClass, Felt,
-        SimulationFlag, SimulationFlagForEstimateFee, StarknetError, TransactionExecutionErrorData,
+        BroadcastedInvokeTransactionV1, BroadcastedTransaction, Call, ContractClass,
+        ExecuteInvocation, Felt, InvokeTransactionTrace, SimulatedTransaction, SimulationFlag,
+        SimulationFlagForEstimateFee, StarknetError, TransactionExecutionErrorData,
+        TransactionTrace,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_storage_var_address};
     use starknet_rs_providers::{Provider, ProviderError};
@@ -109,8 +111,10 @@ mod old_state {
         }
     }
 
+    // estimate fee of invoke transaction that reverts must fail, but simulating the same invoke
+    // transaction have to produce trace of a reverted transaction
     #[tokio::test]
-    async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old_block_should_produce_the_same_error()
+    async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old_block_should_not_produce_the_same_error()
      {
         let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
@@ -173,12 +177,12 @@ mod old_state {
                     },
                 ))],
                 [SimulationFlagForEstimateFee::SkipValidate],
-                BlockId::Hash(block_hash),
+                block_id,
             )
             .await
             .unwrap_err();
 
-        let simulation_error = devnet
+        let SimulatedTransaction { transaction_trace, .. } = devnet
             .json_rpc_client
             .simulate_transaction(
                 block_id,
@@ -195,20 +199,27 @@ mod old_state {
                 [SimulationFlag::SkipValidate],
             )
             .await
-            .unwrap_err();
+            .unwrap();
 
-        let estimate_fee_error_string = format!("{:?}", estimate_fee_error);
-        match estimate_fee_error {
+        let estimate_fee_error_string = match estimate_fee_error {
             ProviderError::StarknetError(StarknetError::TransactionExecutionError(
-                TransactionExecutionErrorData { transaction_index, execution_error },
+                TransactionExecutionErrorData { execution_error, .. },
             )) => {
-                assert_eq!(transaction_index, 0);
                 assert_contains(&execution_error, "not declared");
+                execution_error
             }
             other => panic!("Unexpected error: {other:?}"),
-        }
+        };
 
-        assert_eq!(estimate_fee_error_string, format!("{:?}", simulation_error));
+        match transaction_trace {
+            TransactionTrace::Invoke(InvokeTransactionTrace {
+                execute_invocation: ExecuteInvocation::Reverted(reverted_invocation),
+                ..
+            }) => {
+                assert_eq!(estimate_fee_error_string, reverted_invocation.revert_reason);
+            }
+            other => panic!("Unexpected trace {other:?}"),
+        }
     }
 
     #[tokio::test]

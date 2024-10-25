@@ -7,9 +7,7 @@ use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
-use blockifier::transaction::errors::{
-    TransactionExecutionError, TransactionFeeError, TransactionPreValidationError,
-};
+use blockifier::transaction::errors::TransactionExecutionError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use ethers::types::H256;
@@ -73,7 +71,7 @@ use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::RawExecutionV1;
-use crate::stack_trace::gen_tx_execution_error_trace;
+use crate::stack_trace::{gen_tx_execution_error_trace, ErrorStack};
 use crate::state::state_diff::StateDiff;
 use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
@@ -384,75 +382,15 @@ impl Starknet {
         Ok(state_diff)
     }
 
-    /// Handles transaction result either Ok or Error and updates the state accordingly.
-    ///
-    /// # Arguments
-    ///
-    /// * `transaction` - Transaction to be added in the collection of transactions.
-    /// * `contract_class` - Contract class to be added in the state cache. Only in declare
-    ///   transactions.
-    /// * `transaction_result` - Result with transaction_execution_info
-    pub(crate) fn handle_transaction_result(
-        &mut self,
-        transaction: TransactionWithHash,
-        transaction_result: Result<TransactionExecutionInfo, TransactionExecutionError>,
-    ) -> DevnetResult<()> {
-        let transaction_hash = *transaction.get_transaction_hash();
-
-        match transaction_result {
-            Ok(tx_info) => {
-                self.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)
-            }
-            Err(tx_err) => {
-                /// utility to avoid duplication
-                fn match_tx_fee_error(err: TransactionFeeError) -> DevnetResult<()> {
-                    match err {
-                        TransactionFeeError::FeeTransferError { .. }
-                        | TransactionFeeError::MaxFeeTooLow { .. } => {
-                            Err(TransactionValidationError::InsufficientResourcesForValidate.into())
-                        }
-                        TransactionFeeError::MaxFeeExceedsBalance { .. }
-                        | TransactionFeeError::L1GasBoundsExceedBalance { .. } => {
-                            Err(TransactionValidationError::InsufficientAccountBalance.into())
-                        }
-                        _ => Err(err.into()),
-                    }
-                }
-
-                // based on this https://community.starknet.io/t/efficient-utilization-of-sequencer-capacity-in-starknet-v0-12-1/95607#the-validation-phase-in-the-gateway-5
-                // we should not save transactions that failed with one of the following errors
-                match tx_err {
-                    TransactionExecutionError::TransactionPreValidationError(
-                        TransactionPreValidationError::InvalidNonce { .. },
-                    ) => Err(TransactionValidationError::InvalidTransactionNonce.into()),
-                    TransactionExecutionError::FeeCheckError { .. } => {
-                        Err(TransactionValidationError::InsufficientResourcesForValidate.into())
-                    }
-                    TransactionExecutionError::TransactionPreValidationError(
-                        TransactionPreValidationError::TransactionFeeError(err),
-                    ) => match_tx_fee_error(err),
-                    TransactionExecutionError::TransactionFeeError(err) => match_tx_fee_error(err),
-                    TransactionExecutionError::ValidateTransactionError { .. } => {
-                        Err(TransactionValidationError::ValidationFailure {
-                            reason: tx_err.to_string(),
-                        }
-                        .into())
-                    }
-                    _ => Err(tx_err.into()),
-                }
-            }
-        }
-    }
-
     /// Handles succeeded and reverted transactions. The tx is stored and potentially dumped. A new
     /// block is generated in block-generation-on-transaction mode.
     pub(crate) fn handle_accepted_transaction(
         &mut self,
-        transaction_hash: &TransactionHash,
-        transaction: &TransactionWithHash,
+        transaction: TransactionWithHash,
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
         let state_diff = self.commit_diff()?;
+        let transaction_hash = transaction.get_transaction_hash();
 
         let trace = create_trace(
             &mut self.pending_state.state,
@@ -460,7 +398,7 @@ impl Starknet {
             &tx_info,
             state_diff.clone().into(),
         )?;
-        let transaction_to_add = StarknetTransaction::create_accepted(transaction, tx_info, trace);
+        let transaction_to_add = StarknetTransaction::create_accepted(&transaction, tx_info, trace);
 
         // add accepted transaction to pending block
         self.blocks.pending_block.add_transaction(*transaction_hash);
@@ -724,7 +662,7 @@ impl Starknet {
                 skip_validate = true;
             }
         }
-        estimations::estimate_fee(self, block_id, transactions, None, Some(!skip_validate))
+        estimations::estimate_fee(self, block_id, transactions, None, Some(!skip_validate), true)
     }
 
     pub fn estimate_message_fee(
@@ -1180,7 +1118,22 @@ impl Starknet {
         let blockifier_transactions = {
             transactions
                 .iter()
-                .map(|txn| {
+                .enumerate()
+                .map(|(tx_idx, txn)| {
+                    // According to this conversation https://spaceshard.slack.com/archives/C03HL8DH52N/p1710683496750409, simulating a transaction will:
+                    // fail if the fee provided is 0
+                    // succeed if the fee provided is 0 and SKIP_FEE_CHARGE is set
+                    // succeed if the fee provided is > 0
+                    if txn.is_max_fee_zero_value() && !skip_fee_charge {
+                        return Err(Error::ContractExecutionErrorInSimulation {
+                            failure_index: tx_idx,
+                            error_stack: ErrorStack::from_str_err(
+                                &TransactionValidationError::InsufficientResourcesForValidate
+                                    .to_string(),
+                            ),
+                        });
+                    }
+
                     Ok((
                         txn.to_blockifier_account_transaction(&chain_id, true)?,
                         txn.get_type(),
@@ -1197,7 +1150,7 @@ impl Starknet {
         let mut transactional_state =
             CachedState::new(CachedState::create_transactional(&mut state.state));
 
-        for (tx_i, (blockifier_tx, transaction_type, skip_validate_due_to_impersonation)) in
+        for (tx_idx, (blockifier_tx, transaction_type, skip_validate_due_to_impersonation)) in
             blockifier_transactions.into_iter().enumerate()
         {
             let tx_execution_info = blockifier_tx
@@ -1208,7 +1161,7 @@ impl Starknet {
                     !(skip_validate || skip_validate_due_to_impersonation),
                 )
                 .map_err(|e| Error::ContractExecutionErrorInSimulation {
-                    failure_index: tx_i as u64,
+                    failure_index: tx_idx,
                     error_stack: gen_tx_execution_error_trace(&e),
                 })?;
 
@@ -1231,6 +1184,7 @@ impl Starknet {
             transactions,
             Some(!skip_fee_charge),
             Some(!skip_validate),
+            false,
         )?;
 
         // if the underlying simulation is correct, this should never be the case
