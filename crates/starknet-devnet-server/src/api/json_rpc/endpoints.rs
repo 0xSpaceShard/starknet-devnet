@@ -454,9 +454,8 @@ impl JsonRpcHandler {
     ) -> StrictRpcResult {
         // borrowing as write/mutable because trace calculation requires so
         let mut starknet = self.api.starknet.lock().await;
-        let res =
-            starknet.simulate_transactions(block_id.as_ref(), &transactions, simulation_flags);
-        match res {
+
+        match starknet.simulate_transactions(block_id.as_ref(), &transactions, simulation_flags) {
             Ok(result) => Ok(StarknetResponse::SimulateTransactions(result).into()),
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),

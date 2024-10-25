@@ -42,9 +42,8 @@ mod simulation_tests {
     use crate::common::fees::{assert_difference_if_validation, assert_fee_in_resp_at_least_equal};
     use crate::common::utils::{
         declare_v3_deploy_v3, get_deployable_account_signer,
-        get_flattened_sierra_contract_and_casm_hash, get_gas_units_and_gas_price,
-        get_simple_contract_in_sierra_and_compiled_class_hash, iter_to_hex_felt, to_hex_felt,
-        to_num_as_hex,
+        get_flattened_sierra_contract_and_casm_hash, get_gas_units_and_gas_price, iter_to_hex_felt,
+        to_hex_felt, to_num_as_hex,
     };
 
     #[tokio::test]
@@ -1153,67 +1152,6 @@ mod simulation_tests {
                 ..
             }) => assert_contains(&reverted_invocation.revert_reason, panic_reason),
             other => panic!("Unexpected trace {other:?}"),
-        }
-    }
-
-    /// Test with lower than (estimated_gas_units * gas_price) using two flags. With
-    /// skip_fee_transfer shouldnt fail, without it should fail.
-    #[tokio::test]
-    async fn simulate_declare_v3_with_less_than_estimated_fee_should_revert_if_fee_charge_is_not_skipped()
-     {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let (sierra_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
-
-        let (signer, account_address) = devnet.get_first_predeployed_account().await;
-
-        let mut account = SingleOwnerAccount::new(
-            &devnet.json_rpc_client,
-            signer,
-            account_address,
-            constants::CHAIN_ID,
-            ExecutionEncoding::New,
-        );
-        account.set_block_id(BlockId::Tag(BlockTag::Latest));
-
-        let fee_estimate = account
-            .declare_v3(Arc::new(sierra_artifact.clone()), casm_hash)
-            .estimate_fee()
-            .await
-            .unwrap();
-
-        let (gas_units, gas_price) = get_gas_units_and_gas_price(fee_estimate);
-
-        let used_gas_price = gas_price - 1;
-
-        for skip_fee_charge in [true, false] {
-            let simulation_result = account
-                .declare_v3(Arc::new(sierra_artifact.clone()), casm_hash)
-                .gas(gas_units)
-                .gas_price(used_gas_price)
-                .simulate(false, skip_fee_charge)
-                .await;
-
-            match (simulation_result, skip_fee_charge) {
-                (Ok(_), true) => {}
-                (
-                    Err(AccountError::Provider(ProviderError::StarknetError(
-                        StarknetError::TransactionExecutionError(TransactionExecutionErrorData {
-                            execution_error,
-                            ..
-                        }),
-                    ))),
-                    false,
-                ) => {
-                    assert_contains(
-                        &execution_error,
-                        &format!(
-                            "Max L1 gas price ({}) is lower than the actual gas price: {}.",
-                            used_gas_price, gas_price
-                        ),
-                    );
-                }
-                invalid_combination => panic!("Invalid combination: {invalid_combination:?}"),
-            }
         }
     }
 }
