@@ -1,4 +1,5 @@
 mod endpoints;
+mod endpoints_ws;
 pub mod error;
 pub mod models;
 pub(crate) mod origin_forwarder;
@@ -22,9 +23,10 @@ use models::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
+use starknet_core::StarknetBlock;
 use starknet_rs_core::types::{BlockId, BlockTag, ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::block::{Block, BlockResult, PendingBlock};
+use starknet_types::rpc::block::{Block, PendingBlock};
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
@@ -69,7 +71,10 @@ use crate::rpc_core::error::{ErrorCode, RpcError};
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
-use crate::websocket_types::{SocketContext, SocketId, SubscriptionResponse};
+use crate::subscribe::{
+    NewHeadsNotification, NewHeadsSubscription, SocketContext, SocketId, Subscription,
+    SubscriptionResponse,
+};
 use crate::ServerConfig;
 
 /// Helper trait to easily convert results to rpc results
@@ -173,14 +178,23 @@ impl RpcHandler for JsonRpcHandler {
         let socket_id = rand::random();
         self.api.sockets.lock().await.insert(socket_id, SocketContext::from_sender(sender));
 
+        // TODO are channels necessary? I forgot why we can't store socket_writer directly
         async fn listen_to_starknet_subscription_responses(
             socket_writer: Arc<Mutex<SplitSink<WebSocket, Message>>>,
             mut subscription_response_receiver: Receiver<SubscriptionResponse>,
         ) {
             while let Some(subscription_response) = subscription_response_receiver.recv().await {
+                let message = match serde_json::to_string(&subscription_response) {
+                    Ok(resp_serialized) => resp_serialized,
+                    Err(e) => {
+                        error!("Failed serialization of response: {e:?}");
+                        e.to_string()
+                    }
+                };
+
                 let mut socket_writer_lock = socket_writer.lock().await;
-                let message = Message::Text(subscription_response.to_string());
-                if let Err(e) = socket_writer_lock.send(message).await {
+
+                if let Err(e) = socket_writer_lock.send(Message::Text(message)).await {
                     tracing::error!("Failed sending event to subscriber: {e:?}");
                 }
             }
@@ -198,11 +212,11 @@ impl RpcHandler for JsonRpcHandler {
             let mut socket_writer_lock = socket_writer.lock().await;
             match msg {
                 Ok(Message::Text(text)) => {
-                    self.on_websocket_rpc_call(text.as_bytes(), &mut socket_writer_lock, socket_id)
+                    self.on_websocket_call(text.as_bytes(), &mut socket_writer_lock, socket_id)
                         .await;
                 }
                 Ok(Message::Binary(bytes)) => {
-                    self.on_websocket_rpc_call(&bytes, &mut socket_writer_lock, socket_id).await;
+                    self.on_websocket_call(&bytes, &mut socket_writer_lock, socket_id).await;
                 }
                 Ok(Message::Close(_)) => {
                     socket_safely_closed = true;
@@ -246,10 +260,50 @@ impl JsonRpcHandler {
         }
     }
 
-    async fn broadcast_changes(&self, old_latest_block: BlockResult) {
+    async fn broadcast_changes(&self, old_latest_block: StarknetBlock) {
         let starknet = self.api.starknet.lock().await;
-        let new_latest_block =
-            starknet.get_block_with_receipts(&BlockId::Tag(BlockTag::Latest)).unwrap();
+        let new_latest_block = starknet.get_block(&BlockId::Tag(BlockTag::Latest)).unwrap();
+
+        let old_block_number = old_latest_block.block_number().0;
+        let new_block_number = new_latest_block.block_number().0;
+
+        match new_block_number.cmp(&old_block_number) {
+            std::cmp::Ordering::Greater => {
+                // TODO - if loading happened, should websockets be restarted?
+                let sockets = self.api.sockets.lock().await;
+                for (_, socket_context) in sockets.iter() {
+                    for subscription in &socket_context.subscriptions {
+                        match subscription {
+                            Subscription::NewHeads(NewHeadsSubscription { id }) => {
+                                if let Err(e) = socket_context
+                                    .starknet_sender
+                                    .send(SubscriptionResponse::NewHeadsNotification(
+                                        NewHeadsNotification {
+                                            subscription_id: *id,
+                                            result: new_latest_block.into(),
+                                        },
+                                    ))
+                                    .await
+                                {
+                                    error!("Failed sending message via socket: {e:?}");
+                                }
+                            }
+                            other => println!("DEBUG unsupported subscription: {other:?}"),
+                        }
+                    }
+                }
+            }
+            std::cmp::Ordering::Equal => {
+                // TODO
+                println!("DEBUG nothing happened that deserves socket communication");
+            }
+            std::cmp::Ordering::Less => {
+                // TODO - possible only if: blocks aborted, devnet restarted, devnet loaded;
+                // or should aborting and loading cause websockets to be restarted too, thus not
+                // requiring notifications?
+                println!("DEBUG perhaps notify of a reorg?");
+            }
+        }
 
         // if new_latest_block.number == old_latest_block.number:
         //   - return // nothing to do
@@ -270,6 +324,10 @@ impl JsonRpcHandler {
         original_call: RpcMethodCall,
     ) -> ResponseResult {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
+
+        let starknet = self.api.starknet.lock().await;
+        let old_latest_block = starknet.get_block(&BlockId::Tag(BlockTag::Latest)).unwrap().clone();
+        drop(starknet);
 
         // true if origin should be tried after request fails; relevant in forking mode
         let mut forwardable = true;
@@ -424,9 +482,11 @@ impl JsonRpcHandler {
             }
         }
 
-        // TODO if request.modifies_state() { ... }
-        self.broadcast_changes(todo!()).await;
+        // TODO if request.modifies_state() { ... } - also in the beginning of this method to avoid
+        // unnecessary lock acquiring
+        self.broadcast_changes(old_latest_block).await;
 
+        // TODO consider moving one level above
         if starknet_resp.is_ok() {
             if let Err(e) = self.update_dump(&original_call).await {
                 return ResponseResult::Error(e);
@@ -437,7 +497,7 @@ impl JsonRpcHandler {
     }
 
     /// Takes `bytes` to be an encoded RPC call, executes it, and sends the response back via `ws`.
-    async fn on_websocket_rpc_call(
+    async fn on_websocket_call(
         &self,
         bytes: &[u8],
         ws: &mut SplitSink<WebSocket, Message>,
@@ -445,21 +505,72 @@ impl JsonRpcHandler {
     ) {
         match serde_json::from_slice(bytes) {
             Ok(call) => {
-                let resp = self.on_call(call).await;
-                let resp_serialized = serde_json::to_string(&resp).unwrap_or_else(|e| {
-                    // TODO perhaps make json error
-                    let err_msg = format!("Error converting RPC response to string: {e}");
-                    tracing::error!(err_msg);
-                    err_msg
-                });
-
-                if let Err(e) = ws.send(Message::Text(resp_serialized)).await {
-                    tracing::error!("Error sending websocket message: {e}");
-                }
+                self.on_websocket_rpc_call(call, ws, socket_id).await;
+                // TODO removed general RPC method support - update docs
             }
             Err(e) => {
                 if let Err(e) = ws.send(Message::Text(e.to_string())).await {
                     tracing::error!("Error sending websocket message: {e}");
+                }
+            }
+        }
+    }
+
+    /// TODO this method contains duplication from `on_call`
+    async fn on_websocket_rpc_call(
+        &self,
+        call: RpcMethodCall,
+        ws: &mut SplitSink<WebSocket, Message>,
+        socket_id: SocketId,
+    ) {
+        trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received method call");
+        let RpcMethodCall { method, params, id, .. } = call.clone();
+
+        let params: serde_json::Value = params.into();
+        let deserializable_call = serde_json::json!({
+            "method": &method,
+            "params": params
+        });
+
+        match serde_json::from_value::<JsonRpcSubscriptionRequest>(deserializable_call) {
+            Ok(req) => {
+                if let Some(restricted_methods) = &self.server_config.restricted_methods {
+                    if is_json_rpc_method_restricted(&method, restricted_methods) {
+                        let err = RpcResponse::new(id, RpcError::new(ErrorCode::MethodForbidden));
+                        let err_serialized = serde_json::to_string(&err)
+                            .unwrap_or(format!("Unserializable: {err:?}"));
+                        if let Err(e) = ws.send(Message::Text(err_serialized)).await {
+                            error!("Failed sending message: {e:?}")
+                        }
+                    }
+                }
+
+                if let Err(e) = self.execute_ws(req, socket_id).await {
+                    let rpc_err = e.api_error_to_rpc_error();
+                    let rpc_err_serialized = serde_json::to_string(&rpc_err)
+                        .unwrap_or(format!("Unserializable: {rpc_err:?}"));
+                    if let Err(e) = ws.send(Message::Text(rpc_err_serialized)).await {
+                        error!("Failed sending message: {e:?}");
+                    }
+                }
+            }
+            Err(err) => {
+                let err = err.to_string();
+                // since JSON-RPC specification requires returning a Method Not Found error,
+                // we apply a hacky way to induce this - checking the stringified error message
+                let distinctive_error = format!("unknown variant `{method}`");
+                let rpc_err = if err.contains(&distinctive_error) {
+                    error!(target: "rpc", ?method, "failed to deserialize method due to unknown variant");
+                    RpcResponse::new(id, RpcError::method_not_found())
+                } else {
+                    error!(target: "rpc", ?method, ?err, "failed to deserialize method");
+                    RpcResponse::new(id, RpcError::invalid_params(err))
+                };
+
+                let rpc_err_serialized = serde_json::to_string(&rpc_err)
+                    .unwrap_or(format!("Unserializable: {rpc_err:?}"));
+                if let Err(e) = ws.send(Message::Text(rpc_err_serialized)).await {
+                    error!("Failed sending message: {e}");
                 }
             }
         }
@@ -628,6 +739,23 @@ pub enum JsonRpcRequest {
     #[serde(rename = "devnet_getConfig", with = "empty_params")]
     DevnetConfig,
 }
+
+#[derive(Deserialize, AllVariantsSerdeRenames, VariantName)]
+#[cfg_attr(test, derive(Debug))]
+#[serde(tag = "method", content = "params")]
+pub enum JsonRpcSubscriptionRequest {
+    #[serde(rename = "starknet_subscribeNewHeads", with = "optional_params")]
+    NewHeads(Option<BlockIdInput>),
+    #[serde(rename = "starknet_subscribeTransactionStatus")]
+    TransactionStatus,
+    #[serde(rename = "starknet_subscribePendingTransactions")]
+    PendingTransactions,
+    #[serde(rename = "starknet_subscribeEvents")]
+    Events,
+    #[serde(rename = "starknet_unsubscribe")]
+    Unsubscribe,
+}
+
 impl std::fmt::Display for JsonRpcRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.variant_name())

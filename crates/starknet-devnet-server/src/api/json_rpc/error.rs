@@ -62,6 +62,8 @@ pub enum ApiError {
     HttpApiError(#[from] HttpApiError),
     #[error("the compiled class hash did not match the one supplied in the transaction")]
     CompiledClassHashMismatch,
+    #[error("Cannot go back more than 1024 blocks")]
+    TooManyBlocksBack,
 }
 
 impl ApiError {
@@ -205,6 +207,11 @@ impl ApiError {
                 data: None,
             },
             ApiError::HttpApiError(http_api_error) => http_api_error.http_api_error_to_rpc_error(),
+            ApiError::TooManyBlocksBack => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(68),
+                message: error_message.into(),
+                data: None,
+            },
         }
     }
 }

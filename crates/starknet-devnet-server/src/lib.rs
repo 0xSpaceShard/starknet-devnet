@@ -7,8 +7,8 @@ pub mod rpc_core;
 /// handlers for axum server
 pub mod rpc_handler;
 pub mod server;
+pub mod subscribe;
 #[cfg(any(test, feature = "test_utils"))]
 pub mod test_utils;
-pub mod websocket_types;
 
 pub use config::ServerConfig;

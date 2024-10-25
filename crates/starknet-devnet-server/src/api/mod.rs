@@ -9,7 +9,7 @@ use starknet_core::starknet::Starknet;
 use tokio::sync::Mutex;
 
 use crate::dump_util::DumpEvent;
-use crate::websocket_types::{SocketContext, SocketId};
+use crate::subscribe::{SocketContext, SocketId};
 
 /// Data that can be shared between threads with read write lock access
 /// Whatever needs to be accessed as information outside of Starknet could be added to this struct
