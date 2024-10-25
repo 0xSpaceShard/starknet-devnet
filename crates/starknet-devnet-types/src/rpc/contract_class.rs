@@ -11,6 +11,7 @@ use starknet_rs_core::types::{
 };
 use starknet_types_core::felt::Felt;
 
+use crate::compile_sierra_contract_json;
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 use crate::traits::HashProducer;
@@ -248,10 +249,8 @@ pub fn convert_codegen_to_blockifier_compiled_class(
     Ok(match class {
         CodegenContractClass::Sierra(sierra) => {
             let json_value = serde_json::to_value(sierra).map_err(JsonError::SerdeJsonError)?;
-            let contract_class =
-                deserialize_to_sierra_contract_class(json_value.into_deserializer())
-                    .map_err(JsonError::SerdeJsonError)?;
-            let casm = compile_sierra_contract(&contract_class)?;
+
+            let casm = compile_sierra_contract_json(json_value)?;
 
             let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
                 casm.try_into().map_err(|_| Error::ProgramError)?;
