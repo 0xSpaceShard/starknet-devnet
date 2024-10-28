@@ -59,41 +59,27 @@ pub trait CustomState {
     ) -> DevnetResult<()>;
 }
 
-#[derive(Clone)]
+#[derive(Default, Clone)]
 /// Utility structure that makes it easier to calculate state diff later on. Classes are first
 /// inserted into the staging area (pending state), later to be committed (assigned a block number
 /// to mark when they were added). Committed doesn't necessarily mean the class is a part of the
 /// latest state, just that it is bound to be. Since there is no way of telling if a class is in the
 /// latest state or no, retrieving from the latest state has to be done via block number.
-pub struct CommittedClassStorage<TClassHash, TContractClass> {
-    staging: HashMap<TClassHash, TContractClass>,
-    committed: HashMap<TClassHash, (TContractClass, u64)>,
+pub struct CommittedClassStorage {
+    staging: HashMap<ClassHash, ContractClass>,
+    committed: HashMap<ClassHash, (ContractClass, u64)>,
     /// Remembers all classes committed at a block
-    block_number_to_classes: HashMap<u64, Vec<TClassHash>>,
+    block_number_to_classes: HashMap<u64, Vec<ClassHash>>,
 }
 
-impl<K, V> Default for CommittedClassStorage<K, V> {
-    fn default() -> Self {
-        Self {
-            staging: Default::default(),
-            committed: Default::default(),
-            block_number_to_classes: Default::default(),
-        }
-    }
-}
-
-impl<TClassHash, TContractClass> CommittedClassStorage<TClassHash, TContractClass>
-where
-    TClassHash: std::cmp::Eq + std::hash::Hash + Copy,
-    TContractClass: Clone,
-{
+impl CommittedClassStorage {
     /// Insert a new class into the staging area. Once it can be committed, call `commit`.
-    pub fn insert(&mut self, class_hash: TClassHash, contract_class: TContractClass) {
+    pub fn insert(&mut self, class_hash: ClassHash, contract_class: ContractClass) {
         self.staging.insert(class_hash, contract_class);
     }
 
     /// Commits all of the staged classes and returns them, together with their hashes.
-    pub fn commit(&mut self, block_number: u64) -> HashMap<TClassHash, TContractClass> {
+    pub fn commit(&mut self, block_number: u64) -> HashMap<ClassHash, ContractClass> {
         let mut newly_committed = HashMap::new();
 
         let hashes_at_this_block = self.block_number_to_classes.entry(block_number).or_default();
@@ -108,11 +94,12 @@ where
         newly_committed
     }
 
+    /// Returns sierra for cairo1; returns the only artifact for cairo0.
     pub fn get_class(
         &self,
-        class_hash: &TClassHash,
+        class_hash: &ClassHash,
         block_number_or_pending: &BlockNumberOrPending,
-    ) -> Option<TContractClass> {
+    ) -> Option<ContractClass> {
         if let Some((class, storage_block_number)) = self.committed.get(class_hash) {
             // If we're here, the requested class was committed at some point, need to see when.
             match block_number_or_pending {
@@ -163,7 +150,7 @@ pub struct StarknetState {
     /// The class storage is meant to be shared between states to prevent copying (due to memory
     /// concerns). Knowing which class was added when is made possible by storing the class
     /// together with the block number.
-    rpc_contract_classes: Arc<RwLock<CommittedClassStorage<ClassHash, ContractClass>>>,
+    rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
     /// Used for old state preservation purposes.
     historic_state: DictState,
 }
@@ -181,7 +168,7 @@ impl Default for StarknetState {
 impl StarknetState {
     pub fn new(
         defaulter: StarknetDefaulter,
-        rpc_contract_classes: Arc<RwLock<CommittedClassStorage<ClassHash, ContractClass>>>,
+        rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
     ) -> Self {
         Self {
             state: CachedState::new(DictState::new(defaulter)),
@@ -190,7 +177,7 @@ impl StarknetState {
         }
     }
 
-    pub fn clone_rpc_contract_classes(&self) -> CommittedClassStorage<ClassHash, ContractClass> {
+    pub fn clone_rpc_contract_classes(&self) -> CommittedClassStorage {
         self.rpc_contract_classes.read().clone()
     }
 
