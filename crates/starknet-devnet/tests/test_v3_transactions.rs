@@ -242,7 +242,7 @@ mod test_v3_transactions {
     }
 
     #[tokio::test]
-    async fn redeclaration_have_to_fail() {
+    async fn redeclaration_has_to_fail() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let (sierra_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
