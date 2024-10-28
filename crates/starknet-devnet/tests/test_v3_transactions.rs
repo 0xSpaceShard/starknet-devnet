@@ -9,8 +9,9 @@ mod test_v3_transactions {
         CAIRO_0_ACCOUNT_CONTRACT_HASH, STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS,
     };
     use starknet_rs_accounts::{
-        Account, AccountDeploymentV3, AccountFactory, ConnectedAccount, DeclarationV3,
-        ExecutionEncoding, ExecutionV3, OpenZeppelinAccountFactory, SingleOwnerAccount,
+        Account, AccountDeploymentV3, AccountError, AccountFactory, ConnectedAccount,
+        DeclarationV3, ExecutionEncoding, ExecutionV3, OpenZeppelinAccountFactory,
+        SingleOwnerAccount,
     };
     use starknet_rs_core::types::{
         BlockId, BlockTag, Call, ExecutionResult, Felt, FlattenedSierraClass,
@@ -238,6 +239,36 @@ mod test_v3_transactions {
             Some(&factory),
         )
         .await
+    }
+
+    #[tokio::test]
+    async fn redeclaration_have_to_fail() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let (sierra_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+
+        let mut account = SingleOwnerAccount::new(
+            &devnet.json_rpc_client,
+            signer,
+            account_address,
+            constants::CHAIN_ID,
+            ExecutionEncoding::New,
+        );
+        account.set_block_id(BlockId::Tag(BlockTag::Latest));
+
+        let sierra_artifact = Arc::new(sierra_artifact);
+        let declaration = account.declare_v3(sierra_artifact.clone(), casm_hash);
+        let fee_estimate = declaration.estimate_fee().await.unwrap();
+        let (gas_units, gas_price) = get_gas_units_and_gas_price(fee_estimate);
+
+        declaration.send().await.unwrap();
+        // redeclaration
+        match declaration.gas(gas_units).gas_price(gas_price).send().await.unwrap_err() {
+            AccountError::Provider(ProviderError::StarknetError(
+                StarknetError::ClassAlreadyDeclared,
+            )) => {}
+            other => panic!("Unexpected error {:?}", other),
+        }
     }
 
     #[tokio::test]

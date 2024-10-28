@@ -36,6 +36,9 @@ impl JsonRpcHandler {
                     starknet_core::error::Error::CompiledClassHashMismatch => {
                         ApiError::CompiledClassHashMismatch
                     }
+                    starknet_core::error::Error::ClassHashAlreadyDeclared { .. } => {
+                        ApiError::ClassAlreadyDeclared
+                    }
                     unknown_error => ApiError::StarknetDevnetError(unknown_error),
                 },
             )?;
