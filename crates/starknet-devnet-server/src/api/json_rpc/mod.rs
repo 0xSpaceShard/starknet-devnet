@@ -73,7 +73,7 @@ use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
 use crate::subscribe::{
     NewHeadsNotification, NewHeadsSubscription, SocketContext, SocketId, Subscription,
-    SubscriptionResponse,
+    SubscriptionNotification, SubscriptionResponse,
 };
 use crate::ServerConfig;
 
@@ -178,23 +178,27 @@ impl RpcHandler for JsonRpcHandler {
         let socket_id = rand::random();
         self.api.sockets.lock().await.insert(socket_id, SocketContext::from_sender(sender));
 
-        // TODO are channels necessary? I forgot why we can't store socket_writer directly
+        // TODO are channels necessary? I forgot why we can't store Arc<Mutex<socket_writer>>
         async fn listen_to_starknet_subscription_responses(
             socket_writer: Arc<Mutex<SplitSink<WebSocket, Message>>>,
             mut subscription_response_receiver: Receiver<SubscriptionResponse>,
         ) {
             while let Some(subscription_response) = subscription_response_receiver.recv().await {
-                let message = match serde_json::to_string(&subscription_response) {
+                let mut resp_serialized = match serde_json::to_value(&subscription_response) {
                     Ok(resp_serialized) => resp_serialized,
                     Err(e) => {
                         error!("Failed serialization of response: {e:?}");
-                        e.to_string()
+                        continue;
                     }
                 };
 
+                resp_serialized["jsonrpc"] = "2.0".into();
+
                 let mut socket_writer_lock = socket_writer.lock().await;
 
-                if let Err(e) = socket_writer_lock.send(Message::Text(message)).await {
+                if let Err(e) =
+                    socket_writer_lock.send(Message::Text(resp_serialized.to_string())).await
+                {
                     tracing::error!("Failed sending event to subscriber: {e:?}");
                 }
             }
@@ -277,11 +281,13 @@ impl JsonRpcHandler {
                             Subscription::NewHeads(NewHeadsSubscription { id }) => {
                                 if let Err(e) = socket_context
                                     .starknet_sender
-                                    .send(SubscriptionResponse::NewHeadsNotification(
-                                        NewHeadsNotification {
-                                            subscription_id: *id,
-                                            result: new_latest_block.into(),
-                                        },
+                                    .send(SubscriptionResponse::Notification(
+                                        SubscriptionNotification::NewHeadsNotification(
+                                            NewHeadsNotification {
+                                                subscription_id: *id,
+                                                result: new_latest_block.into(),
+                                            },
+                                        ),
                                     ))
                                     .await
                                 {
@@ -1461,8 +1467,8 @@ mod response_tests {
     use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
-    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result()
-     {
+    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result(
+    ) {
         assert_eq!(
             r#"{"result":{}}"#,
             serde_json::to_string(

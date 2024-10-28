@@ -5,7 +5,7 @@ use super::error::ApiError;
 use super::models::BlockIdInput;
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::subscribe::{
-    NewHeadsNotification, NewHeadsSubscription, SocketId, Subscription, SubscriptionResponse,
+    NewHeadsNotification, NewHeadsSubscription, SocketId, Subscription, SubscriptionNotification, SubscriptionResponse
 };
 
 /// The definitions of JSON-RPC read endpoints defined in starknet_ws_api.json
@@ -38,6 +38,8 @@ impl JsonRpcHandler {
         } else {
             latest_tag
         };
+
+        // TODO here just return subscription ID if block_id = pending/latest
 
         let starknet = self.api.starknet.lock().await;
 
@@ -74,23 +76,27 @@ impl JsonRpcHandler {
 
         socket_context
             .starknet_sender
-            .send(SubscriptionResponse::NewHeadsConfirmation(subscription_id))
+            .send(SubscriptionResponse::Confirmation(
+                crate::subscribe::SubscriptionConfirmation::NewHeadsConfirmation(subscription_id),
+            ))
             .await
             .map_err(|e| {
                 ApiError::StarknetDevnetError(Error::UnexpectedInternalError { msg: e.to_string() })
             })?;
 
-        // TODO latest_block_number inclusive?
+        // TODO latest_block_number inclusive? - YES, only if block_id != pending/latest (already taken care of)
         for block_n in query_block_number..=latest_block_number {
             let old_block = starknet
                 .get_block(&BlockId::Number(block_n))
                 .map_err(ApiError::StarknetDevnetError)?;
             socket_context
                 .starknet_sender
-                .send(SubscriptionResponse::NewHeadsNotification(NewHeadsNotification {
-                    subscription_id,
-                    result: old_block.into(),
-                }))
+                .send(SubscriptionResponse::Notification(
+                    SubscriptionNotification::NewHeadsNotification(NewHeadsNotification {
+                        subscription_id,
+                        result: old_block.into(),
+                    }),
+                ))
                 .await
                 .map_err(|e| {
                     ApiError::StarknetDevnetError(Error::UnexpectedInternalError {

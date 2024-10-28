@@ -1,4 +1,4 @@
-use serde::{self, Deserialize, Serialize};
+use serde::{self, Serialize};
 use starknet_types::rpc::block::BlockHeader;
 use tokio::sync::mpsc::Sender;
 
@@ -19,26 +19,41 @@ pub enum Subscription {
     Reorg,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct NewHeadsNotification {
     pub subscription_id: SubscriptionId,
     pub result: BlockHeader,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(deny_unknown_fields)]
-pub enum SubscriptionResponse {
+pub enum SubscriptionConfirmation {
     NewHeadsConfirmation(SubscriptionId),
     TransactionStatusConfirmation,
     PendingTransactionsConfirmation,
     EventsConfirmation,
     UnsubscriptionConfirmation(bool),
+}
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "method", content = "params")]
+pub enum SubscriptionNotification {
+    #[serde(rename = "starknet_subscriptionNewHeads")]
     NewHeadsNotification(NewHeadsNotification),
+    #[serde(rename = "starknet_subscriptionTransactionStatus")]
     TransactionStatusNotification,
+    #[serde(rename = "starknet_subscriptionPendingTransactions")]
     PendingTransactionsNotification,
+    #[serde(rename = "starknet_subscriptionEvents")]
     EventsNotification,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(untagged)]
+pub enum SubscriptionResponse {
+    Confirmation(SubscriptionConfirmation),
+    Notification(SubscriptionNotification),
 }
 
 pub struct SocketContext {
