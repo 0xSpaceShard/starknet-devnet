@@ -109,7 +109,7 @@ pub struct Starknet {
     pub next_block_timestamp: Option<u64>,
     pub next_block_gas: GasModification,
     pub(crate) messaging: MessagingBroker,
-    rpc_contract_classes: Arc<RwLock<CommittedClassStorage<ClassHash, ContractClass>>>,
+    rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
     cheats: Cheats,
 }
 
