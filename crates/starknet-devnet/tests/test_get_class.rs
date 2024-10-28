@@ -5,6 +5,7 @@ mod get_class_tests {
     use std::sync::Arc;
 
     use serde_json::json;
+    use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH;
     use starknet_core::CasmContractClass;
     use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::chain_id;
@@ -18,6 +19,7 @@ mod get_class_tests {
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
     use crate::common::utils::{
         assert_cairo1_classes_equal, get_events_contract_in_sierra_and_compiled_class_hash,
+        get_flattened_sierra_contract_and_casm_hash,
     };
 
     #[tokio::test]
@@ -312,6 +314,9 @@ mod get_class_tests {
             .await
             .expect("Could not start Devnet");
 
+        let (_, expected_casm_hash) =
+            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH);
+
         let (_, account_address) = devnet.get_first_predeployed_account().await;
 
         let block_id = BlockId::Tag(BlockTag::Latest);
@@ -320,7 +325,7 @@ mod get_class_tests {
             devnet.json_rpc_client.get_class_hash_at(block_id, account_address).await.unwrap();
 
         let casm = get_compiled_casm(&devnet, block_id, class_hash).await.unwrap();
-        assert_ne!(casm, CasmContractClass::default());
+        assert_eq!(casm.compiled_class_hash(), expected_casm_hash);
     }
 
     async fn get_compiled_casm(
