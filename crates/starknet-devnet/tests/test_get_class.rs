@@ -319,7 +319,8 @@ mod get_class_tests {
         let class_hash =
             devnet.json_rpc_client.get_class_hash_at(block_id, account_address).await.unwrap();
 
-        get_compiled_casm(&devnet, block_id, class_hash).await.unwrap();
+        let casm = get_compiled_casm(&devnet, block_id, class_hash).await.unwrap();
+        assert_ne!(casm, CasmContractClass::default());
     }
 
     async fn get_compiled_casm(
