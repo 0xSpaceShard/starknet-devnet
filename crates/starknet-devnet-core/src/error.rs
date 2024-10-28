@@ -71,7 +71,7 @@ pub enum Error {
     #[error("the compiled class hash did not match the one supplied in the transaction")]
     CompiledClassHashMismatch,
     #[error("{msg}")]
-    ClassHashAlreadyDeclared { msg: String },
+    ClassAlreadyDeclared { msg: String },
 }
 
 impl From<starknet_types_core::felt::FromStrError> for Error {
@@ -121,7 +121,7 @@ impl From<TransactionExecutionError> for Error {
                 TransactionValidationError::ValidationFailure { reason: value.to_string() }.into()
             }
             err @ TransactionExecutionError::DeclareTransactionError { .. } => {
-                Error::ClassHashAlreadyDeclared { msg: err.to_string() }
+                Error::ClassAlreadyDeclared { msg: err.to_string() }
             }
             other => Self::BlockifierTransactionError(other),
         }
