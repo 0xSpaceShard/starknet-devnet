@@ -10,4 +10,5 @@ mod utils;
 
 // Re export libraries
 pub use rpc::{contract_address, contract_class, emitted_event, felt, messaging};
+pub use utils::{compile_sierra_contract, compile_sierra_contract_json};
 pub use {num_bigint, starknet_api};

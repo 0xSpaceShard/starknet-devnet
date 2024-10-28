@@ -10,6 +10,7 @@ use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::errors::TransactionExecutionError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
+use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use ethers::types::H256;
 use parking_lot::RwLock;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, GasPricePerToken};
@@ -596,6 +597,14 @@ impl Starknet {
         contract_address: ContractAddress,
     ) -> DevnetResult<ContractClass> {
         get_class_impls::get_class_at_impl(self, block_id, contract_address)
+    }
+
+    pub fn get_compiled_casm(
+        &self,
+        block_id: &BlockId,
+        class_hash: ClassHash,
+    ) -> DevnetResult<CasmContractClass> {
+        get_class_impls::get_compiled_casm_impl(self, block_id, class_hash)
     }
 
     pub fn call(

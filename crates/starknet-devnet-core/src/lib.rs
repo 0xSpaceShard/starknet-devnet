@@ -19,3 +19,4 @@ mod utils;
 pub mod utils;
 
 pub use blocks::StarknetBlock;
+pub use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;

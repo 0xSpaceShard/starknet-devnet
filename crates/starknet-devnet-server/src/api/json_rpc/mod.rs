@@ -19,6 +19,7 @@ use models::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
+use starknet_core::CasmContractClass;
 use starknet_rs_core::types::{ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::block::{Block, PendingBlock};
@@ -245,6 +246,10 @@ impl JsonRpcHandler {
             JsonRpcRequest::ClassByHash(BlockAndClassHashInput { block_id, class_hash }) => {
                 self.get_class(block_id, class_hash).await
             }
+            JsonRpcRequest::CompiledCasmByClassHash(BlockAndClassHashInput {
+                block_id,
+                class_hash,
+            }) => self.get_compiled_casm(block_id, class_hash).await,
             JsonRpcRequest::ClassHashAtContractAddress(BlockAndContractAddressInput {
                 block_id,
                 contract_address,
@@ -483,6 +488,8 @@ pub enum JsonRpcRequest {
     MessagesStatusByL1Hash(L1TransactionHashInput),
     #[serde(rename = "starknet_getClass")]
     ClassByHash(BlockAndClassHashInput),
+    #[serde(rename = "starknet_getCompiledCasm")]
+    CompiledCasmByClassHash(BlockAndClassHashInput),
     #[serde(rename = "starknet_getClassHashAt")]
     ClassHashAtContractAddress(BlockAndContractAddressInput),
     #[serde(rename = "starknet_getClassAt")]
@@ -599,6 +606,7 @@ pub enum StarknetResponse {
     TransactionReceiptByTransactionHash(Box<TransactionReceipt>),
     TransactionStatusByHash(TransactionStatus),
     ContractClass(CodegenContractClass),
+    CompiledCasm(CasmContractClass),
     BlockTransactionCount(u64),
     Call(Vec<Felt>),
     EstimateFee(Vec<FeeEstimateWrapper>),
