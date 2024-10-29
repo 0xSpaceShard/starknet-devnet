@@ -84,6 +84,11 @@ jobs:
           name: Integration tests
           # fails if jobs not limited; read more in https://github.com/0xSpaceShard/starknet-devnet-rs/issues/378
           command: cargo test --jobs 9 --test '*' --no-fail-fast
+      - run:
+          name: Check for problems during publishing
+          command: ./scripts/publish_cratesio_new_versions.sh
+          environment:
+            DRY_RUN: true
 
   binary-build:
     parameters:
