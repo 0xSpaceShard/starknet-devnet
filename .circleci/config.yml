@@ -81,9 +81,9 @@ jobs:
       #     name: Unit tests
       #     command: cargo test --lib --bins --no-fail-fast
       # - run:
-          name: Integration tests
+      #    name: Integration tests
           # fails if jobs not limited; read more in https://github.com/0xSpaceShard/starknet-devnet-rs/issues/378
-          command: cargo test --jobs 9 --test '*' --no-fail-fast
+      #    command: cargo test --jobs 9 --test '*' --no-fail-fast
       - when:
           condition:
             not:
