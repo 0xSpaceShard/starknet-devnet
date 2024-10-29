@@ -5857,7 +5857,6 @@ dependencies = [
  "starknet_api",
  "thiserror",
  "tracing",
- "universal-sierra-compiler",
  "url",
 ]
 
