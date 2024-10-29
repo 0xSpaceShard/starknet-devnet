@@ -91,7 +91,7 @@ jobs:
           steps:
             - run:
                 name: Check for problems during publishing
-                command: echo "XXXX $DRY_RUN"
+                command: ./scripts/check_or_publish_cratesio_new_versions.sh
                 environment:
                   DRY_RUN: "true"
 
