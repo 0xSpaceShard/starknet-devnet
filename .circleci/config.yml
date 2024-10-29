@@ -93,7 +93,7 @@ jobs:
                 name: Check for problems during publishing
                 command: echo "XXXX $DRY_RUN"
                 environment:
-                  DRY_RUN: true
+                  DRY_RUN: "true"
 
   binary-build:
     parameters:
