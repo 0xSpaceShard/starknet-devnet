@@ -20,6 +20,7 @@ mod tests {
 
     use starknet_api::transaction::Fee;
     use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_types::compile_sierra_contract;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::rpc::state::ThinStateDiff;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
@@ -28,7 +29,6 @@ mod tests {
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
     use crate::state::state_diff::StateDiff;
     use crate::traits::HashIdentifiedMut;
-    use crate::utils::calculate_casm_hash;
     use crate::utils::test_utils::dummy_cairo_1_contract_class;
 
     #[test]
@@ -36,14 +36,10 @@ mod tests {
     fn correct_state_update_after_declare_transaction_v2() {
         let (mut starknet, acc) = setup_starknet_with_no_signature_check_account(1e18 as u128);
         let contract_class = dummy_cairo_1_contract_class();
-
+        let compiled_class_hash =
+            compile_sierra_contract(&contract_class).unwrap().compiled_class_hash();
         let sierra_class_hash =
             ContractClass::Cairo1(contract_class.clone()).generate_hash().unwrap();
-
-        let casm_contract_class_json =
-            usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap()).unwrap();
-
-        let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap();
 
         let declare_txn = BroadcastedDeclareTransactionV2::new(
             &contract_class,

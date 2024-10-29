@@ -5,7 +5,8 @@ use super::error::ApiError;
 use super::models::BlockIdInput;
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::subscribe::{
-    NewHeadsNotification, NewHeadsSubscription, SocketId, Subscription, SubscriptionNotification, SubscriptionResponse
+    NewHeadsNotification, NewHeadsSubscription, SocketId, Subscription, SubscriptionNotification,
+    SubscriptionResponse,
 };
 
 /// The definitions of JSON-RPC read endpoints defined in starknet_ws_api.json
@@ -84,7 +85,8 @@ impl JsonRpcHandler {
                 ApiError::StarknetDevnetError(Error::UnexpectedInternalError { msg: e.to_string() })
             })?;
 
-        // TODO latest_block_number inclusive? - YES, only if block_id != pending/latest (already taken care of)
+        // TODO latest_block_number inclusive? - YES, only if block_id != pending/latest (already
+        // taken care of)
         for block_n in query_block_number..=latest_block_number {
             let old_block = starknet
                 .get_block(&BlockId::Number(block_n))

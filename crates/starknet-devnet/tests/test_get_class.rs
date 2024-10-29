@@ -4,10 +4,14 @@ pub mod common;
 mod get_class_tests {
     use std::sync::Arc;
 
+    use serde_json::json;
+    use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH;
+    use starknet_core::CasmContractClass;
     use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{BlockId, BlockTag, ContractClass, Felt, StarknetError};
+    use starknet_rs_providers::jsonrpc::JsonRpcError;
     use starknet_rs_providers::{Provider, ProviderError};
     use starknet_types::felt::felt_from_prefixed_hex;
 
@@ -15,6 +19,7 @@ mod get_class_tests {
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
     use crate::common::utils::{
         assert_cairo1_classes_equal, get_events_contract_in_sierra_and_compiled_class_hash,
+        get_flattened_sierra_contract_and_casm_hash,
     };
 
     #[tokio::test]
@@ -278,5 +283,74 @@ mod get_class_tests {
                 other => panic!("Unexpected response at block_id={block_id:?}: {other:?}"),
             }
         }
+    }
+
+    #[tokio::test]
+    async fn test_getting_compiled_casm_for_cairo0_or_non_existing_hash_have_to_return_class_hash_not_found_error()
+     {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo0"])
+            .await
+            .expect("Could not start Devnet");
+
+        let (_, account_address) = devnet.get_first_predeployed_account().await;
+
+        let block_id = BlockId::Tag(BlockTag::Latest);
+
+        let class_hash =
+            devnet.json_rpc_client.get_class_hash_at(block_id, account_address).await.unwrap();
+
+        // Felt::ONE is non existing class hash
+        for el in [class_hash, Felt::ONE] {
+            match get_compiled_casm(&devnet, block_id, el).await.unwrap_err() {
+                StarknetError::ClassHashNotFound => {}
+                other => panic!("Unexpected error {:?}", other),
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_getting_compiled_casm_for_cairo_1_have_to_succeed() {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo1"])
+            .await
+            .expect("Could not start Devnet");
+
+        let (_, expected_casm_hash) =
+            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH);
+
+        let (_, account_address) = devnet.get_first_predeployed_account().await;
+
+        let block_id = BlockId::Tag(BlockTag::Latest);
+
+        let class_hash =
+            devnet.json_rpc_client.get_class_hash_at(block_id, account_address).await.unwrap();
+
+        let casm = get_compiled_casm(&devnet, block_id, class_hash).await.unwrap();
+        assert_eq!(casm.compiled_class_hash(), expected_casm_hash);
+    }
+
+    async fn get_compiled_casm(
+        devnet: &BackgroundDevnet,
+        block_id: BlockId,
+        class_hash: Felt,
+    ) -> Result<CasmContractClass, StarknetError> {
+        devnet
+            .send_custom_rpc(
+                "starknet_getCompiledCasm",
+                json!({
+                    "block_id": block_id,
+                    "class_hash": format!("{:#x}", class_hash),
+                }),
+            )
+            .await
+            .map(|json_value| serde_json::from_value::<CasmContractClass>(json_value).unwrap())
+            .map_err(|err| {
+                let json_rpc_error = JsonRpcError {
+                    code: err.code.code(),
+                    message: err.message.to_string(),
+                    data: err.data,
+                };
+
+                (&json_rpc_error).try_into().unwrap()
+            })
     }
 }
