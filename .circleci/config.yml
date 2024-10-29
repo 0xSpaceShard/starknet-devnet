@@ -90,9 +90,6 @@ jobs:
               equal: [ main, << pipeline.git.branch >> ]
           steps:
             - run:
-                name: Some preliminary check
-                command: cp -r ./contracts/ ./target/; ls ./target;
-            - run:
                 name: Check for problems during publishing
                 command: ./scripts/check_or_publish_cratesio_new_versions.sh
                 environment:
