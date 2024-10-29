@@ -90,7 +90,7 @@ jobs:
               equal: [ main, << pipeline.git.branch >> ]
           steps:
             - run:
-                name: Checks for problems during publishing
+                name: Check for problems during publishing
                 command: ./scripts/check_or_publish_cratesio_new_versions.sh
                 environment:
                   DRY_RUN: "true"

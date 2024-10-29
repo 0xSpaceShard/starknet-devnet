@@ -12,14 +12,14 @@ for workspace_member in $(cargo get --delimiter " " workspace.members); do
 
     if [ "${DRY_RUN:-}" = "true" ]; then
         echo "Checking if $package_name can be published"
-        #cargo publish -p "$package_name" --dry-run
+        cargo publish -p "$package_name" --dry-run
     else
         # if local version is different from crates.io version, then publish to crates.io
         if [ "$package_version" != "$cratesio_version" ]; then
             echo "Local version of $package_name is $package_version, while the one on crates.io is $cratesio_version"
 
-            #cargo login "$CRATES_IO_API_KEY"
-            #cargo publish -p "$package_name"
+            cargo login "$CRATES_IO_API_KEY"
+            cargo publish -p "$package_name"
         else
             echo "$package_name v$package_version already published"
         fi
