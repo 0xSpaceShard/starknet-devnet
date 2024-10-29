@@ -91,7 +91,7 @@ jobs:
           steps:
             - run:
                 name: Some preliminary check
-                command: ls; ls ./target; cp -r ./target/ ./contracts; ls ./target;
+                command: cp -r ./contracts/ ./target/; ls ./target;
             - run:
                 name: Check for problems during publishing
                 command: ./scripts/check_or_publish_cratesio_new_versions.sh
