@@ -72,8 +72,7 @@ use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
 use crate::subscribe::{
-    NewHeadsNotification, NewHeadsSubscription, SocketContext, SocketId, Subscription,
-    SubscriptionNotification, SubscriptionResponse,
+    SocketContext, SocketId, Subscription, SubscriptionNotification, SubscriptionResponse,
 };
 use crate::ServerConfig;
 
@@ -184,18 +183,9 @@ impl RpcHandler for JsonRpcHandler {
             mut subscription_response_receiver: Receiver<SubscriptionResponse>,
         ) {
             while let Some(subscription_response) = subscription_response_receiver.recv().await {
-                let mut resp_serialized = match serde_json::to_value(&subscription_response) {
-                    Ok(resp_serialized) => resp_serialized,
-                    Err(e) => {
-                        error!("Failed serialization of response: {e:?}");
-                        continue;
-                    }
-                };
-
-                resp_serialized["jsonrpc"] = "2.0".into();
+                let resp_serialized = subscription_response.to_serialized_rpc_response();
 
                 let mut socket_writer_lock = socket_writer.lock().await;
-
                 if let Err(e) =
                     socket_writer_lock.send(Message::Text(resp_serialized.to_string())).await
                 {
@@ -278,17 +268,15 @@ impl JsonRpcHandler {
                 for (_, socket_context) in sockets.iter() {
                     for subscription in &socket_context.subscriptions {
                         match subscription {
-                            Subscription::NewHeads(NewHeadsSubscription { id }) => {
+                            Subscription::NewHeads(id) => {
                                 if let Err(e) = socket_context
                                     .starknet_sender
-                                    .send(SubscriptionResponse::Notification(
-                                        SubscriptionNotification::NewHeadsNotification(
-                                            NewHeadsNotification {
-                                                subscription_id: *id,
-                                                result: new_latest_block.into(),
-                                            },
+                                    .send(SubscriptionResponse::Notification {
+                                        subscription_id: id.clone(),
+                                        data: SubscriptionNotification::NewHeadsNotification(
+                                            new_latest_block.into(),
                                         ),
-                                    ))
+                                    })
                                     .await
                                 {
                                     error!("Failed sending message via socket: {e:?}");
@@ -534,7 +522,7 @@ impl JsonRpcHandler {
         socket_id: SocketId,
     ) {
         trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received method call");
-        let RpcMethodCall { method, params, id, .. } = call.clone();
+        let RpcMethodCall { method, params, id: rpc_request_id, .. } = call.clone();
 
         let params: serde_json::Value = params.into();
         let deserializable_call = serde_json::json!({
@@ -546,7 +534,10 @@ impl JsonRpcHandler {
             Ok(req) => {
                 if let Some(restricted_methods) = &self.server_config.restricted_methods {
                     if is_json_rpc_method_restricted(&method, restricted_methods) {
-                        let err = RpcResponse::new(id, RpcError::new(ErrorCode::MethodForbidden));
+                        let err = RpcResponse::new(
+                            rpc_request_id.clone(),
+                            RpcError::new(ErrorCode::MethodForbidden),
+                        );
                         let err_serialized = serde_json::to_string(&err)
                             .unwrap_or(format!("Unserializable: {err:?}"));
                         if let Err(e) = ws.send(Message::Text(err_serialized)).await {
@@ -555,7 +546,7 @@ impl JsonRpcHandler {
                     }
                 }
 
-                if let Err(e) = self.execute_ws(req, socket_id).await {
+                if let Err(e) = self.execute_ws(req, rpc_request_id.clone(), socket_id).await {
                     let rpc_err = e.api_error_to_rpc_error();
                     let rpc_err_serialized = serde_json::to_string(&rpc_err)
                         .unwrap_or(format!("Unserializable: {rpc_err:?}"));
@@ -571,10 +562,10 @@ impl JsonRpcHandler {
                 let distinctive_error = format!("unknown variant `{method}`");
                 let rpc_err = if err.contains(&distinctive_error) {
                     error!(target: "rpc", ?method, "failed to deserialize method due to unknown variant");
-                    RpcResponse::new(id, RpcError::method_not_found())
+                    RpcResponse::new(rpc_request_id, RpcError::method_not_found())
                 } else {
                     error!(target: "rpc", ?method, ?err, "failed to deserialize method");
-                    RpcResponse::new(id, RpcError::invalid_params(err))
+                    RpcResponse::new(rpc_request_id, RpcError::invalid_params(err))
                 };
 
                 let rpc_err_serialized = serde_json::to_string(&rpc_err)
@@ -1474,8 +1465,8 @@ mod response_tests {
     use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
-    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result()
-     {
+    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result(
+    ) {
         assert_eq!(
             r#"{"result":{}}"#,
             serde_json::to_string(

@@ -2,17 +2,13 @@ use serde::{self, Serialize};
 use starknet_types::rpc::block::BlockHeader;
 use tokio::sync::mpsc::Sender;
 
-pub type SocketId = u64;
-type SubscriptionId = u64;
+use crate::rpc_core::request::Id;
 
-#[derive(Debug)]
-pub struct NewHeadsSubscription {
-    pub id: SubscriptionId,
-}
+pub type SocketId = u64;
 
 #[derive(Debug)]
 pub enum Subscription {
-    NewHeads(NewHeadsSubscription),
+    NewHeads(Id),
     TransactionStatus,
     PendingTransactions,
     Events,
@@ -20,16 +16,9 @@ pub enum Subscription {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct NewHeadsNotification {
-    pub subscription_id: SubscriptionId,
-    pub result: BlockHeader,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(deny_unknown_fields)]
+#[serde(untagged)]
 pub enum SubscriptionConfirmation {
-    NewHeadsConfirmation(SubscriptionId),
+    NewHeadsConfirmation,
     TransactionStatusConfirmation,
     PendingTransactionsConfirmation,
     EventsConfirmation,
@@ -40,7 +29,7 @@ pub enum SubscriptionConfirmation {
 #[serde(tag = "method", content = "params")]
 pub enum SubscriptionNotification {
     #[serde(rename = "starknet_subscriptionNewHeads")]
-    NewHeadsNotification(NewHeadsNotification),
+    NewHeadsNotification(BlockHeader),
     #[serde(rename = "starknet_subscriptionTransactionStatus")]
     TransactionStatusNotification,
     #[serde(rename = "starknet_subscriptionPendingTransactions")]
@@ -49,11 +38,32 @@ pub enum SubscriptionNotification {
     EventsNotification,
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(untagged)]
+#[derive(Debug, Clone)]
 pub enum SubscriptionResponse {
-    Confirmation(SubscriptionConfirmation),
-    Notification(SubscriptionNotification),
+    Confirmation { rpc_request_id: Id, data: SubscriptionConfirmation },
+    Notification { subscription_id: Id, data: SubscriptionNotification },
+}
+
+impl SubscriptionResponse {
+    pub fn to_serialized_rpc_response(&self) -> serde_json::Value {
+        let mut resp = match self {
+            SubscriptionResponse::Confirmation { rpc_request_id, data } => {
+                serde_json::json!({
+                    "id": rpc_request_id,
+                    "result": data,
+                })
+            }
+            SubscriptionResponse::Notification { subscription_id, data } => {
+                let mut resp = serde_json::to_value(data).unwrap();
+                resp["params"]["id"] = serde_json::to_value(subscription_id).unwrap();
+                resp
+            }
+        };
+
+        resp["jsonrpc"] = "2.0".into();
+
+        return resp;
+    }
 }
 
 pub struct SocketContext {
