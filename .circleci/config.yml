@@ -91,7 +91,7 @@ jobs:
           steps:
             - run:
                 name: Check for problems during publishing
-                command: echo $DRY_RUN
+                command: echo "XXXX $DRY_RUN"
                 environment:
                   DRY_RUN: true
 
