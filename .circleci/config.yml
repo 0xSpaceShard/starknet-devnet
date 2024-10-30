@@ -62,12 +62,12 @@ jobs:
       - run:
           name: Build
           command: cargo build --release
-      # - run:
-      #     name: Clippy check
-      #     command: ./scripts/clippy_check.sh
-      # - run:
-      #     name: Format check
-      #     command: ./scripts/format_check.sh
+      - run:
+          name: Clippy check
+          command: ./scripts/clippy_check.sh
+      - run:
+          name: Format check
+          command: ./scripts/format_check.sh
       - run:
           name: Code spell check
           command: ./scripts/check_spelling.sh
@@ -77,21 +77,13 @@ jobs:
       - run:
           name: Cleanup old cache
           command: .circleci/scripts/cache.sh cleanup
-      # - run:
-      #     name: Unit tests
-      #     command: cargo test --lib --bins --no-fail-fast
-      # - run:
-      #    name: Integration tests
-      #    # fails if jobs not limited; read more in https://github.com/0xSpaceShard/starknet-devnet-rs/issues/378
-      #    command: cargo test --jobs 9 --test '*' --no-fail-fast
-      - when:
-          condition:
-            not:
-              equal: [ main, << pipeline.git.branch >> ]
-          steps:
-            - run:
-                name: Check for problems during publishing
-                command: cargo package --workspace
+      - run:
+          name: Unit tests
+          command: cargo test --lib --bins --no-fail-fast
+      - run:
+         name: Integration tests
+         # fails if jobs not limited; read more in https://github.com/0xSpaceShard/starknet-devnet-rs/issues/378
+         command: cargo test --jobs 9 --test '*' --no-fail-fast
 
   binary-build:
     parameters:
@@ -162,7 +154,7 @@ jobs:
             - "SHA256:y2r0YUdeS8k6XSOFmgNs4wcTJFv+PIgkY0Yz+af6NSU"
       - run:
           name: Publish new versions to crates.io
-          command: ./scripts/check_or_publish_cratesio_new_versions.sh
+          command: ./scripts/publish_cratesio_new_versions.sh
       - run:
           name: Create tags and push joint image manifests
           command: ./docker/tag_images_and_create_joint_image_manifests.sh
