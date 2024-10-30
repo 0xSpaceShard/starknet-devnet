@@ -91,9 +91,7 @@ jobs:
           steps:
             - run:
                 name: Check for problems during publishing
-                command: ./scripts/check_or_publish_cratesio_new_versions.sh
-                environment:
-                  DRY_RUN: "true"
+                command: cargo package --workspace
 
   binary-build:
     parameters:
