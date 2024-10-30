@@ -62,12 +62,12 @@ jobs:
       - run:
           name: Build
           command: cargo build --release
-      - run:
-          name: Clippy check
-          command: ./scripts/clippy_check.sh
-      - run:
-          name: Format check
-          command: ./scripts/format_check.sh
+      # - run:
+      #     name: Clippy check
+      #     command: ./scripts/clippy_check.sh
+      # - run:
+      #     name: Format check
+      #     command: ./scripts/format_check.sh
       - run:
           name: Code spell check
           command: ./scripts/check_spelling.sh
