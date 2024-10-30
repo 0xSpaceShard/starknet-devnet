@@ -424,6 +424,7 @@ mod tests {
     #[test]
     fn not_allowing_regular_cairo0_contract_as_custom_account() {
         let custom_path = CAIRO_0_ERC20_CONTRACT_PATH;
+        println!("{}", custom_path);
         match Args::try_parse_from(["--", "--account-class-custom", custom_path]) {
             Err(err) => assert_eq!(
                 get_first_line(&err.to_string()),

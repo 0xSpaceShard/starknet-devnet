@@ -14,8 +14,10 @@ pub const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
     "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
 
 /// only used in tests; if artifact needed in production, use CAIRO_1_ACCOUNT_CONTRACT_SIERRA
-pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str =
-    "../../contracts/accounts_artifacts/OpenZeppelin/0.8.1/Account.cairo/Account.sierra";
+pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/contracts/accounts_artifacts/OpenZeppelin/0.8.1/Account.cairo/Account.sierra"
+);
 
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -25,8 +27,10 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA: &str = include_str!(concat!(
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
     "0x061dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f";
 
-pub const CAIRO_1_ERC20_CONTRACT: &str =
-    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/contracts/ERC20_Mintable_OZ_0.8.1.sierra"));
+pub const CAIRO_1_ERC20_CONTRACT: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/contracts/system_artifacts/ERC20_Mintable_OZ_0.8.1.sierra"
+));
 
 /// ERC20 class hash is hardcoded to be the same as OZ class hash ERC20.cairo although it should be
 /// different, due to commented key attributes in struct Approval (owner and spender), and add of
@@ -36,7 +40,7 @@ pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: Felt =
 
 /// only used in tests; if artifact needed in production, add a new constant that uses include_str!
 pub const CAIRO_0_ERC20_CONTRACT_PATH: &str =
-    "../../contracts/accounts_artifacts/ERC20_Mintable_OZ_0.2.0.json";
+    concat!(env!("CARGO_MANIFEST_DIR"), "/contracts/system_artifacts/ERC20_Mintable_OZ_0.2.0.json");
 
 pub const CAIRO_0_ERC20_CONTRACT_CLASS_HASH: &str =
     "0x6A22BF63C7BC07EFFA39A25DFBD21523D211DB0100A0AFD054D172B81840EAF";
@@ -47,8 +51,10 @@ pub const ETH_ERC20_CONTRACT_ADDRESS: Felt =
 pub const STRK_ERC20_CONTRACT_ADDRESS: Felt =
     Felt::from_hex_unchecked("0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d");
 
-pub(crate) const UDC_CONTRACT: &str =
-    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/contracts/UDC_OZ_0.5.0.json"));
+pub(crate) const UDC_CONTRACT: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/contracts/system_artifacts/UDC_OZ_0.5.0.json"
+));
 
 pub const UDC_CONTRACT_CLASS_HASH: Felt =
     Felt::from_hex_unchecked("0x7B3E05F48F0C69E4A65CE5E076A66271A527AFF2C34CE1083EC6E1526997A69");

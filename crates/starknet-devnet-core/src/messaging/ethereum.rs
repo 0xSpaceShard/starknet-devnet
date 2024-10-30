@@ -35,7 +35,7 @@ mod abigen {
     use ethers::prelude::abigen;
     abigen!(
         MockStarknetMessaging,
-        "$CARGO_MANIFEST_DIR/contracts/MockStarknetMessaging.json",
+        "$CARGO_MANIFEST_DIR/contracts/l1-l2-artifacts/MockStarknetMessaging.json",
         event_derives(serde::Serialize, serde::Deserialize)
     );
 }
