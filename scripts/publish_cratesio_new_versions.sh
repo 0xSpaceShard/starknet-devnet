@@ -18,5 +18,4 @@ for workspace_member in $(cargo get --delimiter " " workspace.members); do
     else
         echo "$package_name v$package_version already published"
     fi
-
 done
