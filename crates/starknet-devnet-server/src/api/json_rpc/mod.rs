@@ -38,7 +38,6 @@ use starknet_types::rpc::transactions::{
     TransactionStatus, TransactionTrace, TransactionWithHash,
 };
 use starknet_types::starknet_api::block::BlockNumber;
-use tokio::sync::mpsc::{channel, Receiver};
 use tokio::sync::Mutex;
 use tracing::{error, info, trace};
 
@@ -71,9 +70,7 @@ use crate::rpc_core::error::{ErrorCode, RpcError};
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
-use crate::subscribe::{
-    SocketContext, SocketId, Subscription, SubscriptionNotification, SubscriptionResponse,
-};
+use crate::subscribe::{SocketContext, SocketId, SubscriptionNotification};
 use crate::ServerConfig;
 
 /// Helper trait to easily convert results to rpc results
@@ -170,47 +167,23 @@ impl RpcHandler for JsonRpcHandler {
         let (socket_writer, mut socket_reader) = socket.split();
         let socket_writer = Arc::new(Mutex::new(socket_writer));
 
-        // TODO capacity
-        let (sender, receiver) = channel::<SubscriptionResponse>(10);
-
         // TODO do this in a loop until a new ID is generated
         let socket_id = rand::random();
-        self.api.sockets.lock().await.insert(socket_id, SocketContext::from_sender(sender));
-
-        // TODO are channels necessary? I forgot why we can't store Arc<Mutex<socket_writer>>
-        async fn listen_to_starknet_subscription_responses(
-            socket_writer: Arc<Mutex<SplitSink<WebSocket, Message>>>,
-            mut subscription_response_receiver: Receiver<SubscriptionResponse>,
-        ) {
-            while let Some(subscription_response) = subscription_response_receiver.recv().await {
-                let resp_serialized = subscription_response.to_serialized_rpc_response();
-
-                let mut socket_writer_lock = socket_writer.lock().await;
-                if let Err(e) =
-                    socket_writer_lock.send(Message::Text(resp_serialized.to_string())).await
-                {
-                    tracing::error!("Failed sending event {subscription_response:?}. Error: {e:?}");
-                }
-            }
-        }
-
-        let starknet_listener = tokio::task::spawn(listen_to_starknet_subscription_responses(
-            socket_writer.clone(),
-            receiver,
-        ));
+        self.api
+            .sockets
+            .lock()
+            .await
+            .insert(socket_id, SocketContext::from_sender(socket_writer.clone()));
 
         // listen to new messages coming through the socket
         let mut socket_safely_closed = false;
         while let Some(msg) = socket_reader.next().await {
-            // TODO consider passing the Arc<Mutex<>> instead of the lock
-            let mut socket_writer_lock = socket_writer.lock().await;
             match msg {
                 Ok(Message::Text(text)) => {
-                    self.on_websocket_call(text.as_bytes(), &mut socket_writer_lock, socket_id)
-                        .await;
+                    self.on_websocket_call(text.as_bytes(), socket_writer.clone(), socket_id).await;
                 }
                 Ok(Message::Binary(bytes)) => {
-                    self.on_websocket_call(&bytes, &mut socket_writer_lock, socket_id).await;
+                    self.on_websocket_call(&bytes, socket_writer.clone(), socket_id).await;
                 }
                 Ok(Message::Close(_)) => {
                     socket_safely_closed = true;
@@ -224,7 +197,6 @@ impl RpcHandler for JsonRpcHandler {
 
         if socket_safely_closed {
             self.api.sockets.lock().await.remove(&socket_id);
-            starknet_listener.abort();
             tracing::info!("Websocket disconnected");
         } else {
             tracing::error!("Failed socket read");
@@ -264,26 +236,13 @@ impl JsonRpcHandler {
         match new_block_number.cmp(&old_block_number) {
             std::cmp::Ordering::Greater => {
                 // TODO - if loading happened, should websockets be restarted?
-                let sockets = self.api.sockets.lock().await;
-                for (_, socket_context) in sockets.iter() {
-                    for subscription in &socket_context.subscriptions {
-                        match subscription {
-                            Subscription::NewHeads(subscription_id) => {
-                                if let Err(e) = socket_context
-                                    .notify(
-                                        subscription_id.clone(),
-                                        SubscriptionNotification::NewHeadsNotification(
-                                            new_latest_block.into(),
-                                        ),
-                                    )
-                                    .await
-                                {
-                                    error!("Failed sending message via socket: {e:?}");
-                                }
-                            }
-                            other => println!("DEBUG unsupported subscription: {other:?}"),
-                        }
-                    }
+                let mut sockets = self.api.sockets.lock().await;
+                for (_, socket_context) in sockets.iter_mut() {
+                    socket_context
+                        .notify_subscribers(SubscriptionNotification::NewHeadsNotification(
+                            new_latest_block.into(),
+                        ))
+                        .await;
                 }
             }
             std::cmp::Ordering::Equal => {
@@ -497,7 +456,7 @@ impl JsonRpcHandler {
     async fn on_websocket_call(
         &self,
         bytes: &[u8],
-        ws: &mut SplitSink<WebSocket, Message>,
+        ws: Arc<Mutex<SplitSink<WebSocket, Message>>>,
         socket_id: SocketId,
     ) {
         match serde_json::from_slice(bytes) {
@@ -506,7 +465,7 @@ impl JsonRpcHandler {
                 // TODO removed general RPC method support - update docs
             }
             Err(e) => {
-                if let Err(e) = ws.send(Message::Text(e.to_string())).await {
+                if let Err(e) = ws.lock().await.send(Message::Text(e.to_string())).await {
                     tracing::error!("Error sending websocket message: {e}");
                 }
             }
@@ -517,7 +476,7 @@ impl JsonRpcHandler {
     async fn on_websocket_rpc_call(
         &self,
         call: RpcMethodCall,
-        ws: &mut SplitSink<WebSocket, Message>,
+        ws: Arc<Mutex<SplitSink<WebSocket, Message>>>,
         socket_id: SocketId,
     ) {
         trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received method call");
@@ -539,7 +498,7 @@ impl JsonRpcHandler {
                         );
                         let err_serialized = serde_json::to_string(&err)
                             .unwrap_or(format!("Unserializable: {err:?}"));
-                        if let Err(e) = ws.send(Message::Text(err_serialized)).await {
+                        if let Err(e) = ws.lock().await.send(Message::Text(err_serialized)).await {
                             error!("Failed sending message: {e:?}")
                         }
                     }
@@ -549,7 +508,7 @@ impl JsonRpcHandler {
                     let rpc_err = e.api_error_to_rpc_error();
                     let rpc_err_serialized = serde_json::to_string(&rpc_err)
                         .unwrap_or(format!("Unserializable: {rpc_err:?}"));
-                    if let Err(e) = ws.send(Message::Text(rpc_err_serialized)).await {
+                    if let Err(e) = ws.lock().await.send(Message::Text(rpc_err_serialized)).await {
                         error!("Failed sending message: {e:?}");
                     }
                 }
@@ -569,7 +528,7 @@ impl JsonRpcHandler {
 
                 let rpc_err_serialized = serde_json::to_string(&rpc_err)
                     .unwrap_or(format!("Unserializable: {rpc_err:?}"));
-                if let Err(e) = ws.send(Message::Text(rpc_err_serialized)).await {
+                if let Err(e) = ws.lock().await.send(Message::Text(rpc_err_serialized)).await {
                     error!("Failed sending message: {e}");
                 }
             }
@@ -1464,8 +1423,8 @@ mod response_tests {
     use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
-    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result(
-    ) {
+    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result()
+     {
         assert_eq!(
             r#"{"result":{}}"#,
             serde_json::to_string(

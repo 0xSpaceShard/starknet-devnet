@@ -68,7 +68,7 @@ impl JsonRpcHandler {
             Error::UnexpectedInternalError { msg: format!("Missing socket ID: {socket_id}") },
         ))?;
 
-        let subscription_id = socket_context.subscribe(rpc_request_id).await?;
+        let subscription_id = socket_context.subscribe(rpc_request_id).await;
 
         if let BlockId::Tag(_) = block_id {
             // if the specified block ID is a tag (i.e. latest/pending), no old block handling
@@ -86,7 +86,7 @@ impl JsonRpcHandler {
                     subscription_id.clone(),
                     SubscriptionNotification::NewHeadsNotification(old_block.into()),
                 )
-                .await?;
+                .await;
         }
 
         Ok(())

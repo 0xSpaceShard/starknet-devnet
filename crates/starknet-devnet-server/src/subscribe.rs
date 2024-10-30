@@ -1,10 +1,13 @@
+use std::sync::Arc;
+
+use axum::extract::ws::{Message, WebSocket};
+use futures::stream::SplitSink;
+use futures::SinkExt;
 use serde::{self, Serialize};
 use starknet_types::rpc::block::BlockHeader;
-use tokio::sync::mpsc::Sender;
+use tokio::sync::Mutex;
 
-use starknet_core::error::Error as CoreError;
-
-use crate::{api::json_rpc::error::ApiError, rpc_core::request::Id};
+use crate::rpc_core::request::Id;
 
 pub type SocketId = u64;
 
@@ -72,48 +75,52 @@ impl SubscriptionResponse {
 
 pub struct SocketContext {
     /// The sender part of the socket's own channel
-    starknet_sender: Sender<SubscriptionResponse>,
-    pub(crate) subscriptions: Vec<Subscription>,
+    sender: Arc<Mutex<SplitSink<WebSocket, Message>>>,
+    subscriptions: Vec<Subscription>,
 }
 
 impl SocketContext {
-    pub fn from_sender(sender: Sender<SubscriptionResponse>) -> Self {
-        Self { starknet_sender: sender, subscriptions: vec![] }
+    pub fn from_sender(sender: Arc<Mutex<SplitSink<WebSocket, Message>>>) -> Self {
+        Self { sender, subscriptions: vec![] }
     }
 
-    pub async fn subscribe(&mut self, rpc_request_id: Id) -> Result<SubscriptionId, ApiError> {
+    async fn send(&self, subscription_response: SubscriptionResponse) {
+        let resp_serialized = subscription_response.to_serialized_rpc_response();
+
+        if let Err(e) =
+            self.sender.lock().await.send(Message::Text(resp_serialized.to_string())).await
+        {
+            tracing::error!("Failed writing to socket: {}", e.to_string());
+        }
+    }
+
+    pub async fn subscribe(&mut self, rpc_request_id: Id) -> SubscriptionId {
         let subscription_id = Id::Number(rand::random()); // TODO safe? negative?
         self.subscriptions.push(Subscription::NewHeads(subscription_id.clone()));
 
-        self.starknet_sender
-            .send(SubscriptionResponse::Confirmation {
-                rpc_request_id,
-                result: SubscriptionConfirmation::NewHeadsConfirmation(subscription_id.clone()),
-            })
-            .await
-            .map_err(|e| {
-                ApiError::StarknetDevnetError(CoreError::UnexpectedInternalError {
-                    msg: e.to_string(),
-                })
-            })?;
+        self.send(SubscriptionResponse::Confirmation {
+            rpc_request_id,
+            result: SubscriptionConfirmation::NewHeadsConfirmation(subscription_id.clone()),
+        })
+        .await;
 
-        Ok(subscription_id)
+        subscription_id
     }
 
-    pub async fn notify(
-        &self,
-        subscription_id: SubscriptionId,
-        data: SubscriptionNotification,
-    ) -> Result<(), ApiError> {
-        self.starknet_sender
-            .send(SubscriptionResponse::Notification { subscription_id, data })
-            .await
-            .map_err(|e| {
-                ApiError::StarknetDevnetError(CoreError::UnexpectedInternalError {
-                    msg: e.to_string(),
-                })
-            })?;
+    pub async fn notify(&self, subscription_id: SubscriptionId, data: SubscriptionNotification) {
+        self.send(SubscriptionResponse::Notification { subscription_id, data }).await;
+    }
 
-        Ok(())
+    pub async fn notify_subscribers(&self, data: SubscriptionNotification) {
+        for subscription in self.subscriptions.iter() {
+            match subscription {
+                Subscription::NewHeads(subscription_id) => {
+                    if let SubscriptionNotification::NewHeadsNotification(_) = data {
+                        self.notify(subscription_id.clone(), data.clone()).await;
+                    }
+                }
+                other => println!("DEBUG unsupported subscription: {other:?}"),
+            }
+        }
     }
 }
