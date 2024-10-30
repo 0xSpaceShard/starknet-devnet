@@ -6,7 +6,9 @@ mod fork_tests {
     use std::sync::Arc;
 
     use server::test_utils::assert_contains;
-    use starknet_core::constants::CAIRO_1_ERC20_CONTRACT_CLASS_HASH;
+    use starknet_core::constants::{
+        CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_8_0, CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
+    };
     use starknet_rs_accounts::{
         Account, AccountFactory, AccountFactoryError, ExecutionEncoding,
         OpenZeppelinAccountFactory, SingleOwnerAccount,
@@ -368,7 +370,7 @@ mod fork_tests {
             "--state-archive-capacity",
             "full",
             "--account-class-custom",
-            "../../contracts/accounts_artifacts/OpenZeppelin/0.8.0/Account.cairo/Account.sierra",
+            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_8_0,
         ])
         .await
         .unwrap();
