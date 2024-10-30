@@ -52,24 +52,23 @@ pub enum SubscriptionResponse {
 }
 
 impl SubscriptionResponse {
-    pub fn to_serialized_rpc_response(&self) -> serde_json::Value {
+    fn to_serialized_rpc_response(&self) -> Result<serde_json::Value, serde_json::Error> {
         let mut resp = match self {
             SubscriptionResponse::Confirmation { rpc_request_id, result } => {
                 serde_json::json!({
                     "id": rpc_request_id,
-                    "result": result,
+                    "result": result, // TODO nested or not?
                 })
             }
             SubscriptionResponse::Notification { subscription_id, data } => {
-                let mut resp = serde_json::to_value(data).unwrap();
-                resp["params"]["id"] = serde_json::to_value(subscription_id).unwrap();
+                let mut resp = serde_json::to_value(data)?;
+                resp["params"]["id"] = serde_json::to_value(subscription_id)?;
                 resp
             }
         };
 
         resp["jsonrpc"] = "2.0".into();
-
-        return resp;
+        Ok(resp)
     }
 }
 
@@ -85,7 +84,13 @@ impl SocketContext {
     }
 
     async fn send(&self, subscription_response: SubscriptionResponse) {
-        let resp_serialized = subscription_response.to_serialized_rpc_response();
+        let resp_serialized = match subscription_response.to_serialized_rpc_response() {
+            Ok(resp_serialized) => resp_serialized,
+            Err(e) => {
+                tracing::error!("Cannot serialize response: {e:?}");
+                return;
+            }
+        };
 
         if let Err(e) =
             self.sender.lock().await.send(Message::Text(resp_serialized.to_string())).await
