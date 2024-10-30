@@ -5,10 +5,7 @@ use super::error::ApiError;
 use super::models::BlockIdInput;
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::rpc_core::request::Id;
-use crate::subscribe::{
-    SocketId, Subscription, SubscriptionConfirmation, SubscriptionNotification,
-    SubscriptionResponse,
-};
+use crate::subscribe::{SocketId, SubscriptionNotification};
 
 /// The definitions of JSON-RPC read endpoints defined in starknet_ws_api.json
 impl JsonRpcHandler {
@@ -51,14 +48,6 @@ impl JsonRpcHandler {
             unknown_error => ApiError::StarknetDevnetError(unknown_error),
         })?;
 
-        let mut sockets = self.api.sockets.lock().await;
-        let socket_context = sockets.get_mut(&socket_id).ok_or(ApiError::StarknetDevnetError(
-            Error::UnexpectedInternalError { msg: format!("Missing socket ID: {socket_id}") },
-        ))?;
-
-        let subscription_id = Id::Number(rand::random()); // TODO safe? negative?
-        socket_context.subscriptions.push(Subscription::NewHeads(subscription_id.clone()));
-
         let latest_block = starknet.get_block(&latest_tag)?;
 
         let query_block_number = query_block.block_number().0;
@@ -74,17 +63,12 @@ impl JsonRpcHandler {
             return Err(ApiError::TooManyBlocksBack);
         }
 
-        socket_context
-            .starknet_sender
-            .send(SubscriptionResponse::Confirmation {
-                rpc_request_id,
-                result: SubscriptionConfirmation::NewHeadsConfirmation(subscription_id.clone()),
-            })
-            .await
-            .map_err(|e| {
-                // TODO make this a method of SocketContext
-                ApiError::StarknetDevnetError(Error::UnexpectedInternalError { msg: e.to_string() })
-            })?;
+        let mut sockets = self.api.sockets.lock().await;
+        let socket_context = sockets.get_mut(&socket_id).ok_or(ApiError::StarknetDevnetError(
+            Error::UnexpectedInternalError { msg: format!("Missing socket ID: {socket_id}") },
+        ))?;
+
+        let subscription_id = socket_context.subscribe(rpc_request_id).await?;
 
         if let BlockId::Tag(_) = block_id {
             // if the specified block ID is a tag (i.e. latest/pending), no old block handling
@@ -96,18 +80,13 @@ impl JsonRpcHandler {
             let old_block = starknet
                 .get_block(&BlockId::Number(block_n))
                 .map_err(ApiError::StarknetDevnetError)?;
+
             socket_context
-                .starknet_sender
-                .send(SubscriptionResponse::Notification {
-                    subscription_id: subscription_id.clone(),
-                    data: SubscriptionNotification::NewHeadsNotification(old_block.into()),
-                })
-                .await
-                .map_err(|e| {
-                    ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
-                        msg: e.to_string(),
-                    })
-                })?;
+                .notify(
+                    subscription_id.clone(),
+                    SubscriptionNotification::NewHeadsNotification(old_block.into()),
+                )
+                .await?;
         }
 
         Ok(())

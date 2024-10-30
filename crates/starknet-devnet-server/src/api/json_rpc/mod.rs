@@ -189,7 +189,7 @@ impl RpcHandler for JsonRpcHandler {
                 if let Err(e) =
                     socket_writer_lock.send(Message::Text(resp_serialized.to_string())).await
                 {
-                    tracing::error!("Failed sending event to subscriber: {e:?}");
+                    tracing::error!("Failed sending event {subscription_response:?}. Error: {e:?}");
                 }
             }
         }
@@ -268,15 +268,14 @@ impl JsonRpcHandler {
                 for (_, socket_context) in sockets.iter() {
                     for subscription in &socket_context.subscriptions {
                         match subscription {
-                            Subscription::NewHeads(id) => {
+                            Subscription::NewHeads(subscription_id) => {
                                 if let Err(e) = socket_context
-                                    .starknet_sender
-                                    .send(SubscriptionResponse::Notification {
-                                        subscription_id: id.clone(),
-                                        data: SubscriptionNotification::NewHeadsNotification(
+                                    .notify(
+                                        subscription_id.clone(),
+                                        SubscriptionNotification::NewHeadsNotification(
                                             new_latest_block.into(),
                                         ),
-                                    })
+                                    )
                                     .await
                                 {
                                     error!("Failed sending message via socket: {e:?}");

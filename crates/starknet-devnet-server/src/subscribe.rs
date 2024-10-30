@@ -2,7 +2,9 @@ use serde::{self, Serialize};
 use starknet_types::rpc::block::BlockHeader;
 use tokio::sync::mpsc::Sender;
 
-use crate::rpc_core::request::Id;
+use starknet_core::error::Error as CoreError;
+
+use crate::{api::json_rpc::error::ApiError, rpc_core::request::Id};
 
 pub type SocketId = u64;
 
@@ -70,12 +72,48 @@ impl SubscriptionResponse {
 
 pub struct SocketContext {
     /// The sender part of the socket's own channel
-    pub(crate) starknet_sender: Sender<SubscriptionResponse>,
+    starknet_sender: Sender<SubscriptionResponse>,
     pub(crate) subscriptions: Vec<Subscription>,
 }
 
 impl SocketContext {
     pub fn from_sender(sender: Sender<SubscriptionResponse>) -> Self {
         Self { starknet_sender: sender, subscriptions: vec![] }
+    }
+
+    pub async fn subscribe(&mut self, rpc_request_id: Id) -> Result<SubscriptionId, ApiError> {
+        let subscription_id = Id::Number(rand::random()); // TODO safe? negative?
+        self.subscriptions.push(Subscription::NewHeads(subscription_id.clone()));
+
+        self.starknet_sender
+            .send(SubscriptionResponse::Confirmation {
+                rpc_request_id,
+                result: SubscriptionConfirmation::NewHeadsConfirmation(subscription_id.clone()),
+            })
+            .await
+            .map_err(|e| {
+                ApiError::StarknetDevnetError(CoreError::UnexpectedInternalError {
+                    msg: e.to_string(),
+                })
+            })?;
+
+        Ok(subscription_id)
+    }
+
+    pub async fn notify(
+        &self,
+        subscription_id: SubscriptionId,
+        data: SubscriptionNotification,
+    ) -> Result<(), ApiError> {
+        self.starknet_sender
+            .send(SubscriptionResponse::Notification { subscription_id, data })
+            .await
+            .map_err(|e| {
+                ApiError::StarknetDevnetError(CoreError::UnexpectedInternalError {
+                    msg: e.to_string(),
+                })
+            })?;
+
+        Ok(())
     }
 }
