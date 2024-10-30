@@ -6,8 +6,8 @@ use super::models::BlockIdInput;
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::rpc_core::request::Id;
 use crate::subscribe::{
-    SocketId, Subscription, SubscriptionConfirmation,
-    SubscriptionNotification, SubscriptionResponse,
+    SocketId, Subscription, SubscriptionConfirmation, SubscriptionNotification,
+    SubscriptionResponse,
 };
 
 /// The definitions of JSON-RPC read endpoints defined in starknet_ws_api.json
@@ -72,21 +72,24 @@ impl JsonRpcHandler {
 
         if blocks_back_amount > 1024 {
             return Err(ApiError::TooManyBlocksBack);
-        } else if let BlockId::Tag(_) = block_id {
-            // if the specified block ID is a tag (i.e. latest/pending), just store the subscription
-            return Ok(());
         }
 
         socket_context
             .starknet_sender
             .send(SubscriptionResponse::Confirmation {
                 rpc_request_id,
-                data: SubscriptionConfirmation::NewHeadsConfirmation,
+                result: SubscriptionConfirmation::NewHeadsConfirmation(subscription_id.clone()),
             })
             .await
             .map_err(|e| {
+                // TODO make this a method of SocketContext
                 ApiError::StarknetDevnetError(Error::UnexpectedInternalError { msg: e.to_string() })
             })?;
+
+        if let BlockId::Tag(_) = block_id {
+            // if the specified block ID is a tag (i.e. latest/pending), no old block handling
+            return Ok(());
+        }
 
         // latest_block_number inclusive? Yes, only if block_id != tag (already taken care of)
         for block_n in query_block_number..=latest_block_number {

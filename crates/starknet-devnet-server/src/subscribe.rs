@@ -15,13 +15,15 @@ pub enum Subscription {
     Reorg,
 }
 
+type SubscriptionId = Id;
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum SubscriptionConfirmation {
-    NewHeadsConfirmation,
-    TransactionStatusConfirmation,
-    PendingTransactionsConfirmation,
-    EventsConfirmation,
+    NewHeadsConfirmation(SubscriptionId),
+    TransactionStatusConfirmation(SubscriptionId),
+    PendingTransactionsConfirmation(SubscriptionId),
+    EventsConfirmation(SubscriptionId),
     UnsubscriptionConfirmation(bool),
 }
 
@@ -40,17 +42,17 @@ pub enum SubscriptionNotification {
 
 #[derive(Debug, Clone)]
 pub enum SubscriptionResponse {
-    Confirmation { rpc_request_id: Id, data: SubscriptionConfirmation },
+    Confirmation { rpc_request_id: Id, result: SubscriptionConfirmation },
     Notification { subscription_id: Id, data: SubscriptionNotification },
 }
 
 impl SubscriptionResponse {
     pub fn to_serialized_rpc_response(&self) -> serde_json::Value {
         let mut resp = match self {
-            SubscriptionResponse::Confirmation { rpc_request_id, data } => {
+            SubscriptionResponse::Confirmation { rpc_request_id, result } => {
                 serde_json::json!({
                     "id": rpc_request_id,
-                    "result": data,
+                    "result": result,
                 })
             }
             SubscriptionResponse::Notification { subscription_id, data } => {
