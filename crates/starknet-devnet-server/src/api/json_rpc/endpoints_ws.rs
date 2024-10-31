@@ -2,7 +2,7 @@ use starknet_core::error::Error;
 use starknet_rs_core::types::{BlockId, BlockTag};
 
 use super::error::ApiError;
-use super::models::BlockIdInput;
+use super::models::{BlockIdInput, SubscriptionIdInput};
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::rpc_core::request::Id;
 use crate::subscribe::{SocketId, SubscriptionNotification};
@@ -22,7 +22,17 @@ impl JsonRpcHandler {
             JsonRpcSubscriptionRequest::TransactionStatus => todo!(),
             JsonRpcSubscriptionRequest::PendingTransactions => todo!(),
             JsonRpcSubscriptionRequest::Events => todo!(),
-            JsonRpcSubscriptionRequest::Unsubscribe => todo!(),
+            JsonRpcSubscriptionRequest::Unsubscribe(SubscriptionIdInput { subscription_id }) => {
+                let mut sockets = self.api.sockets.lock().await;
+                let socket_context = sockets.get_mut(&socket_id).ok_or(
+                    ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
+                        msg: format!("Missing socket ID: {socket_id}"),
+                    }),
+                )?;
+
+                socket_context.unsubscribe(subscription_id).await;
+                Ok(())
+            }
         }
     }
 

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use axum::extract::ws::{Message, WebSocket};
 use futures::stream::SplitSink;
@@ -11,16 +11,15 @@ use crate::rpc_core::request::Id;
 
 pub type SocketId = u64;
 
+type SubscriptionId = i64;
+
 #[derive(Debug)]
 pub enum Subscription {
-    NewHeads(Id),
+    NewHeads,
     TransactionStatus,
     PendingTransactions,
     Events,
-    Reorg,
 }
-
-type SubscriptionId = Id;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
@@ -59,7 +58,7 @@ impl SubscriptionNotification {
 #[derive(Debug, Clone)]
 pub enum SubscriptionResponse {
     Confirmation { rpc_request_id: Id, result: SubscriptionConfirmation },
-    Notification { subscription_id: Id, data: SubscriptionNotification },
+    Notification { subscription_id: SubscriptionId, data: SubscriptionNotification },
 }
 
 impl SubscriptionResponse {
@@ -90,12 +89,12 @@ impl SubscriptionResponse {
 pub struct SocketContext {
     /// The sender part of the socket's own channel
     sender: Arc<Mutex<SplitSink<WebSocket, Message>>>,
-    subscriptions: Vec<Subscription>,
+    subscriptions: HashMap<SubscriptionId, Subscription>,
 }
 
 impl SocketContext {
     pub fn from_sender(sender: Arc<Mutex<SplitSink<WebSocket, Message>>>) -> Self {
-        Self { sender, subscriptions: vec![] }
+        Self { sender, subscriptions: HashMap::new() }
     }
 
     async fn send(&self, subscription_response: SubscriptionResponse) {
@@ -107,16 +106,23 @@ impl SocketContext {
     }
 
     pub async fn subscribe(&mut self, rpc_request_id: Id) -> SubscriptionId {
-        let subscription_id = Id::Number(rand::random()); // TODO safe? negative?
-        self.subscriptions.push(Subscription::NewHeads(subscription_id.clone()));
+        let subscription_id = rand::random(); // TODO safe? negative?
+        self.subscriptions.insert(subscription_id, Subscription::NewHeads);
 
         self.send(SubscriptionResponse::Confirmation {
             rpc_request_id,
-            result: SubscriptionConfirmation::NewHeadsConfirmation(subscription_id.clone()),
+            result: SubscriptionConfirmation::NewHeadsConfirmation(subscription_id),
         })
         .await;
 
         subscription_id
+    }
+
+    pub async fn unsubscribe(&mut self, subscription_id: SubscriptionId) {
+        match self.subscriptions.remove(&subscription_id) {
+            Some(_) => todo!("return true"),
+            None => todo!("return INVALID_SUBSCRIPTION_ID"),
+        }
     }
 
     pub async fn notify(&self, subscription_id: SubscriptionId, data: SubscriptionNotification) {
@@ -124,11 +130,11 @@ impl SocketContext {
     }
 
     pub async fn notify_subscribers(&self, data: SubscriptionNotification) {
-        for subscription in self.subscriptions.iter() {
+        for (subscription_id, subscription) in self.subscriptions.iter() {
             match subscription {
-                Subscription::NewHeads(subscription_id) => {
+                Subscription::NewHeads => {
                     if let SubscriptionNotification::NewHeadsNotification(_) = data {
-                        self.notify(subscription_id.clone(), data.clone()).await;
+                        self.notify(*subscription_id, data.clone()).await;
                     }
                 }
                 other => println!("DEBUG unsupported subscription: {other:?}"),
