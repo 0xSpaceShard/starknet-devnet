@@ -2,6 +2,8 @@
 pub mod common;
 
 mod websocket_subscription_support {
+    use std::collections::HashMap;
+
     use serde_json::json;
     use server::test_utils::assert_contains;
     use tokio_tungstenite::connect_async;
@@ -18,16 +20,23 @@ mod websocket_subscription_support {
             send_text_rpc_via_ws(&mut ws, "starknet_subscribeNewHeads", json!({})).await.unwrap();
         let subscription_id = subscription_confirmation["result"].as_i64().unwrap();
 
-        let created_block_hash = devnet.create_block().await.unwrap();
+        for i in 0..2 {
+            let created_block_hash = devnet.create_block().await.unwrap();
 
-        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-        assert_eq!(notification["method"], "starknet_subscriptionNewHeads");
-        assert_eq!(
-            notification["params"]["result"]["block_hash"].as_str().unwrap(),
-            created_block_hash.to_hex_string().as_str()
-        );
-        assert_eq!(notification["params"]["result"]["block_number"].as_i64().unwrap(), 1);
-        assert_eq!(notification["params"]["subscription_id"].as_i64().unwrap(), subscription_id);
+            let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+            assert_eq!(notification["method"], "starknet_subscriptionNewHeads");
+            assert_eq!(
+                notification["params"]["result"]["block_hash"].as_str().unwrap(),
+                created_block_hash.to_hex_string().as_str()
+            );
+
+            // origin is 0, so shift by one
+            assert_eq!(notification["params"]["result"]["block_number"].as_i64().unwrap(), i + 1);
+            assert_eq!(
+                notification["params"]["subscription_id"].as_i64().unwrap(),
+                subscription_id
+            );
+        }
     }
 
     #[tokio::test]
@@ -38,5 +47,41 @@ mod websocket_subscription_support {
         devnet.create_block().await.unwrap();
         let read_err = receive_rpc_via_ws(&mut ws).await.unwrap_err();
         assert_contains(read_err.to_string().as_str(), "deadline has elapsed");
+    }
+
+    #[tokio::test]
+    async fn multiple_block_subscribers_happy_path() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        let n_subscribers = 5;
+
+        let mut subscribers = HashMap::new();
+        for _ in 0..n_subscribers {
+            let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+            let subscription_confirmation =
+                send_text_rpc_via_ws(&mut ws, "starknet_subscribeNewHeads", json!({}))
+                    .await
+                    .unwrap();
+
+            let subscription_id = subscription_confirmation["result"].as_i64().unwrap();
+            subscribers.insert(subscription_id, ws);
+        }
+
+        let created_block_hash = devnet.create_block().await.unwrap();
+
+        for (subscription_id, mut ws) in subscribers {
+            let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+            assert_eq!(notification["method"], "starknet_subscriptionNewHeads");
+            assert_eq!(
+                notification["params"]["result"]["block_hash"].as_str().unwrap(),
+                created_block_hash.to_hex_string().as_str()
+            );
+
+            assert_eq!(notification["params"]["result"]["block_number"].as_i64().unwrap(), 1);
+            assert_eq!(
+                notification["params"]["subscription_id"].as_i64().unwrap(),
+                subscription_id
+            );
+        }
     }
 }
