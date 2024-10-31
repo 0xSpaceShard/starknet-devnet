@@ -5187,9 +5187,9 @@ dependencies = [
 
 [[package]]
 name = "scc"
-version = "2.1.17"
+version = "2.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c947adb109a8afce5fc9c7bf951f87f146e9147b3a6a58413105628fb1d1e66"
+checksum = "d8d25269dd3a12467afe2e510f69fb0b46b698e5afb296b59f2145259deaf8e8"
 dependencies = [
  "sdd",
 ]
@@ -5258,9 +5258,9 @@ dependencies = [
 
 [[package]]
 name = "sdd"
-version = "3.0.3"
+version = "3.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60a7b59a5d9b0099720b417b6325d91a52cbf5b3dcb5041d864be53eefa58abc"
+checksum = "49c1eeaf4b6a87c7479688c6d52b9f1153cedd3c489300564f932b065c6eab95"
 
 [[package]]
 name = "sec1"
@@ -5797,7 +5797,7 @@ dependencies = [
 
 [[package]]
 name = "starknet-devnet"
-version = "0.2.3"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5829,7 +5829,7 @@ dependencies = [
 
 [[package]]
 name = "starknet-devnet-core"
-version = "0.2.3"
+version = "0.2.2"
 dependencies = [
  "blockifier",
  "cairo-lang-starknet-classes",
@@ -5858,7 +5858,7 @@ dependencies = [
 
 [[package]]
 name = "starknet-devnet-server"
-version = "0.2.3"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5885,7 +5885,7 @@ dependencies = [
 
 [[package]]
 name = "starknet-devnet-types"
-version = "0.2.3"
+version = "0.2.2"
 dependencies = [
  "base64 0.22.1",
  "bigdecimal",
