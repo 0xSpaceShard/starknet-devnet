@@ -48,9 +48,6 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Load cache
-          command: .circleci/scripts/cache.sh load
-      - run:
           name: Install nightly-2024-10-31
           command: rustup install nightly-2024-10-31
       - run:
