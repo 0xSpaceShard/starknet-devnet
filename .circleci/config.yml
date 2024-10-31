@@ -55,10 +55,7 @@ jobs:
           command: rustup install nightly-2024-10-31
       - run:
           name: Package types
-          command: cargo +nightly-2024-10-31 package -p starknet-devnet-types -Z package-workspace
-      - run:
-          name: Package core
-          command: cargo +nightly-2024-10-31 package -p starknet-devnet-core -Z package-workspace
+          command: cargo +nightly-2024-10-31 package -Z package-workspace
       # - run:
       #     name: Install foundry
       #     command: ./scripts/install_foundry.sh
