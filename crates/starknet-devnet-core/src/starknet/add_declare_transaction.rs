@@ -1,10 +1,10 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
-use starknet_types::contract_class::ContractClass;
-use starknet_types::felt::{ClassHash, CompiledClassHash, TransactionHash};
-use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
-use starknet_types::rpc::transactions::declare_transaction_v2::DeclareTransactionV2;
-use starknet_types::rpc::transactions::declare_transaction_v3::DeclareTransactionV3;
-use starknet_types::rpc::transactions::{
+use starknet_devnet_types::contract_class::ContractClass;
+use starknet_devnet_types::felt::{ClassHash, CompiledClassHash, TransactionHash};
+use starknet_devnet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
+use starknet_devnet_types::rpc::transactions::declare_transaction_v2::DeclareTransactionV2;
+use starknet_devnet_types::rpc::transactions::declare_transaction_v3::DeclareTransactionV3;
+use starknet_devnet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, DeclareTransaction, Transaction, TransactionWithHash,
 };
 
@@ -114,7 +114,9 @@ fn assert_casm_hash_is_valid(
             )
             .map_err(|err| {
                 let reason = err.to_string();
-                Error::TypesError(starknet_types::error::Error::SierraCompilationError { reason })
+                Error::TypesError(starknet_devnet_types::error::Error::SierraCompilationError {
+                    reason,
+                })
             })?;
 
             let calculated_casm_hash = calculate_casm_hash(casm_json)?;
@@ -135,16 +137,16 @@ mod tests {
     use blockifier::state::state_api::StateReader;
     use starknet_api::core::CompiledClassHash;
     use starknet_api::transaction::Fee;
-    use starknet_rs_core::types::{
+    use starknet_core::types::{
         BlockId, BlockTag, Felt, TransactionExecutionStatus, TransactionFinalityStatus,
     };
-    use starknet_types::constants::QUERY_VERSION_OFFSET;
-    use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::ContractClass;
-    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
-    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-    use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
-    use starknet_types::traits::HashProducer;
+    use starknet_devnet_types::constants::QUERY_VERSION_OFFSET;
+    use starknet_devnet_types::contract_address::ContractAddress;
+    use starknet_devnet_types::contract_class::ContractClass;
+    use starknet_devnet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
+    use starknet_devnet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+    use starknet_devnet_types::rpc::transactions::BroadcastedDeclareTransaction;
+    use starknet_devnet_types::traits::HashProducer;
 
     use crate::error::{Error, TransactionValidationError};
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
@@ -376,7 +378,7 @@ mod tests {
         );
 
         let result = Starknet::default().add_declare_transaction(
-            starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V1(Box::new(
+            starknet_devnet_types::rpc::transactions::BroadcastedDeclareTransaction::V1(Box::new(
                 declare_transaction,
             )),
         );

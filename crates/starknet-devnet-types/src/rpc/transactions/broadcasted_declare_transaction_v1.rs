@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
-use starknet_rs_core::crypto::compute_hash_on_elements;
-use starknet_rs_core::types::Felt;
+use starknet_core::crypto::compute_hash_on_elements;
+use starknet_core::types::Felt;
 
 use crate::constants::PREFIX_DECLARE;
 use crate::contract_address::ContractAddress;
@@ -67,7 +67,7 @@ impl BroadcastedDeclareTransactionV1 {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::Fee;
-    use starknet_rs_core::types::Felt;
+    use starknet_core::types::Felt;
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;

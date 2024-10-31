@@ -4,8 +4,8 @@ use blockifier::transaction::transactions::L1HandlerTransaction;
 use serde::{Deserialize, Serialize};
 use starknet_api::core::EntryPointSelector;
 use starknet_api::transaction::Calldata;
-use starknet_rs_core::types::requests::EstimateMessageFeeRequest;
-use starknet_rs_core::types::{
+use starknet_core::types::requests::EstimateMessageFeeRequest;
+use starknet_core::types::{
     BlockId as SrBlockId, Felt, MsgFromL1 as SrMsgFromL1, MsgFromL1, PriceUnit,
 };
 

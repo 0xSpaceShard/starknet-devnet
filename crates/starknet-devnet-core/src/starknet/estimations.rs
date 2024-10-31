@@ -4,12 +4,12 @@ use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::objects::HasRelatedFeeType;
 use blockifier::transaction::transactions::ExecutableTransaction;
-use starknet_rs_core::types::{BlockId, Felt, MsgFromL1, PriceUnit};
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::rpc::estimate_message_fee::{
+use starknet_core::types::{BlockId, Felt, MsgFromL1, PriceUnit};
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
-use starknet_types::rpc::transactions::BroadcastedTransaction;
+use starknet_devnet_types::rpc::transactions::BroadcastedTransaction;
 
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;

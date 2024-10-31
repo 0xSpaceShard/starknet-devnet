@@ -1,6 +1,6 @@
-use starknet_types::felt::{felt_from_prefixed_hex, TransactionHash};
-use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
+use starknet_devnet_types::felt::{felt_from_prefixed_hex, TransactionHash};
+use starknet_devnet_types::rpc::messaging::{MessageToL1, MessageToL2};
+use starknet_devnet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 
 use crate::api::http::models::{
     FlushParameters, FlushedMessages, MessageHash, MessagingLoadAddress,

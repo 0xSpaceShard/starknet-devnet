@@ -1,5 +1,5 @@
 use serde_json::json;
-use starknet_types;
+use starknet_devnet_types;
 use thiserror::Error;
 use tracing::error;
 
@@ -11,9 +11,9 @@ use crate::rpc_core::error::RpcError;
 #[derive(Error, Debug)]
 pub enum ApiError {
     #[error(transparent)]
-    StarknetDevnetError(#[from] starknet_core::error::Error),
+    StarknetDevnetError(#[from] starknet_devnet_core::error::Error),
     #[error("Types error")]
-    TypesError(#[from] starknet_types::error::Error),
+    TypesError(#[from] starknet_devnet_types::error::Error),
     #[error("Rpc error {0:?}")]
     RpcError(RpcError),
     #[error("Block not found")]
@@ -27,7 +27,7 @@ pub enum ApiError {
     #[error("Class hash not found")]
     ClassHashNotFound,
     #[error("Contract error")]
-    ContractError { error: starknet_core::error::Error },
+    ContractError { error: starknet_devnet_core::error::Error },
     #[error("There are no blocks")]
     NoBlocks,
     #[error("Requested page size is too big")]
@@ -174,13 +174,13 @@ impl ApiError {
                 data: None,
             },
             ApiError::StarknetDevnetError(
-                starknet_core::error::Error::TransactionValidationError(validation_error),
+                starknet_devnet_core::error::Error::TransactionValidationError(validation_error),
             ) => {
                 let api_err = match validation_error {
-                    starknet_core::error::TransactionValidationError::InsufficientMaxFee => ApiError::InsufficientMaxFee,
-                    starknet_core::error::TransactionValidationError::InvalidTransactionNonce => ApiError::InvalidTransactionNonce,
-                    starknet_core::error::TransactionValidationError::InsufficientAccountBalance => ApiError::InsufficientAccountBalance,
-                    starknet_core::error::TransactionValidationError::ValidationFailure { reason } => ApiError::ValidationFailure { reason },
+                    starknet_devnet_core::error::TransactionValidationError::InsufficientMaxFee => ApiError::InsufficientMaxFee,
+                    starknet_devnet_core::error::TransactionValidationError::InvalidTransactionNonce => ApiError::InvalidTransactionNonce,
+                    starknet_devnet_core::error::TransactionValidationError::InsufficientAccountBalance => ApiError::InsufficientAccountBalance,
+                    starknet_devnet_core::error::TransactionValidationError::ValidationFailure { reason } => ApiError::ValidationFailure { reason },
                 };
 
                 api_err.api_error_to_rpc_error()
@@ -288,9 +288,9 @@ mod tests {
 
     #[test]
     fn contract_error() {
-        fn test_error() -> starknet_core::error::Error {
-            starknet_core::error::Error::TransactionValidationError(
-                starknet_core::error::TransactionValidationError::ValidationFailure {
+        fn test_error() -> starknet_devnet_core::error::Error {
+            starknet_devnet_core::error::Error::TransactionValidationError(
+                starknet_devnet_core::error::TransactionValidationError::ValidationFailure {
                     reason: "some reason".into(),
                 },
             )
@@ -314,10 +314,11 @@ mod tests {
 
     #[test]
     fn invalid_transaction_nonce_error() {
-        let devnet_error =
-            ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
-                starknet_core::error::TransactionValidationError::InvalidTransactionNonce,
-            ));
+        let devnet_error = ApiError::StarknetDevnetError(
+            starknet_devnet_core::error::Error::TransactionValidationError(
+                starknet_devnet_core::error::TransactionValidationError::InvalidTransactionNonce,
+            ),
+        );
 
         assert_eq!(
             devnet_error.api_error_to_rpc_error(),
@@ -332,10 +333,11 @@ mod tests {
 
     #[test]
     fn insufficient_max_fee_error() {
-        let devnet_error =
-            ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
-                starknet_core::error::TransactionValidationError::InsufficientMaxFee,
-            ));
+        let devnet_error = ApiError::StarknetDevnetError(
+            starknet_devnet_core::error::Error::TransactionValidationError(
+                starknet_devnet_core::error::TransactionValidationError::InsufficientMaxFee,
+            ),
+        );
 
         assert_eq!(
             devnet_error.api_error_to_rpc_error(),
@@ -350,10 +352,11 @@ mod tests {
 
     #[test]
     fn insufficient_account_balance_error() {
-        let devnet_error =
-            ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
-                starknet_core::error::TransactionValidationError::InsufficientAccountBalance,
-            ));
+        let devnet_error = ApiError::StarknetDevnetError(
+            starknet_devnet_core::error::Error::TransactionValidationError(
+                starknet_devnet_core::error::TransactionValidationError::InsufficientAccountBalance,
+            ),
+        );
 
         assert_eq!(
             devnet_error.api_error_to_rpc_error(),
@@ -369,12 +372,13 @@ mod tests {
     #[test]
     fn account_validation_error() {
         let reason = String::from("some reason");
-        let devnet_error =
-            ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
-                starknet_core::error::TransactionValidationError::ValidationFailure {
+        let devnet_error = ApiError::StarknetDevnetError(
+            starknet_devnet_core::error::Error::TransactionValidationError(
+                starknet_devnet_core::error::TransactionValidationError::ValidationFailure {
                     reason: reason.clone(),
                 },
-            ));
+            ),
+        );
 
         assert_eq!(
             devnet_error.api_error_to_rpc_error(),

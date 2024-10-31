@@ -6,19 +6,19 @@ mod simulation_tests {
     use std::{u128, u64};
 
     use serde_json::json;
-    use server::test_utils::assert_contains;
-    use starknet_core::constants::{
+    use starknet_devnet_server::test_utils::assert_contains;
+    use starknet_devnet_core::constants::{
         CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
         ETH_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS,
     };
-    use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
-    use starknet_rs_accounts::{
+    use starknet_devnet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
+    use starknet_accounts::{
         Account, AccountError, AccountFactory, ConnectedAccount, ExecutionEncoder,
         ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
-    use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{
+    use starknet_contract::ContractFactory;
+    use starknet_core::types::contract::legacy::LegacyContractClass;
+    use starknet_core::types::{
         BlockId, BlockTag, BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV3,
         BroadcastedDeployAccountTransaction, BroadcastedDeployAccountTransactionV3,
         BroadcastedInvokeTransaction, BroadcastedInvokeTransactionV3, BroadcastedTransaction, Call,
@@ -26,13 +26,13 @@ mod simulation_tests {
         ResourceBounds, ResourceBoundsMapping, SimulatedTransaction, SimulationFlag, StarknetError,
         TransactionExecutionErrorData, TransactionTrace,
     };
-    use starknet_rs_core::utils::{
+    use starknet_core::utils::{
         cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
-    use starknet_rs_providers::{Provider, ProviderError};
-    use starknet_rs_signers::{LocalWallet, Signer, SigningKey};
-    use starknet_types::constants::QUERY_VERSION_OFFSET;
-    use starknet_types::felt::felt_from_prefixed_hex;
+    use starknet_providers::{Provider, ProviderError};
+    use starknet_signers::{LocalWallet, Signer, SigningKey};
+    use starknet_devnet_types::constants::QUERY_VERSION_OFFSET;
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
@@ -528,7 +528,7 @@ mod simulation_tests {
                 account.block_id(),
                 [
                     BroadcastedTransaction::Declare(
-                        starknet_rs_core::types::BroadcastedDeclareTransaction::V3(
+                        starknet_core::types::BroadcastedDeclareTransaction::V3(
                             BroadcastedDeclareTransactionV3 {
                                 sender_address: account_address,
                                 compiled_class_hash: casm_hash,
@@ -626,7 +626,7 @@ mod simulation_tests {
                 account.block_id(),
                 [
                     BroadcastedTransaction::Declare(
-                        starknet_rs_core::types::BroadcastedDeclareTransaction::V3(
+                        starknet_core::types::BroadcastedDeclareTransaction::V3(
                             BroadcastedDeclareTransactionV3 {
                                 sender_address: account_address,
                                 compiled_class_hash: casm_hash,

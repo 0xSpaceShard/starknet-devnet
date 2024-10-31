@@ -3,9 +3,9 @@ pub mod common;
 
 mod balance_tests {
     use serde_json::json;
-    use starknet_rs_core::types::Felt;
-    use starknet_types::felt::felt_from_prefixed_hex;
-    use starknet_types::rpc::transaction_receipt::FeeUnit;
+    use starknet_core::types::Felt;
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
+    use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{

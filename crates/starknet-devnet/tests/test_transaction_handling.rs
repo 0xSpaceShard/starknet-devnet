@@ -4,12 +4,12 @@ pub mod common;
 mod trace_tests {
     use std::sync::Arc;
 
-    use server::test_utils::assert_contains;
-    use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
-    use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
-    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{Felt, StarknetError};
-    use starknet_rs_providers::ProviderError;
+    use starknet_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
+    use starknet_devnet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
+    use starknet_devnet_server::test_utils::assert_contains;
+    use starknet_core::types::contract::legacy::LegacyContractClass;
+    use starknet_core::types::{Felt, StarknetError};
+    use starknet_providers::ProviderError;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{CHAIN_ID, INVALID_ACCOUNT_SIERRA_PATH};

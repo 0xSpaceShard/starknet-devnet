@@ -1,8 +1,8 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-use starknet_core::constants::DEVNET_DEFAULT_INITIAL_BALANCE;
-use starknet_types::rpc::state::Balance;
+use starknet_devnet_core::constants::DEVNET_DEFAULT_INITIAL_BALANCE;
+use starknet_devnet_types::rpc::state::Balance;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct InitialBalanceWrapper(pub Balance);

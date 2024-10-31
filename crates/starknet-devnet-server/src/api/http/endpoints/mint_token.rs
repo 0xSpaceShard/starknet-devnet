@@ -1,11 +1,11 @@
-use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
-use starknet_core::error::DevnetResult;
-use starknet_core::starknet::Starknet;
-use starknet_rs_core::types::{BlockId, BlockTag, Felt};
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::join_felts;
-use starknet_types::num_bigint::BigUint;
-use starknet_types::rpc::transaction_receipt::FeeUnit;
+use starknet_core::types::{BlockId, BlockTag, Felt};
+use starknet_devnet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
+use starknet_devnet_core::error::DevnetResult;
+use starknet_devnet_core::starknet::Starknet;
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::felt::join_felts;
+use starknet_devnet_types::num_bigint::BigUint;
+use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
 
 use crate::api::http::models::{MintTokensRequest, MintTokensResponse};
 use crate::api::json_rpc::error::{ApiError, StrictRpcResult};
@@ -20,8 +20,8 @@ pub fn get_balance(
     tag: BlockTag,
 ) -> Result<BigUint, ApiError> {
     let balance_selector =
-        starknet_rs_core::utils::get_selector_from_name("balanceOf").map_err(|err| {
-            starknet_core::error::Error::UnexpectedInternalError { msg: err.to_string() }
+        starknet_core::utils::get_selector_from_name("balanceOf").map_err(|err| {
+            starknet_devnet_core::error::Error::UnexpectedInternalError { msg: err.to_string() }
         })?;
     let new_balance_raw = starknet.call(
         &BlockId::Tag(tag),
@@ -40,7 +40,7 @@ pub fn get_balance(
             );
 
             Err(ApiError::ContractError {
-                error: starknet_core::error::Error::UnexpectedInternalError { msg },
+                error: starknet_devnet_core::error::Error::UnexpectedInternalError { msg },
             })
         }
     }

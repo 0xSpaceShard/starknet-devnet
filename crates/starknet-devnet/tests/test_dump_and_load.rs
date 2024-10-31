@@ -6,9 +6,9 @@ mod dump_and_load_tests {
     use std::time;
 
     use serde_json::json;
-    use server::rpc_core::error::ErrorCode::InvalidParams;
-    use starknet_rs_providers::Provider;
-    use starknet_types::rpc::transaction_receipt::FeeUnit;
+    use starknet_devnet_server::rpc_core::error::ErrorCode::InvalidParams;
+    use starknet_providers::Provider;
+    use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
@@ -20,9 +20,9 @@ mod dump_and_load_tests {
 
     use std::sync::Arc;
 
-    use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-    use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::Felt;
+    use starknet_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+    use starknet_contract::ContractFactory;
+    use starknet_core::types::Felt;
 
     use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
 
@@ -182,8 +182,8 @@ mod dump_and_load_tests {
                 .expect("Could not start Devnet");
         let loaded_transaction_1 =
             devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash_1).await.unwrap();
-        if let starknet_rs_core::types::Transaction::Invoke(
-            starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
+        if let starknet_core::types::Transaction::Invoke(
+            starknet_core::types::InvokeTransaction::V1(invoke_v1),
         ) = loaded_transaction_1
         {
             assert_eq!(invoke_v1.transaction_hash, mint_tx_hash_1);
@@ -193,8 +193,8 @@ mod dump_and_load_tests {
 
         let loaded_transaction_2 =
             devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash_2).await.unwrap();
-        if let starknet_rs_core::types::Transaction::Invoke(
-            starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
+        if let starknet_core::types::Transaction::Invoke(
+            starknet_core::types::InvokeTransaction::V1(invoke_v1),
         ) = loaded_transaction_2
         {
             assert_eq!(invoke_v1.transaction_hash, mint_tx_hash_2);
@@ -229,8 +229,8 @@ mod dump_and_load_tests {
         assert_ne!(devnet_dump_pid, devnet_load_pid); // if PID's are different SIGINT signal worked
         let loaded_transaction =
             devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash).await.unwrap();
-        if let starknet_rs_core::types::Transaction::Invoke(
-            starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
+        if let starknet_core::types::Transaction::Invoke(
+            starknet_core::types::InvokeTransaction::V1(invoke_v1),
         ) = loaded_transaction
         {
             assert_eq!(invoke_v1.transaction_hash, mint_tx_hash);
@@ -295,8 +295,8 @@ mod dump_and_load_tests {
             .get_transaction_by_hash(declaration_result.transaction_hash)
             .await
             .unwrap();
-        if let starknet_rs_core::types::Transaction::Declare(
-            starknet_rs_core::types::DeclareTransaction::V2(declare_v2),
+        if let starknet_core::types::Transaction::Declare(
+            starknet_core::types::DeclareTransaction::V2(declare_v2),
         ) = loaded_declare_v2
         {
             assert_eq!(declare_v2.transaction_hash, declaration_result.transaction_hash);
@@ -310,8 +310,8 @@ mod dump_and_load_tests {
             .get_transaction_by_hash(deploy_result.transaction_hash)
             .await
             .unwrap();
-        if let starknet_rs_core::types::Transaction::Invoke(
-            starknet_rs_core::types::InvokeTransaction::V1(deploy_v2),
+        if let starknet_core::types::Transaction::Invoke(
+            starknet_core::types::InvokeTransaction::V1(deploy_v2),
         ) = loaded_deploy_v2
         {
             assert_eq!(deploy_v2.transaction_hash, deploy_result.transaction_hash);
@@ -433,8 +433,8 @@ mod dump_and_load_tests {
 
         let loaded_transaction =
             devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash).await.unwrap();
-        if let starknet_rs_core::types::Transaction::Invoke(
-            starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
+        if let starknet_core::types::Transaction::Invoke(
+            starknet_core::types::InvokeTransaction::V1(invoke_v1),
         ) = loaded_transaction
         {
             assert_eq!(invoke_v1.transaction_hash, mint_tx_hash);

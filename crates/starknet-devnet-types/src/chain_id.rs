@@ -1,8 +1,8 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-use starknet_rs_core::chain_id::{MAINNET, SEPOLIA};
-use starknet_rs_core::utils::{cairo_short_string_to_felt, parse_cairo_short_string};
+use starknet_core::chain_id::{MAINNET, SEPOLIA};
+use starknet_core::utils::{cairo_short_string_to_felt, parse_cairo_short_string};
 use starknet_types_core::felt::Felt;
 
 use crate::error::ConversionError;
@@ -16,7 +16,7 @@ pub enum ChainId {
 
 impl ChainId {
     /// Used only in tests.
-    /// It was imported from `starknet_rs_core::chain_id`, but now gives a deprecation warning
+    /// It was imported from `starknet_core::chain_id`, but now gives a deprecation warning
     /// defined [here](https://github.com/xJonathanLEI/starknet-rs/blob/f6d339c6b897fb38c839485608ca2fe374a6275d/starknet-core/src/chain_id.rs#L10).
     /// Instead of ignoring the warning in two places, it's defined here.
     const TESTNET: Felt = Felt::from_raw([

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use starknet_api::core::calculate_contract_address;
-use starknet_rs_crypto::poseidon_hash_many;
+use starknet_crypto::poseidon_hash_many;
 use starknet_types_core::felt::Felt;
 
 use super::BroadcastedTransactionCommonV3;
@@ -68,7 +68,7 @@ impl BroadcastedDeployAccountTransactionV3 {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::{ResourceBoundsMapping, Tip};
-    use starknet_rs_core::types::Felt;
+    use starknet_core::types::Felt;
 
     use crate::chain_id::ChainId;
     use crate::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;

@@ -4,7 +4,7 @@ pub mod serde_helpers;
 
 use std::sync::Arc;
 
-use starknet_core::starknet::Starknet;
+use starknet_devnet_core::starknet::Starknet;
 use tokio::sync::Mutex;
 
 use crate::dump_util::DumpEvent;

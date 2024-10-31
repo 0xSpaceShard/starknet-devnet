@@ -5,24 +5,24 @@ use std::process::{Child, Command};
 use std::sync::Arc;
 
 use ethers::types::U256;
-use server::test_utils::assert_contains;
-use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
-use starknet_core::random_number_generator::generate_u32_random_number;
-use starknet_core::utils::calculate_casm_hash;
-use starknet_rs_accounts::{
+use starknet_devnet_server::test_utils::assert_contains;
+use starknet_devnet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
+use starknet_devnet_core::random_number_generator::generate_u32_random_number;
+use starknet_devnet_core::utils::calculate_casm_hash;
+use starknet_accounts::{
     Account, AccountFactory, ArgentAccountFactory, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::contract::SierraClass;
-use starknet_rs_core::types::{
+use starknet_contract::ContractFactory;
+use starknet_core::types::contract::SierraClass;
+use starknet_core::types::{
     BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult, FeeEstimate,
     Felt, FlattenedSierraClass, FunctionCall, NonZeroFelt,
 };
-use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
-use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_providers::{JsonRpcClient, Provider};
-use starknet_rs_signers::LocalWallet;
-use starknet_types::felt::felt_from_prefixed_hex;
+use starknet_core::utils::{get_selector_from_name, get_udc_deployed_address};
+use starknet_providers::jsonrpc::HttpTransport;
+use starknet_providers::{JsonRpcClient, Provider};
+use starknet_signers::LocalWallet;
+use starknet_devnet_types::felt::felt_from_prefixed_hex;
 
 use super::background_devnet::BackgroundDevnet;
 use super::constants::{ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_CONTRACT_PATH};
@@ -37,7 +37,7 @@ pub enum ImpersonationAction {
 /// dummy testing value
 pub fn get_deployable_account_signer() -> LocalWallet {
     let new_account_private_key = "0xc248668388dbe9acdfa3bc734cc2d57a";
-    starknet_rs_signers::LocalWallet::from(starknet_rs_signers::SigningKey::from_secret_scalar(
+    starknet_signers::LocalWallet::from(starknet_signers::SigningKey::from_secret_scalar(
         felt_from_prefixed_hex(new_account_private_key).unwrap(),
     ))
 }
@@ -98,7 +98,7 @@ pub async fn assert_tx_successful<T: Provider>(tx_hash: &Felt, client: &T) {
     }
 
     match receipt.finality_status() {
-        starknet_rs_core::types::TransactionFinalityStatus::AcceptedOnL2 => (),
+        starknet_core::types::TransactionFinalityStatus::AcceptedOnL2 => (),
         other => panic!("Should have been accepted on L2; got: {other:?}"),
     }
 }
@@ -255,7 +255,7 @@ pub async fn declare_v3_deploy_v3(
     let contract_address = get_udc_deployed_address(
         salt,
         declaration_result.class_hash,
-        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        &starknet_core::utils::UdcUniqueness::NotUnique,
         ctor_args,
     );
 

@@ -6,20 +6,20 @@ mod blocks_generation_tests {
     use std::time;
 
     use serde_json::json;
-    use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
-    use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-    use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::{
+    use starknet_devnet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
+    use starknet_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+    use starknet_contract::ContractFactory;
+    use starknet_core::types::{
         BlockId, BlockStatus, BlockTag, Call, DeclaredClassItem, Felt, FunctionCall,
         MaybePendingStateUpdate, NonceUpdate, StateUpdate, TransactionTrace,
     };
-    use starknet_rs_core::utils::{
+    use starknet_core::utils::{
         get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
     };
-    use starknet_rs_providers::Provider;
-    use starknet_rs_signers::Signer;
-    use starknet_types::felt::felt_from_prefixed_hex;
-    use starknet_types::rpc::transaction_receipt::FeeUnit;
+    use starknet_providers::Provider;
+    use starknet_signers::Signer;
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
+    use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
@@ -430,7 +430,7 @@ mod blocks_generation_tests {
         let contract_address = get_udc_deployed_address(
             Felt::ZERO,
             declaration_result.class_hash,
-            &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+            &starknet_core::utils::UdcUniqueness::NotUnique,
             &ctor_args,
         );
 

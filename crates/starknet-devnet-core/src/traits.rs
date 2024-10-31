@@ -1,8 +1,8 @@
 use blockifier::state::state_api::StateReader;
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::ContractClass;
-use starknet_types::felt::ClassHash;
-use starknet_types::rpc::state::Balance;
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::contract_class::ContractClass;
+use starknet_devnet_types::felt::ClassHash;
+use starknet_devnet_types::rpc::state::Balance;
 
 use crate::account::FeeToken;
 use crate::error::DevnetResult;

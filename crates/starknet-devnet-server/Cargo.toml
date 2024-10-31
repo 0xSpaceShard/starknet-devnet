@@ -33,9 +33,9 @@ lazy_static = { workspace = true }
 enum-helper-macros = { workspace = true }
 
 # devnet
+starknet-devnet-core = { workspace = true }
+starknet-devnet-types = { workspace = true }
 starknet-core = { workspace = true }
-starknet-types = { workspace = true }
-starknet-rs-core = { workspace = true }
 
 [dev-dependencies]
 rand = { workspace = true }

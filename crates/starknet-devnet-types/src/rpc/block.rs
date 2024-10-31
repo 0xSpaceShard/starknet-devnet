@@ -1,7 +1,7 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp};
 use starknet_api::data_availability::L1DataAvailabilityMode;
-use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag as ImportedBlockTag, Felt};
+use starknet_core::types::{BlockId as ImportedBlockId, BlockTag as ImportedBlockTag, Felt};
 
 use crate::contract_address::ContractAddress;
 use crate::felt::BlockHash;

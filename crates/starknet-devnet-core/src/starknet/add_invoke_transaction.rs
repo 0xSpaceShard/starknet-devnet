@@ -1,9 +1,9 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::TransactionHash;
-use starknet_types::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1;
-use starknet_types::rpc::transactions::invoke_transaction_v3::InvokeTransactionV3;
-use starknet_types::rpc::transactions::{
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::felt::TransactionHash;
+use starknet_devnet_types::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1;
+use starknet_devnet_types::rpc::transactions::invoke_transaction_v3::InvokeTransactionV3;
+use starknet_devnet_types::rpc::transactions::{
     BroadcastedInvokeTransaction, InvokeTransaction, Transaction, TransactionWithHash,
 };
 
@@ -69,20 +69,20 @@ mod tests {
     use nonzero_ext::nonzero;
     use starknet_api::core::Nonce;
     use starknet_api::transaction::{Fee, Tip};
-    use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
-    use starknet_rs_core::utils::get_selector_from_name;
-    use starknet_types::constants::QUERY_VERSION_OFFSET;
-    use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
-    use starknet_types::contract_storage_key::ContractStorageKey;
-    use starknet_types::rpc::gas_modification::GasModification;
-    use starknet_types::rpc::state::Balance;
-    use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
-    use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
-    use starknet_types::rpc::transactions::{
+    use starknet_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_core::utils::get_selector_from_name;
+    use starknet_devnet_types::constants::QUERY_VERSION_OFFSET;
+    use starknet_devnet_types::contract_address::ContractAddress;
+    use starknet_devnet_types::contract_class::{Cairo0ContractClass, ContractClass};
+    use starknet_devnet_types::contract_storage_key::ContractStorageKey;
+    use starknet_devnet_types::rpc::gas_modification::GasModification;
+    use starknet_devnet_types::rpc::state::Balance;
+    use starknet_devnet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+    use starknet_devnet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
+    use starknet_devnet_types::rpc::transactions::{
         BroadcastedInvokeTransaction, BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
     };
-    use starknet_types::traits::HashProducer;
+    use starknet_devnet_types::traits::HashProducer;
 
     use crate::account::{Account, FeeToken};
     use crate::constants::{

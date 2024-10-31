@@ -1,16 +1,16 @@
-use starknet_core::error::{Error, StateError};
-use starknet_rs_core::types::{BlockId as ImportedBlockId, MsgFromL1};
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{ClassHash, TransactionHash};
-use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::block::{
+use starknet_core::types::{BlockId as ImportedBlockId, MsgFromL1};
+use starknet_devnet_core::error::{Error, StateError};
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::felt::{ClassHash, TransactionHash};
+use starknet_devnet_types::patricia_key::PatriciaKey;
+use starknet_devnet_types::rpc::block::{
     Block, BlockHeader, BlockId, BlockResult, PendingBlock, PendingBlockHeader,
 };
-use starknet_types::rpc::state::StateUpdateResult;
-use starknet_types::rpc::transactions::{
+use starknet_devnet_types::rpc::state::StateUpdateResult;
+use starknet_devnet_types::rpc::transactions::{
     BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, SimulationFlag,
 };
-use starknet_types::starknet_api::block::BlockStatus;
+use starknet_devnet_types::starknet_api::block::BlockStatus;
 
 use super::error::{ApiError, StrictRpcResult};
 use super::models::{BlockHashAndNumberOutput, SyncingOutput, TransactionStatusOutput};
@@ -41,7 +41,7 @@ impl JsonRpcHandler {
         if block.status() == &BlockStatus::Pending {
             Ok(StarknetResponse::PendingBlock(PendingBlock {
                 header: PendingBlockHeader::from(block),
-                transactions: starknet_types::rpc::transactions::Transactions::Hashes(
+                transactions: starknet_devnet_types::rpc::transactions::Transactions::Hashes(
                     block.get_transactions().to_owned(),
                 ),
             })
@@ -50,7 +50,7 @@ impl JsonRpcHandler {
             Ok(StarknetResponse::Block(Block {
                 status: *block.status(),
                 header: BlockHeader::from(block),
-                transactions: starknet_types::rpc::transactions::Transactions::Hashes(
+                transactions: starknet_devnet_types::rpc::transactions::Transactions::Hashes(
                     block.get_transactions().to_owned(),
                 ),
             })

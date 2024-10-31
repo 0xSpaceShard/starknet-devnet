@@ -2,9 +2,9 @@ use blockifier::execution::call_info::CallInfo;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::objects::TransactionExecutionInfo;
-use starknet_types::rpc::state::ThinStateDiff;
-use starknet_types::rpc::transaction_receipt::ExecutionResources;
-use starknet_types::rpc::transactions::{
+use starknet_devnet_types::rpc::state::ThinStateDiff;
+use starknet_devnet_types::rpc::transaction_receipt::ExecutionResources;
+use starknet_devnet_types::rpc::transactions::{
     DeclareTransactionTrace, DeployAccountTransactionTrace, ExecutionInvocation,
     FunctionInvocation, InvokeTransactionTrace, L1HandlerTransactionTrace, TransactionTrace,
     TransactionType,
@@ -21,25 +21,27 @@ fn get_execute_call_info<S: StateReader>(
             false => ExecutionInvocation::Succeeded(FunctionInvocation::try_from_call_info(
                 call_info, state,
             )?),
-            true => ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion {
-                revert_reason: execution_info
-                    .revert_error
-                    .clone()
-                    .unwrap_or("Revert reason not found".into()),
-            }),
-        },
-        None => match execution_info.revert_error.clone() {
-            Some(revert_reason) => {
-                ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion {
-                    revert_reason,
+            true => {
+                ExecutionInvocation::Reverted(starknet_devnet_types::rpc::transactions::Reversion {
+                    revert_reason: execution_info
+                        .revert_error
+                        .clone()
+                        .unwrap_or("Revert reason not found".into()),
                 })
             }
-            None => {
-                return Err(Error::UnexpectedInternalError {
-                    msg: "Simulation contains neither call_info nor revert_error".into(),
-                });
-            }
         },
+        None => {
+            match execution_info.revert_error.clone() {
+                Some(revert_reason) => ExecutionInvocation::Reverted(
+                    starknet_devnet_types::rpc::transactions::Reversion { revert_reason },
+                ),
+                None => {
+                    return Err(Error::UnexpectedInternalError {
+                        msg: "Simulation contains neither call_info nor revert_error".into(),
+                    });
+                }
+            }
+        }
     })
 }
 

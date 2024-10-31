@@ -1,15 +1,15 @@
 use serde::{Deserialize, Serialize};
-use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
-use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::block::BlockId;
-use starknet_types::rpc::transactions::{
+use starknet_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::felt::{BlockHash, ClassHash, TransactionHash};
+use starknet_devnet_types::patricia_key::PatriciaKey;
+use starknet_devnet_types::rpc::block::BlockId;
+use starknet_devnet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, EventFilter, FunctionCall,
     SimulationFlag,
 };
-use starknet_types::starknet_api::block::BlockNumber;
+use starknet_devnet_types::starknet_api::block::BlockNumber;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
@@ -174,12 +174,12 @@ pub struct TransactionStatusOutput {
 
 #[cfg(test)]
 mod tests {
-    use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag, Felt};
-    use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::felt_from_prefixed_hex;
-    use starknet_types::patricia_key::PatriciaKey;
-    use starknet_types::rpc::block::BlockId;
-    use starknet_types::rpc::transactions::{
+    use starknet_core::types::{BlockId as ImportedBlockId, BlockTag, Felt};
+    use starknet_devnet_types::contract_address::ContractAddress;
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
+    use starknet_devnet_types::patricia_key::PatriciaKey;
+    use starknet_devnet_types::rpc::block::BlockId;
+    use starknet_devnet_types::rpc::transactions::{
         BroadcastedDeclareTransaction, BroadcastedTransaction,
     };
 

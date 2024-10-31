@@ -4,26 +4,26 @@ pub mod common;
 mod test_v3_transactions {
     use std::sync::Arc;
 
-    use server::test_utils::assert_contains;
-    use starknet_core::constants::{
+    use starknet_devnet_server::test_utils::assert_contains;
+    use starknet_devnet_core::constants::{
         CAIRO_0_ACCOUNT_CONTRACT_HASH, STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS,
     };
-    use starknet_rs_accounts::{
+    use starknet_accounts::{
         Account, AccountDeploymentV3, AccountError, AccountFactory, ConnectedAccount,
         DeclarationV3, ExecutionEncoding, ExecutionV3, OpenZeppelinAccountFactory,
         SingleOwnerAccount,
     };
-    use starknet_rs_core::types::{
+    use starknet_core::types::{
         BlockId, BlockTag, Call, ExecutionResult, Felt, FlattenedSierraClass,
         InvokeTransactionResult, NonZeroFelt, StarknetError,
     };
-    use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
-    use starknet_rs_providers::jsonrpc::HttpTransport;
-    use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
-    use starknet_rs_signers::LocalWallet;
-    use starknet_types::felt::split_biguint;
-    use starknet_types::num_bigint::BigUint;
-    use starknet_types::rpc::transaction_receipt::FeeUnit;
+    use starknet_core::utils::{get_selector_from_name, get_udc_deployed_address};
+    use starknet_providers::jsonrpc::HttpTransport;
+    use starknet_providers::{JsonRpcClient, Provider, ProviderError};
+    use starknet_signers::LocalWallet;
+    use starknet_devnet_types::felt::split_biguint;
+    use starknet_devnet_types::num_bigint::BigUint;
+    use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
@@ -53,7 +53,7 @@ mod test_v3_transactions {
         .unwrap();
 
         match factory.deploy_v3(Felt::THREE).send().await.unwrap_err() {
-            starknet_rs_accounts::AccountFactoryError::Provider(ProviderError::StarknetError(
+            starknet_accounts::AccountFactoryError::Provider(ProviderError::StarknetError(
                 StarknetError::InsufficientAccountBalance,
             )) => {}
             other => panic!("Unexpected error: {:?}", other),
@@ -103,7 +103,7 @@ mod test_v3_transactions {
         let contract_address = get_udc_deployed_address(
             salt,
             declare_transaction.class_hash,
-            &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+            &starknet_core::utils::UdcUniqueness::NotUnique,
             &[constructor_arg],
         );
 
@@ -180,7 +180,7 @@ mod test_v3_transactions {
         assert!(estimate_fee.overall_fee > account_strk_balance);
 
         match declaration.send().await.unwrap_err() {
-            starknet_rs_accounts::AccountError::Provider(ProviderError::StarknetError(
+            starknet_accounts::AccountError::Provider(ProviderError::StarknetError(
                 StarknetError::InsufficientAccountBalance,
             )) => {}
             other => panic!("Unexpected error: {:?}", other),
@@ -372,7 +372,7 @@ mod test_v3_transactions {
                         declaration = declaration.gas_price(gas_price);
                     }
                     match declaration.send().await.unwrap_err() {
-                        starknet_rs_accounts::AccountError::Provider(
+                        starknet_accounts::AccountError::Provider(
                             ProviderError::StarknetError(StarknetError::InsufficientMaxFee),
                         ) => {}
                         other => panic!("Unexpected error {:?}", other),
@@ -388,7 +388,7 @@ mod test_v3_transactions {
                         account_deployment = account_deployment.gas_price(gas_price);
                     }
                     match account_deployment.send().await.unwrap_err() {
-                        starknet_rs_accounts::AccountFactoryError::Provider(
+                        starknet_accounts::AccountFactoryError::Provider(
                             ProviderError::StarknetError(StarknetError::InsufficientMaxFee),
                         ) => {}
                         other => panic!("Unexpected error {:?}", other),
@@ -420,7 +420,7 @@ mod test_v3_transactions {
                                 other => panic!("Unexpected result: {:?}", other),
                             }
                         }
-                        Err(starknet_rs_accounts::AccountError::Provider(
+                        Err(starknet_accounts::AccountError::Provider(
                             ProviderError::StarknetError(StarknetError::InsufficientMaxFee),
                         )) => {}
                         Err(error) => panic!("Unexpected error {:?}", error),

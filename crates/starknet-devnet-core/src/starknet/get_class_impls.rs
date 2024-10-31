@@ -1,9 +1,9 @@
 use blockifier::state::state_api::StateReader;
 use starknet_api::block::BlockStatus;
-use starknet_rs_core::types::BlockId;
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::ContractClass;
-use starknet_types::felt::ClassHash;
+use starknet_core::types::BlockId;
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::contract_class::ContractClass;
+use starknet_devnet_types::felt::ClassHash;
 
 use crate::error::{DevnetResult, Error, StateError};
 use crate::starknet::Starknet;
@@ -54,8 +54,8 @@ pub fn get_class_at_impl(
 
 #[cfg(test)]
 mod tests {
-    use starknet_rs_core::types::BlockId;
-    use starknet_types::contract_class::ContractClass;
+    use starknet_core::types::BlockId;
+    use starknet_devnet_types::contract_class::ContractClass;
 
     use crate::error::Error;
     use crate::starknet::starknet_config::StateArchiveCapacity;
@@ -75,9 +75,9 @@ mod tests {
         let expected: ContractClass = declare_txn.contract_class.clone().into();
         let (_, class_hash) = starknet
             .add_declare_transaction(
-                starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V2(Box::new(
-                    declare_txn,
-                )),
+                starknet_devnet_types::rpc::transactions::BroadcastedDeclareTransaction::V2(
+                    Box::new(declare_txn),
+                ),
             )
             .unwrap();
 

@@ -2,7 +2,7 @@ pub mod common;
 
 mod test_restrictive_mode {
     use serde_json::json;
-    use server::rpc_core::error::ErrorCode;
+    use starknet_devnet_server::rpc_core::error::ErrorCode;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::reqwest_client::{

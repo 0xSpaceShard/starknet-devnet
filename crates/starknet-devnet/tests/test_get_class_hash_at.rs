@@ -2,10 +2,10 @@
 pub mod common;
 
 mod get_class_hash_at_integration_tests {
-    use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
-    use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
-    use starknet_rs_providers::{Provider, ProviderError};
-    use starknet_types::felt::felt_from_prefixed_hex;
+    use starknet_devnet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
+    use starknet_core::types::{BlockId, BlockTag, Felt, StarknetError};
+    use starknet_providers::{Provider, ProviderError};
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;

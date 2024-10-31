@@ -17,12 +17,12 @@ use starknet_api::core::calculate_contract_address;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::deprecated_contract_class::EntryPointType;
 use starknet_api::transaction::{Fee, Resource, Tip};
-use starknet_rs_core::crypto::compute_hash_on_elements;
-use starknet_rs_core::types::{
+use starknet_core::crypto::compute_hash_on_elements;
+use starknet_core::types::{
     BlockId, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
     TransactionFinalityStatus,
 };
-use starknet_rs_crypto::poseidon_hash_many;
+use starknet_crypto::poseidon_hash_many;
 
 use self::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use self::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
@@ -1111,7 +1111,7 @@ impl FunctionInvocation {
 
 #[cfg(test)]
 mod tests {
-    use starknet_rs_crypto::poseidon_hash_many;
+    use starknet_crypto::poseidon_hash_many;
 
     use super::BroadcastedTransactionCommonV3;
     use crate::felt::felt_from_prefixed_hex;

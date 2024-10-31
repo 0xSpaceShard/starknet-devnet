@@ -1,13 +1,15 @@
 use serde::{Deserialize, Serialize};
-use starknet_rs_core::types::{Felt, Hash256, MsgToL1};
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{BlockHash, Calldata, EntryPointSelector, Nonce, TransactionHash};
-use starknet_types::num_bigint::BigUint;
-use starknet_types::rpc::block::BlockId;
-use starknet_types::rpc::eth_address::EthAddressWrapper;
-use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::transaction_receipt::FeeUnit;
-use starknet_types::serde_helpers::dec_string::deserialize_biguint;
+use starknet_core::types::{Felt, Hash256, MsgToL1};
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::felt::{
+    BlockHash, Calldata, EntryPointSelector, Nonce, TransactionHash,
+};
+use starknet_devnet_types::num_bigint::BigUint;
+use starknet_devnet_types::rpc::block::BlockId;
+use starknet_devnet_types::rpc::eth_address::EthAddressWrapper;
+use starknet_devnet_types::rpc::messaging::{MessageToL1, MessageToL2};
+use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
+use starknet_devnet_types::serde_helpers::dec_string::deserialize_biguint;
 
 use crate::api::http::error::HttpApiError;
 use crate::rpc_core::request::RpcMethodCall;

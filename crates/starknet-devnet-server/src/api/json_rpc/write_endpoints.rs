@@ -1,7 +1,7 @@
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::gas_modification::GasModificationRequest;
-use starknet_types::rpc::transactions::{
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::messaging::{MessageToL1, MessageToL2};
+use starknet_devnet_types::rpc::gas_modification::GasModificationRequest;
+use starknet_devnet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction,
 };
@@ -33,10 +33,10 @@ impl JsonRpcHandler {
         let (transaction_hash, class_hash) =
             self.api.starknet.lock().await.add_declare_transaction(request).map_err(
                 |err| match err {
-                    starknet_core::error::Error::CompiledClassHashMismatch => {
+                    starknet_devnet_core::error::Error::CompiledClassHashMismatch => {
                         ApiError::CompiledClassHashMismatch
                     }
-                    starknet_core::error::Error::ClassAlreadyDeclared { .. } => {
+                    starknet_devnet_core::error::Error::ClassAlreadyDeclared { .. } => {
                         ApiError::ClassAlreadyDeclared
                     }
                     unknown_error => ApiError::StarknetDevnetError(unknown_error),
@@ -57,8 +57,8 @@ impl JsonRpcHandler {
         let (transaction_hash, contract_address) =
             self.api.starknet.lock().await.add_deploy_account_transaction(request).map_err(
                 |err| match err {
-                    starknet_core::error::Error::StateError(
-                        starknet_core::error::StateError::NoneClassHash(_),
+                    starknet_devnet_core::error::Error::StateError(
+                        starknet_devnet_core::error::StateError::NoneClassHash(_),
                     ) => ApiError::ClassHashNotFound,
                     unknown_error => ApiError::StarknetDevnetError(unknown_error),
                 },

@@ -1,7 +1,7 @@
 use axum::extract::State;
 use axum::Json;
 use serde::Serialize;
-use starknet_core::starknet::starknet_config::StarknetConfig;
+use starknet_devnet_core::starknet::starknet_config::StarknetConfig;
 
 use super::{HttpApiHandler, HttpApiResult};
 use crate::ServerConfig;

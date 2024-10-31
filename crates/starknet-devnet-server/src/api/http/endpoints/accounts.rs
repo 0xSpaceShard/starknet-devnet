@@ -1,9 +1,9 @@
 use axum::extract::{Query, State};
 use axum::Json;
-use starknet_core::starknet::Starknet;
-use starknet_rs_core::types::{BlockTag, Felt};
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::rpc::transaction_receipt::FeeUnit;
+use starknet_core::types::{BlockTag, Felt};
+use starknet_devnet_core::starknet::Starknet;
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
 
 use super::mint_token::{get_balance, get_erc20_address};
 use crate::api::http::error::HttpApiError;

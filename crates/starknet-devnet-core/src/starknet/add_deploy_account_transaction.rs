@@ -1,9 +1,9 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::TransactionHash;
-use starknet_types::rpc::transactions::deploy_account_transaction_v1::DeployAccountTransactionV1;
-use starknet_types::rpc::transactions::deploy_account_transaction_v3::DeployAccountTransactionV3;
-use starknet_types::rpc::transactions::{
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::felt::TransactionHash;
+use starknet_devnet_types::rpc::transactions::deploy_account_transaction_v1::DeployAccountTransactionV1;
+use starknet_devnet_types::rpc::transactions::deploy_account_transaction_v3::DeployAccountTransactionV3;
+use starknet_devnet_types::rpc::transactions::{
     BroadcastedDeployAccountTransaction, DeployAccountTransaction, Transaction, TransactionWithHash,
 };
 
@@ -71,18 +71,18 @@ mod tests {
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
     use starknet_api::transaction::{Fee, Tip};
-    use starknet_rs_core::types::{
+    use starknet_core::types::{
         BlockId, BlockTag, Felt, TransactionExecutionStatus, TransactionFinalityStatus,
     };
-    use starknet_types::constants::QUERY_VERSION_OFFSET;
-    use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::ClassHash;
-    use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
-    use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
-    use starknet_types::rpc::transactions::{
+    use starknet_devnet_types::constants::QUERY_VERSION_OFFSET;
+    use starknet_devnet_types::contract_address::ContractAddress;
+    use starknet_devnet_types::felt::ClassHash;
+    use starknet_devnet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
+    use starknet_devnet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
+    use starknet_devnet_types::rpc::transactions::{
         BroadcastedDeployAccountTransaction, BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
     };
-    use starknet_types::traits::HashProducer;
+    use starknet_devnet_types::traits::HashProducer;
 
     use crate::constants::{
         self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,

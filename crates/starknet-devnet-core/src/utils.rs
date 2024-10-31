@@ -1,9 +1,9 @@
 use blockifier::bouncer::{BouncerConfig, BouncerWeights, BuiltinCount};
 use blockifier::versioned_constants::VersionedConstants;
 use serde_json::Value;
-use starknet_rs_core::types::contract::CompiledClass;
-use starknet_rs_core::types::Felt;
-use starknet_types::patricia_key::{PatriciaKey, StorageKey};
+use starknet_core::types::contract::CompiledClass;
+use starknet_core::types::Felt;
+use starknet_devnet_types::patricia_key::{PatriciaKey, StorageKey};
 
 use crate::error::{DevnetResult, Error};
 
@@ -32,9 +32,8 @@ pub(crate) fn get_storage_var_address(
     storage_var_name: &str,
     args: &[Felt],
 ) -> DevnetResult<StorageKey> {
-    let storage_var_address =
-        starknet_rs_core::utils::get_storage_var_address(storage_var_name, args)
-            .map_err(|err| crate::error::Error::UnexpectedInternalError { msg: err.to_string() })?;
+    let storage_var_address = starknet_core::utils::get_storage_var_address(storage_var_name, args)
+        .map_err(|err| crate::error::Error::UnexpectedInternalError { msg: err.to_string() })?;
 
     Ok(PatriciaKey::new(storage_var_address)?)
 }
@@ -84,18 +83,18 @@ pub fn calculate_casm_hash(casm_json: Value) -> DevnetResult<Felt> {
 pub(crate) mod test_utils {
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use starknet_api::transaction::Fee;
-    use starknet_rs_core::types::Felt;
-    use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
-    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
-    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
-    use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
-    use starknet_types::rpc::transactions::{
+    use starknet_core::types::Felt;
+    use starknet_devnet_types::contract_address::ContractAddress;
+    use starknet_devnet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
+    use starknet_devnet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
+    use starknet_devnet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+    use starknet_devnet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
+    use starknet_devnet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
+    use starknet_devnet_types::rpc::transactions::{
         BroadcastedTransactionCommonV3, DeclareTransaction, ResourceBoundsWrapper, Transaction,
         TransactionWithHash,
     };
-    use starknet_types::traits::HashProducer;
+    use starknet_devnet_types::traits::HashProducer;
 
     use super::calculate_casm_hash;
     use crate::constants::DEVNET_DEFAULT_CHAIN_ID;
@@ -205,7 +204,7 @@ pub(crate) mod test_utils {
 #[cfg(any(test, feature = "test_utils"))]
 #[allow(clippy::unwrap_used)]
 pub mod exported_test_utils {
-    use starknet_types::contract_class::Cairo0Json;
+    use starknet_devnet_types::contract_class::Cairo0Json;
 
     pub fn dummy_cairo_l1l2_contract() -> Cairo0Json {
         let json_str =

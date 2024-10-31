@@ -4,11 +4,11 @@ pub mod common;
 mod minting_tests {
     use reqwest::StatusCode;
     use serde_json::json;
-    use server::test_utils::assert_contains;
-    use starknet_rs_core::types::Felt;
-    use starknet_types::felt::felt_from_prefixed_hex;
-    use starknet_types::num_bigint::BigUint;
-    use starknet_types::rpc::transaction_receipt::FeeUnit;
+    use starknet_devnet_server::test_utils::assert_contains;
+    use starknet_core::types::Felt;
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
+    use starknet_devnet_types::num_bigint::BigUint;
+    use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
@@ -123,7 +123,7 @@ mod minting_tests {
     }
 
     #[tokio::test]
-    #[ignore = "Currently, starknet_rs_core::types::BroadcastedDeclareTransaction::V3 is not \
+    #[ignore = "Currently, starknet_core::types::BroadcastedDeclareTransaction::V3 is not \
                 implemented so once it is available we could add test like this"]
     async fn execute_v3_transaction_with_strk_token() {
         // 1. run BackgroundDevnet

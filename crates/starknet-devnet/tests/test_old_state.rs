@@ -3,20 +3,20 @@ pub mod common;
 mod old_state {
     use std::sync::Arc;
 
-    use server::test_utils::assert_contains;
-    use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS};
-    use starknet_rs_accounts::{Account, ExecutionEncoder, ExecutionEncoding, SingleOwnerAccount};
-    use starknet_rs_core::chain_id::SEPOLIA;
-    use starknet_rs_core::types::{
+    use starknet_devnet_server::test_utils::assert_contains;
+    use starknet_devnet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS};
+    use starknet_accounts::{Account, ExecutionEncoder, ExecutionEncoding, SingleOwnerAccount};
+    use starknet_core::chain_id::SEPOLIA;
+    use starknet_core::types::{
         BlockHashAndNumber, BlockId, BlockTag, BroadcastedInvokeTransaction,
         BroadcastedInvokeTransactionV1, BroadcastedTransaction, Call, ContractClass,
         ExecuteInvocation, Felt, InvokeTransactionTrace, SimulatedTransaction, SimulationFlag,
         SimulationFlagForEstimateFee, StarknetError, TransactionExecutionErrorData,
         TransactionTrace,
     };
-    use starknet_rs_core::utils::{get_selector_from_name, get_storage_var_address};
-    use starknet_rs_providers::{Provider, ProviderError};
-    use starknet_types::rpc::transaction_receipt::FeeUnit;
+    use starknet_core::utils::{get_selector_from_name, get_storage_var_address};
+    use starknet_providers::{Provider, ProviderError};
+    use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{self, CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID};
@@ -69,7 +69,7 @@ mod old_state {
             .get_storage_at(
                 ETH_ERC20_CONTRACT_ADDRESS,
                 storage_address,
-                BlockId::Tag(starknet_rs_core::types::BlockTag::Latest),
+                BlockId::Tag(starknet_core::types::BlockTag::Latest),
             )
             .await
             .unwrap();

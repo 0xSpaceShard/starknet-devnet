@@ -15,20 +15,20 @@ use models::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
-use starknet_rs_core::types::{ContractClass as CodegenContractClass, Felt};
-use starknet_types::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::block::{Block, PendingBlock};
-use starknet_types::rpc::estimate_message_fee::{
+use starknet_core::types::{ContractClass as CodegenContractClass, Felt};
+use starknet_devnet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
+use starknet_devnet_types::messaging::{MessageToL1, MessageToL2};
+use starknet_devnet_types::rpc::block::{Block, PendingBlock};
+use starknet_devnet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
-use starknet_types::rpc::gas_modification::{GasModification, GasModificationRequest};
-use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
-use starknet_types::rpc::transaction_receipt::TransactionReceipt;
-use starknet_types::rpc::transactions::{
+use starknet_devnet_types::rpc::gas_modification::{GasModification, GasModificationRequest};
+use starknet_devnet_types::rpc::state::{PendingStateUpdate, StateUpdate};
+use starknet_devnet_types::rpc::transaction_receipt::TransactionReceipt;
+use starknet_devnet_types::rpc::transactions::{
     BlockTransactionTrace, EventsChunk, SimulatedTransaction, TransactionTrace, TransactionWithHash,
 };
-use starknet_types::starknet_api::block::BlockNumber;
+use starknet_devnet_types::starknet_api::block::BlockNumber;
 use tracing::{error, info, trace};
 
 use self::error::StrictRpcResult;
@@ -587,7 +587,7 @@ pub enum DevnetResponse {
 mod requests_tests {
 
     use serde_json::json;
-    use starknet_types::felt::felt_from_prefixed_hex;
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
 
     use super::JsonRpcRequest;
     use crate::rpc_core::request::RpcMethodCall;

@@ -2,12 +2,12 @@ use std::collections::HashMap;
 
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
-use starknet_rs_core::types::Felt;
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::ContractClass;
-use starknet_types::felt::ClassHash;
-use starknet_types::patricia_key::{PatriciaKey, StorageKey};
-use starknet_types::rpc::state::{
+use starknet_core::types::Felt;
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::contract_class::ContractClass;
+use starknet_devnet_types::felt::ClassHash;
+use starknet_devnet_types::patricia_key::{PatriciaKey, StorageKey};
+use starknet_devnet_types::rpc::state::{
     ClassHashes, ContractNonce, DeployedContract, ReplacedClasses, StorageDiff, StorageEntry,
     ThinStateDiff,
 };
@@ -46,10 +46,10 @@ impl StateDiff {
 
         for (class_hash, class) in new_classes {
             match class {
-                starknet_types::contract_class::ContractClass::Cairo0(_) => {
+                starknet_devnet_types::contract_class::ContractClass::Cairo0(_) => {
                     cairo_0_declared_contracts.push(class_hash)
                 }
-                starknet_types::contract_class::ContractClass::Cairo1(_) => {
+                starknet_devnet_types::contract_class::ContractClass::Cairo1(_) => {
                     declared_contracts.push(class_hash)
                 }
             }
@@ -185,16 +185,16 @@ mod tests {
     use nonzero_ext::nonzero;
     use starknet_api::core::ClassHash;
     use starknet_api::transaction::Fee;
-    use starknet_rs_core::types::{BlockId, BlockTag, Felt};
-    use starknet_rs_core::utils::get_selector_from_name;
-    use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::ContractClass;
-    use starknet_types::felt::felt_from_prefixed_hex;
-    use starknet_types::rpc::state::{Balance, ReplacedClasses};
-    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-    use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
-    use starknet_types::rpc::transactions::BroadcastedInvokeTransaction;
-    use starknet_types::traits::HashProducer;
+    use starknet_core::types::{BlockId, BlockTag, Felt};
+    use starknet_core::utils::get_selector_from_name;
+    use starknet_devnet_types::contract_address::ContractAddress;
+    use starknet_devnet_types::contract_class::ContractClass;
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
+    use starknet_devnet_types::rpc::state::{Balance, ReplacedClasses};
+    use starknet_devnet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+    use starknet_devnet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+    use starknet_devnet_types::rpc::transactions::BroadcastedInvokeTransaction;
+    use starknet_devnet_types::traits::HashProducer;
 
     use super::StateDiff;
     use crate::account::Account;
@@ -343,8 +343,8 @@ mod tests {
 
             starknet
                 .add_declare_transaction(
-                    starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V2(Box::new(
-                        BroadcastedDeclareTransactionV2::new(
+                    starknet_devnet_types::rpc::transactions::BroadcastedDeclareTransaction::V2(
+                        Box::new(BroadcastedDeclareTransactionV2::new(
                             &contract_class,
                             compiled_class_hash,
                             account.account_address,
@@ -352,8 +352,8 @@ mod tests {
                             &vec![],
                             nonce,
                             Felt::TWO,
-                        ),
-                    )),
+                        )),
+                    ),
                 )
                 .unwrap();
         }

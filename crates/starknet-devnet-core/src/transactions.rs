@@ -3,17 +3,17 @@ use blockifier::transaction::objects::TransactionExecutionInfo;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
-use starknet_rs_core::types::{ExecutionResult, Felt, TransactionFinalityStatus};
-use starknet_rs_core::utils::get_selector_from_name;
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::emitted_event::{Event, OrderedEvent};
-use starknet_types::felt::{BlockHash, TransactionHash};
-use starknet_types::messaging::MessageToL2;
-use starknet_types::rpc::messaging::{MessageToL1, OrderedMessageToL1};
-use starknet_types::rpc::transaction_receipt::{
+use starknet_core::types::{ExecutionResult, Felt, TransactionFinalityStatus};
+use starknet_core::utils::get_selector_from_name;
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::emitted_event::{Event, OrderedEvent};
+use starknet_devnet_types::felt::{BlockHash, TransactionHash};
+use starknet_devnet_types::messaging::MessageToL2;
+use starknet_devnet_types::rpc::messaging::{MessageToL1, OrderedMessageToL1};
+use starknet_devnet_types::rpc::transaction_receipt::{
     DeployTransactionReceipt, FeeAmount, FeeInUnits, TransactionReceipt,
 };
-use starknet_types::rpc::transactions::{
+use starknet_devnet_types::rpc::transactions::{
     DeclareTransaction, DeployAccountTransaction, InvokeTransaction, Transaction, TransactionTrace,
     TransactionType, TransactionWithHash,
 };
@@ -218,7 +218,7 @@ impl StarknetTransaction {
             Transaction::L1Handler(l1_transaction) => {
                 let msg_hash = MessageToL2::try_from(l1_transaction)?.hash()?;
                 Ok(TransactionReceipt::L1Handler(
-                    starknet_types::rpc::transaction_receipt::L1HandlerTransactionReceipt {
+                    starknet_devnet_types::rpc::transaction_receipt::L1HandlerTransactionReceipt {
                         common: common_receipt,
                         message_hash: msg_hash,
                     },
@@ -276,8 +276,8 @@ impl StarknetTransaction {
 #[cfg(test)]
 mod tests {
     use blockifier::transaction::objects::TransactionExecutionInfo;
-    use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
-    use starknet_types::rpc::transactions::{TransactionTrace, TransactionWithHash};
+    use starknet_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_devnet_types::rpc::transactions::{TransactionTrace, TransactionWithHash};
 
     use super::{StarknetTransaction, StarknetTransactions};
     use crate::starknet::transaction_trace::create_trace;

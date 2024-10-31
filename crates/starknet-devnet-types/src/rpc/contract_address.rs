@@ -1,7 +1,7 @@
 use std::fmt::LowerHex;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use starknet_rs_core::types::Felt;
+use starknet_core::types::Felt;
 
 use crate::error::{DevnetResult, Error};
 use crate::patricia_key::{PatriciaKey, PATRICIA_KEY_ZERO};

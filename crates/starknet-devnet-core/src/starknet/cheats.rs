@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use starknet_types::contract_address::ContractAddress;
+use starknet_devnet_types::contract_address::ContractAddress;
 
 #[derive(Default, Clone)]
 pub(crate) struct Cheats {

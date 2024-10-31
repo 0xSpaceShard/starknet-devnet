@@ -1,7 +1,7 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
-use starknet_types::felt::TransactionHash;
-use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
-use starknet_types::rpc::transactions::{Transaction, TransactionWithHash};
+use starknet_devnet_types::felt::TransactionHash;
+use starknet_devnet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
+use starknet_devnet_types::rpc::transactions::{Transaction, TransactionWithHash};
 use tracing::trace;
 
 use super::Starknet;
@@ -45,15 +45,15 @@ mod tests {
     use blockifier::execution::errors::{EntryPointExecutionError, PreExecutionError};
     use blockifier::transaction::errors::TransactionExecutionError::ExecutionError;
     use nonzero_ext::nonzero;
-    use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
-    use starknet_rs_core::utils::get_selector_from_name;
-    use starknet_types::chain_id::ChainId;
-    use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
-    use starknet_types::felt::felt_from_prefixed_hex;
-    use starknet_types::rpc::state::Balance;
-    use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
-    use starknet_types::traits::HashProducer;
+    use starknet_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_core::utils::get_selector_from_name;
+    use starknet_devnet_types::chain_id::ChainId;
+    use starknet_devnet_types::contract_address::ContractAddress;
+    use starknet_devnet_types::contract_class::{Cairo0ContractClass, ContractClass};
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
+    use starknet_devnet_types::rpc::state::Balance;
+    use starknet_devnet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
+    use starknet_devnet_types::traits::HashProducer;
 
     use crate::account::Account;
     use crate::constants::{

@@ -6,31 +6,29 @@ use clap::Parser;
 use cli::Args;
 use futures::future::join_all;
 use serde::de::IntoDeserializer;
-use server::api::http::HttpApiHandler;
-use server::api::json_rpc::{JsonRpcHandler, RPC_SPEC_VERSION};
-use server::api::Api;
-use server::dump_util::{dump_events, load_events, DumpEvent};
-use server::rpc_core::request::{Id, RequestParams, Version};
-use server::server::serve_http_api_json_rpc;
-use starknet_core::account::Account;
-use starknet_core::constants::{
+use starknet_core::types::ContractClass::{Legacy, Sierra};
+use starknet_core::types::{BlockId, BlockTag, Felt, MaybePendingBlockWithTxHashes, StarknetError};
+use starknet_devnet_core::account::Account;
+use starknet_devnet_core::constants::{
     ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS,
     UDC_CONTRACT_CLASS_HASH,
 };
-use starknet_core::starknet::starknet_config::{
+use starknet_devnet_core::starknet::starknet_config::{
     BlockGenerationOn, DumpOn, ForkConfig, StarknetConfig,
 };
-use starknet_core::starknet::Starknet;
-use starknet_rs_core::types::ContractClass::{Legacy, Sierra};
-use starknet_rs_core::types::{
-    BlockId, BlockTag, Felt, MaybePendingBlockWithTxHashes, StarknetError,
-};
-use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
-use starknet_types::chain_id::ChainId;
-use starknet_types::rpc::state::Balance;
-use starknet_types::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
-use starknet_types::traits::ToHexString;
+use starknet_devnet_core::starknet::Starknet;
+use starknet_devnet_server::api::http::HttpApiHandler;
+use starknet_devnet_server::api::json_rpc::{JsonRpcHandler, RPC_SPEC_VERSION};
+use starknet_devnet_server::api::Api;
+use starknet_devnet_server::dump_util::{dump_events, load_events, DumpEvent};
+use starknet_devnet_server::rpc_core::request::{Id, RequestParams, Version};
+use starknet_devnet_server::server::serve_http_api_json_rpc;
+use starknet_devnet_types::chain_id::ChainId;
+use starknet_devnet_types::rpc::state::Balance;
+use starknet_devnet_types::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
+use starknet_devnet_types::traits::ToHexString;
+use starknet_providers::jsonrpc::HttpTransport;
+use starknet_providers::{JsonRpcClient, Provider, ProviderError};
 use tokio::net::TcpListener;
 #[cfg(unix)]
 use tokio::signal::unix::{signal, SignalKind};
@@ -220,8 +218,8 @@ pub async fn set_and_log_fork_config(
 
     let block = json_rpc_client.get_block_with_tx_hashes(block_id).await.map_err(|e| {
         anyhow::Error::msg(match e {
-            starknet_rs_providers::ProviderError::StarknetError(
-                starknet_rs_core::types::StarknetError::BlockNotFound,
+            starknet_providers::ProviderError::StarknetError(
+                starknet_core::types::StarknetError::BlockNotFound,
             ) => format!("Forking from block {block_id:?}: block not found"),
             _ => format!("Forking from block {block_id:?}: {e}; Check the URL"),
         })
@@ -294,7 +292,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 .re_execute(&loadable_events)
                 .await
                 .map_err(|e| anyhow::anyhow!("Failed to re-execute dumped Devnet: {e}"))?,
-            Err(starknet_core::error::Error::FileNotFound) => (),
+            Err(starknet_devnet_core::error::Error::FileNotFound) => (),
             Err(err) => return Err(err.into()),
         }
     };

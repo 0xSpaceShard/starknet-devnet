@@ -1,9 +1,9 @@
 use blockifier::state::state_api::StateReader;
-use starknet_rs_core::types::Felt;
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::{Cairo0Json, ContractClass};
-use starknet_types::felt::ClassHash;
-use starknet_types::rpc::state::Balance;
+use starknet_core::types::Felt;
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::contract_class::{Cairo0Json, ContractClass};
+use starknet_devnet_types::felt::ClassHash;
+use starknet_devnet_types::rpc::state::Balance;
 
 use crate::error::DevnetResult;
 use crate::state::state_readers::DictState;
@@ -71,7 +71,7 @@ impl Accounted for SystemContract {
 
 #[cfg(test)]
 mod tests {
-    use starknet_types::contract_class::ContractClass;
+    use starknet_devnet_types::contract_class::ContractClass;
 
     use super::SystemContract;
     use crate::constants::{

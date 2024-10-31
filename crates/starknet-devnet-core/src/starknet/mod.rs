@@ -15,41 +15,41 @@ use starknet_api::core::SequencerContractAddress;
 use starknet_api::felt;
 use starknet_api::transaction::Fee;
 use starknet_config::BlockGenerationOn;
-use starknet_rs_core::types::{
+use starknet_core::types::{
     BlockId, BlockTag, Call, ExecutionResult, Felt, MsgFromL1, TransactionExecutionStatus,
     TransactionFinalityStatus,
 };
-use starknet_rs_core::utils::get_selector_from_name;
-use starknet_rs_signers::Signer;
-use starknet_types::chain_id::ChainId;
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::ContractClass;
-use starknet_types::emitted_event::EmittedEvent;
-use starknet_types::felt::{
+use starknet_core::utils::get_selector_from_name;
+use starknet_devnet_types::chain_id::ChainId;
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::contract_class::ContractClass;
+use starknet_devnet_types::emitted_event::EmittedEvent;
+use starknet_devnet_types::felt::{
     felt_from_prefixed_hex, split_biguint, BlockHash, ClassHash, TransactionHash,
 };
-use starknet_types::num_bigint::BigUint;
-use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::block::{
+use starknet_devnet_types::num_bigint::BigUint;
+use starknet_devnet_types::patricia_key::PatriciaKey;
+use starknet_devnet_types::rpc::block::{
     Block, BlockHeader, BlockResult, PendingBlock, PendingBlockHeader,
 };
-use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
-use starknet_types::rpc::gas_modification::{GasModification, GasModificationRequest};
-use starknet_types::rpc::state::{
+use starknet_devnet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
+use starknet_devnet_types::rpc::gas_modification::{GasModification, GasModificationRequest};
+use starknet_devnet_types::rpc::state::{
     PendingStateUpdate, StateUpdate, StateUpdateResult, ThinStateDiff,
 };
-use starknet_types::rpc::transaction_receipt::{
+use starknet_devnet_types::rpc::transaction_receipt::{
     DeployTransactionReceipt, L1HandlerTransactionReceipt, TransactionReceipt,
 };
-use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
-use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
-use starknet_types::rpc::transactions::{
+use starknet_devnet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use starknet_devnet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
+use starknet_devnet_types::rpc::transactions::{
     BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionCommon,
     SimulatedTransaction, SimulationFlag, TransactionTrace, TransactionType, TransactionWithHash,
     TransactionWithReceipt, Transactions,
 };
-use starknet_types::traits::HashProducer;
+use starknet_devnet_types::traits::HashProducer;
+use starknet_signers::Signer;
 use tracing::{error, info};
 
 use self::cheats::Cheats;
@@ -729,11 +729,10 @@ impl Starknet {
             raw_execution.transaction_hash(self.config.chain_id.to_felt(), chargeable_address);
 
         // generate signature by signing the msg hash
-        let signer = starknet_rs_signers::LocalWallet::from(
-            starknet_rs_signers::SigningKey::from_secret_scalar(felt_from_prefixed_hex(
-                CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-            )?),
-        );
+        let signer =
+            starknet_signers::LocalWallet::from(starknet_signers::SigningKey::from_secret_scalar(
+                felt_from_prefixed_hex(CHARGEABLE_ACCOUNT_PRIVATE_KEY)?,
+            ));
         let signature = signer.sign_hash(&msg_hash).await?;
 
         let invoke_tx = BroadcastedInvokeTransactionV1 {
@@ -996,7 +995,7 @@ impl Starknet {
     pub fn get_latest_block(&self) -> DevnetResult<StarknetBlock> {
         let block = self
             .blocks
-            .get_by_block_id(&BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
+            .get_by_block_id(&BlockId::Tag(starknet_core::types::BlockTag::Latest))
             .ok_or(crate::error::Error::NoBlock)?;
 
         Ok(block.clone())
@@ -1349,12 +1348,12 @@ mod tests {
     use nonzero_ext::nonzero;
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
     use starknet_api::core::EntryPointSelector;
-    use starknet_rs_core::types::{BlockId, BlockTag, Felt};
-    use starknet_rs_core::utils::get_selector_from_name;
-    use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::felt_from_prefixed_hex;
-    use starknet_types::rpc::state::Balance;
-    use starknet_types::traits::HashProducer;
+    use starknet_core::types::{BlockId, BlockTag, Felt};
+    use starknet_core::utils::get_selector_from_name;
+    use starknet_devnet_types::contract_address::ContractAddress;
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
+    use starknet_devnet_types::rpc::state::Balance;
+    use starknet_devnet_types::traits::HashProducer;
 
     use super::Starknet;
     use crate::account::{Account, FeeToken};

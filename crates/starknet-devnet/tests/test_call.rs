@@ -2,10 +2,10 @@
 pub mod common;
 
 mod call {
-    use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
-    use starknet_rs_core::types::{BlockId, BlockTag, Felt, FunctionCall, StarknetError};
-    use starknet_rs_providers::{Provider, ProviderError};
-    use starknet_types::felt::felt_from_prefixed_hex;
+    use starknet_devnet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
+    use starknet_core::types::{BlockId, BlockTag, Felt, FunctionCall, StarknetError};
+    use starknet_providers::{Provider, ProviderError};
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
@@ -16,7 +16,7 @@ mod call {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let contract_address = felt_from_prefixed_hex(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
         let entry_point_selector =
-            starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
+            starknet_core::utils::get_selector_from_name("balanceOf").unwrap();
 
         let undeployed_address = Felt::from_hex_unchecked("0x1234");
         let err = devnet
@@ -43,7 +43,7 @@ mod call {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let contract_address = felt_from_prefixed_hex(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
         let entry_point_selector =
-            starknet_rs_core::utils::get_selector_from_name("nonExistentMethod").unwrap();
+            starknet_core::utils::get_selector_from_name("nonExistentMethod").unwrap();
 
         let err = devnet
             .json_rpc_client

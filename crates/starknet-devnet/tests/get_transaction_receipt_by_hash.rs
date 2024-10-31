@@ -5,19 +5,21 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
     use std::sync::Arc;
 
-    use server::test_utils::declare_v1_str;
-    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS};
-    use starknet_rs_accounts::{
+    use starknet_contract::ContractFactory;
+    use starknet_devnet_core::constants::{
+        CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS,
+    };
+    use starknet_devnet_server::test_utils::declare_v1_str;
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
+    use starknet_accounts::{
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
-    use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::{
+    use starknet_core::types::{
         BroadcastedDeclareTransactionV1, Call, ExecutionResult, Felt, StarknetError,
         TransactionReceipt,
     };
-    use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
-    use starknet_rs_providers::{Provider, ProviderError};
-    use starknet_types::felt::felt_from_prefixed_hex;
+    use starknet_core::utils::{get_selector_from_name, get_udc_deployed_address};
+    use starknet_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{self, CHAIN_ID};
@@ -115,7 +117,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
                 let expected_contract_address = get_udc_deployed_address(
                     salt,
                     declaration_result.class_hash,
-                    &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+                    &starknet_core::utils::UdcUniqueness::NotUnique,
                     &constructor_args,
                 );
                 assert_eq!(receipt.contract_address, expected_contract_address);
@@ -224,7 +226,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
         match transfer_receipt {
             TransactionReceipt::Invoke(receipt) => {
                 match receipt.execution_result {
-                    starknet_rs_core::types::ExecutionResult::Reverted { .. } => (),
+                    starknet_core::types::ExecutionResult::Reverted { .. } => (),
                     _ => panic!("Invalid receipt {:?}", receipt),
                 }
                 assert_eq!(receipt.actual_fee.amount, max_fee);
@@ -242,7 +244,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         let declare_transaction_result = devnet
             .json_rpc_client
-            .add_declare_transaction(starknet_rs_core::types::BroadcastedDeclareTransaction::V1(
+            .add_declare_transaction(starknet_core::types::BroadcastedDeclareTransaction::V1(
                 declare_txn_v1.clone(),
             ))
             .await;

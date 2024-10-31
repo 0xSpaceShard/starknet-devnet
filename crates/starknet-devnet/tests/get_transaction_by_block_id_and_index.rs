@@ -3,8 +3,8 @@ pub mod common;
 
 mod get_transaction_by_block_id_and_index_integration_tests {
 
-    use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
-    use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_core::types::{BlockId, BlockTag, Felt, StarknetError};
+    use starknet_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
 
@@ -19,8 +19,8 @@ mod get_transaction_by_block_id_and_index_integration_tests {
             .await
             .unwrap();
 
-        if let starknet_rs_core::types::Transaction::Invoke(
-            starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
+        if let starknet_core::types::Transaction::Invoke(
+            starknet_core::types::InvokeTransaction::V1(invoke_v1),
         ) = result
         {
             assert_eq!(invoke_v1.transaction_hash, tx_hash_value);

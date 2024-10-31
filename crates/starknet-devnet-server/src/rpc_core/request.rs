@@ -1,7 +1,7 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-use starknet_types::messaging::MessageToL2;
+use starknet_devnet_types::messaging::MessageToL2;
 
 use crate::error::Error;
 

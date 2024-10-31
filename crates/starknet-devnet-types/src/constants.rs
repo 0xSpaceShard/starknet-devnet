@@ -1,4 +1,4 @@
-use starknet_rs_core::types::Felt;
+use starknet_core::types::Felt;
 
 // copied from starknet-rs, because it is not exposed as public type
 pub const QUERY_VERSION_OFFSET: Felt =

@@ -17,23 +17,23 @@ mod test_messaging {
 
     use ethers::prelude::*;
     use serde_json::{json, Value};
-    use server::rpc_core::error::RpcError;
-    use server::test_utils::assert_contains;
-    use starknet_rs_accounts::{
+    use starknet_devnet_server::rpc_core::error::RpcError;
+    use starknet_devnet_server::test_utils::assert_contains;
+    use starknet_accounts::{
         Account, AccountError, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
     };
-    use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::{
+    use starknet_contract::ContractFactory;
+    use starknet_core::types::{
         BlockId, BlockTag, Call, Felt, FunctionCall, InvokeTransactionResult,
         TransactionExecutionStatus, TransactionReceipt, TransactionReceiptWithBlockInfo,
     };
-    use starknet_rs_core::utils::{
+    use starknet_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
-    use starknet_rs_providers::jsonrpc::HttpTransport;
-    use starknet_rs_providers::{JsonRpcClient, Provider};
-    use starknet_rs_signers::LocalWallet;
-    use starknet_types::felt::felt_from_prefixed_hex;
+    use starknet_providers::jsonrpc::HttpTransport;
+    use starknet_providers::{JsonRpcClient, Provider};
+    use starknet_signers::LocalWallet;
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_anvil::BackgroundAnvil;
     use crate::common::background_devnet::BackgroundDevnet;
@@ -333,7 +333,7 @@ mod test_messaging {
         let expected_calldata =
             vec![felt_from_prefixed_hex(MESSAGING_L1_ADDRESS).unwrap(), user, increment_amount];
         match devnet.json_rpc_client.get_transaction_by_hash(tx_hash).await {
-            Ok(starknet_rs_core::types::Transaction::L1Handler(tx)) => {
+            Ok(starknet_core::types::Transaction::L1Handler(tx)) => {
                 assert_eq!(tx.transaction_hash, tx_hash);
                 assert_eq!(tx.calldata, expected_calldata);
             }

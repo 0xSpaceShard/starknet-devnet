@@ -7,12 +7,12 @@ mod advancing_time_tests {
     use std::time;
 
     use serde_json::json;
-    use server::rpc_core::error::ErrorCode::InvalidParams;
-    use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-    use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::{BlockId, BlockTag, Felt, FunctionCall};
-    use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
-    use starknet_rs_providers::Provider;
+    use starknet_contract::ContractFactory;
+    use starknet_devnet_server::rpc_core::error::ErrorCode::InvalidParams;
+    use starknet_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+    use starknet_core::types::{BlockId, BlockTag, Felt, FunctionCall};
+    use starknet_core::utils::{get_selector_from_name, get_udc_deployed_address};
+    use starknet_providers::Provider;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
@@ -85,7 +85,7 @@ mod advancing_time_tests {
         get_udc_deployed_address(
             Felt::ZERO,
             declaration_result.class_hash,
-            &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+            &starknet_core::utils::UdcUniqueness::NotUnique,
             &[],
         )
     }

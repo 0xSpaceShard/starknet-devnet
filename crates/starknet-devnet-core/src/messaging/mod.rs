@@ -32,8 +32,8 @@
 //! contract (`mockSendMessageFromL2` entrypoint).
 use std::collections::HashMap;
 
-use starknet_rs_core::types::{BlockId, ExecutionResult, Hash256};
-use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
+use starknet_core::types::{BlockId, ExecutionResult, Hash256};
+use starknet_devnet_types::rpc::messaging::{MessageToL1, MessageToL2};
 
 use crate::error::{DevnetResult, Error, MessagingError};
 use crate::starknet::Starknet;

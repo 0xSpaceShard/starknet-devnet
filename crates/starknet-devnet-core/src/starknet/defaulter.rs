@@ -5,8 +5,8 @@ use blockifier::state::errors::StateError;
 use blockifier::state::state_api::StateResult;
 use starknet_api::core::{ClassHash, ContractAddress, Nonce, PatriciaKey};
 use starknet_api::state::StorageKey;
-use starknet_rs_core::types::Felt;
-use starknet_types::contract_class::convert_codegen_to_blockifier_compiled_class;
+use starknet_core::types::Felt;
+use starknet_devnet_types::contract_class::convert_codegen_to_blockifier_compiled_class;
 use tracing::debug;
 
 use super::starknet_config::ForkConfig;
@@ -209,7 +209,7 @@ impl BlockingOriginReader {
             Err(OriginError::NoResult) => Err(StateError::UndeclaredClassHash(class_hash)),
             Err(other_error) => Err(StateError::StateReadError(other_error.to_string())),
             Ok(value) => {
-                let contract_class: starknet_rs_core::types::ContractClass =
+                let contract_class: starknet_core::types::ContractClass =
                     serde_json::from_value(value)
                         .map_err(|e| StateError::StateReadError(e.to_string()))?;
                 convert_codegen_to_blockifier_compiled_class(contract_class)

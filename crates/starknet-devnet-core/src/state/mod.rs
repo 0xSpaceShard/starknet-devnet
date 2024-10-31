@@ -5,10 +5,10 @@ use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::{State, StateReader};
 use parking_lot::RwLock;
 use starknet_api::core::CompiledClassHash;
-use starknet_rs_core::types::Felt;
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::ContractClass;
-use starknet_types::felt::ClassHash;
+use starknet_core::types::Felt;
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::contract_class::ContractClass;
+use starknet_devnet_types::felt::ClassHash;
 
 use self::state_diff::StateDiff;
 use self::state_readers::DictState;
@@ -47,7 +47,7 @@ pub trait CustomState {
     fn declare_contract_class(
         &mut self,
         class_hash: ClassHash,
-        casm_hash: Option<starknet_types::felt::CompiledClassHash>,
+        casm_hash: Option<starknet_devnet_types::felt::CompiledClassHash>,
         contract_class: ContractClass,
     ) -> DevnetResult<()>;
 
@@ -382,7 +382,7 @@ impl CustomState for StarknetState {
                     .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
             )
             .map_err(|err| {
-                Error::TypesError(starknet_types::error::Error::SierraCompilationError {
+                Error::TypesError(starknet_devnet_types::error::Error::SierraCompilationError {
                     reason: err.to_string(),
                 })
             })?;
@@ -401,7 +401,7 @@ impl CustomState for StarknetState {
     fn declare_contract_class(
         &mut self,
         class_hash: ClassHash,
-        casm_hash: Option<starknet_types::felt::CompiledClassHash>,
+        casm_hash: Option<starknet_devnet_types::felt::CompiledClassHash>,
         contract_class: ContractClass,
     ) -> DevnetResult<()> {
         let compiled_class = contract_class.clone().try_into()?;
@@ -441,9 +441,9 @@ mod tests {
     use blockifier::state::state_api::{State, StateReader};
     use starknet_api::core::Nonce;
     use starknet_api::state::StorageKey;
-    use starknet_rs_core::types::Felt;
-    use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
+    use starknet_core::types::Felt;
+    use starknet_devnet_types::contract_address::ContractAddress;
+    use starknet_devnet_types::contract_class::{Cairo0ContractClass, ContractClass};
 
     use super::StarknetState;
     use crate::state::{BlockNumberOrPending, CustomState, CustomStateReader};

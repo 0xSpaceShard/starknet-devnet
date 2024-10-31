@@ -7,10 +7,10 @@ use ethers::prelude::*;
 use ethers::providers::{Http, Provider, ProviderError};
 use ethers::types::{Address, BlockNumber, Log};
 use k256::ecdsa::SigningKey;
-use starknet_rs_core::types::Felt;
-use starknet_types::felt::felt_from_prefixed_hex;
-use starknet_types::rpc::contract_address::ContractAddress;
-use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
+use starknet_core::types::Felt;
+use starknet_devnet_types::felt::felt_from_prefixed_hex;
+use starknet_devnet_types::rpc::contract_address::ContractAddress;
+use starknet_devnet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use tracing::{trace, warn};
 
 use crate::error::{DevnetResult, Error, MessagingError};

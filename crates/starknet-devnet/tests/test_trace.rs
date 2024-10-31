@@ -5,21 +5,21 @@ mod trace_tests {
     use std::sync::Arc;
 
     use serde_json::json;
-    use starknet_core::constants::{
+    use starknet_devnet_core::constants::{
         CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CHARGEABLE_ACCOUNT_ADDRESS,
         ETH_ERC20_CONTRACT_ADDRESS,
     };
-    use starknet_rs_accounts::{
+    use starknet_accounts::{
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
-    use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::{
+    use starknet_contract::ContractFactory;
+    use starknet_core::types::{
         DeployedContractItem, Felt, FunctionInvocation, StarknetError, TransactionTrace,
     };
-    use starknet_rs_core::utils::{get_udc_deployed_address, UdcUniqueness};
-    use starknet_rs_providers::{Provider, ProviderError};
-    use starknet_types::felt::felt_from_prefixed_hex;
-    use starknet_types::rpc::transactions::BlockTransactionTrace;
+    use starknet_core::utils::{get_udc_deployed_address, UdcUniqueness};
+    use starknet_providers::{Provider, ProviderError};
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
+    use starknet_devnet_types::rpc::transactions::BlockTransactionTrace;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;
@@ -45,10 +45,10 @@ mod trace_tests {
 
         let mint_tx_trace = devnet.json_rpc_client.trace_transaction(mint_tx_hash).await.unwrap();
 
-        if let starknet_rs_core::types::TransactionTrace::Invoke(invoke_trace) = mint_tx_trace {
+        if let starknet_core::types::TransactionTrace::Invoke(invoke_trace) = mint_tx_trace {
             assert_mint_invocation(invoke_trace.validate_invocation.unwrap());
 
-            if let starknet_rs_core::types::ExecuteInvocation::Success(execute_invocation) =
+            if let starknet_core::types::ExecuteInvocation::Success(execute_invocation) =
                 invoke_trace.execute_invocation
             {
                 assert_mint_invocation(execute_invocation);
@@ -239,7 +239,7 @@ mod trace_tests {
         let deployment_trace =
             devnet.json_rpc_client.trace_transaction(deployment_hash).await.unwrap();
 
-        if let starknet_rs_core::types::TransactionTrace::DeployAccount(deployment_trace) =
+        if let starknet_core::types::TransactionTrace::DeployAccount(deployment_trace) =
             deployment_trace
         {
             let validate_invocation = deployment_trace.validate_invocation.unwrap();

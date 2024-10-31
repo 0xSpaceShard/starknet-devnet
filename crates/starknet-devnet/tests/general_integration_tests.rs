@@ -5,13 +5,13 @@ pub mod common;
 mod general_integration_tests {
     use reqwest::StatusCode;
     use serde_json::json;
-    use server::rpc_core::error::{ErrorCode, RpcError};
-    use starknet_core::constants::{
+    use starknet_devnet_server::rpc_core::error::{ErrorCode, RpcError};
+    use starknet_devnet_core::constants::{
         CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
-    use starknet_rs_core::types::{BlockId, BlockTag};
-    use starknet_rs_core::utils::{get_storage_var_address, parse_cairo_short_string};
-    use starknet_rs_providers::Provider;
+    use starknet_core::types::{BlockId, BlockTag};
+    use starknet_core::utils::{get_storage_var_address, parse_cairo_short_string};
+    use starknet_providers::Provider;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};

@@ -8,7 +8,7 @@ use ethers::types::Address;
 use k256::ecdsa::SigningKey;
 use rand::Rng;
 use reqwest::StatusCode;
-use starknet_core::messaging::ethereum::ETH_ACCOUNT_DEFAULT;
+use starknet_devnet_core::messaging::ethereum::ETH_ACCOUNT_DEFAULT;
 
 use super::errors::TestError;
 

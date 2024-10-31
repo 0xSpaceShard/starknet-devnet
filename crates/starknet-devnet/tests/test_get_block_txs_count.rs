@@ -3,8 +3,8 @@ pub mod common;
 
 mod get_block_txs_count_tests {
 
-    use starknet_rs_core::types::{BlockId, BlockTag, StarknetError};
-    use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_providers::{Provider, ProviderError};
+    use starknet_core::types::{BlockId, BlockTag, StarknetError};
 
     use crate::common::background_devnet::BackgroundDevnet;
 

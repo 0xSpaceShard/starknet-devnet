@@ -1,8 +1,8 @@
 use blockifier::state::state_api::State;
-use starknet_rs_core::types::Felt;
-use starknet_rs_core::utils::cairo_short_string_to_felt;
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::felt_from_prefixed_hex;
+use starknet_core::types::Felt;
+use starknet_core::utils::cairo_short_string_to_felt;
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::felt::felt_from_prefixed_hex;
 
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, UDC_CONTRACT, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
@@ -62,7 +62,7 @@ pub(crate) fn create_udc() -> DevnetResult<SystemContract> {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use starknet_rs_core::types::Felt;
+    use starknet_core::types::Felt;
 
     use crate::constants::{CAIRO_1_ERC20_CONTRACT, CAIRO_1_ERC20_CONTRACT_CLASS_HASH};
     use crate::error::DevnetResult;

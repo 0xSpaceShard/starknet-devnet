@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
-use starknet_rs_core::types::Felt;
-use starknet_rs_core::utils::get_selector_from_name;
-use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
-use starknet_types::traits::HashProducer;
+use starknet_core::types::Felt;
+use starknet_core::utils::get_selector_from_name;
+use starknet_devnet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
+use starknet_devnet_types::traits::HashProducer;
 
 use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT, CAIRO_1_ACCOUNT_CONTRACT_SIERRA};
 use crate::error::DevnetResult;
@@ -81,8 +81,8 @@ impl FromStr for AccountClassWrapper {
 #[cfg(test)]
 mod tests {
     use clap::ValueEnum;
-    use starknet_types::felt::felt_from_prefixed_hex;
-    use starknet_types::traits::HashProducer;
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
+    use starknet_devnet_types::traits::HashProducer;
 
     use super::AccountContractClassChoice;
     use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH};

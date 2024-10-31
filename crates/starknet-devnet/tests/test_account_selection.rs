@@ -6,21 +6,19 @@ mod test_account_selection {
     use std::sync::Arc;
 
     use serde_json::json;
-    use starknet_core::constants::{
+    use starknet_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+    use starknet_contract::ContractFactory;
+    use starknet_core::types::contract::legacy::LegacyContractClass;
+    use starknet_core::types::{BlockId, BlockTag, Call, Felt, FunctionCall};
+    use starknet_core::utils::{get_selector_from_name, get_udc_deployed_address, UdcUniqueness};
+    use starknet_devnet_core::constants::{
         CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
     };
-    use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
-    use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-    use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, FunctionCall};
-    use starknet_rs_core::utils::{
-        get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
-    };
-    use starknet_rs_providers::Provider;
-    use starknet_rs_signers::LocalWallet;
-    use starknet_types::felt::felt_from_prefixed_hex;
-    use starknet_types::rpc::transaction_receipt::FeeUnit;
+    use starknet_devnet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
+    use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
+    use starknet_providers::Provider;
+    use starknet_signers::LocalWallet;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::MAINNET_URL;
@@ -224,7 +222,7 @@ mod test_account_selection {
         let contract_address = get_udc_deployed_address(
             Felt::ZERO,
             declaration_result.class_hash,
-            &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+            &starknet_core::utils::UdcUniqueness::NotUnique,
             &ctor_args,
         );
 

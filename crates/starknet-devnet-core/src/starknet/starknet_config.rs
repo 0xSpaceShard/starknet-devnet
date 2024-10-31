@@ -2,11 +2,11 @@ use std::num::NonZeroU128;
 
 use clap::Error;
 use serde::{Serialize, Serializer};
-use starknet_rs_core::types::Felt;
-use starknet_types::chain_id::ChainId;
-use starknet_types::contract_class::ContractClass;
-use starknet_types::rpc::state::Balance;
-use starknet_types::traits::HashProducer;
+use starknet_core::types::Felt;
+use starknet_devnet_types::chain_id::ChainId;
+use starknet_devnet_types::contract_class::ContractClass;
+use starknet_devnet_types::rpc::state::Balance;
+use starknet_devnet_types::traits::HashProducer;
 use url::Url;
 
 use crate::constants::{

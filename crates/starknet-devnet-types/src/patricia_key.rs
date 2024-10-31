@@ -1,6 +1,6 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use starknet_api::core::PATRICIA_KEY_UPPER_BOUND;
-use starknet_rs_core::types::Felt;
+use starknet_core::types::Felt;
 
 use crate::error::{DevnetResult, Error};
 use crate::serde_helpers::hex_string::{

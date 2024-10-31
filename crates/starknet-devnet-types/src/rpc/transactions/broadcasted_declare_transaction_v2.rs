@@ -46,7 +46,7 @@ impl BroadcastedDeclareTransactionV2 {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::Fee;
-    use starknet_rs_core::types::Felt;
+    use starknet_core::types::Felt;
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;

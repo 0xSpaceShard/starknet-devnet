@@ -6,17 +6,17 @@ mod test_restart {
     use std::path::Path;
     use std::sync::Arc;
 
-    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS};
-    use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
-    use starknet_rs_accounts::{
+    use starknet_devnet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS};
+    use starknet_devnet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
+    use starknet_accounts::{
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
-    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
-    use starknet_rs_core::utils::get_storage_var_address;
-    use starknet_rs_providers::{Provider, ProviderError};
-    use starknet_types::felt::felt_from_prefixed_hex;
-    use starknet_types::rpc::transaction_receipt::FeeUnit;
+    use starknet_core::types::contract::legacy::LegacyContractClass;
+    use starknet_core::types::{BlockId, BlockTag, Felt, StarknetError};
+    use starknet_core::utils::get_storage_var_address;
+    use starknet_providers::{Provider, ProviderError};
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
+    use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{self, CHAIN_ID};

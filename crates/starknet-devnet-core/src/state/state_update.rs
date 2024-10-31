@@ -1,4 +1,4 @@
-use starknet_rs_core::types::Felt;
+use starknet_core::types::Felt;
 
 use super::state_diff::StateDiff;
 

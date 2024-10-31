@@ -6,8 +6,8 @@ use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::de::IntoDeserializer;
 use serde::{Serialize, Serializer};
-use starknet_rs_core::types::contract::{SierraClass, SierraClassDebugInfo};
-use starknet_rs_core::types::{
+use starknet_core::types::contract::{SierraClass, SierraClassDebugInfo};
+use starknet_core::types::{
     ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContractClass,
 };
 use starknet_types_core::felt::Felt;
@@ -304,7 +304,7 @@ mod tests {
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use serde::Deserialize;
     use serde_json::Deserializer;
-    use starknet_rs_core::types::LegacyEntryPointsByType;
+    use starknet_core::types::LegacyEntryPointsByType;
 
     use crate::contract_class::deprecated::rpc_contract_class::ContractClassAbiEntryWithType;
     use crate::contract_class::{

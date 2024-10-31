@@ -4,12 +4,12 @@ pub mod common;
 mod get_class_tests {
     use std::sync::Arc;
 
-    use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-    use starknet_rs_core::chain_id;
-    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{BlockId, BlockTag, ContractClass, Felt, StarknetError};
-    use starknet_rs_providers::{Provider, ProviderError};
-    use starknet_types::felt::felt_from_prefixed_hex;
+    use starknet_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+    use starknet_core::chain_id;
+    use starknet_core::types::contract::legacy::LegacyContractClass;
+    use starknet_core::types::{BlockId, BlockTag, ContractClass, Felt, StarknetError};
+    use starknet_providers::{Provider, ProviderError};
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;

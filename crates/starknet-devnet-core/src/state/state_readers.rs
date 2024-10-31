@@ -6,7 +6,7 @@ use blockifier::state::errors::StateError;
 use blockifier::state::state_api::{StateReader, StateResult};
 use starknet_api::core::{ClassHash, CompiledClassHash, ContractAddress, Nonce};
 use starknet_api::state::StorageKey;
-use starknet_rs_core::types::Felt;
+use starknet_core::types::Felt;
 
 use crate::starknet::defaulter::StarknetDefaulter;
 

@@ -10,8 +10,8 @@ use starknet_api::transaction::{
     Calldata as ApiCalldata, Fee as ApiFee, L1HandlerTransaction as ApiL1HandlerTransaction,
     TransactionHash as ApiTransactionHash, TransactionVersion as ApiTransactionVersion,
 };
-use starknet_rs_core::crypto::compute_hash_on_elements;
-use starknet_rs_core::types::Felt;
+use starknet_core::crypto::compute_hash_on_elements;
+use starknet_core::types::Felt;
 
 use super::{deserialize_paid_fee_on_l1, serialize_paid_fee_on_l1};
 use crate::constants::PREFIX_L1_HANDLER;
@@ -134,7 +134,7 @@ impl TryFrom<&L1HandlerTransaction> for MessageToL2 {
 
 #[cfg(test)]
 mod tests {
-    use starknet_rs_core::types::Hash256;
+    use starknet_core::types::Hash256;
 
     use super::*;
     use crate::chain_id::ChainId;

@@ -1,7 +1,7 @@
 /// Copied from https://github.com/xJonathanLEI/starknet-rs/
-use starknet_rs_core::crypto::pedersen_hash;
-use starknet_rs_core::types::{Call, Felt};
-use starknet_types::constants::PREFIX_INVOKE;
+use starknet_core::crypto::pedersen_hash;
+use starknet_core::types::{Call, Felt};
+use starknet_devnet_types::constants::PREFIX_INVOKE;
 
 #[derive(Debug)]
 pub struct RawExecutionV1 {

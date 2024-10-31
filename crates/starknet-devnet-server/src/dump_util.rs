@@ -2,8 +2,8 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
-use starknet_core::error::{DevnetResult, Error};
-use starknet_core::starknet::starknet_config::DumpOn;
+use starknet_devnet_core::error::{DevnetResult, Error};
+use starknet_devnet_core::starknet::starknet_config::DumpOn;
 
 use crate::rpc_core::request::RpcMethodCall;
 

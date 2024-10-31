@@ -12,7 +12,7 @@ pub enum Error {
     #[error(transparent)]
     IoError(#[from] std::io::Error),
     #[error(transparent)]
-    FromHexError(#[from] starknet_rs_core::types::eth_address::FromHexError),
+    FromHexError(#[from] starknet_core::types::eth_address::FromHexError),
     #[error(transparent)]
     TransactionExecutionError(#[from] TransactionExecutionError),
     // TODO import cairo-lang-starknet to the project so this error could be created with its

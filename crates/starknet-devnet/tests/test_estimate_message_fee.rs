@@ -5,14 +5,14 @@ mod test_estimate_message_fee {
 
     use std::sync::Arc;
 
-    use starknet_core::utils::exported_test_utils::dummy_cairo_l1l2_contract;
-    use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-    use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{BlockId, BlockTag, EthAddress, Felt, MsgFromL1, StarknetError};
-    use starknet_rs_core::utils::{get_udc_deployed_address, UdcUniqueness};
-    use starknet_rs_providers::{Provider, ProviderError};
-    use starknet_types::felt::felt_from_prefixed_hex;
+    use starknet_devnet_core::utils::exported_test_utils::dummy_cairo_l1l2_contract;
+    use starknet_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+    use starknet_contract::ContractFactory;
+    use starknet_core::types::contract::legacy::LegacyContractClass;
+    use starknet_core::types::{BlockId, BlockTag, EthAddress, Felt, MsgFromL1, StarknetError};
+    use starknet_core::utils::{get_udc_deployed_address, UdcUniqueness};
+    use starknet_providers::{Provider, ProviderError};
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{

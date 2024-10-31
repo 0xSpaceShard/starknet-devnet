@@ -6,14 +6,16 @@ use blockifier::state::state_api::StateReader;
 use starknet_api::core::{calculate_contract_address, PatriciaKey};
 use starknet_api::transaction::{Calldata, ContractAddressSalt};
 use starknet_api::{felt, patricia_key};
-use starknet_rs_core::types::Felt;
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::{Cairo0Json, ContractClass};
-use starknet_types::error::Error;
-use starknet_types::felt::{felt_from_prefixed_hex, join_felts, split_biguint, ClassHash, Key};
-use starknet_types::num_bigint::BigUint;
-use starknet_types::rpc::state::Balance;
-use starknet_types::traits::HashProducer;
+use starknet_core::types::Felt;
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::contract_class::{Cairo0Json, ContractClass};
+use starknet_devnet_types::error::Error;
+use starknet_devnet_types::felt::{
+    felt_from_prefixed_hex, join_felts, split_biguint, ClassHash, Key,
+};
+use starknet_devnet_types::num_bigint::BigUint;
+use starknet_devnet_types::rpc::state::Balance;
+use starknet_devnet_types::traits::HashProducer;
 
 use crate::constants::{
     CAIRO_0_ACCOUNT_CONTRACT, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
@@ -214,10 +216,10 @@ impl Accounted for Account {
 
 #[cfg(test)]
 mod tests {
-    use starknet_rs_core::types::Felt;
-    use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::felt_from_prefixed_hex;
-    use starknet_types::rpc::state::Balance;
+    use starknet_core::types::Felt;
+    use starknet_devnet_types::contract_address::ContractAddress;
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
+    use starknet_devnet_types::rpc::state::Balance;
 
     use super::Account;
     use crate::account::FeeToken;

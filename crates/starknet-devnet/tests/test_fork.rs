@@ -5,27 +5,27 @@ mod fork_tests {
     use std::str::FromStr;
     use std::sync::Arc;
 
-    use server::test_utils::assert_contains;
-    use starknet_core::constants::{
+    use starknet_devnet_server::test_utils::assert_contains;
+    use starknet_devnet_core::constants::{
         CAIRO_1_ACCOUNT_CONTRACT_0_8_0_SIERRA_PATH, CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
     };
-    use starknet_rs_accounts::{
+    use starknet_accounts::{
         Account, AccountFactory, AccountFactoryError, ExecutionEncoding,
         OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
-    use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{
+    use starknet_contract::ContractFactory;
+    use starknet_core::types::contract::legacy::LegacyContractClass;
+    use starknet_core::types::{
         BlockId, BlockTag, Call, ContractClass, Felt, FunctionCall, MaybePendingBlockWithTxHashes,
         StarknetError,
     };
-    use starknet_rs_core::utils::{
+    use starknet_core::utils::{
         get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
     };
-    use starknet_rs_providers::{Provider, ProviderError};
-    use starknet_rs_signers::Signer;
-    use starknet_types::felt::felt_from_prefixed_hex;
-    use starknet_types::rpc::transaction_receipt::FeeUnit;
+    use starknet_providers::{Provider, ProviderError};
+    use starknet_signers::Signer;
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
+    use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
@@ -287,7 +287,7 @@ mod fork_tests {
         let contract_address = get_udc_deployed_address(
             Felt::ZERO,
             declaration_result.class_hash,
-            &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+            &starknet_core::utils::UdcUniqueness::NotUnique,
             &ctor_args,
         );
 

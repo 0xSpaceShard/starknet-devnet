@@ -2,20 +2,22 @@ use std::collections::HashSet;
 use std::num::NonZeroU128;
 
 use clap::Parser;
-use server::api::json_rpc::JsonRpcRequest;
-use server::restrictive_mode::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
-use server::server::HTTP_API_ROUTES_WITHOUT_LEADING_SLASH;
-use server::ServerConfig;
-use starknet_core::constants::{
+use starknet_devnet_core::constants::{
     DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT,
     DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
-use starknet_core::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
-use starknet_core::random_number_generator::generate_u32_random_number;
-use starknet_core::starknet::starknet_config::{
+use starknet_devnet_core::contract_class_choice::{
+    AccountClassWrapper, AccountContractClassChoice,
+};
+use starknet_devnet_core::random_number_generator::generate_u32_random_number;
+use starknet_devnet_core::starknet::starknet_config::{
     BlockGenerationOn, DumpOn, ForkConfig, StarknetConfig, StateArchiveCapacity,
 };
-use starknet_types::chain_id::ChainId;
+use starknet_devnet_server::api::json_rpc::JsonRpcRequest;
+use starknet_devnet_server::restrictive_mode::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
+use starknet_devnet_server::server::HTTP_API_ROUTES_WITHOUT_LEADING_SLASH;
+use starknet_devnet_server::ServerConfig;
+use starknet_devnet_types::chain_id::ChainId;
 use tracing_subscriber::EnvFilter;
 
 use crate::initial_balance_wrapper::InitialBalanceWrapper;
@@ -52,7 +54,9 @@ pub(crate) struct Args {
     #[arg(env = "ACCOUNT_CLASS_CUSTOM")]
     #[arg(value_name = "PATH")]
     #[arg(conflicts_with = "account_class_choice")]
-    #[arg(help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;")]
+    #[arg(
+        help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;"
+    )]
     account_class_custom: Option<AccountClassWrapper>,
 
     /// Initial balance of predeployed accounts
@@ -317,10 +321,10 @@ impl RequestResponseLogging {
 #[cfg(test)]
 mod tests {
     use clap::Parser;
-    use starknet_core::constants::{
+    use starknet_devnet_core::constants::{
         CAIRO_0_ERC20_CONTRACT_PATH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
     };
-    use starknet_core::starknet::starknet_config::{
+    use starknet_devnet_core::starknet::starknet_config::{
         BlockGenerationOn, DumpOn, StateArchiveCapacity,
     };
     use tracing_subscriber::EnvFilter;

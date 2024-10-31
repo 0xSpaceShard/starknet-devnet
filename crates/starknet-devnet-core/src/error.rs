@@ -2,10 +2,10 @@ use blockifier::fee::fee_checks::FeeCheckError;
 use blockifier::transaction::errors::{
     TransactionExecutionError, TransactionFeeError, TransactionPreValidationError,
 };
-use starknet_rs_core::types::{BlockId, Felt};
-use starknet_types;
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_storage_key::ContractStorageKey;
+use starknet_core::types::{BlockId, Felt};
+use starknet_devnet_types;
+use starknet_devnet_types::contract_address::ContractAddress;
+use starknet_devnet_types::contract_storage_key::ContractStorageKey;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -23,7 +23,7 @@ pub enum Error {
     #[error("{execution_error}")]
     ExecutionError { execution_error: String, index: usize },
     #[error("Types error: {0}")]
-    TypesError(#[from] starknet_types::error::Error),
+    TypesError(#[from] starknet_devnet_types::error::Error),
     #[error("I/O error: {0}")]
     IoError(#[from] std::io::Error),
     #[error("Error when reading file {path}")]
@@ -33,7 +33,7 @@ pub enum Error {
     #[error("Contract not found")]
     ContractNotFound,
     #[error(transparent)]
-    SignError(#[from] starknet_rs_signers::local_wallet::SignError),
+    SignError(#[from] starknet_signers::local_wallet::SignError),
     #[error("{msg}")]
     InvalidMintingTransaction { msg: String },
     #[error("No block found")]

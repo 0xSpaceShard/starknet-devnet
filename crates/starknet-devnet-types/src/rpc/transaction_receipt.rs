@@ -2,7 +2,7 @@ use cairo_vm::types::builtin_name::BuiltinName;
 use serde::{Deserialize, Deserializer, Serialize};
 use starknet_api::block::BlockNumber;
 use starknet_api::transaction::Fee;
-use starknet_rs_core::types::{ExecutionResult, Hash256, TransactionFinalityStatus};
+use starknet_core::types::{ExecutionResult, Hash256, TransactionFinalityStatus};
 
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;

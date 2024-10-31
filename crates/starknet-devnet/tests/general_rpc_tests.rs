@@ -4,7 +4,7 @@ pub mod common;
 
 mod general_rpc_tests {
     use serde_json::json;
-    use server::api::json_rpc::RPC_SPEC_VERSION;
+    use starknet_devnet_server::api::json_rpc::RPC_SPEC_VERSION;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::RPC_PATH;

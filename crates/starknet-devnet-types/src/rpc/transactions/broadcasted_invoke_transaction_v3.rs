@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use starknet_rs_core::types::Felt;
-use starknet_rs_crypto::poseidon_hash_many;
+use starknet_core::types::Felt;
+use starknet_crypto::poseidon_hash_many;
 
 use super::BroadcastedTransactionCommonV3;
 use crate::constants::PREFIX_INVOKE;
@@ -48,7 +48,7 @@ impl BroadcastedInvokeTransactionV3 {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::{ResourceBoundsMapping, Tip};
-    use starknet_rs_core::types::Felt;
+    use starknet_core::types::Felt;
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
