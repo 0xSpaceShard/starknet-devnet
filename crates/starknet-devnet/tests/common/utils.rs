@@ -433,6 +433,13 @@ pub async fn send_binary_rpc_via_ws(
     Ok(resp_body)
 }
 
+pub async fn receive_rpc_via_ws(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+) -> Result<serde_json::Value, anyhow::Error> {
+    let msg = ws.next().await.ok_or(anyhow::Error::msg("Nothing to receive"))??;
+    Ok(serde_json::from_str(&msg.into_text()?)?)
+}
+
 #[cfg(test)]
 mod test_unique_auto_deletable_file {
     use std::path::Path;
