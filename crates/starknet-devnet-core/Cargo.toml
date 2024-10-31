@@ -28,7 +28,7 @@ tracing = { workspace = true }
 indexmap = { workspace = true }
 url = { workspace = true }
 nonzero_ext = { workspace = true }
-usc = { workspace = true }
+universal-sierra-compiler = { workspace = true }
 parking_lot = { workspace = true }
 
 # necessary for installing reqwest in Docker

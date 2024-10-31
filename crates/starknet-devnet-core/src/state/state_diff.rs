@@ -336,8 +336,9 @@ mod tests {
         for (contract_class, nonce) in
             [(replaceable_contract.clone(), Felt::ZERO), (events_contract.clone(), Felt::ONE)]
         {
-            let casm_contract_class_json =
-                usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap())
+            let casm_contract_class_json = universal
+                - sierra
+                - compiler::compile_contract(serde_json::to_value(contract_class.clone()).unwrap())
                     .unwrap();
             let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap();
 

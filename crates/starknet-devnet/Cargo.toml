@@ -49,7 +49,7 @@ starknet-signers = { workspace = true }
 starknet-core = { workspace = true }
 starknet-accounts = { workspace = true }
 axum = { workspace = true }
-usc = { workspace = true }
+universal-sierra-compiler = { workspace = true }
 reqwest = { workspace = true }
 criterion = { workspace = true }
 serial_test = { workspace = true }

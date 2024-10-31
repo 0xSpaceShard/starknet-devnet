@@ -62,7 +62,7 @@ rand_mt = "4.2.2"
 regex_generate = "0.2.3"
 reqwest = { version = "0.12", features = ["blocking", "json"] }
 url = "2.4"
-usc = { version = "2.2.0", package = "universal-sierra-compiler" }
+universal-sierra-compiler = { version = "2.2.0", package = "universal-sierra-compiler" }
 num-bigint = { version = "0.4" }
 bigdecimal = { version = "0.4.5" }
 enum-helper-macros = "0.0.1"
