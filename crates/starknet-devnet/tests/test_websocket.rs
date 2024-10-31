@@ -7,51 +7,10 @@ mod websocket_support {
     use starknet_rs_core::types::Felt;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
     use tokio::net::TcpStream;
-    use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+    use tokio_tungstenite::connect_async;
 
     use crate::common::background_devnet::BackgroundDevnet;
-
-    async fn send_text_rpc_via_ws(
-        ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
-        method: &str,
-        params: serde_json::Value,
-    ) -> Result<serde_json::Value, anyhow::Error> {
-        let text_body = json!({
-            "jsonrpc": "2.0",
-            "id": 0,
-            "method": method,
-            "params": params
-        })
-        .to_string();
-        ws.send(tokio_tungstenite::tungstenite::Message::Text(text_body)).await?;
-
-        let resp_raw =
-            ws.next().await.ok_or(anyhow::Error::msg("No response in websocket stream"))??;
-        let resp_body: serde_json::Value = serde_json::from_slice(&resp_raw.into_data())?;
-
-        Ok(resp_body)
-    }
-
-    async fn send_binary_rpc_via_ws(
-        ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
-        method: &str,
-        params: serde_json::Value,
-    ) -> Result<serde_json::Value, anyhow::Error> {
-        let body = json!({
-            "jsonrpc": "2.0",
-            "id": 0,
-            "method": method,
-            "params": params
-        });
-        let binary_body = serde_json::to_vec(&body)?;
-        ws.send(tokio_tungstenite::tungstenite::Message::Binary(binary_body)).await?;
-
-        let resp_raw =
-            ws.next().await.ok_or(anyhow::Error::msg("No response in websocket stream"))??;
-        let resp_body: serde_json::Value = serde_json::from_slice(&resp_raw.into_data())?;
-
-        Ok(resp_body)
-    }
+    use crate::common::utils::{send_binary_rpc_via_ws, send_text_rpc_via_ws};
 
     #[tokio::test]
     #[ignore = "General RPC support via websocket is disabled"]

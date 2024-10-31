@@ -33,16 +33,27 @@ pub enum SubscriptionConfirmation {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(tag = "method", content = "params")]
+#[serde(untagged)]
 pub enum SubscriptionNotification {
-    #[serde(rename = "starknet_subscriptionNewHeads")]
     NewHeadsNotification(BlockHeader),
-    #[serde(rename = "starknet_subscriptionTransactionStatus")]
     TransactionStatusNotification,
-    #[serde(rename = "starknet_subscriptionPendingTransactions")]
     PendingTransactionsNotification,
-    #[serde(rename = "starknet_subscriptionEvents")]
     EventsNotification,
+}
+
+impl SubscriptionNotification {
+    fn method_name(&self) -> &'static str {
+        match self {
+            SubscriptionNotification::NewHeadsNotification(_) => "starknet_subscriptionNewHeads",
+            SubscriptionNotification::TransactionStatusNotification => {
+                "starknet_subscriptionTransactionStatus"
+            }
+            SubscriptionNotification::PendingTransactionsNotification => {
+                "starknet_subscriptionPendingTransactions"
+            }
+            SubscriptionNotification::EventsNotification => "starknet_subscriptionEvents",
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -52,23 +63,27 @@ pub enum SubscriptionResponse {
 }
 
 impl SubscriptionResponse {
-    fn to_serialized_rpc_response(&self) -> Result<serde_json::Value, serde_json::Error> {
+    fn to_serialized_rpc_response(&self) -> serde_json::Value {
         let mut resp = match self {
             SubscriptionResponse::Confirmation { rpc_request_id, result } => {
                 serde_json::json!({
                     "id": rpc_request_id,
-                    "result": result, // TODO nested or not?
+                    "result": result,
                 })
             }
             SubscriptionResponse::Notification { subscription_id, data } => {
-                let mut resp = serde_json::to_value(data)?;
-                resp["params"]["id"] = serde_json::to_value(subscription_id)?;
-                resp
+                serde_json::json!({
+                    "method": data.method_name(),
+                    "params": {
+                        "subscription_id": subscription_id,
+                        "result": data,
+                    }
+                })
             }
         };
 
         resp["jsonrpc"] = "2.0".into();
-        Ok(resp)
+        resp
     }
 }
 
@@ -84,17 +99,9 @@ impl SocketContext {
     }
 
     async fn send(&self, subscription_response: SubscriptionResponse) {
-        let resp_serialized = match subscription_response.to_serialized_rpc_response() {
-            Ok(resp_serialized) => resp_serialized,
-            Err(e) => {
-                tracing::error!("Cannot serialize response: {e:?}");
-                return;
-            }
-        };
+        let resp_serialized = subscription_response.to_serialized_rpc_response().to_string();
 
-        if let Err(e) =
-            self.sender.lock().await.send(Message::Text(resp_serialized.to_string())).await
-        {
+        if let Err(e) = self.sender.lock().await.send(Message::Text(resp_serialized)).await {
             tracing::error!("Failed writing to socket: {}", e.to_string());
         }
     }
