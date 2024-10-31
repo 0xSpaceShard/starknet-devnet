@@ -3,6 +3,7 @@ pub mod common;
 
 mod websocket_subscription_support {
     use serde_json::json;
+    use server::test_utils::assert_contains;
     use tokio_tungstenite::connect_async;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -27,5 +28,15 @@ mod websocket_subscription_support {
         );
         assert_eq!(notification["params"]["result"]["block_number"].as_i64().unwrap(), 1);
         assert_eq!(notification["params"]["subscription_id"].as_i64().unwrap(), subscription_id);
+    }
+
+    #[tokio::test]
+    async fn should_not_receive_block_notification_if_not_subscribed() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        devnet.create_block().await.unwrap();
+        let read_err = receive_rpc_via_ws(&mut ws).await.unwrap_err();
+        assert_contains(read_err.to_string().as_str(), "deadline has elapsed");
     }
 }

@@ -3,9 +3,10 @@ use std::fs;
 use std::path::Path;
 use std::process::{Child, Command};
 use std::sync::Arc;
+use std::time::Duration;
 
 use ethers::types::U256;
-use futures::{SinkExt, StreamExt};
+use futures::{SinkExt, StreamExt, TryStreamExt};
 use serde_json::json;
 use server::test_utils::assert_contains;
 use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
@@ -433,10 +434,13 @@ pub async fn send_binary_rpc_via_ws(
     Ok(resp_body)
 }
 
+/// Tries to read from the provided ws stream. Waits for a second at most.
 pub async fn receive_rpc_via_ws(
     ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
 ) -> Result<serde_json::Value, anyhow::Error> {
-    let msg = ws.next().await.ok_or(anyhow::Error::msg("Nothing to receive"))??;
+    let msg = tokio::time::timeout(Duration::from_secs(1), ws.try_next())
+        .await??
+        .ok_or(anyhow::Error::msg("Nothing to read"))?;
     Ok(serde_json::from_str(&msg.into_text()?)?)
 }
 
