@@ -19,6 +19,7 @@ homepage = "https://0xspaceshard.github.io/starknet-devnet-rs"
 description = "A local testnet for Starknet"
 readme = "README.md"
 documentation = "https://0xspaceshard.github.io/starknet-devnet-rs/docs/intro"
+version = "0.2.2"
 
 exclude = [".github/**", ".devcontainer/**", ".circleci/**"]
 
