@@ -558,9 +558,9 @@ dependencies = [
 
 [[package]]
 name = "blockifier"
-version = "0.8.0-rc.3"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fb99b6d20e12f5dff17a2b53e3e6cab54766357a638f90dafcb43c0ac933d4b"
+checksum = "481ee091c604037e5e81cf0debf1eca9f69d4f61636b27d7732c7cf14efbb508"
 dependencies = [
  "anyhow",
  "ark-ec",
@@ -5800,7 +5800,7 @@ dependencies = [
 
 [[package]]
 name = "starknet-devnet"
-version = "0.2.0"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5833,7 +5833,7 @@ dependencies = [
 
 [[package]]
 name = "starknet-devnet-core"
-version = "0.2.0"
+version = "0.2.2"
 dependencies = [
  "blockifier",
  "cairo-lang-starknet-classes",
@@ -5862,7 +5862,7 @@ dependencies = [
 
 [[package]]
 name = "starknet-devnet-server"
-version = "0.2.0"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5889,7 +5889,7 @@ dependencies = [
 
 [[package]]
 name = "starknet-devnet-types"
-version = "0.2.0"
+version = "0.2.2"
 dependencies = [
  "base64 0.22.1",
  "bigdecimal",
