@@ -55,7 +55,7 @@ jobs:
           command: rustup install nightly-2024-10-31
       - run:
           name: Package
-          command: cargo +nightly-2024-10-31 package --workspace
+          command: cargo +nightly-2024-10-31 package --workspace -Z package-workspace
       # - run:
       #     name: Install foundry
       #     command: ./scripts/install_foundry.sh
