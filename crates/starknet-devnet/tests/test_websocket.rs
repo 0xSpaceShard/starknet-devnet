@@ -54,6 +54,7 @@ mod websocket_support {
     }
 
     #[tokio::test]
+    #[ignore = "General RPC support via websocket is disabled"]
     async fn mint_and_check_tx_via_websocket() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
@@ -84,6 +85,7 @@ mod websocket_support {
     }
 
     #[tokio::test]
+    #[ignore = "General RPC support via websocket is disabled"]
     async fn create_block_via_binary_ws_message() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
@@ -107,6 +109,7 @@ mod websocket_support {
     }
 
     #[tokio::test]
+    #[ignore = "General RPC support via websocket is disabled"]
     async fn multiple_ws_connections() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let iterations = 10;
@@ -137,6 +140,7 @@ mod websocket_support {
     }
 
     #[tokio::test]
+    #[ignore = "General RPC support via websocket is disabled"]
     async fn invalid_request() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
