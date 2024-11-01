@@ -377,17 +377,15 @@ impl CustomState for StarknetState {
         let class_hash = starknet_api::core::ClassHash(class_hash);
 
         if let ContractClass::Cairo1(cairo_lang_contract_class) = &contract_class {
-            let casm_json = universal
-                - sierra
-                - compiler::compile_contract(
-                    serde_json::to_value(cairo_lang_contract_class)
-                        .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
-                )
-                .map_err(|err| {
-                    Error::TypesError(starknet_devnet_types::error::Error::SierraCompilationError {
-                        reason: err.to_string(),
-                    })
-                })?;
+            let casm_json = usc::compile_contract(
+                serde_json::to_value(cairo_lang_contract_class)
+                    .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
+            )
+            .map_err(|err| {
+                Error::TypesError(starknet_devnet_types::error::Error::SierraCompilationError {
+                    reason: err.to_string(),
+                })
+            })?;
 
             let casm_hash = starknet_api::core::CompiledClassHash(calculate_casm_hash(casm_json)?);
 

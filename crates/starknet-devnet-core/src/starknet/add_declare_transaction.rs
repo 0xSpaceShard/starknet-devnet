@@ -108,18 +108,16 @@ fn assert_casm_hash_is_valid(
     match (contract_class, received_casm_hash) {
         (ContractClass::Cairo0(_), None) => Ok(()), // if cairo0, casm_hash expected to be None
         (ContractClass::Cairo1(cairo_lang_contract_class), Some(received_casm_hash)) => {
-            let casm_json = universal
-                - sierra
-                - compiler::compile_contract(
-                    serde_json::to_value(cairo_lang_contract_class)
-                        .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
-                )
-                .map_err(|err| {
-                    let reason = err.to_string();
-                    Error::TypesError(starknet_devnet_types::error::Error::SierraCompilationError {
-                        reason,
-                    })
-                })?;
+            let casm_json = usc::compile_contract(
+                serde_json::to_value(cairo_lang_contract_class)
+                    .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
+            )
+            .map_err(|err| {
+                let reason = err.to_string();
+                Error::TypesError(starknet_devnet_types::error::Error::SierraCompilationError {
+                    reason,
+                })
+            })?;
 
             let calculated_casm_hash = calculate_casm_hash(casm_json)?;
             if calculated_casm_hash == received_casm_hash {

@@ -40,10 +40,8 @@ mod tests {
         let sierra_class_hash =
             ContractClass::Cairo1(contract_class.clone()).generate_hash().unwrap();
 
-        let casm_contract_class_json = universal
-            - sierra
-            - compiler::compile_contract(serde_json::to_value(contract_class.clone()).unwrap())
-                .unwrap();
+        let casm_contract_class_json =
+            usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap()).unwrap();
 
         let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap();
 
