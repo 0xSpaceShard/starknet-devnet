@@ -377,7 +377,7 @@ impl CustomState for StarknetState {
         let class_hash = starknet_api::core::ClassHash(class_hash);
 
         if let ContractClass::Cairo1(cairo_lang_contract_class) = &contract_class {
-            let casm_json = usc::compile_contract(
+            let casm_json = universal_sierra_compiler::compile_contract(
                 serde_json::to_value(cairo_lang_contract_class)
                     .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
             )

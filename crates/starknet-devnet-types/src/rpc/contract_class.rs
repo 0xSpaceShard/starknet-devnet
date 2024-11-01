@@ -113,11 +113,12 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractC
                 ))
             }
             ContractClass::Cairo1(sierra_contract_class) => {
-                let casm_json =
-                    usc::compile_contract(serde_json::to_value(sierra_contract_class).map_err(
-                        |err| Error::JsonError(JsonError::Custom { msg: err.to_string() }),
-                    )?)
-                    .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+                let casm_json = universal_sierra_compiler::compile_contract(
+                    serde_json::to_value(sierra_contract_class).map_err(|err| {
+                        Error::JsonError(JsonError::Custom { msg: err.to_string() })
+                    })?,
+                )
+                .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
 
                 let casm = serde_json::from_value::<CasmContractClass>(casm_json)
                     .map_err(|err| Error::JsonError(JsonError::Custom { msg: err.to_string() }))?;
@@ -255,7 +256,7 @@ pub fn convert_codegen_to_blockifier_compiled_class(
     Ok(match class {
         CodegenContractClass::Sierra(_) => {
             let json_value = serde_json::to_value(class).map_err(JsonError::SerdeJsonError)?;
-            let casm_json = usc::compile_contract(json_value)
+            let casm_json = universal_sierra_compiler::compile_contract(json_value)
                 .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
 
             let casm = serde_json::from_value::<CasmContractClass>(casm_json)

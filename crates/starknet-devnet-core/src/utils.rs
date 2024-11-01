@@ -149,8 +149,10 @@ pub(crate) mod test_utils {
     ) -> BroadcastedDeclareTransactionV2 {
         let contract_class = dummy_cairo_1_contract_class();
 
-        let casm_contract_class_json =
-            usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap()).unwrap();
+        let casm_contract_class_json = universal_sierra_compiler::compile_contract(
+            serde_json::to_value(contract_class.clone()).unwrap(),
+        )
+        .unwrap();
 
         let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap();
 
