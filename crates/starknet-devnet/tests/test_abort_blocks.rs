@@ -3,9 +3,9 @@ pub mod common;
 
 mod abort_blocks_tests {
     use serde_json::json;
+    use starknet_core::types::{BlockId, BlockTag, Felt};
     use starknet_devnet_server::api::json_rpc::error::ApiError;
     use starknet_devnet_server::test_utils::assert_contains;
-    use starknet_core::types::{BlockId, BlockTag, Felt};
     use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;

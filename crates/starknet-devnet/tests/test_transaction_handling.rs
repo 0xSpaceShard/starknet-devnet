@@ -5,10 +5,10 @@ mod trace_tests {
     use std::sync::Arc;
 
     use starknet_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
-    use starknet_devnet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
-    use starknet_devnet_server::test_utils::assert_contains;
     use starknet_core::types::contract::legacy::LegacyContractClass;
     use starknet_core::types::{Felt, StarknetError};
+    use starknet_devnet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
+    use starknet_devnet_server::test_utils::assert_contains;
     use starknet_providers::ProviderError;
 
     use crate::common::background_devnet::BackgroundDevnet;

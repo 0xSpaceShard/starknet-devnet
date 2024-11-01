@@ -5,10 +5,6 @@ mod fork_tests {
     use std::str::FromStr;
     use std::sync::Arc;
 
-    use starknet_devnet_server::test_utils::assert_contains;
-    use starknet_devnet_core::constants::{
-        CAIRO_1_ACCOUNT_CONTRACT_0_8_0_SIERRA_PATH, CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
-    };
     use starknet_accounts::{
         Account, AccountFactory, AccountFactoryError, ExecutionEncoding,
         OpenZeppelinAccountFactory, SingleOwnerAccount,
@@ -22,10 +18,14 @@ mod fork_tests {
     use starknet_core::utils::{
         get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
     };
-    use starknet_providers::{Provider, ProviderError};
-    use starknet_signers::Signer;
+    use starknet_devnet_core::constants::{
+        CAIRO_1_ACCOUNT_CONTRACT_0_8_0_SIERRA_PATH, CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
+    };
+    use starknet_devnet_server::test_utils::assert_contains;
     use starknet_devnet_types::felt::felt_from_prefixed_hex;
     use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
+    use starknet_providers::{Provider, ProviderError};
+    use starknet_signers::Signer;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{

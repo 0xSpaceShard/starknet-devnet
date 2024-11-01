@@ -4,8 +4,8 @@ pub mod common;
 mod minting_tests {
     use reqwest::StatusCode;
     use serde_json::json;
-    use starknet_devnet_server::test_utils::assert_contains;
     use starknet_core::types::Felt;
+    use starknet_devnet_server::test_utils::assert_contains;
     use starknet_devnet_types::felt::felt_from_prefixed_hex;
     use starknet_devnet_types::num_bigint::BigUint;
     use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
@@ -137,7 +137,7 @@ mod minting_tests {
         let rpc_error = devnet.send_custom_rpc("devnet_mint", json_body).await.unwrap_err();
         assert_eq!(
             rpc_error.code,
-            server::rpc_core::error::ErrorCode::InvalidParams,
+            starknet_devnet_server::rpc_core::error::ErrorCode::InvalidParams,
             "Checking status of {rpc_error:?}"
         );
     }
@@ -183,7 +183,10 @@ mod minting_tests {
 
     async fn reject_bad_json_rpc_request(devnet: &BackgroundDevnet, body: serde_json::Value) {
         let rpc_error = devnet.send_custom_rpc("devnet_getAccountBalance", body).await.unwrap_err();
-        assert_eq!(rpc_error.code, server::rpc_core::error::ErrorCode::InvalidParams);
+        assert_eq!(
+            rpc_error.code,
+            starknet_devnet_server::rpc_core::error::ErrorCode::InvalidParams
+        );
     }
 
     #[tokio::test]

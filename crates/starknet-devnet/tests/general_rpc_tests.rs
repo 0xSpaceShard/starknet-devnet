@@ -38,7 +38,10 @@ mod general_rpc_tests {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         for invalid_method in ["invalid_method", "starknet_specVersion_butWrong"] {
             let rpc_error = devnet.send_custom_rpc(invalid_method, json!({})).await.unwrap_err();
-            assert_eq!(rpc_error.code, server::rpc_core::error::ErrorCode::MethodNotFound);
+            assert_eq!(
+                rpc_error.code,
+                starknet_devnet_server::rpc_core::error::ErrorCode::MethodNotFound
+            );
         }
     }
 
@@ -55,6 +58,9 @@ mod general_rpc_tests {
             .await
             .unwrap_err();
 
-        assert_eq!(rpc_error.code, server::rpc_core::error::ErrorCode::InvalidParams);
+        assert_eq!(
+            rpc_error.code,
+            starknet_devnet_server::rpc_core::error::ErrorCode::InvalidParams
+        );
     }
 }

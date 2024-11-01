@@ -6,7 +6,6 @@ mod blocks_generation_tests {
     use std::time;
 
     use serde_json::json;
-    use starknet_devnet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
     use starknet_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_contract::ContractFactory;
     use starknet_core::types::{
@@ -16,10 +15,11 @@ mod blocks_generation_tests {
     use starknet_core::utils::{
         get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
     };
-    use starknet_providers::Provider;
-    use starknet_signers::Signer;
+    use starknet_devnet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
     use starknet_devnet_types::felt::felt_from_prefixed_hex;
     use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
+    use starknet_providers::Provider;
+    use starknet_signers::Signer;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;

@@ -4,15 +4,17 @@ pub mod common;
 mod get_transaction_by_hash_integration_tests {
     use std::sync::Arc;
 
-    use starknet_devnet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS};
     use starknet_accounts::{
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_core::types::contract::legacy::LegacyContractClass;
     use starknet_core::types::{BlockId, BlockTag, Call, Felt, StarknetError};
     use starknet_core::utils::get_selector_from_name;
-    use starknet_providers::{Provider, ProviderError};
+    use starknet_devnet_core::constants::{
+        CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS,
+    };
     use starknet_devnet_types::felt::{felt_from_prefixed_hex, try_felt_to_num};
+    use starknet_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;

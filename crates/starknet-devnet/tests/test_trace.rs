@@ -5,10 +5,6 @@ mod trace_tests {
     use std::sync::Arc;
 
     use serde_json::json;
-    use starknet_devnet_core::constants::{
-        CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CHARGEABLE_ACCOUNT_ADDRESS,
-        ETH_ERC20_CONTRACT_ADDRESS,
-    };
     use starknet_accounts::{
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
@@ -17,9 +13,13 @@ mod trace_tests {
         DeployedContractItem, Felt, FunctionInvocation, StarknetError, TransactionTrace,
     };
     use starknet_core::utils::{get_udc_deployed_address, UdcUniqueness};
-    use starknet_providers::{Provider, ProviderError};
+    use starknet_devnet_core::constants::{
+        CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CHARGEABLE_ACCOUNT_ADDRESS,
+        ETH_ERC20_CONTRACT_ADDRESS,
+    };
     use starknet_devnet_types::felt::felt_from_prefixed_hex;
     use starknet_devnet_types::rpc::transactions::BlockTransactionTrace;
+    use starknet_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;

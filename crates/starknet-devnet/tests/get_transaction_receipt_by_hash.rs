@@ -5,20 +5,20 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
     use std::sync::Arc;
 
-    use starknet_contract::ContractFactory;
-    use starknet_devnet_core::constants::{
-        CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS,
-    };
-    use starknet_devnet_server::test_utils::declare_v1_str;
-    use starknet_devnet_types::felt::felt_from_prefixed_hex;
     use starknet_accounts::{
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
+    use starknet_contract::ContractFactory;
     use starknet_core::types::{
         BroadcastedDeclareTransactionV1, Call, ExecutionResult, Felt, StarknetError,
         TransactionReceipt,
     };
     use starknet_core::utils::{get_selector_from_name, get_udc_deployed_address};
+    use starknet_devnet_core::constants::{
+        CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS,
+    };
+    use starknet_devnet_server::test_utils::declare_v1_str;
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
     use starknet_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;

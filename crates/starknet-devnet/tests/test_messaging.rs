@@ -17,8 +17,6 @@ mod test_messaging {
 
     use ethers::prelude::*;
     use serde_json::{json, Value};
-    use starknet_devnet_server::rpc_core::error::RpcError;
-    use starknet_devnet_server::test_utils::assert_contains;
     use starknet_accounts::{
         Account, AccountError, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
     };
@@ -27,13 +25,13 @@ mod test_messaging {
         BlockId, BlockTag, Call, Felt, FunctionCall, InvokeTransactionResult,
         TransactionExecutionStatus, TransactionReceipt, TransactionReceiptWithBlockInfo,
     };
-    use starknet_core::utils::{
-        get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
-    };
+    use starknet_core::utils::{get_selector_from_name, get_udc_deployed_address, UdcUniqueness};
+    use starknet_devnet_server::rpc_core::error::RpcError;
+    use starknet_devnet_server::test_utils::assert_contains;
+    use starknet_devnet_types::felt::felt_from_prefixed_hex;
     use starknet_providers::jsonrpc::HttpTransport;
     use starknet_providers::{JsonRpcClient, Provider};
     use starknet_signers::LocalWallet;
-    use starknet_devnet_types::felt::felt_from_prefixed_hex;
 
     use crate::common::background_anvil::BackgroundAnvil;
     use crate::common::background_devnet::BackgroundDevnet;

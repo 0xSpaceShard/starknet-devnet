@@ -6,12 +6,6 @@ mod simulation_tests {
     use std::{u128, u64};
 
     use serde_json::json;
-    use starknet_devnet_server::test_utils::assert_contains;
-    use starknet_devnet_core::constants::{
-        CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
-        ETH_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS,
-    };
-    use starknet_devnet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_accounts::{
         Account, AccountError, AccountFactory, ConnectedAccount, ExecutionEncoder,
         ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
@@ -29,10 +23,16 @@ mod simulation_tests {
     use starknet_core::utils::{
         cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
-    use starknet_providers::{Provider, ProviderError};
-    use starknet_signers::{LocalWallet, Signer, SigningKey};
+    use starknet_devnet_core::constants::{
+        CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
+        ETH_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS,
+    };
+    use starknet_devnet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
+    use starknet_devnet_server::test_utils::assert_contains;
     use starknet_devnet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_devnet_types::felt::felt_from_prefixed_hex;
+    use starknet_providers::{Provider, ProviderError};
+    use starknet_signers::{LocalWallet, Signer, SigningKey};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{

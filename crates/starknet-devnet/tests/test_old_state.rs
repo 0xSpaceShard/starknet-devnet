@@ -3,8 +3,6 @@ pub mod common;
 mod old_state {
     use std::sync::Arc;
 
-    use starknet_devnet_server::test_utils::assert_contains;
-    use starknet_devnet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS};
     use starknet_accounts::{Account, ExecutionEncoder, ExecutionEncoding, SingleOwnerAccount};
     use starknet_core::chain_id::SEPOLIA;
     use starknet_core::types::{
@@ -15,8 +13,10 @@ mod old_state {
         TransactionTrace,
     };
     use starknet_core::utils::{get_selector_from_name, get_storage_var_address};
-    use starknet_providers::{Provider, ProviderError};
+    use starknet_devnet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS};
+    use starknet_devnet_server::test_utils::assert_contains;
     use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
+    use starknet_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{self, CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID};

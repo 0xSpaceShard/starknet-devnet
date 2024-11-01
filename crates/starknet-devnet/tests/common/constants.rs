@@ -1,5 +1,5 @@
-use starknet_devnet_core::constants::DEVNET_DEFAULT_INITIAL_BALANCE;
 use starknet_core::types::Felt;
+use starknet_devnet_core::constants::DEVNET_DEFAULT_INITIAL_BALANCE;
 
 pub const HOST: &str = "localhost";
 pub const MIN_PORT: u16 = 1025;

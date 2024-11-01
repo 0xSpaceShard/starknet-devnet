@@ -7,8 +7,8 @@ mod dump_and_load_tests {
 
     use serde_json::json;
     use starknet_devnet_server::rpc_core::error::ErrorCode::InvalidParams;
-    use starknet_providers::Provider;
     use starknet_devnet_types::rpc::transaction_receipt::FeeUnit;
+    use starknet_providers::Provider;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants;

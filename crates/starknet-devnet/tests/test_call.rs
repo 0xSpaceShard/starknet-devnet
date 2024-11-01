@@ -2,10 +2,10 @@
 pub mod common;
 
 mod call {
-    use starknet_devnet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
     use starknet_core::types::{BlockId, BlockTag, Felt, FunctionCall, StarknetError};
-    use starknet_providers::{Provider, ProviderError};
+    use starknet_devnet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
     use starknet_devnet_types::felt::felt_from_prefixed_hex;
+    use starknet_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;

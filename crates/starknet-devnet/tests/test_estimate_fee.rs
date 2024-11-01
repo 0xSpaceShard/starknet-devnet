@@ -9,12 +9,6 @@ mod estimate_fee_tests {
         ExecutionEncoder, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_contract::ContractFactory;
-    use starknet_devnet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, UDC_CONTRACT_ADDRESS};
-    use starknet_devnet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
-    use starknet_devnet_server::test_utils::assert_contains;
-    use starknet_devnet_types::constants::QUERY_VERSION_OFFSET;
-    use starknet_devnet_types::felt::{felt_from_prefixed_hex, try_felt_to_num};
-    use starknet_providers::{Provider, ProviderError};
     use starknet_core::types::contract::legacy::LegacyContractClass;
     use starknet_core::types::{
         BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedDeclareTransactionV3,
@@ -26,6 +20,12 @@ mod estimate_fee_tests {
     use starknet_core::utils::{
         cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
+    use starknet_devnet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, UDC_CONTRACT_ADDRESS};
+    use starknet_devnet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
+    use starknet_devnet_server::test_utils::assert_contains;
+    use starknet_devnet_types::constants::QUERY_VERSION_OFFSET;
+    use starknet_devnet_types::felt::{felt_from_prefixed_hex, try_felt_to_num};
+    use starknet_providers::{Provider, ProviderError};
     use starknet_signers::Signer;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -585,8 +585,8 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
-    async fn estimate_fee_of_declare_and_deploy_via_udc_returns_index_of_second_transaction_when_executed_with_non_existing_method(
-    ) {
+    async fn estimate_fee_of_declare_and_deploy_via_udc_returns_index_of_second_transaction_when_executed_with_non_existing_method()
+     {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start devnet");
 
         // get account
@@ -684,8 +684,8 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
-    async fn estimate_fee_of_multiple_failing_txs_should_return_index_of_the_first_failing_transaction(
-    ) {
+    async fn estimate_fee_of_multiple_failing_txs_should_return_index_of_the_first_failing_transaction()
+     {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start devnet");
 
         // get account

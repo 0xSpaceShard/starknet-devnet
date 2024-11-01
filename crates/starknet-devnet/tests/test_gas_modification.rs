@@ -5,13 +5,13 @@ mod gas_modification_tests {
     use std::sync::Arc;
 
     use serde_json::json;
-    use starknet_devnet_core::constants::DEVNET_DEFAULT_GAS_PRICE;
     use starknet_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
     use starknet_core::types::{Felt, ResourcePrice, StarknetError};
-    use starknet_providers::ProviderError;
-    use starknet_signers::Signer;
+    use starknet_devnet_core::constants::DEVNET_DEFAULT_GAS_PRICE;
     use starknet_devnet_types::chain_id::ChainId;
     use starknet_devnet_types::felt::felt_from_prefixed_hex;
+    use starknet_providers::ProviderError;
+    use starknet_signers::Signer;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{self, CAIRO_1_CONTRACT_PATH, INTEGRATION_SEPOLIA_HTTP_URL};

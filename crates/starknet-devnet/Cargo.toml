@@ -43,7 +43,7 @@ thiserror = { workspace = true }
 ethers = { workspace = true }
 lazy_static = { workspace = true }
 starknet-contract = { workspace = true }
-server = { workspace = true, features = ["test_utils"] }
+starknet-devnet-server = { workspace = true, features = ["test_utils"] }
 starknet-devnet-core = { workspace = true, features = ["test_utils"] }
 starknet-signers = { workspace = true }
 starknet-core = { workspace = true }

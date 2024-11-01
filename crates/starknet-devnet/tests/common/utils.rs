@@ -5,10 +5,6 @@ use std::process::{Child, Command};
 use std::sync::Arc;
 
 use ethers::types::U256;
-use starknet_devnet_server::test_utils::assert_contains;
-use starknet_devnet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
-use starknet_devnet_core::random_number_generator::generate_u32_random_number;
-use starknet_devnet_core::utils::calculate_casm_hash;
 use starknet_accounts::{
     Account, AccountFactory, ArgentAccountFactory, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
@@ -19,10 +15,14 @@ use starknet_core::types::{
     Felt, FlattenedSierraClass, FunctionCall, NonZeroFelt,
 };
 use starknet_core::utils::{get_selector_from_name, get_udc_deployed_address};
+use starknet_devnet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
+use starknet_devnet_core::random_number_generator::generate_u32_random_number;
+use starknet_devnet_core::utils::calculate_casm_hash;
+use starknet_devnet_server::test_utils::assert_contains;
+use starknet_devnet_types::felt::felt_from_prefixed_hex;
 use starknet_providers::jsonrpc::HttpTransport;
 use starknet_providers::{JsonRpcClient, Provider};
 use starknet_signers::LocalWallet;
-use starknet_devnet_types::felt::felt_from_prefixed_hex;
 
 use super::background_devnet::BackgroundDevnet;
 use super::constants::{ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_CONTRACT_PATH};
@@ -60,7 +60,9 @@ pub type SierraWithCasmHash = (FlattenedSierraClass, Felt);
 pub fn get_flattened_sierra_contract_and_casm_hash(sierra_path: &str) -> SierraWithCasmHash {
     let sierra_string = std::fs::read_to_string(sierra_path).unwrap();
     let sierra_class: SierraClass = serde_json::from_str(&sierra_string).unwrap();
-    let casm_json = universal_sierra_compiler::compile_contract(serde_json::from_str(&sierra_string).unwrap()).unwrap();
+    let casm_json =
+        universal_sierra_compiler::compile_contract(serde_json::from_str(&sierra_string).unwrap())
+            .unwrap();
     (sierra_class.flatten().unwrap(), calculate_casm_hash(casm_json).unwrap())
 }
 
