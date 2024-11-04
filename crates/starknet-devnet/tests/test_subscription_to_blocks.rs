@@ -191,8 +191,12 @@ mod websocket_subscription_support {
         assert_eq!(
             unsubscription_resp,
             json!({
-                "code": 66,
-                "message": "Invalid subscription id"
+                "jsonrpc": "2.0",
+                "id": 0,
+                "error": {
+                    "code": 66,
+                    "message": "Invalid subscription id",
+                }
             })
         );
     }
