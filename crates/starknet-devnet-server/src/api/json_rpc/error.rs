@@ -64,6 +64,8 @@ pub enum ApiError {
     CompiledClassHashMismatch,
     #[error("Cannot go back more than 1024 blocks")]
     TooManyBlocksBack,
+    #[error("Invalid subscription id")]
+    InvalidSubscriptionId,
 }
 
 impl ApiError {
@@ -209,6 +211,11 @@ impl ApiError {
             ApiError::HttpApiError(http_api_error) => http_api_error.http_api_error_to_rpc_error(),
             ApiError::TooManyBlocksBack => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(68),
+                message: error_message.into(),
+                data: None,
+            },
+            ApiError::InvalidSubscriptionId => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(66),
                 message: error_message.into(),
                 data: None,
             },

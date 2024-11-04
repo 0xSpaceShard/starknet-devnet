@@ -1,4 +1,5 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
+use std::sync::Arc;
 
 use axum::extract::ws::{Message, WebSocket};
 use futures::stream::SplitSink;
@@ -7,6 +8,7 @@ use serde::{self, Serialize};
 use starknet_types::rpc::block::BlockHeader;
 use tokio::sync::Mutex;
 
+use crate::api::json_rpc::error::ApiError;
 use crate::rpc_core::request::Id;
 
 pub type SocketId = u64;
@@ -118,10 +120,21 @@ impl SocketContext {
         subscription_id
     }
 
-    pub async fn unsubscribe(&mut self, subscription_id: SubscriptionId) {
+    pub async fn unsubscribe(
+        &mut self,
+        rpc_request_id: Id,
+        subscription_id: SubscriptionId,
+    ) -> Result<(), ApiError> {
         match self.subscriptions.remove(&subscription_id) {
-            Some(_) => todo!("return true"),
-            None => todo!("return INVALID_SUBSCRIPTION_ID"),
+            Some(_) => {
+                self.send(SubscriptionResponse::Confirmation {
+                    rpc_request_id,
+                    result: SubscriptionConfirmation::UnsubscriptionConfirmation(true),
+                })
+                .await;
+                Ok(())
+            }
+            None => Err(ApiError::InvalidSubscriptionId),
         }
     }
 
@@ -137,7 +150,7 @@ impl SocketContext {
                         self.notify(*subscription_id, data.clone()).await;
                     }
                 }
-                other => println!("DEBUG unsupported subscription: {other:?}"),
+                other => panic!("DEBUG unsupported subscription: {other:?}"),
             }
         }
     }

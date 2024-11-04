@@ -30,7 +30,7 @@ impl JsonRpcHandler {
                     }),
                 )?;
 
-                socket_context.unsubscribe(subscription_id).await;
+                socket_context.unsubscribe(rpc_request_id, subscription_id).await?;
                 Ok(())
             }
         }
