@@ -8,6 +8,8 @@ readme.workspace = true
 documentation.workspace = true
 description.workspace = true
 
+exclude = ["tests", "benches"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [[bin]]

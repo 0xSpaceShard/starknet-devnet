@@ -6,6 +6,8 @@ repository.workspace = true
 license-file.workspace = true
 description = "Server component of devnet"
 
+exclude = ["test_data"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
