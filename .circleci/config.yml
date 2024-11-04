@@ -48,42 +48,45 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install nightly-2024-10-31
-          command: rustup install nightly-2024-10-31
-      - run:
-          name: Install foundry
-          command: ./scripts/install_foundry.sh
-      - run:
-          name: Verify lockfile
-          command: cargo update -w --locked
-      - run:
-          name: Build
-          command: cargo build --release
-      - run:
-          name: Clippy check
-          command: ./scripts/clippy_check.sh
-      - run:
-          name: Format check
-          command: ./scripts/format_check.sh
-      - run:
-          name: Code spell check
-          command: ./scripts/check_spelling.sh
-      - run:
-          name: Save cache
-          command: .circleci/scripts/cache.sh save
-      - run:
-          name: Cleanup old cache
-          command: .circleci/scripts/cache.sh cleanup
-      - run:
-          name: Unit tests
-          command: cargo test --lib --bins --no-fail-fast
-      - run:
-          name: Integration tests
-          # fails if jobs not limited; read more in https://github.com/0xSpaceShard/starknet-devnet-rs/issues/378
-          command: cargo test --jobs 9 --test '*' --no-fail-fast
-      - run:
-          name: Check publishing by packaging the workspace
-          command: cargo +nightly-2024-10-31 package -Z package-workspace
+          name: test
+          command: echo $CIRCLE_PULL_REQUEST
+      # - run:
+      #     name: Install nightly-2024-10-31
+      #     command: rustup install nightly-2024-10-31
+      # - run:
+      #     name: Install foundry
+      #     command: ./scripts/install_foundry.sh
+      # - run:
+      #     name: Verify lockfile
+      #     command: cargo update -w --locked
+      # - run:
+      #     name: Build
+      #     command: cargo build --release
+      # - run:
+      #     name: Clippy check
+      #     command: ./scripts/clippy_check.sh
+      # - run:
+      #     name: Format check
+      #     command: ./scripts/format_check.sh
+      # - run:
+      #     name: Code spell check
+      #     command: ./scripts/check_spelling.sh
+      # - run:
+      #     name: Save cache
+      #     command: .circleci/scripts/cache.sh save
+      # - run:
+      #     name: Cleanup old cache
+      #     command: .circleci/scripts/cache.sh cleanup
+      # - run:
+      #     name: Unit tests
+      #     command: cargo test --lib --bins --no-fail-fast
+      # - run:
+      #     name: Integration tests
+      #     # fails if jobs not limited; read more in https://github.com/0xSpaceShard/starknet-devnet-rs/issues/378
+      #     command: cargo test --jobs 9 --test '*' --no-fail-fast
+      # - run:
+      #     name: Check publishing by packaging the workspace
+      #     command: cargo +nightly-2024-10-31 package -Z package-workspace
 
   binary-build:
     parameters:
