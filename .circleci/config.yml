@@ -49,7 +49,7 @@ jobs:
       - checkout
       - run:
           name: test
-          command: echo $CIRCLE_PULL_REQUEST
+          command: env
       # - run:
       #     name: Install nightly-2024-10-31
       #     command: rustup install nightly-2024-10-31
