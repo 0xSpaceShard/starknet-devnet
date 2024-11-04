@@ -48,14 +48,14 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Check files
-          command: ls /home/circleci/.cargo/registry/
-      # - run:
-      #     name: Install nightly-2024-10-31
-      #     command: rustup install nightly-2024-10-31
-      # - run:
-      #     name: Package types
-      #     command: cargo +nightly-2024-10-31 package -Z package-workspace
+          name: remove old cargo packages
+          command: rm -rf /home/circleci/.cargo/registry/
+      - run:
+          name: Install nightly-2024-10-31
+          command: rustup install nightly-2024-10-31
+      - run:
+          name: Package types
+          command: cargo +nightly-2024-10-31 package -Z package-workspace
       # - run:
       #     name: Install foundry
       #     command: ./scripts/install_foundry.sh
