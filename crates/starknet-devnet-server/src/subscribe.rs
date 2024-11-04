@@ -150,7 +150,7 @@ impl SocketContext {
                         self.notify(*subscription_id, data.clone()).await;
                     }
                 }
-                other => panic!("DEBUG unsupported subscription: {other:?}"),
+                other => todo!("Unsupported subscription: {other:?}"),
             }
         }
     }
