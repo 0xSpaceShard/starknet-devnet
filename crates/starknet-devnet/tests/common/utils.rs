@@ -444,6 +444,14 @@ pub async fn receive_rpc_via_ws(
     Ok(serde_json::from_str(&msg.into_text()?)?)
 }
 
+pub async fn assert_no_notifications(ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
+    match receive_rpc_via_ws(ws).await {
+        Ok(resp) => panic!("Expected no notifications; found: {resp}"),
+        Err(e) if e.to_string().contains("deadline has elapsed") => { /* expected */ }
+        Err(e) => panic!("Expected to error out due to empty channel; found: {e}"),
+    }
+}
+
 #[cfg(test)]
 mod test_unique_auto_deletable_file {
     use std::path::Path;
