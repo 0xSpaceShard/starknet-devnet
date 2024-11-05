@@ -11,6 +11,18 @@ mod websocket_support {
     use crate::common::utils::{send_binary_rpc_via_ws, send_text_rpc_via_ws};
 
     #[tokio::test]
+    async fn test_general_rpc_support_via_websocket_is_disabled() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        let resp = send_text_rpc_via_ws(&mut ws, "devnet_mint", json!({})).await.unwrap();
+        assert_eq!(
+            resp,
+            json!({"jsonrpc":"2.0","id":0,"error":{"code":-32601,"message":"Method not found"}})
+        );
+    }
+
+    #[tokio::test]
     #[ignore = "General RPC support via websocket is disabled"]
     async fn mint_and_check_tx_via_websocket() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();

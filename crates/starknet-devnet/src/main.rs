@@ -6,11 +6,11 @@ use clap::Parser;
 use cli::Args;
 use futures::future::join_all;
 use serde::de::IntoDeserializer;
+use serde_json::json;
 use server::api::http::HttpApiHandler;
 use server::api::json_rpc::{JsonRpcHandler, RPC_SPEC_VERSION};
 use server::api::Api;
-use server::dump_util::{dump_events, load_events, DumpEvent};
-use server::rpc_core::request::{Id, RequestParams, Version};
+use server::dump_util::{dump_events, load_events};
 use server::server::serve_http_api_json_rpc;
 use starknet_core::account::Account;
 use starknet_core::constants::{
@@ -38,7 +38,7 @@ use tokio::signal::unix::{signal, SignalKind};
 use tokio::signal::windows::ctrl_c;
 use tokio::task::{self};
 use tokio::time::{interval, sleep};
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 
 mod cli;
@@ -310,7 +310,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     if let BlockGenerationOn::Interval(seconds) = starknet_config.block_generation_on {
         // use JoinHandle to run block interval creation as a task
-        let block_interval_handle = task::spawn(create_block_interval(api.clone(), seconds));
+        let full_address = format!("http://{address}");
+        let block_interval_handle = task::spawn(create_block_interval(seconds, full_address));
 
         tasks.push(block_interval_handle);
     }
@@ -336,8 +337,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
 #[allow(clippy::expect_used)]
 async fn create_block_interval(
-    api: Api,
     block_interval_seconds: u64,
+    devnet_address: String,
 ) -> Result<(), std::io::Error> {
     #[cfg(unix)]
     let mut sigint = { signal(SignalKind::interrupt()).expect("Failed to setup SIGINT handler") };
@@ -348,22 +349,21 @@ async fn create_block_interval(
         Box::pin(ctrl_c_signal)
     };
 
+    let devnet_client = reqwest::Client::new();
+    let block_req_body = json!({ "jsonrpc": "2.0", "id": 0, "method": "devnet_createBlock" });
+
+    // avoid creating block instantly after startup
+    sleep(Duration::from_secs(block_interval_seconds)).await;
+
     let mut interval = interval(Duration::from_secs(block_interval_seconds));
     loop {
-        // TODO does this need to be inside of the loop? or outside?
-        // avoid creating block instantly after startup
-        sleep(Duration::from_secs(block_interval_seconds)).await;
-
         tokio::select! {
             _ = interval.tick() => {
-                let mut starknet = api.starknet.lock().await;
-                let mut dumpable_events = api.dumpable_events.lock().await;
-                info!("Generating block on time interval");
-
-                // TODO may be a problem for event broadcast via socket, perhaps execute via RPC
-                // manually add event for dumping; alternative: create a client and send request
-                starknet.create_block().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
-                dumpable_events.push(DumpEvent { jsonrpc: Version::V2, method: "devnet_createBlock".into(), params: RequestParams::None, id: Id::Number(0) });
+                // By sending a request, we take care of: 1) dumping 2) notifying subscribers
+                match devnet_client.post(&devnet_address).json(&block_req_body).send().await {
+                    Ok(_) => info!("Generating block on time interval"),
+                    Err(e) => error!("Failed block creation on time interval: {e:?}")
+                }
             }
             _ = sigint.recv() => {
                 return Ok(())

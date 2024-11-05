@@ -281,4 +281,14 @@ mod websocket_subscription_support {
             })
         );
     }
+
+    #[tokio::test]
+    async fn test_notifications_in_block_on_demand_mode() {
+        unimplemented!()
+    }
+
+    #[tokio::test]
+    async fn test_notifications_on_periodic_block_generation() {
+        unimplemented!()
+    }
 }

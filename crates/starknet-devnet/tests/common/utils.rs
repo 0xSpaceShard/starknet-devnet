@@ -434,7 +434,7 @@ pub async fn send_binary_rpc_via_ws(
     Ok(resp_body)
 }
 
-/// Tries to read from the provided ws stream. Waits for a second at most.
+/// Tries to read from the provided ws stream. To prevent deadlock, waits for a second at most.
 pub async fn receive_rpc_via_ws(
     ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
 ) -> Result<serde_json::Value, anyhow::Error> {
