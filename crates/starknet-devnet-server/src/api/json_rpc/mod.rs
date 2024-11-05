@@ -148,8 +148,7 @@ impl RpcHandler for JsonRpcHandler {
         let (socket_writer, mut socket_reader) = socket.split();
         let socket_writer = Arc::new(Mutex::new(socket_writer));
 
-        // TODO do this in a loop until a new ID is generated
-        let socket_id = rand::random();
+        let socket_id = rand::random(); // TODO safe? negative?
         self.api
             .sockets
             .lock()
@@ -231,10 +230,11 @@ impl JsonRpcHandler {
                     .await;
             }
         } else {
-            // TODO - possible only if one of: blocks aborted, devnet restarted, devnet loaded.
-            // Should aborting and loading cause websockets to be restarted too, thus not requiring
-            // notifications?
-            tracing::info!("Nothing happened worthy of a new block notification")
+            // TODO - possible only if an immutable request came or one of the following happened:
+            // blocks aborted, devnet restarted, devnet loaded. Or should aborting and
+            // loading cause websockets to be restarted too, thus not requiring
+            // notification?
+            tracing::debug!("Nothing happened worthy of a new block notification")
         }
     }
 
@@ -426,7 +426,6 @@ impl JsonRpcHandler {
         ws: Arc<Mutex<SplitSink<WebSocket, Message>>>,
         socket_id: SocketId,
     ) {
-        // TODO removed general RPC method support - update docs
         let error_serialized = match serde_json::from_slice(bytes) {
             Ok(call) => match self.on_websocket_rpc_call(&call, socket_id).await {
                 Ok(_) => return,
