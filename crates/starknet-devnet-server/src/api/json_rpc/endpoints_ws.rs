@@ -26,7 +26,7 @@ impl JsonRpcHandler {
                 let mut sockets = self.api.sockets.lock().await;
                 let socket_context = sockets.get_mut(&socket_id).ok_or(
                     ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
-                        msg: format!("Missing socket ID: {socket_id}"),
+                        msg: format!("Unregistered socket ID: {socket_id}"),
                     }),
                 )?;
 
@@ -75,7 +75,7 @@ impl JsonRpcHandler {
 
         let mut sockets = self.api.sockets.lock().await;
         let socket_context = sockets.get_mut(&socket_id).ok_or(ApiError::StarknetDevnetError(
-            Error::UnexpectedInternalError { msg: format!("Missing socket ID: {socket_id}") },
+            Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
         ))?;
 
         let subscription_id = socket_context.subscribe(rpc_request_id).await;
@@ -91,12 +91,8 @@ impl JsonRpcHandler {
                 .get_block(&BlockId::Number(block_n))
                 .map_err(ApiError::StarknetDevnetError)?;
 
-            socket_context
-                .notify(
-                    subscription_id.clone(),
-                    SubscriptionNotification::NewHeadsNotification(old_block.into()),
-                )
-                .await;
+            let notification = SubscriptionNotification::NewHeadsNotification(old_block.into());
+            socket_context.notify(subscription_id, notification).await;
         }
 
         Ok(())

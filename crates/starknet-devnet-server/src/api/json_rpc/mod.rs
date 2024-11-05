@@ -207,47 +207,35 @@ impl JsonRpcHandler {
         }
     }
 
-    async fn broadcast_changes(&self, old_latest_block: StarknetBlock) {
+    async fn get_latest_block(&self) -> StarknetBlock {
         let starknet = self.api.starknet.lock().await;
-        let new_latest_block = starknet.get_block(&BlockId::Tag(BlockTag::Latest)).unwrap();
+        match starknet.get_block(&BlockId::Tag(BlockTag::Latest)) {
+            Ok(block) => block.clone(),
+            Err(_) => StarknetBlock::create_empty_accepted(),
+        }
+    }
+
+    async fn broadcast_changes(&self, old_latest_block: StarknetBlock) {
+        let new_latest_block = self.get_latest_block().await;
 
         let old_block_number = old_latest_block.block_number().0;
         let new_block_number = new_latest_block.block_number().0;
 
-        match new_block_number.cmp(&old_block_number) {
-            std::cmp::Ordering::Greater => {
-                // TODO - if loading happened, should websockets be restarted?
-                let mut sockets = self.api.sockets.lock().await;
-                for (_, socket_context) in sockets.iter_mut() {
-                    socket_context
-                        .notify_subscribers(SubscriptionNotification::NewHeadsNotification(
-                            new_latest_block.into(),
-                        ))
-                        .await;
-                }
+        if new_block_number > old_block_number {
+            let mut sockets = self.api.sockets.lock().await;
+            for (_, socket_context) in sockets.iter_mut() {
+                socket_context
+                    .notify_subscribers(SubscriptionNotification::NewHeadsNotification(
+                        (&new_latest_block).into(),
+                    ))
+                    .await;
             }
-            std::cmp::Ordering::Equal => {
-                // TODO
-                println!("DEBUG nothing happened that deserves socket communication");
-            }
-            std::cmp::Ordering::Less => {
-                // TODO - possible only if: blocks aborted, devnet restarted, devnet loaded;
-                // or should aborting and loading cause websockets to be restarted too, thus not
-                // requiring notifications?
-                println!("DEBUG perhaps notify of a reorg?");
-            }
+        } else {
+            // TODO - possible only if one of: blocks aborted, devnet restarted, devnet loaded.
+            // Should aborting and loading cause websockets to be restarted too, thus not requiring
+            // notifications?
+            tracing::info!("Nothing happened worthy of a new block notification")
         }
-
-        // if new_latest_block.number == old_latest_block.number:
-        //   - return // nothing to do
-
-        // if new_latest_block.number < old_latest_block.number:
-        //   - REORG!
-
-        // if new_latest_block.number > old_latest_block.number
-        //   - construct differences
-        //   - iterate through subscribers:
-        //     - send requested diff
     }
 
     /// The method matches the request to the corresponding enum variant and executes the request
@@ -258,9 +246,8 @@ impl JsonRpcHandler {
     ) -> ResponseResult {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
-        let starknet = self.api.starknet.lock().await;
-        let old_latest_block = starknet.get_block(&BlockId::Tag(BlockTag::Latest)).unwrap().clone();
-        drop(starknet);
+        // for later comparison and subscription notifications
+        let old_latest_block = self.get_latest_block().await;
 
         // true if origin should be tried after request fails; relevant in forking mode
         let mut forwardable = true;
@@ -423,7 +410,6 @@ impl JsonRpcHandler {
         // unnecessary lock acquiring
         self.broadcast_changes(old_latest_block).await;
 
-        // TODO consider moving one level above
         if starknet_resp.is_ok() {
             if let Err(e) = self.update_dump(&original_call).await {
                 return ResponseResult::Error(e);
@@ -461,7 +447,7 @@ impl JsonRpcHandler {
 
     fn allows_method(&self, method: &String) -> bool {
         if let Some(restricted_methods) = &self.server_config.restricted_methods {
-            if is_json_rpc_method_restricted(&method, restricted_methods) {
+            if is_json_rpc_method_restricted(method, restricted_methods) {
                 return false;
             }
         }

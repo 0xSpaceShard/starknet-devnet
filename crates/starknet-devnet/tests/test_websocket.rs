@@ -2,11 +2,9 @@
 pub mod common;
 
 mod websocket_support {
-    use futures::{SinkExt, StreamExt};
     use serde_json::json;
     use starknet_rs_core::types::Felt;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
-    use tokio::net::TcpStream;
     use tokio_tungstenite::connect_async;
 
     use crate::common::background_devnet::BackgroundDevnet;

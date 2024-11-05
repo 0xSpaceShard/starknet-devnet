@@ -222,11 +222,7 @@ mod websocket_subscription_support {
         assert_eq!(subscribers.len(), n_subscribers); // assert all IDs are different
 
         // randomly choose one subscriber for unsubscription
-        let mut unsubscriber_id = -1;
-        for subscription_id in subscribers.keys() {
-            unsubscriber_id = *subscription_id;
-            break;
-        }
+        let unsubscriber_id = *subscribers.keys().next().expect("Should have at least one");
 
         // unsubscribe
         let mut unsubscriber_ws = subscribers.remove(&unsubscriber_id).unwrap();

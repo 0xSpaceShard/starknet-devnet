@@ -37,22 +37,22 @@ pub enum SubscriptionConfirmation {
 #[serde(untagged)]
 pub enum SubscriptionNotification {
     NewHeadsNotification(BlockHeader),
-    TransactionStatusNotification,
-    PendingTransactionsNotification,
-    EventsNotification,
+    // TransactionStatusNotification,
+    // PendingTransactionsNotification,
+    // EventsNotification,
 }
 
 impl SubscriptionNotification {
     fn method_name(&self) -> &'static str {
         match self {
             SubscriptionNotification::NewHeadsNotification(_) => "starknet_subscriptionNewHeads",
-            SubscriptionNotification::TransactionStatusNotification => {
-                "starknet_subscriptionTransactionStatus"
-            }
-            SubscriptionNotification::PendingTransactionsNotification => {
-                "starknet_subscriptionPendingTransactions"
-            }
-            SubscriptionNotification::EventsNotification => "starknet_subscriptionEvents",
+            // SubscriptionNotification::TransactionStatusNotification => {
+            //     "starknet_subscriptionTransactionStatus"
+            // }
+            // SubscriptionNotification::PendingTransactionsNotification => {
+            //     "starknet_subscriptionPendingTransactions"
+            // }
+            // SubscriptionNotification::EventsNotification => "starknet_subscriptionEvents",
         }
     }
 }
@@ -60,7 +60,7 @@ impl SubscriptionNotification {
 #[derive(Debug, Clone)]
 pub enum SubscriptionResponse {
     Confirmation { rpc_request_id: Id, result: SubscriptionConfirmation },
-    Notification { subscription_id: SubscriptionId, data: SubscriptionNotification },
+    Notification { subscription_id: SubscriptionId, data: Box<SubscriptionNotification> },
 }
 
 impl SubscriptionResponse {
@@ -139,16 +139,17 @@ impl SocketContext {
     }
 
     pub async fn notify(&self, subscription_id: SubscriptionId, data: SubscriptionNotification) {
-        self.send(SubscriptionResponse::Notification { subscription_id, data }).await;
+        self.send(SubscriptionResponse::Notification { subscription_id, data: Box::new(data) })
+            .await;
     }
 
     pub async fn notify_subscribers(&self, data: SubscriptionNotification) {
         for (subscription_id, subscription) in self.subscriptions.iter() {
             match subscription {
                 Subscription::NewHeads => {
-                    if let SubscriptionNotification::NewHeadsNotification(_) = data {
-                        self.notify(*subscription_id, data.clone()).await;
-                    }
+                    // use `if let` when other enum variants are added
+                    let SubscriptionNotification::NewHeadsNotification(_) = data;
+                    self.notify(*subscription_id, data.clone()).await;
                 }
                 other => todo!("Unsupported subscription: {other:?}"),
             }
