@@ -440,20 +440,17 @@ impl JsonRpcHandler {
         ws: Arc<Mutex<SplitSink<WebSocket, Message>>>,
         socket_id: SocketId,
     ) {
+        // TODO removed general RPC method support - update docs
         let error_serialized = match serde_json::from_slice(bytes) {
-            Ok(call) => {
-                // TODO removed general RPC method support - update docs
-                if let Err(e) = self.on_websocket_rpc_call(&call, socket_id).await {
-                    let rpc_error = serde_json::json!({
-                        "jsonrpc": "2.0",
-                        "id": call.id,
-                        "error": e
-                    });
-                    rpc_error.to_string()
-                } else {
-                    return;
-                }
-            }
+            Ok(call) => match self.on_websocket_rpc_call(&call, socket_id).await {
+                Ok(_) => return,
+                Err(e) => serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "id": call.id,
+                    "error": e
+                })
+                .to_string(),
+            },
             Err(e) => e.to_string(),
         };
 
