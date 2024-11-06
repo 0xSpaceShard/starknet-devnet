@@ -1,5 +1,6 @@
 use starknet_core::error::Error;
 use starknet_rs_core::types::{BlockId, BlockTag};
+use starknet_types::starknet_api::block::BlockStatus;
 
 use super::error::ApiError;
 use super::models::{BlockIdInput, SubscriptionIdInput};
@@ -37,6 +38,10 @@ impl JsonRpcHandler {
     }
 
     /// starknet_subscribeNewHeads
+    /// Checks if an optional block ID is provided. Validates that the block exists and is not too
+    /// many blocks in the past. If it is a valid block, the user is notified of all blocks from the
+    /// old up to the latest, and subscribed to new ones. If no block ID specified, the user is just
+    /// subscribed to new blocks.
     pub async fn subscribe_new_heads(
         &self,
         block_id_input: Option<BlockIdInput>,
@@ -47,16 +52,21 @@ impl JsonRpcHandler {
         let block_id = if let Some(BlockIdInput { block_id }) = block_id_input {
             block_id.into()
         } else {
+            // if no block ID input, this eventually just subscribes the user to new blocks
             latest_tag
         };
 
         let starknet = self.api.starknet.lock().await;
 
-        // checking the block's existence; TODO what if block aborted
-        let query_block = starknet.get_block(&block_id).map_err(|e| match e {
-            Error::NoBlock => ApiError::BlockNotFound,
-            unknown_error => ApiError::StarknetDevnetError(unknown_error),
-        })?;
+        // checking the block's existence; aborted blocks treated as not found
+        let query_block = match starknet.get_block(&block_id) {
+            Ok(block) => match block.status() {
+                BlockStatus::Rejected => Err(ApiError::BlockNotFound),
+                _ => Ok(block),
+            },
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(other) => Err(ApiError::StarknetDevnetError(other)),
+        }?;
 
         let latest_block = starknet.get_block(&latest_tag)?;
 
@@ -73,11 +83,11 @@ impl JsonRpcHandler {
             return Err(ApiError::TooManyBlocksBack);
         }
 
+        // perform the actual subscription
         let mut sockets = self.api.sockets.lock().await;
         let socket_context = sockets.get_mut(&socket_id).ok_or(ApiError::StarknetDevnetError(
             Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
         ))?;
-
         let subscription_id = socket_context.subscribe(rpc_request_id).await;
 
         if let BlockId::Tag(_) = block_id {
@@ -85,7 +95,8 @@ impl JsonRpcHandler {
             return Ok(());
         }
 
-        // latest_block_number inclusive? Yes, only if block_id != tag (already taken care of)
+        // Notifying of old blocks. latest_block_number inclusive?
+        // Yes, only if block_id != latest/pending (handled above)
         for block_n in query_block_number..=latest_block_number {
             let old_block = starknet
                 .get_block(&BlockId::Number(block_n))
