@@ -6,19 +6,29 @@ mod websocket_subscription_support {
     use std::time::Duration;
 
     use serde_json::json;
-    use tokio_tungstenite::connect_async;
+    use tokio::net::TcpStream;
+    use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{assert_no_notifications, receive_rpc_via_ws, send_text_rpc_via_ws};
+
+    async fn subscribe_new_heads(
+        ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+        params: serde_json::Value,
+    ) -> Result<i64, anyhow::Error> {
+        let subscription_confirmation =
+            send_text_rpc_via_ws(ws, "starknet_subscribeNewHeads", params).await?;
+        subscription_confirmation["result"]
+            .as_i64()
+            .ok_or(anyhow::Error::msg("Subscription did not return a numeric ID"))
+    }
 
     #[tokio::test]
     async fn subscribe_to_new_block_heads_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
-        let subscription_confirmation =
-            send_text_rpc_via_ws(&mut ws, "starknet_subscribeNewHeads", json!({})).await.unwrap();
-        let subscription_id = subscription_confirmation["result"].as_i64().unwrap();
+        let subscription_id = subscribe_new_heads(&mut ws, json!({})).await.unwrap();
 
         // test with multiple blocks created, number 0 was origin, so we start at 1
         for block_i in 1..=2 {
@@ -57,12 +67,7 @@ mod websocket_subscription_support {
         let mut subscribers = HashMap::new();
         for _ in 0..n_subscribers {
             let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-            let subscription_confirmation =
-                send_text_rpc_via_ws(&mut ws, "starknet_subscribeNewHeads", json!({}))
-                    .await
-                    .unwrap();
-
-            let subscription_id = subscription_confirmation["result"].as_i64().unwrap();
+            let subscription_id = subscribe_new_heads(&mut ws, json!({})).await.unwrap();
             subscribers.insert(subscription_id, ws);
         }
 
@@ -98,14 +103,10 @@ mod websocket_subscription_support {
 
         // request notifications for all blocks starting with genesis
         let starting_block = 0;
-        let subscription_confirmation = send_text_rpc_via_ws(
-            &mut ws,
-            "starknet_subscribeNewHeads",
-            json!({ "block_id": { "block_number": starting_block } }),
-        )
-        .await
-        .unwrap();
-        let subscription_id = subscription_confirmation["result"].as_i64().unwrap();
+        let subscription_id =
+            subscribe_new_heads(&mut ws, json!({ "block_id": { "block_number": starting_block } }))
+                .await
+                .unwrap();
 
         for block_i in starting_block..=n_blocks {
             let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
@@ -134,16 +135,14 @@ mod websocket_subscription_support {
         }
 
         // request notifications for all blocks starting with genesis
-        let starting_block = 0;
-        let subscription_confirmation = send_text_rpc_via_ws(
+        let subscription_id = subscribe_new_heads(
             &mut ws,
-            "starknet_subscribeNewHeads",
             json!({ "block_id": { "block_hash": genesis_block.block_hash } }),
         )
         .await
         .unwrap();
-        let subscription_id = subscription_confirmation["result"].as_i64().unwrap();
 
+        let starting_block = 0;
         for block_i in starting_block..=n_blocks {
             let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
             assert_eq!(notification["method"], "starknet_subscriptionNewHeads");
@@ -165,23 +164,11 @@ mod websocket_subscription_support {
         let (mut ws_pending, _) = connect_async(devnet.ws_url()).await.unwrap();
 
         // create two subscriptions: one to latest, one to pending
-        let subscription_latest = send_text_rpc_via_ws(
-            &mut ws_latest,
-            "starknet_subscribeNewHeads",
-            json!({ "block_id": "latest" }),
-        )
-        .await
-        .unwrap();
-        let subscription_id_latest = subscription_latest["result"].as_i64().unwrap();
+        let subscription_id_latest =
+            subscribe_new_heads(&mut ws_latest, json!({ "block_id": "latest" })).await.unwrap();
 
-        let subscription_pending = send_text_rpc_via_ws(
-            &mut ws_pending,
-            "starknet_subscribeNewHeads",
-            json!({ "block_id": "pending" }),
-        )
-        .await
-        .unwrap();
-        let subscription_id_pending = subscription_pending["result"].as_i64().unwrap();
+        let subscription_id_pending =
+            subscribe_new_heads(&mut ws_pending, json!({ "block_id": "pending" })).await.unwrap();
 
         assert_ne!(subscription_id_latest, subscription_id_pending);
 
@@ -211,12 +198,7 @@ mod websocket_subscription_support {
         let mut subscribers = HashMap::new();
         for _ in 0..n_subscribers {
             let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-            let subscription_confirmation =
-                send_text_rpc_via_ws(&mut ws, "starknet_subscribeNewHeads", json!({}))
-                    .await
-                    .unwrap();
-
-            let subscription_id = subscription_confirmation["result"].as_i64().unwrap();
+            let subscription_id = subscribe_new_heads(&mut ws, json!({})).await.unwrap();
             subscribers.insert(subscription_id, ws);
         }
 
@@ -289,9 +271,7 @@ mod websocket_subscription_support {
         let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
 
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-        let subscription_confirmation =
-            send_text_rpc_via_ws(&mut ws, "starknet_subscribeNewHeads", json!({})).await.unwrap();
-        let subscription_id = subscription_confirmation["result"].as_i64().unwrap();
+        let subscription_id = subscribe_new_heads(&mut ws, json!({})).await.unwrap();
 
         let dummy_address = 0x1;
         devnet.mint(dummy_address, 1).await;
@@ -318,9 +298,7 @@ mod websocket_subscription_support {
         let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
 
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-        let subscription_confirmation =
-            send_text_rpc_via_ws(&mut ws, "starknet_subscribeNewHeads", json!({})).await.unwrap();
-        let subscription_id = subscription_confirmation["result"].as_i64().unwrap();
+        let subscription_id = subscribe_new_heads(&mut ws, json!({})).await.unwrap();
 
         assert_no_notifications(&mut ws).await;
 
