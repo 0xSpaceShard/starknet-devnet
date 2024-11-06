@@ -173,7 +173,7 @@ pub struct TransactionWithReceipt {
     pub transaction: Transaction,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TransactionStatus {
     pub finality_status: TransactionFinalityStatus,

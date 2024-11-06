@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_core::{CasmContractClass, StarknetBlock};
-use starknet_rs_core::types::{BlockId, BlockTag, ContractClass as CodegenContractClass, Felt};
+use starknet_rs_core::types::{ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::block::{Block, PendingBlock};
 use starknet_types::rpc::estimate_message_fee::{
@@ -71,7 +71,7 @@ use crate::rpc_core::error::{ErrorCode, RpcError};
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
-use crate::subscribe::{SocketContext, SocketId, SubscriptionNotification};
+use crate::subscribe::{NewTransactionStatus, SocketContext, SocketId, SubscriptionNotification};
 use crate::ServerConfig;
 
 /// Helper trait to easily convert results to rpc results
@@ -208,33 +208,53 @@ impl JsonRpcHandler {
 
     async fn get_latest_block(&self) -> StarknetBlock {
         let starknet = self.api.starknet.lock().await;
-        match starknet.get_block(&BlockId::Tag(BlockTag::Latest)) {
-            Ok(block) => block.clone(),
-            Err(_) => StarknetBlock::create_empty_accepted(),
+        match starknet.get_latest_block() {
+            Ok(block) => block,
+            _ => StarknetBlock::create_empty_accepted(),
         }
     }
 
-    async fn broadcast_changes(&self, old_latest_block: StarknetBlock) {
+    async fn broadcast_changes(
+        &self,
+        old_latest_block: StarknetBlock,
+    ) -> Result<(), error::ApiError> {
         let new_latest_block = self.get_latest_block().await;
 
-        let old_block_number = old_latest_block.block_number().0;
-        let new_block_number = new_latest_block.block_number().0;
+        if new_latest_block.block_number() > old_latest_block.block_number() {
+            let sockets = self.api.sockets.lock().await;
 
-        if new_block_number > old_block_number {
-            let mut sockets = self.api.sockets.lock().await;
-            for (_, socket_context) in sockets.iter_mut() {
-                socket_context
-                    .notify_subscribers(SubscriptionNotification::NewHeadsNotification(
-                        (&new_latest_block).into(),
-                    ))
-                    .await;
+            let block_notification =
+                SubscriptionNotification::NewHeadsNotification((&new_latest_block).into());
+
+            let starknet = self.api.starknet.lock().await;
+
+            let mut tx_status_notifications = vec![];
+            for tx_hash in new_latest_block.get_transactions() {
+                let status = starknet
+                    .get_transaction_execution_and_finality_status(*tx_hash)
+                    .map_err(|e| error::ApiError::StarknetDevnetError(e))?;
+
+                tx_status_notifications.push(
+                    SubscriptionNotification::TransactionStatusNotification(NewTransactionStatus {
+                        transaction_hash: *tx_hash,
+                        status,
+                    }),
+                )
+            }
+
+            for (_, socket_context) in sockets.iter() {
+                socket_context.notify_subscribers(&block_notification).await;
+                for tx_status_notification in tx_status_notifications.iter() {
+                    socket_context.notify_subscribers(&tx_status_notification).await;
+                }
             }
         } else {
             // TODO - possible only if an immutable request came or one of the following happened:
             // blocks aborted, devnet restarted, devnet loaded. Or should loading cause websockets
             // to be restarted too, thus not requiring notification?
-            tracing::debug!("Nothing happened worthy of a new block notification")
         }
+
+        Ok(())
     }
 
     /// The method matches the request to the corresponding enum variant and executes the request
@@ -407,7 +427,9 @@ impl JsonRpcHandler {
 
         // TODO if request.modifies_state() { ... } - also in the beginning of this method to avoid
         // unnecessary lock acquiring
-        self.broadcast_changes(old_latest_block).await;
+        if let Err(e) = self.broadcast_changes(old_latest_block).await {
+            return ResponseResult::Error(e.api_error_to_rpc_error());
+        }
 
         if starknet_resp.is_ok() {
             if let Err(e) = self.update_dump(&original_call).await {

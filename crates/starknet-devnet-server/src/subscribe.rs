@@ -5,7 +5,9 @@ use axum::extract::ws::{Message, WebSocket};
 use futures::stream::SplitSink;
 use futures::SinkExt;
 use serde::{self, Serialize};
+use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::block::BlockHeader;
+use starknet_types::rpc::transactions::TransactionStatus;
 use tokio::sync::Mutex;
 
 use crate::api::json_rpc::error::ApiError;
@@ -34,10 +36,16 @@ pub enum SubscriptionConfirmation {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct NewTransactionStatus {
+    pub transaction_hash: TransactionHash,
+    pub status: TransactionStatus,
+}
+
+#[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum SubscriptionNotification {
     NewHeadsNotification(BlockHeader),
-    // TransactionStatusNotification,
+    TransactionStatusNotification(NewTransactionStatus),
     // PendingTransactionsNotification,
     // EventsNotification,
 }
@@ -46,9 +54,9 @@ impl SubscriptionNotification {
     fn method_name(&self) -> &'static str {
         match self {
             SubscriptionNotification::NewHeadsNotification(_) => "starknet_subscriptionNewHeads",
-            // SubscriptionNotification::TransactionStatusNotification => {
-            //     "starknet_subscriptionTransactionStatus"
-            // }
+            SubscriptionNotification::TransactionStatusNotification(_) => {
+                "starknet_subscriptionTransactionStatus"
+            }
             // SubscriptionNotification::PendingTransactionsNotification => {
             //     "starknet_subscriptionPendingTransactions"
             // }
@@ -143,14 +151,18 @@ impl SocketContext {
             .await;
     }
 
-    pub async fn notify_subscribers(&self, data: SubscriptionNotification) {
+    pub async fn notify_subscribers(&self, data: &SubscriptionNotification) {
         for (subscription_id, subscription) in self.subscriptions.iter() {
             match subscription {
                 Subscription::NewHeads => {
-                    // The next line is here to cause a compilation error when new enum variants are
-                    // added. Then, use `if let`.
-                    let SubscriptionNotification::NewHeadsNotification(_) = data;
-                    self.notify(*subscription_id, data.clone()).await;
+                    if let SubscriptionNotification::NewHeadsNotification(_) = data {
+                        self.notify(*subscription_id, data.clone()).await; // TODO duplicated
+                    }
+                }
+                Subscription::TransactionStatus => {
+                    if let SubscriptionNotification::TransactionStatusNotification(_) = data {
+                        self.notify(*subscription_id, data.clone()).await;
+                    }
                 }
                 other => todo!("Unsupported subscription: {other:?}"),
             }

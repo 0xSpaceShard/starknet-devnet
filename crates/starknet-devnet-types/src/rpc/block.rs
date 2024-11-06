@@ -76,6 +76,16 @@ pub struct Block {
     pub transactions: Transactions,
 }
 
+impl Block {
+    pub fn create_empty_accepted() -> Self {
+        Self {
+            status: BlockStatus::AcceptedOnL2,
+            header: BlockHeader::default(),
+            transactions: Transactions::Full(vec![]),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PendingBlock {
@@ -84,7 +94,7 @@ pub struct PendingBlock {
     pub transactions: Transactions,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct BlockHeader {
     pub block_hash: BlockHash,
@@ -110,7 +120,7 @@ pub struct PendingBlockHeader {
     pub l1_data_gas_price: ResourcePrice,
     pub l1_da_mode: L1DataAvailabilityMode,
 }
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct ResourcePrice {
     // for now this will be always 0, this field is introduced in 0.5.0
