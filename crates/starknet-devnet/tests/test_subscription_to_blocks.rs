@@ -6,6 +6,9 @@ mod websocket_subscription_support {
     use std::time::Duration;
 
     use serde_json::json;
+    use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
+    use starknet_rs_core::types::{BlockId, BlockTag};
+    use starknet_rs_providers::Provider;
     use tokio::net::TcpStream;
     use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
@@ -14,13 +17,25 @@ mod websocket_subscription_support {
 
     async fn subscribe_new_heads(
         ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
-        params: serde_json::Value,
+        block_specifier: serde_json::Value,
     ) -> Result<i64, anyhow::Error> {
         let subscription_confirmation =
-            send_text_rpc_via_ws(ws, "starknet_subscribeNewHeads", params).await?;
+            send_text_rpc_via_ws(ws, "starknet_subscribeNewHeads", block_specifier).await?;
         subscription_confirmation["result"]
             .as_i64()
             .ok_or(anyhow::Error::msg("Subscription did not return a numeric ID"))
+    }
+
+    async fn unsubscribe(
+        ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+        subscription_id: i64,
+    ) -> Result<serde_json::Value, anyhow::Error> {
+        send_text_rpc_via_ws(
+            ws,
+            "starknet_unsubscribe",
+            json!({ "subscription_id": subscription_id }),
+        )
+        .await
     }
 
     #[tokio::test]
@@ -209,13 +224,7 @@ mod websocket_subscription_support {
 
         // unsubscribe
         let mut unsubscriber_ws = subscribers.remove(&unsubscriber_id).unwrap();
-        let unsubscription_resp = send_text_rpc_via_ws(
-            &mut unsubscriber_ws,
-            "starknet_unsubscribe",
-            json!({ "subscription_id": unsubscriber_id }),
-        )
-        .await
-        .unwrap();
+        let unsubscription_resp = unsubscribe(&mut unsubscriber_ws, unsubscriber_id).await.unwrap();
         assert_eq!(unsubscription_resp, json!({ "jsonrpc": "2.0", "id": 0, "result": true }));
 
         // create block and assert only subscribers are notified
@@ -243,14 +252,7 @@ mod websocket_subscription_support {
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
         let dummy_id = 123;
-
-        let unsubscription_resp = send_text_rpc_via_ws(
-            &mut ws,
-            "starknet_unsubscribe",
-            json!({ "subscription_id": dummy_id }),
-        )
-        .await
-        .unwrap();
+        let unsubscription_resp = unsubscribe(&mut ws, dummy_id).await.unwrap();
 
         assert_eq!(
             unsubscription_resp,
@@ -263,6 +265,22 @@ mod websocket_subscription_support {
                 }
             })
         );
+    }
+
+    #[tokio::test]
+    async fn read_only_methods_do_not_generate_notifications() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        subscribe_new_heads(&mut ws, json!({})).await.unwrap();
+
+        devnet
+            .json_rpc_client
+            .get_class_hash_at(BlockId::Tag(BlockTag::Latest), ETH_ERC20_CONTRACT_ADDRESS)
+            .await
+            .unwrap();
+
+        assert_no_notifications(&mut ws).await;
     }
 
     #[tokio::test]
