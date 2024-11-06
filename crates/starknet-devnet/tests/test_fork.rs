@@ -631,4 +631,41 @@ mod fork_tests {
             CAIRO_1_ERC20_CONTRACT_CLASS_HASH
         );
     }
+
+    #[tokio::test]
+    async fn test_forked_devnet_new_block_has_parent_hash_of_the_origin_block() {
+        let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
+
+        let origin_block_hash = origin_devnet.create_block().await.unwrap();
+
+        let forked_devnet = origin_devnet.fork().await.unwrap();
+
+        let latest_block = forked_devnet
+            .json_rpc_client
+            .get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest))
+            .await
+            .unwrap();
+
+        match latest_block {
+            MaybePendingBlockWithTxHashes::Block(block) => {
+                assert_eq!(block.parent_hash, origin_block_hash)
+            }
+            other => panic!("Unexpected response {:?}", other),
+        };
+
+        let latest_block_hash = forked_devnet.create_block().await.unwrap();
+
+        let latest_block = forked_devnet
+            .json_rpc_client
+            .get_block_with_tx_hashes(BlockId::Hash(latest_block_hash))
+            .await
+            .unwrap();
+
+        match latest_block {
+            MaybePendingBlockWithTxHashes::Block(block) => {
+                assert_ne!(block.parent_hash, origin_block_hash)
+            }
+            other => panic!("Unexpected response {:?}", other),
+        };
+    }
 }

@@ -67,6 +67,8 @@ pub struct ForkConfig {
     #[serde(serialize_with = "serialize_config_url")]
     pub url: Option<Url>,
     pub block_number: Option<u64>,
+    #[serde(skip)]
+    pub block_hash: Option<Felt>,
 }
 
 pub fn serialize_config_url<S>(url: &Option<Url>, serializer: S) -> Result<S::Ok, S::Error>

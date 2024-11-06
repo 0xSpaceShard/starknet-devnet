@@ -217,8 +217,10 @@ impl Starknet {
 
         // when forking, the number of the first new block to be mined is equal to the last origin
         // block (the one specified by the user) plus one.
+        // The parent hash of the first new block is equal to the last origin block hash.
         let starting_block_number =
             config.fork_config.block_number.map_or(DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, |n| n + 1);
+        let last_block_hash = config.fork_config.block_hash;
 
         let pending_state_diff = state.commit_diff(starting_block_number)?;
 
@@ -237,7 +239,7 @@ impl Starknet {
                 config.chain_id,
                 starting_block_number,
             ),
-            blocks: StarknetBlocks::new(starting_block_number),
+            blocks: StarknetBlocks::new(starting_block_number, last_block_hash),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
             pending_block_timestamp_shift: 0,
