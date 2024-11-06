@@ -148,7 +148,7 @@ impl RpcHandler for JsonRpcHandler {
         let (socket_writer, mut socket_reader) = socket.split();
         let socket_writer = Arc::new(Mutex::new(socket_writer));
 
-        let socket_id = rand::random(); // TODO safe? negative?
+        let socket_id = rand::random();
         self.api
             .sockets
             .lock()

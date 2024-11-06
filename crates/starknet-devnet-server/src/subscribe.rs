@@ -108,7 +108,7 @@ impl SocketContext {
     }
 
     pub async fn subscribe(&mut self, rpc_request_id: Id) -> SubscriptionId {
-        let subscription_id = rand::random(); // TODO safe? negative?
+        let subscription_id = rand::random();
         self.subscriptions.insert(subscription_id, Subscription::NewHeads);
 
         self.send(SubscriptionResponse::Confirmation {
