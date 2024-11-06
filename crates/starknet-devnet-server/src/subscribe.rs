@@ -147,7 +147,8 @@ impl SocketContext {
         for (subscription_id, subscription) in self.subscriptions.iter() {
             match subscription {
                 Subscription::NewHeads => {
-                    // use `if let` when other enum variants are added
+                    // The next line is here to cause a compilation error when new enum variants are
+                    // added. Then, use `if let`.
                     let SubscriptionNotification::NewHeadsNotification(_) = data;
                     self.notify(*subscription_id, data.clone()).await;
                 }

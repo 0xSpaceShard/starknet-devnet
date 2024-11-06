@@ -231,9 +231,8 @@ impl JsonRpcHandler {
             }
         } else {
             // TODO - possible only if an immutable request came or one of the following happened:
-            // blocks aborted, devnet restarted, devnet loaded. Or should aborting and
-            // loading cause websockets to be restarted too, thus not requiring
-            // notification?
+            // blocks aborted, devnet restarted, devnet loaded. Or should loading cause websockets
+            // to be restarted too, thus not requiring notification?
             tracing::debug!("Nothing happened worthy of a new block notification")
         }
     }
@@ -427,11 +426,11 @@ impl JsonRpcHandler {
         socket_id: SocketId,
     ) {
         let error_serialized = match serde_json::from_slice(bytes) {
-            Ok(call) => match self.on_websocket_rpc_call(&call, socket_id).await {
+            Ok(rpc_call) => match self.on_websocket_rpc_call(&rpc_call, socket_id).await {
                 Ok(_) => return,
                 Err(e) => serde_json::json!({
                     "jsonrpc": "2.0",
-                    "id": call.id,
+                    "id": rpc_call.id,
                     "error": e
                 })
                 .to_string(),
@@ -462,7 +461,7 @@ impl JsonRpcHandler {
         call: &RpcMethodCall,
         socket_id: SocketId,
     ) -> Result<(), RpcError> {
-        trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received method call");
+        trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received websocket call");
 
         if !self.allows_method(&call.method) {
             return Err(RpcError::new(ErrorCode::MethodForbidden));
