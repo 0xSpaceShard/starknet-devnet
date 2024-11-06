@@ -452,6 +452,14 @@ pub async fn assert_no_notifications(ws: &mut WebSocketStream<MaybeTlsStream<Tcp
     }
 }
 
+pub async fn unsubscribe(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    subscription_id: i64,
+) -> Result<serde_json::Value, anyhow::Error> {
+    send_text_rpc_via_ws(ws, "starknet_unsubscribe", json!({ "subscription_id": subscription_id }))
+        .await
+}
+
 #[cfg(test)]
 mod test_unique_auto_deletable_file {
     use std::path::Path;

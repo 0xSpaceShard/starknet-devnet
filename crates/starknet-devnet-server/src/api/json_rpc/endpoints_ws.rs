@@ -102,7 +102,8 @@ impl JsonRpcHandler {
                 .get_block(&BlockId::Number(block_n))
                 .map_err(ApiError::StarknetDevnetError)?;
 
-            let notification = SubscriptionNotification::NewHeadsNotification(old_block.into());
+            let old_header = old_block.into();
+            let notification = SubscriptionNotification::NewHeadsNotification(Box::new(old_header));
             socket_context.notify(subscription_id, notification).await;
         }
 

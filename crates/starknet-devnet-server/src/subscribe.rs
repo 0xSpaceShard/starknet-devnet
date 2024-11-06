@@ -44,7 +44,7 @@ pub struct NewTransactionStatus {
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum SubscriptionNotification {
-    NewHeadsNotification(BlockHeader),
+    NewHeadsNotification(Box<BlockHeader>),
     TransactionStatusNotification(NewTransactionStatus),
     // PendingTransactionsNotification,
     // EventsNotification,
@@ -56,11 +56,10 @@ impl SubscriptionNotification {
             SubscriptionNotification::NewHeadsNotification(_) => "starknet_subscriptionNewHeads",
             SubscriptionNotification::TransactionStatusNotification(_) => {
                 "starknet_subscriptionTransactionStatus"
-            }
-            // SubscriptionNotification::PendingTransactionsNotification => {
-            //     "starknet_subscriptionPendingTransactions"
-            // }
-            // SubscriptionNotification::EventsNotification => "starknet_subscriptionEvents",
+            } /* SubscriptionNotification::PendingTransactionsNotification => {
+               *     "starknet_subscriptionPendingTransactions"
+               * }
+               * SubscriptionNotification::EventsNotification => "starknet_subscriptionEvents", */
         }
     }
 }

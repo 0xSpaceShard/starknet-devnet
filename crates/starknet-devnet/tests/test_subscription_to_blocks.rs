@@ -1,7 +1,7 @@
 #![cfg(test)]
 pub mod common;
 
-mod websocket_subscription_support {
+mod block_subscription_support {
     use std::collections::HashMap;
     use std::time::Duration;
 
@@ -13,7 +13,9 @@ mod websocket_subscription_support {
     use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::utils::{assert_no_notifications, receive_rpc_via_ws, send_text_rpc_via_ws};
+    use crate::common::utils::{
+        assert_no_notifications, receive_rpc_via_ws, send_text_rpc_via_ws, unsubscribe,
+    };
 
     async fn subscribe_new_heads(
         ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
@@ -24,18 +26,6 @@ mod websocket_subscription_support {
         subscription_confirmation["result"]
             .as_i64()
             .ok_or(anyhow::Error::msg("Subscription did not return a numeric ID"))
-    }
-
-    async fn unsubscribe(
-        ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
-        subscription_id: i64,
-    ) -> Result<serde_json::Value, anyhow::Error> {
-        send_text_rpc_via_ws(
-            ws,
-            "starknet_unsubscribe",
-            json!({ "subscription_id": subscription_id }),
-        )
-        .await
     }
 
     #[tokio::test]

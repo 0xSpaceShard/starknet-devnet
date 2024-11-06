@@ -223,8 +223,9 @@ impl JsonRpcHandler {
         if new_latest_block.block_number() > old_latest_block.block_number() {
             let sockets = self.api.sockets.lock().await;
 
+            let block_header = (&new_latest_block).into();
             let block_notification =
-                SubscriptionNotification::NewHeadsNotification((&new_latest_block).into());
+                SubscriptionNotification::NewHeadsNotification(Box::new(block_header));
 
             let starknet = self.api.starknet.lock().await;
 
@@ -232,7 +233,7 @@ impl JsonRpcHandler {
             for tx_hash in new_latest_block.get_transactions() {
                 let status = starknet
                     .get_transaction_execution_and_finality_status(*tx_hash)
-                    .map_err(|e| error::ApiError::StarknetDevnetError(e))?;
+                    .map_err(error::ApiError::StarknetDevnetError)?;
 
                 tx_status_notifications.push(
                     SubscriptionNotification::TransactionStatusNotification(NewTransactionStatus {
@@ -245,7 +246,7 @@ impl JsonRpcHandler {
             for (_, socket_context) in sockets.iter() {
                 socket_context.notify_subscribers(&block_notification).await;
                 for tx_status_notification in tx_status_notifications.iter() {
-                    socket_context.notify_subscribers(&tx_status_notification).await;
+                    socket_context.notify_subscribers(tx_status_notification).await;
                 }
             }
         } else {
