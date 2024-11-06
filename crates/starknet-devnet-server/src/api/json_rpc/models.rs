@@ -178,10 +178,17 @@ pub struct L1TransactionHashInput {
     pub transaction_hash: Hash256,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct SubscriptionIdInput {
     pub subscription_id: i64,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct TransactionBlockInput {
+    transaction_hash: TransactionHash,
+    block: Option<BlockId>,
 }
 
 #[cfg(test)]

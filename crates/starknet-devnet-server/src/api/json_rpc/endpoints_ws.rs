@@ -3,7 +3,7 @@ use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::starknet_api::block::BlockStatus;
 
 use super::error::ApiError;
-use super::models::{BlockIdInput, SubscriptionIdInput};
+use super::models::{BlockIdInput, SubscriptionIdInput, TransactionBlockInput};
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::rpc_core::request::Id;
 use crate::subscribe::{SocketId, SubscriptionNotification};
@@ -20,7 +20,9 @@ impl JsonRpcHandler {
             JsonRpcSubscriptionRequest::NewHeads(data) => {
                 self.subscribe_new_heads(data, rpc_request_id, socket_id).await
             }
-            JsonRpcSubscriptionRequest::TransactionStatus => todo!(),
+            JsonRpcSubscriptionRequest::TransactionStatus(data) => {
+                self.subscribe_tx_status(data, rpc_request_id, socket_id).await
+            }
             JsonRpcSubscriptionRequest::PendingTransactions => todo!(),
             JsonRpcSubscriptionRequest::Events => todo!(),
             JsonRpcSubscriptionRequest::Unsubscribe(SubscriptionIdInput { subscription_id }) => {
@@ -42,7 +44,7 @@ impl JsonRpcHandler {
     /// many blocks in the past. If it is a valid block, the user is notified of all blocks from the
     /// old up to the latest, and subscribed to new ones. If no block ID specified, the user is just
     /// subscribed to new blocks.
-    pub async fn subscribe_new_heads(
+    async fn subscribe_new_heads(
         &self,
         block_id_input: Option<BlockIdInput>,
         rpc_request_id: Id,
@@ -108,5 +110,14 @@ impl JsonRpcHandler {
         }
 
         Ok(())
+    }
+
+    async fn subscribe_tx_status(
+        &self,
+        transaction_block_input: TransactionBlockInput,
+        rpc_request_id: Id,
+        socket_id: SocketId,
+    ) -> Result<(), ApiError> {
+        todo!("Extract similarities from this and subscribe_new_heads")
     }
 }
