@@ -11,14 +11,23 @@ mod websocket_support {
     use crate::common::utils::{send_binary_rpc_via_ws, send_text_rpc_via_ws};
 
     #[tokio::test]
+    /// Testing for all non-ws methods would be longsome, so we just test for one devnet_ and one
+    /// starknet_ method
     async fn test_general_rpc_support_via_websocket_is_disabled() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
-        let resp = send_text_rpc_via_ws(&mut ws, "devnet_mint", json!({})).await.unwrap();
+        let expected_resp =
+            json!({"jsonrpc":"2.0", "id":0, "error":{"code":-32601, "message":"Method not found"}});
+
         assert_eq!(
-            resp,
-            json!({"jsonrpc":"2.0","id":0,"error":{"code":-32601,"message":"Method not found"}})
+            send_text_rpc_via_ws(&mut ws, "devnet_mint", json!({})).await.unwrap(),
+            expected_resp,
+        );
+
+        assert_eq!(
+            send_text_rpc_via_ws(&mut ws, "starknet_syncing", json!({})).await.unwrap(),
+            expected_resp,
         );
     }
 

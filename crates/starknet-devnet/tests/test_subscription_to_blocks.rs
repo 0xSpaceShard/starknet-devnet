@@ -7,7 +7,7 @@ mod websocket_subscription_support {
 
     use serde_json::json;
     use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
-    use starknet_rs_core::types::{BlockId, BlockTag};
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_rs_providers::Provider;
     use tokio::net::TcpStream;
     use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
@@ -117,13 +117,10 @@ mod websocket_subscription_support {
         }
 
         // request notifications for all blocks starting with genesis
-        let starting_block = 0;
         let subscription_id =
-            subscribe_new_heads(&mut ws, json!({ "block_id": { "block_number": starting_block } }))
-                .await
-                .unwrap();
+            subscribe_new_heads(&mut ws, json!({ "block_id": BlockId::Number(0) })).await.unwrap();
 
-        for block_i in starting_block..=n_blocks {
+        for block_i in 0..=n_blocks {
             let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
             assert_eq!(notification["method"], "starknet_subscriptionNewHeads");
 
@@ -152,7 +149,7 @@ mod websocket_subscription_support {
         // request notifications for all blocks starting with genesis
         let subscription_id = subscribe_new_heads(
             &mut ws,
-            json!({ "block_id": { "block_hash": genesis_block.block_hash } }),
+            json!({ "block_id": BlockId::Hash(genesis_block.block_hash)}),
         )
         .await
         .unwrap();
@@ -320,7 +317,7 @@ mod websocket_subscription_support {
 
         assert_no_notifications(&mut ws).await;
 
-        // should be enough time for Devnet to mine a new block
+        // should be enough time for Devnet to mine a single new block
         tokio::time::sleep(Duration::from_secs(interval + 1)).await;
 
         let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
@@ -330,5 +327,55 @@ mod websocket_subscription_support {
         assert_eq!(notification["params"]["subscription_id"].as_i64().unwrap(), subscription_id);
 
         assert_no_notifications(&mut ws).await;
+    }
+
+    #[tokio::test]
+    async fn test_subscribing_to_non_existent_block() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        for block_id in [BlockId::Number(1), BlockId::Hash(Felt::ONE)] {
+            let subscription_resp = send_text_rpc_via_ws(
+                &mut ws,
+                "starknet_subscribeNewHeads",
+                json!({ "block_id": block_id }),
+            )
+            .await
+            .unwrap();
+
+            assert_eq!(
+                subscription_resp,
+                json!({ "jsonrpc": "2.0", "id": 0, "error": { "code": 24, "message": "Block not found" } })
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn test_aborted_blocks_not_subscribable() {
+        let devnet_args = ["--state-archive-capacity", "full"];
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        let new_block_hash = devnet.create_block().await.unwrap();
+        devnet
+            .send_custom_rpc(
+                "devnet_abortBlocks",
+                json!({ "starting_block_id": BlockId::Hash(new_block_hash) }),
+            )
+            .await
+            .unwrap();
+
+        let subscription_resp = send_text_rpc_via_ws(
+            &mut ws,
+            "starknet_subscribeNewHeads",
+            json!({ "block_id": BlockId::Hash(new_block_hash) }),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            subscription_resp,
+            json!({ "jsonrpc": "2.0", "id": 0, "error": { "code": 24, "message": "Block not found" } })
+        );
     }
 }
