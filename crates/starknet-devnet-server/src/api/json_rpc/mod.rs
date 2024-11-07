@@ -206,6 +206,9 @@ impl JsonRpcHandler {
         }
     }
 
+    /// The latest block is always defined, so to avoid having to deal with Err/None in places where
+    /// this method is called, it is defined to return an empty accepted block, even though that
+    /// case should never happen.
     async fn get_latest_block(&self) -> StarknetBlock {
         let starknet = self.api.starknet.lock().await;
         match starknet.get_block(&BlockId::Tag(BlockTag::Latest)) {
