@@ -132,7 +132,7 @@ impl RpcHandler for JsonRpcHandler {
         trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received method call");
 
         if !self.allows_method(&call.method) {
-            return RpcError::new(ErrorCode::MethodForbidden).into();
+            return RpcResponse::from_rpc_error(RpcError::new(ErrorCode::MethodForbidden), call.id);
         }
 
         match to_json_rpc_request(&call) {
@@ -140,7 +140,7 @@ impl RpcHandler for JsonRpcHandler {
                 let result = self.on_request(req, call.clone()).await;
                 RpcResponse::new(call.id, result)
             }
-            Err(e) => e.into(),
+            Err(e) => RpcResponse::from_rpc_error(e, call.id),
         }
     }
 
@@ -206,6 +206,9 @@ impl JsonRpcHandler {
         }
     }
 
+    /// The latest block is always defined, so to avoid having to deal with Err/None in places where
+    /// this method is called, it is defined to return an empty accepted block, even though that
+    /// case should never happen.
     async fn get_latest_block(&self) -> StarknetBlock {
         let starknet = self.api.starknet.lock().await;
         match starknet.get_latest_block() {
@@ -451,12 +454,7 @@ impl JsonRpcHandler {
         let error_serialized = match serde_json::from_slice(bytes) {
             Ok(rpc_call) => match self.on_websocket_rpc_call(&rpc_call, socket_id).await {
                 Ok(_) => return,
-                Err(e) => serde_json::json!({
-                    "jsonrpc": "2.0",
-                    "id": rpc_call.id,
-                    "error": e
-                })
-                .to_string(),
+                Err(e) => json!(RpcResponse::from_rpc_error(e, rpc_call.id)).to_string(),
             },
             Err(e) => e.to_string(),
         };
@@ -485,10 +483,6 @@ impl JsonRpcHandler {
         socket_id: SocketId,
     ) -> Result<(), RpcError> {
         trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received websocket call");
-
-        if !self.allows_method(&call.method) {
-            return Err(RpcError::new(ErrorCode::MethodForbidden));
-        }
 
         let req = to_json_rpc_request(call)?;
         self.execute_ws(req, call.id.clone(), socket_id)
@@ -683,7 +677,7 @@ where
     D: DeserializeOwned,
 {
     let params: serde_json::Value = call.params.clone().into();
-    let deserializable_call = serde_json::json!({
+    let deserializable_call = json!({
         "method": call.method,
         "params": params
     });
@@ -1382,7 +1376,7 @@ mod requests_tests {
             let RpcMethodCall { method, params, .. } =
                 serde_json::from_value(json_rpc_object).unwrap();
             let params: serde_json::Value = params.into();
-            let deserializable_call = serde_json::json!({
+            let deserializable_call = json!({
                 "method": &method,
                 "params": params
             });
