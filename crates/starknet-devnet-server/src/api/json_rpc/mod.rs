@@ -16,7 +16,9 @@ use enum_helper_macros::{AllVariantsSerdeRenames, VariantName};
 use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
 use models::{
-    BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput, EstimateFeeInput, EventsInput, GetStorageInput, L1TransactionHashInput, SubscriptionIdInput, TransactionBlockInput, TransactionHashInput, TransactionHashOutput
+    BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
+    EstimateFeeInput, EventsInput, GetStorageInput, L1TransactionHashInput, SubscriptionIdInput,
+    TransactionBlockInput, TransactionHashInput, TransactionHashOutput,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
