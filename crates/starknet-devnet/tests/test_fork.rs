@@ -640,32 +640,12 @@ mod fork_tests {
 
         let forked_devnet = origin_devnet.fork().await.unwrap();
 
-        let latest_block = forked_devnet
-            .json_rpc_client
-            .get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest))
-            .await
-            .unwrap();
+        let latest_block = forked_devnet.get_latest_block_with_tx_hashes().await.unwrap();
+        assert_eq!(latest_block.parent_hash, origin_block_hash);
 
-        match latest_block {
-            MaybePendingBlockWithTxHashes::Block(block) => {
-                assert_eq!(block.parent_hash, origin_block_hash)
-            }
-            other => panic!("Unexpected response {:?}", other),
-        };
+        forked_devnet.create_block().await.unwrap();
 
-        let latest_block_hash = forked_devnet.create_block().await.unwrap();
-
-        let latest_block = forked_devnet
-            .json_rpc_client
-            .get_block_with_tx_hashes(BlockId::Hash(latest_block_hash))
-            .await
-            .unwrap();
-
-        match latest_block {
-            MaybePendingBlockWithTxHashes::Block(block) => {
-                assert_ne!(block.parent_hash, origin_block_hash)
-            }
-            other => panic!("Unexpected response {:?}", other),
-        };
+        let latest_block = forked_devnet.get_latest_block_with_tx_hashes().await.unwrap();
+        assert_ne!(latest_block.parent_hash, origin_block_hash);
     }
 }
