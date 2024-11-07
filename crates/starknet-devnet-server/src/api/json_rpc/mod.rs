@@ -463,10 +463,6 @@ impl JsonRpcHandler {
     ) -> Result<(), RpcError> {
         trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received websocket call");
 
-        if !self.allows_method(&call.method) {
-            return Err(RpcError::new(ErrorCode::MethodForbidden));
-        }
-
         let req = to_json_rpc_request(call)?;
         self.execute_ws(req, call.id.clone(), socket_id)
             .await
