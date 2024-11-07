@@ -132,7 +132,7 @@ impl RpcHandler for JsonRpcHandler {
         trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received method call");
 
         if !self.allows_method(&call.method) {
-            return RpcError::new(ErrorCode::MethodForbidden).into();
+            return RpcResponse::from_rpc_error(RpcError::new(ErrorCode::MethodForbidden), call.id);
         }
 
         match to_json_rpc_request(&call) {
@@ -140,7 +140,7 @@ impl RpcHandler for JsonRpcHandler {
                 let result = self.on_request(req, call.clone()).await;
                 RpcResponse::new(call.id, result)
             }
-            Err(e) => e.into(),
+            Err(e) => RpcResponse::from_rpc_error(e, call.id),
         }
     }
 
@@ -431,12 +431,7 @@ impl JsonRpcHandler {
         let error_serialized = match serde_json::from_slice(bytes) {
             Ok(rpc_call) => match self.on_websocket_rpc_call(&rpc_call, socket_id).await {
                 Ok(_) => return,
-                Err(e) => serde_json::json!({
-                    "jsonrpc": "2.0",
-                    "id": rpc_call.id,
-                    "error": e
-                })
-                .to_string(),
+                Err(e) => json!(RpcResponse::from_rpc_error(e, rpc_call.id)).to_string(),
             },
             Err(e) => e.to_string(),
         };
@@ -659,7 +654,7 @@ where
     D: DeserializeOwned,
 {
     let params: serde_json::Value = call.params.clone().into();
-    let deserializable_call = serde_json::json!({
+    let deserializable_call = json!({
         "method": call.method,
         "params": params
     });
@@ -1358,7 +1353,7 @@ mod requests_tests {
             let RpcMethodCall { method, params, .. } =
                 serde_json::from_value(json_rpc_object).unwrap();
             let params: serde_json::Value = params.into();
-            let deserializable_call = serde_json::json!({
+            let deserializable_call = json!({
                 "method": &method,
                 "params": params
             });
