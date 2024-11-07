@@ -118,6 +118,6 @@ impl JsonRpcHandler {
         rpc_request_id: Id,
         socket_id: SocketId,
     ) -> Result<(), ApiError> {
-        todo!("Extract similarities from this and subscribe_new_heads")
+        todo!("Extract similarities from this and subscribe_new_heads - what about pending?")
     }
 }

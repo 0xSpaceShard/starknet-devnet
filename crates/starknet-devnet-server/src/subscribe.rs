@@ -155,7 +155,9 @@ impl SocketContext {
             match subscription {
                 Subscription::NewHeads => {
                     if let SubscriptionNotification::NewHeadsNotification(_) = data {
-                        self.notify(*subscription_id, data.clone()).await; // TODO duplicated
+                        // TODO the following line gets duplicated; perhaps we can refactor to
+                        // match by (subscription, data) to only notify once
+                        self.notify(*subscription_id, data.clone()).await;
                     }
                 }
                 Subscription::TransactionStatus => {
