@@ -230,6 +230,7 @@ pub async fn set_and_log_fork_config(
     match block {
         MaybePendingBlockWithTxHashes::Block(b) => {
             fork_config.block_number = Some(b.block_number);
+            fork_config.block_hash = Some(b.block_hash);
             println!("Forking from block: number={}, hash={:#x}", b.block_number, b.block_hash);
         }
         _ => panic!("Unreachable"),
