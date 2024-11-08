@@ -3,7 +3,7 @@ use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::starknet_api::block::BlockStatus;
 
 use super::error::ApiError;
-use super::models::{BlockIdInput, SubscriptionIdInput, TransactionBlockInput};
+use super::models::{BlockInput, SubscriptionIdInput, TransactionBlockInput};
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::rpc_core::request::Id;
 use crate::subscribe::{SocketId, SubscriptionNotification};
@@ -46,13 +46,13 @@ impl JsonRpcHandler {
     /// subscribed to new blocks.
     async fn subscribe_new_heads(
         &self,
-        block_id_input: Option<BlockIdInput>,
+        block_input: Option<BlockInput>,
         rpc_request_id: Id,
         socket_id: SocketId,
     ) -> Result<(), ApiError> {
         let latest_tag = BlockId::Tag(BlockTag::Latest);
-        let block_id = if let Some(BlockIdInput { block_id }) = block_id_input {
-            block_id.into()
+        let block_id = if let Some(BlockInput { block }) = block_input {
+            block.into()
         } else {
             // if no block ID input, this eventually just subscribes the user to new blocks
             latest_tag

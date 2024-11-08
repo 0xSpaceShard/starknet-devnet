@@ -19,6 +19,13 @@ pub struct BlockIdInput {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
+/// Similar to BlockIdInput, but without the _id, as required by ws methods.
+pub struct BlockInput {
+    pub block: BlockId,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct TransactionHashInput {
     pub transaction_hash: TransactionHash,
 }
