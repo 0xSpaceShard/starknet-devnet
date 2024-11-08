@@ -1,4 +1,5 @@
 mod endpoints;
+mod endpoints_ws;
 pub mod error;
 pub mod models;
 pub(crate) mod origin_forwarder;
@@ -8,19 +9,23 @@ mod write_endpoints;
 
 pub const RPC_SPEC_VERSION: &str = "0.7.1";
 
+use std::sync::Arc;
+
 use axum::extract::ws::{Message, WebSocket};
 use enum_helper_macros::{AllVariantsSerdeRenames, VariantName};
-use futures::StreamExt;
+use futures::stream::SplitSink;
+use futures::{SinkExt, StreamExt};
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
-    EstimateFeeInput, EventsInput, GetStorageInput, L1TransactionHashInput, TransactionHashInput,
-    TransactionHashOutput,
+    EstimateFeeInput, EventsInput, GetStorageInput, L1TransactionHashInput, SubscriptionIdInput,
+    TransactionHashInput, TransactionHashOutput,
 };
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
-use starknet_core::CasmContractClass;
-use starknet_rs_core::types::{ContractClass as CodegenContractClass, Felt};
+use starknet_core::{CasmContractClass, StarknetBlock};
+use starknet_rs_core::types::{BlockId, BlockTag, ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::block::{Block, PendingBlock};
 use starknet_types::rpc::estimate_message_fee::{
@@ -34,6 +39,7 @@ use starknet_types::rpc::transactions::{
     TransactionStatus, TransactionTrace, TransactionWithHash,
 };
 use starknet_types::starknet_api::block::BlockNumber;
+use tokio::sync::Mutex;
 use tracing::{error, info, trace};
 
 use self::error::StrictRpcResult;
@@ -61,10 +67,11 @@ use crate::api::json_rpc::models::{
 use crate::api::serde_helpers::{empty_params, optional_params};
 use crate::dump_util::dump_event;
 use crate::restrictive_mode::is_json_rpc_method_restricted;
-use crate::rpc_core::error::RpcError;
+use crate::rpc_core::error::{ErrorCode, RpcError};
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
+use crate::subscribe::{SocketContext, SocketId, SubscriptionNotification};
 use crate::ServerConfig;
 
 /// Helper trait to easily convert results to rpc results
@@ -123,55 +130,44 @@ impl RpcHandler for JsonRpcHandler {
 
     async fn on_call(&self, call: RpcMethodCall) -> RpcResponse {
         trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received method call");
-        let RpcMethodCall { method, params, id, .. } = call.clone();
 
-        let params: serde_json::Value = params.into();
-        let deserializable_call = serde_json::json!({
-            "method": &method,
-            "params": params
-        });
+        if !self.allows_method(&call.method) {
+            return RpcResponse::from_rpc_error(RpcError::new(ErrorCode::MethodForbidden), call.id);
+        }
 
-        match serde_json::from_value::<Self::Request>(deserializable_call) {
+        match to_json_rpc_request(&call) {
             Ok(req) => {
-                if let Some(restricted_methods) = &self.server_config.restricted_methods {
-                    if is_json_rpc_method_restricted(&method, restricted_methods) {
-                        return RpcResponse::new(
-                            id,
-                            RpcError::new(crate::rpc_core::error::ErrorCode::MethodForbidden),
-                        );
-                    }
-                }
-                let result = self.on_request(req, call).await;
-                RpcResponse::new(id, result)
+                let result = self.on_request(req, call.clone()).await;
+                RpcResponse::new(call.id, result)
             }
-            Err(err) => {
-                let err = err.to_string();
-                // since JSON-RPC specification requires returning a Method Not Found error,
-                // we apply a hacky way to induce this - checking the stringified error message
-                let distinctive_error = format!("unknown variant `{method}`");
-                if err.contains(&distinctive_error) {
-                    error!(target: "rpc", ?method, "failed to deserialize method due to unknown variant");
-                    RpcResponse::new(id, RpcError::method_not_found())
-                } else {
-                    error!(target: "rpc", ?method, ?err, "failed to deserialize method");
-                    RpcResponse::new(id, RpcError::invalid_params(err))
-                }
-            }
+            Err(e) => RpcResponse::from_rpc_error(e, call.id),
         }
     }
 
-    async fn on_websocket(&self, mut socket: WebSocket) {
-        while let Some(msg) = socket.next().await {
+    async fn on_websocket(&self, socket: WebSocket) {
+        let (socket_writer, mut socket_reader) = socket.split();
+        let socket_writer = Arc::new(Mutex::new(socket_writer));
+
+        let socket_id = rand::random();
+        self.api
+            .sockets
+            .lock()
+            .await
+            .insert(socket_id, SocketContext::from_sender(socket_writer.clone()));
+
+        // listen to new messages coming through the socket
+        let mut socket_safely_closed = false;
+        while let Some(msg) = socket_reader.next().await {
             match msg {
                 Ok(Message::Text(text)) => {
-                    self.on_websocket_rpc_call(text.as_bytes(), &mut socket).await;
+                    self.on_websocket_call(text.as_bytes(), socket_writer.clone(), socket_id).await;
                 }
                 Ok(Message::Binary(bytes)) => {
-                    self.on_websocket_rpc_call(&bytes, &mut socket).await;
+                    self.on_websocket_call(&bytes, socket_writer.clone(), socket_id).await;
                 }
                 Ok(Message::Close(_)) => {
-                    tracing::info!("Websocket disconnected");
-                    return;
+                    socket_safely_closed = true;
+                    break;
                 }
                 other => {
                     tracing::error!("Socket handler got an unexpected message: {other:?}")
@@ -179,7 +175,12 @@ impl RpcHandler for JsonRpcHandler {
             }
         }
 
-        tracing::error!("Failed socket read");
+        if socket_safely_closed {
+            self.api.sockets.lock().await.remove(&socket_id);
+            tracing::info!("Websocket disconnected");
+        } else {
+            tracing::error!("Failed socket read");
+        }
     }
 }
 
@@ -205,6 +206,40 @@ impl JsonRpcHandler {
         }
     }
 
+    /// The latest block is always defined, so to avoid having to deal with Err/None in places where
+    /// this method is called, it is defined to return an empty accepted block, even though that
+    /// case should never happen.
+    async fn get_latest_block(&self) -> StarknetBlock {
+        let starknet = self.api.starknet.lock().await;
+        match starknet.get_block(&BlockId::Tag(BlockTag::Latest)) {
+            Ok(block) => block.clone(),
+            Err(_) => StarknetBlock::create_empty_accepted(),
+        }
+    }
+
+    async fn broadcast_changes(&self, old_latest_block: StarknetBlock) {
+        let new_latest_block = self.get_latest_block().await;
+
+        let old_block_number = old_latest_block.block_number().0;
+        let new_block_number = new_latest_block.block_number().0;
+
+        if new_block_number > old_block_number {
+            let mut sockets = self.api.sockets.lock().await;
+            for (_, socket_context) in sockets.iter_mut() {
+                socket_context
+                    .notify_subscribers(SubscriptionNotification::NewHeadsNotification(
+                        (&new_latest_block).into(),
+                    ))
+                    .await;
+            }
+        } else {
+            // TODO - possible only if an immutable request came or one of the following happened:
+            // blocks aborted, devnet restarted, devnet loaded. Or should loading cause websockets
+            // to be restarted too, thus not requiring notification?
+            tracing::debug!("Nothing happened worthy of a new block notification")
+        }
+    }
+
     /// The method matches the request to the corresponding enum variant and executes the request
     async fn execute(
         &self,
@@ -212,6 +247,9 @@ impl JsonRpcHandler {
         original_call: RpcMethodCall,
     ) -> ResponseResult {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
+
+        // for later comparison and subscription notifications
+        let old_latest_block = self.get_latest_block().await;
 
         // true if origin should be tried after request fails; relevant in forking mode
         let mut forwardable = true;
@@ -370,6 +408,10 @@ impl JsonRpcHandler {
             }
         }
 
+        // TODO if request.modifies_state() { ... } - also in the beginning of this method to avoid
+        // unnecessary lock acquiring
+        self.broadcast_changes(old_latest_block).await;
+
         if starknet_resp.is_ok() {
             if let Err(e) = self.update_dump(&original_call).await {
                 return ResponseResult::Error(e);
@@ -380,26 +422,49 @@ impl JsonRpcHandler {
     }
 
     /// Takes `bytes` to be an encoded RPC call, executes it, and sends the response back via `ws`.
-    async fn on_websocket_rpc_call(&self, bytes: &[u8], ws: &mut WebSocket) {
-        match serde_json::from_slice(bytes) {
-            Ok(call) => {
-                let resp = self.on_call(call).await;
-                let resp_serialized = serde_json::to_string(&resp).unwrap_or_else(|e| {
-                    let err_msg = format!("Error converting RPC response to string: {e}");
-                    tracing::error!(err_msg);
-                    err_msg
-                });
+    async fn on_websocket_call(
+        &self,
+        bytes: &[u8],
+        ws: Arc<Mutex<SplitSink<WebSocket, Message>>>,
+        socket_id: SocketId,
+    ) {
+        let error_serialized = match serde_json::from_slice(bytes) {
+            Ok(rpc_call) => match self.on_websocket_rpc_call(&rpc_call, socket_id).await {
+                Ok(_) => return,
+                Err(e) => json!(RpcResponse::from_rpc_error(e, rpc_call.id)).to_string(),
+            },
+            Err(e) => e.to_string(),
+        };
 
-                if let Err(e) = ws.send(Message::Text(resp_serialized)).await {
-                    tracing::error!("Error sending websocket message: {e}");
-                }
-            }
-            Err(e) => {
-                if let Err(e) = ws.send(Message::Text(e.to_string())).await {
-                    tracing::error!("Error sending websocket message: {e}");
-                }
+        if let Err(e) = ws.lock().await.send(Message::Text(error_serialized)).await {
+            tracing::error!("Error sending websocket message: {e}");
+        }
+    }
+
+    fn allows_method(&self, method: &String) -> bool {
+        if let Some(restricted_methods) = &self.server_config.restricted_methods {
+            if is_json_rpc_method_restricted(method, restricted_methods) {
+                return false;
             }
         }
+
+        true
+    }
+
+    /// Since some subscriptions might need to send multiple messages, sending messages other than
+    /// errors is left to individual RPC method handlers and this method returns an empty successful
+    /// Result.
+    async fn on_websocket_rpc_call(
+        &self,
+        call: &RpcMethodCall,
+        socket_id: SocketId,
+    ) -> Result<(), RpcError> {
+        trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received websocket call");
+
+        let req = to_json_rpc_request(call)?;
+        self.execute_ws(req, call.id.clone(), socket_id)
+            .await
+            .map_err(|e| e.api_error_to_rpc_error())
     }
 
     const DUMPABLE_METHODS: &'static [&'static str] = &[
@@ -567,6 +632,48 @@ pub enum JsonRpcRequest {
     #[serde(rename = "devnet_getConfig", with = "empty_params")]
     DevnetConfig,
 }
+
+#[derive(Deserialize, AllVariantsSerdeRenames, VariantName)]
+#[cfg_attr(test, derive(Debug))]
+#[serde(tag = "method", content = "params")]
+pub enum JsonRpcSubscriptionRequest {
+    #[serde(rename = "starknet_subscribeNewHeads", with = "optional_params")]
+    NewHeads(Option<BlockIdInput>),
+    #[serde(rename = "starknet_subscribeTransactionStatus")]
+    TransactionStatus,
+    #[serde(rename = "starknet_subscribePendingTransactions")]
+    PendingTransactions,
+    #[serde(rename = "starknet_subscribeEvents")]
+    Events,
+    #[serde(rename = "starknet_unsubscribe")]
+    Unsubscribe(SubscriptionIdInput),
+}
+
+fn to_json_rpc_request<D>(call: &RpcMethodCall) -> Result<D, RpcError>
+where
+    D: DeserializeOwned,
+{
+    let params: serde_json::Value = call.params.clone().into();
+    let deserializable_call = json!({
+        "method": call.method,
+        "params": params
+    });
+
+    serde_json::from_value::<D>(deserializable_call).map_err(|err| {
+        let err = err.to_string();
+        // since JSON-RPC specification requires returning a Method Not Found error,
+        // we apply a hacky way to induce this - checking the stringified error message
+        let distinctive_error = format!("unknown variant `{}`", call.method);
+        if err.contains(&distinctive_error) {
+            error!(target: "rpc", method = ?call.method, "failed to deserialize method due to unknown variant");  
+            RpcError::method_not_found()
+        } else {
+            error!(target: "rpc", method = ?call.method, ?err, "failed to deserialize method");
+            RpcError::invalid_params(err)
+        }
+    })
+}
+
 impl std::fmt::Display for JsonRpcRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.variant_name())
@@ -1246,7 +1353,7 @@ mod requests_tests {
             let RpcMethodCall { method, params, .. } =
                 serde_json::from_value(json_rpc_object).unwrap();
             let params: serde_json::Value = params.into();
-            let deserializable_call = serde_json::json!({
+            let deserializable_call = json!({
                 "method": &method,
                 "params": params
             });

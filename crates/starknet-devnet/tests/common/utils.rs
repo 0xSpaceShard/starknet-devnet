@@ -3,8 +3,11 @@ use std::fs;
 use std::path::Path;
 use std::process::{Child, Command};
 use std::sync::Arc;
+use std::time::Duration;
 
 use ethers::types::U256;
+use futures::{SinkExt, StreamExt, TryStreamExt};
+use serde_json::json;
 use server::test_utils::assert_contains;
 use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
 use starknet_core::random_number_generator::generate_u32_random_number;
@@ -25,6 +28,8 @@ use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
 use starknet_rs_signers::LocalWallet;
 use starknet_types::compile_sierra_contract_json;
 use starknet_types::felt::felt_from_prefixed_hex;
+use tokio::net::TcpStream;
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use super::background_devnet::BackgroundDevnet;
 use super::constants::{ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_CONTRACT_PATH};
@@ -385,6 +390,66 @@ pub fn extract_json_rpc_error(error: ProviderError) -> Result<JsonRpcError, anyh
 
 pub fn assert_json_rpc_errors_equal(e1: JsonRpcError, e2: JsonRpcError) {
     assert_eq!((e1.code, e1.message, e1.data), (e2.code, e2.message, e2.data));
+}
+
+pub async fn send_text_rpc_via_ws(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    method: &str,
+    params: serde_json::Value,
+) -> Result<serde_json::Value, anyhow::Error> {
+    let text_body = json!({
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": method,
+        "params": params,
+    })
+    .to_string();
+    ws.send(tokio_tungstenite::tungstenite::Message::Text(text_body)).await?;
+
+    let resp_raw =
+        ws.next().await.ok_or(anyhow::Error::msg("No response in websocket stream"))??;
+    let resp_body: serde_json::Value = serde_json::from_slice(&resp_raw.into_data())?;
+
+    Ok(resp_body)
+}
+
+pub async fn send_binary_rpc_via_ws(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    method: &str,
+    params: serde_json::Value,
+) -> Result<serde_json::Value, anyhow::Error> {
+    let body = json!({
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": method,
+        "params": params,
+    });
+    let binary_body = serde_json::to_vec(&body)?;
+    ws.send(tokio_tungstenite::tungstenite::Message::Binary(binary_body)).await?;
+
+    let resp_raw =
+        ws.next().await.ok_or(anyhow::Error::msg("No response in websocket stream"))??;
+    let resp_body: serde_json::Value = serde_json::from_slice(&resp_raw.into_data())?;
+
+    Ok(resp_body)
+}
+
+/// Tries to read from the provided ws stream. To prevent deadlock, waits for a second at most.
+pub async fn receive_rpc_via_ws(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+) -> Result<serde_json::Value, anyhow::Error> {
+    let msg = tokio::time::timeout(Duration::from_secs(1), ws.try_next())
+        .await??
+        .ok_or(anyhow::Error::msg("Nothing to read"))?;
+    Ok(serde_json::from_str(&msg.into_text()?)?)
+}
+
+pub async fn assert_no_notifications(ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
+    match receive_rpc_via_ws(ws).await {
+        Ok(resp) => panic!("Expected no notifications; found: {resp}"),
+        Err(e) if e.to_string().contains("deadline has elapsed") => { /* expected */ }
+        Err(e) => panic!("Expected to error out due to empty channel; found: {e}"),
+    }
 }
 
 #[cfg(test)]

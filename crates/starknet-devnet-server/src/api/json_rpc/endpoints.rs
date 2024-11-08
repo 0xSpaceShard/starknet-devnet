@@ -23,7 +23,7 @@ use crate::api::http::endpoints::DevnetConfig;
 
 const DEFAULT_CONTINUATION_TOKEN: &str = "0";
 
-/// here are the definitions and stub implementations of all JSON-RPC read endpoints
+/// The definitions of JSON-RPC read endpoints defined in starknet_api_openrpc.json
 impl JsonRpcHandler {
     /// starknet_specVersion
     pub fn spec_version(&self) -> StrictRpcResult {

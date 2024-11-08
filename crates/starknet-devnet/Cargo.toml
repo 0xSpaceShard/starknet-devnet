@@ -36,6 +36,7 @@ serde_json = { workspace = true }
 serde = { workspace = true }
 anyhow = { workspace = true }
 starknet-rs-providers = { workspace = true }
+reqwest = { workspace = true }
 
 [dev-dependencies]
 async-trait = { workspace = true }
@@ -50,7 +51,6 @@ starknet-rs-core = { workspace = true }
 starknet-rs-accounts = { workspace = true }
 axum = { workspace = true }
 usc = { workspace = true }
-reqwest = { workspace = true }
 criterion = { workspace = true }
 serial_test = { workspace = true }
 tokio-tungstenite = { workspace = true }

@@ -266,6 +266,14 @@ impl StarknetBlock {
         }
     }
 
+    pub fn create_empty_accepted() -> Self {
+        Self {
+            header: BlockHeader::default(),
+            transaction_hashes: vec![],
+            status: BlockStatus::AcceptedOnL2,
+        }
+    }
+
     pub(crate) fn set_block_number(&mut self, block_number: u64) {
         self.header.block_number = BlockNumber(block_number)
     }

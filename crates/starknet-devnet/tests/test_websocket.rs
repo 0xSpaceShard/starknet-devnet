@@ -2,58 +2,37 @@
 pub mod common;
 
 mod websocket_support {
-    use futures::{SinkExt, StreamExt};
     use serde_json::json;
     use starknet_rs_core::types::Felt;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
-    use tokio::net::TcpStream;
-    use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+    use tokio_tungstenite::connect_async;
 
     use crate::common::background_devnet::BackgroundDevnet;
+    use crate::common::utils::{send_binary_rpc_via_ws, send_text_rpc_via_ws};
 
-    async fn send_text_rpc_via_ws(
-        ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
-        method: &str,
-        params: serde_json::Value,
-    ) -> Result<serde_json::Value, anyhow::Error> {
-        let text_body = json!({
-            "jsonrpc": "2.0",
-            "id": 0,
-            "method": method,
-            "params": params
-        })
-        .to_string();
-        ws.send(tokio_tungstenite::tungstenite::Message::Text(text_body)).await?;
+    #[tokio::test]
+    /// Testing for all non-ws methods would be longsome, so we just test for one devnet_ and one
+    /// starknet_ method
+    async fn test_general_rpc_support_via_websocket_is_disabled() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
-        let resp_raw =
-            ws.next().await.ok_or(anyhow::Error::msg("No response in websocket stream"))??;
-        let resp_body: serde_json::Value = serde_json::from_slice(&resp_raw.into_data())?;
+        let expected_resp =
+            json!({"jsonrpc":"2.0", "id":0, "error":{"code":-32601, "message":"Method not found"}});
 
-        Ok(resp_body)
-    }
+        assert_eq!(
+            send_text_rpc_via_ws(&mut ws, "devnet_mint", json!({})).await.unwrap(),
+            expected_resp,
+        );
 
-    async fn send_binary_rpc_via_ws(
-        ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
-        method: &str,
-        params: serde_json::Value,
-    ) -> Result<serde_json::Value, anyhow::Error> {
-        let body = json!({
-            "jsonrpc": "2.0",
-            "id": 0,
-            "method": method,
-            "params": params
-        });
-        let binary_body = serde_json::to_vec(&body)?;
-        ws.send(tokio_tungstenite::tungstenite::Message::Binary(binary_body)).await?;
-
-        let resp_raw =
-            ws.next().await.ok_or(anyhow::Error::msg("No response in websocket stream"))??;
-        let resp_body: serde_json::Value = serde_json::from_slice(&resp_raw.into_data())?;
-
-        Ok(resp_body)
+        assert_eq!(
+            send_text_rpc_via_ws(&mut ws, "starknet_syncing", json!({})).await.unwrap(),
+            expected_resp,
+        );
     }
 
     #[tokio::test]
+    #[ignore = "General RPC support via websocket is disabled"]
     async fn mint_and_check_tx_via_websocket() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
@@ -84,6 +63,7 @@ mod websocket_support {
     }
 
     #[tokio::test]
+    #[ignore = "General RPC support via websocket is disabled"]
     async fn create_block_via_binary_ws_message() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
@@ -107,6 +87,7 @@ mod websocket_support {
     }
 
     #[tokio::test]
+    #[ignore = "General RPC support via websocket is disabled"]
     async fn multiple_ws_connections() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let iterations = 10;
@@ -137,6 +118,7 @@ mod websocket_support {
     }
 
     #[tokio::test]
+    #[ignore = "General RPC support via websocket is disabled"]
     async fn invalid_request() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
