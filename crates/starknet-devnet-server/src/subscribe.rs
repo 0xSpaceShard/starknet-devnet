@@ -20,9 +20,24 @@ type SubscriptionId = i64;
 #[derive(Debug)]
 pub enum Subscription {
     NewHeads,
-    TransactionStatus,
+    TransactionStatus, // TODO perhaps add block property?
     PendingTransactions,
     Events,
+}
+
+impl Subscription {
+    fn confirm(&self, id: SubscriptionId) -> SubscriptionConfirmation {
+        match self {
+            Subscription::NewHeads => SubscriptionConfirmation::NewHeadsConfirmation(id),
+            Subscription::TransactionStatus => {
+                SubscriptionConfirmation::TransactionStatusConfirmation(id)
+            }
+            Subscription::PendingTransactions => {
+                SubscriptionConfirmation::PendingTransactionsConfirmation(id)
+            }
+            Subscription::Events => SubscriptionConfirmation::EventsConfirmation(id),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -114,9 +129,13 @@ impl SocketContext {
         }
     }
 
-    pub async fn subscribe(&mut self, rpc_request_id: Id) -> SubscriptionId {
+    pub async fn subscribe(
+        &mut self,
+        rpc_request_id: Id,
+        subscription_type: Subscription,
+    ) -> SubscriptionId {
         let subscription_id = rand::random();
-        self.subscriptions.insert(subscription_id, Subscription::NewHeads);
+        self.subscriptions.insert(subscription_id, subscription_type);
 
         self.send(SubscriptionResponse::Confirmation {
             rpc_request_id,

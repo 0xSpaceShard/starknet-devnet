@@ -1096,7 +1096,7 @@ impl Starknet {
         Ok(TransactionStatus {
             finality_status: transaction.finality_status,
             failure_reason: transaction.execution_info.revert_error.clone(),
-            execution_status: transaction.execution_result.status(),
+            execution_status: Some(transaction.execution_result.status()),
         })
     }
 

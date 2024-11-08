@@ -20,7 +20,7 @@ mod tx_status_subscription_support {
         let mut params = json!({ "transaction_hash": tx_hash });
 
         if let Some(block_id) = block_id {
-            params["block_id"] = json!(block_id);
+            params["block"] = json!(block_id);
         }
 
         let subscription_confirmation =

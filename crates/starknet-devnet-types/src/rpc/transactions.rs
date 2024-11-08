@@ -178,7 +178,7 @@ pub struct TransactionWithReceipt {
 pub struct TransactionStatus {
     pub finality_status: TransactionFinalityStatus,
     pub failure_reason: Option<String>,
-    pub execution_status: TransactionExecutionStatus,
+    pub execution_status: Option<TransactionExecutionStatus>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
