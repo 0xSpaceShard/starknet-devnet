@@ -57,9 +57,10 @@ impl Default for StarknetBlocks {
 }
 
 impl StarknetBlocks {
-    pub fn new(starting_block_number: u64) -> Self {
+    pub fn new(starting_block_number: u64, last_block_hash: Option<Felt>) -> Self {
         let mut blocks = Self { starting_block_number, ..Default::default() };
         blocks.pending_block.set_block_number(starting_block_number);
+        blocks.last_block_hash = last_block_hash;
         blocks
     }
 
@@ -354,7 +355,7 @@ mod tests {
 
     #[test]
     fn block_number_from_block_id_should_return_correct_result() {
-        let mut blocks = StarknetBlocks::new(0);
+        let mut blocks = StarknetBlocks::new(0, None);
         let mut block_to_insert = StarknetBlock::create_pending_block();
         blocks.pending_block = block_to_insert.clone();
 
