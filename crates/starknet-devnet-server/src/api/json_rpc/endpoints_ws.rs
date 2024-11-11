@@ -6,7 +6,7 @@ use super::error::ApiError;
 use super::models::{BlockInput, SubscriptionIdInput, TransactionBlockInput};
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::rpc_core::request::Id;
-use crate::subscribe::{SocketId, Subscription, SubscriptionNotification};
+use crate::subscribe::{NewTransactionStatus, SocketId, Subscription, SubscriptionNotification};
 /// The definitions of JSON-RPC read endpoints defined in starknet_ws_api.json
 impl JsonRpcHandler {
     pub async fn execute_ws(
@@ -42,9 +42,15 @@ impl JsonRpcHandler {
     /// block does not exist or there are too many blocks.
     async fn convert_to_block_number_range(
         &self,
-        starting_block_id: BlockId,
+        mut starting_block_id: BlockId,
     ) -> Result<(u64, u64), ApiError> {
         let starknet = self.api.starknet.lock().await;
+
+        // convert pending to latest to prevent getting block_number = 0
+        starting_block_id = match starting_block_id {
+            BlockId::Tag(BlockTag::Pending) => BlockId::Tag(BlockTag::Latest),
+            other => other,
+        };
 
         // checking the block's existence; aborted blocks treated as not found
         let query_block = match starknet.get_block(&starting_block_id) {
@@ -147,20 +153,49 @@ impl JsonRpcHandler {
         let socket_context = sockets.get_mut(&socket_id).ok_or(ApiError::StarknetDevnetError(
             Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
         ))?;
-        let subscription_id = socket_context.subscribe(rpc_request_id, Subscription::TransactionStatus).await;
+        let subscription_id =
+            socket_context.subscribe(rpc_request_id, Subscription::TransactionStatus).await;
 
-        if let BlockId::Tag(_) = block_id {
-            // if the specified block ID is a tag (i.e. latest/pending), no old block handling
-            return Ok(());
-        }
+        // TODO if tx present, but in a block before the one specified, no point in subscribing -
+        // its status shall never change (unless considering block abortion). It would make
+        // sense to just add a ReorgSubscription
 
-        // Notifying of old blocks. latest_block_number inclusive?
-        // Yes, only if block_id != latest/pending (handled above)
         let starknet = self.api.starknet.lock().await;
-        for block_n in query_block_number..=latest_block_number {
-            let notification = todo!();
-            socket_context.notify(subscription_id, notification).await;
-        }
+        starknet.get_transaction_trace_by_hash(transaction_hash).unwrap();
+        match (
+            starknet.get_transaction_receipt_by_hash(&transaction_hash),
+            starknet.get_transaction_execution_and_finality_status(transaction_hash),
+        ) {
+            (Ok(receipt), Ok(status)) => {
+                let notification =
+                    SubscriptionNotification::TransactionStatusNotification(NewTransactionStatus {
+                        transaction_hash,
+                        status,
+                    });
+                match receipt.get_block_number() {
+                    Some(block_number)
+                        if query_block_number <= block_number
+                            && block_number <= latest_block_number =>
+                    {
+                        // if the number of the block when the tx was added is between
+                        // specified/query block number and latest, notify the client
+                        socket_context.notify(subscription_id, notification).await;
+                    }
+                    None if block_id == BlockId::Tag(BlockTag::Pending) => {
+                        // if tx stored but no block number, it means it's pending, so only notify
+                        // if the specified block ID is pending
+                        socket_context.notify(subscription_id, notification).await;
+                    }
+                    _ => tracing::error!("Impossible case reached in tx status subscription"),
+                }
+            }
+            _ => {
+                tracing::debug!("Tx status subscription: tx too old or not received");
+                // No error needs to be returned: too-many-blocks-back
+                // is the only error that can be returned by this subscription, but
+                // this was handled earlier.
+            }
+        };
 
         Ok(())
     }

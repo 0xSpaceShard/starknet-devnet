@@ -18,6 +18,7 @@ pub struct Api {
     // maybe the config should be added here next to the starknet instance
     pub starknet: Arc<Mutex<Starknet>>,
     pub dumpable_events: Arc<Mutex<Vec<DumpEvent>>>,
+    // TODO abstract sockets as SocketStorage instead of direct HashMap manipulation
     pub sockets: Arc<Mutex<HashMap<SocketId, SocketContext>>>,
 }
 

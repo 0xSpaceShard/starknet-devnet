@@ -59,7 +59,7 @@ pub struct NewTransactionStatus {
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum SubscriptionNotification {
-    NewHeadsNotification(Box<BlockHeader>),
+    NewHeadsNotification(Box<BlockHeader>), // TODO simplify naming
     TransactionStatusNotification(NewTransactionStatus),
     // PendingTransactionsNotification,
     // EventsNotification,
@@ -132,16 +132,15 @@ impl SocketContext {
     pub async fn subscribe(
         &mut self,
         rpc_request_id: Id,
-        subscription_type: Subscription,
+        subscription: Subscription,
     ) -> SubscriptionId {
         let subscription_id = rand::random();
-        self.subscriptions.insert(subscription_id, subscription_type);
 
-        self.send(SubscriptionResponse::Confirmation {
-            rpc_request_id,
-            result: SubscriptionConfirmation::NewHeadsConfirmation(subscription_id),
-        })
-        .await;
+        let confirmation = subscription.confirm(subscription_id);
+        self.subscriptions.insert(subscription_id, subscription);
+
+        self.send(SubscriptionResponse::Confirmation { rpc_request_id, result: confirmation })
+            .await;
 
         subscription_id
     }

@@ -246,6 +246,7 @@ impl JsonRpcHandler {
                 )
             }
 
+            // TODO must properly handle txs in PENDING block
             for (_, socket_context) in sockets.iter() {
                 socket_context.notify_subscribers(&block_notification).await;
                 for tx_status_notification in tx_status_notifications.iter() {
