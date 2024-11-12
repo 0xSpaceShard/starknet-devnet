@@ -64,7 +64,6 @@ pub mod hex_string {
     use crate::contract_address::ContractAddress;
     use crate::felt::felt_from_prefixed_hex;
     use crate::patricia_key::PatriciaKey;
-    use crate::traits::ToHexString;
 
     pub fn deserialize_to_prefixed_patricia_key<'de, D>(
         deserializer: D,
@@ -103,7 +102,7 @@ pub mod hex_string {
     where
         S: Serializer,
     {
-        s.serialize_str(contract_address.to_prefixed_hex_str().as_str())
+        serialize_patricia_key_to_prefixed_hex(&contract_address.0, s)
     }
 
     pub fn deserialize_prefixed_hex_string_to_felt<'de, D>(
