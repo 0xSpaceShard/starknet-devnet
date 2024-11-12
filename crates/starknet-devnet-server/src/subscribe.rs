@@ -59,7 +59,7 @@ pub struct NewTransactionStatus {
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum SubscriptionNotification {
-    NewHeads(Box<BlockHeader>), // TODO simplify naming
+    NewHeads(Box<BlockHeader>),
     TransactionStatus(NewTransactionStatus),
     // PendingTransactions,
     // Events,

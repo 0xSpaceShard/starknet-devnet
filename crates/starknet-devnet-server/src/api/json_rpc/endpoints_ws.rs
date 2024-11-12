@@ -47,7 +47,8 @@ impl JsonRpcHandler {
     ) -> Result<(u64, u64), ApiError> {
         let starknet = self.api.starknet.lock().await;
 
-        // convert pending to latest to prevent getting block_number = 0
+        // Convert pending to latest to prevent getting block_number = 0
+        // Info on 2024/11/12: Pending block_id shall be disallowed
         starting_block_id = match starting_block_id {
             BlockId::Tag(BlockTag::Pending) => BlockId::Tag(BlockTag::Latest),
             other => other,
