@@ -30,7 +30,6 @@ use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
 use starknet_types::chain_id::ChainId;
 use starknet_types::rpc::state::Balance;
 use starknet_types::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
-use starknet_types::traits::ToHexString;
 use tokio::net::TcpListener;
 #[cfg(unix)]
 use tokio::signal::unix::{signal, SignalKind};
@@ -86,7 +85,7 @@ fn log_predeployed_accounts(
 | Account address |  {}
 | Private key     |  {}
 | Public key      |  {}",
-            account.account_address.to_prefixed_hex_str(),
+            Felt::from(account.account_address).to_fixed_hex_string(),
             account.private_key.to_fixed_hex_string(),
             account.public_key.to_fixed_hex_string()
         );
