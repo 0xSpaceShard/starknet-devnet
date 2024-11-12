@@ -44,18 +44,28 @@ mod tx_status_subscription_support {
 
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
-        let _subscription_id = subscribe_tx_status(&mut ws, &expected_tx_hash, None).await.unwrap();
+        let subscription_id = subscribe_tx_status(&mut ws, &expected_tx_hash, None).await.unwrap();
 
         let tx_hash = devnet.mint(address, amount).await;
         assert_eq!(tx_hash, expected_tx_hash);
 
         let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-        assert_eq!(notification["method"], "starknet_subscriptionTransactionStatus");
         assert_eq!(
-            notification["params"]["result"],
+            notification,
             json!({
-                "transaction_hash": expected_tx_hash,
-                "status": "ACCEPTED_ON_L2",
+                "jsonrpc": "2.0",
+                "method": "starknet_subscriptionTransactionStatus",
+                "params": {
+                    "result": {
+                        "transaction_hash": expected_tx_hash,
+                        "status": {
+                            "finality_status": "ACCEPTED_ON_L2",
+                            "failure_reason": null,
+                            "execution_status": "SUCCEEDED",
+                        },
+                    },
+                    "subscription_id": subscription_id,
+                }
             })
         );
     }
