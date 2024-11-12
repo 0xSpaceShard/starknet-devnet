@@ -59,22 +59,22 @@ pub struct NewTransactionStatus {
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum SubscriptionNotification {
-    NewHeadsNotification(Box<BlockHeader>), // TODO simplify naming
-    TransactionStatusNotification(NewTransactionStatus),
-    // PendingTransactionsNotification,
-    // EventsNotification,
+    NewHeads(Box<BlockHeader>), // TODO simplify naming
+    TransactionStatus(NewTransactionStatus),
+    // PendingTransactions,
+    // Events,
 }
 
 impl SubscriptionNotification {
     fn method_name(&self) -> &'static str {
         match self {
-            SubscriptionNotification::NewHeadsNotification(_) => "starknet_subscriptionNewHeads",
-            SubscriptionNotification::TransactionStatusNotification(_) => {
+            SubscriptionNotification::NewHeads(_) => "starknet_subscriptionNewHeads",
+            SubscriptionNotification::TransactionStatus(_) => {
                 "starknet_subscriptionTransactionStatus"
-            } /* SubscriptionNotification::PendingTransactionsNotification => {
+            } /* SubscriptionNotification::PendingTransactions=> {
                *     "starknet_subscriptionPendingTransactions"
                * }
-               * SubscriptionNotification::EventsNotification => "starknet_subscriptionEvents", */
+               * SubscriptionNotification::Events => "starknet_subscriptionEvents", */
         }
     }
 }
@@ -172,14 +172,14 @@ impl SocketContext {
         for (subscription_id, subscription) in self.subscriptions.iter() {
             match subscription {
                 Subscription::NewHeads => {
-                    if let SubscriptionNotification::NewHeadsNotification(_) = data {
+                    if let SubscriptionNotification::NewHeads(_) = data {
                         // TODO the following line gets duplicated; perhaps we can refactor to
                         // match by (subscription, data) to only notify once
                         self.notify(*subscription_id, data.clone()).await;
                     }
                 }
                 Subscription::TransactionStatus => {
-                    if let SubscriptionNotification::TransactionStatusNotification(_) = data {
+                    if let SubscriptionNotification::TransactionStatus(_) = data {
                         self.notify(*subscription_id, data.clone()).await;
                     }
                 }

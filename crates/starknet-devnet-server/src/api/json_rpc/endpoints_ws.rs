@@ -123,7 +123,7 @@ impl JsonRpcHandler {
                 .map_err(ApiError::StarknetDevnetError)?;
 
             let old_header = old_block.into();
-            let notification = SubscriptionNotification::NewHeadsNotification(Box::new(old_header));
+            let notification = SubscriptionNotification::NewHeads(Box::new(old_header));
             socket_context.notify(subscription_id, notification).await;
         }
 
@@ -161,14 +161,13 @@ impl JsonRpcHandler {
         // sense to just add a ReorgSubscription
 
         let starknet = self.api.starknet.lock().await;
-        starknet.get_transaction_trace_by_hash(transaction_hash).unwrap();
         match (
             starknet.get_transaction_receipt_by_hash(&transaction_hash),
             starknet.get_transaction_execution_and_finality_status(transaction_hash),
         ) {
             (Ok(receipt), Ok(status)) => {
                 let notification =
-                    SubscriptionNotification::TransactionStatusNotification(NewTransactionStatus {
+                    SubscriptionNotification::TransactionStatus(NewTransactionStatus {
                         transaction_hash,
                         status,
                     });

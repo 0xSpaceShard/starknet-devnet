@@ -227,8 +227,7 @@ impl JsonRpcHandler {
             let sockets = self.api.sockets.lock().await;
 
             let block_header = (&new_latest_block).into();
-            let block_notification =
-                SubscriptionNotification::NewHeadsNotification(Box::new(block_header));
+            let block_notification = SubscriptionNotification::NewHeads(Box::new(block_header));
 
             let starknet = self.api.starknet.lock().await;
 
@@ -238,12 +237,9 @@ impl JsonRpcHandler {
                     .get_transaction_execution_and_finality_status(*tx_hash)
                     .map_err(error::ApiError::StarknetDevnetError)?;
 
-                tx_status_notifications.push(
-                    SubscriptionNotification::TransactionStatusNotification(NewTransactionStatus {
-                        transaction_hash: *tx_hash,
-                        status,
-                    }),
-                )
+                tx_status_notifications.push(SubscriptionNotification::TransactionStatus(
+                    NewTransactionStatus { transaction_hash: *tx_hash, status },
+                ))
             }
 
             // TODO must properly handle txs in PENDING block
