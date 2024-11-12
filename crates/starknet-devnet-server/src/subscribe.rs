@@ -5,6 +5,7 @@ use axum::extract::ws::{Message, WebSocket};
 use futures::stream::SplitSink;
 use futures::SinkExt;
 use serde::{self, Serialize};
+use starknet_rs_core::types::BlockTag;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::block::BlockHeader;
 use starknet_types::rpc::transactions::TransactionStatus;
@@ -20,7 +21,7 @@ type SubscriptionId = i64;
 #[derive(Debug)]
 pub enum Subscription {
     NewHeads,
-    TransactionStatus, // TODO perhaps add block property?
+    TransactionStatus(BlockTag),
     PendingTransactions,
     Events,
 }
@@ -29,7 +30,7 @@ impl Subscription {
     fn confirm(&self, id: SubscriptionId) -> SubscriptionConfirmation {
         match self {
             Subscription::NewHeads => SubscriptionConfirmation::NewHeadsConfirmation(id),
-            Subscription::TransactionStatus => {
+            Subscription::TransactionStatus(_) => {
                 SubscriptionConfirmation::TransactionStatusConfirmation(id)
             }
             Subscription::PendingTransactions => {
@@ -168,7 +169,11 @@ impl SocketContext {
             .await;
     }
 
-    pub async fn notify_subscribers(&self, data: &SubscriptionNotification) {
+    pub async fn notify_subscribers(
+        &self,
+        data: &SubscriptionNotification,
+        notification_tag: BlockTag,
+    ) {
         for (subscription_id, subscription) in self.subscriptions.iter() {
             match subscription {
                 Subscription::NewHeads => {
@@ -178,7 +183,9 @@ impl SocketContext {
                         self.notify(*subscription_id, data.clone()).await;
                     }
                 }
-                Subscription::TransactionStatus => {
+                Subscription::TransactionStatus(subscription_tag)
+                    if (subscription_tag == &notification_tag) =>
+                {
                     if let SubscriptionNotification::TransactionStatus(_) = data {
                         self.notify(*subscription_id, data.clone()).await;
                     }

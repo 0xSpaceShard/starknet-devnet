@@ -23,9 +23,9 @@ use models::{
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
+use starknet_core::starknet::starknet_config::{BlockGenerationOn, DumpOn, StarknetConfig};
 use starknet_core::{CasmContractClass, StarknetBlock};
-use starknet_rs_core::types::{ContractClass as CodegenContractClass, Felt};
+use starknet_rs_core::types::{BlockTag, ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::block::{Block, PendingBlock};
 use starknet_types::rpc::estimate_message_fee::{
@@ -220,8 +220,14 @@ impl JsonRpcHandler {
     async fn broadcast_changes(
         &self,
         old_latest_block: StarknetBlock,
+        old_pending_block: Option<StarknetBlock>,
     ) -> Result<(), error::ApiError> {
         let new_latest_block = self.get_latest_block().await;
+
+        if let Some(old_pending_block) = old_pending_block {
+            let new_pending_block = todo!("obtain and compare txs");
+        }
+
 
         if new_latest_block.block_number() > old_latest_block.block_number() {
             let sockets = self.api.sockets.lock().await;
@@ -244,9 +250,9 @@ impl JsonRpcHandler {
 
             // TODO must properly handle txs in PENDING block
             for (_, socket_context) in sockets.iter() {
-                socket_context.notify_subscribers(&block_notification).await;
+                socket_context.notify_subscribers(&block_notification, BlockTag::Latest).await;
                 for tx_status_notification in tx_status_notifications.iter() {
-                    socket_context.notify_subscribers(tx_status_notification).await;
+                    socket_context.notify_subscribers(tx_status_notification, BlockTag::Latest).await;
                 }
             }
         } else {
@@ -268,6 +274,7 @@ impl JsonRpcHandler {
 
         // for later comparison and subscription notifications
         let old_latest_block = self.get_latest_block().await;
+        let old_pending_block = todo!();
 
         // true if origin should be tried after request fails; relevant in forking mode
         let mut forwardable = true;
@@ -428,7 +435,7 @@ impl JsonRpcHandler {
 
         // TODO if request.modifies_state() { ... } - also in the beginning of this method to avoid
         // unnecessary lock acquiring
-        if let Err(e) = self.broadcast_changes(old_latest_block).await {
+        if let Err(e) = self.broadcast_changes(old_latest_block, old_pending_block).await {
             return ResponseResult::Error(e.api_error_to_rpc_error());
         }
 

@@ -156,11 +156,18 @@ impl JsonRpcHandler {
             Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
         ))?;
 
+        // if block_id is hash or number: subscribe to changes from pending block; if tag specified, subscribe to that
+        let subscription_tag = match block_id {
+            BlockId::Tag(tag) => tag,
+            BlockId::Hash(_) | BlockId::Number(_) => BlockTag::Pending,
+        };
+
         // TODO if tx present, but in a block before the one specified, no point in subscribing -
         // its status shall never change (unless considering block abortion). It would make
         // sense to just add a ReorgSubscription
-        let subscription_id =
-            socket_context.subscribe(rpc_request_id, Subscription::TransactionStatus).await;
+        let subscription_id = socket_context
+            .subscribe(rpc_request_id, Subscription::TransactionStatus(subscription_tag))
+            .await;
 
         let starknet = self.api.starknet.lock().await;
 
@@ -189,8 +196,8 @@ impl JsonRpcHandler {
                 _ => tracing::debug!("Tx status subscription: tx not reachable"),
             }
         } else {
-            tracing::debug!("Tx status subscription: tx not yet received");
-        };
+            tracing::debug!("Tx status subscription: tx not yet received")
+        }
 
         Ok(())
     }
