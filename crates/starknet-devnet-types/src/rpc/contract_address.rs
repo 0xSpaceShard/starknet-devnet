@@ -21,6 +21,10 @@ impl ContractAddress {
     pub fn zero() -> Self {
         Self(PATRICIA_KEY_ZERO)
     }
+
+    pub fn to_fixed_hex_string(&self) -> String {
+        self.0.0.to_fixed_hex_string()
+    }
 }
 
 impl Serialize for ContractAddress {

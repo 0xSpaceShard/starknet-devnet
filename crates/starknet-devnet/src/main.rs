@@ -85,7 +85,7 @@ fn log_predeployed_accounts(
 | Account address |  {}
 | Private key     |  {}
 | Public key      |  {}",
-            Felt::from(account.account_address).to_fixed_hex_string(),
+            account.account_address.to_fixed_hex_string(),
             account.private_key.to_fixed_hex_string(),
             account.public_key.to_fixed_hex_string()
         );
