@@ -174,8 +174,8 @@ impl JsonRpcHandler {
             });
             match receipt.get_block_number() {
                 Some(block_number)
-                    if query_block_number <= block_number
-                        && block_number <= latest_block_number =>
+                    if (query_block_number <= block_number
+                        && block_number <= latest_block_number) =>
                 {
                     // if the number of the block when the tx was added is between
                     // specified/query block number and latest, notify the client
@@ -186,16 +186,10 @@ impl JsonRpcHandler {
                     // if the specified block ID is pending
                     socket_context.notify(subscription_id, notification).await;
                 }
-                _ => {
-                    return Err(ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
-                        msg: "Tx status subscription: Impossible case reached".into(),
-                    }));
-                }
+                _ => tracing::debug!("Tx status subscription: tx not reachable"),
             }
         } else {
-            // No error needs to be returned: too-many-blocks-back is the only error that can be
-            // returned by this subscription, but is handled earlier.
-            tracing::debug!("Tx status subscription: tx too old or not received");
+            tracing::debug!("Tx status subscription: tx not yet received");
         };
 
         Ok(())
