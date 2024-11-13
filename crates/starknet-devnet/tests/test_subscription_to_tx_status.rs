@@ -95,12 +95,13 @@ mod tx_status_subscription_support {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
+        let dummy_tx_hash = Felt::ONE;
+        subscribe_tx_status(&mut ws, &dummy_tx_hash, None).await.unwrap();
+
         let (address, mint_amount, expected_tx_hash) = first_mint_data();
-
-        subscribe_tx_status(&mut ws, &Felt::ONE, None).await.unwrap();
-
         let tx_hash = devnet.mint(address, mint_amount).await;
         assert_eq!(tx_hash, expected_tx_hash);
+        assert_ne!(tx_hash, dummy_tx_hash);
 
         assert_no_notifications(&mut ws).await;
     }
@@ -238,13 +239,11 @@ mod tx_status_subscription_support {
         devnet.create_block().await.unwrap();
 
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-        let subscription_id =
-            subscribe_tx_status(&mut ws, &expected_tx_hash, Some(BlockId::Tag(BlockTag::Latest)))
-                .await
-                .unwrap();
+        subscribe_tx_status(&mut ws, &expected_tx_hash, Some(BlockId::Tag(BlockTag::Pending)))
+            .await
+            .unwrap();
 
-        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-        assert_successful_mint_notification(notification, tx_hash, subscription_id);
+        assert_no_notifications(&mut ws).await;
     }
 
     #[tokio::test]
