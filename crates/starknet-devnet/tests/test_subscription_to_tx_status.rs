@@ -91,6 +91,21 @@ mod tx_status_subscription_support {
     }
 
     #[tokio::test]
+    async fn should_not_receive_notification_if_subscribed_to_another_tx() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        let (address, mint_amount, expected_tx_hash) = first_mint_data();
+
+        subscribe_tx_status(&mut ws, &Felt::ONE, None).await.unwrap();
+
+        let tx_hash = devnet.mint(address, mint_amount).await;
+        assert_eq!(tx_hash, expected_tx_hash);
+
+        assert_no_notifications(&mut ws).await;
+    }
+
+    #[tokio::test]
     async fn should_not_receive_tx_notification_if_subscribed_to_blocks() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
@@ -250,6 +265,7 @@ mod tx_status_subscription_support {
 
         assert_no_notifications(&mut ws).await;
 
+        // regardless of how many blocks are created, no notifications are expected
         devnet.create_block().await.unwrap();
         assert_no_notifications(&mut ws).await;
     }

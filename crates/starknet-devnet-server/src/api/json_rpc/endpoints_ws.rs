@@ -1,4 +1,5 @@
 use starknet_core::error::Error;
+use starknet_core::starknet::starknet_config::BlockGenerationOn;
 use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::starknet_api::block::BlockStatus;
 
@@ -156,17 +157,29 @@ impl JsonRpcHandler {
             Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
         ))?;
 
-        // if block_id is hash or number: subscribe to changes from pending block; if tag specified, subscribe to that
-        let subscription_tag = match block_id {
+        // if block_id is hash or number: subscribe to changes from pending block; if tag specified,
+        // subscribe to that
+        let mut subscription_tag = match block_id {
             BlockId::Tag(tag) => tag,
             BlockId::Hash(_) | BlockId::Number(_) => BlockTag::Pending,
         };
+
+        // if not in pending-block mode, subscribe to changes in the latest block
+        if self.starknet_config.block_generation_on == BlockGenerationOn::Transaction {
+            subscription_tag = BlockTag::Latest;
+        }
 
         // TODO if tx present, but in a block before the one specified, no point in subscribing -
         // its status shall never change (unless considering block abortion). It would make
         // sense to just add a ReorgSubscription
         let subscription_id = socket_context
-            .subscribe(rpc_request_id, Subscription::TransactionStatus(subscription_tag))
+            .subscribe(
+                rpc_request_id,
+                Subscription::TransactionStatus {
+                    tag: subscription_tag,
+                    tx_hash: transaction_hash,
+                },
+            )
             .await;
 
         let starknet = self.api.starknet.lock().await;

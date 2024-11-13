@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use starknet_core::starknet::starknet_config::{BlockGenerationOn, DumpOn, StarknetConfig};
 use starknet_core::{CasmContractClass, StarknetBlock};
-use starknet_rs_core::types::{BlockTag, ContractClass as CodegenContractClass, Felt};
+use starknet_rs_core::types::{BlockId, BlockTag, ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::block::{Block, PendingBlock};
 use starknet_types::rpc::estimate_message_fee::{
@@ -206,13 +206,13 @@ impl JsonRpcHandler {
         }
     }
 
-    /// The latest block is always defined, so to avoid having to deal with Err/None in places where
-    /// this method is called, it is defined to return an empty accepted block, even though that
-    /// case should never happen.
-    async fn get_latest_block(&self) -> StarknetBlock {
+    /// The latest and pending block are always defined, so to avoid having to deal with Err/None in
+    /// places where this method is called, it is defined to return an empty accepted block,
+    /// even though that case should never happen.
+    async fn get_block(&self, tag: BlockTag) -> StarknetBlock {
         let starknet = self.api.starknet.lock().await;
-        match starknet.get_latest_block() {
-            Ok(block) => block,
+        match starknet.get_block(&BlockId::Tag(tag)) {
+            Ok(block) => block.clone(),
             _ => StarknetBlock::create_empty_accepted(),
         }
     }
@@ -222,16 +222,37 @@ impl JsonRpcHandler {
         old_latest_block: StarknetBlock,
         old_pending_block: Option<StarknetBlock>,
     ) -> Result<(), error::ApiError> {
-        let new_latest_block = self.get_latest_block().await;
+        let new_latest_block = self.get_block(BlockTag::Latest).await;
 
         if let Some(old_pending_block) = old_pending_block {
-            let new_pending_block = todo!("obtain and compare txs");
+            let new_pending_block = self.get_block(BlockTag::Pending).await;
+            let old_pending_txs = old_pending_block.get_transactions();
+            let new_pending_txs = new_pending_block.get_transactions();
+
+            if new_pending_txs.len() > old_pending_txs.len() {
+                #[allow(clippy::expect_used)]
+                let new_tx = new_pending_txs.last().expect("there is at least one element");
+
+                let starknet = self.api.starknet.lock().await;
+                let status = starknet
+                    .get_transaction_execution_and_finality_status(*new_tx)
+                    .map_err(error::ApiError::StarknetDevnetError)?;
+                let tx_status_notification =
+                    SubscriptionNotification::TransactionStatus(NewTransactionStatus {
+                        transaction_hash: *new_tx,
+                        status,
+                    });
+
+                let sockets = self.api.sockets.lock().await;
+                for (_, socket_context) in sockets.iter() {
+                    socket_context
+                        .notify_subscribers(&tx_status_notification, BlockTag::Pending)
+                        .await;
+                }
+            }
         }
 
-
         if new_latest_block.block_number() > old_latest_block.block_number() {
-            let sockets = self.api.sockets.lock().await;
-
             let block_header = (&new_latest_block).into();
             let block_notification = SubscriptionNotification::NewHeads(Box::new(block_header));
 
@@ -245,14 +266,16 @@ impl JsonRpcHandler {
 
                 tx_status_notifications.push(SubscriptionNotification::TransactionStatus(
                     NewTransactionStatus { transaction_hash: *tx_hash, status },
-                ))
+                ));
             }
 
-            // TODO must properly handle txs in PENDING block
+            let sockets = self.api.sockets.lock().await;
             for (_, socket_context) in sockets.iter() {
                 socket_context.notify_subscribers(&block_notification, BlockTag::Latest).await;
                 for tx_status_notification in tx_status_notifications.iter() {
-                    socket_context.notify_subscribers(tx_status_notification, BlockTag::Latest).await;
+                    socket_context
+                        .notify_subscribers(tx_status_notification, BlockTag::Latest)
+                        .await;
                 }
             }
         } else {
@@ -273,8 +296,13 @@ impl JsonRpcHandler {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
         // for later comparison and subscription notifications
-        let old_latest_block = self.get_latest_block().await;
-        let old_pending_block = todo!();
+        let old_latest_block = self.get_block(BlockTag::Latest).await;
+        let old_pending_block = match self.starknet_config.block_generation_on {
+            BlockGenerationOn::Transaction => None,
+            BlockGenerationOn::Interval(_) | BlockGenerationOn::Demand => {
+                Some(self.get_block(BlockTag::Pending).await)
+            }
+        };
 
         // true if origin should be tried after request fails; relevant in forking mode
         let mut forwardable = true;
