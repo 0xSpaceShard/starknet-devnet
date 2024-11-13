@@ -128,6 +128,18 @@ impl JsonRpcHandler {
         Ok(())
     }
 
+    /// Based on block generation mode and specified block ID, decide on subscription's sensitivity:
+    /// notify of changes in pending or latest block
+    fn get_subscription_tag(&self, block_id: BlockId) -> BlockTag {
+        match self.starknet_config.block_generation_on {
+            BlockGenerationOn::Transaction => BlockTag::Latest,
+            BlockGenerationOn::Demand | BlockGenerationOn::Interval(_) => match block_id {
+                BlockId::Tag(tag) => tag,
+                BlockId::Hash(_) | BlockId::Number(_) => BlockTag::Pending,
+            },
+        }
+    }
+
     async fn subscribe_tx_status(
         &self,
         transaction_block_input: TransactionBlockInput,
@@ -152,20 +164,13 @@ impl JsonRpcHandler {
             Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
         ))?;
 
-        // decide on subscription's sensitivity: notify of changes in pending or latest block?
-        let subscription_tag = match self.starknet_config.block_generation_on {
-            BlockGenerationOn::Transaction => BlockTag::Latest,
-            BlockGenerationOn::Demand | BlockGenerationOn::Interval(_) => match block_id {
-                BlockId::Tag(tag) => tag,
-                BlockId::Hash(_) | BlockId::Number(_) => BlockTag::Pending,
-            },
-        };
-
         // TODO if tx present, but in a block before the one specified, no point in subscribing -
         // its status shall never change (unless considering block abortion). It would make
         // sense to just add a ReorgSubscription
-        let subscription =
-            Subscription::TransactionStatus { tag: subscription_tag, transaction_hash };
+        let subscription = Subscription::TransactionStatus {
+            tag: self.get_subscription_tag(block_id),
+            transaction_hash,
+        };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
         let starknet = self.api.starknet.lock().await;
