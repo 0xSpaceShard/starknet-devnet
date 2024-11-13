@@ -8,7 +8,6 @@ use crate::patricia_key::{PatriciaKey, PATRICIA_KEY_ZERO};
 use crate::serde_helpers::hex_string::{
     deserialize_to_prefixed_contract_address, serialize_contract_address_to_prefixed_hex,
 };
-use crate::traits::ToHexString;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ContractAddress(pub(crate) PatriciaKey);
@@ -21,6 +20,10 @@ impl ContractAddress {
     /// Constructs a zero address
     pub fn zero() -> Self {
         Self(PATRICIA_KEY_ZERO)
+    }
+
+    pub fn to_fixed_hex_string(&self) -> String {
+        self.0.0.to_fixed_hex_string()
     }
 }
 
@@ -60,12 +63,6 @@ impl TryFrom<ContractAddress> for starknet_api::core::ContractAddress {
 impl From<ContractAddress> for Felt {
     fn from(value: ContractAddress) -> Self {
         value.0.0
-    }
-}
-
-impl ToHexString for ContractAddress {
-    fn to_prefixed_hex_str(&self) -> String {
-        self.0.0.to_hex_string()
     }
 }
 
