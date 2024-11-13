@@ -21,7 +21,7 @@ type SubscriptionId = i64;
 #[derive(Debug)]
 pub enum Subscription {
     NewHeads,
-    TransactionStatus { tag: BlockTag, tx_hash: TransactionHash },
+    TransactionStatus { tag: BlockTag, transaction_hash: TransactionHash },
     PendingTransactions,
     Events,
 }
@@ -51,7 +51,7 @@ impl Subscription {
                     return true;
                 }
             }
-            Subscription::TransactionStatus { tag, tx_hash: subscription_hash } => {
+            Subscription::TransactionStatus { tag, transaction_hash: subscription_hash } => {
                 if let SubscriptionNotification::TransactionStatus(notification) = notification {
                     return tag == &notification_origin_tag
                         && subscription_hash == &notification.transaction_hash;

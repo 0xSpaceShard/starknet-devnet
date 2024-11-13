@@ -70,13 +70,8 @@ impl JsonRpcHandler {
         let query_block_number = query_block.block_number().0;
         let latest_block_number = latest_block.block_number().0;
 
-        let blocks_back_amount = if query_block_number > latest_block_number {
-            0
-        } else {
-            latest_block_number - query_block_number
-        };
-
-        if blocks_back_amount > 1024 {
+        // safe to subtract, ensured by previous checks
+        if latest_block_number - query_block_number > 1024 {
             return Err(ApiError::TooManyBlocksBack);
         }
 
@@ -157,30 +152,21 @@ impl JsonRpcHandler {
             Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
         ))?;
 
-        // if block_id is hash or number: subscribe to changes from pending block; if tag specified,
-        // subscribe to that
-        let mut subscription_tag = match block_id {
-            BlockId::Tag(tag) => tag,
-            BlockId::Hash(_) | BlockId::Number(_) => BlockTag::Pending,
+        // decide on subscription's sensitivity: notify of changes in pending or latest block?
+        let subscription_tag = match self.starknet_config.block_generation_on {
+            BlockGenerationOn::Transaction => BlockTag::Latest,
+            BlockGenerationOn::Demand | BlockGenerationOn::Interval(_) => match block_id {
+                BlockId::Tag(tag) => tag,
+                BlockId::Hash(_) | BlockId::Number(_) => BlockTag::Pending,
+            },
         };
-
-        // if not in pending-block mode, subscribe to changes in the latest block
-        if self.starknet_config.block_generation_on == BlockGenerationOn::Transaction {
-            subscription_tag = BlockTag::Latest;
-        }
 
         // TODO if tx present, but in a block before the one specified, no point in subscribing -
         // its status shall never change (unless considering block abortion). It would make
         // sense to just add a ReorgSubscription
-        let subscription_id = socket_context
-            .subscribe(
-                rpc_request_id,
-                Subscription::TransactionStatus {
-                    tag: subscription_tag,
-                    tx_hash: transaction_hash,
-                },
-            )
-            .await;
+        let subscription =
+            Subscription::TransactionStatus { tag: subscription_tag, transaction_hash };
+        let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
         let starknet = self.api.starknet.lock().await;
 
