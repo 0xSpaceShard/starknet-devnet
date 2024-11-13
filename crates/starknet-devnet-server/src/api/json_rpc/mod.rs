@@ -217,6 +217,68 @@ impl JsonRpcHandler {
         }
     }
 
+    async fn broadcast_pending_tx_changes(
+        &self,
+        old_pending_block: StarknetBlock,
+    ) -> Result<(), error::ApiError> {
+        let new_pending_block = self.get_block(BlockTag::Pending).await;
+        let old_pending_txs = old_pending_block.get_transactions();
+        let new_pending_txs = new_pending_block.get_transactions();
+
+        if new_pending_txs.len() > old_pending_txs.len() {
+            #[allow(clippy::expect_used)]
+            let new_tx = new_pending_txs.last().expect("has at least one element");
+
+            let starknet = self.api.starknet.lock().await;
+            let status = starknet
+                .get_transaction_execution_and_finality_status(*new_tx)
+                .map_err(error::ApiError::StarknetDevnetError)?;
+            let tx_status_notification =
+                SubscriptionNotification::TransactionStatus(NewTransactionStatus {
+                    transaction_hash: *new_tx,
+                    status,
+                });
+
+            let sockets = self.api.sockets.lock().await;
+            for (_, socket_context) in sockets.iter() {
+                socket_context.notify_subscribers(&tx_status_notification, BlockTag::Pending).await;
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn broadcast_latest_changes(
+        &self,
+        new_latest_block: StarknetBlock,
+    ) -> Result<(), error::ApiError> {
+        let block_header = (&new_latest_block).into();
+        let block_notification = SubscriptionNotification::NewHeads(Box::new(block_header));
+
+        let starknet = self.api.starknet.lock().await;
+
+        let mut tx_status_notifications = vec![];
+        for tx_hash in new_latest_block.get_transactions() {
+            let status = starknet
+                .get_transaction_execution_and_finality_status(*tx_hash)
+                .map_err(error::ApiError::StarknetDevnetError)?;
+
+            tx_status_notifications.push(SubscriptionNotification::TransactionStatus(
+                NewTransactionStatus { transaction_hash: *tx_hash, status },
+            ));
+        }
+
+        let sockets = self.api.sockets.lock().await;
+        for (_, socket_context) in sockets.iter() {
+            socket_context.notify_subscribers(&block_notification, BlockTag::Latest).await;
+            for tx_status_notification in tx_status_notifications.iter() {
+                socket_context.notify_subscribers(tx_status_notification, BlockTag::Latest).await;
+            }
+        }
+
+        Ok(())
+    }
+
     async fn broadcast_changes(
         &self,
         old_latest_block: StarknetBlock,
@@ -225,59 +287,11 @@ impl JsonRpcHandler {
         let new_latest_block = self.get_block(BlockTag::Latest).await;
 
         if let Some(old_pending_block) = old_pending_block {
-            let new_pending_block = self.get_block(BlockTag::Pending).await;
-            let old_pending_txs = old_pending_block.get_transactions();
-            let new_pending_txs = new_pending_block.get_transactions();
-
-            if new_pending_txs.len() > old_pending_txs.len() {
-                #[allow(clippy::expect_used)]
-                let new_tx = new_pending_txs.last().expect("there is at least one element");
-
-                let starknet = self.api.starknet.lock().await;
-                let status = starknet
-                    .get_transaction_execution_and_finality_status(*new_tx)
-                    .map_err(error::ApiError::StarknetDevnetError)?;
-                let tx_status_notification =
-                    SubscriptionNotification::TransactionStatus(NewTransactionStatus {
-                        transaction_hash: *new_tx,
-                        status,
-                    });
-
-                let sockets = self.api.sockets.lock().await;
-                for (_, socket_context) in sockets.iter() {
-                    socket_context
-                        .notify_subscribers(&tx_status_notification, BlockTag::Pending)
-                        .await;
-                }
-            }
+            self.broadcast_pending_tx_changes(old_pending_block).await?;
         }
 
         if new_latest_block.block_number() > old_latest_block.block_number() {
-            let block_header = (&new_latest_block).into();
-            let block_notification = SubscriptionNotification::NewHeads(Box::new(block_header));
-
-            let starknet = self.api.starknet.lock().await;
-
-            let mut tx_status_notifications = vec![];
-            for tx_hash in new_latest_block.get_transactions() {
-                let status = starknet
-                    .get_transaction_execution_and_finality_status(*tx_hash)
-                    .map_err(error::ApiError::StarknetDevnetError)?;
-
-                tx_status_notifications.push(SubscriptionNotification::TransactionStatus(
-                    NewTransactionStatus { transaction_hash: *tx_hash, status },
-                ));
-            }
-
-            let sockets = self.api.sockets.lock().await;
-            for (_, socket_context) in sockets.iter() {
-                socket_context.notify_subscribers(&block_notification, BlockTag::Latest).await;
-                for tx_status_notification in tx_status_notifications.iter() {
-                    socket_context
-                        .notify_subscribers(tx_status_notification, BlockTag::Latest)
-                        .await;
-                }
-            }
+            self.broadcast_latest_changes(new_latest_block).await?;
         } else {
             // TODO - possible only if an immutable request came or one of the following happened:
             // blocks aborted, devnet restarted, devnet loaded. Or should loading cause websockets
