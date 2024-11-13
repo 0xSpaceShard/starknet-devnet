@@ -39,6 +39,30 @@ impl Subscription {
             Subscription::Events => SubscriptionConfirmation::EventsConfirmation(id),
         }
     }
+
+    fn matches(
+        &self,
+        notification: &SubscriptionNotification,
+        notification_origin_tag: BlockTag,
+    ) -> bool {
+        match self {
+            Subscription::NewHeads => {
+                if let SubscriptionNotification::NewHeads(_) = notification {
+                    return true;
+                }
+            }
+            Subscription::TransactionStatus { tag, tx_hash: subscription_hash } => {
+                if let SubscriptionNotification::TransactionStatus(notification) = notification {
+                    return tag == &notification_origin_tag
+                        && subscription_hash == &notification.transaction_hash;
+                }
+            }
+            Subscription::PendingTransactions => todo!(),
+            Subscription::Events => todo!(),
+        }
+
+        false
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -169,31 +193,15 @@ impl SocketContext {
             .await;
     }
 
-    /// The `notification_origin_tag` is used to indicate where the notification originates
+    /// The `notification_origin_tag` is used to indicate where the notification originates from
     pub async fn notify_subscribers(
         &self,
-        data: &SubscriptionNotification,
+        notification_data: &SubscriptionNotification,
         notification_origin_tag: BlockTag,
     ) {
         for (subscription_id, subscription) in self.subscriptions.iter() {
-            match subscription {
-                Subscription::NewHeads => {
-                    if let SubscriptionNotification::NewHeads(_) = data {
-                        // TODO the following line gets duplicated; perhaps we can refactor to
-                        // match by (subscription, data) to write the line only once
-                        self.notify(*subscription_id, data.clone()).await;
-                    }
-                }
-                Subscription::TransactionStatus { tag, tx_hash: subscription_hash } => {
-                    if let SubscriptionNotification::TransactionStatus(notification) = data {
-                        if tag == &notification_origin_tag
-                            && subscription_hash == &notification.transaction_hash
-                        {
-                            self.notify(*subscription_id, data.clone()).await;
-                        }
-                    }
-                }
-                other => todo!("Unsupported subscription: {other:?}"),
+            if subscription.matches(notification_data, notification_origin_tag) {
+                self.notify(*subscription_id, notification_data.clone()).await;
             }
         }
     }
