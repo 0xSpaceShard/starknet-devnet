@@ -148,7 +148,7 @@ impl JsonRpcHandler {
     ) -> Result<(), ApiError> {
         let TransactionBlockInput { transaction_hash, block } = transaction_block_input;
 
-        let block_id = if let Some(block_id) = block {
+        let query_block_id = if let Some(block_id) = block {
             block_id.0
         } else {
             // if no block ID input, this eventually just subscribes the user to new blocks
@@ -156,7 +156,7 @@ impl JsonRpcHandler {
         };
 
         let (query_block_number, latest_block_number) =
-            self.convert_to_block_number_range(block_id).await?;
+            self.convert_to_block_number_range(query_block_id).await?;
 
         // perform the actual subscription
         let mut sockets = self.api.sockets.lock().await;
@@ -168,7 +168,7 @@ impl JsonRpcHandler {
         // its status shall never change (unless considering block abortion). It would make
         // sense to just add a ReorgSubscription
         let subscription = Subscription::TransactionStatus {
-            tag: self.get_subscription_tag(block_id),
+            tag: self.get_subscription_tag(query_block_id),
             transaction_hash,
         };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
@@ -186,13 +186,14 @@ impl JsonRpcHandler {
             match receipt.get_block_number() {
                 Some(block_number)
                     if (query_block_number <= block_number
-                        && block_number <= latest_block_number) =>
+                        && block_number <= latest_block_number
+                        && query_block_id != BlockId::Tag(BlockTag::Pending)) =>
                 {
                     // if the number of the block when the tx was added is between
                     // specified/query block number and latest, notify the client
                     socket_context.notify(subscription_id, notification).await;
                 }
-                None if block_id == BlockId::Tag(BlockTag::Pending) => {
+                None if query_block_id == BlockId::Tag(BlockTag::Pending) => {
                     // if tx stored but no block number, it means it's pending, so only notify
                     // if the specified block ID is pending
                     socket_context.notify(subscription_id, notification).await;

@@ -279,6 +279,7 @@ impl JsonRpcHandler {
         Ok(())
     }
 
+    /// Notify subscribers of what they are subscribed to.
     async fn broadcast_changes(
         &self,
         old_latest_block: StarknetBlock,
