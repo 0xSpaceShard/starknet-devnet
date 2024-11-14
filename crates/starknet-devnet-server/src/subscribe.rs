@@ -6,6 +6,7 @@ use futures::stream::SplitSink;
 use futures::SinkExt;
 use serde::{self, Serialize};
 use starknet_rs_core::types::BlockTag;
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::block::BlockHeader;
 use starknet_types::rpc::transactions::TransactionStatus;
@@ -22,7 +23,7 @@ type SubscriptionId = i64;
 pub enum Subscription {
     NewHeads,
     TransactionStatus { tag: BlockTag, transaction_hash: TransactionHash },
-    PendingTransactions,
+    PendingTransactions { with_details: bool, address_filter: Vec<ContractAddress> },
     Events,
 }
 
@@ -33,16 +34,17 @@ impl Subscription {
             Subscription::TransactionStatus { .. } => {
                 SubscriptionConfirmation::TransactionStatusConfirmation(id)
             }
-            Subscription::PendingTransactions => {
+            Subscription::PendingTransactions { .. } => {
                 SubscriptionConfirmation::PendingTransactionsConfirmation(id)
             }
             Subscription::Events => SubscriptionConfirmation::EventsConfirmation(id),
         }
     }
 
-    fn matches(
+    pub fn matches(
         &self,
         notification: &SubscriptionNotification,
+        // TODO consider making a skipped property of tx status notification
         notification_origin_tag: BlockTag,
     ) -> bool {
         match self {
@@ -57,7 +59,16 @@ impl Subscription {
                         && subscription_hash == &notification.transaction_hash;
                 }
             }
-            Subscription::PendingTransactions => todo!(),
+            Subscription::PendingTransactions { address_filter, .. } => {
+                if let SubscriptionNotification::PendingTransactions(tx_with_hash) = notification {
+                    // if no addresses in filter, accept; if no sender, accept; otherwise check filter
+                    return address_filter.is_empty()
+                        || match tx_with_hash.sender_address {
+                            Some(sender_address) => address_filter.contains(&sender_address),
+                            None => true,
+                        };
+                }
+            }
             Subscription::Events => todo!(),
         }
 
@@ -82,11 +93,20 @@ pub struct NewTransactionStatus {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct PendingTransactionNotification {
+    pub(crate) transaction_hash: TransactionHash, // TODO re-think this struct
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) transaction: Option<starknet_types::rpc::transactions::Transaction>,
+    #[serde(skip)]
+    pub(crate) sender_address: Option<ContractAddress>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum SubscriptionNotification {
     NewHeads(Box<BlockHeader>),
     TransactionStatus(NewTransactionStatus),
-    // PendingTransactions,
+    PendingTransactions(PendingTransactionNotification),
     // Events,
 }
 
@@ -96,10 +116,10 @@ impl SubscriptionNotification {
             SubscriptionNotification::NewHeads(_) => "starknet_subscriptionNewHeads",
             SubscriptionNotification::TransactionStatus(_) => {
                 "starknet_subscriptionTransactionStatus"
-            } /* SubscriptionNotification::PendingTransactions=> {
-               *     "starknet_subscriptionPendingTransactions"
-               * }
-               * SubscriptionNotification::Events => "starknet_subscriptionEvents", */
+            }
+            SubscriptionNotification::PendingTransactions(_) => {
+                "starknet_subscriptionPendingTransactions"
+            } // SubscriptionNotification::Events => "starknet_subscriptionEvents",
         }
     }
 }

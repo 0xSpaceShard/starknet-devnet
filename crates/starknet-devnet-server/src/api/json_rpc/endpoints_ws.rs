@@ -1,13 +1,20 @@
 use starknet_core::error::Error;
 use starknet_core::starknet::starknet_config::BlockGenerationOn;
 use starknet_rs_core::types::{BlockId, BlockTag};
+use starknet_types::rpc::block::BlockResult;
+use starknet_types::rpc::transactions::Transactions;
 use starknet_types::starknet_api::block::BlockStatus;
 
 use super::error::ApiError;
-use super::models::{BlockInput, SubscriptionIdInput, TransactionBlockInput};
+use super::models::{
+    BlockInput, PendingTransactionsSubscriptionInput, SubscriptionIdInput, TransactionBlockInput,
+};
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::rpc_core::request::Id;
-use crate::subscribe::{NewTransactionStatus, SocketId, Subscription, SubscriptionNotification};
+use crate::subscribe::{
+    NewTransactionStatus, PendingTransactionNotification, SocketId, Subscription,
+    SubscriptionNotification,
+};
 
 /// The definitions of JSON-RPC read endpoints defined in starknet_ws_api.json
 impl JsonRpcHandler {
@@ -24,7 +31,9 @@ impl JsonRpcHandler {
             JsonRpcSubscriptionRequest::TransactionStatus(data) => {
                 self.subscribe_tx_status(data, rpc_request_id, socket_id).await
             }
-            JsonRpcSubscriptionRequest::PendingTransactions => todo!(),
+            JsonRpcSubscriptionRequest::PendingTransactions(data) => {
+                self.subscribe_pending_txs(data, rpc_request_id, socket_id).await
+            }
             JsonRpcSubscriptionRequest::Events => todo!(),
             JsonRpcSubscriptionRequest::Unsubscribe(SubscriptionIdInput { subscription_id }) => {
                 let mut sockets = self.api.sockets.lock().await;
@@ -202,6 +211,64 @@ impl JsonRpcHandler {
             }
         } else {
             tracing::debug!("Tx status subscription: tx not yet received")
+        }
+
+        Ok(())
+    }
+
+    /// Does not return TOO_MANY_ADDRESSES_IN_FILTER
+    pub async fn subscribe_pending_txs(
+        &self,
+        maybe_subscription_input: Option<PendingTransactionsSubscriptionInput>,
+        rpc_request_id: Id,
+        socket_id: SocketId,
+    ) -> Result<(), ApiError> {
+        let with_details = maybe_subscription_input
+            .as_ref()
+            .and_then(|subscription_input| subscription_input.transaction_details)
+            .unwrap_or_default();
+
+        let address_filter = maybe_subscription_input
+            .and_then(|subscription_input| subscription_input.sender_address)
+            .unwrap_or_default();
+
+        let mut sockets = self.api.sockets.lock().await;
+        let socket_context = sockets.get_mut(&socket_id).ok_or(ApiError::StarknetDevnetError(
+            Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
+        ))?;
+
+        let subscription = Subscription::PendingTransactions { with_details, address_filter };
+        let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
+
+        let block_tag = match self.starknet_config.block_generation_on {
+            BlockGenerationOn::Transaction => BlockTag::Latest,
+            BlockGenerationOn::Demand | BlockGenerationOn::Interval(_) => BlockTag::Pending,
+        };
+
+        let starknet = self.api.starknet.lock().await;
+        let block = starknet.get_block_with_transactions(&BlockId::Tag(block_tag))?;
+
+        let txs = match block {
+            BlockResult::Block(block) => block.transactions,
+            BlockResult::PendingBlock(block) => block.transactions,
+        };
+
+        let txs = if let Transactions::Full(txs) = txs {
+            txs
+        } else {
+            return Err(ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
+                msg: format!("Invalid transactions"),
+            }));
+        };
+
+        for tx in txs {
+            let notification =
+                SubscriptionNotification::PendingTransactions(PendingTransactionNotification {
+                    transaction_hash: *tx.get_transaction_hash(),
+                    transaction: with_details.then_some(tx.transaction.clone()),
+                    sender_address: tx.get_sender_address(),
+                });
+            socket_context.notify(subscription_id, notification).await;
         }
 
         Ok(())

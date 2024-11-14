@@ -18,7 +18,8 @@ use futures::{SinkExt, StreamExt};
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, BlockInput,
     CallInput, EstimateFeeInput, EventsInput, GetStorageInput, L1TransactionHashInput,
-    SubscriptionIdInput, TransactionBlockInput, TransactionHashInput, TransactionHashOutput,
+    PendingTransactionsSubscriptionInput, SubscriptionIdInput, TransactionBlockInput,
+    TransactionHashInput, TransactionHashOutput,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -711,8 +712,8 @@ pub enum JsonRpcSubscriptionRequest {
     NewHeads(Option<BlockInput>),
     #[serde(rename = "starknet_subscribeTransactionStatus")]
     TransactionStatus(TransactionBlockInput),
-    #[serde(rename = "starknet_subscribePendingTransactions")]
-    PendingTransactions,
+    #[serde(rename = "starknet_subscribePendingTransactions", with = "optional_params")]
+    PendingTransactions(Option<PendingTransactionsSubscriptionInput>),
     #[serde(rename = "starknet_subscribeEvents")]
     Events,
     #[serde(rename = "starknet_unsubscribe")]
@@ -1450,8 +1451,8 @@ mod response_tests {
     use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
-    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result()
-     {
+    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result(
+    ) {
         assert_eq!(
             r#"{"result":{}}"#,
             serde_json::to_string(
