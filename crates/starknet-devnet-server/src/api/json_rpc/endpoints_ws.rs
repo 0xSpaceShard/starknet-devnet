@@ -1,7 +1,7 @@
 use starknet_core::error::Error;
 use starknet_core::starknet::starknet_config::BlockGenerationOn;
 use starknet_rs_core::types::{BlockId, BlockTag};
-use starknet_types::starknet_api::block::BlockStatus;
+use starknet_types::starknet_api::block::{BlockNumber, BlockStatus};
 
 use super::error::ApiError;
 use super::models::{BlockInput, SubscriptionIdInput, TransactionBlockInput};
@@ -175,16 +175,13 @@ impl JsonRpcHandler {
 
         let starknet = self.api.starknet.lock().await;
 
-        if let (Ok(receipt), Ok(status)) = (
-            starknet.get_transaction_receipt_by_hash(&transaction_hash),
-            starknet.get_transaction_execution_and_finality_status(transaction_hash),
-        ) {
+        if let Some(tx) = starknet.transactions.get(&transaction_hash) {
             let notification = SubscriptionNotification::TransactionStatus(NewTransactionStatus {
                 transaction_hash,
-                status,
+                status: tx.get_status(),
             });
-            match receipt.get_block_number() {
-                Some(block_number)
+            match tx.get_block_number() {
+                Some(BlockNumber(block_number))
                     if (query_block_number <= block_number
                         && block_number <= latest_block_number
                         && query_block_id != BlockId::Tag(BlockTag::Pending)) =>

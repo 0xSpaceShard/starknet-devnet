@@ -14,8 +14,8 @@ use starknet_types::rpc::transaction_receipt::{
     DeployTransactionReceipt, FeeAmount, FeeInUnits, TransactionReceipt,
 };
 use starknet_types::rpc::transactions::{
-    DeclareTransaction, DeployAccountTransaction, InvokeTransaction, Transaction, TransactionTrace,
-    TransactionType, TransactionWithHash,
+    DeclareTransaction, DeployAccountTransaction, InvokeTransaction, Transaction,
+    TransactionStatus, TransactionTrace, TransactionType, TransactionWithHash,
 };
 
 use crate::constants::UDC_CONTRACT_ADDRESS;
@@ -225,6 +225,18 @@ impl StarknetTransaction {
                 ))
             }
             _ => Ok(TransactionReceipt::Common(common_receipt)),
+        }
+    }
+
+    pub fn get_block_number(&self) -> Option<BlockNumber> {
+        self.block_number
+    }
+
+    pub fn get_status(&self) -> TransactionStatus {
+        TransactionStatus {
+            finality_status: self.finality_status,
+            failure_reason: self.execution_info.revert_error.clone(),
+            execution_status: self.execution_result.status(),
         }
     }
 

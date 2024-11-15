@@ -29,6 +29,14 @@ impl TransactionReceipt {
         .block_number
         .map(|BlockNumber(n)| n)
     }
+
+    pub fn get_common(&self) -> &CommonTransactionReceipt {
+        match self {
+            TransactionReceipt::Deploy(receipt) => &receipt.common,
+            TransactionReceipt::L1Handler(receipt) => &receipt.common,
+            TransactionReceipt::Common(receipt) => receipt,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
