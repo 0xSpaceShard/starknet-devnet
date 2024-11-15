@@ -18,27 +18,6 @@ pub enum TransactionReceipt {
     Common(CommonTransactionReceipt),
 }
 
-impl TransactionReceipt {
-    pub fn get_block_number(&self) -> Option<u64> {
-        match self {
-            TransactionReceipt::Deploy(receipt) => &receipt.common,
-            TransactionReceipt::L1Handler(receipt) => &receipt.common,
-            TransactionReceipt::Common(receipt) => receipt,
-        }
-        .maybe_pending_properties
-        .block_number
-        .map(|BlockNumber(n)| n)
-    }
-
-    pub fn get_common(&self) -> &CommonTransactionReceipt {
-        match self {
-            TransactionReceipt::Deploy(receipt) => &receipt.common,
-            TransactionReceipt::L1Handler(receipt) => &receipt.common,
-            TransactionReceipt::Common(receipt) => receipt,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct DeployTransactionReceipt {
     #[serde(flatten)]
