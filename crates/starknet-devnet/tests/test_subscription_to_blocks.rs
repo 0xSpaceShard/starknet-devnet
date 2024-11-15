@@ -1,7 +1,7 @@
 #![cfg(test)]
 pub mod common;
 
-mod websocket_subscription_support {
+mod block_subscription_support {
     use std::collections::HashMap;
     use std::time::Duration;
 
@@ -9,34 +9,13 @@ mod websocket_subscription_support {
     use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
     use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_rs_providers::Provider;
-    use tokio::net::TcpStream;
-    use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+    use tokio_tungstenite::connect_async;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::utils::{assert_no_notifications, receive_rpc_via_ws, send_text_rpc_via_ws};
-
-    async fn subscribe_new_heads(
-        ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
-        block_specifier: serde_json::Value,
-    ) -> Result<i64, anyhow::Error> {
-        let subscription_confirmation =
-            send_text_rpc_via_ws(ws, "starknet_subscribeNewHeads", block_specifier).await?;
-        subscription_confirmation["result"]
-            .as_i64()
-            .ok_or(anyhow::Error::msg("Subscription did not return a numeric ID"))
-    }
-
-    async fn unsubscribe(
-        ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
-        subscription_id: i64,
-    ) -> Result<serde_json::Value, anyhow::Error> {
-        send_text_rpc_via_ws(
-            ws,
-            "starknet_unsubscribe",
-            json!({ "subscription_id": subscription_id }),
-        )
-        .await
-    }
+    use crate::common::utils::{
+        assert_no_notifications, receive_rpc_via_ws, send_text_rpc_via_ws, subscribe_new_heads,
+        unsubscribe,
+    };
 
     #[tokio::test]
     async fn subscribe_to_new_block_heads_happy_path() {
@@ -52,8 +31,8 @@ mod websocket_subscription_support {
             let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
             assert_eq!(notification["method"], "starknet_subscriptionNewHeads");
             assert_eq!(
-                notification["params"]["result"]["block_hash"].as_str().unwrap(),
-                created_block_hash.to_hex_string().as_str()
+                notification["params"]["result"]["block_hash"],
+                created_block_hash.to_hex_string()
             );
 
             assert_eq!(notification["params"]["result"]["block_number"].as_i64().unwrap(), block_i);
@@ -94,8 +73,8 @@ mod websocket_subscription_support {
             let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
             assert_eq!(notification["method"], "starknet_subscriptionNewHeads");
             assert_eq!(
-                notification["params"]["result"]["block_hash"].as_str().unwrap(),
-                created_block_hash.to_hex_string().as_str()
+                notification["params"]["result"]["block_hash"],
+                created_block_hash.to_hex_string()
             );
 
             assert_eq!(notification["params"]["result"]["block_number"].as_i64().unwrap(), 1);
@@ -231,8 +210,8 @@ mod websocket_subscription_support {
             let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
             assert_eq!(notification["method"], "starknet_subscriptionNewHeads");
             assert_eq!(
-                notification["params"]["result"]["block_hash"].as_str().unwrap(),
-                created_block_hash.to_hex_string().as_str()
+                notification["params"]["result"]["block_hash"],
+                created_block_hash.to_hex_string()
             );
             assert_eq!(
                 notification["params"]["subscription_id"].as_i64().unwrap(),
@@ -298,8 +277,8 @@ mod websocket_subscription_support {
         let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
         assert_eq!(notification["method"], "starknet_subscriptionNewHeads");
         assert_eq!(
-            notification["params"]["result"]["block_hash"].as_str().unwrap(),
-            created_block_hash.to_hex_string().as_str()
+            notification["params"]["result"]["block_hash"],
+            created_block_hash.to_hex_string()
         );
 
         assert_eq!(notification["params"]["result"]["block_number"].as_i64().unwrap(), 1);

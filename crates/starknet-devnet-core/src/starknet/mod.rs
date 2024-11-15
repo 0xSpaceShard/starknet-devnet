@@ -1094,12 +1094,7 @@ impl Starknet {
         transaction_hash: TransactionHash,
     ) -> DevnetResult<TransactionStatus> {
         let transaction = self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
-
-        Ok(TransactionStatus {
-            finality_status: transaction.finality_status,
-            failure_reason: transaction.execution_info.revert_error.clone(),
-            execution_status: transaction.execution_result.status(),
-        })
+        Ok(transaction.get_status())
     }
 
     pub fn simulate_transactions(

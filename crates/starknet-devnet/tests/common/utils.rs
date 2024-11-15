@@ -452,6 +452,25 @@ pub async fn assert_no_notifications(ws: &mut WebSocketStream<MaybeTlsStream<Tcp
     }
 }
 
+pub async fn subscribe_new_heads(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    block_specifier: serde_json::Value,
+) -> Result<i64, anyhow::Error> {
+    let subscription_confirmation =
+        send_text_rpc_via_ws(ws, "starknet_subscribeNewHeads", block_specifier).await?;
+    subscription_confirmation["result"]
+        .as_i64()
+        .ok_or(anyhow::Error::msg("Subscription did not return a numeric ID"))
+}
+
+pub async fn unsubscribe(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    subscription_id: i64,
+) -> Result<serde_json::Value, anyhow::Error> {
+    send_text_rpc_via_ws(ws, "starknet_unsubscribe", json!({ "subscription_id": subscription_id }))
+        .await
+}
+
 #[cfg(test)]
 mod test_unique_auto_deletable_file {
     use std::path::Path;

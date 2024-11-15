@@ -5,7 +5,10 @@ use axum::extract::ws::{Message, WebSocket};
 use futures::stream::SplitSink;
 use futures::SinkExt;
 use serde::{self, Serialize};
+use starknet_rs_core::types::BlockTag;
+use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::block::BlockHeader;
+use starknet_types::rpc::transactions::TransactionStatus;
 use tokio::sync::Mutex;
 
 use crate::api::json_rpc::error::ApiError;
@@ -18,9 +21,48 @@ type SubscriptionId = i64;
 #[derive(Debug)]
 pub enum Subscription {
     NewHeads,
-    TransactionStatus,
+    TransactionStatus { tag: BlockTag, transaction_hash: TransactionHash },
     PendingTransactions,
     Events,
+}
+
+impl Subscription {
+    fn confirm(&self, id: SubscriptionId) -> SubscriptionConfirmation {
+        match self {
+            Subscription::NewHeads => SubscriptionConfirmation::NewHeadsConfirmation(id),
+            Subscription::TransactionStatus { .. } => {
+                SubscriptionConfirmation::TransactionStatusConfirmation(id)
+            }
+            Subscription::PendingTransactions => {
+                SubscriptionConfirmation::PendingTransactionsConfirmation(id)
+            }
+            Subscription::Events => SubscriptionConfirmation::EventsConfirmation(id),
+        }
+    }
+
+    fn matches(
+        &self,
+        notification: &SubscriptionNotification,
+        notification_origin_tag: BlockTag,
+    ) -> bool {
+        match self {
+            Subscription::NewHeads => {
+                if let SubscriptionNotification::NewHeads(_) = notification {
+                    return true;
+                }
+            }
+            Subscription::TransactionStatus { tag, transaction_hash: subscription_hash } => {
+                if let SubscriptionNotification::TransactionStatus(notification) = notification {
+                    return tag == &notification_origin_tag
+                        && subscription_hash == &notification.transaction_hash;
+                }
+            }
+            Subscription::PendingTransactions => todo!(),
+            Subscription::Events => todo!(),
+        }
+
+        false
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -34,25 +76,30 @@ pub enum SubscriptionConfirmation {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct NewTransactionStatus {
+    pub transaction_hash: TransactionHash,
+    pub status: TransactionStatus,
+}
+
+#[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum SubscriptionNotification {
-    NewHeadsNotification(BlockHeader),
-    // TransactionStatusNotification,
-    // PendingTransactionsNotification,
-    // EventsNotification,
+    NewHeads(Box<BlockHeader>),
+    TransactionStatus(NewTransactionStatus),
+    // PendingTransactions,
+    // Events,
 }
 
 impl SubscriptionNotification {
     fn method_name(&self) -> &'static str {
         match self {
-            SubscriptionNotification::NewHeadsNotification(_) => "starknet_subscriptionNewHeads",
-            // SubscriptionNotification::TransactionStatusNotification => {
-            //     "starknet_subscriptionTransactionStatus"
-            // }
-            // SubscriptionNotification::PendingTransactionsNotification => {
-            //     "starknet_subscriptionPendingTransactions"
-            // }
-            // SubscriptionNotification::EventsNotification => "starknet_subscriptionEvents",
+            SubscriptionNotification::NewHeads(_) => "starknet_subscriptionNewHeads",
+            SubscriptionNotification::TransactionStatus(_) => {
+                "starknet_subscriptionTransactionStatus"
+            } /* SubscriptionNotification::PendingTransactions=> {
+               *     "starknet_subscriptionPendingTransactions"
+               * }
+               * SubscriptionNotification::Events => "starknet_subscriptionEvents", */
         }
     }
 }
@@ -107,15 +154,18 @@ impl SocketContext {
         }
     }
 
-    pub async fn subscribe(&mut self, rpc_request_id: Id) -> SubscriptionId {
+    pub async fn subscribe(
+        &mut self,
+        rpc_request_id: Id,
+        subscription: Subscription,
+    ) -> SubscriptionId {
         let subscription_id = rand::random();
-        self.subscriptions.insert(subscription_id, Subscription::NewHeads);
 
-        self.send(SubscriptionResponse::Confirmation {
-            rpc_request_id,
-            result: SubscriptionConfirmation::NewHeadsConfirmation(subscription_id),
-        })
-        .await;
+        let confirmation = subscription.confirm(subscription_id);
+        self.subscriptions.insert(subscription_id, subscription);
+
+        self.send(SubscriptionResponse::Confirmation { rpc_request_id, result: confirmation })
+            .await;
 
         subscription_id
     }
@@ -143,16 +193,15 @@ impl SocketContext {
             .await;
     }
 
-    pub async fn notify_subscribers(&self, data: SubscriptionNotification) {
+    /// The `notification_origin_tag` is used to indicate where the notification originates from
+    pub async fn notify_subscribers(
+        &self,
+        notification_data: &SubscriptionNotification,
+        notification_origin_tag: BlockTag,
+    ) {
         for (subscription_id, subscription) in self.subscriptions.iter() {
-            match subscription {
-                Subscription::NewHeads => {
-                    // The next line is here to cause a compilation error when new enum variants are
-                    // added. Then, use `if let`.
-                    let SubscriptionNotification::NewHeadsNotification(_) = data;
-                    self.notify(*subscription_id, data.clone()).await;
-                }
-                other => todo!("Unsupported subscription: {other:?}"),
+            if subscription.matches(notification_data, notification_origin_tag) {
+                self.notify(*subscription_id, notification_data.clone()).await;
             }
         }
     }
