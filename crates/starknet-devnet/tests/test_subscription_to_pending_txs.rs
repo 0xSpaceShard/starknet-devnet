@@ -29,59 +29,65 @@ mod pending_transactions_subscription_support {
 
     #[tokio::test]
     async fn without_details_happy_path() {
-        let devnet = BackgroundDevnet::spawn().await.unwrap();
-        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-        let subscription_id = subscribe_pending_txs(&mut ws, false, &[]).await.unwrap();
+        for block_mode in ["transaction", "demand"] {
+            let devnet_args = ["--block-generation-on", block_mode];
+            let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+            let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+            let subscription_id = subscribe_pending_txs(&mut ws, false, &[]).await.unwrap();
 
-        let dummy_address = Felt::ONE;
-        let amount = 123;
-        let tx_hash = devnet.mint(dummy_address, amount).await;
+            let dummy_address = Felt::ONE;
+            let amount = 123;
+            let tx_hash = devnet.mint(dummy_address, amount).await;
 
-        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-        assert_eq!(
-            notification,
-            json!({
-                "jsonrpc": "2.0",
-                "method": "starknet_subscriptionPendingTransactions",
-                "params": {
-                    "result": tx_hash,
-                    "subscription_id": subscription_id,
-                }
-            })
-        );
+            let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+            assert_eq!(
+                notification,
+                json!({
+                    "jsonrpc": "2.0",
+                    "method": "starknet_subscriptionPendingTransactions",
+                    "params": {
+                        "result": tx_hash,
+                        "subscription_id": subscription_id,
+                    }
+                })
+            );
 
-        assert_no_notifications(&mut ws).await;
+            assert_no_notifications(&mut ws).await;
+        }
     }
 
     #[tokio::test]
     async fn with_details_happy_path() {
-        let devnet = BackgroundDevnet::spawn().await.unwrap();
-        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-        let subscription_id = subscribe_pending_txs(&mut ws, true, &[]).await.unwrap();
+        for block_mode in ["transaction", "demand"] {
+            let devnet_args = ["--block-generation-on", block_mode];
+            let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+            let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+            let subscription_id = subscribe_pending_txs(&mut ws, true, &[]).await.unwrap();
 
-        let dummy_address = Felt::ONE;
-        let amount = 123;
-        let mint_hash = devnet.mint(dummy_address, amount).await;
+            let dummy_address = Felt::ONE;
+            let amount = 123;
+            let mint_hash = devnet.mint(dummy_address, amount).await;
 
-        let mut notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+            let mut notification = receive_rpc_via_ws(&mut ws).await.unwrap();
 
-        // extract the transaction from the response
-        let notification_result = notification["params"]["result"].take();
-        let notification_tx: Transaction = serde_json::from_value(notification_result).unwrap();
-        assert_eq!(notification_tx.transaction_hash(), &mint_hash);
+            // extract the transaction from the response
+            let notification_result = notification["params"]["result"].take();
+            let notification_tx: Transaction = serde_json::from_value(notification_result).unwrap();
+            assert_eq!(notification_tx.transaction_hash(), &mint_hash);
 
-        assert_eq!(
-            notification,
-            json!({
-                "jsonrpc": "2.0",
-                "method": "starknet_subscriptionPendingTransactions",
-                "params": {
-                    "subscription_id": subscription_id,
-                }
-            })
-        );
+            assert_eq!(
+                notification,
+                json!({
+                    "jsonrpc": "2.0",
+                    "method": "starknet_subscriptionPendingTransactions",
+                    "params": {
+                        "subscription_id": subscription_id,
+                    }
+                })
+            );
 
-        assert_no_notifications(&mut ws).await;
+            assert_no_notifications(&mut ws).await;
+        }
     }
 
     #[tokio::test]
