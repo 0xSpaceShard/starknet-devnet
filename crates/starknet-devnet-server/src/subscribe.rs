@@ -9,7 +9,7 @@ use starknet_rs_core::types::BlockTag;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::block::BlockHeader;
-use starknet_types::rpc::transactions::TransactionStatus;
+use starknet_types::rpc::transactions::{TransactionStatus, TransactionWithHash};
 use tokio::sync::Mutex;
 
 use crate::api::json_rpc::error::ApiError;
@@ -20,10 +20,25 @@ pub type SocketId = u64;
 type SubscriptionId = i64;
 
 #[derive(Debug)]
+pub struct AddressFilter {
+    address_container: Vec<ContractAddress>,
+}
+
+impl AddressFilter {
+    pub(crate) fn new(address_container: Vec<ContractAddress>) -> Self {
+        Self { address_container }
+    }
+    pub(crate) fn passess(&self, address: &ContractAddress) -> bool {
+        self.address_container.is_empty() || self.address_container.contains(address)
+    }
+}
+
+#[derive(Debug)]
 pub enum Subscription {
     NewHeads,
     TransactionStatus { tag: BlockTag, transaction_hash: TransactionHash },
-    PendingTransactions { with_details: bool, address_filter: Vec<ContractAddress> },
+    PendingTransactions { address_filter: AddressFilter },
+    PendingTransactionHashes { address_filter: AddressFilter },
     Events,
 }
 
@@ -34,39 +49,44 @@ impl Subscription {
             Subscription::TransactionStatus { .. } => {
                 SubscriptionConfirmation::TransactionStatusConfirmation(id)
             }
-            Subscription::PendingTransactions { .. } => {
+            Subscription::PendingTransactions { .. }
+            | Subscription::PendingTransactionHashes { .. } => {
                 SubscriptionConfirmation::PendingTransactionsConfirmation(id)
             }
             Subscription::Events => SubscriptionConfirmation::EventsConfirmation(id),
         }
     }
 
-    pub fn matches(
-        &self,
-        notification: &SubscriptionNotification,
-        // TODO consider making a skipped property of tx status notification
-        notification_origin_tag: BlockTag,
-    ) -> bool {
+    pub fn matches(&self, notification_data: &SubscriptionNotification) -> bool {
         match self {
             Subscription::NewHeads => {
-                if let SubscriptionNotification::NewHeads(_) = notification {
+                if let SubscriptionNotification::NewHeads(_) = notification_data {
                     return true;
                 }
             }
             Subscription::TransactionStatus { tag, transaction_hash: subscription_hash } => {
-                if let SubscriptionNotification::TransactionStatus(notification) = notification {
-                    return tag == &notification_origin_tag
+                if let SubscriptionNotification::TransactionStatus(notification) = notification_data
+                {
+                    return tag == &notification.origin_tag
                         && subscription_hash == &notification.transaction_hash;
                 }
             }
             Subscription::PendingTransactions { address_filter, .. } => {
-                if let SubscriptionNotification::PendingTransactions(tx_with_hash) = notification {
-                    // if no addresses in filter, accept; if no sender, accept; otherwise check filter
-                    return address_filter.is_empty()
-                        || match tx_with_hash.sender_address {
-                            Some(sender_address) => address_filter.contains(&sender_address),
-                            None => true,
-                        };
+                if let SubscriptionNotification::PendingTransaction(tx) = notification_data {
+                    return match tx.get_sender_address() {
+                        Some(address) => address_filter.passess(&address),
+                        None => true,
+                    };
+                }
+            }
+            Subscription::PendingTransactionHashes { address_filter } => {
+                if let SubscriptionNotification::PendingTransactionHash { sender_address, .. } =
+                    notification_data
+                {
+                    return match sender_address {
+                        Some(address) => address_filter.passess(address),
+                        None => true,
+                    };
                 }
             }
             Subscription::Events => todo!(),
@@ -79,7 +99,7 @@ impl Subscription {
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum SubscriptionConfirmation {
-    NewHeadsConfirmation(SubscriptionId),
+    NewHeadsConfirmation(SubscriptionId), // TODO can be just two variants
     TransactionStatusConfirmation(SubscriptionId),
     PendingTransactionsConfirmation(SubscriptionId),
     EventsConfirmation(SubscriptionId),
@@ -90,15 +110,9 @@ pub enum SubscriptionConfirmation {
 pub struct NewTransactionStatus {
     pub transaction_hash: TransactionHash,
     pub status: TransactionStatus,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct PendingTransactionNotification {
-    pub(crate) transaction_hash: TransactionHash, // TODO re-think this struct
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) transaction: Option<starknet_types::rpc::transactions::Transaction>,
+    /// which block this notification originates from: pending or latest
     #[serde(skip)]
-    pub(crate) sender_address: Option<ContractAddress>,
+    pub origin_tag: BlockTag,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -106,8 +120,13 @@ pub struct PendingTransactionNotification {
 pub enum SubscriptionNotification {
     NewHeads(Box<BlockHeader>),
     TransactionStatus(NewTransactionStatus),
-    PendingTransactions(PendingTransactionNotification),
-    // Events,
+    PendingTransaction(Box<TransactionWithHash>),
+    // PendingTransactionHash(NewPendingTransactionHash),
+    PendingTransactionHash {
+        hash: TransactionHash,
+        #[serde(skip)]
+        sender_address: Option<ContractAddress>,
+    }, // Events,
 }
 
 impl SubscriptionNotification {
@@ -117,7 +136,8 @@ impl SubscriptionNotification {
             SubscriptionNotification::TransactionStatus(_) => {
                 "starknet_subscriptionTransactionStatus"
             }
-            SubscriptionNotification::PendingTransactions(_) => {
+            SubscriptionNotification::PendingTransaction(_)
+            | SubscriptionNotification::PendingTransactionHash { .. } => {
                 "starknet_subscriptionPendingTransactions"
             } // SubscriptionNotification::Events => "starknet_subscriptionEvents",
         }
@@ -213,14 +233,9 @@ impl SocketContext {
             .await;
     }
 
-    /// The `notification_origin_tag` is used to indicate where the notification originates from
-    pub async fn notify_subscribers(
-        &self,
-        notification_data: &SubscriptionNotification,
-        notification_origin_tag: BlockTag,
-    ) {
+    pub async fn notify_subscribers(&self, notification_data: &SubscriptionNotification) {
         for (subscription_id, subscription) in self.subscriptions.iter() {
-            if subscription.matches(notification_data, notification_origin_tag) {
+            if subscription.matches(notification_data) {
                 self.notify(*subscription_id, notification_data.clone()).await;
             }
         }

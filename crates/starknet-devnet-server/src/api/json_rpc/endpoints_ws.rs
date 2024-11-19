@@ -12,8 +12,7 @@ use super::models::{
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::rpc_core::request::Id;
 use crate::subscribe::{
-    NewTransactionStatus, PendingTransactionNotification, SocketId, Subscription,
-    SubscriptionNotification,
+    AddressFilter, NewTransactionStatus, SocketId, Subscription, SubscriptionNotification,
 };
 
 /// The definitions of JSON-RPC read endpoints defined in starknet_ws_api.json
@@ -176,10 +175,9 @@ impl JsonRpcHandler {
         // TODO if tx present, but in a block before the one specified, no point in subscribing -
         // its status shall never change (unless considering block abortion). It would make
         // sense to just add a ReorgSubscription
-        let subscription = Subscription::TransactionStatus {
-            tag: self.get_subscription_tag(query_block_id),
-            transaction_hash,
-        };
+        let subscription_tag = self.get_subscription_tag(query_block_id);
+        let subscription =
+            Subscription::TransactionStatus { tag: subscription_tag, transaction_hash };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
         let starknet = self.api.starknet.lock().await;
@@ -191,6 +189,7 @@ impl JsonRpcHandler {
             let notification = SubscriptionNotification::TransactionStatus(NewTransactionStatus {
                 transaction_hash,
                 status,
+                origin_tag: subscription_tag, // TODO refactor t orely on .matches()
             });
             match receipt.get_block_number() {
                 Some(block_number)
@@ -228,16 +227,22 @@ impl JsonRpcHandler {
             .and_then(|subscription_input| subscription_input.transaction_details)
             .unwrap_or_default();
 
-        let address_filter = maybe_subscription_input
-            .and_then(|subscription_input| subscription_input.sender_address)
-            .unwrap_or_default();
+        let address_filter = AddressFilter::new(
+            maybe_subscription_input
+                .and_then(|subscription_input| subscription_input.sender_address)
+                .unwrap_or_default(),
+        );
 
         let mut sockets = self.api.sockets.lock().await;
         let socket_context = sockets.get_mut(&socket_id).ok_or(ApiError::StarknetDevnetError(
             Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
         ))?;
 
-        let subscription = Subscription::PendingTransactions { with_details, address_filter };
+        let subscription = if with_details {
+            Subscription::PendingTransactions { address_filter }
+        } else {
+            Subscription::PendingTransactionHashes { address_filter }
+        };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
         let block_tag = match self.starknet_config.block_generation_on {
@@ -257,17 +262,19 @@ impl JsonRpcHandler {
             txs
         } else {
             return Err(ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
-                msg: format!("Invalid transactions"),
+                msg: "Invalid transactions".into(),
             }));
         };
 
         for tx in txs {
-            let notification =
-                SubscriptionNotification::PendingTransactions(PendingTransactionNotification {
-                    transaction_hash: *tx.get_transaction_hash(),
-                    transaction: with_details.then_some(tx.transaction.clone()),
+            let notification = if with_details {
+                SubscriptionNotification::PendingTransaction(Box::new(tx))
+            } else {
+                SubscriptionNotification::PendingTransactionHash {
+                    hash: *tx.get_transaction_hash(),
                     sender_address: tx.get_sender_address(),
-                });
+                }
+            };
             socket_context.notify(subscription_id, notification).await;
         }
 

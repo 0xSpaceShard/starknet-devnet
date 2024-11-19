@@ -228,21 +228,39 @@ impl JsonRpcHandler {
 
         if new_pending_txs.len() > old_pending_txs.len() {
             #[allow(clippy::expect_used)]
-            let new_tx = new_pending_txs.last().expect("has at least one element");
+            let new_tx_hash = new_pending_txs.last().expect("has at least one element");
 
             let starknet = self.api.starknet.lock().await;
+
             let status = starknet
-                .get_transaction_execution_and_finality_status(*new_tx)
+                .get_transaction_execution_and_finality_status(*new_tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
             let tx_status_notification =
                 SubscriptionNotification::TransactionStatus(NewTransactionStatus {
-                    transaction_hash: *new_tx,
+                    transaction_hash: *new_tx_hash,
                     status,
+                    origin_tag: BlockTag::Pending,
                 });
+
+            let tx = starknet
+                .get_transaction_by_hash(*new_tx_hash)
+                .map_err(error::ApiError::StarknetDevnetError)?;
+            let pending_tx_notification =
+                SubscriptionNotification::PendingTransaction(Box::new(tx.clone()));
+
+            let pending_tx_hash_notification = SubscriptionNotification::PendingTransactionHash {
+                hash: *tx.get_transaction_hash(),
+                sender_address: tx.get_sender_address(),
+            };
+
+            let notifications =
+                [tx_status_notification, pending_tx_notification, pending_tx_hash_notification];
 
             let sockets = self.api.sockets.lock().await;
             for (_, socket_context) in sockets.iter() {
-                socket_context.notify_subscribers(&tx_status_notification, BlockTag::Pending).await;
+                for notification in &notifications {
+                    socket_context.notify_subscribers(notification).await;
+                }
             }
         }
 
@@ -265,15 +283,19 @@ impl JsonRpcHandler {
                 .map_err(error::ApiError::StarknetDevnetError)?;
 
             tx_status_notifications.push(SubscriptionNotification::TransactionStatus(
-                NewTransactionStatus { transaction_hash: *tx_hash, status },
+                NewTransactionStatus {
+                    transaction_hash: *tx_hash,
+                    status,
+                    origin_tag: BlockTag::Latest,
+                },
             ));
         }
 
         let sockets = self.api.sockets.lock().await;
         for (_, socket_context) in sockets.iter() {
-            socket_context.notify_subscribers(&block_notification, BlockTag::Latest).await;
+            socket_context.notify_subscribers(&block_notification).await;
             for tx_status_notification in tx_status_notifications.iter() {
-                socket_context.notify_subscribers(tx_status_notification, BlockTag::Latest).await;
+                socket_context.notify_subscribers(tx_status_notification).await;
             }
         }
 
@@ -1451,8 +1473,8 @@ mod response_tests {
     use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
-    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result(
-    ) {
+    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result()
+     {
         assert_eq!(
             r#"{"result":{}}"#,
             serde_json::to_string(
