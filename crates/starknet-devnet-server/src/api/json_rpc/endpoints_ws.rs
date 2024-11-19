@@ -1,5 +1,4 @@
 use starknet_core::error::Error;
-use starknet_core::starknet::starknet_config::BlockGenerationOn;
 use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::rpc::block::BlockResult;
 use starknet_types::rpc::transactions::Transactions;
@@ -136,15 +135,16 @@ impl JsonRpcHandler {
         Ok(())
     }
 
-    /// Based on block generation mode and specified block ID, decide on subscription's sensitivity:
+    /// Based pending block usage and specified block ID, decide on subscription's sensitivity:
     /// notify of changes in pending or latest block
     fn get_subscription_tag(&self, block_id: BlockId) -> BlockTag {
-        match self.starknet_config.block_generation_on {
-            BlockGenerationOn::Transaction => BlockTag::Latest,
-            BlockGenerationOn::Demand | BlockGenerationOn::Interval(_) => match block_id {
+        if self.starknet_config.with_pending_block() {
+            match block_id {
                 BlockId::Tag(tag) => tag,
                 BlockId::Hash(_) | BlockId::Number(_) => BlockTag::Pending,
-            },
+            }
+        } else {
+            BlockTag::Latest
         }
     }
 
@@ -245,9 +245,10 @@ impl JsonRpcHandler {
         };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
-        let block_tag = match self.starknet_config.block_generation_on {
-            BlockGenerationOn::Transaction => BlockTag::Latest,
-            BlockGenerationOn::Demand | BlockGenerationOn::Interval(_) => BlockTag::Pending,
+        let block_tag = if self.starknet_config.with_pending_block() {
+            BlockTag::Pending
+        } else {
+            BlockTag::Latest
         };
 
         let starknet = self.api.starknet.lock().await;

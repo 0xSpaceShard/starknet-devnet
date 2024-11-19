@@ -24,7 +24,7 @@ use models::{
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use starknet_core::starknet::starknet_config::{BlockGenerationOn, DumpOn, StarknetConfig};
+use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_core::{CasmContractClass, StarknetBlock};
 use starknet_rs_core::types::{BlockId, BlockTag, ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
@@ -272,30 +272,41 @@ impl JsonRpcHandler {
         new_latest_block: StarknetBlock,
     ) -> Result<(), error::ApiError> {
         let block_header = (&new_latest_block).into();
-        let block_notification = SubscriptionNotification::NewHeads(Box::new(block_header));
+        let mut notifications = vec![SubscriptionNotification::NewHeads(Box::new(block_header))];
 
         let starknet = self.api.starknet.lock().await;
 
-        let mut tx_status_notifications = vec![];
         for tx_hash in new_latest_block.get_transactions() {
             let status = starknet
                 .get_transaction_execution_and_finality_status(*tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
+            // TODO do only one starknet.transactions.get(...)
 
-            tx_status_notifications.push(SubscriptionNotification::TransactionStatus(
-                NewTransactionStatus {
-                    transaction_hash: *tx_hash,
-                    status,
-                    origin_tag: BlockTag::Latest,
-                },
-            ));
+            notifications.push(SubscriptionNotification::TransactionStatus(NewTransactionStatus {
+                transaction_hash: *tx_hash,
+                status,
+                origin_tag: BlockTag::Latest,
+            }));
+
+            // Even though there are no pending txs in this mode, we still need to notify the users
+            // depending on this notification type.
+            if !self.starknet_config.with_pending_block() {
+                let tx = starknet
+                    .get_transaction_by_hash(*tx_hash)
+                    .map_err(error::ApiError::StarknetDevnetError)?;
+                notifications
+                    .push(SubscriptionNotification::PendingTransaction(Box::new(tx.clone())));
+                notifications.push(SubscriptionNotification::PendingTransactionHash {
+                    hash: *tx_hash,
+                    sender_address: tx.get_sender_address(),
+                })
+            }
         }
 
         let sockets = self.api.sockets.lock().await;
         for (_, socket_context) in sockets.iter() {
-            socket_context.notify_subscribers(&block_notification).await;
-            for tx_status_notification in tx_status_notifications.iter() {
-                socket_context.notify_subscribers(tx_status_notification).await;
+            for notification in &notifications {
+                socket_context.notify_subscribers(notification).await;
             }
         }
 
@@ -335,11 +346,10 @@ impl JsonRpcHandler {
 
         // for later comparison and subscription notifications
         let old_latest_block = self.get_block(BlockTag::Latest).await;
-        let old_pending_block = match self.starknet_config.block_generation_on {
-            BlockGenerationOn::Transaction => None,
-            BlockGenerationOn::Interval(_) | BlockGenerationOn::Demand => {
-                Some(self.get_block(BlockTag::Pending).await)
-            }
+        let old_pending_block = if self.starknet_config.with_pending_block() {
+            Some(self.get_block(BlockTag::Pending).await)
+        } else {
+            None
         };
 
         // true if origin should be tried after request fails; relevant in forking mode

@@ -125,6 +125,15 @@ pub struct StarknetConfig {
     pub strk_erc20_contract_class: String,
 }
 
+impl StarknetConfig {
+    pub fn with_pending_block(&self) -> bool {
+        match self.block_generation_on {
+            BlockGenerationOn::Transaction => false,
+            BlockGenerationOn::Demand | BlockGenerationOn::Interval(_) => true,
+        }
+    }
+}
+
 #[allow(clippy::unwrap_used)]
 impl Default for StarknetConfig {
     fn default() -> Self {
