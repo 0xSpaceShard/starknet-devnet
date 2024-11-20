@@ -42,7 +42,7 @@ mod pending_transactions_subscription_support {
     #[tokio::test]
     /// Both modes should notify of pending transactions, even though this never actually happens in
     /// transaction mode.
-    async fn without_details_happy_path() {
+    async fn without_tx_details_happy_path() {
         for block_mode in ["transaction", "demand"] {
             let devnet_args = ["--block-generation-on", block_mode];
             let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
@@ -72,7 +72,7 @@ mod pending_transactions_subscription_support {
     }
 
     #[tokio::test]
-    async fn without_details_happy_path_multiple_subscribers() {
+    async fn without_tx_details_happy_path_multiple_subscribers() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
         let subscription_params = json!({ "transaction_details": false, "sender_address": [] });
@@ -107,7 +107,7 @@ mod pending_transactions_subscription_support {
     #[tokio::test]
     /// Both modes should notify of pending transactions, even though this never actually happens in
     /// transaction mode.
-    async fn with_details_happy_path() {
+    async fn with_tx_details_happy_path() {
         for block_mode in ["transaction", "demand"] {
             let devnet_args = ["--block-generation-on", block_mode];
             let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
@@ -185,7 +185,7 @@ mod pending_transactions_subscription_support {
     }
 
     #[tokio::test]
-    async fn with_details_and_filtered_address_happy_path() {
+    async fn with_tx_details_and_filtered_address_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
@@ -249,6 +249,8 @@ mod pending_transactions_subscription_support {
                 })
             );
         }
+
+        assert_no_notifications(&mut ws).await;
     }
 
     #[tokio::test]
@@ -266,7 +268,7 @@ mod pending_transactions_subscription_support {
     }
 
     #[tokio::test]
-    async fn should_notify_if_txs_by_filtered_address_already_in_pending_block() {
+    async fn should_notify_if_tx_by_filtered_address_already_in_pending_block() {
         let devnet_args = ["--block-generation-on", "demand"];
         let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
@@ -303,7 +305,7 @@ mod pending_transactions_subscription_support {
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
         devnet.mint(Felt::ONE, 123).await; // dummy data
-        devnet.create_block().await.unwrap(); // important only in on-demand mode to move txs from pending to latest
+        devnet.create_block().await.unwrap();
 
         // Minting is done by the Chargeable account
         let acceptable_address = CHARGEABLE_ACCOUNT_ADDRESS;

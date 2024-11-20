@@ -167,7 +167,7 @@ impl StarknetBlocks {
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct StarknetBlock {
-    pub(crate) header: BlockHeader, // TODO wrong sequencer property, should be sequencer_address
+    pub(crate) header: BlockHeader,
     transaction_hashes: Vec<TransactionHash>,
     pub(crate) status: BlockStatus,
 }

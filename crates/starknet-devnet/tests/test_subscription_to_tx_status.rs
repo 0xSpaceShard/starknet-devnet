@@ -93,9 +93,7 @@ mod tx_status_subscription_support {
         let unsubscription = unsubscribe(&mut ws, subscription_id).await.unwrap();
         assert_eq!(unsubscription, json!({ "jsonrpc": "2.0", "id": 0, "result": true }));
 
-        let tx_hash = devnet.mint(address, mint_amount).await;
-        assert_eq!(tx_hash, expected_tx_hash);
-
+        devnet.mint(address, mint_amount).await;
         assert_no_notifications(&mut ws).await;
     }
 

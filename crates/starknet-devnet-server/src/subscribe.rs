@@ -55,16 +55,15 @@ impl Subscription {
         }
     }
 
-    pub fn matches(&self, notification_data: &SubscriptionNotification) -> bool {
+    pub fn matches(&self, notification: &SubscriptionNotification) -> bool {
         match self {
             Subscription::NewHeads => {
-                if let SubscriptionNotification::NewHeads(_) = notification_data {
+                if let SubscriptionNotification::NewHeads(_) = notification {
                     return true;
                 }
             }
             Subscription::TransactionStatus { tag, transaction_hash: subscription_hash } => {
-                if let SubscriptionNotification::TransactionStatus(notification) = notification_data
-                {
+                if let SubscriptionNotification::TransactionStatus(notification) = notification {
                     return tag == &notification.origin_tag
                         && subscription_hash == &notification.transaction_hash;
                 }
@@ -72,7 +71,7 @@ impl Subscription {
             Subscription::PendingTransactionsFull { address_filter, .. } => {
                 if let SubscriptionNotification::PendingTransaction(
                     PendingTransactionNotification::Full(tx),
-                ) = notification_data
+                ) = notification
                 {
                     return match tx.get_sender_address() {
                         Some(address) => address_filter.passess(&address),
@@ -83,7 +82,7 @@ impl Subscription {
             Subscription::PendingTransactionsHash { address_filter } => {
                 if let SubscriptionNotification::PendingTransaction(
                     PendingTransactionNotification::Hash(hash_wrapper),
-                ) = notification_data
+                ) = notification
                 {
                     return match hash_wrapper.sender_address {
                         Some(address) => address_filter.passess(&address),
@@ -247,10 +246,10 @@ impl SocketContext {
             .await;
     }
 
-    pub async fn notify_subscribers(&self, notification_data: &SubscriptionNotification) {
+    pub async fn notify_subscribers(&self, notification: &SubscriptionNotification) {
         for (subscription_id, subscription) in self.subscriptions.iter() {
-            if subscription.matches(notification_data) {
-                self.notify(*subscription_id, notification_data.clone()).await;
+            if subscription.matches(notification) {
+                self.notify(*subscription_id, notification.clone()).await;
             }
         }
     }

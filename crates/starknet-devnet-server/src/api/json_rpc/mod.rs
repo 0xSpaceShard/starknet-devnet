@@ -294,7 +294,7 @@ impl JsonRpcHandler {
             }));
 
             // Even though there are no pending txs in this mode, we still need to notify the users
-            // depending on this notification type.
+            // wanting to know of new txs by depending on this notification type.
             if !self.starknet_config.with_pending_block() {
                 let tx = starknet
                     .get_transaction_by_hash(*tx_hash)
