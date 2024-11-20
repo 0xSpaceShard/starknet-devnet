@@ -255,7 +255,6 @@ impl JsonRpcHandler {
                 status: tx.get_status(),
                 origin_tag: subscription_tag,
             });
-            // TODO refactor to rely on .matches()
             match tx.get_block_number() {
                 Some(BlockNumber(block_number))
                     if (query_block_number <= block_number

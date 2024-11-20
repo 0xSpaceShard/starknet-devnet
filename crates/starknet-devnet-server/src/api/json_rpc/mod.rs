@@ -286,7 +286,6 @@ impl JsonRpcHandler {
             let status = starknet
                 .get_transaction_execution_and_finality_status(*tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
-            // TODO do only one starknet.transactions.get(...)
 
             notifications.push(SubscriptionNotification::TransactionStatus(NewTransactionStatus {
                 transaction_hash: *tx_hash,

@@ -45,15 +45,13 @@ pub enum Subscription {
 impl Subscription {
     fn confirm(&self, id: SubscriptionId) -> SubscriptionConfirmation {
         match self {
-            Subscription::NewHeads => SubscriptionConfirmation::NewHeadsConfirmation(id),
-            Subscription::TransactionStatus { .. } => {
-                SubscriptionConfirmation::TransactionStatusConfirmation(id)
-            }
+            Subscription::NewHeads => SubscriptionConfirmation::NewSubscription(id),
+            Subscription::TransactionStatus { .. } => SubscriptionConfirmation::NewSubscription(id),
             Subscription::PendingTransactionsFull { .. }
             | Subscription::PendingTransactionsHash { .. } => {
-                SubscriptionConfirmation::PendingTransactionsConfirmation(id)
+                SubscriptionConfirmation::NewSubscription(id)
             }
-            Subscription::Events => SubscriptionConfirmation::EventsConfirmation(id),
+            Subscription::Events => SubscriptionConfirmation::NewSubscription(id),
         }
     }
 
@@ -100,14 +98,11 @@ impl Subscription {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(untagged)]
-pub enum SubscriptionConfirmation {
-    NewHeadsConfirmation(SubscriptionId), // TODO can be just two variants
-    TransactionStatusConfirmation(SubscriptionId),
-    PendingTransactionsConfirmation(SubscriptionId),
-    EventsConfirmation(SubscriptionId),
-    UnsubscriptionConfirmation(bool),
+enum SubscriptionConfirmation {
+    NewSubscription(SubscriptionId),
+    Unsubscription(bool),
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -163,8 +158,8 @@ impl SubscriptionNotification {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum SubscriptionResponse {
+#[derive(Debug)]
+enum SubscriptionResponse {
     Confirmation { rpc_request_id: Id, result: SubscriptionConfirmation },
     Notification { subscription_id: SubscriptionId, data: Box<SubscriptionNotification> },
 }
@@ -238,7 +233,7 @@ impl SocketContext {
             Some(_) => {
                 self.send(SubscriptionResponse::Confirmation {
                     rpc_request_id,
-                    result: SubscriptionConfirmation::UnsubscriptionConfirmation(true),
+                    result: SubscriptionConfirmation::Unsubscription(true),
                 })
                 .await;
                 Ok(())
