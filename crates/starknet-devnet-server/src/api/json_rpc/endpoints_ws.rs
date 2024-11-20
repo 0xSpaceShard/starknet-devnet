@@ -190,7 +190,7 @@ impl JsonRpcHandler {
             let notification = SubscriptionNotification::TransactionStatus(NewTransactionStatus {
                 transaction_hash,
                 status,
-                origin_tag: subscription_tag, // TODO refactor t orely on .matches()
+                origin_tag: subscription_tag, // TODO refactor to rely on .matches()
             });
             match receipt.get_block_number() {
                 Some(block_number)
@@ -246,14 +246,9 @@ impl JsonRpcHandler {
         };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
-        let block_tag = if self.starknet_config.with_pending_block() {
-            BlockTag::Pending
-        } else {
-            BlockTag::Latest
-        };
-
         let starknet = self.api.starknet.lock().await;
-        let block = starknet.get_block_with_transactions(&BlockId::Tag(block_tag))?;
+        // Only check pending block. If in blocks-on-tx mode, ignore txs already in latest block.
+        let block = starknet.get_block_with_transactions(&BlockId::Tag(BlockTag::Pending))?;
 
         let txs = match block {
             BlockResult::Block(block) => block.transactions,
