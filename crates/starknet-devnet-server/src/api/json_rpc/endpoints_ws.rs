@@ -2,7 +2,7 @@ use starknet_core::error::Error;
 use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::rpc::block::BlockResult;
 use starknet_types::rpc::transactions::Transactions;
-use starknet_types::starknet_api::block::BlockStatus;
+use starknet_types::starknet_api::block::{BlockNumber, BlockStatus};
 
 use super::error::ApiError;
 use super::models::{
@@ -136,7 +136,7 @@ impl JsonRpcHandler {
         Ok(())
     }
 
-    /// Based pending block usage and specified block ID, decide on subscription's sensitivity:
+    /// Based on pending block usage and specified block ID, decide on subscription's sensitivity:
     /// notify of changes in pending or latest block
     fn get_subscription_tag(&self, block_id: BlockId) -> BlockTag {
         if self.starknet_config.with_pending_block() {
@@ -147,73 +147,6 @@ impl JsonRpcHandler {
         } else {
             BlockTag::Latest
         }
-    }
-
-    async fn subscribe_tx_status(
-        &self,
-        transaction_block_input: TransactionBlockInput,
-        rpc_request_id: Id,
-        socket_id: SocketId,
-    ) -> Result<(), ApiError> {
-        let TransactionBlockInput { transaction_hash, block } = transaction_block_input;
-
-        let query_block_id = if let Some(block_id) = block {
-            block_id.0
-        } else {
-            // if no block ID input, this eventually just subscribes the user to new blocks
-            BlockId::Tag(BlockTag::Latest)
-        };
-
-        let (query_block_number, latest_block_number) =
-            self.convert_to_block_number_range(query_block_id).await?;
-
-        // perform the actual subscription
-        let mut sockets = self.api.sockets.lock().await;
-        let socket_context = sockets.get_mut(&socket_id).ok_or(ApiError::StarknetDevnetError(
-            Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
-        ))?;
-
-        // TODO if tx present, but in a block before the one specified, no point in subscribing -
-        // its status shall never change (unless considering block abortion). It would make
-        // sense to just add a ReorgSubscription
-        let subscription_tag = self.get_subscription_tag(query_block_id);
-        let subscription =
-            Subscription::TransactionStatus { tag: subscription_tag, transaction_hash };
-        let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
-
-        let starknet = self.api.starknet.lock().await;
-
-        if let (Ok(receipt), Ok(status)) = (
-            starknet.get_transaction_receipt_by_hash(&transaction_hash),
-            starknet.get_transaction_execution_and_finality_status(transaction_hash),
-        ) {
-            let notification = SubscriptionNotification::TransactionStatus(NewTransactionStatus {
-                transaction_hash,
-                status,
-                origin_tag: subscription_tag, // TODO refactor to rely on .matches()
-            });
-            match receipt.get_block_number() {
-                Some(block_number)
-                    if (query_block_number <= block_number
-                        && block_number <= latest_block_number
-                        && query_block_id != BlockId::Tag(BlockTag::Pending)) =>
-                {
-                    // if the number of the block when the tx was added is between
-                    // specified/query block number and latest, notify the client
-                    socket_context.notify(subscription_id, notification).await;
-                }
-                None if query_block_id == BlockId::Tag(BlockTag::Pending) => {
-                    // if tx stored but no block number, it means it's pending, so only notify
-                    // if the specified block ID is pending
-                    socket_context.notify(subscription_id, notification).await;
-                }
-                _ => tracing::debug!("Tx status subscription: tx not reachable"),
-            }
-        } else {
-            tracing::debug!("Tx status subscription: tx not yet received")
-        }
-
-        Ok(())
     }
 
     /// Does not return TOO_MANY_ADDRESSES_IN_FILTER
@@ -277,6 +210,71 @@ impl JsonRpcHandler {
                 ))
             };
             socket_context.notify(subscription_id, notification).await;
+        }
+
+        Ok(())
+    }
+
+    async fn subscribe_tx_status(
+        &self,
+        transaction_block_input: TransactionBlockInput,
+        rpc_request_id: Id,
+        socket_id: SocketId,
+    ) -> Result<(), ApiError> {
+        let TransactionBlockInput { transaction_hash, block } = transaction_block_input;
+
+        let query_block_id = if let Some(block_id) = block {
+            block_id.0
+        } else {
+            // if no block ID input, this eventually just subscribes the user to new blocks
+            BlockId::Tag(BlockTag::Latest)
+        };
+
+        let (query_block_number, latest_block_number) =
+            self.convert_to_block_number_range(query_block_id).await?;
+
+        // perform the actual subscription
+        let mut sockets = self.api.sockets.lock().await;
+        let socket_context = sockets.get_mut(&socket_id).ok_or(ApiError::StarknetDevnetError(
+            Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
+        ))?;
+
+        // TODO if tx present, but in a block before the one specified, no point in subscribing -
+        // its status shall never change (unless considering block abortion). It would make
+        // sense to just add a ReorgSubscription
+        let subscription_tag = self.get_subscription_tag(query_block_id);
+        let subscription =
+            Subscription::TransactionStatus { tag: subscription_tag, transaction_hash };
+        let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
+
+        let starknet = self.api.starknet.lock().await;
+
+        if let Some(tx) = starknet.transactions.get(&transaction_hash) {
+            let notification = SubscriptionNotification::TransactionStatus(NewTransactionStatus {
+                transaction_hash,
+                status: tx.get_status(),
+                origin_tag: subscription_tag,
+            });
+            // TODO refactor to rely on .matches()
+            match tx.get_block_number() {
+                Some(BlockNumber(block_number))
+                    if (query_block_number <= block_number
+                        && block_number <= latest_block_number
+                        && query_block_id != BlockId::Tag(BlockTag::Pending)) =>
+                {
+                    // if the number of the block when the tx was added is between
+                    // specified/query block number and latest, notify the client
+                    socket_context.notify(subscription_id, notification).await;
+                }
+                None if query_block_id == BlockId::Tag(BlockTag::Pending) => {
+                    // if tx stored but no block number, it means it's pending, so only notify
+                    // if the specified block ID is pending
+                    socket_context.notify(subscription_id, notification).await;
+                }
+                _ => tracing::debug!("Tx status subscription: tx not reachable"),
+            }
+        } else {
+            tracing::debug!("Tx status subscription: tx not yet received")
         }
 
         Ok(())
