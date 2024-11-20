@@ -222,12 +222,6 @@ impl From<&blockifier::transaction::objects::TransactionExecutionInfo> for Execu
 }
 
 impl ComputationResources {
-    fn get_memory_holes_from_call_info(
-        call_info: &Option<blockifier::execution::call_info::CallInfo>,
-    ) -> usize {
-        if let Some(call) = call_info { call.resources.n_memory_holes } else { 0 }
-    }
-
     fn get_resource_from_execution_info(
         execution_info: &blockifier::transaction::objects::TransactionExecutionInfo,
         resource_name: &BuiltinName,
