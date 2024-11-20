@@ -37,8 +37,8 @@ impl AddressFilter {
 pub enum Subscription {
     NewHeads,
     TransactionStatus { tag: BlockTag, transaction_hash: TransactionHash },
-    PendingTransactions { address_filter: AddressFilter },
-    PendingTransactionHashes { address_filter: AddressFilter },
+    PendingTransactionsFull { address_filter: AddressFilter },
+    PendingTransactionsHash { address_filter: AddressFilter },
     Events,
 }
 
@@ -49,8 +49,8 @@ impl Subscription {
             Subscription::TransactionStatus { .. } => {
                 SubscriptionConfirmation::TransactionStatusConfirmation(id)
             }
-            Subscription::PendingTransactions { .. }
-            | Subscription::PendingTransactionHashes { .. } => {
+            Subscription::PendingTransactionsFull { .. }
+            | Subscription::PendingTransactionsHash { .. } => {
                 SubscriptionConfirmation::PendingTransactionsConfirmation(id)
             }
             Subscription::Events => SubscriptionConfirmation::EventsConfirmation(id),
@@ -71,20 +71,24 @@ impl Subscription {
                         && subscription_hash == &notification.transaction_hash;
                 }
             }
-            Subscription::PendingTransactions { address_filter, .. } => {
-                if let SubscriptionNotification::PendingTransaction(tx) = notification_data {
+            Subscription::PendingTransactionsFull { address_filter, .. } => {
+                if let SubscriptionNotification::PendingTransaction(
+                    PendingTransactionNotification::Full(tx),
+                ) = notification_data
+                {
                     return match tx.get_sender_address() {
                         Some(address) => address_filter.passess(&address),
                         None => true,
                     };
                 }
             }
-            Subscription::PendingTransactionHashes { address_filter } => {
-                if let SubscriptionNotification::PendingTransactionHash { sender_address, .. } =
-                    notification_data
+            Subscription::PendingTransactionsHash { address_filter } => {
+                if let SubscriptionNotification::PendingTransaction(
+                    PendingTransactionNotification::Hash(hash_wrapper),
+                ) = notification_data
                 {
-                    return match sender_address {
-                        Some(address) => address_filter.passess(address),
+                    return match hash_wrapper.sender_address {
+                        Some(address) => address_filter.passess(&address),
                         None => true,
                     };
                 }
@@ -115,18 +119,34 @@ pub struct NewTransactionStatus {
     pub origin_tag: BlockTag,
 }
 
+#[derive(Debug, Clone)]
+pub struct TransactionHashWrapper {
+    pub hash: TransactionHash,
+    pub sender_address: Option<ContractAddress>,
+}
+
+impl Serialize for TransactionHashWrapper {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.hash.to_hex_string())
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(untagged)]
+pub enum PendingTransactionNotification {
+    Hash(TransactionHashWrapper),
+    Full(Box<TransactionWithHash>),
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum SubscriptionNotification {
     NewHeads(Box<BlockHeader>),
     TransactionStatus(NewTransactionStatus),
-    PendingTransaction(Box<TransactionWithHash>),
-    // PendingTransactionHash(NewPendingTransactionHash),
-    PendingTransactionHash {
-        hash: TransactionHash,
-        #[serde(skip)]
-        sender_address: Option<ContractAddress>,
-    }, // Events,
+    PendingTransaction(PendingTransactionNotification),
 }
 
 impl SubscriptionNotification {
@@ -136,8 +156,7 @@ impl SubscriptionNotification {
             SubscriptionNotification::TransactionStatus(_) => {
                 "starknet_subscriptionTransactionStatus"
             }
-            SubscriptionNotification::PendingTransaction(_)
-            | SubscriptionNotification::PendingTransactionHash { .. } => {
+            SubscriptionNotification::PendingTransaction(_) => {
                 "starknet_subscriptionPendingTransactions"
             } // SubscriptionNotification::Events => "starknet_subscriptionEvents",
         }

@@ -11,7 +11,8 @@ use super::models::{
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::rpc_core::request::Id;
 use crate::subscribe::{
-    AddressFilter, NewTransactionStatus, SocketId, Subscription, SubscriptionNotification,
+    AddressFilter, NewTransactionStatus, PendingTransactionNotification, SocketId, Subscription,
+    SubscriptionNotification, TransactionHashWrapper,
 };
 
 /// The definitions of JSON-RPC read endpoints defined in starknet_ws_api.json
@@ -127,8 +128,8 @@ impl JsonRpcHandler {
                 .get_block(&BlockId::Number(block_n))
                 .map_err(ApiError::StarknetDevnetError)?;
 
-            let old_header = old_block.into();
-            let notification = SubscriptionNotification::NewHeads(Box::new(old_header));
+            let old_header = Box::new(old_block.into());
+            let notification = SubscriptionNotification::NewHeads(old_header);
             socket_context.notify(subscription_id, notification).await;
         }
 
@@ -239,9 +240,9 @@ impl JsonRpcHandler {
         ))?;
 
         let subscription = if with_details {
-            Subscription::PendingTransactions { address_filter }
+            Subscription::PendingTransactionsFull { address_filter }
         } else {
-            Subscription::PendingTransactionHashes { address_filter }
+            Subscription::PendingTransactionsHash { address_filter }
         };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
@@ -269,12 +270,16 @@ impl JsonRpcHandler {
 
         for tx in txs {
             let notification = if with_details {
-                SubscriptionNotification::PendingTransaction(Box::new(tx))
+                SubscriptionNotification::PendingTransaction(PendingTransactionNotification::Full(
+                    Box::new(tx),
+                ))
             } else {
-                SubscriptionNotification::PendingTransactionHash {
-                    hash: *tx.get_transaction_hash(),
-                    sender_address: tx.get_sender_address(),
-                }
+                SubscriptionNotification::PendingTransaction(PendingTransactionNotification::Hash(
+                    TransactionHashWrapper {
+                        hash: *tx.get_transaction_hash(),
+                        sender_address: tx.get_sender_address(),
+                    },
+                ))
             };
             socket_context.notify(subscription_id, notification).await;
         }

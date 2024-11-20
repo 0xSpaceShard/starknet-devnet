@@ -28,6 +28,8 @@ mod pending_transactions_subscription_support {
     }
 
     #[tokio::test]
+    /// Both modes should notify of pending transactions, even though this never actually happens in
+    /// transaction mode.
     async fn without_details_happy_path() {
         for block_mode in ["transaction", "demand"] {
             let devnet_args = ["--block-generation-on", block_mode];
@@ -57,6 +59,8 @@ mod pending_transactions_subscription_support {
     }
 
     #[tokio::test]
+    /// Both modes should notify of pending transactions, even though this never actually happens in
+    /// transaction mode.
     async fn with_details_happy_path() {
         for block_mode in ["transaction", "demand"] {
             let devnet_args = ["--block-generation-on", block_mode];
@@ -82,6 +86,7 @@ mod pending_transactions_subscription_support {
                     "method": "starknet_subscriptionPendingTransactions",
                     "params": {
                         "subscription_id": subscription_id,
+                        "result": null,
                     }
                 })
             );

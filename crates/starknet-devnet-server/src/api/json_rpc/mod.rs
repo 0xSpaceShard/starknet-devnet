@@ -72,7 +72,10 @@ use crate::rpc_core::error::{ErrorCode, RpcError};
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
-use crate::subscribe::{NewTransactionStatus, SocketContext, SocketId, SubscriptionNotification};
+use crate::subscribe::{
+    NewTransactionStatus, PendingTransactionNotification, SocketContext, SocketId,
+    SubscriptionNotification, TransactionHashWrapper,
+};
 use crate::ServerConfig;
 
 /// Helper trait to easily convert results to rpc results
@@ -245,13 +248,16 @@ impl JsonRpcHandler {
             let tx = starknet
                 .get_transaction_by_hash(*new_tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
-            let pending_tx_notification =
-                SubscriptionNotification::PendingTransaction(Box::new(tx.clone()));
+            let pending_tx_notification = SubscriptionNotification::PendingTransaction(
+                PendingTransactionNotification::Full(Box::new(tx.clone())),
+            );
 
-            let pending_tx_hash_notification = SubscriptionNotification::PendingTransactionHash {
-                hash: *tx.get_transaction_hash(),
-                sender_address: tx.get_sender_address(),
-            };
+            let pending_tx_hash_notification = SubscriptionNotification::PendingTransaction(
+                PendingTransactionNotification::Hash(TransactionHashWrapper {
+                    hash: *tx.get_transaction_hash(),
+                    sender_address: tx.get_sender_address(),
+                }),
+            );
 
             let notifications =
                 [tx_status_notification, pending_tx_notification, pending_tx_hash_notification];
@@ -271,8 +277,8 @@ impl JsonRpcHandler {
         &self,
         new_latest_block: StarknetBlock,
     ) -> Result<(), error::ApiError> {
-        let block_header = (&new_latest_block).into();
-        let mut notifications = vec![SubscriptionNotification::NewHeads(Box::new(block_header))];
+        let block_header = Box::new((&new_latest_block).into());
+        let mut notifications = vec![SubscriptionNotification::NewHeads(block_header)];
 
         let starknet = self.api.starknet.lock().await;
 
@@ -294,12 +300,15 @@ impl JsonRpcHandler {
                 let tx = starknet
                     .get_transaction_by_hash(*tx_hash)
                     .map_err(error::ApiError::StarknetDevnetError)?;
-                notifications
-                    .push(SubscriptionNotification::PendingTransaction(Box::new(tx.clone())));
-                notifications.push(SubscriptionNotification::PendingTransactionHash {
-                    hash: *tx_hash,
-                    sender_address: tx.get_sender_address(),
-                })
+                notifications.push(SubscriptionNotification::PendingTransaction(
+                    PendingTransactionNotification::Full(Box::new(tx.clone())),
+                ));
+                notifications.push(SubscriptionNotification::PendingTransaction(
+                    PendingTransactionNotification::Hash(TransactionHashWrapper {
+                        hash: *tx_hash,
+                        sender_address: tx.get_sender_address(),
+                    }),
+                ));
             }
         }
 
