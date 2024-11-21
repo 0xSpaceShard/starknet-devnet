@@ -192,7 +192,7 @@ impl<'a> Visitor for RandDataGenerator<'a> {
         let optional_fields: Vec<&String> =
             all_fields.iter().filter(|field| !required_fields.contains(field)).cloned().collect();
 
-        // if there are optional fields then all fields are required
+        // if there are no optional fields then all fields have to be included
         let fields_to_include = if optional_fields.is_empty() {
             required_fields
         } else {
