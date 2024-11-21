@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use axum::body::{Body, Bytes};
-use axum::extract::{Request, State};
+use axum::extract::{DefaultBodyLimit, Request, State};
 use axum::http::{HeaderValue, StatusCode};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
@@ -105,6 +105,7 @@ pub async fn serve_http_api_json_rpc(
 
     routes = routes
         .layer(TimeoutLayer::new(Duration::from_secs(server_config.timeout.into())))
+        .layer(DefaultBodyLimit::disable())
         .layer(axum::middleware::from_fn_with_state(
             server_config.request_body_size_limit,
             reject_too_big,
