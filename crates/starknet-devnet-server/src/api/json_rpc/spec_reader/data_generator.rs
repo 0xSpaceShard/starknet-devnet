@@ -183,18 +183,23 @@ impl<'a> Visitor for RandDataGenerator<'a> {
         let mut optional_fields: Vec<String> = element.properties.keys().cloned().collect();
         optional_fields.retain(|el| !required_fields.contains(el));
 
-        // decide the starting index in optional fields array
-        let start_idx = rand::thread_rng().gen_range(0..optional_fields.len());
-        // decide the number of optional fields
-        let optional_fields_to_include_count =
-            rand::thread_rng().gen_range(0..=(optional_fields.len() - start_idx));
+        // if there are optional fields then all fields are required
+        let fields_to_include = if optional_fields.is_empty() {
+            required_fields
+        } else {
+            // decide the starting index in optional fields array
+            let start_idx = rand::thread_rng().gen_range(0..optional_fields.len());
+            // decide the number of optional fields
+            let optional_fields_to_include_count =
+                rand::thread_rng().gen_range(0..=(optional_fields.len() - start_idx));
 
-        // combine required and optional fields that will be part of the json object
-        let fields_to_include = [
-            required_fields.as_slice(),
-            &optional_fields[start_idx..start_idx + optional_fields_to_include_count],
-        ]
-        .concat();
+            // combine required and optional fields that will be part of the json object
+            [
+                required_fields.as_slice(),
+                &optional_fields[start_idx..start_idx + optional_fields_to_include_count],
+            ]
+            .concat()
+        };
 
         for (key, inner_schema) in
             element.properties.iter().filter(|(k, _)| fields_to_include.contains(k))
