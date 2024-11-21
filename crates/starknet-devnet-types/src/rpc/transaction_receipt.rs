@@ -120,7 +120,7 @@ pub struct ComputationResources {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub keccak_builtin_applications: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub segment_arena_builtin_applications: Option<usize>,
+    pub segment_arena_builtin: Option<usize>,
 }
 
 impl From<&blockifier::execution::call_info::CallInfo> for ComputationResources {
@@ -160,7 +160,7 @@ impl From<&blockifier::execution::call_info::CallInfo> for ComputationResources 
                 call_info,
                 &BuiltinName::keccak,
             ),
-            segment_arena_builtin_applications: Self::get_resource_from_call_info(
+            segment_arena_builtin: Self::get_resource_from_call_info(
                 call_info,
                 &BuiltinName::segment_arena,
             ),
@@ -210,11 +210,10 @@ impl From<&blockifier::transaction::objects::TransactionExecutionInfo> for Execu
                 execution_info,
                 &BuiltinName::keccak,
             ),
-            segment_arena_builtin_applications:
-                ComputationResources::get_resource_from_execution_info(
-                    execution_info,
-                    &BuiltinName::segment_arena,
-                ),
+            segment_arena_builtin: ComputationResources::get_resource_from_execution_info(
+                execution_info,
+                &BuiltinName::segment_arena,
+            ),
         };
 
         Self {
