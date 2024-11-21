@@ -119,3 +119,7 @@ tokio-tungstenite = { version = "0.21.0" }
 
 # Benchmarking
 criterion = { version = "0.3.4", features = ["async_tokio"] }
+
+# https://github.com/paritytech/parity-scale-codec/issues/656
+parity-scale-codec = "=3.6.12"
+parity-scale-codec-derive = "=3.6.12"

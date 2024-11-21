@@ -5910,6 +5910,8 @@ dependencies = [
  "cairo-vm",
  "flate2",
  "num-bigint",
+ "parity-scale-codec",
+ "parity-scale-codec-derive",
  "serde",
  "serde_json",
  "starknet-core",
