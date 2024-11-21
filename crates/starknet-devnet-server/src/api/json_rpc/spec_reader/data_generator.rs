@@ -178,10 +178,19 @@ impl<'a> Visitor for RandDataGenerator<'a> {
         }
         let mut accumulated_json_value = Map::new();
 
-        let required_fields = element.required.clone().unwrap_or_default();
-        // get all fields and remove all fields that are not required_fields
-        let mut optional_fields: Vec<String> = element.properties.keys().cloned().collect();
-        optional_fields.retain(|el| !required_fields.contains(el));
+        // Collect all field names as references
+        let all_fields: Vec<&String> = element.properties.keys().collect();
+
+        // if there are no required json entry, then all propertries are required
+        let required_fields: Vec<&String> = if let Some(required) = &element.required {
+            required.iter().collect()
+        } else {
+            all_fields.clone()
+        };
+
+        // Determine optional fields by removing required fields from all fields
+        let optional_fields: Vec<&String> =
+            all_fields.iter().filter(|field| !required_fields.contains(field)).cloned().collect();
 
         // if there are optional fields then all fields are required
         let fields_to_include = if optional_fields.is_empty() {
