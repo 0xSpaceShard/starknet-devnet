@@ -6,9 +6,10 @@ use futures::stream::SplitSink;
 use futures::SinkExt;
 use serde::{self, Serialize};
 use starknet_rs_core::types::BlockTag;
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::block::BlockHeader;
-use starknet_types::rpc::transactions::TransactionStatus;
+use starknet_types::rpc::transactions::{TransactionStatus, TransactionWithHash};
 use tokio::sync::Mutex;
 
 use crate::api::json_rpc::error::ApiError;
@@ -19,32 +20,42 @@ pub type SocketId = u64;
 type SubscriptionId = i64;
 
 #[derive(Debug)]
+pub struct AddressFilter {
+    address_container: Vec<ContractAddress>,
+}
+
+impl AddressFilter {
+    pub(crate) fn new(address_container: Vec<ContractAddress>) -> Self {
+        Self { address_container }
+    }
+    pub(crate) fn passes(&self, address: &ContractAddress) -> bool {
+        self.address_container.is_empty() || self.address_container.contains(address)
+    }
+}
+
+#[derive(Debug)]
 pub enum Subscription {
     NewHeads,
     TransactionStatus { tag: BlockTag, transaction_hash: TransactionHash },
-    PendingTransactions,
+    PendingTransactionsFull { address_filter: AddressFilter },
+    PendingTransactionsHash { address_filter: AddressFilter },
     Events,
 }
 
 impl Subscription {
     fn confirm(&self, id: SubscriptionId) -> SubscriptionConfirmation {
         match self {
-            Subscription::NewHeads => SubscriptionConfirmation::NewHeadsConfirmation(id),
-            Subscription::TransactionStatus { .. } => {
-                SubscriptionConfirmation::TransactionStatusConfirmation(id)
+            Subscription::NewHeads => SubscriptionConfirmation::NewSubscription(id),
+            Subscription::TransactionStatus { .. } => SubscriptionConfirmation::NewSubscription(id),
+            Subscription::PendingTransactionsFull { .. }
+            | Subscription::PendingTransactionsHash { .. } => {
+                SubscriptionConfirmation::NewSubscription(id)
             }
-            Subscription::PendingTransactions => {
-                SubscriptionConfirmation::PendingTransactionsConfirmation(id)
-            }
-            Subscription::Events => SubscriptionConfirmation::EventsConfirmation(id),
+            Subscription::Events => SubscriptionConfirmation::NewSubscription(id),
         }
     }
 
-    fn matches(
-        &self,
-        notification: &SubscriptionNotification,
-        notification_origin_tag: BlockTag,
-    ) -> bool {
+    pub fn matches(&self, notification: &SubscriptionNotification) -> bool {
         match self {
             Subscription::NewHeads => {
                 if let SubscriptionNotification::NewHeads(_) = notification {
@@ -53,11 +64,32 @@ impl Subscription {
             }
             Subscription::TransactionStatus { tag, transaction_hash: subscription_hash } => {
                 if let SubscriptionNotification::TransactionStatus(notification) = notification {
-                    return tag == &notification_origin_tag
+                    return tag == &notification.origin_tag
                         && subscription_hash == &notification.transaction_hash;
                 }
             }
-            Subscription::PendingTransactions => todo!(),
+            Subscription::PendingTransactionsFull { address_filter, .. } => {
+                if let SubscriptionNotification::PendingTransaction(
+                    PendingTransactionNotification::Full(tx),
+                ) = notification
+                {
+                    return match tx.get_sender_address() {
+                        Some(address) => address_filter.passes(&address),
+                        None => true,
+                    };
+                }
+            }
+            Subscription::PendingTransactionsHash { address_filter } => {
+                if let SubscriptionNotification::PendingTransaction(
+                    PendingTransactionNotification::Hash(hash_wrapper),
+                ) = notification
+                {
+                    return match hash_wrapper.sender_address {
+                        Some(address) => address_filter.passes(&address),
+                        None => true,
+                    };
+                }
+            }
             Subscription::Events => todo!(),
         }
 
@@ -65,20 +97,42 @@ impl Subscription {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(untagged)]
-pub enum SubscriptionConfirmation {
-    NewHeadsConfirmation(SubscriptionId),
-    TransactionStatusConfirmation(SubscriptionId),
-    PendingTransactionsConfirmation(SubscriptionId),
-    EventsConfirmation(SubscriptionId),
-    UnsubscriptionConfirmation(bool),
+enum SubscriptionConfirmation {
+    NewSubscription(SubscriptionId),
+    Unsubscription(bool),
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct NewTransactionStatus {
     pub transaction_hash: TransactionHash,
     pub status: TransactionStatus,
+    /// which block this notification originates from: pending or latest
+    #[serde(skip)]
+    pub origin_tag: BlockTag,
+}
+
+#[derive(Debug, Clone)]
+pub struct TransactionHashWrapper {
+    pub hash: TransactionHash,
+    pub sender_address: Option<ContractAddress>,
+}
+
+impl Serialize for TransactionHashWrapper {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.hash.serialize(serializer)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(untagged)]
+pub enum PendingTransactionNotification {
+    Hash(TransactionHashWrapper),
+    Full(Box<TransactionWithHash>),
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -86,8 +140,7 @@ pub struct NewTransactionStatus {
 pub enum SubscriptionNotification {
     NewHeads(Box<BlockHeader>),
     TransactionStatus(NewTransactionStatus),
-    // PendingTransactions,
-    // Events,
+    PendingTransaction(PendingTransactionNotification),
 }
 
 impl SubscriptionNotification {
@@ -96,16 +149,16 @@ impl SubscriptionNotification {
             SubscriptionNotification::NewHeads(_) => "starknet_subscriptionNewHeads",
             SubscriptionNotification::TransactionStatus(_) => {
                 "starknet_subscriptionTransactionStatus"
-            } /* SubscriptionNotification::PendingTransactions=> {
-               *     "starknet_subscriptionPendingTransactions"
-               * }
-               * SubscriptionNotification::Events => "starknet_subscriptionEvents", */
+            }
+            SubscriptionNotification::PendingTransaction(_) => {
+                "starknet_subscriptionPendingTransactions"
+            } // SubscriptionNotification::Events => "starknet_subscriptionEvents",
         }
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum SubscriptionResponse {
+#[derive(Debug)]
+enum SubscriptionResponse {
     Confirmation { rpc_request_id: Id, result: SubscriptionConfirmation },
     Notification { subscription_id: SubscriptionId, data: Box<SubscriptionNotification> },
 }
@@ -179,7 +232,7 @@ impl SocketContext {
             Some(_) => {
                 self.send(SubscriptionResponse::Confirmation {
                     rpc_request_id,
-                    result: SubscriptionConfirmation::UnsubscriptionConfirmation(true),
+                    result: SubscriptionConfirmation::Unsubscription(true),
                 })
                 .await;
                 Ok(())
@@ -193,15 +246,10 @@ impl SocketContext {
             .await;
     }
 
-    /// The `notification_origin_tag` is used to indicate where the notification originates from
-    pub async fn notify_subscribers(
-        &self,
-        notification_data: &SubscriptionNotification,
-        notification_origin_tag: BlockTag,
-    ) {
+    pub async fn notify_subscribers(&self, notification: &SubscriptionNotification) {
         for (subscription_id, subscription) in self.subscriptions.iter() {
-            if subscription.matches(notification_data, notification_origin_tag) {
-                self.notify(*subscription_id, notification_data.clone()).await;
+            if subscription.matches(notification) {
+                self.notify(*subscription_id, notification.clone()).await;
             }
         }
     }

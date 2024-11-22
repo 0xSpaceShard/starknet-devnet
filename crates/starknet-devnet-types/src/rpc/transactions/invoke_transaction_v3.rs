@@ -20,7 +20,7 @@ pub struct InvokeTransactionV3 {
     nonce_data_availability_mode: DataAvailabilityMode,
     fee_data_availability_mode: DataAvailabilityMode,
     account_deployment_data: Vec<Felt>,
-    sender_address: ContractAddress,
+    pub(crate) sender_address: ContractAddress,
     calldata: Calldata,
 }
 

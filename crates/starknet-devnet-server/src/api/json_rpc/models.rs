@@ -198,6 +198,13 @@ pub struct TransactionBlockInput {
     pub block: Option<BlockId>,
 }
 
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct PendingTransactionsSubscriptionInput {
+    pub transaction_details: Option<bool>,
+    pub sender_address: Option<Vec<ContractAddress>>,
+}
+
 #[cfg(test)]
 mod tests {
     use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag, Felt};

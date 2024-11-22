@@ -164,6 +164,16 @@ impl TransactionWithHash {
             execution_resources,
         }
     }
+
+    pub fn get_sender_address(&self) -> Option<ContractAddress> {
+        match &self.transaction {
+            Transaction::Declare(tx) => Some(tx.get_sender_address()),
+            Transaction::DeployAccount(tx) => Some(*tx.get_contract_address()),
+            Transaction::Deploy(_) => None,
+            Transaction::Invoke(tx) => Some(tx.get_sender_address()),
+            Transaction::L1Handler(tx) => Some(tx.contract_address),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -189,11 +199,30 @@ pub enum DeclareTransaction {
     V3(DeclareTransactionV3),
 }
 
+impl DeclareTransaction {
+    pub fn get_sender_address(&self) -> ContractAddress {
+        match self {
+            DeclareTransaction::V1(tx) => tx.sender_address,
+            DeclareTransaction::V2(tx) => tx.sender_address,
+            DeclareTransaction::V3(tx) => tx.sender_address,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum InvokeTransaction {
     V1(InvokeTransactionV1),
     V3(InvokeTransactionV3),
+}
+
+impl InvokeTransaction {
+    pub fn get_sender_address(&self) -> ContractAddress {
+        match self {
+            InvokeTransaction::V1(tx) => tx.sender_address,
+            InvokeTransaction::V3(tx) => tx.sender_address,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]

@@ -1,13 +1,19 @@
 use starknet_core::error::Error;
-use starknet_core::starknet::starknet_config::BlockGenerationOn;
 use starknet_rs_core::types::{BlockId, BlockTag};
+use starknet_types::rpc::block::{BlockResult, PendingBlock};
+use starknet_types::rpc::transactions::{TransactionWithHash, Transactions};
 use starknet_types::starknet_api::block::{BlockNumber, BlockStatus};
 
 use super::error::ApiError;
-use super::models::{BlockInput, SubscriptionIdInput, TransactionBlockInput};
+use super::models::{
+    BlockInput, PendingTransactionsSubscriptionInput, SubscriptionIdInput, TransactionBlockInput,
+};
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::rpc_core::request::Id;
-use crate::subscribe::{NewTransactionStatus, SocketId, Subscription, SubscriptionNotification};
+use crate::subscribe::{
+    AddressFilter, NewTransactionStatus, PendingTransactionNotification, SocketId, Subscription,
+    SubscriptionNotification, TransactionHashWrapper,
+};
 
 /// The definitions of JSON-RPC read endpoints defined in starknet_ws_api.json
 impl JsonRpcHandler {
@@ -24,7 +30,9 @@ impl JsonRpcHandler {
             JsonRpcSubscriptionRequest::TransactionStatus(data) => {
                 self.subscribe_tx_status(data, rpc_request_id, socket_id).await
             }
-            JsonRpcSubscriptionRequest::PendingTransactions => todo!(),
+            JsonRpcSubscriptionRequest::PendingTransactions(data) => {
+                self.subscribe_pending_txs(data, rpc_request_id, socket_id).await
+            }
             JsonRpcSubscriptionRequest::Events => todo!(),
             JsonRpcSubscriptionRequest::Unsubscribe(SubscriptionIdInput { subscription_id }) => {
                 let mut sockets = self.api.sockets.lock().await;
@@ -120,24 +128,93 @@ impl JsonRpcHandler {
                 .get_block(&BlockId::Number(block_n))
                 .map_err(ApiError::StarknetDevnetError)?;
 
-            let old_header = old_block.into();
-            let notification = SubscriptionNotification::NewHeads(Box::new(old_header));
+            let old_header = Box::new(old_block.into());
+            let notification = SubscriptionNotification::NewHeads(old_header);
             socket_context.notify(subscription_id, notification).await;
         }
 
         Ok(())
     }
 
-    /// Based on block generation mode and specified block ID, decide on subscription's sensitivity:
+    /// Based on pending block usage and specified block ID, decide on subscription's sensitivity:
     /// notify of changes in pending or latest block
     fn get_subscription_tag(&self, block_id: BlockId) -> BlockTag {
-        match self.starknet_config.block_generation_on {
-            BlockGenerationOn::Transaction => BlockTag::Latest,
-            BlockGenerationOn::Demand | BlockGenerationOn::Interval(_) => match block_id {
+        if self.starknet_config.uses_pending_block() {
+            match block_id {
                 BlockId::Tag(tag) => tag,
                 BlockId::Hash(_) | BlockId::Number(_) => BlockTag::Pending,
-            },
+            }
+        } else {
+            BlockTag::Latest
         }
+    }
+
+    async fn get_pending_txs(&self) -> Result<Vec<TransactionWithHash>, ApiError> {
+        let starknet = self.api.starknet.lock().await;
+        let block = starknet.get_block_with_transactions(&BlockId::Tag(BlockTag::Pending))?;
+        match block {
+            BlockResult::PendingBlock(PendingBlock {
+                transactions: Transactions::Full(txs),
+                ..
+            }) => Ok(txs),
+            _ => {
+                // Never reached if get_block_with_transactions properly implemented.
+                Err(ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
+                    msg: "Invalid block".into(),
+                }))
+            }
+        }
+    }
+
+    /// Does not return TOO_MANY_ADDRESSES_IN_FILTER
+    pub async fn subscribe_pending_txs(
+        &self,
+        maybe_subscription_input: Option<PendingTransactionsSubscriptionInput>,
+        rpc_request_id: Id,
+        socket_id: SocketId,
+    ) -> Result<(), ApiError> {
+        let with_details = maybe_subscription_input
+            .as_ref()
+            .and_then(|subscription_input| subscription_input.transaction_details)
+            .unwrap_or_default();
+
+        let address_filter = AddressFilter::new(
+            maybe_subscription_input
+                .and_then(|subscription_input| subscription_input.sender_address)
+                .unwrap_or_default(),
+        );
+
+        let mut sockets = self.api.sockets.lock().await;
+        let socket_context = sockets.get_mut(&socket_id).ok_or(ApiError::StarknetDevnetError(
+            Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
+        ))?;
+
+        let subscription = if with_details {
+            Subscription::PendingTransactionsFull { address_filter }
+        } else {
+            Subscription::PendingTransactionsHash { address_filter }
+        };
+        let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
+
+        // Only check pending. Regardless of block generation mode, ignore txs in latest block.
+        let pending_txs = self.get_pending_txs().await?;
+        for tx in pending_txs {
+            let notification = if with_details {
+                SubscriptionNotification::PendingTransaction(PendingTransactionNotification::Full(
+                    Box::new(tx),
+                ))
+            } else {
+                SubscriptionNotification::PendingTransaction(PendingTransactionNotification::Hash(
+                    TransactionHashWrapper {
+                        hash: *tx.get_transaction_hash(),
+                        sender_address: tx.get_sender_address(),
+                    },
+                ))
+            };
+            socket_context.notify(subscription_id, notification).await;
+        }
+
+        Ok(())
     }
 
     async fn subscribe_tx_status(
@@ -167,10 +244,9 @@ impl JsonRpcHandler {
         // TODO if tx present, but in a block before the one specified, no point in subscribing -
         // its status shall never change (unless considering block abortion). It would make
         // sense to just add a ReorgSubscription
-        let subscription = Subscription::TransactionStatus {
-            tag: self.get_subscription_tag(query_block_id),
-            transaction_hash,
-        };
+        let subscription_tag = self.get_subscription_tag(query_block_id);
+        let subscription =
+            Subscription::TransactionStatus { tag: subscription_tag, transaction_hash };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
         let starknet = self.api.starknet.lock().await;
@@ -179,6 +255,7 @@ impl JsonRpcHandler {
             let notification = SubscriptionNotification::TransactionStatus(NewTransactionStatus {
                 transaction_hash,
                 status: tx.get_status(),
+                origin_tag: subscription_tag,
             });
             match tx.get_block_number() {
                 Some(BlockNumber(block_number))

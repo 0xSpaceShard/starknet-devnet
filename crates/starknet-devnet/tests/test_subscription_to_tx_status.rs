@@ -10,6 +10,7 @@ mod tx_status_subscription_support {
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
         assert_no_notifications, receive_rpc_via_ws, send_text_rpc_via_ws, subscribe_new_heads,
+        unsubscribe,
     };
 
     async fn subscribe_tx_status(
@@ -67,7 +68,6 @@ mod tx_status_subscription_support {
     #[tokio::test]
     async fn subscribe_to_new_tx_status_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
-
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
         let (address, mint_amount, expected_tx_hash) = first_mint_data();
@@ -79,6 +79,22 @@ mod tx_status_subscription_support {
 
         let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
         assert_successful_mint_notification(notification, tx_hash, subscription_id);
+    }
+
+    #[tokio::test]
+    async fn should_stop_notifying_after_unsubscription() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        let (address, mint_amount, expected_tx_hash) = first_mint_data();
+
+        // subscribe and immediately unsubscribe
+        let subscription_id = subscribe_tx_status(&mut ws, &expected_tx_hash, None).await.unwrap();
+        let unsubscription = unsubscribe(&mut ws, subscription_id).await.unwrap();
+        assert_eq!(unsubscription, json!({ "jsonrpc": "2.0", "id": 0, "result": true }));
+
+        devnet.mint(address, mint_amount).await;
+        assert_no_notifications(&mut ws).await;
     }
 
     #[tokio::test]
