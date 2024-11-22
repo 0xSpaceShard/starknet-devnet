@@ -124,7 +124,7 @@ impl Serialize for TransactionHashWrapper {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_str(&self.hash.to_hex_string())
+        self.hash.serialize(serializer)
     }
 }
 
