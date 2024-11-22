@@ -89,7 +89,7 @@ mod event_subscription_support {
         let account = get_single_owner_account(&devnet).await;
         let contract_address = deploy_events_contract(&account).await;
 
-        let invocation = emit_static_event(&account, contract_address).await.unwrap();
+        let _invocation = emit_static_event(&account, contract_address).await.unwrap();
 
         let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
         assert_eq!(
@@ -99,7 +99,7 @@ mod event_subscription_support {
                 "method": "starknet_subscriptionEvents",
                 "params": {
                     "subscription_id": subscription_id,
-                    "result": todo!()
+                    "result": {},
                 }
             })
         );
@@ -109,7 +109,6 @@ mod event_subscription_support {
         unsubscribe(&mut ws, subscription_id).await.unwrap();
 
         emit_static_event(&account, contract_address).await.unwrap();
-
         assert_no_notifications(&mut ws).await;
     }
 
@@ -118,48 +117,243 @@ mod event_subscription_support {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
-        let subscription_id = subscribe_events(&mut ws, json!({})).await.unwrap();
+        let account = get_single_owner_account(&devnet).await;
+        let contract_address = deploy_events_contract(&account).await;
 
-        todo!()
+        let subscription_params = json!({ "from_address": contract_address });
+        let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
+
+        emit_static_event(&account, contract_address).await.unwrap();
+
+        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        assert_eq!(
+            notification,
+            json!({
+                "jsonrpc": "2.0",
+                "method": "starknet_subscriptionEvents",
+                "params": {
+                    "subscription_id": subscription_id,
+                    "result": {},
+                }
+            })
+        );
+
+        assert_no_notifications(&mut ws).await;
     }
 
     #[tokio::test]
-    async fn should_notify_only_from_filtered_key() {
+    async fn should_notify_of_new_events_only_from_filtered_key_and_address() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
-        let subscription_id = subscribe_events(&mut ws, json!({})).await.unwrap();
+        let account = get_single_owner_account(&devnet).await;
+        let contract_address = deploy_events_contract(&account).await;
 
-        todo!()
+        let subscription_params = json!({ "from_address": contract_address, "keys": [[]] });
+        let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
+
+        emit_static_event(&account, contract_address).await.unwrap();
+
+        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        assert_eq!(
+            notification,
+            json!({
+                "jsonrpc": "2.0",
+                "method": "starknet_subscriptionEvents",
+                "params": {
+                    "subscription_id": subscription_id,
+                    "result": {},
+                }
+            })
+        );
+
+        assert_no_notifications(&mut ws).await;
     }
 
     #[tokio::test]
-    async fn should_notify_only_from_filtered_key_and_address() {
+    async fn should_notify_if_already_in_latest_block_in_on_tx_mode() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
-        let subscription_id = subscribe_events(&mut ws, json!({})).await.unwrap();
+        let account = get_single_owner_account(&devnet).await;
+        let contract_address = deploy_events_contract(&account).await;
+        emit_static_event(&account, contract_address).await.unwrap();
 
-        todo!()
+        let subscription_id = subscribe_events(&mut ws, json!({})).await.unwrap();
+        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+
+        assert_eq!(
+            notification,
+            json!({
+                "jsonrpc": "2.0",
+                "method": "starknet_subscriptionEvents",
+                "params": {
+                    "subscription_id": subscription_id,
+                    "result": {},
+                }
+            })
+        );
+
+        assert_no_notifications(&mut ws).await;
+    }
+
+    #[tokio::test]
+    async fn should_notify_if_already_in_latest_block_in_on_demand_mode() {
+        let devnet_args = ["--block-generation-on", "demand"];
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        let account = get_single_owner_account(&devnet).await;
+        let contract_address = deploy_events_contract(&account).await;
+        // to have declare+deploy and invoke in two separate blocks
+        devnet.create_block().await.unwrap();
+
+        emit_static_event(&account, contract_address).await.unwrap();
+        devnet.create_block().await.unwrap();
+
+        let subscription_id = subscribe_events(&mut ws, json!({})).await.unwrap();
+        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+
+        assert_eq!(
+            notification,
+            json!({
+                "jsonrpc": "2.0",
+                "method": "starknet_subscriptionEvents",
+                "params": {
+                    "subscription_id": subscription_id,
+                    "result": {},
+                }
+            })
+        );
+
+        assert_no_notifications(&mut ws).await;
+    }
+
+    #[tokio::test]
+    async fn should_notify_only_when_moved_from_pending_to_latest_block() {
+        let devnet_args = ["--block-generation-on", "demand"];
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        let account = get_single_owner_account(&devnet).await;
+        let contract_address = deploy_events_contract(&account).await;
+
+        // to have declare+deploy and invoke in two separate blocks
+        devnet.create_block().await.unwrap();
+
+        let subscription_params = json!({ "from_address": contract_address });
+        let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
+
+        // only receive event once pending->latest
+        emit_static_event(&account, contract_address).await.unwrap();
+        assert_no_notifications(&mut ws).await;
+
+        devnet.create_block().await.unwrap();
+        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+
+        assert_eq!(
+            notification,
+            json!({
+                "jsonrpc": "2.0",
+                "method": "starknet_subscriptionEvents",
+                "params": {
+                    "subscription_id": subscription_id,
+                    "result": {},
+                }
+            })
+        );
+
+        assert_no_notifications(&mut ws).await;
     }
 
     #[tokio::test]
     async fn should_notify_of_events_in_old_blocks_with_no_filters() {
-        unimplemented!()
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        let account = get_single_owner_account(&devnet).await;
+        let contract_address = deploy_events_contract(&account).await;
+
+        emit_static_event(&account, contract_address).await.unwrap();
+
+        // The declaration happens at block_number=1
+        subscribe_events(&mut ws, json!({ "block": BlockId::Number(1) })).await.unwrap();
+
+        let _declaration_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        let _deployment_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        let invocation_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+
+        assert_eq!(invocation_notification, json!({}));
+
+        assert_no_notifications(&mut ws).await;
     }
 
     #[tokio::test]
     async fn should_notify_of_events_in_old_blocks_with_address_filter() {
-        unimplemented!()
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        let account = get_single_owner_account(&devnet).await;
+        let contract_address = deploy_events_contract(&account).await;
+
+        emit_static_event(&account, contract_address).await.unwrap();
+
+        // The declaration happens at block_number=1, but only invocation should be notified of
+        subscribe_events(
+            &mut ws,
+            json!({ "block": BlockId::Number(1), "from_address": contract_address }),
+        )
+        .await
+        .unwrap();
+
+        let invocation_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+
+        assert_eq!(invocation_notification, json!({}));
+
+        assert_no_notifications(&mut ws).await;
     }
 
     #[tokio::test]
-    async fn should_notify_of_events_in_old_blocks_with_key_filter() {
-        unimplemented!()
+    async fn should_notify_of_old_and_new_events_with_address_and_key_filter() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        let account = get_single_owner_account(&devnet).await;
+        let contract_address = deploy_events_contract(&account).await;
+
+        emit_static_event(&account, contract_address).await.unwrap();
+
+        // The declaration happens at block_number=1, but only invocation should be notified of
+        subscribe_events(
+            &mut ws,
+            json!({ "block": BlockId::Number(1), "from_address": contract_address, "keys": [[]] }),
+        )
+        .await
+        .unwrap();
+
+        let invocation_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+
+        assert_eq!(invocation_notification, json!({}));
+
+        assert_no_notifications(&mut ws).await;
     }
 
     #[tokio::test]
-    async fn should_notify_of_events_in_old_blocks_with_address_and_key_filter() {
-        unimplemented!()
+    async fn should_not_notify_of_events_in_too_old_blocks() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        let account = get_single_owner_account(&devnet).await;
+        let contract_address = deploy_events_contract(&account).await;
+
+        emit_static_event(&account, contract_address).await.unwrap();
+
+        let last_block_hash = devnet.create_block().await.unwrap();
+
+        subscribe_events(&mut ws, json!({ "block": BlockId::Hash(last_block_hash) }))
+            .await
+            .unwrap();
+
+        assert_no_notifications(&mut ws).await;
     }
 }
