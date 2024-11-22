@@ -293,8 +293,10 @@ impl JsonRpcHandler {
                 origin_tag: BlockTag::Latest,
             }));
 
-            // Even though there are no pending txs in this mode, we still need to notify the users
-            // wanting to know of new txs by depending on this notification type.
+            // There are no pending txs in this mode, but basically we are pretending that the
+            // transaction existed for a short period of time in the pending block, thus triggering
+            // the notification. This is important for users depending on this subscription type to
+            // find out about all new transactions.
             if !self.starknet_config.with_pending_block() {
                 let tx = starknet
                     .get_transaction_by_hash(*tx_hash)
