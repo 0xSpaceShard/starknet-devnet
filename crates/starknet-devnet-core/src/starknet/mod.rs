@@ -408,7 +408,7 @@ impl Starknet {
         self.transactions.insert(transaction_hash, transaction_to_add);
 
         // create new block from pending one, only in block-generation-on-transaction mode
-        if !self.config.with_pending_block() {
+        if !self.config.uses_pending_block() {
             self.generate_new_block_and_state()?;
         }
 

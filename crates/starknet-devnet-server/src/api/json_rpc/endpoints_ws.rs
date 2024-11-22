@@ -139,7 +139,7 @@ impl JsonRpcHandler {
     /// Based on pending block usage and specified block ID, decide on subscription's sensitivity:
     /// notify of changes in pending or latest block
     fn get_subscription_tag(&self, block_id: BlockId) -> BlockTag {
-        if self.starknet_config.with_pending_block() {
+        if self.starknet_config.uses_pending_block() {
             match block_id {
                 BlockId::Tag(tag) => tag,
                 BlockId::Hash(_) | BlockId::Number(_) => BlockTag::Pending,

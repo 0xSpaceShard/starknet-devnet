@@ -297,7 +297,7 @@ impl JsonRpcHandler {
             // transaction existed for a short period of time in the pending block, thus triggering
             // the notification. This is important for users depending on this subscription type to
             // find out about all new transactions.
-            if !self.starknet_config.with_pending_block() {
+            if !self.starknet_config.uses_pending_block() {
                 let tx = starknet
                     .get_transaction_by_hash(*tx_hash)
                     .map_err(error::ApiError::StarknetDevnetError)?;
@@ -356,7 +356,7 @@ impl JsonRpcHandler {
 
         // for later comparison and subscription notifications
         let old_latest_block = self.get_block(BlockTag::Latest).await;
-        let old_pending_block = if self.starknet_config.with_pending_block() {
+        let old_pending_block = if self.starknet_config.uses_pending_block() {
             Some(self.get_block(BlockTag::Pending).await)
         } else {
             None
