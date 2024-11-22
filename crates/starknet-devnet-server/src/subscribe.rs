@@ -28,7 +28,7 @@ impl AddressFilter {
     pub(crate) fn new(address_container: Vec<ContractAddress>) -> Self {
         Self { address_container }
     }
-    pub(crate) fn passess(&self, address: &ContractAddress) -> bool {
+    pub(crate) fn passes(&self, address: &ContractAddress) -> bool {
         self.address_container.is_empty() || self.address_container.contains(address)
     }
 }
@@ -74,7 +74,7 @@ impl Subscription {
                 ) = notification
                 {
                     return match tx.get_sender_address() {
-                        Some(address) => address_filter.passess(&address),
+                        Some(address) => address_filter.passes(&address),
                         None => true,
                     };
                 }
@@ -85,7 +85,7 @@ impl Subscription {
                 ) = notification
                 {
                     return match hash_wrapper.sender_address {
-                        Some(address) => address_filter.passess(&address),
+                        Some(address) => address_filter.passes(&address),
                         None => true,
                     };
                 }
