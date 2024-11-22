@@ -1,7 +1,7 @@
 use starknet_core::error::Error;
 use starknet_rs_core::types::{BlockId, BlockTag};
-use starknet_types::rpc::block::BlockResult;
-use starknet_types::rpc::transactions::Transactions;
+use starknet_types::rpc::block::{BlockResult, PendingBlock};
+use starknet_types::rpc::transactions::{TransactionWithHash, Transactions};
 use starknet_types::starknet_api::block::{BlockNumber, BlockStatus};
 
 use super::error::ApiError;
@@ -149,6 +149,23 @@ impl JsonRpcHandler {
         }
     }
 
+    async fn get_pending_txs(&self) -> Result<Vec<TransactionWithHash>, ApiError> {
+        let starknet = self.api.starknet.lock().await;
+        let block = starknet.get_block_with_transactions(&BlockId::Tag(BlockTag::Pending))?;
+        match block {
+            BlockResult::PendingBlock(PendingBlock {
+                transactions: Transactions::Full(txs),
+                ..
+            }) => Ok(txs),
+            _ => {
+                // Never reached if get_block_with_transactions properly implemented.
+                Err(ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
+                    msg: "Invalid block".into(),
+                }))
+            }
+        }
+    }
+
     /// Does not return TOO_MANY_ADDRESSES_IN_FILTER
     pub async fn subscribe_pending_txs(
         &self,
@@ -179,24 +196,9 @@ impl JsonRpcHandler {
         };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
-        let starknet = self.api.starknet.lock().await;
-        // Only check pending block. If in blocks-on-tx mode, ignore txs already in latest block.
-        let block = starknet.get_block_with_transactions(&BlockId::Tag(BlockTag::Pending))?;
-
-        let txs = match block {
-            BlockResult::Block(block) => block.transactions,
-            BlockResult::PendingBlock(block) => block.transactions,
-        };
-
-        let txs = if let Transactions::Full(txs) = txs {
-            txs
-        } else {
-            return Err(ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
-                msg: "Invalid transactions".into(),
-            }));
-        };
-
-        for tx in txs {
+        // Only check pending. Regardless of block generation mode, ignore txs in latest block.
+        let pending_txs = self.get_pending_txs().await?;
+        for tx in pending_txs {
             let notification = if with_details {
                 SubscriptionNotification::PendingTransaction(PendingTransactionNotification::Full(
                     Box::new(tx),
