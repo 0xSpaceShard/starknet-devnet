@@ -1,6 +1,6 @@
 [package]
 name = "starknet-devnet-types"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 description = "Starknet types for the devnet"
 repository.workspace = true
@@ -31,6 +31,8 @@ usc = { workspace = true }
 # Cairo-lang dependencies
 cairo-lang-compiler = { workspace = true }
 cairo-lang-casm = { workspace = true }
+parity-scale-codec = { workspace = true }
+parity-scale-codec-derive = { workspace = true }
 cairo-lang-defs = { workspace = true }
 cairo-lang-diagnostics = { workspace = true }
 cairo-lang-filesystem = { workspace = true }
@@ -58,4 +60,6 @@ ignored = [
     "cairo-lang-sierra-to-casm",
     "cairo-lang-syntax",
     "cairo-lang-utils",
+    "parity-scale-codec",
+    "parity-scale-codec-derive",
 ]

@@ -96,9 +96,9 @@ cairo-lang-syntax = "=2.7.0"
 cairo-lang-utils = "=2.7.0"
 
 # Inner dependencies
-starknet-types = { version = "0.2.2", path = "crates/starknet-devnet-types", package = "starknet-devnet-types" }
-starknet-core = { version = "0.2.2", path = "crates/starknet-devnet-core", package = "starknet-devnet-core" }
-server = { version = "0.2.2", path = "crates/starknet-devnet-server", package = "starknet-devnet-server" }
+starknet-types = { version = "0.2.3", path = "crates/starknet-devnet-types", package = "starknet-devnet-types" }
+starknet-core = { version = "0.2.3", path = "crates/starknet-devnet-core", package = "starknet-devnet-core" }
+server = { version = "0.2.3", path = "crates/starknet-devnet-server", package = "starknet-devnet-server" }
 
 # Dependabot alerts
 zerocopy = "0.7.31"
@@ -119,3 +119,7 @@ tokio-tungstenite = { version = "0.21.0" }
 
 # Benchmarking
 criterion = { version = "0.3.4", features = ["async_tokio"] }
+
+# https://github.com/paritytech/parity-scale-codec/issues/656
+parity-scale-codec = "=3.6.12"
+parity-scale-codec-derive = "=3.6.12"

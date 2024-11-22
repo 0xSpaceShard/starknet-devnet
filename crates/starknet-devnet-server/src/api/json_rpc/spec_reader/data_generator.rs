@@ -178,11 +178,40 @@ impl<'a> Visitor for RandDataGenerator<'a> {
         }
         let mut accumulated_json_value = Map::new();
 
+        // Collect all field names as references
+        let all_fields: Vec<&String> = element.properties.keys().collect();
+
+        // if there are no required json entry, then all propertries are required
+        let required_fields: Vec<&String> = if let Some(required) = &element.required {
+            required.iter().collect()
+        } else {
+            all_fields.clone()
+        };
+
+        // Determine optional fields by removing required fields from all fields
+        let optional_fields: Vec<&String> =
+            all_fields.iter().filter(|field| !required_fields.contains(field)).cloned().collect();
+
+        // if there are no optional fields then all fields have to be included
+        let fields_to_include = if optional_fields.is_empty() {
+            required_fields
+        } else {
+            // decide the starting index in optional fields array
+            let start_idx = rand::thread_rng().gen_range(0..optional_fields.len());
+            // decide the number of optional fields
+            let optional_fields_to_include_count =
+                rand::thread_rng().gen_range(0..=(optional_fields.len() - start_idx));
+
+            // combine required and optional fields that will be part of the json object
+            [
+                required_fields.as_slice(),
+                &optional_fields[start_idx..start_idx + optional_fields_to_include_count],
+            ]
+            .concat()
+        };
+
         for (key, inner_schema) in
-            element.properties.iter().filter(|(k, _)| match element.required.as_ref() {
-                Some(required_fields) => required_fields.contains(k),
-                None => true,
-            })
+            element.properties.iter().filter(|(k, _)| fields_to_include.contains(k))
         {
             let generated_value =
                 generate_schema_value(inner_schema, self.schemas, self.depth + 1)?;
