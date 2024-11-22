@@ -6,7 +6,8 @@ use starknet_types::starknet_api::block::{BlockNumber, BlockStatus};
 
 use super::error::ApiError;
 use super::models::{
-    BlockInput, PendingTransactionsSubscriptionInput, SubscriptionIdInput, TransactionBlockInput,
+    BlockInput, EventsSubscriptionInput, PendingTransactionsSubscriptionInput, SubscriptionIdInput,
+    TransactionBlockInput,
 };
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::rpc_core::request::Id;
@@ -33,7 +34,9 @@ impl JsonRpcHandler {
             JsonRpcSubscriptionRequest::PendingTransactions(data) => {
                 self.subscribe_pending_txs(data, rpc_request_id, socket_id).await
             }
-            JsonRpcSubscriptionRequest::Events => todo!(),
+            JsonRpcSubscriptionRequest::Events(data) => {
+                self.subscribe_events(data, rpc_request_id, socket_id).await
+            }
             JsonRpcSubscriptionRequest::Unsubscribe(SubscriptionIdInput { subscription_id }) => {
                 let mut sockets = self.api.sockets.lock().await;
                 let socket_context = sockets.get_mut(&socket_id).ok_or(
@@ -42,8 +45,7 @@ impl JsonRpcHandler {
                     }),
                 )?;
 
-                socket_context.unsubscribe(rpc_request_id, subscription_id).await?;
-                Ok(())
+                socket_context.unsubscribe(rpc_request_id, subscription_id).await
             }
         }
     }
@@ -279,5 +281,34 @@ impl JsonRpcHandler {
         }
 
         Ok(())
+    }
+
+    async fn subscribe_events(
+        &self,
+        maybe_subscription_input: Option<EventsSubscriptionInput>,
+        rpc_request_id: Id,
+        socket_id: SocketId,
+    ) -> Result<(), ApiError> {
+        let maybe_address = maybe_subscription_input
+            .as_ref()
+            .and_then(|subscription_input| subscription_input.address);
+
+        let starting_block_id = maybe_subscription_input
+            .as_ref()
+            .and_then(|subscription_input| subscription_input.from_block.as_ref())
+            .and_then(|b| Some(b.0))
+            .unwrap_or(BlockId::Tag(BlockTag::Latest));
+
+        let (query_block_number, last_block_number) =
+            self.convert_to_block_number_range(starting_block_id).await?;
+
+        let keys = maybe_subscription_input
+            .and_then(|subscription_input| subscription_input.keys)
+            .unwrap_or_default();
+
+        // use a vritually infinite limit - should never be reached
+        self.api.starknet.lock().await.get_events(from_block, to_block, address, keys, skip, limit);
+
+        todo!()
     }
 }

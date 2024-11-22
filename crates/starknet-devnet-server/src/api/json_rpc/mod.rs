@@ -17,9 +17,9 @@ use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, BlockInput,
-    CallInput, EstimateFeeInput, EventsInput, GetStorageInput, L1TransactionHashInput,
-    PendingTransactionsSubscriptionInput, SubscriptionIdInput, TransactionBlockInput,
-    TransactionHashInput, TransactionHashOutput,
+    CallInput, EstimateFeeInput, EventsInput, EventsSubscriptionInput, GetStorageInput,
+    L1TransactionHashInput, PendingTransactionsSubscriptionInput, SubscriptionIdInput,
+    TransactionBlockInput, TransactionHashInput, TransactionHashOutput,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -757,7 +757,7 @@ pub enum JsonRpcSubscriptionRequest {
     #[serde(rename = "starknet_subscribePendingTransactions", with = "optional_params")]
     PendingTransactions(Option<PendingTransactionsSubscriptionInput>),
     #[serde(rename = "starknet_subscribeEvents")]
-    Events,
+    Events(Option<EventsSubscriptionInput>),
     #[serde(rename = "starknet_unsubscribe")]
     Unsubscribe(SubscriptionIdInput),
 }
