@@ -301,23 +301,22 @@ impl JsonRpcHandler {
 
         self.get_validated_block_number_range(starting_block_id).await?;
 
-        let keys = maybe_subscription_input.and_then(|subscription_input| subscription_input.keys);
+        let keys_filter =
+            maybe_subscription_input.and_then(|subscription_input| subscription_input.keys);
 
         let mut sockets = self.api.sockets.lock().await;
         let socket_context = sockets.get_mut(&socket_id).ok_or(ApiError::StarknetDevnetError(
             Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
         ))?;
 
-        let subscription_id = socket_context.subscribe(rpc_request_id, Subscription::Events).await;
+        let subscription = Subscription::Events { address, keys_filter: keys_filter.clone() };
+        let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
-        let skip = 0;
-        let (events, _has_more) = self.api.starknet.lock().await.get_events(
+        let events = self.api.starknet.lock().await.get_unlimited_events(
             Some(starting_block_id),
             Some(BlockId::Tag(BlockTag::Latest)),
             address,
-            keys,
-            skip,
-            None,
+            keys_filter,
         )?;
         // has_more is expected to be false
 

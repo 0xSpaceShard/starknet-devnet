@@ -5,7 +5,8 @@ use axum::extract::ws::{Message, WebSocket};
 use futures::stream::SplitSink;
 use futures::SinkExt;
 use serde::{self, Serialize};
-use starknet_rs_core::types::BlockTag;
+use starknet_core::starknet::events::check_if_filter_applies_for_event;
+use starknet_rs_core::types::{BlockTag, Felt};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::TransactionHash;
@@ -40,7 +41,7 @@ pub enum Subscription {
     TransactionStatus { tag: BlockTag, transaction_hash: TransactionHash },
     PendingTransactionsFull { address_filter: AddressFilter },
     PendingTransactionsHash { address_filter: AddressFilter },
-    Events,
+    Events { address: Option<ContractAddress>, keys_filter: Option<Vec<Vec<Felt>>> },
 }
 
 impl Subscription {
@@ -52,7 +53,7 @@ impl Subscription {
             | Subscription::PendingTransactionsHash { .. } => {
                 SubscriptionConfirmation::NewSubscription(id)
             }
-            Subscription::Events => SubscriptionConfirmation::NewSubscription(id),
+            Subscription::Events { .. } => SubscriptionConfirmation::NewSubscription(id),
         }
     }
 
@@ -91,7 +92,11 @@ impl Subscription {
                     };
                 }
             }
-            Subscription::Events => todo!(),
+            Subscription::Events { address, keys_filter } => {
+                if let SubscriptionNotification::Event(event) = notification {
+                    check_if_filter_applies_for_event(address, keys_filter, &event.into());
+                }
+            }
         }
 
         false

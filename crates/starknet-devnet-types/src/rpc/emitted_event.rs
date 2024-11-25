@@ -41,3 +41,13 @@ impl From<&blockifier::execution::call_info::OrderedEvent> for OrderedEvent {
         }
     }
 }
+
+impl From<&EmittedEvent> for Event {
+    fn from(emitted_event: &EmittedEvent) -> Self {
+        Self {
+            from_address: emitted_event.from_address,
+            keys: emitted_event.keys.clone(),
+            data: emitted_event.data.clone(),
+        }
+    }
+}

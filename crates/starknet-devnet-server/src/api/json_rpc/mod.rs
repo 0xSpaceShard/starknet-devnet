@@ -311,6 +311,17 @@ impl JsonRpcHandler {
                     }),
                 ));
             }
+
+            let events = starknet.get_unlimited_events(
+                Some(BlockId::Tag(BlockTag::Latest)),
+                Some(BlockId::Tag(BlockTag::Latest)),
+                None,
+                None,
+            )?;
+
+            for event in events {
+                notifications.push(SubscriptionNotification::Event(event));
+            }
         }
 
         let sockets = self.api.sockets.lock().await;
