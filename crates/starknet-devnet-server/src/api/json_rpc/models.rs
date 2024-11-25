@@ -210,8 +210,8 @@ pub struct PendingTransactionsSubscriptionInput {
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct EventsSubscriptionInput {
-    pub from_block: Option<BlockId>,
-    pub address: Option<ContractAddress>,
+    pub block: Option<BlockId>,
+    pub from_address: Option<ContractAddress>,
     pub keys: Option<Vec<Vec<Felt>>>,
 }
 

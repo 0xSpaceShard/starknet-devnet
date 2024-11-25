@@ -291,11 +291,11 @@ impl JsonRpcHandler {
     ) -> Result<(), ApiError> {
         let address = maybe_subscription_input
             .as_ref()
-            .and_then(|subscription_input| subscription_input.address);
+            .and_then(|subscription_input| subscription_input.from_address);
 
         let starting_block_id = maybe_subscription_input
             .as_ref()
-            .and_then(|subscription_input| subscription_input.from_block.as_ref())
+            .and_then(|subscription_input| subscription_input.block.as_ref())
             .map(|b| b.0)
             .unwrap_or(BlockId::Tag(BlockTag::Latest));
 

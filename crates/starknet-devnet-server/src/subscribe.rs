@@ -94,7 +94,7 @@ impl Subscription {
             }
             Subscription::Events { address, keys_filter } => {
                 if let SubscriptionNotification::Event(event) = notification {
-                    check_if_filter_applies_for_event(address, keys_filter, &event.into());
+                    return check_if_filter_applies_for_event(address, keys_filter, &event.into());
                 }
             }
         }
