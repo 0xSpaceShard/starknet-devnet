@@ -7,6 +7,7 @@ use futures::SinkExt;
 use serde::{self, Serialize};
 use starknet_rs_core::types::BlockTag;
 use starknet_types::contract_address::ContractAddress;
+use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::block::BlockHeader;
 use starknet_types::rpc::transactions::{TransactionStatus, TransactionWithHash};
@@ -141,6 +142,7 @@ pub enum SubscriptionNotification {
     NewHeads(Box<BlockHeader>),
     TransactionStatus(NewTransactionStatus),
     PendingTransaction(PendingTransactionNotification),
+    Event(EmittedEvent),
 }
 
 impl SubscriptionNotification {
@@ -152,7 +154,8 @@ impl SubscriptionNotification {
             }
             SubscriptionNotification::PendingTransaction(_) => {
                 "starknet_subscriptionPendingTransactions"
-            } // SubscriptionNotification::Events => "starknet_subscriptionEvents",
+            }
+            SubscriptionNotification::Event(_) => "starknet_subscriptionEvents",
         }
     }
 }

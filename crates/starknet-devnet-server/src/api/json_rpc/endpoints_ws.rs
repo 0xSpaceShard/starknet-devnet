@@ -52,7 +52,7 @@ impl JsonRpcHandler {
 
     /// Returns (starting block number, latest block number). Returns an error in case the starting
     /// block does not exist or there are too many blocks.
-    async fn convert_to_block_number_range(
+    async fn get_validated_block_number_range(
         &self,
         mut starting_block_id: BlockId,
     ) -> Result<(u64, u64), ApiError> {
@@ -107,7 +107,7 @@ impl JsonRpcHandler {
         };
 
         let (query_block_number, latest_block_number) =
-            self.convert_to_block_number_range(block_id).await?;
+            self.get_validated_block_number_range(block_id).await?;
 
         // perform the actual subscription
         let mut sockets = self.api.sockets.lock().await;
@@ -235,7 +235,7 @@ impl JsonRpcHandler {
         };
 
         let (query_block_number, latest_block_number) =
-            self.convert_to_block_number_range(query_block_id).await?;
+            self.get_validated_block_number_range(query_block_id).await?;
 
         // perform the actual subscription
         let mut sockets = self.api.sockets.lock().await;
@@ -289,26 +289,42 @@ impl JsonRpcHandler {
         rpc_request_id: Id,
         socket_id: SocketId,
     ) -> Result<(), ApiError> {
-        let maybe_address = maybe_subscription_input
+        let address = maybe_subscription_input
             .as_ref()
             .and_then(|subscription_input| subscription_input.address);
 
         let starting_block_id = maybe_subscription_input
             .as_ref()
             .and_then(|subscription_input| subscription_input.from_block.as_ref())
-            .and_then(|b| Some(b.0))
+            .map(|b| b.0)
             .unwrap_or(BlockId::Tag(BlockTag::Latest));
 
-        let (query_block_number, last_block_number) =
-            self.convert_to_block_number_range(starting_block_id).await?;
+        self.get_validated_block_number_range(starting_block_id).await?;
 
-        let keys = maybe_subscription_input
-            .and_then(|subscription_input| subscription_input.keys)
-            .unwrap_or_default();
+        let keys = maybe_subscription_input.and_then(|subscription_input| subscription_input.keys);
 
-        // use a vritually infinite limit - should never be reached
-        self.api.starknet.lock().await.get_events(from_block, to_block, address, keys, skip, limit);
+        let mut sockets = self.api.sockets.lock().await;
+        let socket_context = sockets.get_mut(&socket_id).ok_or(ApiError::StarknetDevnetError(
+            Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
+        ))?;
 
-        todo!()
+        let subscription_id = socket_context.subscribe(rpc_request_id, Subscription::Events).await;
+
+        let skip = 0;
+        let (events, _has_more) = self.api.starknet.lock().await.get_events(
+            Some(starting_block_id),
+            Some(BlockId::Tag(BlockTag::Latest)),
+            address,
+            keys,
+            skip,
+            None,
+        )?;
+        // has_more is expected to be false
+
+        for event in events {
+            socket_context.notify(subscription_id, SubscriptionNotification::Event(event)).await;
+        }
+
+        Ok(())
     }
 }
