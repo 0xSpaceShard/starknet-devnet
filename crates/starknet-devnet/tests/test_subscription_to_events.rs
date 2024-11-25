@@ -4,7 +4,7 @@ pub mod common;
 mod event_subscription_support {
     use serde::Serialize;
     use serde_json::json;
-    use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS};
+    use starknet_core::constants::{STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS};
     use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, InvokeTransactionResult};
     use starknet_rs_core::utils::get_selector_from_name;
@@ -96,8 +96,8 @@ mod event_subscription_support {
 
         // discard notifications emitted by system contracts
         receive_rpc_via_ws(&mut ws).await.unwrap(); // erc20 - fee charge
-        receive_rpc_via_ws(&mut ws).await.unwrap(); // erc20 - fee charge
         receive_rpc_via_ws(&mut ws).await.unwrap(); // udc   - deployment
+        receive_rpc_via_ws(&mut ws).await.unwrap(); // erc20 - fee charge
 
         let invocation = emit_static_event(&account, contract_address).await.unwrap();
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
@@ -340,8 +340,7 @@ mod event_subscription_support {
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
         // The declaration happens at block_number=1 so we query from there to latest
-        let subscription_params =
-            json!({ "block": BlockId::Number(1), "from_address": contract_address });
+        let subscription_params = json!({ "block": BlockId::Number(1) });
         let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
 
         // declaration of events contract fee charge
@@ -349,22 +348,22 @@ mod event_subscription_support {
         assert_eq!(declaration_fee_notification["params"]["result"]["block_number"], 1);
         assert_eq!(
             declaration_fee_notification["params"]["result"]["from_address"],
-            ETH_ERC20_CONTRACT_ADDRESS.to_hex_string()
+            STRK_ERC20_CONTRACT_ADDRESS.to_hex_string()
         );
 
-        // deployment of events contract fee charge and udc invocation
-        let deployment_fee_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-        assert_eq!(deployment_fee_notification["params"]["result"]["block_number"], 2);
-        assert_eq!(
-            declaration_fee_notification["params"]["result"]["from_address"],
-            ETH_ERC20_CONTRACT_ADDRESS.to_hex_string()
-        );
-
+        // deployment of events contract: udc invocation and fee charge
         let deployment_udc_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
         assert_eq!(deployment_udc_notification["params"]["result"]["block_number"], 2);
         assert_eq!(
-            declaration_fee_notification["params"]["result"]["from_address"],
-            UDC_CONTRACT_ADDRESS.to_hex_string(),
+            deployment_udc_notification["params"]["result"]["from_address"],
+            UDC_CONTRACT_ADDRESS.to_hex_string()
+        );
+
+        let deployment_fee_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        assert_eq!(deployment_fee_notification["params"]["result"]["block_number"], 2);
+        assert_eq!(
+            deployment_fee_notification["params"]["result"]["from_address"],
+            STRK_ERC20_CONTRACT_ADDRESS.to_hex_string(),
         );
 
         // invocation of events contract
@@ -396,7 +395,7 @@ mod event_subscription_support {
         );
         assert_eq!(
             invocation_fee_notification["params"]["result"]["from_address"],
-            ETH_ERC20_CONTRACT_ADDRESS.to_hex_string()
+            STRK_ERC20_CONTRACT_ADDRESS.to_hex_string()
         );
 
         assert_no_notifications(&mut ws).await;
