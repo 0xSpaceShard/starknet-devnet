@@ -19,8 +19,8 @@ mod event_subscription_support {
     use crate::common::constants;
     use crate::common::utils::{
         assert_no_notifications, declare_v3_deploy_v3,
-        get_events_contract_in_sierra_and_compiled_class_hash, receive_rpc_via_ws,
-        send_text_rpc_via_ws, unsubscribe,
+        get_events_contract_in_sierra_and_compiled_class_hash, receive_notification,
+        receive_rpc_via_ws, send_text_rpc_via_ws, unsubscribe,
     };
 
     async fn subscribe_events(
@@ -102,23 +102,18 @@ mod event_subscription_support {
         let invocation = emit_static_event(&account, contract_address).await.unwrap();
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
-        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        let event = receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
+            .await
+            .unwrap();
         assert_eq!(
-            notification,
+            event,
             json!({
-                "jsonrpc": "2.0",
-                "method": "starknet_subscriptionEvents",
-                "params": {
-                    "subscription_id": subscription_id,
-                    "result": {
-                        "transaction_hash": invocation.transaction_hash,
-                        "block_hash": latest_block.block_hash,
-                        "block_number": latest_block.block_number,
-                        "from_address": contract_address,
-                        "keys": [static_event_key()],
-                        "data": []
-                    },
-                }
+                "transaction_hash": invocation.transaction_hash,
+                "block_hash": latest_block.block_hash,
+                "block_number": latest_block.block_number,
+                "from_address": contract_address,
+                "keys": [static_event_key()],
+                "data": []
             })
         );
 
@@ -145,23 +140,18 @@ mod event_subscription_support {
         let invocation = emit_static_event(&account, contract_address).await.unwrap();
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
-        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        let event = receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
+            .await
+            .unwrap();
         assert_eq!(
-            notification,
+            event,
             json!({
-                "jsonrpc": "2.0",
-                "method": "starknet_subscriptionEvents",
-                "params": {
-                    "subscription_id": subscription_id,
-                    "result": {
-                        "transaction_hash": invocation.transaction_hash,
-                        "block_hash": latest_block.block_hash,
-                        "block_number": latest_block.block_number,
-                        "from_address": contract_address,
-                        "keys": [static_event_key()],
-                        "data": []
-                    },
-                }
+                "transaction_hash": invocation.transaction_hash,
+                "block_hash": latest_block.block_hash,
+                "block_number": latest_block.block_number,
+                "from_address": contract_address,
+                "keys": [static_event_key()],
+                "data": []
             })
         );
 
@@ -182,23 +172,18 @@ mod event_subscription_support {
         let invocation = emit_static_event(&account, contract_address).await.unwrap();
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
-        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        let event = receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
+            .await
+            .unwrap();
         assert_eq!(
-            notification,
+            event,
             json!({
-                "jsonrpc": "2.0",
-                "method": "starknet_subscriptionEvents",
-                "params": {
-                    "subscription_id": subscription_id,
-                    "result": {
-                        "transaction_hash": invocation.transaction_hash,
-                        "block_hash": latest_block.block_hash,
-                        "block_number": latest_block.block_number,
-                        "from_address": contract_address,
-                        "keys": [static_event_key()],
-                        "data": []
-                    },
-                }
+                "transaction_hash": invocation.transaction_hash,
+                "block_hash": latest_block.block_hash,
+                "block_number": latest_block.block_number,
+                "from_address": contract_address,
+                "keys": [static_event_key()],
+                "data": []
             })
         );
 
@@ -217,24 +202,19 @@ mod event_subscription_support {
 
         let subscription_id =
             subscribe_events(&mut ws, json!({ "from_address": contract_address })).await.unwrap();
-        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        let event = receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
+            .await
+            .unwrap();
 
         assert_eq!(
-            notification,
+            event,
             json!({
-                "jsonrpc": "2.0",
-                "method": "starknet_subscriptionEvents",
-                "params": {
-                    "subscription_id": subscription_id,
-                    "result": {
-                        "transaction_hash": invocation.transaction_hash,
-                        "block_hash": latest_block.block_hash,
-                        "block_number": latest_block.block_number,
-                        "from_address": contract_address,
-                        "keys": [static_event_key()],
-                        "data": []
-                    },
-                }
+                "transaction_hash": invocation.transaction_hash,
+                "block_hash": latest_block.block_hash,
+                "block_number": latest_block.block_number,
+                "from_address": contract_address,
+                "keys": [static_event_key()],
+                "data": []
             })
         );
 
@@ -259,24 +239,19 @@ mod event_subscription_support {
 
         let subscription_id =
             subscribe_events(&mut ws, json!({ "from_address": contract_address })).await.unwrap();
-        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
 
+        let event = receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
+            .await
+            .unwrap();
         assert_eq!(
-            notification,
+            event,
             json!({
-                "jsonrpc": "2.0",
-                "method": "starknet_subscriptionEvents",
-                "params": {
-                    "subscription_id": subscription_id,
-                    "result": {
-                        "transaction_hash": invocation.transaction_hash,
-                        "block_hash": latest_block_hash,
-                        "block_number": 2, // genesis = 0, then two block creations
-                        "from_address": contract_address,
-                        "keys": [static_event_key()],
-                        "data": []
-                    },
-                }
+                "transaction_hash": invocation.transaction_hash,
+                "block_hash": latest_block_hash,
+                "block_number": 2, // genesis = 0, then two block creations
+                "from_address": contract_address,
+                "keys": [static_event_key()],
+                "data": []
             })
         );
 
@@ -304,24 +279,20 @@ mod event_subscription_support {
         assert_no_notifications(&mut ws).await;
 
         let latest_block_hash = devnet.create_block().await.unwrap();
-        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        let notification =
+            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
+                .await
+                .unwrap();
 
         assert_eq!(
             notification,
             json!({
-                "jsonrpc": "2.0",
-                "method": "starknet_subscriptionEvents",
-                "params": {
-                    "subscription_id": subscription_id,
-                    "result": {
-                        "transaction_hash": invocation.transaction_hash,
-                        "block_hash": latest_block_hash,
-                        "block_number": 2, // genesis = 0, then two block creations
-                        "from_address": contract_address,
-                        "keys": [static_event_key()],
-                        "data": []
-                    },
-                }
+                "transaction_hash": invocation.transaction_hash,
+                "block_hash": latest_block_hash,
+                "block_number": 2, // genesis = 0, then two block creations
+                "from_address": contract_address,
+                "keys": [static_event_key()],
+                "data": []
             })
         );
 
@@ -344,60 +315,53 @@ mod event_subscription_support {
         let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
 
         // declaration of events contract fee charge
-        let declaration_fee_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-        assert_eq!(declaration_fee_notification["params"]["result"]["block_number"], 1);
-        assert_eq!(
-            declaration_fee_notification["params"]["result"]["from_address"],
-            STRK_ERC20_CONTRACT_ADDRESS.to_hex_string()
-        );
+        let declaration_fee_event =
+            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
+                .await
+                .unwrap();
+        assert_eq!(declaration_fee_event["block_number"], 1);
+        assert_eq!(declaration_fee_event["from_address"], json!(STRK_ERC20_CONTRACT_ADDRESS));
 
         // deployment of events contract: udc invocation
-        let deployment_udc_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-        assert_eq!(deployment_udc_notification["params"]["result"]["block_number"], 2);
-        assert_eq!(
-            deployment_udc_notification["params"]["result"]["from_address"],
-            UDC_CONTRACT_ADDRESS.to_hex_string()
-        );
+        let deployment_udc_event =
+            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
+                .await
+                .unwrap();
+        assert_eq!(deployment_udc_event["block_number"], 2);
+        assert_eq!(deployment_udc_event["from_address"], json!(UDC_CONTRACT_ADDRESS));
 
         // deployment of events contract: fee charge
-        let deployment_fee_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-        assert_eq!(deployment_fee_notification["params"]["result"]["block_number"], 2);
-        assert_eq!(
-            deployment_fee_notification["params"]["result"]["from_address"],
-            STRK_ERC20_CONTRACT_ADDRESS.to_hex_string(),
-        );
+        let deployment_fee_event =
+            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
+                .await
+                .unwrap();
+        assert_eq!(deployment_fee_event["block_number"], 2);
+        assert_eq!(deployment_fee_event["from_address"], json!(STRK_ERC20_CONTRACT_ADDRESS),);
 
         // invocation of events contract
-        let invocation_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        let invocation_event =
+            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
+                .await
+                .unwrap();
         assert_eq!(
-            invocation_notification,
+            invocation_event,
             json!({
-               "jsonrpc": "2.0",
-               "method": "starknet_subscriptionEvents",
-               "params": {
-                   "subscription_id": subscription_id,
-                   "result": {
-                       "transaction_hash": invocation.transaction_hash,
-                       "block_hash": latest_block.block_hash,
-                       "block_number": latest_block.block_number,
-                       "from_address": contract_address,
-                       "keys": [static_event_key()],
-                       "data": []
-                   },
-               }
+                "transaction_hash": invocation.transaction_hash,
+                "block_hash": latest_block.block_hash,
+                "block_number": latest_block.block_number,
+                "from_address": contract_address,
+                "keys": [static_event_key()],
+                "data": []
             })
         );
 
         // invocation of events contract fee charge
-        let invocation_fee_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-        assert_eq!(
-            invocation_fee_notification["params"]["result"]["block_number"],
-            latest_block.block_number
-        );
-        assert_eq!(
-            invocation_fee_notification["params"]["result"]["from_address"],
-            STRK_ERC20_CONTRACT_ADDRESS.to_hex_string()
-        );
+        let invocation_fee_event =
+            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
+                .await
+                .unwrap();
+        assert_eq!(invocation_fee_event["block_number"], latest_block.block_number);
+        assert_eq!(invocation_fee_event["from_address"], json!(STRK_ERC20_CONTRACT_ADDRESS));
 
         assert_no_notifications(&mut ws).await;
     }
@@ -419,23 +383,19 @@ mod event_subscription_support {
         let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
 
         // assert presence of old event (event that was triggered before the subscription)
-        let invocation_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        let old_invocation_event =
+            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
+                .await
+                .unwrap();
         assert_eq!(
-            invocation_notification,
+            old_invocation_event,
             json!({
-               "jsonrpc": "2.0",
-               "method": "starknet_subscriptionEvents",
-               "params": {
-                   "subscription_id": subscription_id,
-                   "result": {
-                       "transaction_hash": old_invocation.transaction_hash,
-                       "block_hash": block_before_subscription.block_hash,
-                       "block_number": block_before_subscription.block_number,
-                       "from_address": contract_address,
-                       "keys": [static_event_key()],
-                       "data": []
-                   },
-               }
+               "transaction_hash": old_invocation.transaction_hash,
+                "block_hash": block_before_subscription.block_hash,
+                "block_number": block_before_subscription.block_number,
+                "from_address": contract_address,
+                "keys": [static_event_key()],
+                "data": []
             })
         );
         assert_no_notifications(&mut ws).await;
@@ -443,23 +403,19 @@ mod event_subscription_support {
         // new event (after subscription)
         let new_invocation = emit_static_event(&account, contract_address).await.unwrap();
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
-        let invocation_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        let new_invocation_event =
+            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
+                .await
+                .unwrap();
         assert_eq!(
-            invocation_notification,
+            new_invocation_event,
             json!({
-               "jsonrpc": "2.0",
-               "method": "starknet_subscriptionEvents",
-               "params": {
-                   "subscription_id": subscription_id,
-                   "result": {
-                       "transaction_hash": new_invocation.transaction_hash,
-                       "block_hash": latest_block.block_hash,
-                       "block_number": latest_block.block_number,
-                       "from_address": contract_address,
-                       "keys": [static_event_key()],
-                       "data": []
-                   },
-               }
+               "transaction_hash": new_invocation.transaction_hash,
+                "block_hash": latest_block.block_hash,
+                "block_number": latest_block.block_number,
+                "from_address": contract_address,
+                "keys": [static_event_key()],
+                "data": []
             })
         );
         assert_no_notifications(&mut ws).await;
@@ -482,23 +438,19 @@ mod event_subscription_support {
         let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
 
         // assert presence of old event (event that was triggered before the subscription)
-        let invocation_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        let invocation_event =
+            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
+                .await
+                .unwrap();
         assert_eq!(
-            invocation_notification,
+            invocation_event,
             json!({
-               "jsonrpc": "2.0",
-               "method": "starknet_subscriptionEvents",
-               "params": {
-                   "subscription_id": subscription_id,
-                   "result": {
-                       "transaction_hash": old_invocation.transaction_hash,
-                       "block_hash": block_before_subscription.block_hash,
-                       "block_number": block_before_subscription.block_number,
-                       "from_address": contract_address,
-                       "keys": [static_event_key()],
-                       "data": []
-                   },
-               }
+                "transaction_hash": old_invocation.transaction_hash,
+                "block_hash": block_before_subscription.block_hash,
+                "block_number": block_before_subscription.block_number,
+                "from_address": contract_address,
+                "keys": [static_event_key()],
+                "data": []
             })
         );
         assert_no_notifications(&mut ws).await;
@@ -506,23 +458,19 @@ mod event_subscription_support {
         // new event (after subscription)
         let new_invocation = emit_static_event(&account, contract_address).await.unwrap();
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
-        let invocation_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        let invocation_event =
+            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
+                .await
+                .unwrap();
         assert_eq!(
-            invocation_notification,
+            invocation_event,
             json!({
-               "jsonrpc": "2.0",
-               "method": "starknet_subscriptionEvents",
-               "params": {
-                   "subscription_id": subscription_id,
-                   "result": {
-                       "transaction_hash": new_invocation.transaction_hash,
-                       "block_hash": latest_block.block_hash,
-                       "block_number": latest_block.block_number,
-                       "from_address": contract_address,
-                       "keys": [static_event_key()],
-                       "data": []
-                   },
-               }
+                "transaction_hash": new_invocation.transaction_hash,
+                "block_hash": latest_block.block_hash,
+                "block_number": latest_block.block_number,
+                "from_address": contract_address,
+                "keys": [static_event_key()],
+                "data": []
             })
         );
         assert_no_notifications(&mut ws).await;

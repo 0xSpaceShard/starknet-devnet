@@ -444,6 +444,19 @@ pub async fn receive_rpc_via_ws(
     Ok(serde_json::from_str(&msg.into_text()?)?)
 }
 
+/// Extract `result` from the notification and assert general properties
+pub async fn receive_notification(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    method: &str,
+    expected_subscription_id: i64,
+) -> Result<serde_json::Value, anyhow::Error> {
+    let mut notification = receive_rpc_via_ws(ws).await?;
+    assert_eq!(notification["jsonrpc"], "2.0");
+    assert_eq!(notification["method"], method);
+    assert_eq!(notification["params"]["subscription_id"], expected_subscription_id);
+    Ok(notification["params"].take()["result"].take())
+}
+
 pub async fn assert_no_notifications(ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
     match receive_rpc_via_ws(ws).await {
         Ok(resp) => panic!("Expected no notifications; found: {resp}"),
