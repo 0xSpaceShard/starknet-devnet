@@ -94,7 +94,7 @@ mod event_subscription_support {
         let account = get_single_owner_account(&devnet).await;
         let contract_address = deploy_events_contract(&account).await;
 
-        // discard notifications emitted by system contracts
+        // discard notifications emitted by system contracts - asserted in a separate test
         receive_rpc_via_ws(&mut ws).await.unwrap(); // erc20 - fee charge
         receive_rpc_via_ws(&mut ws).await.unwrap(); // udc   - deployment
         receive_rpc_via_ws(&mut ws).await.unwrap(); // erc20 - fee charge
@@ -351,7 +351,7 @@ mod event_subscription_support {
             STRK_ERC20_CONTRACT_ADDRESS.to_hex_string()
         );
 
-        // deployment of events contract: udc invocation and fee charge
+        // deployment of events contract: udc invocation
         let deployment_udc_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
         assert_eq!(deployment_udc_notification["params"]["result"]["block_number"], 2);
         assert_eq!(
@@ -359,6 +359,7 @@ mod event_subscription_support {
             UDC_CONTRACT_ADDRESS.to_hex_string()
         );
 
+        // deployment of events contract: fee charge
         let deployment_fee_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
         assert_eq!(deployment_fee_notification["params"]["result"]["block_number"], 2);
         assert_eq!(
@@ -402,52 +403,128 @@ mod event_subscription_support {
     }
 
     #[tokio::test]
-    async fn should_notify_of_events_in_old_blocks_with_address_filter() {
+    async fn should_notify_of_old_and_new_events_with_address_filter() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
         let account = get_single_owner_account(&devnet).await;
         let contract_address = deploy_events_contract(&account).await;
 
-        emit_static_event(&account, contract_address).await.unwrap();
+        let old_invocation = emit_static_event(&account, contract_address).await.unwrap();
+        let block_before_subscription = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
         // The declaration happens at block_number=1, but only invocation should be notified of
-        subscribe_events(
-            &mut ws,
-            json!({ "block": BlockId::Number(1), "from_address": contract_address }),
-        )
-        .await
-        .unwrap();
+        let subscription_params =
+            json!({ "block": BlockId::Number(1), "from_address": contract_address });
+        let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
 
+        // assert presence of old event (event that was triggered before the subscription)
         let invocation_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        assert_eq!(
+            invocation_notification,
+            json!({
+               "jsonrpc": "2.0",
+               "method": "starknet_subscriptionEvents",
+               "params": {
+                   "subscription_id": subscription_id,
+                   "result": {
+                       "transaction_hash": old_invocation.transaction_hash,
+                       "block_hash": block_before_subscription.block_hash,
+                       "block_number": block_before_subscription.block_number,
+                       "from_address": contract_address,
+                       "keys": [static_event_key()],
+                       "data": []
+                   },
+               }
+            })
+        );
+        assert_no_notifications(&mut ws).await;
 
-        assert_eq!(invocation_notification, json!({}));
-
+        // new event (after subscription)
+        let new_invocation = emit_static_event(&account, contract_address).await.unwrap();
+        let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+        let invocation_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        assert_eq!(
+            invocation_notification,
+            json!({
+               "jsonrpc": "2.0",
+               "method": "starknet_subscriptionEvents",
+               "params": {
+                   "subscription_id": subscription_id,
+                   "result": {
+                       "transaction_hash": new_invocation.transaction_hash,
+                       "block_hash": latest_block.block_hash,
+                       "block_number": latest_block.block_number,
+                       "from_address": contract_address,
+                       "keys": [static_event_key()],
+                       "data": []
+                   },
+               }
+            })
+        );
         assert_no_notifications(&mut ws).await;
     }
 
     #[tokio::test]
-    async fn should_notify_of_old_and_new_events_with_address_and_key_filter() {
+    async fn should_notify_of_old_and_new_events_with_key_filter() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
         let account = get_single_owner_account(&devnet).await;
         let contract_address = deploy_events_contract(&account).await;
 
-        emit_static_event(&account, contract_address).await.unwrap();
+        let old_invocation = emit_static_event(&account, contract_address).await.unwrap();
+        let block_before_subscription = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
         // The declaration happens at block_number=1, but only invocation should be notified of
-        subscribe_events(
-            &mut ws,
-            json!({ "block": BlockId::Number(1), "from_address": contract_address, "keys": [[]] }),
-        )
-        .await
-        .unwrap();
+        let subscription_params =
+            json!({ "block": BlockId::Number(1), "keys": [[static_event_key()]] });
+        let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
 
+        // assert presence of old event (event that was triggered before the subscription)
         let invocation_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        assert_eq!(
+            invocation_notification,
+            json!({
+               "jsonrpc": "2.0",
+               "method": "starknet_subscriptionEvents",
+               "params": {
+                   "subscription_id": subscription_id,
+                   "result": {
+                       "transaction_hash": old_invocation.transaction_hash,
+                       "block_hash": block_before_subscription.block_hash,
+                       "block_number": block_before_subscription.block_number,
+                       "from_address": contract_address,
+                       "keys": [static_event_key()],
+                       "data": []
+                   },
+               }
+            })
+        );
+        assert_no_notifications(&mut ws).await;
 
-        assert_eq!(invocation_notification, json!({}));
-
+        // new event (after subscription)
+        let new_invocation = emit_static_event(&account, contract_address).await.unwrap();
+        let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+        let invocation_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        assert_eq!(
+            invocation_notification,
+            json!({
+               "jsonrpc": "2.0",
+               "method": "starknet_subscriptionEvents",
+               "params": {
+                   "subscription_id": subscription_id,
+                   "result": {
+                       "transaction_hash": new_invocation.transaction_hash,
+                       "block_hash": latest_block.block_hash,
+                       "block_number": latest_block.block_number,
+                       "from_address": contract_address,
+                       "keys": [static_event_key()],
+                       "data": []
+                   },
+               }
+            })
+        );
         assert_no_notifications(&mut ws).await;
     }
 
