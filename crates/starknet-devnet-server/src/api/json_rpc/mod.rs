@@ -351,14 +351,28 @@ impl JsonRpcHandler {
         old_latest_block: StarknetBlock,
         new_latest_block: StarknetBlock,
     ) -> Result<(), error::ApiError> {
-        let sockets = self.api.sockets.lock().await;
+        // Since it is impossible to determine the hash of the former successor of new_latest_block
+        // directly, we iterate from old_latest_block all the way to the block directly
+        // after new_latest_block.
+        let new_latest_hash = new_latest_block.block_hash();
+        let mut orphan_starting_block_hash = old_latest_block.block_hash();
+        let starknet = self.api.starknet.lock().await;
+        loop {
+            let candidate_block = starknet.get_block(&BlockId::Hash(orphan_starting_block_hash))?;
+            if candidate_block.block_hash() == new_latest_hash {
+                break;
+            }
+            orphan_starting_block_hash = candidate_block.parent_hash();
+        }
+
         let notification = SubscriptionNotification::Reorg(ReorgData {
-            starting_block_hash: todo!(),
-            starting_block_number: todo!(),
-            ending_block_hash: todo!(),
-            ending_block_number: todo!(),
+            starting_block_hash: orphan_starting_block_hash,
+            starting_block_number: new_latest_block.block_number().unchecked_next(),
+            ending_block_hash: old_latest_block.block_hash(),
+            ending_block_number: old_latest_block.block_number(),
         });
 
+        let sockets = self.api.sockets.lock().await;
         for (_, socket_context) in sockets.iter() {
             socket_context.notify_subscribers(&notification).await;
         }
