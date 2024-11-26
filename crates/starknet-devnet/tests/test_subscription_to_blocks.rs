@@ -338,13 +338,7 @@ mod block_subscription_support {
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
         let new_block_hash = devnet.create_block().await.unwrap();
-        devnet
-            .send_custom_rpc(
-                "devnet_abortBlocks",
-                json!({ "starting_block_id": BlockId::Hash(new_block_hash) }),
-            )
-            .await
-            .unwrap();
+        devnet.abort_blocks(&BlockId::Hash(new_block_hash)).await.unwrap();
 
         let subscription_resp = send_text_rpc_via_ws(
             &mut ws,

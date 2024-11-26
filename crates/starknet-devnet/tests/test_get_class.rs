@@ -240,13 +240,7 @@ mod get_class_tests {
 
         let abortable_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
-        devnet
-            .send_custom_rpc(
-                "devnet_abortBlocks",
-                serde_json::json!({ "starting_block_id": BlockId::Hash(abortable_block.block_hash) }),
-            )
-            .await
-            .unwrap();
+        devnet.abort_blocks(&BlockId::Hash(abortable_block.block_hash)).await.unwrap();
 
         // Getting class at the following block IDs should NOT be successful after abortion; these
         // blocks exist, but their states don't contain the class.
