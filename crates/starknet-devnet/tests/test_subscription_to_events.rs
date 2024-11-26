@@ -34,6 +34,13 @@ mod event_subscription_support {
             .ok_or(anyhow::Error::msg("Subscription did not return a numeric ID"))
     }
 
+    async fn receive_event(
+        ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+        subscription_id: i64,
+    ) -> Result<serde_json::Value, anyhow::Error> {
+        receive_notification(ws, "starknet_subscriptionEvents", subscription_id).await
+    }
+
     #[derive(Serialize)]
     struct EventParams {
         from_address: Option<ContractAddress>,
@@ -102,9 +109,7 @@ mod event_subscription_support {
         let invocation = emit_static_event(&account, contract_address).await.unwrap();
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
-        let event = receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
-            .await
-            .unwrap();
+        let event = receive_event(&mut ws, subscription_id).await.unwrap();
         assert_eq!(
             event,
             json!({
@@ -140,9 +145,7 @@ mod event_subscription_support {
         let invocation = emit_static_event(&account, contract_address).await.unwrap();
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
-        let event = receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
-            .await
-            .unwrap();
+        let event = receive_event(&mut ws, subscription_id).await.unwrap();
         assert_eq!(
             event,
             json!({
@@ -172,9 +175,7 @@ mod event_subscription_support {
         let invocation = emit_static_event(&account, contract_address).await.unwrap();
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
-        let event = receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
-            .await
-            .unwrap();
+        let event = receive_event(&mut ws, subscription_id).await.unwrap();
         assert_eq!(
             event,
             json!({
@@ -202,10 +203,8 @@ mod event_subscription_support {
 
         let subscription_id =
             subscribe_events(&mut ws, json!({ "from_address": contract_address })).await.unwrap();
-        let event = receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
-            .await
-            .unwrap();
 
+        let event = receive_event(&mut ws, subscription_id).await.unwrap();
         assert_eq!(
             event,
             json!({
@@ -231,7 +230,7 @@ mod event_subscription_support {
         account.set_block_id(BlockId::Tag(BlockTag::Pending)); // for correct nonce in deployment
 
         let contract_address = deploy_events_contract(&account).await;
-        // to have declare+deploy and invoke in two separate blocks
+        // to have declare+deploy in one block and invoke in another
         devnet.create_block().await.unwrap();
 
         let invocation = emit_static_event(&account, contract_address).await.unwrap();
@@ -240,9 +239,7 @@ mod event_subscription_support {
         let subscription_id =
             subscribe_events(&mut ws, json!({ "from_address": contract_address })).await.unwrap();
 
-        let event = receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
-            .await
-            .unwrap();
+        let event = receive_event(&mut ws, subscription_id).await.unwrap();
         assert_eq!(
             event,
             json!({
@@ -268,7 +265,7 @@ mod event_subscription_support {
         account.set_block_id(BlockId::Tag(BlockTag::Pending)); // for correct nonce in deployment
 
         let contract_address = deploy_events_contract(&account).await;
-        // to have declare+deploy and invoke in two separate blocks
+        // to have declare+deploy in one block and invoke in another
         devnet.create_block().await.unwrap();
 
         let subscription_id =
@@ -277,15 +274,11 @@ mod event_subscription_support {
         // only receive event when pending->latest
         let invocation = emit_static_event(&account, contract_address).await.unwrap();
         assert_no_notifications(&mut ws).await;
-
         let latest_block_hash = devnet.create_block().await.unwrap();
-        let notification =
-            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
-                .await
-                .unwrap();
 
+        let event = receive_event(&mut ws, subscription_id).await.unwrap();
         assert_eq!(
-            notification,
+            event,
             json!({
                 "transaction_hash": invocation.transaction_hash,
                 "block_hash": latest_block_hash,
@@ -315,34 +308,22 @@ mod event_subscription_support {
         let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
 
         // declaration of events contract fee charge
-        let declaration_fee_event =
-            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
-                .await
-                .unwrap();
+        let declaration_fee_event = receive_event(&mut ws, subscription_id).await.unwrap();
         assert_eq!(declaration_fee_event["block_number"], 1);
         assert_eq!(declaration_fee_event["from_address"], json!(STRK_ERC20_CONTRACT_ADDRESS));
 
         // deployment of events contract: udc invocation
-        let deployment_udc_event =
-            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
-                .await
-                .unwrap();
+        let deployment_udc_event = receive_event(&mut ws, subscription_id).await.unwrap();
         assert_eq!(deployment_udc_event["block_number"], 2);
         assert_eq!(deployment_udc_event["from_address"], json!(UDC_CONTRACT_ADDRESS));
 
         // deployment of events contract: fee charge
-        let deployment_fee_event =
-            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
-                .await
-                .unwrap();
+        let deployment_fee_event = receive_event(&mut ws, subscription_id).await.unwrap();
         assert_eq!(deployment_fee_event["block_number"], 2);
         assert_eq!(deployment_fee_event["from_address"], json!(STRK_ERC20_CONTRACT_ADDRESS),);
 
         // invocation of events contract
-        let invocation_event =
-            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
-                .await
-                .unwrap();
+        let invocation_event = receive_event(&mut ws, subscription_id).await.unwrap();
         assert_eq!(
             invocation_event,
             json!({
@@ -356,10 +337,7 @@ mod event_subscription_support {
         );
 
         // invocation of events contract fee charge
-        let invocation_fee_event =
-            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
-                .await
-                .unwrap();
+        let invocation_fee_event = receive_event(&mut ws, subscription_id).await.unwrap();
         assert_eq!(invocation_fee_event["block_number"], latest_block.block_number);
         assert_eq!(invocation_fee_event["from_address"], json!(STRK_ERC20_CONTRACT_ADDRESS));
 
@@ -383,10 +361,7 @@ mod event_subscription_support {
         let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
 
         // assert presence of old event (event that was triggered before the subscription)
-        let old_invocation_event =
-            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
-                .await
-                .unwrap();
+        let old_invocation_event = receive_event(&mut ws, subscription_id).await.unwrap();
         assert_eq!(
             old_invocation_event,
             json!({
@@ -403,10 +378,7 @@ mod event_subscription_support {
         // new event (after subscription)
         let new_invocation = emit_static_event(&account, contract_address).await.unwrap();
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
-        let new_invocation_event =
-            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
-                .await
-                .unwrap();
+        let new_invocation_event = receive_event(&mut ws, subscription_id).await.unwrap();
         assert_eq!(
             new_invocation_event,
             json!({
@@ -438,10 +410,7 @@ mod event_subscription_support {
         let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
 
         // assert presence of old event (event that was triggered before the subscription)
-        let invocation_event =
-            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
-                .await
-                .unwrap();
+        let invocation_event = receive_event(&mut ws, subscription_id).await.unwrap();
         assert_eq!(
             invocation_event,
             json!({
@@ -458,10 +427,7 @@ mod event_subscription_support {
         // new event (after subscription)
         let new_invocation = emit_static_event(&account, contract_address).await.unwrap();
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
-        let invocation_event =
-            receive_notification(&mut ws, "starknet_subscriptionEvents", subscription_id)
-                .await
-                .unwrap();
+        let invocation_event = receive_event(&mut ws, subscription_id).await.unwrap();
         assert_eq!(
             invocation_event,
             json!({
@@ -485,7 +451,6 @@ mod event_subscription_support {
         let contract_address = deploy_events_contract(&account).await;
 
         emit_static_event(&account, contract_address).await.unwrap();
-
         let last_block_hash = devnet.create_block().await.unwrap();
 
         subscribe_events(&mut ws, json!({ "block": BlockId::Hash(last_block_hash) }))

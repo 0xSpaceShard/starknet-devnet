@@ -318,7 +318,6 @@ impl JsonRpcHandler {
             address,
             keys_filter,
         )?;
-        // has_more is expected to be false
 
         for event in events {
             socket_context.notify(subscription_id, SubscriptionNotification::Event(event)).await;
