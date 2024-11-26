@@ -28,7 +28,7 @@ use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_core::{CasmContractClass, StarknetBlock};
 use starknet_rs_core::types::{BlockId, BlockTag, ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::block::{Block, PendingBlock};
+use starknet_types::rpc::block::{Block, PendingBlock, ReorgData};
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
@@ -335,12 +335,32 @@ impl JsonRpcHandler {
             self.broadcast_pending_tx_changes(old_pending_block).await?;
         }
 
-        if new_latest_block.block_number() > old_latest_block.block_number() {
-            self.broadcast_latest_changes(new_latest_block).await?;
-        } else {
-            // TODO - possible only if an immutable request came or one of the following happened:
-            // blocks aborted, devnet restarted, devnet loaded. Or should loading cause websockets
-            // to be restarted too, thus not requiring notification?
+        match new_latest_block.block_number().cmp(&old_latest_block.block_number()) {
+            std::cmp::Ordering::Less => {
+                self.broadcast_reorg(old_latest_block, new_latest_block).await?
+            }
+            std::cmp::Ordering::Equal => { /* no changes required */ }
+            std::cmp::Ordering::Greater => self.broadcast_latest_changes(new_latest_block).await?,
+        }
+
+        Ok(())
+    }
+
+    async fn broadcast_reorg(
+        &self,
+        old_latest_block: StarknetBlock,
+        new_latest_block: StarknetBlock,
+    ) -> Result<(), error::ApiError> {
+        let sockets = self.api.sockets.lock().await;
+        let notification = SubscriptionNotification::Reorg(ReorgData {
+            starting_block_hash: todo!(),
+            starting_block_number: todo!(),
+            ending_block_hash: todo!(),
+            ending_block_number: todo!(),
+        });
+
+        for (_, socket_context) in sockets.iter() {
+            socket_context.notify_subscribers(&notification).await;
         }
 
         Ok(())
