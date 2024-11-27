@@ -26,7 +26,7 @@ mod reorg_subscription_support {
         for (subscription_method, subscription_params) in [
             ("starknet_subscribeNewHeads", json!({})),
             ("starknet_subscribeTransactionStatus", json!({ "transaction_hash": "0x1" })),
-            // TODO ("starknet_subscribeEvents", json!({})),
+            ("starknet_subscribeEvents", json!({})),
         ] {
             let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
             let subscription_id =

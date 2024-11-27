@@ -17,9 +17,9 @@ use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, BlockInput,
-    CallInput, EstimateFeeInput, EventsInput, GetStorageInput, L1TransactionHashInput,
-    PendingTransactionsSubscriptionInput, SubscriptionIdInput, TransactionBlockInput,
-    TransactionHashInput, TransactionHashOutput,
+    CallInput, EstimateFeeInput, EventsInput, EventsSubscriptionInput, GetStorageInput,
+    L1TransactionHashInput, PendingTransactionsSubscriptionInput, SubscriptionIdInput,
+    TransactionBlockInput, TransactionHashInput, TransactionHashOutput,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -310,6 +310,17 @@ impl JsonRpcHandler {
                         sender_address: tx.get_sender_address(),
                     }),
                 ));
+            }
+
+            let events = starknet.get_unlimited_events(
+                Some(BlockId::Tag(BlockTag::Latest)),
+                Some(BlockId::Tag(BlockTag::Latest)),
+                None,
+                None,
+            )?;
+
+            for event in events {
+                notifications.push(SubscriptionNotification::Event(event));
             }
         }
 
@@ -858,7 +869,7 @@ pub enum JsonRpcSubscriptionRequest {
     #[serde(rename = "starknet_subscribePendingTransactions", with = "optional_params")]
     PendingTransactions(Option<PendingTransactionsSubscriptionInput>),
     #[serde(rename = "starknet_subscribeEvents")]
-    Events,
+    Events(Option<EventsSubscriptionInput>),
     #[serde(rename = "starknet_unsubscribe")]
     Unsubscribe(SubscriptionIdInput),
 }

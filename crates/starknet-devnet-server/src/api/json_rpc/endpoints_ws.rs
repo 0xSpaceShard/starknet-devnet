@@ -6,7 +6,8 @@ use starknet_types::starknet_api::block::{BlockNumber, BlockStatus};
 
 use super::error::ApiError;
 use super::models::{
-    BlockInput, PendingTransactionsSubscriptionInput, SubscriptionIdInput, TransactionBlockInput,
+    BlockInput, EventsSubscriptionInput, PendingTransactionsSubscriptionInput, SubscriptionIdInput,
+    TransactionBlockInput,
 };
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::rpc_core::request::Id;
@@ -33,7 +34,9 @@ impl JsonRpcHandler {
             JsonRpcSubscriptionRequest::PendingTransactions(data) => {
                 self.subscribe_pending_txs(data, rpc_request_id, socket_id).await
             }
-            JsonRpcSubscriptionRequest::Events => todo!(),
+            JsonRpcSubscriptionRequest::Events(data) => {
+                self.subscribe_events(data, rpc_request_id, socket_id).await
+            }
             JsonRpcSubscriptionRequest::Unsubscribe(SubscriptionIdInput { subscription_id }) => {
                 let mut sockets = self.api.sockets.lock().await;
                 let socket_context = sockets.get_mut(&socket_id).ok_or(
@@ -42,15 +45,14 @@ impl JsonRpcHandler {
                     }),
                 )?;
 
-                socket_context.unsubscribe(rpc_request_id, subscription_id).await?;
-                Ok(())
+                socket_context.unsubscribe(rpc_request_id, subscription_id).await
             }
         }
     }
 
     /// Returns (starting block number, latest block number). Returns an error in case the starting
     /// block does not exist or there are too many blocks.
-    async fn convert_to_block_number_range(
+    async fn get_validated_block_number_range(
         &self,
         mut starting_block_id: BlockId,
     ) -> Result<(u64, u64), ApiError> {
@@ -105,7 +107,7 @@ impl JsonRpcHandler {
         };
 
         let (query_block_number, latest_block_number) =
-            self.convert_to_block_number_range(block_id).await?;
+            self.get_validated_block_number_range(block_id).await?;
 
         // perform the actual subscription
         let mut sockets = self.api.sockets.lock().await;
@@ -233,7 +235,7 @@ impl JsonRpcHandler {
         };
 
         let (query_block_number, latest_block_number) =
-            self.convert_to_block_number_range(query_block_id).await?;
+            self.get_validated_block_number_range(query_block_id).await?;
 
         // perform the actual subscription
         let mut sockets = self.api.sockets.lock().await;
@@ -276,6 +278,49 @@ impl JsonRpcHandler {
             }
         } else {
             tracing::debug!("Tx status subscription: tx not yet received")
+        }
+
+        Ok(())
+    }
+
+    async fn subscribe_events(
+        &self,
+        maybe_subscription_input: Option<EventsSubscriptionInput>,
+        rpc_request_id: Id,
+        socket_id: SocketId,
+    ) -> Result<(), ApiError> {
+        let address = maybe_subscription_input
+            .as_ref()
+            .and_then(|subscription_input| subscription_input.from_address);
+
+        let starting_block_id = maybe_subscription_input
+            .as_ref()
+            .and_then(|subscription_input| subscription_input.block.as_ref())
+            .map(|b| b.0)
+            .unwrap_or(BlockId::Tag(BlockTag::Latest));
+
+        self.get_validated_block_number_range(starting_block_id).await?;
+
+        let keys_filter =
+            maybe_subscription_input.and_then(|subscription_input| subscription_input.keys);
+
+        let mut sockets = self.api.sockets.lock().await;
+        let socket_context = sockets.get_mut(&socket_id).ok_or(ApiError::StarknetDevnetError(
+            Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
+        ))?;
+
+        let subscription = Subscription::Events { address, keys_filter: keys_filter.clone() };
+        let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
+
+        let events = self.api.starknet.lock().await.get_unlimited_events(
+            Some(starting_block_id),
+            Some(BlockId::Tag(BlockTag::Latest)),
+            address,
+            keys_filter,
+        )?;
+
+        for event in events {
+            socket_context.notify(subscription_id, SubscriptionNotification::Event(event)).await;
         }
 
         Ok(())
