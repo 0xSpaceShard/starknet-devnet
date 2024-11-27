@@ -61,12 +61,6 @@ impl Subscription {
         match (self, notification) {
             (Subscription::NewHeads, SubscriptionNotification::NewHeads(_)) => true,
             (
-                Subscription::NewHeads
-                | Subscription::TransactionStatus { .. }
-                | Subscription::Events { .. },
-                SubscriptionNotification::Reorg(_),
-            ) => true,
-            (
                 Subscription::TransactionStatus { tag, transaction_hash: subscription_hash },
                 SubscriptionNotification::TransactionStatus(notification),
             ) => {
@@ -95,6 +89,12 @@ impl Subscription {
                 Subscription::Events { address, keys_filter },
                 SubscriptionNotification::Event(event),
             ) => check_if_filter_applies_for_event(address, keys_filter, &event.into()),
+            (
+                Subscription::NewHeads
+                | Subscription::TransactionStatus { .. }
+                | Subscription::Events { .. },
+                SubscriptionNotification::Reorg(_),
+            ) => true, // any subscription other than pending tx requires reorg notification
             _ => false,
         }
     }
