@@ -1,7 +1,7 @@
 {
     "openrpc": "1.0.0",
     "info": {
-        "version": "0.8.0",
+        "version": "0.8.0-rc.0",
         "title": "API for getting Starknet executables from nodes that store compiled artifacts",
         "license": {}
     },
@@ -34,7 +34,7 @@
                     "$ref": "#/components/errors/COMPILATION_ERROR"
                 },
                 {
-                    "$ref": "#/components/errors/CLASS_HASH_NOT_FOUND"
+                    "$ref": "./api/starknet_api_openrpc.json#/components/errors/CLASS_HASH_NOT_FOUND"
                 }
             ]
         }
@@ -110,13 +110,13 @@
                             "minItems": 2,
                             "maxItems": 2
                         }
-                    }
-                },
-                "bytecode_segment_lengths": {
-                    "type": "array",
-                    "description": "a list of sizes of segments in the bytecode, each segment is hashed invidually when computing the bytecode hash",
-                    "items": {
-                        "type": "integer"
+                    },
+                    "bytecode_segment_lengths": {
+                        "type": "array",
+                        "description": "a list of sizes of segments in the bytecode, each segment is hashed individually when computing the bytecode hash",
+                        "items": {
+                            "type": "integer"
+                        }
                     }
                 },
                 "required": [
@@ -128,21 +128,23 @@
                 ]
             },
             "CASM_ENTRY_POINT": {
-                "allOf": [
-                    {
-                        "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
-                    },
-                    {
-                        "type": "object",
-                        "properties": {
-                            "builtins": {
-                                "type": "array",
-                                "items": "string"
-                            }
+                "schema": {
+                    "allOf": [
+                        {
+                            "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
                         },
-                        "required": "builtins"
-                    }
-                ]
+                        {
+                            "type": "object",
+                            "properties": {
+                                "builtins": {
+                                    "type": "array",
+                                    "items": "string"
+                                }
+                            },
+                            "required": "builtins"
+                        }
+                    ]
+                }
             },
             "CellRef": {
                 "title": "CellRef",
@@ -181,7 +183,7 @@
                 "properties": {
                     "DoubleDeref": {
                         "title": "DoubleDeref",
-                        "description": "A (CellRef, offsest) tuple",
+                        "description": "A (CellRef, offset) tuple",
                         "type": "array",
                         "items": {
                             "oneOf": [
@@ -202,7 +204,7 @@
                 ]
             },
             "Immediate": {
-                "title": "Imeediate",
+                "title": "Immediate",
                 "type": "object",
                 "properties": {
                     "Immediate": {
@@ -213,11 +215,13 @@
                     "Immediate"
                 ]
             },
-            "BinOp": {
+            "BinOp":{
                 "title": "BinOperand",
                 "type": "object",
-                "properties": {
+                "properties":{
                     "BinOp": {
+                        "type": "object",
+                        "properties": {
                         "op": {
                             "type": "string",
                             "enum": [
@@ -238,12 +242,16 @@
                                 }
                             ]
                         }
+                        },
+                        "required":[
+                            "op",
+                            "a",
+                            "b"
+                        ]
                     }
                 },
-                "required": [
-                    "BinOp",
-                    "a",
-                    "b"
+                "required":[
+                    "BinOp"
                 ]
             },
             "ResOperand": {
@@ -1329,20 +1337,19 @@
                 ]
             },
             "FELT": {
-                "$ref": "./starknet_api_openrpc.json#/components/schemas/FELT"
+                "$ref": "./api/starknet_api_openrpc.json#/components/schemas/FELT"
             },
             "NUM_AS_HEX": {
-                "$ref": "./starknet_api_openrpc.json#/components/schemas/NUM_AS_HEX"
+                "$ref": "./api/starknet_api_openrpc.json#/components/schemas/NUM_AS_HEX"
             },
             "DEPRECATED_CAIRO_ENTRY_POINT": {
-                "$ref": "./starknet_api_openrpc.json#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
+                "$ref": "./api/starknet_api_openrpc.json#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
             }
         },
         "errors": {
-            "CLASS_HASH_NOT_FOUND": {
-                "$ref": "./api/starknet_api_openrpc.json#/components/errors/CLASS_HASH_NOT_FOUND"
-            },
             "COMPILATION_ERROR": {
+                "code": 100,
+                "message": "Failed to compile the contract",
                 "data": {
                     "type": "object",
                     "description": "More data about the compilation failure",
