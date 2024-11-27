@@ -79,6 +79,7 @@ mod reorg_subscription_support {
 
         let created_block_hash = devnet.create_block().await.unwrap();
 
+        // one socket, multiple subscriptions
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
         let mut subscription_ids = vec![];
         for subscription_method in ["starknet_subscribeNewHeads", "starknet_subscribeEvents"] {

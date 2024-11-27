@@ -802,6 +802,7 @@ pub enum JsonRpcRequest {
 
 impl JsonRpcRequest {
     pub fn requires_notifying(&self) -> bool {
+        #![warn(clippy::wildcard_enum_match_arm)]
         match self {
             JsonRpcRequest::SpecVersion => false,
             JsonRpcRequest::BlockWithTransactionHashes(_) => false,
