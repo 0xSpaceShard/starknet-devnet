@@ -213,7 +213,7 @@ impl JsonRpcHandler {
     /// The latest and pending block are always defined, so to avoid having to deal with Err/None in
     /// places where this method is called, it is defined to return an empty accepted block,
     /// even though that case should never happen.
-    async fn get_block(&self, tag: BlockTag) -> StarknetBlock {
+    async fn get_block_by_tag(&self, tag: BlockTag) -> StarknetBlock {
         let starknet = self.api.starknet.lock().await;
         match starknet.get_block(&BlockId::Tag(tag)) {
             Ok(block) => block.clone(),
@@ -225,7 +225,7 @@ impl JsonRpcHandler {
         &self,
         old_pending_block: StarknetBlock,
     ) -> Result<(), error::ApiError> {
-        let new_pending_block = self.get_block(BlockTag::Pending).await;
+        let new_pending_block = self.get_block_by_tag(BlockTag::Pending).await;
         let old_pending_txs = old_pending_block.get_transactions();
         let new_pending_txs = new_pending_block.get_transactions();
 
@@ -350,7 +350,7 @@ impl JsonRpcHandler {
             self.broadcast_pending_tx_changes(old_pending_block).await?;
         }
 
-        let new_latest_block = self.get_block(BlockTag::Latest).await;
+        let new_latest_block = self.get_block_by_tag(BlockTag::Latest).await;
 
         match new_latest_block.block_number().cmp(&old_latest_block.block_number()) {
             std::cmp::Ordering::Less => {
@@ -407,16 +407,18 @@ impl JsonRpcHandler {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
         // for later comparison and subscription notifications
-        let (old_latest_block, old_pending_block) = if request.requires_notifying() {
-            let old_pending_block = if self.starknet_config.uses_pending_block() {
-                Some(self.get_block(BlockTag::Pending).await)
+        let old_latest_block = if request.requires_notifying() {
+            Some(self.get_block_by_tag(BlockTag::Latest).await)
+        } else {
+            None
+        };
+
+        let old_pending_block =
+            if request.requires_notifying() && self.starknet_config.uses_pending_block() {
+                Some(self.get_block_by_tag(BlockTag::Pending).await)
             } else {
                 None
             };
-            (Some(self.get_block(BlockTag::Latest).await), old_pending_block)
-        } else {
-            (None, None)
-        };
 
         // true if origin should be tried after request fails; relevant in forking mode
         let mut forwardable = true;
