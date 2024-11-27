@@ -369,8 +369,8 @@ impl JsonRpcHandler {
         new_latest_block: StarknetBlock,
     ) -> Result<(), error::ApiError> {
         // Since it is impossible to determine the hash of the former successor of new_latest_block
-        // directly, we iterate from old_latest_block all the way to the block directly
-        // after new_latest_block.
+        // directly, we iterate from old_latest_block all the way to the aborted successor of
+        // new_latest_block.
         let new_latest_hash = new_latest_block.block_hash();
         let mut orphan_starting_block_hash = old_latest_block.block_hash();
         let starknet = self.api.starknet.lock().await;
