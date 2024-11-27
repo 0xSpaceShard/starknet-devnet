@@ -326,14 +326,20 @@ impl JsonRpcHandler {
     /// Notify subscribers of what they are subscribed to.
     async fn broadcast_changes(
         &self,
-        old_latest_block: StarknetBlock,
+        old_latest_block: Option<StarknetBlock>,
         old_pending_block: Option<StarknetBlock>,
     ) -> Result<(), error::ApiError> {
-        let new_latest_block = self.get_block(BlockTag::Latest).await;
+        let old_latest_block = if let Some(block) = old_latest_block {
+            block
+        } else {
+            return Ok(());
+        };
 
         if let Some(old_pending_block) = old_pending_block {
             self.broadcast_pending_tx_changes(old_pending_block).await?;
         }
+
+        let new_latest_block = self.get_block(BlockTag::Latest).await;
 
         match new_latest_block.block_number().cmp(&old_latest_block.block_number()) {
             std::cmp::Ordering::Less => {
@@ -390,11 +396,15 @@ impl JsonRpcHandler {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
         // for later comparison and subscription notifications
-        let old_latest_block = self.get_block(BlockTag::Latest).await;
-        let old_pending_block = if self.starknet_config.uses_pending_block() {
-            Some(self.get_block(BlockTag::Pending).await)
+        let (old_latest_block, old_pending_block) = if request.requires_notifying() {
+            let old_pending_block = if self.starknet_config.uses_pending_block() {
+                Some(self.get_block(BlockTag::Pending).await)
+            } else {
+                None
+            };
+            (Some(self.get_block(BlockTag::Latest).await), old_pending_block)
         } else {
-            None
+            (None, None)
         };
 
         // true if origin should be tried after request fails; relevant in forking mode
@@ -554,8 +564,6 @@ impl JsonRpcHandler {
             }
         }
 
-        // TODO if request.modifies_state() { ... } - also in the beginning of this method to avoid
-        // unnecessary lock acquiring
         if let Err(e) = self.broadcast_changes(old_latest_block, old_pending_block).await {
             return ResponseResult::Error(e.api_error_to_rpc_error());
         }
@@ -779,6 +787,64 @@ pub enum JsonRpcRequest {
     Mint(MintTokensRequest),
     #[serde(rename = "devnet_getConfig", with = "empty_params")]
     DevnetConfig,
+}
+
+impl JsonRpcRequest {
+    pub fn requires_notifying(&self) -> bool {
+        match self {
+            JsonRpcRequest::SpecVersion => false,
+            JsonRpcRequest::BlockWithTransactionHashes(_) => false,
+            JsonRpcRequest::BlockWithFullTransactions(_) => false,
+            JsonRpcRequest::BlockWithReceipts(_) => false,
+            JsonRpcRequest::StateUpdate(_) => false,
+            JsonRpcRequest::StorageAt(_) => false,
+            JsonRpcRequest::TransactionByHash(_) => false,
+            JsonRpcRequest::TransactionByBlockAndIndex(_) => false,
+            JsonRpcRequest::TransactionReceiptByTransactionHash(_) => false,
+            JsonRpcRequest::TransactionStatusByHash(_) => false,
+            JsonRpcRequest::MessagesStatusByL1Hash(_) => false,
+            JsonRpcRequest::ClassByHash(_) => false,
+            JsonRpcRequest::CompiledCasmByClassHash(_) => false,
+            JsonRpcRequest::ClassHashAtContractAddress(_) => false,
+            JsonRpcRequest::ClassAtContractAddress(_) => false,
+            JsonRpcRequest::BlockTransactionCount(_) => false,
+            JsonRpcRequest::Call(_) => false,
+            JsonRpcRequest::EstimateFee(_) => false,
+            JsonRpcRequest::BlockNumber => false,
+            JsonRpcRequest::BlockHashAndNumber => false,
+            JsonRpcRequest::ChainId => false,
+            JsonRpcRequest::Syncing => false,
+            JsonRpcRequest::Events(_) => false,
+            JsonRpcRequest::ContractNonce(_) => false,
+            JsonRpcRequest::AddDeclareTransaction(_) => true,
+            JsonRpcRequest::AddDeployAccountTransaction(_) => true,
+            JsonRpcRequest::AddInvokeTransaction(_) => true,
+            JsonRpcRequest::EstimateMessageFee(_) => false,
+            JsonRpcRequest::SimulateTransactions(_) => false,
+            JsonRpcRequest::TraceTransaction(_) => false,
+            JsonRpcRequest::BlockTransactionTraces(_) => false,
+            JsonRpcRequest::ImpersonateAccount(_) => false,
+            JsonRpcRequest::StopImpersonateAccount(_) => false,
+            JsonRpcRequest::AutoImpersonate => false,
+            JsonRpcRequest::StopAutoImpersonate => false,
+            JsonRpcRequest::Dump(_) => false,
+            JsonRpcRequest::Load(_) => false,
+            JsonRpcRequest::PostmanLoadL1MessagingContract(_) => false,
+            JsonRpcRequest::PostmanFlush(_) => true,
+            JsonRpcRequest::PostmanSendMessageToL2(_) => true,
+            JsonRpcRequest::PostmanConsumeMessageFromL2(_) => false,
+            JsonRpcRequest::CreateBlock => true,
+            JsonRpcRequest::AbortBlocks(_) => true,
+            JsonRpcRequest::SetGasPrice(_) => false,
+            JsonRpcRequest::Restart(_) => false,
+            JsonRpcRequest::SetTime(_) => true,
+            JsonRpcRequest::IncreaseTime(_) => true,
+            JsonRpcRequest::PredeployedAccounts(_) => false,
+            JsonRpcRequest::AccountBalance(_) => false,
+            JsonRpcRequest::Mint(_) => true,
+            JsonRpcRequest::DevnetConfig => false,
+        }
+    }
 }
 
 #[derive(Deserialize, AllVariantsSerdeRenames, VariantName)]

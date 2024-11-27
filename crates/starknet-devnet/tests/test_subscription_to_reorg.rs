@@ -76,9 +76,4 @@ mod reorg_subscription_support {
     async fn socket_with_two_subscriptions_should_get_one_reorg_notification() {
         unimplemented!();
     }
-
-    #[tokio::test]
-    async fn restarting_should_forget_all_subscribers_and_not_notify_of_reorg() {
-        unimplemented!()
-    }
 }
