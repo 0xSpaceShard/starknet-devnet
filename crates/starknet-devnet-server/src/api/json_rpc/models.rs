@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
-use starknet_rs_core::types::{Hash256, TransactionExecutionStatus, TransactionFinalityStatus};
+use starknet_rs_core::types::{
+    Felt, Hash256, TransactionExecutionStatus, TransactionFinalityStatus,
+};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
@@ -203,6 +205,14 @@ pub struct TransactionBlockInput {
 pub struct PendingTransactionsSubscriptionInput {
     pub transaction_details: Option<bool>,
     pub sender_address: Option<Vec<ContractAddress>>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct EventsSubscriptionInput {
+    pub block: Option<BlockId>,
+    pub from_address: Option<ContractAddress>,
+    pub keys: Option<Vec<Vec<Felt>>>,
 }
 
 #[cfg(test)]

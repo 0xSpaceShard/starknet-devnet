@@ -85,7 +85,7 @@ mod add_l1_handler_transaction;
 mod cheats;
 pub(crate) mod defaulter;
 mod estimations;
-mod events;
+pub mod events;
 mod get_class_impls;
 mod predeployed;
 pub mod starknet_config;
@@ -1032,6 +1032,17 @@ impl Starknet {
             .get_by_hash(transaction_hash)
             .map(|starknet_transaction| &starknet_transaction.inner)
             .ok_or(Error::NoTransaction)
+    }
+
+    pub fn get_unlimited_events(
+        &self,
+        from_block: Option<BlockId>,
+        to_block: Option<BlockId>,
+        address: Option<ContractAddress>,
+        keys: Option<Vec<Vec<Felt>>>,
+    ) -> DevnetResult<Vec<EmittedEvent>> {
+        events::get_events(self, from_block, to_block, address, keys, 0, None)
+            .map(|(emitted_events, _)| emitted_events)
     }
 
     pub fn get_events(

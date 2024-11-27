@@ -86,7 +86,7 @@ pub(crate) fn get_events(
 /// * `address` - Optional. The address to filter the event by.
 /// * `keys_filter` - Optional. The keys to filter the event by.
 /// * `event` - The event to check if it applies to the filters.
-fn check_if_filter_applies_for_event(
+pub fn check_if_filter_applies_for_event(
     address: &Option<ContractAddress>,
     keys_filter: &Option<Vec<Vec<Felt>>>,
     event: &Event,
