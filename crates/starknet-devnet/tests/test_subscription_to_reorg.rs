@@ -40,7 +40,7 @@ mod reorg_subscription_support {
             .unwrap();
 
         // assert that block-, tx_status- and event-subscribers got notified; unsubscribe them
-        devnet.abort_blocks(&BlockId::Hash(ending_block_hash)).await.unwrap();
+        devnet.abort_blocks(&BlockId::Hash(starting_block_hash)).await.unwrap();
         for (subscription_id, ws) in notifiable_subscribers.iter_mut() {
             let notification = receive_rpc_via_ws(ws).await.unwrap();
             assert_eq!(
