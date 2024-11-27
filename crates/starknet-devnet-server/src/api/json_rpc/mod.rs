@@ -358,11 +358,12 @@ impl JsonRpcHandler {
         let mut orphan_starting_block_hash = old_latest_block.block_hash();
         let starknet = self.api.starknet.lock().await;
         loop {
-            let candidate_block = starknet.get_block(&BlockId::Hash(orphan_starting_block_hash))?;
-            if candidate_block.block_hash() == new_latest_hash {
+            let orphan_block = starknet.get_block(&BlockId::Hash(orphan_starting_block_hash))?;
+            let parent_hash = orphan_block.parent_hash();
+            if parent_hash == new_latest_hash {
                 break;
             }
-            orphan_starting_block_hash = candidate_block.parent_hash();
+            orphan_starting_block_hash = parent_hash;
         }
 
         let notification = SubscriptionNotification::Reorg(ReorgData {
