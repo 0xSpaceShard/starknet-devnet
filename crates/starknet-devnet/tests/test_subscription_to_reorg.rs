@@ -73,7 +73,41 @@ mod reorg_subscription_support {
     }
 
     #[tokio::test]
-    async fn socket_with_two_subscriptions_should_get_one_reorg_notification() {
-        unimplemented!();
+    async fn socket_with_n_subscriptions_should_get_n_reorg_notifications() {
+        let devnet_args = ["--state-archive-capacity", "full"];
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+
+        let created_block_hash = devnet.create_block().await.unwrap();
+
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+        let mut subscription_ids = vec![];
+        for subscription_method in ["starknet_subscribeNewHeads", "starknet_subscribeEvents"] {
+            let subscription_id = subscribe(&mut ws, subscription_method, json!({})).await.unwrap();
+            subscription_ids.push(subscription_id);
+        }
+
+        devnet.abort_blocks(&BlockId::Hash(created_block_hash)).await.unwrap();
+
+        for subscription_id in subscription_ids {
+            let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+            assert_eq!(
+                notification,
+                json!({
+                    "jsonrpc": "2.0",
+                    "method": "starknet_subscriptionReorg",
+                    "params": {
+                        "result": {
+                            "starting_block_hash": created_block_hash,
+                            "starting_block_number": 1,
+                            "ending_block_hash": created_block_hash,
+                            "ending_block_number": 1,
+                        },
+                        "subscription_id": subscription_id,
+                    }
+                })
+            );
+        }
+
+        assert_no_notifications(&mut ws).await;
     }
 }
