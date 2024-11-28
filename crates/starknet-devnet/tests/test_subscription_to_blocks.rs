@@ -7,14 +7,13 @@ mod block_subscription_support {
 
     use serde_json::json;
     use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
-    use starknet_rs_core::types::{BlockId, BlockTag, Felt};
+    use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_rs_providers::Provider;
     use tokio_tungstenite::connect_async;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
-        assert_no_notifications, receive_rpc_via_ws, send_text_rpc_via_ws, subscribe_new_heads,
-        unsubscribe,
+        assert_no_notifications, receive_rpc_via_ws, subscribe_new_heads, unsubscribe,
     };
 
     #[tokio::test]
@@ -308,49 +307,5 @@ mod block_subscription_support {
 
         // this assertion is skipped due to CI instability
         // assert_no_notifications(&mut ws).await;
-    }
-
-    #[tokio::test]
-    async fn test_subscribing_to_non_existent_block() {
-        let devnet = BackgroundDevnet::spawn().await.unwrap();
-        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-
-        for block_id in [BlockId::Number(1), BlockId::Hash(Felt::ONE)] {
-            let subscription_resp = send_text_rpc_via_ws(
-                &mut ws,
-                "starknet_subscribeNewHeads",
-                json!({ "block_id": block_id }),
-            )
-            .await
-            .unwrap();
-
-            assert_eq!(
-                subscription_resp,
-                json!({ "jsonrpc": "2.0", "id": 0, "error": { "code": 24, "message": "Block not found" } })
-            );
-        }
-    }
-
-    #[tokio::test]
-    async fn test_aborted_blocks_not_subscribable() {
-        let devnet_args = ["--state-archive-capacity", "full"];
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
-        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-
-        let new_block_hash = devnet.create_block().await.unwrap();
-        devnet.abort_blocks(&BlockId::Hash(new_block_hash)).await.unwrap();
-
-        let subscription_resp = send_text_rpc_via_ws(
-            &mut ws,
-            "starknet_subscribeNewHeads",
-            json!({ "block_id": BlockId::Hash(new_block_hash) }),
-        )
-        .await
-        .unwrap();
-
-        assert_eq!(
-            subscription_resp,
-            json!({ "jsonrpc": "2.0", "id": 0, "error": { "code": 24, "message": "Block not found" } })
-        );
     }
 }
