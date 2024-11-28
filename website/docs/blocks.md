@@ -99,7 +99,7 @@ Aborted blocks can only be queried by block hash. Devnet does not support the ab
 
 ### Reorg
 
-On block abortion, a reorg subscription notification will be sent to all websocket subscribers requiring so according to [JSON-RPC websocket API specification](https://github.com/starkware-libs/starknet-specs/blob/v0.8.0-rc1/api/starknet_ws_api.json#L256). The `starting_block` of the orphaned chain is the successor of the new latest block, and the `ending_block` of the orphaned chain is the block that was latest before aborting. One reorg notification is sent per subscription, not per websocket.
+On block abortion, a reorg subscription notification will be sent to all websocket subscribers requiring so according to [JSON-RPC websocket API specification](https://github.com/starkware-libs/starknet-specs/blob/v0.8.0-rc1/api/starknet_ws_api.json#L256). The `starting_block` of the orphaned chain is the successor of the new latest block and the `ending_block` of the orphaned chain is the block that was latest before aborting. One reorg notification is sent per subscription, not per websocket, meaning that if a websocket has n subscriptions, it will receive n reorg notifications, each with its own subscription ID.
 
 ### Request and response
 

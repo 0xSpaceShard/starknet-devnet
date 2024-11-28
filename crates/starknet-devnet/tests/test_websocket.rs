@@ -130,7 +130,7 @@ mod websocket_support {
     }
 
     #[tokio::test]
-    async fn restarting_should_forget_all_sockets() {
+    async fn restarting_should_forget_all_websocket_subscriptions() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
