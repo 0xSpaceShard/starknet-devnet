@@ -434,6 +434,17 @@ pub async fn send_binary_rpc_via_ws(
     Ok(resp_body)
 }
 
+pub async fn subscribe(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    subscription_method: &str,
+    params: serde_json::Value,
+) -> Result<i64, anyhow::Error> {
+    let subscription_confirmation = send_text_rpc_via_ws(ws, subscription_method, params).await?;
+    subscription_confirmation["result"]
+        .as_i64()
+        .ok_or(anyhow::Error::msg("Subscription did not return a numeric ID"))
+}
+
 /// Tries to read from the provided ws stream. To prevent deadlock, waits for a second at most.
 pub async fn receive_rpc_via_ws(
     ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,

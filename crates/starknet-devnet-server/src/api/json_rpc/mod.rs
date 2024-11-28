@@ -28,7 +28,7 @@ use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_core::{CasmContractClass, StarknetBlock};
 use starknet_rs_core::types::{BlockId, BlockTag, ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::block::{Block, PendingBlock};
+use starknet_types::rpc::block::{Block, PendingBlock, ReorgData};
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
@@ -213,7 +213,7 @@ impl JsonRpcHandler {
     /// The latest and pending block are always defined, so to avoid having to deal with Err/None in
     /// places where this method is called, it is defined to return an empty accepted block,
     /// even though that case should never happen.
-    async fn get_block(&self, tag: BlockTag) -> StarknetBlock {
+    async fn get_block_by_tag(&self, tag: BlockTag) -> StarknetBlock {
         let starknet = self.api.starknet.lock().await;
         match starknet.get_block(&BlockId::Tag(tag)) {
             Ok(block) => block.clone(),
@@ -225,7 +225,7 @@ impl JsonRpcHandler {
         &self,
         old_pending_block: StarknetBlock,
     ) -> Result<(), error::ApiError> {
-        let new_pending_block = self.get_block(BlockTag::Pending).await;
+        let new_pending_block = self.get_block_by_tag(BlockTag::Pending).await;
         let old_pending_txs = old_pending_block.get_transactions();
         let new_pending_txs = new_pending_block.get_transactions();
 
@@ -337,21 +337,62 @@ impl JsonRpcHandler {
     /// Notify subscribers of what they are subscribed to.
     async fn broadcast_changes(
         &self,
-        old_latest_block: StarknetBlock,
+        old_latest_block: Option<StarknetBlock>,
         old_pending_block: Option<StarknetBlock>,
     ) -> Result<(), error::ApiError> {
-        let new_latest_block = self.get_block(BlockTag::Latest).await;
+        let old_latest_block = if let Some(block) = old_latest_block {
+            block
+        } else {
+            return Ok(());
+        };
 
         if let Some(old_pending_block) = old_pending_block {
             self.broadcast_pending_tx_changes(old_pending_block).await?;
         }
 
-        if new_latest_block.block_number() > old_latest_block.block_number() {
-            self.broadcast_latest_changes(new_latest_block).await?;
-        } else {
-            // TODO - possible only if an immutable request came or one of the following happened:
-            // blocks aborted, devnet restarted, devnet loaded. Or should loading cause websockets
-            // to be restarted too, thus not requiring notification?
+        let new_latest_block = self.get_block_by_tag(BlockTag::Latest).await;
+
+        match new_latest_block.block_number().cmp(&old_latest_block.block_number()) {
+            std::cmp::Ordering::Less => {
+                self.broadcast_reorg(old_latest_block, new_latest_block).await?
+            }
+            std::cmp::Ordering::Equal => { /* no changes required */ }
+            std::cmp::Ordering::Greater => self.broadcast_latest_changes(new_latest_block).await?,
+        }
+
+        Ok(())
+    }
+
+    async fn broadcast_reorg(
+        &self,
+        old_latest_block: StarknetBlock,
+        new_latest_block: StarknetBlock,
+    ) -> Result<(), error::ApiError> {
+        // Since it is impossible to determine the hash of the former successor of new_latest_block
+        // directly, we iterate from old_latest_block all the way to the aborted successor of
+        // new_latest_block.
+        let new_latest_hash = new_latest_block.block_hash();
+        let mut orphan_starting_block_hash = old_latest_block.block_hash();
+        let starknet = self.api.starknet.lock().await;
+        loop {
+            let orphan_block = starknet.get_block(&BlockId::Hash(orphan_starting_block_hash))?;
+            let parent_hash = orphan_block.parent_hash();
+            if parent_hash == new_latest_hash {
+                break;
+            }
+            orphan_starting_block_hash = parent_hash;
+        }
+
+        let notification = SubscriptionNotification::Reorg(ReorgData {
+            starting_block_hash: orphan_starting_block_hash,
+            starting_block_number: new_latest_block.block_number().unchecked_next(),
+            ending_block_hash: old_latest_block.block_hash(),
+            ending_block_number: old_latest_block.block_number(),
+        });
+
+        let sockets = self.api.sockets.lock().await;
+        for (_, socket_context) in sockets.iter() {
+            socket_context.notify_subscribers(&notification).await;
         }
 
         Ok(())
@@ -366,12 +407,18 @@ impl JsonRpcHandler {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
         // for later comparison and subscription notifications
-        let old_latest_block = self.get_block(BlockTag::Latest).await;
-        let old_pending_block = if self.starknet_config.uses_pending_block() {
-            Some(self.get_block(BlockTag::Pending).await)
+        let old_latest_block = if request.requires_notifying() {
+            Some(self.get_block_by_tag(BlockTag::Latest).await)
         } else {
             None
         };
+
+        let old_pending_block =
+            if request.requires_notifying() && self.starknet_config.uses_pending_block() {
+                Some(self.get_block_by_tag(BlockTag::Pending).await)
+            } else {
+                None
+            };
 
         // true if origin should be tried after request fails; relevant in forking mode
         let mut forwardable = true;
@@ -530,8 +577,6 @@ impl JsonRpcHandler {
             }
         }
 
-        // TODO if request.modifies_state() { ... } - also in the beginning of this method to avoid
-        // unnecessary lock acquiring
         if let Err(e) = self.broadcast_changes(old_latest_block, old_pending_block).await {
             return ResponseResult::Error(e.api_error_to_rpc_error());
         }
@@ -755,6 +800,65 @@ pub enum JsonRpcRequest {
     Mint(MintTokensRequest),
     #[serde(rename = "devnet_getConfig", with = "empty_params")]
     DevnetConfig,
+}
+
+impl JsonRpcRequest {
+    pub fn requires_notifying(&self) -> bool {
+        #![warn(clippy::wildcard_enum_match_arm)]
+        match self {
+            JsonRpcRequest::SpecVersion => false,
+            JsonRpcRequest::BlockWithTransactionHashes(_) => false,
+            JsonRpcRequest::BlockWithFullTransactions(_) => false,
+            JsonRpcRequest::BlockWithReceipts(_) => false,
+            JsonRpcRequest::StateUpdate(_) => false,
+            JsonRpcRequest::StorageAt(_) => false,
+            JsonRpcRequest::TransactionByHash(_) => false,
+            JsonRpcRequest::TransactionByBlockAndIndex(_) => false,
+            JsonRpcRequest::TransactionReceiptByTransactionHash(_) => false,
+            JsonRpcRequest::TransactionStatusByHash(_) => false,
+            JsonRpcRequest::MessagesStatusByL1Hash(_) => false,
+            JsonRpcRequest::ClassByHash(_) => false,
+            JsonRpcRequest::CompiledCasmByClassHash(_) => false,
+            JsonRpcRequest::ClassHashAtContractAddress(_) => false,
+            JsonRpcRequest::ClassAtContractAddress(_) => false,
+            JsonRpcRequest::BlockTransactionCount(_) => false,
+            JsonRpcRequest::Call(_) => false,
+            JsonRpcRequest::EstimateFee(_) => false,
+            JsonRpcRequest::BlockNumber => false,
+            JsonRpcRequest::BlockHashAndNumber => false,
+            JsonRpcRequest::ChainId => false,
+            JsonRpcRequest::Syncing => false,
+            JsonRpcRequest::Events(_) => false,
+            JsonRpcRequest::ContractNonce(_) => false,
+            JsonRpcRequest::AddDeclareTransaction(_) => true,
+            JsonRpcRequest::AddDeployAccountTransaction(_) => true,
+            JsonRpcRequest::AddInvokeTransaction(_) => true,
+            JsonRpcRequest::EstimateMessageFee(_) => false,
+            JsonRpcRequest::SimulateTransactions(_) => false,
+            JsonRpcRequest::TraceTransaction(_) => false,
+            JsonRpcRequest::BlockTransactionTraces(_) => false,
+            JsonRpcRequest::ImpersonateAccount(_) => false,
+            JsonRpcRequest::StopImpersonateAccount(_) => false,
+            JsonRpcRequest::AutoImpersonate => false,
+            JsonRpcRequest::StopAutoImpersonate => false,
+            JsonRpcRequest::Dump(_) => false,
+            JsonRpcRequest::Load(_) => false,
+            JsonRpcRequest::PostmanLoadL1MessagingContract(_) => false,
+            JsonRpcRequest::PostmanFlush(_) => true,
+            JsonRpcRequest::PostmanSendMessageToL2(_) => true,
+            JsonRpcRequest::PostmanConsumeMessageFromL2(_) => false,
+            JsonRpcRequest::CreateBlock => true,
+            JsonRpcRequest::AbortBlocks(_) => true,
+            JsonRpcRequest::SetGasPrice(_) => false,
+            JsonRpcRequest::Restart(_) => false,
+            JsonRpcRequest::SetTime(_) => true,
+            JsonRpcRequest::IncreaseTime(_) => true,
+            JsonRpcRequest::PredeployedAccounts(_) => false,
+            JsonRpcRequest::AccountBalance(_) => false,
+            JsonRpcRequest::Mint(_) => true,
+            JsonRpcRequest::DevnetConfig => false,
+        }
+    }
 }
 
 #[derive(Deserialize, AllVariantsSerdeRenames, VariantName)]

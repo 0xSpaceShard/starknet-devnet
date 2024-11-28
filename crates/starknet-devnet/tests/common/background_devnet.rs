@@ -370,6 +370,30 @@ impl BackgroundDevnet {
         }
     }
 
+    pub async fn abort_blocks(
+        &self,
+        starting_block_id: &BlockId,
+    ) -> Result<Vec<Felt>, anyhow::Error> {
+        let mut aborted_blocks = self
+            .send_custom_rpc(
+                "devnet_abortBlocks",
+                json!({ "starting_block_id" : starting_block_id }),
+            )
+            .await
+            .map_err(|e| anyhow::Error::msg(e.to_string()))?;
+
+        let aborted_blocks = aborted_blocks["aborted"]
+            .take()
+            .as_array()
+            .ok_or(anyhow::Error::msg("Invalid abort response"))?
+            .clone();
+
+        Ok(aborted_blocks
+            .into_iter()
+            .map(|block_hash| serde_json::from_value(block_hash).unwrap())
+            .collect())
+    }
+
     pub async fn get_config(&self) -> serde_json::Value {
         self.send_custom_rpc("devnet_getConfig", json!({})).await.unwrap()
     }
