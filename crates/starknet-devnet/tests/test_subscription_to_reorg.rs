@@ -2,7 +2,7 @@
 pub mod common;
 
 mod reorg_subscription_support {
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
 
     use serde_json::json;
     use starknet_rs_core::types::BlockId;
@@ -79,7 +79,7 @@ mod reorg_subscription_support {
 
         let created_block_hash = devnet.create_block().await.unwrap();
 
-        // one socket, multiple subscriptions
+        // Create one socket with n subscriptions.
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
         let mut subscription_ids = vec![];
         for subscription_method in ["starknet_subscribeNewHeads", "starknet_subscribeEvents"] {
@@ -87,10 +87,21 @@ mod reorg_subscription_support {
             subscription_ids.push(subscription_id);
         }
 
+        // Trigger reorg.
         devnet.abort_blocks(&BlockId::Hash(created_block_hash)).await.unwrap();
 
-        for subscription_id in subscription_ids {
-            let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        // Assert n reorg notifications received. The notifications only differ in subscription_id.
+        let mut notification_ids = HashSet::new();
+        for _ in subscription_ids.iter() {
+            let mut notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+
+            // Reorg notifications may be received in any order. To assert one reorg subscription
+            // was received per subscription_id, we extract the IDs from notifications, store them
+            // in a set, and later assert equality with the set of expected subscription IDs.
+            let notification_id =
+                notification["params"]["subscription_id"].take().as_i64().unwrap();
+            notification_ids.insert(notification_id);
+
             assert_eq!(
                 notification,
                 json!({
@@ -103,11 +114,13 @@ mod reorg_subscription_support {
                             "ending_block_hash": created_block_hash,
                             "ending_block_number": 1,
                         },
-                        "subscription_id": subscription_id,
+                        "subscription_id": null,
                     }
                 })
             );
         }
+
+        assert_eq!(notification_ids, HashSet::from_iter(subscription_ids));
 
         assert_no_notifications(&mut ws).await;
     }
