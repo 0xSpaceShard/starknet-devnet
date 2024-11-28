@@ -9,12 +9,20 @@ mod block_subscription_support {
     use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_rs_providers::Provider;
-    use tokio_tungstenite::connect_async;
+    use tokio::net::TcpStream;
+    use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
-        assert_no_notifications, receive_rpc_via_ws, subscribe_new_heads, unsubscribe,
+        assert_no_notifications, receive_notification, subscribe_new_heads, unsubscribe,
     };
+
+    async fn receive_block(
+        ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+        subscription_id: i64,
+    ) -> Result<serde_json::Value, anyhow::Error> {
+        receive_notification(ws, "starknet_subscriptionNewHeads", subscription_id).await
+    }
 
     #[tokio::test]
     async fn subscribe_to_new_block_heads_happy_path() {
@@ -27,18 +35,9 @@ mod block_subscription_support {
         for block_i in 1..=2 {
             let created_block_hash = devnet.create_block().await.unwrap();
 
-            let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-            assert_eq!(notification["method"], "starknet_subscriptionNewHeads");
-            assert_eq!(
-                notification["params"]["result"]["block_hash"],
-                created_block_hash.to_hex_string()
-            );
-
-            assert_eq!(notification["params"]["result"]["block_number"].as_i64().unwrap(), block_i);
-            assert_eq!(
-                notification["params"]["subscription_id"].as_i64().unwrap(),
-                subscription_id
-            );
+            let notification_block = receive_block(&mut ws, subscription_id).await.unwrap();
+            assert_eq!(notification_block["block_hash"], json!(created_block_hash));
+            assert_eq!(notification_block["block_number"], json!(block_i));
         }
     }
 
@@ -69,18 +68,9 @@ mod block_subscription_support {
         let created_block_hash = devnet.create_block().await.unwrap();
 
         for (subscription_id, mut ws) in subscribers {
-            let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-            assert_eq!(notification["method"], "starknet_subscriptionNewHeads");
-            assert_eq!(
-                notification["params"]["result"]["block_hash"],
-                created_block_hash.to_hex_string()
-            );
-
-            assert_eq!(notification["params"]["result"]["block_number"].as_i64().unwrap(), 1);
-            assert_eq!(
-                notification["params"]["subscription_id"].as_i64().unwrap(),
-                subscription_id
-            );
+            let notification_block = receive_block(&mut ws, subscription_id).await.unwrap();
+            assert_eq!(notification_block["block_hash"], json!(created_block_hash));
+            assert_eq!(notification_block["block_number"], json!(1));
         }
     }
 
@@ -99,14 +89,8 @@ mod block_subscription_support {
             subscribe_new_heads(&mut ws, json!({ "block_id": BlockId::Number(0) })).await.unwrap();
 
         for block_i in 0..=n_blocks {
-            let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-            assert_eq!(notification["method"], "starknet_subscriptionNewHeads");
-
-            assert_eq!(notification["params"]["result"]["block_number"].as_i64().unwrap(), block_i);
-            assert_eq!(
-                notification["params"]["subscription_id"].as_i64().unwrap(),
-                subscription_id
-            );
+            let notification_block = receive_block(&mut ws, subscription_id).await.unwrap();
+            assert_eq!(notification_block["block_number"], json!(block_i));
         }
 
         assert_no_notifications(&mut ws).await;
@@ -134,14 +118,8 @@ mod block_subscription_support {
 
         let starting_block = 0;
         for block_i in starting_block..=n_blocks {
-            let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-            assert_eq!(notification["method"], "starknet_subscriptionNewHeads");
-
-            assert_eq!(notification["params"]["result"]["block_number"].as_i64().unwrap(), block_i);
-            assert_eq!(
-                notification["params"]["subscription_id"].as_i64().unwrap(),
-                subscription_id
-            );
+            let notification_block = receive_block(&mut ws, subscription_id).await.unwrap();
+            assert_eq!(notification_block["block_number"], json!(block_i));
         }
 
         assert_no_notifications(&mut ws).await;
@@ -164,19 +142,15 @@ mod block_subscription_support {
 
         devnet.create_block().await.unwrap();
 
-        // assert notification equality after taking subscription IDs out
-        let mut notification_latest = receive_rpc_via_ws(&mut ws_latest).await.unwrap();
-        assert_eq!(notification_latest["params"]["subscription_id"].take(), subscription_id_latest);
+        let notification_block_latest =
+            receive_block(&mut ws_latest, subscription_id_latest).await.unwrap();
         assert_no_notifications(&mut ws_latest).await;
 
-        let mut notification_default = receive_rpc_via_ws(&mut ws_default).await.unwrap();
-        assert_eq!(
-            notification_default["params"]["subscription_id"].take(),
-            subscription_id_default
-        );
+        let notification_block_default =
+            receive_block(&mut ws_default, subscription_id_default).await.unwrap();
         assert_no_notifications(&mut ws_default).await;
 
-        assert_eq!(notification_latest, notification_default);
+        assert_eq!(notification_block_latest, notification_block_default);
     }
 
     #[tokio::test]
@@ -206,16 +180,8 @@ mod block_subscription_support {
         let created_block_hash = devnet.create_block().await.unwrap();
 
         for (subscription_id, mut ws) in subscribers {
-            let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-            assert_eq!(notification["method"], "starknet_subscriptionNewHeads");
-            assert_eq!(
-                notification["params"]["result"]["block_hash"],
-                created_block_hash.to_hex_string()
-            );
-            assert_eq!(
-                notification["params"]["subscription_id"].as_i64().unwrap(),
-                subscription_id
-            );
+            let notification_block = receive_block(&mut ws, subscription_id).await.unwrap();
+            assert_eq!(notification_block["block_hash"], json!(created_block_hash));
         }
 
         assert_no_notifications(&mut unsubscriber_ws).await;
@@ -273,15 +239,9 @@ mod block_subscription_support {
 
         let created_block_hash = devnet.create_block().await.unwrap();
 
-        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-        assert_eq!(notification["method"], "starknet_subscriptionNewHeads");
-        assert_eq!(
-            notification["params"]["result"]["block_hash"],
-            created_block_hash.to_hex_string()
-        );
-
-        assert_eq!(notification["params"]["result"]["block_number"].as_i64().unwrap(), 1);
-        assert_eq!(notification["params"]["subscription_id"].as_i64().unwrap(), subscription_id);
+        let notification_block = receive_block(&mut ws, subscription_id).await.unwrap();
+        assert_eq!(notification_block["block_hash"], json!(created_block_hash));
+        assert_eq!(notification_block["block_number"], json!(1));
     }
 
     #[tokio::test]
@@ -299,11 +259,8 @@ mod block_subscription_support {
         // should be enough time for Devnet to mine a single new block
         tokio::time::sleep(Duration::from_secs(interval + 1)).await;
 
-        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-
-        assert_eq!(notification["method"], "starknet_subscriptionNewHeads");
-        assert_eq!(notification["params"]["result"]["block_number"].as_i64().unwrap(), 1);
-        assert_eq!(notification["params"]["subscription_id"].as_i64().unwrap(), subscription_id);
+        let notification_block = receive_block(&mut ws, subscription_id).await.unwrap();
+        assert_eq!(notification_block["block_number"], json!(1));
 
         // this assertion is skipped due to CI instability
         // assert_no_notifications(&mut ws).await;
