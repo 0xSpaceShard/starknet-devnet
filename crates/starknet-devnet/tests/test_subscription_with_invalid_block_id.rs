@@ -13,6 +13,10 @@ mod subscription_with_invalid_block_id {
         json!({ "jsonrpc": "2.0", "id": 0, "error": { "code": 24, "message": "Block not found" } })
     }
 
+    fn call_on_pending_error() -> serde_json::Value {
+        json!({ "jsonrpc": "2.0", "id": 0, "error": { "code": 69, "message": "This method does not support being called on the pending block" } })
+    }
+
     #[tokio::test]
     async fn test_subscribing_to_non_existent_block() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
@@ -65,5 +69,23 @@ mod subscription_with_invalid_block_id {
         }
 
         assert_no_notifications(&mut ws).await;
+    }
+
+    #[tokio::test]
+    async fn test_pending_block_not_allowed_in_block_and_event_subscription() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        for subscription_method in ["starknet_subscribeNewHeads", "starknet_subscribeEvents"] {
+            let subscription_resp = send_text_rpc_via_ws(
+                &mut ws,
+                subscription_method,
+                json!({ "block_id": "pending" }),
+            )
+            .await
+            .unwrap();
+
+            assert_eq!(subscription_resp, call_on_pending_error(), "Method: {subscription_method}");
+        }
     }
 }

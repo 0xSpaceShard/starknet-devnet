@@ -16,6 +16,14 @@ use crate::subscribe::{
     SubscriptionNotification, TransactionHashWrapper,
 };
 
+fn disallow_pending_block(block_id: &BlockId) -> Result<(), ApiError> {
+    if let BlockId::Tag(BlockTag::Pending) = block_id {
+        Err(ApiError::CallOnPending)
+    } else {
+        Ok(())
+    }
+}
+
 /// The definitions of JSON-RPC read endpoints defined in starknet_ws_api.json
 impl JsonRpcHandler {
     pub async fn execute_ws(
@@ -59,7 +67,6 @@ impl JsonRpcHandler {
         let starknet = self.api.starknet.lock().await;
 
         // Convert pending to latest to prevent getting block_number = 0
-        // Info on 2024/11/12: Pending block_id shall be disallowed
         starting_block_id = match starting_block_id {
             BlockId::Tag(BlockTag::Pending) => BlockId::Tag(BlockTag::Latest),
             other => other,
@@ -106,6 +113,7 @@ impl JsonRpcHandler {
             BlockId::Tag(BlockTag::Latest)
         };
 
+        disallow_pending_block(&block_id)?;
         let (query_block_number, latest_block_number) =
             self.get_validated_block_number_range(block_id).await?;
 
@@ -299,6 +307,7 @@ impl JsonRpcHandler {
             .map(|b| b.0)
             .unwrap_or(BlockId::Tag(BlockTag::Latest));
 
+        disallow_pending_block(&starting_block_id)?;
         self.get_validated_block_number_range(starting_block_id).await?;
 
         let keys_filter =

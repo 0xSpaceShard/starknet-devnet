@@ -148,19 +148,19 @@ mod block_subscription_support {
     }
 
     #[tokio::test]
-    async fn subscription_to_pending_block_is_same_as_latest() {
+    async fn assert_latest_block_is_default() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
         let (mut ws_latest, _) = connect_async(devnet.ws_url()).await.unwrap();
-        let (mut ws_pending, _) = connect_async(devnet.ws_url()).await.unwrap();
+        let (mut ws_default, _) = connect_async(devnet.ws_url()).await.unwrap();
 
-        // create two subscriptions: one to latest, one to pending
+        // create two subscriptions: one to latest, one without block (thus defaulting)
         let subscription_id_latest =
             subscribe_new_heads(&mut ws_latest, json!({ "block_id": "latest" })).await.unwrap();
 
-        let subscription_id_pending =
-            subscribe_new_heads(&mut ws_pending, json!({ "block_id": "pending" })).await.unwrap();
+        let subscription_id_default =
+            subscribe_new_heads(&mut ws_default, json!({})).await.unwrap();
 
-        assert_ne!(subscription_id_latest, subscription_id_pending);
+        assert_ne!(subscription_id_latest, subscription_id_default);
 
         devnet.create_block().await.unwrap();
 
@@ -169,14 +169,14 @@ mod block_subscription_support {
         assert_eq!(notification_latest["params"]["subscription_id"].take(), subscription_id_latest);
         assert_no_notifications(&mut ws_latest).await;
 
-        let mut notification_pending = receive_rpc_via_ws(&mut ws_pending).await.unwrap();
+        let mut notification_default = receive_rpc_via_ws(&mut ws_default).await.unwrap();
         assert_eq!(
-            notification_pending["params"]["subscription_id"].take(),
-            subscription_id_pending
+            notification_default["params"]["subscription_id"].take(),
+            subscription_id_default
         );
-        assert_no_notifications(&mut ws_pending).await;
+        assert_no_notifications(&mut ws_default).await;
 
-        assert_eq!(notification_latest, notification_pending);
+        assert_eq!(notification_latest, notification_default);
     }
 
     #[tokio::test]
