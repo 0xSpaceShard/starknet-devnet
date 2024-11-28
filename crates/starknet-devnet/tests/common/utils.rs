@@ -465,7 +465,7 @@ pub async fn receive_notification(
     assert_eq!(notification["jsonrpc"], "2.0");
     assert_eq!(notification["method"], method);
     assert_eq!(notification["params"]["subscription_id"], expected_subscription_id);
-    Ok(notification["params"].take()["result"].take())
+    Ok(notification["params"]["result"].take())
 }
 
 pub async fn assert_no_notifications(ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {

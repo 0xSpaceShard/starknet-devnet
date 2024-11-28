@@ -20,7 +20,7 @@ mod event_subscription_support {
     use crate::common::utils::{
         assert_no_notifications, declare_v3_deploy_v3,
         get_events_contract_in_sierra_and_compiled_class_hash, receive_notification,
-        receive_rpc_via_ws, subscribe, unsubscribe,
+        receive_rpc_via_ws, send_text_rpc_via_ws, subscribe, unsubscribe,
     };
 
     async fn subscribe_events(
@@ -454,5 +454,25 @@ mod event_subscription_support {
             .unwrap();
 
         assert_no_notifications(&mut ws).await;
+    }
+
+    #[tokio::test]
+    async fn should_return_error_for_subscribing_to_non_existent_block() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        let non_existent_hash = Felt::from(1234);
+        let subscription_resp = send_text_rpc_via_ws(
+            &mut ws,
+            "starknet_subscribeNewHeads",
+            json!({ "block_id": BlockId::Hash(non_existent_hash) }),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            subscription_resp,
+            json!({ "jsonrpc": "2.0", "id": 0, "error": { "code": 24, "message": "Block not found" } })
+        );
     }
 }
