@@ -6,8 +6,8 @@ use starknet_types::starknet_api::block::{BlockNumber, BlockStatus};
 
 use super::error::ApiError;
 use super::models::{
-    BlockInput, EventsSubscriptionInput, PendingTransactionsSubscriptionInput, SubscriptionIdInput,
-    TransactionBlockInput,
+    BlockIdInput, EventsSubscriptionInput, PendingTransactionsSubscriptionInput,
+    SubscriptionIdInput, TransactionBlockInput,
 };
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::rpc_core::request::Id;
@@ -95,12 +95,12 @@ impl JsonRpcHandler {
     /// subscribed to new blocks.
     async fn subscribe_new_heads(
         &self,
-        block_input: Option<BlockInput>,
+        block_input: Option<BlockIdInput>,
         rpc_request_id: Id,
         socket_id: SocketId,
     ) -> Result<(), ApiError> {
-        let block_id = if let Some(BlockInput { block }) = block_input {
-            block.into()
+        let block_id = if let Some(BlockIdInput { block_id }) = block_input {
+            block_id.into()
         } else {
             // if no block ID input, this eventually just subscribes the user to new blocks
             BlockId::Tag(BlockTag::Latest)
@@ -225,9 +225,9 @@ impl JsonRpcHandler {
         rpc_request_id: Id,
         socket_id: SocketId,
     ) -> Result<(), ApiError> {
-        let TransactionBlockInput { transaction_hash, block } = transaction_block_input;
+        let TransactionBlockInput { transaction_hash, block_id } = transaction_block_input;
 
-        let query_block_id = if let Some(block_id) = block {
+        let query_block_id = if let Some(block_id) = block_id {
             block_id.0
         } else {
             // if no block ID input, this eventually just subscribes the user to new blocks
@@ -295,7 +295,7 @@ impl JsonRpcHandler {
 
         let starting_block_id = maybe_subscription_input
             .as_ref()
-            .and_then(|subscription_input| subscription_input.block.as_ref())
+            .and_then(|subscription_input| subscription_input.block_id.as_ref())
             .map(|b| b.0)
             .unwrap_or(BlockId::Tag(BlockTag::Latest));
 

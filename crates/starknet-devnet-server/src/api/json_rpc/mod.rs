@@ -16,8 +16,8 @@ use enum_helper_macros::{AllVariantsSerdeRenames, VariantName};
 use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
 use models::{
-    BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, BlockInput,
-    CallInput, EstimateFeeInput, EventsInput, EventsSubscriptionInput, GetStorageInput,
+    BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
+    EstimateFeeInput, EventsInput, EventsSubscriptionInput, GetStorageInput,
     L1TransactionHashInput, PendingTransactionsSubscriptionInput, SubscriptionIdInput,
     TransactionBlockInput, TransactionHashInput, TransactionHashOutput,
 };
@@ -866,7 +866,7 @@ impl JsonRpcRequest {
 #[serde(tag = "method", content = "params")]
 pub enum JsonRpcSubscriptionRequest {
     #[serde(rename = "starknet_subscribeNewHeads", with = "optional_params")]
-    NewHeads(Option<BlockInput>),
+    NewHeads(Option<BlockIdInput>),
     #[serde(rename = "starknet_subscribeTransactionStatus")]
     TransactionStatus(TransactionBlockInput),
     #[serde(rename = "starknet_subscribePendingTransactions", with = "optional_params")]

@@ -97,7 +97,7 @@ mod block_subscription_support {
 
         // request notifications for all blocks starting with genesis
         let subscription_id =
-            subscribe_new_heads(&mut ws, json!({ "block": BlockId::Number(0) })).await.unwrap();
+            subscribe_new_heads(&mut ws, json!({ "block_id": BlockId::Number(0) })).await.unwrap();
 
         for block_i in 0..=n_blocks {
             let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
@@ -128,7 +128,7 @@ mod block_subscription_support {
         // request notifications for all blocks starting with genesis
         let subscription_id = subscribe_new_heads(
             &mut ws,
-            json!({ "block": BlockId::Hash(genesis_block.block_hash)}),
+            json!({ "block_id": BlockId::Hash(genesis_block.block_hash)}),
         )
         .await
         .unwrap();
@@ -156,10 +156,10 @@ mod block_subscription_support {
 
         // create two subscriptions: one to latest, one to pending
         let subscription_id_latest =
-            subscribe_new_heads(&mut ws_latest, json!({ "block": "latest" })).await.unwrap();
+            subscribe_new_heads(&mut ws_latest, json!({ "block_id": "latest" })).await.unwrap();
 
         let subscription_id_pending =
-            subscribe_new_heads(&mut ws_pending, json!({ "block": "pending" })).await.unwrap();
+            subscribe_new_heads(&mut ws_pending, json!({ "block_id": "pending" })).await.unwrap();
 
         assert_ne!(subscription_id_latest, subscription_id_pending);
 
@@ -319,7 +319,7 @@ mod block_subscription_support {
             let subscription_resp = send_text_rpc_via_ws(
                 &mut ws,
                 "starknet_subscribeNewHeads",
-                json!({ "block": block_id }),
+                json!({ "block_id": block_id }),
             )
             .await
             .unwrap();
@@ -343,7 +343,7 @@ mod block_subscription_support {
         let subscription_resp = send_text_rpc_via_ws(
             &mut ws,
             "starknet_subscribeNewHeads",
-            json!({ "block": BlockId::Hash(new_block_hash) }),
+            json!({ "block_id": BlockId::Hash(new_block_hash) }),
         )
         .await
         .unwrap();
