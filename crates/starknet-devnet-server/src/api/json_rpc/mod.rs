@@ -113,7 +113,28 @@ impl RpcHandler for JsonRpcHandler {
         original_call: RpcMethodCall,
     ) -> ResponseResult {
         info!(target: "rpc", "received method in on_request {}", request);
-        self.execute(request, original_call).await
+
+        let is_request_forwardable = request.is_forwardable_to_origin(); // applicable if forking
+        let is_request_dumpable = request.is_dumpable();
+
+        let starknet_resp = self.execute(request).await;
+
+        // If locally we got an error and forking is set up, forward the request to the origin
+        if let (Err(err), Some(forwarder)) = (&starknet_resp, &self.origin_caller) {
+            if err.is_forwardable_to_origin() && is_request_forwardable {
+                // if a block or state is requested that was only added to origin after
+                // forking happened, it will be normally returned; we don't extra-handle this case
+                return forwarder.call(&original_call).await;
+            }
+        }
+
+        if starknet_resp.is_ok() && is_request_dumpable {
+            if let Err(e) = self.update_dump(&original_call).await {
+                return ResponseResult::Error(e);
+            }
+        }
+
+        starknet_resp.to_rpc_result()
     }
 
     async fn on_call(&self, call: RpcMethodCall) -> RpcResponse {
@@ -178,19 +199,11 @@ impl JsonRpcHandler {
         }
     }
 
-    /// The method matches the request to the corresponding enum variant and executes the request
-    async fn execute(
-        &self,
-        request: JsonRpcRequest,
-        original_call: RpcMethodCall,
-    ) -> ResponseResult {
+    /// Matches the request to the corresponding enum variant and executes the request.
+    async fn execute(&self, request: JsonRpcRequest) -> Result<JsonRpcResponse, error::ApiError> {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
-        // applicable in forking mode
-        let request_forwardable = request.is_forwardable_to_origin();
-        let request_dumpable = request.is_dumpable();
-
-        let starknet_resp = match request {
+        match request {
             JsonRpcRequest::SpecVersion => self.spec_version(),
             JsonRpcRequest::BlockWithTransactionHashes(block) => {
                 self.get_block_with_tx_hashes(block.block_id).await
@@ -313,24 +326,7 @@ impl JsonRpcHandler {
             JsonRpcRequest::AccountBalance(data) => self.get_account_balance(data).await,
             JsonRpcRequest::Mint(data) => self.mint(data).await,
             JsonRpcRequest::DevnetConfig => self.get_devnet_config().await,
-        };
-
-        // If locally we got an error and forking is set up, forward the request to the origin
-        if let (Err(err), Some(forwarder)) = (&starknet_resp, &self.origin_caller) {
-            if err.is_forwardable_to_origin() && request_forwardable {
-                // if a block or state is requested that was only added to origin after
-                // forking happened, it will be normally returned; we don't extra-handle this case
-                return forwarder.call(&original_call).await;
-            }
         }
-
-        if starknet_resp.is_ok() && request_dumpable {
-            if let Err(e) = self.update_dump(&original_call).await {
-                return ResponseResult::Error(e);
-            }
-        }
-
-        starknet_resp.to_rpc_result()
     }
 
     async fn update_dump(&self, event: &RpcMethodCall) -> Result<(), RpcError> {
