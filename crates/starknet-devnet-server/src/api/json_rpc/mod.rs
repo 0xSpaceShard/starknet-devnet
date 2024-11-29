@@ -186,8 +186,8 @@ impl JsonRpcHandler {
     ) -> ResponseResult {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
-        // true if origin should be tried after request fails; relevant in forking mode
-        let mut forwardable = true;
+        // applicable in forking mode
+        let request_forwardable = request.is_forwardable_to_origin();
 
         let starknet_resp = match request {
             JsonRpcRequest::SpecVersion => self.spec_version(),
@@ -257,7 +257,6 @@ impl JsonRpcHandler {
             JsonRpcRequest::AddDeployAccountTransaction(
                 BroadcastedDeployAccountTransactionInput { deploy_account_transaction },
             ) => {
-                forwardable = false;
                 let BroadcastedDeployAccountTransactionEnumWrapper::DeployAccount(
                     broadcasted_transaction,
                 ) = deploy_account_transaction;
@@ -317,24 +316,10 @@ impl JsonRpcHandler {
 
         // If locally we got an error and forking is set up, forward the request to the origin
         if let (Err(err), Some(forwarder)) = (&starknet_resp, &self.origin_caller) {
-            match err {
+            if err.is_forwardable_to_origin() && request_forwardable {
                 // if a block or state is requested that was only added to origin after
                 // forking happened, it will be normally returned; we don't extra-handle this case
-                error::ApiError::BlockNotFound
-                | error::ApiError::TransactionNotFound
-                | error::ApiError::NoStateAtBlock { .. }
-                | error::ApiError::ClassHashNotFound => {
-                    // ClassHashNotFound can be thrown from starknet_getClass, starknet_getClassAt
-                    // or starknet_deployAccount, but starknet_deployAccount
-                    // doesn't need to be retried from here as it already attempted fetching from
-                    // the origin internally. This distinction is handled by (un)setting the
-                    // `forwardable` flag
-
-                    if forwardable {
-                        return forwarder.call(&original_call).await;
-                    }
-                }
-                _other_error => (),
+                return forwarder.call(&original_call).await;
             }
         }
 
@@ -508,6 +493,66 @@ pub enum JsonRpcRequest {
     #[serde(rename = "devnet_getConfig", with = "empty_params")]
     DevnetConfig,
 }
+
+impl JsonRpcRequest {
+    fn is_forwardable_to_origin(&self) -> bool {
+        #[warn(clippy::wildcard_enum_match_arm)]
+        match self {
+            Self::BlockWithTransactionHashes(_)
+            | Self::BlockWithFullTransactions(_)
+            | Self::BlockWithReceipts(_)
+            | Self::StateUpdate(_)
+            | Self::StorageAt(_)
+            | Self::TransactionByHash(_)
+            | Self::TransactionByBlockAndIndex(_)
+            | Self::TransactionReceiptByTransactionHash(_)
+            | Self::TransactionStatusByHash(_)
+            | Self::ClassByHash(_)
+            | Self::ClassHashAtContractAddress(_)
+            | Self::ClassAtContractAddress(_)
+            | Self::BlockTransactionCount(_)
+            | Self::Call(_)
+            | Self::EstimateFee(_)
+            | Self::BlockNumber
+            | Self::BlockHashAndNumber
+            | Self::Events(_)
+            | Self::ContractNonce(_)
+            | Self::EstimateMessageFee(_)
+            | Self::SimulateTransactions(_)
+            | Self::TraceTransaction(_)
+            | Self::BlockTransactionTraces(_) => true,
+            // starknet-specific, but not forwardable
+            Self::SpecVersion
+            | Self::ChainId
+            | Self::Syncing
+            | Self::AddDeclareTransaction(_)
+            | Self::AddDeployAccountTransaction(_)
+            | Self::AddInvokeTransaction(_)
+            // devnet-specific, thus not forwardable
+            | Self::ImpersonateAccount(_)
+            | Self::StopImpersonateAccount(_)
+            | Self::AutoImpersonate
+            | Self::StopAutoImpersonate
+            | Self::Dump(_)
+            | Self::Load(_)
+            | Self::PostmanLoadL1MessagingContract(_)
+            | Self::PostmanFlush(_)
+            | Self::PostmanSendMessageToL2(_)
+            | Self::PostmanConsumeMessageFromL2(_)
+            | Self::CreateBlock
+            | Self::AbortBlocks(_)
+            | Self::SetGasPrice(_)
+            | Self::Restart(_)
+            | Self::SetTime(_)
+            | Self::IncreaseTime(_)
+            | Self::PredeployedAccounts(_)
+            | Self::AccountBalance(_)
+            | Self::Mint(_)
+            | Self::DevnetConfig => false,
+        }
+    }
+}
+
 impl std::fmt::Display for JsonRpcRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.variant_name())

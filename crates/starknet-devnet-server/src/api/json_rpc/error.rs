@@ -211,6 +211,38 @@ impl ApiError {
             ApiError::HttpApiError(http_api_error) => http_api_error.http_api_error_to_rpc_error(),
         }
     }
+
+    pub(crate) fn is_forwardable_to_origin(&self) -> bool {
+        #[warn(clippy::wildcard_enum_match_arm)]
+        match self {
+            Self::BlockNotFound
+            | Self::TransactionNotFound
+            | Self::NoStateAtBlock { .. }
+            | Self::ClassHashNotFound => true,
+            Self::StarknetDevnetError(_)
+            | Self::TypesError(_)
+            | Self::RpcError(_)
+            | Self::ContractNotFound
+            | Self::InvalidTransactionIndexInBlock
+            | Self::ContractError { .. }
+            | Self::NoBlocks
+            | Self::RequestPageSizeTooBig
+            | Self::InvalidContinuationToken
+            | Self::TooManyKeysInFilter
+            | Self::ClassAlreadyDeclared
+            | Self::InvalidContractClass
+            | Self::OnlyLatestBlock
+            | Self::UnsupportedAction { .. }
+            | Self::InvalidTransactionNonce
+            | Self::InsufficientMaxFee
+            | Self::InsufficientAccountBalance
+            | Self::ValidationFailure { .. }
+            | Self::NoTraceAvailable // TODO
+            | Self::HttpApiError(_)
+            | Self::CompiledClassHashMismatch
+            | Self::ExecutionError { .. } => false,
+        }
+    }
 }
 
 pub type StrictRpcResult = Result<JsonRpcResponse, ApiError>;
