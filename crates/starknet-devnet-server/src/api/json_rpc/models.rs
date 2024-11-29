@@ -21,13 +21,6 @@ pub struct BlockIdInput {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
-/// Similar to BlockIdInput, but without the _id, as required by ws methods.
-pub struct BlockInput {
-    pub block: BlockId,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct TransactionHashInput {
     pub transaction_hash: TransactionHash,
 }
@@ -197,7 +190,7 @@ pub struct SubscriptionIdInput {
 #[serde(deny_unknown_fields)]
 pub struct TransactionBlockInput {
     pub transaction_hash: TransactionHash,
-    pub block: Option<BlockId>,
+    pub block_id: Option<BlockId>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -210,7 +203,7 @@ pub struct PendingTransactionsSubscriptionInput {
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct EventsSubscriptionInput {
-    pub block: Option<BlockId>,
+    pub block_id: Option<BlockId>,
     pub from_address: Option<ContractAddress>,
     pub keys: Option<Vec<Vec<Felt>>>,
 }

@@ -64,6 +64,8 @@ pub enum ApiError {
     CompiledClassHashMismatch,
     #[error("Cannot go back more than 1024 blocks")]
     TooManyBlocksBack,
+    #[error("This method does not support being called on the pending block")]
+    CallOnPending,
     #[error("Invalid subscription id")]
     InvalidSubscriptionId,
 }
@@ -211,6 +213,11 @@ impl ApiError {
             ApiError::HttpApiError(http_api_error) => http_api_error.http_api_error_to_rpc_error(),
             ApiError::TooManyBlocksBack => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(68),
+                message: error_message.into(),
+                data: None,
+            },
+            ApiError::CallOnPending => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(69),
                 message: error_message.into(),
                 data: None,
             },
