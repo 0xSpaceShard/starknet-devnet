@@ -218,6 +218,7 @@ impl ApiError {
             Self::BlockNotFound
             | Self::TransactionNotFound
             | Self::NoStateAtBlock { .. }
+            | Self::NoTraceAvailable
             | Self::ClassHashNotFound => true,
             Self::StarknetDevnetError(_)
             | Self::TypesError(_)
@@ -237,7 +238,6 @@ impl ApiError {
             | Self::InsufficientMaxFee
             | Self::InsufficientAccountBalance
             | Self::ValidationFailure { .. }
-            | Self::NoTraceAvailable // TODO
             | Self::HttpApiError(_)
             | Self::CompiledClassHashMismatch
             | Self::ExecutionError { .. } => false,

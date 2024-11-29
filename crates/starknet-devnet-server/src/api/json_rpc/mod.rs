@@ -494,14 +494,12 @@ impl JsonRpcRequest {
             | Self::SimulateTransactions(_)
             | Self::TraceTransaction(_)
             | Self::BlockTransactionTraces(_) => true,
-            // starknet-specific, but not forwardable
             Self::SpecVersion
             | Self::ChainId
             | Self::Syncing
             | Self::AddDeclareTransaction(_)
             | Self::AddDeployAccountTransaction(_)
             | Self::AddInvokeTransaction(_)
-            // devnet-specific, thus not forwardable
             | Self::ImpersonateAccount(_)
             | Self::StopImpersonateAccount(_)
             | Self::AutoImpersonate
