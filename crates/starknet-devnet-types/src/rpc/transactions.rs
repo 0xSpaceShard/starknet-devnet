@@ -19,8 +19,8 @@ use starknet_api::deprecated_contract_class::EntryPointType;
 use starknet_api::transaction::{Fee, Resource, Tip};
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_core::types::{
-    BlockId, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
-    TransactionExecutionStatus, TransactionFinalityStatus,
+    BlockId, ExecutionResult, Felt, ResourceBounds, TransactionExecutionStatus,
+    TransactionFinalityStatus,
 };
 use starknet_rs_crypto::poseidon_hash_many;
 
@@ -38,7 +38,7 @@ use super::estimate_message_fee::FeeEstimateWrapper;
 use super::messaging::{MessageToL1, OrderedMessageToL1};
 use super::state::ThinStateDiff;
 use super::transaction_receipt::{
-    ComputationResources, ExecutionResources, FeeInUnits, TransactionReceipt,
+    ComputationResources, DataAvailability, ExecutionResources, FeeInUnits, TransactionReceipt,
 };
 use crate::constants::{
     PREFIX_DECLARE, PREFIX_DEPLOY_ACCOUNT, PREFIX_INVOKE, QUERY_VERSION_OFFSET,
@@ -46,7 +46,7 @@ use crate::constants::{
 use crate::contract_address::ContractAddress;
 use crate::contract_class::{compute_sierra_class_hash, ContractClass};
 use crate::emitted_event::{Event, OrderedEvent};
-use crate::error::{ConversionError, DevnetResult, Error, JsonError};
+use crate::error::{ConversionError, DevnetResult, Error};
 use crate::felt::{
     BlockHash, Calldata, EntryPointSelector, Nonce, TransactionHash, TransactionSignature,
     TransactionVersion,
@@ -148,7 +148,7 @@ impl TransactionWithHash {
         execution_info: &TransactionExecutionInfo,
     ) -> CommonTransactionReceipt {
         let r#type = self.get_type();
-        let execution_resources = ExecutionResources::from(execution_info);
+        let execution_resources = DataAvailability::from(execution_info);
         let maybe_pending_properties =
             MaybePendingProperties { block_number, block_hash: block_hash.cloned() };
 
@@ -325,6 +325,18 @@ pub struct ResourceBoundsWrapper {
     inner: ResourceBoundsMapping,
 }
 
+// TODO: when starknet-rs upgrades to 0.8.0 remove this struct
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResourceBoundsMapping {
+    /// The max amount and max price per unit of L1 gas used in this tx
+    pub l1_gas: ResourceBounds,
+    /// The max amount and max price per unit of L2 gas used in this tx
+    pub l2_gas: ResourceBounds,
+    /// The max amount and max price per unit of L1 data gas used in this tx
+    pub l1_data_gas: ResourceBounds,
+}
+
 impl_wrapper_serialize!(ResourceBoundsWrapper);
 impl_wrapper_deserialize!(ResourceBoundsWrapper, ResourceBoundsMapping);
 
@@ -345,6 +357,8 @@ impl ResourceBoundsWrapper {
                     max_amount: l2_gas_max_amount,
                     max_price_per_unit: l2_gas_max_price_per_unit,
                 },
+                // TODO: provide values for l1_data_gas
+                l1_data_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
             },
         }
     }
@@ -422,18 +436,10 @@ impl BroadcastedTransactionCommonV3 {
         array.push(Felt::from(self.tip.0));
 
         fn field_element_from_resource_bounds(
-            resource: Resource,
+            resource: &str,
             resource_bounds: &ResourceBounds,
         ) -> Result<Felt, Error> {
-            let resource_name_as_json_string =
-                serde_json::to_value(resource).map_err(JsonError::SerdeJsonError)?;
-
-            let resource_name_bytes = resource_name_as_json_string
-                .as_str()
-                .ok_or(Error::JsonError(JsonError::Custom {
-                    msg: "resource name is not a string".into(),
-                }))?
-                .as_bytes();
+            let resource_name_bytes = resource.as_bytes();
 
             // (resource||max_amount||max_price_per_unit) from SNIP-8 https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md#protocol-changes
             let bytes: Vec<u8> = [
@@ -449,12 +455,17 @@ impl BroadcastedTransactionCommonV3 {
             Ok(Felt::from_bytes_be_slice(&bytes))
         }
         array.push(field_element_from_resource_bounds(
-            Resource::L1Gas,
+            "L1_GAS",
             &self.resource_bounds.inner.l1_gas,
         )?);
         array.push(field_element_from_resource_bounds(
-            Resource::L2Gas,
+            "L2_GAS",
             &self.resource_bounds.inner.l2_gas,
+        )?);
+
+        array.push(field_element_from_resource_bounds(
+            "L1_DATA",
+            &self.resource_bounds.inner.l1_data_gas,
         )?);
 
         Ok(array)

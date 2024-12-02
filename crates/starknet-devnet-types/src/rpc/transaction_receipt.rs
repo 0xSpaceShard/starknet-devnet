@@ -66,7 +66,7 @@ pub struct CommonTransactionReceipt {
     pub finality_status: TransactionFinalityStatus,
     #[serde(flatten)]
     pub maybe_pending_properties: MaybePendingProperties,
-    pub execution_resources: ExecutionResources,
+    pub execution_resources: DataAvailability,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -77,11 +77,13 @@ pub struct ExecutionResources {
     pub data_availability: DataAvailability,
 }
 
+/// TODO: rename DataAvailability to ExecutionResources
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct DataAvailability {
     pub l1_gas: u128,
     pub l1_data_gas: u128,
+    pub l2_gas: u128,
 }
 
 /// custom implementation, because serde_json doesn't support deserializing to u128
@@ -100,6 +102,7 @@ impl<'de> Deserialize<'de> for DataAvailability {
         struct InnerDataAvailability {
             l1_gas: u128,
             l1_data_gas: u128,
+            l2_gas: u128,
         }
 
         let data_availability: InnerDataAvailability =
@@ -108,6 +111,7 @@ impl<'de> Deserialize<'de> for DataAvailability {
         Ok(DataAvailability {
             l1_gas: data_availability.l1_gas,
             l1_data_gas: data_availability.l1_data_gas,
+            l2_gas: data_availability.l2_gas,
         })
     }
 }
@@ -181,6 +185,16 @@ impl From<&blockifier::execution::call_info::CallInfo> for ComputationResources 
     }
 }
 
+impl From<&blockifier::transaction::objects::TransactionExecutionInfo> for DataAvailability {
+    fn from(value: &blockifier::transaction::objects::TransactionExecutionInfo) -> Self {
+        DataAvailability {
+            l1_gas: value.transaction_receipt.gas.l1_gas,
+            l1_data_gas: value.transaction_receipt.da_gas.l1_data_gas,
+            l2_gas: 0,
+        }
+    }
+}
+
 impl From<&blockifier::transaction::objects::TransactionExecutionInfo> for ExecutionResources {
     fn from(execution_info: &blockifier::transaction::objects::TransactionExecutionInfo) -> Self {
         let memory_holes = execution_info.transaction_receipt.resources.vm_resources.n_memory_holes;
@@ -228,6 +242,7 @@ impl From<&blockifier::transaction::objects::TransactionExecutionInfo> for Execu
             data_availability: DataAvailability {
                 l1_gas: execution_info.transaction_receipt.da_gas.l1_gas,
                 l1_data_gas: execution_info.transaction_receipt.da_gas.l1_data_gas,
+                l2_gas: 0,
             },
         }
     }

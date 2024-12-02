@@ -16,10 +16,12 @@ use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct FeeEstimateWrapper {
-    pub gas_consumed: Felt,
-    pub data_gas_consumed: Felt,
-    pub gas_price: Felt,
-    pub data_gas_price: Felt,
+    pub l1_gas_consumed: Felt,
+    pub l1_data_gas_consumed: Felt,
+    pub l1_gas_price: Felt,
+    pub l1_data_gas_price: Felt,
+    pub l2_gas_consumed: Felt,
+    pub l2_gas_price: Felt,
     pub overall_fee: Felt,
     pub unit: PriceUnit,
 }
