@@ -128,23 +128,21 @@
                 ]
             },
             "CASM_ENTRY_POINT": {
-                "schema": {
-                    "allOf": [
-                        {
-                            "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "builtins": {
+                                "type": "array",
+                                "items": "string"
+                            }
                         },
-                        {
-                            "type": "object",
-                            "properties": {
-                                "builtins": {
-                                    "type": "array",
-                                    "items": "string"
-                                }
-                            },
-                            "required": "builtins"
-                        }
-                    ]
-                }
+                        "required": "builtins"
+                    }
+                ]
             },
             "CellRef": {
                 "title": "CellRef",
@@ -215,42 +213,42 @@
                     "Immediate"
                 ]
             },
-            "BinOp":{
+            "BinOp": {
                 "title": "BinOperand",
                 "type": "object",
-                "properties":{
+                "properties": {
                     "BinOp": {
                         "type": "object",
                         "properties": {
-                        "op": {
-                            "type": "string",
-                            "enum": [
-                                "Add",
-                                "Mul"
-                            ]
+                            "op": {
+                                "type": "string",
+                                "enum": [
+                                    "Add",
+                                    "Mul"
+                                ]
+                            },
+                            "a": {
+                                "$ref": "#/components/schemas/CellRef"
+                            },
+                            "b": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/Deref"
+                                    },
+                                    {
+                                        "$ref": "#/components/schemas/Immediate"
+                                    }
+                                ]
+                            }
                         },
-                        "a": {
-                            "$ref": "#/components/schemas/CellRef"
-                        },
-                        "b": {
-                            "oneOf": [
-                                {
-                                    "$ref": "#/components/schemas/Deref"
-                                },
-                                {
-                                    "$ref": "#/components/schemas/Immediate"
-                                }
-                            ]
-                        }
-                        },
-                        "required":[
+                        "required": [
                             "op",
                             "a",
                             "b"
                         ]
                     }
                 },
-                "required":[
+                "required": [
                     "BinOp"
                 ]
             },

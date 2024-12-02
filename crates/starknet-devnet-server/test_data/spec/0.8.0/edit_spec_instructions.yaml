@@ -44,6 +44,15 @@ remove_from_array:
 edit_manually:
   - action: CHANGE
     what: every max_fee field type to u128
+  - action: CHANGE
+    what: add execution_status to TXN_STATUS_RESULT.required array
+  - action: ADD
+    what: abi to required fields of CONTRACT_CLASS
+  - action: REMOVE
+    what: starknet_syncing -> result -> oneOf SYNC_STATUS variant
+  - action: REMOVE
+    what: starknet_getStorageProof method
+
   - action: REMOVE
     what: removed the outer "schema" object -  instead of being items -> schema -> {type, properties}, now its items -> {type, properties} in starknet_simulateTransactions
   - action: REMOVE
@@ -56,8 +65,6 @@ edit_manually:
     what: starknet_getBlockWithTxHashes -> result removed PENDING_BLOCK_WITH_TX_HASHES
   - action: ADD
     what: execution_status to required fields of the result of starknet_getTransactionStatus
-  - action: ADD
-    what: abi to required fields of CONTRACT_CLASS
   - action: CHANGE
     what: components/schemas/FELT/pattern to ^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,61})$
   - action: CHANGE
@@ -68,7 +75,5 @@ edit_manually:
     what: components/FEE_ESTIMATE field types from FELT to u64
   - action: ADD
     what: block_hash, block_number to required fields of EMITTED_EVENT
-  - action: REMOVE
-    what: starknet_syncing -> result -> oneOf SYNC_STATUS variant
   - action: REMOVE
     what: starknet_getBlockWithReceipts -> result remove PENDING_BLOCK_WITH_RECEIPTS
