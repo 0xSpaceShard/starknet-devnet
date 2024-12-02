@@ -187,6 +187,7 @@ impl From<&StarknetBlock> for TypesPendingBlockHeader {
                 price_in_fri: value.header.l1_data_gas_price.price_in_fri.0.into(),
                 price_in_wei: value.header.l1_data_gas_price.price_in_wei.0.into(),
             },
+            l2_gas_price: ResourcePrice { price_in_fri: Felt::ZERO, price_in_wei: Felt::ZERO },
             l1_da_mode: value.header.l1_da_mode,
         }
     }
@@ -210,6 +211,7 @@ impl From<&StarknetBlock> for TypesBlockHeader {
                 price_in_fri: value.header.l1_data_gas_price.price_in_fri.0.into(),
                 price_in_wei: value.header.l1_data_gas_price.price_in_wei.0.into(),
             },
+            l2_gas_price: ResourcePrice { price_in_fri: Felt::ZERO, price_in_wei: Felt::ZERO },
             l1_da_mode: value.header.l1_da_mode,
         }
     }
