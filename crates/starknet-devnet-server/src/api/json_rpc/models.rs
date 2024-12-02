@@ -180,10 +180,12 @@ pub struct L1TransactionHashInput {
     pub transaction_hash: Hash256,
 }
 
+pub type SubscriptionId = u64;
+
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct SubscriptionIdInput {
-    pub subscription_id: i64,
+    pub subscription_id: SubscriptionId,
 }
 
 #[derive(Deserialize, Clone, Debug)]

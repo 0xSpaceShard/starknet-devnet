@@ -15,11 +15,10 @@ use starknet_types::rpc::transactions::{TransactionStatus, TransactionWithHash};
 use tokio::sync::Mutex;
 
 use crate::api::json_rpc::error::ApiError;
+use crate::api::json_rpc::models::SubscriptionId;
 use crate::rpc_core::request::Id;
 
 pub type SocketId = u64;
-
-type SubscriptionId = i64;
 
 #[derive(Debug)]
 pub struct AddressFilter {
