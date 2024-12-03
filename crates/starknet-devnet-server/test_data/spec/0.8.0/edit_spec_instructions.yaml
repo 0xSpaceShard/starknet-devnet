@@ -4,14 +4,19 @@ clean:
   - components/schemas/PENDING_COMMON_RECEIPT_PROPERTIES/properties/revert_reason/name
 
 # Replace entries at "path" with the specified value in the spec file before processing it
-replace:
+replace_property:
 # The following comment is for example purpose
   # - path: components/schemas/BLOCK_HEADER/properties/l1_gas_price/descritpion
   #   new_name: description
+  - path: components/schemas/CASM_COMPILED_CONTRACT_CLASS/properties/hints/items/items/oneOf
+    new_name: tuple
+  - path: components/schemas/DoubleDeref/properties/DoubleDeref/items/oneOf
+    new_name: tuple
 
 add:
   - path: components/schemas/NUM_AS_HEX
     new_entry: pattern/^0x[a-fA-F0-9]{1,10}$
+    replace_mode: true
   - path: components/schemas/CHAIN_ID
     new_entry: pattern/^0x[a-fA-F0-9]{1,10}$
   - path: components/schemas/DEPRECATED_CONTRACT_CLASS/properties/program
@@ -52,6 +57,8 @@ edit_manually:
     what: starknet_syncing -> result -> oneOf SYNC_STATUS variant
   - action: REMOVE
     what: starknet_getStorageProof method
+  - action: CHANGE
+    what: CASM_COMPILED_CONTRACT_CLASS.properties.hints.items.items.oneOf to tuple
 
   - action: REMOVE
     what: removed the outer "schema" object -  instead of being items -> schema -> {type, properties}, now its items -> {type, properties} in starknet_simulateTransactions

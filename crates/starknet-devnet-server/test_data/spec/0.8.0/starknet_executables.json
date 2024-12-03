@@ -137,10 +137,14 @@
                         "properties": {
                             "builtins": {
                                 "type": "array",
-                                "items": "string"
+                                "items": {
+                                    "type": "string"
+                                }
                             }
                         },
-                        "required": "builtins"
+                        "required": [
+                            "builtins"
+                        ]
                     }
                 ]
             },
