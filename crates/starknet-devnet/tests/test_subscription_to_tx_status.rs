@@ -10,13 +10,14 @@ mod tx_status_subscription_support {
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
         assert_no_notifications, receive_rpc_via_ws, subscribe, subscribe_new_heads, unsubscribe,
+        SubscriptionId,
     };
 
     async fn subscribe_tx_status(
         ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
         tx_hash: &Felt,
         block_id: Option<BlockId>,
-    ) -> Result<u64, anyhow::Error> {
+    ) -> Result<SubscriptionId, anyhow::Error> {
         let mut params = json!({ "transaction_hash": tx_hash });
 
         if let Some(block_id) = block_id {
@@ -38,7 +39,7 @@ mod tx_status_subscription_support {
     fn assert_successful_mint_notification(
         notification: serde_json::Value,
         tx_hash: Felt,
-        subscription_id: u64,
+        subscription_id: SubscriptionId,
     ) {
         assert_eq!(
             notification,

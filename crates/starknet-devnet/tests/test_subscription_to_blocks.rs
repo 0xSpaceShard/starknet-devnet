@@ -15,11 +15,12 @@ mod block_subscription_support {
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
         assert_no_notifications, receive_notification, subscribe_new_heads, unsubscribe,
+        SubscriptionId,
     };
 
     async fn receive_block(
         ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
-        subscription_id: u64,
+        subscription_id: SubscriptionId,
     ) -> Result<serde_json::Value, anyhow::Error> {
         receive_notification(ws, "starknet_subscriptionNewHeads", subscription_id).await
     }
