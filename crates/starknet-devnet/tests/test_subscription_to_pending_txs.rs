@@ -23,7 +23,7 @@ mod pending_transactions_subscription_support {
     async fn subscribe_pending_txs(
         ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
         params: serde_json::Value,
-    ) -> Result<i64, anyhow::Error> {
+    ) -> Result<u64, anyhow::Error> {
         subscribe(ws, "starknet_subscribePendingTransactions", params).await
     }
 

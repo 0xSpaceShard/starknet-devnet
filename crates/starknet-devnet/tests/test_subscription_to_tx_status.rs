@@ -16,7 +16,7 @@ mod tx_status_subscription_support {
         ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
         tx_hash: &Felt,
         block_id: Option<BlockId>,
-    ) -> Result<i64, anyhow::Error> {
+    ) -> Result<u64, anyhow::Error> {
         let mut params = json!({ "transaction_hash": tx_hash });
 
         if let Some(block_id) = block_id {
@@ -38,7 +38,7 @@ mod tx_status_subscription_support {
     fn assert_successful_mint_notification(
         notification: serde_json::Value,
         tx_hash: Felt,
-        subscription_id: i64,
+        subscription_id: u64,
     ) {
         assert_eq!(
             notification,

@@ -19,7 +19,7 @@ mod block_subscription_support {
 
     async fn receive_block(
         ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
-        subscription_id: i64,
+        subscription_id: u64,
     ) -> Result<serde_json::Value, anyhow::Error> {
         receive_notification(ws, "starknet_subscriptionNewHeads", subscription_id).await
     }

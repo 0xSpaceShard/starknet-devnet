@@ -26,13 +26,13 @@ mod event_subscription_support {
     async fn subscribe_events(
         ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
         params: serde_json::Value,
-    ) -> Result<i64, anyhow::Error> {
+    ) -> Result<u64, anyhow::Error> {
         subscribe(ws, "starknet_subscribeEvents", params).await
     }
 
     async fn receive_event(
         ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
-        subscription_id: i64,
+        subscription_id: u64,
     ) -> Result<serde_json::Value, anyhow::Error> {
         receive_notification(ws, "starknet_subscriptionEvents", subscription_id).await
     }
