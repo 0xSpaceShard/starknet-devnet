@@ -25,7 +25,7 @@ use starknet_rs_signers::LocalWallet;
 use starknet_types::felt::felt_from_prefixed_hex;
 
 use super::background_devnet::BackgroundDevnet;
-use super::constants::{ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_CONTRACT_PATH};
+use super::constants::CAIRO_1_CONTRACT_PATH;
 
 pub enum ImpersonationAction {
     ImpersonateAccount(Felt),
@@ -288,11 +288,12 @@ pub async fn deploy_oz_account(
 /// Assumes the Argent account contract is declared in the target network.
 pub async fn deploy_argent_account(
     devnet: &BackgroundDevnet,
+    class_hash: Felt,
 ) -> Result<(DeployAccountTransactionResult, LocalWallet), anyhow::Error> {
     let signer = get_deployable_account_signer();
     let salt = Felt::THREE;
     let factory = ArgentAccountFactory::new(
-        felt_from_prefixed_hex(ARGENT_ACCOUNT_CLASS_HASH)?,
+        class_hash,
         devnet.json_rpc_client.chain_id().await?,
         Felt::ZERO,
         signer.clone(),

@@ -23,7 +23,9 @@ mod test_account_selection {
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::MAINNET_URL;
+    use crate::common::constants::{
+        ARGENT_ACCOUNT_CLASS_HASH, LEGACY_ARGENT_ACCOUNT_CLASS_HASH, MAINNET_URL,
+    };
     use crate::common::reqwest_client::GetReqwestSender;
     use crate::common::utils::{
         assert_tx_successful, deploy_argent_account, deploy_oz_account,
@@ -124,11 +126,27 @@ mod test_account_selection {
 
     #[tokio::test]
     /// Relying on forking: the origin network is expected to have the account class declared.
-    async fn can_deploy_new_argent_account() {
+    async fn can_deploy_instance_of_legacy_argent_account_via_fork() {
         let cli_args = ["--fork-network", MAINNET_URL];
         let devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
-        let (account_deployment, signer) = deploy_argent_account(&devnet).await.unwrap();
+        let account_hash = Felt::from_hex_unchecked(LEGACY_ARGENT_ACCOUNT_CLASS_HASH);
+        let (account_deployment, signer) =
+            deploy_argent_account(&devnet, account_hash).await.unwrap();
+        assert_tx_successful(&account_deployment.transaction_hash, &devnet.json_rpc_client).await;
+
+        let account_address = account_deployment.contract_address;
+        can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
+    }
+
+    #[tokio::test]
+    /// Relying on forking: the origin network is expected to have the account class declared.
+    async fn can_deploy_new_argent_account_from_predeclared_class() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        let account_hash = Felt::from_hex_unchecked(ARGENT_ACCOUNT_CLASS_HASH);
+        let (account_deployment, signer) =
+            deploy_argent_account(&devnet, account_hash).await.unwrap();
         assert_tx_successful(&account_deployment.transaction_hash, &devnet.json_rpc_client).await;
 
         let account_address = account_deployment.contract_address;
