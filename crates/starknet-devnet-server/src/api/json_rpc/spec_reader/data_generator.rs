@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::i32;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use rand::{Rng, SeedableRng};
@@ -11,6 +12,7 @@ use super::spec_schemas::object_primitive::ObjectPrimitive;
 use super::spec_schemas::one_of_schema::OneOf;
 use super::spec_schemas::ref_schema::Reference;
 use super::spec_schemas::string_primitive::StringPrimitive;
+use super::spec_schemas::tuple_schema::Tuple;
 use super::spec_schemas::{Primitive, Schema};
 
 const MAX_DEPTH: u8 = 5;
@@ -34,6 +36,8 @@ pub trait Visitor {
         &self,
         element: &ObjectPrimitive,
     ) -> Result<serde_json::Value, String>;
+
+    fn do_for_tuple(&self, element: &Tuple) -> Result<serde_json::Value, String>;
 }
 
 pub trait Acceptor {
@@ -93,7 +97,8 @@ impl<'a> Visitor for RandDataGenerator<'a> {
         &self,
         element: &IntegerPrimitive,
     ) -> Result<serde_json::Value, String> {
-        let num = rand::thread_rng().gen_range(element.minimum.unwrap_or_default()..i32::MAX);
+        let num = rand::thread_rng()
+            .gen_range(element.minimum.unwrap_or_default()..element.maximum.unwrap_or(i32::MAX));
 
         Ok(serde_json::Value::Number(serde_json::Number::from(num)))
     }
@@ -234,6 +239,23 @@ impl<'a> Visitor for RandDataGenerator<'a> {
             Ok(Value::Object(accumulated_json_value))
         }
     }
+
+    fn do_for_tuple(&self, element: &Tuple) -> Result<serde_json::Value, String> {
+        let mut array = vec![];
+        if self.depth >= MAX_DEPTH {
+            return Ok(serde_json::Value::Array(array));
+        }
+
+        for variant in element.variants.iter() {
+            let generated_value = generate_schema_value(variant, self.schemas, self.depth + 1)?;
+
+            if !generated_value.is_null() {
+                array.push(generated_value);
+            }
+        }
+
+        Ok(serde_json::Value::Array(array))
+    }
 }
 
 pub fn generate_schema_value(
@@ -259,5 +281,6 @@ pub fn generate_schema_value(
         Schema::Primitive(Primitive::Array(array)) => array.accept(&generator),
         Schema::Primitive(Primitive::Boolean(boolean)) => boolean.accept(&generator),
         Schema::Primitive(Primitive::Object(obj)) => obj.accept(&generator),
+        Schema::Tuple(tuple) => tuple.accept(&generator),
     }
 }

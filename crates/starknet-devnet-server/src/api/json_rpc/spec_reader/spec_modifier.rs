@@ -1,7 +1,8 @@
 use std::fs;
+use std::str::FromStr;
 
 use serde::Deserialize;
-use serde_json::Value;
+use serde_json::{Number, Value};
 
 use super::Spec;
 
@@ -11,7 +12,7 @@ use super::Spec;
 #[derive(Deserialize)]
 pub struct SpecModifier {
     clean: Vec<String>,
-    replace: Vec<ReplacePropertyData>,
+    replace_property: Vec<ReplacePropertyData>,
     add: Vec<AddPropertyData>,
     remove_from_array: Vec<RemoveArrayElement>,
 }
@@ -26,6 +27,9 @@ struct ReplacePropertyData {
 struct AddPropertyData {
     path: String,
     new_entry: String,
+    // default value is false
+    #[serde(default)]
+    replace_mode: bool,
 }
 
 #[derive(Deserialize)]
@@ -59,17 +63,28 @@ fn delete_property(json_obj: &mut Value, path_parts: &[&str]) {
 
 /// add property to a JSON object
 /// the new property comes in the form "key/value"
-fn add_property(json_obj: &mut Value, path_parts: &[&str], new_entry: &str) {
+fn add_property(json_obj: &mut Value, path_parts: &[&str], new_entry: &str, do_replace: bool) {
     if path_parts.is_empty() {
         if let Some(obj) = json_obj.as_object_mut() {
             let new_entry_parts = new_entry.split('/').collect::<Vec<&str>>();
-            obj.insert(
-                new_entry_parts[0].to_string(),
-                serde_json::Value::String(new_entry_parts[1..].join("/")),
-            );
+            let value = new_entry_parts[1..].join("/");
+            let value = if let Ok(parsed_number) = value.parse::<u64>() {
+                serde_json::Value::Number(parsed_number.into())
+            } else {
+                serde_json::Value::String(value)
+            };
+
+            let key = new_entry_parts[0];
+            if do_replace {
+                if obj.contains_key(key) {
+                    obj.insert(key.to_string(), value);
+                }
+            } else {
+                obj.insert(key.to_string(), value);
+            }
         }
     } else if let Some(next_obj) = json_obj.get_mut(path_parts[0]) {
-        add_property(next_obj, &path_parts[1..], new_entry);
+        add_property(next_obj, &path_parts[1..], new_entry, do_replace);
     }
 }
 
@@ -99,14 +114,19 @@ impl SpecModifier {
             delete_property(&mut json_obj_spec, &path_parts);
         }
 
-        for path_to_replace in self.replace.iter() {
+        for path_to_replace in self.replace_property.iter() {
             let path_parts = path_to_replace.path.split('/').collect::<Vec<&str>>();
             rename_property(&mut json_obj_spec, &path_parts, &path_to_replace.new_name);
         }
 
         for entry_to_add in self.add.iter() {
             let path_parts = entry_to_add.path.split('/').collect::<Vec<&str>>();
-            add_property(&mut json_obj_spec, &path_parts, &entry_to_add.new_entry);
+            add_property(
+                &mut json_obj_spec,
+                &path_parts,
+                &entry_to_add.new_entry,
+                entry_to_add.replace_mode,
+            );
         }
 
         for array_element_to_remove in self.remove_from_array.iter() {
