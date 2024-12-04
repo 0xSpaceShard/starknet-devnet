@@ -57,10 +57,13 @@ pub fn get_class_at_impl(
 
 pub fn get_compiled_casm_impl(
     starknet: &Starknet,
-    block_id: &BlockId,
     class_hash: ClassHash,
 ) -> DevnetResult<CasmContractClass> {
-    let contract_class = get_class_impl(starknet, block_id, class_hash)?;
+    let contract_class = get_class_impl(
+        starknet,
+        &BlockId::Tag(starknet_rs_core::types::BlockTag::Latest),
+        class_hash,
+    )?;
     match contract_class {
         ContractClass::Cairo1(sierra_contract_class) => {
             Ok(compile_sierra_contract(&sierra_contract_class)?)

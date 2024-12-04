@@ -217,15 +217,12 @@ impl JsonRpcHandler {
         }
     }
 
-    pub async fn get_compiled_casm(
-        &self,
-        block_id: BlockId,
-        class_hash: ClassHash,
-    ) -> StrictRpcResult {
+    /// starknet_getCompiledCasm
+    pub async fn get_compiled_casm(&self, class_hash: ClassHash) -> StrictRpcResult {
         // starknet_getCompiledCasm compiles sierra to casm the same way it is done in
         // starknet_addDeclareTransaction, so if during starknet_addDeclareTransaction compilation
         // does not fail, so it will not fail during this endpoint execution
-        match self.api.starknet.lock().await.get_compiled_casm(block_id.as_ref(), class_hash) {
+        match self.api.starknet.lock().await.get_compiled_casm(class_hash) {
             Ok(compiled_casm) => Ok(StarknetResponse::CompiledCasm(compiled_casm).into()),
             Err(e) => Err(match e {
                 Error::NoBlock => ApiError::BlockNotFound,

@@ -600,12 +600,8 @@ impl Starknet {
         get_class_impls::get_class_at_impl(self, block_id, contract_address)
     }
 
-    pub fn get_compiled_casm(
-        &self,
-        block_id: &BlockId,
-        class_hash: ClassHash,
-    ) -> DevnetResult<CasmContractClass> {
-        get_class_impls::get_compiled_casm_impl(self, block_id, class_hash)
+    pub fn get_compiled_casm(&self, class_hash: ClassHash) -> DevnetResult<CasmContractClass> {
+        get_class_impls::get_compiled_casm_impl(self, class_hash)
     }
 
     pub fn call(

@@ -34,6 +34,12 @@ pub struct TransactionHashInput {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
+pub struct ClassHashInput {
+    pub class_hash: ClassHash,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct GetStorageInput {
     pub contract_address: ContractAddress,

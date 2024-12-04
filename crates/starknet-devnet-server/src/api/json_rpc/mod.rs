@@ -17,9 +17,9 @@ use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, BlockInput,
-    CallInput, EstimateFeeInput, EventsInput, EventsSubscriptionInput, GetStorageInput,
-    L1TransactionHashInput, PendingTransactionsSubscriptionInput, SubscriptionIdInput,
-    TransactionBlockInput, TransactionHashInput, TransactionHashOutput,
+    CallInput, ClassHashInput, EstimateFeeInput, EventsInput, EventsSubscriptionInput,
+    GetStorageInput, L1TransactionHashInput, PendingTransactionsSubscriptionInput,
+    SubscriptionIdInput, TransactionBlockInput, TransactionHashInput, TransactionHashOutput,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -406,10 +406,9 @@ impl JsonRpcHandler {
             JsonRpcRequest::ClassByHash(BlockAndClassHashInput { block_id, class_hash }) => {
                 self.get_class(block_id, class_hash).await
             }
-            JsonRpcRequest::CompiledCasmByClassHash(BlockAndClassHashInput {
-                block_id,
-                class_hash,
-            }) => self.get_compiled_casm(block_id, class_hash).await,
+            JsonRpcRequest::CompiledCasmByClassHash(ClassHashInput { class_hash }) => {
+                self.get_compiled_casm(class_hash).await
+            }
             JsonRpcRequest::ClassHashAtContractAddress(BlockAndContractAddressInput {
                 block_id,
                 contract_address,
@@ -678,7 +677,7 @@ pub enum JsonRpcRequest {
     #[serde(rename = "starknet_getClass")]
     ClassByHash(BlockAndClassHashInput),
     #[serde(rename = "starknet_getCompiledCasm")]
-    CompiledCasmByClassHash(BlockAndClassHashInput),
+    CompiledCasmByClassHash(ClassHashInput),
     #[serde(rename = "starknet_getClassHashAt")]
     ClassHashAtContractAddress(BlockAndContractAddressInput),
     #[serde(rename = "starknet_getClassAt")]
