@@ -5,6 +5,7 @@ use blockifier::execution::contract_class::ClassInfo;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::objects::TransactionExecutionInfo;
+use blockifier::versioned_constants::VersionedConstants;
 use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use declare_transaction_v0v1::DeclareTransactionV0V1;
@@ -37,9 +38,7 @@ use self::l1_handler_transaction::L1HandlerTransaction;
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::messaging::{MessageToL1, OrderedMessageToL1};
 use super::state::ThinStateDiff;
-use super::transaction_receipt::{
-    ComputationResources, DataAvailability, ExecutionResources, FeeInUnits, TransactionReceipt,
-};
+use super::transaction_receipt::{DataAvailability, FeeInUnits, TransactionReceipt};
 use crate::constants::{
     PREFIX_DECLARE, PREFIX_DEPLOY_ACCOUNT, PREFIX_INVOKE, QUERY_VERSION_OFFSET,
 };
@@ -1026,7 +1025,39 @@ pub struct FunctionInvocation {
     calls: Vec<FunctionInvocation>,
     events: Vec<OrderedEvent>,
     messages: Vec<OrderedMessageToL1>,
-    execution_resources: ComputationResources,
+    execution_resources: InnerExecutionResources,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct InnerExecutionResources {
+    pub l1_gas: u128,
+    pub l2_gas: u128,
+}
+
+impl<'de> Deserialize<'de> for InnerExecutionResources {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let json_obj =
+            serde_json::Value::deserialize(deserializer).map_err(serde::de::Error::custom)?;
+
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Inner {
+            l1_gas: u128,
+            l2_gas: u128,
+        }
+
+        let execution_resources: Inner =
+            serde_json::from_value(json_obj).map_err(serde::de::Error::custom)?;
+
+        Ok(InnerExecutionResources {
+            l1_gas: execution_resources.l1_gas,
+            l2_gas: execution_resources.l2_gas,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1063,7 +1094,7 @@ pub struct InvokeTransactionTrace {
     pub execute_invocation: ExecutionInvocation,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
     pub state_diff: Option<ThinStateDiff>,
-    pub execution_resources: ExecutionResources,
+    pub execution_resources: DataAvailability,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1072,7 +1103,7 @@ pub struct DeclareTransactionTrace {
     pub validate_invocation: Option<FunctionInvocation>,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
     pub state_diff: Option<ThinStateDiff>,
-    pub execution_resources: ExecutionResources,
+    pub execution_resources: DataAvailability,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1082,7 +1113,7 @@ pub struct DeployAccountTransactionTrace {
     pub constructor_invocation: Option<FunctionInvocation>,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
     pub state_diff: Option<ThinStateDiff>,
-    pub execution_resources: ExecutionResources,
+    pub execution_resources: DataAvailability,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1090,7 +1121,7 @@ pub struct DeployAccountTransactionTrace {
 pub struct L1HandlerTransactionTrace {
     pub function_invocation: FunctionInvocation,
     pub state_diff: Option<ThinStateDiff>,
-    pub execution_resources: ExecutionResources,
+    pub execution_resources: DataAvailability,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1104,12 +1135,15 @@ impl FunctionInvocation {
     pub fn try_from_call_info(
         call_info: &blockifier::execution::call_info::CallInfo,
         state_reader: &mut impl StateReader,
+        versioned_constants: &VersionedConstants,
     ) -> DevnetResult<Self> {
         let mut internal_calls: Vec<FunctionInvocation> = vec![];
-        let execution_resources = ComputationResources::from(call_info);
         for internal_call in &call_info.inner_calls {
-            internal_calls
-                .push(FunctionInvocation::try_from_call_info(internal_call, state_reader)?);
+            internal_calls.push(FunctionInvocation::try_from_call_info(
+                internal_call,
+                state_reader,
+                versioned_constants,
+            )?);
         }
 
         let mut messages: Vec<OrderedMessageToL1> = call_info
@@ -1132,10 +1166,19 @@ impl FunctionInvocation {
         } else {
             state_reader.get_class_hash_at(contract_address).map_err(|_| {
                 ConversionError::InvalidInternalStructure(
-                    "class_hash is unxpectedly undefined".into(),
+                    "class_hash is unexpectedly undefined".into(),
                 )
             })?
         };
+
+        let gas_vector = blockifier::fee::fee_utils::calculate_l1_gas_by_vm_usage(
+            versioned_constants,
+            &call_info.resources,
+            0,
+        )
+        .map_err(|_| {
+            ConversionError::InvalidInternalStructure("unable to calculate gas usage".into())
+        })?;
 
         Ok(FunctionInvocation {
             contract_address: contract_address.into(),
@@ -1152,7 +1195,8 @@ impl FunctionInvocation {
             calls: internal_calls,
             events,
             messages,
-            execution_resources,
+            // TODO: change l2_gas to some meaningful value
+            execution_resources: InnerExecutionResources { l1_gas: gas_vector.l1_gas, l2_gas: 0 },
         })
     }
 }
