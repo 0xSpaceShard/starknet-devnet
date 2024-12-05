@@ -29,6 +29,10 @@ Alternatively, provide a path to the [Sierra artifact](https://github.com/starkw
 --account-class-custom <SIERRA_PATH>
 ```
 
+## Other predeclared account classes
+
+Both Cairo 0 and Cairo 1 versions of OpenZeppelin account are always predeclared, regardless of the chosen predeployment variant. If you specify the `--predeclare-argent` flag on startup, the latest regular and multistig variants of Argent accounts will also be predeclared.
+
 ## Deploying an undeclared account
 
 If you want to deploy an instance of an account contract class not predeclared on Devnet, you can use [forking](./forking). Just fork an origin network which has the needed class already declared, e.g. the Sepolia testnet. Why? Because new versions of wallets like ArgentX and Braavos tend to be declared on testnet/mainnet soon after release.

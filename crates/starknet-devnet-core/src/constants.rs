@@ -63,13 +63,19 @@ pub(crate) const UDC_CONTRACT: &str = include_str!(concat!(
 
 pub(crate) const ARGENT_CONTRACT_SIERRA: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/contracts/system_artifacts/argent_0.4.0.sierra"
+    "/contracts/accounts_artifacts/Argent/argent_0.4.0.sierra"
 ));
+
+pub const ARGENT_CONTRACT_CLASS_HASH: Felt =
+    Felt::from_hex_unchecked("0x36078334509b514626504edc9fb252328d1a240e4e948bef8d0c08dff45927f");
 
 pub(crate) const ARGENT_MULTISIG_CONTRACT_SIERRA: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/contracts/system_artifacts/argent_multisig_0.2.0.sierra"
+    "/contracts/accounts_artifacts/Argent/argent_multisig_0.2.0.sierra"
 ));
+
+pub const ARGENT_MULTISIG_CONTRACT_CLASS_HASH: Felt =
+    Felt::from_hex_unchecked("0x7aeca3456816e3b833506d7cc5c1313d371fbdb0ae95ee70af72a4ddbf42594");
 
 pub const UDC_CONTRACT_CLASS_HASH: Felt =
     Felt::from_hex_unchecked("0x7B3E05F48F0C69E4A65CE5E076A66271A527AFF2C34CE1083EC6E1526997A69");

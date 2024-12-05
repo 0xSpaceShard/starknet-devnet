@@ -140,9 +140,10 @@ mod test_account_selection {
     }
 
     #[tokio::test]
-    /// Relying on forking: the origin network is expected to have the account class declared.
+    #[ignore = "Requires starknet-rs with https://github.com/xJonathanLEI/starknet-rs/pull/680"]
     async fn can_deploy_new_argent_account_from_predeclared_class() {
-        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let devnet_args = ["--predeclare-argent"];
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
 
         let account_hash = Felt::from_hex_unchecked(ARGENT_ACCOUNT_CLASS_HASH);
         let (account_deployment, signer) =

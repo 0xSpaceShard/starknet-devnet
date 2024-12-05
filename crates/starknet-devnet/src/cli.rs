@@ -55,6 +55,12 @@ pub(crate) struct Args {
     #[arg(help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;")]
     account_class_custom: Option<AccountClassWrapper>,
 
+    #[arg(long = "predeclare-argent")]
+    #[arg(env = "PREDECLARE_ARGENT")]
+    #[arg(help = "If set, predeclares the latest Argent contract classes (regular and \
+                  multisig); increases startup time several times;")]
+    predeclare_argent: bool,
+
     /// Initial balance of predeployed accounts
     #[arg(long = "initial-balance")]
     #[arg(env = "INITIAL_BALANCE")]
@@ -244,6 +250,7 @@ impl Args {
                 block_number: self.fork_block,
                 block_hash: None,
             },
+            predeclare_argent: self.predeclare_argent,
             ..Default::default()
         };
 
@@ -612,7 +619,8 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn test_boolean_param_specification_via_env_vars() {
-        let config_source = [("--lite-mode", "LITE_MODE")];
+        let config_source =
+            [("--lite-mode", "LITE_MODE"), ("--predeclare-argent", "PREDECLARE_ARGENT")];
 
         let mut cli_args = vec!["--"];
         for (cli_param, _) in config_source {

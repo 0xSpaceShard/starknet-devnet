@@ -305,7 +305,8 @@ pub async fn deploy_argent_account(
 
     let account_address = deployment.address();
     devnet.mint(account_address, 1e18 as u128).await;
-    let deployment_result = deployment.send().await?;
+    let deployment_result =
+        deployment.send().await.map_err(|e| anyhow::Error::msg(format!("{e:?}")))?;
 
     Ok((deployment_result, signer))
 }
