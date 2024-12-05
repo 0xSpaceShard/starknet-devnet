@@ -7,7 +7,7 @@ pub(crate) mod origin_forwarder;
 mod spec_reader;
 mod write_endpoints;
 
-pub const RPC_SPEC_VERSION: &str = "0.7.1";
+pub const RPC_SPEC_VERSION: &str = "0.8.0";
 
 use std::sync::Arc;
 
@@ -788,7 +788,7 @@ where
         // we apply a hacky way to induce this - checking the stringified error message
         let distinctive_error = format!("unknown variant `{}`", call.method);
         if err.contains(&distinctive_error) {
-            error!(target: "rpc", method = ?call.method, "failed to deserialize method due to unknown variant");  
+            error!(target: "rpc", method = ?call.method, "failed to deserialize method due to unknown variant");
             RpcError::method_not_found()
         } else {
             error!(target: "rpc", method = ?call.method, ?err, "failed to deserialize method");

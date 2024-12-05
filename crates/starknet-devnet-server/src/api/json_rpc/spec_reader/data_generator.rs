@@ -243,13 +243,16 @@ impl<'a> Visitor for RandDataGenerator<'a> {
     fn do_for_tuple(&self, element: &Tuple) -> Result<serde_json::Value, String> {
         let mut array = vec![];
         if self.depth >= MAX_DEPTH {
-            return Ok(serde_json::Value::Array(array));
+            return Ok(serde_json::Value::Null);
         }
 
         for variant in element.variants.iter() {
             let generated_value = generate_schema_value(variant, self.schemas, self.depth + 1)?;
 
-            if !generated_value.is_null() {
+            if generated_value.is_null() {
+                let generated_value = generate_schema_value(variant, self.schemas, self.depth)?;
+                array.push(generated_value);
+            } else {
                 array.push(generated_value);
             }
         }
