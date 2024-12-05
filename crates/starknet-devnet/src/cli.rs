@@ -57,8 +57,7 @@ pub(crate) struct Args {
 
     #[arg(long = "predeclare-argent")]
     #[arg(env = "PREDECLARE_ARGENT")]
-    #[arg(help = "If set, predeclares the latest Argent contract classes (regular and \
-                  multisig); increases startup time several times;")]
+    #[arg(help = "If set, predeclares the latest Argent contract classes (regular and multisig)")]
     predeclare_argent: bool,
 
     /// Initial balance of predeployed accounts

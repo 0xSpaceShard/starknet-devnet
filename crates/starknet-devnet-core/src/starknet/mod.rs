@@ -60,11 +60,11 @@ use self::transaction_trace::create_trace;
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
-    ARGENT_CONTRACT_SIERRA, ARGENT_MULTISIG_CONTRACT_SIERRA, CHARGEABLE_ACCOUNT_ADDRESS,
-    CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_DATA_GAS_PRICE,
-    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, ETH_ERC20_CONTRACT_ADDRESS,
-    ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME,
-    STRK_ERC20_SYMBOL, USE_KZG_DA,
+    ARGENT_CONTRACT_CLASS_HASH, ARGENT_CONTRACT_SIERRA, ARGENT_MULTISIG_CONTRACT_CLASS_HASH,
+    ARGENT_MULTISIG_CONTRACT_SIERRA, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
+    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE,
+    DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME,
+    ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
 };
 use crate::contract_class_choice::AccountContractClassChoice;
 use crate::error::{DevnetResult, Error, TransactionValidationError};
@@ -165,10 +165,13 @@ impl Starknet {
 
         // predeclare argent account classes (not predeployable)
         if config.predeclare_argent {
-            for raw_sierra in [ARGENT_CONTRACT_SIERRA, ARGENT_MULTISIG_CONTRACT_SIERRA] {
+            for (class_hash, raw_sierra) in [
+                (ARGENT_CONTRACT_CLASS_HASH, ARGENT_CONTRACT_SIERRA),
+                (ARGENT_MULTISIG_CONTRACT_CLASS_HASH, ARGENT_MULTISIG_CONTRACT_SIERRA),
+            ] {
                 let contract_class =
                     ContractClass::Cairo1(ContractClass::cairo_1_from_sierra_json_str(raw_sierra)?);
-                state.predeclare_contract_class(contract_class.generate_hash()?, contract_class)?;
+                state.predeclare_contract_class(class_hash, contract_class)?;
             }
         }
 
@@ -1642,7 +1645,6 @@ mod tests {
         let config = StarknetConfig { predeclare_argent: true, ..Default::default() };
         let starknet = Starknet::new(&config).unwrap();
         for class_hash in [ARGENT_CONTRACT_CLASS_HASH, ARGENT_MULTISIG_CONTRACT_CLASS_HASH] {
-            // existence asserted by unwrapping
             let contract = starknet.get_class(&BlockId::Tag(BlockTag::Latest), class_hash).unwrap();
             assert_eq!(contract.generate_hash().unwrap(), class_hash);
         }
