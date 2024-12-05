@@ -399,6 +399,7 @@ impl Starknet {
             transaction.get_type(),
             &tx_info,
             state_diff.clone().into(),
+            self.block_context.versioned_constants(),
         )?;
         let transaction_to_add = StarknetTransaction::create_accepted(&transaction, tx_info, trace);
 
@@ -1186,6 +1187,7 @@ impl Starknet {
                 transaction_type,
                 &tx_execution_info,
                 state_diff,
+                block_context.versioned_constants(),
             )?;
             transactions_traces.push(trace);
         }
