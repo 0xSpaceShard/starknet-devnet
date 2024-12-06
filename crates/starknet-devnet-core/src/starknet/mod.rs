@@ -1375,9 +1375,11 @@ mod tests {
     use crate::account::{Account, FeeToken};
     use crate::blocks::StarknetBlock;
     use crate::constants::{
-        ARGENT_CONTRACT_CLASS_HASH, ARGENT_MULTISIG_CONTRACT_CLASS_HASH, DEVNET_DEFAULT_CHAIN_ID,
-        DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
-        ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
+        ARGENT_CONTRACT_CLASS_HASH, ARGENT_MULTISIG_CONTRACT_CLASS_HASH,
+        CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
+        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE,
+        DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, ETH_ERC20_CONTRACT_ADDRESS,
+        STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{DevnetResult, Error};
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
@@ -1644,7 +1646,12 @@ mod tests {
     fn assert_expected_predeclared_account_classes() {
         let config = StarknetConfig { predeclare_argent: true, ..Default::default() };
         let starknet = Starknet::new(&config).unwrap();
-        for class_hash in [ARGENT_CONTRACT_CLASS_HASH, ARGENT_MULTISIG_CONTRACT_CLASS_HASH] {
+        for class_hash in [
+            ARGENT_CONTRACT_CLASS_HASH,
+            ARGENT_MULTISIG_CONTRACT_CLASS_HASH,
+            Felt::from_hex_unchecked(CAIRO_0_ACCOUNT_CONTRACT_HASH),
+            Felt::from_hex_unchecked(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH),
+        ] {
             let contract = starknet.get_class(&BlockId::Tag(BlockTag::Latest), class_hash).unwrap();
             assert_eq!(contract.generate_hash().unwrap(), class_hash);
         }
