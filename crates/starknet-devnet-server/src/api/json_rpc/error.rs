@@ -68,6 +68,8 @@ pub enum ApiError {
     CallOnPending,
     #[error("Invalid subscription id")]
     InvalidSubscriptionId,
+    #[error("Devnet doesn't support storage proofs")]
+    StorageProofNotSupported,
 }
 
 impl ApiError {
@@ -226,6 +228,11 @@ impl ApiError {
                 message: error_message.into(),
                 data: None,
             },
+            ApiError::StorageProofNotSupported => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(42),
+                message: error_message.into(),
+                data: None,
+            },
         }
     }
 
@@ -260,6 +267,7 @@ impl ApiError {
             | Self::TooManyBlocksBack
             | Self::InvalidSubscriptionId
             | Self::InsufficientResourcesForValidate
+            | Self::StorageProofNotSupported
             | Self::CompiledClassHashMismatch => false,
         }
     }

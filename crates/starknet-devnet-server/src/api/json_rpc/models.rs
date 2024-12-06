@@ -13,6 +13,7 @@ use starknet_types::rpc::transactions::{
 };
 use starknet_types::starknet_api::block::BlockNumber;
 
+// TODO remove Serialize here and in other places
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockIdInput {
@@ -25,13 +26,28 @@ pub struct TransactionHashInput {
     pub transaction_hash: TransactionHash,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct GetStorageInput {
     pub contract_address: ContractAddress,
     pub key: PatriciaKey,
     pub block_id: BlockId,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct ContractStorage {
+    pub contract_address: ContractAddress,
+    pub storage_keys: Vec<Felt>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct GetStorageProofInput {
+    pub block_id: BlockId,
+    pub class_hashes: Option<Vec<Felt>>,
+    pub contract_addresses: Option<Vec<ContractAddress>>,
+    pub contract_storage_keys: Option<ContractStorage>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
