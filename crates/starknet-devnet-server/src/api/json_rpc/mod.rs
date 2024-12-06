@@ -763,57 +763,57 @@ impl JsonRpcRequest {
     pub fn requires_notifying(&self) -> bool {
         #![warn(clippy::wildcard_enum_match_arm)]
         match self {
-            JsonRpcRequest::AddDeclareTransaction(_) => true,
-            JsonRpcRequest::AddDeployAccountTransaction(_) => true,
-            JsonRpcRequest::AddInvokeTransaction(_) => true,
-            JsonRpcRequest::PostmanFlush(_) => true,
-            JsonRpcRequest::PostmanSendMessageToL2(_) => true,
-            JsonRpcRequest::CreateBlock => true,
-            JsonRpcRequest::AbortBlocks(_) => true,
-            JsonRpcRequest::SetTime(_) => true,
-            JsonRpcRequest::IncreaseTime(_) => true,
-            JsonRpcRequest::Mint(_) => true,
-            JsonRpcRequest::SpecVersion => false,
-            JsonRpcRequest::BlockWithTransactionHashes(_) => false,
-            JsonRpcRequest::BlockWithFullTransactions(_) => false,
-            JsonRpcRequest::BlockWithReceipts(_) => false,
-            JsonRpcRequest::StateUpdate(_) => false,
-            JsonRpcRequest::StorageAt(_) => false,
-            JsonRpcRequest::TransactionByHash(_) => false,
-            JsonRpcRequest::TransactionByBlockAndIndex(_) => false,
-            JsonRpcRequest::TransactionReceiptByTransactionHash(_) => false,
-            JsonRpcRequest::TransactionStatusByHash(_) => false,
-            JsonRpcRequest::MessagesStatusByL1Hash(_) => false,
-            JsonRpcRequest::ClassByHash(_) => false,
-            JsonRpcRequest::CompiledCasmByClassHash(_) => false,
-            JsonRpcRequest::ClassHashAtContractAddress(_) => false,
-            JsonRpcRequest::ClassAtContractAddress(_) => false,
-            JsonRpcRequest::BlockTransactionCount(_) => false,
-            JsonRpcRequest::Call(_) => false,
-            JsonRpcRequest::EstimateFee(_) => false,
-            JsonRpcRequest::BlockNumber => false,
-            JsonRpcRequest::BlockHashAndNumber => false,
-            JsonRpcRequest::ChainId => false,
-            JsonRpcRequest::Syncing => false,
-            JsonRpcRequest::Events(_) => false,
-            JsonRpcRequest::ContractNonce(_) => false,
-            JsonRpcRequest::EstimateMessageFee(_) => false,
-            JsonRpcRequest::SimulateTransactions(_) => false,
-            JsonRpcRequest::TraceTransaction(_) => false,
-            JsonRpcRequest::BlockTransactionTraces(_) => false,
-            JsonRpcRequest::ImpersonateAccount(_) => false,
-            JsonRpcRequest::StopImpersonateAccount(_) => false,
-            JsonRpcRequest::AutoImpersonate => false,
-            JsonRpcRequest::StopAutoImpersonate => false,
-            JsonRpcRequest::Dump(_) => false,
-            JsonRpcRequest::Load(_) => false,
-            JsonRpcRequest::PostmanLoadL1MessagingContract(_) => false,
-            JsonRpcRequest::PostmanConsumeMessageFromL2(_) => false,
-            JsonRpcRequest::SetGasPrice(_) => false,
-            JsonRpcRequest::Restart(_) => false,
-            JsonRpcRequest::PredeployedAccounts(_) => false,
-            JsonRpcRequest::AccountBalance(_) => false,
-            JsonRpcRequest::DevnetConfig => false,
+            Self::AddDeclareTransaction(_)
+            | Self::AddDeployAccountTransaction(_)
+            | Self::AddInvokeTransaction(_)
+            | Self::PostmanFlush(_)
+            | Self::PostmanSendMessageToL2(_)
+            | Self::CreateBlock
+            | Self::AbortBlocks(_)
+            | Self::SetTime(_)
+            | Self::IncreaseTime(_)
+            | Self::Mint(_) => true,
+            Self::SpecVersion
+            | Self::BlockWithTransactionHashes(_)
+            | Self::BlockWithFullTransactions(_)
+            | Self::BlockWithReceipts(_)
+            | Self::StateUpdate(_)
+            | Self::StorageAt(_)
+            | Self::TransactionByHash(_)
+            | Self::TransactionByBlockAndIndex(_)
+            | Self::TransactionReceiptByTransactionHash(_)
+            | Self::TransactionStatusByHash(_)
+            | Self::MessagesStatusByL1Hash(_)
+            | Self::ClassByHash(_)
+            | Self::CompiledCasmByClassHash(_)
+            | Self::ClassHashAtContractAddress(_)
+            | Self::ClassAtContractAddress(_)
+            | Self::BlockTransactionCount(_)
+            | Self::Call(_)
+            | Self::EstimateFee(_)
+            | Self::BlockNumber
+            | Self::BlockHashAndNumber
+            | Self::ChainId
+            | Self::Syncing
+            | Self::Events(_)
+            | Self::ContractNonce(_)
+            | Self::EstimateMessageFee(_)
+            | Self::SimulateTransactions(_)
+            | Self::TraceTransaction(_)
+            | Self::BlockTransactionTraces(_)
+            | Self::ImpersonateAccount(_)
+            | Self::StopImpersonateAccount(_)
+            | Self::AutoImpersonate
+            | Self::StopAutoImpersonate
+            | Self::Dump(_)
+            | Self::Load(_)
+            | Self::PostmanLoadL1MessagingContract(_)
+            | Self::PostmanConsumeMessageFromL2(_)
+            | Self::SetGasPrice(_)
+            | Self::Restart(_)
+            | Self::PredeployedAccounts(_)
+            | Self::AccountBalance(_)
+            | Self::DevnetConfig => false,
         }
     }
 
