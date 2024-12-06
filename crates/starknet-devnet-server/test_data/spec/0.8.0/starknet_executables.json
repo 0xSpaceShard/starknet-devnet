@@ -91,25 +91,22 @@
                     },
                     "hints": {
                         "type": "array",
+                        "description": "2-tuple of pc value and an array of hints to execute",
                         "items": {
-                            "type": "array",
-                            "description": "2-tuple of pc value and an array of hints to execute",
-                            "items": {
-                                "oneOf": [
-                                    {
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "type": "array",
-                                        "items": {
-                                            "$ref": "#/components/schemas/HINT"
-                                        }
+                            "oneOf": [
+                                {
+                                    "type": "integer"
+                                },
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/HINT"
                                     }
-                                ]
-                            },
-                            "minItems": 2,
-                            "maxItems": 2
-                        }
+                                }
+                            ]
+                        },
+                        "minItems": 2,
+                        "maxItems": 2
                     },
                     "bytecode_segment_lengths": {
                         "type": "array",
@@ -160,7 +157,8 @@
                         ]
                     },
                     "offset": {
-                        "type": "integer"
+                        "type": "integer",
+                        "maximum": 32767
                     }
                 },
                 "required": [
@@ -186,19 +184,15 @@
                     "DoubleDeref": {
                         "title": "DoubleDeref",
                         "description": "A (CellRef, offset) tuple",
-                        "type": "array",
-                        "items": {
-                            "oneOf": [
-                                {
-                                    "$ref": "#/components/schemas/CellRef"
-                                },
-                                {
-                                    "type": "integer"
-                                }
-                            ]
-                        },
-                        "minItems": 2,
-                        "maxItems": 2
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/CellRef"
+                            },
+                            {
+                                "type": "integer",
+                                "maximum": 32767
+                            }
+                        ]
                     }
                 },
                 "required": [
@@ -895,7 +889,7 @@
                             "InitSquashData": {
                                 "type": "object",
                                 "properties": {
-                                    "dict_access": {
+                                    "dict_accesses": {
                                         "$ref": "#/components/schemas/ResOperand"
                                     },
                                     "ptr_diff": {
@@ -912,7 +906,7 @@
                                     }
                                 },
                                 "required": [
-                                    "dict_access",
+                                    "dict_accesses",
                                     "ptr_diff",
                                     "n_accesses",
                                     "big_keys",

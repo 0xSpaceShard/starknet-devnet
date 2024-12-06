@@ -3470,7 +3470,7 @@
           "offset": {
             "title": "Offset",
             "description": "The offset of the entry point in the program",
-            "$ref": "#/components/schemas/NUM_AS_HEX"
+            "type": "integer"
           },
           "selector": {
             "title": "Selector",

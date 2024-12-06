@@ -8,9 +8,9 @@ replace_property:
 # The following comment is for example purpose
   # - path: components/schemas/BLOCK_HEADER/properties/l1_gas_price/descritpion
   #   new_name: description
-  - path: components/schemas/CASM_COMPILED_CONTRACT_CLASS/properties/hints/items/items/oneOf
+  - path: components/schemas/CASM_COMPILED_CONTRACT_CLASS/properties/hints/items/oneOf
     new_name: tuple
-  - path: components/schemas/DoubleDeref/properties/DoubleDeref/items/oneOf
+  - path: components/schemas/DoubleDeref/properties/DoubleDeref/oneOf
     new_name: tuple
 
 add:
@@ -25,6 +25,8 @@ add:
     new_entry: $ref/#/components/schemas/ETH_ADDRESS
   - path: components/schemas/FEE_PAYMENT/properties/amount
     new_entry: $ref/#/components/schemas/u64
+  - path: components/schemas/CellRef/properties/offset
+    new_entry: maximum/32767
 
 remove_from_array:
   - path: components/schemas/INVOKE_TXN/oneOf
@@ -45,6 +47,8 @@ remove_from_array:
     index: 1
   - path: components/schemas/DECLARE_TXN/oneOf
     index: 0
+  - path: components/schemas/HINT/oneOf
+    index: 0
 
 edit_manually:
   - action: CHANGE
@@ -59,9 +63,21 @@ edit_manually:
     what: starknet_getStorageProof method
   - action: CHANGE
     what: CASM_COMPILED_CONTRACT_CLASS.properties.hints.items.items.oneOf to tuple
-
+  - action: REMOVE
+    what: remove the outer object of CASM_COMPILED_CONTRACT_CLASS.hints property
+  - action: REMOVE
+    what: remove the outer object (types, items) of DoubleDeref.hints property
+  - action: CHANGE
+    what: DEPRECATED_CAIRO_ENTRY_POINT.properties.offset from $ref to type
+  - action: ADD
+    what: DoubleDeref tuple maximum 32767 to the integer part
   - action: REMOVE
     what: removed the outer "schema" object -  instead of being items -> schema -> {type, properties}, now its items -> {type, properties} in starknet_simulateTransactions
+  - action: CHANGE
+    what: components/EVENT to components/EVENT_CONTENT in trace_api spec
+  - action: CHANGE
+    what: ORDERED_EVENT $ref from components/EVENT to components/EVENT_CONTENT in trace_api spec
+
   - action: REMOVE
     what: PENDING_BLOCK_HEADER schema from the spec
   - action: REMOVE
@@ -74,10 +90,6 @@ edit_manually:
     what: execution_status to required fields of the result of starknet_getTransactionStatus
   - action: CHANGE
     what: components/schemas/FELT/pattern to ^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,61})$
-  - action: CHANGE
-    what: components/EVENT to components/EVENT_CONTENT in trace_api spec
-  - action: CHANGE
-    what: ORDERED_EVENT $ref from components/EVENT to components/EVENT_CONTENT in trace_api spec
   - action: CHANGE
     what: components/FEE_ESTIMATE field types from FELT to u64
   - action: ADD
