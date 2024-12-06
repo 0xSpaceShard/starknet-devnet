@@ -68,7 +68,7 @@ pub enum ApiError {
     CallOnPending,
     #[error("Invalid subscription id")]
     InvalidSubscriptionId,
-    #[error("Devnet doesn't support storage proofs")]
+    #[error("Devnet doesn't support storage proofs")] // slightly modified spec message
     StorageProofNotSupported,
 }
 

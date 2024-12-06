@@ -141,6 +141,7 @@ impl JsonRpcHandler {
     /// starknet_getStorageProof
     pub async fn get_storage_proof(&self, data: GetStorageProofInput) -> StrictRpcResult {
         match self.api.starknet.lock().await.get_block(data.block_id.as_ref()) {
+            // storage proofs not applicable to Devnet
             Ok(_) => Err(ApiError::StorageProofNotSupported),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
