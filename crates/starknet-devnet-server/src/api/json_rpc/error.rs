@@ -228,6 +228,41 @@ impl ApiError {
             },
         }
     }
+
+    pub(crate) fn is_forwardable_to_origin(&self) -> bool {
+        #[warn(clippy::wildcard_enum_match_arm)]
+        match self {
+            Self::BlockNotFound
+            | Self::TransactionNotFound
+            | Self::NoStateAtBlock { .. }
+            | Self::ClassHashNotFound => true,
+            Self::StarknetDevnetError(_)
+            | Self::NoTraceAvailable
+            | Self::TypesError(_)
+            | Self::RpcError(_)
+            | Self::ContractNotFound
+            | Self::InvalidTransactionIndexInBlock
+            | Self::ContractError { .. }
+            | Self::NoBlocks
+            | Self::RequestPageSizeTooBig
+            | Self::InvalidContinuationToken
+            | Self::TooManyKeysInFilter
+            | Self::ClassAlreadyDeclared
+            | Self::InvalidContractClass
+            | Self::OnlyLatestBlock
+            | Self::UnsupportedAction { .. }
+            | Self::InvalidTransactionNonce
+            | Self::InsufficientAccountBalance
+            | Self::ValidationFailure { .. }
+            | Self::HttpApiError(_)
+            | Self::TransactionExecutionError { .. }
+            | Self::CallOnPending
+            | Self::TooManyBlocksBack
+            | Self::InvalidSubscriptionId
+            | Self::InsufficientResourcesForValidate
+            | Self::CompiledClassHashMismatch => false,
+        }
+    }
 }
 
 /// Constructs a recursive object from the provided `error_stack`. The topmost call (the first in
