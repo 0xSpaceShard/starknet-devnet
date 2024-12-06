@@ -648,4 +648,34 @@ mod fork_tests {
         let latest_block = forked_devnet.get_latest_block_with_tx_hashes().await.unwrap();
         assert_ne!(latest_block.parent_hash, origin_block_hash);
     }
+
+    #[tokio::test]
+    async fn test_tx_info_available_from_origin() {
+        let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
+
+        let address = Felt::ONE;
+        let mint_amount = 123;
+        let mint_tx_hash = origin_devnet.mint(address, mint_amount).await;
+
+        let latest_origin_block = origin_devnet.get_latest_block_with_tx_hashes().await.unwrap();
+        assert_eq!(latest_origin_block.block_number, 1);
+
+        let forked_devnet = origin_devnet.fork().await.unwrap();
+
+        forked_devnet.json_rpc_client.get_transaction_by_hash(mint_tx_hash).await.unwrap();
+        forked_devnet.json_rpc_client.get_transaction_status(mint_tx_hash).await.unwrap();
+        forked_devnet.json_rpc_client.get_transaction_receipt(mint_tx_hash).await.unwrap();
+        forked_devnet.json_rpc_client.trace_transaction(mint_tx_hash).await.unwrap();
+
+        for block_id in [
+            BlockId::Number(latest_origin_block.block_number),
+            BlockId::Hash(latest_origin_block.block_hash),
+        ] {
+            forked_devnet
+                .json_rpc_client
+                .get_transaction_by_block_id_and_index(block_id, 0)
+                .await
+                .unwrap();
+        }
+    }
 }
