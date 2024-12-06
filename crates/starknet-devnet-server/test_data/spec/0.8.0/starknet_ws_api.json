@@ -34,7 +34,7 @@
           "$ref": "./api/starknet_api_openrpc.json#/components/errors/BLOCK_NOT_FOUND"
         },
         {
-            "$ref": "#/components/errors/CALL_ON_PENDING"
+          "$ref": "#/components/errors/CALL_ON_PENDING"
         }
       ]
     },
@@ -106,7 +106,7 @@
           "$ref": "./api/starknet_api_openrpc.json#/components/errors/BLOCK_NOT_FOUND"
         },
         {
-            "$ref": "#/components/errors/CALL_ON_PENDING"
+          "$ref": "#/components/errors/CALL_ON_PENDING"
         }
       ]
     },
@@ -299,7 +299,6 @@
       ]
     }
   ],
-
   "components": {
     "schemas": {
       "FELT": {
@@ -316,22 +315,19 @@
             "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN_HASH"
           },
           "status": {
-            "schema": {
-              "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN_STATUS_RESULT"
-            }
+            "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN_STATUS_RESULT"
           }
         }
       },
       "SUBSCRIPTION_ID": {
         "name": "subscription id",
         "description": "An identifier for this subscription stream used to associate events with this subscription.",
-        "schema": {
-          "type": "integer"
-        }
+        "type": "integer"
       },
       "REORG_DATA": {
         "name": "Reorg Data",
         "description": "Data about reorganized blocks, starting and ending block number and hash",
+        "type": "object",
         "properties": {
           "starting_block_hash": {
             "title": "Starting Block Hash",
@@ -358,7 +354,12 @@
             "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BLOCK_NUMBER"
           }
         },
-        "required": ["starting_block_hash", "starting_block_number", "ending_block_hash", "ending_block_number"]
+        "required": [
+          "starting_block_hash",
+          "starting_block_number",
+          "ending_block_hash",
+          "ending_block_number"
+        ]
       }
     },
     "errors": {

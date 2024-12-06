@@ -77,6 +77,8 @@ edit_manually:
     what: components/EVENT to components/EVENT_CONTENT in trace_api spec
   - action: CHANGE
     what: ORDERED_EVENT $ref from components/EVENT to components/EVENT_CONTENT in trace_api spec
+  - action: REMOVE
+    what: outer schema object of NEW_TXN_STATUS.status in starknet_ws_api.json
 
   - action: REMOVE
     what: PENDING_BLOCK_HEADER schema from the spec
