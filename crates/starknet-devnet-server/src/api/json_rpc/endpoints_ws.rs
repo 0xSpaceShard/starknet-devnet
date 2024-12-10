@@ -240,9 +240,6 @@ impl JsonRpcHandler {
         let mut sockets = self.api.sockets.lock().await;
         let socket_context = sockets.get_mut(&socket_id)?;
 
-        // TODO if tx present, but in a block before the one specified, no point in subscribing -
-        // its status shall never change (unless considering block abortion). It would make
-        // sense to just add a ReorgSubscription TODO TEST THIS TEST THIS TEST THIS TEST THIS?
         let subscription_tag = self.get_subscription_tag(query_block_id);
         let subscription =
             Subscription::TransactionStatus { tag: subscription_tag, transaction_hash };

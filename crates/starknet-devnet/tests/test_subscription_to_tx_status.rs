@@ -322,4 +322,24 @@ mod tx_status_subscription_support {
         let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
         assert_successful_mint_notification(notification, tx_hash, subscription_id);
     }
+
+    #[tokio::test]
+    async fn should_not_notify_of_status_change_when_block_aborted() {
+        let devnet_args = ["--state-archive-capacity", "full"];
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        let (address, amount, _) = first_mint_data();
+        let tx_hash = devnet.mint(address, amount).await;
+        let subscription_id = subscribe_tx_status(&mut ws, &tx_hash, None).await.unwrap();
+
+        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        assert_successful_mint_notification(notification, tx_hash, subscription_id);
+
+        devnet.abort_blocks(&BlockId::Number(1)).await.unwrap();
+
+        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        assert_eq!(notification["method"], "starknet_subscriptionReorg");
+        assert_no_notifications(&mut ws).await;
+    }
 }
