@@ -23,7 +23,7 @@ pub struct BlockIdInput {
 #[serde(deny_unknown_fields)]
 /// Similar to BlockIdInput, but without the _id, as required by ws methods.
 pub struct BlockInput {
-    pub block: BlockId,
+    pub block_id: BlockId,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -216,7 +216,7 @@ pub struct PendingTransactionsSubscriptionInput {
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct EventsSubscriptionInput {
-    pub block: Option<BlockId>,
+    pub block_id: Option<BlockId>,
     pub from_address: Option<ContractAddress>,
     pub keys: Option<Vec<Vec<Felt>>>,
 }
