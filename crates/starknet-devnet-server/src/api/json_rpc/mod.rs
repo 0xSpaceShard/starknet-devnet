@@ -1680,8 +1680,8 @@ mod response_tests {
     use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
-    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result(
-    ) {
+    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result()
+     {
         assert_eq!(
             r#"{"result":{}}"#,
             serde_json::to_string(
