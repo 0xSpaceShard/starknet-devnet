@@ -422,7 +422,7 @@ impl JsonRpcHandler {
             orphan_starting_block_hash = parent_hash;
         }
 
-        let notification = SubscriptionNotification::Reorg(ReorgData {
+        let notification = NotificationData::Reorg(ReorgData {
             starting_block_hash: orphan_starting_block_hash,
             starting_block_number: new_latest_block.block_number().unchecked_next(),
             ending_block_hash: old_latest_block.block_hash(),

@@ -57,43 +57,40 @@ impl Subscription {
         }
     }
 
-    pub fn matches(&self, notification: &SubscriptionNotification) -> bool {
+    pub fn matches(&self, notification: &NotificationData) -> bool {
         match (self, notification) {
-            (Subscription::NewHeads, SubscriptionNotification::NewHeads(_)) => true,
+            (Subscription::NewHeads, NotificationData::NewHeads(_)) => true,
             (
                 Subscription::TransactionStatus { tag, transaction_hash: subscription_hash },
-                SubscriptionNotification::TransactionStatus(notification),
+                NotificationData::TransactionStatus(notification),
             ) => {
                 tag == &notification.origin_tag
                     && subscription_hash == &notification.transaction_hash
             }
             (
                 Subscription::PendingTransactionsFull { address_filter },
-                SubscriptionNotification::PendingTransaction(PendingTransactionNotification::Full(
-                    tx,
-                )),
+                NotificationData::PendingTransaction(PendingTransactionNotification::Full(tx)),
             ) => match tx.get_sender_address() {
                 Some(address) => address_filter.passes(&address),
                 None => true,
             },
             (
                 Subscription::PendingTransactionsHash { address_filter },
-                SubscriptionNotification::PendingTransaction(PendingTransactionNotification::Hash(
+                NotificationData::PendingTransaction(PendingTransactionNotification::Hash(
                     hash_wrapper,
                 )),
             ) => match hash_wrapper.sender_address {
                 Some(address) => address_filter.passes(&address),
                 None => true,
             },
-            (
-                Subscription::Events { address, keys_filter },
-                SubscriptionNotification::Event(event),
-            ) => check_if_filter_applies_for_event(address, keys_filter, &event.into()),
+            (Subscription::Events { address, keys_filter }, NotificationData::Event(event)) => {
+                check_if_filter_applies_for_event(address, keys_filter, &event.into())
+            }
             (
                 Subscription::NewHeads
                 | Subscription::TransactionStatus { .. }
                 | Subscription::Events { .. },
-                SubscriptionNotification::Reorg(_),
+                NotificationData::Reorg(_),
             ) => true, // any subscription other than pending tx requires reorg notification
             _ => false,
         }
@@ -275,6 +272,10 @@ impl SocketContext {
 
             NotificationData::Event(emitted_event) => {
                 SubscriptionNotification::Event { subscription_id, result: emitted_event }
+            }
+
+            NotificationData::Reorg(reorg_data) => {
+                SubscriptionNotification::Reorg { subscription_id, result: reorg_data }
             }
         };
 

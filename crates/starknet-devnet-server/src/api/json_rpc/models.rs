@@ -23,7 +23,7 @@ pub struct BlockIdInput {
 #[serde(deny_unknown_fields)]
 /// Similar to BlockIdInput, but without the _id, as required by ws methods.
 pub struct BlockInput {
-    pub block_id: BlockId,
+    pub block: BlockId,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

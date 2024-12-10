@@ -106,7 +106,7 @@ impl JsonRpcHandler {
         rpc_request_id: Id,
         socket_id: SocketId,
     ) -> Result<(), ApiError> {
-        let block_id = if let Some(BlockInput { block_id }) = block_input {
+        let block_id = if let Some(BlockIdInput { block_id }) = block_input {
             block_id.into()
         } else {
             // if no block ID input, this eventually just subscribes the user to new blocks
