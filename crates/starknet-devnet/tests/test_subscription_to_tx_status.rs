@@ -9,8 +9,7 @@ mod tx_status_subscription_support {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
-        assert_no_notifications, receive_rpc_via_ws, send_text_rpc_via_ws, subscribe_new_heads,
-        unsubscribe,
+        assert_no_notifications, receive_rpc_via_ws, subscribe, subscribe_new_heads, unsubscribe,
     };
 
     async fn subscribe_tx_status(
@@ -21,14 +20,10 @@ mod tx_status_subscription_support {
         let mut params = json!({ "transaction_hash": tx_hash });
 
         if let Some(block_id) = block_id {
-            params["block"] = json!(block_id);
+            params["block_id"] = json!(block_id);
         }
 
-        let subscription_confirmation =
-            send_text_rpc_via_ws(ws, "starknet_subscribeTransactionStatus", params).await?;
-        subscription_confirmation["result"]
-            .as_i64()
-            .ok_or(anyhow::Error::msg("Subscription did not return a numeric ID"))
+        subscribe(ws, "starknet_subscribeTransactionStatus", params).await
     }
 
     /// Returns (address, amount, tx_hash), with tx_hash being the hash of the minting tx if it's
@@ -326,25 +321,5 @@ mod tx_status_subscription_support {
 
         let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
         assert_successful_mint_notification(notification, tx_hash, subscription_id);
-    }
-
-    #[tokio::test]
-    async fn should_return_error_for_invalid_block_id() {
-        let devnet = BackgroundDevnet::spawn().await.unwrap();
-
-        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-
-        for block_id in [BlockId::Number(1), BlockId::Hash(Felt::ONE)] {
-            let resp = send_text_rpc_via_ws(
-                &mut ws,
-                "starknet_subscribeTransactionStatus",
-                json!({ "transaction_hash": Felt::ONE, "block": block_id }),
-            )
-            .await
-            .unwrap();
-
-            let expected_error = json!({ "code": 24, "message": "Block not found" });
-            assert_eq!(resp, json!({ "jsonrpc": "2.0", "id": 0, "error": expected_error }));
-        }
     }
 }

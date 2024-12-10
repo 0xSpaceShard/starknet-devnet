@@ -434,6 +434,17 @@ pub async fn send_binary_rpc_via_ws(
     Ok(resp_body)
 }
 
+pub async fn subscribe(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    subscription_method: &str,
+    params: serde_json::Value,
+) -> Result<i64, anyhow::Error> {
+    let subscription_confirmation = send_text_rpc_via_ws(ws, subscription_method, params).await?;
+    subscription_confirmation["result"].as_i64().ok_or(anyhow::Error::msg(format!(
+        "No ID in subscription response: {subscription_confirmation}"
+    )))
+}
+
 /// Tries to read from the provided ws stream. To prevent deadlock, waits for a second at most.
 pub async fn receive_rpc_via_ws(
     ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
@@ -454,7 +465,7 @@ pub async fn receive_notification(
     assert_eq!(notification["jsonrpc"], "2.0");
     assert_eq!(notification["method"], method);
     assert_eq!(notification["params"]["subscription_id"], expected_subscription_id);
-    Ok(notification["params"].take()["result"].take())
+    Ok(notification["params"]["result"].take())
 }
 
 pub async fn assert_no_notifications(ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
@@ -469,11 +480,7 @@ pub async fn subscribe_new_heads(
     ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
     block_specifier: serde_json::Value,
 ) -> Result<i64, anyhow::Error> {
-    let subscription_confirmation =
-        send_text_rpc_via_ws(ws, "starknet_subscribeNewHeads", block_specifier).await?;
-    subscription_confirmation["result"]
-        .as_i64()
-        .ok_or(anyhow::Error::msg("Subscription did not return a numeric ID"))
+    subscribe(ws, "starknet_subscribeNewHeads", block_specifier).await
 }
 
 pub async fn unsubscribe(

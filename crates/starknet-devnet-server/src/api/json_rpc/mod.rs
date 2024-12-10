@@ -16,10 +16,10 @@ use enum_helper_macros::{AllVariantsSerdeRenames, VariantName};
 use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
 use models::{
-    BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, BlockInput,
-    CallInput, ClassHashInput, EstimateFeeInput, EventsInput, EventsSubscriptionInput,
-    GetStorageInput, L1TransactionHashInput, PendingTransactionsSubscriptionInput,
-    SubscriptionIdInput, TransactionBlockInput, TransactionHashInput, TransactionHashOutput,
+    BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
+    ClassHashInput, EstimateFeeInput, EventsInput, EventsSubscriptionInput, GetStorageInput,
+    L1TransactionHashInput, PendingTransactionsSubscriptionInput, SubscriptionIdInput,
+    TransactionBlockInput, TransactionHashInput, TransactionHashOutput,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -28,7 +28,7 @@ use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_core::{CasmContractClass, StarknetBlock};
 use starknet_rs_core::types::{BlockId, BlockTag, ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::block::{Block, PendingBlock};
+use starknet_types::rpc::block::{Block, PendingBlock, ReorgData};
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
@@ -129,7 +129,46 @@ impl RpcHandler for JsonRpcHandler {
         original_call: RpcMethodCall,
     ) -> ResponseResult {
         info!(target: "rpc", "received method in on_request {}", request);
-        self.execute(request, original_call).await
+
+        let is_request_forwardable = request.is_forwardable_to_origin(); // applicable if forking
+        let is_request_dumpable = request.is_dumpable();
+
+        // for later comparison and subscription notifications
+        let old_latest_block = if request.requires_notifying() {
+            Some(self.get_block_by_tag(BlockTag::Latest).await)
+        } else {
+            None
+        };
+
+        let old_pending_block =
+            if request.requires_notifying() && self.starknet_config.uses_pending_block() {
+                Some(self.get_block_by_tag(BlockTag::Pending).await)
+            } else {
+                None
+            };
+
+        let starknet_resp = self.execute(request).await;
+
+        // If locally we got an error and forking is set up, forward the request to the origin
+        if let (Err(err), Some(forwarder)) = (&starknet_resp, &self.origin_caller) {
+            if err.is_forwardable_to_origin() && is_request_forwardable {
+                // if a block or state is requested that was only added to origin after
+                // forking happened, it will be normally returned; we don't extra-handle this case
+                return forwarder.call(&original_call).await;
+            }
+        }
+
+        if starknet_resp.is_ok() && is_request_dumpable {
+            if let Err(e) = self.update_dump(&original_call).await {
+                return ResponseResult::Error(e);
+            }
+        }
+
+        if let Err(e) = self.broadcast_changes(old_latest_block, old_pending_block).await {
+            return ResponseResult::Error(e.api_error_to_rpc_error());
+        }
+
+        starknet_resp.to_rpc_result()
     }
 
     async fn on_call(&self, call: RpcMethodCall) -> RpcResponse {
@@ -213,7 +252,7 @@ impl JsonRpcHandler {
     /// The latest and pending block are always defined, so to avoid having to deal with Err/None in
     /// places where this method is called, it is defined to return an empty accepted block,
     /// even though that case should never happen.
-    async fn get_block(&self, tag: BlockTag) -> StarknetBlock {
+    async fn get_block_by_tag(&self, tag: BlockTag) -> StarknetBlock {
         let starknet = self.api.starknet.lock().await;
         match starknet.get_block(&BlockId::Tag(tag)) {
             Ok(block) => block.clone(),
@@ -225,7 +264,7 @@ impl JsonRpcHandler {
         &self,
         old_pending_block: StarknetBlock,
     ) -> Result<(), error::ApiError> {
-        let new_pending_block = self.get_block(BlockTag::Pending).await;
+        let new_pending_block = self.get_block_by_tag(BlockTag::Pending).await;
         let old_pending_txs = old_pending_block.get_transactions();
         let new_pending_txs = new_pending_block.get_transactions();
 
@@ -337,46 +376,72 @@ impl JsonRpcHandler {
     /// Notify subscribers of what they are subscribed to.
     async fn broadcast_changes(
         &self,
-        old_latest_block: StarknetBlock,
+        old_latest_block: Option<StarknetBlock>,
         old_pending_block: Option<StarknetBlock>,
     ) -> Result<(), error::ApiError> {
-        let new_latest_block = self.get_block(BlockTag::Latest).await;
+        let old_latest_block = if let Some(block) = old_latest_block {
+            block
+        } else {
+            return Ok(());
+        };
 
         if let Some(old_pending_block) = old_pending_block {
             self.broadcast_pending_tx_changes(old_pending_block).await?;
         }
 
-        if new_latest_block.block_number() > old_latest_block.block_number() {
-            self.broadcast_latest_changes(new_latest_block).await?;
-        } else {
-            // TODO - possible only if an immutable request came or one of the following happened:
-            // blocks aborted, devnet restarted, devnet loaded. Or should loading cause websockets
-            // to be restarted too, thus not requiring notification?
+        let new_latest_block = self.get_block_by_tag(BlockTag::Latest).await;
+
+        match new_latest_block.block_number().cmp(&old_latest_block.block_number()) {
+            std::cmp::Ordering::Less => {
+                self.broadcast_reorg(old_latest_block, new_latest_block).await?
+            }
+            std::cmp::Ordering::Equal => { /* no changes required */ }
+            std::cmp::Ordering::Greater => self.broadcast_latest_changes(new_latest_block).await?,
         }
 
         Ok(())
     }
 
-    /// The method matches the request to the corresponding enum variant and executes the request
-    async fn execute(
+    async fn broadcast_reorg(
         &self,
-        request: JsonRpcRequest,
-        original_call: RpcMethodCall,
-    ) -> ResponseResult {
+        old_latest_block: StarknetBlock,
+        new_latest_block: StarknetBlock,
+    ) -> Result<(), error::ApiError> {
+        // Since it is impossible to determine the hash of the former successor of new_latest_block
+        // directly, we iterate from old_latest_block all the way to the aborted successor of
+        // new_latest_block.
+        let new_latest_hash = new_latest_block.block_hash();
+        let mut orphan_starting_block_hash = old_latest_block.block_hash();
+        let starknet = self.api.starknet.lock().await;
+        loop {
+            let orphan_block = starknet.get_block(&BlockId::Hash(orphan_starting_block_hash))?;
+            let parent_hash = orphan_block.parent_hash();
+            if parent_hash == new_latest_hash {
+                break;
+            }
+            orphan_starting_block_hash = parent_hash;
+        }
+
+        let notification = SubscriptionNotification::Reorg(ReorgData {
+            starting_block_hash: orphan_starting_block_hash,
+            starting_block_number: new_latest_block.block_number().unchecked_next(),
+            ending_block_hash: old_latest_block.block_hash(),
+            ending_block_number: old_latest_block.block_number(),
+        });
+
+        let sockets = self.api.sockets.lock().await;
+        for (_, socket_context) in sockets.iter() {
+            socket_context.notify_subscribers(&notification).await;
+        }
+
+        Ok(())
+    }
+
+    /// Matches the request to the corresponding enum variant and executes the request.
+    async fn execute(&self, request: JsonRpcRequest) -> Result<JsonRpcResponse, error::ApiError> {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
-        // for later comparison and subscription notifications
-        let old_latest_block = self.get_block(BlockTag::Latest).await;
-        let old_pending_block = if self.starknet_config.uses_pending_block() {
-            Some(self.get_block(BlockTag::Pending).await)
-        } else {
-            None
-        };
-
-        // true if origin should be tried after request fails; relevant in forking mode
-        let mut forwardable = true;
-
-        let starknet_resp = match request {
+        match request {
             JsonRpcRequest::SpecVersion => self.spec_version(),
             JsonRpcRequest::BlockWithTransactionHashes(block) => {
                 self.get_block_with_tx_hashes(block.block_id).await
@@ -447,7 +512,6 @@ impl JsonRpcHandler {
             JsonRpcRequest::AddDeployAccountTransaction(
                 BroadcastedDeployAccountTransactionInput { deploy_account_transaction },
             ) => {
-                forwardable = false;
                 let BroadcastedDeployAccountTransactionEnumWrapper::DeployAccount(
                     broadcasted_transaction,
                 ) = deploy_account_transaction;
@@ -504,44 +568,7 @@ impl JsonRpcHandler {
             JsonRpcRequest::Mint(data) => self.mint(data).await,
             JsonRpcRequest::DevnetConfig => self.get_devnet_config().await,
             JsonRpcRequest::MessagesStatusByL1Hash(data) => self.get_messages_status(data).await,
-        };
-
-        // If locally we got an error and forking is set up, forward the request to the origin
-        if let (Err(err), Some(forwarder)) = (&starknet_resp, &self.origin_caller) {
-            match err {
-                // if a block or state is requested that was only added to origin after
-                // forking happened, it will be normally returned; we don't extra-handle this case
-                error::ApiError::BlockNotFound
-                | error::ApiError::TransactionNotFound
-                | error::ApiError::NoStateAtBlock { .. }
-                | error::ApiError::ClassHashNotFound => {
-                    // ClassHashNotFound can be thrown from starknet_getClass, starknet_getClassAt
-                    // or starknet_deployAccount, but starknet_deployAccount
-                    // doesn't need to be retried from here as it already attempted fetching from
-                    // the origin internally. This distinction is handled by (un)setting the
-                    // `forwardable` flag
-
-                    if forwardable {
-                        return forwarder.call(&original_call).await;
-                    }
-                }
-                _other_error => (),
-            }
         }
-
-        // TODO if request.modifies_state() { ... } - also in the beginning of this method to avoid
-        // unnecessary lock acquiring
-        if let Err(e) = self.broadcast_changes(old_latest_block, old_pending_block).await {
-            return ResponseResult::Error(e.api_error_to_rpc_error());
-        }
-
-        if starknet_resp.is_ok() {
-            if let Err(e) = self.update_dump(&original_call).await {
-                return ResponseResult::Error(e);
-            }
-        }
-
-        starknet_resp.to_rpc_result()
     }
 
     /// Takes `bytes` to be an encoded RPC call, executes it, and sends the response back via `ws`.
@@ -590,50 +617,25 @@ impl JsonRpcHandler {
             .map_err(|e| e.api_error_to_rpc_error())
     }
 
-    const DUMPABLE_METHODS: &'static [&'static str] = &[
-        "devnet_impersonateAccount",
-        "devnet_stopImpersonateAccount",
-        "devnet_autoImpersonate",
-        "devnet_stopAutoImpersonate",
-        // "devnet_postmanFlush", - not dumped because it creates new RPC calls which get dumped
-        "devnet_postmanLoad",
-        "devnet_postmanSendMessageToL2",
-        "devnet_postmanConsumeMessageFromL2",
-        "devnet_createBlock",
-        "devnet_abortBlocks",
-        "devnet_setGasPrice",
-        "devnet_setTime",
-        "devnet_increaseTime",
-        "devnet_mint",
-        "starknet_addInvokeTransaction",
-        "starknet_addDeclareTransaction",
-        "starknet_addDeployAccountTransaction",
-    ];
-
     async fn update_dump(&self, event: &RpcMethodCall) -> Result<(), RpcError> {
-        if let Some(dump_on) = self.starknet_config.dump_on {
-            if !Self::DUMPABLE_METHODS.contains(&event.method.as_str()) {
-                return Ok(());
-            }
+        match self.starknet_config.dump_on {
+            Some(DumpOn::Block) => {
+                let dump_path = self
+                    .starknet_config
+                    .dump_path
+                    .as_deref()
+                    .ok_or(RpcError::internal_error_with("Undefined dump_path"))?;
 
-            match dump_on {
-                DumpOn::Block => {
-                    let dump_path = self
-                        .starknet_config
-                        .dump_path
-                        .as_deref()
-                        .ok_or(RpcError::internal_error_with("Undefined dump_path"))?;
-
-                    dump_event(event, dump_path).map_err(|e| {
-                        let msg = format!("Failed dumping of {}: {e}", event.method);
-                        RpcError::internal_error_with(msg)
-                    })?;
-                }
-                DumpOn::Request | DumpOn::Exit => {
-                    self.api.dumpable_events.lock().await.push(event.clone())
-                }
+                dump_event(event, dump_path).map_err(|e| {
+                    let msg = format!("Failed dumping of {}: {e}", event.method);
+                    RpcError::internal_error_with(msg)
+                })?;
             }
-        };
+            Some(DumpOn::Request | DumpOn::Exit) => {
+                self.api.dumpable_events.lock().await.push(event.clone())
+            }
+            None => (),
+        }
 
         Ok(())
     }
@@ -756,12 +758,187 @@ pub enum JsonRpcRequest {
     DevnetConfig,
 }
 
+impl JsonRpcRequest {
+    pub fn requires_notifying(&self) -> bool {
+        #![warn(clippy::wildcard_enum_match_arm)]
+        match self {
+            Self::AddDeclareTransaction(_)
+            | Self::AddDeployAccountTransaction(_)
+            | Self::AddInvokeTransaction(_)
+            | Self::PostmanFlush(_)
+            | Self::PostmanSendMessageToL2(_)
+            | Self::CreateBlock
+            | Self::AbortBlocks(_)
+            | Self::SetTime(_)
+            | Self::IncreaseTime(_)
+            | Self::Mint(_) => true,
+            Self::SpecVersion
+            | Self::BlockWithTransactionHashes(_)
+            | Self::BlockWithFullTransactions(_)
+            | Self::BlockWithReceipts(_)
+            | Self::StateUpdate(_)
+            | Self::StorageAt(_)
+            | Self::TransactionByHash(_)
+            | Self::TransactionByBlockAndIndex(_)
+            | Self::TransactionReceiptByTransactionHash(_)
+            | Self::TransactionStatusByHash(_)
+            | Self::MessagesStatusByL1Hash(_)
+            | Self::ClassByHash(_)
+            | Self::CompiledCasmByClassHash(_)
+            | Self::ClassHashAtContractAddress(_)
+            | Self::ClassAtContractAddress(_)
+            | Self::BlockTransactionCount(_)
+            | Self::Call(_)
+            | Self::EstimateFee(_)
+            | Self::BlockNumber
+            | Self::BlockHashAndNumber
+            | Self::ChainId
+            | Self::Syncing
+            | Self::Events(_)
+            | Self::ContractNonce(_)
+            | Self::EstimateMessageFee(_)
+            | Self::SimulateTransactions(_)
+            | Self::TraceTransaction(_)
+            | Self::BlockTransactionTraces(_)
+            | Self::ImpersonateAccount(_)
+            | Self::StopImpersonateAccount(_)
+            | Self::AutoImpersonate
+            | Self::StopAutoImpersonate
+            | Self::Dump(_)
+            | Self::Load(_)
+            | Self::PostmanLoadL1MessagingContract(_)
+            | Self::PostmanConsumeMessageFromL2(_)
+            | Self::SetGasPrice(_)
+            | Self::Restart(_)
+            | Self::PredeployedAccounts(_)
+            | Self::AccountBalance(_)
+            | Self::DevnetConfig => false,
+        }
+    }
+
+    /// Should the request be retried by being forwarded to the forking origin?
+    fn is_forwardable_to_origin(&self) -> bool {
+        #[warn(clippy::wildcard_enum_match_arm)]
+        match self {
+            Self::BlockWithTransactionHashes(_)
+            | Self::BlockWithFullTransactions(_)
+            | Self::BlockWithReceipts(_)
+            | Self::StateUpdate(_)
+            | Self::StorageAt(_)
+            | Self::TransactionByHash(_)
+            | Self::TransactionByBlockAndIndex(_)
+            | Self::TransactionReceiptByTransactionHash(_)
+            | Self::TransactionStatusByHash(_)
+            | Self::ClassByHash(_)
+            | Self::ClassHashAtContractAddress(_)
+            | Self::ClassAtContractAddress(_)
+            | Self::BlockTransactionCount(_)
+            | Self::Call(_)
+            | Self::EstimateFee(_)
+            | Self::BlockNumber
+            | Self::BlockHashAndNumber
+            | Self::Events(_)
+            | Self::ContractNonce(_)
+            | Self::EstimateMessageFee(_)
+            | Self::SimulateTransactions(_)
+            | Self::TraceTransaction(_)
+            | Self::MessagesStatusByL1Hash(_)
+            | Self::CompiledCasmByClassHash(_)
+            | Self::BlockTransactionTraces(_) => true,
+            Self::SpecVersion
+            | Self::ChainId
+            | Self::Syncing
+            | Self::AddDeclareTransaction(_)
+            | Self::AddDeployAccountTransaction(_)
+            | Self::AddInvokeTransaction(_)
+            | Self::ImpersonateAccount(_)
+            | Self::StopImpersonateAccount(_)
+            | Self::AutoImpersonate
+            | Self::StopAutoImpersonate
+            | Self::Dump(_)
+            | Self::Load(_)
+            | Self::PostmanLoadL1MessagingContract(_)
+            | Self::PostmanFlush(_)
+            | Self::PostmanSendMessageToL2(_)
+            | Self::PostmanConsumeMessageFromL2(_)
+            | Self::CreateBlock
+            | Self::AbortBlocks(_)
+            | Self::SetGasPrice(_)
+            | Self::Restart(_)
+            | Self::SetTime(_)
+            | Self::IncreaseTime(_)
+            | Self::PredeployedAccounts(_)
+            | Self::AccountBalance(_)
+            | Self::Mint(_)
+            | Self::DevnetConfig => false,
+        }
+    }
+
+    /// postmanFlush not dumped because it creates new RPC calls which get dumped
+    fn is_dumpable(&self) -> bool {
+        #[warn(clippy::wildcard_enum_match_arm)]
+        match self {
+            Self::ImpersonateAccount(_)
+            | Self::StopImpersonateAccount(_)
+            | Self::AutoImpersonate
+            | Self::StopAutoImpersonate
+            | Self::PostmanLoadL1MessagingContract(_)
+            | Self::PostmanSendMessageToL2(_)
+            | Self::PostmanConsumeMessageFromL2(_)
+            | Self::CreateBlock
+            | Self::AbortBlocks(_)
+            | Self::SetGasPrice(_)
+            | Self::SetTime(_)
+            | Self::IncreaseTime(_)
+            | Self::Mint(_)
+            | Self::AddDeclareTransaction(_)
+            | Self::AddDeployAccountTransaction(_)
+            | Self::AddInvokeTransaction(_) => true,
+            Self::SpecVersion
+            | Self::BlockWithTransactionHashes(_)
+            | Self::BlockWithFullTransactions(_)
+            | Self::BlockWithReceipts(_)
+            | Self::StateUpdate(_)
+            | Self::StorageAt(_)
+            | Self::TransactionByHash(_)
+            | Self::TransactionByBlockAndIndex(_)
+            | Self::TransactionReceiptByTransactionHash(_)
+            | Self::TransactionStatusByHash(_)
+            | Self::ClassByHash(_)
+            | Self::ClassHashAtContractAddress(_)
+            | Self::ClassAtContractAddress(_)
+            | Self::BlockTransactionCount(_)
+            | Self::Call(_)
+            | Self::EstimateFee(_)
+            | Self::BlockNumber
+            | Self::BlockHashAndNumber
+            | Self::ChainId
+            | Self::Syncing
+            | Self::Events(_)
+            | Self::ContractNonce(_)
+            | Self::EstimateMessageFee(_)
+            | Self::SimulateTransactions(_)
+            | Self::TraceTransaction(_)
+            | Self::BlockTransactionTraces(_)
+            | Self::Dump(_)
+            | Self::Load(_)
+            | Self::PostmanFlush(_)
+            | Self::Restart(_)
+            | Self::PredeployedAccounts(_)
+            | Self::AccountBalance(_)
+            | Self::MessagesStatusByL1Hash(_)
+            | Self::CompiledCasmByClassHash(_)
+            | Self::DevnetConfig => false,
+        }
+    }
+}
+
 #[derive(Deserialize, AllVariantsSerdeRenames, VariantName)]
 #[cfg_attr(test, derive(Debug))]
 #[serde(tag = "method", content = "params")]
 pub enum JsonRpcSubscriptionRequest {
     #[serde(rename = "starknet_subscribeNewHeads", with = "optional_params")]
-    NewHeads(Option<BlockInput>),
+    NewHeads(Option<BlockIdInput>),
     #[serde(rename = "starknet_subscribeTransactionStatus")]
     TransactionStatus(TransactionBlockInput),
     #[serde(rename = "starknet_subscribePendingTransactions", with = "optional_params")]
@@ -1503,8 +1680,8 @@ mod response_tests {
     use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
-    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result()
-     {
+    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result(
+    ) {
         assert_eq!(
             r#"{"result":{}}"#,
             serde_json::to_string(

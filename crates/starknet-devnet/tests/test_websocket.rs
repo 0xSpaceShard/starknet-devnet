@@ -8,7 +8,9 @@ mod websocket_support {
     use tokio_tungstenite::connect_async;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::utils::{send_binary_rpc_via_ws, send_text_rpc_via_ws};
+    use crate::common::utils::{
+        assert_no_notifications, send_binary_rpc_via_ws, send_text_rpc_via_ws, subscribe,
+    };
 
     #[tokio::test]
     /// Testing for all non-ws methods would be longsome, so we just test for one devnet_ and one
@@ -125,5 +127,19 @@ mod websocket_support {
 
         let resp = send_text_rpc_via_ws(&mut ws, "devnet_mint", json!({})).await.unwrap();
         assert_eq!(resp["error"]["message"], "missing field `address`");
+    }
+
+    #[tokio::test]
+    async fn restarting_should_forget_all_websocket_subscriptions() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+        devnet.create_block().await.unwrap();
+
+        subscribe(&mut ws, "starknet_subscribeNewHeads", json!({})).await.unwrap();
+
+        devnet.restart().await;
+
+        assert_no_notifications(&mut ws).await;
     }
 }

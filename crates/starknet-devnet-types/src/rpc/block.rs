@@ -120,3 +120,17 @@ pub struct ResourcePrice {
     pub price_in_fri: Felt,
     pub price_in_wei: Felt,
 }
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(deny_unknown_fields)]
+/// Data about reorganized blocks, starting and ending block number and hash
+pub struct ReorgData {
+    /// Hash of the first known block of the orphaned chain
+    pub starting_block_hash: BlockHash,
+    /// Number of the first known block of the orphaned chain
+    pub starting_block_number: BlockNumber,
+    /// The last known block of the orphaned chain
+    pub ending_block_hash: BlockHash,
+    /// Number of the last known block of the orphaned chain
+    pub ending_block_number: BlockNumber,
+}

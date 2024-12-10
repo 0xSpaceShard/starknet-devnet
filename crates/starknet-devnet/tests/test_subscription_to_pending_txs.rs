@@ -16,19 +16,15 @@ mod pending_transactions_subscription_support {
     use crate::common::constants;
     use crate::common::utils::{
         assert_no_notifications, declare_v3_deploy_v3,
-        get_simple_contract_in_sierra_and_compiled_class_hash, receive_rpc_via_ws,
-        send_text_rpc_via_ws, unsubscribe,
+        get_simple_contract_in_sierra_and_compiled_class_hash, receive_rpc_via_ws, subscribe,
+        unsubscribe,
     };
 
     async fn subscribe_pending_txs(
         ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
         params: serde_json::Value,
     ) -> Result<i64, anyhow::Error> {
-        let subscription_confirmation =
-            send_text_rpc_via_ws(ws, "starknet_subscribePendingTransactions", params).await?;
-        subscription_confirmation["result"]
-            .as_i64()
-            .ok_or(anyhow::Error::msg("Subscription did not return a numeric ID"))
+        subscribe(ws, "starknet_subscribePendingTransactions", params).await
     }
 
     /// Modifies the provided value by leaving a `null` in place of the returned transaction.

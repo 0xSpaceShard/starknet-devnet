@@ -10,7 +10,7 @@ use starknet_rs_core::types::{BlockTag, Felt};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::TransactionHash;
-use starknet_types::rpc::block::BlockHeader;
+use starknet_types::rpc::block::{BlockHeader, ReorgData};
 use starknet_types::rpc::transactions::{TransactionStatus, TransactionWithHash};
 use tokio::sync::Mutex;
 
@@ -57,49 +57,46 @@ impl Subscription {
         }
     }
 
-    pub fn matches(&self, notification: &NotificationData) -> bool {
-        match self {
-            Subscription::NewHeads => {
-                if let NotificationData::NewHeads(_) = notification {
-                    return true;
-                }
+    pub fn matches(&self, notification: &SubscriptionNotification) -> bool {
+        match (self, notification) {
+            (Subscription::NewHeads, SubscriptionNotification::NewHeads(_)) => true,
+            (
+                Subscription::TransactionStatus { tag, transaction_hash: subscription_hash },
+                SubscriptionNotification::TransactionStatus(notification),
+            ) => {
+                tag == &notification.origin_tag
+                    && subscription_hash == &notification.transaction_hash
             }
-            Subscription::TransactionStatus { tag, transaction_hash: subscription_hash } => {
-                if let NotificationData::TransactionStatus(notification) = notification {
-                    return tag == &notification.origin_tag
-                        && subscription_hash == &notification.transaction_hash;
-                }
-            }
-            Subscription::PendingTransactionsFull { address_filter, .. } => {
-                if let NotificationData::PendingTransaction(PendingTransactionNotification::Full(
+            (
+                Subscription::PendingTransactionsFull { address_filter },
+                SubscriptionNotification::PendingTransaction(PendingTransactionNotification::Full(
                     tx,
-                )) = notification
-                {
-                    return match tx.get_sender_address() {
-                        Some(address) => address_filter.passes(&address),
-                        None => true,
-                    };
-                }
-            }
-            Subscription::PendingTransactionsHash { address_filter } => {
-                if let NotificationData::PendingTransaction(PendingTransactionNotification::Hash(
+                )),
+            ) => match tx.get_sender_address() {
+                Some(address) => address_filter.passes(&address),
+                None => true,
+            },
+            (
+                Subscription::PendingTransactionsHash { address_filter },
+                SubscriptionNotification::PendingTransaction(PendingTransactionNotification::Hash(
                     hash_wrapper,
-                )) = notification
-                {
-                    return match hash_wrapper.sender_address {
-                        Some(address) => address_filter.passes(&address),
-                        None => true,
-                    };
-                }
-            }
-            Subscription::Events { address, keys_filter } => {
-                if let NotificationData::Event(event) = notification {
-                    return check_if_filter_applies_for_event(address, keys_filter, &event.into());
-                }
-            }
+                )),
+            ) => match hash_wrapper.sender_address {
+                Some(address) => address_filter.passes(&address),
+                None => true,
+            },
+            (
+                Subscription::Events { address, keys_filter },
+                SubscriptionNotification::Event(event),
+            ) => check_if_filter_applies_for_event(address, keys_filter, &event.into()),
+            (
+                Subscription::NewHeads
+                | Subscription::TransactionStatus { .. }
+                | Subscription::Events { .. },
+                SubscriptionNotification::Reorg(_),
+            ) => true, // any subscription other than pending tx requires reorg notification
+            _ => false,
         }
-
-        false
     }
 }
 
@@ -163,6 +160,7 @@ pub enum NotificationData {
     TransactionStatus(NewTransactionStatus),
     PendingTransaction(PendingTransactionNotification),
     Event(EmittedEvent),
+    Reorg(ReorgData),
 }
 
 #[derive(Debug, Serialize)]
@@ -189,6 +187,8 @@ pub(crate) enum SubscriptionNotification {
     PendingTransaction { subscription_id: SubscriptionId, result: PendingTransactionNotification },
     #[serde(rename = "starknet_subscriptionEvents")]
     Event { subscription_id: SubscriptionId, result: EmittedEvent },
+    #[serde(rename = "starknet_subscriptionReorg")]
+    Reorg { subscription_id: SubscriptionId, result: ReorgData },
 }
 
 impl SubscriptionResponse {

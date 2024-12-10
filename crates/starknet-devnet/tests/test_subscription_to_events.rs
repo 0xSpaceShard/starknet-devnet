@@ -20,18 +20,14 @@ mod event_subscription_support {
     use crate::common::utils::{
         assert_no_notifications, declare_v3_deploy_v3,
         get_events_contract_in_sierra_and_compiled_class_hash, receive_notification,
-        receive_rpc_via_ws, send_text_rpc_via_ws, unsubscribe,
+        receive_rpc_via_ws, subscribe, unsubscribe,
     };
 
     async fn subscribe_events(
         ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
         params: serde_json::Value,
     ) -> Result<i64, anyhow::Error> {
-        let subscription_confirmation =
-            send_text_rpc_via_ws(ws, "starknet_subscribeEvents", params).await?;
-        subscription_confirmation["result"]
-            .as_i64()
-            .ok_or(anyhow::Error::msg("Subscription did not return a numeric ID"))
+        subscribe(ws, "starknet_subscribeEvents", params).await
     }
 
     async fn receive_event(
@@ -45,7 +41,7 @@ mod event_subscription_support {
     struct EventParams {
         from_address: Option<ContractAddress>,
         keys: Option<Vec<Vec<Felt>>>,
-        block: Option<BlockId>,
+        block_id: Option<BlockId>,
     }
 
     async fn get_single_owner_account(
@@ -304,7 +300,7 @@ mod event_subscription_support {
         let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
         // The declaration happens at block_number=1 so we query from there to latest
-        let subscription_params = json!({ "block": BlockId::Number(1) });
+        let subscription_params = json!({ "block_id": BlockId::Number(1) });
         let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
 
         // declaration of events contract fee charge
@@ -357,7 +353,7 @@ mod event_subscription_support {
 
         // The declaration happens at block_number=1, but only invocation should be notified of
         let subscription_params =
-            json!({ "block": BlockId::Number(1), "from_address": contract_address });
+            json!({ "block_id": BlockId::Number(1), "from_address": contract_address });
         let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
 
         // assert presence of old event (event that was triggered before the subscription)
@@ -406,7 +402,7 @@ mod event_subscription_support {
 
         // The declaration happens at block_number=1, but only invocation should be notified of
         let subscription_params =
-            json!({ "block": BlockId::Number(1), "keys": [[static_event_key()]] });
+            json!({ "block_id": BlockId::Number(1), "keys": [[static_event_key()]] });
         let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
 
         // assert presence of old event (event that was triggered before the subscription)
@@ -453,7 +449,7 @@ mod event_subscription_support {
         emit_static_event(&account, contract_address).await.unwrap();
         let last_block_hash = devnet.create_block().await.unwrap();
 
-        subscribe_events(&mut ws, json!({ "block": BlockId::Hash(last_block_hash) }))
+        subscribe_events(&mut ws, json!({ "block_id": BlockId::Hash(last_block_hash) }))
             .await
             .unwrap();
 

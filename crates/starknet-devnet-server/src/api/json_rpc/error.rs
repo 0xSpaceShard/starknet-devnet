@@ -64,6 +64,8 @@ pub enum ApiError {
     CompiledClassHashMismatch,
     #[error("Cannot go back more than 1024 blocks")]
     TooManyBlocksBack,
+    #[error("This method does not support being called on the pending block")]
+    CallOnPending,
     #[error("Invalid subscription id")]
     InvalidSubscriptionId,
 }
@@ -214,11 +216,51 @@ impl ApiError {
                 message: error_message.into(),
                 data: None,
             },
+            ApiError::CallOnPending => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(69),
+                message: error_message.into(),
+                data: None,
+            },
             ApiError::InvalidSubscriptionId => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(66),
                 message: error_message.into(),
                 data: None,
             },
+        }
+    }
+
+    pub(crate) fn is_forwardable_to_origin(&self) -> bool {
+        #[warn(clippy::wildcard_enum_match_arm)]
+        match self {
+            Self::BlockNotFound
+            | Self::TransactionNotFound
+            | Self::NoStateAtBlock { .. }
+            | Self::ClassHashNotFound => true,
+            Self::StarknetDevnetError(_)
+            | Self::NoTraceAvailable
+            | Self::TypesError(_)
+            | Self::RpcError(_)
+            | Self::ContractNotFound
+            | Self::InvalidTransactionIndexInBlock
+            | Self::ContractError { .. }
+            | Self::NoBlocks
+            | Self::RequestPageSizeTooBig
+            | Self::InvalidContinuationToken
+            | Self::TooManyKeysInFilter
+            | Self::ClassAlreadyDeclared
+            | Self::InvalidContractClass
+            | Self::OnlyLatestBlock
+            | Self::UnsupportedAction { .. }
+            | Self::InvalidTransactionNonce
+            | Self::InsufficientAccountBalance
+            | Self::ValidationFailure { .. }
+            | Self::HttpApiError(_)
+            | Self::TransactionExecutionError { .. }
+            | Self::CallOnPending
+            | Self::TooManyBlocksBack
+            | Self::InvalidSubscriptionId
+            | Self::InsufficientResourcesForValidate
+            | Self::CompiledClassHashMismatch => false,
         }
     }
 }
