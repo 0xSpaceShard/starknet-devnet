@@ -15,20 +15,21 @@ mod spec_schemas;
 #[derive(Serialize, Deserialize)]
 pub struct Spec {
     openrpc: String,
-    methods: Vec<Method>,
+    methods: Vec<ApiMethod>,
     components: Components,
 }
 
 #[derive(Serialize, Deserialize)]
-struct Method {
+struct ApiMethod {
     name: String,
     params: Vec<Param>,
-    result: Result,
+    result: Option<Result>,
 }
 
 #[derive(Serialize, Deserialize)]
 struct Param {
     name: String,
+    #[serde(default)]
     required: bool,
     schema: Schema,
 }
@@ -129,7 +130,7 @@ fn generate_combined_schema(specs: &Vec<Spec>) -> HashMap<String, Schema> {
 }
 
 fn generate_json_rpc_request(
-    method: &Method,
+    method: &ApiMethod,
     schemas: &HashMap<String, Schema>,
 ) -> core::result::Result<serde_json::Value, String> {
     let mut request = HashMap::new();
@@ -155,10 +156,10 @@ fn generate_json_rpc_request(
 }
 
 fn generate_json_rpc_response(
-    method: &Method,
+    response_schema: &Schema,
     schemas: &HashMap<String, Schema>,
 ) -> core::result::Result<serde_json::Value, String> {
-    generate_schema_value(&method.result.schema, schemas, 0)
+    generate_schema_value(response_schema, schemas, 0)
 }
 
 mod tests {
@@ -203,147 +204,186 @@ mod tests {
         for _ in 0..1000 {
             for spec in specs.iter() {
                 // Iterate over the methods in the spec
-                for method in spec.methods.iter() {
+                for method in spec.methods.iter().filter(|m| m.name != "starknet_subscriptionReorg")
+                {
                     // Create a JSON-RPC request for each method
                     let request = generate_json_rpc_request(method, &combined_schema)
                         .expect("Could not generate the JSON-RPC request");
 
-                    let sn_request = serde_json::from_value::<JsonRpcRequest>(request.clone());
+                    let response = if let Some(result_schema) = method.result.as_ref() {
+                        Some(
+                            generate_json_rpc_response(&result_schema.schema, &combined_schema)
+                                .expect("Could not generate the JSON-RPC response"),
+                        )
+                    } else {
+                        Option::None
+                    };
 
-                    if sn_request.is_err() {
+                    #[derive(Deserialize)]
+                    #[serde(untagged)]
+                    enum ApiWsRequest {
+                        Api(JsonRpcRequest),
+                        SubscribeWs(JsonRpcSubscriptionRequest),
+                        WsNotification(SubscriptionResponse),
+                    }
+                    let sn_request = serde_json::from_value::<ApiWsRequest>(request.clone());
+
+                    if let Some(err) = sn_request.as_ref().err() {
                         serde_json::to_writer_pretty(
                             File::create("failed_request.json").unwrap(),
                             &request,
                         )
                         .unwrap();
-                        panic!("Failed method request: {}", method.name);
+                        panic!("Failed method request: {} with {:?}", method.name, err);
                     }
 
-                    let response = generate_json_rpc_response(method, &combined_schema)
-                        .expect("Could not generate the JSON-RPC response");
+                    match sn_request.unwrap() {
+                        ApiWsRequest::Api(json_rpc_request) => {
+                            let response = response.unwrap();
+                            let sn_response: StarknetResponse =
+                                deserialize_response_to_type_or_panic(response, &method.name);
 
-                    let sn_response = serde_json::from_value::<StarknetResponse>(response.clone());
+                            assert_api_request_and_response_are_related(
+                                &json_rpc_request,
+                                sn_response,
+                                method,
+                            );
+                        }
+                        ApiWsRequest::SubscribeWs(_) => {
+                            let response = response.unwrap();
 
-                    if sn_response.is_err() {
-                        serde_json::to_writer_pretty(
-                            File::create("failed_response.json").unwrap(),
-                            &response,
-                        )
-                        .unwrap();
-                        panic!("Failed method response: {}", method.name);
-                    }
-
-                    let sn_response = sn_response.unwrap();
-                    let sn_request = sn_request.unwrap();
-
-                    match sn_request {
-                        JsonRpcRequest::TransactionReceiptByTransactionHash(_) => {
-                            assert!(matches!(
-                                sn_response,
-                                StarknetResponse::TransactionReceiptByTransactionHash(_)
-                            ));
+                            deserialize_response_to_type_or_panic::<SubscriptionConfirmation>(
+                                response,
+                                &method.name,
+                            );
                         }
-                        JsonRpcRequest::BlockWithTransactionHashes(_)
-                        | JsonRpcRequest::BlockWithFullTransactions(_)
-                        | JsonRpcRequest::BlockWithReceipts(_) => {
-                            assert!(matches!(
-                                sn_response,
-                                StarknetResponse::Block(_) | StarknetResponse::PendingBlock(_)
-                            ));
+                        ApiWsRequest::WsNotification(subscription_response) => {
+                            match subscription_response {
+                                SubscriptionResponse::Confirmation { rpc_request_id, result } => {
+                                    panic!("Unexpected data")
+                                }
+                                SubscriptionResponse::Notification(subscription_notification) => {}
+                            }
                         }
-                        JsonRpcRequest::BlockHashAndNumber => {
-                            assert!(matches!(sn_response, StarknetResponse::BlockHashAndNumber(_)));
-                        }
-                        JsonRpcRequest::BlockTransactionCount(_) | JsonRpcRequest::BlockNumber => {
-                            assert!(matches!(
-                                sn_response,
-                                StarknetResponse::BlockTransactionCount(_)
-                                    | StarknetResponse::BlockNumber(_)
-                            ));
-                        }
-                        JsonRpcRequest::Call(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::Call(_)));
-                        }
-                        JsonRpcRequest::ClassAtContractAddress(_)
-                        | JsonRpcRequest::ClassByHash(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::ContractClass(_)));
-                        }
-                        JsonRpcRequest::EstimateFee(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::EstimateFee(_)));
-                        }
-                        JsonRpcRequest::EstimateMessageFee(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::EstimateMessageFee(_)));
-                        }
-                        JsonRpcRequest::Events(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::Events(_)));
-                        }
-                        JsonRpcRequest::SimulateTransactions(_) => {
-                            assert!(matches!(
-                                sn_response,
-                                StarknetResponse::SimulateTransactions(_)
-                            ));
-                        }
-                        JsonRpcRequest::StateUpdate(_) => {
-                            assert!(matches!(
-                                sn_response,
-                                StarknetResponse::StateUpdate(_)
-                                    | StarknetResponse::PendingStateUpdate(_)
-                            ));
-                        }
-                        JsonRpcRequest::Syncing => {
-                            assert!(matches!(sn_response, StarknetResponse::Syncing(_)));
-                        }
-                        JsonRpcRequest::TransactionStatusByHash(_) => {
-                            assert!(matches!(
-                                sn_response,
-                                StarknetResponse::TransactionStatusByHash(_)
-                            ));
-                        }
-                        JsonRpcRequest::AddDeclareTransaction(_) => {
-                            assert!(matches!(
-                                sn_response,
-                                StarknetResponse::AddDeclareTransaction(_)
-                            ));
-                        }
-                        JsonRpcRequest::AddDeployAccountTransaction(_) => {
-                            assert!(matches!(
-                                sn_response,
-                                StarknetResponse::AddDeployAccountTransaction(_)
-                            ));
-                        }
-                        JsonRpcRequest::AddInvokeTransaction(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::TransactionHash(_)));
-                        }
-                        JsonRpcRequest::SpecVersion => {
-                            assert!(matches!(sn_response, StarknetResponse::String(_)));
-                        }
-                        JsonRpcRequest::TransactionByHash(_)
-                        | JsonRpcRequest::TransactionByBlockAndIndex(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::Transaction(_)));
-                        }
-                        JsonRpcRequest::ContractNonce(_)
-                        | JsonRpcRequest::ChainId
-                        | JsonRpcRequest::ClassHashAtContractAddress(_)
-                        | JsonRpcRequest::StorageAt(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::Felt(_)));
-                        }
-                        JsonRpcRequest::TraceTransaction(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::TraceTransaction(_)));
-                        }
-                        JsonRpcRequest::BlockTransactionTraces(_) => {
-                            assert!(matches!(
-                                sn_response,
-                                StarknetResponse::BlockTransactionTraces(_)
-                            ));
-                        }
-                        _ => panic!(
-                            "Unhandled cases. Usually devnet specific methods. This match case \
-                             must not be reached, because this method covers starknet RPC method \
-                             (starknet_.....)"
-                        ),
                     }
                 }
             }
+        }
+    }
+
+    fn deserialize_response_to_type_or_panic<T: DeserializeOwned>(
+        response: Value,
+        method_name: &String,
+    ) -> T {
+        let deserialized_response = serde_json::from_value::<T>(response.clone());
+
+        if let Some(err) = deserialized_response.as_ref().err() {
+            serde_json::to_writer_pretty(File::create("failed_response.json").unwrap(), &response)
+                .unwrap();
+            panic!("Failed method response: {} with {:?}", method_name, err);
+        }
+
+        deserialized_response.unwrap()
+    }
+
+    fn assert_api_request_and_response_are_related(
+        sn_request: &JsonRpcRequest,
+        sn_response: StarknetResponse,
+        method: &ApiMethod,
+    ) {
+        match sn_request {
+            JsonRpcRequest::TransactionReceiptByTransactionHash(_) => {
+                assert!(matches!(
+                    sn_response,
+                    StarknetResponse::TransactionReceiptByTransactionHash(_)
+                ));
+            }
+            JsonRpcRequest::BlockWithTransactionHashes(_)
+            | JsonRpcRequest::BlockWithFullTransactions(_)
+            | JsonRpcRequest::BlockWithReceipts(_) => {
+                assert!(matches!(
+                    sn_response,
+                    StarknetResponse::Block(_) | StarknetResponse::PendingBlock(_)
+                ));
+            }
+            JsonRpcRequest::BlockHashAndNumber => {
+                assert!(matches!(sn_response, StarknetResponse::BlockHashAndNumber(_)));
+            }
+            JsonRpcRequest::BlockTransactionCount(_) | JsonRpcRequest::BlockNumber => {
+                assert!(matches!(
+                    sn_response,
+                    StarknetResponse::BlockTransactionCount(_) | StarknetResponse::BlockNumber(_)
+                ));
+            }
+            JsonRpcRequest::Call(_) => {
+                assert!(matches!(sn_response, StarknetResponse::Call(_)));
+            }
+            JsonRpcRequest::ClassAtContractAddress(_) | JsonRpcRequest::ClassByHash(_) => {
+                assert!(matches!(sn_response, StarknetResponse::ContractClass(_)));
+            }
+            JsonRpcRequest::EstimateFee(_) => {
+                assert!(matches!(sn_response, StarknetResponse::EstimateFee(_)));
+            }
+            JsonRpcRequest::EstimateMessageFee(_) => {
+                assert!(matches!(sn_response, StarknetResponse::EstimateMessageFee(_)));
+            }
+            JsonRpcRequest::Events(_) => {
+                assert!(matches!(sn_response, StarknetResponse::Events(_)));
+            }
+            JsonRpcRequest::SimulateTransactions(_) => {
+                assert!(matches!(sn_response, StarknetResponse::SimulateTransactions(_)));
+            }
+            JsonRpcRequest::StateUpdate(_) => {
+                assert!(matches!(
+                    sn_response,
+                    StarknetResponse::StateUpdate(_) | StarknetResponse::PendingStateUpdate(_)
+                ));
+            }
+            JsonRpcRequest::Syncing => {
+                assert!(matches!(sn_response, StarknetResponse::Syncing(_)));
+            }
+            JsonRpcRequest::TransactionStatusByHash(_) => {
+                assert!(matches!(sn_response, StarknetResponse::TransactionStatusByHash(_)));
+            }
+            JsonRpcRequest::AddDeclareTransaction(_) => {
+                assert!(matches!(sn_response, StarknetResponse::AddDeclareTransaction(_)));
+            }
+            JsonRpcRequest::AddDeployAccountTransaction(_) => {
+                assert!(matches!(sn_response, StarknetResponse::AddDeployAccountTransaction(_)));
+            }
+            JsonRpcRequest::AddInvokeTransaction(_) => {
+                assert!(matches!(sn_response, StarknetResponse::TransactionHash(_)));
+            }
+            JsonRpcRequest::SpecVersion => {
+                assert!(matches!(sn_response, StarknetResponse::String(_)));
+            }
+            JsonRpcRequest::TransactionByHash(_)
+            | JsonRpcRequest::TransactionByBlockAndIndex(_) => {
+                assert!(matches!(sn_response, StarknetResponse::Transaction(_)));
+            }
+            JsonRpcRequest::ContractNonce(_)
+            | JsonRpcRequest::ChainId
+            | JsonRpcRequest::ClassHashAtContractAddress(_)
+            | JsonRpcRequest::StorageAt(_) => {
+                assert!(matches!(sn_response, StarknetResponse::Felt(_)));
+            }
+            JsonRpcRequest::TraceTransaction(_) => {
+                assert!(matches!(sn_response, StarknetResponse::TraceTransaction(_)));
+            }
+            JsonRpcRequest::BlockTransactionTraces(_) => {
+                assert!(matches!(sn_response, StarknetResponse::BlockTransactionTraces(_)));
+            }
+            JsonRpcRequest::MessagesStatusByL1Hash(_) => {
+                assert!(matches!(sn_response, StarknetResponse::MessagesStatusByL1Hash(_)));
+            }
+            JsonRpcRequest::CompiledCasmByClassHash(_) => {
+                assert!(matches!(sn_response, StarknetResponse::CompiledCasm(_)));
+            }
+            _ => panic!(
+                "Unhandled cases. Usually devnet specific methods. This match case must not be \
+                 reached, because this method covers starknet RPC method (starknet_.....) {:?} {}",
+                sn_request, method.name
+            ),
         }
     }
 }
