@@ -207,10 +207,7 @@ impl JsonRpcHandler {
                 ))
             } else {
                 NotificationData::PendingTransaction(PendingTransactionNotification::Hash(
-                    TransactionHashWrapper {
-                        hash: *tx.get_transaction_hash(),
-                        sender_address: tx.get_sender_address(),
-                    },
+                    *tx.get_transaction_hash(),
                 ))
             };
             socket_context.notify(subscription_id, notification).await;
@@ -225,9 +222,9 @@ impl JsonRpcHandler {
         rpc_request_id: Id,
         socket_id: SocketId,
     ) -> Result<(), ApiError> {
-        let TransactionBlockInput { transaction_hash, block } = transaction_block_input;
+        let TransactionBlockInput { transaction_hash, block_id } = transaction_block_input;
 
-        let query_block_id = if let Some(block_id) = block {
+        let query_block_id = if let Some(block_id) = block_id {
             block_id.0
         } else {
             // if no block ID input, this eventually just subscribes the user to new blocks
