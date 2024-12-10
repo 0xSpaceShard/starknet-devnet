@@ -35,6 +35,7 @@ impl SocketCollection {
         ))
     }
 
+    /// Assigns a random socket ID to the socket whose `socket_writer` is provided. Returns the ID.
     pub fn insert(&mut self, socket_writer: Arc<Mutex<SplitSink<WebSocket, Message>>>) -> SocketId {
         let socket_id = rand::random();
         self.sockets.insert(socket_id, SocketContext::from_sender(socket_writer));

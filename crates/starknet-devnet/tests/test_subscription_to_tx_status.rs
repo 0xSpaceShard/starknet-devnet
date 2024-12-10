@@ -333,11 +333,13 @@ mod tx_status_subscription_support {
         let tx_hash = devnet.mint(address, amount).await;
         let subscription_id = subscribe_tx_status(&mut ws, &tx_hash, None).await.unwrap();
 
+        // as expected, the actual tx accepted notification is first
         let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
         assert_successful_mint_notification(notification, tx_hash, subscription_id);
 
         devnet.abort_blocks(&BlockId::Number(1)).await.unwrap();
 
+        // only expect reorg subscription
         let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
         assert_eq!(notification["method"], "starknet_subscriptionReorg");
         assert_no_notifications(&mut ws).await;
