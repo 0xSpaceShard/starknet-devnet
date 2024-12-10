@@ -332,9 +332,7 @@
           "starting_block_hash": {
             "title": "Starting Block Hash",
             "description": "Hash of the first known block of the orphaned chain",
-            "schema": {
-              "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BLOCK_HASH"
-            }
+            "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BLOCK_HASH"
           },
           "starting_block_number": {
             "title": "Starting Block Number",
@@ -344,9 +342,7 @@
           "ending_block_hash": {
             "title": "Ending Block",
             "description": "The last known block of the orphaned chain",
-            "schema": {
-              "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BLOCK_HASH"
-            }
+            "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BLOCK_HASH"
           },
           "ending_block_number": {
             "title": "Ending Block Number",
