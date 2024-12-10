@@ -12,8 +12,8 @@ use super::models::{
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::rpc_core::request::Id;
 use crate::subscribe::{
-    AddressFilter, NewTransactionStatus, PendingTransactionNotification, SocketId, Subscription,
-    SubscriptionNotification, TransactionHashWrapper,
+    AddressFilter, NewTransactionStatus, NotificationData, PendingTransactionNotification,
+    SocketId, Subscription, TransactionHashWrapper,
 };
 
 /// The definitions of JSON-RPC read endpoints defined in starknet_ws_api.json
@@ -99,8 +99,8 @@ impl JsonRpcHandler {
         rpc_request_id: Id,
         socket_id: SocketId,
     ) -> Result<(), ApiError> {
-        let block_id = if let Some(BlockInput { block }) = block_input {
-            block.into()
+        let block_id = if let Some(BlockInput { block_id }) = block_input {
+            block_id.into()
         } else {
             // if no block ID input, this eventually just subscribes the user to new blocks
             BlockId::Tag(BlockTag::Latest)
@@ -130,8 +130,8 @@ impl JsonRpcHandler {
                 .get_block(&BlockId::Number(block_n))
                 .map_err(ApiError::StarknetDevnetError)?;
 
-            let old_header = Box::new(old_block.into());
-            let notification = SubscriptionNotification::NewHeads(old_header);
+            let old_header = old_block.into();
+            let notification = NotificationData::NewHeads(old_header);
             socket_context.notify(subscription_id, notification).await;
         }
 
@@ -202,11 +202,11 @@ impl JsonRpcHandler {
         let pending_txs = self.get_pending_txs().await?;
         for tx in pending_txs {
             let notification = if with_details {
-                SubscriptionNotification::PendingTransaction(PendingTransactionNotification::Full(
+                NotificationData::PendingTransaction(PendingTransactionNotification::Full(
                     Box::new(tx),
                 ))
             } else {
-                SubscriptionNotification::PendingTransaction(PendingTransactionNotification::Hash(
+                NotificationData::PendingTransaction(PendingTransactionNotification::Hash(
                     TransactionHashWrapper {
                         hash: *tx.get_transaction_hash(),
                         sender_address: tx.get_sender_address(),
@@ -254,7 +254,7 @@ impl JsonRpcHandler {
         let starknet = self.api.starknet.lock().await;
 
         if let Some(tx) = starknet.transactions.get(&transaction_hash) {
-            let notification = SubscriptionNotification::TransactionStatus(NewTransactionStatus {
+            let notification = NotificationData::TransactionStatus(NewTransactionStatus {
                 transaction_hash,
                 status: tx.get_status(),
                 origin_tag: subscription_tag,
@@ -295,7 +295,7 @@ impl JsonRpcHandler {
 
         let starting_block_id = maybe_subscription_input
             .as_ref()
-            .and_then(|subscription_input| subscription_input.block.as_ref())
+            .and_then(|subscription_input| subscription_input.block_id.as_ref())
             .map(|b| b.0)
             .unwrap_or(BlockId::Tag(BlockTag::Latest));
 
@@ -320,7 +320,7 @@ impl JsonRpcHandler {
         )?;
 
         for event in events {
-            socket_context.notify(subscription_id, SubscriptionNotification::Event(event)).await;
+            socket_context.notify(subscription_id, NotificationData::Event(event)).await;
         }
 
         Ok(())

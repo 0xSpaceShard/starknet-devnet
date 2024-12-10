@@ -4,7 +4,7 @@ use std::sync::Arc;
 use axum::extract::ws::{Message, WebSocket};
 use futures::stream::SplitSink;
 use futures::SinkExt;
-use serde::{self, Serialize};
+use serde::{self, Deserialize, Serialize};
 use starknet_core::starknet::events::check_if_filter_applies_for_event;
 use starknet_rs_core::types::{BlockTag, Felt};
 use starknet_types::contract_address::ContractAddress;
@@ -57,23 +57,23 @@ impl Subscription {
         }
     }
 
-    pub fn matches(&self, notification: &SubscriptionNotification) -> bool {
+    pub fn matches(&self, notification: &NotificationData) -> bool {
         match self {
             Subscription::NewHeads => {
-                if let SubscriptionNotification::NewHeads(_) = notification {
+                if let NotificationData::NewHeads(_) = notification {
                     return true;
                 }
             }
             Subscription::TransactionStatus { tag, transaction_hash: subscription_hash } => {
-                if let SubscriptionNotification::TransactionStatus(notification) = notification {
+                if let NotificationData::TransactionStatus(notification) = notification {
                     return tag == &notification.origin_tag
                         && subscription_hash == &notification.transaction_hash;
                 }
             }
             Subscription::PendingTransactionsFull { address_filter, .. } => {
-                if let SubscriptionNotification::PendingTransaction(
-                    PendingTransactionNotification::Full(tx),
-                ) = notification
+                if let NotificationData::PendingTransaction(PendingTransactionNotification::Full(
+                    tx,
+                )) = notification
                 {
                     return match tx.get_sender_address() {
                         Some(address) => address_filter.passes(&address),
@@ -82,9 +82,9 @@ impl Subscription {
                 }
             }
             Subscription::PendingTransactionsHash { address_filter } => {
-                if let SubscriptionNotification::PendingTransaction(
-                    PendingTransactionNotification::Hash(hash_wrapper),
-                ) = notification
+                if let NotificationData::PendingTransaction(PendingTransactionNotification::Hash(
+                    hash_wrapper,
+                )) = notification
                 {
                     return match hash_wrapper.sender_address {
                         Some(address) => address_filter.passes(&address),
@@ -93,7 +93,7 @@ impl Subscription {
                 }
             }
             Subscription::Events { address, keys_filter } => {
-                if let SubscriptionNotification::Event(event) = notification {
+                if let NotificationData::Event(event) = notification {
                     return check_if_filter_applies_for_event(address, keys_filter, &event.into());
                 }
             }
@@ -105,21 +105,29 @@ impl Subscription {
 
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
-enum SubscriptionConfirmation {
+#[cfg_attr(test, derive(Deserialize))]
+pub(crate) enum SubscriptionConfirmation {
     NewSubscription(SubscriptionId),
     Unsubscription(bool),
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
 pub struct NewTransactionStatus {
     pub transaction_hash: TransactionHash,
     pub status: TransactionStatus,
     /// which block this notification originates from: pending or latest
     #[serde(skip)]
+    #[cfg_attr(test, serde(default = "origin_tag_default"))]
     pub origin_tag: BlockTag,
 }
 
+fn origin_tag_default() -> BlockTag {
+    BlockTag::Latest
+}
+
 #[derive(Debug, Clone)]
+#[cfg_attr(test, derive(Deserialize))]
 pub struct TransactionHashWrapper {
     pub hash: TransactionHash,
     pub sender_address: Option<ContractAddress>,
@@ -136,60 +144,49 @@ impl Serialize for TransactionHashWrapper {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
+#[cfg_attr(test, derive(Deserialize))]
 pub enum PendingTransactionNotification {
     Hash(TransactionHashWrapper),
     Full(Box<TransactionWithHash>),
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(untagged)]
-pub enum SubscriptionNotification {
-    NewHeads(Box<BlockHeader>),
+#[derive(Debug, Clone)]
+pub enum NotificationData {
+    NewHeads(BlockHeader),
     TransactionStatus(NewTransactionStatus),
     PendingTransaction(PendingTransactionNotification),
     Event(EmittedEvent),
 }
 
-impl SubscriptionNotification {
-    fn method_name(&self) -> &'static str {
-        match self {
-            SubscriptionNotification::NewHeads(_) => "starknet_subscriptionNewHeads",
-            SubscriptionNotification::TransactionStatus(_) => {
-                "starknet_subscriptionTransactionStatus"
-            }
-            SubscriptionNotification::PendingTransaction(_) => {
-                "starknet_subscriptionPendingTransactions"
-            }
-            SubscriptionNotification::Event(_) => "starknet_subscriptionEvents",
-        }
-    }
+#[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
+#[cfg_attr(test, serde(untagged))]
+pub(crate) enum SubscriptionResponse {
+    Confirmation {
+        #[serde(rename = "id")]
+        rpc_request_id: Id,
+        result: SubscriptionConfirmation,
+    },
+    Notification(SubscriptionNotification),
 }
 
-#[derive(Debug)]
-enum SubscriptionResponse {
-    Confirmation { rpc_request_id: Id, result: SubscriptionConfirmation },
-    Notification { subscription_id: SubscriptionId, data: Box<SubscriptionNotification> },
+#[derive(Serialize, Debug)]
+#[cfg_attr(test, derive(Deserialize))]
+#[serde(tag = "method", content = "params")]
+pub(crate) enum SubscriptionNotification {
+    #[serde(rename = "starknet_subscriptionNewHeads")]
+    NewHeads { subscription_id: SubscriptionId, result: BlockHeader },
+    #[serde(rename = "starknet_subscriptionTransactionStatus")]
+    TransactionStatus { subscription_id: SubscriptionId, result: NewTransactionStatus },
+    #[serde(rename = "starknet_subscriptionPendingTransactions")]
+    PendingTransaction { subscription_id: SubscriptionId, result: PendingTransactionNotification },
+    #[serde(rename = "starknet_subscriptionEvents")]
+    Event { subscription_id: SubscriptionId, result: EmittedEvent },
 }
 
 impl SubscriptionResponse {
     fn to_serialized_rpc_response(&self) -> serde_json::Value {
-        let mut resp = match self {
-            SubscriptionResponse::Confirmation { rpc_request_id, result } => {
-                serde_json::json!({
-                    "id": rpc_request_id,
-                    "result": result,
-                })
-            }
-            SubscriptionResponse::Notification { subscription_id, data } => {
-                serde_json::json!({
-                    "method": data.method_name(),
-                    "params": {
-                        "subscription_id": subscription_id,
-                        "result": data,
-                    }
-                })
-            }
-        };
+        let mut resp = serde_json::json!(self);
 
         resp["jsonrpc"] = "2.0".into();
         resp
@@ -249,12 +246,35 @@ impl SocketContext {
         }
     }
 
-    pub async fn notify(&self, subscription_id: SubscriptionId, data: SubscriptionNotification) {
-        self.send(SubscriptionResponse::Notification { subscription_id, data: Box::new(data) })
-            .await;
+    pub async fn notify(&self, subscription_id: SubscriptionId, data: NotificationData) {
+        let notification_data = match data {
+            NotificationData::NewHeads(block_header) => {
+                SubscriptionNotification::NewHeads { subscription_id, result: block_header }
+            }
+
+            NotificationData::TransactionStatus(new_transaction_status) => {
+                SubscriptionNotification::TransactionStatus {
+                    subscription_id,
+                    result: new_transaction_status,
+                }
+            }
+
+            NotificationData::PendingTransaction(pending_transaction_notification) => {
+                SubscriptionNotification::PendingTransaction {
+                    subscription_id,
+                    result: pending_transaction_notification,
+                }
+            }
+
+            NotificationData::Event(emitted_event) => {
+                SubscriptionNotification::Event { subscription_id, result: emitted_event }
+            }
+        };
+
+        self.send(SubscriptionResponse::Notification(notification_data)).await;
     }
 
-    pub async fn notify_subscribers(&self, notification: &SubscriptionNotification) {
+    pub async fn notify_subscribers(&self, notification: &NotificationData) {
         for (subscription_id, subscription) in self.subscriptions.iter() {
             if subscription.matches(notification) {
                 self.notify(*subscription_id, notification.clone()).await;
