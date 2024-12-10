@@ -203,7 +203,7 @@ pub struct SubscriptionIdInput {
 #[serde(deny_unknown_fields)]
 pub struct TransactionBlockInput {
     pub transaction_hash: TransactionHash,
-    pub block: Option<BlockId>,
+    pub block_id: Option<BlockId>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
