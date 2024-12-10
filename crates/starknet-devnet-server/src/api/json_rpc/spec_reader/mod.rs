@@ -165,9 +165,16 @@ fn generate_json_rpc_response(
 mod tests {
     use std::fs::File;
 
-    use super::{generate_combined_schema, generate_json_rpc_response, Spec};
+    use serde::de::DeserializeOwned;
+    use serde::Deserialize;
+    use serde_json::Value;
+
+    use super::{generate_combined_schema, generate_json_rpc_response, ApiMethod, Spec};
     use crate::api::json_rpc::spec_reader::generate_json_rpc_request;
-    use crate::api::json_rpc::{JsonRpcRequest, StarknetResponse, RPC_SPEC_VERSION};
+    use crate::api::json_rpc::{
+        JsonRpcRequest, JsonRpcSubscriptionRequest, StarknetResponse, RPC_SPEC_VERSION,
+    };
+    use crate::subscribe::{SubscriptionConfirmation, SubscriptionResponse};
 
     #[test]
     /// This test asserts that the spec files used in testing indeed match the expected version
