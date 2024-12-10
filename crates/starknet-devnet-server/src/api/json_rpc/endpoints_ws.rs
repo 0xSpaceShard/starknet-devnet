@@ -207,7 +207,10 @@ impl JsonRpcHandler {
                 ))
             } else {
                 NotificationData::PendingTransaction(PendingTransactionNotification::Hash(
-                    *tx.get_transaction_hash(),
+                    TransactionHashWrapper {
+                        hash: *tx.get_transaction_hash(),
+                        sender_address: tx.get_sender_address(),
+                    },
                 ))
             };
             socket_context.notify(subscription_id, notification).await;
