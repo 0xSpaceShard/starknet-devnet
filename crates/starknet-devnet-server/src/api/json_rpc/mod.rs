@@ -74,7 +74,7 @@ use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
 use crate::subscribe::{
     NewTransactionStatus, NotificationData, PendingTransactionNotification, SocketContext,
-    SocketId, SubscriptionNotification, TransactionHashWrapper,
+    SocketId, TransactionHashWrapper,
 };
 use crate::ServerConfig;
 

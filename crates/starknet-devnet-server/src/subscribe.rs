@@ -116,18 +116,14 @@ pub(crate) enum SubscriptionConfirmation {
 pub struct NewTransactionStatus {
     pub transaction_hash: TransactionHash,
     pub status: TransactionStatus,
-    /// which block this notification originates from: pending or latest
+    // which block this notification originates from: pending or latest
     #[serde(skip)]
-    #[cfg_attr(test, serde(default = "origin_tag_default"))]
+    // its used
+    #[cfg_attr(test, serde(default = "crate::test_utils::origin_tag_default"))]
     pub origin_tag: BlockTag,
 }
 
-fn origin_tag_default() -> BlockTag {
-    BlockTag::Latest
-}
-
 #[derive(Debug, Clone)]
-#[cfg_attr(test, derive(Deserialize))]
 pub struct TransactionHashWrapper {
     pub hash: TransactionHash,
     pub sender_address: Option<ContractAddress>,
@@ -139,6 +135,17 @@ impl Serialize for TransactionHashWrapper {
         S: serde::Serializer,
     {
         self.hash.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for TransactionHashWrapper {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let hash = Felt::deserialize(deserializer)?;
+
+        Ok(TransactionHashWrapper { hash, sender_address: None })
     }
 }
 
