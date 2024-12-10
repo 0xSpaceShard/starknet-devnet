@@ -169,7 +169,7 @@ pub(crate) enum SubscriptionResponse {
         rpc_request_id: Id,
         result: SubscriptionConfirmation,
     },
-    Notification(SubscriptionNotification),
+    Notification(Box<SubscriptionNotification>),
 }
 
 #[derive(Serialize, Debug)]
@@ -279,7 +279,7 @@ impl SocketContext {
             }
         };
 
-        self.send(SubscriptionResponse::Notification(notification_data)).await;
+        self.send(SubscriptionResponse::Notification(Box::new(notification_data))).await;
     }
 
     pub async fn notify_subscribers(&self, notification: &NotificationData) {

@@ -217,21 +217,17 @@ mod tests {
                     let request = generate_json_rpc_request(method, &combined_schema)
                         .expect("Could not generate the JSON-RPC request");
 
-                    let response = if let Some(result_schema) = method.result.as_ref() {
-                        Some(
-                            generate_json_rpc_response(&result_schema.schema, &combined_schema)
-                                .expect("Could not generate the JSON-RPC response"),
-                        )
-                    } else {
-                        Option::None
-                    };
+                    let response = method.result.as_ref().map(|result_schema| {
+                        generate_json_rpc_response(&result_schema.schema, &combined_schema)
+                            .expect("Could not generate the JSON-RPC response")
+                    });
 
                     #[derive(Deserialize)]
                     #[serde(untagged)]
                     enum ApiWsRequest {
                         Api(JsonRpcRequest),
                         SubscribeWs(JsonRpcSubscriptionRequest),
-                        WsNotification(SubscriptionResponse),
+                        WsNotification(Box<SubscriptionResponse>),
                     }
                     let sn_request = serde_json::from_value::<ApiWsRequest>(request.clone());
 
@@ -265,11 +261,11 @@ mod tests {
                             );
                         }
                         ApiWsRequest::WsNotification(subscription_response) => {
-                            match subscription_response {
-                                SubscriptionResponse::Confirmation { rpc_request_id, result } => {
+                            match *subscription_response {
+                                SubscriptionResponse::Confirmation { .. } => {
                                     panic!("Unexpected data")
                                 }
-                                SubscriptionResponse::Notification(subscription_notification) => {}
+                                SubscriptionResponse::Notification(_) => {}
                             }
                         }
                     }

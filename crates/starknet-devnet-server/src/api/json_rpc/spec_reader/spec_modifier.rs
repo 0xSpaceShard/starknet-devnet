@@ -1,8 +1,7 @@
 use std::fs;
-use std::str::FromStr;
 
 use serde::Deserialize;
-use serde_json::{Number, Value};
+use serde_json::Value;
 
 use super::Spec;
 
