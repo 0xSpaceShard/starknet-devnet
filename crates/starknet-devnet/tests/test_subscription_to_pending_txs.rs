@@ -17,13 +17,13 @@ mod pending_transactions_subscription_support {
     use crate::common::utils::{
         assert_no_notifications, declare_v3_deploy_v3,
         get_simple_contract_in_sierra_and_compiled_class_hash, receive_rpc_via_ws, subscribe,
-        unsubscribe,
+        unsubscribe, SubscriptionId,
     };
 
     async fn subscribe_pending_txs(
         ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
         params: serde_json::Value,
-    ) -> Result<i64, anyhow::Error> {
+    ) -> Result<SubscriptionId, anyhow::Error> {
         subscribe(ws, "starknet_subscribePendingTransactions", params).await
     }
 

@@ -20,19 +20,19 @@ mod event_subscription_support {
     use crate::common::utils::{
         assert_no_notifications, declare_v3_deploy_v3,
         get_events_contract_in_sierra_and_compiled_class_hash, receive_notification,
-        receive_rpc_via_ws, subscribe, unsubscribe,
+        receive_rpc_via_ws, subscribe, unsubscribe, SubscriptionId,
     };
 
     async fn subscribe_events(
         ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
         params: serde_json::Value,
-    ) -> Result<i64, anyhow::Error> {
+    ) -> Result<SubscriptionId, anyhow::Error> {
         subscribe(ws, "starknet_subscribeEvents", params).await
     }
 
     async fn receive_event(
         ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
-        subscription_id: i64,
+        subscription_id: SubscriptionId,
     ) -> Result<serde_json::Value, anyhow::Error> {
         receive_notification(ws, "starknet_subscriptionEvents", subscription_id).await
     }
