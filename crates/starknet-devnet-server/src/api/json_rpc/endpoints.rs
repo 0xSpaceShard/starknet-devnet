@@ -14,7 +14,9 @@ use starknet_types::rpc::transactions::{
 use starknet_types::starknet_api::block::BlockStatus;
 
 use super::error::{ApiError, StrictRpcResult};
-use super::models::{BlockHashAndNumberOutput, L1TransactionHashInput, SyncingOutput};
+use super::models::{
+    BlockHashAndNumberOutput, GetStorageProofInput, L1TransactionHashInput, SyncingOutput,
+};
 use super::{DevnetResponse, JsonRpcHandler, JsonRpcResponse, StarknetResponse, RPC_SPEC_VERSION};
 use crate::api::http::endpoints::accounts::{
     get_account_balance_impl, get_predeployed_accounts_impl, BalanceQuery, PredeployedAccountsQuery,
@@ -134,6 +136,16 @@ impl JsonRpcHandler {
             })?;
 
         Ok(StarknetResponse::Felt(felt).into())
+    }
+
+    /// starknet_getStorageProof
+    pub async fn get_storage_proof(&self, data: GetStorageProofInput) -> StrictRpcResult {
+        match self.api.starknet.lock().await.get_block(data.block_id.as_ref()) {
+            // storage proofs not applicable to Devnet
+            Ok(_) => Err(ApiError::StorageProofNotSupported),
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
+        }
     }
 
     /// starknet_getTransactionByHash

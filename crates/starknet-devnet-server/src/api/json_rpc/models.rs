@@ -13,19 +13,19 @@ use starknet_types::rpc::transactions::{
 };
 use starknet_types::starknet_api::block::BlockNumber;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockIdInput {
     pub block_id: BlockId,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct TransactionHashInput {
     pub transaction_hash: TransactionHash,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct GetStorageInput {
@@ -34,34 +34,49 @@ pub struct GetStorageInput {
     pub block_id: BlockId,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
+pub struct ContractStorage {
+    pub contract_address: ContractAddress,
+    pub storage_keys: Vec<Felt>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct GetStorageProofInput {
+    pub block_id: BlockId,
+    pub class_hashes: Option<Vec<Felt>>,
+    pub contract_addresses: Option<Vec<ContractAddress>>,
+    pub contract_storage_keys: Option<ContractStorage>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockAndIndexInput {
     pub block_id: BlockId,
     pub index: u64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockAndClassHashInput {
     pub block_id: BlockId,
     pub class_hash: ClassHash,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockAndContractAddressInput {
     pub block_id: BlockId,
     pub contract_address: ContractAddress,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct AccountAddressInput {
     pub account_address: ContractAddress,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(deny_unknown_fields)]
 pub struct CallInput {
@@ -92,7 +107,7 @@ pub enum SyncingOutput {
     False(bool),
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct EventsInput {
     pub filter: EventFilter,
 }
