@@ -244,7 +244,23 @@
                 "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN_HASH"
               },
               {
-                "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/TXN"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "transaction_hash": {
+                        "title": "transaction hash",
+                        "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN_HASH"
+                      }
+                    },
+                    "required": [
+                      "transaction_hash"
+                    ]
+                  }
+                ]
               }
             ]
           }
