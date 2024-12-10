@@ -47,12 +47,7 @@ impl JsonRpcHandler {
             }
             JsonRpcSubscriptionRequest::Unsubscribe(SubscriptionIdInput { subscription_id }) => {
                 let mut sockets = self.api.sockets.lock().await;
-                let socket_context = sockets.get_mut(&socket_id).ok_or(
-                    ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
-                        msg: format!("Unregistered socket ID: {socket_id}"),
-                    }),
-                )?;
-
+                let socket_context = sockets.get_mut(&socket_id)?;
                 socket_context.unsubscribe(rpc_request_id, subscription_id).await
             }
         }
@@ -119,9 +114,7 @@ impl JsonRpcHandler {
 
         // perform the actual subscription
         let mut sockets = self.api.sockets.lock().await;
-        let socket_context = sockets.get_mut(&socket_id).ok_or(ApiError::StarknetDevnetError(
-            Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
-        ))?;
+        let socket_context = sockets.get_mut(&socket_id)?;
         let subscription_id =
             socket_context.subscribe(rpc_request_id, Subscription::NewHeads).await;
 
@@ -195,9 +188,7 @@ impl JsonRpcHandler {
         );
 
         let mut sockets = self.api.sockets.lock().await;
-        let socket_context = sockets.get_mut(&socket_id).ok_or(ApiError::StarknetDevnetError(
-            Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
-        ))?;
+        let socket_context = sockets.get_mut(&socket_id)?;
 
         let subscription = if with_details {
             Subscription::PendingTransactionsFull { address_filter }
@@ -247,13 +238,11 @@ impl JsonRpcHandler {
 
         // perform the actual subscription
         let mut sockets = self.api.sockets.lock().await;
-        let socket_context = sockets.get_mut(&socket_id).ok_or(ApiError::StarknetDevnetError(
-            Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
-        ))?;
+        let socket_context = sockets.get_mut(&socket_id)?;
 
         // TODO if tx present, but in a block before the one specified, no point in subscribing -
         // its status shall never change (unless considering block abortion). It would make
-        // sense to just add a ReorgSubscription
+        // sense to just add a ReorgSubscription TODO TEST THIS TEST THIS TEST THIS TEST THIS?
         let subscription_tag = self.get_subscription_tag(query_block_id);
         let subscription =
             Subscription::TransactionStatus { tag: subscription_tag, transaction_hash };
@@ -314,10 +303,7 @@ impl JsonRpcHandler {
             maybe_subscription_input.and_then(|subscription_input| subscription_input.keys);
 
         let mut sockets = self.api.sockets.lock().await;
-        let socket_context = sockets.get_mut(&socket_id).ok_or(ApiError::StarknetDevnetError(
-            Error::UnexpectedInternalError { msg: format!("Unregistered socket ID: {socket_id}") },
-        ))?;
-
+        let socket_context = sockets.get_mut(&socket_id)?;
         let subscription = Subscription::Events { address, keys_filter: keys_filter.clone() };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
