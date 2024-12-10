@@ -9,8 +9,10 @@ use crate::felt::{BlockHash, TransactionHash};
 #[serde(deny_unknown_fields)]
 pub struct EmittedEvent {
     pub transaction_hash: TransactionHash,
-    pub block_hash: BlockHash,
-    pub block_number: BlockNumber,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub block_hash: Option<BlockHash>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub block_number: Option<BlockNumber>,
     pub from_address: ContractAddress,
     pub keys: Vec<Felt>,
     pub data: Vec<Felt>,
