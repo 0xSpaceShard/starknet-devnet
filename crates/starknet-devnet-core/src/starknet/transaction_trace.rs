@@ -4,7 +4,7 @@ use blockifier::state::state_api::StateReader;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::versioned_constants::VersionedConstants;
 use starknet_types::rpc::state::ThinStateDiff;
-use starknet_types::rpc::transaction_receipt::DataAvailability;
+use starknet_types::rpc::transaction_receipt::ExecutionResources;
 use starknet_types::rpc::transactions::{
     DeclareTransactionTrace, DeployAccountTransactionTrace, ExecutionInvocation,
     FunctionInvocation, InvokeTransactionTrace, L1HandlerTransactionTrace, TransactionTrace,
@@ -69,7 +69,7 @@ pub(crate) fn create_trace<S: StateReader>(
     let state_diff = Some(state_diff);
     let validate_invocation =
         get_call_info_invocation(state, &execution_info.validate_call_info, versioned_constants)?;
-    let execution_resources = DataAvailability::from(execution_info);
+    let execution_resources = ExecutionResources::from(execution_info);
 
     let fee_transfer_invocation = get_call_info_invocation(
         state,

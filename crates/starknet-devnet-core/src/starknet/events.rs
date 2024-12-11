@@ -7,7 +7,6 @@ use super::Starknet;
 use crate::error::{DevnetResult, Error};
 use crate::traits::HashIdentified;
 
-/// TODO: check if pending events are returned
 /// The method returns transaction events, based on query and if there are more results to be
 /// fetched in the form of a tuple (events, has_more).
 ///
@@ -68,7 +67,7 @@ pub(crate) fn get_events(
                 } else {
                     (Some(block.block_hash()), Some(block.block_number()))
                 };
-                // TODO: pending events dont have block_number and block_hash
+
                 let emitted_event = EmittedEvent {
                     transaction_hash: *transaction_hash,
                     block_hash,

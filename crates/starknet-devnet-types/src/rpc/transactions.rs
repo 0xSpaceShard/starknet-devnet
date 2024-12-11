@@ -38,7 +38,7 @@ use self::l1_handler_transaction::L1HandlerTransaction;
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::messaging::{MessageToL1, OrderedMessageToL1};
 use super::state::ThinStateDiff;
-use super::transaction_receipt::{DataAvailability, FeeInUnits, TransactionReceipt};
+use super::transaction_receipt::{ExecutionResources, FeeInUnits, TransactionReceipt};
 use crate::constants::{
     PREFIX_DECLARE, PREFIX_DEPLOY_ACCOUNT, PREFIX_INVOKE, QUERY_VERSION_OFFSET,
 };
@@ -147,7 +147,7 @@ impl TransactionWithHash {
         execution_info: &TransactionExecutionInfo,
     ) -> CommonTransactionReceipt {
         let r#type = self.get_type();
-        let execution_resources = DataAvailability::from(execution_info);
+        let execution_resources = ExecutionResources::from(execution_info);
         let maybe_pending_properties =
             MaybePendingProperties { block_number, block_hash: block_hash.cloned() };
 
@@ -333,7 +333,7 @@ pub struct ResourceBoundsMapping {
     /// The max amount and max price per unit of L2 gas used in this tx
     pub l2_gas: ResourceBounds,
     /// The max amount and max price per unit of L1 data gas used in this tx
-    pub l1_data_gas: ResourceBounds,
+    pub l1_data_gas: Option<ResourceBounds>,
 }
 
 impl_wrapper_serialize!(ResourceBoundsWrapper);
@@ -357,7 +357,7 @@ impl ResourceBoundsWrapper {
                     max_price_per_unit: l2_gas_max_price_per_unit,
                 },
                 // TODO: provide values for l1_data_gas
-                l1_data_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
+                l1_data_gas: Some(ResourceBounds { max_amount: 0, max_price_per_unit: 0 }),
             },
         }
     }
@@ -464,7 +464,11 @@ impl BroadcastedTransactionCommonV3 {
 
         array.push(field_element_from_resource_bounds(
             "L1_DATA",
-            &self.resource_bounds.inner.l1_data_gas,
+            self.resource_bounds
+                .inner
+                .l1_data_gas
+                .as_ref()
+                .unwrap_or(&ResourceBounds { max_amount: 0, max_price_per_unit: 0 }),
         )?);
 
         Ok(array)
@@ -1094,7 +1098,7 @@ pub struct InvokeTransactionTrace {
     pub execute_invocation: ExecutionInvocation,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
     pub state_diff: Option<ThinStateDiff>,
-    pub execution_resources: DataAvailability,
+    pub execution_resources: ExecutionResources,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1103,7 +1107,7 @@ pub struct DeclareTransactionTrace {
     pub validate_invocation: Option<FunctionInvocation>,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
     pub state_diff: Option<ThinStateDiff>,
-    pub execution_resources: DataAvailability,
+    pub execution_resources: ExecutionResources,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1113,7 +1117,7 @@ pub struct DeployAccountTransactionTrace {
     pub constructor_invocation: Option<FunctionInvocation>,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
     pub state_diff: Option<ThinStateDiff>,
-    pub execution_resources: DataAvailability,
+    pub execution_resources: ExecutionResources,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1121,7 +1125,7 @@ pub struct DeployAccountTransactionTrace {
 pub struct L1HandlerTransactionTrace {
     pub function_invocation: FunctionInvocation,
     pub state_diff: Option<ThinStateDiff>,
-    pub execution_resources: DataAvailability,
+    pub execution_resources: ExecutionResources,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
