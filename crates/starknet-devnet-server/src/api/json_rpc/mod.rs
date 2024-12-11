@@ -73,8 +73,8 @@ use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
 use crate::subscribe::{
-    NewTransactionStatus, PendingTransactionNotification, SocketContext, SocketId,
-    SubscriptionNotification, TransactionHashWrapper,
+    NewTransactionStatus, PendingTransactionNotification, SocketId, SubscriptionNotification,
+    TransactionHashWrapper,
 };
 use crate::ServerConfig;
 
@@ -191,12 +191,7 @@ impl RpcHandler for JsonRpcHandler {
         let (socket_writer, mut socket_reader) = socket.split();
         let socket_writer = Arc::new(Mutex::new(socket_writer));
 
-        let socket_id = rand::random();
-        self.api
-            .sockets
-            .lock()
-            .await
-            .insert(socket_id, SocketContext::from_sender(socket_writer.clone()));
+        let socket_id = self.api.sockets.lock().await.insert(socket_writer.clone());
 
         // listen to new messages coming through the socket
         let mut socket_safely_closed = false;
@@ -301,12 +296,7 @@ impl JsonRpcHandler {
             let notifications =
                 [tx_status_notification, pending_tx_notification, pending_tx_hash_notification];
 
-            let sockets = self.api.sockets.lock().await;
-            for (_, socket_context) in sockets.iter() {
-                for notification in &notifications {
-                    socket_context.notify_subscribers(notification).await;
-                }
-            }
+            self.api.sockets.lock().await.notify_subscribers(&notifications).await;
         }
 
         Ok(())
@@ -363,13 +353,7 @@ impl JsonRpcHandler {
             }
         }
 
-        let sockets = self.api.sockets.lock().await;
-        for (_, socket_context) in sockets.iter() {
-            for notification in &notifications {
-                socket_context.notify_subscribers(notification).await;
-            }
-        }
-
+        self.api.sockets.lock().await.notify_subscribers(&notifications).await;
         Ok(())
     }
 
@@ -429,11 +413,7 @@ impl JsonRpcHandler {
             ending_block_number: old_latest_block.block_number(),
         });
 
-        let sockets = self.api.sockets.lock().await;
-        for (_, socket_context) in sockets.iter() {
-            socket_context.notify_subscribers(&notification).await;
-        }
-
+        self.api.sockets.lock().await.notify_subscribers(&[notification]).await;
         Ok(())
     }
 
