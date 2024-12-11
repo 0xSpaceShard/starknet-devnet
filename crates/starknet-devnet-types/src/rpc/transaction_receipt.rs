@@ -96,13 +96,13 @@ impl<'de> Deserialize<'de> for ExecutionResources {
             l2_gas: u128,
         }
 
-        let data_availability: InnerExecutionResources =
+        let execution_resources: InnerExecutionResources =
             serde_json::from_value(json_obj).map_err(serde::de::Error::custom)?;
 
         Ok(ExecutionResources {
-            l1_gas: data_availability.l1_gas,
-            l1_data_gas: data_availability.l1_data_gas,
-            l2_gas: data_availability.l2_gas,
+            l1_gas: execution_resources.l1_gas,
+            l1_data_gas: execution_resources.l1_data_gas,
+            l2_gas: execution_resources.l2_gas,
         })
     }
 }
