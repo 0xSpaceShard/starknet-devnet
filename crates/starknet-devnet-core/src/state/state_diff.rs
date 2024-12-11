@@ -46,12 +46,8 @@ impl StateDiff {
 
         for (class_hash, class) in new_classes {
             match class {
-                starknet_types::contract_class::ContractClass::Cairo0(_) => {
-                    cairo_0_declared_contracts.push(class_hash)
-                }
-                starknet_types::contract_class::ContractClass::Cairo1(_) => {
-                    declared_contracts.push(class_hash)
-                }
+                ContractClass::Cairo0(_) => cairo_0_declared_contracts.push(class_hash),
+                ContractClass::Cairo1(_) => declared_contracts.push(class_hash),
             }
         }
 

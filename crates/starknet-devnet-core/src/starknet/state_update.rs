@@ -82,9 +82,11 @@ mod tests {
         }
         .into();
 
-        let class_diff = (state_diff.deprecated_declared_classes, state_diff.declared_classes);
-        let expected_class_diff =
-            (expected_state_diff.deprecated_declared_classes, expected_state_diff.declared_classes);
+        let class_diff = (&state_diff.deprecated_declared_classes, &state_diff.declared_classes);
+        let expected_class_diff = (
+            &expected_state_diff.deprecated_declared_classes,
+            &expected_state_diff.declared_classes,
+        );
         assert_eq!(class_diff, expected_class_diff);
     }
 }

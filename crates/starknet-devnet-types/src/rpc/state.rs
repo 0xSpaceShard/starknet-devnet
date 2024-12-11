@@ -18,10 +18,10 @@ pub enum StateUpdateResult {
 }
 
 impl StateUpdateResult {
-    pub fn get_state_diff(&self) -> ThinStateDiff {
+    pub fn get_state_diff(&self) -> &ThinStateDiff {
         match self {
-            StateUpdateResult::StateUpdate(s) => s.state_diff.clone(),
-            StateUpdateResult::PendingStateUpdate(s) => s.state_diff.clone(),
+            StateUpdateResult::StateUpdate(s) => &s.state_diff,
+            StateUpdateResult::PendingStateUpdate(s) => &s.state_diff,
         }
     }
 }

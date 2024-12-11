@@ -396,7 +396,7 @@ impl Starknet {
             &mut self.pending_state.state,
             transaction.get_type(),
             &tx_info,
-            state_diff.clone().into(),
+            state_diff.into(),
         )?;
         let transaction_to_add = StarknetTransaction::create_accepted(&transaction, tx_info, trace);
 
