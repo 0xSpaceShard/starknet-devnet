@@ -498,8 +498,8 @@ mod fork_tests {
                     JsonRpcError {
                         code: -1,
                         message: format!(
-                            "Failed to read from state: Error in communication with origin: error \
-                             sending request for url ({}/).",
+                            "Failed to read from state: Error in communication with forking \
+                             origin: error sending request for url ({}/).",
                             origin_devnet.url
                         ),
                         data: None,
