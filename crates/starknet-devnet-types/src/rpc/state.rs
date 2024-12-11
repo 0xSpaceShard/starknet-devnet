@@ -2,7 +2,7 @@ use num_bigint::BigUint;
 use serde::{Deserialize, Serialize};
 use starknet_types_core::felt::Felt;
 
-use super::block::GlobalRootHex;
+use super::block::BlockRoot;
 use crate::contract_address::ContractAddress;
 use crate::felt::{BlockHash, ClassHash, Nonce};
 use crate::patricia_key::PatriciaKey;
@@ -30,15 +30,15 @@ impl StateUpdateResult {
 #[serde(deny_unknown_fields)]
 pub struct StateUpdate {
     pub block_hash: BlockHash,
-    pub new_root: GlobalRootHex,
-    pub old_root: GlobalRootHex,
+    pub new_root: BlockRoot,
+    pub old_root: BlockRoot,
     pub state_diff: ThinStateDiff,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct PendingStateUpdate {
-    pub old_root: GlobalRootHex,
+    pub old_root: BlockRoot,
     pub state_diff: ThinStateDiff,
 }
 
