@@ -35,6 +35,13 @@ pub struct StateUpdate {
     pub state_diff: ThinStateDiff,
 }
 
+impl StateUpdate {
+    /// New and old root are not computed - Devnet does not store block data in a tree.
+    pub fn new(block_hash: Felt, state_diff: ThinStateDiff) -> Self {
+        Self { block_hash, new_root: Felt::default(), old_root: Felt::default(), state_diff }
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct PendingStateUpdate {

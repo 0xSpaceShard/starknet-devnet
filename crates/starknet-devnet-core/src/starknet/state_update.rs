@@ -1,8 +1,8 @@
 use starknet_rs_core::types::BlockId;
+use starknet_types::rpc::state::StateUpdate;
 
 use super::Starknet;
 use crate::error::DevnetResult;
-use crate::state::state_update::StateUpdate;
 
 pub fn state_update_by_block_id(
     starknet: &Starknet,
@@ -17,7 +17,6 @@ pub fn state_update_by_block_id(
 
 #[cfg(test)]
 mod tests {
-
     use starknet_api::transaction::Fee;
     use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_class::ContractClass;
