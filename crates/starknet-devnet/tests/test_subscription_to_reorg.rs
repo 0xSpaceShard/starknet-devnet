@@ -99,7 +99,7 @@ mod reorg_subscription_support {
             // was received per subscription_id, we extract the IDs from notifications, store them
             // in a set, and later assert equality with the set of expected subscription IDs.
             let notification_id =
-                notification["params"]["subscription_id"].take().as_i64().unwrap();
+                notification["params"]["subscription_id"].take().as_u64().unwrap();
             notification_ids.insert(notification_id);
 
             assert_eq!(

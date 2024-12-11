@@ -17,7 +17,7 @@ use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
-    EstimateFeeInput, EventsInput, EventsSubscriptionInput, GetStorageInput,
+    EstimateFeeInput, EventsInput, EventsSubscriptionInput, GetStorageInput, GetStorageProofInput,
     L1TransactionHashInput, PendingTransactionsSubscriptionInput, SubscriptionIdInput,
     TransactionBlockInput, TransactionHashInput, TransactionHashOutput,
 };
@@ -549,6 +549,7 @@ impl JsonRpcHandler {
             JsonRpcRequest::Mint(data) => self.mint(data).await,
             JsonRpcRequest::DevnetConfig => self.get_devnet_config().await,
             JsonRpcRequest::MessagesStatusByL1Hash(data) => self.get_messages_status(data).await,
+            JsonRpcRequest::StorageProof(data) => self.get_storage_proof(data).await,
         }
     }
 
@@ -647,6 +648,8 @@ pub enum JsonRpcRequest {
     StateUpdate(BlockIdInput),
     #[serde(rename = "starknet_getStorageAt")]
     StorageAt(GetStorageInput),
+    #[serde(rename = "starknet_getStorageProof")]
+    StorageProof(GetStorageProofInput),
     #[serde(rename = "starknet_getTransactionByHash")]
     TransactionByHash(TransactionHashInput),
     #[serde(rename = "starknet_getTransactionByBlockIdAndIndex")]
@@ -793,6 +796,7 @@ impl JsonRpcRequest {
             | Self::Restart(_)
             | Self::PredeployedAccounts(_)
             | Self::AccountBalance(_)
+            | Self::StorageProof(_)
             | Self::DevnetConfig => false,
         }
     }
@@ -825,6 +829,7 @@ impl JsonRpcRequest {
             | Self::TraceTransaction(_)
             | Self::MessagesStatusByL1Hash(_)
             | Self::CompiledCasmByClassHash(_)
+            | Self::StorageProof(_)
             | Self::BlockTransactionTraces(_) => true,
             Self::SpecVersion
             | Self::ChainId
@@ -909,6 +914,7 @@ impl JsonRpcRequest {
             | Self::AccountBalance(_)
             | Self::MessagesStatusByL1Hash(_)
             | Self::CompiledCasmByClassHash(_)
+            | Self::StorageProof(_)
             | Self::DevnetConfig => false,
         }
     }
@@ -1011,6 +1017,7 @@ pub enum StarknetResponse {
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
     MessagesStatusByL1Hash(Vec<L1HandlerTransactionStatus>),
+    StorageProofs(serde_json::Value), // dummy, the corresponding RPC method always errors
 }
 
 #[derive(Serialize)]

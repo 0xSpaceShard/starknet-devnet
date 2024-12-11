@@ -13,12 +13,29 @@ use super::starknet_config::ForkConfig;
 
 #[derive(thiserror::Error, Debug)]
 enum OriginError {
-    #[error("Error in communication with origin: {0}")]
+    #[error("Error in communication with forking origin: {0}")]
     CommunicationError(String),
-    #[error("Received invalid response from origin: {0}")]
+    #[error("Received invalid response from forking origin: {0}")]
     FormatError(String),
-    #[error("Received JSON response, but no result property in it")]
+    #[error("Received JSON response from forking origin, but no result property in it")]
     NoResult,
+}
+
+impl OriginError {
+    fn from_status_code(status_code: reqwest::StatusCode) -> Self {
+        let additional_info = match status_code.as_u16() {
+            429 => {
+                "This means your program is making Devnet send too many requests to the forking \
+                 origin. 1) It could be a temporary issue, so try re-running your program. 2) If \
+                 forking is not crucial for your use-case, disable it. 3) Try changing the forking \
+                 URL 4) Consider adding short sleeps to the program from which you are interacting \
+                 with Devnet."
+            }
+            _ => "",
+        };
+
+        OriginError::CommunicationError(format!("{status_code}. {additional_info}"))
+    }
 }
 
 /// Used for interacting with the origin in forking mode. The calls are blocking. Only handles the
@@ -61,9 +78,7 @@ impl BlockingOriginReader {
             Ok(mut resp) => {
                 let resp_status = resp.status();
                 if resp_status != reqwest::StatusCode::OK {
-                    return Err(OriginError::CommunicationError(format!(
-                        "Received response with status: {resp_status}"
-                    )));
+                    return Err(OriginError::from_status_code(resp_status));
                 }
 
                 // load json
