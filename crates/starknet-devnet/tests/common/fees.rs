@@ -8,7 +8,7 @@ fn extract_overall_fee(simulation_result: &serde_json::Value) -> u128 {
 /// usage. The fee from vm usage is the heaviest product of cairo resource usage multiplied
 /// by cairo resource fee cost, rounded down to the nearest integer. There is a
 /// possibility that although some of the resources present in the resp_no_flags are not in
-/// resp_skip_validation, this doesnt mean that the fee will be higher, for example:
+/// resp_skip_validation, this doesn't mean that the fee will be higher, for example:
 /// the fee from vm usage is determined from the `steps` and the transaction that skips
 /// validation might have less steps, but due to the rounding if the multiplied product
 /// falls in the range (7,8] both will be rounded to 7

@@ -272,7 +272,7 @@ pub fn compute_sierra_class_hash(contract_class: &SierraContractClass) -> Devnet
 
     // to match SierraClass struct, the field sierra_program_debug_info dont have to be
     // Option::None, because during serialization it gets converted to null
-    // and the next deserialzation to SierraClass will fail, because it expects this key to have
+    // and the next deserialization to SierraClass will fail, because it expects this key to have
     // some value
     if contract_class.sierra_program_debug_info.is_none() {
         contract_class_json_value["sierra_program_debug_info"] =
