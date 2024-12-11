@@ -758,20 +758,19 @@ impl Starknet {
 
     pub fn block_state_update(&self, block_id: &BlockId) -> DevnetResult<StateUpdateResult> {
         let state_update = state_update::state_update_by_block_id(self, block_id)?;
-        let state_diff = state_update.state_diff.into();
 
         // StateUpdate needs to be mapped to PendingStateUpdate when block_id is pending
         if block_id == &BlockId::Tag(BlockTag::Pending) {
             Ok(StateUpdateResult::PendingStateUpdate(PendingStateUpdate {
                 old_root: state_update.old_root,
-                state_diff,
+                state_diff: state_update.state_diff,
             }))
         } else {
             Ok(StateUpdateResult::StateUpdate(StateUpdate {
                 block_hash: state_update.block_hash,
                 new_root: state_update.new_root,
                 old_root: state_update.old_root,
-                state_diff,
+                state_diff: state_update.state_diff,
             }))
         }
     }

@@ -12,7 +12,7 @@ pub fn state_update_by_block_id(
     let state_diff =
         starknet.blocks.hash_to_state_diff.get(&block.block_hash()).cloned().unwrap_or_default();
 
-    Ok(StateUpdate::new(block.block_hash(), state_diff))
+    Ok(StateUpdate::new(block.block_hash(), state_diff.into()))
 }
 
 #[cfg(test)]
