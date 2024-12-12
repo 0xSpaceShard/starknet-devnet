@@ -8,7 +8,7 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 use starknet_types::rpc::state::{
-    ClassHashes, ContractNonce, DeployedContract, ReplacedClasses, StorageDiff, StorageEntry,
+    ClassHashPair, ContractNonce, DeployedContract, ReplacedClasses, StorageDiff, StorageEntry,
     ThinStateDiff,
 };
 
@@ -149,7 +149,7 @@ impl From<StateDiff> for ThinStateDiff {
                 .collect(),
             declared_classes: declared_classes
                 .into_iter()
-                .map(|(class_hash, compiled_class_hash)| ClassHashes {
+                .map(|(class_hash, compiled_class_hash)| ClassHashPair {
                     class_hash,
                     compiled_class_hash,
                 })

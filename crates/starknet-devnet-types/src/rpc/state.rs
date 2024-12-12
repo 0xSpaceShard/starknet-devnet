@@ -53,7 +53,7 @@ pub struct PendingStateUpdate {
 pub struct ThinStateDiff {
     pub deployed_contracts: Vec<DeployedContract>,
     pub storage_diffs: Vec<StorageDiff>,
-    pub declared_classes: Vec<ClassHashes>,
+    pub declared_classes: Vec<ClassHashPair>,
     pub deprecated_declared_classes: Vec<ClassHash>,
     pub nonces: Vec<ContractNonce>,
     pub replaced_classes: Vec<ReplacedClasses>,
@@ -82,7 +82,7 @@ pub struct StorageEntry {
 }
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
-pub struct ClassHashes {
+pub struct ClassHashPair {
     pub class_hash: ClassHash,
     pub compiled_class_hash: CompiledClassHashHex,
 }
