@@ -462,14 +462,15 @@ impl BroadcastedTransactionCommonV3 {
             &self.resource_bounds.inner.l2_gas,
         )?);
 
-        array.push(field_element_from_resource_bounds(
-            "L1_DATA",
-            self.resource_bounds
-                .inner
-                .l1_data_gas
-                .as_ref()
-                .unwrap_or(&ResourceBounds { max_amount: 0, max_price_per_unit: 0 }),
-        )?);
+        // TODO: uncomment this sesction when starknet_api, blockifier, starknet-rs
+        // array.push(field_element_from_resource_bounds(
+        //     "L1_DATA",
+        //     self.resource_bounds
+        //         .inner
+        //         .l1_data_gas
+        //         .as_ref()
+        //         .unwrap_or(&ResourceBounds { max_amount: 0, max_price_per_unit: 0 }),
+        // )?);
 
         Ok(array)
     }
