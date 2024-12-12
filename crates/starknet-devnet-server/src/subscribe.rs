@@ -161,8 +161,8 @@ pub enum NotificationData {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(untagged)]
 #[cfg_attr(test, derive(Deserialize))]
-#[cfg_attr(test, serde(untagged))]
 pub(crate) enum SubscriptionResponse {
     Confirmation {
         #[serde(rename = "id")]
