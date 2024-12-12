@@ -131,6 +131,8 @@ To test if your contribution presents an improvement in execution time, check ou
 
 ##### Cargo Bench execution
 
+# TODO - REMOVE
+
 To run the criterion benchmarks and generate a performance report:
 
 ```

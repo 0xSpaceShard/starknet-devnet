@@ -53,9 +53,3 @@ usc = { workspace = true }
 reqwest = { workspace = true }
 criterion = { workspace = true }
 serial_test = { workspace = true }
-
-
-[[bench]]
-name = "mint_bench"
-harness = false
-path = "benches/mint_bench.rs"
