@@ -1,5 +1,9 @@
 # Blocks
 
+## State commitment
+
+Block states are not committed in a Merke-Patricia trie or a similar tree-like structure. Block roots are therefore set to 0.
+
 ## Genesis block
 
 By default, Devnet starts with a genesis block labelled with number zero. In [forking mode](./forking), the genesis block number is equal to the forked block number plus one.

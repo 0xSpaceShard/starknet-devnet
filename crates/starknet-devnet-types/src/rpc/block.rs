@@ -6,7 +6,7 @@ use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag as ImportedBl
 use crate::contract_address::ContractAddress;
 use crate::felt::BlockHash;
 use crate::rpc::transactions::Transactions;
-pub type GlobalRootHex = Felt;
+pub type BlockRoot = Felt;
 
 #[derive(Copy, Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum BlockHashOrNumber {
@@ -91,7 +91,7 @@ pub struct BlockHeader {
     pub parent_hash: BlockHash,
     pub block_number: BlockNumber,
     pub sequencer_address: ContractAddress,
-    pub new_root: GlobalRootHex,
+    pub new_root: BlockRoot,
     pub timestamp: BlockTimestamp,
     pub starknet_version: String,
     pub l1_gas_price: ResourcePrice,
