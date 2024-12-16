@@ -22,7 +22,7 @@ use crate::constants::UDC_CONTRACT_ADDRESS;
 use crate::error::{DevnetResult, Error};
 use crate::traits::{HashIdentified, HashIdentifiedMut};
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize)]
 pub struct StarknetTransactions(IndexMap<TransactionHash, StarknetTransaction>);
 
 impl StarknetTransactions {
