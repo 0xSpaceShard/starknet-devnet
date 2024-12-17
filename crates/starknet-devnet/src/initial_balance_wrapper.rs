@@ -4,7 +4,7 @@ use std::str::FromStr;
 use starknet_core::constants::DEVNET_DEFAULT_INITIAL_BALANCE;
 use starknet_types::rpc::state::Balance;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub(crate) struct InitialBalanceWrapper(pub Balance);
 
 impl FromStr for InitialBalanceWrapper {
