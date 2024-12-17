@@ -5,6 +5,7 @@ members = [
 	"crates/starknet-devnet-core",
 	"crates/starknet-devnet-server",
 	"crates/starknet-devnet",
+	"tests/integration",
 ]
 
 [profile.release]

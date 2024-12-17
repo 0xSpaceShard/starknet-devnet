@@ -1,0 +1,76 @@
+mod test_restrictive_mode {
+    use serde_json::json;
+
+    use crate::common::background_devnet::BackgroundDevnet;
+    use crate::common::errors::RpcError;
+    use crate::common::reqwest_client::{
+        GetReqwestSender, HttpEmptyResponseBody, PostReqwestSender,
+    };
+
+    #[tokio::test]
+    async fn restrictive_mode_with_default_methods_doesnt_affect_other_functionality() {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--restrictive-mode"])
+            .await
+            .expect("Could not start Devnet");
+
+        devnet
+            .reqwest_client()
+            .get_json_async("/config", None)
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn restrictive_mode_with_default_methods() {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--restrictive-mode"])
+            .await
+            .expect("Could not start Devnet");
+        let http_err = devnet
+            .reqwest_client()
+            .post_json_async("/mint", json!({ "address": "0x1", "amount": 1 }))
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap_err();
+        assert_eq!(http_err.status(), reqwest::StatusCode::FORBIDDEN);
+
+        let json_rpc_error = devnet
+            .send_custom_rpc("devnet_mint", json!({ "address": "0x1", "amount": 1 }))
+            .await
+            .unwrap_err();
+
+        assert_eq!(
+            json_rpc_error,
+            RpcError { code: -32604, message: "Method forbidden".into(), None }
+        );
+    }
+
+    #[tokio::test]
+    async fn restrictive_mode_with_custom_methods() {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--restrictive-mode",
+            "/load",
+            "devnet_mint",
+        ])
+        .await
+        .expect("Could not start Devnet");
+        let err = devnet
+            .reqwest_client()
+            .post_json_async("/load", json!({ "path": "dummy_path" }))
+            .await
+            .map(|_: HttpEmptyResponseBody| ())
+            .unwrap_err();
+
+        assert_eq!(err.status(), reqwest::StatusCode::FORBIDDEN);
+
+        let json_rpc_error = devnet
+            .send_custom_rpc("devnet_mint", json!({ "address": "0x1", "amount": 1 }))
+            .await
+            .unwrap_err();
+
+        assert_eq!(
+            json_rpc_error,
+            RpcError { code: -32604, message: "Method forbidden".into(), None }
+        );
+    }
+}

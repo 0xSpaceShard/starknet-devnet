@@ -3555,6 +3555,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "integration"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "ethers",
+ "lazy_static",
+ "rand",
+ "reqwest 0.12.7",
+ "serde",
+ "serde_json",
+ "starknet-accounts",
+ "starknet-contract",
+ "starknet-core",
+ "starknet-devnet-core",
+ "starknet-devnet-server",
+ "starknet-providers",
+ "starknet-signers",
+ "thiserror",
+ "tokio",
+ "universal-sierra-compiler",
+ "url",
+]
+
+[[package]]
 name = "ipnet"
 version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
