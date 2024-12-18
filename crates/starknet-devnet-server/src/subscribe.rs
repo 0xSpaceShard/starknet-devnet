@@ -110,9 +110,8 @@ pub(crate) enum SubscriptionConfirmation {
 pub struct NewTransactionStatus {
     pub transaction_hash: TransactionHash,
     pub status: TransactionStatus,
-    // which block this notification originates from: pending or latest
+    /// which block this notification originates from: pending or latest
     #[serde(skip)]
-    // its used
     #[cfg_attr(test, serde(default = "crate::test_utils::origin_tag_default"))]
     pub origin_tag: BlockTag,
 }
