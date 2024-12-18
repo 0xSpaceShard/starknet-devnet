@@ -97,7 +97,6 @@ mod tests {
     /// Data for test case is taken from https://spaceshard.slack.com/archives/C05FAMWQ8JE/p1700501793152349?thread_ts=1700058492.284919&cid=C05FAMWQ8JE
     /// The transaction was taken from https://external.integration.starknet.io/feeder_gateway/get_transaction?transactionHash=0x29fd7881f14380842414cdfdd8d6c0b1f2174f8916edcfeb1ede1eb26ac3ef0
     #[test]
-    #[ignore = "no example on integration"]
     fn correct_transaction_hash_computation_compared_to_a_transaction_from_feeder_gateway() {
         let json_obj: serde_json::Value = serde_json::from_reader(
             std::fs::File::open(concat!(
