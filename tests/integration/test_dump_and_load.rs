@@ -80,7 +80,7 @@ async fn dump_load_dump_load_without_path() {
     assert_eq!(last_block.block_number, 4);
 
     let loaded_balance =
-        devnet_load.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI).await.unwrap();
+        devnet_load.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::Wei).await.unwrap();
     assert_eq!(loaded_balance, Felt::from(DUMMY_AMOUNT * 2));
 }
 
@@ -412,7 +412,7 @@ async fn dump_load_endpoints_transaction_and_state_after_load_is_valid() {
     devnet_load.send_custom_rpc("devnet_load", json!({ "path": dump_file.path })).await.unwrap();
 
     let balance_result =
-        devnet_load.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI).await.unwrap();
+        devnet_load.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::Wei).await.unwrap();
     assert_eq!(balance_result, Felt::from(DUMMY_AMOUNT));
 
     let loaded_transaction =
@@ -439,7 +439,7 @@ async fn mint_and_dump_and_load_on_same_devnet() {
     .await
     .unwrap();
 
-    let unit = FeeUnit::WEI;
+    let unit = FeeUnit::Wei;
 
     devnet.mint_unit(DUMMY_ADDRESS, DUMMY_AMOUNT, unit).await;
     let balance_before_dump = devnet.get_balance_latest(&DUMMY_ADDRESS.into(), unit).await.unwrap();
@@ -554,7 +554,7 @@ async fn test_dumping_of_non_rpc_requests() {
     .unwrap();
 
     let loaded_balance = loaded_devnet
-        .get_balance_latest(&Felt::from_hex_unchecked(address), FeeUnit::WEI)
+        .get_balance_latest(&Felt::from_hex_unchecked(address), FeeUnit::Wei)
         .await
         .unwrap();
     assert_eq!(loaded_balance, Felt::from(mint_amount));

@@ -12,7 +12,6 @@ path = "lib.rs"
 [dependencies]
 # TODO import starknet-devnet and use it instead of BackgroundDevnet?
 
-[dev-dependencies]
 # devnet
 starknet-core = { workspace = true, features = ["test_utils"] }
 server = { workspace = true, features = ["test_utils"] }

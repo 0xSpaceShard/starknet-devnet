@@ -52,12 +52,12 @@ async fn increase_balance_happy_path(
 
 #[tokio::test]
 async fn increase_balance_of_undeployed_address_wei() {
-    increase_balance_happy_path(DUMMY_ADDRESS, 0, DUMMY_AMOUNT, FeeUnit::WEI).await;
+    increase_balance_happy_path(DUMMY_ADDRESS, 0, DUMMY_AMOUNT, FeeUnit::Wei).await;
 }
 
 #[tokio::test]
 async fn increase_balance_of_undeployed_address_fri() {
-    increase_balance_happy_path(DUMMY_ADDRESS, 0, DUMMY_AMOUNT, FeeUnit::FRI).await;
+    increase_balance_happy_path(DUMMY_ADDRESS, 0, DUMMY_AMOUNT, FeeUnit::Fri).await;
 }
 
 #[tokio::test]
@@ -92,7 +92,7 @@ async fn increase_balance_of_predeployed_account() {
         PREDEPLOYED_ACCOUNT_ADDRESS,
         PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
         DUMMY_AMOUNT,
-        FeeUnit::WEI,
+        FeeUnit::Wei,
     )
     .await
 }
@@ -103,7 +103,7 @@ async fn increase_balance_of_predeployed_account_u256() {
         PREDEPLOYED_ACCOUNT_ADDRESS,
         PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
         u128::MAX,
-        FeeUnit::WEI,
+        FeeUnit::Wei,
     )
     .await
 }

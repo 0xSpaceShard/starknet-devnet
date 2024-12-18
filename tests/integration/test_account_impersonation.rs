@@ -245,7 +245,7 @@ async fn test_invoke_transaction(
     }
 
     let forked_account_initial_balance = forked_devnet
-        .get_balance_by_tag(&account.address(), FeeUnit::FRI, BlockTag::Latest)
+        .get_balance_by_tag(&account.address(), FeeUnit::Fri, BlockTag::Latest)
         .await?;
 
     let invoke_call = get_invoke_transaction_request(AMOUNT_TO_TRANSFER);
@@ -261,7 +261,7 @@ async fn test_invoke_transaction(
     assert_eq!(receipt.execution_result(), &ExecutionResult::Succeeded);
 
     let forked_account_balance = forked_devnet
-        .get_balance_by_tag(&account.address(), FeeUnit::FRI, BlockTag::Latest)
+        .get_balance_by_tag(&account.address(), FeeUnit::Fri, BlockTag::Latest)
         .await?;
     assert!(forked_account_initial_balance >= AMOUNT_TO_TRANSFER + forked_account_balance);
 

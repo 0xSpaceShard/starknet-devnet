@@ -136,7 +136,7 @@ async fn declare_from_an_account_with_insufficient_strk_tokens_balance() {
     let estimate_fee = declaration.estimate_fee().await.unwrap();
 
     let account_strk_balance =
-        devnet.get_balance_by_tag(&account_address, FeeUnit::FRI, BlockTag::Latest).await.unwrap();
+        devnet.get_balance_by_tag(&account_address, FeeUnit::Fri, BlockTag::Latest).await.unwrap();
 
     // transfer balance of the account without the amount of fee
     let amount_to_transfer = account_strk_balance - estimate_fee.overall_fee + Felt::ONE;
@@ -159,7 +159,7 @@ async fn declare_from_an_account_with_insufficient_strk_tokens_balance() {
     assert_tx_successful(&invoke_txn_result.transaction_hash, &devnet.json_rpc_client).await;
 
     let account_strk_balance =
-        devnet.get_balance_by_tag(&account_address, FeeUnit::FRI, BlockTag::Latest).await.unwrap();
+        devnet.get_balance_by_tag(&account_address, FeeUnit::Fri, BlockTag::Latest).await.unwrap();
     assert!(estimate_fee.overall_fee > account_strk_balance);
 
     match declaration.send().await.unwrap_err() {
@@ -214,7 +214,7 @@ async fn deploy_account_with_insufficient_gas_price_and_or_gas_units_should_fail
     .unwrap();
 
     let salt = Felt::THREE;
-    devnet.mint_unit(factory.deploy_v3(salt).address(), 1e18 as u128, FeeUnit::FRI).await;
+    devnet.mint_unit(factory.deploy_v3(salt).address(), 1e18 as u128, FeeUnit::Fri).await;
 
     transaction_with_less_gas_units_and_or_less_gas_price_should_return_error_or_be_accepted_as_reverted(
             Action::AccountDeployment(salt),
@@ -296,7 +296,7 @@ async fn deploy_account_happy_path() {
 
     let deploy_v3 = factory.deploy_v3(Felt::THREE);
     let account_address = deploy_v3.address();
-    devnet.mint_unit(account_address, 1e18 as u128, FeeUnit::FRI).await;
+    devnet.mint_unit(account_address, 1e18 as u128, FeeUnit::Fri).await;
 
     let fee_estimate = deploy_v3.estimate_fee().await.unwrap();
 

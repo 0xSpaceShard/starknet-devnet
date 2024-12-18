@@ -11,7 +11,7 @@ async fn getting_balance_of_predeployed_contract() {
     let contract_address = Felt::from_hex_unchecked(PREDEPLOYED_ACCOUNT_ADDRESS);
 
     let retrieved_result =
-        devnet.get_balance_latest(&contract_address, FeeUnit::WEI).await.unwrap();
+        devnet.get_balance_latest(&contract_address, FeeUnit::Wei).await.unwrap();
 
     assert_eq!(retrieved_result, Felt::from(PREDEPLOYED_ACCOUNT_INITIAL_BALANCE));
 }

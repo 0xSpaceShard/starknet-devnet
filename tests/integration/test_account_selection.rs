@@ -323,8 +323,8 @@ async fn test_get_predeployed_accounts_balances() {
     // increase balances and check again
     for account in accounts_with_balance.as_array().unwrap() {
         let address = &Felt::from_hex_unchecked(account["address"].as_str().unwrap());
-        devnet.mint_unit(address, 1, FeeUnit::WEI).await;
-        devnet.mint_unit(address, 1, FeeUnit::FRI).await;
+        devnet.mint_unit(address, 1, FeeUnit::Wei).await;
+        devnet.mint_unit(address, 1, FeeUnit::Fri).await;
     }
 
     let accounts_with_balance =

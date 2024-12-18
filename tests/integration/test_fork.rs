@@ -142,7 +142,7 @@ async fn test_forked_account_balance() {
     }
 
     // not using get_balance_at_block=2: requires forking with --state-archive-capacity full
-    let final_balance = fork_devnet.get_balance_latest(&dummy_address, FeeUnit::WEI).await.unwrap();
+    let final_balance = fork_devnet.get_balance_latest(&dummy_address, FeeUnit::Wei).await.unwrap();
     let expected_final_balance = (2_u128 * mint_amount).into();
     assert_eq!(final_balance, expected_final_balance);
 }
@@ -464,7 +464,7 @@ async fn test_fork_using_origin_token_contract() {
 
     let fork_devnet = origin_devnet.fork().await.unwrap();
 
-    let fork_balance = fork_devnet.get_balance_latest(&address, FeeUnit::WEI).await.unwrap();
+    let fork_balance = fork_devnet.get_balance_latest(&address, FeeUnit::Wei).await.unwrap();
     assert_eq!(fork_balance, Felt::from(mint_amount));
 }
 

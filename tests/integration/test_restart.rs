@@ -166,13 +166,13 @@ async fn assert_predeployed_account_is_prefunded_after_restart() {
     let predeployed_account_address = devnet.get_first_predeployed_account().await.1;
 
     let balance_before =
-        devnet.get_balance_latest(&predeployed_account_address, FeeUnit::WEI).await.unwrap();
+        devnet.get_balance_latest(&predeployed_account_address, FeeUnit::Wei).await.unwrap();
     assert_eq!(balance_before, Felt::from(initial_balance));
 
     devnet.restart().await;
 
     let balance_after =
-        devnet.get_balance_latest(&predeployed_account_address, FeeUnit::WEI).await.unwrap();
+        devnet.get_balance_latest(&predeployed_account_address, FeeUnit::Wei).await.unwrap();
     assert_eq!(balance_before, balance_after);
 }
 
@@ -247,6 +247,6 @@ async fn restarting_via_non_rpc() {
 
     devnet.reqwest_client().post_no_body("/restart").await.unwrap();
 
-    let balance_after = devnet.get_balance_latest(&dummy_address, FeeUnit::WEI).await.unwrap();
+    let balance_after = devnet.get_balance_latest(&dummy_address, FeeUnit::Wei).await.unwrap();
     assert_eq!(balance_after, Felt::ZERO);
 }

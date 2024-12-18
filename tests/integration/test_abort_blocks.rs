@@ -168,20 +168,20 @@ async fn abort_block_state_revert() {
     assert_eq!(aborted_blocks, vec![second_block.block_hash]);
 
     let balance =
-        devnet.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI).await.unwrap();
+        devnet.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::Wei).await.unwrap();
     assert_eq!(balance.to_string(), DUMMY_AMOUNT.to_string());
 
     let aborted_blocks = abort_blocks(&devnet, &BlockId::Hash(first_block.block_hash)).await;
     assert_eq!(aborted_blocks, vec![first_block.block_hash]);
 
     let balance =
-        devnet.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI).await.unwrap();
+        devnet.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::Wei).await.unwrap();
     assert_eq!(balance.to_string(), "0");
 
     devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
     let balance =
-        devnet.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI).await.unwrap();
+        devnet.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::Wei).await.unwrap();
     assert_eq!(balance.to_string(), DUMMY_AMOUNT.to_string());
 
     let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
@@ -268,14 +268,14 @@ async fn abort_pending_block() {
     devnet.create_block().await.unwrap();
     devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
     let pending_balance = devnet
-        .get_balance_by_tag(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI, BlockTag::Pending)
+        .get_balance_by_tag(&Felt::from(DUMMY_ADDRESS), FeeUnit::Wei, BlockTag::Pending)
         .await
         .unwrap();
     assert_eq!(pending_balance, (2 * DUMMY_AMOUNT).into());
 
     abort_blocks(&devnet, &BlockId::Tag(BlockTag::Pending)).await;
     let latest_balance =
-        devnet.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI).await.unwrap();
+        devnet.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::Wei).await.unwrap();
     assert_eq!(latest_balance, DUMMY_AMOUNT.into());
 }
 

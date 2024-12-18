@@ -91,7 +91,7 @@ async fn minting_in_multiple_steps_and_getting_balance_at_each_block() {
     let address = Felt::ONE;
 
     let mint_amount = 1e18 as u128;
-    let unit = FeeUnit::WEI;
+    let unit = FeeUnit::Wei;
 
     for _ in 0..3 {
         let BlockHashAndNumber { block_hash, .. } =

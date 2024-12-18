@@ -44,12 +44,7 @@ async fn rpc_returns_method_not_found() {
 async fn rpc_returns_invalid_params() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
     let rpc_error = devnet
-        .send_custom_rpc(
-            "starknet_specVersion",
-            json!({
-                "invalid_param": "unneeded_value",
-            }),
-        )
+        .send_custom_rpc("starknet_specVersion", json!({ "invalid_param": "unneeded_value" }))
         .await
         .unwrap_err();
 

@@ -331,11 +331,11 @@ pub fn get_gas_units_and_gas_price(fee_estimate: FeeEstimate) -> (u64, u128) {
     (gas_units.to_le_digits().first().cloned().unwrap(), gas_price)
 }
 
-#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FeeUnit {
-    WEI,
-    FRI,
+    Wei,
+    Fri,
 }
 
 #[cfg(test)]

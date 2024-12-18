@@ -145,7 +145,7 @@ async fn assert_pending_block_with_receipts(devnet: &BackgroundDevnet, tx_count:
 
 async fn assert_balance(devnet: &BackgroundDevnet, expected: Felt, tag: BlockTag) {
     let balance =
-        devnet.get_balance_by_tag(&Felt::from(DUMMY_ADDRESS), FeeUnit::WEI, tag).await.unwrap();
+        devnet.get_balance_by_tag(&Felt::from(DUMMY_ADDRESS), FeeUnit::Wei, tag).await.unwrap();
     assert_eq!(balance, expected);
 }
 
