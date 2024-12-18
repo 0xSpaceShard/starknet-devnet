@@ -131,7 +131,7 @@ where
 #[cfg(test)]
 mod tests {
     use blockifier::execution::call_info::CallInfo;
-    use starknet_rs_core::types::{BlockId, Felt};
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::emitted_event::Event;
     use starknet_types::rpc::transactions::TransactionWithHash;
@@ -412,11 +412,7 @@ mod tests {
         }
 
         assert_eq!(
-            starknet
-                .blocks
-                .get_blocks(None, Some(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)))
-                .unwrap()
-                .len(),
+            starknet.blocks.get_blocks(None, Some(BlockId::Tag(BlockTag::Latest))).unwrap().len(),
             6
         );
         for idx in 0..5 {

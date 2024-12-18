@@ -1,7 +1,7 @@
 use blockifier::state::state_api::StateReader;
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use starknet_api::block::BlockStatus;
-use starknet_rs_core::types::BlockId;
+use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::compile_sierra_contract;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
@@ -59,11 +59,7 @@ pub fn get_compiled_casm_impl(
     starknet: &Starknet,
     class_hash: ClassHash,
 ) -> DevnetResult<CasmContractClass> {
-    let contract_class = get_class_impl(
-        starknet,
-        &BlockId::Tag(starknet_rs_core::types::BlockTag::Latest),
-        class_hash,
-    )?;
+    let contract_class = get_class_impl(starknet, &BlockId::Tag(BlockTag::Latest), class_hash)?;
     match contract_class {
         ContractClass::Cairo1(sierra_contract_class) => {
             Ok(compile_sierra_contract(&sierra_contract_class)?)
