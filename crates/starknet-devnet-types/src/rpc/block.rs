@@ -123,7 +123,6 @@ pub struct ResourcePrice {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-//#[cfg_attr(test, derive(Deserialize))]
 /// Data about reorganized blocks, starting and ending block number and hash
 pub struct ReorgData {
     /// Hash of the first known block of the orphaned chain
