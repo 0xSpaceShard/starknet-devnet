@@ -211,8 +211,7 @@ mod tests {
         for _ in 0..1000 {
             for spec in specs.iter() {
                 // Iterate over the methods in the spec
-                for method in spec.methods.iter().filter(|m| m.name != "starknet_subscriptionReorg")
-                {
+                for method in spec.methods.iter() {
                     // Create a JSON-RPC request for each method
                     let request = generate_json_rpc_request(method, &combined_schema)
                         .expect("Could not generate the JSON-RPC request");
