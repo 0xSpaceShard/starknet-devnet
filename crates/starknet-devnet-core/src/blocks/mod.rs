@@ -143,7 +143,7 @@ impl StarknetBlocks {
             None
         };
 
-        fn does_block_number_matches_criteria(
+        fn is_block_number_in_range(
             current_block_number: BlockNumber,
             starting_block: Option<BlockNumber>,
             ending_block: Option<BlockNumber>,
@@ -164,11 +164,7 @@ impl StarknetBlocks {
         self.num_to_hash
             .iter()
             .filter(|(current_block_number, _)| {
-                does_block_number_matches_criteria(
-                    **current_block_number,
-                    starting_block,
-                    ending_block,
-                )
+                is_block_number_in_range(**current_block_number, starting_block, ending_block)
             })
             .for_each(|(block_number, block_hash)| {
                 if *block_number == pending_block_number {
@@ -179,7 +175,7 @@ impl StarknetBlocks {
 
         let mut result: Vec<&StarknetBlock> = filtered_blocks.into_values().collect();
 
-        if does_block_number_matches_criteria(pending_block_number, starting_block, ending_block)
+        if is_block_number_in_range(pending_block_number, starting_block, ending_block)
             && insert_pending_block_in_final_result
         {
             result.push(&self.pending_block);
