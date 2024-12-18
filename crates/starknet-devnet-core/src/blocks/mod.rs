@@ -356,17 +356,13 @@ mod tests {
             blocks.pending_block.header.block_number = BlockNumber(block_number).unchecked_next();
         }
 
-        let expected_block_numbers = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-
         let block_numbers: Vec<u64> = blocks
             .get_blocks(None, None)
             .unwrap()
             .iter()
             .map(|block| block.block_number().0)
             .collect();
-        assert_eq!(expected_block_numbers, block_numbers);
-
-        let expected_block_numbers = vec![7, 8, 9, 10, 11];
+        assert_eq!(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], block_numbers);
 
         let block_numbers: Vec<u64> = blocks
             .get_blocks(Some(BlockId::Number(7)), None)
@@ -374,16 +370,15 @@ mod tests {
             .iter()
             .map(|block| block.block_number().0)
             .collect();
-        assert_eq!(expected_block_numbers, block_numbers);
+        assert_eq!(vec![7, 8, 9, 10, 11], block_numbers);
 
-        let expected_block_numbers = vec![7, 8, 9, 10];
         let block_numbers: Vec<u64> = blocks
             .get_blocks(Some(BlockId::Number(7)), Some(BlockId::Tag(BlockTag::Latest)))
             .unwrap()
             .iter()
             .map(|block| block.block_number().0)
             .collect();
-        assert_eq!(expected_block_numbers, block_numbers);
+        assert_eq!(vec![7, 8, 9, 10], block_numbers);
     }
 
     #[test]
