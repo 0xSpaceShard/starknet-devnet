@@ -52,7 +52,7 @@ impl HashIdentified for StarknetTransactions {
 
 #[allow(unused)]
 #[derive(Debug)]
-pub struct StarknetTransaction {
+pub(crate) struct StarknetTransaction {
     pub inner: TransactionWithHash,
     pub(crate) finality_status: TransactionFinalityStatus,
     pub(crate) execution_result: ExecutionResult,

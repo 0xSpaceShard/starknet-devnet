@@ -2,4 +2,4 @@
 
 set -eu
 
-cargo clippy --all --tests
+cargo clippy --all --tests -- -Dwarnings

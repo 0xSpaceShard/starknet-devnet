@@ -20,9 +20,6 @@ pub struct OriginForwarder {
     block_number: u64,
 }
 
-// #[derive(Debug, thiserror::Error)]
-// enum OriginInteractionError {}
-
 impl OriginForwarder {
     pub fn new(url: String, block_number: u64) -> Self {
         Self { reqwest_client: reqwest::Client::new(), url: Arc::new(url), block_number }
