@@ -60,8 +60,22 @@ fn delete_property(json_obj: &mut Value, path_parts: &[&str]) {
     }
 }
 
-/// add property to a JSON object
-/// the new property comes in the form "key/value"
+/// Adds a property to a JSON object.
+///
+/// The new property is specified in the form `"key/value"`.
+/// The value is added as a string or number, depending on whether it can be parsed into a number.
+///
+/// - If `do_replace` is `true`, the value will be added only if the key already exists.
+/// - If `do_replace` is `false`, the value will be added anyways.
+///
+/// # Arguments
+///
+/// - `json_obj`: A mutable reference to the JSON `Value` to modify.
+/// - `path_parts`: A slice of strings representing the path within the JSON object where the
+///   property should be added.
+/// - `new_entry`: A string in the form `"key/value"` specifying the new property to add.
+/// - `do_replace`: A boolean flag indicating whether to replace the value if the key already
+///   exists.
 fn add_property(json_obj: &mut Value, path_parts: &[&str], new_entry: &str, do_replace: bool) {
     if path_parts.is_empty() {
         if let Some(obj) = json_obj.as_object_mut() {
