@@ -122,6 +122,8 @@ impl BackgroundDevnet {
 
         let process = Command::new("cargo")
                 .arg("run")
+                .arg("--manifest-path")
+                .arg("../../crates/starknet-devnet/Cargo.toml")
                 .arg("--release")
                 .arg("--")
                 .arg("--port")
