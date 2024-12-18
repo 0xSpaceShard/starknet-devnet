@@ -193,7 +193,7 @@ impl BackgroundDevnet {
         } else {
             Err(RpcError {
                 code: -1,
-                message: "Server responded with malformed response",
+                message: "Server responded with malformed response".into(),
                 data: None,
             })
         }

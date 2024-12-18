@@ -48,12 +48,6 @@ pub fn remove_file(path: &str) {
     }
 }
 
-pub fn load_json<T: serde::de::DeserializeOwned>(path: &str) -> T {
-    let reader = std::fs::File::open(path).unwrap();
-    let loaded: T = serde_json::from_reader(reader).unwrap();
-    loaded
-}
-
 pub type SierraWithCasmHash = (FlattenedSierraClass, Felt);
 
 pub fn get_flattened_sierra_contract_and_casm_hash(sierra_path: &str) -> SierraWithCasmHash {
@@ -337,7 +331,8 @@ pub fn get_gas_units_and_gas_price(fee_estimate: FeeEstimate) -> (u64, u128) {
     (gas_units.to_le_digits().first().cloned().unwrap(), gas_price)
 }
 
-#[derive(Debug, Clone, Copy, serde::Serialize)]
+#[allow(clippy::upper_case_acronyms)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum FeeUnit {
     WEI,
     FRI,

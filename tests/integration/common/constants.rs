@@ -6,7 +6,6 @@ pub const MAX_PORT: u16 = 65_535;
 pub const SEED: usize = 42;
 pub const ACCOUNTS: usize = 3;
 pub const CHAIN_ID: Felt = starknet_rs_core::chain_id::SEPOLIA;
-pub const CHAIN_ID_CLI_PARAM: &str = "TESTNET";
 
 // URL paths
 pub const RPC_PATH: &str = "/rpc";
@@ -15,9 +14,7 @@ pub const HEALTHCHECK_PATH: &str = "/is_alive";
 // predeployed account info with seed=42
 pub const PREDEPLOYED_ACCOUNT_ADDRESS: &str =
     "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba";
-pub const PREDEPLOYED_ACCOUNT_PRIVATE_KEY: &str = "0xb137668388dbe9acdfa3bc734cc2c469";
-pub const PREDEPLOYED_ACCOUNT_PUBLIC_KEY: &str =
-    "0x05a5e37c60e77a0318643b111f88413a76af6233c891a0cfb2804106372006d4";
+
 // half the default value - sanity check
 pub const PREDEPLOYED_ACCOUNT_INITIAL_BALANCE: u128 = 1_000_000_000_000_000_000_000 / 2;
 
@@ -26,6 +23,10 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
     "0x061dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f";
 pub const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
     "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
+pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/contracts/accounts_artifacts/OpenZeppelin/0.8.1/Account.cairo/Account.sierra"
+);
 
 // system contracts
 pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: Felt =
@@ -40,8 +41,6 @@ pub const UDC_CONTRACT_ADDRESS: Felt =
 // Example contract with basic storage read and write - Cairo 1
 pub const CAIRO_1_CONTRACT_PATH: &str =
     "../../contracts/test_artifacts/cairo1/simple_contract/output.sierra";
-pub const CASM_COMPILED_CLASS_HASH: &str =
-    "0x63b33a5f2f46b1445d04c06d7832c48c48ad087ce0803b71f2b8d96353716ca";
 
 // Simple contract with a failable (panicking) function
 pub const CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH: &str =
