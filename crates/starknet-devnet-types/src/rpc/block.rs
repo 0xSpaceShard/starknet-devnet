@@ -8,7 +8,7 @@ use crate::felt::BlockHash;
 use crate::rpc::transactions::Transactions;
 pub type GlobalRootHex = Felt;
 
-#[derive(Copy, Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Copy, Clone, Debug, Deserialize, Eq, PartialEq)]
 pub enum BlockHashOrNumber {
     #[serde(rename = "block_hash")]
     Hash(Felt),
@@ -16,7 +16,7 @@ pub enum BlockHashOrNumber {
     Number(u64),
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BlockId(pub ImportedBlockId);
 
 impl From<ImportedBlockId> for BlockId {
@@ -60,8 +60,7 @@ impl<'de> Deserialize<'de> for BlockId {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone)]
 pub enum BlockResult {
     Block(Block),
     PendingBlock(PendingBlock),

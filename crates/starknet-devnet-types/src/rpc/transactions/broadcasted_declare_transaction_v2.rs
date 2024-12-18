@@ -1,5 +1,5 @@
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use starknet_api::transaction::Fee;
 
 use crate::contract_address::ContractAddress;
@@ -7,7 +7,7 @@ use crate::felt::{CompiledClassHash, Nonce, TransactionSignature, TransactionVer
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedDeclareTransactionV2 {
     #[serde(flatten)]
