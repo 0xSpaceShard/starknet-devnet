@@ -33,7 +33,7 @@ fn assert_mint_invocation(trace: &TransactionTrace) {
         }) => {
             for invocation in [validate_invocation.as_ref().unwrap(), execute_invocation] {
                 assert_eq!(
-                    invocation.caller_address,
+                    invocation.contract_address,
                     Felt::from_hex_unchecked(CHARGEABLE_ACCOUNT_ADDRESS)
                 );
                 assert_eq!(invocation.calldata[6], Felt::from(DUMMY_ADDRESS));
@@ -41,7 +41,7 @@ fn assert_mint_invocation(trace: &TransactionTrace) {
             }
 
             assert_eq!(
-                fee_transfer_invocation.as_ref().unwrap().caller_address,
+                fee_transfer_invocation.as_ref().unwrap().contract_address,
                 ETH_ERC20_CONTRACT_ADDRESS
             );
         }
