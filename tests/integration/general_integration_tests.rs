@@ -1,6 +1,6 @@
 use reqwest::StatusCode;
 use serde_json::json;
-use starknet_rs_core::types::{BlockId, BlockTag};
+use starknet_rs_core::types::{BlockId, BlockTag, Felt};
 use starknet_rs_core::utils::{get_storage_var_address, parse_cairo_short_string};
 use starknet_rs_providers::Provider;
 
@@ -81,7 +81,7 @@ async fn test_config() {
     let mut expected_config = json!({
         "seed": 1,
         "total_accounts": 2,
-        "account_contract_class_hash": CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
+        "account_contract_class_hash": Felt::from_hex_unchecked(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH),
         "predeployed_accounts_initial_balance": "3",
         "start_time": 4,
         "gas_price_wei": 5,
