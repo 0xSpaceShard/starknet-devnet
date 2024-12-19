@@ -20,19 +20,15 @@ use starknet_rs_signers::Signer;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
-    self, CAIRO_1_ERC20_CONTRACT_CLASS_HASH, INTEGRATION_SEPOLIA_GENESIS_BLOCK_HASH,
-    INTEGRATION_SEPOLIA_HTTP_URL, MAINNET_HTTPS_URL, MAINNET_URL,
+    self, CAIRO_1_ACCOUNT_CONTRACT_0_8_0_SIERRA_PATH, CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
+    INTEGRATION_SEPOLIA_GENESIS_BLOCK_HASH, INTEGRATION_SEPOLIA_HTTP_URL, MAINNET_HTTPS_URL,
+    MAINNET_URL,
 };
 use crate::common::utils::{
     assert_cairo1_classes_equal, assert_tx_successful, declare_v3_deploy_v3,
     get_block_reader_contract_in_sierra_and_compiled_class_hash, get_contract_balance,
     get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait, FeeUnit,
 };
-
-pub const CAIRO_1_ACCOUNT_CONTRACT_0_8_0_SIERRA_PATH: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/contracts/accounts_artifacts/OpenZeppelin/0.8.0/Account.cairo/Account.sierra"
-);
 
 #[tokio::test]
 async fn test_fork_status() {
