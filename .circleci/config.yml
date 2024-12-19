@@ -61,6 +61,9 @@ jobs:
           command: cargo update -w --locked
       - run:
           name: Build
+          command: cargo build
+      - run:
+          name: Build in release mode (for BackgroundDevnet)
           command: cargo build --release
       - run:
           name: Clippy check
@@ -78,12 +81,8 @@ jobs:
           name: Cleanup old cache
           command: .circleci/scripts/cache.sh cleanup
       - run:
-          name: Unit tests
-          command: cargo test --lib --bins --no-fail-fast
-      - run:
-          name: Integration tests
-          # fails if jobs not limited; read more in https://github.com/0xSpaceShard/starknet-devnet-rs/issues/378
-          command: cargo test --jobs 9 --test '*' --no-fail-fast
+          name: Tests
+          command: cargo test --no-fail-fast
 
   binary-build:
     parameters:
