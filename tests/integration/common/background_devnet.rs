@@ -136,7 +136,7 @@ impl BackgroundDevnet {
         let healthcheck_uri = format!("{}{HEALTHCHECK_PATH}", devnet_url.as_str()).to_string();
         let reqwest_client = Client::new();
 
-        let max_retries = 30;
+        let max_retries = 40;
         for _ in 0..max_retries {
             if let Ok(alive_resp) = reqwest_client.get(&healthcheck_uri).send().await {
                 assert_eq!(alive_resp.status(), StatusCode::OK);
@@ -377,18 +377,12 @@ impl BackgroundDevnet {
         action: &ImpersonationAction,
     ) -> Result<(), anyhow::Error> {
         let (method_name, params) = match action {
-            ImpersonationAction::ImpersonateAccount(account) => (
-                "devnet_impersonateAccount",
-                json!({
-                    "account_address": to_hex_felt(account)
-                }),
-            ),
-            ImpersonationAction::StopImpersonateAccount(account) => (
-                "devnet_stopImpersonateAccount",
-                json!({
-                    "account_address": to_hex_felt(account)
-                }),
-            ),
+            ImpersonationAction::ImpersonateAccount(account) => {
+                ("devnet_impersonateAccount", json!({ "account_address": to_hex_felt(account) }))
+            }
+            ImpersonationAction::StopImpersonateAccount(account) => {
+                ("devnet_stopImpersonateAccount", json!({"account_address": to_hex_felt(account)}))
+            }
             ImpersonationAction::AutoImpersonate => ("devnet_autoImpersonate", json!({})),
             ImpersonationAction::StopAutoImpersonate => ("devnet_stopAutoImpersonate", json!({})),
         };
