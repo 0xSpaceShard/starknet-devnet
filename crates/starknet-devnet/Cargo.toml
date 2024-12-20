@@ -53,7 +53,7 @@ usc = { workspace = true }
 reqwest = { workspace = true }
 criterion = { workspace = true }
 serial_test = { workspace = true }
-
+netstat2 = { workspace = true }
 
 [[bench]]
 name = "mint_bench"

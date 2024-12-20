@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use std::fmt::LowerHex;
-use std::net::TcpListener;
 use std::process::{Child, Command, Stdio};
 use std::time;
 
 use lazy_static::lazy_static;
+use netstat2::{get_sockets_info, AddressFamilyFlags, ProtocolFlags};
 use reqwest::{Client, StatusCode};
 use serde_json::json;
 use server::rpc_core::error::{ErrorCode, RpcError};
@@ -20,25 +20,14 @@ use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::{LocalWallet, SigningKey};
 use starknet_types::felt::felt_from_prefixed_hex;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
-use tokio::sync::Mutex;
 use url::Url;
 
 use super::constants::{
-    ACCOUNTS, HEALTHCHECK_PATH, HOST, MAX_PORT, MIN_PORT, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
-    RPC_PATH, SEED,
+    ACCOUNTS, HEALTHCHECK_PATH, HOST, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, RPC_PATH, SEED,
 };
 use super::errors::TestError;
 use super::reqwest_client::{PostReqwestSender, ReqwestClient};
 use super::utils::{to_hex_felt, ImpersonationAction};
-
-lazy_static! {
-    /// This is to prevent TOCTOU errors; i.e. one background devnet might find one
-    /// port to be free, and while it's trying to start listening to it, another instance
-    /// finds that it's free and tries occupying it
-    /// Using the mutex in `get_free_port_listener` might be safer than using no mutex at all,
-    /// but not sufficiently safe
-    static ref BACKGROUND_DEVNET_MUTEX: Mutex<()> = Mutex::new(());
-}
 
 #[derive(Debug)]
 pub struct BackgroundDevnet {
@@ -50,14 +39,16 @@ pub struct BackgroundDevnet {
     rpc_url: Url,
 }
 
-fn get_free_port() -> Result<u16, TestError> {
-    for port in MIN_PORT..=MAX_PORT {
-        if let Ok(listener) = TcpListener::bind(("127.0.0.1", port)) {
-            return Ok(listener.local_addr().expect("No local addr").port());
-        }
-        // otherwise port is occupied
-    }
-    Err(TestError::NoFreePorts)
+/// Returns the ports used by process identified by `pid`.
+fn get_ports_by_pid(pid: u32) -> Result<Vec<u16>, anyhow::Error> {
+    let af_flags = AddressFamilyFlags::IPV4 | AddressFamilyFlags::IPV6;
+    let sockets = get_sockets_info(af_flags, ProtocolFlags::TCP)?;
+
+    let ports = sockets
+        .into_iter()
+        .filter_map(|socket| socket.associated_pids.contains(&pid).then_some(socket.local_port()))
+        .collect();
+    Ok(ports)
 }
 
 lazy_static! {
@@ -114,39 +105,42 @@ impl BackgroundDevnet {
     }
 
     pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
-        // we keep the reference, otherwise the mutex unlocks immediately
-        let _mutex_guard = BACKGROUND_DEVNET_MUTEX.lock().await;
-
-        let free_port = get_free_port().expect("No free ports");
-
-        let devnet_url = format!("http://{HOST}:{free_port}");
-        let devnet_rpc_url = Url::parse(format!("{}{RPC_PATH}", devnet_url.as_str()).as_str())?;
-        let json_rpc_client = JsonRpcClient::new(HttpTransport::new(devnet_rpc_url.clone()));
-
         let process = Command::new("cargo")
                 .arg("run")
                 .arg("--release")
                 .arg("--")
-                .arg("--port")
-                .arg(free_port.to_string())
                 .args(Self::add_default_args(args))
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
 
-        let healthcheck_uri = format!("{}{HEALTHCHECK_PATH}", devnet_url.as_str()).to_string();
         let reqwest_client = Client::new();
-
         let max_retries = 30;
         for _ in 0..max_retries {
+            // attempt to get ports used by PID of the spawned subprocess
+            let port = match get_ports_by_pid(process.id()) {
+                Ok(ports) => match ports.len() {
+                    0 => continue, // if no ports, wait a bit more
+                    1 => ports[0],
+                    _ => return Err(TestError::TooManyPorts(ports)),
+                },
+                Err(e) => return Err(TestError::DevnetNotStartable(e.to_string())),
+            };
+
+            // now we know the port; check if it can be used to poll Devnet's endpoint
+            let devnet_url = format!("http://{HOST}:{port}");
+            let devnet_rpc_url = Url::parse(format!("{devnet_url}{RPC_PATH}").as_str())?;
+
+            let healthcheck_uri = format!("{devnet_url}{HEALTHCHECK_PATH}").to_string();
+
             if let Ok(alive_resp) = reqwest_client.get(&healthcheck_uri).send().await {
                 assert_eq!(alive_resp.status(), StatusCode::OK);
-                println!("Spawned background devnet at port {free_port}");
+                println!("Spawned background devnet at port {port}");
                 return Ok(BackgroundDevnet {
                     reqwest_client: ReqwestClient::new(devnet_url.clone(), reqwest_client),
-                    json_rpc_client,
+                    json_rpc_client: JsonRpcClient::new(HttpTransport::new(devnet_rpc_url.clone())),
                     process,
-                    port: free_port,
+                    port,
                     url: devnet_url,
                     rpc_url: devnet_rpc_url,
                 });
@@ -157,7 +151,9 @@ impl BackgroundDevnet {
             tokio::time::sleep(time::Duration::from_millis(500)).await;
         }
 
-        Err(TestError::DevnetNotStartable)
+        Err(TestError::DevnetNotStartable(
+            "Before testing, make sure you build Devnet with: `cargo build --release`".into(),
+        ))
     }
 
     pub async fn send_custom_rpc(

@@ -85,7 +85,7 @@ pub(crate) struct Args {
     #[arg(env = "PORT")]
     #[arg(value_name = "PORT")]
     #[arg(default_value_t = DEVNET_DEFAULT_PORT)]
-    #[arg(help = "Specify the port to listen at;")]
+    #[arg(help = "Specify the port to listen at; If 0, looks for a free random port;")]
     port: u16,
 
     // Set start time in seconds
