@@ -100,7 +100,7 @@ mod general_integration_tests {
     async fn test_config() {
         // random values
         let dump_file = UniqueAutoDeletableFile::new("dummy");
-        let mut expected_config = json!({
+        let expected_config = json!({
             "seed": 1,
             "total_accounts": 2,
             "account_contract_class_hash": "0x61dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f",
@@ -120,7 +120,7 @@ mod general_integration_tests {
             },
             "server_config": {
                 "host": "0.0.0.0",
-                // expected port added after spawning; determined by port-acquiring logic
+                "port": 0, // default value in tests, config not modified upon finding a free port
                 "timeout": 121,
                 "request_body_size_limit": 1000,
                 "restricted_methods": null,
@@ -168,8 +168,6 @@ mod general_integration_tests {
         ])
         .await
         .unwrap();
-
-        expected_config["server_config"]["port"] = devnet.port.into();
 
         let fetched_config = devnet.get_config().await;
         assert_eq!(fetched_config, expected_config);
