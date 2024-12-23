@@ -162,20 +162,15 @@ impl BackgroundDevnet {
         method: &str,
         params: serde_json::Value,
     ) -> Result<serde_json::Value, RpcError> {
-        let body_json = if params.is_null() {
-            json!({
-                "jsonrpc": "2.0",
-                "id": 0,
-                "method": method
-            })
-        } else {
-            json!({
-                "jsonrpc": "2.0",
-                "id": 0,
-                "method": method,
-                "params": params
-            })
-        };
+        let mut body_json = json!({
+            "jsonrpc": "2.0",
+            "id": 0,
+            "method": method,
+        });
+
+        if !params.is_null() {
+            body_json["params"] = params;
+        }
 
         let json_rpc_result: serde_json::Value =
             self.reqwest_client().post_json_async(RPC_PATH, body_json).await.map_err(|err| {
