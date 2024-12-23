@@ -20,6 +20,7 @@ use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::{LocalWallet, SigningKey};
 use starknet_types::felt::felt_from_prefixed_hex;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
+use tokio::sync::Mutex;
 use url::Url;
 
 use super::constants::{
@@ -28,6 +29,15 @@ use super::constants::{
 use super::errors::TestError;
 use super::reqwest_client::{PostReqwestSender, ReqwestClient};
 use super::utils::{to_hex_felt, ImpersonationAction};
+
+lazy_static! {
+    /// This is to prevent TOCTOU errors; i.e. one background devnet might find one
+    /// port to be free, and while it's trying to start listening to it, another instance
+    /// finds that it's free and tries occupying it
+    /// Using the mutex in `get_free_port_listener` might be safer than using no mutex at all,
+    /// but not sufficiently safe
+    static ref BACKGROUND_DEVNET_MUTEX: Mutex<()> = Mutex::new(());
+}
 
 #[derive(Debug)]
 pub struct BackgroundDevnet {
@@ -106,6 +116,8 @@ impl BackgroundDevnet {
     }
 
     pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
+        let _mutex_guard = BACKGROUND_DEVNET_MUTEX.lock().await;
+
         let process = Command::new("cargo")
                 .arg("run")
                 .arg("--release")
@@ -123,7 +135,7 @@ impl BackgroundDevnet {
                 Ok(ports) => match ports.len() {
                     0 => continue, // if no ports, wait a bit more
                     1 => ports[0],
-                    _ => return Err(TestError::TooManyPorts(ports)),
+                    _ => continue, // multiple ports associated with pid when forking
                 },
                 Err(e) => return Err(TestError::DevnetNotStartable(e.to_string())),
             };
@@ -136,7 +148,7 @@ impl BackgroundDevnet {
 
             if let Ok(alive_resp) = reqwest_client.get(&healthcheck_uri).send().await {
                 assert_eq!(alive_resp.status(), StatusCode::OK);
-                println!("Spawned background devnet at port {port}");
+                println!("Spawned background devnet at {devnet_url}");
                 return Ok(BackgroundDevnet {
                     reqwest_client: ReqwestClient::new(devnet_url.clone(), reqwest_client),
                     json_rpc_client: JsonRpcClient::new(HttpTransport::new(devnet_rpc_url.clone())),
