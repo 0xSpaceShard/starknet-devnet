@@ -4,7 +4,10 @@ use std::process::{Child, Command, Stdio};
 use std::time;
 
 use lazy_static::lazy_static;
-use netstat2::{get_sockets_info, AddressFamilyFlags, ProtocolFlags};
+use netstat2::{
+    get_sockets_info, AddressFamilyFlags, ProtocolFlags, ProtocolSocketInfo, TcpSocketInfo,
+    TcpState,
+};
 use reqwest::{Client, StatusCode};
 use serde_json::json;
 use server::rpc_core::error::{ErrorCode, RpcError};
@@ -49,6 +52,10 @@ pub struct BackgroundDevnet {
     rpc_url: Url,
 }
 
+fn is_socket_tcp_listener(info: &ProtocolSocketInfo) -> bool {
+    matches!(info, ProtocolSocketInfo::Tcp(TcpSocketInfo { state: TcpState::Listen, .. }))
+}
+
 /// Returns the ports used by process identified by `pid`.
 fn get_ports_by_pid(pid: u32) -> Result<Vec<u16>, anyhow::Error> {
     let af_flags = AddressFamilyFlags::IPV4 | AddressFamilyFlags::IPV6;
@@ -56,7 +63,9 @@ fn get_ports_by_pid(pid: u32) -> Result<Vec<u16>, anyhow::Error> {
 
     let ports = sockets
         .into_iter()
-        .filter_map(|socket| socket.associated_pids.contains(&pid).then_some(socket.local_port()))
+        .filter(|socket| socket.associated_pids.contains(&pid))
+        .filter(|socket| is_socket_tcp_listener(&socket.protocol_socket_info))
+        .map(|socket| socket.local_port())
         .collect();
     Ok(ports)
 }
@@ -66,7 +75,7 @@ lazy_static! {
         ("--seed", SEED.to_string()),
         ("--accounts", ACCOUNTS.to_string()),
         ("--initial-balance", PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string()),
-        ("--port", 0.to_string())
+        ("--port", 0.to_string()) // random port by default
     ]);
 }
 
@@ -125,17 +134,17 @@ impl BackgroundDevnet {
                 .args(Self::add_default_args(args))
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
-                .expect("Could not start background devnet");
+                .expect("Devnet subprocess should be startable");
 
         let reqwest_client = Client::new();
-        let max_retries = 30;
+        let max_retries = 60;
         for _ in 0..max_retries {
             // attempt to get ports used by PID of the spawned subprocess
             let port = match get_ports_by_pid(process.id()) {
                 Ok(ports) => match ports.len() {
                     0 => continue, // if no ports, wait a bit more
                     1 => ports[0],
-                    _ => continue, // multiple ports associated with pid when forking
+                    _ => return Err(TestError::TooManyPorts(ports)),
                 },
                 Err(e) => return Err(TestError::DevnetNotStartable(e.to_string())),
             };
