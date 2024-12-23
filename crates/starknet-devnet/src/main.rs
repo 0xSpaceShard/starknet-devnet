@@ -241,30 +241,15 @@ pub async fn set_and_log_fork_config(
     Ok(())
 }
 
-/// Finds a free port if `specified_port` is 0. The returned listener reference must not be dropped
-/// in order to keep the port reserved by the current process.
-async fn get_listener(
+async fn bind_port(
     host: IpAddr,
     specified_port: u16,
 ) -> Result<(String, TcpListener), anyhow::Error> {
-    if specified_port == 0 {
-        // if specified port == 0, find a free one
-        for candidate_port in 1025..=65_535 {
-            if let Ok(listener) = TcpListener::bind((host, candidate_port)).await {
-                let address = format!("{host}:{candidate_port}");
-                return Ok((address, listener));
-            }
-            // otherwise port is occupied
-        }
-        Err(anyhow::Error::msg(
-            "No free ports! Try using `--port` to specify a port you expect to be free.",
-        ))
-    } else {
-        let listener =
-            TcpListener::bind((host, specified_port)).await.map_err(anyhow::Error::from)?;
-        let address = format!("{host}:{specified_port}");
-        Ok((address, listener))
-    }
+    let binding_address = format!("{host}:{specified_port}");
+    let listener = TcpListener::bind(binding_address.clone()).await?;
+
+    let acquired_port = listener.local_addr()?.port();
+    Ok((format!("{host}:{acquired_port}"), listener))
 }
 
 #[tokio::main]
@@ -288,7 +273,7 @@ async fn main() -> Result<(), anyhow::Error> {
         starknet_config.chain_id = json_rpc_client.chain_id().await?.into();
     }
 
-    let (address, listener) = get_listener(server_config.host, server_config.port).await?;
+    let (address, listener) = bind_port(server_config.host, server_config.port).await?;
 
     let starknet = Starknet::new(&starknet_config)?;
     let api = Api::new(starknet);

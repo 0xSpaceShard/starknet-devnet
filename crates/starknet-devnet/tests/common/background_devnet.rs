@@ -66,6 +66,7 @@ lazy_static! {
         ("--seed", SEED.to_string()),
         ("--accounts", ACCOUNTS.to_string()),
         ("--initial-balance", PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string()),
+        ("--port", 0.to_string())
     ]);
 }
 
