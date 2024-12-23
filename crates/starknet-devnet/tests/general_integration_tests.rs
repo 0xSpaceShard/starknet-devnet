@@ -18,9 +18,17 @@ mod general_integration_tests {
     use crate::common::utils::{to_hex_felt, UniqueAutoDeletableFile};
 
     #[tokio::test]
-    /// Asserts that a background instance can be spawned
-    async fn spawnable() {
+    async fn background_devnet_can_be_spawned() {
         BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+    }
+
+    #[tokio::test]
+    async fn background_devnets_at_different_ports_with_random_acquisition() {
+        let devnet_args = ["--port", "0"];
+        let devnet1 = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+        let devnet2 = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+
+        assert_ne!(devnet1.url, devnet2.url);
     }
 
     #[tokio::test]
