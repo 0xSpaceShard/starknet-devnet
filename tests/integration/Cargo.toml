@@ -22,6 +22,7 @@ axum = { workspace = true }
 anyhow = { workspace = true }
 ethers = { workspace = true }
 lazy_static = { workspace = true }
+netstat2 = { workspace = true }
 rand = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }

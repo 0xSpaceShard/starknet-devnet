@@ -9,6 +9,7 @@ use k256::ecdsa::SigningKey;
 use rand::Rng;
 use reqwest::StatusCode;
 
+use super::constants::HOST;
 use super::errors::TestError;
 
 pub struct BackgroundAnvil {
@@ -49,15 +50,13 @@ impl BackgroundAnvil {
             .spawn()
             .expect("Could not start background Anvil");
 
-        let address = "127.0.0.1";
-        let anvil_url = format!("http://{address}:{port}");
-
+        let anvil_url = format!("http://{HOST}:{port}");
         let client = reqwest::Client::new();
         let max_retries = 30;
         for _ in 0..max_retries {
             if let Ok(anvil_block_rsp) = send_dummy_request(&client, &anvil_url).await {
                 assert_eq!(anvil_block_rsp.status(), StatusCode::OK);
-                println!("Spawned background anvil at port {port} ({address})");
+                println!("Spawned background anvil at {anvil_url}");
 
                 let (provider, provider_signer) = setup_ethereum_provider(&anvil_url).await?;
 

@@ -1,8 +1,6 @@
 use starknet_rs_core::types::Felt;
 
-pub const HOST: &str = "localhost";
-pub const MIN_PORT: u16 = 1025;
-pub const MAX_PORT: u16 = 65_535;
+pub const HOST: &str = "127.0.0.1";
 pub const SEED: usize = 42;
 pub const ACCOUNTS: usize = 3;
 pub const CHAIN_ID: Felt = starknet_rs_core::chain_id::SEPOLIA;
