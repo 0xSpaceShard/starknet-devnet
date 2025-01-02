@@ -1033,37 +1033,37 @@ pub struct FunctionInvocation {
     execution_resources: InnerExecutionResources,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct InnerExecutionResources {
     pub l1_gas: u128,
     pub l2_gas: u128,
 }
 
-// impl<'de> Deserialize<'de> for InnerExecutionResources {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: Deserializer<'de>,
-//     {
-//         let json_obj =
-//             serde_json::Value::deserialize(deserializer).map_err(serde::de::Error::custom)?;
+impl<'de> Deserialize<'de> for InnerExecutionResources {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let json_obj =
+            serde_json::Value::deserialize(deserializer).map_err(serde::de::Error::custom)?;
 
-//         #[derive(Deserialize)]
-//         #[serde(deny_unknown_fields)]
-//         struct Inner {
-//             l1_gas: u128,
-//             l2_gas: u128,
-//         }
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Inner {
+            l1_gas: u128,
+            l2_gas: u128,
+        }
 
-//         let execution_resources: Inner =
-//             serde_json::from_value(json_obj).map_err(serde::de::Error::custom)?;
+        let execution_resources: Inner =
+            serde_json::from_value(json_obj).map_err(serde::de::Error::custom)?;
 
-//         Ok(InnerExecutionResources {
-//             l1_gas: execution_resources.l1_gas,
-//             l2_gas: execution_resources.l2_gas,
-//         })
-//     }
-// }
+        Ok(InnerExecutionResources {
+            l1_gas: execution_resources.l1_gas,
+            l2_gas: execution_resources.l2_gas,
+        })
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "SCREAMING_SNAKE_CASE")]
