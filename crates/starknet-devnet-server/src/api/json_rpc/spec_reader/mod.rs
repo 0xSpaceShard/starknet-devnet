@@ -228,22 +228,14 @@ mod tests {
                         SubscribeWs(JsonRpcSubscriptionRequest),
                         WsNotification(Box<SubscriptionResponse>),
                     }
-                    let sn_request = serde_json::from_value::<ApiWsRequest>(request.clone());
+                    let sn_request =
+                        deserialize_to_type_or_panic::<ApiWsRequest>(request.clone(), &method.name);
 
-                    if let Some(err) = sn_request.as_ref().err() {
-                        serde_json::to_writer_pretty(
-                            File::create("failed_request.json").unwrap(),
-                            &request,
-                        )
-                        .unwrap();
-                        panic!("Failed method request: {} with {:?}", method.name, err);
-                    }
-
-                    match sn_request.unwrap() {
+                    match sn_request {
                         ApiWsRequest::Api(json_rpc_request) => {
                             let response = response.unwrap();
                             let sn_response: StarknetResponse =
-                                deserialize_response_to_type_or_panic(response, &method.name);
+                                deserialize_to_type_or_panic(response, &method.name);
 
                             assert_api_request_and_response_are_related(
                                 &json_rpc_request,
@@ -254,7 +246,7 @@ mod tests {
                         ApiWsRequest::SubscribeWs(_) => {
                             let response = response.unwrap();
 
-                            deserialize_response_to_type_or_panic::<SubscriptionConfirmation>(
+                            deserialize_to_type_or_panic::<SubscriptionConfirmation>(
                                 response,
                                 &method.name,
                             );
@@ -273,19 +265,25 @@ mod tests {
         }
     }
 
-    fn deserialize_response_to_type_or_panic<T: DeserializeOwned>(
-        response: Value,
+    fn deserialize_to_type_or_panic<T: DeserializeOwned>(
+        json_value: Value,
         method_name: &String,
     ) -> T {
-        let deserialized_response = serde_json::from_value::<T>(response.clone());
+        let failed_file_name = if json_value.get("method").is_some() {
+            "failed_request.json"
+        } else {
+            "failed_response.json"
+        };
 
-        if let Some(err) = deserialized_response.as_ref().err() {
-            serde_json::to_writer_pretty(File::create("failed_response.json").unwrap(), &response)
+        let deserialized = serde_json::from_value::<T>(json_value.clone());
+
+        if let Some(err) = deserialized.as_ref().err() {
+            serde_json::to_writer_pretty(File::create(failed_file_name).unwrap(), &json_value)
                 .unwrap();
-            panic!("Failed method response: {} with {:?}", method_name, err);
+            panic!("{} method {} with {:?}.", failed_file_name, method_name, err);
         }
 
-        deserialized_response.unwrap()
+        deserialized.unwrap()
     }
 
     fn assert_api_request_and_response_are_related(
