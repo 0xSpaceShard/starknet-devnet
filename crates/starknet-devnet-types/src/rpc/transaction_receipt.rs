@@ -68,7 +68,6 @@ pub struct CommonTransactionReceipt {
     pub execution_resources: ExecutionResources,
 }
 
-/// TODO: rename ExecutionResources to ExecutionResources
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ExecutionResources {
