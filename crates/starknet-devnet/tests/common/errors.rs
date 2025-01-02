@@ -1,17 +1,17 @@
 use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum TestError {
-    #[error("No free ports")]
-    NoFreePorts,
-
     #[error("Could not parse URL")]
     UrlParseError(#[from] url::ParseError),
 
     #[error("Invalid URI")]
     InvalidUri(#[from] axum::http::uri::InvalidUri),
 
-    #[error("Could not start Devnet. Make sure you've built it with: `cargo build --release`")]
-    DevnetNotStartable,
+    #[error("Could not start Devnet: {0}")]
+    DevnetNotStartable(String),
+
+    #[error("Too many ports occupied: {0:?}")]
+    TooManyPorts(Vec<u16>),
 
     #[error("Could not start Anvil")]
     AnvilNotStartable,

@@ -55,6 +55,7 @@ criterion = { workspace = true }
 serial_test = { workspace = true }
 tokio-tungstenite = { workspace = true }
 
+netstat2 = { workspace = true }
 
 [[bench]]
 name = "mint_bench"
