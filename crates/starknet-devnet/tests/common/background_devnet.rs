@@ -134,11 +134,15 @@ impl BackgroundDevnet {
                 .args(Self::add_default_args(args))
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
-                .expect("Devnet subprocess should be startable");
+                .map_err(|e| TestError::DevnetNotStartable(e.to_string()))?;
 
         let reqwest_client = Client::new();
-        let max_retries = 60;
+        let max_retries = 30;
+
         for _ in 0..max_retries {
+            // give some time to the started Devnet instance to become responsive
+            tokio::time::sleep(time::Duration::from_millis(500)).await;
+
             // attempt to get ports used by PID of the spawned subprocess
             let port = match get_ports_by_pid(process.id()) {
                 Ok(ports) => match ports.len() {
@@ -169,8 +173,7 @@ impl BackgroundDevnet {
             }
 
             // If still in the loop, there is an error: probably a ConnectError if Devnet is not yet
-            // up so we retry after some sleep.
-            tokio::time::sleep(time::Duration::from_millis(500)).await;
+            // up, so retry.
         }
 
         Err(TestError::DevnetNotStartable(
