@@ -60,8 +60,8 @@ jobs:
           name: Verify lockfile
           command: cargo update -w --locked
       - run:
-          name: Build in release mode (for BackgroundDevnet)
-          command: cargo build --release
+          name: Check
+          command: cargo check --workspace --all-targets
       - run:
           name: Clippy check
           command: ./scripts/clippy_check.sh
@@ -71,6 +71,9 @@ jobs:
       - run:
           name: Code spell check
           command: ./scripts/check_spelling.sh
+      - run:
+          name: Build in release mode (for BackgroundDevnet)
+          command: cargo build --release
       - run:
           name: Save cache
           command: .circleci/scripts/cache.sh save
