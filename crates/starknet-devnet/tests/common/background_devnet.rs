@@ -79,6 +79,49 @@ lazy_static! {
     ]);
 }
 
+async fn get_acquired_port(
+    pid: u32,
+    sleep_time: time::Duration,
+    max_retries: usize,
+) -> Result<u16, anyhow::Error> {
+    for _ in 0..max_retries {
+        let ports = get_ports_by_pid(pid)?;
+        match ports.len() {
+            0 => tokio::time::sleep(sleep_time).await, // if no ports, wait a bit more
+            1 => return Ok(ports[0]),
+            _ => {
+                return Err(anyhow::Error::msg(format!(
+                    "Too many ports associated with PID {pid}: {ports:?}"
+                )));
+            }
+        }
+    }
+
+    Err(anyhow::Error::msg(format!("No port associated with PID {pid}")))
+}
+
+async fn wait_for_successful_response(
+    client: &Client,
+    healthcheck_url: &str,
+    sleep_time: time::Duration,
+    max_retries: usize,
+) -> Result<(), anyhow::Error> {
+    for _ in 0..max_retries {
+        if let Ok(alive_resp) = client.get(healthcheck_url).send().await {
+            let status = alive_resp.status();
+            if status != StatusCode::OK {
+                return Err(anyhow::Error::msg(format!("Server responded with: {status}")));
+            }
+
+            return Ok(());
+        }
+
+        tokio::time::sleep(sleep_time).await;
+    }
+
+    Err(anyhow::Error::msg("Server not reachable at {}"))
+}
+
 impl BackgroundDevnet {
     /// Ensures the background instance spawns at a free port, checks at most `MAX_RETRIES`
     /// times
@@ -134,48 +177,32 @@ impl BackgroundDevnet {
                 .args(Self::add_default_args(args))
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
-                .expect("Devnet subprocess should be startable");
+                .map_err(|e| TestError::DevnetNotStartable(e.to_string()))?;
 
-        let reqwest_client = Client::new();
-        let max_retries = 60;
-        for _ in 0..max_retries {
-            // attempt to get ports used by PID of the spawned subprocess
-            let port = match get_ports_by_pid(process.id()) {
-                Ok(ports) => match ports.len() {
-                    0 => continue, // if no ports, wait a bit more
-                    1 => ports[0],
-                    _ => return Err(TestError::TooManyPorts(ports)),
-                },
-                Err(e) => return Err(TestError::DevnetNotStartable(e.to_string())),
-            };
+        let sleep_time = time::Duration::from_millis(500);
+        let max_retries = 20;
+        let port = get_acquired_port(process.id(), sleep_time, max_retries)
+            .await
+            .map_err(|e| TestError::DevnetNotStartable(e.to_string()))?;
 
-            // now we know the port; check if it can be used to poll Devnet's endpoint
-            let devnet_url = format!("http://{HOST}:{port}");
-            let devnet_rpc_url = Url::parse(format!("{devnet_url}{RPC_PATH}").as_str())?;
+        // now we know the port; check if it can be used to poll Devnet's endpoint
+        let client = Client::new();
+        let devnet_url = format!("http://{HOST}:{port}");
+        let healthcheck_url = format!("{devnet_url}{HEALTHCHECK_PATH}").to_string();
+        wait_for_successful_response(&client, &healthcheck_url, sleep_time, max_retries)
+            .await
+            .map_err(|e| TestError::DevnetNotStartable(e.to_string()))?;
+        println!("Spawned background devnet at {devnet_url}");
 
-            let healthcheck_uri = format!("{devnet_url}{HEALTHCHECK_PATH}").to_string();
-
-            if let Ok(alive_resp) = reqwest_client.get(&healthcheck_uri).send().await {
-                assert_eq!(alive_resp.status(), StatusCode::OK);
-                println!("Spawned background devnet at {devnet_url}");
-                return Ok(BackgroundDevnet {
-                    reqwest_client: ReqwestClient::new(devnet_url.clone(), reqwest_client),
-                    json_rpc_client: JsonRpcClient::new(HttpTransport::new(devnet_rpc_url.clone())),
-                    process,
-                    port,
-                    url: devnet_url,
-                    rpc_url: devnet_rpc_url,
-                });
-            }
-
-            // If still in the loop, there is an error: probably a ConnectError if Devnet is not yet
-            // up so we retry after some sleep.
-            tokio::time::sleep(time::Duration::from_millis(500)).await;
-        }
-
-        Err(TestError::DevnetNotStartable(
-            "Before testing, make sure you build Devnet with: `cargo build --release`".into(),
-        ))
+        let devnet_rpc_url = Url::parse(format!("{devnet_url}{RPC_PATH}").as_str())?;
+        Ok(BackgroundDevnet {
+            reqwest_client: ReqwestClient::new(devnet_url.clone(), client),
+            json_rpc_client: JsonRpcClient::new(HttpTransport::new(devnet_rpc_url.clone())),
+            process,
+            port,
+            url: devnet_url,
+            rpc_url: devnet_rpc_url,
+        })
     }
 
     pub async fn send_custom_rpc(
