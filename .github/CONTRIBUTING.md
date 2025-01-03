@@ -129,24 +129,6 @@ $ cargo test --jobs <N>
 
 To test if your contribution presents an improvement in execution time, check out the script at `scripts/benchmark/command_stat_test.py`.
 
-##### Cargo Bench execution
-
-# TODO - REMOVE
-
-To run the criterion benchmarks and generate a performance report:
-
-```
-$ cargo bench
-```
-
-This command will compile the benchmarks and run them using all available CPUs on your machine. Criterion will perform multiple iterations of each benchmark to collect performance data and generate statistical analysis.
-
-Check the report created at `target/criterion/report/index.html`
-
-Criterion is highly configurable and offers various options to customise the benchmarking process. You can find more information about Criterion and its features in the [Criterion documentation](https://bheisler.github.io/criterion.rs/book/index.html).
-
-To measure and benchmark memory it is best to use external tools such as Valgrind, Leaks, etc.
-
 ### Updating OpenZeppelin contracts
 
 Tests in devnet require an erc20 contract with the `Mintable` feature, keep in mind that before the compilation process of [cairo-contracts](https://github.com/OpenZeppelin/cairo-contracts/) you need to mark the `Mintable` check box in this [wizard](https://wizard.openzeppelin.com/cairo) and copy this implementation to `/src/presets/erc20.cairo`.
