@@ -60,10 +60,6 @@ jobs:
           name: Verify lockfile
           command: cargo update -w --locked
       - run:
-          # TODO perhaps can be skipped if only --release build is enough
-          name: Build
-          command: cargo build
-      - run:
           name: Build in release mode (for BackgroundDevnet)
           command: cargo build --release
       - run:
