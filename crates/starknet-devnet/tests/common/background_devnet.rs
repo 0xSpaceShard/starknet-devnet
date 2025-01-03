@@ -138,7 +138,6 @@ impl BackgroundDevnet {
 
         let reqwest_client = Client::new();
         let max_retries = 30;
-
         for _ in 0..max_retries {
             // give some time to the started Devnet instance to become responsive
             tokio::time::sleep(time::Duration::from_millis(500)).await;
@@ -171,9 +170,6 @@ impl BackgroundDevnet {
                     rpc_url: devnet_rpc_url,
                 });
             }
-
-            // If still in the loop, there is an error: probably a ConnectError if Devnet is not yet
-            // up, so retry.
         }
 
         Err(TestError::DevnetNotStartable(
