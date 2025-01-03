@@ -76,6 +76,22 @@ lazy_static! {
     ]);
 }
 
+/// If on CircleCI, return the pre-built binary, otherwise rely on cargo.
+fn get_devnet_command() -> Command {
+    if std::env::var("CIRCLECI").is_ok() {
+        Command::new("../../target/release/starknet-devnet")
+    } else {
+        let mut command = Command::new("cargo");
+        command
+            .arg("run")
+            .arg("--release")
+            .arg("--manifest-path")
+            .arg("../../crates/starknet-devnet/Cargo.toml")
+            .arg("--");
+        command
+    }
+}
+
 async fn get_acquired_port(
     pid: u32,
     sleep_time: time::Duration,
@@ -167,8 +183,8 @@ impl BackgroundDevnet {
     pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
         let _mutex_guard = BACKGROUND_DEVNET_MUTEX.lock().await;
 
-        let bin_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/release/starknet-devnet");
-        let process = Command::new(bin_path)
+        let mut devnet_command = get_devnet_command();
+        let process = devnet_command
                 .args(Self::add_default_args(args))
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
