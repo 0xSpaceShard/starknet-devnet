@@ -167,12 +167,8 @@ impl BackgroundDevnet {
     pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
         let _mutex_guard = BACKGROUND_DEVNET_MUTEX.lock().await;
 
-        let process = Command::new("cargo")
-                .arg("run")
-                .arg("--manifest-path")
-                .arg("../../crates/starknet-devnet/Cargo.toml")
-                .arg("--release")
-                .arg("--")
+        let bin_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/release/starknet-devnet");
+        let process = Command::new(bin_path)
                 .args(Self::add_default_args(args))
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
