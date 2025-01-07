@@ -63,11 +63,8 @@ async fn increase_balance_of_undeployed_address_fri() {
 #[tokio::test]
 async fn increase_balance_of_undeployed_address_unit_not_specified() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-    let unit_not_specified = json!({
-        "address": DUMMY_ADDRESS,
-        "amount": DUMMY_AMOUNT,
-    });
 
+    let unit_not_specified = json!({ "address": DUMMY_ADDRESS, "amount": DUMMY_AMOUNT });
     let mut resp_body: serde_json::Value =
         devnet.send_custom_rpc("devnet_mint", unit_not_specified).await.unwrap();
 
@@ -136,11 +133,7 @@ async fn reject_unknown_unit() {
 
 #[tokio::test]
 async fn reject_negative_amount() {
-    reject_bad_minting_request(json!({
-        "address": DUMMY_ADDRESS,
-        "amount": -1
-    }))
-    .await;
+    reject_bad_minting_request(json!({ "address": DUMMY_ADDRESS, "amount": -1 })).await;
 }
 
 #[tokio::test]

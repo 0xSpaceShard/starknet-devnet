@@ -1,7 +1,5 @@
 #![cfg(test)]
 
-// TODO need to use cfg or not?
-
 mod common;
 
 mod general_integration_tests;

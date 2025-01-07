@@ -29,10 +29,7 @@ async fn assert_balance_endpoint_response() {
             let json_resp: serde_json::Value = devnet
                 .send_custom_rpc(
                     "devnet_getAccountBalance",
-                    json!({
-                        "address": address,
-                        "unit": unit,
-                    }),
+                    json!({ "address": address, "unit": unit }),
                 )
                 .await
                 .unwrap();
