@@ -60,6 +60,7 @@ jobs:
           name: Verify lockfile
           command: cargo update -w --locked
       - run:
+          # Despite later running cargo build --release, this step is executed on all targets, so might discover testing code issues
           name: Check
           command: cargo check --workspace --all-targets
       - run:

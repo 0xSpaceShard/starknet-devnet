@@ -119,12 +119,6 @@ Run all tests using all available CPUs with:
 $ cargo test
 ```
 
-The previous command might cause your testing to die along the way due to memory issues. In that case, limiting the number of jobs helps, but depends on your machine (rule of thumb: N=6):
-
-```
-$ cargo test --jobs <N>
-```
-
 #### Benchmarking
 
 To test if your contribution presents an improvement in execution time, check out the script at `scripts/benchmark/command_stat_test.py`.
