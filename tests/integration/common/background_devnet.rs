@@ -4,10 +4,6 @@ use std::process::{Child, Command, Stdio};
 use std::time;
 
 use lazy_static::lazy_static;
-use netstat2::{
-    get_sockets_info, AddressFamilyFlags, ProtocolFlags, ProtocolSocketInfo, TcpSocketInfo,
-    TcpState,
-};
 use reqwest::{Client, StatusCode};
 use serde_json::json;
 use starknet_rs_core::types::{
@@ -49,24 +45,6 @@ pub struct BackgroundDevnet {
     rpc_url: Url,
 }
 
-fn is_socket_tcp_listener(info: &ProtocolSocketInfo) -> bool {
-    matches!(info, ProtocolSocketInfo::Tcp(TcpSocketInfo { state: TcpState::Listen, .. }))
-}
-
-/// Returns the ports used by process identified by `pid`.
-fn get_ports_by_pid(pid: u32) -> Result<Vec<u16>, anyhow::Error> {
-    let af_flags = AddressFamilyFlags::IPV4 | AddressFamilyFlags::IPV6;
-    let sockets = get_sockets_info(af_flags, ProtocolFlags::TCP)?;
-
-    let ports = sockets
-        .into_iter()
-        .filter(|socket| socket.associated_pids.contains(&pid))
-        .filter(|socket| is_socket_tcp_listener(&socket.protocol_socket_info))
-        .map(|socket| socket.local_port())
-        .collect();
-    Ok(ports)
-}
-
 lazy_static! {
     static ref DEFAULT_CLI_MAP: HashMap<&'static str, String> = HashMap::from([
         ("--seed", SEED.to_string()),
@@ -98,10 +76,11 @@ async fn get_acquired_port(
     max_retries: usize,
 ) -> Result<u16, anyhow::Error> {
     for _ in 0..max_retries {
-        let ports = get_ports_by_pid(pid)?;
+        let ports =
+            listeners::get_ports_by_pid(pid).map_err(|e| anyhow::Error::msg(e.to_string()))?;
         match ports.len() {
             0 => tokio::time::sleep(sleep_time).await, // if no ports, wait a bit more
-            1 => return Ok(ports[0]),
+            1 => return Ok(ports.into_iter().next().unwrap()),
             _ => {
                 return Err(anyhow::Error::msg(format!(
                     "Too many ports associated with PID {pid}: {ports:?}"

@@ -116,7 +116,7 @@ parking_lot = "0.12.3"
 serial_test = "3.1.1"
 hex = "0.4.3"
 lazy_static = { version = "1.4.0" }
-netstat2 = "0.11.1"
+listeners = "0.2.1"
 
 # https://github.com/paritytech/parity-scale-codec/issues/656
 parity-scale-codec = "=3.6.12"
