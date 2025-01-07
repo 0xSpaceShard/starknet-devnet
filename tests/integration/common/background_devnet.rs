@@ -191,7 +191,7 @@ impl BackgroundDevnet {
                 .map_err(|e| TestError::DevnetNotStartable(e.to_string()))?;
 
         let sleep_time = time::Duration::from_millis(500);
-        let max_retries = 20;
+        let max_retries = 40;
         let port = get_acquired_port(process.id(), sleep_time, max_retries)
             .await
             .map_err(|e| TestError::DevnetNotStartable(e.to_string()))?;
