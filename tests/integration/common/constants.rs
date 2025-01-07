@@ -87,3 +87,6 @@ pub const INTEGRATION_SEPOLIA_GENESIS_BLOCK_HASH: &str =
 // copied from starknet-rs, because it is not exposed as public type
 pub const QUERY_VERSION_OFFSET: Felt =
     Felt::from_raw([576460752142434320, 18446744073709551584, 17407, 18446744073700081665]);
+
+pub const DEFAULT_ETH_ACCOUNT_PRIVATE_KEY: &str =
+    "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";

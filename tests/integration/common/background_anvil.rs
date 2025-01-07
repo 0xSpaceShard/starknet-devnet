@@ -9,7 +9,7 @@ use k256::ecdsa::SigningKey;
 use rand::Rng;
 use reqwest::StatusCode;
 
-use super::constants::HOST;
+use super::constants::{DEFAULT_ETH_ACCOUNT_PRIVATE_KEY, HOST};
 use super::errors::TestError;
 
 pub struct BackgroundAnvil {
@@ -179,9 +179,7 @@ async fn setup_ethereum_provider(
     let chain_id =
         provider.get_chainid().await.map_err(|e| TestError::EthersError(e.to_string()))?;
 
-    let private_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
-
-    let wallet: LocalWallet = private_key
+    let wallet: LocalWallet = DEFAULT_ETH_ACCOUNT_PRIVATE_KEY
         .parse::<LocalWallet>()
         .map_err(|e| TestError::EthersError(e.to_string()))?
         .with_chain_id(chain_id.as_u32());
