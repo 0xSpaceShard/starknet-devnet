@@ -18,7 +18,6 @@ use crate::utils::calculate_casm_hash;
 
 pub(crate) mod state_diff;
 pub(crate) mod state_readers;
-pub mod state_update;
 
 pub enum BlockNumberOrPending {
     Pending,

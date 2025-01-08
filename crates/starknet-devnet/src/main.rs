@@ -1,4 +1,5 @@
 use std::future::IntoFuture;
+use std::net::IpAddr;
 use std::result::Result::Ok;
 use std::time::Duration;
 
@@ -249,6 +250,17 @@ pub async fn set_and_log_fork_config(
     Ok(())
 }
 
+async fn bind_port(
+    host: IpAddr,
+    specified_port: u16,
+) -> Result<(String, TcpListener), anyhow::Error> {
+    let binding_address = format!("{host}:{specified_port}");
+    let listener = TcpListener::bind(binding_address.clone()).await?;
+
+    let acquired_port = listener.local_addr()?.port();
+    Ok((format!("{host}:{acquired_port}"), listener))
+}
+
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     configure_tracing();
@@ -270,8 +282,7 @@ async fn main() -> Result<(), anyhow::Error> {
         starknet_config.chain_id = json_rpc_client.chain_id().await?.into();
     }
 
-    let address = format!("{}:{}", server_config.host, server_config.port);
-    let listener = TcpListener::bind(address.clone()).await?;
+    let (address, listener) = bind_port(server_config.host, server_config.port).await?;
 
     let starknet = Starknet::new(&starknet_config)?;
     let api = Api::new(starknet);

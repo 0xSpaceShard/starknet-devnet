@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)]
+
 pub fn deploy_account_str() -> String {
     std::fs::read_to_string(concat!(
         env!("CARGO_MANIFEST_DIR"),
