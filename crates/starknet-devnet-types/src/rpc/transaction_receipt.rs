@@ -59,7 +59,7 @@ pub struct CommonTransactionReceipt {
     pub execution_resources: ExecutionResources,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ExecutionResources {
     #[serde(flatten)]
@@ -67,7 +67,7 @@ pub struct ExecutionResources {
     pub data_availability: DataAvailability,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct DataAvailability {
     pub l1_gas: u128,
@@ -102,7 +102,7 @@ impl<'de> Deserialize<'de> for DataAvailability {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct ComputationResources {
     pub steps: usize,
@@ -269,19 +269,19 @@ impl ComputationResources {
 
 // impl Eq for CommonTransactionReceipt {}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct FeeAmount {
     pub amount: Fee,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "unit")]
 pub enum FeeInUnits {
     WEI(FeeAmount),
     FRI(FeeAmount),
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum FeeUnit {
     WEI,
     FRI,

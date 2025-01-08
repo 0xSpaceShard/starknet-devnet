@@ -85,7 +85,7 @@ pub enum Transactions {
     FullWithReceipts(Vec<TransactionWithReceipt>),
 }
 
-#[derive(Debug, Copy, Clone, Deserialize, Serialize, Default)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize, Default)]
 pub enum TransactionType {
     #[serde(rename(deserialize = "DECLARE", serialize = "DECLARE"))]
     Declare,
@@ -290,7 +290,7 @@ pub struct BroadcastedTransactionCommonV3 {
     pub fee_data_availability_mode: DataAvailabilityMode,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ResourceBoundsWrapper {
     inner: ResourceBoundsMapping,
 }
