@@ -12,7 +12,7 @@ use crate::rpc::transactions::TransactionType;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
-#[cfg_attr(test, derive(serde::Deserialize))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize))]
 pub enum TransactionReceipt {
     Deploy(DeployTransactionReceipt),
     L1Handler(L1HandlerTransactionReceipt),
@@ -20,7 +20,7 @@ pub enum TransactionReceipt {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize))]
 pub struct DeployTransactionReceipt {
     #[serde(flatten)]
     pub common: CommonTransactionReceipt,
@@ -28,7 +28,7 @@ pub struct DeployTransactionReceipt {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize))]
 pub struct L1HandlerTransactionReceipt {
     #[serde(flatten)]
     pub common: CommonTransactionReceipt,
@@ -44,7 +44,7 @@ pub struct MaybePendingProperties {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct CommonTransactionReceipt {
     pub r#type: TransactionType,
     pub transaction_hash: TransactionHash,

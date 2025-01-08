@@ -77,7 +77,7 @@ const DATA_AVAILABILITY_MODE_BITS: u8 = 32;
 pub mod l1_handler_transaction;
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(Deserialize))]
+#[cfg_attr(feature = "testing", derive(Deserialize))]
 #[serde(untagged)]
 pub enum Transactions {
     Hashes(Vec<TransactionHash>),
@@ -102,7 +102,7 @@ pub enum TransactionType {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "SCREAMING_SNAKE_CASE")]
-#[cfg_attr(test, derive(Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(Deserialize, PartialEq, Eq), serde(deny_unknown_fields))]
 pub enum Transaction {
     Declare(DeclareTransaction),
     DeployAccount(DeployAccountTransaction),
@@ -112,7 +112,7 @@ pub enum Transaction {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(Deserialize))]
+#[cfg_attr(feature = "testing", derive(Deserialize, PartialEq, Eq))]
 pub struct TransactionWithHash {
     transaction_hash: TransactionHash,
     #[serde(flatten)]
@@ -170,14 +170,14 @@ impl TransactionWithHash {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(Deserialize), serde(deny_unknown_fields))]
 pub struct TransactionWithReceipt {
     pub receipt: TransactionReceipt,
     pub transaction: Transaction,
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(Deserialize))]
+#[cfg_attr(feature = "testing", derive(Deserialize, PartialEq, Eq))]
 #[serde(untagged)]
 pub enum DeclareTransaction {
     V1(DeclareTransactionV0V1),
@@ -186,7 +186,7 @@ pub enum DeclareTransaction {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(Deserialize))]
+#[cfg_attr(feature = "testing", derive(Deserialize, PartialEq, Eq))]
 #[serde(untagged)]
 pub enum InvokeTransaction {
     V1(InvokeTransactionV1),
@@ -194,7 +194,7 @@ pub enum InvokeTransaction {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(Deserialize))]
+#[cfg_attr(feature = "testing", derive(Deserialize, PartialEq, Eq))]
 #[serde(untagged)]
 pub enum DeployAccountTransaction {
     V1(Box<DeployAccountTransactionV1>),
@@ -240,15 +240,15 @@ pub struct EventFilter {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize))]
 pub struct EventsChunk {
     pub events: Vec<crate::emitted_event::EmittedEvent>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub continuation_token: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "testing", derive(PartialEq, Eq), serde(deny_unknown_fields))]
 pub struct FunctionCall {
     pub contract_address: ContractAddress,
     pub entry_point_selector: EntryPointSelector,
@@ -970,7 +970,7 @@ pub enum CallType {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct FunctionInvocation {
     contract_address: ContractAddress,
     entry_point_selector: EntryPointSelector,
@@ -988,7 +988,7 @@ pub struct FunctionInvocation {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "SCREAMING_SNAKE_CASE")]
-#[cfg_attr(test, derive(serde::Deserialize))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize))]
 
 pub enum TransactionTrace {
     Invoke(InvokeTransactionTrace),
@@ -998,20 +998,20 @@ pub enum TransactionTrace {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct BlockTransactionTrace {
     pub transaction_hash: Felt,
     pub trace_root: TransactionTrace,
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct Reversion {
     pub revert_reason: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize))]
 #[serde(untagged)]
 pub enum ExecutionInvocation {
     Succeeded(FunctionInvocation),
@@ -1019,7 +1019,7 @@ pub enum ExecutionInvocation {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct InvokeTransactionTrace {
     pub validate_invocation: Option<FunctionInvocation>,
     pub execute_invocation: ExecutionInvocation,
@@ -1029,7 +1029,7 @@ pub struct InvokeTransactionTrace {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct DeclareTransactionTrace {
     pub validate_invocation: Option<FunctionInvocation>,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
@@ -1038,7 +1038,7 @@ pub struct DeclareTransactionTrace {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct DeployAccountTransactionTrace {
     pub validate_invocation: Option<FunctionInvocation>,
     pub constructor_invocation: Option<FunctionInvocation>,
@@ -1048,7 +1048,7 @@ pub struct DeployAccountTransactionTrace {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct L1HandlerTransactionTrace {
     pub function_invocation: FunctionInvocation,
     pub state_diff: Option<ThinStateDiff>,
@@ -1056,7 +1056,7 @@ pub struct L1HandlerTransactionTrace {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct SimulatedTransaction {
     pub transaction_trace: TransactionTrace,
     pub fee_estimation: FeeEstimateWrapper,

@@ -36,6 +36,7 @@ openssl = { workspace = true }
 
 [dev-dependencies]
 hex = { workspace = true }
+starknet-types = { workspace = true, features = ["testing"] }
 
 [features]
 test_utils = []

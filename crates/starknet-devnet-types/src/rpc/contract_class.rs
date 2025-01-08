@@ -22,6 +22,7 @@ pub use deprecated::rpc_contract_class::DeprecatedContractClass;
 pub use deprecated::Cairo0ContractClass;
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "testing", derive(Eq, PartialEq))]
 pub enum ContractClass {
     Cairo0(Cairo0ContractClass),
     Cairo1(SierraContractClass),

@@ -45,6 +45,7 @@ rand = { workspace = true }
 rand_chacha = { workspace = true }
 regex_generate = { workspace = true }
 serde_yaml = { workspace = true }
+starknet-types = { workspace = true, features = ["testing"] }
 
 [features]
 test_utils = []

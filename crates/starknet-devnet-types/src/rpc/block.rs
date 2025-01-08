@@ -17,6 +17,7 @@ pub enum BlockHashOrNumber {
 }
 
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "testing", derive(PartialEq, Eq))]
 pub struct BlockId(pub ImportedBlockId);
 
 impl From<ImportedBlockId> for BlockId {
@@ -67,7 +68,7 @@ pub enum BlockResult {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(Deserialize), serde(deny_unknown_fields))]
 pub struct Block {
     pub status: BlockStatus,
     #[serde(flatten)]
@@ -76,7 +77,7 @@ pub struct Block {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(Deserialize), serde(deny_unknown_fields))]
 pub struct PendingBlock {
     #[serde(flatten)]
     pub header: PendingBlockHeader,
@@ -84,7 +85,7 @@ pub struct PendingBlock {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(Deserialize), serde(deny_unknown_fields))]
 pub struct BlockHeader {
     pub block_hash: BlockHash,
     pub parent_hash: BlockHash,
@@ -99,7 +100,7 @@ pub struct BlockHeader {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(Deserialize), serde(deny_unknown_fields))]
 pub struct PendingBlockHeader {
     pub parent_hash: BlockHash,
     pub sequencer_address: ContractAddress,
@@ -110,7 +111,7 @@ pub struct PendingBlockHeader {
     pub l1_da_mode: L1DataAvailabilityMode,
 }
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(Deserialize), serde(deny_unknown_fields))]
 pub struct ResourcePrice {
     // for now this will be always 0, this field is introduced in 0.5.0
     // but current version of blockifier/starknet_api doesn't return this value

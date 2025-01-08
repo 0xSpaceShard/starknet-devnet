@@ -11,7 +11,11 @@ use crate::felt::{
 };
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(
+    feature = "testing",
+    derive(serde::Deserialize, PartialEq, Eq),
+    serde(deny_unknown_fields)
+)]
 pub struct DeployAccountTransactionV3 {
     version: TransactionVersion,
     signature: TransactionSignature,

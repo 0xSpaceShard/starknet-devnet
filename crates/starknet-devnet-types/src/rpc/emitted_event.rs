@@ -6,7 +6,7 @@ use crate::contract_address::ContractAddress;
 use crate::felt::{BlockHash, TransactionHash};
 
 #[derive(Serialize, Clone, Debug)]
-#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct EmittedEvent {
     pub transaction_hash: TransactionHash,
     pub block_hash: BlockHash,
@@ -17,7 +17,7 @@ pub struct EmittedEvent {
 }
 
 #[derive(Serialize, Clone, Debug)]
-#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct Event {
     pub from_address: ContractAddress,
     pub keys: Vec<Felt>,

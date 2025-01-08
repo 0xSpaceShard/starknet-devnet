@@ -8,7 +8,7 @@ use crate::felt::{
 };
 
 #[derive(Debug, Clone, Default, Serialize)]
-#[cfg_attr(test, derive(Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(Deserialize, PartialEq, Eq), serde(deny_unknown_fields))]
 pub struct DeployAccountTransactionV1 {
     pub max_fee: Fee,
     pub version: TransactionVersion,

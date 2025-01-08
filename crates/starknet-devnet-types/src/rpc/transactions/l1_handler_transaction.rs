@@ -20,8 +20,8 @@ use crate::error::{ConversionError, DevnetResult, Error};
 use crate::felt::{try_felt_to_num, Calldata, EntryPointSelector, Nonce, TransactionVersion};
 use crate::rpc::messaging::MessageToL2;
 
-#[derive(Debug, Clone, Default, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[derive(Debug, Clone, Default, Serialize, Eq, PartialEq)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct L1HandlerTransaction {
     pub version: TransactionVersion,
     pub nonce: Nonce,

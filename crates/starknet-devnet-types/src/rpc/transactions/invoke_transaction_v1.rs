@@ -6,7 +6,11 @@ use crate::contract_address::ContractAddress;
 use crate::felt::{Calldata, Nonce, TransactionSignature, TransactionVersion};
 
 #[derive(Debug, Clone, Default, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(
+    feature = "testing",
+    derive(serde::Deserialize, PartialEq, Eq),
+    serde(deny_unknown_fields)
+)]
 pub struct InvokeTransactionV1 {
     pub max_fee: Fee,
     pub version: TransactionVersion,
