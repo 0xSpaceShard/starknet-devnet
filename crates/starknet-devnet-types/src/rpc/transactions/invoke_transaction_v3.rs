@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::transaction::Tip;
 use starknet_types_core::felt::Felt;
@@ -8,8 +8,8 @@ use super::{BroadcastedTransactionCommonV3, ResourceBoundsWrapper};
 use crate::contract_address::ContractAddress;
 use crate::felt::{Calldata, Nonce, TransactionSignature, TransactionVersion};
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct InvokeTransactionV3 {
     version: TransactionVersion,
     signature: TransactionSignature,

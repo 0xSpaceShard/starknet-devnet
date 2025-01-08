@@ -10,29 +10,32 @@ use crate::felt::{BlockHash, TransactionHash};
 use crate::rpc::messaging::MessageToL1;
 use crate::rpc::transactions::TransactionType;
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 pub enum TransactionReceipt {
     Deploy(DeployTransactionReceipt),
     L1Handler(L1HandlerTransactionReceipt),
     Common(CommonTransactionReceipt),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 pub struct DeployTransactionReceipt {
     #[serde(flatten)]
     pub common: CommonTransactionReceipt,
     pub contract_address: ContractAddress,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 pub struct L1HandlerTransactionReceipt {
     #[serde(flatten)]
     pub common: CommonTransactionReceipt,
     pub message_hash: Hash256,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MaybePendingProperties {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub block_hash: Option<BlockHash>,
@@ -40,8 +43,8 @@ pub struct MaybePendingProperties {
     pub block_number: Option<BlockNumber>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct CommonTransactionReceipt {
     pub r#type: TransactionType,
     pub transaction_hash: TransactionHash,
@@ -242,29 +245,29 @@ impl ComputationResources {
     }
 }
 
-impl PartialEq for CommonTransactionReceipt {
-    fn eq(&self, other: &Self) -> bool {
-        let identical_execution_result = match (&self.execution_status, &other.execution_status) {
-            (ExecutionResult::Succeeded, ExecutionResult::Succeeded) => true,
-            (
-                ExecutionResult::Reverted { reason: reason1 },
-                ExecutionResult::Reverted { reason: reason2 },
-            ) => reason1 == reason2,
-            _ => false,
-        };
+// impl PartialEq for CommonTransactionReceipt {
+//     fn eq(&self, other: &Self) -> bool {
+//         let identical_execution_result = match (&self.execution_status, &other.execution_status)
+// {             (ExecutionResult::Succeeded, ExecutionResult::Succeeded) => true,
+//             (
+//                 ExecutionResult::Reverted { reason: reason1 },
+//                 ExecutionResult::Reverted { reason: reason2 },
+//             ) => reason1 == reason2,
+//             _ => false,
+//         };
 
-        self.transaction_hash == other.transaction_hash
-            && self.r#type == other.r#type
-            && self.maybe_pending_properties == other.maybe_pending_properties
-            && self.events == other.events
-            && self.messages_sent == other.messages_sent
-            && self.actual_fee == other.actual_fee
-            && self.execution_resources == other.execution_resources
-            && identical_execution_result
-    }
-}
+//         self.transaction_hash == other.transaction_hash
+//             && self.r#type == other.r#type
+//             && self.maybe_pending_properties == other.maybe_pending_properties
+//             && self.events == other.events
+//             && self.messages_sent == other.messages_sent
+//             && self.actual_fee == other.actual_fee
+//             && self.execution_resources == other.execution_resources
+//             && identical_execution_result
+//     }
+// }
 
-impl Eq for CommonTransactionReceipt {}
+// impl Eq for CommonTransactionReceipt {}
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct FeeAmount {

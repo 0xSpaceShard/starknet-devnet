@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use starknet_rs_core::types::Felt;
 use starknet_rs_crypto::poseidon_hash_many;
 
@@ -8,7 +8,7 @@ use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
 use crate::felt::Calldata;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedInvokeTransactionV3 {
     #[serde(flatten)]

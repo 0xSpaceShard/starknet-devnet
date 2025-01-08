@@ -7,8 +7,8 @@ use crate::felt::{
     Calldata, ClassHash, ContractAddressSalt, Nonce, TransactionSignature, TransactionVersion,
 };
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Default, Serialize)]
+#[cfg_attr(test, derive(Deserialize), serde(deny_unknown_fields))]
 pub struct DeployAccountTransactionV1 {
     pub max_fee: Fee,
     pub version: TransactionVersion,

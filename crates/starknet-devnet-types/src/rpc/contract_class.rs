@@ -21,7 +21,7 @@ pub use deprecated::json_contract_class::Cairo0Json;
 pub use deprecated::rpc_contract_class::DeprecatedContractClass;
 pub use deprecated::Cairo0ContractClass;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum ContractClass {
     Cairo0(Cairo0ContractClass),
     Cairo1(SierraContractClass),

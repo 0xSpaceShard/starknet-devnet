@@ -4,8 +4,8 @@ use starknet_api::transaction::Fee;
 use super::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use crate::contract_address::ContractAddress;
 use crate::felt::{ClassHash, Nonce, TransactionSignature, TransactionVersion};
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(Deserialize), serde(deny_unknown_fields))]
 pub struct DeclareTransactionV0V1 {
     pub class_hash: ClassHash,
     pub sender_address: ContractAddress,

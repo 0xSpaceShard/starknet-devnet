@@ -5,8 +5,8 @@ use super::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use crate::contract_address::ContractAddress;
 use crate::felt::{ClassHash, CompiledClassHash, Nonce, TransactionSignature, TransactionVersion};
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(Deserialize), serde(deny_unknown_fields))]
 pub struct DeclareTransactionV2 {
     pub class_hash: ClassHash,
     pub compiled_class_hash: CompiledClassHash,

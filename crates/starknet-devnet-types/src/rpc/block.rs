@@ -8,7 +8,7 @@ use crate::felt::BlockHash;
 use crate::rpc::transactions::Transactions;
 pub type GlobalRootHex = Felt;
 
-#[derive(Copy, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Deserialize)]
 pub enum BlockHashOrNumber {
     #[serde(rename = "block_hash")]
     Hash(Felt),
@@ -16,7 +16,7 @@ pub enum BlockHashOrNumber {
     Number(u64),
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct BlockId(pub ImportedBlockId);
 
 impl From<ImportedBlockId> for BlockId {
@@ -66,8 +66,8 @@ pub enum BlockResult {
     PendingBlock(PendingBlock),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(Deserialize), serde(deny_unknown_fields))]
 pub struct Block {
     pub status: BlockStatus,
     #[serde(flatten)]
@@ -75,16 +75,16 @@ pub struct Block {
     pub transactions: Transactions,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(Deserialize), serde(deny_unknown_fields))]
 pub struct PendingBlock {
     #[serde(flatten)]
     pub header: PendingBlockHeader,
     pub transactions: Transactions,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(Deserialize), serde(deny_unknown_fields))]
 pub struct BlockHeader {
     pub block_hash: BlockHash,
     pub parent_hash: BlockHash,
@@ -98,8 +98,8 @@ pub struct BlockHeader {
     pub l1_da_mode: L1DataAvailabilityMode,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(Deserialize), serde(deny_unknown_fields))]
 pub struct PendingBlockHeader {
     pub parent_hash: BlockHash,
     pub sequencer_address: ContractAddress,
@@ -109,8 +109,8 @@ pub struct PendingBlockHeader {
     pub l1_data_gas_price: ResourcePrice,
     pub l1_da_mode: L1DataAvailabilityMode,
 }
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(Deserialize), serde(deny_unknown_fields))]
 pub struct ResourcePrice {
     // for now this will be always 0, this field is introduced in 0.5.0
     // but current version of blockifier/starknet_api doesn't return this value

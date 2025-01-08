@@ -5,8 +5,8 @@ use starknet_types_core::felt::Felt;
 use crate::contract_address::ContractAddress;
 use crate::felt::{BlockHash, TransactionHash};
 
-#[derive(Serialize, Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Serialize, Clone, Debug)]
+#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct EmittedEvent {
     pub transaction_hash: TransactionHash,
     pub block_hash: BlockHash,
@@ -16,15 +16,15 @@ pub struct EmittedEvent {
     pub data: Vec<Felt>,
 }
 
-#[derive(Serialize, Clone, Debug, PartialEq, Eq, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Serialize, Clone, Debug)]
+#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct Event {
     pub from_address: ContractAddress,
     pub keys: Vec<Felt>,
     pub data: Vec<Felt>,
 }
 
-#[derive(Serialize, Clone, Debug, PartialEq, Eq, Deserialize)]
+#[derive(Serialize, Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OrderedEvent {
     pub keys: Vec<Felt>,

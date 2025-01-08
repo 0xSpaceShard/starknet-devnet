@@ -1,12 +1,12 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use starknet_api::transaction::Fee;
 
 use super::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use crate::contract_address::ContractAddress;
 use crate::felt::{Calldata, Nonce, TransactionSignature, TransactionVersion};
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Default, Serialize)]
+#[cfg_attr(test, derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct InvokeTransactionV1 {
     pub max_fee: Fee,
     pub version: TransactionVersion,
