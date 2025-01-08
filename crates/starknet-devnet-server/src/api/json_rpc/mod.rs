@@ -1123,7 +1123,7 @@ mod requests_tests {
         // Errored json, hash is not prefixed with 0x
         assert_deserialization_fails(
             r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"134134"}}"#,
-            "Expected hex string to be prefixed by '0x'",
+            "expected hex string to be prefixed by '0x'",
         );
         // TODO: ignored because of a Felt bug: https://github.com/starknet-io/types-rs/issues/81
         // Errored json, hex is longer than 64 chars
@@ -1152,7 +1152,7 @@ mod requests_tests {
 
         assert_deserialization_fails(
             json_str.replace("0x", "").as_str(),
-            "Expected hex string to be prefixed by '0x'",
+            "expected hex string to be prefixed by '0x'",
         );
     }
 
@@ -1163,7 +1163,7 @@ mod requests_tests {
 
         assert_deserialization_fails(
             json_str.replace("0x", "").as_str(),
-            "Expected hex string to be prefixed by '0x'",
+            "expected hex string to be prefixed by '0x'",
         );
     }
 
@@ -1232,11 +1232,11 @@ mod requests_tests {
                     r#""entry_point_selector":"134134""#,
                 )
                 .as_str(),
-            "Expected hex string to be prefixed by '0x'",
+            "expected hex string to be prefixed by '0x'",
         );
         assert_deserialization_fails(
             json_str.replace(r#""calldata":["0x134134"]"#, r#""calldata":["123"]"#).as_str(),
-            "Expected hex string to be prefixed by '0x'",
+            "expected hex string to be prefixed by '0x'",
         );
         assert_deserialization_fails(
             json_str.replace(r#""calldata":["0x134134"]"#, r#""calldata":[123]"#).as_str(),

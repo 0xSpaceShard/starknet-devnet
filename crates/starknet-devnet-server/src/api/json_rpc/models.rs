@@ -609,13 +609,12 @@ mod tests {
             ),
             (
                 r#"{"block_id": {"block_hash": 123}}"#,
-                // TODO: https://github.com/starknet-io/types-rs/issues/81#issuecomment-2230701335
-                "Invalid block ID: invalid type: number, expected Failed to deserialize \
+                "Invalid block ID: invalid type: number, expected a 32 byte array ([u8;32]) or a \
                  hexadecimal string",
             ),
             (
                 r#"{"block_id": {"block_hash": ""}}"#,
-                "Invalid block ID: Expected hex string to be prefixed by '0x",
+                "Invalid block ID: expected hex string to be prefixed by '0x",
             ),
         ] {
             match serde_json::from_str::<BlockIdInput>(json_str) {
