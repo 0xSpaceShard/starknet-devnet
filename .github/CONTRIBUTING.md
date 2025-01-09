@@ -119,6 +119,8 @@ Run all tests using all available CPUs with:
 $ cargo test
 ```
 
+If you experience memory overuse or flaky tests, try limiting the number of jobs with `cargo test --jobs=<N>`.
+
 #### Benchmarking
 
 To test if your contribution presents an improvement in execution time, check out the script at `scripts/benchmark/command_stat_test.py`.
