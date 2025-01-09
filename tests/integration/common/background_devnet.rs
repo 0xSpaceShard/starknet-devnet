@@ -58,9 +58,15 @@ lazy_static! {
 
 /// If on CircleCI, return the pre-built binary, otherwise rely on cargo.
 fn get_devnet_command() -> Command {
-    if std::env::var("CIRCLECI").is_ok() {
-        Command::new(DEVNET_EXECUTABLE_BINARY_PATH)
+    let env_var = std::env::var("CIRCLECI");
+    println!("DEBUG env var CIRCLECI={:?}", env_var);
+    println!("DEBUG current dir: {:?}", std::env::current_dir());
+    if env_var.is_ok() {
+        let bin_path = std::fs::canonicalize(DEVNET_EXECUTABLE_BINARY_PATH).unwrap();
+        println!("DEBUG using bin_path: {:?}", bin_path);
+        Command::new(bin_path)
     } else {
+        println!("DEBUG should not be here in CI");
         let mut command = Command::new("cargo");
         command
             .arg("run")
