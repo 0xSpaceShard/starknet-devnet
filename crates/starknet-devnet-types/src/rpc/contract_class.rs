@@ -1,5 +1,4 @@
 use core::fmt::Debug;
-use std::cmp::{Eq, PartialEq};
 
 use blockifier::execution::contract_class::ClassInfo;
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;

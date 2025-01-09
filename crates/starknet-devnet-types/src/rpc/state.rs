@@ -1,5 +1,5 @@
 use num_bigint::BigUint;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use starknet_types_core::felt::Felt;
 
 use super::block::BlockRoot;
@@ -102,14 +102,14 @@ pub struct StorageEntry {
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
-#[cfg_attr(feature = "testing", derive(PartialEq, Eq, Deserialize))]
+#[cfg_attr(feature = "testing", derive(PartialEq, Eq, serde::Deserialize))]
 pub struct ClassHashPair {
     pub class_hash: ClassHash,
     pub compiled_class_hash: CompiledClassHashHex,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
-#[cfg_attr(feature = "testing", derive(Eq, PartialEq, Deserialize))]
+#[cfg_attr(feature = "testing", derive(Eq, PartialEq, serde::Deserialize))]
 pub struct ReplacedClasses {
     pub contract_address: ContractAddress,
     pub class_hash: ClassHash,

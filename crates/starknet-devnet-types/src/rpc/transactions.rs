@@ -775,7 +775,6 @@ impl BroadcastedDeployAccountTransaction {
 }
 
 #[derive(Debug, Clone)]
-//#[serde(untagged)]
 pub enum BroadcastedInvokeTransaction {
     V1(BroadcastedInvokeTransactionV1),
     V3(BroadcastedInvokeTransactionV3),
@@ -1124,6 +1123,8 @@ impl FunctionInvocation {
 
 #[cfg(test)]
 mod tests {
+    use std::cmp::PartialEq;
+
     use starknet_rs_crypto::poseidon_hash_many;
 
     use super::BroadcastedTransactionCommonV3;

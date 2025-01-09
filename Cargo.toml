@@ -30,7 +30,7 @@ unwrap-used = "deny"
 expect-used = "deny"
 
 [workspace.lints.rust]
-dead-code = "deny"
+dead-code = "warn"
 
 
 [workspace.dependencies]
