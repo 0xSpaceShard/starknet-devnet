@@ -63,7 +63,8 @@ fn get_devnet_command() -> Command {
     println!("DEBUG current dir: {:?}", std::env::current_dir());
     if env_var.is_ok() {
         let bin_path = std::fs::canonicalize(DEVNET_EXECUTABLE_BINARY_PATH).unwrap();
-        println!("DEBUG using bin_path: {:?}", bin_path);
+        let exists = std::path::Path::new(&bin_path).exists();
+        println!("DEBUG using bin_path: {:?}. Exists: {}", bin_path, exists);
         Command::new(bin_path)
     } else {
         println!("DEBUG should not be here in CI");
