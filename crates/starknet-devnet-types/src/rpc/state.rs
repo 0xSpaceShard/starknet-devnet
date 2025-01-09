@@ -50,7 +50,11 @@ pub struct PendingStateUpdate {
 }
 
 #[derive(Debug, Default, Clone, Serialize)]
-#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(
+    feature = "testing",
+    derive(serde::Deserialize, Eq, PartialEq),
+    serde(deny_unknown_fields)
+)]
 pub struct ThinStateDiff {
     pub deployed_contracts: Vec<DeployedContract>,
     pub storage_diffs: Vec<StorageDiff>,
