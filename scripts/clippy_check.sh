@@ -2,4 +2,4 @@
 
 set -eu
 
-cargo clippy --workspace --all-targets -- -D warnings
+cargo clippy --workspace --all-targets -- -Dwarnings
