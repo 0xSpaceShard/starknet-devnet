@@ -24,7 +24,9 @@ use super::constants::{
 use super::errors::{RpcError, TestError};
 use super::reqwest_client::{PostReqwestSender, ReqwestClient};
 use super::utils::{to_hex_felt, FeeUnit, ImpersonationAction};
-use crate::common::constants::ETH_ERC20_CONTRACT_ADDRESS;
+use crate::common::constants::{
+    DEVNET_EXECUTABLE_BINARY_PATH, DEVNET_MANIFEST_PATH, ETH_ERC20_CONTRACT_ADDRESS,
+};
 
 lazy_static! {
     /// This is to prevent TOCTOU errors; i.e. one background devnet might find one
@@ -56,15 +58,17 @@ lazy_static! {
 
 /// If on CircleCI, return the pre-built binary, otherwise rely on cargo.
 fn get_devnet_command() -> Command {
-    if std::env::var("CIRCLECI").is_ok() {
-        Command::new("../../target/release/starknet-devnet")
+    let env_var = std::env::var("CIRCLECI");
+    println!("DEBUG env var CIRCLECI={:?}", env_var);
+    if env_var.is_ok() {
+        Command::new(DEVNET_EXECUTABLE_BINARY_PATH)
     } else {
         let mut command = Command::new("cargo");
         command
             .arg("run")
             .arg("--release")
             .arg("--manifest-path")
-            .arg("../../crates/starknet-devnet/Cargo.toml")
+            .arg(DEVNET_MANIFEST_PATH)
             .arg("--");
         command
     }
@@ -432,5 +436,6 @@ impl BackgroundDevnet {
 impl Drop for BackgroundDevnet {
     fn drop(&mut self) {
         self.process.kill().expect("Cannot kill process");
+        self.process.wait().expect("Should be dead");
     }
 }

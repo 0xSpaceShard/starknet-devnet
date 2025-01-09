@@ -5,6 +5,12 @@ pub const SEED: usize = 42;
 pub const ACCOUNTS: usize = 3;
 pub const CHAIN_ID: Felt = starknet_rs_core::chain_id::SEPOLIA;
 
+// Devnet executable info
+pub const DEVNET_MANIFEST_PATH: &str =
+    concat!(env!("CARGO_MANIFEST_DIR"), "/../../crates/starknet-devnet/Cargo.toml");
+pub const DEVNET_EXECUTABLE_BINARY_PATH: &str =
+    concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/release/starknet-devnet");
+
 // URL paths
 pub const RPC_PATH: &str = "/rpc";
 pub const HEALTHCHECK_PATH: &str = "/is_alive";
