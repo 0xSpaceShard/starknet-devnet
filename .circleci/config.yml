@@ -83,7 +83,7 @@ jobs:
           command: .circleci/scripts/cache.sh cleanup
       - run:
           name: Tests
-          command: cargo test --jobs=10 --no-fail-fast
+          command: RUST_BACKTRACE=1 cargo test --jobs=10 --no-fail-fast
 
   binary-build:
     parameters:
