@@ -1123,8 +1123,6 @@ impl FunctionInvocation {
 
 #[cfg(test)]
 mod tests {
-    use std::cmp::PartialEq;
-
     use starknet_rs_crypto::poseidon_hash_many;
 
     use super::BroadcastedTransactionCommonV3;
