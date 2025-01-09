@@ -2,4 +2,4 @@
 
 set -eu
 
-cargo clippy --all --tests -- -Dwarnings
+cargo clippy --workspace --all-targets -- -D warnings

@@ -8,7 +8,7 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 use starknet_types::rpc::state::{
-    ClassHashes, ContractNonce, DeployedContract, ReplacedClasses, StorageDiff, StorageEntry,
+    ClassHashPair, ContractNonce, DeployedContract, ReplacedClasses, StorageDiff, StorageEntry,
     ThinStateDiff,
 };
 
@@ -45,12 +45,8 @@ impl StateDiff {
 
         for (class_hash, class) in new_classes {
             match class {
-                starknet_types::contract_class::ContractClass::Cairo0(_) => {
-                    cairo_0_declared_contracts.push(class_hash)
-                }
-                starknet_types::contract_class::ContractClass::Cairo1(_) => {
-                    declared_contracts.push(class_hash)
-                }
+                ContractClass::Cairo0(_) => cairo_0_declared_contracts.push(class_hash),
+                ContractClass::Cairo1(_) => declared_contracts.push(class_hash),
             }
         }
 
@@ -152,7 +148,7 @@ impl From<StateDiff> for ThinStateDiff {
                 .collect(),
             declared_classes: declared_classes
                 .into_iter()
-                .map(|(class_hash, compiled_class_hash)| ClassHashes {
+                .map(|(class_hash, compiled_class_hash)| ClassHashPair {
                     class_hash,
                     compiled_class_hash,
                 })
