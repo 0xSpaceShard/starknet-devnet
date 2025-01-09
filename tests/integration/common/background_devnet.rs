@@ -24,7 +24,9 @@ use super::constants::{
 use super::errors::{RpcError, TestError};
 use super::reqwest_client::{PostReqwestSender, ReqwestClient};
 use super::utils::{to_hex_felt, FeeUnit, ImpersonationAction};
-use crate::common::constants::{DEVNET_MANIFEST_PATH, ETH_ERC20_CONTRACT_ADDRESS};
+use crate::common::constants::{
+    DEVNET_EXECUTABLE_BINARY_PATH, DEVNET_MANIFEST_PATH, ETH_ERC20_CONTRACT_ADDRESS,
+};
 
 lazy_static! {
     /// This is to prevent TOCTOU errors; i.e. one background devnet might find one
@@ -54,11 +56,20 @@ lazy_static! {
     ]);
 }
 
-/// Rely on cargo.
+/// If on CircleCI, return the pre-built binary, otherwise rely on cargo.
 fn get_devnet_command() -> Command {
-    let mut command = Command::new("cargo");
-    command.arg("run").arg("--release").arg("--manifest-path").arg(DEVNET_MANIFEST_PATH).arg("--");
-    command
+    if std::env::var("CIRCLECI").is_ok() {
+        Command::new(DEVNET_EXECUTABLE_BINARY_PATH)
+    } else {
+        let mut command = Command::new("cargo");
+        command
+            .arg("run")
+            .arg("--release")
+            .arg("--manifest-path")
+            .arg(DEVNET_MANIFEST_PATH)
+            .arg("--");
+        command
+    }
 }
 
 async fn get_acquired_port(
