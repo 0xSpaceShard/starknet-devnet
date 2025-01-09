@@ -8,6 +8,9 @@ description = "Starknet core logic for devnet"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lints]
+workspace = true
+
 [dependencies]
 blockifier = { workspace = true, features = ["testing"] }
 cairo-lang-starknet-classes = { workspace = true }
