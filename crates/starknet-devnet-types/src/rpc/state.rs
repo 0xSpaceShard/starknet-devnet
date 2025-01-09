@@ -66,7 +66,11 @@ pub struct ThinStateDiff {
 
 /// A deployed contract in Starknet.
 #[derive(Debug, Default, Clone, Serialize)]
-#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(
+    feature = "testing",
+    derive(serde::Deserialize, Eq, PartialEq),
+    serde(deny_unknown_fields)
+)]
 pub struct DeployedContract {
     pub address: ContractAddress,
     pub class_hash: ClassHash,
@@ -75,7 +79,11 @@ pub struct DeployedContract {
 /// Storage differences in Starknet.
 // Invariant: Storage keys are strictly increasing. In particular, no key appears twice.
 #[derive(Debug, Default, Clone, Serialize)]
-#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(
+    feature = "testing",
+    derive(serde::Deserialize, Eq, PartialEq),
+    serde(deny_unknown_fields)
+)]
 pub struct StorageDiff {
     pub address: ContractAddress,
     pub storage_entries: Vec<StorageEntry>,
@@ -83,7 +91,11 @@ pub struct StorageDiff {
 
 /// A storage entry in a contract.
 #[derive(Debug, Default, Clone, Serialize)]
-#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(
+    feature = "testing",
+    derive(serde::Deserialize, Eq, PartialEq),
+    serde(deny_unknown_fields)
+)]
 pub struct StorageEntry {
     pub key: PatriciaKey,
     pub value: Felt,
@@ -105,7 +117,11 @@ pub struct ReplacedClasses {
 
 /// The nonce of a Starknet contract.
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(
+    feature = "testing",
+    derive(serde::Deserialize, Eq, PartialEq),
+    serde(deny_unknown_fields)
+)]
 pub struct ContractNonce {
     pub contract_address: ContractAddress,
     pub nonce: Nonce,
