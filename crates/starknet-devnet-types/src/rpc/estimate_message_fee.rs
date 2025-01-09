@@ -13,8 +13,8 @@ use crate::error::DevnetResult;
 use crate::rpc::eth_address::EthAddressWrapper;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct FeeEstimateWrapper {
     pub gas_consumed: Felt,
     pub data_gas_consumed: Felt,

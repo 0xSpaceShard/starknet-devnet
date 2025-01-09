@@ -24,8 +24,8 @@ pub struct Event {
     pub data: Vec<Felt>,
 }
 
-#[derive(Serialize, Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Serialize, Clone, Debug)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct OrderedEvent {
     pub keys: Vec<Felt>,
     pub data: Vec<Felt>,

@@ -12,8 +12,8 @@ pub struct GasModificationRequest {
     pub generate_block: Option<bool>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct GasModification {
     pub gas_price_wei: NonZeroU128,
     pub data_gas_price_wei: NonZeroU128,

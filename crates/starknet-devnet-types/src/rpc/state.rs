@@ -10,8 +10,8 @@ use crate::patricia_key::PatriciaKey;
 pub type CompiledClassHashHex = Felt;
 pub type Balance = BigUint;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub enum StateUpdateResult {
     StateUpdate(StateUpdate),
     PendingStateUpdate(PendingStateUpdate),
@@ -26,8 +26,8 @@ impl StateUpdateResult {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct StateUpdate {
     pub block_hash: BlockHash,
     pub new_root: GlobalRootHex,
@@ -35,14 +35,15 @@ pub struct StateUpdate {
     pub state_diff: ThinStateDiff,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct PendingStateUpdate {
     pub old_root: GlobalRootHex,
     pub state_diff: ThinStateDiff,
 }
 
-#[derive(Debug, Default, Clone, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct ThinStateDiff {
     pub deployed_contracts: Vec<DeployedContract>,
     pub storage_diffs: Vec<StorageDiff>,
@@ -53,7 +54,8 @@ pub struct ThinStateDiff {
 }
 
 /// A deployed contract in Starknet.
-#[derive(Debug, Default, Clone, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct DeployedContract {
     pub address: ContractAddress,
     pub class_hash: ClassHash,
@@ -61,33 +63,38 @@ pub struct DeployedContract {
 
 /// Storage differences in Starknet.
 // Invariant: Storage keys are strictly increasing. In particular, no key appears twice.
-#[derive(Debug, Default, Clone, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct StorageDiff {
     pub address: ContractAddress,
     pub storage_entries: Vec<StorageEntry>,
 }
 
 /// A storage entry in a contract.
-#[derive(Debug, Default, Clone, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct StorageEntry {
     pub key: PatriciaKey,
     pub value: Felt,
 }
 
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Serialize)]
+#[cfg_attr(feature = "testing", derive(PartialEq, Eq, Deserialize))]
 pub struct ClassHashes {
     pub class_hash: ClassHash,
     pub compiled_class_hash: CompiledClassHashHex,
 }
 
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Serialize)]
+#[cfg_attr(feature = "testing", derive(Eq, PartialEq, Deserialize))]
 pub struct ReplacedClasses {
     pub contract_address: ContractAddress,
     pub class_hash: ClassHash,
 }
 
 /// The nonce of a Starknet contract.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct ContractNonce {
     pub contract_address: ContractAddress,
     pub nonce: Nonce,

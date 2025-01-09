@@ -9,6 +9,7 @@ use crate::rpc::eth_address::EthAddressWrapper;
 /// An L1 to L2 message.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "testing", derive(PartialEq, Eq))]
 pub struct MessageToL2 {
     pub l2_contract_address: ContractAddress,
     pub entry_point_selector: EntryPointSelector,

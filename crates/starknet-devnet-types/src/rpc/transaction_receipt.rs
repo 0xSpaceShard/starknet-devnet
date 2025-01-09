@@ -35,7 +35,8 @@ pub struct L1HandlerTransactionReceipt {
     pub message_hash: Hash256,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize))]
 pub struct MaybePendingProperties {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub block_hash: Option<BlockHash>,
@@ -59,8 +60,8 @@ pub struct CommonTransactionReceipt {
     pub execution_resources: ExecutionResources,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct ExecutionResources {
     #[serde(flatten)]
     pub computation_resources: ComputationResources,
@@ -102,8 +103,8 @@ impl<'de> Deserialize<'de> for DataAvailability {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct ComputationResources {
     pub steps: usize,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -245,36 +246,14 @@ impl ComputationResources {
     }
 }
 
-// impl PartialEq for CommonTransactionReceipt {
-//     fn eq(&self, other: &Self) -> bool {
-//         let identical_execution_result = match (&self.execution_status, &other.execution_status)
-// {             (ExecutionResult::Succeeded, ExecutionResult::Succeeded) => true,
-//             (
-//                 ExecutionResult::Reverted { reason: reason1 },
-//                 ExecutionResult::Reverted { reason: reason2 },
-//             ) => reason1 == reason2,
-//             _ => false,
-//         };
-
-//         self.transaction_hash == other.transaction_hash
-//             && self.r#type == other.r#type
-//             && self.maybe_pending_properties == other.maybe_pending_properties
-//             && self.events == other.events
-//             && self.messages_sent == other.messages_sent
-//             && self.actual_fee == other.actual_fee
-//             && self.execution_resources == other.execution_resources
-//             && identical_execution_result
-//     }
-// }
-
-// impl Eq for CommonTransactionReceipt {}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(Deserialize), serde(deny_unknown_fields))]
 pub struct FeeAmount {
     pub amount: Fee,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(Deserialize))]
 #[serde(tag = "unit")]
 pub enum FeeInUnits {
     WEI(FeeAmount),

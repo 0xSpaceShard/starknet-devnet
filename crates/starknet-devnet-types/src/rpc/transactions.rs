@@ -85,7 +85,8 @@ pub enum Transactions {
     FullWithReceipts(Vec<TransactionWithReceipt>),
 }
 
-#[derive(Debug, Copy, Clone, Deserialize, Serialize, Default)]
+#[derive(Debug, Copy, Clone, Serialize, Default)]
+#[cfg_attr(feature = "testing", derive(Deserialize))]
 pub enum TransactionType {
     #[serde(rename(deserialize = "DECLARE", serialize = "DECLARE"))]
     Declare,
@@ -291,6 +292,7 @@ pub struct BroadcastedTransactionCommonV3 {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "testing", derive(PartialEq, Eq))]
 pub struct ResourceBoundsWrapper {
     inner: ResourceBoundsMapping,
 }
@@ -961,7 +963,8 @@ pub enum SimulationFlag {
     SkipFeeCharge,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(Deserialize))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum CallType {
     LibraryCall,
