@@ -29,6 +29,6 @@ starknet-rs-core = { workspace = true }
 starknet-rs-providers = { workspace = true }
 starknet-rs-signers = { workspace = true }
 thiserror = { workspace = true }
-tokio = { workspace = true, features = ["signal"] }
+tokio = { workspace = true, features = ["process", "signal"] }
 url = { workspace = true }
 usc = { workspace = true }

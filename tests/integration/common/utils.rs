@@ -1,7 +1,6 @@
 use std::fmt::LowerHex;
 use std::fs;
 use std::path::Path;
-use std::process::{Child, Command};
 use std::sync::Arc;
 
 use ethers::types::U256;
@@ -20,6 +19,7 @@ use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::LocalWallet;
+use tokio::process::{Child, Command};
 
 use super::background_devnet::BackgroundDevnet;
 use super::constants::{
@@ -175,10 +175,10 @@ async fn send_ctrl_c_signal(process: &Child) {
     #[cfg(unix)]
     {
         let mut kill = Command::new("kill")
-            .args(["-s", "SIGINT", process.id().to_string().as_str()])
+            .args(["-s", "SIGINT", process.id().unwrap().to_string().as_str()])
             .spawn()
             .unwrap();
-        kill.wait().unwrap();
+        kill.wait().await.unwrap();
     }
 }
 

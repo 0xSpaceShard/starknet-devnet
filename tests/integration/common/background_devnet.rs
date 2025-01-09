@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::LowerHex;
-use std::process::{Child, Command, Stdio};
+use std::process::Stdio;
 use std::time;
 
 use lazy_static::lazy_static;
@@ -15,6 +15,7 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::{LocalWallet, SigningKey};
+use tokio::process::{Child, Command};
 use tokio::sync::Mutex;
 use url::Url;
 
@@ -174,7 +175,8 @@ impl BackgroundDevnet {
 
         let sleep_time = time::Duration::from_millis(500);
         let max_retries = 40;
-        let port = get_acquired_port(process.id(), sleep_time, max_retries)
+        let pid = process.id().unwrap();
+        let port = get_acquired_port(pid, sleep_time, max_retries)
             .await
             .map_err(|e| TestError::DevnetNotStartable(e.to_string()))?;
 
@@ -433,7 +435,6 @@ impl BackgroundDevnet {
 /// in case of an early test failure
 impl Drop for BackgroundDevnet {
     fn drop(&mut self) {
-        self.process.kill().expect("Cannot kill process");
-        self.process.wait().expect("Should be dead");
+        self.process.start_kill().expect("Process should be killable");
     }
 }
