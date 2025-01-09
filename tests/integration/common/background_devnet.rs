@@ -165,7 +165,7 @@ impl BackgroundDevnet {
         let mut devnet_command = get_devnet_command();
         let process = devnet_command
                 .args(Self::add_default_args(args))
-                .stdout(Stdio::piped()) // comment this out for complete devnet stdout
+                //.stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .map_err(|e| TestError::DevnetNotStartable(e.to_string()))?;
 
