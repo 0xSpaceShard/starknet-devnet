@@ -58,16 +58,10 @@ lazy_static! {
 
 /// If on CircleCI, return the pre-built binary, otherwise rely on cargo.
 fn get_devnet_command() -> Command {
-    let env_var = std::env::var("CIRCLECI");
-    println!("DEBUG env var CIRCLECI={:?}", env_var);
-    println!("DEBUG current dir: {:?}", std::env::current_dir());
-    if env_var.is_ok() {
+    if std::env::var("CIRCLECI").is_ok() {
         let bin_path = std::fs::canonicalize(DEVNET_EXECUTABLE_BINARY_PATH).unwrap();
-        let exists = std::path::Path::new(&bin_path).exists();
-        println!("DEBUG using bin_path: {:?}. Exists: {}", bin_path, exists);
         Command::new(bin_path)
     } else {
-        println!("DEBUG should not be here in CI");
         let mut command = Command::new("cargo");
         command
             .arg("run")
@@ -191,7 +185,6 @@ impl BackgroundDevnet {
         wait_for_successful_response(&client, &healthcheck_url, sleep_time, max_retries)
             .await
             .map_err(|e| TestError::DevnetNotStartable(e.to_string()))?;
-        println!("Spawned background devnet at {devnet_url}");
 
         let devnet_rpc_url = Url::parse(format!("{devnet_url}{RPC_PATH}").as_str())?;
         Ok(BackgroundDevnet {
