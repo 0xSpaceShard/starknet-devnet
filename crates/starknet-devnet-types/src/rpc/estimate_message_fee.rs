@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use blockifier::transaction::transactions::L1HandlerTransaction;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use starknet_api::core::EntryPointSelector;
 use starknet_api::transaction::Calldata;
 use starknet_rs_core::types::requests::EstimateMessageFeeRequest;

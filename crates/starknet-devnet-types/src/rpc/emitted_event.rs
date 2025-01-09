@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use starknet_api::block::BlockNumber;
 use starknet_types_core::felt::Felt;
 
