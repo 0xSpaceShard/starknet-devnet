@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::LowerHex;
-use std::process::{Child, Command, Stdio};
+use std::process::{Command, Stdio};
 use std::time;
 
 use lazy_static::lazy_static;
@@ -15,7 +15,6 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::{LocalWallet, SigningKey};
-use tokio::sync::Mutex;
 use url::Url;
 
 use super::constants::{
@@ -24,22 +23,16 @@ use super::constants::{
 use super::errors::{RpcError, TestError};
 use super::reqwest_client::{PostReqwestSender, ReqwestClient};
 use super::utils::{to_hex_felt, FeeUnit, ImpersonationAction};
-use crate::common::constants::ETH_ERC20_CONTRACT_ADDRESS;
-
-lazy_static! {
-    /// This is to prevent TOCTOU errors; i.e. one background devnet might find one
-    /// port to be free, and while it's trying to start listening to it, another instance
-    /// finds that it's free and tries occupying it
-    /// Using the mutex in `get_free_port_listener` might be safer than using no mutex at all,
-    /// but not sufficiently safe
-    static ref BACKGROUND_DEVNET_MUTEX: Mutex<()> = Mutex::new(());
-}
+use crate::common::constants::{
+    DEVNET_EXECUTABLE_BINARY_PATH, DEVNET_MANIFEST_PATH, ETH_ERC20_CONTRACT_ADDRESS,
+};
+use crate::common::safe_child::SafeChild;
 
 #[derive(Debug)]
 pub struct BackgroundDevnet {
     reqwest_client: ReqwestClient,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
-    pub process: Child,
+    pub process: SafeChild,
     pub port: u16,
     pub url: String,
     rpc_url: Url,
@@ -57,14 +50,14 @@ lazy_static! {
 /// If on CircleCI, return the pre-built binary, otherwise rely on cargo.
 fn get_devnet_command() -> Command {
     if std::env::var("CIRCLECI").is_ok() {
-        Command::new("../../target/release/starknet-devnet")
+        Command::new(DEVNET_EXECUTABLE_BINARY_PATH)
     } else {
         let mut command = Command::new("cargo");
         command
             .arg("run")
             .arg("--release")
             .arg("--manifest-path")
-            .arg("../../crates/starknet-devnet/Cargo.toml")
+            .arg(DEVNET_MANIFEST_PATH)
             .arg("--");
         command
     }
@@ -76,20 +69,16 @@ async fn get_acquired_port(
     max_retries: usize,
 ) -> Result<u16, anyhow::Error> {
     for _ in 0..max_retries {
-        let ports =
-            listeners::get_ports_by_pid(pid).map_err(|e| anyhow::Error::msg(e.to_string()))?;
-        match ports.len() {
-            0 => tokio::time::sleep(sleep_time).await, // if no ports, wait a bit more
-            1 => return Ok(ports.into_iter().next().unwrap()),
-            _ => {
-                return Err(anyhow::Error::msg(format!(
-                    "Too many ports associated with PID {pid}: {ports:?}"
-                )));
+        if let Ok(ports) = listeners::get_ports_by_pid(pid) {
+            if ports.len() == 1 {
+                return Ok(ports.into_iter().next().unwrap());
             }
         }
+
+        tokio::time::sleep(sleep_time).await;
     }
 
-    Err(anyhow::Error::msg(format!("No port associated with PID {pid}")))
+    Err(anyhow::Error::msg(format!("Could not identify a unique port used by PID {pid}")))
 }
 
 async fn wait_for_successful_response(
@@ -160,20 +149,19 @@ impl BackgroundDevnet {
     }
 
     pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
-        let _mutex_guard = BACKGROUND_DEVNET_MUTEX.lock().await;
-
         let mut devnet_command = get_devnet_command();
         let process = devnet_command
                 .args(Self::add_default_args(args))
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
-                .map_err(|e| TestError::DevnetNotStartable(e.to_string()))?;
+                .map_err(|e| TestError::DevnetNotStartable(format!("Spawning error: {e:?}")))?;
+        let safe_process = SafeChild { process };
 
         let sleep_time = time::Duration::from_millis(500);
         let max_retries = 40;
-        let port = get_acquired_port(process.id(), sleep_time, max_retries)
+        let port = get_acquired_port(safe_process.id(), sleep_time, max_retries)
             .await
-            .map_err(|e| TestError::DevnetNotStartable(e.to_string()))?;
+            .map_err(|e| TestError::DevnetNotStartable(format!("Cannot determine port: {e:?}")))?;
 
         // now we know the port; check if it can be used to poll Devnet's endpoint
         let client = Client::new();
@@ -181,15 +169,15 @@ impl BackgroundDevnet {
         let healthcheck_url = format!("{devnet_url}{HEALTHCHECK_PATH}").to_string();
         wait_for_successful_response(&client, &healthcheck_url, sleep_time, max_retries)
             .await
-            .map_err(|e| TestError::DevnetNotStartable(e.to_string()))?;
+            .map_err(|e| TestError::DevnetNotStartable(format!("Server unresponsive: {e:?}")))?;
         println!("Spawned background devnet at {devnet_url}");
 
         let devnet_rpc_url = Url::parse(format!("{devnet_url}{RPC_PATH}").as_str())?;
         Ok(BackgroundDevnet {
             reqwest_client: ReqwestClient::new(devnet_url.clone(), client),
             json_rpc_client: JsonRpcClient::new(HttpTransport::new(devnet_rpc_url.clone())),
-            process,
             port,
+            process: safe_process,
             url: devnet_url,
             rpc_url: devnet_rpc_url,
         })
@@ -424,13 +412,5 @@ impl BackgroundDevnet {
             Ok(_) => Ok(()),
             Err(err) => Err(anyhow::Error::msg(err.message.to_string())),
         }
-    }
-}
-
-/// By implementing Drop, we ensure there are no zombie background Devnet processes
-/// in case of an early test failure
-impl Drop for BackgroundDevnet {
-    fn drop(&mut self) {
-        self.process.kill().expect("Cannot kill process");
     }
 }

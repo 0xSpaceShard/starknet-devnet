@@ -23,6 +23,7 @@ use starknet_rs_signers::LocalWallet;
 
 use super::background_devnet::BackgroundDevnet;
 use super::constants::{CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH};
+use super::safe_child::SafeChild;
 
 pub enum ImpersonationAction {
     ImpersonateAccount(Felt),
@@ -154,8 +155,8 @@ pub fn get_unix_timestamp_as_seconds() -> u64 {
         .as_secs()
 }
 
-pub async fn send_ctrl_c_signal_and_wait(process: &Child) {
-    send_ctrl_c_signal(process).await;
+pub async fn send_ctrl_c_signal_and_wait(process: &SafeChild) {
+    send_ctrl_c_signal(&process.process).await;
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 }
 
