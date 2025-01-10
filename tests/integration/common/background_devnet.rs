@@ -15,7 +15,6 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::{LocalWallet, SigningKey};
-use tokio::sync::Mutex;
 use url::Url;
 
 use super::constants::{
@@ -27,15 +26,6 @@ use super::utils::{to_hex_felt, FeeUnit, ImpersonationAction};
 use crate::common::constants::{
     DEVNET_EXECUTABLE_BINARY_PATH, DEVNET_MANIFEST_PATH, ETH_ERC20_CONTRACT_ADDRESS,
 };
-
-lazy_static! {
-    /// This is to prevent TOCTOU errors; i.e. one background devnet might find one
-    /// port to be free, and while it's trying to start listening to it, another instance
-    /// finds that it's free and tries occupying it
-    /// Using the mutex in `get_free_port_listener` might be safer than using no mutex at all,
-    /// but not sufficiently safe
-    static ref BACKGROUND_DEVNET_MUTEX: Mutex<()> = Mutex::new(());
-}
 
 #[derive(Debug)]
 pub struct BackgroundDevnet {
@@ -158,8 +148,6 @@ impl BackgroundDevnet {
     }
 
     pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
-        let _mutex_guard = BACKGROUND_DEVNET_MUTEX.lock().await;
-
         let mut devnet_command = get_devnet_command();
         let process = devnet_command
                 .args(Self::add_default_args(args))
