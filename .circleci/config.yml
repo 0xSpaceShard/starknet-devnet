@@ -82,8 +82,11 @@ jobs:
       #     name: Cleanup old cache
       #     command: .circleci/scripts/cache.sh cleanup
       - run:
+        name: compile tests
+        command: cargo test --no-run
+      - run:
           name: Tests
-          command: cargo test --no-fail-fast
+          command: cargo test --jobs 1 --no-fail-fast
           environment:
             RUST_BACKTRACE: full
             CARGO_LOG: debug
