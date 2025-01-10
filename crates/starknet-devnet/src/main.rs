@@ -254,7 +254,6 @@ async fn bind_port(
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    println!("IN main");
     configure_tracing();
 
     // parse arguments
