@@ -82,10 +82,11 @@ jobs:
           name: Cleanup old cache
           command: .circleci/scripts/cache.sh cleanup
       - run:
-          name: Tests
+          name: Test
+          # First compile using all cores, then run using 1
           command: |
             cargo test --no-run
-            RUST_BACKTRACE=full cargo test --jobs=1 --no-fail-fast
+            RUST_BACKTRACE=full cargo test --jobs=2 --no-fail-fast
 
   binary-build:
     parameters:
