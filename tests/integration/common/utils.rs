@@ -10,7 +10,6 @@ use futures::{SinkExt, StreamExt, TryStreamExt};
 use rand::{thread_rng, Rng};
 use serde_json::json;
 use server::test_utils::assert_contains;
-use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
 use starknet_rs_accounts::{
     Account, AccountFactory, ArgentAccountFactory, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
@@ -30,7 +29,10 @@ use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use super::background_devnet::BackgroundDevnet;
-use super::constants::{ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_CONTRACT_PATH};
+use super::constants::{
+    ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH,
+};
+use super::safe_child::SafeChild;
 
 pub enum ImpersonationAction {
     ImpersonateAccount(Felt),
@@ -162,8 +164,8 @@ pub fn get_unix_timestamp_as_seconds() -> u64 {
         .as_secs()
 }
 
-pub async fn send_ctrl_c_signal_and_wait(process: &Child) {
-    send_ctrl_c_signal(process).await;
+pub async fn send_ctrl_c_signal_and_wait(process: &SafeChild) {
+    send_ctrl_c_signal(&process.process).await;
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 }
 
