@@ -85,7 +85,7 @@ jobs:
           name: Tests
           command: cargo test
           environment:
-            RUST_BACKTRACE: full
+            RUST_BACKTRACE: 1
             CARGO_LOG: debug
 
   binary-build:
