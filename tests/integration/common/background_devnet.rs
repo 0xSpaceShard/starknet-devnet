@@ -167,7 +167,7 @@ impl BackgroundDevnet {
                 .args(Self::add_default_args(args))
                 //.stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
-                .map_err(|e| TestError::DevnetNotStartable(e.to_string()))?;
+                .map_err(|e| TestError::DevnetNotStartable(format!("{:?}", e)))?;
 
         let sleep_time = time::Duration::from_millis(500);
         let max_retries = 40;
