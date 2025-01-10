@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::LowerHex;
-use std::process::{Child, Command, Stdio};
+use std::process::{Command, Stdio};
 use std::time;
 
 use lazy_static::lazy_static;
@@ -26,12 +26,13 @@ use super::utils::{to_hex_felt, FeeUnit, ImpersonationAction};
 use crate::common::constants::{
     DEVNET_EXECUTABLE_BINARY_PATH, DEVNET_MANIFEST_PATH, ETH_ERC20_CONTRACT_ADDRESS,
 };
+use crate::common::safe_child::SafeChild;
 
 #[derive(Debug)]
 pub struct BackgroundDevnet {
     reqwest_client: ReqwestClient,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
-    pub process: Child,
+    pub process: SafeChild,
     pub port: u16,
     pub url: String,
     rpc_url: Url,
@@ -154,10 +155,11 @@ impl BackgroundDevnet {
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .map_err(|e| TestError::DevnetNotStartable(format!("Spawning error: {e:?}")))?;
+        let safe_process = SafeChild { process };
 
         let sleep_time = time::Duration::from_millis(500);
         let max_retries = 40;
-        let port = get_acquired_port(process.id(), sleep_time, max_retries)
+        let port = get_acquired_port(safe_process.id(), sleep_time, max_retries)
             .await
             .map_err(|e| TestError::DevnetNotStartable(format!("Cannot determine port: {e:?}")))?;
 
@@ -174,8 +176,8 @@ impl BackgroundDevnet {
         Ok(BackgroundDevnet {
             reqwest_client: ReqwestClient::new(devnet_url.clone(), client),
             json_rpc_client: JsonRpcClient::new(HttpTransport::new(devnet_rpc_url.clone())),
-            process,
             port,
+            process: safe_process,
             url: devnet_url,
             rpc_url: devnet_rpc_url,
         })
@@ -410,14 +412,5 @@ impl BackgroundDevnet {
             Ok(_) => Ok(()),
             Err(err) => Err(anyhow::Error::msg(err.message.to_string())),
         }
-    }
-}
-
-/// By implementing Drop, we ensure there are no zombie background Devnet processes
-/// in case of an early test failure
-impl Drop for BackgroundDevnet {
-    fn drop(&mut self) {
-        self.process.kill().expect("Cannot kill process");
-        self.process.wait().expect("Should be dead");
     }
 }
