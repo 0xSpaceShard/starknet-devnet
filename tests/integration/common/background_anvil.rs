@@ -1,4 +1,4 @@
-use std::process::{Child, Command};
+use std::process::Command;
 use std::sync::Arc;
 use std::time;
 
@@ -11,9 +11,10 @@ use reqwest::StatusCode;
 
 use super::constants::{DEFAULT_ETH_ACCOUNT_PRIVATE_KEY, HOST};
 use super::errors::TestError;
+use super::safe_child::SafeChild;
 
 pub struct BackgroundAnvil {
-    pub process: Child,
+    pub process: SafeChild,
     pub url: String,
     pub provider: Arc<Provider<Http>>,
     pub provider_signer: Arc<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
@@ -49,18 +50,19 @@ impl BackgroundAnvil {
             .args(args)
             .spawn()
             .expect("Could not start background Anvil");
+        let safe_process = SafeChild { process };
 
-        let anvil_url = format!("http://{HOST}:{port}");
+        let url = format!("http://{HOST}:{port}");
         let client = reqwest::Client::new();
         let max_retries = 30;
         for _ in 0..max_retries {
-            if let Ok(anvil_block_rsp) = send_dummy_request(&client, &anvil_url).await {
+            if let Ok(anvil_block_rsp) = send_dummy_request(&client, &url).await {
                 assert_eq!(anvil_block_rsp.status(), StatusCode::OK);
-                println!("Spawned background anvil at {anvil_url}");
+                println!("Spawned background anvil at {url}");
 
-                let (provider, provider_signer) = setup_ethereum_provider(&anvil_url).await?;
+                let (provider, provider_signer) = setup_ethereum_provider(&url).await?;
 
-                return Ok(Self { process, url: anvil_url, provider, provider_signer });
+                return Ok(Self { process: safe_process, url, provider, provider_signer });
             }
 
             tokio::time::sleep(time::Duration::from_millis(500)).await;
@@ -205,12 +207,4 @@ async fn send_dummy_request(
         }))
         .send()
         .await
-}
-
-/// By implementing Drop, we ensure there are no zombie background Anvil processes
-/// in case of an early test failure
-impl Drop for BackgroundAnvil {
-    fn drop(&mut self) {
-        self.process.kill().expect("Cannot kill process");
-    }
 }
