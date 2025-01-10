@@ -78,20 +78,16 @@ async fn get_acquired_port(
     max_retries: usize,
 ) -> Result<u16, anyhow::Error> {
     for _ in 0..max_retries {
-        let ports =
-            listeners::get_ports_by_pid(pid).map_err(|e| anyhow::Error::msg(e.to_string()))?;
-        match ports.len() {
-            0 => tokio::time::sleep(sleep_time).await, // if no ports, wait a bit more
-            1 => return Ok(ports.into_iter().next().unwrap()),
-            _ => {
-                return Err(anyhow::Error::msg(format!(
-                    "Too many ports associated with PID {pid}: {ports:?}"
-                )));
+        if let Ok(ports) = listeners::get_ports_by_pid(pid) {
+            if ports.len() == 1 {
+                return Ok(ports.into_iter().next().unwrap());
             }
         }
+
+        tokio::time::sleep(sleep_time).await;
     }
 
-    Err(anyhow::Error::msg(format!("No port associated with PID {pid}")))
+    Err(anyhow::Error::msg(format!("Could not identify a unique port used by PID {pid}")))
 }
 
 async fn wait_for_successful_response(
