@@ -1,3 +1,4 @@
+use std::process::{Child, Command};
 use std::sync::Arc;
 use std::time;
 
@@ -7,7 +8,6 @@ use ethers::types::Address;
 use k256::ecdsa::SigningKey;
 use rand::Rng;
 use reqwest::StatusCode;
-use tokio::process::{Child, Command};
 
 use super::constants::{DEFAULT_ETH_ACCOUNT_PRIVATE_KEY, HOST};
 use super::errors::TestError;
@@ -211,6 +211,6 @@ async fn send_dummy_request(
 /// in case of an early test failure
 impl Drop for BackgroundAnvil {
     fn drop(&mut self) {
-        self.process.start_kill().expect("Cannot kill process");
+        self.process.kill().expect("Cannot kill process");
     }
 }
