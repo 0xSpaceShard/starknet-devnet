@@ -153,13 +153,13 @@ impl BackgroundDevnet {
                 .args(Self::add_default_args(args))
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
-                .map_err(|e| TestError::DevnetNotStartable(e.to_string()))?;
+                .map_err(|e| TestError::DevnetNotStartable(format!("Spawning error: {e:?}")))?;
 
         let sleep_time = time::Duration::from_millis(500);
         let max_retries = 40;
         let port = get_acquired_port(process.id(), sleep_time, max_retries)
             .await
-            .map_err(|e| TestError::DevnetNotStartable(e.to_string()))?;
+            .map_err(|e| TestError::DevnetNotStartable(format!("Cannot determine port: {e:?}")))?;
 
         // now we know the port; check if it can be used to poll Devnet's endpoint
         let client = Client::new();
@@ -167,7 +167,7 @@ impl BackgroundDevnet {
         let healthcheck_url = format!("{devnet_url}{HEALTHCHECK_PATH}").to_string();
         wait_for_successful_response(&client, &healthcheck_url, sleep_time, max_retries)
             .await
-            .map_err(|e| TestError::DevnetNotStartable(e.to_string()))?;
+            .map_err(|e| TestError::DevnetNotStartable(format!("Server unresponsive: {e:?}")))?;
         println!("Spawned background devnet at {devnet_url}");
 
         let devnet_rpc_url = Url::parse(format!("{devnet_url}{RPC_PATH}").as_str())?;
