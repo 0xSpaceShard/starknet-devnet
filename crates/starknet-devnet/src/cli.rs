@@ -52,9 +52,7 @@ pub(crate) struct Args {
     #[arg(env = "ACCOUNT_CLASS_CUSTOM")]
     #[arg(value_name = "PATH")]
     #[arg(conflicts_with = "account_class_choice")]
-    #[arg(
-        help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;"
-    )]
+    #[arg(help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;")]
     account_class_custom: Option<AccountClassWrapper>,
 
     /// Initial balance of predeployed accounts
@@ -63,7 +61,8 @@ pub(crate) struct Args {
     #[arg(short = 'e')]
     #[arg(value_name = "DECIMAL_VALUE")]
     #[arg(default_value_t = InitialBalanceWrapper::default())]
-    #[arg(help = "Specify the initial balance in WEI and FRI of accounts to be predeployed;")]
+    #[arg(help = "Specify the initial balance of accounts to be predeployed; the value is \
+                  interpreted as WEI for ETH balance and FRI for STRK balance;")]
     initial_balance: InitialBalanceWrapper,
 
     // Seed for predeployed accounts
@@ -87,9 +86,7 @@ pub(crate) struct Args {
     #[arg(env = "PORT")]
     #[arg(value_name = "PORT")]
     #[arg(default_value_t = DEVNET_DEFAULT_PORT)]
-    #[arg(
-        help = "Specify the port to listen at; If 0, acquires a random free port and prints it;"
-    )]
+    #[arg(help = "Specify the port to listen at; If 0, acquires a random free port and prints it;")]
     port: u16,
 
     // Set start time in seconds
