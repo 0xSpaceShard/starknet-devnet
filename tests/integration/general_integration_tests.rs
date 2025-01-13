@@ -44,6 +44,16 @@ async fn too_big_request_rejected_via_non_rpc() {
     .expect_err("Request should have been rejected");
 
     assert_eq!(err.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&err.error_message()).unwrap(),
+        json!({
+            "error": {
+                "code": -1,
+                "message": format!("Request too big! Server received: 1111 bytes; maximum (specifiable via --request-body-size-limit): {limit} bytes"),
+                "data": null
+            }
+        })
+    );
 
     // subtract enough so that the rest of the json body doesn't overflow the limit
     let nonexistent_path = "a".repeat(limit - 100);

@@ -180,7 +180,11 @@ async fn reject_too_big(
 
     let too_large = |content_length: usize| -> (StatusCode, String) {
         (StatusCode::PAYLOAD_TOO_LARGE, serde_json::json!({
-            "error": format!("Received: {content_length} bytes, maximum (specifiable via --request-body-size-limit): {payload_limit} bytes")
+            "error": {
+                "code": -1,
+                "message": format!("Request too big! Server received: {content_length} bytes; maximum (specifiable via --request-body-size-limit): {payload_limit} bytes"),
+                "data": null,
+            }
         }).to_string())
     };
 
