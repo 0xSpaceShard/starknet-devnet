@@ -16,7 +16,7 @@ blockifier = { workspace = true, features = ["testing"] }
 cairo-lang-starknet-classes = { workspace = true }
 clap = { workspace = true }
 ethers = { workspace = true }
-starknet_api = { workspace = true, features = ["testing"] }
+starknet_api = { workspace = true }
 thiserror = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
