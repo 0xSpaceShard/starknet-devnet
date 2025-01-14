@@ -81,7 +81,18 @@ async fn too_big_request_rejected_via_rpc() {
         .await
         .expect_err("Request should have been rejected");
 
-    assert_eq!(error.code, StatusCode::PAYLOAD_TOO_LARGE.as_u16() as i64);
+    assert_eq!(
+        error,
+        RpcError {
+            code: -1,
+            message: format!(
+                "Request too big! Server received: 1168 bytes; maximum (specifiable via \
+                 --request-body-size-limit): {limit} bytes"
+            )
+            .into(),
+            data: None
+        }
+    );
 
     // subtract enough so that the rest of the json body doesn't overflow the limit
     let nonexistent_path = "a".repeat(limit - 100);
