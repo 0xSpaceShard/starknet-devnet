@@ -1,5 +1,6 @@
 use axum::extract::{Query, State};
 use axum::Json;
+use serde::Deserialize;
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::{BlockTag, Felt};
 use starknet_types::contract_address::ContractAddress;
@@ -13,7 +14,7 @@ use crate::api::http::models::{
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 use crate::api::Api;
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct PredeployedAccountsQuery {
     pub with_balance: Option<bool>,
@@ -69,7 +70,7 @@ pub(crate) async fn get_predeployed_accounts_impl(
     Ok(predeployed_accounts)
 }
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BalanceQuery {
     address: Felt,

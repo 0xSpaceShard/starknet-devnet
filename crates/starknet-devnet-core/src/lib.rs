@@ -5,12 +5,12 @@ pub mod contract_class_choice;
 pub mod error;
 pub mod messaging;
 mod predeployed_accounts;
-pub mod raw_execution;
+mod raw_execution;
 pub mod starknet;
 mod state;
 mod system_contract;
 mod traits;
-pub mod transactions;
+mod transactions;
 pub use utils::random_number_generator;
 #[cfg(not(feature = "test_utils"))]
 mod utils;

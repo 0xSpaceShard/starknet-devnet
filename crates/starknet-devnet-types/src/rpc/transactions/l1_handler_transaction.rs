@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use blockifier::transaction::transactions::L1HandlerTransaction as BlockifierL1HandlerTransaction;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use starknet_api::core::{
     ContractAddress as ApiContractAddress, EntryPointSelector as ApiEntryPointSelector,
     Nonce as ApiNonce,
@@ -13,15 +13,15 @@ use starknet_api::transaction::{
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_core::types::Felt;
 
-use super::{deserialize_paid_fee_on_l1, serialize_paid_fee_on_l1};
+use super::serialize_paid_fee_on_l1;
 use crate::constants::PREFIX_L1_HANDLER;
 use crate::contract_address::ContractAddress;
 use crate::error::{ConversionError, DevnetResult, Error};
 use crate::felt::{try_felt_to_num, Calldata, EntryPointSelector, Nonce, TransactionVersion};
 use crate::rpc::messaging::MessageToL2;
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Default, Serialize, Eq, PartialEq)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct L1HandlerTransaction {
     pub version: TransactionVersion,
     pub nonce: Nonce,
@@ -30,7 +30,7 @@ pub struct L1HandlerTransaction {
     pub calldata: Calldata,
     #[serde(
         serialize_with = "serialize_paid_fee_on_l1",
-        deserialize_with = "deserialize_paid_fee_on_l1"
+        deserialize_with = "super::deserialize_paid_fee_on_l1"
     )]
     pub paid_fee_on_l1: u128,
 }
