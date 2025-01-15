@@ -10,12 +10,36 @@ use starknet_rs_signers::Signer;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{self, CAIRO_1_CONTRACT_PATH, INTEGRATION_SEPOLIA_HTTP_URL};
+use crate::common::errors::RpcError;
 use crate::common::fees::assert_difference_if_validation;
 use crate::common::utils::{
     assert_tx_successful, get_flattened_sierra_contract_and_casm_hash,
     get_simple_contract_in_sierra_and_compiled_class_hash, iter_to_hex_felt, to_hex_felt,
     to_num_as_hex,
 };
+
+trait SetGasPrice {
+    async fn set_gas_prices(
+        &self,
+        gas_prices: &serde_json::Value,
+        generate_block: bool,
+    ) -> Result<serde_json::Value, RpcError>;
+}
+
+impl SetGasPrice for BackgroundDevnet {
+    async fn set_gas_prices(
+        &self,
+        gas_specification: &serde_json::Value,
+        generate_block: bool,
+    ) -> Result<serde_json::Value, RpcError> {
+        let mut req_obj = gas_specification.clone();
+        if generate_block {
+            req_obj["generate_block"] = json!(true);
+        }
+
+        self.send_custom_rpc("devnet_setGasPrice", req_obj).await
+    }
+}
 
 /// Test scenario for gas modification involving simulateTransactions:
 /// 1. Execute simulateTransactions with a declare transaction and check gas fees.
@@ -112,21 +136,16 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: &str) {
 
     let wei_price = 9e18 as u128;
     let wei_price_data = 8e18 as u128;
+
     let gas_request = json!({
         "gas_price_wei": wei_price,
         "data_gas_price_wei": wei_price_data,
         "gas_price_fri": 7e18 as u128,
         "data_gas_price_fri": 6e18 as u128,
-        "generate_block": true,
     });
-    let gas_response = &devnet.send_custom_rpc("devnet_setGasPrice", gas_request).await.unwrap();
-    let expected_gas_response = json!({
-        "gas_price_wei": wei_price,
-        "data_gas_price_wei": wei_price_data,
-        "gas_price_fri": 7e18 as u128,
-        "data_gas_price_fri": 6e18 as u128,
-    });
-    assert_eq!(gas_response, &expected_gas_response);
+    let gas_response = &devnet.set_gas_prices(&gas_request, true).await.unwrap();
+
+    assert_eq!(gas_response, &gas_request);
 
     let chain_id = &devnet.send_custom_rpc("starknet_chainId", json!({})).await.unwrap();
     assert_eq!(chain_id, expected_chain_id);
@@ -183,11 +202,17 @@ async fn set_gas_check_blocks() {
     let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
     assert_eq!(latest_block.block_number, 0);
     assert_eq!(
-        latest_block.l1_gas_price,
-        ResourcePrice {
-            price_in_wei: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
-            price_in_fri: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
-        }
+        (latest_block.l1_gas_price, latest_block.l1_data_gas_price),
+        (
+            ResourcePrice {
+                price_in_wei: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+                price_in_fri: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+            },
+            ResourcePrice {
+                price_in_wei: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+                price_in_fri: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+            }
+        )
     );
 
     let wei_price_first_update = 9e18 as u128;
@@ -197,16 +222,9 @@ async fn set_gas_check_blocks() {
         "data_gas_price_wei": 8e18 as u128,
         "gas_price_fri": fri_price_first_update,
         "data_gas_price_fri": 6e18 as u128,
-        "generate_block": false,
     });
-    let gas_response = &devnet.send_custom_rpc("devnet_setGasPrice", gas_request).await.unwrap();
-    let expected_gas_response = json!({
-        "gas_price_wei": wei_price_first_update,
-        "data_gas_price_wei": 8e18 as u128,
-        "gas_price_fri": fri_price_first_update,
-        "data_gas_price_fri": 6e18 as u128,
-    });
-    assert_eq!(gas_response, &expected_gas_response);
+    let gas_response = devnet.set_gas_prices(&gas_request, false).await.unwrap();
+    assert_eq!(gas_response, gas_request);
 
     let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
     assert_eq!(latest_block.block_number, 0);
@@ -243,24 +261,18 @@ async fn set_gas_check_blocks() {
 
     let wei_price_second_update = 8e18 as u128;
     let fri_price_second_update = 6e18 as u128;
-    let gas_request = json!({
-        "gas_price_wei": wei_price_second_update,
-        "data_gas_price_wei": 7e18 as u128,
-        "gas_price_fri": fri_price_second_update,
-        "data_gas_price_fri": 5e18 as u128,
-        "generate_block": true,
-    });
-    let gas_response = &devnet.send_custom_rpc("devnet_setGasPrice", gas_request).await.unwrap();
-    let expected_gas_response = json!({
+    let gas_prices = json!({
         "gas_price_wei": wei_price_second_update,
         "data_gas_price_wei": 7e18 as u128,
         "gas_price_fri": fri_price_second_update,
         "data_gas_price_fri": 5e18 as u128,
     });
-    assert_eq!(gas_response, &expected_gas_response);
+    let gas_response = devnet.set_gas_prices(&gas_prices, true).await.unwrap();
+    assert_eq!(gas_response, gas_prices);
 
     let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
     assert_eq!(latest_block.block_number, 2);
+    // TODO expand assertion to data gas price
     assert_eq!(
         latest_block.l1_gas_price,
         ResourcePrice {
@@ -309,21 +321,14 @@ async fn unsuccessful_declare_set_gas_successful_declare() {
 
     let wei_price = 9e8 as u128;
     let fri_price = 7e8 as u128;
-    let gas_request = json!({
-        "gas_price_wei": 9e8 as u128,
-        "data_gas_price_wei": 8e8 as u128,
-        "gas_price_fri": 7e8 as u128,
-        "data_gas_price_fri": 6e8 as u128,
-        "generate_block": true,
-    });
-    let gas_response = &devnet.send_custom_rpc("devnet_setGasPrice", gas_request).await.unwrap();
-    let expected_gas_response = json!({
+    let gas_prices = json!({
         "gas_price_wei": 9e8 as u128,
         "data_gas_price_wei": 8e8 as u128,
         "gas_price_fri": 7e8 as u128,
         "data_gas_price_fri": 6e8 as u128,
     });
-    assert_eq!(gas_response, &expected_gas_response);
+    let gas_response = devnet.set_gas_prices(&gas_prices, true).await.unwrap();
+    assert_eq!(gas_response, gas_prices);
 
     let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
     assert_eq!(latest_block.block_number, 1);
@@ -357,15 +362,14 @@ async fn set_gas_optional_parameters() {
     );
 
     // set nothing, get initial gas information and assert
-    let gas_request = json!({ "generate_block": false });
-    let gas_response = &devnet.send_custom_rpc("devnet_setGasPrice", gas_request).await.unwrap();
+    let gas_response = devnet.set_gas_prices(&json!({}), false).await.unwrap();
     let expected_gas_response = json!({
             "gas_price_wei": DEVNET_DEFAULT_GAS_PRICE,
             "data_gas_price_wei": DEVNET_DEFAULT_GAS_PRICE,
             "gas_price_fri": DEVNET_DEFAULT_GAS_PRICE,
             "data_gas_price_fri": DEVNET_DEFAULT_GAS_PRICE,
     });
-    assert_eq!(gas_response, &expected_gas_response);
+    assert_eq!(gas_response, expected_gas_response);
 
     let gas_test_data = [
         ("gas_price_wei", 9e18 as u128),
@@ -375,12 +379,9 @@ async fn set_gas_optional_parameters() {
     ];
     for gas_parameter in gas_test_data.iter() {
         // Construct the JSON request dynamically based on the parameter
-        let optional_gas_request = json!({
-            gas_parameter.0: gas_parameter.1,
-            "generate_block": true,
-        });
-        let gas_response =
-            &devnet.send_custom_rpc("devnet_setGasPrice", optional_gas_request).await.unwrap();
+        let optional_gas_request = json!({ gas_parameter.0: gas_parameter.1 });
+
+        let gas_response = devnet.set_gas_prices(&optional_gas_request, true).await.unwrap();
 
         let value = gas_response[gas_parameter.0]
             .as_u64()
@@ -389,8 +390,7 @@ async fn set_gas_optional_parameters() {
     }
 
     // set nothing, get final gas information and assert
-    let gas_request = json!({ "generate_block": false });
-    let gas_response = &devnet.send_custom_rpc("devnet_setGasPrice", gas_request).await.unwrap();
+    let gas_response = devnet.set_gas_prices(&json!({}), false).await.unwrap();
     let expected_gas_response = json!({
         "gas_price_wei": 9e18 as u128,
         "data_gas_price_wei": 8e18 as u128,
@@ -398,5 +398,5 @@ async fn set_gas_optional_parameters() {
         "data_gas_price_fri": 6e18 as u128,
     });
 
-    assert_eq!(gas_response, &expected_gas_response);
+    assert_eq!(gas_response, expected_gas_response);
 }
