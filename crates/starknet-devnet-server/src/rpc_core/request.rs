@@ -84,7 +84,8 @@ pub enum RpcCall {
 }
 
 /// Represents a JSON-RPC request.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+#[cfg_attr(test, derive(Serialize))]
 #[serde(deny_unknown_fields)]
 #[serde(untagged)]
 pub enum Request {

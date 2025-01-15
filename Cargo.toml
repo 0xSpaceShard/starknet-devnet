@@ -25,6 +25,13 @@ exclude = [".github/**", ".devcontainer/**", ".circleci/**"]
 
 keywords = ["starknet", "cairo", "testnet", "local", "server"]
 
+[workspace.lints.clippy]
+unwrap-used = "deny"
+expect-used = "deny"
+
+[workspace.lints.rust]
+dead-code = "warn"
+
 
 [workspace.dependencies]
 

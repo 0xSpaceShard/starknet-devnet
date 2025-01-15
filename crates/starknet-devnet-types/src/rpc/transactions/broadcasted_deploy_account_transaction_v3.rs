@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use starknet_api::core::calculate_contract_address;
 use starknet_rs_crypto::poseidon_hash_many;
 use starknet_types_core::felt::Felt;
@@ -11,7 +11,7 @@ use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
 use crate::felt::{Calldata, ClassHash, ContractAddressSalt};
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedDeployAccountTransactionV3 {
     #[serde(flatten)]
