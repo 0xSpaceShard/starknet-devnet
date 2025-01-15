@@ -119,8 +119,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: &str) {
         "data_gas_price_fri": 6e18 as u128,
         "generate_block": true,
     });
-    let gas_response =
-        &devnet.send_custom_rpc("devnet_setGasPrice", gas_request.clone()).await.unwrap();
+    let gas_response = &devnet.send_custom_rpc("devnet_setGasPrice", gas_request).await.unwrap();
     let expected_gas_response = json!({
         "gas_price_wei": wei_price,
         "data_gas_price_wei": wei_price_data,
@@ -200,8 +199,7 @@ async fn set_gas_check_blocks() {
         "data_gas_price_fri": 6e18 as u128,
         "generate_block": false,
     });
-    let gas_response =
-        &devnet.send_custom_rpc("devnet_setGasPrice", gas_request.clone()).await.unwrap();
+    let gas_response = &devnet.send_custom_rpc("devnet_setGasPrice", gas_request).await.unwrap();
     let expected_gas_response = json!({
         "gas_price_wei": wei_price_first_update,
         "data_gas_price_wei": 8e18 as u128,
@@ -252,8 +250,7 @@ async fn set_gas_check_blocks() {
         "data_gas_price_fri": 5e18 as u128,
         "generate_block": true,
     });
-    let gas_response =
-        &devnet.send_custom_rpc("devnet_setGasPrice", gas_request.clone()).await.unwrap();
+    let gas_response = &devnet.send_custom_rpc("devnet_setGasPrice", gas_request).await.unwrap();
     let expected_gas_response = json!({
         "gas_price_wei": wei_price_second_update,
         "data_gas_price_wei": 7e18 as u128,
@@ -319,8 +316,7 @@ async fn unsuccessful_declare_set_gas_successful_declare() {
         "data_gas_price_fri": 6e8 as u128,
         "generate_block": true,
     });
-    let gas_response =
-        &devnet.send_custom_rpc("devnet_setGasPrice", gas_request.clone()).await.unwrap();
+    let gas_response = &devnet.send_custom_rpc("devnet_setGasPrice", gas_request).await.unwrap();
     let expected_gas_response = json!({
         "gas_price_wei": 9e8 as u128,
         "data_gas_price_wei": 8e8 as u128,
@@ -361,11 +357,8 @@ async fn set_gas_optional_parameters() {
     );
 
     // set nothing, get initial gas information and assert
-    let gas_request = json!({
-        "generate_block": false,
-    });
-    let gas_response =
-        &devnet.send_custom_rpc("devnet_setGasPrice", gas_request.clone()).await.unwrap();
+    let gas_request = json!({ "generate_block": false });
+    let gas_response = &devnet.send_custom_rpc("devnet_setGasPrice", gas_request).await.unwrap();
     let expected_gas_response = json!({
             "gas_price_wei": DEVNET_DEFAULT_GAS_PRICE,
             "data_gas_price_wei": DEVNET_DEFAULT_GAS_PRICE,
@@ -386,10 +379,8 @@ async fn set_gas_optional_parameters() {
             gas_parameter.0: gas_parameter.1,
             "generate_block": true,
         });
-        let gas_response = &devnet
-            .send_custom_rpc("devnet_setGasPrice", optional_gas_request.clone())
-            .await
-            .unwrap();
+        let gas_response =
+            &devnet.send_custom_rpc("devnet_setGasPrice", optional_gas_request).await.unwrap();
 
         let value = gas_response[gas_parameter.0]
             .as_u64()
@@ -398,11 +389,8 @@ async fn set_gas_optional_parameters() {
     }
 
     // set nothing, get final gas information and assert
-    let gas_request = json!({
-        "generate_block": false,
-    });
-    let gas_response =
-        &devnet.send_custom_rpc("devnet_setGasPrice", gas_request.clone()).await.unwrap();
+    let gas_request = json!({ "generate_block": false });
+    let gas_response = &devnet.send_custom_rpc("devnet_setGasPrice", gas_request).await.unwrap();
     let expected_gas_response = json!({
         "gas_price_wei": 9e18 as u128,
         "data_gas_price_wei": 8e18 as u128,
