@@ -208,9 +208,9 @@ impl BackgroundDevnet {
                 };
 
                 if let Ok(err_val) = serde_json::from_str::<serde_json::Value>(&err_msg) {
-                    if let Some(e) = err_val.get("error").cloned() {
-                        if let Ok(e) = serde_json::from_value::<RpcError>(e) {
-                            return e;
+                    if let Some(err_prop) = err_val.get("error").cloned() {
+                        if let Ok(rpc_error) = serde_json::from_value::<RpcError>(err_prop) {
+                            return rpc_error;
                         }
                     }
                 }
