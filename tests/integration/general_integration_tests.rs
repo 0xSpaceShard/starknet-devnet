@@ -48,9 +48,8 @@ async fn too_big_request_rejected_via_non_rpc() {
         serde_json::from_str::<serde_json::Value>(&err.error_message()).unwrap(),
         json!({
             "error": {
-                "code": -1,
+                "code": -32600,
                 "message": format!("Request too big! Server received: 1111 bytes; maximum (specifiable via --request-body-size-limit): {limit} bytes"),
-                "data": null
             }
         })
     );
@@ -84,7 +83,7 @@ async fn too_big_request_rejected_via_rpc() {
     assert_eq!(
         error,
         RpcError {
-            code: -1,
+            code: -32600,
             message: format!(
                 "Request too big! Server received: 1168 bytes; maximum (specifiable via \
                  --request-body-size-limit): {limit} bytes"

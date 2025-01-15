@@ -158,7 +158,7 @@ impl BackgroundDevnet {
         let safe_process = SafeChild { process };
 
         let sleep_time = time::Duration::from_millis(500);
-        let max_retries = 40;
+        let max_retries = 60;
         let port = get_acquired_port(safe_process.id(), sleep_time, max_retries)
             .await
             .map_err(|e| TestError::DevnetNotStartable(format!("Cannot determine port: {e:?}")))?;
@@ -198,6 +198,7 @@ impl BackgroundDevnet {
             body_json["params"] = params;
         }
 
+        // Convert HTTP error to RPC error; panic if not possible.
         let json_rpc_result: serde_json::Value =
             self.reqwest_client().post_json_async(RPC_PATH, body_json).await.map_err(|err| {
                 let err_msg = err.error_message();
