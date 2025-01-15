@@ -13,7 +13,7 @@ use crate::common::constants::{self, CAIRO_1_CONTRACT_PATH, INTEGRATION_SEPOLIA_
 use crate::common::errors::RpcError;
 use crate::common::fees::assert_difference_if_validation;
 use crate::common::utils::{
-    assert_tx_successful, get_flattened_sierra_contract_and_casm_hash,
+    assert_tx_successful, felt_to_u128, get_flattened_sierra_contract_and_casm_hash,
     get_simple_contract_in_sierra_and_compiled_class_hash, iter_to_hex_felt, to_hex_felt,
     to_num_as_hex,
 };
@@ -199,29 +199,25 @@ async fn set_gas_fork() {
 async fn set_gas_check_blocks() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
+    // First update - don't generate new block
     let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
     assert_eq!(latest_block.block_number, 0);
-    assert_eq!(
-        (latest_block.l1_gas_price, latest_block.l1_data_gas_price),
-        (
-            ResourcePrice {
-                price_in_wei: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
-                price_in_fri: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
-            },
-            ResourcePrice {
-                price_in_wei: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
-                price_in_fri: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
-            }
-        )
-    );
+    let default_gas_price = ResourcePrice {
+        price_in_wei: u128::from(DEVNET_DEFAULT_GAS_PRICE).into(),
+        price_in_fri: u128::from(DEVNET_DEFAULT_GAS_PRICE).into(),
+    };
+    assert_eq!(latest_block.l1_gas_price, default_gas_price);
+    assert_eq!(latest_block.l1_data_gas_price, default_gas_price);
 
-    let wei_price_first_update = 9e18 as u128;
-    let fri_price_first_update = 7e18 as u128;
+    let first_update_gas_price =
+        ResourcePrice { price_in_wei: (9e18 as u128).into(), price_in_fri: (7e18 as u128).into() };
+    let first_update_data_gas_price =
+        ResourcePrice { price_in_fri: (8e18 as u128).into(), price_in_wei: (6e18 as u128).into() };
     let gas_request = json!({
-        "gas_price_wei": wei_price_first_update,
-        "data_gas_price_wei": 8e18 as u128,
-        "gas_price_fri": fri_price_first_update,
-        "data_gas_price_fri": 6e18 as u128,
+        "gas_price_wei": felt_to_u128(first_update_gas_price.price_in_wei),
+        "data_gas_price_wei": felt_to_u128(first_update_data_gas_price.price_in_wei),
+        "gas_price_fri": felt_to_u128(first_update_gas_price.price_in_fri),
+        "data_gas_price_fri": felt_to_u128(first_update_data_gas_price.price_in_fri),
     });
     let gas_response = devnet.set_gas_prices(&gas_request, false).await.unwrap();
     assert_eq!(gas_response, gas_request);
@@ -230,65 +226,40 @@ async fn set_gas_check_blocks() {
     assert_eq!(latest_block.block_number, 0);
 
     let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
-    assert_eq!(
-        pending_block.l1_gas_price,
-        ResourcePrice {
-            price_in_wei: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
-            price_in_fri: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
-        }
-    );
+    assert_eq!(pending_block.l1_gas_price, default_gas_price);
 
     devnet.create_block().await.unwrap();
 
     let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
-    assert_eq!(
-        pending_block.l1_gas_price,
-        ResourcePrice {
-            price_in_wei: Felt::from(wei_price_first_update),
-            price_in_fri: Felt::from(fri_price_first_update),
-        }
-    );
+    assert_eq!(pending_block.l1_gas_price, first_update_gas_price);
+    assert_eq!(pending_block.l1_data_gas_price, first_update_data_gas_price);
 
     let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
     assert_eq!(latest_block.block_number, 1);
-    assert_eq!(
-        latest_block.l1_gas_price,
-        ResourcePrice {
-            price_in_wei: Felt::from(wei_price_first_update),
-            price_in_fri: Felt::from(fri_price_first_update),
-        }
-    );
+    assert_eq!(latest_block.l1_gas_price, first_update_gas_price);
 
-    let wei_price_second_update = 8e18 as u128;
-    let fri_price_second_update = 6e18 as u128;
+    // Second update - generate new block
+    let second_update_gas_price =
+        ResourcePrice { price_in_fri: (8e18 as u128).into(), price_in_wei: (6e18 as u128).into() };
+    let second_update_data_gas_price =
+        ResourcePrice { price_in_fri: (7e18 as u128).into(), price_in_wei: (5e18 as u128).into() };
     let gas_prices = json!({
-        "gas_price_wei": wei_price_second_update,
-        "data_gas_price_wei": 7e18 as u128,
-        "gas_price_fri": fri_price_second_update,
-        "data_gas_price_fri": 5e18 as u128,
+        "gas_price_wei": felt_to_u128(second_update_gas_price.price_in_wei),
+        "data_gas_price_wei": felt_to_u128(second_update_data_gas_price.price_in_wei),
+        "gas_price_fri": felt_to_u128(second_update_gas_price.price_in_fri),
+        "data_gas_price_fri": felt_to_u128(second_update_data_gas_price.price_in_fri),
     });
     let gas_response = devnet.set_gas_prices(&gas_prices, true).await.unwrap();
     assert_eq!(gas_response, gas_prices);
 
     let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
     assert_eq!(latest_block.block_number, 2);
-    // TODO expand assertion to data gas price
-    assert_eq!(
-        latest_block.l1_gas_price,
-        ResourcePrice {
-            price_in_wei: Felt::from(wei_price_second_update),
-            price_in_fri: Felt::from(fri_price_second_update),
-        }
-    );
+    assert_eq!(latest_block.l1_gas_price, second_update_gas_price);
+    assert_eq!(latest_block.l1_data_gas_price, second_update_data_gas_price);
 
     let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
-    assert_eq!(
-        pending_block.l1_gas_price,
-        ResourcePrice {
-            price_in_wei: Felt::from(wei_price_second_update),
-            price_in_fri: Felt::from(fri_price_second_update),
-        }
-    );
+    assert_eq!(pending_block.l1_gas_price, second_update_gas_price,);
+    assert_eq!(pending_block.l1_data_gas_price, second_update_data_gas_price,);
 }
 
 #[tokio::test]

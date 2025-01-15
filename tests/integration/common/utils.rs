@@ -322,6 +322,11 @@ pub fn felt_to_u256(f: Felt) -> U256 {
     U256::from_big_endian(&f.to_bytes_be())
 }
 
+pub fn felt_to_u128(f: Felt) -> u128 {
+    let bigint = f.to_bigint();
+    bigint.try_into().unwrap()
+}
+
 pub fn get_gas_units_and_gas_price(fee_estimate: FeeEstimate) -> (u64, u128) {
     let gas_price =
         u128::from_le_bytes(fee_estimate.gas_price.to_bytes_le()[0..16].try_into().unwrap());
