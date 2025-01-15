@@ -20,6 +20,11 @@ const DUMMY_AMOUNT: u128 = 1;
 // buffer should be always lower than the time change that we are testing
 const BUFFER_TIME_SECONDS: u64 = 30;
 
+async fn sleep_until_new_timestamp() {
+    // Sometimes sleeping for 1 second isn't enough.
+    tokio::time::sleep(time::Duration::from_millis(1100)).await
+}
+
 /// Set time and generate a new block
 /// Returns the block timestamp of the newly generated block
 pub async fn set_time_fn(devnet: &BackgroundDevnet, time: u64) -> u64 {
@@ -152,8 +157,7 @@ async fn timestamp_syscall_increase_time() {
     let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
     assert_ge_with_buffer(current_timestamp, now + increase_time);
 
-    // wait 1 second, mine block
-    tokio::time::sleep(time::Duration::from_secs(1)).await;
+    sleep_until_new_timestamp().await;
     devnet.create_block().await.unwrap();
 
     // check if timestamp is greater
@@ -169,8 +173,7 @@ async fn timestamp_syscall_contract_constructor() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
     let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
 
-    // wait 1 second
-    tokio::time::sleep(time::Duration::from_secs(1)).await;
+    sleep_until_new_timestamp().await;
 
     // check constructor set of timestamp
     let call_storage_timestamp = FunctionCall {
@@ -188,8 +191,7 @@ async fn timestamp_syscall_contract_constructor() {
         .unwrap();
     assert_gt_with_buffer(storage_timestamp, now);
 
-    // wait 1 second and mine block
-    tokio::time::sleep(time::Duration::from_secs(1)).await;
+    sleep_until_new_timestamp().await;
     devnet.create_block().await.unwrap();
 
     // check if current timestamp > storage timestamp and now
@@ -243,16 +245,14 @@ async fn set_time_in_past(devnet: &BackgroundDevnet) {
     let set_time_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
     assert_ge_with_buffer(set_time_block.timestamp, past_time);
 
-    // wait 1 second
-    tokio::time::sleep(time::Duration::from_secs(1)).await;
+    sleep_until_new_timestamp().await;
 
     // create block and check if block_timestamp > past_time, check if inside buffer limit
     devnet.create_block().await.unwrap();
     let empty_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
     assert_gt_with_buffer(empty_block.timestamp, past_time);
 
-    // wait 1 second
-    tokio::time::sleep(time::Duration::from_secs(1)).await;
+    sleep_until_new_timestamp().await;
 
     // check if after create block timestamp > last block, check if inside buffer limit
     devnet.create_block().await.unwrap();
@@ -285,16 +285,14 @@ async fn set_time_in_future(devnet: &BackgroundDevnet) {
     let set_time_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
     assert_ge_with_buffer(set_time_block.timestamp, future_time);
 
-    // wait 1 second
-    tokio::time::sleep(time::Duration::from_secs(1)).await;
+    sleep_until_new_timestamp().await;
 
     // create block and check if block_timestamp > future_time, check if inside buffer limit
     devnet.create_block().await.unwrap();
     let empty_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
     assert_gt_with_buffer(empty_block.timestamp, future_time);
 
-    // wait 1 second
-    tokio::time::sleep(time::Duration::from_secs(1)).await;
+    sleep_until_new_timestamp().await;
 
     // check if after create block timestamp > last empty block, check if inside buffer limit
     devnet.create_block().await.unwrap();
@@ -360,8 +358,7 @@ async fn increase_time() {
         now + first_increase_time + second_increase_time,
     );
 
-    // wait 1 second
-    tokio::time::sleep(time::Duration::from_secs(1)).await;
+    sleep_until_new_timestamp().await;
 
     // create block and check again if block_timestamp > last block, check if
     // inside buffer limit
@@ -369,8 +366,7 @@ async fn increase_time() {
     let empty_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
     assert_gt_with_buffer(empty_block.timestamp, second_increase_time_block.timestamp);
 
-    // wait 1 second
-    tokio::time::sleep(time::Duration::from_secs(1)).await;
+    sleep_until_new_timestamp().await;
 
     // check if after mint timestamp > last block, check if inside buffer limit
     devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
@@ -479,8 +475,7 @@ async fn advance_time_combination_test_with_dump_and_load() {
     let set_time_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
     assert_ge_with_buffer(set_time_block.timestamp, now);
 
-    // wait 1 second
-    tokio::time::sleep(time::Duration::from_secs(1)).await;
+    sleep_until_new_timestamp().await;
 
     // create a new empty block and check again if block timestamp > set_time_block, check if
     // inside buffer limit
@@ -498,8 +493,7 @@ async fn advance_time_combination_test_with_dump_and_load() {
         empty_block.timestamp + third_increase_time,
     );
 
-    // wait 1 second
-    tokio::time::sleep(time::Duration::from_secs(1)).await;
+    sleep_until_new_timestamp().await;
 
     // check if the last block timestamp is > previous block, check if inside buffer limit
     devnet.create_block().await.unwrap();
@@ -546,8 +540,7 @@ async fn set_time_with_later_block_generation() {
     assert_eq!(resp_body_set_time["block_timestamp"], past_time);
     assert!(resp_body_set_time["block_hash"].is_null());
 
-    // wait 1 second
-    tokio::time::sleep(time::Duration::from_secs(1)).await;
+    sleep_until_new_timestamp().await;
 
     // create block and assert
     devnet.create_block().await.unwrap();
@@ -580,9 +573,8 @@ async fn correct_pending_block_timestamp_after_setting() {
     let block = devnet.get_pending_block_with_txs().await.unwrap();
     assert_eq!(block.timestamp, initial_time);
 
-    // wait 1 second and send a dummy tx to create a new block
-    tokio::time::sleep(time::Duration::from_secs(1)).await;
-    devnet.mint(Felt::ONE, 1).await;
+    sleep_until_new_timestamp().await;
+    devnet.create_block().await.unwrap();
 
     let block = devnet.get_pending_block_with_txs().await.unwrap();
     assert_gt_with_buffer(block.timestamp, initial_time);
