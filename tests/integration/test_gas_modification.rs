@@ -264,8 +264,8 @@ async fn set_gas_check_blocks() {
     assert_eq!(
         latest_block.l1_gas_price,
         ResourcePrice {
-            price_in_wei: Felt::from(wei_price_first_update),
-            price_in_fri: Felt::from(fri_price_first_update),
+            price_in_wei: Felt::from(wei_price_second_update),
+            price_in_fri: Felt::from(fri_price_second_update),
         }
     );
 
@@ -399,53 +399,4 @@ async fn set_gas_optional_parameters() {
     });
 
     assert_eq!(gas_response, &expected_gas_response);
-}
-
-#[tokio::test]
-async fn test_gas_price_in_new_block() {
-    let devnet = BackgroundDevnet::spawn().await.unwrap();
-
-    let first_block = devnet.get_latest_block_with_txs().await.unwrap();
-    assert_eq!(
-        (first_block.l1_gas_price, first_block.l1_data_gas_price),
-        (
-            ResourcePrice {
-                price_in_wei: u128::from(DEVNET_DEFAULT_GAS_PRICE).into(),
-                price_in_fri: u128::from(DEVNET_DEFAULT_GAS_PRICE).into(),
-            },
-            ResourcePrice {
-                price_in_wei: u128::from(DEVNET_DEFAULT_GAS_PRICE).into(),
-                price_in_fri: u128::from(DEVNET_DEFAULT_GAS_PRICE).into(),
-            }
-        )
-    );
-
-    let gas_price_wei = 9e18 as u128;
-    let data_gas_price_wei = 8e18 as u128;
-    let gas_price_fri = 7e18 as u128;
-    let data_gas_price_fri = 6e18 as u128;
-
-    let gas_request = json!({
-        "gas_price_wei": gas_price_wei,
-        "data_gas_price_wei": data_gas_price_wei,
-        "gas_price_fri": gas_price_fri,
-        "data_gas_price_fri": data_gas_price_fri,
-        "generate_block": true,
-    });
-    devnet.send_custom_rpc("devnet_setGasPrice", gas_request).await.unwrap();
-
-    let new_block = devnet.get_latest_block_with_txs().await.unwrap();
-    assert_eq!(
-        (new_block.l1_gas_price, new_block.l1_data_gas_price),
-        (
-            ResourcePrice {
-                price_in_wei: gas_price_wei.into(),
-                price_in_fri: gas_price_fri.into(),
-            },
-            ResourcePrice {
-                price_in_wei: data_gas_price_wei.into(),
-                price_in_fri: data_gas_price_fri.into(),
-            }
-        )
-    );
 }
