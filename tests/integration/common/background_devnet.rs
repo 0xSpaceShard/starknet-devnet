@@ -158,7 +158,7 @@ impl BackgroundDevnet {
         let safe_process = SafeChild { process };
 
         let sleep_time = time::Duration::from_millis(500);
-        let max_retries = 40;
+        let max_retries = 60;
         let port = get_acquired_port(safe_process.id(), sleep_time, max_retries)
             .await
             .map_err(|e| TestError::DevnetNotStartable(format!("Cannot determine port: {e:?}")))?;
