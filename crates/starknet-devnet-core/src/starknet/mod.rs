@@ -326,6 +326,17 @@ impl Starknet {
         let mut new_block = self.pending_block().clone();
         let new_block_number = self.blocks.next_block_number();
 
+        // TODO antipattern: why not store the whole next block header instead of storing separate
+        // properties?
+        new_block.header.l1_gas_price.price_in_fri =
+            GasPrice(self.next_block_gas.gas_price_fri.into());
+        new_block.header.l1_gas_price.price_in_wei =
+            GasPrice(self.next_block_gas.gas_price_wei.into());
+        new_block.header.l1_data_gas_price.price_in_fri =
+            GasPrice(self.next_block_gas.data_gas_price_fri.into());
+        new_block.header.l1_data_gas_price.price_in_wei =
+            GasPrice(self.next_block_gas.data_gas_price_wei.into());
+
         // set new block header
         new_block.set_block_hash(if self.config.lite_mode {
             BlockHash::from_hex(&format!("{:#x}", new_block_number.0))?

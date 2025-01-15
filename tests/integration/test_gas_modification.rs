@@ -254,8 +254,8 @@ async fn set_gas_check_blocks() {
     assert_eq!(
         latest_block.l1_gas_price,
         ResourcePrice {
-            price_in_wei: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
-            price_in_fri: Felt::from(u128::from(DEVNET_DEFAULT_GAS_PRICE)),
+            price_in_wei: Felt::from(wei_price_first_update),
+            price_in_fri: Felt::from(fri_price_first_update),
         }
     );
 
