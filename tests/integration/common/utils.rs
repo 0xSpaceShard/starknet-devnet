@@ -322,6 +322,7 @@ pub fn felt_to_u256(f: Felt) -> U256 {
     U256::from_big_endian(&f.to_bytes_be())
 }
 
+/// Unchecked conversion
 pub fn felt_to_u128(f: Felt) -> u128 {
     let bigint = f.to_bigint();
     bigint.try_into().unwrap()
