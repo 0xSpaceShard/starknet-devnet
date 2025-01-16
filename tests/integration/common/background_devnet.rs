@@ -64,15 +64,22 @@ fn get_devnet_command() -> Command {
 }
 
 async fn get_acquired_port(
-    pid: u32,
+    process: &mut SafeChild,
     sleep_time: time::Duration,
     max_retries: usize,
 ) -> Result<u16, anyhow::Error> {
+    let pid = process.id();
     for _ in 0..max_retries {
         if let Ok(ports) = listeners::get_ports_by_pid(pid) {
             if ports.len() == 1 {
                 return Ok(ports.into_iter().next().unwrap());
             }
+        }
+
+        if let Ok(Some(status)) = process.process.try_wait() {
+            return Err(anyhow::Error::msg(format!(
+                "Background Devnet process exited with status {status}"
+            )));
         }
 
         tokio::time::sleep(sleep_time).await;
@@ -155,11 +162,11 @@ impl BackgroundDevnet {
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .map_err(|e| TestError::DevnetNotStartable(format!("Spawning error: {e:?}")))?;
-        let safe_process = SafeChild { process };
+        let mut safe_process = SafeChild { process };
 
         let sleep_time = time::Duration::from_millis(500);
         let max_retries = 60;
-        let port = get_acquired_port(safe_process.id(), sleep_time, max_retries)
+        let port = get_acquired_port(&mut safe_process, sleep_time, max_retries)
             .await
             .map_err(|e| TestError::DevnetNotStartable(format!("Cannot determine port: {e:?}")))?;
 
