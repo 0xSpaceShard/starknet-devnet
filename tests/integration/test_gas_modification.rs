@@ -198,13 +198,14 @@ async fn set_gas_fork() {
 async fn set_gas_check_blocks() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-    // First update - don't generate new block
-    let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
-    assert_eq!(latest_block.block_number, 0);
     let default_gas_price = ResourcePrice {
         price_in_wei: u128::from(DEVNET_DEFAULT_GAS_PRICE).into(),
         price_in_fri: u128::from(DEVNET_DEFAULT_GAS_PRICE).into(),
     };
+
+    // First update - don't generate new block
+    let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
+    assert_eq!(latest_block.block_number, 0);
     assert_eq!(latest_block.l1_gas_price, default_gas_price);
     assert_eq!(latest_block.l1_data_gas_price, default_gas_price);
 
@@ -226,6 +227,7 @@ async fn set_gas_check_blocks() {
 
     let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
     assert_eq!(pending_block.l1_gas_price, default_gas_price);
+    assert_eq!(pending_block.l1_data_gas_price, default_gas_price);
 
     devnet.create_block().await.unwrap();
 
@@ -236,6 +238,7 @@ async fn set_gas_check_blocks() {
     let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
     assert_eq!(latest_block.block_number, 1);
     assert_eq!(latest_block.l1_gas_price, first_update_gas_price);
+    assert_eq!(latest_block.l1_data_gas_price, first_update_data_gas_price);
 
     // Second update - generate new block
     let second_update_gas_price =
@@ -353,11 +356,8 @@ async fn set_gas_optional_parameters() {
     for (gas_prop, gas_price) in expected_final_gas_price.as_object().unwrap() {
         // Construct the JSON request dynamically based on the parameter
         let optional_gas_request = json!({ gas_prop: gas_price });
-
         let gas_response = devnet.set_gas_price(&optional_gas_request, true).await.unwrap();
-
-        let resp_price = &gas_response[gas_prop];
-        assert_eq!(resp_price, gas_price);
+        assert_eq!(&gas_response[gas_prop], gas_price);
     }
 
     // set nothing, get final gas information and assert

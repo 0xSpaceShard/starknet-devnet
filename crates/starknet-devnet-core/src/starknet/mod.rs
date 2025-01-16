@@ -324,10 +324,9 @@ impl Starknet {
     /// Generates new pending block. Same for pending state. Returns the new block hash.
     pub(crate) fn generate_new_block_and_state(&mut self) -> DevnetResult<Felt> {
         let mut new_block = self.pending_block().clone();
-        let new_block_number = self.blocks.next_block_number();
 
-        // TODO antipattern: why not store the whole next block header instead of storing separate
-        // properties?
+        // Set new block header
+        // TODO why not store the whole next block header instead of storing separate properties?
         new_block.header.l1_gas_price.price_in_fri =
             GasPrice(self.next_block_gas.gas_price_fri.into());
         new_block.header.l1_gas_price.price_in_wei =
@@ -337,9 +336,9 @@ impl Starknet {
         new_block.header.l1_data_gas_price.price_in_wei =
             GasPrice(self.next_block_gas.data_gas_price_wei.into());
 
-        // set new block header
+        let new_block_number = self.blocks.next_block_number();
         new_block.set_block_hash(if self.config.lite_mode {
-            BlockHash::from_hex(&format!("{:#x}", new_block_number.0))?
+            BlockHash::from(new_block_number.0)
         } else {
             new_block.generate_hash()?
         });
