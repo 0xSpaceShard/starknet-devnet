@@ -103,6 +103,39 @@ pub struct JsonRpcHandler {
     pub server_config: ServerConfig,
 }
 
+fn log_if_deprecated_tx(request: &JsonRpcRequest) {
+    let deprecated_tx = match request {
+        JsonRpcRequest::AddDeclareTransaction(BroadcastedDeclareTransactionInput {
+            declare_transaction: BroadcastedDeclareTransactionEnumWrapper::Declare(tx),
+        }) => match tx {
+            starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V1(_) => true,
+            starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V2(_) => true,
+            starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V3(_) => false,
+        },
+        JsonRpcRequest::AddDeployAccountTransaction(BroadcastedDeployAccountTransactionInput {
+            deploy_account_transaction:
+                BroadcastedDeployAccountTransactionEnumWrapper::DeployAccount(tx),
+        }) => match tx {
+            starknet_types::rpc::transactions::BroadcastedDeployAccountTransaction::V1(_) => true,
+            starknet_types::rpc::transactions::BroadcastedDeployAccountTransaction::V3(_) => false,
+        },
+        JsonRpcRequest::AddInvokeTransaction(BroadcastedInvokeTransactionInput {
+            invoke_transaction: BroadcastedInvokeTransactionEnumWrapper::Invoke(tx),
+        }) => match tx {
+            starknet_types::rpc::transactions::BroadcastedInvokeTransaction::V1(_) => true,
+            starknet_types::rpc::transactions::BroadcastedInvokeTransaction::V3(_) => false,
+        },
+        _ => false,
+    };
+
+    if deprecated_tx {
+        tracing::warn!(
+            "Received a transaction of a deprecated version! Please modify or upgrade your \
+             Starknet client to use v3 transactions."
+        );
+    }
+}
+
 #[async_trait::async_trait]
 impl RpcHandler for JsonRpcHandler {
     type Request = JsonRpcRequest;
@@ -116,6 +149,8 @@ impl RpcHandler for JsonRpcHandler {
 
         let is_request_forwardable = request.is_forwardable_to_origin(); // applicable if forking
         let is_request_dumpable = request.is_dumpable();
+
+        log_if_deprecated_tx(&request);
 
         let starknet_resp = self.execute(request).await;
 
