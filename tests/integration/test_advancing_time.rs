@@ -22,7 +22,7 @@ const BUFFER_TIME_SECONDS: u64 = 30;
 
 async fn sleep_until_new_timestamp() {
     // Sometimes sleeping for 1 second isn't enough.
-    tokio::time::sleep(time::Duration::from_millis(1100)).await
+    tokio::time::sleep(time::Duration::from_millis(1500)).await
 }
 
 /// Set time and generate a new block
