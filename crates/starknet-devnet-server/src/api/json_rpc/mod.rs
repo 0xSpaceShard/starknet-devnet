@@ -104,7 +104,7 @@ pub struct JsonRpcHandler {
 }
 
 fn log_if_deprecated_tx(request: &JsonRpcRequest) {
-    let deprecated_tx = match request {
+    let is_deprecated_tx = match request {
         JsonRpcRequest::AddDeclareTransaction(BroadcastedDeclareTransactionInput {
             declare_transaction: BroadcastedDeclareTransactionEnumWrapper::Declare(tx),
         }) => match tx {
@@ -128,7 +128,7 @@ fn log_if_deprecated_tx(request: &JsonRpcRequest) {
         _ => false,
     };
 
-    if deprecated_tx {
+    if is_deprecated_tx {
         tracing::warn!(
             "Received a transaction of a deprecated version! Please modify or upgrade your \
              Starknet client to use v3 transactions."
