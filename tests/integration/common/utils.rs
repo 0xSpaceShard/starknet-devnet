@@ -291,7 +291,7 @@ pub async fn deploy_argent_account(
     let factory = ArgentAccountFactory::new(
         Felt::from_hex(ARGENT_ACCOUNT_CLASS_HASH)?,
         devnet.json_rpc_client.chain_id().await?,
-        Felt::ZERO,
+        None,
         signer.clone(),
         devnet.clone_provider(),
     )
