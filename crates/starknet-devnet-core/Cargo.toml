@@ -37,6 +37,8 @@ parking_lot = { workspace = true }
 # necessary for installing reqwest in Docker
 openssl = { workspace = true }
 
+cargo-platform = { workspace = true }
+
 [dev-dependencies]
 hex = { workspace = true }
 starknet-types = { workspace = true, features = ["testing"] }
@@ -48,4 +50,5 @@ test_utils = []
 ignored = [
     # read note above
     "openssl",
+    "cargo-platform"
 ]
