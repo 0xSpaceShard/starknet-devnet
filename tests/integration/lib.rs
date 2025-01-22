@@ -1,7 +1,7 @@
 #![cfg(test)]
+#![allow(deprecated)]
 
 mod common;
-
 mod general_integration_tests;
 mod general_rpc_tests;
 mod get_transaction_by_block_id_and_index;
