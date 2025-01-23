@@ -1,7 +1,8 @@
 #![cfg(test)]
-#![allow(deprecated)]
+#![allow(deprecated)] // TODO until v1 and v2 transactions are replaced with v3
 
 mod common;
+
 mod general_integration_tests;
 mod general_rpc_tests;
 mod get_transaction_by_block_id_and_index;
