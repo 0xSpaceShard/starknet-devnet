@@ -268,18 +268,20 @@ impl StarknetTransaction {
 
 #[cfg(test)]
 mod tests {
+    use blockifier::state::cached_state::CachedState;
     use blockifier::transaction::objects::TransactionExecutionInfo;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::rpc::transactions::{TransactionTrace, TransactionWithHash};
 
     use super::{StarknetTransaction, StarknetTransactions};
     use crate::starknet::transaction_trace::create_trace;
+    use crate::state::state_readers::DictState;
     use crate::traits::HashIdentifiedMut;
     use crate::utils::test_utils::dummy_declare_transaction_v1;
 
     fn dummy_trace(tx: &TransactionWithHash) -> TransactionTrace {
         create_trace(
-            &mut Default::default(),
+            &mut CachedState::<DictState>::new(Default::default()),
             tx.get_type(),
             &Default::default(),
             Default::default(),

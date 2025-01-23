@@ -40,7 +40,7 @@ pub(crate) fn get_storage_var_address(
 }
 
 pub(crate) fn get_versioned_constants() -> VersionedConstants {
-    VersionedConstants::create_for_testing()
+    VersionedConstants::latest_constants().clone()
 }
 
 /// Values not present here: https://docs.starknet.io/tools/limits-and-triggers/
