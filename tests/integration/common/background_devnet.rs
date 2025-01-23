@@ -205,13 +205,24 @@ impl BackgroundDevnet {
             body_json["params"] = params;
         }
 
+        // Convert HTTP error to RPC error; panic if not possible.
         let json_rpc_result: serde_json::Value =
             self.reqwest_client().post_json_async(RPC_PATH, body_json).await.map_err(|err| {
-                RpcError {
-                    code: err.status().as_u16().into(),
-                    message: err.error_message().into(),
-                    data: None,
+                let err_msg = err.error_message();
+
+                if let Ok(rpc_error) = serde_json::from_str::<RpcError>(&err_msg) {
+                    return rpc_error;
+                };
+
+                if let Ok(err_val) = serde_json::from_str::<serde_json::Value>(&err_msg) {
+                    if let Some(err_prop) = err_val.get("error").cloned() {
+                        if let Ok(rpc_error) = serde_json::from_value::<RpcError>(err_prop) {
+                            return rpc_error;
+                        }
+                    }
                 }
+
+                panic!("Cannot extract RPC error from: {err_msg}")
             })?;
 
         if let Some(result) = json_rpc_result.get("result") {
