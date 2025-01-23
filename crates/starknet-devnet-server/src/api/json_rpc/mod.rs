@@ -774,15 +774,13 @@ mod requests_tests {
         // Errored json, hash is not prefixed with 0x
         assert_deserialization_fails(
             r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"134134"}}"#,
-            "Expected hex string to be prefixed by '0x'",
+            "expected hex string to be prefixed by '0x'",
         );
-        // TODO: ignored because of a Felt bug: https://github.com/starknet-io/types-rs/issues/81
-        // Errored json, hex is longer than 64 chars
-        // assert_deserialization_fails(
-        //     r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"
-        // 0x004134134134134134134134134134134134134134134134134134134134134134"}}"#,
-        //     "Bad input - expected #bytes: 32",
-        // );
+        // Errored json, hex longer than 64 chars; misleading error message coming from dependency
+        assert_deserialization_fails(
+            r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"0x004134134134134134134134134134134134134134134134134134134134134134"}}"#,
+            "expected hex string to be prefixed by '0x'",
+        );
     }
 
     #[test]
@@ -803,7 +801,7 @@ mod requests_tests {
 
         assert_deserialization_fails(
             json_str.replace("0x", "").as_str(),
-            "Expected hex string to be prefixed by '0x'",
+            "expected hex string to be prefixed by '0x'",
         );
     }
 
@@ -814,7 +812,7 @@ mod requests_tests {
 
         assert_deserialization_fails(
             json_str.replace("0x", "").as_str(),
-            "Expected hex string to be prefixed by '0x'",
+            "expected hex string to be prefixed by '0x'",
         );
     }
 
@@ -883,11 +881,11 @@ mod requests_tests {
                     r#""entry_point_selector":"134134""#,
                 )
                 .as_str(),
-            "Expected hex string to be prefixed by '0x'",
+            "expected hex string to be prefixed by '0x'",
         );
         assert_deserialization_fails(
             json_str.replace(r#""calldata":["0x134134"]"#, r#""calldata":["123"]"#).as_str(),
-            "Expected hex string to be prefixed by '0x'",
+            "expected hex string to be prefixed by '0x'",
         );
         assert_deserialization_fails(
             json_str.replace(r#""calldata":["0x134134"]"#, r#""calldata":[123]"#).as_str(),
@@ -1319,8 +1317,7 @@ mod response_tests {
     use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
-    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result()
-     {
+    fn serializing_starknet_response_empty_variant_yields_empty_json_on_conversion_to_rpc_result() {
         assert_eq!(
             r#"{"result":{}}"#,
             serde_json::to_string(
