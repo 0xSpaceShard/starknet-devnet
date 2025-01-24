@@ -11,8 +11,9 @@ set -eu
 
 foundry_version="nightly-5b7e4cb3c882b28f3c32ba580de27ce7381f415a"
 
-echo "Installing foundryup $foundry_version"
+echo "Installing foundry $foundry_version"
 
+echo "Installing foundryup"
 curl -L https://foundry.paradigm.xyz | bash || echo "As expected, received a non-zero exit code"
 
 # make command available in PATH
