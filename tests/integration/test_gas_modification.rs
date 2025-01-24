@@ -5,7 +5,8 @@ use starknet_core::constants::DEVNET_DEFAULT_GAS_PRICE;
 use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::chain_id::SEPOLIA;
 use starknet_rs_core::types::{Felt, ResourcePrice, StarknetError};
-use starknet_rs_providers::ProviderError;
+use starknet_rs_core::utils::cairo_short_string_to_felt;
+use starknet_rs_providers::{Provider, ProviderError};
 use starknet_rs_signers::Signer;
 
 use crate::common::background_devnet::BackgroundDevnet;
@@ -47,14 +48,15 @@ impl SetGasPrice for BackgroundDevnet {
 /// 1. Execute simulateTransactions with a declare transaction and check gas fees.
 /// 2. Set the gas values.
 /// 3. Execute simulateTransactions again and check gas fees.
-async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: &str) {
+/// Chain ID assertion justified in: https://github.com/0xSpaceShard/starknet-devnet-rs/pull/551#discussion_r1682755696
+async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
     // get account
     let (signer, account_address) = devnet.get_first_predeployed_account().await;
     let account = SingleOwnerAccount::new(
         devnet.clone_provider(),
         signer.clone(),
         account_address,
-        Felt::from_hex_unchecked(expected_chain_id),
+        expected_chain_id,
         ExecutionEncoding::New,
     );
 
@@ -93,7 +95,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: &str) {
         })
     };
 
-    let chain_id = &devnet.send_custom_rpc("starknet_chainId", json!({})).await.unwrap();
+    let chain_id = devnet.json_rpc_client.chain_id().await.unwrap();
     assert_eq!(chain_id, expected_chain_id);
 
     let params_skip_fee_charge = get_params(&["SKIP_FEE_CHARGE"]);
@@ -109,7 +111,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: &str) {
         resp_no_flags["fee_estimation"]["data_gas_price"],
         to_hex_felt(&DEVNET_DEFAULT_GAS_PRICE)
     );
-    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x7398c659d800");
+    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0xa7275ca6d3000");
 
     let params_skip_validation_and_fee_charge = get_params(&["SKIP_VALIDATE", "SKIP_FEE_CHARGE"]);
     let resp_skip_validation = &devnet
@@ -127,7 +129,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: &str) {
         resp_skip_validation["fee_estimation"]["data_gas_price"],
         to_hex_felt(&DEVNET_DEFAULT_GAS_PRICE)
     );
-    assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x736a356c0800");
+    assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0xa7247397f6000");
 
     assert_difference_if_validation(
         resp_no_flags,
@@ -148,7 +150,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: &str) {
 
     assert_eq!(gas_response, &gas_request);
 
-    let chain_id = &devnet.send_custom_rpc("starknet_chainId", json!({})).await.unwrap();
+    let chain_id = devnet.json_rpc_client.chain_id().await.unwrap();
     assert_eq!(chain_id, expected_chain_id);
 
     let resp_no_flags = &devnet
@@ -158,7 +160,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: &str) {
 
     assert_eq!(resp_no_flags["fee_estimation"]["gas_price"], to_hex_felt(&wei_price));
     assert_eq!(resp_no_flags["fee_estimation"]["data_gas_price"], to_hex_felt(&wei_price_data));
-    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x261b37abed7125c0000");
+    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x38008384ec45ab780000");
 
     let resp_skip_validation = &devnet
         .send_custom_rpc("starknet_simulateTransactions", params_skip_validation_and_fee_charge)
@@ -169,7 +171,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: &str) {
         resp_skip_validation["fee_estimation"]["data_gas_price"],
         to_hex_felt(&wei_price_data)
     );
-    assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x260b9ade6354d540000");
+    assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x37ff89b813a3e6700000");
 
     assert_difference_if_validation(
         resp_no_flags,
@@ -184,7 +186,7 @@ async fn set_gas() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
     // Testnet gas modification test scenario
-    set_gas_scenario(devnet, &SEPOLIA.to_hex_string()).await;
+    set_gas_scenario(devnet, SEPOLIA).await;
 }
 
 #[tokio::test]
@@ -194,7 +196,8 @@ async fn set_gas_fork() {
     let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
     // Sepolia fork gas modification test scenario
-    set_gas_scenario(fork_devnet, "0x534e5f494e544547524154494f4e5f5345504f4c4941").await;
+    set_gas_scenario(fork_devnet, cairo_short_string_to_felt("SN_INTEGRATION_SEPOLIA").unwrap())
+        .await;
 }
 
 #[tokio::test]
