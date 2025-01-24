@@ -60,7 +60,7 @@ impl BroadcastedDeclareTransactionV3 {
 #[cfg(test)]
 mod tests {
     use serde::Deserialize;
-    use starknet_api::transaction::{ResourceBoundsMapping, Tip};
+    use starknet_api::transaction::fields::{ResourceBounds, Tip};
     use starknet_types_core::felt::Felt;
 
     use crate::chain_id::ChainId;
@@ -82,7 +82,7 @@ mod tests {
         version: Felt,
         nonce_data_availability_mode: u8,
         fee_data_availability_mode: u8,
-        resource_bounds: ResourceBoundsMapping,
+        resource_bounds: ResourceBounds,
         tip: Tip,
         paymaster_data: Vec<Felt>,
         account_deployment_data: Vec<Felt>,

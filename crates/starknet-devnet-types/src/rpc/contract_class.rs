@@ -1,10 +1,11 @@
 use core::fmt::Debug;
+use std::str::FromStr;
 
-use blockifier::execution::contract_class::ClassInfo;
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::de::IntoDeserializer;
 use serde::{Serialize, Serializer};
+use starknet_api::contract_class::{ClassInfo, SierraVersion};
 use starknet_rs_core::types::contract::{SierraClass, SierraClassDebugInfo};
 use starknet_rs_core::types::{
     ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContractClass,
@@ -16,9 +17,9 @@ use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::de
 use crate::traits::HashProducer;
 
 pub mod deprecated;
+pub use deprecated::Cairo0ContractClass;
 pub use deprecated::json_contract_class::Cairo0Json;
 pub use deprecated::rpc_contract_class::DeprecatedContractClass;
-pub use deprecated::Cairo0ContractClass;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "testing", derive(Eq, PartialEq))]
@@ -102,17 +103,17 @@ impl TryFrom<ContractClass> for Cairo0Json {
     }
 }
 
-impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractClass {
+impl TryFrom<ContractClass> for starknet_api::contract_class::ContractClass {
     type Error = Error;
 
     fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
         match value {
             ContractClass::Cairo0(deprecated_contract_class) => {
-                Ok(blockifier::execution::contract_class::ContractClass::V0(
+                Ok(starknet_api::contract_class::ContractClass::V0(
                     deprecated_contract_class.try_into()?,
                 ))
             }
-            ContractClass::Cairo1(sierra_contract_class) => {
+            ContractClass::Cairo1(ref sierra_contract_class) => {
                 let casm_json =
                     usc::compile_contract(serde_json::to_value(sierra_contract_class).map_err(
                         |err| Error::JsonError(JsonError::Custom { msg: err.to_string() }),
@@ -122,18 +123,16 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractC
                 let casm = serde_json::from_value::<CasmContractClass>(casm_json)
                     .map_err(|err| Error::JsonError(JsonError::Custom { msg: err.to_string() }))?;
 
-                let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
-                    casm.try_into().map_err(|_| Error::ProgramError)?;
-
-                Ok(blockifier::execution::contract_class::ContractClass::V1(
-                    blockifier_contract_class,
-                ))
+                Ok(starknet_api::contract_class::ContractClass::V1((
+                    casm,
+                    SierraVersion::from_str(&sierra_contract_class.contract_class_version)?,
+                )))
             }
         }
     }
 }
 
-impl TryFrom<ContractClass> for blockifier::execution::contract_class::ClassInfo {
+impl TryFrom<ContractClass> for ClassInfo {
     type Error = Error;
 
     fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
@@ -142,12 +141,13 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ClassInfo
                 // Set abi_length to 0 as per this conversation
                 // https://spaceshard.slack.com/archives/C03HL8DH52N/p1708512271256699?thread_ts=1707845482.455099&cid=C03HL8DH52N
                 let abi_length = 0;
-                blockifier::execution::contract_class::ClassInfo::new(
-                    &blockifier::execution::contract_class::ContractClass::V0(
+                ClassInfo::new(
+                    &starknet_api::contract_class::ContractClass::V0(
                         deprecated_contract_class.try_into()?,
                     ),
                     0,
                     abi_length,
+                    SierraVersion::DEPRECATED,
                 )
                 .map_err(|err| {
                     Error::ConversionError(ConversionError::InvalidInternalStructure(
@@ -155,7 +155,7 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ClassInfo
                     ))
                 })
             }
-            ContractClass::Cairo1(ref sierra_contract_class) => {
+            ContractClass::Cairo1(sierra_contract_class) => {
                 let sierra_program_length = sierra_contract_class.sierra_program.len();
                 // Calculated as the length of the stringified abi
                 // https://spaceshard.slack.com/archives/C03HL8DH52N/p1708512271256699?thread_ts=1707845482.455099&cid=C03HL8DH52N
@@ -167,14 +167,17 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ClassInfo
                     0
                 };
 
-                let blockifier_contract_class: blockifier::execution::contract_class::ContractClass = value.try_into()?;
-
-                ClassInfo::new(&blockifier_contract_class, sierra_program_length, abi_length)
-                    .map_err(|err| {
-                        Error::ConversionError(ConversionError::InvalidInternalStructure(
-                            err.to_string(),
-                        ))
-                    })
+                ClassInfo::new(
+                    &sierra_contract_class.into(),
+                    sierra_program_length,
+                    abi_length,
+                    SierraVersion::from_str(&sierra_contract_class.contract_class_version)?,
+                )
+                .map_err(|err| {
+                    Error::ConversionError(ConversionError::InvalidInternalStructure(
+                        err.to_string(),
+                    ))
+                })
             }
         }
     }
@@ -249,11 +252,11 @@ fn convert_sierra_to_codegen(
     })
 }
 
-pub fn convert_codegen_to_blockifier_compiled_class(
+pub fn convert_codegen_to_starknet_api_compiled_class(
     class: CodegenContractClass,
-) -> Result<blockifier::execution::contract_class::ContractClass, Error> {
+) -> Result<starknet_api::contract_class::ContractClass, Error> {
     Ok(match class {
-        CodegenContractClass::Sierra(_) => {
+        CodegenContractClass::Sierra(sierra) => {
             let json_value = serde_json::to_value(class).map_err(JsonError::SerdeJsonError)?;
             let casm_json = usc::compile_contract(json_value)
                 .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
@@ -261,16 +264,16 @@ pub fn convert_codegen_to_blockifier_compiled_class(
             let casm = serde_json::from_value::<CasmContractClass>(casm_json)
                 .map_err(|err| Error::JsonError(JsonError::Custom { msg: err.to_string() }))?;
 
-            let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
-                casm.try_into().map_err(|_| Error::ProgramError)?;
-
-            blockifier::execution::contract_class::ContractClass::V1(blockifier_contract_class)
+            starknet_api::contract_class::ContractClass::V1((
+                casm,
+                SierraVersion::from_str(&sierra.contract_class_version)?,
+            ))
         }
         CodegenContractClass::Legacy(_) => {
             let class_jsonified =
                 serde_json::to_string(&class).map_err(JsonError::SerdeJsonError)?;
             let class = DeprecatedContractClass::rpc_from_json_str(&class_jsonified)?;
-            blockifier::execution::contract_class::ContractClass::V0(class.try_into()?)
+            starknet_api::contract_class::ContractClass::V0(class.try_into().unwrap())
         }
     })
 }
@@ -308,7 +311,7 @@ mod tests {
 
     use crate::contract_class::deprecated::rpc_contract_class::ContractClassAbiEntryWithType;
     use crate::contract_class::{
-        convert_sierra_to_codegen, Cairo0Json, ContractClass, DeprecatedContractClass,
+        Cairo0Json, ContractClass, DeprecatedContractClass, convert_sierra_to_codegen,
     };
     use crate::felt::felt_from_prefixed_hex;
     use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;

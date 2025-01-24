@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use starknet_api::transaction::Fee;
+use starknet_api::transaction::fields::Fee;
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_core::types::Felt;
 
@@ -66,15 +66,15 @@ impl BroadcastedDeclareTransactionV1 {
 #[cfg(test)]
 mod tests {
     use serde::Deserialize;
-    use starknet_api::transaction::Fee;
+    use starknet_api::transaction::fields::Fee;
     use starknet_rs_core::types::Felt;
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
     use crate::contract_class::Cairo0Json;
     use crate::felt::try_felt_to_num;
-    use crate::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use crate::rpc::transactions::BroadcastedDeclareTransaction;
+    use crate::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use crate::traits::HashProducer;
 
     #[derive(Deserialize)]
@@ -121,7 +121,7 @@ mod tests {
 
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,
-            blockifier_declare_transaction.tx_hash().0
+            *blockifier_declare_transaction.tx_hash
         );
         assert_eq!(
             feeder_gateway_transaction.class_hash,

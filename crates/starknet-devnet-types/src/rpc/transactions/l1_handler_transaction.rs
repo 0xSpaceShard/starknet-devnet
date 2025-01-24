@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
-use blockifier::transaction::transactions::L1HandlerTransaction as BlockifierL1HandlerTransaction;
 use serde::Serialize;
 use starknet_api::core::{
     ContractAddress as ApiContractAddress, EntryPointSelector as ApiEntryPointSelector,
     Nonce as ApiNonce,
 };
+use starknet_api::executable_transaction::L1HandlerTransaction as ApiL1HandlerTransaction;
 use starknet_api::transaction::{
-    Calldata as ApiCalldata, Fee as ApiFee, L1HandlerTransaction as ApiL1HandlerTransaction,
     TransactionHash as ApiTransactionHash, TransactionVersion as ApiTransactionVersion,
+    fields::{Calldata as ApiCalldata, Fee as ApiFee},
 };
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_core::types::Felt;
@@ -17,7 +17,7 @@ use super::serialize_paid_fee_on_l1;
 use crate::constants::PREFIX_L1_HANDLER;
 use crate::contract_address::ContractAddress;
 use crate::error::{ConversionError, DevnetResult, Error};
-use crate::felt::{try_felt_to_num, Calldata, EntryPointSelector, Nonce, TransactionVersion};
+use crate::felt::{Calldata, EntryPointSelector, Nonce, TransactionVersion, try_felt_to_num};
 use crate::rpc::messaging::MessageToL2;
 
 #[derive(Debug, Clone, Default, Serialize, Eq, PartialEq)]

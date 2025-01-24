@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use starknet_api::transaction::Fee;
+use starknet_api::transaction::fields::Fee;
 
 use crate::felt::{
     Calldata, ClassHash, ContractAddressSalt, Nonce, TransactionSignature, TransactionVersion,
@@ -43,7 +43,7 @@ impl BroadcastedDeployAccountTransactionV1 {
 #[cfg(test)]
 mod tests {
     use serde::Deserialize;
-    use starknet_api::transaction::Fee;
+    use starknet_api::transaction::fields::Fee;
     use starknet_rs_core::types::Felt;
 
     use crate::chain_id::ChainId;

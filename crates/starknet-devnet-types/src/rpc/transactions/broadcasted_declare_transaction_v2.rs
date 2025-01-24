@@ -1,6 +1,6 @@
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::Deserialize;
-use starknet_api::transaction::Fee;
+use starknet_api::transaction::fields::Fee;
 
 use crate::contract_address::ContractAddress;
 use crate::felt::{CompiledClassHash, Nonce, TransactionSignature, TransactionVersion};
@@ -45,7 +45,7 @@ impl BroadcastedDeclareTransactionV2 {
 #[cfg(test)]
 mod tests {
     use serde::Deserialize;
-    use starknet_api::transaction::Fee;
+    use starknet_api::transaction::fields::Fee;
     use starknet_rs_core::types::Felt;
 
     use crate::chain_id::ChainId;
@@ -108,7 +108,7 @@ mod tests {
         );
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,
-            blockifier_declare_transaction.tx_hash().0
+            *blockifier_declare_transaction.tx_hash
         );
     }
 }

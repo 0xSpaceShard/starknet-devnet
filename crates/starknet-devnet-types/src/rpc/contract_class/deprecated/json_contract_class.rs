@@ -5,7 +5,8 @@ use flate2::write::GzEncoder;
 use flate2::Compression;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Serializer as JsonSerializer, Value};
-use starknet_api::deprecated_contract_class::{EntryPoint, EntryPointType};
+use starknet_api::contract_class::EntryPointType;
+use starknet_api::deprecated_contract_class::EntryPointV0;
 use starknet_rs_core::types::{CompressedLegacyContractClass, Felt};
 use starknet_types_core::hash::{Pedersen, StarkHash};
 
@@ -93,7 +94,7 @@ impl Cairo0Json {
     fn compute_cairo_0_contract_class_hash(json_class: &Value) -> crate::error::DevnetResult<Felt> {
         let mut hashes = vec![Felt::ZERO];
 
-        let entry_points_by_type: HashMap<EntryPointType, Vec<EntryPoint>> =
+        let entry_points_by_type: HashMap<EntryPointType, Vec<EntryPointV0>> =
             serde_json::from_value(
                 json_class
                     .get("entry_points_by_type")
@@ -232,7 +233,7 @@ impl TryFrom<DeprecatedContractClass> for Cairo0Json {
     }
 }
 
-impl TryFrom<Cairo0Json> for blockifier::execution::contract_class::ContractClassV0 {
+impl TryFrom<Cairo0Json> for starknet_api::deprecated_contract_class::ContractClass {
     type Error = Error;
 
     fn try_from(value: Cairo0Json) -> Result<Self, Self::Error> {

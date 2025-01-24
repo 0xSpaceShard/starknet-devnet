@@ -1,9 +1,6 @@
-use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use blockifier::execution::contract_class::ClassInfo;
 use blockifier::state::state_api::StateReader;
-use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
@@ -13,10 +10,13 @@ use deploy_transaction::DeployTransaction;
 use invoke_transaction_v1::InvokeTransactionV1;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::block::BlockNumber;
+use starknet_api::block::GasPrice;
+use starknet_api::contract_class::ClassInfo;
+use starknet_api::contract_class::EntryPointType;
 use starknet_api::core::calculate_contract_address;
 use starknet_api::data_availability::DataAvailabilityMode;
-use starknet_api::deprecated_contract_class::EntryPointType;
-use starknet_api::transaction::{Fee, Resource, Tip};
+use starknet_api::executable_transaction::AccountTransaction;
+use starknet_api::transaction::fields::{Fee, Resource, Tip};
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_core::types::{
     BlockId, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
@@ -44,7 +44,7 @@ use crate::constants::{
     PREFIX_DECLARE, PREFIX_DEPLOY_ACCOUNT, PREFIX_INVOKE, QUERY_VERSION_OFFSET,
 };
 use crate::contract_address::ContractAddress;
-use crate::contract_class::{compute_sierra_class_hash, ContractClass};
+use crate::contract_class::{ContractClass, compute_sierra_class_hash};
 use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::felt::{
@@ -322,26 +322,46 @@ impl ResourceBoundsWrapper {
     }
 }
 
-impl From<&ResourceBoundsWrapper> for starknet_api::transaction::ResourceBoundsMapping {
-    fn from(value: &ResourceBoundsWrapper) -> Self {
-        starknet_api::transaction::ResourceBoundsMapping(BTreeMap::from([
-            (
-                Resource::L1Gas,
-                starknet_api::transaction::ResourceBounds {
-                    max_amount: value.inner.l1_gas.max_amount,
-                    max_price_per_unit: value.inner.l1_gas.max_price_per_unit,
-                },
-            ),
-            (
-                Resource::L2Gas,
-                starknet_api::transaction::ResourceBounds {
-                    max_amount: value.inner.l2_gas.max_amount,
-                    max_price_per_unit: value.inner.l2_gas.max_price_per_unit,
-                },
-            ),
-        ]))
+fn convert_resource_bounds_from_starknet_rs_to_starknet_api(
+    bounds: ResourceBounds,
+) -> starknet_api::transaction::fields::ResourceBounds {
+    starknet_api::transaction::fields::ResourceBounds {
+        max_amount: starknet_api::execution_resources::GasAmount(bounds.max_amount),
+        max_price_per_unit: GasPrice(bounds.max_price_per_unit),
     }
 }
+
+impl From<&ResourceBoundsWrapper> for starknet_api::transaction::fields::ValidResourceBounds {
+    fn from(value: &ResourceBoundsWrapper) -> Self {
+        starknet_api::transaction::fields::ValidResourceBounds::AllResources(
+            starknet_api::transaction::fields::AllResourceBounds {
+                l1_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                    value.inner.l1_gas,
+                ),
+                l2_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                    value.inner.l2_gas,
+                ),
+                l1_data_gas: todo!(),
+            },
+        )
+    }
+}
+
+// impl From<&ResourceBoundsWrapper> for starknet_api::transaction::fields::ResourceBounds {
+//     fn from(value: &ResourceBoundsWrapper) -> Self {
+
+//         starknet_api::transaction::fields::ResourceBounds::from(BTreeMap::from([
+//             (Resource::L1Gas, starknet_api::transaction::fields::ResourceBounds {
+//                 max_amount: GasAmount(value.inner.l1_gas.max_amount),
+//                 max_price_per_unit: GasPrice(value.inner.l1_gas.max_price_per_unit),
+//             }),
+//             (Resource::L2Gas, starknet_api::transaction::fields::ResourceBounds {
+//                 max_amount: GasAmount(value.inner.l2_gas.max_amount),
+//                 max_price_per_unit: GasPrice(value.inner.l2_gas.max_price_per_unit),
+//             }),
+//         ]))
+//     }
+// }
 
 impl BroadcastedTransactionCommonV3 {
     /// Checks if total accumulated fee of resource_bounds for l1 is equal to 0 or for l2 is not
@@ -465,7 +485,7 @@ impl BroadcastedTransaction {
         &self,
         chain_id: &Felt,
         only_query: bool,
-    ) -> DevnetResult<blockifier::transaction::account_transaction::AccountTransaction> {
+    ) -> DevnetResult<AccountTransaction> {
         let blockifier_transaction = match self {
             BroadcastedTransaction::Invoke(invoke_txn) => AccountTransaction::Invoke(
                 invoke_txn.create_blockifier_invoke_transaction(chain_id, only_query)?,
@@ -539,7 +559,7 @@ impl BroadcastedDeclareTransaction {
         &self,
         chain_id: &Felt,
         only_query: bool,
-    ) -> DevnetResult<blockifier::transaction::transactions::DeclareTransaction> {
+    ) -> DevnetResult<starknet_api::executable_transaction::DeclareTransaction> {
         let (transaction_hash, sn_api_transaction, class_info) = match self {
             BroadcastedDeclareTransaction::V1(v1) => {
                 let class_hash = v1.generate_class_hash()?;
@@ -551,7 +571,7 @@ impl BroadcastedDeclareTransaction {
                         sender_address: v1.sender_address.try_into()?,
                         nonce: starknet_api::core::Nonce(v1.common.nonce),
                         max_fee: v1.common.max_fee,
-                        signature: starknet_api::transaction::TransactionSignature(
+                        signature: starknet_api::transaction::fields::TransactionSignature(
                             v1.common.signature.clone(),
                         ),
                     },
@@ -568,7 +588,7 @@ impl BroadcastedDeclareTransaction {
                 let sn_api_declare = starknet_api::transaction::DeclareTransaction::V2(
                     starknet_api::transaction::DeclareTransactionV2 {
                         max_fee: v2.common.max_fee,
-                        signature: starknet_api::transaction::TransactionSignature(
+                        signature: starknet_api::transaction::fields::TransactionSignature(
                             v2.common.signature.clone(),
                         ),
                         nonce: starknet_api::core::Nonce(v2.common.nonce),
@@ -606,7 +626,7 @@ impl BroadcastedDeclareTransaction {
                     starknet_api::transaction::DeclareTransactionV3 {
                         resource_bounds: (&v3.common.resource_bounds).into(),
                         tip: v3.common.tip,
-                        signature: starknet_api::transaction::TransactionSignature(
+                        signature: starknet_api::transaction::fields::TransactionSignature(
                             v3.common.signature.clone(),
                         ),
                         nonce: starknet_api::core::Nonce(v3.common.nonce),
@@ -617,12 +637,13 @@ impl BroadcastedDeclareTransaction {
                         sender_address: v3.sender_address.try_into()?,
                         nonce_data_availability_mode: v3.common.nonce_data_availability_mode,
                         fee_data_availability_mode: v3.common.fee_data_availability_mode,
-                        paymaster_data: starknet_api::transaction::PaymasterData(
+                        paymaster_data: starknet_api::transaction::fields::PaymasterData(
                             v3.common.paymaster_data.clone(),
                         ),
-                        account_deployment_data: starknet_api::transaction::AccountDeploymentData(
-                            v3.account_deployment_data.clone(),
-                        ),
+                        account_deployment_data:
+                            starknet_api::transaction::fields::AccountDeploymentData(
+                                v3.account_deployment_data.clone(),
+                            ),
                     },
                 );
 
@@ -634,13 +655,13 @@ impl BroadcastedDeclareTransaction {
         };
 
         if only_query {
-            Ok(blockifier::transaction::transactions::DeclareTransaction::new_for_query(
+            Ok(starknet_api::executable_transaction::DeclareTransaction::new_for_query(
                 sn_api_transaction,
                 starknet_api::transaction::TransactionHash(transaction_hash),
                 class_info,
             )?)
         } else {
-            Ok(blockifier::transaction::transactions::DeclareTransaction::new(
+            Ok(starknet_api::executable_transaction::DeclareTransaction::create(
                 sn_api_transaction,
                 starknet_api::transaction::TransactionHash(transaction_hash),
                 class_info,
@@ -681,13 +702,17 @@ impl BroadcastedDeployAccountTransaction {
         &self,
         chain_id: &Felt,
         only_query: bool,
-    ) -> DevnetResult<blockifier::transaction::transactions::DeployAccountTransaction> {
+    ) -> DevnetResult<starknet_api::executable_transaction::DeployAccountTransaction> {
         let (transaction_hash, sn_api_transaction, contract_address) = match self {
             BroadcastedDeployAccountTransaction::V1(v1) => {
                 let contract_address = calculate_contract_address(
-                    starknet_api::transaction::ContractAddressSalt(v1.contract_address_salt),
+                    starknet_api::transaction::fields::ContractAddressSalt(
+                        v1.contract_address_salt,
+                    ),
                     starknet_api::core::ClassHash(v1.class_hash),
-                    &starknet_api::transaction::Calldata(Arc::new(v1.constructor_calldata.clone())),
+                    &starknet_api::transaction::fields::Calldata(Arc::new(
+                        v1.constructor_calldata.clone(),
+                    )),
                     starknet_api::core::ContractAddress::from(0u8),
                 )?;
 
@@ -707,15 +732,15 @@ impl BroadcastedDeployAccountTransaction {
 
                 let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV1 {
                     max_fee: v1.common.max_fee,
-                    signature: starknet_api::transaction::TransactionSignature(
+                    signature: starknet_api::transaction::fields::TransactionSignature(
                         v1.common.signature.clone(),
                     ),
                     nonce: starknet_api::core::Nonce(v1.common.nonce),
                     class_hash: starknet_api::core::ClassHash(v1.class_hash),
-                    contract_address_salt: starknet_api::transaction::ContractAddressSalt(
+                    contract_address_salt: starknet_api::transaction::fields::ContractAddressSalt(
                         v1.contract_address_salt,
                     ),
-                    constructor_calldata: starknet_api::transaction::Calldata(Arc::new(
+                    constructor_calldata: starknet_api::transaction::fields::Calldata(Arc::new(
                         v1.constructor_calldata.clone(),
                     )),
                 };
@@ -739,20 +764,20 @@ impl BroadcastedDeployAccountTransaction {
                 let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV3 {
                     resource_bounds: (&v3.common.resource_bounds).into(),
                     tip: v3.common.tip,
-                    signature: starknet_api::transaction::TransactionSignature(
+                    signature: starknet_api::transaction::fields::TransactionSignature(
                         v3.common.signature.clone(),
                     ),
                     nonce: starknet_api::core::Nonce(v3.common.nonce),
                     class_hash: starknet_api::core::ClassHash(v3.class_hash),
                     nonce_data_availability_mode: v3.common.nonce_data_availability_mode,
                     fee_data_availability_mode: v3.common.fee_data_availability_mode,
-                    paymaster_data: starknet_api::transaction::PaymasterData(
+                    paymaster_data: starknet_api::transaction::fields::PaymasterData(
                         v3.common.paymaster_data.clone(),
                     ),
-                    contract_address_salt: starknet_api::transaction::ContractAddressSalt(
+                    contract_address_salt: starknet_api::transaction::fields::ContractAddressSalt(
                         v3.contract_address_salt,
                     ),
-                    constructor_calldata: starknet_api::transaction::Calldata(Arc::new(
+                    constructor_calldata: starknet_api::transaction::fields::Calldata(Arc::new(
                         v3.constructor_calldata.clone(),
                     )),
                 };
@@ -765,7 +790,7 @@ impl BroadcastedDeployAccountTransaction {
             }
         };
 
-        Ok(blockifier::transaction::transactions::DeployAccountTransaction {
+        Ok(starknet_api::executable_transaction::DeployAccountTransaction {
             tx: sn_api_transaction,
             tx_hash: starknet_api::transaction::TransactionHash(transaction_hash),
             contract_address,
@@ -804,7 +829,7 @@ impl BroadcastedInvokeTransaction {
         &self,
         chain_id: &Felt,
         only_query: bool,
-    ) -> DevnetResult<blockifier::transaction::transactions::InvokeTransaction> {
+    ) -> DevnetResult<starknet_api::executable_transaction::InvokeTransaction> {
         let (transaction_hash, sn_api_transaction) = match self {
             BroadcastedInvokeTransaction::V1(v1) => {
                 let txn_hash = compute_hash_on_elements(&[
@@ -820,12 +845,14 @@ impl BroadcastedInvokeTransaction {
 
                 let sn_api_transaction = starknet_api::transaction::InvokeTransactionV1 {
                     max_fee: v1.common.max_fee,
-                    signature: starknet_api::transaction::TransactionSignature(
+                    signature: starknet_api::transaction::fields::TransactionSignature(
                         v1.common.signature.clone(),
                     ),
                     nonce: starknet_api::core::Nonce(v1.common.nonce),
                     sender_address: v1.sender_address.try_into()?,
-                    calldata: starknet_api::transaction::Calldata(Arc::new(v1.calldata.clone())),
+                    calldata: starknet_api::transaction::fields::Calldata(Arc::new(
+                        v1.calldata.clone(),
+                    )),
                 };
 
                 (txn_hash, starknet_api::transaction::InvokeTransaction::V1(sn_api_transaction))
@@ -836,27 +863,30 @@ impl BroadcastedInvokeTransaction {
                 let sn_api_transaction = starknet_api::transaction::InvokeTransactionV3 {
                     resource_bounds: (&v3.common.resource_bounds).into(),
                     tip: v3.common.tip,
-                    signature: starknet_api::transaction::TransactionSignature(
+                    signature: starknet_api::transaction::fields::TransactionSignature(
                         v3.common.signature.clone(),
                     ),
                     nonce: starknet_api::core::Nonce(v3.common.nonce),
                     sender_address: v3.sender_address.try_into()?,
-                    calldata: starknet_api::transaction::Calldata(Arc::new(v3.calldata.clone())),
+                    calldata: starknet_api::transaction::fields::Calldata(Arc::new(
+                        v3.calldata.clone(),
+                    )),
                     nonce_data_availability_mode: v3.common.nonce_data_availability_mode,
                     fee_data_availability_mode: v3.common.fee_data_availability_mode,
-                    paymaster_data: starknet_api::transaction::PaymasterData(
+                    paymaster_data: starknet_api::transaction::fields::PaymasterData(
                         v3.common.paymaster_data.clone(),
                     ),
-                    account_deployment_data: starknet_api::transaction::AccountDeploymentData(
-                        v3.account_deployment_data.clone(),
-                    ),
+                    account_deployment_data:
+                        starknet_api::transaction::fields::AccountDeploymentData(
+                            v3.account_deployment_data.clone(),
+                        ),
                 };
 
                 (txn_hash, starknet_api::transaction::InvokeTransaction::V3(sn_api_transaction))
             }
         };
 
-        Ok(blockifier::transaction::transactions::InvokeTransaction {
+        Ok(starknet_api::executable_transaction::InvokeTransaction {
             tx: sn_api_transaction,
             tx_hash: starknet_api::transaction::TransactionHash(transaction_hash),
             only_query,

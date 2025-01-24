@@ -1,6 +1,6 @@
 use serde::Serialize;
 use starknet_api::data_availability::DataAvailabilityMode;
-use starknet_api::transaction::Tip;
+use starknet_api::transaction::fields::Tip;
 use starknet_types_core::felt::Felt;
 
 use super::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;

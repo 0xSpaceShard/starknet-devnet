@@ -70,7 +70,7 @@ impl TryInto<CompressedLegacyContractClass> for Cairo0ContractClass {
     }
 }
 
-impl TryFrom<Cairo0ContractClass> for blockifier::execution::contract_class::ContractClassV0 {
+impl TryFrom<Cairo0ContractClass> for starknet_api::deprecated_contract_class::ContractClass {
     type Error = Error;
     fn try_from(value: Cairo0ContractClass) -> Result<Self, Self::Error> {
         match value {

@@ -1,7 +1,8 @@
+use blockifier::transaction::objects::ExecutionResourcesTraits;
 use cairo_vm::types::builtin_name::BuiltinName;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
-use starknet_api::transaction::Fee;
+use starknet_api::transaction::fields::Fee;
 use starknet_rs_core::types::{ExecutionResult, Hash256, TransactionFinalityStatus};
 
 use crate::contract_address::ContractAddress;
@@ -68,39 +69,11 @@ pub struct ExecutionResources {
     pub data_availability: DataAvailability,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DataAvailability {
-    pub l1_gas: u128,
-    pub l1_data_gas: u128,
-}
-
-/// custom implementation, because serde_json doesn't support deserializing to u128
-/// if the struct is being used as a field in another struct that have #[serde(flatten)] or
-/// #[serde(untagged)]
-impl<'de> Deserialize<'de> for DataAvailability {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let json_obj =
-            serde_json::Value::deserialize(deserializer).map_err(serde::de::Error::custom)?;
-
-        #[derive(Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct InnerDataAvailability {
-            l1_gas: u128,
-            l1_data_gas: u128,
-        }
-
-        let data_availability: InnerDataAvailability =
-            serde_json::from_value(json_obj).map_err(serde::de::Error::custom)?;
-
-        Ok(DataAvailability {
-            l1_gas: data_availability.l1_gas,
-            l1_data_gas: data_availability.l1_data_gas,
-        })
-    }
+    pub l1_gas: u64,
+    pub l1_data_gas: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -174,10 +147,10 @@ impl From<&blockifier::execution::call_info::CallInfo> for ComputationResources 
 
 impl From<&blockifier::transaction::objects::TransactionExecutionInfo> for ExecutionResources {
     fn from(execution_info: &blockifier::transaction::objects::TransactionExecutionInfo) -> Self {
-        let memory_holes = execution_info.transaction_receipt.resources.vm_resources.n_memory_holes;
+        let memory_holes = execution_info.receipt.resources.computation.vm_resources.n_memory_holes;
 
         let computation_resources = ComputationResources {
-            steps: execution_info.transaction_receipt.resources.total_charged_steps(),
+            steps: execution_info.receipt.resources.computation.vm_resources.total_n_steps(),
             memory_holes: if memory_holes == 0 { None } else { Some(memory_holes) },
             range_check_builtin_applications:
                 ComputationResources::get_resource_from_execution_info(
@@ -217,8 +190,8 @@ impl From<&blockifier::transaction::objects::TransactionExecutionInfo> for Execu
         Self {
             computation_resources,
             data_availability: DataAvailability {
-                l1_gas: execution_info.transaction_receipt.da_gas.l1_gas,
-                l1_data_gas: execution_info.transaction_receipt.da_gas.l1_data_gas,
+                l1_gas: execution_info.receipt.da_gas.l1_gas.0.into(),
+                l1_data_gas: execution_info.receipt.da_gas.l1_data_gas.0.into(),
             },
         }
     }
@@ -230,9 +203,9 @@ impl ComputationResources {
         resource_name: &BuiltinName,
     ) -> Option<usize> {
         execution_info
-            .transaction_receipt
+            .receipt
             .resources
-            .vm_resources
+            .computation.vm_resources
             .builtin_instance_counter
             .get(resource_name)
             .cloned()

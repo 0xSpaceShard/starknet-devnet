@@ -85,8 +85,10 @@ impl Formatter for StarknetFormatter {
 
 #[cfg(test)]
 pub(crate) mod test_utils {
+    use starknet_api::block::GasPrice;
     use starknet_api::data_availability::DataAvailabilityMode;
-    use starknet_api::transaction::{ResourceBounds, ResourceBoundsMapping};
+    use starknet_api::execution_resources::GasAmount;
+    use starknet_api::transaction::fields::ResourceBounds;
 
     use crate::rpc::transactions::ResourceBoundsWrapper;
 
@@ -124,15 +126,21 @@ pub(crate) mod test_utils {
     ) -> ResourceBoundsWrapper {
         let l1_resource_bounds = resource_bounds
             .0
-            .get(&starknet_api::transaction::Resource::L1Gas)
+            .get(&starknet_api::transaction::fields::Resource::L1Gas)
             .cloned()
-            .unwrap_or(ResourceBounds { max_amount: 0, max_price_per_unit: 0 });
+            .unwrap_or(ResourceBounds {
+                max_amount: GasAmount(0),
+                max_price_per_unit: GasPrice(0),
+            });
 
         let l2_resource_bounds = resource_bounds
             .0
-            .get(&starknet_api::transaction::Resource::L2Gas)
+            .get(&starknet_api::transaction::fields::Resource::L2Gas)
             .cloned()
-            .unwrap_or(ResourceBounds { max_amount: 0, max_price_per_unit: 0 });
+            .unwrap_or(ResourceBounds {
+                max_amount: GasAmount(0),
+                max_price_per_unit: GasPrice(0),
+            });
 
         ResourceBoundsWrapper::new(
             l1_resource_bounds.max_amount,
