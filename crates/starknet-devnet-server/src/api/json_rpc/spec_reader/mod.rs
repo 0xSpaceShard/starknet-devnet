@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs;
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::{Map, Value};
 
 use self::data_generator::generate_schema_value;
@@ -12,34 +12,33 @@ mod data_generator;
 mod spec_modifier;
 mod spec_schemas;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct Spec {
-    openrpc: String,
     methods: Vec<Method>,
     components: Components,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct Method {
     name: String,
     params: Vec<Param>,
     result: Result,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct Param {
     name: String,
-    required: bool,
+    // TODO: improve generation logic to use this field
+    // required: bool,
     schema: Schema,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct Result {
-    name: String,
     schema: Schema,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct Components {
     schemas: HashMap<String, Schema>,
 }

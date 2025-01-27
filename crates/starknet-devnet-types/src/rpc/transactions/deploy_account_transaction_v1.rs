@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use starknet_api::transaction::Fee;
 
 use super::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
@@ -7,8 +7,12 @@ use crate::felt::{
     Calldata, ClassHash, ContractAddressSalt, Nonce, TransactionSignature, TransactionVersion,
 };
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Default, Serialize)]
+#[cfg_attr(
+    feature = "testing",
+    derive(serde::Deserialize, PartialEq, Eq),
+    serde(deny_unknown_fields)
+)]
 pub struct DeployAccountTransactionV1 {
     pub max_fee: Fee,
     pub version: TransactionVersion,

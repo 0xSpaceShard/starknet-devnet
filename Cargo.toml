@@ -25,6 +25,13 @@ exclude = [".github/**", ".devcontainer/**", ".circleci/**"]
 
 keywords = ["starknet", "cairo", "testnet", "local", "server"]
 
+[workspace.lints.clippy]
+unwrap-used = "deny"
+expect-used = "deny"
+
+[workspace.lints.rust]
+dead-code = "warn"
+
 
 [workspace.dependencies]
 
@@ -73,12 +80,12 @@ enum-helper-macros = "0.0.1"
 starknet-types-core = "0.1.5"
 starknet_api = { version = "0.13.0-rc.0", features = ["testing"] }
 blockifier = { version = "0.8.0" }
-starknet-rs-signers = { version = "0.10.0", package = "starknet-signers" }
-starknet-rs-core = { version = "0.12.0", package = "starknet-core" }
-starknet-rs-providers = { version = "0.12.0", package = "starknet-providers" }
-starknet-rs-accounts = { version = "0.11.0", package = "starknet-accounts" }
-starknet-rs-contract = { version = "0.11.0", package = "starknet-contract" }
-starknet-rs-crypto = { version = "0.7.2", package = "starknet-crypto" }
+starknet-rs-signers = { version = "0.10.1", package = "starknet-signers" }
+starknet-rs-core = { version = "0.12.1", package = "starknet-core" }
+starknet-rs-providers = { version = "0.12.1", package = "starknet-providers" }
+starknet-rs-accounts = { version = "0.12.0", package = "starknet-accounts" }
+starknet-rs-contract = { version = "0.12.0", package = "starknet-contract" }
+starknet-rs-crypto = { version = "0.7.4", package = "starknet-crypto" }
 cairo-vm = "=1.0.1"
 
 # Cairo-lang dependencies
@@ -97,9 +104,9 @@ cairo-lang-syntax = "=2.7.0"
 cairo-lang-utils = "=2.7.0"
 
 # Inner dependencies
-starknet-types = { version = "0.2.3", path = "crates/starknet-devnet-types", package = "starknet-devnet-types" }
-starknet-core = { version = "0.2.3", path = "crates/starknet-devnet-core", package = "starknet-devnet-core" }
-server = { version = "0.2.3", path = "crates/starknet-devnet-server", package = "starknet-devnet-server" }
+starknet-types = { version = "0.2.4", path = "crates/starknet-devnet-types", package = "starknet-devnet-types" }
+starknet-core = { version = "0.2.4", path = "crates/starknet-devnet-core", package = "starknet-devnet-core" }
+server = { version = "0.2.4", path = "crates/starknet-devnet-server", package = "starknet-devnet-server" }
 
 # Dependabot alerts
 zerocopy = "0.7.31"
@@ -121,3 +128,6 @@ listeners = "0.2.1"
 # https://github.com/paritytech/parity-scale-codec/issues/656
 parity-scale-codec = "=3.6.12"
 parity-scale-codec-derive = "=3.6.12"
+
+# https://app.circleci.com/pipelines/github/0xSpaceShard/starknet-devnet-rs/3033/workflows/3f93463c-7550-432b-8868-9bb0bf96dc10/jobs/5012
+cargo-platform = "=0.1.8"

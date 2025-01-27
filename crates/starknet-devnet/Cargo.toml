@@ -1,6 +1,6 @@
 [package]
 name = "starknet-devnet"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 repository.workspace = true
 license-file.workspace = true
@@ -13,6 +13,9 @@ description.workspace = true
 [[bin]]
 name = "starknet-devnet"
 path = "src/main.rs"
+
+[lints]
+workspace = true
 
 [dependencies]
 # devnet

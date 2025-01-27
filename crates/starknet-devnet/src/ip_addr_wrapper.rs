@@ -2,7 +2,8 @@ use std::fmt::Display;
 use std::net::{AddrParseError, IpAddr, Ipv4Addr};
 use std::str::FromStr;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub(crate) struct IpAddrWrapper {
     pub(crate) inner: IpAddr,
 }

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use serde_json::json;
+use server::test_utils::assert_contains;
 use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
@@ -13,7 +14,7 @@ use starknet_rs_signers::LocalWallet;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
-    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, LEGACY_ARGENT_ACCOUNT_CLASS_HASH, MAINNET_URL,
+    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, MAINNET_URL,
 };
 use crate::common::reqwest_client::GetReqwestSender;
 use crate::common::utils::{
@@ -114,12 +115,24 @@ async fn can_deploy_new_custom_oz_account() {
 }
 
 #[tokio::test]
+async fn argent_account_undeployable_by_default() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+    let account_hash = Felt::from_hex_unchecked(ARGENT_ACCOUNT_CLASS_HASH);
+    let error = deploy_argent_account(&devnet, account_hash).await.unwrap_err();
+    assert_contains(
+        &error.to_string(),
+        &format!("Class with hash {ARGENT_ACCOUNT_CLASS_HASH} is not declared"),
+    );
+}
+
+#[tokio::test]
 /// Relying on forking: the origin network is expected to have the account class declared.
-async fn can_deploy_instance_of_legacy_argent_account_via_fork() {
+async fn can_deploy_instance_of_argent_account_via_fork() {
     let cli_args = ["--fork-network", MAINNET_URL];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
-    let account_hash = Felt::from_hex_unchecked(LEGACY_ARGENT_ACCOUNT_CLASS_HASH);
+    let account_hash = Felt::from_hex_unchecked(ARGENT_ACCOUNT_CLASS_HASH);
     let (account_deployment, signer) = deploy_argent_account(&devnet, account_hash).await.unwrap();
     assert_tx_successful(&account_deployment.transaction_hash, &devnet.json_rpc_client).await;
 
@@ -128,7 +141,6 @@ async fn can_deploy_instance_of_legacy_argent_account_via_fork() {
 }
 
 #[tokio::test]
-#[ignore = "Requires starknet-rs with https://github.com/xJonathanLEI/starknet-rs/pull/680"]
 async fn can_deploy_new_argent_account_from_predeclared_class() {
     let devnet_args = ["--predeclare-argent"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();

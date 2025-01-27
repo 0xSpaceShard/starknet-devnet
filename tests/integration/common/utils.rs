@@ -290,7 +290,7 @@ pub async fn deploy_argent_account(
     let factory = ArgentAccountFactory::new(
         class_hash,
         devnet.json_rpc_client.chain_id().await?,
-        Felt::ZERO,
+        None,
         signer.clone(),
         devnet.clone_provider(),
     )
@@ -320,6 +320,12 @@ where
 
 pub fn felt_to_u256(f: Felt) -> U256 {
     U256::from_big_endian(&f.to_bytes_be())
+}
+
+/// Unchecked conversion
+pub fn felt_to_u128(f: Felt) -> u128 {
+    let bigint = f.to_bigint();
+    bigint.try_into().unwrap()
 }
 
 pub fn get_gas_units_and_gas_price(fee_estimate: FeeEstimate) -> (u64, u128) {

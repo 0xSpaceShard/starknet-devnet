@@ -282,10 +282,10 @@ async fn main() -> Result<(), anyhow::Error> {
         starknet_config.chain_id = json_rpc_client.chain_id().await?.into();
     }
 
-    let (address, listener) = bind_port(server_config.host, server_config.port).await?;
-
     let starknet = Starknet::new(&starknet_config)?;
     let api = Api::new(starknet);
+
+    let (address, listener) = bind_port(server_config.host, server_config.port).await?;
 
     // set block timestamp shift during startup if start time is set
     if let Some(start_time) = starknet_config.start_time {

@@ -18,6 +18,8 @@ use tower_http::trace::TraceLayer;
 use crate::api::http::{endpoints as http, HttpApiHandler};
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::restrictive_mode::is_uri_path_restricted;
+use crate::rpc_core::error::RpcError;
+use crate::rpc_core::response::ResponseResult;
 use crate::rpc_handler::RpcHandler;
 use crate::{http_rpc_router, rpc_handler, ServerConfig};
 pub type StarknetDevnetServer = axum::serve::Serve<IntoMakeService<Router>, Router>;
@@ -174,20 +176,27 @@ async fn reject_too_big(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
+    fn bad_request(e: impl std::fmt::Display) -> (StatusCode, String) {
+        (StatusCode::BAD_REQUEST, format!("Invalid Content-Length: {e}"))
+    }
+
     if let Some(content_length) = request.headers().get(header::CONTENT_LENGTH) {
-        let content_length: usize = content_length
-            .to_str()
-            .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid Content-Length: {e}")))?
-            .parse()
-            .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid Content-Length: {e}")))?;
+        let content_length: usize =
+            content_length.to_str().map_err(bad_request)?.parse().map_err(bad_request)?;
 
         if content_length > payload_limit {
             return Err((
                 StatusCode::PAYLOAD_TOO_LARGE,
-                format!(
-                    "Received: {content_length} bytes, maximum (specifiable via \
-                     --request-body-size-limit): {payload_limit} bytes"
-                ),
+                serde_json::to_string(&ResponseResult::Error(RpcError {
+                    code: crate::rpc_core::error::ErrorCode::InvalidRequest,
+                    message: format!(
+                        "Request too big! Server received: {content_length} bytes; maximum \
+                         (specifiable via --request-body-size-limit): {payload_limit} bytes"
+                    )
+                    .into(),
+                    data: None,
+                }))
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?,
             ));
         }
     }

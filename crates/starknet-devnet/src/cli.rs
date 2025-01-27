@@ -66,7 +66,8 @@ pub(crate) struct Args {
     #[arg(short = 'e')]
     #[arg(value_name = "DECIMAL_VALUE")]
     #[arg(default_value_t = InitialBalanceWrapper::default())]
-    #[arg(help = "Specify the initial balance in WEI of accounts to be predeployed;")]
+    #[arg(help = "Specify the initial balance of accounts to be predeployed; the value is \
+                  interpreted as WEI for ETH balance and FRI for STRK balance;")]
     initial_balance: InitialBalanceWrapper,
 
     // Seed for predeployed accounts

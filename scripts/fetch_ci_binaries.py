@@ -29,7 +29,7 @@ def get_artifact_info(job: dict) -> Optional[Tuple[str, str]]:
     Returns the artifact (URL, name) corresponding to job object.
     Returns None if job is not a binary build.
     """
-    if job["job_name"].startswith("binary-build-"):
+    if job["job_name"].startswith(BINARY_BUILD_JOB_PREFIX):
         job_id = job["job_id"]
         job_name = job["job_name"]
         artifact_name = (
@@ -109,8 +109,8 @@ def main():
     for pipeline in pipelines:
         # assuming a chronologically descending order
         if workflow_predicate(pipeline):
-            workflow_id = pipeline["workflows"]["workflow_id"]
-            log_pipeline(workflow_id, pipeline)
+            workspace_id = pipeline["workflows"]["workspace_id"]
+            log_pipeline(pipeline["workflows"]["workflow_id"], pipeline)
             break
     else:
         sys.exit("Error: Could not locate workflow ID")
@@ -118,7 +118,7 @@ def main():
     jobs = [
         pipeline["workflows"]
         for pipeline in pipelines
-        if pipeline["workflows"]["workflow_id"] == workflow_id
+        if pipeline["workflows"]["workspace_id"] == workspace_id
     ]
 
     artifact_infos = [
@@ -130,7 +130,7 @@ def main():
     if not artifact_infos:
         sys.exit("Error: No artifacts found")
 
-    write_artifacts(workflow_id, artifact_infos)
+    write_artifacts(workspace_id, artifact_infos)
 
 
 if __name__ == "__main__":

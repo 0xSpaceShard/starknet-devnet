@@ -101,7 +101,7 @@ pub struct Starknet {
     // To avoid repeating some logic related to blocks,
     // having `blocks` public allows to re-use functions like `get_blocks()`.
     pub(crate) blocks: StarknetBlocks,
-    pub transactions: StarknetTransactions,
+    pub(crate) transactions: StarknetTransactions,
     pub config: StarknetConfig,
     pub pending_block_timestamp_shift: i64,
     pub next_block_timestamp: Option<u64>,
@@ -337,11 +337,21 @@ impl Starknet {
     /// Generates new pending block. Same for pending state. Returns the new block hash.
     pub(crate) fn generate_new_block_and_state(&mut self) -> DevnetResult<Felt> {
         let mut new_block = self.pending_block().clone();
-        let new_block_number = self.blocks.next_block_number();
 
-        // set new block header
+        // Set new block header
+        // TODO why not store the whole next block header instead of storing separate properties?
+        new_block.header.l1_gas_price.price_in_fri =
+            GasPrice(self.next_block_gas.gas_price_fri.into());
+        new_block.header.l1_gas_price.price_in_wei =
+            GasPrice(self.next_block_gas.gas_price_wei.into());
+        new_block.header.l1_data_gas_price.price_in_fri =
+            GasPrice(self.next_block_gas.data_gas_price_fri.into());
+        new_block.header.l1_data_gas_price.price_in_wei =
+            GasPrice(self.next_block_gas.data_gas_price_wei.into());
+
+        let new_block_number = self.blocks.next_block_number();
         new_block.set_block_hash(if self.config.lite_mode {
-            BlockHash::from_hex(&format!("{:#x}", new_block_number.0))?
+            BlockHash::from(new_block_number.0)
         } else {
             new_block.generate_hash()?
         });
