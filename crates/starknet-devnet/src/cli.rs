@@ -7,8 +7,9 @@ use server::restrictive_mode::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
 use server::server::HTTP_API_ROUTES_WITHOUT_LEADING_SLASH;
 use server::ServerConfig;
 use starknet_core::constants::{
-    DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT,
-    DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    ARGENT_CONTRACT_VERSION, ARGENT_MULTISIG_CONTRACT_VERSION, DEVNET_DEFAULT_DATA_GAS_PRICE,
+    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT,
+    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 use starknet_core::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use starknet_core::random_number_generator::generate_u32_random_number;
@@ -57,7 +58,10 @@ pub(crate) struct Args {
 
     #[arg(long = "predeclare-argent")]
     #[arg(env = "PREDECLARE_ARGENT")]
-    #[arg(help = "If set, predeclares the latest Argent contract classes (regular and multisig)")]
+    #[arg(help = format!(
+        "If set, predeclares Argent account contract classes: regular ({ARGENT_CONTRACT_VERSION}) \
+        and multisig ({ARGENT_MULTISIG_CONTRACT_VERSION}); does not affect account predeployment;"
+    ))]
     predeclare_argent: bool,
 
     /// Initial balance of predeployed accounts
