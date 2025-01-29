@@ -6,6 +6,9 @@ use std::time::Duration;
 use clap::Parser;
 use cli::Args;
 use futures::future::join_all;
+use ngrok::config::TunnelBuilder;
+use ngrok::prelude::TunnelExt;
+use ngrok::tunnel::UrlTunnel;
 use serde::de::IntoDeserializer;
 use server::api::http::HttpApiHandler;
 use server::api::json_rpc::{JsonRpcHandler, RPC_SPEC_VERSION};
@@ -258,7 +261,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // parse arguments
     let args = Args::parse();
-    let (mut starknet_config, server_config) = args.to_config()?;
+    let (mut starknet_config, mut server_config) = args.to_config()?;
 
     // If fork url is provided, then set fork config and chain_id from forked network
     if let Some(url) = starknet_config.fork_config.url.as_ref() {
@@ -276,7 +279,46 @@ async fn main() -> Result<(), anyhow::Error> {
     let starknet = Starknet::new(&starknet_config)?;
     let api = Api::new(starknet);
 
+    let mut tasks = vec![];
+
     let (address, listener) = bind_port(server_config.host, server_config.port).await?;
+
+    // If ngrok authentication token is provided, then construct a local tunnel and set the ngrok url in server config
+    if let Some(ngrok_auth_token) = &server_config.ngrok_auth_token {
+        let forwards_to = address.clone();
+        let mut tunnel = ngrok::Session::builder()
+            .authtoken(ngrok_auth_token)
+            .connect()
+            .await?
+            .http_endpoint()
+            .forwards_to(forwards_to.clone())
+            .listen()
+            .await?;
+
+        server_config.ngrok_url = Some(tunnel.url().to_string());
+
+        #[cfg(unix)]
+        let mut sigint =
+            { signal(SignalKind::interrupt()).expect("Failed to setup SIGINT handler") };
+
+        #[cfg(windows)]
+        let mut sigint = {
+            let ctrl_c_signal = ctrl_c().expect("Failed to setup Ctrl+C handler");
+            Box::pin(ctrl_c_signal)
+        };
+
+        let t = tokio::task::spawn(async move {
+            tokio::select! {
+                _ = tunnel.forward_http(forwards_to) => {
+                    return Ok(())
+                }
+                _ = sigint.recv() => {
+                    return Ok(())
+                }
+            }
+        });
+        tasks.push(t);
+    }
 
     // set block timestamp shift during startup if start time is set
     if let Some(start_time) = starknet_config.start_time {
@@ -316,8 +358,6 @@ async fn main() -> Result<(), anyhow::Error> {
     let server =
         serve_http_api_json_rpc(listener, &server_config, json_rpc_handler, http_api_handler).await;
     info!("Starknet Devnet listening on {}", address);
-
-    let mut tasks = vec![];
 
     if let BlockGenerationOn::Interval(seconds) = starknet_config.block_generation_on {
         // use JoinHandle to run block interval creation as a task

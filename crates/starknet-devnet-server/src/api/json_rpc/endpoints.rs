@@ -1,5 +1,9 @@
+use std::fs::File;
+use std::path::Path;
+
 use starknet_core::error::{Error, StateError};
-use starknet_rs_core::types::{BlockId as ImportedBlockId, MsgFromL1};
+use starknet_rs_core::types::contract::SierraClass;
+use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag, Felt, MsgFromL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
@@ -7,18 +11,24 @@ use starknet_types::rpc::block::{
     Block, BlockHeader, BlockId, BlockResult, PendingBlock, PendingBlockHeader,
 };
 use starknet_types::rpc::state::StateUpdateResult;
+use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
-    BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, SimulationFlag,
+    BroadcastedTransaction, EventFilter, EventsChunk, ExecutionInvocation, FunctionCall,
+    FunctionInvocation, SimulationFlag, Transaction,
 };
 use starknet_types::starknet_api::block::BlockStatus;
 
-use super::error::{ApiError, StrictRpcResult};
+use super::error::{ApiError, DebuggingError, StrictRpcResult};
 use super::models::{BlockHashAndNumberOutput, SyncingOutput, TransactionStatusOutput};
 use super::{DevnetResponse, JsonRpcHandler, JsonRpcResponse, StarknetResponse, RPC_SPEC_VERSION};
 use crate::api::http::endpoints::accounts::{
     get_account_balance_impl, get_predeployed_accounts_impl, BalanceQuery, PredeployedAccountsQuery,
 };
 use crate::api::http::endpoints::DevnetConfig;
+use crate::api::http::models::{ContractSource, ExecutionTarget, LoadPath, SierraArtifactSource};
+use crate::walnut_util::{
+    get_cairo_and_toml_files_from_contract_source_in_json_format, get_contract_names,
+};
 
 const DEFAULT_CONTINUATION_TOKEN: &str = "0";
 
@@ -501,5 +511,170 @@ impl JsonRpcHandler {
             server_config: self.server_config.clone(),
         })
         .into())
+    }
+
+    /// devnet_walnutVerifyContract
+    pub async fn walnut_verify_contract(
+        &self,
+        contract_source: ContractSource,
+        sierra_source: SierraArtifactSource,
+    ) -> StrictRpcResult {
+        let walnut_client =
+            self.walnut_client.as_ref().ok_or(ApiError::from(DebuggingError::LocalTunnelNotSet))?;
+
+        let sierra_artifact = match sierra_source {
+            SierraArtifactSource::FilePath(LoadPath { path }) => {
+                if Path::new(&path).is_dir() {
+                    return Err(ApiError::from(DebuggingError::Custom {
+                        error: format!("Path to sierra file is required. Provided: {}", path),
+                    }));
+                }
+                let sierra_file = std::fs::File::open(path).map_err(|err| {
+                    ApiError::from(DebuggingError::Custom {
+                        error: format!("Read file error: {}", err.to_string()),
+                    })
+                });
+
+                let sierra_artifact = serde_json::from_reader::<File, SierraClass>(sierra_file?)
+                    .map_err(|err| {
+                        ApiError::from(DebuggingError::Custom {
+                            error: format!("Deserialization error: {}", err.to_string()),
+                        })
+                    })?;
+
+                Ok(sierra_artifact)
+            }
+            SierraArtifactSource::SierraRepresentation(sierra_artifact) => {
+                Result::<SierraClass, ApiError>::Ok(sierra_artifact)
+            }
+        }?;
+
+        let file_contents =
+            get_cairo_and_toml_files_from_contract_source_in_json_format(contract_source).await?;
+
+        let contract_names = get_contract_names(file_contents.values());
+
+        let class_hash = sierra_artifact.class_hash().map_err(|err| DebuggingError::Custom {
+            error: format!("Sierra class hash computation error: {}", err.to_string()),
+        })?;
+
+        let verification_response = walnut_client
+            .verify(contract_names, vec![class_hash], serde_json::Value::Object(file_contents))
+            .await?;
+
+        Ok(JsonRpcResponse::Devnet(DevnetResponse::Walnut(verification_response)))
+    }
+
+    /// devnet_debugTransaction
+    pub async fn debug_transaction(
+        &self,
+        contract_source: ContractSource,
+        execution_target: ExecutionTarget,
+    ) -> StrictRpcResult {
+        let walnut_client =
+            self.walnut_client.as_ref().ok_or(ApiError::from(DebuggingError::LocalTunnelNotSet))?;
+
+        let file_contents =
+            get_cairo_and_toml_files_from_contract_source_in_json_format(contract_source).await?;
+
+        let contract_names = get_contract_names(file_contents.values());
+
+        let transaction_hash = match execution_target {
+            ExecutionTarget::TransactionHash(transaction_hash_input) => {
+                transaction_hash_input.transaction_hash
+            }
+        };
+
+        let transaction_trace =
+            self.api.starknet.lock().await.get_transaction_trace_by_hash(transaction_hash)?;
+
+        let execution = match transaction_trace {
+            starknet_types::rpc::transactions::TransactionTrace::Invoke(
+                invoke_transaction_trace,
+            ) => Ok(invoke_transaction_trace.execute_invocation),
+            _ => Err(ApiError::from(DebuggingError::OnlyInvokeTransactionsAreSupported)),
+        }?;
+
+        // if transaction succeeded, extract class hashes from trace, otherwise extract them from transaction calldata
+        let class_hashes = match execution {
+            ExecutionInvocation::Succeeded(function_invocation) => {
+                fn extract_all_class_hashes_recursively(
+                    calls: &Vec<FunctionInvocation>,
+                    hashes: &mut Vec<Felt>,
+                ) {
+                    if calls.is_empty() {
+                        return;
+                    }
+
+                    for call in calls {
+                        hashes.push(call.class_hash);
+                        extract_all_class_hashes_recursively(&call.calls, hashes);
+                    }
+                }
+
+                let mut class_hashes = Vec::<Felt>::new();
+                class_hashes.push(function_invocation.class_hash);
+                extract_all_class_hashes_recursively(&function_invocation.calls, &mut class_hashes);
+
+                class_hashes
+            }
+            ExecutionInvocation::Reverted(_) => {
+                let mut starknet = self.api.starknet.lock().await;
+                let transaction = &starknet.get_transaction_by_hash(transaction_hash)?.transaction;
+                let transaction_receipt =
+                    starknet.get_transaction_receipt_by_hash(&transaction_hash)?;
+                let mut class_hashes = vec![];
+
+                let (sender, receiver, block_id) = match (transaction, transaction_receipt) {
+                    (
+                        Transaction::Invoke(invoke_transaction),
+                        TransactionReceipt::Common(receipt),
+                    ) => {
+                        let (sender, calldata) = match invoke_transaction {
+                            starknet_types::rpc::transactions::InvokeTransaction::V1(
+                                invoke_transaction_v1,
+                            ) => (
+                                invoke_transaction_v1.sender_address,
+                                &invoke_transaction_v1.calldata,
+                            ),
+                            starknet_types::rpc::transactions::InvokeTransaction::V3(
+                                invoke_transaction_v3,
+                            ) => (
+                                invoke_transaction_v3.sender_address,
+                                &invoke_transaction_v3.calldata,
+                            ),
+                        };
+                        // calldata format is : <length of calls> <receiver address> <selector> .....
+                        let receiver_contract_address =
+                            calldata.get(1).ok_or(Error::FormatError)?;
+
+                        let block_id = receipt
+                            .maybe_pending_properties
+                            .block_hash
+                            .map_or(ImportedBlockId::Tag(BlockTag::Pending), |h| {
+                                ImportedBlockId::Hash(h)
+                            });
+
+                        Ok((sender, ContractAddress::new(*receiver_contract_address)?, block_id))
+                    }
+                    _ => Err(ApiError::from(DebuggingError::OnlyInvokeTransactionsAreSupported)),
+                }?;
+
+                // sender class hash
+                class_hashes.push(starknet.get_class_hash_at(&block_id, sender)?);
+                // receiver class hash
+                class_hashes.push(starknet.get_class_hash_at(&block_id, receiver)?);
+
+                class_hashes
+            }
+        };
+
+        walnut_client
+            .verify(contract_names, class_hashes, serde_json::Value::Object(file_contents))
+            .await?;
+
+        let debugging_url = walnut_client.get_url_for_debugging(transaction_hash)?;
+
+        Ok(DevnetResponse::Walnut(debugging_url).into())
     }
 }

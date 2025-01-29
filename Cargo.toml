@@ -55,6 +55,9 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 
 # misc
+ngrok = { version = "0.13.1", features = ["axum"] }
+
+# Starknet dependencies
 base64 = { version = "0.22" }
 clap = { version = "4.3.2", features = ["derive", "env"] }
 flate2 = { version = ">= 1.0.26, < 1.0.27" }
@@ -69,12 +72,15 @@ rand = "0.8.5"
 rand_chacha = "0.3.1"
 rand_mt = "4.2.2"
 regex_generate = "0.2.3"
+regex = "1.11.1"
 reqwest = { version = "0.12", features = ["blocking", "json"] }
 url = "2.4"
 usc = { version = "2.2.0", package = "universal-sierra-compiler" }
 num-bigint = { version = "0.4" }
 bigdecimal = { version = "0.4.5" }
 enum-helper-macros = "0.0.1"
+walkdir = "2.5.0"
+tempfile = "3"
 
 # Starknet dependencies
 starknet-types-core = "0.1.5"

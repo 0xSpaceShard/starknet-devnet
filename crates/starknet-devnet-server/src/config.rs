@@ -13,4 +13,7 @@ pub struct ServerConfig {
     #[serde(skip)]
     pub log_response: bool,
     pub restricted_methods: Option<Vec<String>>,
+    pub ngrok_auth_token: Option<String>,
+    pub walnut_api_key: Option<String>,
+    pub ngrok_url: Option<String>,
 }

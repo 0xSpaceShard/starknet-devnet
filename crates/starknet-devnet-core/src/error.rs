@@ -26,8 +26,6 @@ pub enum Error {
     TypesError(#[from] starknet_types::error::Error),
     #[error("I/O error: {0}")]
     IoError(#[from] std::io::Error),
-    #[error("Error when reading file {path}")]
-    ReadFileError { source: std::io::Error, path: String },
     #[error("The file does not exist")]
     FileNotFound,
     #[error("Contract not found")]

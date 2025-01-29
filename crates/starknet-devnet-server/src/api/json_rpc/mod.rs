@@ -42,11 +42,11 @@ use self::origin_forwarder::OriginForwarder;
 use super::http::endpoints::accounts::{BalanceQuery, PredeployedAccountsQuery};
 use super::http::endpoints::DevnetConfig;
 use super::http::models::{
-    AbortedBlocks, AbortingBlocks, AccountBalanceResponse, CreatedBlock, DumpPath,
-    DumpResponseBody, FlushParameters, FlushedMessages, IncreaseTime, IncreaseTimeResponse,
-    LoadPath, MessageHash, MessagingLoadAddress, MintTokensRequest, MintTokensResponse,
-    PostmanLoadL1MessagingContract, RestartParameters, SerializableAccount, SetTime,
-    SetTimeResponse,
+    AbortedBlocks, AbortingBlocks, AccountBalanceResponse, CreatedBlock, DebugTransactionRequest,
+    DumpPath, DumpResponseBody, FlushParameters, FlushedMessages, IncreaseTime,
+    IncreaseTimeResponse, LoadPath, MessageHash, MessagingLoadAddress, MintTokensRequest,
+    MintTokensResponse, PostmanLoadL1MessagingContract, RestartParameters, SerializableAccount,
+    SetTime, SetTimeResponse, WalnutVerificationRequest,
 };
 use super::Api;
 use crate::api::json_rpc::models::{
@@ -60,6 +60,7 @@ use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
+use crate::walnut_util::WalnutClient;
 use crate::ServerConfig;
 
 /// Helper trait to easily convert results to rpc results
@@ -101,6 +102,7 @@ pub struct JsonRpcHandler {
     pub origin_caller: Option<OriginForwarder>,
     pub starknet_config: StarknetConfig,
     pub server_config: ServerConfig,
+    pub walnut_client: Option<WalnutClient>,
 }
 
 fn log_if_deprecated_tx(request: &JsonRpcRequest) {
@@ -226,11 +228,21 @@ impl JsonRpcHandler {
             None
         };
 
+        // if walnut api key is provided and ngrok_url is created, then its clear that user will use debugging
+        let walnut_client =
+            match (server_config.walnut_api_key.as_ref(), server_config.ngrok_url.as_ref()) {
+                (Some(walnut_api_key), Some(ngrok_url)) => {
+                    Some(WalnutClient::new(ngrok_url.clone(), walnut_api_key.clone()))
+                }
+                _ => None,
+            };
+
         JsonRpcHandler {
             api,
             origin_caller,
             starknet_config: starknet_config.clone(),
             server_config: server_config.clone(),
+            walnut_client,
         }
     }
 
@@ -361,6 +373,13 @@ impl JsonRpcHandler {
             JsonRpcRequest::AccountBalance(data) => self.get_account_balance(data).await,
             JsonRpcRequest::Mint(data) => self.mint(data).await,
             JsonRpcRequest::DevnetConfig => self.get_devnet_config().await,
+            JsonRpcRequest::Debug(DebugTransactionRequest { contract_source, target }) => {
+                self.debug_transaction(contract_source, target).await
+            }
+            JsonRpcRequest::VerifyContract(WalnutVerificationRequest {
+                contract_source,
+                sierra_artifact_source,
+            }) => self.walnut_verify_contract(contract_source, sierra_artifact_source).await,
         }
     }
 
@@ -499,6 +518,10 @@ pub enum JsonRpcRequest {
     Mint(MintTokensRequest),
     #[serde(rename = "devnet_getConfig", with = "empty_params")]
     DevnetConfig,
+    #[serde(rename = "devnet_debugTransaction")]
+    Debug(DebugTransactionRequest),
+    #[serde(rename = "devnet_walnutVerifyContract")]
+    VerifyContract(WalnutVerificationRequest),
 }
 
 impl JsonRpcRequest {
@@ -554,7 +577,9 @@ impl JsonRpcRequest {
             | Self::PredeployedAccounts(_)
             | Self::AccountBalance(_)
             | Self::Mint(_)
-            | Self::DevnetConfig => false,
+            | Self::DevnetConfig
+            | Self::Debug(_)
+            | Self::VerifyContract(_) => false,
         }
     }
 
@@ -610,7 +635,9 @@ impl JsonRpcRequest {
             | Self::Restart(_)
             | Self::PredeployedAccounts(_)
             | Self::AccountBalance(_)
-            | Self::DevnetConfig => false,
+            | Self::DevnetConfig
+            | Self::VerifyContract(_)
+            | Self::Debug(_) => false,
         }
     }
 }
@@ -688,6 +715,7 @@ pub enum DevnetResponse {
     MintTokens(MintTokensResponse),
     DevnetConfig(DevnetConfig),
     DevnetDump(DumpResponseBody),
+    Walnut(String),
 }
 
 #[cfg(test)]

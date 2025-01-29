@@ -1,7 +1,11 @@
 use serde::{Deserialize, Serialize};
+use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{Felt, Hash256, MsgToL1};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{BlockHash, Calldata, EntryPointSelector, Nonce, TransactionHash};
+use starknet_types::contract_class::ContractClass;
+use starknet_types::felt::{
+    BlockHash, Calldata, ClassHash, EntryPointSelector, Nonce, TransactionHash,
+};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::block::BlockId;
 use starknet_types::rpc::eth_address::EthAddressWrapper;
@@ -10,6 +14,7 @@ use starknet_types::rpc::transaction_receipt::FeeUnit;
 use starknet_types::serde_helpers::dec_string::deserialize_biguint;
 
 use crate::api::http::error::HttpApiError;
+use crate::api::json_rpc::models::TransactionHashInput;
 use crate::rpc_core::request::RpcMethodCall;
 
 #[derive(Deserialize)]
@@ -165,4 +170,45 @@ pub struct MessagingLoadAddress {
 #[cfg_attr(test, derive(Debug))]
 pub struct RestartParameters {
     pub restart_l1_to_l2_messaging: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(test, derive(Debug))]
+pub struct DebugTransactionRequest {
+    pub contract_source: ContractSource,
+    pub target: ExecutionTarget,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+#[cfg_attr(test, derive(Debug))]
+pub enum ContractSource {
+    // workspace directory
+    Path(LoadPath),
+    // key is the filename with extension, value is the stringified content of the file
+    Files(serde_json::Map<String, serde_json::Value>),
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+#[cfg_attr(test, derive(Debug))]
+pub enum ExecutionTarget {
+    TransactionHash(TransactionHashInput),
+    // another case is to send: function selector, function arguments, sender address, receiver address
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+#[cfg_attr(test, derive(Debug))]
+pub enum SierraArtifactSource {
+    FilePath(LoadPath),
+    SierraRepresentation(SierraClass),
+}
+
+#[derive(Deserialize)]
+#[cfg_attr(test, derive(Debug))]
+pub struct WalnutVerificationRequest {
+    pub contract_source: ContractSource,
+    pub sierra_artifact_source: SierraArtifactSource,
 }

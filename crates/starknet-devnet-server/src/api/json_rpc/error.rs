@@ -62,6 +62,22 @@ pub enum ApiError {
     CompiledClassHashMismatch,
     #[error("Transaction execution error")]
     ExecutionError { execution_error: String, index: usize },
+    #[error(transparent)]
+    DebuggingError(#[from] DebuggingError),
+}
+
+#[derive(Error, Debug)]
+pub enum DebuggingError {
+    #[error("Local tunnel is not established.")]
+    LocalTunnelNotSet,
+    #[error("Smart contract files are not provided.")]
+    SmartContractFilesNotProvided,
+    #[error("Invoke transactions are supported for debugging.")]
+    OnlyInvokeTransactionsAreSupported,
+    #[error("Walnut error: {error}")]
+    WalnutProviderError { error: String },
+    #[error("{error}")]
+    Custom { error: String },
 }
 
 impl ApiError {
@@ -209,6 +225,11 @@ impl ApiError {
                 })),
             },
             ApiError::HttpApiError(http_api_error) => http_api_error.http_api_error_to_rpc_error(),
+            ApiError::DebuggingError(debugging_error) => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
+                message: debugging_error.to_string().into(),
+                data: None,
+            },
         }
     }
 
@@ -240,6 +261,7 @@ impl ApiError {
             | Self::ValidationFailure { .. }
             | Self::HttpApiError(_)
             | Self::CompiledClassHashMismatch
+            | Self::DebuggingError(_)
             | Self::ExecutionError { .. } => false,
         }
     }
