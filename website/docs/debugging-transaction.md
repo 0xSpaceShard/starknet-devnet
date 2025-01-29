@@ -52,8 +52,8 @@ Uploads the smart contract to Walnut and returns a URL for the debug session in 
     "id": 0,
     "params": {
         "contract_source": {
-            "lib.cairo": "<cairo contract content",
-            "mod.cairo": "<cairo contract content",
+            "lib.cairo": "<cairo contract content>",
+            "mod.cairo": "<cairo contract content>",
         },
         "target": {
             "transaction_hash": "0x000131"
@@ -92,7 +92,7 @@ Specifying the `sierra_artifact_source` parameter can be done in the following w
             "path": "/user/projects/cairo-contracts/hello_world"
         },
         "sierra_artifact_source": {
-            "path": "/Users/mario/Projects/work/shardlabs/cairo-contracts/account/target/dev/account_Account.contract_class.json"
+            "path": "/cairo-contracts/account/target/dev/account_Account.contract_class.json"
         }
     }
 }
@@ -105,8 +105,8 @@ Specifying the `sierra_artifact_source` parameter can be done in the following w
     "id": 0,
     "params": {
         "contract_source": {
-            "lib.cairo": "<cairo contract content",
-            "mod.cairo": "<cairo contract content",
+            "lib.cairo": "<cairo contract content>",
+            "mod.cairo": "<cairo contract content>",
         },
         "sierra_artifact_source": {
             "sierra_program": [],
