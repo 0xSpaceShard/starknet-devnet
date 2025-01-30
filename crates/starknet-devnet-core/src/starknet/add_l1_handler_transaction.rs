@@ -11,27 +11,18 @@ pub fn add_l1_handler_transaction(
     starknet: &mut Starknet,
     transaction: L1HandlerTransaction,
 ) -> DevnetResult<TransactionHash> {
-    let blockifier_transaction =
-        transaction.create_blockifier_transaction(starknet.chain_id().to_felt())?;
-    let transaction_hash = blockifier_transaction.tx_hash.0;
+    let executable_tx = transaction.create_sn_api_transaction(starknet.chain_id().to_felt())?;
+
+    let transaction_hash = executable_tx.tx_hash.0;
     trace!("Executing L1 handler transaction [{:#064x}]", transaction_hash);
 
-    // Fees are charges on L1 as `L1HandlerTransaction` is not executed by an
-    // account, but directly by the sequencer.
-    // https://docs.starknet.io/documentation/architecture_and_concepts/Network_Architecture/messaging-mechanism/#l1-l2-message-fees
-    let charge_fee = false;
-    let validate = true;
-
-    let blockifier_execution_info = blockifier_transaction.execute(
-        &mut starknet.pending_state.state,
-        &starknet.block_context,
-        charge_fee,
-        validate,
-    )?;
+    let execution_info =
+        blockifier::transaction::transaction_execution::Transaction::L1Handler(executable_tx)
+            .execute(&mut starknet.pending_state.state, &starknet.block_context)?;
 
     starknet.handle_accepted_transaction(
         TransactionWithHash::new(transaction_hash, Transaction::L1Handler(transaction.clone())),
-        blockifier_execution_info,
+        execution_info,
     )?;
 
     Ok(transaction_hash)
@@ -60,7 +51,7 @@ mod tests {
         self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
-    use crate::starknet::{predeployed, Starknet};
+    use crate::starknet::{Starknet, predeployed};
     use crate::state::CustomState;
     use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_l1l2_contract;
@@ -208,26 +199,24 @@ mod tests {
 
         // dummy contract
         let dummy_contract: Cairo0ContractClass = dummy_cairo_l1l2_contract().into();
-        let blockifier = blockifier::execution::contract_class::ContractClassV0::try_from(
-            dummy_contract.clone(),
-        )
-        .unwrap();
+
         let withdraw_selector = get_selector_from_name("withdraw").unwrap();
         let deposit_selector = get_selector_from_name("deposit").unwrap();
 
         // check if withdraw function is present in the contract class
-        blockifier
+        let Cairo0ContractClass::Rpc(ref contract_class) = dummy_contract;
+        contract_class
             .entry_points_by_type
-            .get(&starknet_api::deprecated_contract_class::EntryPointType::External)
+            .get(&starknet_api::contract_class::EntryPointType::External)
             .unwrap()
             .iter()
             .find(|el| el.selector.0 == withdraw_selector)
             .unwrap();
 
         // check if deposit function is present in the contract class
-        blockifier
+        contract_class
             .entry_points_by_type
-            .get(&starknet_api::deprecated_contract_class::EntryPointType::L1Handler)
+            .get(&starknet_api::contract_class::EntryPointType::L1Handler)
             .unwrap()
             .iter()
             .find(|el| el.selector.0 == deposit_selector)

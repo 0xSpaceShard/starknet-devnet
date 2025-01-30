@@ -54,9 +54,7 @@ mod tests {
     use crate::contract_address::ContractAddress;
     use crate::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
     use crate::rpc::transactions::BroadcastedTransactionCommonV3;
-    use crate::utils::test_utils::{
-        convert_from_sn_api_resource_bounds_mapping, from_u8_to_da_mode,
-    };
+    use crate::utils::test_utils::{convert_from_sn_api_l1_resource_bounds, from_u8_to_da_mode};
 
     #[derive(Deserialize)]
     struct FeederGatewayInvokeTransactionV3 {
@@ -98,7 +96,7 @@ mod tests {
                 version: feeder_gateway_transaction.version,
                 signature: vec![],
                 nonce: feeder_gateway_transaction.nonce,
-                resource_bounds: convert_from_sn_api_resource_bounds_mapping(
+                resource_bounds: convert_from_sn_api_l1_resource_bounds(
                     feeder_gateway_transaction.resource_bounds,
                 ),
                 tip: feeder_gateway_transaction.tip,

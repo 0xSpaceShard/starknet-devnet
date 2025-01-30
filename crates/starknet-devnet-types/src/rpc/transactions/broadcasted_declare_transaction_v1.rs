@@ -71,7 +71,7 @@ mod tests {
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
-    use crate::contract_class::Cairo0Json;
+    use crate::contract_class::Cairo0ContractClass;
     use crate::felt::try_felt_to_num;
     use crate::rpc::transactions::BroadcastedDeclareTransaction;
     use crate::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
@@ -92,7 +92,7 @@ mod tests {
     fn correct_transaction_hash_computation_compared_to_a_transaction_from_feeder_gateway() {
         let json_str =
             std::fs::read_to_string("../../contracts/test_artifacts/cairo0/events.json").unwrap();
-        let cairo0 = Cairo0Json::raw_json_from_json_str(&json_str).unwrap();
+        let cairo0 = Cairo0ContractClass::from_json_str(&json_str).unwrap();
 
         // this is declare v1 transaction send with starknet-rs
         let json_obj: serde_json::Value = serde_json::from_reader(std::fs::File::open(concat!(
@@ -116,7 +116,7 @@ mod tests {
 
         let blockifier_declare_transaction =
             BroadcastedDeclareTransaction::V1(Box::new(broadcasted_tx))
-                .create_blockifier_declare(&ChainId::goerli_legacy_id(), false)
+                .create_sn_api_declare(&ChainId::goerli_legacy_id())
                 .unwrap();
 
         assert_eq!(

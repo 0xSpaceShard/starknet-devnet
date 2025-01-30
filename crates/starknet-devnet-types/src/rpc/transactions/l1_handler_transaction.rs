@@ -58,12 +58,12 @@ impl L1HandlerTransaction {
     }
 
     /// Creates a blockifier version of `L1HandlerTransaction`.
-    pub fn create_blockifier_transaction(
+    pub fn create_sn_api_transaction(
         &self,
         chain_id: Felt,
-    ) -> DevnetResult<BlockifierL1HandlerTransaction> {
-        let transaction = BlockifierL1HandlerTransaction {
-            tx: ApiL1HandlerTransaction {
+    ) -> DevnetResult<ApiL1HandlerTransaction> {
+        let transaction = ApiL1HandlerTransaction {
+            tx: starknet_api::transaction::L1HandlerTransaction {
                 contract_address: ApiContractAddress::try_from(self.contract_address)?,
                 entry_point_selector: ApiEntryPointSelector(self.entry_point_selector),
                 calldata: ApiCalldata(Arc::new(self.calldata.clone())),

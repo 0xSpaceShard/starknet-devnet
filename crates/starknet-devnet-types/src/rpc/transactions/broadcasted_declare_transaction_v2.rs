@@ -52,8 +52,8 @@ mod tests {
     use crate::contract_address::ContractAddress;
     use crate::contract_class::ContractClass;
     use crate::felt::try_felt_to_num;
-    use crate::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use crate::rpc::transactions::BroadcastedDeclareTransaction;
+    use crate::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use crate::utils::test_utils::CAIRO_1_EVENTS_CONTRACT_PATH;
 
     #[derive(Deserialize)]
@@ -99,7 +99,7 @@ mod tests {
 
         let blockifier_declare_transaction =
             BroadcastedDeclareTransaction::V2(Box::new(broadcasted_declare_transaction))
-                .create_blockifier_declare(&ChainId::goerli_legacy_id(), false)
+                .create_sn_api_declare(&ChainId::goerli_legacy_id())
                 .unwrap();
 
         assert_eq!(

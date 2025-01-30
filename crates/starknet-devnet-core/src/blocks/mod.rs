@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use indexmap::IndexMap;
-use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus, BlockTimestamp};
+use starknet_api::block::{
+    BlockHeader, BlockHeaderWithoutHash, BlockNumber, BlockStatus, BlockTimestamp,
+};
 use starknet_api::data_availability::L1DataAvailabilityMode;
 use starknet_api::felt;
 use starknet_rs_core::types::{BlockId, BlockTag, Felt};
@@ -15,8 +17,8 @@ use starknet_types_core::hash::{Pedersen, StarkHash};
 
 use crate::constants::{DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, STARKNET_VERSION};
 use crate::error::{DevnetResult, Error};
-use crate::state::state_diff::StateDiff;
 use crate::state::StarknetState;
+use crate::state::state_diff::StateDiff;
 use crate::traits::HashIdentified;
 
 pub(crate) struct StarknetBlocks {
@@ -68,7 +70,7 @@ impl StarknetBlocks {
     /// hash
     pub fn insert(&mut self, mut block: StarknetBlock, state_diff: StateDiff) {
         if let Some(last_block_hash) = self.last_block_hash {
-            block.header.parent_hash = starknet_api::block::BlockHash(last_block_hash);
+            block.header.block_header_without_hash.parent_hash = starknet_api::block::BlockHash(last_block_hash);
         }
 
         let hash = block.block_hash();
@@ -181,14 +183,14 @@ impl From<&StarknetBlock> for TypesPendingBlockHeader {
             timestamp: value.timestamp(),
             starknet_version: STARKNET_VERSION.to_string(),
             l1_gas_price: ResourcePrice {
-                price_in_fri: value.header.l1_gas_price.price_in_fri.0.into(),
-                price_in_wei: value.header.l1_gas_price.price_in_wei.0.into(),
+                price_in_fri: value.header.block_header_without_hash.l1_gas_price.price_in_fri.0.into(),
+                price_in_wei: value.header.block_header_without_hash.l1_gas_price.price_in_wei.0.into(),
             },
             l1_data_gas_price: ResourcePrice {
-                price_in_fri: value.header.l1_data_gas_price.price_in_fri.0.into(),
-                price_in_wei: value.header.l1_data_gas_price.price_in_wei.0.into(),
+                price_in_fri: value.header.block_header_without_hash.l1_data_gas_price.price_in_fri.0.into(),
+                price_in_wei: value.header.block_header_without_hash.l1_data_gas_price.price_in_wei.0.into(),
             },
-            l1_da_mode: value.header.l1_da_mode,
+            l1_da_mode: value.header.block_header_without_hash.l1_da_mode,
         }
     }
 }
@@ -204,14 +206,14 @@ impl From<&StarknetBlock> for TypesBlockHeader {
             timestamp: value.timestamp(),
             starknet_version: STARKNET_VERSION.to_string(),
             l1_gas_price: ResourcePrice {
-                price_in_fri: value.header.l1_gas_price.price_in_fri.0.into(),
-                price_in_wei: value.header.l1_gas_price.price_in_wei.0.into(),
+                price_in_fri: value.header.block_header_without_hash.l1_gas_price.price_in_fri.0.into(),
+                price_in_wei: value.header.block_header_without_hash.l1_gas_price.price_in_wei.0.into(),
             },
             l1_data_gas_price: ResourcePrice {
-                price_in_fri: value.header.l1_data_gas_price.price_in_fri.0.into(),
-                price_in_wei: value.header.l1_data_gas_price.price_in_wei.0.into(),
+                price_in_fri: value.header.block_header_without_hash.l1_data_gas_price.price_in_fri.0.into(),
+                price_in_wei: value.header.block_header_without_hash.l1_data_gas_price.price_in_wei.0.into(),
             },
-            l1_da_mode: value.header.l1_da_mode,
+            l1_da_mode: value.header.block_header_without_hash.l1_da_mode,
         }
     }
 }
@@ -234,19 +236,19 @@ impl StarknetBlock {
     }
 
     pub fn parent_hash(&self) -> BlockHash {
-        self.header.parent_hash.0
+        self.header.block_header_without_hash.parent_hash.0
     }
 
     pub fn sequencer_address(&self) -> ContractAddress {
-        self.header.sequencer.0.into()
+        self.header.block_header_without_hash.sequencer.0.into()
     }
 
     pub fn timestamp(&self) -> BlockTimestamp {
-        self.header.timestamp
+        self.header.block_header_without_hash.timestamp
     }
 
     pub fn new_root(&self) -> Felt {
-        self.header.state_root.0
+        self.header.block_header_without_hash.state_root.0
     }
 
     pub(crate) fn set_block_hash(&mut self, block_hash: BlockHash) {
@@ -254,13 +256,16 @@ impl StarknetBlock {
     }
 
     pub fn block_number(&self) -> BlockNumber {
-        self.header.block_number
+        self.header.block_header_without_hash.block_number
     }
 
     pub(crate) fn create_pending_block() -> Self {
         Self {
             header: BlockHeader {
-                l1_da_mode: L1DataAvailabilityMode::Blob,
+                block_header_without_hash: BlockHeaderWithoutHash {
+                    l1_da_mode: L1DataAvailabilityMode::Blob,
+                    ..Default::default()
+                },
                 ..BlockHeader::default()
             },
             status: BlockStatus::Pending,
@@ -269,11 +274,11 @@ impl StarknetBlock {
     }
 
     pub(crate) fn set_block_number(&mut self, block_number: u64) {
-        self.header.block_number = BlockNumber(block_number)
+        self.header.block_header_without_hash.block_number = BlockNumber(block_number)
     }
 
     pub(crate) fn set_timestamp(&mut self, timestamp: BlockTimestamp) {
-        self.header.timestamp = timestamp;
+        self.header.block_header_without_hash.timestamp = timestamp;
     }
 }
 
@@ -281,9 +286,9 @@ impl HashProducer for StarknetBlock {
     type Error = Error;
     fn generate_hash(&self) -> DevnetResult<BlockHash> {
         let hash = Pedersen::hash_array(&[
-            felt!(self.header.block_number.0), // block number
-            self.header.state_root.0,          // global_state_root
-            *self.header.sequencer.0.key(),    // sequencer_address
+            felt!(self.header.block_header_without_hash.block_number.0), // block number
+            self.header.block_header_without_hash.state_root.0,          // global_state_root
+            *self.header.block_header_without_hash.sequencer.0.key(),    // sequencer_address
             Felt::ZERO,                        /* block_timestamp; would normally be
                                                 * felt!(self.header.timestamp.0), but
                                                 * is modified to enable replicability
@@ -294,7 +299,7 @@ impl HashProducer for StarknetBlock {
             Felt::ZERO,                                  // event_commitment
             Felt::ZERO,                                  // protocol_version
             Felt::ZERO,                                  // extra_data
-            self.header.parent_hash.0,                   // parent_block_hash
+            self.header.block_header_without_hash.parent_hash.0,                   // parent_block_hash
         ]);
 
         Ok(hash)
@@ -303,7 +308,10 @@ impl HashProducer for StarknetBlock {
 
 #[cfg(test)]
 mod tests {
-    use starknet_api::block::{BlockHash, BlockHeader, BlockNumber, BlockStatus};
+    use starknet_api::block::{
+        BlockHash, BlockHeader, BlockHeaderWithoutHash, BlockNumber, BlockStatus,
+    };
+    use starknet_api::data_availability::L1DataAvailabilityMode;
     use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_types::traits::HashProducer;
 
@@ -316,7 +324,7 @@ mod tests {
         let mut blocks = StarknetBlocks::default();
         for block_number in 1..=10 {
             let mut block_to_insert = StarknetBlock::create_pending_block();
-            block_to_insert.header.block_number = BlockNumber(block_number);
+            block_to_insert.header.block_header_without_hash.block_number = BlockNumber(block_number);
             block_to_insert.header.block_hash =
                 starknet_api::block::BlockHash(Felt::from(block_number as u128));
             blocks.insert(block_to_insert, StateDiff::default());
@@ -370,7 +378,7 @@ mod tests {
         );
 
         let block_hash = block_to_insert.generate_hash().unwrap();
-        block_to_insert.header.block_number = BlockNumber(10);
+        block_to_insert.header.block_header_without_hash.block_number = BlockNumber(10);
         block_to_insert.header.block_hash = starknet_api::block::BlockHash(block_hash);
 
         blocks.insert(block_to_insert, StateDiff::default());
@@ -404,7 +412,7 @@ mod tests {
         let last_block_number = 11;
         for block_number in 2..=last_block_number {
             let mut block_to_insert = StarknetBlock::create_pending_block();
-            block_to_insert.header.block_number = BlockNumber(block_number);
+            block_to_insert.header.block_header_without_hash.block_number = BlockNumber(block_number);
             block_to_insert.header.block_hash =
                 starknet_api::block::BlockHash(Felt::from(block_number as u128));
             blocks.insert(block_to_insert.clone(), StateDiff::default());
@@ -662,7 +670,7 @@ mod tests {
         let mut block_to_insert = StarknetBlock::create_pending_block();
         block_to_insert.header.block_hash =
             starknet_api::block::BlockHash(block_to_insert.generate_hash().unwrap());
-        block_to_insert.header.block_number = BlockNumber(10);
+        block_to_insert.header.block_header_without_hash.block_number = BlockNumber(10);
         blocks.pending_block = block_to_insert.clone();
 
         blocks.insert(block_to_insert.clone(), StateDiff::default());
@@ -698,26 +706,26 @@ mod tests {
             let mut block = StarknetBlock::create_pending_block();
 
             block.status = BlockStatus::AcceptedOnL2;
-            block.header.block_number = BlockNumber(block_number);
+            block.header.block_header_without_hash.block_number = BlockNumber(block_number);
             block.set_block_hash(block.generate_hash().unwrap());
 
             blocks.insert(block, StateDiff::default());
         }
 
         assert!(
-            blocks.get_by_num(&BlockNumber(0)).unwrap().header.parent_hash == BlockHash::default()
+            blocks.get_by_num(&BlockNumber(0)).unwrap().header.block_header_without_hash.parent_hash == BlockHash::default()
         );
         assert!(
             blocks.get_by_num(&BlockNumber(0)).unwrap().header.block_hash
-                == blocks.get_by_num(&BlockNumber(1)).unwrap().header.parent_hash
+                == blocks.get_by_num(&BlockNumber(1)).unwrap().header.block_header_without_hash.parent_hash
         );
         assert!(
             blocks.get_by_num(&BlockNumber(1)).unwrap().header.block_hash
-                == blocks.get_by_num(&BlockNumber(2)).unwrap().header.parent_hash
+                == blocks.get_by_num(&BlockNumber(2)).unwrap().header.block_header_without_hash.parent_hash
         );
         assert!(
-            blocks.get_by_num(&BlockNumber(1)).unwrap().header.parent_hash
-                != blocks.get_by_num(&BlockNumber(2)).unwrap().header.parent_hash
+            blocks.get_by_num(&BlockNumber(1)).unwrap().header.block_header_without_hash.parent_hash
+                != blocks.get_by_num(&BlockNumber(2)).unwrap().header.block_header_without_hash.parent_hash
         )
     }
 
@@ -727,7 +735,7 @@ mod tests {
         let mut block_to_insert = StarknetBlock::create_pending_block();
         block_to_insert.header.block_hash =
             starknet_api::block::BlockHash(block_to_insert.generate_hash().unwrap());
-        block_to_insert.header.block_number = BlockNumber(1);
+        block_to_insert.header.block_header_without_hash.block_number = BlockNumber(1);
 
         blocks.insert(block_to_insert.clone(), StateDiff::default());
 
@@ -740,12 +748,12 @@ mod tests {
         let block = StarknetBlock::create_pending_block();
         assert!(block.status == BlockStatus::Pending);
         assert!(block.transaction_hashes.is_empty());
-        assert_eq!(
-            block.header,
-            BlockHeader {
-                l1_da_mode: starknet_api::data_availability::L1DataAvailabilityMode::Blob,
+        assert_eq!(block.header, BlockHeader {
+            block_header_without_hash: BlockHeaderWithoutHash {
+                l1_da_mode: L1DataAvailabilityMode::Blob,
                 ..Default::default()
-            }
-        );
+            },
+            ..Default::default()
+        });
     }
 }

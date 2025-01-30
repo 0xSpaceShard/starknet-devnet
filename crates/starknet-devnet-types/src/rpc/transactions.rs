@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use blockifier::state::state_api::StateReader;
+use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
@@ -15,13 +16,13 @@ use starknet_api::contract_class::ClassInfo;
 use starknet_api::contract_class::EntryPointType;
 use starknet_api::core::calculate_contract_address;
 use starknet_api::data_availability::DataAvailabilityMode;
-use starknet_api::executable_transaction::AccountTransaction;
 use starknet_api::transaction::fields::{Fee, Resource, Tip};
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_core::types::{
     BlockId, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
     TransactionFinalityStatus,
 };
+use starknet_rs_core::utils::parse_cairo_short_string;
 use starknet_rs_crypto::poseidon_hash_many;
 
 use self::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
@@ -40,9 +41,7 @@ use super::state::ThinStateDiff;
 use super::transaction_receipt::{
     ComputationResources, ExecutionResources, FeeInUnits, TransactionReceipt,
 };
-use crate::constants::{
-    PREFIX_DECLARE, PREFIX_DEPLOY_ACCOUNT, PREFIX_INVOKE, QUERY_VERSION_OFFSET,
-};
+use crate::constants::{PREFIX_DEPLOY_ACCOUNT, PREFIX_INVOKE, QUERY_VERSION_OFFSET};
 use crate::contract_address::ContractAddress;
 use crate::contract_class::{ContractClass, compute_sierra_class_hash};
 use crate::emitted_event::{Event, OrderedEvent};
@@ -278,6 +277,11 @@ impl BroadcastedTransactionCommon {
     }
 }
 
+fn felt_to_sn_api_chain_id(f: &Felt) -> starknet_api::core::ChainId {
+    // TODO
+    starknet_api::core::ChainId::Other(parse_cairo_short_string(f).unwrap())
+}
+
 /// Common fields for all transaction type of version 3
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BroadcastedTransactionCommonV3 {
@@ -336,16 +340,18 @@ impl From<&ResourceBoundsWrapper> for starknet_api::transaction::fields::ValidRe
         starknet_api::transaction::fields::ValidResourceBounds::AllResources(
             starknet_api::transaction::fields::AllResourceBounds {
                 l1_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
-                    value.inner.l1_gas,
+                    value.inner.l1_gas.clone(),
                 ),
                 l2_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
-                    value.inner.l2_gas,
+                    value.inner.l2_gas.clone(),
                 ),
                 l1_data_gas: todo!(),
             },
         )
     }
 }
+
+// TODO delete?
 
 // impl From<&ResourceBoundsWrapper> for starknet_api::transaction::fields::ResourceBounds {
 //     fn from(value: &ResourceBoundsWrapper) -> Self {
@@ -481,26 +487,37 @@ pub enum BroadcastedTransaction {
 }
 
 impl BroadcastedTransaction {
-    pub fn to_blockifier_account_transaction(
+    pub fn to_blockifier_account_transaction(&self, chain_id: &Felt, execution_flags: ExecutionFlags)-> DevnetResult<blockifier::transaction::account_transaction::AccountTransaction>  {
+        let sn_api_tx = self.to_sn_api_account_transaction(chain_id)?;
+        Ok(blockifier::transaction::account_transaction::AccountTransaction {
+            tx: sn_api_tx,
+            execution_flags,
+        })
+    }
+
+    pub fn to_sn_api_account_transaction(
         &self,
         chain_id: &Felt,
-        only_query: bool,
-    ) -> DevnetResult<AccountTransaction> {
-        let blockifier_transaction = match self {
-            BroadcastedTransaction::Invoke(invoke_txn) => AccountTransaction::Invoke(
-                invoke_txn.create_blockifier_invoke_transaction(chain_id, only_query)?,
-            ),
-            BroadcastedTransaction::Declare(declare_txn) => AccountTransaction::Declare(
-                declare_txn.create_blockifier_declare(chain_id, only_query)?,
-            ),
+    ) -> DevnetResult<starknet_api::executable_transaction::AccountTransaction> {
+        let sn_api_tx = match self {
+            BroadcastedTransaction::Invoke(invoke_txn) => {
+                starknet_api::executable_transaction::AccountTransaction::Invoke(
+                    invoke_txn.create_sn_api_invoke(chain_id)?,
+                )
+            }
+            BroadcastedTransaction::Declare(declare_txn) => {
+                starknet_api::executable_transaction::AccountTransaction::Declare(
+                    declare_txn.create_sn_api_declare(chain_id)?,
+                )
+            }
             BroadcastedTransaction::DeployAccount(deploy_account_txn) => {
-                AccountTransaction::DeployAccount(
-                    deploy_account_txn.create_blockifier_deploy_account(chain_id, only_query)?,
+                starknet_api::executable_transaction::AccountTransaction::DeployAccount(
+                    deploy_account_txn.create_sn_api_deploy_account(chain_id)?,
                 )
             }
         };
 
-        Ok(blockifier_transaction)
+        Ok(sn_api_tx)
     }
 
     pub fn get_type(&self) -> TransactionType {
@@ -555,15 +572,13 @@ impl BroadcastedDeclareTransaction {
     ///
     /// # Arguments
     /// `chain_id` - the chain id to use for the transaction hash computation
-    pub fn create_blockifier_declare(
+    pub fn create_sn_api_declare(
         &self,
         chain_id: &Felt,
-        only_query: bool,
     ) -> DevnetResult<starknet_api::executable_transaction::DeclareTransaction> {
-        let (transaction_hash, sn_api_transaction, class_info) = match self {
+        let (sn_api_transaction, class_info) = match self {
             BroadcastedDeclareTransaction::V1(v1) => {
                 let class_hash = v1.generate_class_hash()?;
-                let transaction_hash = v1.calculate_transaction_hash(chain_id, &class_hash)?;
 
                 let sn_api_declare = starknet_api::transaction::DeclareTransaction::V1(
                     starknet_api::transaction::DeclareTransactionV0V1 {
@@ -580,7 +595,7 @@ impl BroadcastedDeclareTransaction {
                 let class_info: ClassInfo =
                     ContractClass::Cairo0(v1.contract_class.clone()).try_into()?;
 
-                (transaction_hash, sn_api_declare, class_info)
+                (sn_api_declare, class_info)
             }
             BroadcastedDeclareTransaction::V2(v2) => {
                 let sierra_class_hash: Felt = compute_sierra_class_hash(&v2.contract_class)?;
@@ -600,27 +615,13 @@ impl BroadcastedDeclareTransaction {
                     },
                 );
 
-                let txn_hash = compute_hash_on_elements(&[
-                    PREFIX_DECLARE,
-                    v2.common.version,
-                    v2.sender_address.into(),
-                    Felt::ZERO, // entry_point_selector
-                    compute_hash_on_elements(&[sierra_class_hash]),
-                    v2.common.max_fee.0.into(),
-                    *chain_id,
-                    v2.common.nonce,
-                    v2.compiled_class_hash,
-                ]);
-
                 let class_info: ClassInfo =
                     ContractClass::Cairo1(v2.contract_class.clone()).try_into()?;
 
-                (txn_hash, sn_api_declare, class_info)
+                (sn_api_declare, class_info)
             }
             BroadcastedDeclareTransaction::V3(v3) => {
                 let sierra_class_hash = compute_sierra_class_hash(&v3.contract_class)?;
-                let transaction_hash =
-                    v3.calculate_transaction_hash(chain_id, sierra_class_hash)?;
 
                 let sn_api_declare = starknet_api::transaction::DeclareTransaction::V3(
                     starknet_api::transaction::DeclareTransactionV3 {
@@ -650,23 +651,15 @@ impl BroadcastedDeclareTransaction {
                 let class_info: ClassInfo =
                     ContractClass::Cairo1(v3.contract_class.clone()).try_into()?;
 
-                (transaction_hash, sn_api_declare, class_info)
+                (sn_api_declare, class_info)
             }
         };
 
-        if only_query {
-            Ok(starknet_api::executable_transaction::DeclareTransaction::new_for_query(
-                sn_api_transaction,
-                starknet_api::transaction::TransactionHash(transaction_hash),
-                class_info,
-            )?)
-        } else {
-            Ok(starknet_api::executable_transaction::DeclareTransaction::create(
-                sn_api_transaction,
-                starknet_api::transaction::TransactionHash(transaction_hash),
-                class_info,
-            )?)
-        }
+        Ok(starknet_api::executable_transaction::DeclareTransaction::create(
+            sn_api_transaction,
+            class_info,
+            &felt_to_sn_api_chain_id(chain_id),
+        )?)
     }
 }
 
@@ -698,10 +691,9 @@ impl BroadcastedDeployAccountTransaction {
     ///
     /// # Arguments
     /// `chain_id` - the chain id to use for the transaction hash computation
-    pub fn create_blockifier_deploy_account(
+    pub fn create_sn_api_deploy_account(
         &self,
         chain_id: &Felt,
-        only_query: bool,
     ) -> DevnetResult<starknet_api::executable_transaction::DeployAccountTransaction> {
         let (transaction_hash, sn_api_transaction, contract_address) = match self {
             BroadcastedDeployAccountTransaction::V1(v1) => {
@@ -794,7 +786,6 @@ impl BroadcastedDeployAccountTransaction {
             tx: sn_api_transaction,
             tx_hash: starknet_api::transaction::TransactionHash(transaction_hash),
             contract_address,
-            only_query,
         })
     }
 }
@@ -825,10 +816,9 @@ impl BroadcastedInvokeTransaction {
     ///
     /// # Arguments
     /// `chain_id` - the chain id to use for the transaction hash computation
-    pub fn create_blockifier_invoke_transaction(
+    pub fn create_sn_api_invoke(
         &self,
         chain_id: &Felt,
-        only_query: bool,
     ) -> DevnetResult<starknet_api::executable_transaction::InvokeTransaction> {
         let (transaction_hash, sn_api_transaction) = match self {
             BroadcastedInvokeTransaction::V1(v1) => {
@@ -889,7 +879,6 @@ impl BroadcastedInvokeTransaction {
         Ok(starknet_api::executable_transaction::InvokeTransaction {
             tx: sn_api_transaction,
             tx_hash: starknet_api::transaction::TransactionHash(transaction_hash),
-            only_query,
         })
     }
 }
@@ -1039,7 +1028,7 @@ pub struct BlockTransactionTrace {
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct Reversion {
-    pub revert_reason: String,
+    pub revert_reason: String, // TODO use blockifier's RevertError
 }
 
 #[derive(Debug, Clone, Serialize)]

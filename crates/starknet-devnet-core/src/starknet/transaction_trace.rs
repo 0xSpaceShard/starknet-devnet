@@ -1,4 +1,5 @@
 use blockifier::execution::call_info::CallInfo;
+use blockifier::execution::stack_trace::ErrorStack;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::objects::TransactionExecutionInfo;
@@ -24,14 +25,15 @@ fn get_execute_call_info<S: StateReader>(
             true => ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion {
                 revert_reason: execution_info
                     .revert_error
-                    .clone()
-                    .unwrap_or("Revert reason not found".into()),
+                    .as_ref()
+                    .unwrap_or(&ErrorStack::default().into())
+                    .to_string(),
             }),
         },
-        None => match execution_info.revert_error.clone() {
+        None => match &execution_info.revert_error {
             Some(revert_reason) => {
                 ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion {
-                    revert_reason,
+                    revert_reason: revert_reason.to_string(),
                 })
             }
             None => {

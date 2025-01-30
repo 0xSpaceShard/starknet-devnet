@@ -17,7 +17,7 @@ pub fn state_update_by_block_id(
 
 #[cfg(test)]
 mod tests {
-    use starknet_api::transaction::Fee;
+    use starknet_api::transaction::fields::Fee;
     use starknet_rs_core::types::{
         BlockId, BlockTag, Felt, TransactionExecutionStatus, TransactionFinalityStatus,
     };

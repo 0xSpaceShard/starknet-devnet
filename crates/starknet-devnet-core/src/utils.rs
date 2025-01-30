@@ -1,14 +1,15 @@
 use blockifier::bouncer::{BouncerConfig, BouncerWeights, BuiltinCount};
-use blockifier::versioned_constants::{StarknetVersion, VersionedConstants};
+use blockifier::versioned_constants::VersionedConstants;
 use serde_json::Value;
-use starknet_rs_core::types::contract::CompiledClass;
+use starknet_api::block::StarknetVersion;
 use starknet_rs_core::types::Felt;
+use starknet_rs_core::types::contract::CompiledClass;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
 use crate::error::{DevnetResult, Error};
 
 pub mod random_number_generator {
-    use rand::{thread_rng, Rng, SeedableRng};
+    use rand::{Rng, SeedableRng, thread_rng};
     use rand_mt::Mt64;
 
     pub fn generate_u32_random_number() -> u32 {
@@ -40,7 +41,7 @@ pub(crate) fn get_storage_var_address(
 }
 
 pub(crate) fn get_versioned_constants() -> VersionedConstants {
-    VersionedConstants::get(StarknetVersion::V0_13_2).clone()
+    VersionedConstants::get(&StarknetVersion::V0_13_2).unwrap().clone()
 }
 
 /// Values not present here: https://docs.starknet.io/tools/limits-and-triggers/
@@ -50,7 +51,8 @@ pub(crate) fn custom_bouncer_config() -> BouncerConfig {
     BouncerConfig {
         block_max_capacity: BouncerWeights {
             n_steps: 40_000_000,
-            gas: 4_950_000,
+            l1_gas: 4_950_000, // TODO
+            sierra_gas: starknet_api::execution_resources::GasAmount(4_950_000),
             state_diff_size: 4_000,
             n_events: 5_000,
             builtin_count: BuiltinCount {
@@ -80,13 +82,21 @@ pub fn calculate_casm_hash(casm_json: Value) -> DevnetResult<Felt> {
         .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })
 }
 
+#[macro_export]
+macro_rules! nonzero_gas_price {
+    ($value:expr) => {{
+        let gas_price = starknet_api::block::GasPrice(($value).get());
+        starknet_api::block::NonzeroGasPrice::new(gas_price).unwrap()
+    }};
+}
+
 #[cfg(test)]
 pub(crate) mod test_utils {
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
-    use starknet_api::transaction::Fee;
+    use starknet_api::transaction::fields::Fee;
     use starknet_rs_core::types::Felt;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
+    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
@@ -170,7 +180,7 @@ pub(crate) mod test_utils {
         let account_json_path =
             "../../contracts/test_artifacts/cairo0/account_without_validations/account.json";
 
-        Cairo0Json::raw_json_from_path(account_json_path).unwrap().into()
+        serde_json::from_reader(std::fs::File::open(account_json_path).unwrap()).unwrap()
     }
 
     pub(crate) fn convert_broadcasted_declare_v2_to_v3(
@@ -205,21 +215,21 @@ pub(crate) mod test_utils {
 #[cfg(any(test, feature = "test_utils"))]
 #[allow(clippy::unwrap_used)]
 pub mod exported_test_utils {
-    use starknet_types::contract_class::Cairo0Json;
+    use starknet_types::contract_class::Cairo0ContractClass;
 
-    pub fn dummy_cairo_l1l2_contract() -> Cairo0Json {
+    pub fn dummy_cairo_l1l2_contract() -> Cairo0ContractClass {
         let json_str =
             std::fs::read_to_string("../../contracts/test_artifacts/cairo0/l1l2.json").unwrap();
 
-        Cairo0Json::raw_json_from_json_str(&json_str).unwrap()
+        serde_json::from_str(&json_str).unwrap()
     }
 
-    pub fn dummy_cairo_0_contract_class() -> Cairo0Json {
+    pub fn dummy_cairo_0_contract_class() -> Cairo0ContractClass {
         let json_str =
             std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
                 .unwrap();
 
-        Cairo0Json::raw_json_from_json_str(&json_str).unwrap()
+        serde_json::from_str(&json_str).unwrap()
     }
 }
 
@@ -231,7 +241,7 @@ mod tests {
     #[test]
     fn correct_simple_storage_var_address_generated() {
         let expected_storage_var_address =
-            blockifier::abi::abi_utils::get_storage_var_address("simple", &[]);
+            starknet_api::abi::abi_utils::get_storage_var_address("simple", &[]);
         let generated_storage_var_address = get_storage_var_address("simple", &[]).unwrap();
 
         assert_eq!(
@@ -242,10 +252,10 @@ mod tests {
 
     #[test]
     fn correct_complex_storage_var_address_generated() {
-        let expected_storage_var_address = blockifier::abi::abi_utils::get_storage_var_address(
-            "complex",
-            &[test_utils::dummy_felt()],
-        );
+        let expected_storage_var_address =
+            starknet_api::abi::abi_utils::get_storage_var_address("complex", &[
+                test_utils::dummy_felt(),
+            ]);
 
         let generated_storage_var_address =
             get_storage_var_address("complex", &[test_utils::dummy_felt()]).unwrap();

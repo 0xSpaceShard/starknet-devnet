@@ -1,3 +1,4 @@
+use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, CompiledClassHash, TransactionHash};
@@ -27,11 +28,11 @@ pub fn add_declare_transaction(
         });
     }
 
-    let blockifier_declare_transaction = broadcasted_declare_transaction
-        .create_blockifier_declare(&starknet.chain_id().to_felt(), false)?;
+    let executable_tx =
+        broadcasted_declare_transaction.create_sn_api_declare(&starknet.chain_id().to_felt())?;
 
-    let transaction_hash = blockifier_declare_transaction.tx_hash().0;
-    let class_hash = blockifier_declare_transaction.class_hash().0;
+    let transaction_hash = executable_tx.tx_hash.0;
+    let class_hash = executable_tx.class_hash().0;
 
     let (declare_transaction, contract_class, casm_hash, sender_address) =
         match broadcasted_declare_transaction {
@@ -77,24 +78,27 @@ pub fn add_declare_transaction(
     )?);
 
     let transaction = TransactionWithHash::new(transaction_hash, declare_transaction);
-    let blockifier_execution_info =
-        blockifier::transaction::account_transaction::AccountTransaction::Declare(
-            blockifier_declare_transaction,
-        )
+    let execution_info =
+        blockifier::transaction::account_transaction::AccountTransaction {
+            tx: starknet_api::executable_transaction::AccountTransaction::Declare(executable_tx),
+            execution_flags: ExecutionFlags {
+                only_query: false,
+                charge_fee: true,
+                validate,
+            },
+        }
         .execute(
             &mut starknet.pending_state.state,
             &starknet.block_context,
-            true,
-            validate,
         )?;
 
     // if tx successful, store the class
-    if !blockifier_execution_info.is_reverted() {
+    if !execution_info.is_reverted() {
         let state = starknet.get_state();
         state.declare_contract_class(class_hash, casm_hash, contract_class)?;
     }
 
-    starknet.handle_accepted_transaction(transaction, blockifier_execution_info)?;
+    starknet.handle_accepted_transaction(transaction, execution_info)?;
 
     Ok((transaction_hash, class_hash))
 }
@@ -134,21 +138,21 @@ fn assert_casm_hash_is_valid(
 mod tests {
     use blockifier::state::state_api::StateReader;
     use starknet_api::core::CompiledClassHash;
-    use starknet_api::transaction::Fee;
+    use starknet_api::transaction::fields::Fee;
     use starknet_rs_core::types::{
         BlockId, BlockTag, Felt, TransactionExecutionStatus, TransactionFinalityStatus,
     };
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
+    use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-    use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
     use starknet_types::traits::HashProducer;
 
     use crate::error::{Error, TransactionValidationError};
-    use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
     use crate::starknet::Starknet;
+    use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
     use crate::state::{BlockNumberOrPending, CustomStateReader};
     use crate::traits::{HashIdentified, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;

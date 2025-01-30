@@ -49,8 +49,8 @@ mod tests {
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
     use crate::felt::try_felt_to_num;
-    use crate::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
     use crate::rpc::transactions::BroadcastedDeployAccountTransaction;
+    use crate::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
 
     #[derive(Deserialize)]
     struct FeederGatewayDeployAccountTransaction {
@@ -92,7 +92,7 @@ mod tests {
 
         let blockifier_deploy_account_transaction =
             BroadcastedDeployAccountTransaction::V1(broadcasted_tx)
-                .create_blockifier_deploy_account(&chain_id, false)
+                .create_sn_api_deploy_account(&chain_id)
                 .unwrap();
 
         assert_eq!(

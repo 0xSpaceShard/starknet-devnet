@@ -229,12 +229,12 @@ impl StarknetState {
         }
         for class_hash in state_diff.cairo_0_declared_contracts {
             let class_hash = starknet_api::core::ClassHash(class_hash);
-            let compiled_class = self.get_compiled_contract_class(class_hash)?;
+            let compiled_class = self.get_compiled_class(class_hash)?;
             historic_state.set_contract_class(class_hash, compiled_class)?;
         }
         for class_hash in state_diff.declared_contracts {
             let class_hash = starknet_api::core::ClassHash(class_hash);
-            let compiled_class = self.get_compiled_contract_class(class_hash)?;
+            let compiled_class = self.get_compiled_class(class_hash)?;
             historic_state.set_contract_class(class_hash, compiled_class)?;
         }
         self.historic_state = historic_state;
@@ -278,7 +278,7 @@ impl State for StarknetState {
     fn set_contract_class(
         &mut self,
         class_hash: starknet_api::core::ClassHash,
-        contract_class: blockifier::execution::contract_class::ContractClass,
+        contract_class: blockifier::execution::contract_class::RunnableCompiledClass,
     ) -> blockifier::state::state_api::StateResult<()> {
         self.state.set_contract_class(class_hash, contract_class)
     }
@@ -289,14 +289,6 @@ impl State for StarknetState {
         compiled_class_hash: starknet_api::core::CompiledClassHash,
     ) -> blockifier::state::state_api::StateResult<()> {
         self.state.set_compiled_class_hash(class_hash, compiled_class_hash)
-    }
-
-    fn add_visited_pcs(
-        &mut self,
-        class_hash: starknet_api::core::ClassHash,
-        pcs: &std::collections::HashSet<usize>,
-    ) {
-        self.state.add_visited_pcs(class_hash, pcs)
     }
 }
 
@@ -323,13 +315,13 @@ impl blockifier::state::state_api::StateReader for StarknetState {
         self.state.get_class_hash_at(contract_address)
     }
 
-    fn get_compiled_contract_class(
+    fn get_compiled_class(
         &self,
         class_hash: starknet_api::core::ClassHash,
     ) -> blockifier::state::state_api::StateResult<
-        blockifier::execution::contract_class::ContractClass,
+        blockifier::execution::contract_class::RunnableCompiledClass,
     > {
-        self.state.get_compiled_contract_class(class_hash)
+        self.state.get_compiled_class(class_hash)
     }
 
     fn get_compiled_class_hash(
@@ -348,12 +340,11 @@ impl CustomStateReader for StarknetState {
     }
 
     fn is_contract_declared(&self, class_hash: ClassHash) -> bool {
-        // get_compiled_contract_class is important if forking; checking hash is impossible via
-        // JSON-RPC
+        // get_compiled_class is important if forking; checking hash is impossible via JSON-RPC
         let class_hash = starknet_api::core::ClassHash(class_hash);
         self.get_compiled_class_hash(class_hash)
             .is_ok_and(|CompiledClassHash(class_hash)| class_hash != Felt::ZERO)
-            || self.get_compiled_contract_class(class_hash).is_ok()
+            || self.get_compiled_class(class_hash).is_ok()
     }
 
     fn is_contract_deployed_locally(
@@ -503,7 +494,7 @@ mod tests {
         let class_hash = starknet_api::core::ClassHash(Felt::from_hex_unchecked("0xFE"));
         let casm_hash = Some(dummy_felt());
 
-        match state.get_compiled_contract_class(class_hash) {
+        match state.get_compiled_class(class_hash) {
             Err(StateError::UndeclaredClassHash(reported_hash)) => {
                 assert_eq!(reported_hash, class_hash);
             }
@@ -518,8 +509,8 @@ mod tests {
         let block_number = 1;
         state.commit_diff(block_number).unwrap();
 
-        match state.get_compiled_contract_class(class_hash) {
-            Ok(blockifier::execution::contract_class::ContractClass::V0(retrieved_class)) => {
+        match state.get_compiled_class(class_hash) {
+            Ok(retrieved_class) => {
                 assert_eq!(retrieved_class, contract_class.clone().try_into().unwrap());
             }
             other => panic!("Invalid result: {other:?}"),

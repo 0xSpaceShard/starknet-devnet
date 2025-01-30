@@ -45,8 +45,8 @@ mod tests {
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
     use crate::felt::try_felt_to_num;
-    use crate::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
     use crate::rpc::transactions::BroadcastedInvokeTransaction;
+    use crate::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 
     #[derive(Deserialize)]
     struct FeederGatewayInvokeTransaction {
@@ -84,10 +84,9 @@ mod tests {
         );
 
         let chain_id = ChainId::goerli_legacy_id();
-        let blockifier_transaction = BroadcastedInvokeTransaction::V1(transaction)
-            .create_blockifier_invoke_transaction(&chain_id, false)
-            .unwrap();
+        let executable_tx =
+            BroadcastedInvokeTransaction::V1(transaction).create_sn_api_invoke(&chain_id).unwrap();
 
-        assert_eq!(feeder_gateway_transaction.transaction_hash, blockifier_transaction.tx_hash.0);
+        assert_eq!(feeder_gateway_transaction.transaction_hash, *executable_tx.tx_hash());
     }
 }

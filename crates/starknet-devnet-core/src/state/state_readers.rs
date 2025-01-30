@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use blockifier::execution::contract_class::ContractClass;
+use blockifier::execution::contract_class::RunnableCompiledClass;
 use blockifier::state::cached_state::StorageEntry;
 use blockifier::state::errors::StateError;
 use blockifier::state::state_api::{StateReader, StateResult};
@@ -17,7 +17,7 @@ pub struct DictState {
     pub storage_view: HashMap<StorageEntry, Felt>,
     pub address_to_nonce: HashMap<ContractAddress, Nonce>,
     pub address_to_class_hash: HashMap<ContractAddress, ClassHash>,
-    pub class_hash_to_class: HashMap<ClassHash, ContractClass>,
+    pub class_hash_to_class: HashMap<ClassHash, RunnableCompiledClass>,
     pub class_hash_to_compiled_class_hash: HashMap<ClassHash, CompiledClassHash>,
     defaulter: StarknetDefaulter,
 }
@@ -48,10 +48,10 @@ impl StateReader for DictState {
         }
     }
 
-    fn get_compiled_contract_class(&self, class_hash: ClassHash) -> StateResult<ContractClass> {
+    fn get_compiled_class(&self, class_hash: ClassHash) -> StateResult<RunnableCompiledClass> {
         match self.class_hash_to_class.get(&class_hash) {
             Some(contract_class) => Ok(contract_class.clone()),
-            None => self.defaulter.get_compiled_contract_class(class_hash),
+            None => self.defaulter.get_compiled_class(class_hash),
         }
     }
 
@@ -110,7 +110,7 @@ impl DictState {
     pub fn set_contract_class(
         &mut self,
         class_hash: ClassHash,
-        contract_class: ContractClass,
+        contract_class: RunnableCompiledClass,
     ) -> StateResult<()> {
         self.class_hash_to_class.insert(class_hash, contract_class);
         Ok(())

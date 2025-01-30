@@ -1,3 +1,4 @@
+use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::TransactionHash;
@@ -25,10 +26,10 @@ pub fn add_deploy_account_transaction(
         });
     }
 
-    let blockifier_deploy_account_transaction = broadcasted_deploy_account_transaction
-        .create_blockifier_deploy_account(&starknet.chain_id().to_felt(), false)?;
+    let executable_deploy_account_tx = broadcasted_deploy_account_transaction
+        .create_sn_api_deploy_account(&starknet.chain_id().to_felt())?;
 
-    let address = blockifier_deploy_account_transaction.contract_address.into();
+    let address = executable_deploy_account_tx.contract_address.into();
 
     let (class_hash, deploy_account_transaction) = match broadcasted_deploy_account_transaction {
         BroadcastedDeployAccountTransaction::V1(ref v1) => {
@@ -52,16 +53,18 @@ pub fn add_deploy_account_transaction(
     if !starknet.pending_state.is_contract_declared(class_hash) {
         return Err(Error::StateError(crate::error::StateError::NoneClassHash(class_hash)));
     }
-    let transaction_hash = blockifier_deploy_account_transaction.tx_hash.0;
+    let transaction_hash = executable_deploy_account_tx.tx_hash.0;
     let transaction = TransactionWithHash::new(transaction_hash, deploy_account_transaction);
 
-    let blockifier_execution_info =
-        blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(
-            blockifier_deploy_account_transaction,
-        )
-        .execute(&mut starknet.pending_state.state, &starknet.block_context, true, true)?;
+    let execution_info = blockifier::transaction::account_transaction::AccountTransaction {
+        tx: starknet_api::executable_transaction::AccountTransaction::DeployAccount(
+            executable_deploy_account_tx,
+        ),
+        execution_flags: ExecutionFlags { only_query: false, charge_fee: true, validate: true },
+    }
+    .execute(&mut starknet.pending_state.state, &starknet.block_context)?;
 
-    starknet.handle_accepted_transaction(transaction, blockifier_execution_info)?;
+    starknet.handle_accepted_transaction(transaction, execution_info)?;
 
     Ok((transaction_hash, address))
 }
@@ -70,7 +73,7 @@ mod tests {
 
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
-    use starknet_api::transaction::{Fee, Tip};
+    use starknet_api::transaction::fields::{Fee, Tip};
     use starknet_rs_core::types::{
         BlockId, BlockTag, Felt, TransactionExecutionStatus, TransactionFinalityStatus,
     };
@@ -89,7 +92,7 @@ mod tests {
         ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{Error, TransactionValidationError};
-    use crate::starknet::{predeployed, Starknet};
+    use crate::starknet::{Starknet, predeployed};
     use crate::state::CustomState;
     use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::get_storage_var_address;
@@ -238,12 +241,12 @@ mod tests {
             Felt::ONE,
         );
 
-        let blockifier_transaction = BroadcastedDeployAccountTransaction::V1(transaction.clone())
-            .create_blockifier_deploy_account(&DEVNET_DEFAULT_CHAIN_ID.to_felt(), false)
+        let executable_tx = BroadcastedDeployAccountTransaction::V1(transaction.clone())
+            .create_sn_api_deploy_account(&DEVNET_DEFAULT_CHAIN_ID.to_felt())
             .unwrap();
 
         // change balance at address
-        let account_address = ContractAddress::from(blockifier_transaction.contract_address);
+        let account_address = ContractAddress::from(executable_tx.contract_address);
         let balance_storage_var_address =
             get_storage_var_address("ERC20_balances", &[account_address.into()])
                 .unwrap()
@@ -278,12 +281,12 @@ mod tests {
         let (mut starknet, account_class_hash) = setup();
         let transaction = test_deploy_account_transaction_v3(account_class_hash, 0, 4000);
 
-        let blockifier_transaction = BroadcastedDeployAccountTransaction::V3(transaction.clone())
-            .create_blockifier_deploy_account(&DEVNET_DEFAULT_CHAIN_ID.to_felt(), false)
+        let executable_tx = BroadcastedDeployAccountTransaction::V3(transaction.clone())
+            .create_sn_api_deploy_account(&DEVNET_DEFAULT_CHAIN_ID.to_felt())
             .unwrap();
 
         // change balance at address
-        let account_address = ContractAddress::from(blockifier_transaction.contract_address);
+        let account_address = ContractAddress::from(executable_tx.contract_address);
         let balance_storage_var_address =
             get_storage_var_address("ERC20_balances", &[account_address.into()])
                 .unwrap()
@@ -336,12 +339,12 @@ mod tests {
             Felt::from(13),
             Felt::ONE,
         );
-        let blockifier_transaction = BroadcastedDeployAccountTransaction::V1(transaction.clone())
-            .create_blockifier_deploy_account(&DEVNET_DEFAULT_CHAIN_ID.to_felt(), false)
+        let executable_tx = BroadcastedDeployAccountTransaction::V1(transaction.clone())
+            .create_sn_api_deploy_account(&DEVNET_DEFAULT_CHAIN_ID.to_felt())
             .unwrap();
 
         // change balance at address
-        let account_address = ContractAddress::from(blockifier_transaction.contract_address);
+        let account_address = ContractAddress::from(executable_tx.contract_address);
         let balance_storage_var_address =
             get_storage_var_address("ERC20_balances", &[account_address.into()])
                 .unwrap()

@@ -1,3 +1,4 @@
+use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::TransactionHash;
@@ -24,10 +25,10 @@ pub fn add_invoke_transaction(
         });
     }
 
-    let blockifier_invoke_transaction = broadcasted_invoke_transaction
-        .create_blockifier_invoke_transaction(&starknet.chain_id().to_felt(), false)?;
+    let sn_api_transaction =
+        broadcasted_invoke_transaction.create_sn_api_invoke(&starknet.chain_id().to_felt())?;
 
-    let transaction_hash = blockifier_invoke_transaction.tx_hash.0;
+    let transaction_hash = sn_api_transaction.tx_hash.0;
 
     let invoke_transaction = match broadcasted_invoke_transaction {
         BroadcastedInvokeTransaction::V1(ref v1) => {
@@ -41,22 +42,25 @@ pub fn add_invoke_transaction(
     let validate = !(Starknet::is_account_impersonated(
         &mut starknet.pending_state,
         &starknet.cheats,
-        &ContractAddress::from(blockifier_invoke_transaction.sender_address()),
+        &ContractAddress::from(sn_api_transaction.sender_address()),
     )?);
 
     let block_context = starknet.block_context.clone();
 
     let state = &mut starknet.get_state().state;
 
-    let blockifier_execution_info =
-        blockifier::transaction::account_transaction::AccountTransaction::Invoke(
-            blockifier_invoke_transaction,
-        )
-        .execute(state, &block_context, true, validate)?;
+    let execution_info =
+        blockifier::transaction::account_transaction::AccountTransaction {
+            tx: starknet_api::executable_transaction::AccountTransaction::Invoke(
+                sn_api_transaction,
+            ),
+            execution_flags: ExecutionFlags { only_query: false, charge_fee: true, validate },
+        }
+        .execute(state, &block_context)?;
 
     let transaction = TransactionWithHash::new(transaction_hash, invoke_transaction);
 
-    starknet.handle_accepted_transaction(transaction, blockifier_execution_info)?;
+    starknet.handle_accepted_transaction(transaction, execution_info)?;
 
     Ok(transaction_hash)
 }
@@ -68,7 +72,7 @@ mod tests {
     use blockifier::state::state_api::StateReader;
     use nonzero_ext::nonzero;
     use starknet_api::core::Nonce;
-    use starknet_api::transaction::{Fee, Tip};
+    use starknet_api::transaction::fields::{Fee, Tip};
     use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
@@ -90,7 +94,7 @@ mod tests {
         ETH_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{Error, TransactionValidationError};
-    use crate::starknet::{predeployed, Starknet};
+    use crate::starknet::{Starknet, predeployed};
     use crate::state::CustomState;
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
@@ -485,17 +489,14 @@ mod tests {
         account.deploy(&mut starknet.pending_state).unwrap();
 
         // dummy contract
-        let dummy_contract: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
-        let blockifier = blockifier::execution::contract_class::ContractClassV0::try_from(
-            dummy_contract.clone(),
-        )
-        .unwrap();
+        let dummy_contract = dummy_cairo_0_contract_class();
         let increase_balance_selector = get_selector_from_name("increase_balance").unwrap();
 
         // check if increase_balance function is present in the contract class
-        blockifier
+        let Cairo0ContractClass::Rpc(ref class) = dummy_contract;
+        class
             .entry_points_by_type
-            .get(&starknet_api::deprecated_contract_class::EntryPointType::External)
+            .get(&starknet_api::contract_class::EntryPointType::External)
             .unwrap()
             .iter()
             .find(|el| el.selector.0 == increase_balance_selector)

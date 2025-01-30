@@ -1,12 +1,12 @@
 use std::io::Read;
 
+use blockifier::execution::contract_class::RunnableCompiledClass;
 use blockifier::state::errors::StateError;
 use blockifier::state::state_api::StateResult;
-use starknet_api::contract_class::ContractClass;
 use starknet_api::core::{ClassHash, ContractAddress, Nonce, PatriciaKey};
 use starknet_api::state::StorageKey;
 use starknet_rs_core::types::Felt;
-use starknet_types::contract_class::convert_codegen_to_starknet_api_compiled_class;
+use starknet_types::contract_class::convert_codegen_to_blockifier_compiled_class;
 use tracing::debug;
 
 use super::starknet_config::ForkConfig;
@@ -140,9 +140,9 @@ impl StarknetDefaulter {
         }
     }
 
-    pub fn get_compiled_contract_class(&self, class_hash: ClassHash) -> StateResult<ContractClass> {
+    pub fn get_compiled_class(&self, class_hash: ClassHash) -> StateResult<RunnableCompiledClass> {
         if let Some(origin) = &self.origin_reader {
-            origin.get_compiled_contract_class(class_hash)
+            origin.get_compiled_class(class_hash)
         } else {
             Err(StateError::UndeclaredClassHash(class_hash))
         }
@@ -214,7 +214,7 @@ impl BlockingOriginReader {
         Ok(class_hash)
     }
 
-    fn get_compiled_contract_class(&self, class_hash: ClassHash) -> StateResult<ContractClass> {
+    fn get_compiled_class(&self, class_hash: ClassHash) -> StateResult<RunnableCompiledClass> {
         match self.send_body(
             "starknet_getClass",
             serde_json::json!({
@@ -228,7 +228,7 @@ impl BlockingOriginReader {
                     serde_json::from_value(value)
                         .map_err(|e| StateError::StateReadError(e.to_string()))?;
 
-                convert_codegen_to_starknet_api_compiled_class(contract_class)
+                convert_codegen_to_blockifier_compiled_class(contract_class)
                     .map_err(|e| StateError::StateReadError(e.to_string()))
             }
         }

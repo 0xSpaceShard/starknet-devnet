@@ -1,4 +1,5 @@
 use blockifier::execution::call_info::CallInfo;
+use blockifier::execution::stack_trace::ErrorStack;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use indexmap::IndexMap;
 use starknet_api::block::BlockNumber;
@@ -74,8 +75,8 @@ impl StarknetTransaction {
                 true => ExecutionResult::Reverted {
                     reason: execution_info
                         .revert_error
-                        .clone()
-                        .unwrap_or("No revert error".to_string()),
+                        .as_ref()
+                        .unwrap_or(&ErrorStack::default().into()).to_string(),
                 },
                 false => ExecutionResult::Succeeded,
             },
@@ -165,7 +166,7 @@ impl StarknetTransaction {
         // L1 Handler transactions are in WEI
         // V3 transactions are in STRK(FRI)
         // Other transactions versions are in ETH(WEI)
-        let fee_amount = FeeAmount { amount: self.execution_info.transaction_receipt.fee };
+        let fee_amount = FeeAmount { amount: self.execution_info.receipt.fee };
         let actual_fee_in_units = match self.inner.transaction {
             Transaction::L1Handler(_) => FeeInUnits::WEI(fee_amount),
             Transaction::Declare(DeclareTransaction::V3(_))

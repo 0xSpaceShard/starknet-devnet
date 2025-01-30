@@ -138,7 +138,7 @@ impl Starknet {
                 let mut last_processed_block: u64 = 0;
                 for block in blocks {
                     messages.extend(self.get_block_messages(block)?);
-                    last_processed_block = block.header.block_number.0;
+                    last_processed_block = block.header.block_header_without_hash.block_number.0;
                 }
 
                 for message in &messages {
