@@ -3719,7 +3719,6 @@ dependencies = [
  "lazy_static",
  "listeners",
  "rand",
- "regex",
  "reqwest 0.12.12",
  "serde",
  "serde_json",
@@ -3734,7 +3733,6 @@ dependencies = [
  "tokio",
  "universal-sierra-compiler",
  "url",
- "walkdir",
 ]
 
 [[package]]
