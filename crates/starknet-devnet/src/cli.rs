@@ -52,9 +52,7 @@ pub(crate) struct Args {
     #[arg(env = "ACCOUNT_CLASS_CUSTOM")]
     #[arg(value_name = "PATH")]
     #[arg(conflicts_with = "account_class_choice")]
-    #[arg(
-        help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;"
-    )]
+    #[arg(help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;")]
     account_class_custom: Option<AccountClassWrapper>,
 
     /// Initial balance of predeployed accounts
@@ -88,9 +86,7 @@ pub(crate) struct Args {
     #[arg(env = "PORT")]
     #[arg(value_name = "PORT")]
     #[arg(default_value_t = DEVNET_DEFAULT_PORT)]
-    #[arg(
-        help = "Specify the port to listen at; If 0, acquires a random free port and prints it;"
-    )]
+    #[arg(help = "Specify the port to listen at; If 0, acquires a random free port and prints it;")]
     port: u16,
 
     // Set start time in seconds
@@ -218,18 +214,17 @@ Sending POST /create_block is also an option in modes other than \"demand\".")]
     #[arg(long = "ngrok")]
     #[arg(env = "NGROK_AUTHTOKEN")]
     #[arg(value_name = "NGROK_AUTHTOKEN")]
-    #[arg(
-        help = "Specify the NGROK authentication token to set up a secure local tunnel. Walnut needs this token to connect to the local devnet instance to provide debugging features."
-    )]
+    #[arg(help = "Specify the NGROK authentication token to set up a secure local tunnel. \
+                  Walnut needs this token to connect to the local devnet instance to provide \
+                  debugging features.")]
     #[arg(requires = "walnut_api_key")]
     ngrok_auth_token: Option<String>,
 
     #[arg(long = "walnut")]
     #[arg(env = "WALNUT_API_KEY")]
     #[arg(value_name = "WALNUT_API_KEY")]
-    #[arg(
-        help = "Specify the Walnut API key needed for uploading the smart contracts source. Walnut needs the source of the smart contracts to provide debugging features."
-    )]
+    #[arg(help = "Specify the Walnut API key needed for uploading the smart contracts source. \
+                  Walnut needs the source of the smart contracts to provide debugging features.")]
     #[arg(requires = "ngrok_auth_token")]
     walnut_api_key: Option<String>,
 }
@@ -274,8 +269,9 @@ impl Args {
             (self.state_archive, self.ngrok_auth_token.as_ref(), self.walnut_api_key.as_ref())
         {
             anyhow::bail!(
-                             "Using Walnut debugging feature requires devnet to save past state. Run devnet with --state-archive-capacity full."
-                         );
+                "Using Walnut debugging feature requires devnet to save past state. Run devnet \
+                 with --state-archive-capacity full."
+            );
         };
 
         let RequestResponseLogging { log_request, log_response } =

@@ -595,7 +595,8 @@ impl JsonRpcHandler {
             _ => Err(ApiError::from(DebuggingError::OnlyInvokeTransactionsAreSupported)),
         }?;
 
-        // if transaction succeeded, extract class hashes from trace, otherwise extract them from transaction calldata
+        // if transaction succeeded, extract class hashes from trace, otherwise extract them from
+        // transaction calldata
         let class_hashes = match execution {
             ExecutionInvocation::Succeeded(function_invocation) => {
                 fn extract_all_class_hashes_recursively(
@@ -644,7 +645,8 @@ impl JsonRpcHandler {
                                 &invoke_transaction_v3.calldata,
                             ),
                         };
-                        // calldata format is : <length of calls> <receiver address> <selector> .....
+                        // calldata format is : <length of calls> <receiver address> <selector>
+                        // .....
                         let receiver_contract_address =
                             calldata.get(1).ok_or(Error::FormatError)?;
 

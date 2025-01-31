@@ -1,4 +1,5 @@
-use std::{ffi::OsStr, path::Path};
+use std::ffi::OsStr;
+use std::path::Path;
 
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -8,10 +9,8 @@ use starknet_rs_core::types::Felt;
 use url::Url;
 use walkdir::WalkDir;
 
-use crate::api::{
-    http::models::{ContractSource, LoadPath},
-    json_rpc::error::DebuggingError,
-};
+use crate::api::http::models::{ContractSource, LoadPath};
+use crate::api::json_rpc::error::DebuggingError;
 
 lazy_static! {
     static ref REGEX: Regex = create_regex();
@@ -73,7 +72,8 @@ impl WalnutClient {
             .await
             .map_err(|err| DebuggingError::WalnutProviderError { error: err.to_string() })?;
 
-        // check if response status is 400 and the error is  This class is already verified, then its ok.
+        // check if response status is 400 and the error is  This class is already verified, then
+        // its ok.
         let status = response.status();
         let response_txt = response.text().await.unwrap_or_default();
 
@@ -187,12 +187,10 @@ pub(crate) async fn get_cairo_and_toml_files_from_directory(
 mod tests {
     use std::path::Path;
 
-    use crate::{
-        api::http::models::ContractSource,
-        walnut_util::{
-            get_cairo_and_toml_files_from_contract_source_in_json_format,
-            get_cairo_and_toml_files_from_directory, get_first_word_using_regex, REGEX,
-        },
+    use crate::api::http::models::ContractSource;
+    use crate::walnut_util::{
+        get_cairo_and_toml_files_from_contract_source_in_json_format,
+        get_cairo_and_toml_files_from_directory, get_first_word_using_regex, REGEX,
     };
 
     #[test]

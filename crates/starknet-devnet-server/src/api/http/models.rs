@@ -195,7 +195,8 @@ pub enum ContractSource {
 #[cfg_attr(test, derive(Debug))]
 pub enum ExecutionTarget {
     TransactionHash(TransactionHashInput),
-    // another case is to send: function selector, function arguments, sender address, receiver address
+    // another case is to send: function selector, function arguments, sender address, receiver
+    // address
 }
 
 #[derive(Deserialize)]

@@ -228,7 +228,8 @@ impl JsonRpcHandler {
             None
         };
 
-        // if walnut api key is provided and ngrok_url is created, then its clear that user will use debugging
+        // if walnut api key is provided and ngrok_url is created, then its clear that user will use
+        // debugging
         let walnut_client =
             match (server_config.walnut_api_key.as_ref(), server_config.ngrok_url.as_ref()) {
                 (Some(walnut_api_key), Some(ngrok_url)) => {

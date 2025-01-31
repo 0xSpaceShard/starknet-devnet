@@ -283,7 +283,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let (address, listener) = bind_port(server_config.host, server_config.port).await?;
 
-    // If ngrok authentication token is provided, then construct a local tunnel and set the ngrok url in server config
+    // If ngrok authentication token is provided, then construct a local tunnel and set the ngrok
+    // url in server config
     if let Some(ngrok_auth_token) = &server_config.ngrok_auth_token {
         let forwards_to = address.clone();
         let mut tunnel = ngrok::Session::builder()
