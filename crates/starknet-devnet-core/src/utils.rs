@@ -41,6 +41,7 @@ pub(crate) fn get_storage_var_address(
 }
 
 pub(crate) fn get_versioned_constants() -> VersionedConstants {
+    #[allow(clippy::unwrap_used)] // TODO
     VersionedConstants::get(&StarknetVersion::V0_13_2).unwrap().clone()
 }
 
@@ -139,7 +140,7 @@ pub(crate) mod test_utils {
             Fee(100),
             &vec![],
             dummy_felt(),
-            &contract_class.clone().into(),
+            &contract_class.clone(),
             Felt::ONE,
         );
         let class_hash = contract_class.generate_hash().unwrap();

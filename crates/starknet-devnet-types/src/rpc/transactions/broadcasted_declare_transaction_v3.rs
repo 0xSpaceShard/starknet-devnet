@@ -31,6 +31,7 @@ impl BroadcastedDeclareTransactionV3 {
     /// `chain_id` - the chain id to use for the transaction hash computation
     /// `class_hash` - the class hash to use for the transaction hash computation,
     /// computed from the contract class
+    #[allow(unused)] // TODO used only in tests
     pub(crate) fn calculate_transaction_hash(
         &self,
         chain_id: &Felt,

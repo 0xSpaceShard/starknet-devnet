@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::{Serializer as JsonSerializer, Value, json};
+use serde_json::{json, Serializer as JsonSerializer, Value};
 use starknet_api::contract_class::EntryPointType;
-use starknet_api::deprecated_contract_class::ContractClass as DeprecatedContractClass;
-use starknet_api::deprecated_contract_class::EntryPointV0;
+use starknet_api::deprecated_contract_class::{
+    ContractClass as DeprecatedContractClass, EntryPointV0,
+};
 use starknet_rs_core::types::Felt;
 use starknet_types_core::hash::{Pedersen, StarkHash};
 
@@ -100,6 +101,7 @@ fn compute_hinted_class_hash(contract_class: &Value) -> crate::error::DevnetResu
     Ok(starknet_rs_core::utils::starknet_keccak(&buffer))
 }
 
+// TODO perhaps rely on an imported util?
 fn compute_cairo_0_contract_class_hash(json_class: &Value) -> crate::error::DevnetResult<Felt> {
     let mut hashes = vec![Felt::ZERO];
 

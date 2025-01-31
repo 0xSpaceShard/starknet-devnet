@@ -248,7 +248,7 @@ mod tests {
     fn correct_difference_in_cairo_0_declared_classes() {
         let mut state = setup();
         let class_hash = starknet_api::core::ClassHash(Felt::ONE);
-        let contract_class = ContractClass::Cairo0(dummy_cairo_0_contract_class().into());
+        let contract_class = ContractClass::Cairo0(dummy_cairo_0_contract_class());
 
         // necessary to prevent blockifier's state subtraction panic
         state.get_compiled_class(class_hash).expect_err("Shouldn't yet be declared");

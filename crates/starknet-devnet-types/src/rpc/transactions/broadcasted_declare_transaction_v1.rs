@@ -110,7 +110,7 @@ mod tests {
             Fee(try_felt_to_num(feeder_gateway_transaction.max_fee).unwrap()),
             &vec![],
             feeder_gateway_transaction.nonce,
-            &cairo0.into(),
+            &cairo0,
             feeder_gateway_transaction.version,
         );
 

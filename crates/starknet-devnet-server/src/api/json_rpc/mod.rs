@@ -623,6 +623,7 @@ impl std::fmt::Display for JsonRpcRequest {
 
 #[derive(Serialize)]
 #[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
 pub enum JsonRpcResponse {
     Starknet(StarknetResponse),
     Devnet(DevnetResponse),
@@ -644,6 +645,7 @@ impl From<DevnetResponse> for JsonRpcResponse {
 #[derive(Serialize)]
 #[cfg_attr(test, derive(Deserialize))]
 #[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
 pub enum StarknetResponse {
     Block(Block),
     PendingBlock(PendingBlock),
@@ -673,6 +675,7 @@ pub enum StarknetResponse {
 
 #[derive(Serialize)]
 #[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
 pub enum DevnetResponse {
     MessagingContractAddress(MessagingLoadAddress),
     FlushedMessages(FlushedMessages),

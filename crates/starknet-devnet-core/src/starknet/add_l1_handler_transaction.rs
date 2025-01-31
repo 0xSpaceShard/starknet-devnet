@@ -198,7 +198,7 @@ mod tests {
         account.deploy(&mut starknet.pending_state).unwrap();
 
         // dummy contract
-        let dummy_contract: Cairo0ContractClass = dummy_cairo_l1l2_contract().into();
+        let dummy_contract = dummy_cairo_l1l2_contract();
 
         let withdraw_selector = get_selector_from_name("withdraw").unwrap();
         let deposit_selector = get_selector_from_name("deposit").unwrap();

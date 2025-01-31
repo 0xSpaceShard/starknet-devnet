@@ -190,8 +190,8 @@ impl From<&blockifier::transaction::objects::TransactionExecutionInfo> for Execu
         Self {
             computation_resources,
             data_availability: DataAvailability {
-                l1_gas: execution_info.receipt.da_gas.l1_gas.0.into(),
-                l1_data_gas: execution_info.receipt.da_gas.l1_data_gas.0.into(),
+                l1_gas: execution_info.receipt.da_gas.l1_gas.0,
+                l1_data_gas: execution_info.receipt.da_gas.l1_data_gas.0,
             },
         }
     }

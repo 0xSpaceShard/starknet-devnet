@@ -163,7 +163,7 @@ mod tests {
             Fee(10000),
             &Vec::new(),
             Felt::ZERO,
-            &contract_class.into(),
+            &contract_class,
             Felt::ONE,
         )))
     }
@@ -367,7 +367,7 @@ mod tests {
             Fee(0),
             &vec![],
             dummy_felt(),
-            &dummy_cairo_0_contract_class().into(),
+            &dummy_cairo_0_contract_class(),
             Felt::ONE,
         );
 

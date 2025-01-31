@@ -33,7 +33,6 @@ pub struct BackgroundDevnet {
     reqwest_client: ReqwestClient,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
     pub process: SafeChild,
-    pub port: u16,
     pub url: String,
     rpc_url: Url,
 }
@@ -183,7 +182,6 @@ impl BackgroundDevnet {
         Ok(BackgroundDevnet {
             reqwest_client: ReqwestClient::new(devnet_url.clone(), client),
             json_rpc_client: JsonRpcClient::new(HttpTransport::new(devnet_rpc_url.clone())),
-            port,
             process: safe_process,
             url: devnet_url,
             rpc_url: devnet_rpc_url,

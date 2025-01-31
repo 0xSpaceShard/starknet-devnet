@@ -433,7 +433,7 @@ mod tests {
     use starknet_api::state::StorageKey;
     use starknet_rs_core::types::Felt;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
+    use starknet_types::contract_class::ContractClass;
 
     use super::StarknetState;
     use crate::state::{BlockNumberOrPending, CustomState, CustomStateReader};
@@ -451,7 +451,7 @@ mod tests {
 
         let class_hash = dummy_felt();
         let casm_hash = Some(dummy_felt());
-        let contract_class = ContractClass::Cairo0(dummy_cairo_0_contract_class().into());
+        let contract_class = ContractClass::Cairo0(dummy_cairo_0_contract_class());
 
         state.declare_contract_class(class_hash, casm_hash, contract_class).unwrap();
         assert!(state.is_contract_declared(dummy_felt()));
@@ -501,7 +501,7 @@ mod tests {
             other => panic!("Invalid result: {other:?}"),
         }
 
-        let contract_class: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
+        let contract_class = dummy_cairo_0_contract_class();
         state
             .declare_contract_class(class_hash.0, casm_hash, contract_class.clone().into())
             .unwrap();

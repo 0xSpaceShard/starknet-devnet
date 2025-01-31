@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use std::u128;
 
 use blockifier::state::state_api::StateReader;
 use starknet_api::core::calculate_contract_address;

@@ -85,7 +85,8 @@ impl Formatter for StarknetFormatter {
 
 #[cfg(test)]
 pub(crate) mod test_utils {
-    use starknet_api::{data_availability::DataAvailabilityMode, transaction::fields::ResourceBounds};
+    use starknet_api::data_availability::DataAvailabilityMode;
+    use starknet_api::transaction::fields::ResourceBounds;
 
     use crate::rpc::transactions::ResourceBoundsWrapper;
 
@@ -180,9 +181,7 @@ mod tests {
         let value: Value = serde_json::from_str(input).unwrap();
 
         let res = crate::utils::traverse_and_exclude_recursively(&value, &|key, val| {
-            return key == "should_be_removed"
-                && val.is_array()
-                && val.as_array().unwrap().is_empty();
+            key == "should_be_removed" && val.is_array() && val.as_array().unwrap().is_empty()
         });
 
         assert_eq!(res, serde_json::from_str::<serde_json::Value>(expected_output).unwrap());

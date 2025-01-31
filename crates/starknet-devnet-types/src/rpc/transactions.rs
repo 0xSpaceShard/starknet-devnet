@@ -275,9 +275,10 @@ impl BroadcastedTransactionCommon {
     }
 }
 
-fn felt_to_sn_api_chain_id(f: &Felt) -> starknet_api::core::ChainId {
-    // TODO
-    starknet_api::core::ChainId::Other(parse_cairo_short_string(f).unwrap())
+fn felt_to_sn_api_chain_id(f: &Felt) -> DevnetResult<starknet_api::core::ChainId> {
+    Ok(starknet_api::core::ChainId::Other(
+        parse_cairo_short_string(f).map_err(|e| ConversionError::OutOfRangeError(e.to_string()))?,
+    ))
 }
 
 /// Common fields for all transaction type of version 3
@@ -335,37 +336,12 @@ fn convert_resource_bounds_from_starknet_rs_to_starknet_api(
 
 impl From<&ResourceBoundsWrapper> for starknet_api::transaction::fields::ValidResourceBounds {
     fn from(value: &ResourceBoundsWrapper) -> Self {
-        starknet_api::transaction::fields::ValidResourceBounds::AllResources(
-            starknet_api::transaction::fields::AllResourceBounds {
-                l1_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
-                    value.inner.l1_gas.clone(),
-                ),
-                l2_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
-                    value.inner.l2_gas.clone(),
-                ),
-                l1_data_gas: todo!(),
-            },
+        // TODO l1_data_gas? l2_gas?
+        starknet_api::transaction::fields::ValidResourceBounds::L1Gas(
+            convert_resource_bounds_from_starknet_rs_to_starknet_api(value.inner.l1_gas.clone()),
         )
     }
 }
-
-// TODO delete?
-
-// impl From<&ResourceBoundsWrapper> for starknet_api::transaction::fields::ResourceBounds {
-//     fn from(value: &ResourceBoundsWrapper) -> Self {
-
-//         starknet_api::transaction::fields::ResourceBounds::from(BTreeMap::from([
-//             (Resource::L1Gas, starknet_api::transaction::fields::ResourceBounds {
-//                 max_amount: GasAmount(value.inner.l1_gas.max_amount),
-//                 max_price_per_unit: GasPrice(value.inner.l1_gas.max_price_per_unit),
-//             }),
-//             (Resource::L2Gas, starknet_api::transaction::fields::ResourceBounds {
-//                 max_amount: GasAmount(value.inner.l2_gas.max_amount),
-//                 max_price_per_unit: GasPrice(value.inner.l2_gas.max_price_per_unit),
-//             }),
-//         ]))
-//     }
-// }
 
 impl BroadcastedTransactionCommonV3 {
     /// Checks if total accumulated fee of resource_bounds for l1 is equal to 0 or for l2 is not
@@ -660,7 +636,7 @@ impl BroadcastedDeclareTransaction {
         Ok(starknet_api::executable_transaction::DeclareTransaction::create(
             sn_api_transaction,
             class_info,
-            &felt_to_sn_api_chain_id(chain_id),
+            &felt_to_sn_api_chain_id(chain_id)?,
         )?)
     }
 }
@@ -1036,6 +1012,7 @@ pub struct Reversion {
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize))]
 #[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
 pub enum ExecutionInvocation {
     Succeeded(FunctionInvocation),
     Reverted(Reversion),
