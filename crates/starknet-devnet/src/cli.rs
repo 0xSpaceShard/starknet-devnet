@@ -270,13 +270,12 @@ impl Args {
             ..Default::default()
         };
 
-        match (self.state_archive, self.ngrok_auth_token.as_ref(), self.walnut_api_key.as_ref()) {
-            (StateArchiveCapacity::None, Some(_), Some(_)) => {
-                anyhow::bail!(
-                    "Using Walnut debugging feature requires devnet to save past state. Run devnet with --state-archive-capacity full."
-                );
-            }
-            _ => {}
+        if let (StateArchiveCapacity::None, Some(_), Some(_)) =
+            (self.state_archive, self.ngrok_auth_token.as_ref(), self.walnut_api_key.as_ref())
+        {
+            anyhow::bail!(
+                             "Using Walnut debugging feature requires devnet to save past state. Run devnet with --state-archive-capacity full."
+                         );
         };
 
         let RequestResponseLogging { log_request, log_response } =

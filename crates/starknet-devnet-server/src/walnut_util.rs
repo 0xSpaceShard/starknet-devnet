@@ -1,23 +1,26 @@
-use std::{ffi::OsStr, io::ErrorKind, path::Path};
+use std::{ffi::OsStr, path::Path};
 
 use lazy_static::lazy_static;
 use regex::Regex;
 use reqwest::StatusCode;
 use serde_json::Value;
-use starknet_core::error::{DevnetResult, Error};
 use starknet_rs_core::types::Felt;
 use url::Url;
 use walkdir::WalkDir;
 
 use crate::api::{
     http::models::{ContractSource, LoadPath},
-    json_rpc::error::{ApiError, DebuggingError},
+    json_rpc::error::DebuggingError,
 };
 
 lazy_static! {
-    static ref REGEX: Regex =
-        Regex::new(r"#\[\s*starknet::contract(?:\(account\))?\s*\]\s*mod (\w+)\b").unwrap();
+    static ref REGEX: Regex = create_regex();
     static ref ALLOWED_EXTENSIONS: [&'static OsStr; 2] = [OsStr::new("cairo"), OsStr::new("toml")];
+}
+#[allow(clippy::expect_used)]
+fn create_regex() -> Regex {
+    Regex::new(r"#\[\s*starknet::contract(?:\(account\))?\s*\]\s*mod (\w+)\b")
+        .expect("Failed to compile regex")
 }
 
 const WALNUT_VERIFICATION_URL: &str = "https://api.walnut.dev/v1/verify";
@@ -104,14 +107,13 @@ where
 
 pub(crate) async fn get_cairo_and_toml_files_from_contract_source_in_json_format(
     contract_source: ContractSource,
-) -> Result<serde_json::Map<String, Value>, ApiError> {
+) -> Result<serde_json::Map<String, Value>, DebuggingError> {
     let file_contents = match contract_source {
         ContractSource::Path(LoadPath { path: workspace_dir }) => {
             get_cairo_and_toml_files_from_directory(&workspace_dir)
                 .await?
                 .into_iter()
                 .map(|f| (f.file_name, serde_json::Value::String(f.content)))
-                .into_iter()
                 .collect::<serde_json::Map<String, serde_json::Value>>()
         }
         // Mapping entries are expected to be in the form: (<filename + extension>, <content>)
@@ -129,7 +131,7 @@ pub(crate) async fn get_cairo_and_toml_files_from_contract_source_in_json_format
     };
 
     if file_contents.is_empty() {
-        return Err(ApiError::from(DebuggingError::SmartContractFilesNotProvided));
+        return Err(DebuggingError::SmartContractFilesNotProvided);
     }
 
     Ok(file_contents)
@@ -147,19 +149,11 @@ fn get_first_word_using_regex(data: &str, regex: &Regex) -> Option<String> {
 
 pub(crate) async fn get_cairo_and_toml_files_from_directory(
     workspace_dir: &str,
-) -> DevnetResult<Vec<File>> {
+) -> Result<Vec<File>, DebuggingError> {
     let mut result = vec![];
     // Recursively read files and their contents in workspace directory
     for entry in WalkDir::new(workspace_dir).follow_links(true) {
-        let entry = entry.map_err(|err| {
-            let io_error = if let Some(io_error) = err.into_io_error() {
-                io_error
-            } else {
-                std::io::Error::new(ErrorKind::Other, "Filesystem loop due to symlink")
-            };
-
-            Error::IoError(io_error)
-        })?;
+        let entry = entry.map_err(|err| DebuggingError::Custom { error: err.to_string() })?;
 
         let path = entry.path();
 
@@ -169,13 +163,16 @@ pub(crate) async fn get_cairo_and_toml_files_from_directory(
                     // Unwrapping here is safe, because we already traversed the directory
                     let file_name = path
                         .strip_prefix(workspace_dir)
-                        .unwrap()
+                        .map_err(|err| DebuggingError::Custom { error: err.to_string() })?
                         .to_str()
-                        .ok_or(Error::UnsupportedAction {
-                            msg: "non-unicode characters in the path are not supported".to_string(),
+                        .ok_or(DebuggingError::Custom {
+                            error: "non-unicode characters in the path are not supported"
+                                .to_string(),
                         })?
                         .to_string();
-                    let file_content = tokio::fs::read_to_string(path).await?;
+                    let file_content = tokio::fs::read_to_string(path)
+                        .await
+                        .map_err(|err| DebuggingError::Custom { error: err.to_string() })?;
 
                     result.push(File { file_name, content: file_content });
                 }

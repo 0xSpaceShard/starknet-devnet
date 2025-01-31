@@ -297,6 +297,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
         server_config.ngrok_url = Some(tunnel.url().to_string());
 
+        #[allow(clippy::expect_used)]
         #[cfg(unix)]
         let mut sigint =
             { signal(SignalKind::interrupt()).expect("Failed to setup SIGINT handler") };
@@ -310,10 +311,10 @@ async fn main() -> Result<(), anyhow::Error> {
         let t = tokio::task::spawn(async move {
             tokio::select! {
                 _ = tunnel.forward_http(forwards_to) => {
-                    return Ok(())
+                    Ok(())
                 }
                 _ = sigint.recv() => {
-                    return Ok(())
+                    Ok(())
                 }
             }
         });

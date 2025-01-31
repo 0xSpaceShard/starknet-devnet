@@ -531,14 +531,14 @@ impl JsonRpcHandler {
                 }
                 let sierra_file = std::fs::File::open(path).map_err(|err| {
                     ApiError::from(DebuggingError::Custom {
-                        error: format!("Read file error: {}", err.to_string()),
+                        error: format!("Read file error: {}", err),
                     })
                 });
 
                 let sierra_artifact = serde_json::from_reader::<File, SierraClass>(sierra_file?)
                     .map_err(|err| {
                         ApiError::from(DebuggingError::Custom {
-                            error: format!("Deserialization error: {}", err.to_string()),
+                            error: format!("Deserialization error: {}", err),
                         })
                     })?;
 
@@ -555,7 +555,7 @@ impl JsonRpcHandler {
         let contract_names = get_contract_names(file_contents.values());
 
         let class_hash = sierra_artifact.class_hash().map_err(|err| DebuggingError::Custom {
-            error: format!("Sierra class hash computation error: {}", err.to_string()),
+            error: format!("Sierra class hash computation error: {}", err),
         })?;
 
         let verification_response = walnut_client
