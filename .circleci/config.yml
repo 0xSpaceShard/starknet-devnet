@@ -57,9 +57,6 @@ jobs:
           name: Install foundry
           command: ./scripts/install_foundry.sh
       - run:
-          name: X
-          command: cat /var/opt/circleci/workdir/Cargo.lock
-      - run:
           name: Verify lockfile
           command: cargo update -w --locked
       - run:
