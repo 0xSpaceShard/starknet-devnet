@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
 use server::test_utils::assert_contains;
-use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
+use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class_codegen;
 use starknet_rs_accounts::{
     Account, AccountError, AccountFactory, AccountFactoryError, ConnectedAccount, ExecutionEncoder,
     ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
 use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 use starknet_rs_core::types::{
     BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedDeclareTransactionV3,
     BroadcastedInvokeTransaction, BroadcastedInvokeTransactionV1, BroadcastedInvokeTransactionV3,
@@ -144,8 +143,7 @@ async fn estimate_fee_of_declare_v1() {
     let (signer, account_address) = devnet.get_first_predeployed_account().await;
 
     // get class
-    let contract_artifact = dummy_cairo_0_contract_class();
-    let contract_artifact = Arc::new(serde_json::from_value(contract_artifact.inner).unwrap());
+    let contract_artifact = Arc::new(dummy_cairo_0_contract_class_codegen());
 
     // declare class
     let account = SingleOwnerAccount::new(
@@ -267,14 +265,12 @@ async fn estimate_fee_of_invoke() {
     ));
 
     // get class
-    let contract_json = dummy_cairo_0_contract_class();
-    let contract_artifact: Arc<LegacyContractClass> =
-        Arc::new(serde_json::from_value(contract_json.inner).unwrap());
+    let contract_artifact = Arc::new(dummy_cairo_0_contract_class_codegen());
     let class_hash = contract_artifact.class_hash().unwrap();
 
     // declare class
     let declaration_result = account
-        .declare_legacy(contract_artifact.clone())
+        .declare_legacy(contract_artifact)
         .nonce(Felt::ZERO)
         .max_fee(Felt::from(1e18 as u128))
         .send()
@@ -488,9 +484,7 @@ async fn estimate_fee_of_multiple_txs() {
     account.set_block_id(BlockId::Tag(BlockTag::Latest));
 
     // get class
-    let contract_json = dummy_cairo_0_contract_class();
-    let contract_class: Arc<LegacyContractClass> =
-        Arc::new(serde_json::from_value(contract_json.inner).unwrap());
+    let contract_class = Arc::new(dummy_cairo_0_contract_class_codegen());
 
     let class_hash = contract_class.class_hash().unwrap();
     let prepared_legacy_declaration = account

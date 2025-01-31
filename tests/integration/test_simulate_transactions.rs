@@ -3,13 +3,12 @@ use std::{u128, u64};
 
 use serde_json::json;
 use server::test_utils::assert_contains;
-use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
+use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class_codegen;
 use starknet_rs_accounts::{
     Account, AccountError, AccountFactory, ConnectedAccount, ExecutionEncoder, ExecutionEncoding,
     OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
 use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 use starknet_rs_core::types::{
     BlockId, BlockTag, BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV3,
     BroadcastedDeployAccountTransaction, BroadcastedDeployAccountTransactionV3,
@@ -53,9 +52,7 @@ async fn simulate_declare_v1() {
         ExecutionEncoding::New,
     );
 
-    let contract_json = dummy_cairo_0_contract_class();
-    let contract_artifact: Arc<LegacyContractClass> =
-        Arc::new(serde_json::from_value(contract_json.inner).unwrap());
+    let contract_artifact = Arc::new(dummy_cairo_0_contract_class_codegen());
 
     let max_fee = Felt::ZERO; // TODO try 1e18 as u128 instead
     let nonce = Felt::ZERO;
@@ -297,14 +294,11 @@ async fn simulate_invoke_v1() {
     ));
 
     // get class
-    let contract_json = dummy_cairo_0_contract_class();
-    let contract_artifact: Arc<LegacyContractClass> =
-        Arc::new(serde_json::from_value(contract_json.inner).unwrap());
+    let contract_artifact = Arc::new(dummy_cairo_0_contract_class_codegen());
     let class_hash = contract_artifact.class_hash().unwrap();
 
     // declare class
-    let declaration_result =
-        account.declare_legacy(contract_artifact.clone()).send().await.unwrap();
+    let declaration_result = account.declare_legacy(contract_artifact).send().await.unwrap();
     assert_eq!(declaration_result.class_hash, class_hash);
 
     // deploy instance of class

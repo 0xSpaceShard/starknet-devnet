@@ -1,7 +1,6 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use starknet_rs_core::types::Felt;
-
 use starknet_api::deprecated_contract_class::ContractClass as DeprecatedContractClass;
+use starknet_rs_core::types::Felt;
 
 use crate::error::{DevnetResult, Error, JsonError};
 use crate::traits::HashProducer;

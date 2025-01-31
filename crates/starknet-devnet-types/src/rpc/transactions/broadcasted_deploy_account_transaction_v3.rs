@@ -73,9 +73,7 @@ mod tests {
     use crate::chain_id::ChainId;
     use crate::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
     use crate::rpc::transactions::BroadcastedTransactionCommonV3;
-    use crate::utils::test_utils::{
-        convert_from_sn_api_l1_resource_bounds, from_u8_to_da_mode,
-    };
+    use crate::utils::test_utils::{convert_from_sn_api_l1_resource_bounds, from_u8_to_da_mode};
 
     #[derive(Deserialize)]
     struct FeederGatewayDeployAccountTransactionV3 {

@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
+use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class_codegen;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, FunctionCall};
 use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address, UdcUniqueness};
 use starknet_rs_providers::Provider;
@@ -139,14 +138,11 @@ async fn can_declare_deploy_invoke_cairo0_using_account(
     ));
 
     // get class
-    let contract_json = dummy_cairo_0_contract_class();
-    let contract_artifact: Arc<LegacyContractClass> =
-        Arc::new(serde_json::from_value(contract_json.inner).unwrap());
-    let class_hash = contract_artifact.class_hash().unwrap();
+    let contract_class = Arc::new(dummy_cairo_0_contract_class_codegen());
+    let class_hash = contract_class.class_hash().unwrap();
 
     // declare class
-    let declaration_result =
-        account.declare_legacy(contract_artifact.clone()).send().await.unwrap();
+    let declaration_result = account.declare_legacy(contract_class).send().await.unwrap();
     assert_eq!(declaration_result.class_hash, class_hash);
 
     // deploy instance of class

@@ -70,8 +70,7 @@ mod tests {
     use crate::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
     use crate::rpc::transactions::BroadcastedTransactionCommonV3;
     use crate::utils::test_utils::{
-        convert_from_sn_api_l1_resource_bounds, from_u8_to_da_mode,
-        CAIRO_1_EVENTS_CONTRACT_PATH,
+        convert_from_sn_api_l1_resource_bounds, from_u8_to_da_mode, CAIRO_1_EVENTS_CONTRACT_PATH,
     };
 
     #[derive(Deserialize)]

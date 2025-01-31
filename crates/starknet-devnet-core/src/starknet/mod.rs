@@ -9,8 +9,10 @@ use blockifier::transaction::account_transaction::{AccountTransaction, Execution
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use parking_lot::RwLock;
-use starknet_api::block::{BlockInfo, GasPriceVector, GasPrices};
-use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, GasPricePerToken};
+use starknet_api::block::{
+    BlockInfo, BlockNumber, BlockStatus, BlockTimestamp, FeeType, GasPrice, GasPricePerToken,
+    GasPriceVector, GasPrices,
+};
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::transaction::fields::Fee;
 use starknet_config::BlockGenerationOn;
@@ -25,7 +27,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{
-    BlockHash, ClassHash, TransactionHash, felt_from_prefixed_hex, split_biguint,
+    felt_from_prefixed_hex, split_biguint, BlockHash, ClassHash, TransactionHash,
 };
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
@@ -67,13 +69,14 @@ use crate::constants::{
 use crate::contract_class_choice::AccountContractClassChoice;
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
+use crate::nonzero_gas_price;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::RawExecutionV1;
 use crate::state::state_diff::StateDiff;
 use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
-use crate::{nonzero_gas_price, utils::{custom_bouncer_config, get_versioned_constants}};
+use crate::utils::{custom_bouncer_config, get_versioned_constants};
 
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
@@ -542,20 +545,33 @@ impl Starknet {
         block.header.block_header_without_hash.block_number =
             self.block_context.block_info().block_number;
         block.header.block_header_without_hash.l1_gas_price = GasPricePerToken {
-            price_in_fri: GasPrice(
-                self.block_context.block_info().gas_prices.strk_l1_gas_price.get(),
-            ),
-            price_in_wei: GasPrice(
-                self.block_context.block_info().gas_prices.eth_l1_gas_price.get(),
-            ),
+            price_in_fri: self
+                .block_context
+                .block_info()
+                .gas_prices
+                .l1_gas_price(&FeeType::Strk)
+                .get(),
+            price_in_wei: self
+                .block_context
+                .block_info()
+                .gas_prices
+                .l1_gas_price(&FeeType::Eth)
+                .get(),
         };
         block.header.block_header_without_hash.l1_data_gas_price = GasPricePerToken {
-            price_in_fri: GasPrice(
-                self.block_context.block_info().gas_prices.strk_l1_data_gas_price.get(),
-            ),
-            price_in_wei: GasPrice(
-                self.block_context.block_info().gas_prices.eth_l1_data_gas_price.get(),
-            ),
+            price_in_fri: self
+                .block_context
+                .block_info()
+                .gas_prices
+                .l1_data_gas_price(&FeeType::Strk)
+                .get(),
+
+            price_in_wei: self
+                .block_context
+                .block_info()
+                .gas_prices
+                .l1_data_gas_price(&FeeType::Eth)
+                .get(),
         };
         block.header.block_header_without_hash.sequencer =
             SequencerContractAddress(self.block_context.block_info().sequencer_address);
@@ -1146,11 +1162,14 @@ impl Starknet {
                         )?;
 
                     Ok((
-                        txn.to_blockifier_account_transaction(&chain_id, ExecutionFlags {
-                            only_query: true,
-                            charge_fee: !skip_fee_charge,
-                            validate: !(skip_validate || skip_validate_due_to_impersonation),
-                        })?,
+                        txn.to_blockifier_account_transaction(
+                            &chain_id,
+                            ExecutionFlags {
+                                only_query: true,
+                                charge_fee: !skip_fee_charge,
+                                validate: !(skip_validate || skip_validate_due_to_impersonation),
+                            },
+                        )?,
                         txn.get_type(),
                     ))
                 })
@@ -1372,7 +1391,7 @@ mod tests {
     use blockifier::execution::errors::{EntryPointExecutionError, PreExecutionError};
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
-    use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
+    use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, FeeType};
     use starknet_api::core::EntryPointSelector;
     use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_rs_core::utils::get_selector_from_name;
@@ -1477,7 +1496,7 @@ mod tests {
         );
         assert_eq!(block_ctx.block_info().block_number, BlockNumber(0));
         assert_eq!(block_ctx.block_info().block_timestamp, BlockTimestamp(0));
-        assert_eq!(block_ctx.block_info().gas_prices.eth_l1_gas_price.get(), 10);
+        assert_eq!(block_ctx.block_info().gas_prices.l1_gas_price(&FeeType::Eth).get().0, 10);
         assert_eq!(
             ContractAddress::from(block_ctx.chain_info().fee_token_addresses.eth_fee_token_address),
             fee_token_address
@@ -1530,13 +1549,14 @@ mod tests {
         let mut starknet = Starknet::new(&config).unwrap();
 
         let initial_block_number = starknet.block_context.block_info().block_number;
-        let initial_gas_price_wei = starknet.block_context.block_info().gas_prices.eth_l1_gas_price;
+        let initial_gas_price_wei =
+            starknet.block_context.block_info().gas_prices.l1_gas_price(&FeeType::Eth);
         let initial_gas_price_fri =
-            starknet.block_context.block_info().gas_prices.strk_l1_gas_price;
+            starknet.block_context.block_info().gas_prices.l1_gas_price(&FeeType::Strk);
         let initial_data_gas_price_wei =
-            starknet.block_context.block_info().gas_prices.eth_l1_data_gas_price;
+            starknet.block_context.block_info().gas_prices.l1_gas_price(&FeeType::Eth);
         let initial_data_gas_price_fri =
-            starknet.block_context.block_info().gas_prices.strk_l1_data_gas_price;
+            starknet.block_context.block_info().gas_prices.l1_data_gas_price(&FeeType::Strk);
         let initial_block_timestamp = starknet.block_context.block_info().block_timestamp;
         let initial_sequencer = starknet.block_context.block_info().sequencer_address;
 
@@ -1569,19 +1589,29 @@ mod tests {
         );
         assert_eq!(
             starknet.pending_block().header.block_header_without_hash.l1_gas_price.price_in_wei,
-            GasPrice(initial_gas_price_wei.get())
+            initial_gas_price_wei.get()
         );
         assert_eq!(
             starknet.pending_block().header.block_header_without_hash.l1_gas_price.price_in_fri,
-            GasPrice(initial_gas_price_fri.get())
+            initial_gas_price_fri.get()
         );
         assert_eq!(
-            starknet.pending_block().header.block_header_without_hash.l1_data_gas_price.price_in_wei,
-            GasPrice(initial_data_gas_price_wei.get())
+            starknet
+                .pending_block()
+                .header
+                .block_header_without_hash
+                .l1_data_gas_price
+                .price_in_wei,
+            initial_data_gas_price_wei.get()
         );
         assert_eq!(
-            starknet.pending_block().header.block_header_without_hash.l1_data_gas_price.price_in_fri,
-            GasPrice(initial_data_gas_price_fri.get())
+            starknet
+                .pending_block()
+                .header
+                .block_header_without_hash
+                .l1_data_gas_price
+                .price_in_fri,
+            initial_data_gas_price_fri.get()
         );
         assert_eq!(
             starknet.pending_block().header.block_header_without_hash.sequencer.0,
@@ -1874,13 +1904,15 @@ mod tests {
             .blocks
             .pending_block
             .set_timestamp(BlockTimestamp(Starknet::get_unix_timestamp_as_seconds()));
-        let pending_block_timestamp = starknet.pending_block().header.block_header_without_hash.timestamp;
+        let pending_block_timestamp =
+            starknet.pending_block().header.block_header_without_hash.timestamp;
 
         let sleep_duration_secs = 5;
         thread::sleep(Duration::from_secs(sleep_duration_secs));
         starknet.generate_new_block_and_state().unwrap();
 
-        let block_timestamp = starknet.get_latest_block().unwrap().header.block_header_without_hash.timestamp;
+        let block_timestamp =
+            starknet.get_latest_block().unwrap().header.block_header_without_hash.timestamp;
         // check if the pending_block_timestamp is less than the block_timestamp,
         // by number of sleep seconds because the timeline of events is this:
         // ----(pending block timestamp)----(sleep)----(new block timestamp)

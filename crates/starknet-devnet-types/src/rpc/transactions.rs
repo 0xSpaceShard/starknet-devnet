@@ -10,10 +10,8 @@ use declare_transaction_v2::DeclareTransactionV2;
 use deploy_transaction::DeployTransaction;
 use invoke_transaction_v1::InvokeTransactionV1;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use starknet_api::block::BlockNumber;
-use starknet_api::block::GasPrice;
-use starknet_api::contract_class::ClassInfo;
-use starknet_api::contract_class::EntryPointType;
+use starknet_api::block::{BlockNumber, GasPrice};
+use starknet_api::contract_class::{ClassInfo, EntryPointType};
 use starknet_api::core::calculate_contract_address;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::transaction::fields::{Fee, Resource, Tip};
@@ -43,7 +41,7 @@ use super::transaction_receipt::{
 };
 use crate::constants::{PREFIX_DEPLOY_ACCOUNT, PREFIX_INVOKE, QUERY_VERSION_OFFSET};
 use crate::contract_address::ContractAddress;
-use crate::contract_class::{ContractClass, compute_sierra_class_hash};
+use crate::contract_class::{compute_sierra_class_hash, ContractClass};
 use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::felt::{
@@ -487,7 +485,11 @@ pub enum BroadcastedTransaction {
 }
 
 impl BroadcastedTransaction {
-    pub fn to_blockifier_account_transaction(&self, chain_id: &Felt, execution_flags: ExecutionFlags)-> DevnetResult<blockifier::transaction::account_transaction::AccountTransaction>  {
+    pub fn to_blockifier_account_transaction(
+        &self,
+        chain_id: &Felt,
+        execution_flags: ExecutionFlags,
+    ) -> DevnetResult<blockifier::transaction::account_transaction::AccountTransaction> {
         let sn_api_tx = self.to_sn_api_account_transaction(chain_id)?;
         Ok(blockifier::transaction::account_transaction::AccountTransaction {
             tx: sn_api_tx,

@@ -205,7 +205,8 @@ impl ComputationResources {
         execution_info
             .receipt
             .resources
-            .computation.vm_resources
+            .computation
+            .vm_resources
             .builtin_instance_counter
             .get(resource_name)
             .cloned()

@@ -76,7 +76,8 @@ impl StarknetTransaction {
                     reason: execution_info
                         .revert_error
                         .as_ref()
-                        .unwrap_or(&ErrorStack::default().into()).to_string(),
+                        .unwrap_or(&ErrorStack::default().into())
+                        .to_string(),
                 },
                 false => ExecutionResult::Succeeded,
             },

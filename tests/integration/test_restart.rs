@@ -1,11 +1,10 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
+use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class_codegen;
 use starknet_rs_accounts::{
     Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
 use starknet_rs_core::utils::get_storage_var_address;
 use starknet_rs_providers::{Provider, ProviderError};
@@ -134,9 +133,7 @@ async fn assert_gas_price_unaffected_by_restart() {
     ));
 
     // prepare class for estimation of declaration
-    let contract_json = dummy_cairo_0_contract_class();
-    let contract_artifact: Arc<LegacyContractClass> =
-        Arc::new(serde_json::from_value(contract_json.inner).unwrap());
+    let contract_artifact = Arc::new(dummy_cairo_0_contract_class_codegen());
 
     // check gas price via fee estimation
     let estimate_before =

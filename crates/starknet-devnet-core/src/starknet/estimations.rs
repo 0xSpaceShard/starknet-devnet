@@ -5,6 +5,7 @@ use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::objects::HasRelatedFeeType;
 use blockifier::transaction::transaction_execution::Transaction;
 use blockifier::transaction::transactions::ExecutableTransaction;
+use starknet_api::block::FeeType;
 use starknet_api::transaction::fields::GasVectorComputationMode;
 use starknet_rs_core::types::{BlockId, Felt, MsgFromL1, PriceUnit};
 use starknet_types::contract_address::ContractAddress;
@@ -71,7 +72,8 @@ pub fn estimate_fee(
 
             match estimate_fee_result {
                 Ok(estimated_fee) => Ok(estimated_fee),
-                // reverted transactions are failing with ExecutionError, but index is set to 0, so we override the index property
+                // reverted transactions are failing with ExecutionError, but index is set to 0, so
+                // we override the index property
                 Err(Error::ExecutionError { execution_error, .. }) => {
                     Err(Error::ExecutionError { execution_error, index: idx })
                 }
@@ -114,7 +116,7 @@ fn estimate_transaction_fee<S: StateReader>(
     transaction: Transaction,
     return_error_on_reverted_execution: bool,
 ) -> DevnetResult<FeeEstimateWrapper> {
-    let fee_type = match transaction {
+    let fee_type = match &transaction {
         Transaction::Account(tx) => tx.fee_type(),
         Transaction::L1Handler(tx) => tx.fee_type(),
     };
@@ -138,13 +140,13 @@ fn estimate_transaction_fee<S: StateReader>(
 
     let (gas_price, data_gas_price, unit) = match fee_type {
         starknet_api::block::FeeType::Strk => (
-            block_context.block_info().gas_prices.strk_l1_gas_price.get(),
-            block_context.block_info().gas_prices.strk_l1_data_gas_price.get(),
+            block_context.block_info().gas_prices.l1_gas_price(&FeeType::Strk).get(),
+            block_context.block_info().gas_prices.l1_data_gas_price(&FeeType::Strk).get(),
             PriceUnit::Fri,
         ),
         starknet_api::block::FeeType::Eth => (
-            block_context.block_info().gas_prices.eth_l1_gas_price.get(),
-            block_context.block_info().gas_prices.eth_l1_data_gas_price.get(),
+            block_context.block_info().gas_prices.l1_gas_price(&FeeType::Eth).get(),
+            block_context.block_info().gas_prices.l1_data_gas_price(&FeeType::Eth).get(),
             PriceUnit::Wei,
         ),
     };

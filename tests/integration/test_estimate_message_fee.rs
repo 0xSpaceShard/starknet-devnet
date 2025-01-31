@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
-use starknet_core::utils::exported_test_utils::dummy_cairo_l1l2_contract;
+use starknet_core::utils::exported_test_utils::dummy_cairo_l1l2_contract_codegen;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 use starknet_rs_core::types::{BlockId, BlockTag, EthAddress, Felt, MsgFromL1, StarknetError};
 use starknet_rs_core::utils::{get_udc_deployed_address, UdcUniqueness};
 use starknet_rs_providers::{Provider, ProviderError};
@@ -26,14 +25,12 @@ async fn estimate_message_fee() {
     ));
 
     // get class
-    let contract_json = dummy_cairo_l1l2_contract();
-    let contract_artifact: Arc<LegacyContractClass> =
-        Arc::new(serde_json::from_value(contract_json.inner).unwrap());
+    let contract_artifact = Arc::new(dummy_cairo_l1l2_contract_codegen());
     let class_hash = contract_artifact.class_hash().unwrap();
 
     // declare class
     account
-        .declare_legacy(contract_artifact.clone())
+        .declare_legacy(contract_artifact)
         .nonce(Felt::ZERO)
         .max_fee(Felt::from(1e18 as u128))
         .send()

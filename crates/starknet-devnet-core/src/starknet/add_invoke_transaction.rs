@@ -49,14 +49,11 @@ pub fn add_invoke_transaction(
 
     let state = &mut starknet.get_state().state;
 
-    let execution_info =
-        blockifier::transaction::account_transaction::AccountTransaction {
-            tx: starknet_api::executable_transaction::AccountTransaction::Invoke(
-                sn_api_transaction,
-            ),
-            execution_flags: ExecutionFlags { only_query: false, charge_fee: true, validate },
-        }
-        .execute(state, &block_context)?;
+    let execution_info = blockifier::transaction::account_transaction::AccountTransaction {
+        tx: starknet_api::executable_transaction::AccountTransaction::Invoke(sn_api_transaction),
+        execution_flags: ExecutionFlags { only_query: false, charge_fee: true, validate },
+    }
+    .execute(state, &block_context)?;
 
     let transaction = TransactionWithHash::new(transaction_hash, invoke_transaction);
 
@@ -94,7 +91,7 @@ mod tests {
         ETH_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{Error, TransactionValidationError};
-    use crate::starknet::{Starknet, predeployed};
+    use crate::starknet::{predeployed, Starknet};
     use crate::state::CustomState;
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;

@@ -176,7 +176,7 @@ async fn test_getting_cairo0_class_from_origin_and_fork() {
         .unwrap();
 
     // assert_eq!(retrieved_class, ContractClass::Legacy(contract_class.compress().unwrap()));
-    // For now, successfully unwrapping the retrieved class serves as proof of correctness.
+    // TODO For now, successfully unwrapping the retrieved class serves as proof of correctness.
     // Currently asserting cairo0 artifacts is failing; related: https://github.com/0xSpaceShard/starknet-devnet-rs/pull/380
 }
 

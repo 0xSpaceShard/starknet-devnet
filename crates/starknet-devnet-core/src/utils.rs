@@ -2,14 +2,14 @@ use blockifier::bouncer::{BouncerConfig, BouncerWeights, BuiltinCount};
 use blockifier::versioned_constants::VersionedConstants;
 use serde_json::Value;
 use starknet_api::block::StarknetVersion;
-use starknet_rs_core::types::Felt;
 use starknet_rs_core::types::contract::CompiledClass;
+use starknet_rs_core::types::Felt;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
 use crate::error::{DevnetResult, Error};
 
 pub mod random_number_generator {
-    use rand::{Rng, SeedableRng, thread_rng};
+    use rand::{thread_rng, Rng, SeedableRng};
     use rand_mt::Mt64;
 
     pub fn generate_u32_random_number() -> u32 {
@@ -215,9 +215,17 @@ pub(crate) mod test_utils {
 #[cfg(any(test, feature = "test_utils"))]
 #[allow(clippy::unwrap_used)]
 pub mod exported_test_utils {
+    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_types::contract_class::Cairo0ContractClass;
 
     pub fn dummy_cairo_l1l2_contract() -> Cairo0ContractClass {
+        let json_str =
+            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/l1l2.json").unwrap();
+
+        serde_json::from_str(&json_str).unwrap()
+    }
+
+    pub fn dummy_cairo_l1l2_contract_codegen() -> LegacyContractClass {
         let json_str =
             std::fs::read_to_string("../../contracts/test_artifacts/cairo0/l1l2.json").unwrap();
 
@@ -229,6 +237,13 @@ pub mod exported_test_utils {
             std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
                 .unwrap();
 
+        serde_json::from_str(&json_str).unwrap()
+    }
+
+    pub fn dummy_cairo_0_contract_class_codegen() -> LegacyContractClass {
+        let json_str =
+            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
+                .unwrap();
         serde_json::from_str(&json_str).unwrap()
     }
 }
@@ -252,10 +267,10 @@ mod tests {
 
     #[test]
     fn correct_complex_storage_var_address_generated() {
-        let expected_storage_var_address =
-            starknet_api::abi::abi_utils::get_storage_var_address("complex", &[
-                test_utils::dummy_felt(),
-            ]);
+        let expected_storage_var_address = starknet_api::abi::abi_utils::get_storage_var_address(
+            "complex",
+            &[test_utils::dummy_felt()],
+        );
 
         let generated_storage_var_address =
             get_storage_var_address("complex", &[test_utils::dummy_felt()]).unwrap();

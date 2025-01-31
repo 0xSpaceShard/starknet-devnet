@@ -73,8 +73,8 @@ mod tests {
     use crate::contract_address::ContractAddress;
     use crate::contract_class::Cairo0ContractClass;
     use crate::felt::try_felt_to_num;
-    use crate::rpc::transactions::BroadcastedDeclareTransaction;
     use crate::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
+    use crate::rpc::transactions::BroadcastedDeclareTransaction;
     use crate::traits::HashProducer;
 
     #[derive(Deserialize)]

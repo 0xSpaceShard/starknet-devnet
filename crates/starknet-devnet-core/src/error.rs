@@ -21,7 +21,8 @@ pub enum Error {
     #[error(transparent)]
     BlockifierExecutionError(#[from] blockifier::execution::errors::EntryPointExecutionError),
     #[error("{execution_error}")]
-    ExecutionError { execution_error: String, index: usize }, // TODO change type of execution_error
+    ExecutionError { execution_error: String, index: usize }, /* TODO change type of
+                                                               * execution_error */
     #[error("Types error: {0}")]
     TypesError(#[from] starknet_types::error::Error),
     #[error("I/O error: {0}")]

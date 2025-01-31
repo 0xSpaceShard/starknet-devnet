@@ -78,19 +78,11 @@ pub fn add_declare_transaction(
     )?);
 
     let transaction = TransactionWithHash::new(transaction_hash, declare_transaction);
-    let execution_info =
-        blockifier::transaction::account_transaction::AccountTransaction {
-            tx: starknet_api::executable_transaction::AccountTransaction::Declare(executable_tx),
-            execution_flags: ExecutionFlags {
-                only_query: false,
-                charge_fee: true,
-                validate,
-            },
-        }
-        .execute(
-            &mut starknet.pending_state.state,
-            &starknet.block_context,
-        )?;
+    let execution_info = blockifier::transaction::account_transaction::AccountTransaction {
+        tx: starknet_api::executable_transaction::AccountTransaction::Declare(executable_tx),
+        execution_flags: ExecutionFlags { only_query: false, charge_fee: true, validate },
+    }
+    .execute(&mut starknet.pending_state.state, &starknet.block_context)?;
 
     // if tx successful, store the class
     if !execution_info.is_reverted() {
@@ -145,14 +137,14 @@ mod tests {
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
-    use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+    use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
     use starknet_types::traits::HashProducer;
 
     use crate::error::{Error, TransactionValidationError};
-    use crate::starknet::Starknet;
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
+    use crate::starknet::Starknet;
     use crate::state::{BlockNumberOrPending, CustomStateReader};
     use crate::traits::{HashIdentified, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;

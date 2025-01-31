@@ -10,7 +10,8 @@ use serde::{Serialize, Serializer};
 use starknet_api::contract_class::{ClassInfo, SierraVersion};
 use starknet_rs_core::types::contract::{SierraClass, SierraClassDebugInfo};
 use starknet_rs_core::types::{
-    ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContractClass,
+    CompressedLegacyContractClass, ContractClass as CodegenContractClass,
+    FlattenedSierraClass as CodegenSierraContractClass,
 };
 use starknet_types_core::felt::Felt;
 
@@ -171,6 +172,24 @@ impl HashProducer for ContractClass {
     }
 }
 
+impl TryInto<CodegenContractClass> for ContractClass {
+    type Error = Error;
+    fn try_into(self) -> Result<CodegenContractClass, Self::Error> {
+        match self {
+            ContractClass::Cairo0(Cairo0ContractClass::Rpc(contract_class)) => {
+                let class_json =
+                    serde_json::to_string(&contract_class).map_err(JsonError::SerdeJsonError)?;
+                let codegen: CompressedLegacyContractClass =
+                    serde_json::from_str(&class_json).map_err(JsonError::SerdeJsonError)?;
+                Ok(CodegenContractClass::Legacy(codegen))
+            }
+            ContractClass::Cairo1(contract_class) => {
+                Ok(CodegenContractClass::Sierra(convert_sierra_to_codegen(&contract_class)?))
+            }
+        }
+    }
+}
+
 impl TryInto<ContractClass> for CodegenContractClass {
     type Error = Error;
     fn try_into(self) -> Result<ContractClass, Self::Error> {
@@ -194,21 +213,22 @@ impl TryFrom<ContractClass> for RunnableCompiledClass {
 
     fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
         Ok(match value {
-            ContractClass::Cairo0(Cairo0ContractClass::Rpc(class)) => RunnableCompiledClass::V0(
-                class
-                    .try_into()
-                    .map_err(|e: ProgramError| ConversionError::InvalidInternalStructure(e.to_string()))?,
-            ),
+            ContractClass::Cairo0(Cairo0ContractClass::Rpc(class)) => {
+                RunnableCompiledClass::V0(class.try_into().map_err(|e: ProgramError| {
+                    ConversionError::InvalidInternalStructure(e.to_string())
+                })?)
+            }
             ContractClass::Cairo1(class) => {
                 // TODO extract this as common logic
                 let json_value = serde_json::to_value(&class).map_err(JsonError::SerdeJsonError)?;
                 let casm_json = usc::compile_contract(json_value)
                     .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
-    
+
                 let casm = serde_json::from_value::<CasmContractClass>(casm_json)
                     .map_err(|err| Error::JsonError(JsonError::Custom { msg: err.to_string() }))?;
-    
-                let versioned_casm = (casm, SierraVersion::from_str(&class.contract_class_version)?);
+
+                let versioned_casm =
+                    (casm, SierraVersion::from_str(&class.contract_class_version)?);
                 let compiled = versioned_casm.try_into().map_err(|e: ProgramError| {
                     Error::ConversionError(ConversionError::InvalidInternalStructure(e.to_string()))
                 })?;
@@ -315,7 +335,7 @@ mod tests {
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use serde_json::Deserializer;
 
-    use crate::contract_class::{ContractClass, convert_sierra_to_codegen};
+    use crate::contract_class::{convert_sierra_to_codegen, ContractClass};
     use crate::felt::felt_from_prefixed_hex;
     use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
     use crate::traits::HashProducer;

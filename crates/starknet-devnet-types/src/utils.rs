@@ -1,8 +1,7 @@
 #[cfg(test)]
 pub(crate) mod test_utils {
-    use starknet_api::{
-        data_availability::DataAvailabilityMode, transaction::fields::ResourceBounds,
-    };
+    use starknet_api::data_availability::DataAvailabilityMode;
+    use starknet_api::transaction::fields::ResourceBounds;
 
     use crate::rpc::transactions::ResourceBoundsWrapper;
 

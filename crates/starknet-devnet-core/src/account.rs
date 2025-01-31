@@ -9,7 +9,7 @@ use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
 use starknet_types::error::Error;
-use starknet_types::felt::{ClassHash, Key, felt_from_prefixed_hex, join_felts, split_biguint};
+use starknet_types::felt::{felt_from_prefixed_hex, join_felts, split_biguint, ClassHash, Key};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
@@ -110,10 +110,10 @@ impl Account {
     fn simulate_constructor(&self, state: &mut StarknetState) -> DevnetResult<()> {
         let core_address = self.account_address.try_into()?;
 
-        let interface_storage_var =
-            get_storage_var_address("SRC5_supported_interfaces", &[felt_from_prefixed_hex(
-                ISRC6_ID_HEX,
-            )?])?;
+        let interface_storage_var = get_storage_var_address(
+            "SRC5_supported_interfaces",
+            &[felt_from_prefixed_hex(ISRC6_ID_HEX)?],
+        )?;
         state.state.state.set_storage_at(
             core_address,
             interface_storage_var.try_into()?,
