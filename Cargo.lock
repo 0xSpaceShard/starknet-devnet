@@ -5923,7 +5923,6 @@ dependencies = [
  "serde",
  "serde_json",
  "starknet-core",
- "starknet-crypto 0.7.4",
  "starknet-types-core",
  "starknet_api",
  "thiserror",

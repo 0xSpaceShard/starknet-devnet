@@ -12,16 +12,13 @@ use invoke_transaction_v1::InvokeTransactionV1;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::block::{BlockNumber, GasPrice};
 use starknet_api::contract_class::{ClassInfo, EntryPointType};
-use starknet_api::core::calculate_contract_address;
 use starknet_api::data_availability::DataAvailabilityMode;
-use starknet_api::transaction::fields::{Fee, Resource, Tip};
-use starknet_rs_core::crypto::compute_hash_on_elements;
+use starknet_api::transaction::fields::{Fee, Tip};
 use starknet_rs_core::types::{
     BlockId, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
     TransactionFinalityStatus,
 };
 use starknet_rs_core::utils::parse_cairo_short_string;
-use starknet_rs_crypto::poseidon_hash_many;
 
 use self::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use self::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
@@ -39,11 +36,11 @@ use super::state::ThinStateDiff;
 use super::transaction_receipt::{
     ComputationResources, ExecutionResources, FeeInUnits, TransactionReceipt,
 };
-use crate::constants::{PREFIX_DEPLOY_ACCOUNT, QUERY_VERSION_OFFSET};
+use crate::constants::QUERY_VERSION_OFFSET;
 use crate::contract_address::ContractAddress;
 use crate::contract_class::{compute_sierra_class_hash, ContractClass};
 use crate::emitted_event::{Event, OrderedEvent};
-use crate::error::{ConversionError, DevnetResult, Error, JsonError};
+use crate::error::{ConversionError, DevnetResult};
 use crate::felt::{
     BlockHash, Calldata, EntryPointSelector, Nonce, TransactionHash, TransactionSignature,
     TransactionVersion,
@@ -67,9 +64,6 @@ pub mod deploy_account_transaction_v3;
 pub mod deploy_transaction;
 pub mod invoke_transaction_v1;
 pub mod invoke_transaction_v3;
-
-/// number of bits to be shifted when encoding the data availability mode into `Felt` type
-const DATA_AVAILABILITY_MODE_BITS: u8 = 32;
 
 pub mod l1_handler_transaction;
 
@@ -360,96 +354,6 @@ impl BroadcastedTransactionCommonV3 {
     pub fn is_only_query(&self) -> bool {
         is_only_query_common(&self.version)
     }
-
-    /// Returns an array of Felts that reflects the `common_tx_fields` according to SNIP-8(https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md/#protocol-changes).
-    ///
-    /// # Arguments
-    /// tx_prefix - the prefix of the transaction hash
-    /// chain_id - the chain id of the network the transaction is broadcasted to
-    /// address - the address of the sender
-    pub(crate) fn common_fields_for_hash(
-        &self,
-        tx_prefix: Felt,
-        chain_id: Felt,
-        address: Felt,
-    ) -> Result<Vec<Felt>, Error> {
-        let array: Vec<Felt> = vec![
-            tx_prefix,                                                        // TX_PREFIX
-            self.version,                                                     // version
-            address,                                                          // address
-            poseidon_hash_many(self.get_resource_bounds_array()?.as_slice()), /* h(tip, resource_bounds_for_fee) */
-            poseidon_hash_many(&self.paymaster_data),                         // h(paymaster_data)
-            chain_id,                                                         // chain_id
-            self.nonce,                                                       // nonce
-            self.get_data_availability_modes_field_element(), /* nonce_data_availability ||
-                                                               * fee_data_availability_mode */
-        ];
-
-        Ok(array)
-    }
-
-    /// Returns the array of Felts that reflects (tip, resource_bounds_for_fee) from SNIP-8
-    pub(crate) fn get_resource_bounds_array(&self) -> Result<Vec<Felt>, Error> {
-        let mut array = Vec::<Felt>::new();
-        array.push(Felt::from(self.tip.0));
-
-        fn field_element_from_resource_bounds(
-            resource: Resource,
-            resource_bounds: &ResourceBounds,
-        ) -> Result<Felt, Error> {
-            let resource_name_as_json_string =
-                serde_json::to_value(resource).map_err(JsonError::SerdeJsonError)?;
-
-            let resource_name_bytes = resource_name_as_json_string
-                .as_str()
-                .ok_or(Error::JsonError(JsonError::Custom {
-                    msg: "resource name is not a string".into(),
-                }))?
-                .as_bytes();
-
-            // (resource||max_amount||max_price_per_unit) from SNIP-8 https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md#protocol-changes
-            let bytes: Vec<u8> = [
-                resource_name_bytes,
-                resource_bounds.max_amount.to_be_bytes().as_slice(),
-                resource_bounds.max_price_per_unit.to_be_bytes().as_slice(),
-            ]
-            .into_iter()
-            .flatten()
-            .copied()
-            .collect();
-
-            Ok(Felt::from_bytes_be_slice(&bytes))
-        }
-        array.push(field_element_from_resource_bounds(
-            Resource::L1Gas,
-            &self.resource_bounds.inner.l1_gas,
-        )?);
-        array.push(field_element_from_resource_bounds(
-            Resource::L2Gas,
-            &self.resource_bounds.inner.l2_gas,
-        )?);
-
-        Ok(array)
-    }
-
-    /// Returns Felt that encodes the data availability modes of the transaction
-    pub(crate) fn get_data_availability_modes_field_element(&self) -> Felt {
-        fn get_data_availability_mode_value_as_u64(
-            data_availability_mode: DataAvailabilityMode,
-        ) -> u64 {
-            match data_availability_mode {
-                DataAvailabilityMode::L1 => 0,
-                DataAvailabilityMode::L2 => 1,
-            }
-        }
-
-        let da_mode = get_data_availability_mode_value_as_u64(self.nonce_data_availability_mode)
-            << DATA_AVAILABILITY_MODE_BITS;
-        let da_mode =
-            da_mode + get_data_availability_mode_value_as_u64(self.fee_data_availability_mode);
-
-        Felt::from(da_mode)
-    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -673,33 +577,8 @@ impl BroadcastedDeployAccountTransaction {
         &self,
         chain_id: &Felt,
     ) -> DevnetResult<starknet_api::executable_transaction::DeployAccountTransaction> {
-        let (transaction_hash, sn_api_transaction, contract_address) = match self {
+        let sn_api_transaction = match self {
             BroadcastedDeployAccountTransaction::V1(v1) => {
-                let contract_address = calculate_contract_address(
-                    starknet_api::transaction::fields::ContractAddressSalt(
-                        v1.contract_address_salt,
-                    ),
-                    starknet_api::core::ClassHash(v1.class_hash),
-                    &starknet_api::transaction::fields::Calldata(Arc::new(
-                        v1.constructor_calldata.clone(),
-                    )),
-                    starknet_api::core::ContractAddress::from(0u8),
-                )?;
-
-                let mut calldata_to_hash = vec![v1.class_hash, v1.contract_address_salt];
-                calldata_to_hash.extend(v1.constructor_calldata.iter());
-
-                let transaction_hash = compute_hash_on_elements(&[
-                    PREFIX_DEPLOY_ACCOUNT,
-                    v1.common.version,
-                    ContractAddress::from(contract_address).into(),
-                    Felt::ZERO, // entry_point_selector
-                    compute_hash_on_elements(&calldata_to_hash),
-                    v1.common.max_fee.0.into(),
-                    *chain_id,
-                    v1.common.nonce,
-                ]);
-
                 let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV1 {
                     max_fee: v1.common.max_fee,
                     signature: starknet_api::transaction::fields::TransactionSignature(
@@ -715,22 +594,9 @@ impl BroadcastedDeployAccountTransaction {
                     )),
                 };
 
-                (
-                    transaction_hash,
-                    starknet_api::transaction::DeployAccountTransaction::V1(sn_api_transaction),
-                    contract_address,
-                )
+                starknet_api::transaction::DeployAccountTransaction::V1(sn_api_transaction)
             }
             BroadcastedDeployAccountTransaction::V3(v3) => {
-                let contract_address =
-                    BroadcastedDeployAccountTransactionV3::calculate_contract_address(
-                        &v3.contract_address_salt,
-                        &v3.class_hash,
-                        &v3.constructor_calldata,
-                    )?;
-
-                let transaction_hash = v3.calculate_transaction_hash(chain_id, contract_address)?;
-
                 let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV3 {
                     resource_bounds: (&v3.common.resource_bounds).into(),
                     tip: v3.common.tip,
@@ -752,19 +618,14 @@ impl BroadcastedDeployAccountTransaction {
                     )),
                 };
 
-                (
-                    transaction_hash,
-                    starknet_api::transaction::DeployAccountTransaction::V3(sn_api_transaction),
-                    contract_address.try_into()?,
-                )
+                starknet_api::transaction::DeployAccountTransaction::V3(sn_api_transaction)
             }
         };
 
-        Ok(starknet_api::executable_transaction::DeployAccountTransaction {
-            tx: sn_api_transaction,
-            tx_hash: starknet_api::transaction::TransactionHash(transaction_hash),
-            contract_address,
-        })
+        Ok(starknet_api::executable_transaction::DeployAccountTransaction::create(
+            sn_api_transaction,
+            &felt_to_sn_api_chain_id(chain_id)?,
+        )?)
     }
 }
 
@@ -1103,55 +964,5 @@ impl FunctionInvocation {
             messages,
             execution_resources,
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use starknet_rs_crypto::poseidon_hash_many;
-
-    use super::BroadcastedTransactionCommonV3;
-    use crate::felt::felt_from_prefixed_hex;
-
-    #[test]
-    fn test_dummy_transaction_hash_taken_from_papyrus() {
-        let txn_json_str = r#"{
-            "signature": ["0x3", "0x4"],
-            "version": "0x3",
-            "nonce": "0x9",
-            "sender_address": "0x12fd538",
-            "constructor_calldata": ["0x21b", "0x151"],
-            "nonce_data_availability_mode": "L1",
-            "fee_data_availability_mode": "L1",
-            "resource_bounds": {
-              "l2_gas": {
-                "max_amount": "0x0",
-                "max_price_per_unit": "0x0"
-              },
-              "l1_gas": {
-                "max_amount": "0x7c9",
-                "max_price_per_unit": "0x1"
-              }
-            },
-            "tip": "0x0",
-            "paymaster_data": [],
-            "account_deployment_data": [],
-            "calldata": [
-              "0x11",
-              "0x26"
-            ]
-          }"#;
-
-        let common_fields =
-            serde_json::from_str::<BroadcastedTransactionCommonV3>(txn_json_str).unwrap();
-        let common_fields_hash =
-            poseidon_hash_many(&common_fields.get_resource_bounds_array().unwrap());
-
-        let expected_hash = felt_from_prefixed_hex(
-            "0x07be65f04548dfe645c70f07d1f8ead572c09e0e6e125c47d4cc22b4de3597cc",
-        )
-        .unwrap();
-
-        assert_eq!(common_fields_hash, expected_hash);
     }
 }
