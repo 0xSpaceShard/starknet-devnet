@@ -39,7 +39,7 @@ use super::state::ThinStateDiff;
 use super::transaction_receipt::{
     ComputationResources, ExecutionResources, FeeInUnits, TransactionReceipt,
 };
-use crate::constants::{PREFIX_DEPLOY_ACCOUNT, PREFIX_INVOKE, QUERY_VERSION_OFFSET};
+use crate::constants::{PREFIX_DEPLOY_ACCOUNT, QUERY_VERSION_OFFSET};
 use crate::contract_address::ContractAddress;
 use crate::contract_class::{compute_sierra_class_hash, ContractClass};
 use crate::emitted_event::{Event, OrderedEvent};
@@ -798,19 +798,8 @@ impl BroadcastedInvokeTransaction {
         &self,
         chain_id: &Felt,
     ) -> DevnetResult<starknet_api::executable_transaction::InvokeTransaction> {
-        let (transaction_hash, sn_api_transaction) = match self {
+        let sn_api_transaction = match self {
             BroadcastedInvokeTransaction::V1(v1) => {
-                let txn_hash = compute_hash_on_elements(&[
-                    PREFIX_INVOKE,
-                    v1.common.version,
-                    v1.sender_address.into(),
-                    Felt::ZERO, // entry_point_selector
-                    compute_hash_on_elements(&v1.calldata),
-                    v1.common.max_fee.0.into(),
-                    *chain_id,
-                    v1.common.nonce,
-                ]);
-
                 let sn_api_transaction = starknet_api::transaction::InvokeTransactionV1 {
                     max_fee: v1.common.max_fee,
                     signature: starknet_api::transaction::fields::TransactionSignature(
@@ -823,11 +812,9 @@ impl BroadcastedInvokeTransaction {
                     )),
                 };
 
-                (txn_hash, starknet_api::transaction::InvokeTransaction::V1(sn_api_transaction))
+                starknet_api::transaction::InvokeTransaction::V1(sn_api_transaction)
             }
             BroadcastedInvokeTransaction::V3(v3) => {
-                let txn_hash = v3.calculate_transaction_hash(chain_id)?;
-
                 let sn_api_transaction = starknet_api::transaction::InvokeTransactionV3 {
                     resource_bounds: (&v3.common.resource_bounds).into(),
                     tip: v3.common.tip,
@@ -850,14 +837,14 @@ impl BroadcastedInvokeTransaction {
                         ),
                 };
 
-                (txn_hash, starknet_api::transaction::InvokeTransaction::V3(sn_api_transaction))
+                starknet_api::transaction::InvokeTransaction::V3(sn_api_transaction)
             }
         };
 
-        Ok(starknet_api::executable_transaction::InvokeTransaction {
-            tx: sn_api_transaction,
-            tx_hash: starknet_api::transaction::TransactionHash(transaction_hash),
-        })
+        Ok(starknet_api::executable_transaction::InvokeTransaction::create(
+            sn_api_transaction,
+            &felt_to_sn_api_chain_id(chain_id)?,
+        )?)
     }
 }
 
