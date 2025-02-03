@@ -51,7 +51,7 @@ impl<'a> RandDataGenerator<'a> {
     }
 }
 
-impl<'a> Visitor for RandDataGenerator<'a> {
+impl Visitor for RandDataGenerator<'_> {
     fn do_for_boolean_primitive(&self) -> Result<serde_json::Value, String> {
         Ok(serde_json::Value::Bool(rand::thread_rng().gen_bool(0.5)))
     }

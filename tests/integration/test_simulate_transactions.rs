@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use std::{u128, u64};
 
 use serde_json::json;
 use server::test_utils::assert_contains;
