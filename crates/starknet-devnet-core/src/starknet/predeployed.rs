@@ -55,7 +55,7 @@ pub(crate) fn initialize_erc20_at_address(
 
 pub(crate) fn create_udc() -> DevnetResult<SystemContract> {
     let udc_contract =
-        SystemContract::new_cairo0(UDC_CONTRACT_CLASS_HASH, UDC_CONTRACT_ADDRESS, UDC_CONTRACT)?;
+        SystemContract::new_cairo1(UDC_CONTRACT_CLASS_HASH, UDC_CONTRACT_ADDRESS, UDC_CONTRACT)?;
 
     Ok(udc_contract)
 }

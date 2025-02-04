@@ -53,11 +53,11 @@ pub const STRK_ERC20_CONTRACT_ADDRESS: Felt =
 
 pub(crate) const UDC_CONTRACT: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/contracts/system_artifacts/UDC_OZ_0.5.0.json"
+    "/contracts/system_artifacts/UDC_OZ_0.20.0.sierra"
 ));
 
 pub const UDC_CONTRACT_CLASS_HASH: Felt =
-    Felt::from_hex_unchecked("0x7B3E05F48F0C69E4A65CE5E076A66271A527AFF2C34CE1083EC6E1526997A69");
+    Felt::from_hex_unchecked("0x00c761b0e8cb209c3985923ae7c513d30d1bd9a09b705c421d466b88a7fc75ce");
 
 pub const UDC_CONTRACT_ADDRESS: Felt =
     Felt::from_hex_unchecked("0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF");
