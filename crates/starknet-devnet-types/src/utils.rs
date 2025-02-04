@@ -85,6 +85,9 @@ impl Formatter for StarknetFormatter {
 
 #[cfg(test)]
 pub(crate) mod test_utils {
+    pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str =
+        "../../contracts/test_artifacts/cairo0/account.json";
+
     pub(crate) const CAIRO_0_RPC_CONTRACT_PATH: &str =
         concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo_0_rpc.json");
 

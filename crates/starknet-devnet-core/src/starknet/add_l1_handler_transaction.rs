@@ -40,7 +40,7 @@ mod tests {
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::chain_id::ChainId;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
+    use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
@@ -51,7 +51,7 @@ mod tests {
         self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
-    use crate::starknet::{predeployed, Starknet};
+    use crate::starknet::{Starknet, predeployed};
     use crate::state::CustomState;
     use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_l1l2_contract;
@@ -199,13 +199,14 @@ mod tests {
 
         // dummy contract
         let dummy_contract = dummy_cairo_l1l2_contract();
+        let sn_api_class: starknet_api::deprecated_contract_class::ContractClass =
+            dummy_contract.clone().try_into().unwrap();
 
         let withdraw_selector = get_selector_from_name("withdraw").unwrap();
         let deposit_selector = get_selector_from_name("deposit").unwrap();
 
         // check if withdraw function is present in the contract class
-        let Cairo0ContractClass::Rpc(ref contract_class) = dummy_contract;
-        contract_class
+        sn_api_class
             .entry_points_by_type
             .get(&starknet_api::contract_class::EntryPointType::External)
             .unwrap()
@@ -214,7 +215,7 @@ mod tests {
             .unwrap();
 
         // check if deposit function is present in the contract class
-        contract_class
+        sn_api_class
             .entry_points_by_type
             .get(&starknet_api::contract_class::EntryPointType::L1Handler)
             .unwrap()

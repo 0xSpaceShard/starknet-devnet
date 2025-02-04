@@ -74,7 +74,7 @@ mod tests {
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
+    use starknet_types::contract_class::ContractClass;
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::rpc::gas_modification::GasModification;
     use starknet_types::rpc::state::Balance;
@@ -91,7 +91,7 @@ mod tests {
         ETH_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{Error, TransactionValidationError};
-    use crate::starknet::{predeployed, Starknet};
+    use crate::starknet::{Starknet, predeployed};
     use crate::state::CustomState;
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
@@ -487,11 +487,12 @@ mod tests {
 
         // dummy contract
         let dummy_contract = dummy_cairo_0_contract_class();
-        let increase_balance_selector = get_selector_from_name("increase_balance").unwrap();
 
         // check if increase_balance function is present in the contract class
-        let Cairo0ContractClass::Rpc(ref class) = dummy_contract;
-        class
+        let increase_balance_selector = get_selector_from_name("increase_balance").unwrap();
+        let sn_api_class: starknet_api::deprecated_contract_class::ContractClass =
+            dummy_contract.clone().try_into().unwrap();
+        sn_api_class
             .entry_points_by_type
             .get(&starknet_api::contract_class::EntryPointType::External)
             .unwrap()
