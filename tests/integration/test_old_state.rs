@@ -144,12 +144,12 @@ async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old
 
     let calls = vec![Call {
         to: UDC_CONTRACT_ADDRESS,
-        selector: get_selector_from_name("deployContract").unwrap(),
+        selector: get_selector_from_name("deploy_contract").unwrap(),
         calldata: vec![
             class_hash,
+            Felt::ZERO,                        // from zero (opposite of unique)
             Felt::from_hex_unchecked("0x123"), // salt
-            Felt::ZERO,
-            Felt::ZERO,
+            Felt::ZERO,                        // calldata length
         ],
     }];
 

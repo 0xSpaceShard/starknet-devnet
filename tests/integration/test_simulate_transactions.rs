@@ -789,7 +789,7 @@ async fn simulate_v3_with_skip_fee_charge_deploy_account_declare_deploy_via_invo
     // call non existent method in UDC
     let calls = vec![Call {
         to: UDC_CONTRACT_ADDRESS,
-        selector: get_selector_from_name("deployContract").unwrap(),
+        selector: get_selector_from_name("deploy_contract").unwrap(),
         calldata: vec![
             contract_class_hash,
             Felt::from_hex_unchecked("0x123"), // salt
@@ -870,7 +870,7 @@ async fn simulate_invoke_v3_with_fee_just_below_estimated_should_return_a_trace_
     let salt = Felt::from_hex_unchecked("0x123");
     let execution = account.execute_v3(vec![Call {
         to: UDC_CONTRACT_ADDRESS,
-        selector: get_selector_from_name("deployContract").unwrap(),
+        selector: get_selector_from_name("deploy_contract").unwrap(),
         calldata: vec![
             declare_result.class_hash,
             salt,

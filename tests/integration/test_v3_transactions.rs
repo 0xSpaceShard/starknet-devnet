@@ -81,11 +81,11 @@ async fn declare_deploy_happy_path() {
     let constructor_arg = Felt::from(10);
     let deploy_call = vec![Call {
         to: UDC_CONTRACT_ADDRESS,
-        selector: get_selector_from_name("deployContract").unwrap(),
+        selector: get_selector_from_name("deploy_contract").unwrap(),
         calldata: vec![
             declare_transaction.class_hash,
             salt,
-            Felt::ZERO,      // unique
+            Felt::ONE,       // from zero (opposite of unique)
             Felt::ONE,       // constructor length
             constructor_arg, // constructor arguments
         ],
