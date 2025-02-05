@@ -460,7 +460,9 @@ impl BroadcastedDeclareTransaction {
         &self,
         chain_id: &Felt,
     ) -> DevnetResult<starknet_api::executable_transaction::DeclareTransaction> {
-        let (sn_api_transaction, class_info) = match self {
+        let sn_api_chain_id = felt_to_sn_api_chain_id(chain_id)?;
+
+        let (sn_api_transaction, tx_hash, class_info) = match self {
             BroadcastedDeclareTransaction::V1(v1) => {
                 let class_hash = v1.generate_class_hash()?;
 
@@ -479,7 +481,10 @@ impl BroadcastedDeclareTransaction {
                 let class_info: ClassInfo =
                     ContractClass::Cairo0(v1.contract_class.clone()).try_into()?;
 
-                (sn_api_declare, class_info)
+                let tx_hash = v1.calculate_transaction_hash(chain_id, &class_hash)?;
+                let sn_api_tx_hash = starknet_api::transaction::TransactionHash(tx_hash);
+
+                (sn_api_declare, sn_api_tx_hash, class_info)
             }
             BroadcastedDeclareTransaction::V2(v2) => {
                 let sierra_class_hash: Felt = compute_sierra_class_hash(&v2.contract_class)?;
@@ -502,7 +507,15 @@ impl BroadcastedDeclareTransaction {
                 let class_info: ClassInfo =
                     ContractClass::Cairo1(v2.contract_class.clone()).try_into()?;
 
-                (sn_api_declare, class_info)
+                let tx_version: starknet_api::transaction::TransactionVersion = signed_tx_version(
+                    &sn_api_declare.version(),
+                    &TransactionOptions { only_query: self.is_only_query() },
+                );
+
+                let tx_hash =
+                    sn_api_declare.calculate_transaction_hash(&sn_api_chain_id, &tx_version)?;
+
+                (sn_api_declare, tx_hash, class_info)
             }
             BroadcastedDeclareTransaction::V3(v3) => {
                 let sierra_class_hash = compute_sierra_class_hash(&v3.contract_class)?;
@@ -535,16 +548,17 @@ impl BroadcastedDeclareTransaction {
                 let class_info: ClassInfo =
                     ContractClass::Cairo1(v3.contract_class.clone()).try_into()?;
 
-                (sn_api_declare, class_info)
+                let tx_version: starknet_api::transaction::TransactionVersion = signed_tx_version(
+                    &sn_api_declare.version(),
+                    &TransactionOptions { only_query: self.is_only_query() },
+                );
+
+                let tx_hash =
+                    sn_api_declare.calculate_transaction_hash(&sn_api_chain_id, &tx_version)?;
+
+                (sn_api_declare, tx_hash, class_info)
             }
         };
-
-        let chain_id = felt_to_sn_api_chain_id(chain_id)?;
-        let tx_version: starknet_api::transaction::TransactionVersion = signed_tx_version(
-            &sn_api_transaction.version(),
-            &TransactionOptions { only_query: self.is_only_query() },
-        );
-        let tx_hash = sn_api_transaction.calculate_transaction_hash(&chain_id, &tx_version)?;
 
         Ok(starknet_api::executable_transaction::DeclareTransaction {
             tx: sn_api_transaction,
