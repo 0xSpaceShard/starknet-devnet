@@ -395,7 +395,7 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                         let execution_result = receipt.receipt.execution_result();
                         match execution_result {
                             ExecutionResult::Reverted { reason } => {
-                                assert_contains(reason.as_str(), "Insufficient max L1 gas");
+                                assert_contains(reason.as_str(), "Insufficient max L1Gas");
                             }
                             other => panic!("Unexpected result: {:?}", other),
                         }
