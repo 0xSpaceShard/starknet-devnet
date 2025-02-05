@@ -1,7 +1,7 @@
 {
   "openrpc": "1.0.0-rc1",
   "info": {
-    "version": "0.8.0",
+    "version": "0.8.0-rc.0",
     "title": "StarkNet Node Write API",
     "license": {}
   },
@@ -31,9 +31,7 @@
               "$ref": "#/components/schemas/TXN_HASH"
             }
           },
-          "required": [
-            "transaction_hash"
-          ]
+          "required": ["transaction_hash"]
         }
       },
       "errors": [
@@ -92,10 +90,7 @@
               "$ref": "#/components/schemas/FELT"
             }
           },
-          "required": [
-            "transaction_hash",
-            "class_hash"
-          ]
+          "required": ["transaction_hash", "class_hash"]
         }
       },
       "errors": [
@@ -168,10 +163,7 @@
               "$ref": "#/components/schemas/FELT"
             }
           },
-          "required": [
-            "transaction_hash",
-            "contract_address"
-          ]
+          "required": ["transaction_hash", "contract_address"]
         }
       },
       "errors": [
@@ -191,7 +183,7 @@
           "$ref": "#/components/errors/NON_ACCOUNT"
         },
         {
-          "$ref": "#/components/errors/CLASS_HASH_NOT_FOUND"
+          "$ref": "./api/starknet_api_openrpc.json#/components/errors/CLASS_HASH_NOT_FOUND"
         },
         {
           "$ref": "#/components/errors/DUPLICATE_TX"
@@ -209,9 +201,7 @@
     "contentDescriptors": {},
     "schemas": {
       "NUM_AS_HEX": {
-        "title": "An integer number in hex format (0x...)",
-        "type": "string",
-        "pattern": "^0x[a-fA-F0-9]+$"
+        "$ref": "./api/starknet_api_openrpc.json#/components/schemas/NUM_AS_HEX"
       },
       "SIGNATURE": {
         "$ref": "./api/starknet_api_openrpc.json#/components/schemas/SIGNATURE"
@@ -236,10 +226,6 @@
       }
     },
     "errors": {
-      "CLASS_HASH_NOT_FOUND": {
-        "code": 28,
-        "message": "Class hash not found"
-      },
       "CLASS_ALREADY_DECLARED": {
         "code": 51,
         "message": "Class already declared"
@@ -263,7 +249,8 @@
       },
       "COMPILATION_FAILED": {
         "code": 56,
-        "message": "Compilation failed"
+        "message": "Compilation failed",
+        "data": "string"
       },
       "CONTRACT_CLASS_SIZE_IS_TOO_LARGE": {
         "code": 57,

@@ -154,6 +154,12 @@ impl SpecModifier {
             .expect("could not serialize the spec to string");
 
         // Parse the spec into a Spec struct
-        serde_json::from_str(&json_spec_str).expect("Could not parse the JSON-RPC spec")
+        match serde_json::from_str(&json_spec_str) {
+            Ok(obj) => obj,
+            Err(e) => {
+                std::fs::write("failed_spec.json", json_spec_str).unwrap();
+                panic!("Could not parse the JSON-RPC spec: {e:?}");
+            }
+        }
     }
 }

@@ -1,7 +1,7 @@
 {
   "openrpc": "1.0.0-rc1",
   "info": {
-    "version": "0.8.0",
+    "version": "0.8.0-rc.0",
     "title": "StarkNet Trace API",
     "license": {}
   },
@@ -382,6 +382,11 @@
                 "title": "Execution resources",
                 "description": "Resources consumed by the internal call",
                 "$ref": "#/components/schemas/INNER_CALL_EXECUTION_RESOURCES"
+              },
+              "is_reverted": {
+                "title": "Is Reverted",
+                "description": "true if this inner call panicked",
+                "type": "boolean"
               }
             },
             "required": [
@@ -393,7 +398,8 @@
               "calls",
               "events",
               "messages",
-              "execution_resources"
+              "execution_resources",
+              "is_reverted"
             ]
           }
         ]

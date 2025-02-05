@@ -157,8 +157,7 @@
                         ]
                     },
                     "offset": {
-                        "type": "integer",
-                        "maximum": 32767
+                        "type": "integer"
                     }
                 },
                 "required": [
