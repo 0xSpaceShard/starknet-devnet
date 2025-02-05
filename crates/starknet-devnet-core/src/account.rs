@@ -6,7 +6,8 @@ use starknet_api::transaction::fields::{Calldata, ContractAddressSalt};
 use starknet_api::{felt, patricia_key};
 use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
+use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
+use starknet_types::contract_class::ContractClass;
 use starknet_types::error::Error;
 use starknet_types::felt::{felt_from_prefixed_hex, join_felts, split_biguint, ClassHash, Key};
 use starknet_types::num_bigint::BigUint;
@@ -49,7 +50,7 @@ impl Account {
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
     ) -> DevnetResult<Self> {
-        let account_contract_class = Cairo0ContractClass::from_json_str(CAIRO_0_ACCOUNT_CONTRACT)?;
+        let account_contract_class = Cairo0Json::raw_json_from_json_str(CAIRO_0_ACCOUNT_CONTRACT)?;
         let class_hash = account_contract_class.generate_hash()?;
 
         // very big number
