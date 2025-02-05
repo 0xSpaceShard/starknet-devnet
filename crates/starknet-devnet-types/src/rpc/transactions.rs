@@ -12,8 +12,10 @@ use invoke_transaction_v1::InvokeTransactionV1;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::block::{BlockNumber, GasPrice};
 use starknet_api::contract_class::{ClassInfo, EntryPointType};
+use starknet_api::core::calculate_contract_address;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::transaction::fields::{Fee, Tip};
+use starknet_api::transaction::{TransactionHasher, TransactionOptions, signed_tx_version};
 use starknet_rs_core::types::{
     BlockId, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
     TransactionFinalityStatus,
@@ -38,7 +40,7 @@ use super::transaction_receipt::{
 };
 use crate::constants::QUERY_VERSION_OFFSET;
 use crate::contract_address::ContractAddress;
-use crate::contract_class::{compute_sierra_class_hash, ContractClass};
+use crate::contract_class::{ContractClass, compute_sierra_class_hash};
 use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult};
 use crate::felt::{
@@ -537,11 +539,18 @@ impl BroadcastedDeclareTransaction {
             }
         };
 
-        Ok(starknet_api::executable_transaction::DeclareTransaction::create(
-            sn_api_transaction,
+        let chain_id = felt_to_sn_api_chain_id(chain_id)?;
+        let tx_version: starknet_api::transaction::TransactionVersion =
+            signed_tx_version(&sn_api_transaction.version(), &TransactionOptions {
+                only_query: self.is_only_query(),
+            });
+        let tx_hash = sn_api_transaction.calculate_transaction_hash(&chain_id, &tx_version)?;
+
+        Ok(starknet_api::executable_transaction::DeclareTransaction {
+            tx: sn_api_transaction,
+            tx_hash,
             class_info,
-            &felt_to_sn_api_chain_id(chain_id)?,
-        )?)
+        })
     }
 }
 
@@ -622,10 +631,26 @@ impl BroadcastedDeployAccountTransaction {
             }
         };
 
-        Ok(starknet_api::executable_transaction::DeployAccountTransaction::create(
-            sn_api_transaction,
-            &felt_to_sn_api_chain_id(chain_id)?,
-        )?)
+        let chain_id = felt_to_sn_api_chain_id(chain_id)?;
+        let tx_version: starknet_api::transaction::TransactionVersion =
+            signed_tx_version(&sn_api_transaction.version(), &TransactionOptions {
+                only_query: self.is_only_query(),
+            });
+        let tx_hash = sn_api_transaction.calculate_transaction_hash(&chain_id, &tx_version)?;
+
+        // copied from starknet_api::executable_transaction::DeployAccountTransaction::create(
+        let contract_address = calculate_contract_address(
+            sn_api_transaction.contract_address_salt(),
+            sn_api_transaction.class_hash(),
+            &sn_api_transaction.constructor_calldata(),
+            starknet_api::core::ContractAddress::default(),
+        )?;
+
+        Ok(starknet_api::executable_transaction::DeployAccountTransaction {
+            tx: sn_api_transaction,
+            tx_hash,
+            contract_address,
+        })
     }
 }
 
@@ -702,10 +727,17 @@ impl BroadcastedInvokeTransaction {
             }
         };
 
-        Ok(starknet_api::executable_transaction::InvokeTransaction::create(
-            sn_api_transaction,
-            &felt_to_sn_api_chain_id(chain_id)?,
-        )?)
+        let chain_id = felt_to_sn_api_chain_id(chain_id)?;
+        let tx_version: starknet_api::transaction::TransactionVersion =
+            signed_tx_version(&sn_api_transaction.version(), &TransactionOptions {
+                only_query: self.is_only_query(),
+            });
+        let tx_hash = sn_api_transaction.calculate_transaction_hash(&chain_id, &tx_version)?;
+
+        Ok(starknet_api::executable_transaction::InvokeTransaction {
+            tx: sn_api_transaction,
+            tx_hash,
+        })
     }
 }
 
