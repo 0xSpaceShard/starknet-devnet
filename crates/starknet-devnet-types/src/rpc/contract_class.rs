@@ -16,8 +16,8 @@ use starknet_api::contract_class::{ClassInfo, EntryPointType, SierraVersion};
 use starknet_api::deprecated_contract_class::{EntryPointOffset, EntryPointV0};
 use starknet_rs_core::types::contract::{SierraClass, SierraClassDebugInfo};
 use starknet_rs_core::types::{
-    CompressedLegacyContractClass, ContractClass as CodegenContractClass,
-    FlattenedSierraClass as CodegenSierraContractClass, LegacyContractEntryPoint,
+    ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContractClass,
+    LegacyContractEntryPoint,
 };
 use starknet_types_core::felt::Felt;
 
@@ -192,11 +192,7 @@ impl TryInto<CodegenContractClass> for ContractClass {
     fn try_into(self) -> Result<CodegenContractClass, Self::Error> {
         match self {
             ContractClass::Cairo0(contract_class) => {
-                let class_json =
-                    serde_json::to_string(&contract_class).map_err(JsonError::SerdeJsonError)?;
-                let codegen: CompressedLegacyContractClass =
-                    serde_json::from_str(&class_json).map_err(JsonError::SerdeJsonError)?;
-                Ok(CodegenContractClass::Legacy(codegen))
+                Ok(CodegenContractClass::Legacy(contract_class.try_into()?))
             }
             ContractClass::Cairo1(contract_class) => {
                 Ok(CodegenContractClass::Sierra(convert_sierra_to_codegen(&contract_class)?))

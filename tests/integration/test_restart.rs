@@ -14,7 +14,8 @@ use crate::common::constants::{
     self, CAIRO_0_ACCOUNT_CONTRACT_HASH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    get_deployable_account_signer, remove_file, send_ctrl_c_signal_and_wait, FeeUnit,
+    assert_tx_successful, get_deployable_account_signer, remove_file, send_ctrl_c_signal_and_wait,
+    FeeUnit,
 };
 
 #[tokio::test]
@@ -90,9 +91,10 @@ async fn assert_account_deployment_reverted() {
     let deployment = account_factory.deploy_v1(salt).max_fee(Felt::from(1e18 as u128));
     let deployment_address = deployment.address();
     devnet.mint(deployment_address, 1e18 as u128).await;
-    deployment.send().await.unwrap();
+    let deployment_tx = deployment.send().await.unwrap();
 
-    // assert there is a class associated with the deployment address
+    // assert deployment successful and class associated with deployment address is present
+    assert_tx_successful(&deployment_tx.transaction_hash, &devnet.json_rpc_client).await;
     devnet
         .json_rpc_client
         .get_class_at(BlockId::Tag(BlockTag::Latest), deployment_address)
