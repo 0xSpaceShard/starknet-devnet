@@ -97,6 +97,7 @@ pub(crate) mod test_utils {
     use starknet_api::transaction::fields::Fee;
     use starknet_rs_core::types::Felt;
     use starknet_types::contract_address::ContractAddress;
+    use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
@@ -181,7 +182,7 @@ pub(crate) mod test_utils {
         let account_json_path =
             "../../contracts/test_artifacts/cairo0/account_without_validations/account.json";
 
-        serde_json::from_reader(std::fs::File::open(account_json_path).unwrap()).unwrap()
+        Cairo0Json::raw_json_from_path(account_json_path).unwrap().into()
     }
 
     pub(crate) fn convert_broadcasted_declare_v2_to_v3(
@@ -217,6 +218,7 @@ pub(crate) mod test_utils {
 #[allow(clippy::unwrap_used)]
 pub mod exported_test_utils {
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
+    use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
     use starknet_types::contract_class::Cairo0ContractClass;
 
     pub fn dummy_cairo_l1l2_contract() -> Cairo0ContractClass {
@@ -238,7 +240,7 @@ pub mod exported_test_utils {
             std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
                 .unwrap();
 
-        serde_json::from_str(&json_str).unwrap()
+        Cairo0Json::raw_json_from_json_str(&json_str).unwrap().into()
     }
 
     pub fn dummy_cairo_0_contract_class_codegen() -> LegacyContractClass {
