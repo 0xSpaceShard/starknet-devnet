@@ -1,17 +1,22 @@
 use core::fmt::Debug;
+use std::collections::HashMap;
 use std::str::FromStr;
+use std::sync::Arc;
 
-use blockifier::execution::contract_class::RunnableCompiledClass;
+use blockifier::execution::contract_class::{
+    CompiledClassV0, CompiledClassV0Inner, RunnableCompiledClass, deserialize_program,
+};
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use cairo_vm::types::errors::program_errors::ProgramError;
 use serde::de::IntoDeserializer;
 use serde::{Serialize, Serializer};
-use starknet_api::contract_class::{ClassInfo, SierraVersion};
+use starknet_api::contract_class::{ClassInfo, EntryPointType, SierraVersion};
+use starknet_api::deprecated_contract_class::{EntryPointOffset, EntryPointV0};
 use starknet_rs_core::types::contract::{SierraClass, SierraClassDebugInfo};
 use starknet_rs_core::types::{
     CompressedLegacyContractClass, ContractClass as CodegenContractClass,
-    FlattenedSierraClass as CodegenSierraContractClass,
+    FlattenedSierraClass as CodegenSierraContractClass, LegacyContractEntryPoint,
 };
 use starknet_types_core::felt::Felt;
 
@@ -246,7 +251,48 @@ impl TryFrom<Cairo0ContractClass> for RunnableCompiledClass {
                 .map_err(|e| {
                     Error::ConversionError(ConversionError::InvalidInternalStructure(e.to_string()))
                 })?,
-            Cairo0ContractClass::Rpc(deprecated_contract_class) => todo!(),
+            Cairo0ContractClass::Rpc(deprecated_contract_class) => {
+                let deserializer = deprecated_contract_class.program.into_deserializer();
+                let program = deserialize_program(deserializer).map_err(|e| {
+                    Error::ConversionError(ConversionError::InvalidInternalStructure(e.to_string()))
+                })?;
+
+                fn convert_to_entrypoints_v0<'a, I>(entry_points: I) -> Vec<EntryPointV0>
+                where
+                    I: Iterator<Item = &'a LegacyContractEntryPoint>,
+                {
+                    entry_points
+                        .map(|entry_point| EntryPointV0 {
+                            selector: starknet_api::core::EntryPointSelector(entry_point.selector),
+                            offset: EntryPointOffset(entry_point.offset as usize),
+                        })
+                        .collect()
+                }
+
+                let mut entry_points_by_type = HashMap::new();
+                entry_points_by_type.insert(
+                    EntryPointType::Constructor,
+                    convert_to_entrypoints_v0(
+                        deprecated_contract_class.entry_points_by_type.constructor.iter(),
+                    ),
+                );
+
+                entry_points_by_type.insert(
+                    EntryPointType::External,
+                    convert_to_entrypoints_v0(
+                        deprecated_contract_class.entry_points_by_type.external.iter(),
+                    ),
+                );
+
+                entry_points_by_type.insert(
+                    EntryPointType::L1Handler,
+                    convert_to_entrypoints_v0(
+                        deprecated_contract_class.entry_points_by_type.l1_handler.iter(),
+                    ),
+                );
+
+                CompiledClassV0(Arc::new(CompiledClassV0Inner { program, entry_points_by_type }))
+            }
         }))
     }
 }
