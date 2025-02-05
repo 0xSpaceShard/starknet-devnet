@@ -1,8 +1,8 @@
 use blockifier::state::state_api::StateReader;
 use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::deprecated::rpc_contract_class::DeprecatedContractClass;
-use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
+use starknet_types::contract_class::ContractClass;
+use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
 use starknet_types::felt::ClassHash;
 use starknet_types::rpc::state::Balance;
 
@@ -26,9 +26,7 @@ impl SystemContract {
         Ok(Self {
             class_hash,
             address: ContractAddress::new(address)?,
-            contract_class: ContractClass::Cairo0(Cairo0ContractClass::Rpc(
-                DeprecatedContractClass::rpc_from_json_str(contract_class_json_str)?,
-            )),
+            contract_class: Cairo0Json::raw_json_from_json_str(contract_class_json_str)?.into(),
         })
     }
 
