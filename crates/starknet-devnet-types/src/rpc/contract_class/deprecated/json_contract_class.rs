@@ -1,10 +1,10 @@
 use core::fmt::{Debug, Display, Formatter};
 use std::collections::HashMap;
 
-use flate2::Compression;
 use flate2::write::GzEncoder;
+use flate2::Compression;
 use serde::{Deserialize, Serialize};
-use serde_json::{Serializer as JsonSerializer, Value, json};
+use serde_json::{json, Serializer as JsonSerializer, Value};
 use starknet_api::contract_class::EntryPointType;
 use starknet_api::deprecated_contract_class::EntryPointV0;
 use starknet_rs_core::types::{CompressedLegacyContractClass, Felt};

@@ -4,7 +4,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use blockifier::execution::contract_class::{
-    CompiledClassV0, CompiledClassV0Inner, RunnableCompiledClass, deserialize_program,
+    deserialize_program, CompiledClassV0, CompiledClassV0Inner, RunnableCompiledClass,
 };
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
@@ -389,7 +389,7 @@ mod tests {
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use serde_json::Deserializer;
 
-    use crate::contract_class::{ContractClass, convert_sierra_to_codegen};
+    use crate::contract_class::{convert_sierra_to_codegen, ContractClass};
     use crate::felt::felt_from_prefixed_hex;
     use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
     use crate::traits::HashProducer;

@@ -51,7 +51,7 @@ mod tests {
         self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
-    use crate::starknet::{Starknet, predeployed};
+    use crate::starknet::{predeployed, Starknet};
     use crate::state::CustomState;
     use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_l1l2_contract;
