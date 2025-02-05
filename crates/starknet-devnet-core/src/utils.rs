@@ -225,7 +225,7 @@ pub mod exported_test_utils {
         let json_str =
             std::fs::read_to_string("../../contracts/test_artifacts/cairo0/l1l2.json").unwrap();
 
-        serde_json::from_str(&json_str).unwrap()
+        Cairo0Json::raw_json_from_json_str(&json_str).unwrap().into()
     }
 
     pub fn dummy_cairo_l1l2_contract_codegen() -> LegacyContractClass {
