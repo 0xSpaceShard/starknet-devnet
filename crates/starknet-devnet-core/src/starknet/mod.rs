@@ -669,7 +669,7 @@ impl Starknet {
                     ),
                 }),
                 blockifier::execution::common_hints::ExecutionMode::Execute,
-                true,
+                false,
                 blockifier::execution::entry_point::SierraGasRevertTracker::new(initial_gas),
             );
 
