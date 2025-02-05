@@ -17,12 +17,6 @@ pub enum Cairo0ContractClass {
     Rpc(DeprecatedContractClass),
 }
 
-impl Cairo0ContractClass {
-    pub fn from_json_str(s: &str) -> DevnetResult<Self> {
-        todo!()
-    }
-}
-
 impl Serialize for Cairo0ContractClass {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

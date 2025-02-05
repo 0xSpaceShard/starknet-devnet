@@ -9,6 +9,7 @@ use blockifier::execution::contract_class::{
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use cairo_vm::types::errors::program_errors::ProgramError;
+use deprecated::json_contract_class::Cairo0Json;
 use serde::de::IntoDeserializer;
 use serde::{Serialize, Serializer};
 use starknet_api::contract_class::{ClassInfo, EntryPointType, SierraVersion};
@@ -65,6 +66,12 @@ impl From<Cairo0ContractClass> for ContractClass {
 impl From<SierraContractClass> for ContractClass {
     fn from(value: SierraContractClass) -> Self {
         ContractClass::Cairo1(value)
+    }
+}
+
+impl From<Cairo0Json> for ContractClass {
+    fn from(value: Cairo0Json) -> Self {
+        ContractClass::Cairo0(value.into())
     }
 }
 
