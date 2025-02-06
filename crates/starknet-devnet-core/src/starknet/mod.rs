@@ -643,10 +643,17 @@ impl Starknet {
         entrypoint_selector: Felt,
         calldata: Vec<Felt>,
     ) -> DevnetResult<Vec<Felt>> {
+        match self.get_class_at(block_id, ContractAddress::new(contract_address)?) {
+            Ok(class) => {
+                if !class.has_entrypoint(entrypoint_selector) {
+                    return Err(Error::EntrypointNotFound);
+                }
+            }
+            Err(error) => return Err(error),
+        };
+
         let block_context = self.block_context.clone();
         let state = self.get_mut_state_at(block_id)?;
-
-        state.assert_contract_deployed(ContractAddress::new(contract_address)?)?;
 
         let mut initial_gas =
             block_context.versioned_constants().sierra_gas_limit(&ExecutionMode::Execute);

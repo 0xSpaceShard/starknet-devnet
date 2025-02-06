@@ -1,4 +1,5 @@
 use starknet_rs_core::types::{BlockId, BlockTag, Felt, FunctionCall, StarknetError};
+use starknet_rs_providers::jsonrpc::JsonRpcError;
 use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
@@ -32,6 +33,8 @@ async fn calling_method_of_undeployed_contract() {
     }
 }
 
+// TODO add cairo0 nonexistent method error
+
 #[tokio::test]
 async fn calling_nonexistent_contract_method() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
@@ -53,7 +56,13 @@ async fn calling_nonexistent_contract_method() {
         .expect_err("Should have failed");
 
     match err {
-        ProviderError::StarknetError(StarknetError::ContractError(_)) => (),
+        ProviderError::Other(ref error) => {
+            let error = error.as_any().downcast_ref::<JsonRpcError>().unwrap();
+            assert_eq!(
+                (error.code, error.message.as_str()),
+                (21, "Requested entrypoint does not exist in the contract")
+            );
+        }
         _ => panic!("Invalid error: {err:?}"),
     }
 }

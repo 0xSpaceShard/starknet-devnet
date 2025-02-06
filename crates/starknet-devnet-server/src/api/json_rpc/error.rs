@@ -62,6 +62,8 @@ pub enum ApiError {
     CompiledClassHashMismatch,
     #[error("Transaction execution error")]
     ExecutionError { execution_error: String, index: usize },
+    #[error("Requested entrypoint does not exist in the contract")]
+    EntrypointNotFound,
 }
 
 impl ApiError {
@@ -209,6 +211,11 @@ impl ApiError {
                 })),
             },
             ApiError::HttpApiError(http_api_error) => http_api_error.http_api_error_to_rpc_error(),
+            ApiError::EntrypointNotFound => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(21),
+                message: error_message.into(),
+                data: None,
+            },
         }
     }
 
@@ -240,7 +247,8 @@ impl ApiError {
             | Self::ValidationFailure { .. }
             | Self::HttpApiError(_)
             | Self::CompiledClassHashMismatch
-            | Self::ExecutionError { .. } => false,
+            | Self::ExecutionError { .. }
+            | Self::EntrypointNotFound => false,
         }
     }
 }

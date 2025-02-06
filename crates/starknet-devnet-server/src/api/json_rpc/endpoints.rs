@@ -288,6 +288,7 @@ impl JsonRpcHandler {
             Ok(result) => Ok(StarknetResponse::Call(result).into()),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
+            Err(Error::EntrypointNotFound) => Err(ApiError::EntrypointNotFound),
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }

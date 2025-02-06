@@ -73,6 +73,8 @@ pub enum Error {
     CompiledClassHashMismatch,
     #[error("{msg}")]
     ClassAlreadyDeclared { msg: String },
+    #[error("Requested entrypoint does not exist in the contract")]
+    EntrypointNotFound,
 }
 
 impl From<starknet_types_core::felt::FromStrError> for Error {

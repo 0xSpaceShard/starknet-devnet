@@ -55,6 +55,46 @@ impl ContractClass {
 
         Ok(sierra_contract_class)
     }
+
+    pub fn has_entrypoint(&self, selector: Felt) -> bool {
+        match self {
+            ContractClass::Cairo0(class) => match class {
+                Cairo0ContractClass::RawJson(class) => {
+                    #[allow(clippy::unwrap_used)]
+                    let entry_points =
+                        class.inner["entry_points_by_type"]["EXTERNAL"].as_array().unwrap();
+                    for entry_point in entry_points {
+                        #[allow(clippy::unwrap_used)]
+                        let candidate_selector: Felt =
+                            serde_json::from_value(entry_point["selector"].clone()).unwrap();
+                        if candidate_selector == selector {
+                            return true;
+                        }
+                    }
+
+                    false
+                }
+                Cairo0ContractClass::Rpc(class) => {
+                    for candidate_entrypoint in &class.entry_points_by_type.external {
+                        if candidate_entrypoint.selector == selector {
+                            return true;
+                        }
+                    }
+
+                    false
+                }
+            },
+            ContractClass::Cairo1(class) => {
+                for candidate_entrypoint in &class.entry_points_by_type.external {
+                    if candidate_entrypoint.selector == selector.to_biguint() {
+                        return true;
+                    }
+                }
+
+                false
+            }
+        }
+    }
 }
 
 impl From<Cairo0ContractClass> for ContractClass {
