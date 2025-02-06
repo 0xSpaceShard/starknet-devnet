@@ -42,7 +42,7 @@ pub(crate) fn get_storage_var_address(
 
 pub(crate) fn get_versioned_constants() -> VersionedConstants {
     #[allow(clippy::unwrap_used)] // TODO
-    VersionedConstants::get(&StarknetVersion::V0_13_2).unwrap().clone()
+    VersionedConstants::get(&StarknetVersion::V0_13_4).unwrap().clone()
 }
 
 /// Values not present here: https://docs.starknet.io/tools/limits-and-triggers/
