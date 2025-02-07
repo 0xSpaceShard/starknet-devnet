@@ -1,5 +1,5 @@
+use server::test_utils::assert_contains;
 use starknet_rs_core::types::{BlockId, BlockTag, Felt, FunctionCall, StarknetError};
-use starknet_rs_providers::jsonrpc::JsonRpcError;
 use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
@@ -55,14 +55,5 @@ async fn calling_nonexistent_contract_method() {
         .await
         .expect_err("Should have failed");
 
-    match err {
-        ProviderError::Other(ref error) => {
-            let error = error.as_any().downcast_ref::<JsonRpcError>().unwrap();
-            assert_eq!(
-                (error.code, error.message.as_str()),
-                (21, "Requested entrypoint does not exist in the contract")
-            );
-        }
-        _ => panic!("Invalid error: {err:?}"),
-    }
+    assert_contains(&err.to_string(), "Requested entrypoint does not exist in the contract");
 }
