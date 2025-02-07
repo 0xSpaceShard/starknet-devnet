@@ -218,12 +218,12 @@ impl ApiError {
             Self::BlockNotFound
             | Self::TransactionNotFound
             | Self::NoStateAtBlock { .. }
-            | Self::ContractNotFound
             | Self::ClassHashNotFound => true,
             Self::StarknetDevnetError(_)
             | Self::NoTraceAvailable
             | Self::TypesError(_)
             | Self::RpcError(_)
+            | Self::ContractNotFound
             | Self::InvalidTransactionIndexInBlock
             | Self::ContractError { .. }
             | Self::NoBlocks
