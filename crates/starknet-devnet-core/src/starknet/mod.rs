@@ -63,8 +63,8 @@ use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
     DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
-    ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS,
-    STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
+    ENTRYPOINT_NOT_FOUND_ERROR_ENCODED, ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME,
+    ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
 };
 use crate::contract_class_choice::AccountContractClassChoice;
 use crate::error::{DevnetResult, Error, TransactionValidationError};
@@ -643,17 +643,10 @@ impl Starknet {
         entrypoint_selector: Felt,
         calldata: Vec<Felt>,
     ) -> DevnetResult<Vec<Felt>> {
-        match self.get_class_at(block_id, ContractAddress::new(contract_address)?) {
-            Ok(class) => {
-                if !class.has_entrypoint(entrypoint_selector) {
-                    return Err(Error::EntrypointNotFound);
-                }
-            }
-            Err(error) => return Err(error),
-        };
-
         let block_context = self.block_context.clone();
         let state = self.get_mut_state_at(block_id)?;
+
+        state.assert_contract_deployed(ContractAddress::new(contract_address)?)?;
 
         let mut initial_gas =
             block_context.versioned_constants().sierra_gas_limit(&ExecutionMode::Execute);
@@ -683,6 +676,12 @@ impl Starknet {
         let mut transactional_state = CachedState::create_transactional(&mut state.state);
         let res =
             call.execute(&mut transactional_state, &mut execution_context, &mut initial_gas.0)?;
+
+        if res.execution.failed
+            && res.execution.retdata.0.first() == Some(&ENTRYPOINT_NOT_FOUND_ERROR_ENCODED)
+        {
+            return Err(Error::EntrypointNotFound);
+        }
 
         Ok(res.execution.retdata.0)
     }
