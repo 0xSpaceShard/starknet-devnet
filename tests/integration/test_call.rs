@@ -33,10 +33,32 @@ async fn calling_method_of_undeployed_contract() {
     }
 }
 
-// TODO add cairo0 nonexistent method error
+#[tokio::test]
+async fn calling_nonexistent_cairo0_contract_method() {
+    let devnet_args = ["--account-class", "cairo0"];
+    let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+    let contract_address = Felt::from_hex_unchecked(PREDEPLOYED_ACCOUNT_ADDRESS);
+    let entry_point_selector =
+        starknet_rs_core::utils::get_selector_from_name("nonExistentMethod").unwrap();
+
+    let err = devnet
+        .json_rpc_client
+        .call(
+            FunctionCall {
+                contract_address,
+                entry_point_selector,
+                calldata: vec![contract_address],
+            },
+            BlockId::Tag(BlockTag::Latest),
+        )
+        .await
+        .expect_err("Should have failed");
+
+    assert_contains(&err.to_string(), "Requested entrypoint does not exist in the contract");
+}
 
 #[tokio::test]
-async fn calling_nonexistent_contract_method() {
+async fn calling_nonexistent_cairo1_contract_method() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
     let contract_address = Felt::from_hex_unchecked(PREDEPLOYED_ACCOUNT_ADDRESS);
     let entry_point_selector =

@@ -449,6 +449,44 @@ async fn test_get_storage_if_contract_deployed_on_origin() {
 }
 
 #[tokio::test]
+async fn test_deploying_on_origin_calling_on_fork() {
+    let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
+
+    // obtain account for deployment
+    let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
+    let predeployed_account = SingleOwnerAccount::new(
+        &origin_devnet.json_rpc_client,
+        signer.clone(),
+        account_address,
+        constants::CHAIN_ID,
+        ExecutionEncoding::New,
+    );
+
+    let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+
+    let initial_value = Felt::from(10_u32);
+    let ctor_args = vec![initial_value];
+    let (_, contract_address) =
+        declare_v3_deploy_v3(&predeployed_account, contract_class.clone(), casm_hash, &ctor_args)
+            .await
+            .unwrap();
+
+    let fork_devnet = origin_devnet.fork().await.unwrap();
+
+    let entry_point_selector = get_selector_from_name("get_balance").unwrap();
+    let call_result = fork_devnet
+        .json_rpc_client
+        .call(
+            FunctionCall { contract_address, entry_point_selector, calldata: vec![] },
+            BlockId::Tag(BlockTag::Latest),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(call_result, vec![initial_value]);
+}
+
+#[tokio::test]
 async fn test_fork_using_origin_token_contract() {
     let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
