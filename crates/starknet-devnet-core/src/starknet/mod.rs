@@ -1395,11 +1395,9 @@ mod tests {
     use std::thread;
     use std::time::Duration;
 
-    use blockifier::execution::errors::{EntryPointExecutionError, PreExecutionError};
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, FeeType};
-    use starknet_api::core::EntryPointSelector;
     use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
@@ -1732,9 +1730,7 @@ mod tests {
             entry_point_selector,
             vec![Felt::from(predeployed_account.account_address)],
         ) {
-            Err(Error::BlockifierExecutionError(EntryPointExecutionError::PreExecutionError(
-                PreExecutionError::EntryPointNotFound(EntryPointSelector(missing_selector)),
-            ))) => assert_eq!(missing_selector, entry_point_selector),
+            Err(Error::EntrypointNotFound) => (),
             unexpected => panic!("Should have failed; got {unexpected:?}"),
         }
     }
