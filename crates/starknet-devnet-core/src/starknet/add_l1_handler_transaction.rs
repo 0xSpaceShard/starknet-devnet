@@ -33,7 +33,7 @@ mod tests {
     // Constants taken from test_estimate_message_fee.rs.
     const WHITELISTED_L1_ADDRESS: &str = "0x8359E4B0152ed5A731162D3c7B0D8D56edB165A0";
 
-    use blockifier::execution::errors::{EntryPointExecutionError, PreExecutionError};
+    use blockifier::execution::errors::EntryPointExecutionError;
     use blockifier::transaction::errors::TransactionExecutionError::ExecutionError;
     use nonzero_ext::nonzero;
     use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
@@ -49,7 +49,8 @@ mod tests {
     use crate::account::Account;
     use crate::constants::{
         self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
-        ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
+        ENTRYPOINT_NOT_FOUND_ERROR_ENCODED, ETH_ERC20_CONTRACT_ADDRESS,
+        STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::starknet::{predeployed, Starknet};
     use crate::state::CustomState;
@@ -125,13 +126,14 @@ mod tests {
 
         match result {
             Err(crate::error::Error::BlockifierTransactionError(ExecutionError {
-                error:
-                    EntryPointExecutionError::PreExecutionError(PreExecutionError::EntryPointNotFound(
-                        selector,
-                    )),
+                error: EntryPointExecutionError::ExecutionFailed { error_trace },
                 ..
             })) => {
-                assert_eq!(selector.0, withdraw_selector)
+                let error_stack = error_trace.stack;
+                assert_eq!(error_stack.len(), 1);
+                let error_frame = error_stack.first().unwrap();
+                assert_eq!(error_frame.selector.0, withdraw_selector);
+                assert_eq!(error_trace.last_retdata.0, vec![ENTRYPOINT_NOT_FOUND_ERROR_ENCODED]);
             }
             other => panic!("Wrong result: {other:?}"),
         }
