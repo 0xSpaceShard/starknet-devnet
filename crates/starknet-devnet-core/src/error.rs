@@ -126,6 +126,10 @@ impl From<TransactionExecutionError> for Error {
             err @ TransactionExecutionError::DeclareTransactionError { .. } => {
                 Error::ClassAlreadyDeclared { msg: err.to_string() }
             }
+            TransactionExecutionError::PanicInValidate { panic_reason } => {
+                TransactionValidationError::ValidationFailure { reason: panic_reason.to_string() }
+                    .into()
+            }
             other => Self::BlockifierTransactionError(other),
         }
     }
