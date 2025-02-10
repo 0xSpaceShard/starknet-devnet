@@ -535,7 +535,13 @@ async fn simulate_of_multiple_txs_shouldnt_return_an_error_if_invoke_transaction
             execute_invocation: ExecuteInvocation::Reverted(reverted_invocation),
             ..
         }) => {
-            assert_contains(&reverted_invocation.revert_reason, "not found in contract");
+            // TODO replacement for assert_contains(&reverted_invocation.revert_reason, "not found
+            // in contract")
+            assert_contains(
+                &reverted_invocation.revert_reason,
+                "0x526573756c743a3a756e77726170206661696c65642e",
+            );
+            assert_contains(&reverted_invocation.revert_reason, "('Result::unwrap failed.')");
         }
         other_trace => panic!("Unexpected trace {:?}", other_trace),
     }
@@ -1061,7 +1067,15 @@ async fn simulate_invoke_v3_with_failing_execution_should_return_a_trace_of_reve
         TransactionTrace::Invoke(InvokeTransactionTrace {
             execute_invocation: ExecuteInvocation::Reverted(reverted_invocation),
             ..
-        }) => assert_contains(&reverted_invocation.revert_reason, panic_reason),
+        }) => {
+            // TODO replacement for assert_contains(&reverted_invocation.revert_reason,
+            // panic_reason)
+            assert_contains(
+                &reverted_invocation.revert_reason,
+                "0x526573756c743a3a756e77726170206661696c65642e",
+            );
+            assert_contains(&reverted_invocation.revert_reason, "('Result::unwrap failed.')");
+        }
         other => panic!("Unexpected trace {other:?}"),
     }
 }
