@@ -226,20 +226,8 @@ impl TryFrom<ContractClass> for RunnableCompiledClass {
         Ok(match value {
             ContractClass::Cairo0(class) => class.try_into()?,
             ContractClass::Cairo1(class) => {
-                // TODO extract this as common logic
                 let json_value = serde_json::to_value(&class).map_err(JsonError::SerdeJsonError)?;
-                let casm_json = usc::compile_contract(json_value)
-                    .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
-
-                let casm = serde_json::from_value::<CasmContractClass>(casm_json)
-                    .map_err(|err| Error::JsonError(JsonError::Custom { msg: err.to_string() }))?;
-
-                let versioned_casm =
-                    (casm, SierraVersion::from_str(&class.contract_class_version)?);
-                let compiled = versioned_casm.try_into().map_err(|e: ProgramError| {
-                    Error::ConversionError(ConversionError::InvalidInternalStructure(e.to_string()))
-                })?;
-                RunnableCompiledClass::V1(compiled)
+                jsonified_sierra_to_runnable_casm(json_value, &class.contract_class_version)?
             }
         })
     }
@@ -324,23 +312,31 @@ fn convert_sierra_to_codegen(
     })
 }
 
+fn jsonified_sierra_to_runnable_casm(
+    jsonified_sierra: serde_json::Value,
+    sierra_version: &str,
+) -> Result<RunnableCompiledClass, Error> {
+    let casm_json = usc::compile_contract(jsonified_sierra)
+        .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+
+    let casm = serde_json::from_value::<CasmContractClass>(casm_json)
+        .map_err(|err| Error::JsonError(JsonError::Custom { msg: err.to_string() }))?;
+
+    let versioned_casm = (casm, SierraVersion::from_str(sierra_version)?);
+    let compiled = versioned_casm.try_into().map_err(|e: ProgramError| {
+        Error::ConversionError(ConversionError::InvalidInternalStructure(e.to_string()))
+    })?;
+
+    Ok(RunnableCompiledClass::V1(compiled))
+}
+
 pub fn convert_codegen_to_blockifier_compiled_class(
     class: CodegenContractClass,
 ) -> Result<RunnableCompiledClass, Error> {
     Ok(match &class {
         CodegenContractClass::Sierra(sierra) => {
             let json_value = serde_json::to_value(&class).map_err(JsonError::SerdeJsonError)?;
-            let casm_json = usc::compile_contract(json_value)
-                .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
-
-            let casm = serde_json::from_value::<CasmContractClass>(casm_json)
-                .map_err(|err| Error::JsonError(JsonError::Custom { msg: err.to_string() }))?;
-
-            let versioned_casm = (casm, SierraVersion::from_str(&sierra.contract_class_version)?);
-            let compiled = versioned_casm.try_into().map_err(|e: ProgramError| {
-                Error::ConversionError(ConversionError::InvalidInternalStructure(e.to_string()))
-            })?;
-            RunnableCompiledClass::V1(compiled)
+            jsonified_sierra_to_runnable_casm(json_value, &sierra.contract_class_version)?
         }
         CodegenContractClass::Legacy(_) => {
             let class_jsonified =
