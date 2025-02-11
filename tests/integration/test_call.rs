@@ -6,8 +6,9 @@ use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
-    CAIRO_1_ERC20_CONTRACT_CLASS_HASH, CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH,
-    ETH_ERC20_CONTRACT_ADDRESS, PREDEPLOYED_ACCOUNT_ADDRESS,
+    CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
+    CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH, ETH_ERC20_CONTRACT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
 };
 use crate::common::utils::{
     assert_json_rpc_errors_equal, declare_v3_deploy_v3, deploy_v1, extract_json_rpc_error,
@@ -62,10 +63,19 @@ async fn calling_nonexistent_cairo0_contract_method() {
         .await
         .expect_err("Should have failed");
 
-    match err {
-        ProviderError::StarknetError(StarknetError::ContractError(_)) => (),
-        _ => panic!("Invalid error: {err:?}"),
-    }
+    assert_json_rpc_errors_equal(
+        extract_json_rpc_error(err).unwrap(),
+        JsonRpcError {
+            code: 40,
+            message: "Contract error".into(),
+            data: Some(serde_json::json!({
+                "contract_address": contract_address,
+                "class_hash": CAIRO_0_ACCOUNT_CONTRACT_HASH,
+                "selector": entry_point_selector,
+                "error": format!("Entry point EntryPointSelector({}) not found in contract.\n", entry_point_selector.to_hex_string())
+            })),
+        },
+    );
 }
 
 #[tokio::test]
@@ -74,11 +84,12 @@ async fn calling_nonexistent_cairo1_contract_method() {
     let contract_address = Felt::from_hex_unchecked(PREDEPLOYED_ACCOUNT_ADDRESS);
     let entry_point_selector = get_selector_from_name("nonExistentMethod").unwrap();
 
+    let called_contract_address = ETH_ERC20_CONTRACT_ADDRESS;
     let err = devnet
         .json_rpc_client
         .call(
             FunctionCall {
-                contract_address: ETH_ERC20_CONTRACT_ADDRESS,
+                contract_address: called_contract_address,
                 entry_point_selector,
                 calldata: vec![contract_address],
             },
@@ -87,17 +98,16 @@ async fn calling_nonexistent_cairo1_contract_method() {
         .await
         .expect_err("Should have failed");
 
-    let selector_hex = entry_point_selector.to_hex_string();
     assert_json_rpc_errors_equal(
         extract_json_rpc_error(err).unwrap(),
         JsonRpcError {
             code: 40,
             message: "Contract error".into(),
             data: Some(serde_json::json!({
-                "contract_address": ETH_ERC20_CONTRACT_ADDRESS.to_hex_string(),
+                "contract_address": called_contract_address,
                 "class_hash": CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
-                "selector": selector_hex,
-                "error": format!("Entry point EntryPointSelector({selector_hex}) not found in contract.\n")
+                "selector": entry_point_selector,
+                "error": format!("Entry point EntryPointSelector({}) not found in contract.\n", entry_point_selector.to_hex_string())
             })),
         },
     );
