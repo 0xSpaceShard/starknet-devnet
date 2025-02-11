@@ -44,6 +44,15 @@ async fn too_big_request_rejected_via_non_rpc() {
     .expect_err("Request should have been rejected");
 
     assert_eq!(err.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&err.error_message()).unwrap(),
+        json!({
+            "error": {
+                "code": -32600,
+                "message": format!("Request too big! Server received: 1111 bytes; maximum (specifiable via --request-body-size-limit): {limit} bytes"),
+            }
+        })
+    );
 
     // subtract enough so that the rest of the json body doesn't overflow the limit
     let nonexistent_path = "a".repeat(limit - 100);
@@ -71,7 +80,18 @@ async fn too_big_request_rejected_via_rpc() {
         .await
         .expect_err("Request should have been rejected");
 
-    assert_eq!(error.code, StatusCode::PAYLOAD_TOO_LARGE.as_u16() as i64);
+    assert_eq!(
+        error,
+        RpcError {
+            code: -32600,
+            message: format!(
+                "Request too big! Server received: 1168 bytes; maximum (specifiable via \
+                 --request-body-size-limit): {limit} bytes"
+            )
+            .into(),
+            data: None
+        }
+    );
 
     // subtract enough so that the rest of the json body doesn't overflow the limit
     let nonexistent_path = "a".repeat(limit - 100);

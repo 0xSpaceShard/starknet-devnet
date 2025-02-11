@@ -1,12 +1,18 @@
 [package]
 name = "starknet-devnet-types"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 description = "Starknet types for the devnet"
 repository.workspace = true
 license-file.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+testing = []
+
+[lints]
+workspace = true
 
 [dependencies]
 base64 = { workspace = true }

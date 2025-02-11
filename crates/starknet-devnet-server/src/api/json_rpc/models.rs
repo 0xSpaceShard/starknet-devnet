@@ -552,13 +552,12 @@ mod tests {
             r#"{"block_id": {"block_hash": "0x01"}}"#,
         );
 
-        // TODO: ignored because of a Felt bug: https://github.com/starknet-io/types-rs/issues/81
         // Block hash hex value is more than 64 chars
-        // assert_block_id_block_hash_correctness(
-        //     false,
-        //     "0x01",
-        //     r#"{"block_id": {"block_hash":
-        // "0x004134134134134134134134134134134134134134134134134134134134134134"}}"#, );
+        assert_block_id_block_hash_correctness(
+            false,
+            "0x01",
+            r#"{"block_id": {"block_hash": "0x004134134134134134134134134134134134134134134134134134134134134134"}}"#,
+        );
 
         // Block hash hex doesn't start with 0x
         assert_block_id_block_hash_correctness(

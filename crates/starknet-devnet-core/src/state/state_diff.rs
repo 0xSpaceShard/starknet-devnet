@@ -15,7 +15,8 @@ use starknet_types::rpc::state::{
 use crate::error::DevnetResult;
 
 /// This struct is used to store the difference between state modifications
-#[derive(PartialEq, Default, Debug, Clone)]
+#[derive(Default, Debug, Clone)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct StateDiff {
     pub(crate) storage_updates: HashMap<ContractAddress, HashMap<StorageKey, Felt>>,
     pub(crate) address_to_nonce: HashMap<ContractAddress, Felt>,
@@ -30,8 +31,6 @@ pub struct StateDiff {
     // collection of old class hash to new class hash
     pub(crate) replaced_classes: Vec<ReplacedClasses>,
 }
-
-impl Eq for StateDiff {}
 
 impl StateDiff {
     pub(crate) fn generate<S: StateReader>(

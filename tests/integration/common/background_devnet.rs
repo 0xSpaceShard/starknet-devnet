@@ -64,15 +64,22 @@ fn get_devnet_command() -> Command {
 }
 
 async fn get_acquired_port(
-    pid: u32,
+    process: &mut SafeChild,
     sleep_time: time::Duration,
     max_retries: usize,
 ) -> Result<u16, anyhow::Error> {
+    let pid = process.id();
     for _ in 0..max_retries {
         if let Ok(ports) = listeners::get_ports_by_pid(pid) {
             if ports.len() == 1 {
                 return Ok(ports.into_iter().next().unwrap());
             }
+        }
+
+        if let Ok(Some(status)) = process.process.try_wait() {
+            return Err(anyhow::Error::msg(format!(
+                "Background Devnet process exited with status {status}"
+            )));
         }
 
         tokio::time::sleep(sleep_time).await;
@@ -155,11 +162,11 @@ impl BackgroundDevnet {
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .map_err(|e| TestError::DevnetNotStartable(format!("Spawning error: {e:?}")))?;
-        let safe_process = SafeChild { process };
+        let mut safe_process = SafeChild { process };
 
         let sleep_time = time::Duration::from_millis(500);
-        let max_retries = 40;
-        let port = get_acquired_port(safe_process.id(), sleep_time, max_retries)
+        let max_retries = 60;
+        let port = get_acquired_port(&mut safe_process, sleep_time, max_retries)
             .await
             .map_err(|e| TestError::DevnetNotStartable(format!("Cannot determine port: {e:?}")))?;
 
@@ -202,13 +209,24 @@ impl BackgroundDevnet {
             body_json["params"] = params;
         }
 
+        // Convert HTTP error to RPC error; panic if not possible.
         let json_rpc_result: serde_json::Value =
             self.reqwest_client().post_json_async(RPC_PATH, body_json).await.map_err(|err| {
-                RpcError {
-                    code: err.status().as_u16().into(),
-                    message: err.error_message().into(),
-                    data: None,
+                let err_msg = err.error_message();
+
+                if let Ok(rpc_error) = serde_json::from_str::<RpcError>(&err_msg) {
+                    return rpc_error;
+                };
+
+                if let Ok(err_val) = serde_json::from_str::<serde_json::Value>(&err_msg) {
+                    if let Some(err_prop) = err_val.get("error").cloned() {
+                        if let Ok(rpc_error) = serde_json::from_value::<RpcError>(err_prop) {
+                            return rpc_error;
+                        }
+                    }
                 }
+
+                panic!("Cannot extract RPC error from: {err_msg}")
             })?;
 
         if let Some(result) = json_rpc_result.get("result") {

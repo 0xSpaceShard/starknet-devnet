@@ -119,6 +119,39 @@ pub struct JsonRpcHandler {
     pub server_config: ServerConfig,
 }
 
+fn log_if_deprecated_tx(request: &JsonRpcRequest) {
+    let is_deprecated_tx = match request {
+        JsonRpcRequest::AddDeclareTransaction(BroadcastedDeclareTransactionInput {
+            declare_transaction: BroadcastedDeclareTransactionEnumWrapper::Declare(tx),
+        }) => match tx {
+            starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V1(_) => true,
+            starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V2(_) => true,
+            starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V3(_) => false,
+        },
+        JsonRpcRequest::AddDeployAccountTransaction(BroadcastedDeployAccountTransactionInput {
+            deploy_account_transaction:
+                BroadcastedDeployAccountTransactionEnumWrapper::DeployAccount(tx),
+        }) => match tx {
+            starknet_types::rpc::transactions::BroadcastedDeployAccountTransaction::V1(_) => true,
+            starknet_types::rpc::transactions::BroadcastedDeployAccountTransaction::V3(_) => false,
+        },
+        JsonRpcRequest::AddInvokeTransaction(BroadcastedInvokeTransactionInput {
+            invoke_transaction: BroadcastedInvokeTransactionEnumWrapper::Invoke(tx),
+        }) => match tx {
+            starknet_types::rpc::transactions::BroadcastedInvokeTransaction::V1(_) => true,
+            starknet_types::rpc::transactions::BroadcastedInvokeTransaction::V3(_) => false,
+        },
+        _ => false,
+    };
+
+    if is_deprecated_tx {
+        tracing::warn!(
+            "Received a transaction of a deprecated version! Please modify or upgrade your \
+             Starknet client to use v3 transactions."
+        );
+    }
+}
+
 #[async_trait::async_trait]
 impl RpcHandler for JsonRpcHandler {
     type Request = JsonRpcRequest;
@@ -129,6 +162,7 @@ impl RpcHandler for JsonRpcHandler {
         original_call: RpcMethodCall,
     ) -> ResponseResult {
         info!(target: "rpc", "received method in on_request {}", request);
+        log_if_deprecated_tx(&request);
 
         let is_request_forwardable = request.is_forwardable_to_origin(); // applicable if forking
         let is_request_dumpable = request.is_dumpable();
@@ -1125,13 +1159,11 @@ mod requests_tests {
             r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"134134"}}"#,
             "expected hex string to be prefixed by '0x'",
         );
-        // TODO: ignored because of a Felt bug: https://github.com/starknet-io/types-rs/issues/81
-        // Errored json, hex is longer than 64 chars
-        // assert_deserialization_fails(
-        //     r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"
-        // 0x004134134134134134134134134134134134134134134134134134134134134134"}}"#,
-        //     "Bad input - expected #bytes: 32",
-        // );
+        // Errored json, hex longer than 64 chars; misleading error message coming from dependency
+        assert_deserialization_fails(
+            r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"0x004134134134134134134134134134134134134134134134134134134134134134"}}"#,
+            "expected hex string to be prefixed by '0x'",
+        );
     }
 
     #[test]
@@ -1668,8 +1700,7 @@ mod response_tests {
     use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
-    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result()
-     {
+    fn serializing_starknet_response_empty_variant_yields_empty_json_on_conversion_to_rpc_result() {
         assert_eq!(
             r#"{"result":{}}"#,
             serde_json::to_string(

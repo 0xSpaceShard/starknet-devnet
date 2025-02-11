@@ -11,7 +11,7 @@ pub mod starknet;
 mod state;
 mod system_contract;
 mod traits;
-pub mod transactions;
+mod transactions;
 pub use utils::random_number_generator;
 #[cfg(not(feature = "test_utils"))]
 mod utils;

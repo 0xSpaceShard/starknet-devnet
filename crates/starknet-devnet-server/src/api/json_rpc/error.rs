@@ -247,7 +247,7 @@ impl ApiError {
             | Self::NoTraceAvailable
             | Self::TypesError(_)
             | Self::RpcError(_)
-            | Self::ContractNotFound
+            | Self::ContractNotFound // Doesn't require forwarding, handled at state reader level
             | Self::InvalidTransactionIndexInBlock
             | Self::ContractError { .. }
             | Self::NoBlocks

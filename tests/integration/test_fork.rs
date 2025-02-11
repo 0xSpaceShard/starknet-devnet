@@ -21,8 +21,8 @@ use starknet_rs_signers::Signer;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     self, CAIRO_1_ACCOUNT_CONTRACT_0_8_0_SIERRA_PATH, CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
-    INTEGRATION_SEPOLIA_GENESIS_BLOCK_HASH, INTEGRATION_SEPOLIA_HTTP_URL, MAINNET_HTTPS_URL,
-    MAINNET_URL,
+    INTEGRATION_GENESIS_BLOCK_HASH, INTEGRATION_SAFE_BLOCK, INTEGRATION_SEPOLIA_HTTP_URL,
+    MAINNET_HTTPS_URL, MAINNET_URL,
 };
 use crate::common::utils::{
     assert_cairo1_classes_equal, assert_json_rpc_errors_equal, assert_tx_successful,
@@ -54,15 +54,12 @@ async fn test_fork_status() {
 
 #[tokio::test]
 async fn test_forking_sepolia_genesis_block() {
-    let cli_args = ["--fork-network", INTEGRATION_SEPOLIA_HTTP_URL];
+    let fork_block = &INTEGRATION_SAFE_BLOCK.to_string();
+    let cli_args = ["--fork-network", INTEGRATION_SEPOLIA_HTTP_URL, "--fork-block", fork_block];
     let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
-    let resp = &fork_devnet
-        .json_rpc_client
-        .get_block_with_tx_hashes(BlockId::Hash(Felt::from_hex_unchecked(
-            INTEGRATION_SEPOLIA_GENESIS_BLOCK_HASH,
-        )))
-        .await;
+    let block_hash = BlockId::Hash(Felt::from_hex_unchecked(INTEGRATION_GENESIS_BLOCK_HASH));
+    let resp = &fork_devnet.json_rpc_client.get_block_with_tx_hashes(block_hash).await;
 
     match resp {
         Ok(MaybePendingBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 0),
@@ -72,7 +69,8 @@ async fn test_forking_sepolia_genesis_block() {
 
 #[tokio::test]
 async fn test_getting_non_existent_block_from_origin() {
-    let cli_args = ["--fork-network", INTEGRATION_SEPOLIA_HTTP_URL];
+    let fork_block = &INTEGRATION_SAFE_BLOCK.to_string();
+    let cli_args = ["--fork-network", INTEGRATION_SEPOLIA_HTTP_URL, "--fork-block", fork_block];
     let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
     let non_existent_block_hash = "0x123456";
@@ -449,6 +447,44 @@ async fn test_get_storage_if_contract_deployed_on_origin() {
         .await
         .unwrap();
     assert_eq!(real_value, signer.get_public_key().await.unwrap().scalar());
+}
+
+#[tokio::test]
+async fn test_deploying_on_origin_calling_on_fork() {
+    let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
+
+    // obtain account for deployment
+    let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
+    let predeployed_account = SingleOwnerAccount::new(
+        &origin_devnet.json_rpc_client,
+        signer.clone(),
+        account_address,
+        constants::CHAIN_ID,
+        ExecutionEncoding::New,
+    );
+
+    let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+
+    let initial_value = Felt::from(10_u32);
+    let ctor_args = vec![initial_value];
+    let (_, contract_address) =
+        declare_v3_deploy_v3(&predeployed_account, contract_class.clone(), casm_hash, &ctor_args)
+            .await
+            .unwrap();
+
+    let fork_devnet = origin_devnet.fork().await.unwrap();
+
+    let entry_point_selector = get_selector_from_name("get_balance").unwrap();
+    let call_result = fork_devnet
+        .json_rpc_client
+        .call(
+            FunctionCall { contract_address, entry_point_selector, calldata: vec![] },
+            BlockId::Tag(BlockTag::Latest),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(call_result, vec![initial_value]);
 }
 
 #[tokio::test]
