@@ -14,7 +14,7 @@ use starknet_api::block::{BlockNumber, GasPrice};
 use starknet_api::contract_class::{ClassInfo, EntryPointType};
 use starknet_api::core::calculate_contract_address;
 use starknet_api::data_availability::DataAvailabilityMode;
-use starknet_api::transaction::fields::{Fee, Tip};
+use starknet_api::transaction::fields::{AllResourceBounds, Fee, Tip};
 use starknet_api::transaction::{signed_tx_version, TransactionHasher, TransactionOptions};
 use starknet_rs_core::types::{
     BlockId, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
@@ -332,10 +332,28 @@ fn convert_resource_bounds_from_starknet_rs_to_starknet_api(
 
 impl From<&ResourceBoundsWrapper> for starknet_api::transaction::fields::ValidResourceBounds {
     fn from(value: &ResourceBoundsWrapper) -> Self {
-        // TODO l1_data_gas? l2_gas?
-        starknet_api::transaction::fields::ValidResourceBounds::L1Gas(
-            convert_resource_bounds_from_starknet_rs_to_starknet_api(value.inner.l1_gas.clone()),
-        )
+        if value.inner.l2_gas.max_amount == 0 {
+            starknet_api::transaction::fields::ValidResourceBounds::L1Gas(
+                convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                    value.inner.l1_gas.clone(),
+                ),
+            )
+        } else {
+            starknet_api::transaction::fields::ValidResourceBounds::AllResources(
+                AllResourceBounds {
+                    l1_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                        value.inner.l1_gas.clone(),
+                    ),
+                    l2_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                        value.inner.l2_gas.clone(),
+                    ),
+                    l1_data_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                        // TODO gas
+                        ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
+                    ),
+                },
+            )
+        }
     }
 }
 

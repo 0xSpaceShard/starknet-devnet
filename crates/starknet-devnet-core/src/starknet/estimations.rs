@@ -133,7 +133,7 @@ fn estimate_transaction_fee<S: StateReader>(
     let gas_vector = transaction_execution_info.receipt.resources.to_gas_vector(
         &get_versioned_constants(),
         block_context.block_info().use_kzg_da,
-        &GasVectorComputationMode::NoL2Gas, // TODO All?
+        &GasVectorComputationMode::NoL2Gas, // TODO gas
     );
     let total_fee =
         fee_utils::get_fee_by_gas_vector(block_context.block_info(), gas_vector, &fee_type);

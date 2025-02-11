@@ -114,7 +114,7 @@ pub struct Starknet {
 
 impl Default for Starknet {
     fn default() -> Self {
-        #[allow(clippy::unwrap_used)] // TODO
+        #[allow(clippy::unwrap_used)]
         let default_gas_price = DEVNET_DEFAULT_GAS_PRICE.get().try_into().unwrap();
         Self {
             block_context: Self::init_block_context(

@@ -42,7 +42,7 @@ pub(crate) fn get_storage_var_address(
 
 // This should be modified when updating to the version after 0.13.4
 pub(crate) fn get_versioned_constants() -> VersionedConstants {
-    #[allow(clippy::unwrap_used)] // TODO
+    #[allow(clippy::unwrap_used)]
     VersionedConstants::get(&StarknetVersion::V0_13_4).unwrap().clone()
 }
 
