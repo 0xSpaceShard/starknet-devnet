@@ -1,4 +1,4 @@
-use blockifier::bouncer::BouncerConfig;
+use blockifier::bouncer::{BouncerConfig, BouncerWeights, BuiltinCount};
 use blockifier::versioned_constants::VersionedConstants;
 use serde_json::Value;
 use starknet_api::block::StarknetVersion;
@@ -46,8 +46,33 @@ pub(crate) fn get_versioned_constants() -> VersionedConstants {
     VersionedConstants::get(&StarknetVersion::V0_13_4).unwrap().clone()
 }
 
+/// Values not present here: https://docs.starknet.io/tools/limits-and-triggers/
+/// Asked the blockifier team about the values, they provided them in these threads:
+/// https://spaceshard.slack.com/archives/C029F9AN8LX/p1721657837687799?thread_ts=1721400009.781699&cid=C029F9AN8LX
+/// https://spaceshard.slack.com/archives/C029F9AN8LX/p1739259794326519?thread_ts=1738840494.497479&cid=C029F9AN8LX
 pub(crate) fn custom_bouncer_config() -> BouncerConfig {
-    BouncerConfig::default()
+    BouncerConfig {
+        block_max_capacity: BouncerWeights {
+            n_steps: 40_000_000,
+            l1_gas: 4_950_000,
+            sierra_gas: starknet_api::execution_resources::GasAmount(250_000_000),
+            state_diff_size: 4_000,
+            n_events: 5_000,
+            builtin_count: BuiltinCount {
+                pedersen: 1_250_000,
+                poseidon: 1_250_000,
+                range_check: 250_000,
+                range_check96: 250_000,
+                add_mod: 250_000,
+                mul_mod: 250_000,
+                ecdsa: 19_531,
+                bitwise: 625_000,
+                ec_op: 39_062,
+                keccak: 19_531,
+            },
+            ..BouncerWeights::max()
+        },
+    }
 }
 
 /// Returns the hash of a compiled class.
