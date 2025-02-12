@@ -112,7 +112,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         resp_no_flags["fee_estimation"]["data_gas_price"],
         to_hex_felt(&DEVNET_DEFAULT_GAS_PRICE)
     );
-    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x7398c659d800");
+    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x73b00ed0c000");
 
     let params_skip_validation_and_fee_charge = get_params(&["SKIP_VALIDATE", "SKIP_FEE_CHARGE"]);
     let resp_skip_validation = &devnet
@@ -161,7 +161,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
 
     assert_eq!(resp_no_flags["fee_estimation"]["gas_price"], to_hex_felt(&wei_price));
     assert_eq!(resp_no_flags["fee_estimation"]["data_gas_price"], to_hex_felt(&wei_price_data));
-    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x261b37abed7125c0000");
+    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x26230612b27f4e00000");
 
     let resp_skip_validation = &devnet
         .send_custom_rpc("starknet_simulateTransactions", params_skip_validation_and_fee_charge)

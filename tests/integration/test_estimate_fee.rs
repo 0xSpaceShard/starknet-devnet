@@ -407,11 +407,7 @@ async fn message_available_if_estimation_reverts() {
                 execution_error,
                 ..
             }),
-        )) => {
-            // TODO temporarily replace assert_contains(&execution_error, panic_reason)
-            assert_contains(&execution_error, "0x526573756c743a3a756e77726170206661696c65642e");
-            assert_contains(&execution_error, "('Result::unwrap failed.')");
-        }
+        )) => assert_contains(&execution_error, panic_reason),
         other => panic!("Invalid err: {other:?}"),
     };
 }
@@ -653,9 +649,7 @@ async fn estimate_fee_of_declare_and_deploy_via_udc_returns_index_of_second_tran
             TransactionExecutionErrorData { transaction_index, execution_error },
         )) => {
             assert_eq!(transaction_index, 1);
-            // TODO temporarily replace assert_contains(&execution_error, "not found in contract")
-            assert_contains(&execution_error, "0x526573756c743a3a756e77726170206661696c65642e");
-            assert_contains(&execution_error, "('Result::unwrap failed.')");
+            assert_contains(&execution_error, "ENTRYPOINT_NOT_FOUND")
         }
         other => panic!("Unexpected error: {:?}", other),
     }
