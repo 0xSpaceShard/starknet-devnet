@@ -32,9 +32,7 @@ pub const CAIRO_1_ERC20_CONTRACT: &str = include_str!(concat!(
     "/contracts/system_artifacts/ERC20_Mintable_OZ_0.20.0.sierra"
 ));
 
-/// ERC20 class hash is hardcoded to be the same as OZ class hash ERC20.cairo although it should be
-/// different, due to commented key attributes in struct Approval (owner and spender), and add of
-/// mintable feature: https://docs.openzeppelin.com/contracts-cairo/0.20.0/presets
+/// Unlike in previous Devnet versions, now using the actual hash of the predeployed artifact
 pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: Felt =
     Felt::from_hex_unchecked("0x011374319a6e07b4f2738fa3bfa8cf2181bfb0dbb4d800215baa87b83a57877e");
 
