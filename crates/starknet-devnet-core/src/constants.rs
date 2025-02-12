@@ -36,7 +36,7 @@ pub const CAIRO_1_ERC20_CONTRACT: &str = include_str!(concat!(
 /// different, due to commented key attributes in struct Approval (owner and spender), and add of
 /// mintable feature: https://docs.openzeppelin.com/contracts-cairo/0.20.0/presets
 pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: Felt =
-    Felt::from_hex_unchecked("0x046ded64ae2dead6448e247234bab192a9c483644395b66f2155f2614e5804b0");
+    Felt::from_hex_unchecked("0x011374319a6e07b4f2738fa3bfa8cf2181bfb0dbb4d800215baa87b83a57877e");
 
 /// only used in tests; if artifact needed in production, add a new constant that uses include_str!
 pub const CAIRO_0_ERC20_CONTRACT_PATH: &str =
