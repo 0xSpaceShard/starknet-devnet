@@ -34,7 +34,7 @@ To interact with Devnet using the [Starknet API](#starknet-api), use [starknet.j
 
 ## Config API
 
-To retrieve the current configuration of Devnet, as specified via [CLI](running/cli.md) and later requests, send a `GET` request to `/config` or `JSON-RPC` request with method name `devnet_getConfig`. Example response is attached below. It can be interpreted as a JSON mapping of CLI input parameters, both specified and default ones, with some irrelevant parameters omitted. So use `starknet-devnet --help` to better understand the meaning of each value, though keep in mind that some of the parameters have slightly modified names.
+To retrieve the current configuration of Devnet, as specified via [CLI](running/cli.md) and later requests, send a `GET` request to `/config` or `JSON-RPC` request with method name `devnet_getConfig`. Example response is attached below. It can be interpreted as a JSON mapping of CLI input parameters, both specified and default ones, with some irrelevant parameters omitted. So use `starknet-devnet --help` to better understand the meaning of each value, though keep in mind that some of the parameters have slightly modified names. The exact values may have changed and should not be referenced.
 
 ```json
 {
