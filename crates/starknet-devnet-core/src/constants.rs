@@ -16,16 +16,16 @@ pub const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
 /// only used in tests; if artifact needed in production, use CAIRO_1_ACCOUNT_CONTRACT_SIERRA
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/contracts/accounts_artifacts/OpenZeppelin/0.8.1/Account.cairo/Account.sierra"
+    "/contracts/accounts_artifacts/OpenZeppelin/0.20.0/Account.cairo/Account.sierra"
 );
 
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/contracts/accounts_artifacts/OpenZeppelin/0.8.1/Account.cairo/Account.sierra"
+    "/contracts/accounts_artifacts/OpenZeppelin/0.20.0/Account.cairo/Account.sierra"
 ));
 
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
-    "0x061dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f";
+    "0x044cab2e6a3a7bc516425d06d76c6ffd56ae308864dbc66f8e75028e3784aa29";
 
 pub const CAIRO_1_ERC20_CONTRACT: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
