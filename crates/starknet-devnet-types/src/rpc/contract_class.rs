@@ -1,5 +1,4 @@
 use core::fmt::Debug;
-use std::cmp::{Eq, PartialEq};
 
 use blockifier::execution::contract_class::ClassInfo;
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
@@ -22,7 +21,8 @@ pub use deprecated::json_contract_class::Cairo0Json;
 pub use deprecated::rpc_contract_class::DeprecatedContractClass;
 pub use deprecated::Cairo0ContractClass;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "testing", derive(Eq, PartialEq))]
 pub enum ContractClass {
     Cairo0(Cairo0ContractClass),
     Cairo1(SierraContractClass),
@@ -272,7 +272,7 @@ pub fn compute_sierra_class_hash(contract_class: &SierraContractClass) -> Devnet
 
     // to match SierraClass struct, the field sierra_program_debug_info dont have to be
     // Option::None, because during serialization it gets converted to null
-    // and the next deserialzation to SierraClass will fail, because it expects this key to have
+    // and the next deserialization to SierraClass will fail, because it expects this key to have
     // some value
     if contract_class.sierra_program_debug_info.is_none() {
         contract_class_json_value["sierra_program_debug_info"] =

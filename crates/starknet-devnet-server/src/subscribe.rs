@@ -15,11 +15,49 @@ use starknet_types::rpc::transactions::{TransactionStatus, TransactionWithHash};
 use tokio::sync::Mutex;
 
 use crate::api::json_rpc::error::ApiError;
+use crate::api::json_rpc::models::SubscriptionId;
 use crate::rpc_core::request::Id;
 
 pub type SocketId = u64;
 
-type SubscriptionId = i64;
+#[derive(Default)]
+pub struct SocketCollection {
+    sockets: HashMap<SocketId, SocketContext>,
+}
+
+impl SocketCollection {
+    pub fn get_mut(&mut self, socket_id: &SocketId) -> Result<&mut SocketContext, ApiError> {
+        self.sockets.get_mut(socket_id).ok_or(ApiError::StarknetDevnetError(
+            starknet_core::error::Error::UnexpectedInternalError {
+                msg: format!("Unregistered socket ID: {socket_id}"),
+            },
+        ))
+    }
+
+    /// Assigns a random socket ID to the socket whose `socket_writer` is provided. Returns the ID.
+    pub fn insert(&mut self, socket_writer: Arc<Mutex<SplitSink<WebSocket, Message>>>) -> SocketId {
+        let socket_id = rand::random();
+        self.sockets.insert(socket_id, SocketContext::from_sender(socket_writer));
+        socket_id
+    }
+
+    pub fn remove(&mut self, socket_id: &SocketId) {
+        self.sockets.remove(socket_id);
+    }
+
+    pub async fn notify_subscribers(&self, notifications: &[NotificationData]) {
+        for (_, socket_context) in self.sockets.iter() {
+            for notification in notifications {
+                socket_context.notify_subscribers(notification).await;
+            }
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.sockets.clear();
+        tracing::info!("Websocket memory cleared. No subscribers.");
+    }
+}
 
 #[derive(Debug)]
 pub struct AddressFilter {

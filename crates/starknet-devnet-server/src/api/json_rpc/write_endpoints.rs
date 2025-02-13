@@ -169,7 +169,6 @@ impl JsonRpcHandler {
         self.api.starknet.lock().await.restart(restart_params.restart_l1_to_l2_messaging)?;
 
         self.api.sockets.lock().await.clear();
-        tracing::info!("Websocket memory cleared. No subscribers.");
 
         Ok(super::JsonRpcResponse::Empty)
     }

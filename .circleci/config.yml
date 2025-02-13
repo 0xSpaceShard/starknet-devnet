@@ -60,8 +60,9 @@ jobs:
           name: Verify lockfile
           command: cargo update -w --locked
       - run:
-          name: Build
-          command: cargo build --release
+          # Despite later running cargo build --release, this step is executed on all targets, so might discover testing code issues
+          name: Check
+          command: cargo check --workspace --all-targets
       - run:
           name: Clippy check
           command: ./scripts/clippy_check.sh
@@ -72,18 +73,17 @@ jobs:
           name: Code spell check
           command: ./scripts/check_spelling.sh
       - run:
+          name: Build in release mode (for BackgroundDevnet)
+          command: cargo build --release
+      - run:
           name: Save cache
           command: .circleci/scripts/cache.sh save
       - run:
           name: Cleanup old cache
           command: .circleci/scripts/cache.sh cleanup
       - run:
-          name: Unit tests
-          command: cargo test --lib --bins --no-fail-fast
-      - run:
-          name: Integration tests
-          # fails if jobs not limited; read more in https://github.com/0xSpaceShard/starknet-devnet-rs/issues/378
-          command: cargo test --jobs 9 --test '*' --no-fail-fast
+          name: Test
+          command: RUST_BACKTRACE=full cargo test --no-fail-fast
 
   binary-build:
     parameters:

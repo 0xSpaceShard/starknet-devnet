@@ -18,8 +18,8 @@ use futures::{SinkExt, StreamExt};
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     ClassHashInput, EstimateFeeInput, EventsInput, EventsSubscriptionInput, GetStorageInput,
-    L1TransactionHashInput, PendingTransactionsSubscriptionInput, SubscriptionIdInput,
-    TransactionBlockInput, TransactionHashInput, TransactionHashOutput,
+    GetStorageProofInput, L1TransactionHashInput, PendingTransactionsSubscriptionInput,
+    SubscriptionIdInput, TransactionBlockInput, TransactionHashInput, TransactionHashOutput,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -73,8 +73,8 @@ use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
 use crate::subscribe::{
-    NewTransactionStatus, NotificationData, PendingTransactionNotification, SocketContext,
-    SocketId, TransactionHashWrapper,
+    NewTransactionStatus, NotificationData, PendingTransactionNotification, SocketId,
+    TransactionHashWrapper,
 };
 use crate::ServerConfig;
 
@@ -119,6 +119,39 @@ pub struct JsonRpcHandler {
     pub server_config: ServerConfig,
 }
 
+fn log_if_deprecated_tx(request: &JsonRpcRequest) {
+    let is_deprecated_tx = match request {
+        JsonRpcRequest::AddDeclareTransaction(BroadcastedDeclareTransactionInput {
+            declare_transaction: BroadcastedDeclareTransactionEnumWrapper::Declare(tx),
+        }) => match tx {
+            starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V1(_) => true,
+            starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V2(_) => true,
+            starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V3(_) => false,
+        },
+        JsonRpcRequest::AddDeployAccountTransaction(BroadcastedDeployAccountTransactionInput {
+            deploy_account_transaction:
+                BroadcastedDeployAccountTransactionEnumWrapper::DeployAccount(tx),
+        }) => match tx {
+            starknet_types::rpc::transactions::BroadcastedDeployAccountTransaction::V1(_) => true,
+            starknet_types::rpc::transactions::BroadcastedDeployAccountTransaction::V3(_) => false,
+        },
+        JsonRpcRequest::AddInvokeTransaction(BroadcastedInvokeTransactionInput {
+            invoke_transaction: BroadcastedInvokeTransactionEnumWrapper::Invoke(tx),
+        }) => match tx {
+            starknet_types::rpc::transactions::BroadcastedInvokeTransaction::V1(_) => true,
+            starknet_types::rpc::transactions::BroadcastedInvokeTransaction::V3(_) => false,
+        },
+        _ => false,
+    };
+
+    if is_deprecated_tx {
+        tracing::warn!(
+            "Received a transaction of a deprecated version! Please modify or upgrade your \
+             Starknet client to use v3 transactions."
+        );
+    }
+}
+
 #[async_trait::async_trait]
 impl RpcHandler for JsonRpcHandler {
     type Request = JsonRpcRequest;
@@ -129,6 +162,7 @@ impl RpcHandler for JsonRpcHandler {
         original_call: RpcMethodCall,
     ) -> ResponseResult {
         info!(target: "rpc", "received method in on_request {}", request);
+        log_if_deprecated_tx(&request);
 
         let is_request_forwardable = request.is_forwardable_to_origin(); // applicable if forking
         let is_request_dumpable = request.is_dumpable();
@@ -191,12 +225,7 @@ impl RpcHandler for JsonRpcHandler {
         let (socket_writer, mut socket_reader) = socket.split();
         let socket_writer = Arc::new(Mutex::new(socket_writer));
 
-        let socket_id = rand::random();
-        self.api
-            .sockets
-            .lock()
-            .await
-            .insert(socket_id, SocketContext::from_sender(socket_writer.clone()));
+        let socket_id = self.api.sockets.lock().await.insert(socket_writer.clone());
 
         // listen to new messages coming through the socket
         let mut socket_safely_closed = false;
@@ -301,12 +330,7 @@ impl JsonRpcHandler {
             let notifications =
                 [tx_status_notification, pending_tx_notification, pending_tx_hash_notification];
 
-            let sockets = self.api.sockets.lock().await;
-            for (_, socket_context) in sockets.iter() {
-                for notification in &notifications {
-                    socket_context.notify_subscribers(notification).await;
-                }
-            }
+            self.api.sockets.lock().await.notify_subscribers(&notifications).await;
         }
 
         Ok(())
@@ -363,13 +387,7 @@ impl JsonRpcHandler {
             }
         }
 
-        let sockets = self.api.sockets.lock().await;
-        for (_, socket_context) in sockets.iter() {
-            for notification in &notifications {
-                socket_context.notify_subscribers(notification).await;
-            }
-        }
-
+        self.api.sockets.lock().await.notify_subscribers(&notifications).await;
         Ok(())
     }
 
@@ -429,11 +447,7 @@ impl JsonRpcHandler {
             ending_block_number: old_latest_block.block_number(),
         });
 
-        let sockets = self.api.sockets.lock().await;
-        for (_, socket_context) in sockets.iter() {
-            socket_context.notify_subscribers(&notification).await;
-        }
-
+        self.api.sockets.lock().await.notify_subscribers(&[notification]).await;
         Ok(())
     }
 
@@ -568,6 +582,7 @@ impl JsonRpcHandler {
             JsonRpcRequest::Mint(data) => self.mint(data).await,
             JsonRpcRequest::DevnetConfig => self.get_devnet_config().await,
             JsonRpcRequest::MessagesStatusByL1Hash(data) => self.get_messages_status(data).await,
+            JsonRpcRequest::StorageProof(data) => self.get_storage_proof(data).await,
         }
     }
 
@@ -666,6 +681,8 @@ pub enum JsonRpcRequest {
     StateUpdate(BlockIdInput),
     #[serde(rename = "starknet_getStorageAt")]
     StorageAt(GetStorageInput),
+    #[serde(rename = "starknet_getStorageProof")]
+    StorageProof(GetStorageProofInput),
     #[serde(rename = "starknet_getTransactionByHash")]
     TransactionByHash(TransactionHashInput),
     #[serde(rename = "starknet_getTransactionByBlockIdAndIndex")]
@@ -812,6 +829,7 @@ impl JsonRpcRequest {
             | Self::Restart(_)
             | Self::PredeployedAccounts(_)
             | Self::AccountBalance(_)
+            | Self::StorageProof(_)
             | Self::DevnetConfig => false,
         }
     }
@@ -844,6 +862,7 @@ impl JsonRpcRequest {
             | Self::TraceTransaction(_)
             | Self::MessagesStatusByL1Hash(_)
             | Self::CompiledCasmByClassHash(_)
+            | Self::StorageProof(_)
             | Self::BlockTransactionTraces(_) => true,
             Self::SpecVersion
             | Self::ChainId
@@ -928,6 +947,7 @@ impl JsonRpcRequest {
             | Self::AccountBalance(_)
             | Self::MessagesStatusByL1Hash(_)
             | Self::CompiledCasmByClassHash(_)
+            | Self::StorageProof(_)
             | Self::DevnetConfig => false,
         }
     }
@@ -1030,6 +1050,7 @@ pub enum StarknetResponse {
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
     MessagesStatusByL1Hash(Vec<L1HandlerTransactionStatus>),
+    StorageProofs(serde_json::Value), // dummy, the corresponding RPC method always errors
 }
 
 #[derive(Serialize)]
@@ -1135,15 +1156,13 @@ mod requests_tests {
         // Errored json, hash is not prefixed with 0x
         assert_deserialization_fails(
             r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"134134"}}"#,
-            "Expected hex string to be prefixed by '0x'",
+            "expected hex string to be prefixed by '0x'",
         );
-        // TODO: ignored because of a Felt bug: https://github.com/starknet-io/types-rs/issues/81
-        // Errored json, hex is longer than 64 chars
-        // assert_deserialization_fails(
-        //     r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"
-        // 0x004134134134134134134134134134134134134134134134134134134134134134"}}"#,
-        //     "Bad input - expected #bytes: 32",
-        // );
+        // Errored json, hex longer than 64 chars; misleading error message coming from dependency
+        assert_deserialization_fails(
+            r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"0x004134134134134134134134134134134134134134134134134134134134134134"}}"#,
+            "expected hex string to be prefixed by '0x'",
+        );
     }
 
     #[test]
@@ -1164,7 +1183,7 @@ mod requests_tests {
 
         assert_deserialization_fails(
             json_str.replace("0x", "").as_str(),
-            "Expected hex string to be prefixed by '0x'",
+            "expected hex string to be prefixed by '0x'",
         );
     }
 
@@ -1175,7 +1194,7 @@ mod requests_tests {
 
         assert_deserialization_fails(
             json_str.replace("0x", "").as_str(),
-            "Expected hex string to be prefixed by '0x'",
+            "expected hex string to be prefixed by '0x'",
         );
     }
 
@@ -1244,11 +1263,11 @@ mod requests_tests {
                     r#""entry_point_selector":"134134""#,
                 )
                 .as_str(),
-            "Expected hex string to be prefixed by '0x'",
+            "expected hex string to be prefixed by '0x'",
         );
         assert_deserialization_fails(
             json_str.replace(r#""calldata":["0x134134"]"#, r#""calldata":["123"]"#).as_str(),
-            "Expected hex string to be prefixed by '0x'",
+            "expected hex string to be prefixed by '0x'",
         );
         assert_deserialization_fails(
             json_str.replace(r#""calldata":["0x134134"]"#, r#""calldata":[123]"#).as_str(),
@@ -1680,8 +1699,7 @@ mod response_tests {
     use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
-    fn serializing_starknet_response_empty_variant_has_to_produce_empty_json_object_when_converted_to_rpc_result()
-     {
+    fn serializing_starknet_response_empty_variant_yields_empty_json_on_conversion_to_rpc_result() {
         assert_eq!(
             r#"{"result":{}}"#,
             serde_json::to_string(

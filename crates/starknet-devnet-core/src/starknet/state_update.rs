@@ -1,8 +1,8 @@
 use starknet_rs_core::types::BlockId;
+use starknet_types::rpc::state::StateUpdate;
 
 use super::Starknet;
 use crate::error::DevnetResult;
-use crate::state::state_update::StateUpdate;
 
 pub fn state_update_by_block_id(
     starknet: &Starknet,
@@ -12,22 +12,22 @@ pub fn state_update_by_block_id(
     let state_diff =
         starknet.blocks.hash_to_state_diff.get(&block.block_hash()).cloned().unwrap_or_default();
 
-    Ok(StateUpdate::new(block.block_hash(), state_diff))
+    Ok(StateUpdate::new(block.block_hash(), state_diff.into()))
 }
 
 #[cfg(test)]
 mod tests {
-
     use starknet_api::transaction::Fee;
-    use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::types::{
+        BlockId, BlockTag, Felt, TransactionExecutionStatus, TransactionFinalityStatus,
+    };
     use starknet_types::compile_sierra_contract;
     use starknet_types::contract_class::ContractClass;
-    use starknet_types::rpc::state::ThinStateDiff;
+    use starknet_types::rpc::state::{ClassHashPair, ContractNonce, ThinStateDiff};
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::traits::HashProducer;
 
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
-    use crate::state::state_diff::StateDiff;
     use crate::traits::HashIdentifiedMut;
     use crate::utils::test_utils::dummy_cairo_1_contract_class;
 
@@ -63,25 +63,19 @@ mod tests {
         assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
-        let state_update = starknet
-            .block_state_update(&starknet_rs_core::types::BlockId::Tag(
-                starknet_rs_core::types::BlockTag::Latest,
-            ))
-            .unwrap();
-        let state_diff = state_update.get_state_diff();
+        let state_update = starknet.block_state_update(&BlockId::Tag(BlockTag::Latest)).unwrap();
+        let mut state_diff = state_update.get_state_diff().clone();
+        state_diff.storage_diffs.clear(); // too complicated to compare
 
-        let expected_state_diff: ThinStateDiff = StateDiff {
-            declared_contracts: vec![compiled_class_hash],
-            class_hash_to_compiled_class_hash: vec![(sierra_class_hash, compiled_class_hash)]
-                .into_iter()
-                .collect(),
+        let expected_state_diff = ThinStateDiff {
+            declared_classes: vec![ClassHashPair {
+                class_hash: sierra_class_hash,
+                compiled_class_hash,
+            }],
+            nonces: vec![ContractNonce { contract_address: acc.account_address, nonce: Felt::ONE }],
             ..Default::default()
-        }
-        .into();
+        };
 
-        let class_diff = (state_diff.deprecated_declared_classes, state_diff.declared_classes);
-        let expected_class_diff =
-            (expected_state_diff.deprecated_declared_classes, expected_state_diff.declared_classes);
-        assert_eq!(class_diff, expected_class_diff);
+        assert_eq!(expected_state_diff, state_diff);
     }
 }

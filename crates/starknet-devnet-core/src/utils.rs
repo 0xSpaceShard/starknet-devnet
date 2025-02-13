@@ -1,5 +1,5 @@
 use blockifier::bouncer::{BouncerConfig, BouncerWeights, BuiltinCount};
-use blockifier::versioned_constants::VersionedConstants;
+use blockifier::versioned_constants::{StarknetVersion, VersionedConstants};
 use starknet_rs_core::types::Felt;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
@@ -38,7 +38,7 @@ pub(crate) fn get_storage_var_address(
 }
 
 pub(crate) fn get_versioned_constants() -> VersionedConstants {
-    VersionedConstants::create_for_testing()
+    VersionedConstants::get(StarknetVersion::V0_13_2).clone()
 }
 
 /// Values not present here: https://docs.starknet.io/tools/limits-and-triggers/

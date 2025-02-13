@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use starknet_api::transaction::Fee;
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_core::types::Felt;
@@ -11,7 +11,7 @@ use crate::felt::{ClassHash, Nonce, TransactionSignature, TransactionVersion};
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 use crate::traits::HashProducer;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedDeclareTransactionV1 {
     #[serde(flatten)]

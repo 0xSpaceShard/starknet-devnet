@@ -1,6 +1,6 @@
 [package]
 name = "starknet-devnet"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 repository.workspace = true
 license-file.workspace = true
@@ -13,6 +13,9 @@ description.workspace = true
 [[bin]]
 name = "starknet-devnet"
 path = "src/main.rs"
+
+[lints]
+workspace = true
 
 [dependencies]
 # devnet
@@ -39,24 +42,4 @@ starknet-rs-providers = { workspace = true }
 reqwest = { workspace = true }
 
 [dev-dependencies]
-async-trait = { workspace = true }
-thiserror = { workspace = true }
-ethers = { workspace = true }
-lazy_static = { workspace = true }
-starknet-rs-contract = { workspace = true }
-server = { workspace = true, features = ["test_utils"] }
-starknet-core = { workspace = true, features = ["test_utils"] }
-starknet-rs-signers = { workspace = true }
-starknet-rs-core = { workspace = true }
-starknet-rs-accounts = { workspace = true }
-axum = { workspace = true }
-usc = { workspace = true }
-criterion = { workspace = true }
 serial_test = { workspace = true }
-tokio-tungstenite = { workspace = true }
-
-
-[[bench]]
-name = "mint_bench"
-harness = false
-path = "benches/mint_bench.rs"

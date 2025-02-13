@@ -6,7 +6,7 @@ use starknet_rs_core::types::{EthAddress, Felt};
 use crate::error::{DevnetResult, Error};
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct EthAddressWrapper {
     pub inner: EthAddress,
 }

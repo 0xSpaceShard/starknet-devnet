@@ -18,7 +18,6 @@ use crate::starknet::defaulter::StarknetDefaulter;
 
 pub(crate) mod state_diff;
 pub(crate) mod state_readers;
-pub mod state_update;
 
 pub enum BlockNumberOrPending {
     Pending,

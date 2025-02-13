@@ -189,7 +189,8 @@ impl StarknetBlocks {
     }
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct StarknetBlock {
     pub(crate) header: BlockHeader,
     transaction_hashes: Vec<TransactionHash>,

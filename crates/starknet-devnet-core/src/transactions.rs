@@ -1,9 +1,8 @@
 use blockifier::execution::call_info::CallInfo;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
-use starknet_rs_core::types::{ExecutionResult, Felt, TransactionFinalityStatus};
+use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{Event, OrderedEvent};
@@ -22,7 +21,7 @@ use crate::constants::UDC_CONTRACT_ADDRESS;
 use crate::error::{DevnetResult, Error};
 use crate::traits::{HashIdentified, HashIdentifiedMut};
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct StarknetTransactions(IndexMap<TransactionHash, StarknetTransaction>);
 
 impl StarknetTransactions {
@@ -32,10 +31,6 @@ impl StarknetTransactions {
 
     pub fn get(&self, transaction_hash: &TransactionHash) -> Option<&StarknetTransaction> {
         self.0.get(transaction_hash)
-    }
-
-    pub fn iter(&self) -> indexmap::map::Iter<'_, Felt, StarknetTransaction> {
-        self.0.iter()
     }
 }
 
@@ -56,16 +51,14 @@ impl HashIdentified for StarknetTransactions {
 }
 
 #[allow(unused)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct StarknetTransaction {
     pub inner: TransactionWithHash,
     pub(crate) finality_status: TransactionFinalityStatus,
     pub(crate) execution_result: ExecutionResult,
     pub(crate) block_hash: Option<BlockHash>,
     pub(crate) block_number: Option<BlockNumber>,
-    #[serde(skip)]
     pub(crate) execution_info: TransactionExecutionInfo,
-    #[serde(skip)]
     pub(crate) trace: Option<TransactionTrace>,
 }
 
@@ -287,6 +280,7 @@ impl StarknetTransaction {
 
 #[cfg(test)]
 mod tests {
+    use blockifier::state::cached_state::CachedState;
     use blockifier::transaction::objects::TransactionExecutionInfo;
     use blockifier::versioned_constants;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
@@ -294,12 +288,13 @@ mod tests {
 
     use super::{StarknetTransaction, StarknetTransactions};
     use crate::starknet::transaction_trace::create_trace;
+    use crate::state::state_readers::DictState;
     use crate::traits::HashIdentifiedMut;
     use crate::utils::test_utils::dummy_declare_transaction_v1;
 
     fn dummy_trace(tx: &TransactionWithHash) -> TransactionTrace {
         create_trace(
-            &mut Default::default(),
+            &mut CachedState::<DictState>::new(Default::default()),
             tx.get_type(),
             &Default::default(),
             Default::default(),

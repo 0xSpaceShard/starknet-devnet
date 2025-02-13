@@ -1,11 +1,11 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use starknet_api::transaction::Fee;
 
 use crate::contract_address::ContractAddress;
 use crate::felt::{Calldata, Nonce, TransactionSignature, TransactionVersion};
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedInvokeTransactionV1 {
     #[serde(flatten)]

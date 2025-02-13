@@ -1,6 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
 use starknet_rs_core::types::BlockTag;
+
 pub fn deploy_account_str() -> String {
     std::fs::read_to_string(concat!(
         env!("CARGO_MANIFEST_DIR"),

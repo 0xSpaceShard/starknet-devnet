@@ -326,11 +326,21 @@ impl Starknet {
     /// Generates new pending block. Same for pending state. Returns the new block hash.
     pub(crate) fn generate_new_block_and_state(&mut self) -> DevnetResult<Felt> {
         let mut new_block = self.pending_block().clone();
-        let new_block_number = self.blocks.next_block_number();
 
-        // set new block header
+        // Set new block header
+        // TODO why not store the whole next block header instead of storing separate properties?
+        new_block.header.l1_gas_price.price_in_fri =
+            GasPrice(self.next_block_gas.gas_price_fri.into());
+        new_block.header.l1_gas_price.price_in_wei =
+            GasPrice(self.next_block_gas.gas_price_wei.into());
+        new_block.header.l1_data_gas_price.price_in_fri =
+            GasPrice(self.next_block_gas.data_gas_price_fri.into());
+        new_block.header.l1_data_gas_price.price_in_wei =
+            GasPrice(self.next_block_gas.data_gas_price_wei.into());
+
+        let new_block_number = self.blocks.next_block_number();
         new_block.set_block_hash(if self.config.lite_mode {
-            BlockHash::from_hex(&format!("{:#x}", new_block_number.0))?
+            BlockHash::from(new_block_number.0)
         } else {
             new_block.generate_hash()?
         });
@@ -398,7 +408,7 @@ impl Starknet {
             &mut self.pending_state.state,
             transaction.get_type(),
             &tx_info,
-            state_diff.clone().into(),
+            state_diff.into(),
             self.block_context.versioned_constants(),
         )?;
         let transaction_to_add = StarknetTransaction::create_accepted(&transaction, tx_info, trace);
@@ -775,20 +785,19 @@ impl Starknet {
 
     pub fn block_state_update(&self, block_id: &BlockId) -> DevnetResult<StateUpdateResult> {
         let state_update = state_update::state_update_by_block_id(self, block_id)?;
-        let state_diff = state_update.state_diff.into();
 
         // StateUpdate needs to be mapped to PendingStateUpdate when block_id is pending
         if block_id == &BlockId::Tag(BlockTag::Pending) {
             Ok(StateUpdateResult::PendingStateUpdate(PendingStateUpdate {
                 old_root: state_update.old_root,
-                state_diff,
+                state_diff: state_update.state_diff,
             }))
         } else {
             Ok(StateUpdateResult::StateUpdate(StateUpdate {
                 block_hash: state_update.block_hash,
                 new_root: state_update.new_root,
                 old_root: state_update.old_root,
-                state_diff,
+                state_diff: state_update.state_diff,
             }))
         }
     }

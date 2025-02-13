@@ -51,7 +51,7 @@ impl From<RpcError> for ResponseResult {
     }
 }
 /// Synchronous response
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(deny_unknown_fields)]
 #[serde(untagged)]
 pub enum Response {
