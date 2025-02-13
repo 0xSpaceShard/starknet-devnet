@@ -485,9 +485,13 @@ async fn blocks_on_interval() {
 
 #[tokio::test]
 async fn blocks_on_interval_transactions() {
-    let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "2"])
-        .await
-        .expect("Could not start Devnet");
+    let period = 6;
+    let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+        "--block-generation-on",
+        &period.to_string(),
+    ])
+    .await
+    .expect("Could not start Devnet");
 
     let tx_count = 3;
     let mut tx_hashes = Vec::new();
@@ -497,7 +501,7 @@ async fn blocks_on_interval_transactions() {
     }
 
     // wait for one and a half interval
-    tokio::time::sleep(time::Duration::from_secs(3)).await;
+    tokio::time::sleep(time::Duration::from_secs(period * 3 / 2)).await;
 
     // first is genesis block, second block is generated after transactions
     assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await;

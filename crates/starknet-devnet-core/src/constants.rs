@@ -16,34 +16,29 @@ pub const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
 /// only used in tests; if artifact needed in production, use CAIRO_1_ACCOUNT_CONTRACT_SIERRA
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/contracts/accounts_artifacts/OpenZeppelin/0.8.1/Account.cairo/Account.sierra"
+    "/contracts/accounts_artifacts/OpenZeppelin/0.20.0/Account.cairo/Account.sierra"
 );
 
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/contracts/accounts_artifacts/OpenZeppelin/0.8.1/Account.cairo/Account.sierra"
+    "/contracts/accounts_artifacts/OpenZeppelin/0.20.0/Account.cairo/Account.sierra"
 ));
 
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
-    "0x061dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f";
+    "0x044cab2e6a3a7bc516425d06d76c6ffd56ae308864dbc66f8e75028e3784aa29";
 
 pub const CAIRO_1_ERC20_CONTRACT: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/contracts/system_artifacts/ERC20_Mintable_OZ_0.8.1.sierra"
+    "/contracts/system_artifacts/ERC20_Mintable_OZ_0.20.0.sierra"
 ));
 
-/// ERC20 class hash is hardcoded to be the same as OZ class hash ERC20.cairo although it should be
-/// different, due to commented key attributes in struct Approval (owner and spender), and add of
-/// mintable feature: https://docs.openzeppelin.com/contracts-cairo/0.8.1/presets
+/// Unlike in previous Devnet versions, now using the actual hash of the predeployed artifact
 pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: Felt =
-    Felt::from_hex_unchecked("0x046ded64ae2dead6448e247234bab192a9c483644395b66f2155f2614e5804b0");
+    Felt::from_hex_unchecked("0x011374319a6e07b4f2738fa3bfa8cf2181bfb0dbb4d800215baa87b83a57877e");
 
 /// only used in tests; if artifact needed in production, add a new constant that uses include_str!
 pub const CAIRO_0_ERC20_CONTRACT_PATH: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/contracts/system_artifacts/ERC20_Mintable_OZ_0.2.0.json");
-
-pub const CAIRO_0_ERC20_CONTRACT_CLASS_HASH: &str =
-    "0x6A22BF63C7BC07EFFA39A25DFBD21523D211DB0100A0AFD054D172B81840EAF";
 
 pub const ETH_ERC20_CONTRACT_ADDRESS: Felt =
     Felt::from_hex_unchecked("0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7");
