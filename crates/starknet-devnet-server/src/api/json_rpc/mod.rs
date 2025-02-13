@@ -7,7 +7,7 @@ pub(crate) mod origin_forwarder;
 mod spec_reader;
 mod write_endpoints;
 
-pub const RPC_SPEC_VERSION: &str = "0.7.1";
+pub const RPC_SPEC_VERSION: &str = "0.8.0-rc.2";
 
 use std::sync::Arc;
 
@@ -17,9 +17,9 @@ use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
-    EstimateFeeInput, EventsInput, EventsSubscriptionInput, GetStorageInput, GetStorageProofInput,
-    L1TransactionHashInput, PendingTransactionsSubscriptionInput, SubscriptionIdInput,
-    TransactionBlockInput, TransactionHashInput, TransactionHashOutput,
+    ClassHashInput, EstimateFeeInput, EventsInput, EventsSubscriptionInput, GetStorageInput,
+    GetStorageProofInput, L1TransactionHashInput, PendingTransactionsSubscriptionInput,
+    SubscriptionIdInput, TransactionBlockInput, TransactionHashInput, TransactionHashOutput,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -73,7 +73,7 @@ use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
 use crate::subscribe::{
-    NewTransactionStatus, PendingTransactionNotification, SocketId, SubscriptionNotification,
+    NewTransactionStatus, NotificationData, PendingTransactionNotification, SocketId,
     TransactionHashWrapper,
 };
 use crate::ServerConfig;
@@ -307,7 +307,7 @@ impl JsonRpcHandler {
                 .get_transaction_execution_and_finality_status(*new_tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
             let tx_status_notification =
-                SubscriptionNotification::TransactionStatus(NewTransactionStatus {
+                NotificationData::TransactionStatus(NewTransactionStatus {
                     transaction_hash: *new_tx_hash,
                     status,
                     origin_tag: BlockTag::Pending,
@@ -316,11 +316,11 @@ impl JsonRpcHandler {
             let tx = starknet
                 .get_transaction_by_hash(*new_tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
-            let pending_tx_notification = SubscriptionNotification::PendingTransaction(
+            let pending_tx_notification = NotificationData::PendingTransaction(
                 PendingTransactionNotification::Full(Box::new(tx.clone())),
             );
 
-            let pending_tx_hash_notification = SubscriptionNotification::PendingTransaction(
+            let pending_tx_hash_notification = NotificationData::PendingTransaction(
                 PendingTransactionNotification::Hash(TransactionHashWrapper {
                     hash: *tx.get_transaction_hash(),
                     sender_address: tx.get_sender_address(),
@@ -340,8 +340,8 @@ impl JsonRpcHandler {
         &self,
         new_latest_block: StarknetBlock,
     ) -> Result<(), error::ApiError> {
-        let block_header = Box::new((&new_latest_block).into());
-        let mut notifications = vec![SubscriptionNotification::NewHeads(block_header)];
+        let block_header = (&new_latest_block).into();
+        let mut notifications = vec![NotificationData::NewHeads(block_header)];
 
         let starknet = self.api.starknet.lock().await;
 
@@ -350,7 +350,7 @@ impl JsonRpcHandler {
                 .get_transaction_execution_and_finality_status(*tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
 
-            notifications.push(SubscriptionNotification::TransactionStatus(NewTransactionStatus {
+            notifications.push(NotificationData::TransactionStatus(NewTransactionStatus {
                 transaction_hash: *tx_hash,
                 status,
                 origin_tag: BlockTag::Latest,
@@ -364,10 +364,10 @@ impl JsonRpcHandler {
                 let tx = starknet
                     .get_transaction_by_hash(*tx_hash)
                     .map_err(error::ApiError::StarknetDevnetError)?;
-                notifications.push(SubscriptionNotification::PendingTransaction(
+                notifications.push(NotificationData::PendingTransaction(
                     PendingTransactionNotification::Full(Box::new(tx.clone())),
                 ));
-                notifications.push(SubscriptionNotification::PendingTransaction(
+                notifications.push(NotificationData::PendingTransaction(
                     PendingTransactionNotification::Hash(TransactionHashWrapper {
                         hash: *tx_hash,
                         sender_address: tx.get_sender_address(),
@@ -383,7 +383,7 @@ impl JsonRpcHandler {
             )?;
 
             for event in events {
-                notifications.push(SubscriptionNotification::Event(event));
+                notifications.push(NotificationData::Event(event));
             }
         }
 
@@ -440,7 +440,7 @@ impl JsonRpcHandler {
             orphan_starting_block_hash = parent_hash;
         }
 
-        let notification = SubscriptionNotification::Reorg(ReorgData {
+        let notification = NotificationData::Reorg(ReorgData {
             starting_block_hash: orphan_starting_block_hash,
             starting_block_number: new_latest_block.block_number().unchecked_next(),
             ending_block_hash: old_latest_block.block_hash(),
@@ -485,10 +485,9 @@ impl JsonRpcHandler {
             JsonRpcRequest::ClassByHash(BlockAndClassHashInput { block_id, class_hash }) => {
                 self.get_class(block_id, class_hash).await
             }
-            JsonRpcRequest::CompiledCasmByClassHash(BlockAndClassHashInput {
-                block_id,
-                class_hash,
-            }) => self.get_compiled_casm(block_id, class_hash).await,
+            JsonRpcRequest::CompiledCasmByClassHash(ClassHashInput { class_hash }) => {
+                self.get_compiled_casm(class_hash).await
+            }
             JsonRpcRequest::ClassHashAtContractAddress(BlockAndContractAddressInput {
                 block_id,
                 contract_address,
@@ -697,7 +696,7 @@ pub enum JsonRpcRequest {
     #[serde(rename = "starknet_getClass")]
     ClassByHash(BlockAndClassHashInput),
     #[serde(rename = "starknet_getCompiledCasm")]
-    CompiledCasmByClassHash(BlockAndClassHashInput),
+    CompiledCasmByClassHash(ClassHashInput),
     #[serde(rename = "starknet_getClassHashAt")]
     ClassHashAtContractAddress(BlockAndContractAddressInput),
     #[serde(rename = "starknet_getClassAt")]
@@ -986,7 +985,7 @@ where
         // we apply a hacky way to induce this - checking the stringified error message
         let distinctive_error = format!("unknown variant `{}`", call.method);
         if err.contains(&distinctive_error) {
-            error!(target: "rpc", method = ?call.method, "failed to deserialize method due to unknown variant");  
+            error!(target: "rpc", method = ?call.method, "failed to deserialize method due to unknown variant");
             RpcError::method_not_found()
         } else {
             error!(target: "rpc", method = ?call.method, ?err, "failed to deserialize method");

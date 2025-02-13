@@ -16,7 +16,7 @@ pub enum BlockHashOrNumber {
     Number(u64),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "testing", derive(PartialEq, Eq))]
 pub struct BlockId(pub ImportedBlockId);
 
@@ -95,6 +95,7 @@ pub struct BlockHeader {
     pub timestamp: BlockTimestamp,
     pub starknet_version: String,
     pub l1_gas_price: ResourcePrice,
+    pub l2_gas_price: ResourcePrice,
     pub l1_data_gas_price: ResourcePrice,
     pub l1_da_mode: L1DataAvailabilityMode,
 }
@@ -107,6 +108,7 @@ pub struct PendingBlockHeader {
     pub timestamp: BlockTimestamp,
     pub starknet_version: String,
     pub l1_gas_price: ResourcePrice,
+    pub l2_gas_price: ResourcePrice,
     pub l1_data_gas_price: ResourcePrice,
     pub l1_da_mode: L1DataAvailabilityMode,
 }
@@ -119,7 +121,7 @@ pub struct ResourcePrice {
     pub price_in_wei: Felt,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 /// Data about reorganized blocks, starting and ending block number and hash
 pub struct ReorgData {

@@ -1,7 +1,7 @@
 {
     "openrpc": "1.0.0",
     "info": {
-        "version": "0.8.0",
+        "version": "0.8.0-rc.2",
         "title": "API for getting Starknet executables from nodes that store compiled artifacts",
         "license": {}
     },
@@ -34,7 +34,7 @@
                     "$ref": "#/components/errors/COMPILATION_ERROR"
                 },
                 {
-                    "$ref": "#/components/errors/CLASS_HASH_NOT_FOUND"
+                    "$ref": "./api/starknet_api_openrpc.json#/components/errors/CLASS_HASH_NOT_FOUND"
                 }
             ]
         }
@@ -91,32 +91,29 @@
                     },
                     "hints": {
                         "type": "array",
+                        "description": "2-tuple of pc value and an array of hints to execute",
                         "items": {
-                            "type": "array",
-                            "description": "2-tuple of pc value and an array of hints to execute",
-                            "items": {
-                                "oneOf": [
-                                    {
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "type": "array",
-                                        "items": {
-                                            "$ref": "#/components/schemas/HINT"
-                                        }
+                            "oneOf": [
+                                {
+                                    "type": "integer"
+                                },
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/HINT"
                                     }
-                                ]
-                            },
-                            "minItems": 2,
-                            "maxItems": 2
+                                }
+                            ]
+                        },
+                        "minItems": 2,
+                        "maxItems": 2
+                    },
+                    "bytecode_segment_lengths": {
+                        "type": "array",
+                        "description": "a list of sizes of segments in the bytecode, each segment is hashed individually when computing the bytecode hash",
+                        "items": {
+                            "type": "integer"
                         }
-                    }
-                },
-                "bytecode_segment_lengths": {
-                    "type": "array",
-                    "description": "a list of sizes of segments in the bytecode, each segment is hashed invidually when computing the bytecode hash",
-                    "items": {
-                        "type": "integer"
                     }
                 },
                 "required": [
@@ -137,10 +134,14 @@
                         "properties": {
                             "builtins": {
                                 "type": "array",
-                                "items": "string"
+                                "items": {
+                                    "type": "string"
+                                }
                             }
                         },
-                        "required": "builtins"
+                        "required": [
+                            "builtins"
+                        ]
                     }
                 ]
             },
@@ -181,20 +182,16 @@
                 "properties": {
                     "DoubleDeref": {
                         "title": "DoubleDeref",
-                        "description": "A (CellRef, offsest) tuple",
-                        "type": "array",
-                        "items": {
-                            "oneOf": [
-                                {
-                                    "$ref": "#/components/schemas/CellRef"
-                                },
-                                {
-                                    "type": "integer"
-                                }
-                            ]
-                        },
-                        "minItems": 2,
-                        "maxItems": 2
+                        "description": "A (CellRef, offset) tuple",
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/CellRef"
+                            },
+                            {
+                                "type": "integer",
+                                "maximum": 32767
+                            }
+                        ]
                     }
                 },
                 "required": [
@@ -202,7 +199,7 @@
                 ]
             },
             "Immediate": {
-                "title": "Imeediate",
+                "title": "Immediate",
                 "type": "object",
                 "properties": {
                     "Immediate": {
@@ -218,32 +215,38 @@
                 "type": "object",
                 "properties": {
                     "BinOp": {
-                        "op": {
-                            "type": "string",
-                            "enum": [
-                                "Add",
-                                "Mul"
-                            ]
+                        "type": "object",
+                        "properties": {
+                            "op": {
+                                "type": "string",
+                                "enum": [
+                                    "Add",
+                                    "Mul"
+                                ]
+                            },
+                            "a": {
+                                "$ref": "#/components/schemas/CellRef"
+                            },
+                            "b": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/Deref"
+                                    },
+                                    {
+                                        "$ref": "#/components/schemas/Immediate"
+                                    }
+                                ]
+                            }
                         },
-                        "a": {
-                            "$ref": "#/components/schemas/CellRef"
-                        },
-                        "b": {
-                            "oneOf": [
-                                {
-                                    "$ref": "#/components/schemas/Deref"
-                                },
-                                {
-                                    "$ref": "#/components/schemas/Immediate"
-                                }
-                            ]
-                        }
+                        "required": [
+                            "op",
+                            "a",
+                            "b"
+                        ]
                     }
                 },
                 "required": [
-                    "BinOp",
-                    "a",
-                    "b"
+                    "BinOp"
                 ]
             },
             "ResOperand": {
@@ -885,7 +888,7 @@
                             "InitSquashData": {
                                 "type": "object",
                                 "properties": {
-                                    "dict_access": {
+                                    "dict_accesses": {
                                         "$ref": "#/components/schemas/ResOperand"
                                     },
                                     "ptr_diff": {
@@ -902,7 +905,7 @@
                                     }
                                 },
                                 "required": [
-                                    "dict_access",
+                                    "dict_accesses",
                                     "ptr_diff",
                                     "n_accesses",
                                     "big_keys",
@@ -1329,20 +1332,19 @@
                 ]
             },
             "FELT": {
-                "$ref": "./starknet_api_openrpc.json#/components/schemas/FELT"
+                "$ref": "./api/starknet_api_openrpc.json#/components/schemas/FELT"
             },
             "NUM_AS_HEX": {
-                "$ref": "./starknet_api_openrpc.json#/components/schemas/NUM_AS_HEX"
+                "$ref": "./api/starknet_api_openrpc.json#/components/schemas/NUM_AS_HEX"
             },
             "DEPRECATED_CAIRO_ENTRY_POINT": {
-                "$ref": "./starknet_api_openrpc.json#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
+                "$ref": "./api/starknet_api_openrpc.json#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
             }
         },
         "errors": {
-            "CLASS_HASH_NOT_FOUND": {
-                "$ref": "./api/starknet_api_openrpc.json#/components/errors/CLASS_HASH_NOT_FOUND"
-            },
             "COMPILATION_ERROR": {
+                "code": 100,
+                "message": "Failed to compile the contract",
                 "data": {
                     "type": "object",
                     "description": "More data about the compilation failure",

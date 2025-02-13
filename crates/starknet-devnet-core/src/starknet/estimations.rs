@@ -155,11 +155,14 @@ fn estimate_transaction_fee<S: StateReader>(
         ),
     };
 
+    // TODO: change l2 fields logic
     Ok(FeeEstimateWrapper {
-        gas_consumed: Felt::from(gas_vector.l1_gas),
-        data_gas_consumed: Felt::from(gas_vector.l1_data_gas),
-        gas_price: Felt::from(gas_price),
-        data_gas_price: Felt::from(data_gas_price),
+        l1_gas_consumed: Felt::from(gas_vector.l1_gas),
+        l1_data_gas_consumed: Felt::from(gas_vector.l1_data_gas),
+        l1_gas_price: Felt::from(gas_price),
+        l1_data_gas_price: Felt::from(data_gas_price),
+        l2_gas_consumed: Felt::ZERO,
+        l2_gas_price: Felt::ZERO,
         overall_fee: Felt::from(total_fee.0),
         unit,
     })

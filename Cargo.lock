@@ -6007,7 +6007,6 @@ dependencies = [
  "cairo-lang-starknet-classes",
  "cairo-lang-syntax 2.7.0",
  "cairo-lang-utils 2.7.0",
- "cairo-vm",
  "flate2",
  "num-bigint",
  "parity-scale-codec",

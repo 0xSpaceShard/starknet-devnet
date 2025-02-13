@@ -2,6 +2,7 @@ use blockifier::execution::call_info::CallInfo;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::objects::TransactionExecutionInfo;
+use blockifier::versioned_constants::VersionedConstants;
 use starknet_types::rpc::state::ThinStateDiff;
 use starknet_types::rpc::transaction_receipt::ExecutionResources;
 use starknet_types::rpc::transactions::{
@@ -15,11 +16,14 @@ use crate::error::{DevnetResult, Error};
 fn get_execute_call_info<S: StateReader>(
     state: &mut CachedState<S>,
     execution_info: &TransactionExecutionInfo,
+    versioned_constants: &VersionedConstants,
 ) -> DevnetResult<ExecutionInvocation> {
     Ok(match &execution_info.execute_call_info {
         Some(call_info) => match call_info.execution.failed {
             false => ExecutionInvocation::Succeeded(FunctionInvocation::try_from_call_info(
-                call_info, state,
+                call_info,
+                state,
+                versioned_constants,
             )?),
             true => ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion {
                 revert_reason: execution_info
@@ -46,9 +50,10 @@ fn get_execute_call_info<S: StateReader>(
 fn get_call_info_invocation<S: StateReader>(
     state: &mut CachedState<S>,
     call_info_invocation: &Option<CallInfo>,
+    versioned_constants: &VersionedConstants,
 ) -> DevnetResult<Option<FunctionInvocation>> {
     Ok(if let Some(call_info) = call_info_invocation {
-        Some(FunctionInvocation::try_from_call_info(call_info, state)?)
+        Some(FunctionInvocation::try_from_call_info(call_info, state, versioned_constants)?)
     } else {
         None
     })
@@ -59,13 +64,18 @@ pub(crate) fn create_trace<S: StateReader>(
     tx_type: TransactionType,
     execution_info: &TransactionExecutionInfo,
     state_diff: ThinStateDiff,
+    versioned_constants: &VersionedConstants,
 ) -> DevnetResult<TransactionTrace> {
     let state_diff = Some(state_diff);
-    let validate_invocation = get_call_info_invocation(state, &execution_info.validate_call_info)?;
+    let validate_invocation =
+        get_call_info_invocation(state, &execution_info.validate_call_info, versioned_constants)?;
     let execution_resources = ExecutionResources::from(execution_info);
 
-    let fee_transfer_invocation =
-        get_call_info_invocation(state, &execution_info.fee_transfer_call_info)?;
+    let fee_transfer_invocation = get_call_info_invocation(
+        state,
+        &execution_info.fee_transfer_call_info,
+        versioned_constants,
+    )?;
 
     match tx_type {
         TransactionType::Declare => Ok(TransactionTrace::Declare(DeclareTransactionTrace {
@@ -80,6 +90,7 @@ pub(crate) fn create_trace<S: StateReader>(
                 constructor_invocation: get_call_info_invocation(
                     state,
                     &execution_info.execute_call_info,
+                    versioned_constants,
                 )?,
                 fee_transfer_invocation,
                 state_diff,
@@ -88,13 +99,17 @@ pub(crate) fn create_trace<S: StateReader>(
         }
         TransactionType::Invoke => Ok(TransactionTrace::Invoke(InvokeTransactionTrace {
             validate_invocation,
-            execute_invocation: get_execute_call_info(state, execution_info)?,
+            execute_invocation: get_execute_call_info(state, execution_info, versioned_constants)?,
             fee_transfer_invocation,
             state_diff,
             execution_resources,
         })),
         TransactionType::L1Handler => {
-            match get_call_info_invocation(state, &execution_info.execute_call_info)? {
+            match get_call_info_invocation(
+                state,
+                &execution_info.execute_call_info,
+                versioned_constants,
+            )? {
                 Some(function_invocation) => {
                     Ok(TransactionTrace::L1Handler(L1HandlerTransactionTrace {
                         function_invocation,

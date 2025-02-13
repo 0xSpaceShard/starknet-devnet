@@ -12,8 +12,8 @@ use super::models::{
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::rpc_core::request::Id;
 use crate::subscribe::{
-    AddressFilter, NewTransactionStatus, PendingTransactionNotification, SocketId, Subscription,
-    SubscriptionNotification, TransactionHashWrapper,
+    AddressFilter, NewTransactionStatus, NotificationData, PendingTransactionNotification,
+    SocketId, Subscription, TransactionHashWrapper,
 };
 
 fn disallow_pending_block(block_id: &BlockId) -> Result<(), ApiError> {
@@ -131,8 +131,8 @@ impl JsonRpcHandler {
                 .get_block(&BlockId::Number(block_n))
                 .map_err(ApiError::StarknetDevnetError)?;
 
-            let old_header = Box::new(old_block.into());
-            let notification = SubscriptionNotification::NewHeads(old_header);
+            let old_header = old_block.into();
+            let notification = NotificationData::NewHeads(old_header);
             socket_context.notify(subscription_id, notification).await;
         }
 
@@ -201,11 +201,11 @@ impl JsonRpcHandler {
         let pending_txs = self.get_pending_txs().await?;
         for tx in pending_txs {
             let notification = if with_details {
-                SubscriptionNotification::PendingTransaction(PendingTransactionNotification::Full(
+                NotificationData::PendingTransaction(PendingTransactionNotification::Full(
                     Box::new(tx),
                 ))
             } else {
-                SubscriptionNotification::PendingTransaction(PendingTransactionNotification::Hash(
+                NotificationData::PendingTransaction(PendingTransactionNotification::Hash(
                     TransactionHashWrapper {
                         hash: *tx.get_transaction_hash(),
                         sender_address: tx.get_sender_address(),
@@ -248,7 +248,7 @@ impl JsonRpcHandler {
         let starknet = self.api.starknet.lock().await;
 
         if let Some(tx) = starknet.transactions.get(&transaction_hash) {
-            let notification = SubscriptionNotification::TransactionStatus(NewTransactionStatus {
+            let notification = NotificationData::TransactionStatus(NewTransactionStatus {
                 transaction_hash,
                 status: tx.get_status(),
                 origin_tag: subscription_tag,
@@ -312,7 +312,7 @@ impl JsonRpcHandler {
         )?;
 
         for event in events {
-            socket_context.notify(subscription_id, SubscriptionNotification::Event(event)).await;
+            socket_context.notify(subscription_id, NotificationData::Event(event)).await;
         }
 
         Ok(())

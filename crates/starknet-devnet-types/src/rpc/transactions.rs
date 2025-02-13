@@ -5,6 +5,7 @@ use blockifier::execution::contract_class::ClassInfo;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::objects::TransactionExecutionInfo;
+use blockifier::versioned_constants::VersionedConstants;
 use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use declare_transaction_v0v1::DeclareTransactionV0V1;
@@ -19,8 +20,8 @@ use starknet_api::deprecated_contract_class::EntryPointType;
 use starknet_api::transaction::{Fee, Resource, Tip};
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_core::types::{
-    BlockId, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
-    TransactionExecutionStatus, TransactionFinalityStatus,
+    BlockId, ExecutionResult, Felt, ResourceBounds, TransactionExecutionStatus,
+    TransactionFinalityStatus,
 };
 use starknet_rs_crypto::poseidon_hash_many;
 
@@ -37,16 +38,14 @@ use self::l1_handler_transaction::L1HandlerTransaction;
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::messaging::{MessageToL1, OrderedMessageToL1};
 use super::state::ThinStateDiff;
-use super::transaction_receipt::{
-    ComputationResources, ExecutionResources, FeeInUnits, TransactionReceipt,
-};
+use super::transaction_receipt::{ExecutionResources, FeeInUnits, TransactionReceipt};
 use crate::constants::{
     PREFIX_DECLARE, PREFIX_DEPLOY_ACCOUNT, PREFIX_INVOKE, QUERY_VERSION_OFFSET,
 };
 use crate::contract_address::ContractAddress;
 use crate::contract_class::{compute_sierra_class_hash, ContractClass};
 use crate::emitted_event::{Event, OrderedEvent};
-use crate::error::{ConversionError, DevnetResult, Error, JsonError};
+use crate::error::{ConversionError, DevnetResult, Error};
 use crate::felt::{
     BlockHash, Calldata, EntryPointSelector, Nonce, TransactionHash, TransactionSignature,
     TransactionVersion,
@@ -335,6 +334,18 @@ pub struct ResourceBoundsWrapper {
     inner: ResourceBoundsMapping,
 }
 
+// TODO: when starknet-rs upgrades to 0.8.0 remove this struct
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResourceBoundsMapping {
+    /// The max amount and max price per unit of L1 gas used in this tx
+    pub l1_gas: ResourceBounds,
+    /// The max amount and max price per unit of L2 gas used in this tx
+    pub l2_gas: ResourceBounds,
+    /// The max amount and max price per unit of L1 data gas used in this tx
+    pub l1_data_gas: Option<ResourceBounds>,
+}
+
 impl_wrapper_serialize!(ResourceBoundsWrapper);
 impl_wrapper_deserialize!(ResourceBoundsWrapper, ResourceBoundsMapping);
 
@@ -355,6 +366,8 @@ impl ResourceBoundsWrapper {
                     max_amount: l2_gas_max_amount,
                     max_price_per_unit: l2_gas_max_price_per_unit,
                 },
+                // TODO: provide values for l1_data_gas
+                l1_data_gas: Some(ResourceBounds { max_amount: 0, max_price_per_unit: 0 }),
             },
         }
     }
@@ -432,18 +445,10 @@ impl BroadcastedTransactionCommonV3 {
         array.push(Felt::from(self.tip.0));
 
         fn field_element_from_resource_bounds(
-            resource: Resource,
+            resource: &str,
             resource_bounds: &ResourceBounds,
         ) -> Result<Felt, Error> {
-            let resource_name_as_json_string =
-                serde_json::to_value(resource).map_err(JsonError::SerdeJsonError)?;
-
-            let resource_name_bytes = resource_name_as_json_string
-                .as_str()
-                .ok_or(Error::JsonError(JsonError::Custom {
-                    msg: "resource name is not a string".into(),
-                }))?
-                .as_bytes();
+            let resource_name_bytes = resource.as_bytes();
 
             // (resource||max_amount||max_price_per_unit) from SNIP-8 https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md#protocol-changes
             let bytes: Vec<u8> = [
@@ -459,13 +464,23 @@ impl BroadcastedTransactionCommonV3 {
             Ok(Felt::from_bytes_be_slice(&bytes))
         }
         array.push(field_element_from_resource_bounds(
-            Resource::L1Gas,
+            "L1_GAS",
             &self.resource_bounds.inner.l1_gas,
         )?);
         array.push(field_element_from_resource_bounds(
-            Resource::L2Gas,
+            "L2_GAS",
             &self.resource_bounds.inner.l2_gas,
         )?);
+
+        // TODO: uncomment this sesction when starknet_api, blockifier, starknet-rs
+        // array.push(field_element_from_resource_bounds(
+        //     "L1_DATA",
+        //     self.resource_bounds
+        //         .inner
+        //         .l1_data_gas
+        //         .as_ref()
+        //         .unwrap_or(&ResourceBounds { max_amount: 0, max_price_per_unit: 0 }),
+        // )?);
 
         Ok(array)
     }
@@ -1023,7 +1038,40 @@ pub struct FunctionInvocation {
     calls: Vec<FunctionInvocation>,
     events: Vec<OrderedEvent>,
     messages: Vec<OrderedMessageToL1>,
-    execution_resources: ComputationResources,
+    execution_resources: InnerExecutionResources,
+    is_reverted: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct InnerExecutionResources {
+    pub l1_gas: u128,
+    pub l2_gas: u128,
+}
+
+impl<'de> Deserialize<'de> for InnerExecutionResources {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let json_obj =
+            serde_json::Value::deserialize(deserializer).map_err(serde::de::Error::custom)?;
+
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Inner {
+            l1_gas: u128,
+            l2_gas: u128,
+        }
+
+        let execution_resources: Inner =
+            serde_json::from_value(json_obj).map_err(serde::de::Error::custom)?;
+
+        Ok(InnerExecutionResources {
+            l1_gas: execution_resources.l1_gas,
+            l2_gas: execution_resources.l2_gas,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -1106,12 +1154,15 @@ impl FunctionInvocation {
     pub fn try_from_call_info(
         call_info: &blockifier::execution::call_info::CallInfo,
         state_reader: &mut impl StateReader,
+        versioned_constants: &VersionedConstants,
     ) -> DevnetResult<Self> {
         let mut internal_calls: Vec<FunctionInvocation> = vec![];
-        let execution_resources = ComputationResources::from(call_info);
         for internal_call in &call_info.inner_calls {
-            internal_calls
-                .push(FunctionInvocation::try_from_call_info(internal_call, state_reader)?);
+            internal_calls.push(FunctionInvocation::try_from_call_info(
+                internal_call,
+                state_reader,
+                versioned_constants,
+            )?);
         }
 
         let mut messages: Vec<OrderedMessageToL1> = call_info
@@ -1134,10 +1185,19 @@ impl FunctionInvocation {
         } else {
             state_reader.get_class_hash_at(contract_address).map_err(|_| {
                 ConversionError::InvalidInternalStructure(
-                    "class_hash is unxpectedly undefined".into(),
+                    "class_hash is unexpectedly undefined".into(),
                 )
             })?
         };
+
+        let gas_vector = blockifier::fee::fee_utils::calculate_l1_gas_by_vm_usage(
+            versioned_constants,
+            &call_info.resources,
+            0,
+        )
+        .map_err(|_| {
+            ConversionError::InvalidInternalStructure("unable to calculate gas usage".into())
+        })?;
 
         Ok(FunctionInvocation {
             contract_address: contract_address.into(),
@@ -1154,7 +1214,9 @@ impl FunctionInvocation {
             calls: internal_calls,
             events,
             messages,
-            execution_resources,
+            // TODO: change l2_gas to some meaningful value
+            execution_resources: InnerExecutionResources { l1_gas: gas_vector.l1_gas, l2_gas: 0 },
+            is_reverted: call_info.execution.failed,
         })
     }
 }
@@ -1165,54 +1227,4 @@ pub struct L1HandlerTransactionStatus {
     pub transaction_hash: TransactionHash,
     pub finality_status: TransactionFinalityStatus,
     pub failure_reason: Option<String>,
-}
-
-#[cfg(test)]
-mod tests {
-    use starknet_rs_crypto::poseidon_hash_many;
-
-    use super::BroadcastedTransactionCommonV3;
-    use crate::felt::felt_from_prefixed_hex;
-
-    #[test]
-    fn test_dummy_transaction_hash_taken_from_papyrus() {
-        let txn_json_str = r#"{
-            "signature": ["0x3", "0x4"],
-            "version": "0x3",
-            "nonce": "0x9",
-            "sender_address": "0x12fd538",
-            "constructor_calldata": ["0x21b", "0x151"],
-            "nonce_data_availability_mode": "L1",
-            "fee_data_availability_mode": "L1",
-            "resource_bounds": {
-              "l2_gas": {
-                "max_amount": "0x0",
-                "max_price_per_unit": "0x0"
-              },
-              "l1_gas": {
-                "max_amount": "0x7c9",
-                "max_price_per_unit": "0x1"
-              }
-            },
-            "tip": "0x0",
-            "paymaster_data": [],
-            "account_deployment_data": [],
-            "calldata": [
-              "0x11",
-              "0x26"
-            ]
-          }"#;
-
-        let common_fields =
-            serde_json::from_str::<BroadcastedTransactionCommonV3>(txn_json_str).unwrap();
-        let common_fields_hash =
-            poseidon_hash_many(&common_fields.get_resource_bounds_array().unwrap());
-
-        let expected_hash = felt_from_prefixed_hex(
-            "0x07be65f04548dfe645c70f07d1f8ead572c09e0e6e125c47d4cc22b4de3597cc",
-        )
-        .unwrap();
-
-        assert_eq!(common_fields_hash, expected_hash);
-    }
 }

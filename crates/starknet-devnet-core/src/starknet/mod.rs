@@ -409,6 +409,7 @@ impl Starknet {
             transaction.get_type(),
             &tx_info,
             state_diff.into(),
+            self.block_context.versioned_constants(),
         )?;
         let transaction_to_add = StarknetTransaction::create_accepted(&transaction, tx_info, trace);
 
@@ -610,12 +611,8 @@ impl Starknet {
         get_class_impls::get_class_at_impl(self, block_id, contract_address)
     }
 
-    pub fn get_compiled_casm(
-        &self,
-        block_id: &BlockId,
-        class_hash: ClassHash,
-    ) -> DevnetResult<CasmContractClass> {
-        get_class_impls::get_compiled_casm_impl(self, block_id, class_hash)
+    pub fn get_compiled_casm(&self, class_hash: ClassHash) -> DevnetResult<CasmContractClass> {
+        get_class_impls::get_compiled_casm_impl(self, class_hash)
     }
 
     pub fn call(
@@ -1199,6 +1196,7 @@ impl Starknet {
                 transaction_type,
                 &tx_execution_info,
                 state_diff,
+                block_context.versioned_constants(),
             )?;
             transactions_traces.push(trace);
         }
