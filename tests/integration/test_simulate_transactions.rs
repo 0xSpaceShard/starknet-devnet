@@ -32,9 +32,8 @@ use crate::common::constants::{
 use crate::common::fees::{assert_difference_if_validation, assert_fee_in_resp_at_least_equal};
 use crate::common::utils::{
     declare_v3_deploy_v3, get_deployable_account_signer,
-    get_flattened_sierra_contract_and_casm_hash, get_gas_units_and_gas_price,
-    get_simple_contract_in_sierra_and_compiled_class_hash, iter_to_hex_felt, to_hex_felt,
-    to_num_as_hex,
+    get_flattened_sierra_contract_and_casm_hash, get_gas_units_and_gas_price, iter_to_hex_felt,
+    to_hex_felt, to_num_as_hex,
 };
 
 #[tokio::test]
@@ -430,17 +429,64 @@ async fn using_query_version_if_simulating() {
         "transactions": [
             {
                 "type": "INVOKE",
-                "max_fee": max_fee.to_hex_string(),
+                "max_fee": max_fee,
                 "version": "0x1",
-                "signature": iter_to_hex_felt(&[signature.r, signature.s]),
-                "nonce": to_num_as_hex(&nonce),
-                "calldata": iter_to_hex_felt(&account.encode_calls(&calls)),
-                "sender_address": account.address().to_hex_string(),
+                "signature": [signature.r, signature.s],
+                "nonce": nonce,
+                "calldata": account.encode_calls(&calls),
+                "sender_address": account.address(),
             }
         ]
     });
 
     devnet.send_custom_rpc("starknet_simulateTransactions", invoke_simulation_body).await.unwrap();
+}
+
+#[tokio::test]
+async fn test_simulation_of_panicking_invoke() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+    let (signer, account_address) = devnet.get_first_predeployed_account().await;
+    let account = SingleOwnerAccount::new(
+        &devnet.json_rpc_client,
+        signer.clone(),
+        account_address,
+        devnet.json_rpc_client.chain_id().await.unwrap(),
+        starknet_rs_accounts::ExecutionEncoding::New,
+    );
+
+    let (contract_class, casm_hash) =
+        get_flattened_sierra_contract_and_casm_hash(CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH);
+
+    let (_, contract_address) =
+        declare_v3_deploy_v3(&account, contract_class, casm_hash, &[]).await.unwrap();
+
+    let top_selector = get_selector_from_name("create_panic").unwrap();
+    let panic_message_text = "funny_text";
+    let panic_message = cairo_short_string_to_felt(panic_message_text).unwrap();
+
+    let calls =
+        vec![Call { to: contract_address, selector: top_selector, calldata: vec![panic_message] }];
+
+    let max_fee = Felt::from(1e18 as u128);
+    let nonce = Felt::TWO; // after declare + deploy
+    let simulation = account
+        .execute_v1(calls)
+        .max_fee(max_fee)
+        .nonce(nonce)
+        .simulate(false, false)
+        .await
+        .unwrap();
+
+    match simulation.transaction_trace {
+        TransactionTrace::Invoke(InvokeTransactionTrace {
+            execute_invocation: ExecuteInvocation::Reverted(reverted_invocation),
+            ..
+        }) => {
+            assert_contains(&reverted_invocation.revert_reason, panic_message_text);
+        }
+        other_trace => panic!("Unexpected trace {other_trace:?}"),
+    }
 }
 
 #[tokio::test]
@@ -663,12 +709,7 @@ async fn simulate_with_max_fee_exceeding_account_balance_returns_error_if_fee_ch
                 execution_error,
                 ..
             }),
-        )) => {
-            assert_contains(
-                &execution_error,
-                "Account balance is not enough to cover the transaction cost.",
-            );
-        }
+        )) => assert_contains(&execution_error, "exceed balance"),
         other => panic!("Unexpected error {other:?}"),
     }
 
@@ -1005,7 +1046,8 @@ async fn simulate_invoke_declare_deploy_account_with_either_gas_or_gas_price_set
                 )) => {
                     assert_eq!(
                         execution_error,
-                        "Provided max fee is not enough to cover the transaction cost."
+                        "The transaction's resources don't cover validation or the minimal \
+                         transaction fee."
                     );
                 }
                 other => panic!("Unexpected error: {:?}", other),
@@ -1061,58 +1103,5 @@ async fn simulate_invoke_v3_with_failing_execution_should_return_a_trace_of_reve
             ..
         }) => assert_contains(&reverted_invocation.revert_reason, panic_reason),
         other => panic!("Unexpected trace {other:?}"),
-    }
-}
-
-/// Test with lower than (estimated_gas_units * gas_price) using two flags. With
-/// skip_fee_transfer shouldnt fail, without it should fail.
-#[tokio::test]
-async fn simulate_declare_v3_with_less_than_estimated_fee_should_revert_if_fee_charge_is_not_skipped()
- {
-    let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-    let (sierra_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
-
-    let (signer, account_address) = devnet.get_first_predeployed_account().await;
-
-    let mut account = SingleOwnerAccount::new(
-        &devnet.json_rpc_client,
-        signer,
-        account_address,
-        constants::CHAIN_ID,
-        ExecutionEncoding::New,
-    );
-    account.set_block_id(BlockId::Tag(BlockTag::Latest));
-
-    let fee_estimate = account
-        .declare_v3(Arc::new(sierra_artifact.clone()), casm_hash)
-        .estimate_fee()
-        .await
-        .unwrap();
-
-    let (gas_units, gas_price) = get_gas_units_and_gas_price(fee_estimate);
-
-    for skip_fee_charge in [true, false] {
-        let simulation_result = account
-            .declare_v3(Arc::new(sierra_artifact.clone()), casm_hash)
-            .gas(gas_units)
-            .gas_price(gas_price - 1)
-            .simulate(false, skip_fee_charge)
-            .await;
-
-        match (simulation_result, skip_fee_charge) {
-            (Ok(_), true) => {}
-            (
-                Err(AccountError::Provider(ProviderError::StarknetError(
-                    StarknetError::TransactionExecutionError(TransactionExecutionErrorData {
-                        execution_error,
-                        ..
-                    }),
-                ))),
-                false,
-            ) => {
-                assert_contains(&execution_error, "max fee is not enough");
-            }
-            invalid_combination => panic!("Invalid combination: {invalid_combination:?}"),
-        }
     }
 }

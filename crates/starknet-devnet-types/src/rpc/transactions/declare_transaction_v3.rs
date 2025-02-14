@@ -23,7 +23,7 @@ pub struct DeclareTransactionV3 {
     paymaster_data: Vec<Felt>,
     nonce_data_availability_mode: DataAvailabilityMode,
     fee_data_availability_mode: DataAvailabilityMode,
-    sender_address: ContractAddress,
+    pub(crate) sender_address: ContractAddress,
     compiled_class_hash: CompiledClassHash,
     class_hash: ClassHash,
     account_deployment_data: Vec<Felt>,

@@ -34,6 +34,7 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 lazy_static = { workspace = true }
 enum-helper-macros = { workspace = true }
+rand = { workspace = true }
 
 # devnet
 starknet-core = { workspace = true }
@@ -41,7 +42,6 @@ starknet-types = { workspace = true }
 starknet-rs-core = { workspace = true }
 
 [dev-dependencies]
-rand = { workspace = true }
 rand_chacha = { workspace = true }
 regex_generate = { workspace = true }
 serde_yaml = { workspace = true }

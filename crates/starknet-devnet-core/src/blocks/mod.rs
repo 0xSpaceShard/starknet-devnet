@@ -126,6 +126,8 @@ impl StarknetBlocks {
         // used IndexMap to keep elements in the order of the keys
         let mut filtered_blocks: IndexMap<Felt, &StarknetBlock> = IndexMap::new();
 
+        let pending_block_number = self.pending_block.block_number();
+
         let starting_block = if let Some(block_id) = from {
             // If the value for block number provided is not correct it will return None
             // So we have to return an error
@@ -144,23 +146,45 @@ impl StarknetBlocks {
             None
         };
 
+        fn is_block_number_in_range(
+            current_block_number: BlockNumber,
+            starting_block: Option<BlockNumber>,
+            ending_block: Option<BlockNumber>,
+        ) -> bool {
+            match (starting_block, ending_block) {
+                (None, None) => true,
+                (Some(start), None) => current_block_number >= start,
+                (None, Some(end)) => current_block_number <= end,
+                (Some(start), Some(end)) => {
+                    current_block_number >= start && current_block_number <= end
+                }
+            }
+        }
+
+        let mut insert_pending_block_in_final_result = true;
         // iterate over the blocks and apply the filter
         // then insert the filtered blocks into the index map
         self.num_to_hash
             .iter()
-            .filter(|(current_block_number, _)| match (starting_block, ending_block) {
-                (None, None) => true,
-                (Some(start), None) => **current_block_number >= start,
-                (None, Some(end)) => **current_block_number <= end,
-                (Some(start), Some(end)) => {
-                    **current_block_number >= start && **current_block_number <= end
-                }
+            .filter(|(current_block_number, _)| {
+                is_block_number_in_range(**current_block_number, starting_block, ending_block)
             })
-            .for_each(|(_, block_hash)| {
+            .for_each(|(block_number, block_hash)| {
+                if *block_number == pending_block_number {
+                    insert_pending_block_in_final_result = false;
+                }
                 filtered_blocks.insert(*block_hash, &self.hash_to_block[block_hash]);
             });
 
-        Ok(filtered_blocks.into_values().collect())
+        let mut result: Vec<&StarknetBlock> = filtered_blocks.into_values().collect();
+
+        if is_block_number_in_range(pending_block_number, starting_block, ending_block)
+            && insert_pending_block_in_final_result
+        {
+            result.push(&self.pending_block);
+        }
+
+        Ok(result)
     }
 
     pub fn next_block_number(&self) -> BlockNumber {
@@ -216,6 +240,22 @@ impl From<&StarknetBlock> for TypesPendingBlockHeader {
                     .into(),
             },
             l1_da_mode: value.header.block_header_without_hash.l1_da_mode,
+            l2_gas_price: ResourcePrice {
+                price_in_fri: value
+                    .header
+                    .block_header_without_hash
+                    .l2_gas_price
+                    .price_in_fri
+                    .0
+                    .into(),
+                price_in_wei: value
+                    .header
+                    .block_header_without_hash
+                    .l2_gas_price
+                    .price_in_wei
+                    .0
+                    .into(),
+            },
         }
     }
 }
@@ -263,6 +303,22 @@ impl From<&StarknetBlock> for TypesBlockHeader {
                     .into(),
             },
             l1_da_mode: value.header.block_header_without_hash.l1_da_mode,
+            l2_gas_price: ResourcePrice {
+                price_in_fri: value
+                    .header
+                    .block_header_without_hash
+                    .l2_gas_price
+                    .price_in_fri
+                    .0
+                    .into(),
+                price_in_wei: value
+                    .header
+                    .block_header_without_hash
+                    .l2_gas_price
+                    .price_in_wei
+                    .0
+                    .into(),
+            },
         }
     }
 }
@@ -319,6 +375,14 @@ impl StarknetBlock {
             },
             status: BlockStatus::Pending,
             transaction_hashes: Vec::new(),
+        }
+    }
+
+    pub fn create_empty_accepted() -> Self {
+        Self {
+            header: BlockHeader::default(),
+            transaction_hashes: vec![],
+            status: BlockStatus::AcceptedOnL2,
         }
     }
 
@@ -381,30 +445,33 @@ mod tests {
             block_to_insert.header.block_hash =
                 starknet_api::block::BlockHash(Felt::from(block_number as u128));
             blocks.insert(block_to_insert, StateDiff::default());
+            blocks.pending_block.header.block_header_without_hash.block_number =
+                BlockNumber(block_number).unchecked_next();
         }
 
-        let expected_block_numbers = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        let block_numbers: Vec<u64> = blocks
+            .get_blocks(None, None)
+            .unwrap()
+            .iter()
+            .map(|block| block.block_number().0)
+            .collect();
+        assert_eq!(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], block_numbers);
 
-        for _ in 0..10 {
-            let block_numbers: Vec<u64> = blocks
-                .get_blocks(None, None)
-                .unwrap()
-                .iter()
-                .map(|block| block.block_number().0)
-                .collect();
-            assert_eq!(expected_block_numbers, block_numbers);
-        }
+        let block_numbers: Vec<u64> = blocks
+            .get_blocks(Some(BlockId::Number(7)), None)
+            .unwrap()
+            .iter()
+            .map(|block| block.block_number().0)
+            .collect();
+        assert_eq!(vec![7, 8, 9, 10, 11], block_numbers);
 
-        let expected_block_numbers = vec![7, 8, 9, 10];
-        for _ in 0..10 {
-            let block_numbers: Vec<u64> = blocks
-                .get_blocks(Some(BlockId::Number(7)), None)
-                .unwrap()
-                .iter()
-                .map(|block| block.block_number().0)
-                .collect();
-            assert_eq!(expected_block_numbers, block_numbers);
-        }
+        let block_numbers: Vec<u64> = blocks
+            .get_blocks(Some(BlockId::Number(7)), Some(BlockId::Tag(BlockTag::Latest)))
+            .unwrap()
+            .iter()
+            .map(|block| block.block_number().0)
+            .collect();
+        assert_eq!(vec![7, 8, 9, 10], block_numbers);
     }
 
     #[test]

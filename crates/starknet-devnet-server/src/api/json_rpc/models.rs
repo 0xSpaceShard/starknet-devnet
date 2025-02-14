@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
-use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
+use starknet_rs_core::types::{
+    Felt, Hash256, TransactionExecutionStatus, TransactionFinalityStatus,
+};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
@@ -25,11 +27,32 @@ pub struct TransactionHashInput {
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
+pub struct ClassHashInput {
+    pub class_hash: ClassHash,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct GetStorageInput {
     pub contract_address: ContractAddress,
     pub key: PatriciaKey,
     pub block_id: BlockId,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct ContractStorage {
+    pub contract_address: ContractAddress,
+    pub storage_keys: Vec<Felt>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct GetStorageProofInput {
+    pub block_id: BlockId,
+    pub class_hashes: Option<Vec<Felt>>,
+    pub contract_addresses: Option<Vec<ContractAddress>>,
+    pub contract_storage_keys: Option<ContractStorage>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -170,6 +193,42 @@ pub struct SimulateTransactionsInput {
 pub struct TransactionStatusOutput {
     pub finality_status: TransactionFinalityStatus,
     pub execution_status: TransactionExecutionStatus,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct L1TransactionHashInput {
+    pub transaction_hash: Hash256,
+}
+
+pub type SubscriptionId = u64;
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct SubscriptionIdInput {
+    pub subscription_id: SubscriptionId,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct TransactionBlockInput {
+    pub transaction_hash: TransactionHash,
+    pub block_id: Option<BlockId>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct PendingTransactionsSubscriptionInput {
+    pub transaction_details: Option<bool>,
+    pub sender_address: Option<Vec<ContractAddress>>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct EventsSubscriptionInput {
+    pub block_id: Option<BlockId>,
+    pub from_address: Option<ContractAddress>,
+    pub keys: Option<Vec<Vec<Felt>>>,
 }
 
 #[cfg(test)]

@@ -11,23 +11,24 @@ use starknet_rs_core::types::{
     BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedDeclareTransactionV3,
     BroadcastedInvokeTransaction, BroadcastedInvokeTransactionV1, BroadcastedInvokeTransactionV3,
     BroadcastedTransaction, Call, DataAvailabilityMode, FeeEstimate, Felt, FunctionCall,
-    ResourceBounds, ResourceBoundsMapping, SimulationFlagForEstimateFee, StarknetError,
-    TransactionExecutionErrorData,
+    ResourceBounds, ResourceBoundsMapping, StarknetError, TransactionExecutionErrorData,
 };
 use starknet_rs_core::utils::{
     cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
 };
-use starknet_rs_providers::{Provider, ProviderError};
-use starknet_rs_signers::Signer;
+use starknet_rs_providers::jsonrpc::{HttpTransport, JsonRpcError};
+use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
+use starknet_rs_signers::{LocalWallet, Signer};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_CONTRACT_PATH, CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH,
-    CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID, QUERY_VERSION_OFFSET, UDC_CONTRACT_ADDRESS,
+    CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS,
+    QUERY_VERSION_OFFSET, UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_tx_reverted, assert_tx_successful, get_deployable_account_signer,
-    get_flattened_sierra_contract_and_casm_hash,
+    assert_json_rpc_errors_equal, assert_tx_reverted, assert_tx_successful, extract_json_rpc_error,
+    get_deployable_account_signer, get_flattened_sierra_contract_and_casm_hash,
 };
 
 fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
@@ -109,29 +110,36 @@ async fn estimate_fee_of_invalid_deploy_account() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
     let new_account_signer = get_deployable_account_signer();
-    let dummy_invalid_class_hash = Felt::from_hex_unchecked("0x123");
+    let invalid_class_hash = Felt::from_hex_unchecked("0x123");
     let account_factory = OpenZeppelinAccountFactory::new(
-        dummy_invalid_class_hash,
+        invalid_class_hash,
         CHAIN_ID,
         new_account_signer,
         devnet.clone_provider(),
     )
     .await
     .unwrap();
-    let new_account_nonce = Felt::ZERO;
 
     let salt = Felt::from_hex_unchecked("0x123");
-    let err = account_factory
-        .deploy_v1(salt)
-        .nonce(new_account_nonce)
-        .estimate_fee()
-        .await
-        .expect_err("Should have failed");
-    match err {
-        AccountFactoryError::Provider(ProviderError::StarknetError(
-            StarknetError::TransactionExecutionError(_),
-        )) => (),
-        _ => panic!("Invalid error: {err:?}"),
+    let deployment = account_factory.deploy_v1(salt);
+    match deployment.estimate_fee().await {
+        Err(AccountFactoryError::Provider(provider_error)) => assert_json_rpc_errors_equal(
+            extract_json_rpc_error(provider_error).unwrap(),
+            JsonRpcError {
+                code: 41,
+                message: "Transaction execution error".into(),
+                data: Some(serde_json::json!({
+                    "transaction_index": 0,
+                    "execution_error": {
+                        "contract_address": deployment.address(),
+                        "class_hash": invalid_class_hash,
+                        "selector": null,
+                        "error": format!("Class with hash {} is not declared.\n", invalid_class_hash.to_fixed_hex_string())
+                    }
+                })),
+            },
+        ),
+        other => panic!("Unexpected response: {other:?}"),
     }
 }
 
@@ -404,10 +412,14 @@ async fn message_available_if_estimation_reverts() {
     match invoke_err {
         AccountError::Provider(ProviderError::StarknetError(
             StarknetError::TransactionExecutionError(TransactionExecutionErrorData {
+                transaction_index,
                 execution_error,
                 ..
             }),
-        )) => assert_contains(&execution_error, panic_reason),
+        )) => {
+            assert_eq!(transaction_index, 0);
+            assert_contains(&execution_error, panic_reason);
+        }
         other => panic!("Invalid err: {other:?}"),
     };
 }
@@ -465,6 +477,35 @@ async fn using_query_version_if_estimating() {
     }
 }
 
+async fn broadcasted_invoke_v1_for_estimation(
+    account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
+    signer: &LocalWallet,
+    to_address: Felt,
+    selector: Felt,
+    calldata: &[Felt],
+    nonce: Felt,
+) -> Result<BroadcastedTransaction, anyhow::Error> {
+    let calls = vec![Call { to: to_address, selector, calldata: calldata.to_vec() }];
+    let calldata = account.encode_calls(&calls);
+
+    let max_fee = Felt::ZERO;
+    let prepared_invoke = account.execute_v1(calls).nonce(nonce).max_fee(max_fee).prepared()?;
+
+    let is_query = false;
+    let signature = signer.sign_hash(&prepared_invoke.transaction_hash(is_query)).await?;
+
+    Ok(BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
+        BroadcastedInvokeTransactionV1 {
+            max_fee,
+            signature: vec![signature.r, signature.s],
+            nonce,
+            sender_address: account.address(),
+            calldata,
+            is_query,
+        },
+    )))
+}
+
 #[tokio::test]
 /// estimate fee of declare + deploy (invoke udc)
 async fn estimate_fee_of_multiple_txs() {
@@ -486,11 +527,13 @@ async fn estimate_fee_of_multiple_txs() {
     // get class
     let contract_class = Arc::new(dummy_cairo_0_contract_class_codegen());
 
+    let declaration_nonce = Felt::ZERO;
+    let declaration_max_fee = Felt::ZERO;
     let class_hash = contract_class.class_hash().unwrap();
     let prepared_legacy_declaration = account
         .declare_legacy(contract_class.clone())
-        .max_fee(Felt::ZERO)
-        .nonce(Felt::ZERO)
+        .max_fee(declaration_max_fee)
+        .nonce(declaration_nonce)
         .prepared()
         .unwrap();
 
@@ -500,25 +543,6 @@ async fn estimate_fee_of_multiple_txs() {
         .await
         .unwrap();
 
-    let calls = vec![Call {
-        to: UDC_CONTRACT_ADDRESS,
-        selector: get_selector_from_name("deployContract").unwrap(),
-        calldata: vec![
-            class_hash,
-            Felt::from_hex_unchecked("0x123"), // salt
-            Felt::ZERO,
-            Felt::ZERO,
-        ],
-    }];
-
-    let calldata = account.encode_calls(&calls);
-
-    let prepared_invoke =
-        account.execute_v1(calls).nonce(Felt::ONE).max_fee(Felt::ZERO).prepared().unwrap();
-
-    let deployment_signature =
-        signer.sign_hash(&prepared_invoke.transaction_hash(query_only)).await.unwrap();
-
     devnet
         .json_rpc_client
         .estimate_fee(
@@ -526,26 +550,30 @@ async fn estimate_fee_of_multiple_txs() {
                 BroadcastedTransaction::Declare(
                     starknet_rs_core::types::BroadcastedDeclareTransaction::V1(
                         BroadcastedDeclareTransactionV1 {
-                            max_fee: Felt::ZERO,
-                            signature: [declaration_signature.r, declaration_signature.s].to_vec(),
-                            nonce: Felt::ZERO,
+                            max_fee: declaration_max_fee,
+                            signature: vec![declaration_signature.r, declaration_signature.s],
+                            nonce: declaration_nonce,
                             sender_address: account_address,
                             contract_class: contract_class.compress().unwrap().into(),
                             is_query: query_only,
                         },
                     ),
                 ),
-                BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
-                    BroadcastedInvokeTransactionV1 {
-                        max_fee: Felt::ZERO,
-                        // precalculated signature
-                        signature: [deployment_signature.r, deployment_signature.s].to_vec(),
-                        nonce: Felt::ONE,
-                        sender_address: account_address,
-                        calldata,
-                        is_query: query_only,
-                    },
-                )),
+                broadcasted_invoke_v1_for_estimation(
+                    &account,
+                    &signer,
+                    UDC_CONTRACT_ADDRESS,
+                    get_selector_from_name("deployContract").unwrap(),
+                    &[
+                        class_hash,
+                        Felt::from_hex_unchecked("0x123"), // salt
+                        Felt::ZERO,
+                        Felt::ZERO,
+                    ],
+                    Felt::ONE,
+                )
+                .await
+                .unwrap(),
             ],
             [], // simulation_flags
             BlockId::Tag(BlockTag::Latest),
@@ -557,102 +585,63 @@ async fn estimate_fee_of_multiple_txs() {
 }
 
 #[tokio::test]
-async fn estimate_fee_of_declare_and_deploy_via_udc_returns_index_of_second_transaction_when_executed_with_non_existing_method()
- {
-    let devnet = BackgroundDevnet::spawn().await.expect("Could not start devnet");
-
-    // get account
+async fn estimate_fee_of_multiple_txs_with_second_failing() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
     let (signer, account_address) = devnet.get_first_predeployed_account().await;
-    let mut account = SingleOwnerAccount::new(
+    let account = SingleOwnerAccount::new(
         &devnet.json_rpc_client,
         signer.clone(),
         account_address,
-        devnet.json_rpc_client.chain_id().await.unwrap(),
+        CHAIN_ID,
         ExecutionEncoding::New,
     );
 
-    account.set_block_id(BlockId::Tag(BlockTag::Latest));
+    let non_existent_selector = get_selector_from_name("nonExistentMethod").unwrap();
 
-    let (flattened_contract_artifact, casm_hash) =
-        get_flattened_sierra_contract_and_casm_hash(CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH);
-    let class_hash = flattened_contract_artifact.class_hash();
-
-    let estimate_fee_resource_bounds = ResourceBoundsMapping {
-        l1_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
-        l2_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
-    };
-
-    // call non existent method in UDC
-    let calls = vec![Call {
-        to: UDC_CONTRACT_ADDRESS,
-        selector: get_selector_from_name("no_such_method").unwrap(),
-        calldata: vec![
-            class_hash,
-            Felt::from_hex_unchecked("0x123"), // salt
-            Felt::ZERO,
-            Felt::ZERO,
-        ],
-    }];
-
-    let calldata = account.encode_calls(&calls);
-
-    let is_query = true;
-    let nonce_data_availability_mode = DataAvailabilityMode::L1;
-    let fee_data_availability_mode = DataAvailabilityMode::L1;
-
-    let expected_error = devnet
+    let err = devnet
         .json_rpc_client
         .estimate_fee(
             [
-                BroadcastedTransaction::Declare(
-                    starknet_rs_core::types::BroadcastedDeclareTransaction::V3(
-                        BroadcastedDeclareTransactionV3 {
-                            sender_address: account_address,
-                            compiled_class_hash: casm_hash,
-                            signature: vec![],
-                            nonce: Felt::ZERO,
-                            contract_class: Arc::new(flattened_contract_artifact.clone()),
-                            resource_bounds: estimate_fee_resource_bounds.clone(),
-                            tip: 0,
-                            paymaster_data: vec![],
-                            account_deployment_data: vec![],
-                            nonce_data_availability_mode,
-                            fee_data_availability_mode,
-                            is_query,
-                        },
-                    ),
-                ),
-                BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V3(
-                    BroadcastedInvokeTransactionV3 {
-                        sender_address: account_address,
-                        calldata,
-                        signature: vec![],
-                        nonce: Felt::ONE,
-                        resource_bounds: estimate_fee_resource_bounds,
-                        tip: 0,
-                        paymaster_data: vec![],
-                        account_deployment_data: vec![],
-                        nonce_data_availability_mode,
-                        fee_data_availability_mode,
-                        is_query,
-                    },
-                )),
+                broadcasted_invoke_v1_for_estimation(
+                    &account,
+                    &signer,
+                    ETH_ERC20_CONTRACT_ADDRESS,
+                    get_selector_from_name("transfer").unwrap(),
+                    &[
+                        Felt::ONE,                 // recipient
+                        Felt::from(1_000_000_000), // low part of uint256
+                        Felt::ZERO,                // high part of uint256
+                    ],
+                    Felt::ZERO, // original nonce
+                )
+                .await
+                .unwrap(),
+                broadcasted_invoke_v1_for_estimation(
+                    &account,
+                    &signer,
+                    ETH_ERC20_CONTRACT_ADDRESS,
+                    non_existent_selector,
+                    &[],
+                    Felt::ONE, // nonce incremented after 1st tx
+                )
+                .await
+                .unwrap(),
             ],
-            [SimulationFlagForEstimateFee::SkipValidate],
-            account.block_id(),
+            [], // simulation_flags
+            BlockId::Tag(BlockTag::Latest),
         )
         .await
         .unwrap_err();
 
-    match expected_error {
+    match err {
         ProviderError::StarknetError(StarknetError::TransactionExecutionError(
             TransactionExecutionErrorData { transaction_index, execution_error },
         )) => {
             assert_eq!(transaction_index, 1);
-            assert_contains(&execution_error, "ENTRYPOINT_NOT_FOUND")
+            assert_contains(&execution_error, "ENTRYPOINT_NOT_FOUND");
         }
-        other => panic!("Unexpected error: {:?}", other),
-    }
+        _ => panic!("Unexpected error: {err}"),
+    };
 }
 
 #[tokio::test]

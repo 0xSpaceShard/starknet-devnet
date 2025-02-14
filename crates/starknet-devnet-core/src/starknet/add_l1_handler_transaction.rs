@@ -1,4 +1,5 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
+use ethers::types::H256;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 use starknet_types::rpc::transactions::{Transaction, TransactionWithHash};
@@ -25,6 +26,17 @@ pub fn add_l1_handler_transaction(
         execution_info,
     )?;
 
+    // If L1 tx hash present, store the generated L2 tx hash in its messaging entry.
+    // Not done as part of `handle_transaction_result` as it is specific to this tx type.
+    if let Some(l1_tx_hash) = transaction.l1_transaction_hash {
+        starknet
+            .messaging
+            .l1_to_l2_tx_hashes
+            .entry(H256(*l1_tx_hash.as_bytes()))
+            .or_default()
+            .push(transaction_hash);
+    }
+
     Ok(transaction_hash)
 }
 
@@ -33,8 +45,6 @@ mod tests {
     // Constants taken from test_estimate_message_fee.rs.
     const WHITELISTED_L1_ADDRESS: &str = "0x8359E4B0152ed5A731162D3c7B0D8D56edB165A0";
 
-    use blockifier::execution::errors::EntryPointExecutionError;
-    use blockifier::transaction::errors::TransactionExecutionError::ExecutionError;
     use nonzero_ext::nonzero;
     use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_rs_core::utils::get_selector_from_name;
@@ -49,9 +59,9 @@ mod tests {
     use crate::account::Account;
     use crate::constants::{
         self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
-        ENTRYPOINT_NOT_FOUND_ERROR_ENCODED, ETH_ERC20_CONTRACT_ADDRESS,
-        STRK_ERC20_CONTRACT_ADDRESS,
+        ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
+    use crate::stack_trace::{ErrorStack, Frame};
     use crate::starknet::{predeployed, Starknet};
     use crate::state::CustomState;
     use crate::traits::{Deployed, HashIdentifiedMut};
@@ -122,18 +132,21 @@ mod tests {
             vec![Felt::from(11), Felt::from(9999)],
         );
 
-        let result = starknet.add_l1_handler_transaction(transaction);
+        match starknet.add_l1_handler_transaction(transaction) {
+            Err(crate::error::Error::ContractExecutionError(ErrorStack { stack })) => {
+                assert_eq!(stack.len(), 1);
+                let error_frame = stack.first().unwrap();
+                match error_frame {
+                    Frame::EntryPoint(entry_point_error_frame) => {
+                        assert_eq!(
+                            entry_point_error_frame.selector.unwrap(),
+                            starknet_api::core::EntryPointSelector(withdraw_selector)
+                        );
 
-        match result {
-            Err(crate::error::Error::BlockifierTransactionError(ExecutionError {
-                error: EntryPointExecutionError::ExecutionFailed { error_trace },
-                ..
-            })) => {
-                let error_stack = error_trace.stack;
-                assert_eq!(error_stack.len(), 1);
-                let error_frame = error_stack.first().unwrap();
-                assert_eq!(error_frame.selector.0, withdraw_selector);
-                assert_eq!(error_trace.last_retdata.0, vec![ENTRYPOINT_NOT_FOUND_ERROR_ENCODED]);
+                        todo!("assert entrypoint not found");
+                    }
+                    _ => panic!("Invalid error frame: {error_frame:?}"),
+                }
             }
             other => panic!("Wrong result: {other:?}"),
         }

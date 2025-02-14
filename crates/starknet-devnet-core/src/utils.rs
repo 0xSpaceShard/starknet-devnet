@@ -1,12 +1,11 @@
 use blockifier::bouncer::{BouncerConfig, BouncerWeights, BuiltinCount};
+use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::versioned_constants::VersionedConstants;
-use serde_json::Value;
 use starknet_api::block::StarknetVersion;
-use starknet_rs_core::types::contract::CompiledClass;
 use starknet_rs_core::types::Felt;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
-use crate::error::{DevnetResult, Error};
+use crate::error::DevnetResult;
 
 pub mod random_number_generator {
     use rand::{thread_rng, Rng, SeedableRng};
@@ -75,16 +74,6 @@ pub(crate) fn custom_bouncer_config() -> BouncerConfig {
     }
 }
 
-/// Returns the hash of a compiled class.
-/// # Arguments
-/// * `casm_json` - The compiled class in JSON format.
-pub fn calculate_casm_hash(casm_json: Value) -> DevnetResult<Felt> {
-    serde_json::from_value::<CompiledClass>(casm_json)
-        .map_err(|err| Error::DeserializationError { origin: err.to_string() })?
-        .class_hash()
-        .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })
-}
-
 #[macro_export]
 macro_rules! nonzero_gas_price {
     ($value:expr) => {{
@@ -93,11 +82,18 @@ macro_rules! nonzero_gas_price {
     }};
 }
 
+pub(crate) fn maybe_extract_failure_reason(
+    execution_info: &TransactionExecutionInfo,
+) -> Option<String> {
+    execution_info.revert_error.as_ref().map(|err| err.to_string())
+}
+
 #[cfg(test)]
 pub(crate) mod test_utils {
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use starknet_api::transaction::fields::Fee;
     use starknet_rs_core::types::Felt;
+    use starknet_types::compile_sierra_contract;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
@@ -111,7 +107,6 @@ pub(crate) mod test_utils {
     };
     use starknet_types::traits::HashProducer;
 
-    use super::calculate_casm_hash;
     use crate::constants::DEVNET_DEFAULT_CHAIN_ID;
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
 
@@ -163,11 +158,8 @@ pub(crate) mod test_utils {
         sender_address: &ContractAddress,
     ) -> BroadcastedDeclareTransactionV2 {
         let contract_class = dummy_cairo_1_contract_class();
-
-        let casm_contract_class_json =
-            usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap()).unwrap();
-
-        let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap();
+        let compiled_class_hash =
+            compile_sierra_contract(&contract_class).unwrap().compiled_class_hash();
 
         BroadcastedDeclareTransactionV2::new(
             &contract_class,
@@ -198,6 +190,8 @@ pub(crate) mod test_utils {
                 resource_bounds: ResourceBoundsWrapper::new(
                     declare_v2.common.max_fee.0 as u64,
                     1,
+                    0,
+                    0,
                     0,
                     0,
                 ),

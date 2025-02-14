@@ -1,4 +1,5 @@
 use serde_json::json;
+use starknet_rs_core::types::BlockId;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::RPC_PATH;
@@ -23,7 +24,7 @@ async fn rpc_returns_correct_spec_version() {
 
     let resp_body = devnet.send_custom_rpc("starknet_specVersion", json!([])).await.unwrap();
     match resp_body.as_str() {
-        Some(received_ver) => assert_eq!(received_ver, "0.7.1"),
+        Some(received_ver) => assert_eq!(received_ver, "0.8.0-rc.2"),
         _ => panic!("Invalid resp: {resp_body}"),
     }
 }
@@ -49,4 +50,24 @@ async fn rpc_returns_invalid_params() {
         .unwrap_err();
 
     assert_eq!(rpc_error.code, -32602);
+}
+
+#[tokio::test]
+async fn storage_proof_request_should_always_return_error() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+    devnet.create_block().await.unwrap();
+
+    for (req_params, expected_code, expected_msg) in [
+        (json!({}), -32602, "missing field `block_id`"),
+        (json!({ "block_id": BlockId::Number(0) }), 42, "Devnet doesn't support storage proofs"),
+        (json!({ "block_id": "latest" }), 42, "Devnet doesn't support storage proofs"),
+        (json!({ "block_id": BlockId::Number(5) }), 24, "Block not found"),
+    ] {
+        let error =
+            devnet.send_custom_rpc("starknet_getStorageProof", req_params).await.unwrap_err();
+        assert_eq!(
+            error,
+            RpcError { code: expected_code.into(), message: expected_msg.into(), data: None }
+        );
+    }
 }

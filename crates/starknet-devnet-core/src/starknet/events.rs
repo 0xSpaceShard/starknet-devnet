@@ -1,3 +1,4 @@
+use starknet_api::block::BlockStatus;
 use starknet_rs_core::types::{BlockId, Felt};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{EmittedEvent, Event};
@@ -61,11 +62,16 @@ pub(crate) fn get_events(
                         return Ok((events, true));
                     }
                 }
+                let (block_hash, block_number) = if block.status() == &BlockStatus::Pending {
+                    (None, None)
+                } else {
+                    (Some(block.block_hash()), Some(block.block_number()))
+                };
 
                 let emitted_event = EmittedEvent {
                     transaction_hash: *transaction_hash,
-                    block_hash: block.block_hash(),
-                    block_number: block.block_number(),
+                    block_hash,
+                    block_number,
                     keys: transaction_event.keys,
                     from_address: transaction_event.from_address,
                     data: transaction_event.data,
@@ -86,7 +92,7 @@ pub(crate) fn get_events(
 /// * `address` - Optional. The address to filter the event by.
 /// * `keys_filter` - Optional. The keys to filter the event by.
 /// * `event` - The event to check if it applies to the filters.
-fn check_if_filter_applies_for_event(
+pub fn check_if_filter_applies_for_event(
     address: &Option<ContractAddress>,
     keys_filter: &Option<Vec<Vec<Felt>>>,
     event: &Event,
@@ -125,7 +131,7 @@ where
 #[cfg(test)]
 mod tests {
     use blockifier::execution::call_info::CallInfo;
-    use starknet_rs_core::types::{BlockId, Felt};
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::emitted_event::Event;
     use starknet_types::rpc::transactions::TransactionWithHash;
@@ -405,7 +411,10 @@ mod tests {
             starknet.handle_accepted_transaction(transaction.clone(), txn_info).unwrap();
         }
 
-        assert_eq!(starknet.blocks.get_blocks(None, None).unwrap().len(), 6);
+        assert_eq!(
+            starknet.blocks.get_blocks(None, Some(BlockId::Tag(BlockTag::Latest))).unwrap().len(),
+            6
+        );
         for idx in 0..5 {
             starknet.transactions.get_by_hash(Felt::from(idx as u128 + 100)).unwrap();
         }

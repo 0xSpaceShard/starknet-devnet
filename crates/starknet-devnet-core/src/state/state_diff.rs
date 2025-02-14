@@ -185,6 +185,7 @@ mod tests {
     use starknet_api::transaction::fields::Fee;
     use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_rs_core::utils::get_selector_from_name;
+    use starknet_types::compile_sierra_contract;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::felt_from_prefixed_hex;
@@ -201,7 +202,6 @@ mod tests {
     use crate::starknet::Starknet;
     use crate::state::{CustomState, StarknetState};
     use crate::traits::Deployed;
-    use crate::utils::calculate_casm_hash;
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
         cairo_0_account_without_validations, dummy_cairo_1_contract_class, dummy_contract_address,
@@ -334,10 +334,8 @@ mod tests {
         for (contract_class, nonce) in
             [(replaceable_contract.clone(), Felt::ZERO), (events_contract.clone(), Felt::ONE)]
         {
-            let casm_contract_class_json =
-                usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap())
-                    .unwrap();
-            let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap();
+            let compiled_class_hash =
+                compile_sierra_contract(&contract_class).unwrap().compiled_class_hash();
 
             starknet
                 .add_declare_transaction(

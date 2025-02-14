@@ -14,6 +14,7 @@ use starknet_types::rpc::estimate_message_fee::{
 use starknet_types::rpc::transactions::BroadcastedTransaction;
 
 use crate::error::{DevnetResult, Error};
+use crate::stack_trace::ErrorStack;
 use crate::starknet::Starknet;
 use crate::utils::get_versioned_constants;
 
@@ -73,12 +74,16 @@ pub fn estimate_fee(
                 Ok(estimated_fee) => Ok(estimated_fee),
                 // reverted transactions are failing with ExecutionError, but index is set to 0, so
                 // we override the index property
-                Err(Error::ExecutionError { execution_error, .. }) => {
-                    Err(Error::ExecutionError { execution_error, index: idx })
+                Err(Error::ContractExecutionError(error_stack)) => {
+                    Err(Error::ContractExecutionErrorInSimulation {
+                        failure_index: idx,
+                        error_stack,
+                    })
                 }
-                Err(err) => {
-                    Err(Error::ExecutionError { execution_error: err.to_string(), index: idx })
-                }
+                Err(err) => Err(Error::ContractExecutionErrorInSimulation {
+                    failure_index: idx,
+                    error_stack: ErrorStack::from_str_err(&err.to_string()),
+                }),
             }
         })
         .collect()
@@ -121,7 +126,9 @@ fn estimate_transaction_fee<S: StateReader>(
     if let (true, Some(revert_error)) =
         (return_error_on_reverted_execution, transaction_execution_info.revert_error)
     {
-        return Err(Error::ExecutionError { execution_error: revert_error.to_string(), index: 0 });
+        // TODO until blockifier makes the actual stack trace available, we return the stringified
+        // error. The RPC spec would prefer a structured one, but a string is allowed.
+        return Err(Error::ContractExecutionError(revert_error.into()));
     }
 
     let gas_vector = transaction_execution_info.receipt.resources.to_gas_vector(
@@ -146,11 +153,14 @@ fn estimate_transaction_fee<S: StateReader>(
         starknet_api::block::FeeType::Eth => PriceUnit::Wei,
     };
 
+    // TODO: change l2 fields logic
     Ok(FeeEstimateWrapper {
-        gas_consumed: Felt::from(gas_vector.l1_gas),
-        data_gas_consumed: Felt::from(gas_vector.l1_data_gas),
-        gas_price: Felt::from(gas_price),
-        data_gas_price: Felt::from(data_gas_price),
+        l1_gas_consumed: Felt::from(gas_vector.l1_gas),
+        l1_data_gas_consumed: Felt::from(gas_vector.l1_data_gas),
+        l1_gas_price: Felt::from(gas_price),
+        l1_data_gas_price: Felt::from(data_gas_price),
+        l2_gas_consumed: Felt::ZERO,
+        l2_gas_price: Felt::ZERO,
         overall_fee: Felt::from(total_fee.0),
         unit,
     })

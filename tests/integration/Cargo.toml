@@ -17,6 +17,7 @@ async-trait = { workspace = true }
 axum = { workspace = true }
 anyhow = { workspace = true }
 ethers = { workspace = true }
+futures = { workspace = true }
 lazy_static = { workspace = true }
 listeners = { workspace = true }
 rand = { workspace = true }
@@ -30,5 +31,6 @@ starknet-rs-providers = { workspace = true }
 starknet-rs-signers = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["signal"] }
+tokio-tungstenite = { workspace = true }
 url = { workspace = true }
 usc = { workspace = true }

@@ -6,6 +6,7 @@ use blockifier::state::state_api::{State, StateReader};
 use parking_lot::RwLock;
 use starknet_api::core::CompiledClassHash;
 use starknet_rs_core::types::Felt;
+use starknet_types::compile_sierra_contract;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
@@ -14,7 +15,6 @@ use self::state_diff::StateDiff;
 use self::state_readers::DictState;
 use crate::error::{DevnetResult, Error};
 use crate::starknet::defaulter::StarknetDefaulter;
-use crate::utils::calculate_casm_hash;
 
 pub(crate) mod state_diff;
 pub(crate) mod state_readers;
@@ -367,19 +367,13 @@ impl CustomState for StarknetState {
         let class_hash = starknet_api::core::ClassHash(class_hash);
 
         if let ContractClass::Cairo1(cairo_lang_contract_class) = &contract_class {
-            let casm_json = usc::compile_contract(
-                serde_json::to_value(cairo_lang_contract_class)
-                    .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
-            )
-            .map_err(|err| {
-                Error::TypesError(starknet_types::error::Error::SierraCompilationError {
-                    reason: err.to_string(),
-                })
-            })?;
+            let casm_hash =
+                compile_sierra_contract(cairo_lang_contract_class)?.compiled_class_hash();
 
-            let casm_hash = starknet_api::core::CompiledClassHash(calculate_casm_hash(casm_json)?);
-
-            self.state.state.set_compiled_class_hash(class_hash, casm_hash)?;
+            self.state.state.set_compiled_class_hash(
+                class_hash,
+                starknet_api::core::CompiledClassHash(casm_hash),
+            )?;
         };
 
         self.state.state.set_contract_class(class_hash, compiled_class)?;

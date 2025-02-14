@@ -17,7 +17,7 @@ pub fn add_deploy_account_transaction(
     broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransaction,
 ) -> DevnetResult<(TransactionHash, ContractAddress)> {
     if broadcasted_deploy_account_transaction.is_max_fee_zero_value() {
-        return Err(TransactionValidationError::InsufficientMaxFee.into());
+        return Err(TransactionValidationError::InsufficientResourcesForValidate.into());
     }
 
     if broadcasted_deploy_account_transaction.is_only_query() {
@@ -98,6 +98,8 @@ mod tests {
     use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::cairo_0_account_without_validations;
 
+    // TODO add test for all three gas bounds
+
     fn test_deploy_account_transaction_v3(
         class_hash: ClassHash,
         nonce: u128,
@@ -108,7 +110,7 @@ mod tests {
                 version: Felt::THREE,
                 signature: vec![],
                 nonce: Felt::from(nonce),
-                resource_bounds: ResourceBoundsWrapper::new(l1_gas_amount, 1, 0, 0),
+                resource_bounds: ResourceBoundsWrapper::new(l1_gas_amount, 1, 0, 0, 0, 0),
                 tip: Tip(0),
                 paymaster_data: vec![],
                 nonce_data_availability_mode:
@@ -158,7 +160,9 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            Error::TransactionValidationError(TransactionValidationError::InsufficientMaxFee) => {}
+            Error::TransactionValidationError(
+                TransactionValidationError::InsufficientResourcesForValidate,
+            ) => {}
             _ => panic!("Wrong error type"),
         }
     }
@@ -175,7 +179,9 @@ mod tests {
             ))
             .unwrap_err();
         match txn_err {
-            Error::TransactionValidationError(TransactionValidationError::InsufficientMaxFee) => {}
+            Error::TransactionValidationError(
+                TransactionValidationError::InsufficientResourcesForValidate,
+            ) => {}
             _ => panic!("Wrong error type"),
         }
     }
@@ -268,7 +274,7 @@ mod tests {
             .unwrap_err()
         {
             Error::TransactionValidationError(
-                crate::error::TransactionValidationError::InsufficientMaxFee,
+                crate::error::TransactionValidationError::InsufficientResourcesForValidate,
             ) => {}
             err => {
                 panic!("Wrong error type: {:?}", err);

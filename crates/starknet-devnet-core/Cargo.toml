@@ -12,8 +12,9 @@ description = "Starknet core logic for devnet"
 workspace = true
 
 [dependencies]
-blockifier = { workspace = true }
+blockifier = { workspace = true, features = ["transaction_serde"]}
 cairo-lang-starknet-classes = { workspace = true }
+cairo-vm = { workspace = true }
 clap = { workspace = true }
 ethers = { workspace = true }
 starknet_api = { workspace = true }
@@ -31,7 +32,6 @@ tracing = { workspace = true }
 indexmap = { workspace = true }
 url = { workspace = true }
 nonzero_ext = { workspace = true }
-usc = { workspace = true }
 parking_lot = { workspace = true }
 
 # necessary for installing reqwest in Docker

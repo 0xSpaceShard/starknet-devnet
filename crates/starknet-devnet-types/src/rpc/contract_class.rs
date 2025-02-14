@@ -24,6 +24,7 @@ use starknet_types_core::felt::Felt;
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 use crate::traits::HashProducer;
+use crate::utils::compile_sierra_contract;
 
 pub mod deprecated;
 pub use deprecated::Cairo0ContractClass;
@@ -105,16 +106,8 @@ impl TryFrom<ContractClass> for starknet_api::contract_class::ContractClass {
                     deprecated_contract_class.try_into()?,
                 ))
             }
-            ContractClass::Cairo1(ref sierra_contract_class) => {
-                // TODO any difference: USC vs CasmContractClass::from_contract_class ?
-                let casm_json =
-                    usc::compile_contract(serde_json::to_value(sierra_contract_class).map_err(
-                        |err| Error::JsonError(JsonError::Custom { msg: err.to_string() }),
-                    )?)
-                    .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
-
-                let casm = serde_json::from_value::<CasmContractClass>(casm_json)
-                    .map_err(|err| Error::JsonError(JsonError::Custom { msg: err.to_string() }))?;
+            ContractClass::Cairo1(sierra_contract_class) => {
+                let casm = compile_sierra_contract(&sierra_contract_class)?;
 
                 Ok(starknet_api::contract_class::ContractClass::V1((
                     casm,

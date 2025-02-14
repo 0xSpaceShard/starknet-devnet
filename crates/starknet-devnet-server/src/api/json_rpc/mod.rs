@@ -1,4 +1,5 @@
 mod endpoints;
+mod endpoints_ws;
 pub mod error;
 pub mod models;
 pub(crate) mod origin_forwarder;
@@ -6,19 +7,28 @@ pub(crate) mod origin_forwarder;
 mod spec_reader;
 mod write_endpoints;
 
-pub const RPC_SPEC_VERSION: &str = "0.7.1";
+pub const RPC_SPEC_VERSION: &str = "0.8.0-rc.2";
 
+use std::sync::Arc;
+
+use axum::extract::ws::{Message, WebSocket};
 use enum_helper_macros::{AllVariantsSerdeRenames, VariantName};
+use futures::stream::SplitSink;
+use futures::{SinkExt, StreamExt};
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
-    EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput, TransactionHashOutput,
+    ClassHashInput, EstimateFeeInput, EventsInput, EventsSubscriptionInput, GetStorageInput,
+    GetStorageProofInput, L1TransactionHashInput, PendingTransactionsSubscriptionInput,
+    SubscriptionIdInput, TransactionBlockInput, TransactionHashInput, TransactionHashOutput,
 };
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
-use starknet_rs_core::types::{ContractClass as CodegenContractClass, Felt};
+use starknet_core::{CasmContractClass, StarknetBlock};
+use starknet_rs_core::types::{BlockId, BlockTag, ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::block::{Block, PendingBlock};
+use starknet_types::rpc::block::{Block, PendingBlock, ReorgData};
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
@@ -26,9 +36,11 @@ use starknet_types::rpc::gas_modification::{GasModification, GasModificationRequ
 use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
-    BlockTransactionTrace, EventsChunk, SimulatedTransaction, TransactionTrace, TransactionWithHash,
+    BlockTransactionTrace, EventsChunk, L1HandlerTransactionStatus, SimulatedTransaction,
+    TransactionStatus, TransactionTrace, TransactionWithHash,
 };
 use starknet_types::starknet_api::block::BlockNumber;
+use tokio::sync::Mutex;
 use tracing::{error, info, trace};
 
 use self::error::StrictRpcResult;
@@ -36,7 +48,7 @@ use self::models::{
     AccountAddressInput, BlockHashAndNumberOutput, BlockIdInput,
     BroadcastedDeclareTransactionInput, BroadcastedDeployAccountTransactionInput,
     BroadcastedInvokeTransactionInput, DeclareTransactionOutput, DeployAccountTransactionOutput,
-    SyncingOutput, TransactionStatusOutput,
+    SyncingOutput,
 };
 use self::origin_forwarder::OriginForwarder;
 use super::http::endpoints::accounts::{BalanceQuery, PredeployedAccountsQuery};
@@ -56,10 +68,14 @@ use crate::api::json_rpc::models::{
 use crate::api::serde_helpers::{empty_params, optional_params};
 use crate::dump_util::dump_event;
 use crate::restrictive_mode::is_json_rpc_method_restricted;
-use crate::rpc_core::error::RpcError;
+use crate::rpc_core::error::{ErrorCode, RpcError};
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
+use crate::subscribe::{
+    NewTransactionStatus, NotificationData, PendingTransactionNotification, SocketId,
+    TransactionHashWrapper,
+};
 use crate::ServerConfig;
 
 /// Helper trait to easily convert results to rpc results
@@ -146,11 +162,24 @@ impl RpcHandler for JsonRpcHandler {
         original_call: RpcMethodCall,
     ) -> ResponseResult {
         info!(target: "rpc", "received method in on_request {}", request);
+        log_if_deprecated_tx(&request);
 
         let is_request_forwardable = request.is_forwardable_to_origin(); // applicable if forking
         let is_request_dumpable = request.is_dumpable();
 
-        log_if_deprecated_tx(&request);
+        // for later comparison and subscription notifications
+        let old_latest_block = if request.requires_notifying() {
+            Some(self.get_block_by_tag(BlockTag::Latest).await)
+        } else {
+            None
+        };
+
+        let old_pending_block =
+            if request.requires_notifying() && self.starknet_config.uses_pending_block() {
+                Some(self.get_block_by_tag(BlockTag::Pending).await)
+            } else {
+                None
+            };
 
         let starknet_resp = self.execute(request).await;
 
@@ -169,45 +198,60 @@ impl RpcHandler for JsonRpcHandler {
             }
         }
 
+        if let Err(e) = self.broadcast_changes(old_latest_block, old_pending_block).await {
+            return ResponseResult::Error(e.api_error_to_rpc_error());
+        }
+
         starknet_resp.to_rpc_result()
     }
 
     async fn on_call(&self, call: RpcMethodCall) -> RpcResponse {
         trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received method call");
-        let RpcMethodCall { method, params, id, .. } = call.clone();
 
-        let params: serde_json::Value = params.into();
-        let deserializable_call = serde_json::json!({
-            "method": &method,
-            "params": params
-        });
+        if !self.allows_method(&call.method) {
+            return RpcResponse::from_rpc_error(RpcError::new(ErrorCode::MethodForbidden), call.id);
+        }
 
-        match serde_json::from_value::<Self::Request>(deserializable_call) {
+        match to_json_rpc_request(&call) {
             Ok(req) => {
-                if let Some(restricted_methods) = &self.server_config.restricted_methods {
-                    if is_json_rpc_method_restricted(&method, restricted_methods) {
-                        return RpcResponse::new(
-                            id,
-                            RpcError::new(crate::rpc_core::error::ErrorCode::MethodForbidden),
-                        );
-                    }
-                }
-                let result = self.on_request(req, call).await;
-                RpcResponse::new(id, result)
+                let result = self.on_request(req, call.clone()).await;
+                RpcResponse::new(call.id, result)
             }
-            Err(err) => {
-                let err = err.to_string();
-                // since JSON-RPC specification requires returning a Method Not Found error,
-                // we apply a hacky way to induce this - checking the stringified error message
-                let distinctive_error = format!("unknown variant `{method}`");
-                if err.contains(&distinctive_error) {
-                    error!(target: "rpc", ?method, "failed to deserialize method due to unknown variant");
-                    RpcResponse::new(id, RpcError::method_not_found())
-                } else {
-                    error!(target: "rpc", ?method, ?err, "failed to deserialize method");
-                    RpcResponse::new(id, RpcError::invalid_params(err))
+            Err(e) => RpcResponse::from_rpc_error(e, call.id),
+        }
+    }
+
+    async fn on_websocket(&self, socket: WebSocket) {
+        let (socket_writer, mut socket_reader) = socket.split();
+        let socket_writer = Arc::new(Mutex::new(socket_writer));
+
+        let socket_id = self.api.sockets.lock().await.insert(socket_writer.clone());
+
+        // listen to new messages coming through the socket
+        let mut socket_safely_closed = false;
+        while let Some(msg) = socket_reader.next().await {
+            match msg {
+                Ok(Message::Text(text)) => {
+                    self.on_websocket_call(text.as_bytes(), socket_writer.clone(), socket_id).await;
+                }
+                Ok(Message::Binary(bytes)) => {
+                    self.on_websocket_call(&bytes, socket_writer.clone(), socket_id).await;
+                }
+                Ok(Message::Close(_)) => {
+                    socket_safely_closed = true;
+                    break;
+                }
+                other => {
+                    tracing::error!("Socket handler got an unexpected message: {other:?}")
                 }
             }
+        }
+
+        if socket_safely_closed {
+            self.api.sockets.lock().await.remove(&socket_id);
+            tracing::info!("Websocket disconnected");
+        } else {
+            tracing::error!("Failed socket read");
         }
     }
 }
@@ -232,6 +276,179 @@ impl JsonRpcHandler {
             starknet_config: starknet_config.clone(),
             server_config: server_config.clone(),
         }
+    }
+
+    /// The latest and pending block are always defined, so to avoid having to deal with Err/None in
+    /// places where this method is called, it is defined to return an empty accepted block,
+    /// even though that case should never happen.
+    async fn get_block_by_tag(&self, tag: BlockTag) -> StarknetBlock {
+        let starknet = self.api.starknet.lock().await;
+        match starknet.get_block(&BlockId::Tag(tag)) {
+            Ok(block) => block.clone(),
+            _ => StarknetBlock::create_empty_accepted(),
+        }
+    }
+
+    async fn broadcast_pending_tx_changes(
+        &self,
+        old_pending_block: StarknetBlock,
+    ) -> Result<(), error::ApiError> {
+        let new_pending_block = self.get_block_by_tag(BlockTag::Pending).await;
+        let old_pending_txs = old_pending_block.get_transactions();
+        let new_pending_txs = new_pending_block.get_transactions();
+
+        if new_pending_txs.len() > old_pending_txs.len() {
+            #[allow(clippy::expect_used)]
+            let new_tx_hash = new_pending_txs.last().expect("has at least one element");
+
+            let starknet = self.api.starknet.lock().await;
+
+            let status = starknet
+                .get_transaction_execution_and_finality_status(*new_tx_hash)
+                .map_err(error::ApiError::StarknetDevnetError)?;
+            let tx_status_notification =
+                NotificationData::TransactionStatus(NewTransactionStatus {
+                    transaction_hash: *new_tx_hash,
+                    status,
+                    origin_tag: BlockTag::Pending,
+                });
+
+            let tx = starknet
+                .get_transaction_by_hash(*new_tx_hash)
+                .map_err(error::ApiError::StarknetDevnetError)?;
+            let pending_tx_notification = NotificationData::PendingTransaction(
+                PendingTransactionNotification::Full(Box::new(tx.clone())),
+            );
+
+            let pending_tx_hash_notification = NotificationData::PendingTransaction(
+                PendingTransactionNotification::Hash(TransactionHashWrapper {
+                    hash: *tx.get_transaction_hash(),
+                    sender_address: tx.get_sender_address(),
+                }),
+            );
+
+            let notifications =
+                [tx_status_notification, pending_tx_notification, pending_tx_hash_notification];
+
+            self.api.sockets.lock().await.notify_subscribers(&notifications).await;
+        }
+
+        Ok(())
+    }
+
+    async fn broadcast_latest_changes(
+        &self,
+        new_latest_block: StarknetBlock,
+    ) -> Result<(), error::ApiError> {
+        let block_header = (&new_latest_block).into();
+        let mut notifications = vec![NotificationData::NewHeads(block_header)];
+
+        let starknet = self.api.starknet.lock().await;
+
+        for tx_hash in new_latest_block.get_transactions() {
+            let status = starknet
+                .get_transaction_execution_and_finality_status(*tx_hash)
+                .map_err(error::ApiError::StarknetDevnetError)?;
+
+            notifications.push(NotificationData::TransactionStatus(NewTransactionStatus {
+                transaction_hash: *tx_hash,
+                status,
+                origin_tag: BlockTag::Latest,
+            }));
+
+            // There are no pending txs in this mode, but basically we are pretending that the
+            // transaction existed for a short period of time in the pending block, thus triggering
+            // the notification. This is important for users depending on this subscription type to
+            // find out about all new transactions.
+            if !self.starknet_config.uses_pending_block() {
+                let tx = starknet
+                    .get_transaction_by_hash(*tx_hash)
+                    .map_err(error::ApiError::StarknetDevnetError)?;
+                notifications.push(NotificationData::PendingTransaction(
+                    PendingTransactionNotification::Full(Box::new(tx.clone())),
+                ));
+                notifications.push(NotificationData::PendingTransaction(
+                    PendingTransactionNotification::Hash(TransactionHashWrapper {
+                        hash: *tx_hash,
+                        sender_address: tx.get_sender_address(),
+                    }),
+                ));
+            }
+
+            let events = starknet.get_unlimited_events(
+                Some(BlockId::Tag(BlockTag::Latest)),
+                Some(BlockId::Tag(BlockTag::Latest)),
+                None,
+                None,
+            )?;
+
+            for event in events {
+                notifications.push(NotificationData::Event(event));
+            }
+        }
+
+        self.api.sockets.lock().await.notify_subscribers(&notifications).await;
+        Ok(())
+    }
+
+    /// Notify subscribers of what they are subscribed to.
+    async fn broadcast_changes(
+        &self,
+        old_latest_block: Option<StarknetBlock>,
+        old_pending_block: Option<StarknetBlock>,
+    ) -> Result<(), error::ApiError> {
+        let old_latest_block = if let Some(block) = old_latest_block {
+            block
+        } else {
+            return Ok(());
+        };
+
+        if let Some(old_pending_block) = old_pending_block {
+            self.broadcast_pending_tx_changes(old_pending_block).await?;
+        }
+
+        let new_latest_block = self.get_block_by_tag(BlockTag::Latest).await;
+
+        match new_latest_block.block_number().cmp(&old_latest_block.block_number()) {
+            std::cmp::Ordering::Less => {
+                self.broadcast_reorg(old_latest_block, new_latest_block).await?
+            }
+            std::cmp::Ordering::Equal => { /* no changes required */ }
+            std::cmp::Ordering::Greater => self.broadcast_latest_changes(new_latest_block).await?,
+        }
+
+        Ok(())
+    }
+
+    async fn broadcast_reorg(
+        &self,
+        old_latest_block: StarknetBlock,
+        new_latest_block: StarknetBlock,
+    ) -> Result<(), error::ApiError> {
+        // Since it is impossible to determine the hash of the former successor of new_latest_block
+        // directly, we iterate from old_latest_block all the way to the aborted successor of
+        // new_latest_block.
+        let new_latest_hash = new_latest_block.block_hash();
+        let mut orphan_starting_block_hash = old_latest_block.block_hash();
+        let starknet = self.api.starknet.lock().await;
+        loop {
+            let orphan_block = starknet.get_block(&BlockId::Hash(orphan_starting_block_hash))?;
+            let parent_hash = orphan_block.parent_hash();
+            if parent_hash == new_latest_hash {
+                break;
+            }
+            orphan_starting_block_hash = parent_hash;
+        }
+
+        let notification = NotificationData::Reorg(ReorgData {
+            starting_block_hash: orphan_starting_block_hash,
+            starting_block_number: new_latest_block.block_number().unchecked_next(),
+            ending_block_hash: old_latest_block.block_hash(),
+            ending_block_number: old_latest_block.block_number(),
+        });
+
+        self.api.sockets.lock().await.notify_subscribers(&[notification]).await;
+        Ok(())
     }
 
     /// Matches the request to the corresponding enum variant and executes the request.
@@ -267,6 +484,9 @@ impl JsonRpcHandler {
             }) => self.get_transaction_receipt_by_hash(transaction_hash).await,
             JsonRpcRequest::ClassByHash(BlockAndClassHashInput { block_id, class_hash }) => {
                 self.get_class(block_id, class_hash).await
+            }
+            JsonRpcRequest::CompiledCasmByClassHash(ClassHashInput { class_hash }) => {
+                self.get_compiled_casm(class_hash).await
             }
             JsonRpcRequest::ClassHashAtContractAddress(BlockAndContractAddressInput {
                 block_id,
@@ -361,7 +581,55 @@ impl JsonRpcHandler {
             JsonRpcRequest::AccountBalance(data) => self.get_account_balance(data).await,
             JsonRpcRequest::Mint(data) => self.mint(data).await,
             JsonRpcRequest::DevnetConfig => self.get_devnet_config().await,
+            JsonRpcRequest::MessagesStatusByL1Hash(data) => self.get_messages_status(data).await,
+            JsonRpcRequest::StorageProof(data) => self.get_storage_proof(data).await,
         }
+    }
+
+    /// Takes `bytes` to be an encoded RPC call, executes it, and sends the response back via `ws`.
+    async fn on_websocket_call(
+        &self,
+        bytes: &[u8],
+        ws: Arc<Mutex<SplitSink<WebSocket, Message>>>,
+        socket_id: SocketId,
+    ) {
+        let error_serialized = match serde_json::from_slice(bytes) {
+            Ok(rpc_call) => match self.on_websocket_rpc_call(&rpc_call, socket_id).await {
+                Ok(_) => return,
+                Err(e) => json!(RpcResponse::from_rpc_error(e, rpc_call.id)).to_string(),
+            },
+            Err(e) => e.to_string(),
+        };
+
+        if let Err(e) = ws.lock().await.send(Message::Text(error_serialized)).await {
+            tracing::error!("Error sending websocket message: {e}");
+        }
+    }
+
+    fn allows_method(&self, method: &String) -> bool {
+        if let Some(restricted_methods) = &self.server_config.restricted_methods {
+            if is_json_rpc_method_restricted(method, restricted_methods) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    /// Since some subscriptions might need to send multiple messages, sending messages other than
+    /// errors is left to individual RPC method handlers and this method returns an empty successful
+    /// Result.
+    async fn on_websocket_rpc_call(
+        &self,
+        call: &RpcMethodCall,
+        socket_id: SocketId,
+    ) -> Result<(), RpcError> {
+        trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received websocket call");
+
+        let req = to_json_rpc_request(call)?;
+        self.execute_ws(req, call.id.clone(), socket_id)
+            .await
+            .map_err(|e| e.api_error_to_rpc_error())
     }
 
     async fn update_dump(&self, event: &RpcMethodCall) -> Result<(), RpcError> {
@@ -413,6 +681,8 @@ pub enum JsonRpcRequest {
     StateUpdate(BlockIdInput),
     #[serde(rename = "starknet_getStorageAt")]
     StorageAt(GetStorageInput),
+    #[serde(rename = "starknet_getStorageProof")]
+    StorageProof(GetStorageProofInput),
     #[serde(rename = "starknet_getTransactionByHash")]
     TransactionByHash(TransactionHashInput),
     #[serde(rename = "starknet_getTransactionByBlockIdAndIndex")]
@@ -421,8 +691,12 @@ pub enum JsonRpcRequest {
     TransactionReceiptByTransactionHash(TransactionHashInput),
     #[serde(rename = "starknet_getTransactionStatus")]
     TransactionStatusByHash(TransactionHashInput),
+    #[serde(rename = "starknet_getMessagesStatus")]
+    MessagesStatusByL1Hash(L1TransactionHashInput),
     #[serde(rename = "starknet_getClass")]
     ClassByHash(BlockAndClassHashInput),
+    #[serde(rename = "starknet_getCompiledCasm")]
+    CompiledCasmByClassHash(ClassHashInput),
     #[serde(rename = "starknet_getClassHashAt")]
     ClassHashAtContractAddress(BlockAndContractAddressInput),
     #[serde(rename = "starknet_getClassAt")]
@@ -502,6 +776,64 @@ pub enum JsonRpcRequest {
 }
 
 impl JsonRpcRequest {
+    pub fn requires_notifying(&self) -> bool {
+        #![warn(clippy::wildcard_enum_match_arm)]
+        match self {
+            Self::AddDeclareTransaction(_)
+            | Self::AddDeployAccountTransaction(_)
+            | Self::AddInvokeTransaction(_)
+            | Self::PostmanFlush(_)
+            | Self::PostmanSendMessageToL2(_)
+            | Self::CreateBlock
+            | Self::AbortBlocks(_)
+            | Self::SetTime(_)
+            | Self::IncreaseTime(_)
+            | Self::Mint(_) => true,
+            Self::SpecVersion
+            | Self::BlockWithTransactionHashes(_)
+            | Self::BlockWithFullTransactions(_)
+            | Self::BlockWithReceipts(_)
+            | Self::StateUpdate(_)
+            | Self::StorageAt(_)
+            | Self::TransactionByHash(_)
+            | Self::TransactionByBlockAndIndex(_)
+            | Self::TransactionReceiptByTransactionHash(_)
+            | Self::TransactionStatusByHash(_)
+            | Self::MessagesStatusByL1Hash(_)
+            | Self::ClassByHash(_)
+            | Self::CompiledCasmByClassHash(_)
+            | Self::ClassHashAtContractAddress(_)
+            | Self::ClassAtContractAddress(_)
+            | Self::BlockTransactionCount(_)
+            | Self::Call(_)
+            | Self::EstimateFee(_)
+            | Self::BlockNumber
+            | Self::BlockHashAndNumber
+            | Self::ChainId
+            | Self::Syncing
+            | Self::Events(_)
+            | Self::ContractNonce(_)
+            | Self::EstimateMessageFee(_)
+            | Self::SimulateTransactions(_)
+            | Self::TraceTransaction(_)
+            | Self::BlockTransactionTraces(_)
+            | Self::ImpersonateAccount(_)
+            | Self::StopImpersonateAccount(_)
+            | Self::AutoImpersonate
+            | Self::StopAutoImpersonate
+            | Self::Dump(_)
+            | Self::Load(_)
+            | Self::PostmanLoadL1MessagingContract(_)
+            | Self::PostmanConsumeMessageFromL2(_)
+            | Self::SetGasPrice(_)
+            | Self::Restart(_)
+            | Self::PredeployedAccounts(_)
+            | Self::AccountBalance(_)
+            | Self::StorageProof(_)
+            | Self::DevnetConfig => false,
+        }
+    }
+
     /// Should the request be retried by being forwarded to the forking origin?
     fn is_forwardable_to_origin(&self) -> bool {
         #[warn(clippy::wildcard_enum_match_arm)]
@@ -528,6 +860,9 @@ impl JsonRpcRequest {
             | Self::EstimateMessageFee(_)
             | Self::SimulateTransactions(_)
             | Self::TraceTransaction(_)
+            | Self::MessagesStatusByL1Hash(_)
+            | Self::CompiledCasmByClassHash(_)
+            | Self::StorageProof(_)
             | Self::BlockTransactionTraces(_) => true,
             Self::SpecVersion
             | Self::ChainId
@@ -610,9 +945,53 @@ impl JsonRpcRequest {
             | Self::Restart(_)
             | Self::PredeployedAccounts(_)
             | Self::AccountBalance(_)
+            | Self::MessagesStatusByL1Hash(_)
+            | Self::CompiledCasmByClassHash(_)
+            | Self::StorageProof(_)
             | Self::DevnetConfig => false,
         }
     }
+}
+
+#[derive(Deserialize, AllVariantsSerdeRenames, VariantName)]
+#[cfg_attr(test, derive(Debug))]
+#[serde(tag = "method", content = "params")]
+pub enum JsonRpcSubscriptionRequest {
+    #[serde(rename = "starknet_subscribeNewHeads", with = "optional_params")]
+    NewHeads(Option<BlockIdInput>),
+    #[serde(rename = "starknet_subscribeTransactionStatus")]
+    TransactionStatus(TransactionBlockInput),
+    #[serde(rename = "starknet_subscribePendingTransactions", with = "optional_params")]
+    PendingTransactions(Option<PendingTransactionsSubscriptionInput>),
+    #[serde(rename = "starknet_subscribeEvents")]
+    Events(Option<EventsSubscriptionInput>),
+    #[serde(rename = "starknet_unsubscribe")]
+    Unsubscribe(SubscriptionIdInput),
+}
+
+fn to_json_rpc_request<D>(call: &RpcMethodCall) -> Result<D, RpcError>
+where
+    D: DeserializeOwned,
+{
+    let params: serde_json::Value = call.params.clone().into();
+    let deserializable_call = json!({
+        "method": call.method,
+        "params": params
+    });
+
+    serde_json::from_value::<D>(deserializable_call).map_err(|err| {
+        let err = err.to_string();
+        // since JSON-RPC specification requires returning a Method Not Found error,
+        // we apply a hacky way to induce this - checking the stringified error message
+        let distinctive_error = format!("unknown variant `{}`", call.method);
+        if err.contains(&distinctive_error) {
+            error!(target: "rpc", method = ?call.method, "failed to deserialize method due to unknown variant");
+            RpcError::method_not_found()
+        } else {
+            error!(target: "rpc", method = ?call.method, ?err, "failed to deserialize method");
+            RpcError::invalid_params(err)
+        }
+    })
 }
 
 impl std::fmt::Display for JsonRpcRequest {
@@ -654,8 +1033,9 @@ pub enum StarknetResponse {
     Felt(Felt),
     Transaction(TransactionWithHash),
     TransactionReceiptByTransactionHash(Box<TransactionReceipt>),
-    TransactionStatusByHash(TransactionStatusOutput),
+    TransactionStatusByHash(TransactionStatus),
     ContractClass(CodegenContractClass),
+    CompiledCasm(CasmContractClass),
     BlockTransactionCount(u64),
     Call(Vec<Felt>),
     EstimateFee(Vec<FeeEstimateWrapper>),
@@ -671,6 +1051,8 @@ pub enum StarknetResponse {
     SimulateTransactions(Vec<SimulatedTransaction>),
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
+    MessagesStatusByL1Hash(Vec<L1HandlerTransactionStatus>),
+    StorageProofs(serde_json::Value), // dummy, the corresponding RPC method always errors
 }
 
 #[derive(Serialize)]
@@ -1293,7 +1675,7 @@ mod requests_tests {
             let RpcMethodCall { method, params, .. } =
                 serde_json::from_value(json_rpc_object).unwrap();
             let params: serde_json::Value = params.into();
-            let deserializable_call = serde_json::json!({
+            let deserializable_call = json!({
                 "method": &method,
                 "params": params
             });

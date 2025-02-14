@@ -16,7 +16,7 @@ pub fn add_invoke_transaction(
     broadcasted_invoke_transaction: BroadcastedInvokeTransaction,
 ) -> DevnetResult<TransactionHash> {
     if broadcasted_invoke_transaction.is_max_fee_zero_value() {
-        return Err(TransactionValidationError::InsufficientMaxFee.into());
+        return Err(TransactionValidationError::InsufficientResourcesForValidate.into());
     }
 
     if broadcasted_invoke_transaction.is_only_query() {
@@ -124,6 +124,8 @@ mod tests {
         ))
     }
 
+    // TODO try using ExecutionResources to reduce number of args
+    #[allow(clippy::too_many_arguments)]
     fn test_invoke_transaction_v3(
         account_address: ContractAddress,
         contract_address: ContractAddress,
@@ -131,6 +133,7 @@ mod tests {
         param: Felt,
         nonce: u128,
         l1_gas_amount: u64,
+        l1_data_gas_amount: u64,
         l2_gas_amount: u64,
     ) -> BroadcastedInvokeTransaction {
         let calldata = vec![
@@ -145,7 +148,14 @@ mod tests {
                 version: Felt::THREE,
                 signature: vec![],
                 nonce: Felt::from(nonce),
-                resource_bounds: ResourceBoundsWrapper::new(l1_gas_amount, 1, l2_gas_amount, 1),
+                resource_bounds: ResourceBoundsWrapper::new(
+                    l1_gas_amount,
+                    1,
+                    l1_data_gas_amount,
+                    1,
+                    l2_gas_amount,
+                    1,
+                ),
                 tip: Tip(0),
                 paymaster_data: vec![],
                 nonce_data_availability_mode:
@@ -169,6 +179,7 @@ mod tests {
             0,
             1,
             0,
+            0,
         );
         match invoke_transaction {
             BroadcastedInvokeTransaction::V3(ref mut v3) => {
@@ -189,32 +200,7 @@ mod tests {
     }
 
     #[test]
-    fn invoke_transaction_v3_should_fail_due_to_no_fee_provided() {
-        let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
-        let account_address = account.get_address();
-
-        let invoke_transaction = test_invoke_transaction_v3(
-            account_address,
-            contract_address,
-            increase_balance_selector,
-            Felt::from(10),
-            0,
-            0,
-            0,
-        );
-
-        let invoke_v3_txn_error = starknet
-            .add_invoke_transaction(invoke_transaction)
-            .expect_err("Expected MaxFeeZeroError");
-
-        match invoke_v3_txn_error {
-            Error::TransactionValidationError(TransactionValidationError::InsufficientMaxFee) => {}
-            _ => panic!("Wrong error type"),
-        }
-    }
-
-    #[test]
-    fn invoke_transaction_v3_successful_execution() {
+    fn invoke_transaction_v3_successful_execution_with_only_l1_gas() {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
         let account_address = account.get_address();
         let initial_balance =
@@ -226,12 +212,8 @@ mod tests {
             increase_balance_selector,
             Felt::from(10),
             0,
-            account
-                .get_balance(&mut starknet.pending_state, crate::account::FeeToken::STRK)
-                .unwrap()
-                .to_string()
-                .parse::<u64>()
-                .unwrap(),
+            initial_balance.to_string().parse::<u64>().unwrap(),
+            0,
             0,
         );
 
@@ -248,47 +230,78 @@ mod tests {
     }
 
     #[test]
-    fn invoke_transaction_v3_positive_l2_gas_should_fail() {
+    fn invoke_transaction_v3_successful_execution_with_all_three_gas_bounds() {
+        let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
+        let account_address = account.get_address();
+        let initial_balance =
+            account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap();
+
+        let numeric_balance = initial_balance.to_string().parse::<u64>().unwrap();
+
+        let invoke_transaction = test_invoke_transaction_v3(
+            account_address,
+            contract_address,
+            increase_balance_selector,
+            Felt::from(10),
+            0,
+            numeric_balance,
+            numeric_balance,
+            numeric_balance,
+        );
+
+        let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
+
+        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
+
+        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        assert!(
+            account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap()
+                < initial_balance
+        );
+    }
+
+    #[test]
+    fn invoke_transaction_v3_with_invalid_gas_amounts() {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
         let account_address = account.get_address();
 
-        let l1_gas = account
-            .get_balance(&mut starknet.pending_state, crate::account::FeeToken::STRK)
+        let balance: u64 = account
+            .get_balance(&mut starknet.pending_state, FeeToken::STRK)
             .unwrap()
             .to_string()
-            .parse::<u64>()
+            .parse()
             .unwrap();
+        assert!(balance > 0);
 
-        // l2 gas should always be set to zero and l1 gas should be greater than 0 for v3
-        // transactions, this is why these 2 cases should fail
-        let fail_test_cases = [(l1_gas, 1), (0, 1)];
-        for test_case in fail_test_cases {
+        // either only l1_gas is allowed or all three must be set, otherwise invalid
+        for (l1_gas, l1_data_gas, l2_gas) in
+            [(balance, 0, 1), (0, 0, 1), (0, balance, 0), (balance, balance, 0), (0, 0, 0)]
+        {
             let invoke_transaction = test_invoke_transaction_v3(
                 account_address,
                 contract_address,
                 increase_balance_selector,
                 Felt::from(10),
                 0,
-                test_case.0,
-                test_case.1,
+                l1_gas,
+                l1_data_gas,
+                l2_gas,
             );
 
-            let transaction = starknet.add_invoke_transaction(invoke_transaction);
-
-            assert!(transaction.is_err());
-            match transaction.err().unwrap() {
-                Error::TransactionValidationError(
-                    TransactionValidationError::InsufficientMaxFee,
-                ) => {}
-                _ => {
-                    panic!("Wrong error type")
+            match starknet.add_invoke_transaction(invoke_transaction) {
+                Err(Error::TransactionValidationError(
+                    TransactionValidationError::InsufficientResourcesForValidate,
+                )) => {}
+                other => {
+                    panic!("Wrong result: {other:?}")
                 }
             }
         }
     }
 
     #[test]
-    fn invoke_transaction_successful_execution() {
+    fn invoke_transaction_v1_successful_execution() {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
 
         let account_address = account.get_address();
@@ -310,7 +323,7 @@ mod tests {
     }
 
     #[test]
-    fn invoke_transaction_successfully_changes_storage() {
+    fn invoke_transaction_v1_successfully_changes_storage() {
         let (
             mut starknet,
             account,
@@ -365,7 +378,7 @@ mod tests {
     }
 
     #[test]
-    fn invoke_transaction_with_max_fee_zero_should_return_error() {
+    fn invoke_transaction_v1_with_max_fee_zero_should_return_error() {
         let invoke_transaction = BroadcastedInvokeTransactionV1::new(
             dummy_contract_address(),
             Fee(0),
@@ -380,7 +393,9 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            Error::TransactionValidationError(TransactionValidationError::InsufficientMaxFee) => {}
+            Error::TransactionValidationError(
+                TransactionValidationError::InsufficientResourcesForValidate,
+            ) => {}
             _ => panic!("Wrong error type"),
         }
     }

@@ -39,6 +39,7 @@ serde_json = { workspace = true }
 serde = { workspace = true }
 anyhow = { workspace = true }
 starknet-rs-providers = { workspace = true }
+reqwest = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

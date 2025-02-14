@@ -3,9 +3,12 @@ use std::fs;
 use std::path::Path;
 use std::process::{Child, Command};
 use std::sync::Arc;
+use std::time::Duration;
 
 use ethers::types::U256;
+use futures::{SinkExt, StreamExt, TryStreamExt};
 use rand::{thread_rng, Rng};
+use serde_json::json;
 use server::test_utils::assert_contains;
 use starknet_rs_accounts::{
     Account, AccountFactory, ArgentAccountFactory, OpenZeppelinAccountFactory, SingleOwnerAccount,
@@ -17,9 +20,13 @@ use starknet_rs_core::types::{
     Felt, FlattenedSierraClass, FunctionCall, NonZeroFelt,
 };
 use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
-use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_providers::{JsonRpcClient, Provider};
+use starknet_rs_providers::jsonrpc::{
+    HttpTransport, HttpTransportError, JsonRpcClientError, JsonRpcError,
+};
+use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
 use starknet_rs_signers::LocalWallet;
+use tokio::net::TcpStream;
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use super::background_devnet::BackgroundDevnet;
 use super::constants::{
@@ -234,6 +241,31 @@ impl Drop for UniqueAutoDeletableFile {
     }
 }
 
+/// Deploys an instance of the class whose sierra hash is provided as `class_hash`. Uses a v1 invoke
+/// transaction. Returns the address of the newly deployed contract.
+pub async fn deploy_v1(
+    account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
+    class_hash: Felt,
+    ctor_args: &[Felt],
+) -> Result<Felt, anyhow::Error> {
+    let contract_factory = ContractFactory::new(class_hash, account);
+    contract_factory
+        .deploy_v1(ctor_args.to_vec(), Felt::ZERO, false)
+        .max_fee(Felt::from(1e18 as u128))
+        .send()
+        .await?;
+
+    // generate the address of the newly deployed contract
+    let contract_address = get_udc_deployed_address(
+        Felt::ZERO,
+        class_hash,
+        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        ctor_args,
+    );
+
+    Ok(contract_address)
+}
+
 /// Declares and deploys a Cairo 1 contract; returns class hash and contract address
 pub async fn declare_v3_deploy_v3(
     account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
@@ -336,6 +368,129 @@ pub fn get_gas_units_and_gas_price(fee_estimate: FeeEstimate) -> (u64, u128) {
         .field_div(&NonZeroFelt::from_felt_unchecked(fee_estimate.gas_price));
 
     (gas_units.to_le_digits().first().cloned().unwrap(), gas_price)
+}
+
+/// Helper for extracting JSON RPC error from the provider instance of `ProviderError`.
+/// To be used when there are discrepancies between starknet-rs and the target RPC spec.
+pub fn extract_json_rpc_error(error: ProviderError) -> Result<JsonRpcError, anyhow::Error> {
+    match error {
+        ProviderError::Other(provider_impl_error) => {
+            let impl_specific_error: &JsonRpcClientError<HttpTransportError> =
+                provider_impl_error.as_any().downcast_ref().unwrap();
+            match impl_specific_error {
+                JsonRpcClientError::JsonRpcError(json_rpc_error) => Ok(json_rpc_error.clone()),
+                other => {
+                    Err(anyhow::Error::msg(format!("Cannot extract RPC error from: {:?}", other)))
+                }
+            }
+        }
+        other => Err(anyhow::Error::msg(format!("Cannot extract RPC error from: {:?}", other))),
+    }
+}
+
+pub fn assert_json_rpc_errors_equal(e1: JsonRpcError, e2: JsonRpcError) {
+    assert_eq!((e1.code, e1.message, e1.data), (e2.code, e2.message, e2.data));
+}
+
+pub async fn send_text_rpc_via_ws(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    method: &str,
+    params: serde_json::Value,
+) -> Result<serde_json::Value, anyhow::Error> {
+    let text_body = json!({
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": method,
+        "params": params,
+    })
+    .to_string();
+    ws.send(tokio_tungstenite::tungstenite::Message::Text(text_body)).await?;
+
+    let resp_raw =
+        ws.next().await.ok_or(anyhow::Error::msg("No response in websocket stream"))??;
+    let resp_body: serde_json::Value = serde_json::from_slice(&resp_raw.into_data())?;
+
+    Ok(resp_body)
+}
+
+pub async fn send_binary_rpc_via_ws(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    method: &str,
+    params: serde_json::Value,
+) -> Result<serde_json::Value, anyhow::Error> {
+    let body = json!({
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": method,
+        "params": params,
+    });
+    let binary_body = serde_json::to_vec(&body)?;
+    ws.send(tokio_tungstenite::tungstenite::Message::Binary(binary_body)).await?;
+
+    let resp_raw =
+        ws.next().await.ok_or(anyhow::Error::msg("No response in websocket stream"))??;
+    let resp_body: serde_json::Value = serde_json::from_slice(&resp_raw.into_data())?;
+
+    Ok(resp_body)
+}
+
+pub type SubscriptionId = u64;
+
+pub async fn subscribe(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    subscription_method: &str,
+    params: serde_json::Value,
+) -> Result<SubscriptionId, anyhow::Error> {
+    let subscription_confirmation = send_text_rpc_via_ws(ws, subscription_method, params).await?;
+    subscription_confirmation["result"].as_u64().ok_or(anyhow::Error::msg(format!(
+        "No ID in subscription response: {subscription_confirmation}"
+    )))
+}
+
+/// Tries to read from the provided ws stream. To prevent deadlock, waits for a second at most.
+pub async fn receive_rpc_via_ws(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+) -> Result<serde_json::Value, anyhow::Error> {
+    let msg = tokio::time::timeout(Duration::from_secs(1), ws.try_next())
+        .await??
+        .ok_or(anyhow::Error::msg("Nothing to read"))?;
+    Ok(serde_json::from_str(&msg.into_text()?)?)
+}
+
+/// Extract `result` from the notification and assert general properties
+pub async fn receive_notification(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    method: &str,
+    expected_subscription_id: SubscriptionId,
+) -> Result<serde_json::Value, anyhow::Error> {
+    let mut notification = receive_rpc_via_ws(ws).await?;
+    assert_eq!(notification["jsonrpc"], "2.0");
+    assert_eq!(notification["method"], method);
+    assert_eq!(notification["params"]["subscription_id"], expected_subscription_id);
+    Ok(notification["params"]["result"].take())
+}
+
+pub async fn assert_no_notifications(ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
+    match receive_rpc_via_ws(ws).await {
+        Ok(resp) => panic!("Expected no notifications; found: {resp}"),
+        Err(e) if e.to_string().contains("deadline has elapsed") => { /* expected */ }
+        Err(e) => panic!("Expected to error out due to empty channel; found: {e}"),
+    }
+}
+
+pub async fn subscribe_new_heads(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    block_specifier: serde_json::Value,
+) -> Result<SubscriptionId, anyhow::Error> {
+    subscribe(ws, "starknet_subscribeNewHeads", block_specifier).await
+}
+
+pub async fn unsubscribe(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    subscription_id: SubscriptionId,
+) -> Result<serde_json::Value, anyhow::Error> {
+    send_text_rpc_via_ws(ws, "starknet_unsubscribe", json!({ "subscription_id": subscription_id }))
+        .await
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, serde::Serialize, serde::Deserialize)]

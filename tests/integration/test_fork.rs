@@ -1,7 +1,6 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use server::test_utils::assert_contains;
 use starknet_rs_accounts::{
     Account, AccountFactory, AccountFactoryError, ExecutionEncoding, OpenZeppelinAccountFactory,
     SingleOwnerAccount,
@@ -15,6 +14,7 @@ use starknet_rs_core::types::{
 use starknet_rs_core::utils::{
     get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
 };
+use starknet_rs_providers::jsonrpc::JsonRpcError;
 use starknet_rs_providers::{Provider, ProviderError};
 use starknet_rs_signers::Signer;
 
@@ -25,7 +25,8 @@ use crate::common::constants::{
     MAINNET_HTTPS_URL, MAINNET_URL,
 };
 use crate::common::utils::{
-    assert_cairo1_classes_equal, assert_tx_successful, declare_v3_deploy_v3,
+    assert_cairo1_classes_equal, assert_json_rpc_errors_equal, assert_tx_successful,
+    declare_v3_deploy_v3, extract_json_rpc_error,
     get_block_reader_contract_in_sierra_and_compiled_class_hash, get_contract_balance,
     get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait, FeeUnit,
 };
@@ -508,7 +509,20 @@ async fn test_fork_if_origin_dies() {
 
     let address = Felt::ONE;
     match fork_devnet.json_rpc_client.get_nonce(BlockId::Tag(BlockTag::Latest), address).await {
-        Err(ProviderError::Other(e)) => assert_contains(&e.to_string(), "error sending request"),
+        Err(provider_error) => {
+            assert_json_rpc_errors_equal(
+                extract_json_rpc_error(provider_error).unwrap(),
+                JsonRpcError {
+                    code: -1,
+                    message: format!(
+                        "Failed to read from state: Error in communication with forking origin: \
+                         error sending request for url ({}/).",
+                        origin_devnet.url
+                    ),
+                    data: None,
+                },
+            );
+        }
         unexpected => panic!("Got unexpected resp: {unexpected:?}"),
     }
 }
