@@ -10,7 +10,6 @@ use blockifier::execution::stack_trace::{
 };
 use blockifier::execution::syscalls::hint_processor::SyscallExecutionError;
 use blockifier::transaction::errors::TransactionExecutionError;
-use blockifier::transaction::objects::RevertError;
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::hint_errors::HintError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
@@ -59,15 +58,6 @@ impl ErrorStack {
 
     pub fn push(&mut self, frame: Frame) {
         self.stack.push(frame);
-    }
-}
-
-impl From<RevertError> for ErrorStack {
-    fn from(value: RevertError) -> Self {
-        match value {
-            RevertError::Execution(_) => todo!(),
-            RevertError::PostExecution(_) => todo!(),
-        }
     }
 }
 

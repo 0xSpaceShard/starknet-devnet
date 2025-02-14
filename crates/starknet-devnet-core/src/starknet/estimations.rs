@@ -126,9 +126,11 @@ fn estimate_transaction_fee<S: StateReader>(
     if let (true, Some(revert_error)) =
         (return_error_on_reverted_execution, transaction_execution_info.revert_error)
     {
-        // TODO until blockifier makes the actual stack trace available, we return the stringified
-        // error. The RPC spec would prefer a structured one, but a string is allowed.
-        return Err(Error::ContractExecutionError(revert_error.into()));
+        // TODO Users would probably prefer a structured error, but according to the RPC spec, a
+        // string is allowed. We should improve this.
+        return Err(Error::ContractExecutionError(ErrorStack::from_str_err(
+            &revert_error.to_string(),
+        )));
     }
 
     let gas_vector = transaction_execution_info.receipt.resources.to_gas_vector(
