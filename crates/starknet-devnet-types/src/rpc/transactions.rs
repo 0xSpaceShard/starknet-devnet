@@ -16,7 +16,7 @@ use starknet_api::contract_class::{ClassInfo, EntryPointType};
 use starknet_api::core::calculate_contract_address;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::transaction::fields::{AllResourceBounds, Fee, GasVectorComputationMode, Tip};
-use starknet_api::transaction::{TransactionHasher, TransactionOptions, signed_tx_version};
+use starknet_api::transaction::{signed_tx_version, TransactionHasher, TransactionOptions};
 use starknet_rs_core::types::{
     BlockId, ExecutionResult, Felt, ResourceBounds, TransactionExecutionStatus,
     TransactionFinalityStatus,
@@ -39,7 +39,7 @@ use super::state::ThinStateDiff;
 use super::transaction_receipt::{ExecutionResources, FeeInUnits, TransactionReceipt};
 use crate::constants::QUERY_VERSION_OFFSET;
 use crate::contract_address::ContractAddress;
-use crate::contract_class::{ContractClass, compute_sierra_class_hash};
+use crate::contract_class::{compute_sierra_class_hash, ContractClass};
 use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult};
 use crate::felt::{
@@ -580,10 +580,10 @@ impl BroadcastedDeclareTransaction {
                 let class_info: ClassInfo =
                     ContractClass::Cairo1(v2.contract_class.clone()).try_into()?;
 
-                let tx_version: starknet_api::transaction::TransactionVersion =
-                    signed_tx_version(&sn_api_declare.version(), &TransactionOptions {
-                        only_query: self.is_only_query(),
-                    });
+                let tx_version: starknet_api::transaction::TransactionVersion = signed_tx_version(
+                    &sn_api_declare.version(),
+                    &TransactionOptions { only_query: self.is_only_query() },
+                );
 
                 let tx_hash =
                     sn_api_declare.calculate_transaction_hash(&sn_api_chain_id, &tx_version)?;
@@ -621,10 +621,10 @@ impl BroadcastedDeclareTransaction {
                 let class_info: ClassInfo =
                     ContractClass::Cairo1(v3.contract_class.clone()).try_into()?;
 
-                let tx_version: starknet_api::transaction::TransactionVersion =
-                    signed_tx_version(&sn_api_declare.version(), &TransactionOptions {
-                        only_query: self.is_only_query(),
-                    });
+                let tx_version: starknet_api::transaction::TransactionVersion = signed_tx_version(
+                    &sn_api_declare.version(),
+                    &TransactionOptions { only_query: self.is_only_query() },
+                );
 
                 let tx_hash =
                     sn_api_declare.calculate_transaction_hash(&sn_api_chain_id, &tx_version)?;
@@ -719,10 +719,10 @@ impl BroadcastedDeployAccountTransaction {
         };
 
         let chain_id = felt_to_sn_api_chain_id(chain_id)?;
-        let tx_version: starknet_api::transaction::TransactionVersion =
-            signed_tx_version(&sn_api_transaction.version(), &TransactionOptions {
-                only_query: self.is_only_query(),
-            });
+        let tx_version: starknet_api::transaction::TransactionVersion = signed_tx_version(
+            &sn_api_transaction.version(),
+            &TransactionOptions { only_query: self.is_only_query() },
+        );
         let tx_hash = sn_api_transaction.calculate_transaction_hash(&chain_id, &tx_version)?;
 
         // copied from starknet_api::executable_transaction::DeployAccountTransaction::create(
@@ -815,10 +815,10 @@ impl BroadcastedInvokeTransaction {
         };
 
         let chain_id = felt_to_sn_api_chain_id(chain_id)?;
-        let tx_version: starknet_api::transaction::TransactionVersion =
-            signed_tx_version(&sn_api_transaction.version(), &TransactionOptions {
-                only_query: self.is_only_query(),
-            });
+        let tx_version: starknet_api::transaction::TransactionVersion = signed_tx_version(
+            &sn_api_transaction.version(),
+            &TransactionOptions { only_query: self.is_only_query() },
+        );
         let tx_hash = sn_api_transaction.calculate_transaction_hash(&chain_id, &tx_version)?;
 
         Ok(starknet_api::executable_transaction::InvokeTransaction {
