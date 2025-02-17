@@ -1,7 +1,7 @@
 {
     "openrpc": "1.0.0",
     "info": {
-        "version": "0.8.0-rc.2",
+        "version": "0.8.0-rc3",
         "title": "API for getting Starknet executables from nodes that store compiled artifacts",
         "license": {}
     },
@@ -125,25 +125,27 @@
                 ]
             },
             "CASM_ENTRY_POINT": {
-                "allOf": [
-                    {
-                        "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
-                    },
-                    {
-                        "type": "object",
-                        "properties": {
-                            "builtins": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            }
+                "schema": {
+                    "allOf": [
+                        {
+                            "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
                         },
-                        "required": [
-                            "builtins"
-                        ]
-                    }
-                ]
+                        {
+                            "type": "object",
+                            "properties": {
+                                "builtins": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "builtins"
+                            ]
+                        }
+                    ]
+                }
             },
             "CellRef": {
                 "title": "CellRef",
@@ -905,7 +907,7 @@
                                     }
                                 },
                                 "required": [
-                                    "dict_accesses",
+                                    "dict_access",
                                     "ptr_diff",
                                     "n_accesses",
                                     "big_keys",

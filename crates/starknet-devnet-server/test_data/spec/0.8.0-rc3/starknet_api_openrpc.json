@@ -1,7 +1,7 @@
 {
   "openrpc": "1.0.0-rc1",
   "info": {
-    "version": "0.8.0-rc.2",
+    "version": "0.8.0-rc3",
     "title": "StarkNet Node API",
     "license": {}
   },
@@ -1383,7 +1383,9 @@
             "description": "The transactions in this block",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TXN_WITH_HASH"
+              "schema": {
+                "$ref": "#/components/schemas/TXN_WITH_HASH"
+              }
             }
           }
         },
@@ -1775,24 +1777,26 @@
         ]
       },
       "TXN_WITH_HASH": {
-        "title": "Transaction",
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/TXN"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "transaction_hash": {
-                "title": "transaction hash",
-                "$ref": "#/components/schemas/TXN_HASH"
-              }
+        "schema": {
+          "title": "Transaction",
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/TXN"
             },
-            "required": [
-              "transaction_hash"
-            ]
-          }
-        ]
+            {
+              "type": "object",
+              "properties": {
+                "transaction_hash": {
+                  "title": "transaction hash",
+                  "$ref": "#/components/schemas/TXN_HASH"
+                }
+              },
+              "required": [
+                "transaction_hash"
+              ]
+            }
+          ]
+        }
       },
       "SIGNATURE": {
         "title": "Signature",
@@ -3302,7 +3306,7 @@
           "offset": {
             "title": "Offset",
             "description": "The offset of the entry point in the program",
-            "type": "integer"
+            "$ref": "#/components/schemas/NUM_AS_HEX"
           },
           "selector": {
             "title": "Selector",
