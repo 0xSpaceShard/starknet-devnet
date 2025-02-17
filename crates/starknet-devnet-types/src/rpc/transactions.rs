@@ -387,26 +387,27 @@ fn convert_resource_bounds_from_starknet_rs_to_starknet_api(
 
 impl From<&ResourceBoundsWrapper> for starknet_api::transaction::fields::ValidResourceBounds {
     fn from(value: &ResourceBoundsWrapper) -> Self {
-        if value.inner.l2_gas.max_amount == 0 {
-            starknet_api::transaction::fields::ValidResourceBounds::L1Gas(
+        match &value.inner.l1_data_gas {
+            Some(l1_data_gas) => {
+                starknet_api::transaction::fields::ValidResourceBounds::AllResources(
+                    AllResourceBounds {
+                        l1_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                            value.inner.l1_gas.clone(),
+                        ),
+                        l2_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                            value.inner.l2_gas.clone(),
+                        ),
+                        l1_data_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                            l1_data_gas.clone(),
+                        ),
+                    },
+                )
+            }
+            None => starknet_api::transaction::fields::ValidResourceBounds::L1Gas(
                 convert_resource_bounds_from_starknet_rs_to_starknet_api(
                     value.inner.l1_gas.clone(),
                 ),
-            )
-        } else {
-            starknet_api::transaction::fields::ValidResourceBounds::AllResources(
-                AllResourceBounds {
-                    l1_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
-                        value.inner.l1_gas.clone(),
-                    ),
-                    l2_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
-                        value.inner.l2_gas.clone(),
-                    ),
-                    l1_data_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
-                        value.inner.l2_gas.clone(),
-                    ),
-                },
-            )
+            ),
         }
     }
 }
@@ -950,14 +951,6 @@ pub struct FunctionInvocation {
     messages: Vec<OrderedMessageToL1>,
     execution_resources: ExecutionResources,
     is_reverted: bool,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct InnerExecutionResources {
-    pub l1_gas: u64,
-    pub l1_data_gas: u64,
-    pub l2_gas: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]
