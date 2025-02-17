@@ -51,9 +51,8 @@ use self::models::{
     SyncingOutput,
 };
 use self::origin_forwarder::OriginForwarder;
-use super::Api;
-use super::http::endpoints::DevnetConfig;
 use super::http::endpoints::accounts::{BalanceQuery, PredeployedAccountsQuery};
+use super::http::endpoints::DevnetConfig;
 use super::http::models::{
     AbortedBlocks, AbortingBlocks, AccountBalanceResponse, CreatedBlock, DumpPath,
     DumpResponseBody, FlushParameters, FlushedMessages, IncreaseTime, IncreaseTimeResponse,
@@ -61,7 +60,7 @@ use super::http::models::{
     PostmanLoadL1MessagingContract, RestartParameters, SerializableAccount, SetTime,
     SetTimeResponse,
 };
-use crate::ServerConfig;
+use super::Api;
 use crate::api::json_rpc::models::{
     BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper,
     BroadcastedInvokeTransactionEnumWrapper, SimulateTransactionsInput,
@@ -77,6 +76,7 @@ use crate::subscribe::{
     NewTransactionStatus, NotificationData, PendingTransactionNotification, SocketId,
     TransactionHashWrapper,
 };
+use crate::ServerConfig;
 
 /// Helper trait to easily convert results to rpc results
 pub trait ToRpcResponseResult {
@@ -1698,8 +1698,8 @@ mod requests_tests {
 
 #[cfg(test)]
 mod response_tests {
-    use crate::api::json_rpc::ToRpcResponseResult;
     use crate::api::json_rpc::error::StrictRpcResult;
+    use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
     fn serializing_starknet_response_empty_variant_yields_empty_json_on_conversion_to_rpc_result() {
