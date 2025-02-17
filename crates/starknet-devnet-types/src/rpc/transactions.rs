@@ -949,15 +949,14 @@ pub struct FunctionInvocation {
     calls: Vec<FunctionInvocation>,
     events: Vec<OrderedEvent>,
     messages: Vec<OrderedMessageToL1>,
-    execution_resources: ExecutionResources,
+    execution_resources: InnerExecutionResources,
     is_reverted: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct InnerExecutionResources {
     pub l1_gas: u64,
-    pub l1_data_gas: u64,
     pub l2_gas: u64,
 }
 
@@ -1101,9 +1100,8 @@ impl FunctionInvocation {
             calls: internal_calls,
             events,
             messages,
-            execution_resources: ExecutionResources {
+            execution_resources: InnerExecutionResources {
                 l1_gas: gas_vector.l1_gas.0,
-                l1_data_gas: gas_vector.l1_data_gas.0,
                 l2_gas: gas_vector.l2_gas.0,
             },
             is_reverted: call_info.execution.failed,

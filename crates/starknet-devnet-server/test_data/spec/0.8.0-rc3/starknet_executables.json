@@ -125,27 +125,25 @@
                 ]
             },
             "CASM_ENTRY_POINT": {
-                "schema": {
-                    "allOf": [
-                        {
-                            "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
-                        },
-                        {
-                            "type": "object",
-                            "properties": {
-                                "builtins": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    }
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "builtins": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
                                 }
-                            },
-                            "required": [
-                                "builtins"
-                            ]
-                        }
-                    ]
-                }
+                            }
+                        },
+                        "required": [
+                            "builtins"
+                        ]
+                    }
+                ]
             },
             "CellRef": {
                 "title": "CellRef",
@@ -907,7 +905,7 @@
                                     }
                                 },
                                 "required": [
-                                    "dict_access",
+                                    "dict_accesses",
                                     "ptr_diff",
                                     "n_accesses",
                                     "big_keys",

@@ -1052,7 +1052,6 @@ pub enum StarknetResponse {
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
     MessagesStatusByL1Hash(Vec<L1HandlerTransactionStatus>),
-    StorageProofs(serde_json::Value), // dummy, the corresponding RPC method always errors
 }
 
 #[derive(Serialize)]

@@ -1383,9 +1383,7 @@
             "description": "The transactions in this block",
             "type": "array",
             "items": {
-              "schema": {
-                "$ref": "#/components/schemas/TXN_WITH_HASH"
-              }
+              "$ref": "#/components/schemas/TXN_WITH_HASH"
             }
           }
         },
@@ -1777,26 +1775,24 @@
         ]
       },
       "TXN_WITH_HASH": {
-        "schema": {
-          "title": "Transaction",
-          "allOf": [
-            {
-              "$ref": "#/components/schemas/TXN"
+        "title": "Transaction",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TXN"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "transaction_hash": {
+                "title": "transaction hash",
+                "$ref": "#/components/schemas/TXN_HASH"
+              }
             },
-            {
-              "type": "object",
-              "properties": {
-                "transaction_hash": {
-                  "title": "transaction hash",
-                  "$ref": "#/components/schemas/TXN_HASH"
-                }
-              },
-              "required": [
-                "transaction_hash"
-              ]
-            }
-          ]
-        }
+            "required": [
+              "transaction_hash"
+            ]
+          }
+        ]
       },
       "SIGNATURE": {
         "title": "Signature",

@@ -144,8 +144,7 @@
           "$ref": "#/components/schemas/SUBSCRIPTION_ID"
         }
       },
-      "errors": [
-      ]
+      "errors": []
     },
     {
       "name": "starknet_subscriptionTransactionStatus",
@@ -279,7 +278,6 @@
       ]
     }
   ],
-
   "components": {
     "schemas": {
       "FELT": {
@@ -303,9 +301,7 @@
       "SUBSCRIPTION_ID": {
         "name": "subscription id",
         "description": "An identifier for this subscription stream used to associate events with this subscription.",
-        "schema": {
-          "type": "integer"
-        }
+        "type": "integer"
       },
       "SUBSCRIPTION_BLOCK_ID": {
         "title": "Subscription Block id",
@@ -320,7 +316,9 @@
                 "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BLOCK_HASH"
               }
             },
-            "required": ["block_hash"]
+            "required": [
+              "block_hash"
+            ]
           },
           {
             "title": "Block number",
@@ -331,7 +329,9 @@
                 "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BLOCK_NUMBER"
               }
             },
-            "required": ["block_number"]
+            "required": [
+              "block_number"
+            ]
           },
           {
             "title": "Block tag",
@@ -343,11 +343,14 @@
         "title": "Subscription Block tag",
         "type": "string",
         "description": "Same as BLOCK_TAG, but without 'pending'",
-        "enum": ["latest"]
+        "enum": [
+          "latest"
+        ]
       },
       "REORG_DATA": {
         "name": "Reorg Data",
         "description": "Data about reorganized blocks, starting and ending block number and hash",
+        "type": "object",
         "properties": {
           "starting_block_hash": {
             "title": "Starting Block Hash",
@@ -370,7 +373,12 @@
             "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BLOCK_NUMBER"
           }
         },
-        "required": ["starting_block_hash", "starting_block_number", "ending_block_hash", "ending_block_number"]
+        "required": [
+          "starting_block_hash",
+          "starting_block_number",
+          "ending_block_hash",
+          "ending_block_number"
+        ]
       }
     },
     "errors": {
