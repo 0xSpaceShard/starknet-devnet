@@ -170,7 +170,9 @@ mod tests {
 
     use super::{generate_combined_schema, generate_json_rpc_response, ApiMethod, Spec};
     use crate::api::json_rpc::spec_reader::generate_json_rpc_request;
-    use crate::api::json_rpc::{JsonRpcRequest, StarknetResponse, RPC_SPEC_VERSION};
+    use crate::api::json_rpc::{
+        JsonRpcRequest, JsonRpcSubscriptionRequest, StarknetResponse, RPC_SPEC_VERSION,
+    };
     use crate::subscribe::{SubscriptionConfirmation, SubscriptionResponse};
 
     #[test]
@@ -222,8 +224,7 @@ mod tests {
                     #[serde(untagged)]
                     enum ApiWsRequest {
                         Api(Box<JsonRpcRequest>),
-                        // SubscribeWs(JsonRpcSubscriptionRequest),
-                        SubscribeWs,
+                        SubscribeWs(JsonRpcSubscriptionRequest),
                         WsNotification(Box<SubscriptionResponse>),
                     }
                     let sn_request =
@@ -241,7 +242,7 @@ mod tests {
                                 method,
                             );
                         }
-                        ApiWsRequest::SubscribeWs => {
+                        ApiWsRequest::SubscribeWs(_json_rpc_subscription_request) => {
                             let response = response.unwrap();
 
                             deserialize_to_type_or_panic::<SubscriptionConfirmation>(

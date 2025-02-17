@@ -1,4 +1,4 @@
-use blockifier::bouncer::{BouncerConfig, BouncerWeights, BuiltinCount};
+use blockifier::bouncer::{BouncerConfig, BouncerWeights};
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::versioned_constants::VersionedConstants;
 use starknet_api::block::StarknetVersion;
@@ -52,23 +52,10 @@ pub(crate) fn get_versioned_constants() -> VersionedConstants {
 pub(crate) fn custom_bouncer_config() -> BouncerConfig {
     BouncerConfig {
         block_max_capacity: BouncerWeights {
-            n_steps: 40_000_000,
             l1_gas: 4_950_000,
             sierra_gas: starknet_api::execution_resources::GasAmount(250_000_000),
             state_diff_size: 4_000,
             n_events: 5_000,
-            builtin_count: BuiltinCount {
-                pedersen: 1_250_000,
-                poseidon: 1_250_000,
-                range_check: 250_000,
-                range_check96: 250_000,
-                add_mod: 250_000,
-                mul_mod: 250_000,
-                ecdsa: 19_531,
-                bitwise: 625_000,
-                ec_op: 39_062,
-                keccak: 19_531,
-            },
             ..BouncerWeights::max()
         },
     }

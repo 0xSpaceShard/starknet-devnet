@@ -7,7 +7,7 @@ pub(crate) mod origin_forwarder;
 mod spec_reader;
 mod write_endpoints;
 
-pub const RPC_SPEC_VERSION: &str = "0.8.0-rc.2";
+pub const RPC_SPEC_VERSION: &str = "0.8.0-rc3";
 
 use std::sync::Arc;
 
@@ -1052,7 +1052,6 @@ pub enum StarknetResponse {
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
     MessagesStatusByL1Hash(Vec<L1HandlerTransactionStatus>),
-    StorageProofs(serde_json::Value), // dummy, the corresponding RPC method always errors
 }
 
 #[derive(Serialize)]
