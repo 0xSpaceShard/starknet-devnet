@@ -215,6 +215,7 @@ async fn set_gas_check_blocks() {
     assert_eq!(latest_block.block_number, 0);
     assert_eq!(latest_block.l1_gas_price, default_gas_price);
     assert_eq!(latest_block.l1_data_gas_price, default_gas_price);
+    // TODO gas - add l2 gas
 
     let first_update_gas_price =
         ResourcePrice { price_in_wei: (9e18 as u128).into(), price_in_fri: (7e18 as u128).into() };

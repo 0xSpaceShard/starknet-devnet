@@ -341,6 +341,7 @@ impl Starknet {
             GasPrice(self.next_block_gas.data_gas_price_fri.get());
         new_block.header.block_header_without_hash.l1_data_gas_price.price_in_wei =
             GasPrice(self.next_block_gas.data_gas_price_wei.get());
+        // TODO gas - add l2 gas
 
         let new_block_number = self.blocks.next_block_number();
         new_block.set_block_hash(if self.config.lite_mode {
@@ -577,6 +578,22 @@ impl Starknet {
                 .l1_data_gas_price(&FeeType::Eth)
                 .get(),
         };
+        block.header.block_header_without_hash.l2_gas_price = GasPricePerToken {
+            price_in_fri: self
+                .block_context
+                .block_info()
+                .gas_prices
+                .l2_gas_price(&FeeType::Strk)
+                .get(),
+
+            price_in_wei: self
+                .block_context
+                .block_info()
+                .gas_prices
+                .l2_gas_price(&FeeType::Eth)
+                .get(),
+        };
+
         block.header.block_header_without_hash.sequencer =
             SequencerContractAddress(self.block_context.block_info().sequencer_address);
 
@@ -1675,6 +1692,10 @@ mod tests {
                 .block_header_without_hash
                 .l1_data_gas_price
                 .price_in_fri,
+            initial_data_gas_price_fri.get()
+        );
+        assert_eq!(
+            starknet.pending_block().header.block_header_without_hash.l2_gas_price.price_in_fri,
             initial_data_gas_price_fri.get()
         );
         assert_eq!(

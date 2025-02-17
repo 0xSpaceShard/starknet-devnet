@@ -147,22 +147,23 @@ fn estimate_transaction_fee<S: StateReader>(
     let total_fee =
         fee_utils::get_fee_by_gas_vector(block_context.block_info(), gas_vector, &fee_type);
 
-    let gas_price = block_context.block_info().gas_prices.l1_gas_price(&fee_type).get();
-    let data_gas_price = block_context.block_info().gas_prices.l1_data_gas_price(&fee_type).get();
+    let gas_prices = &block_context.block_info().gas_prices;
+    let l1_gas_price = gas_prices.l1_gas_price(&fee_type).get();
+    let data_gas_price = gas_prices.l1_data_gas_price(&fee_type).get();
+    let l2_gas_price = gas_prices.l2_gas_price(&fee_type).get();
 
     let unit = match fee_type {
         starknet_api::block::FeeType::Strk => PriceUnit::Fri,
         starknet_api::block::FeeType::Eth => PriceUnit::Wei,
     };
 
-    // TODO: change l2 fields logic
     Ok(FeeEstimateWrapper {
         l1_gas_consumed: Felt::from(gas_vector.l1_gas),
+        l1_gas_price: Felt::from(l1_gas_price),
         l1_data_gas_consumed: Felt::from(gas_vector.l1_data_gas),
-        l1_gas_price: Felt::from(gas_price),
         l1_data_gas_price: Felt::from(data_gas_price),
-        l2_gas_consumed: Felt::ZERO,
-        l2_gas_price: Felt::ZERO,
+        l2_gas_consumed: Felt::from(gas_vector.l2_gas),
+        l2_gas_price: Felt::from(l2_gas_price),
         overall_fee: Felt::from(total_fee.0),
         unit,
     })

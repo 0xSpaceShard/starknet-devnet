@@ -403,8 +403,7 @@ impl From<&ResourceBoundsWrapper> for starknet_api::transaction::fields::ValidRe
                         value.inner.l2_gas.clone(),
                     ),
                     l1_data_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
-                        // TODO gas
-                        ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
+                        value.inner.l2_gas.clone(),
                     ),
                 },
             )
