@@ -134,3 +134,27 @@ pub struct ReorgData {
     /// Number of the last known block of the orphaned chain
     pub ending_block_number: BlockNumber,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub enum SubscriptionBlockId {
+    Hash(BlockHash),
+    Number(u64),
+    Latest,
+}
+
+impl From<SubscriptionBlockId> for ImportedBlockId {
+    fn from(value: SubscriptionBlockId) -> Self {
+        (&value).into()
+    }
+}
+
+impl From<&SubscriptionBlockId> for ImportedBlockId {
+    fn from(value: &SubscriptionBlockId) -> Self {
+        match value {
+            SubscriptionBlockId::Hash(hash) => Self::Hash(*hash),
+            SubscriptionBlockId::Number(n) => Self::Number(*n),
+            SubscriptionBlockId::Latest => Self::Tag(ImportedBlockTag::Latest),
+        }
+    }
+}

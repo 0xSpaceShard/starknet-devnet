@@ -19,7 +19,7 @@ use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     ClassHashInput, EstimateFeeInput, EventsInput, EventsSubscriptionInput, GetStorageInput,
     GetStorageProofInput, L1TransactionHashInput, PendingTransactionsSubscriptionInput,
-    SubscriptionIdInput, TransactionBlockInput, TransactionHashInput, TransactionHashOutput,
+    SubscriptionBlockIdInput, SubscriptionIdInput, TransactionHashInput, TransactionHashOutput,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -310,7 +310,6 @@ impl JsonRpcHandler {
                 NotificationData::TransactionStatus(NewTransactionStatus {
                     transaction_hash: *new_tx_hash,
                     status,
-                    origin_tag: BlockTag::Pending,
                 });
 
             let tx = starknet
@@ -353,7 +352,6 @@ impl JsonRpcHandler {
             notifications.push(NotificationData::TransactionStatus(NewTransactionStatus {
                 transaction_hash: *tx_hash,
                 status,
-                origin_tag: BlockTag::Latest,
             }));
 
             // There are no pending txs in this mode, but basically we are pretending that the
@@ -958,9 +956,9 @@ impl JsonRpcRequest {
 #[serde(tag = "method", content = "params")]
 pub enum JsonRpcSubscriptionRequest {
     #[serde(rename = "starknet_subscribeNewHeads", with = "optional_params")]
-    NewHeads(Option<BlockIdInput>),
+    NewHeads(Option<SubscriptionBlockIdInput>),
     #[serde(rename = "starknet_subscribeTransactionStatus")]
-    TransactionStatus(TransactionBlockInput),
+    TransactionStatus(TransactionHashInput),
     #[serde(rename = "starknet_subscribePendingTransactions", with = "optional_params")]
     PendingTransactions(Option<PendingTransactionsSubscriptionInput>),
     #[serde(rename = "starknet_subscribeEvents")]

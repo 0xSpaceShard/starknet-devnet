@@ -6,7 +6,7 @@ use futures::stream::SplitSink;
 use futures::SinkExt;
 use serde::{self, Deserialize, Serialize};
 use starknet_core::starknet::events::check_if_filter_applies_for_event;
-use starknet_rs_core::types::{BlockTag, Felt};
+use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::TransactionHash;
@@ -76,7 +76,7 @@ impl AddressFilter {
 #[derive(Debug)]
 pub enum Subscription {
     NewHeads,
-    TransactionStatus { tag: BlockTag, transaction_hash: TransactionHash },
+    TransactionStatus { transaction_hash: TransactionHash },
     PendingTransactionsFull { address_filter: AddressFilter },
     PendingTransactionsHash { address_filter: AddressFilter },
     Events { address: Option<ContractAddress>, keys_filter: Option<Vec<Vec<Felt>>> },
@@ -99,12 +99,9 @@ impl Subscription {
         match (self, notification) {
             (Subscription::NewHeads, NotificationData::NewHeads(_)) => true,
             (
-                Subscription::TransactionStatus { tag, transaction_hash: subscription_hash },
+                Subscription::TransactionStatus { transaction_hash: subscription_hash },
                 NotificationData::TransactionStatus(notification),
-            ) => {
-                tag == &notification.origin_tag
-                    && subscription_hash == &notification.transaction_hash
-            }
+            ) => subscription_hash == &notification.transaction_hash,
             (
                 Subscription::PendingTransactionsFull { address_filter },
                 NotificationData::PendingTransaction(PendingTransactionNotification::Full(tx)),
@@ -148,10 +145,6 @@ pub(crate) enum SubscriptionConfirmation {
 pub struct NewTransactionStatus {
     pub transaction_hash: TransactionHash,
     pub status: TransactionStatus,
-    /// which block this notification originates from: pending or latest
-    #[serde(skip)]
-    #[cfg_attr(test, serde(default = "crate::test_utils::origin_tag_default"))]
-    pub origin_tag: BlockTag,
 }
 
 #[derive(Debug, Clone)]
