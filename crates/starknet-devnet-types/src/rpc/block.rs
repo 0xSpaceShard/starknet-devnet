@@ -136,11 +136,17 @@ pub struct ReorgData {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub enum SubscriptionBlockId {
-    Hash(BlockHash),
-    Number(u64),
+#[serde(rename_all = "snake_case")]
+pub enum SubscriptionBlockTag {
     Latest,
+}
+
+// TODO implement custom deserialize for better error message
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum SubscriptionBlockId {
+    BlockHashOrNumber(BlockHashOrNumber),
+    Tag(SubscriptionBlockTag),
 }
 
 impl From<SubscriptionBlockId> for ImportedBlockId {
@@ -152,9 +158,15 @@ impl From<SubscriptionBlockId> for ImportedBlockId {
 impl From<&SubscriptionBlockId> for ImportedBlockId {
     fn from(value: &SubscriptionBlockId) -> Self {
         match value {
-            SubscriptionBlockId::Hash(hash) => Self::Hash(*hash),
-            SubscriptionBlockId::Number(n) => Self::Number(*n),
-            SubscriptionBlockId::Latest => Self::Tag(ImportedBlockTag::Latest),
+            SubscriptionBlockId::BlockHashOrNumber(BlockHashOrNumber::Hash(hash)) => {
+                Self::Hash(*hash)
+            }
+            SubscriptionBlockId::BlockHashOrNumber(BlockHashOrNumber::Number(n)) => {
+                Self::Number(*n)
+            }
+            SubscriptionBlockId::Tag(SubscriptionBlockTag::Latest) => {
+                Self::Tag(ImportedBlockTag::Latest)
+            }
         }
     }
 }
