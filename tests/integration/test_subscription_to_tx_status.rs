@@ -134,11 +134,7 @@ async fn should_not_receive_block_notification_if_subscribed_to_tx() {
     assert_no_notifications(&mut ws).await;
 }
 
-#[tokio::test]
-async fn should_notify_in_on_demand_mode() {
-    let devnet_args = ["--block-generation-on", "demand"];
-    let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
-
+async fn should_notify_if_subscribed_before_and_after_tx(devnet: &BackgroundDevnet) {
     let (address, mint_amount, expected_tx_hash) = first_mint_data();
 
     // should work if subscribing before sending the tx
@@ -149,28 +145,57 @@ async fn should_notify_in_on_demand_mode() {
     let tx_hash = devnet.mint(address, mint_amount).await;
     assert_eq!(tx_hash, expected_tx_hash);
 
-    assert_no_notifications(&mut ws_before_tx).await;
+    {
+        let notification = receive_rpc_via_ws(&mut ws_before_tx).await.unwrap();
+        assert_successful_mint_notification(notification, tx_hash, subscription_id_before);
+        assert_no_notifications(&mut ws_before_tx).await;
+    }
 
     // should work even if subscribing after the tx was sent
     let (mut ws_after_tx, _) = connect_async(devnet.ws_url()).await.unwrap();
     let subscription_id_after =
         subscribe_tx_status(&mut ws_after_tx, &expected_tx_hash).await.unwrap();
-    assert_no_notifications(&mut ws_after_tx).await;
-
-    for (subscription_id, ws) in
-        [(subscription_id_before, &mut ws_before_tx), (subscription_id_after, &mut ws_after_tx)]
     {
-        let notification = receive_rpc_via_ws(ws).await.unwrap();
-        assert_successful_mint_notification(notification, tx_hash, subscription_id);
-        assert_no_notifications(ws).await;
+        let notification = receive_rpc_via_ws(&mut ws_after_tx).await.unwrap();
+        assert_successful_mint_notification(notification, tx_hash, subscription_id_after);
+        assert_no_notifications(&mut ws_after_tx).await;
     }
 
     // move tx from pending to latest - expect no notifications
     devnet.create_block().await.unwrap();
 
-    for ws in [&mut ws_before_tx, &mut ws_after_tx] {
-        assert_no_notifications(ws).await;
-    }
+    assert_no_notifications(&mut ws_before_tx).await;
+    assert_no_notifications(&mut ws_after_tx).await;
+}
+
+#[tokio::test]
+async fn should_notify_in_on_demand_mode() {
+    let devnet_args = ["--block-generation-on", "demand"];
+    let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+
+    should_notify_if_subscribed_before_and_after_tx(&devnet).await;
+}
+
+#[tokio::test]
+async fn should_notify_only_once_in_on_demand_mode() {
+    let devnet_args = ["--block-generation-on", "demand"];
+    let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+
+    let (address, mint_amount, expected_tx_hash) = first_mint_data();
+
+    let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+    let subscription_id = subscribe_tx_status(&mut ws, &expected_tx_hash).await.unwrap();
+
+    let tx_hash = devnet.mint(address, mint_amount).await;
+    assert_eq!(tx_hash, expected_tx_hash);
+
+    let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+    assert_successful_mint_notification(notification, tx_hash, subscription_id);
+    assert_no_notifications(&mut ws).await;
+
+    let another_tx_hash = devnet.mint(address, mint_amount).await;
+    assert_ne!(another_tx_hash, tx_hash);
+    assert_no_notifications(&mut ws).await;
 }
 
 #[tokio::test]
@@ -178,38 +203,7 @@ async fn should_notify_in_on_transaction_mode() {
     let devnet_args = ["--block-generation-on", "transaction"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
 
-    let (address, mint_amount, expected_tx_hash) = first_mint_data();
-
-    // should work if subscribing before sending the tx
-    let (mut ws_before_tx, _) = connect_async(devnet.ws_url()).await.unwrap();
-    let subscription_id_before =
-        subscribe_tx_status(&mut ws_before_tx, &expected_tx_hash).await.unwrap();
-
-    let tx_hash = devnet.mint(address, mint_amount).await;
-    assert_eq!(tx_hash, expected_tx_hash);
-
-    assert_no_notifications(&mut ws_before_tx).await;
-
-    // should work even if subscribing after the tx was sent
-    let (mut ws_after_tx, _) = connect_async(devnet.ws_url()).await.unwrap();
-    let subscription_id_after =
-        subscribe_tx_status(&mut ws_after_tx, &expected_tx_hash).await.unwrap();
-    assert_no_notifications(&mut ws_after_tx).await;
-
-    for (subscription_id, ws) in
-        [(subscription_id_before, &mut ws_before_tx), (subscription_id_after, &mut ws_after_tx)]
-    {
-        let notification = receive_rpc_via_ws(ws).await.unwrap();
-        assert_successful_mint_notification(notification, tx_hash, subscription_id);
-        assert_no_notifications(ws).await;
-    }
-
-    // move tx from pending to latest - expect no notifications
-    devnet.create_block().await.unwrap();
-
-    for ws in [&mut ws_before_tx, &mut ws_after_tx] {
-        assert_no_notifications(ws).await;
-    }
+    should_notify_if_subscribed_before_and_after_tx(&devnet).await;
 }
 
 #[tokio::test]
