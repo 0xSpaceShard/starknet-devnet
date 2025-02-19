@@ -7059,9 +7059,9 @@ checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
 
 [[package]]
 name = "universal-sierra-compiler"
-version = "2.4.0-rc.0"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "001cb1b9958f58373f0c11e469b0a92d6f1128083c2ff883dfcfdcf40887e5a0"
+checksum = "50cf69397f44ad62a9154f4bc8df0e6409323940133e6bc625752c7b886050c6"
 dependencies = [
  "anyhow",
  "cairo-lang-sierra 2.10.0",
