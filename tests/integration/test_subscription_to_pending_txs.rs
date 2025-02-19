@@ -10,8 +10,7 @@ use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
-    assert_no_notifications, declare_v3_deploy_v3,
-    get_simple_contract_in_sierra_and_compiled_class_hash, receive_rpc_via_ws, subscribe,
+    assert_no_notifications, declare_deploy_simple_contract, receive_rpc_via_ws, subscribe,
     unsubscribe, FeeUnit, SubscriptionId,
 };
 
@@ -195,16 +194,7 @@ async fn with_tx_details_and_filtered_address_happy_path() {
     .await
     .unwrap();
 
-    let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
-
-    let (class_hash, _) = declare_v3_deploy_v3(
-        &predeployed_account,
-        contract_class.clone(),
-        casm_hash,
-        &[Felt::ONE], // dummy constructor
-    )
-    .await
-    .unwrap();
+    let (class_hash, _) = declare_deploy_simple_contract(&predeployed_account).await.unwrap();
 
     let mut declaration_notification = receive_rpc_via_ws(&mut ws).await.unwrap();
     let declaration_tx = extract_tx_from_notification(&mut declaration_notification).unwrap();

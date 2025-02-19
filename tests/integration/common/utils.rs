@@ -291,6 +291,79 @@ pub async fn declare_v3_deploy_v3(
     Ok((declaration_result.class_hash, contract_address))
 }
 
+pub async fn declare_deploy_simple_contract(
+    account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
+) -> Result<(Felt, Felt), anyhow::Error> {
+    let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+
+    let overall_declaration_fee = 127200000000000_u64;
+    let overall_deployment_fee = 34800000000000_u64;
+    let gas_price = 100_000_000_000_u64;
+
+    let declaration_result = account
+        .declare_v3(Arc::new(contract_class), casm_hash)
+        .gas(overall_declaration_fee / gas_price)
+        .send()
+        .await?;
+
+    // deploy the contract
+    let salt = Felt::ZERO;
+    let ctor_args = [Felt::ONE];
+    let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
+    contract_factory
+        .deploy_v3(ctor_args.to_vec(), salt, false)
+        .gas(overall_deployment_fee / gas_price)
+        .send()
+        .await?;
+
+    // generate the address of the newly deployed contract
+    let contract_address = get_udc_deployed_address(
+        salt,
+        declaration_result.class_hash,
+        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        &ctor_args,
+    );
+
+    Ok((declaration_result.class_hash, contract_address))
+}
+
+/// Returns deployment address.
+pub async fn declare_deploy_events_contract(
+    account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
+) -> Result<Felt, anyhow::Error> {
+    let (contract_class, casm_hash) = get_events_contract_in_sierra_and_compiled_class_hash();
+
+    let overall_declaration_fee = 175000000000000_u64;
+    let overall_deployment_fee = 25200000000000_u64;
+    let gas_price = 100_000_000_000_u64;
+
+    let declaration_result = account
+        .declare_v3(Arc::new(contract_class), casm_hash)
+        .gas(overall_declaration_fee / gas_price)
+        .send()
+        .await?;
+
+    // deploy the contract
+    let salt = Felt::ZERO;
+    let ctor_args = [];
+    let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
+    contract_factory
+        .deploy_v3(ctor_args.to_vec(), salt, false)
+        .gas(overall_deployment_fee / gas_price)
+        .send()
+        .await?;
+
+    // generate the address of the newly deployed contract
+    let contract_address = get_udc_deployed_address(
+        salt,
+        declaration_result.class_hash,
+        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        &ctor_args,
+    );
+
+    Ok(contract_address)
+}
+
 /// Assumes the Cairo1 OpenZepplin contract is declared in the target network.
 pub async fn deploy_oz_account(
     devnet: &BackgroundDevnet,
