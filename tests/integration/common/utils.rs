@@ -296,6 +296,7 @@ pub async fn declare_deploy_simple_contract(
 ) -> Result<(Felt, Felt), anyhow::Error> {
     let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
 
+    // precalculated
     let overall_declaration_fee = 127200000000000_u64;
     let overall_deployment_fee = 34800000000000_u64;
     let gas_price = 100_000_000_000_u64;
@@ -333,6 +334,7 @@ pub async fn declare_deploy_events_contract(
 ) -> Result<Felt, anyhow::Error> {
     let (contract_class, casm_hash) = get_events_contract_in_sierra_and_compiled_class_hash();
 
+    // precalculated
     let overall_declaration_fee = 175000000000000_u64;
     let overall_deployment_fee = 25200000000000_u64;
     let gas_price = 100_000_000_000_u64;

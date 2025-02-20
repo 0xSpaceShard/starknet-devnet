@@ -50,6 +50,7 @@ async fn emit_static_event(
     account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
     contract_address: Felt,
 ) -> Result<InvokeTransactionResult, anyhow::Error> {
+    // precalculated
     let invocation_fee = 15_000_000_000_000_u64;
     let gas_price = 100_000_000_000_u64;
     account
@@ -230,7 +231,7 @@ async fn should_notify_only_once_in_on_demand_mode() {
 }
 
 #[tokio::test]
-async fn should_not_notify_again_when_moved_from_pending_to_latest_block() {
+async fn should_not_notify_again_when_pending_becomes_latest() {
     let devnet_args = ["--block-generation-on", "demand"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
     let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
@@ -429,7 +430,7 @@ async fn should_not_notify_of_events_in_too_old_blocks() {
 }
 
 #[tokio::test]
-async fn should_not_notify_of_events_in_old_blocks() {
+async fn should_notify_of_events_in_old_blocks() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
     let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 

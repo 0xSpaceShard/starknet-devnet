@@ -11,7 +11,7 @@ fn block_not_found_error() -> serde_json::Value {
 
 fn call_on_pending_error() -> serde_json::Value {
     json!({ "jsonrpc": "2.0", "id": 0, "error": {
-        "code": -32602, "message": "data did not match any variant of untagged enum SubscriptionBlockId"
+        "code": -32602, "message": "Cannot use `pending` for subscription block ID",
     }})
 }
 
@@ -20,7 +20,7 @@ async fn test_subscribing_to_non_existent_block() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
     let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
-    // Cartesian product: (subscription_method, subscription_params) x invalid_block_id
+    // Cartesian product: subscription_method x invalid_block_id
     for subscription_method in ["starknet_subscribeNewHeads", "starknet_subscribeEvents"] {
         for block_id in [BlockId::Number(1), BlockId::Hash(Felt::ONE)] {
             let subscription_resp =
