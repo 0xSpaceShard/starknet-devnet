@@ -2,13 +2,14 @@ use std::collections::HashSet;
 use std::num::NonZeroU128;
 
 use clap::Parser;
+use server::ServerConfig;
 use server::api::json_rpc::JsonRpcRequest;
 use server::restrictive_mode::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
 use server::server::HTTP_API_ROUTES_WITHOUT_LEADING_SLASH;
-use server::ServerConfig;
 use starknet_core::constants::{
-    DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT,
-    DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE,
+    DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT, DEVNET_DEFAULT_TIMEOUT,
+    DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 use starknet_core::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use starknet_core::random_number_generator::generate_u32_random_number;
@@ -52,7 +53,9 @@ pub(crate) struct Args {
     #[arg(env = "ACCOUNT_CLASS_CUSTOM")]
     #[arg(value_name = "PATH")]
     #[arg(conflicts_with = "account_class_choice")]
-    #[arg(help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;")]
+    #[arg(
+        help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;"
+    )]
     account_class_custom: Option<AccountClassWrapper>,
 
     /// Initial balance of predeployed accounts
@@ -86,7 +89,9 @@ pub(crate) struct Args {
     #[arg(env = "PORT")]
     #[arg(value_name = "PORT")]
     #[arg(default_value_t = DEVNET_DEFAULT_PORT)]
-    #[arg(help = "Specify the port to listen at; If 0, acquires a random free port and prints it;")]
+    #[arg(
+        help = "Specify the port to listen at; If 0, acquires a random free port and prints it;"
+    )]
     port: u16,
 
     // Set start time in seconds
@@ -109,7 +114,7 @@ pub(crate) struct Args {
     #[arg(env = "GAS_PRICE")]
     #[arg(value_name = "WEI_PER_GAS_UNIT")]
     #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
-    #[arg(help = "Specify the gas price in wei per gas unit;")]
+    #[arg(help = "Specify the gas price in wei per L1 gas unit;")]
     gas_price_wei: NonZeroU128,
 
     // Gas price in fri
@@ -117,7 +122,7 @@ pub(crate) struct Args {
     #[arg(env = "GAS_PRICE_FRI")]
     #[arg(value_name = "FRI_PER_GAS_UNIT")]
     #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
-    #[arg(help = "Specify the gas price in fri per gas unit;")]
+    #[arg(help = "Specify the gas price in fri per L1 gas unit;")]
     gas_price_fri: NonZeroU128,
 
     // Gas price in wei
@@ -125,7 +130,7 @@ pub(crate) struct Args {
     #[arg(env = "DATA_GAS_PRICE")]
     #[arg(value_name = "WEI_PER_GAS_UNIT")]
     #[arg(default_value_t = DEVNET_DEFAULT_DATA_GAS_PRICE)]
-    #[arg(help = "Specify the gas price in wei per data gas unit;")]
+    #[arg(help = "Specify the gas price in wei per L1 data gas unit;")]
     data_gas_price_wei: NonZeroU128,
 
     // Gas price in fri
@@ -133,8 +138,24 @@ pub(crate) struct Args {
     #[arg(env = "DATA_GAS_PRICE_FRI")]
     #[arg(value_name = "FRI_PER_GAS_UNIT")]
     #[arg(default_value_t = DEVNET_DEFAULT_DATA_GAS_PRICE)]
-    #[arg(help = "Specify the gas price in fri per data gas unit;")]
+    #[arg(help = "Specify the gas price in fri per L1 data gas unit;")]
     data_gas_price_fri: NonZeroU128,
+
+    // L2 Gas price in wei
+    #[arg(long = "l2-gas-price")]
+    #[arg(env = "L2_GAS_PRICE")]
+    #[arg(value_name = "WEI_PER_GAS_UNIT")]
+    #[arg(default_value_t = DEVNET_DEFAULT_L2_GAS_PRICE)]
+    #[arg(help = "Specify the gas price in wei per L2 gas unit;")]
+    l2_gas_price_wei: NonZeroU128,
+
+    // L2 Gas price in fri
+    #[arg(long = "l2-gas-price-fri")]
+    #[arg(env = "L2_GAS_PRICE_FRI")]
+    #[arg(value_name = "FRI_PER_GAS_UNIT")]
+    #[arg(default_value_t = DEVNET_DEFAULT_L2_GAS_PRICE)]
+    #[arg(help = "Specify the gas price in fri per L2 gas unit;")]
+    l2_gas_price_fri: NonZeroU128,
 
     #[arg(long = "chain-id")]
     #[arg(env = "CHAIN_ID")]
@@ -234,6 +255,8 @@ impl Args {
             gas_price_fri: self.gas_price_fri,
             data_gas_price_wei: self.data_gas_price_wei,
             data_gas_price_fri: self.data_gas_price_fri,
+            l2_gas_price_wei: self.l2_gas_price_wei,
+            l2_gas_price_fri: self.l2_gas_price_fri,
             chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
