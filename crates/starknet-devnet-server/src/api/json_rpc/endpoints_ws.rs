@@ -253,7 +253,7 @@ impl JsonRpcHandler {
 
         let events = self.api.starknet.lock().await.get_unlimited_events(
             Some(starting_block_id),
-            Some(BlockId::Tag(BlockTag::Latest)),
+            Some(BlockId::Tag(BlockTag::Pending)),
             address,
             keys_filter,
         )?;

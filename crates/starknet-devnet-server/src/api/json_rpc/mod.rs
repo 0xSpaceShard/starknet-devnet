@@ -303,31 +303,41 @@ impl JsonRpcHandler {
 
             let starknet = self.api.starknet.lock().await;
 
+            let mut notifications = vec![];
+
             let status = starknet
                 .get_transaction_execution_and_finality_status(*new_tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
-            let tx_status_notification =
-                NotificationData::TransactionStatus(NewTransactionStatus {
-                    transaction_hash: *new_tx_hash,
-                    status,
-                });
+
+            notifications.push(NotificationData::TransactionStatus(NewTransactionStatus {
+                transaction_hash: *new_tx_hash,
+                status,
+            }));
 
             let tx = starknet
                 .get_transaction_by_hash(*new_tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
-            let pending_tx_notification = NotificationData::PendingTransaction(
-                PendingTransactionNotification::Full(Box::new(tx.clone())),
-            );
 
-            let pending_tx_hash_notification = NotificationData::PendingTransaction(
+            notifications.push(NotificationData::PendingTransaction(
+                PendingTransactionNotification::Full(Box::new(tx.clone())),
+            ));
+
+            notifications.push(NotificationData::PendingTransaction(
                 PendingTransactionNotification::Hash(TransactionHashWrapper {
                     hash: *tx.get_transaction_hash(),
                     sender_address: tx.get_sender_address(),
                 }),
-            );
+            ));
 
-            let notifications =
-                [tx_status_notification, pending_tx_notification, pending_tx_hash_notification];
+            let events = starknet.get_unlimited_events(
+                Some(BlockId::Tag(BlockTag::Pending)),
+                Some(BlockId::Tag(BlockTag::Pending)),
+                None,
+                None,
+            )?;
+            for event in events.into_iter().filter(|e| &e.transaction_hash == new_tx_hash) {
+                notifications.push(NotificationData::Event(event));
+            }
 
             self.api.sockets.lock().await.notify_subscribers(&notifications).await;
         }
@@ -373,17 +383,16 @@ impl JsonRpcHandler {
                     transaction_hash: *tx_hash,
                     status,
                 }));
-            }
 
-            let events = starknet.get_unlimited_events(
-                Some(BlockId::Tag(BlockTag::Latest)),
-                Some(BlockId::Tag(BlockTag::Latest)),
-                None,
-                None,
-            )?;
-
-            for event in events {
-                notifications.push(NotificationData::Event(event));
+                let events = starknet.get_unlimited_events(
+                    Some(BlockId::Tag(BlockTag::Latest)),
+                    Some(BlockId::Tag(BlockTag::Latest)),
+                    None,
+                    None,
+                )?;
+                for event in events {
+                    notifications.push(NotificationData::Event(event));
+                }
             }
         }
 
