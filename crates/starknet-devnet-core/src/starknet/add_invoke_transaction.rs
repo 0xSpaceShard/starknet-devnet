@@ -15,7 +15,7 @@ pub fn add_invoke_transaction(
     starknet: &mut Starknet,
     broadcasted_invoke_transaction: BroadcastedInvokeTransaction,
 ) -> DevnetResult<TransactionHash> {
-    if broadcasted_invoke_transaction.is_max_fee_zero_value() {
+    if !broadcasted_invoke_transaction.is_max_fee_valid() {
         return Err(TransactionValidationError::InsufficientResourcesForValidate.into());
     }
 
@@ -53,7 +53,9 @@ pub fn add_invoke_transaction(
         tx: starknet_api::executable_transaction::AccountTransaction::Invoke(sn_api_transaction),
         execution_flags: ExecutionFlags { only_query: false, charge_fee: true, validate },
     }
-    .execute(state, &block_context)?;
+    .execute(state, &block_context);
+
+    let execution_info = execution_info?;
 
     let transaction = TransactionWithHash::new(transaction_hash, invoke_transaction);
 
@@ -236,7 +238,9 @@ mod tests {
         let initial_balance =
             account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap();
 
-        let numeric_balance = initial_balance.to_string().parse::<u64>().unwrap();
+        // dividing by 10, because otherwise it will fail that the total amount of gas exceeds
+        // user's balance
+        let gas_amount = initial_balance.to_string().parse::<u64>().unwrap() / 10;
 
         let invoke_transaction = test_invoke_transaction_v3(
             account_address,
@@ -244,9 +248,9 @@ mod tests {
             increase_balance_selector,
             Felt::from(10),
             0,
-            numeric_balance,
-            numeric_balance,
-            numeric_balance,
+            gas_amount,
+            gas_amount,
+            gas_amount,
         );
 
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
@@ -488,7 +492,7 @@ mod tests {
             account_without_validations_contract_class.generate_hash().unwrap();
 
         let account = Account::new(
-            Balance::from(10000_u32),
+            Balance::from(1000000000_u32),
             dummy_felt(),
             dummy_felt(),
             account_without_validations_class_hash,
@@ -538,6 +542,8 @@ mod tests {
             nonzero!(1u128),
             nonzero!(1u128),
             nonzero!(1u128),
+            nonzero!(1u128),
+            nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
@@ -546,8 +552,10 @@ mod tests {
         starknet.next_block_gas = GasModification {
             gas_price_wei: nonzero!(1u128),
             data_gas_price_wei: nonzero!(1u128),
+            l2_gas_price_wei: nonzero!(1u128),
             gas_price_fri: nonzero!(1u128),
             data_gas_price_fri: nonzero!(1u128),
+            l2_gas_price_fri: nonzero!(1u128),
         };
 
         starknet.restart_pending_block().unwrap();
