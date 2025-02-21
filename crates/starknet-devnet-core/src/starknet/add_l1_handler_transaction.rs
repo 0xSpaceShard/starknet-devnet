@@ -134,18 +134,22 @@ mod tests {
 
         match starknet.add_l1_handler_transaction(transaction) {
             Err(crate::error::Error::ContractExecutionError(ErrorStack { stack })) => {
-                assert_eq!(stack.len(), 1);
-                let error_frame = stack.first().unwrap();
-                match error_frame {
-                    Frame::EntryPoint(entry_point_error_frame) => {
+                assert_eq!(stack.len(), 2);
+                match &stack[0] {
+                    Frame::EntryPoint(frame) => {
                         assert_eq!(
-                            entry_point_error_frame.selector.unwrap(),
+                            frame.selector.unwrap(),
                             starknet_api::core::EntryPointSelector(withdraw_selector)
                         );
-
-                        todo!("assert entrypoint not found");
+                        assert_eq!(Felt::from(frame.storage_address), Felt::from(contract_address));
+                        assert_eq!(frame.depth, 0);
                     }
-                    _ => panic!("Invalid error frame: {error_frame:?}"),
+                    other => panic!("Invalid error frame: {other:?}"),
+                }
+
+                match &stack[1] {
+                    Frame::StringFrame(e) => assert!(e.contains("ENTRYPOINT_NOT_FOUND"), "{e}"),
+                    other => panic!("Invalid error frame: {other:?}"),
                 }
             }
             other => panic!("Wrong result: {other:?}"),

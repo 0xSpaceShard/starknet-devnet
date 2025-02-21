@@ -24,7 +24,7 @@ async fn rpc_returns_correct_spec_version() {
 
     let resp_body = devnet.send_custom_rpc("starknet_specVersion", json!([])).await.unwrap();
     match resp_body.as_str() {
-        Some(received_ver) => assert_eq!(received_ver, "0.8.0-rc.2"),
+        Some(received_ver) => assert_eq!(received_ver, "0.8.0-rc3"),
         _ => panic!("Invalid resp: {resp_body}"),
     }
 }

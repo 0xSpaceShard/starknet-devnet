@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use starknet_core::constants::DEVNET_DEFAULT_L1_GAS_PRICE;
+use starknet_core::constants::{
+    DEVNET_DEFAULT_L1_DATA_GAS_PRICE, DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE,
+};
 use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::chain_id::SEPOLIA;
 use starknet_rs_core::types::{Felt, ResourcePrice, StarknetError};
@@ -105,12 +107,16 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         .await
         .unwrap()[0];
     assert_eq!(
-        resp_no_flags["fee_estimation"]["gas_price"],
+        resp_no_flags["fee_estimation"]["l1_gas_price"],
         to_hex_felt(&DEVNET_DEFAULT_L1_GAS_PRICE)
     );
     assert_eq!(
-        resp_no_flags["fee_estimation"]["data_gas_price"],
-        to_hex_felt(&DEVNET_DEFAULT_L1_GAS_PRICE)
+        resp_no_flags["fee_estimation"]["l1_data_gas_price"],
+        to_hex_felt(&DEVNET_DEFAULT_L1_DATA_GAS_PRICE)
+    );
+    assert_eq!(
+        resp_no_flags["fee_estimation"]["l2_gas_price"],
+        to_hex_felt(&DEVNET_DEFAULT_L2_GAS_PRICE)
     );
     assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x73b00ed0c000");
 
@@ -123,12 +129,16 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         .await
         .unwrap()[0];
     assert_eq!(
-        resp_skip_validation["fee_estimation"]["gas_price"],
+        resp_skip_validation["fee_estimation"]["l1_gas_price"],
         to_hex_felt(&DEVNET_DEFAULT_L1_GAS_PRICE)
     );
     assert_eq!(
-        resp_skip_validation["fee_estimation"]["data_gas_price"],
-        to_hex_felt(&DEVNET_DEFAULT_L1_GAS_PRICE)
+        resp_skip_validation["fee_estimation"]["l1_data_gas_price"],
+        to_hex_felt(&DEVNET_DEFAULT_L1_DATA_GAS_PRICE)
+    );
+    assert_eq!(
+        resp_skip_validation["fee_estimation"]["l2_gas_price"],
+        to_hex_felt(&DEVNET_DEFAULT_L2_GAS_PRICE)
     );
     assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x736a356c0800");
 
@@ -146,6 +156,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         "data_gas_price_wei": wei_price_data,
         "gas_price_fri": 7e18 as u128,
         "data_gas_price_fri": 6e18 as u128,
+        // TODO gas: l2 gas here and in other places in this file?
     });
     let gas_response = &devnet.set_gas_price(&gas_request, true).await.unwrap();
 
@@ -159,19 +170,21 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         .await
         .unwrap()[0];
 
-    assert_eq!(resp_no_flags["fee_estimation"]["gas_price"], to_hex_felt(&wei_price));
-    assert_eq!(resp_no_flags["fee_estimation"]["data_gas_price"], to_hex_felt(&wei_price_data));
+    assert_eq!(resp_no_flags["fee_estimation"]["l1_gas_price"], to_hex_felt(&wei_price));
+    assert_eq!(resp_no_flags["fee_estimation"]["l1_data_gas_price"], to_hex_felt(&wei_price_data));
+    assert_eq!(resp_no_flags["fee_estimation"]["l2_gas_price"], to_hex_felt(&wei_price));
     assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x26230612b27f4e00000");
 
     let resp_skip_validation = &devnet
         .send_custom_rpc("starknet_simulateTransactions", params_skip_validation_and_fee_charge)
         .await
         .unwrap()[0];
-    assert_eq!(resp_skip_validation["fee_estimation"]["gas_price"], to_hex_felt(&wei_price));
+    assert_eq!(resp_skip_validation["fee_estimation"]["l1_gas_price"], to_hex_felt(&wei_price));
     assert_eq!(
-        resp_skip_validation["fee_estimation"]["data_gas_price"],
+        resp_skip_validation["fee_estimation"]["l1_data_gas_price"],
         to_hex_felt(&wei_price_data)
     );
+    assert_eq!(resp_skip_validation["fee_estimation"]["l2_gas_price"], to_hex_felt(&wei_price));
     assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x260b9ade6354d540000");
 
     assert_difference_if_validation(
@@ -315,10 +328,10 @@ async fn unsuccessful_declare_set_gas_successful_declare() {
     assert_eq!(latest_block.block_number, 1);
 
     let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
-    assert_eq!(
-        pending_block.l1_gas_price,
-        ResourcePrice { price_in_wei: wei_price.into(), price_in_fri: fri_price.into() }
-    );
+    assert_eq!(pending_block.l1_gas_price, ResourcePrice {
+        price_in_wei: wei_price.into(),
+        price_in_fri: fri_price.into()
+    });
 
     let successful_declare_tx = predeployed_account
         .declare_v2(Arc::new(contract_class), casm_class_hash)
@@ -334,13 +347,10 @@ async fn set_gas_optional_parameters() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
     let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
-    assert_eq!(
-        latest_block.l1_gas_price,
-        ResourcePrice {
-            price_in_wei: (u128::from(DEVNET_DEFAULT_L1_GAS_PRICE)).into(),
-            price_in_fri: (u128::from(DEVNET_DEFAULT_L1_GAS_PRICE)).into(),
-        }
-    );
+    assert_eq!(latest_block.l1_gas_price, ResourcePrice {
+        price_in_wei: (u128::from(DEVNET_DEFAULT_L1_GAS_PRICE)).into(),
+        price_in_fri: (u128::from(DEVNET_DEFAULT_L1_GAS_PRICE)).into(),
+    });
 
     // set nothing, get initial gas information and assert
     let gas_response = devnet.set_gas_price(&json!({}), false).await.unwrap();
