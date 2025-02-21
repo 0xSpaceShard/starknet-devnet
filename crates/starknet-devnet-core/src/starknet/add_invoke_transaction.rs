@@ -55,10 +55,6 @@ pub fn add_invoke_transaction(
     }
     .execute(state, &block_context);
 
-    if let Err(ref e) = execution_info {
-        println!("{:?}", e);
-    }
-
     let execution_info = execution_info?;
 
     let transaction = TransactionWithHash::new(transaction_hash, invoke_transaction);
@@ -97,7 +93,7 @@ mod tests {
         ETH_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{Error, TransactionValidationError};
-    use crate::starknet::{predeployed, Starknet};
+    use crate::starknet::{Starknet, predeployed};
     use crate::state::CustomState;
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
