@@ -202,65 +202,43 @@ async fn should_notify_if_already_in_latest_block_in_on_tx_mode() {
 async fn should_notify_only_once_in_on_demand_mode() {
     let devnet_args = ["--block-generation-on", "demand"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
-    let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+    let (mut ws_before, _) = connect_async(devnet.ws_url()).await.unwrap();
+    let (mut ws_after, _) = connect_async(devnet.ws_url()).await.unwrap();
 
     let mut account = get_single_owner_account(&devnet).await;
     account.set_block_id(BlockId::Tag(BlockTag::Pending)); // for correct nonce in deployment
 
     let contract_address = declare_deploy_events_contract(&account).await.unwrap();
 
+    let subscription_id_before =
+        subscribe_events(&mut ws_before, json!({ "from_address": contract_address }))
+            .await
+            .unwrap();
+
     let invocation = emit_static_event(&account, contract_address).await.unwrap();
 
-    let subscription_id =
-        subscribe_events(&mut ws, json!({ "from_address": contract_address })).await.unwrap();
+    let subscription_id_after =
+        subscribe_events(&mut ws_after, json!({ "from_address": contract_address })).await.unwrap();
 
-    let event = receive_event(&mut ws, subscription_id).await.unwrap();
-    assert_eq!(
-        event,
-        json!({
-            "transaction_hash": invocation.transaction_hash,
-            "from_address": contract_address,
-            "keys": [static_event_key()],
-            "data": [],
-        })
-    );
+    for (ws, subscription_id) in
+        [(&mut ws_before, subscription_id_before), (&mut ws_after, subscription_id_after)]
+    {
+        let event = receive_event(ws, subscription_id).await.unwrap();
+        assert_eq!(
+            event,
+            json!({
+                "transaction_hash": invocation.transaction_hash,
+                "from_address": contract_address,
+                "keys": [static_event_key()],
+                "data": [],
+            })
+        );
+    }
 
     // should not renotify on pending->latest
     devnet.create_block().await.unwrap();
-    assert_no_notifications(&mut ws).await;
-}
-
-#[tokio::test]
-async fn should_not_notify_again_when_pending_becomes_latest() {
-    let devnet_args = ["--block-generation-on", "demand"];
-    let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
-    let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-
-    let mut account = get_single_owner_account(&devnet).await;
-    account.set_block_id(BlockId::Tag(BlockTag::Pending)); // for correct nonce in deployment
-
-    let contract_address = declare_deploy_events_contract(&account).await.unwrap();
-    // to have declare+deploy in one block and invoke in another
-    devnet.create_block().await.unwrap();
-
-    let subscription_id =
-        subscribe_events(&mut ws, json!({ "from_address": contract_address })).await.unwrap();
-
-    // event notification should be received immediately
-    let invocation = emit_static_event(&account, contract_address).await.unwrap();
-    let event = receive_event(&mut ws, subscription_id).await.unwrap();
-    assert_eq!(
-        event,
-        json!({
-            "transaction_hash": invocation.transaction_hash,
-            "from_address": contract_address,
-            "keys": [static_event_key()],
-            "data": []
-        })
-    );
-
-    devnet.create_block().await.unwrap();
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws_before).await;
+    assert_no_notifications(&mut ws_after).await;
 }
 
 #[tokio::test]

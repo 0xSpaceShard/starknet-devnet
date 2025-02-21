@@ -10,9 +10,7 @@ fn block_not_found_error() -> serde_json::Value {
 }
 
 fn call_on_pending_error() -> serde_json::Value {
-    json!({ "jsonrpc": "2.0", "id": 0, "error": {
-        "code": -32602, "message": "Cannot use `pending` for subscription block ID",
-    }})
+    json!({ "jsonrpc": "2.0", "id": 0, "error": { "code": -32602, "message": "Subscription block cannot be 'pending'" }})
 }
 
 #[tokio::test]
