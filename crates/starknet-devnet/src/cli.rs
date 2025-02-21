@@ -7,7 +7,7 @@ use server::restrictive_mode::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
 use server::server::HTTP_API_ROUTES_WITHOUT_LEADING_SLASH;
 use server::ServerConfig;
 use starknet_core::constants::{
-    DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE,
+    DEVNET_DEFAULT_L1_DATA_GAS_PRICE, DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE,
     DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT, DEVNET_DEFAULT_TIMEOUT,
     DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
@@ -109,7 +109,7 @@ pub(crate) struct Args {
     #[arg(long = "gas-price")]
     #[arg(env = "GAS_PRICE")]
     #[arg(value_name = "WEI_PER_GAS_UNIT")]
-    #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
+    #[arg(default_value_t = DEVNET_DEFAULT_L1_GAS_PRICE)]
     #[arg(help = "Specify the gas price in wei per L1 gas unit;")]
     gas_price_wei: NonZeroU128,
 
@@ -117,7 +117,7 @@ pub(crate) struct Args {
     #[arg(long = "gas-price-fri")]
     #[arg(env = "GAS_PRICE_FRI")]
     #[arg(value_name = "FRI_PER_GAS_UNIT")]
-    #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
+    #[arg(default_value_t = DEVNET_DEFAULT_L1_GAS_PRICE)]
     #[arg(help = "Specify the gas price in fri per L1 gas unit;")]
     gas_price_fri: NonZeroU128,
 
@@ -125,7 +125,7 @@ pub(crate) struct Args {
     #[arg(long = "data-gas-price")]
     #[arg(env = "DATA_GAS_PRICE")]
     #[arg(value_name = "WEI_PER_GAS_UNIT")]
-    #[arg(default_value_t = DEVNET_DEFAULT_DATA_GAS_PRICE)]
+    #[arg(default_value_t = DEVNET_DEFAULT_L1_DATA_GAS_PRICE)]
     #[arg(help = "Specify the gas price in wei per L1 data gas unit;")]
     data_gas_price_wei: NonZeroU128,
 
@@ -133,7 +133,7 @@ pub(crate) struct Args {
     #[arg(long = "data-gas-price-fri")]
     #[arg(env = "DATA_GAS_PRICE_FRI")]
     #[arg(value_name = "FRI_PER_GAS_UNIT")]
-    #[arg(default_value_t = DEVNET_DEFAULT_DATA_GAS_PRICE)]
+    #[arg(default_value_t = DEVNET_DEFAULT_L1_DATA_GAS_PRICE)]
     #[arg(help = "Specify the gas price in fri per L1 data gas unit;")]
     data_gas_price_fri: NonZeroU128,
 

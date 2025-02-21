@@ -63,7 +63,7 @@ use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
-    DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE,
+    DEVNET_DEFAULT_L1_DATA_GAS_PRICE, DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE,
     DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, ENTRYPOINT_NOT_FOUND_ERROR_ENCODED,
     ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS,
     STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
@@ -118,13 +118,13 @@ pub struct Starknet {
 impl Default for Starknet {
     fn default() -> Self {
         #[allow(clippy::unwrap_used)]
-        let default_gas_price = DEVNET_DEFAULT_GAS_PRICE.get().try_into().unwrap();
+        let default_gas_price = DEVNET_DEFAULT_L1_GAS_PRICE.get().try_into().unwrap();
         Self {
             block_context: Self::init_block_context(
-                DEVNET_DEFAULT_GAS_PRICE,
-                DEVNET_DEFAULT_GAS_PRICE,
-                DEVNET_DEFAULT_DATA_GAS_PRICE,
-                DEVNET_DEFAULT_DATA_GAS_PRICE,
+                DEVNET_DEFAULT_L1_GAS_PRICE,
+                DEVNET_DEFAULT_L1_GAS_PRICE,
+                DEVNET_DEFAULT_L1_DATA_GAS_PRICE,
+                DEVNET_DEFAULT_L1_DATA_GAS_PRICE,
                 DEVNET_DEFAULT_L2_GAS_PRICE,
                 DEVNET_DEFAULT_L2_GAS_PRICE,
                 ETH_ERC20_CONTRACT_ADDRESS,

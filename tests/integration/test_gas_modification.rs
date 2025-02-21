@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use starknet_core::constants::DEVNET_DEFAULT_GAS_PRICE;
+use starknet_core::constants::DEVNET_DEFAULT_L1_GAS_PRICE;
 use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::chain_id::SEPOLIA;
 use starknet_rs_core::types::{Felt, ResourcePrice, StarknetError};
@@ -106,11 +106,11 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         .unwrap()[0];
     assert_eq!(
         resp_no_flags["fee_estimation"]["gas_price"],
-        to_hex_felt(&DEVNET_DEFAULT_GAS_PRICE)
+        to_hex_felt(&DEVNET_DEFAULT_L1_GAS_PRICE)
     );
     assert_eq!(
         resp_no_flags["fee_estimation"]["data_gas_price"],
-        to_hex_felt(&DEVNET_DEFAULT_GAS_PRICE)
+        to_hex_felt(&DEVNET_DEFAULT_L1_GAS_PRICE)
     );
     assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x73b00ed0c000");
 
@@ -124,11 +124,11 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         .unwrap()[0];
     assert_eq!(
         resp_skip_validation["fee_estimation"]["gas_price"],
-        to_hex_felt(&DEVNET_DEFAULT_GAS_PRICE)
+        to_hex_felt(&DEVNET_DEFAULT_L1_GAS_PRICE)
     );
     assert_eq!(
         resp_skip_validation["fee_estimation"]["data_gas_price"],
-        to_hex_felt(&DEVNET_DEFAULT_GAS_PRICE)
+        to_hex_felt(&DEVNET_DEFAULT_L1_GAS_PRICE)
     );
     assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x736a356c0800");
 
@@ -206,8 +206,8 @@ async fn set_gas_check_blocks() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
     let default_gas_price = ResourcePrice {
-        price_in_wei: u128::from(DEVNET_DEFAULT_GAS_PRICE).into(),
-        price_in_fri: u128::from(DEVNET_DEFAULT_GAS_PRICE).into(),
+        price_in_wei: u128::from(DEVNET_DEFAULT_L1_GAS_PRICE).into(),
+        price_in_fri: u128::from(DEVNET_DEFAULT_L1_GAS_PRICE).into(),
     };
 
     // First update - don't generate new block
@@ -337,8 +337,8 @@ async fn set_gas_optional_parameters() {
     assert_eq!(
         latest_block.l1_gas_price,
         ResourcePrice {
-            price_in_wei: (u128::from(DEVNET_DEFAULT_GAS_PRICE)).into(),
-            price_in_fri: (u128::from(DEVNET_DEFAULT_GAS_PRICE)).into(),
+            price_in_wei: (u128::from(DEVNET_DEFAULT_L1_GAS_PRICE)).into(),
+            price_in_fri: (u128::from(DEVNET_DEFAULT_L1_GAS_PRICE)).into(),
         }
     );
 
@@ -347,10 +347,10 @@ async fn set_gas_optional_parameters() {
     assert_eq!(
         gas_response,
         json!({
-            "gas_price_wei": DEVNET_DEFAULT_GAS_PRICE,
-            "data_gas_price_wei": DEVNET_DEFAULT_GAS_PRICE,
-            "gas_price_fri": DEVNET_DEFAULT_GAS_PRICE,
-            "data_gas_price_fri": DEVNET_DEFAULT_GAS_PRICE,
+            "gas_price_wei": DEVNET_DEFAULT_L1_GAS_PRICE,
+            "data_gas_price_wei": DEVNET_DEFAULT_L1_GAS_PRICE,
+            "gas_price_fri": DEVNET_DEFAULT_L1_GAS_PRICE,
+            "data_gas_price_fri": DEVNET_DEFAULT_L1_GAS_PRICE,
         })
     );
 
