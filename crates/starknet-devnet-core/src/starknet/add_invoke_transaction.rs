@@ -240,7 +240,7 @@ mod tests {
 
         // dividing by 10, because otherwise it will fail that the total amount of gas exceeds
         // user's balance
-        let numeric_balance = initial_balance.to_string().parse::<u64>().unwrap() / 10;
+        let gas_amount = initial_balance.to_string().parse::<u64>().unwrap() / 10;
 
         let invoke_transaction = test_invoke_transaction_v3(
             account_address,
@@ -248,9 +248,9 @@ mod tests {
             increase_balance_selector,
             Felt::from(10),
             0,
-            numeric_balance,
-            numeric_balance,
-            numeric_balance,
+            gas_amount,
+            gas_amount,
+            gas_amount,
         );
 
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
