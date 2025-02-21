@@ -43,7 +43,13 @@ pub fn estimate_fee(
                     .then_some(false)
                     .or(validate)
                     .unwrap_or(true);
-                Ok((txn.to_sn_api_account_transaction(&chain_id)?, validate))
+
+                let gas_vector_computation_mode = txn.gas_vector_computation_mode();
+                Ok((
+                    txn.to_sn_api_account_transaction(&chain_id)?,
+                    validate,
+                    gas_vector_computation_mode,
+                ))
             })
             .collect::<DevnetResult<Vec<_>>>()?
     };
@@ -53,7 +59,7 @@ pub fn estimate_fee(
     transactions
         .into_iter()
         .enumerate()
-        .map(|(idx, (transaction, validate))| {
+        .map(|(idx, (transaction, validate, gas_vector_computation_mode))| {
             let estimate_fee_result = estimate_transaction_fee(
                 &mut transactional_state,
                 &block_context,
@@ -68,6 +74,7 @@ pub fn estimate_fee(
                     },
                 ),
                 return_error_on_reverted_execution,
+                gas_vector_computation_mode,
             );
 
             match estimate_fee_result {
@@ -111,6 +118,7 @@ pub fn estimate_message_fee(
         &block_context,
         Transaction::L1Handler(l1_transaction),
         true,
+        GasVectorComputationMode::NoL2Gas,
     )
 }
 
@@ -119,6 +127,7 @@ fn estimate_transaction_fee<S: StateReader>(
     block_context: &blockifier::context::BlockContext,
     transaction: Transaction,
     return_error_on_reverted_execution: bool,
+    gas_vector_computation_mode: GasVectorComputationMode,
 ) -> DevnetResult<FeeEstimateWrapper> {
     let transaction_execution_info = transaction.execute(transactional_state, block_context)?;
 
@@ -136,7 +145,7 @@ fn estimate_transaction_fee<S: StateReader>(
     let gas_vector = transaction_execution_info.receipt.resources.to_gas_vector(
         &get_versioned_constants(),
         block_context.block_info().use_kzg_da,
-        &GasVectorComputationMode::NoL2Gas, // TODO gas
+        &gas_vector_computation_mode,
     );
 
     let fee_type = match &transaction {

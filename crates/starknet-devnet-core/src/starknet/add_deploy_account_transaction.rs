@@ -16,7 +16,7 @@ pub fn add_deploy_account_transaction(
     starknet: &mut Starknet,
     broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransaction,
 ) -> DevnetResult<(TransactionHash, ContractAddress)> {
-    if broadcasted_deploy_account_transaction.is_max_fee_zero_value() {
+    if !broadcasted_deploy_account_transaction.is_max_fee_valid() {
         return Err(TransactionValidationError::InsufficientResourcesForValidate.into());
     }
 
@@ -401,6 +401,8 @@ mod tests {
             .declare_contract_class(class_hash, None, contract_class.into())
             .unwrap();
         starknet.block_context = Starknet::init_block_context(
+            nonzero!(1u128),
+            nonzero!(1u128),
             nonzero!(1u128),
             nonzero!(1u128),
             nonzero!(1u128),

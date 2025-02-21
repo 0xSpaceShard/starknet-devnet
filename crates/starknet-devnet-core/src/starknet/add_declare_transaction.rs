@@ -18,7 +18,7 @@ pub fn add_declare_transaction(
     starknet: &mut Starknet,
     broadcasted_declare_transaction: BroadcastedDeclareTransaction,
 ) -> DevnetResult<(TransactionHash, ClassHash)> {
-    if broadcasted_declare_transaction.is_max_fee_zero_value() {
+    if !broadcasted_declare_transaction.is_max_fee_valid() {
         return Err(TransactionValidationError::InsufficientResourcesForValidate.into());
     }
 

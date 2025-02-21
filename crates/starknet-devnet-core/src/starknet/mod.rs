@@ -17,7 +17,7 @@ use starknet_api::block::{
     GasPriceVector, GasPrices,
 };
 use starknet_api::core::SequencerContractAddress;
-use starknet_api::transaction::fields::Fee;
+use starknet_api::transaction::fields::{Fee, GasVectorComputationMode};
 use starknet_rs_core::types::{
     BlockId, BlockTag, Call, ExecutionResult, Felt, Hash256, MsgFromL1, TransactionFinalityStatus,
 };
@@ -63,9 +63,10 @@ use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
-    DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
-    ENTRYPOINT_NOT_FOUND_ERROR_ENCODED, ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME,
-    ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
+    DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE,
+    DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, ENTRYPOINT_NOT_FOUND_ERROR_ENCODED,
+    ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS,
+    STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
 };
 use crate::contract_class_choice::AccountContractClassChoice;
 use crate::error::{DevnetResult, Error, TransactionValidationError};
@@ -124,6 +125,8 @@ impl Default for Starknet {
                 DEVNET_DEFAULT_GAS_PRICE,
                 DEVNET_DEFAULT_DATA_GAS_PRICE,
                 DEVNET_DEFAULT_DATA_GAS_PRICE,
+                DEVNET_DEFAULT_L2_GAS_PRICE,
+                DEVNET_DEFAULT_L2_GAS_PRICE,
                 ETH_ERC20_CONTRACT_ADDRESS,
                 STRK_ERC20_CONTRACT_ADDRESS,
                 DEVNET_DEFAULT_CHAIN_ID,
@@ -143,6 +146,8 @@ impl Default for Starknet {
                 data_gas_price_wei: default_gas_price,
                 gas_price_fri: default_gas_price,
                 data_gas_price_fri: default_gas_price,
+                l2_gas_price_fri: default_gas_price,
+                l2_gas_price_wei: default_gas_price,
             },
             messaging: Default::default(),
             rpc_contract_classes: Default::default(),
@@ -240,6 +245,8 @@ impl Starknet {
                 config.gas_price_fri,
                 config.data_gas_price_wei,
                 config.data_gas_price_fri,
+                config.l2_gas_price_wei,
+                config.l2_gas_price_fri,
                 ETH_ERC20_CONTRACT_ADDRESS,
                 STRK_ERC20_CONTRACT_ADDRESS,
                 config.chain_id,
@@ -255,6 +262,8 @@ impl Starknet {
                 data_gas_price_wei: config.data_gas_price_wei,
                 gas_price_fri: config.gas_price_fri,
                 data_gas_price_fri: config.data_gas_price_fri,
+                l2_gas_price_wei: config.l2_gas_price_wei,
+                l2_gas_price_fri: config.l2_gas_price_fri,
             },
             messaging: Default::default(),
             rpc_contract_classes,
@@ -341,7 +350,10 @@ impl Starknet {
             GasPrice(self.next_block_gas.data_gas_price_fri.get());
         new_block.header.block_header_without_hash.l1_data_gas_price.price_in_wei =
             GasPrice(self.next_block_gas.data_gas_price_wei.get());
-        // TODO gas - add l2 gas
+        new_block.header.block_header_without_hash.l2_gas_price.price_in_fri =
+            GasPrice(self.next_block_gas.l2_gas_price_fri.get());
+        new_block.header.block_header_without_hash.l2_gas_price.price_in_wei =
+            GasPrice(self.next_block_gas.l2_gas_price_wei.get());
 
         let new_block_number = self.blocks.next_block_number();
         new_block.set_block_hash(if self.config.lite_mode {
@@ -408,6 +420,7 @@ impl Starknet {
     ) -> DevnetResult<()> {
         let state_diff = self.commit_diff()?;
         let transaction_hash = transaction.get_transaction_hash();
+        let gas_vector_computation_mode = transaction.transaction.gas_vector_computation_mode();
 
         let trace = create_trace(
             &mut self.pending_state.state,
@@ -415,6 +428,7 @@ impl Starknet {
             &tx_info,
             state_diff.into(),
             self.block_context.versioned_constants(),
+            &gas_vector_computation_mode,
         )?;
         let transaction_to_add = StarknetTransaction::create_accepted(&transaction, tx_info, trace);
 
@@ -438,6 +452,8 @@ impl Starknet {
         gas_price_fri: NonZeroU128,
         data_gas_price_wei: NonZeroU128,
         data_gas_price_fri: NonZeroU128,
+        l2_gas_price_wei: NonZeroU128,
+        l2_gas_price_fri: NonZeroU128,
         eth_fee_token_address: Felt,
         strk_fee_token_address: Felt,
         chain_id: ChainId,
@@ -451,12 +467,12 @@ impl Starknet {
                 eth_gas_prices: GasPriceVector {
                     l1_gas_price: nonzero_gas_price!(gas_price_wei),
                     l1_data_gas_price: nonzero_gas_price!(data_gas_price_wei),
-                    l2_gas_price: nonzero_gas_price!(gas_price_wei),
+                    l2_gas_price: nonzero_gas_price!(l2_gas_price_wei),
                 },
                 strk_gas_prices: GasPriceVector {
                     l1_gas_price: nonzero_gas_price!(gas_price_fri),
                     l1_data_gas_price: nonzero_gas_price!(data_gas_price_fri),
-                    l2_gas_price: nonzero_gas_price!(gas_price_fri),
+                    l2_gas_price: nonzero_gas_price!(l2_gas_price_fri),
                 },
             },
             use_kzg_da: USE_KZG_DA,
@@ -1204,7 +1220,7 @@ impl Starknet {
                     // fail if the fee provided is 0
                     // succeed if the fee provided is 0 and SKIP_FEE_CHARGE is set
                     // succeed if the fee provided is > 0
-                    if txn.is_max_fee_zero_value() && !skip_fee_charge {
+                    if !txn.is_max_fee_valid() && !skip_fee_charge {
                         return Err(Error::ContractExecutionErrorInSimulation {
                             failure_index: tx_idx,
                             error_stack: ErrorStack::from_str_err(
@@ -1220,18 +1236,16 @@ impl Starknet {
                         )?;
 
                     Ok((
-                        txn.to_blockifier_account_transaction(
-                            &chain_id,
-                            ExecutionFlags {
-                                only_query: true,
-                                charge_fee: !skip_fee_charge,
-                                validate: !(skip_validate || skip_validate_due_to_impersonation),
-                            },
-                        )?,
+                        txn.to_blockifier_account_transaction(&chain_id, ExecutionFlags {
+                            only_query: true,
+                            charge_fee: !skip_fee_charge,
+                            validate: !(skip_validate || skip_validate_due_to_impersonation),
+                        })?,
                         txn.get_type(),
+                        txn.gas_vector_computation_mode(),
                     ))
                 })
-                .collect::<DevnetResult<Vec<(AccountTransaction, TransactionType)>>>()?
+                .collect::<DevnetResult<Vec<(AccountTransaction, TransactionType, GasVectorComputationMode)>>>()?
         };
 
         let transactional_rpc_contract_classes =
@@ -1239,7 +1253,7 @@ impl Starknet {
         let mut transactional_state =
             CachedState::new(CachedState::create_transactional(&mut state.state));
 
-        for (tx_idx, (blockifier_transaction, transaction_type)) in
+        for (tx_idx, (blockifier_transaction, transaction_type, gas_vector_computation_mode)) in
             executable_txs.into_iter().enumerate()
         {
             let tx_execution_info = blockifier_transaction
@@ -1259,6 +1273,7 @@ impl Starknet {
                 &tx_execution_info,
                 state_diff,
                 block_context.versioned_constants(),
+                &gas_vector_computation_mode,
             )?;
             transactions_traces.push(trace);
         }
@@ -1570,6 +1585,8 @@ mod tests {
             nonzero!(10u128),
             nonzero!(10u128),
             nonzero!(10u128),
+            nonzero!(10u128),
+            nonzero!(10u128),
             felt_from_prefixed_hex("0xAA").unwrap(),
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
@@ -1707,6 +1724,8 @@ mod tests {
     #[test]
     fn correct_block_context_update() {
         let mut block_ctx = Starknet::init_block_context(
+            nonzero!(1u128),
+            nonzero!(1u128),
             nonzero!(1u128),
             nonzero!(1u128),
             nonzero!(1u128),

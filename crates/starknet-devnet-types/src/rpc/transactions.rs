@@ -104,6 +104,19 @@ pub enum Transaction {
     L1Handler(L1HandlerTransaction),
 }
 
+impl Transaction {
+    pub fn gas_vector_computation_mode(&self) -> GasVectorComputationMode {
+        match self {
+            Transaction::Declare(DeclareTransaction::V3(v3)) => v3.get_resource_bounds().into(),
+            Transaction::DeployAccount(DeployAccountTransaction::V3(v3)) => {
+                v3.get_resource_bounds().into()
+            }
+            Transaction::Invoke(InvokeTransaction::V3(v3)) => v3.get_resource_bounds().into(),
+            _ => GasVectorComputationMode::NoL2Gas,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(Deserialize, PartialEq, Eq))]
 pub struct TransactionWithHash {
@@ -333,6 +346,19 @@ pub struct ResourceBoundsWrapper {
     inner: ResourceBoundsMapping,
 }
 
+impl Into<GasVectorComputationMode> for &ResourceBoundsWrapper {
+    fn into(self) -> GasVectorComputationMode {
+        match (&self.inner.l1_data_gas, &self.inner.l2_gas) {
+            (None, ResourceBounds { max_amount, max_price_per_unit })
+                if (*max_amount == 0 || *max_price_per_unit == 0) =>
+            {
+                GasVectorComputationMode::NoL2Gas
+            }
+            _ => GasVectorComputationMode::All,
+        }
+    }
+}
+
 // TODO: when starknet-rs upgrades to 0.8.0 remove this struct
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -357,16 +383,21 @@ impl ResourceBoundsWrapper {
         l2_gas_max_amount: u64,
         l2_gas_max_price_per_unit: u128,
     ) -> Self {
+        let l1_data_gas = if l1_data_gas_max_amount > 0 {
+            Some(ResourceBounds {
+                max_amount: l1_data_gas_max_amount,
+                max_price_per_unit: l1_data_gas_max_price_per_unit,
+            })
+        } else {
+            None
+        };
         ResourceBoundsWrapper {
             inner: ResourceBoundsMapping {
                 l1_gas: ResourceBounds {
                     max_amount: l1_gas_max_amount,
                     max_price_per_unit: l1_gas_max_price_per_unit,
                 },
-                l1_data_gas: Some(ResourceBounds {
-                    max_amount: l1_data_gas_max_amount,
-                    max_price_per_unit: l1_data_gas_max_price_per_unit,
-                }),
+                l1_data_gas,
                 l2_gas: ResourceBounds {
                     max_amount: l2_gas_max_amount,
                     max_price_per_unit: l2_gas_max_price_per_unit,
@@ -415,19 +446,50 @@ impl From<&ResourceBoundsWrapper> for starknet_api::transaction::fields::ValidRe
 impl BroadcastedTransactionCommonV3 {
     /// Checks if total accumulated fee of resource_bounds for l1 is equal to 0 or for l2 is not
     /// zero
-    pub fn is_l1_gas_zero_or_l2_gas_not_zero(&self) -> bool {
-        let l2_is_not_zero = (self.resource_bounds.inner.l2_gas.max_amount as u128)
-            * self.resource_bounds.inner.l2_gas.max_price_per_unit
-            > 0;
-        let l1_is_zero = (self.resource_bounds.inner.l1_gas.max_amount as u128)
-            * self.resource_bounds.inner.l1_gas.max_price_per_unit
-            == 0;
+    pub fn are_gas_bounds_valid(&self) -> bool {
+        let ResourceBoundsMapping { l1_gas, l2_gas, l1_data_gas } = &self.resource_bounds.inner;
+        // valid set of resources are:
+        // 1. l1_gas > 0, l2_gas = 0, l1_data_gas = none
+        // 2. l1_gas > 0, l2_gas > 0, l1_data_gas > 0
+        match (l1_gas, l2_gas, l1_data_gas) {
+            // l1 > 0 and l2 > 0 and l1 data is none => invalid
+            (l1, l2, None)
+                if l1.max_amount > 0
+                    && l1.max_price_per_unit > 0
+                    && l2.max_amount > 0
+                    && l2.max_price_per_unit > 0 =>
+            {
+                false
+            }
+            // l1 > 0 and l2 = 0 and lt data is none => valid
+            (l1, l2, None)
+                if (l2.max_amount == 0 || l2.max_price_per_unit == 0)
+                    && (l1.max_amount > 0 && l1.max_price_per_unit > 0) =>
+            {
+                true
+            }
+            (l1_gas, l2_gas, l1_data_gas) => {
+                let l2_is_zero = (l2_gas.max_amount as u128) * l2_gas.max_price_per_unit == 0;
+                let l1_is_zero = (l1_gas.max_amount as u128) * l1_gas.max_price_per_unit == 0;
 
-        l1_is_zero || l2_is_not_zero
+                let l1_data_is_zero = match l1_data_gas.as_ref() {
+                    Some(l1_data_gas) => {
+                        (l1_data_gas.max_amount as u128) * l1_data_gas.max_price_per_unit == 0
+                    }
+                    None => true,
+                };
+
+                !(l2_is_zero && l1_is_zero && l1_data_is_zero)
+            }
+        }
     }
 
     pub fn is_only_query(&self) -> bool {
         is_only_query_common(&self.version)
+    }
+
+    pub fn get_gas_vector_computation_mode(&self) -> GasVectorComputationMode {
+        (&self.resource_bounds).into()
     }
 }
 
@@ -485,17 +547,32 @@ impl BroadcastedTransaction {
         }
     }
 
-    pub fn is_max_fee_zero_value(&self) -> bool {
+    pub fn is_max_fee_valid(&self) -> bool {
         match self {
             BroadcastedTransaction::Invoke(broadcasted_invoke_transaction) => {
-                broadcasted_invoke_transaction.is_max_fee_zero_value()
+                !broadcasted_invoke_transaction.is_max_fee_valid()
             }
             BroadcastedTransaction::Declare(broadcasted_declare_transaction) => {
-                broadcasted_declare_transaction.is_max_fee_zero_value()
+                broadcasted_declare_transaction.is_max_fee_valid()
             }
             BroadcastedTransaction::DeployAccount(broadcasted_deploy_account_transaction) => {
-                broadcasted_deploy_account_transaction.is_max_fee_zero_value()
+                broadcasted_deploy_account_transaction.is_max_fee_valid()
             }
+        }
+    }
+
+    pub fn gas_vector_computation_mode(&self) -> GasVectorComputationMode {
+        match self {
+            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V3(declare_v3)) => {
+                declare_v3.common.get_gas_vector_computation_mode()
+            }
+            BroadcastedTransaction::DeployAccount(BroadcastedDeployAccountTransaction::V3(
+                deploy_account_v3,
+            )) => deploy_account_v3.common.get_gas_vector_computation_mode(),
+            BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V3(invoke_v3)) => {
+                invoke_v3.common.get_gas_vector_computation_mode()
+            }
+            _ => GasVectorComputationMode::NoL2Gas,
         }
     }
 }
@@ -508,11 +585,11 @@ pub enum BroadcastedDeclareTransaction {
 }
 
 impl BroadcastedDeclareTransaction {
-    pub fn is_max_fee_zero_value(&self) -> bool {
+    pub fn is_max_fee_valid(&self) -> bool {
         match self {
-            BroadcastedDeclareTransaction::V1(v1) => v1.common.is_max_fee_zero_value(),
-            BroadcastedDeclareTransaction::V2(v2) => v2.common.is_max_fee_zero_value(),
-            BroadcastedDeclareTransaction::V3(v3) => v3.common.is_l1_gas_zero_or_l2_gas_not_zero(),
+            BroadcastedDeclareTransaction::V1(v1) => !v1.common.is_max_fee_zero_value(),
+            BroadcastedDeclareTransaction::V2(v2) => !v2.common.is_max_fee_zero_value(),
+            BroadcastedDeclareTransaction::V3(v3) => v3.common.are_gas_bounds_valid(),
         }
     }
 
@@ -648,12 +725,10 @@ pub enum BroadcastedDeployAccountTransaction {
 }
 
 impl BroadcastedDeployAccountTransaction {
-    pub fn is_max_fee_zero_value(&self) -> bool {
+    pub fn is_max_fee_valid(&self) -> bool {
         match self {
-            BroadcastedDeployAccountTransaction::V1(v1) => v1.common.is_max_fee_zero_value(),
-            BroadcastedDeployAccountTransaction::V3(v3) => {
-                v3.common.is_l1_gas_zero_or_l2_gas_not_zero()
-            }
+            BroadcastedDeployAccountTransaction::V1(v1) => !v1.common.is_max_fee_zero_value(),
+            BroadcastedDeployAccountTransaction::V3(v3) => v3.common.are_gas_bounds_valid(),
         }
     }
 
@@ -748,10 +823,10 @@ pub enum BroadcastedInvokeTransaction {
 }
 
 impl BroadcastedInvokeTransaction {
-    pub fn is_max_fee_zero_value(&self) -> bool {
+    pub fn is_max_fee_valid(&self) -> bool {
         match self {
-            BroadcastedInvokeTransaction::V1(v1) => v1.common.is_max_fee_zero_value(),
-            BroadcastedInvokeTransaction::V3(v3) => v3.common.is_l1_gas_zero_or_l2_gas_not_zero(),
+            BroadcastedInvokeTransaction::V1(v1) => !v1.common.is_max_fee_zero_value(),
+            BroadcastedInvokeTransaction::V3(v3) => v3.common.are_gas_bounds_valid(),
         }
     }
 
@@ -1042,6 +1117,7 @@ impl FunctionInvocation {
         call_info: &blockifier::execution::call_info::CallInfo,
         state_reader: &mut impl StateReader,
         versioned_constants: &VersionedConstants,
+        gas_vector_computation_mode: &GasVectorComputationMode,
     ) -> DevnetResult<Self> {
         let mut internal_calls: Vec<FunctionInvocation> = vec![];
         for internal_call in &call_info.inner_calls {
@@ -1049,6 +1125,7 @@ impl FunctionInvocation {
                 internal_call,
                 state_reader,
                 versioned_constants,
+                gas_vector_computation_mode,
             )?);
         }
 
@@ -1077,12 +1154,11 @@ impl FunctionInvocation {
             })?
         };
 
-        // TODO gas: change mode
         let gas_vector = blockifier::fee::fee_utils::get_vm_resources_cost(
             versioned_constants,
             &call_info.resources,
             0,
-            &GasVectorComputationMode::NoL2Gas,
+            gas_vector_computation_mode,
         );
 
         Ok(FunctionInvocation {
