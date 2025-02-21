@@ -105,11 +105,15 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         .await
         .unwrap()[0];
     assert_eq!(
-        resp_no_flags["fee_estimation"]["gas_price"],
+        resp_no_flags["fee_estimation"]["l1_gas_price"],
         to_hex_felt(&DEVNET_DEFAULT_GAS_PRICE)
     );
     assert_eq!(
-        resp_no_flags["fee_estimation"]["data_gas_price"],
+        resp_no_flags["fee_estimation"]["l1_data_gas_price"],
+        to_hex_felt(&DEVNET_DEFAULT_GAS_PRICE)
+    );
+    assert_eq!(
+        resp_no_flags["fee_estimation"]["l2_gas_price"],
         to_hex_felt(&DEVNET_DEFAULT_GAS_PRICE)
     );
     assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x73b00ed0c000");
@@ -123,11 +127,15 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         .await
         .unwrap()[0];
     assert_eq!(
-        resp_skip_validation["fee_estimation"]["gas_price"],
+        resp_skip_validation["fee_estimation"]["l1_gas_price"],
         to_hex_felt(&DEVNET_DEFAULT_GAS_PRICE)
     );
     assert_eq!(
-        resp_skip_validation["fee_estimation"]["data_gas_price"],
+        resp_skip_validation["fee_estimation"]["l1_data_gas_price"],
+        to_hex_felt(&DEVNET_DEFAULT_GAS_PRICE)
+    );
+    assert_eq!(
+        resp_skip_validation["fee_estimation"]["l2_gas_price"],
         to_hex_felt(&DEVNET_DEFAULT_GAS_PRICE)
     );
     assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x736a356c0800");
@@ -146,6 +154,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         "data_gas_price_wei": wei_price_data,
         "gas_price_fri": 7e18 as u128,
         "data_gas_price_fri": 6e18 as u128,
+        // TODO gas: l2 gas here and in other places in this file?
     });
     let gas_response = &devnet.set_gas_price(&gas_request, true).await.unwrap();
 
@@ -159,19 +168,21 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         .await
         .unwrap()[0];
 
-    assert_eq!(resp_no_flags["fee_estimation"]["gas_price"], to_hex_felt(&wei_price));
-    assert_eq!(resp_no_flags["fee_estimation"]["data_gas_price"], to_hex_felt(&wei_price_data));
+    assert_eq!(resp_no_flags["fee_estimation"]["l1_gas_price"], to_hex_felt(&wei_price));
+    assert_eq!(resp_no_flags["fee_estimation"]["l1_data_gas_price"], to_hex_felt(&wei_price_data));
+    assert_eq!(resp_no_flags["fee_estimation"]["l2_gas_price"], to_hex_felt(&wei_price));
     assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x26230612b27f4e00000");
 
     let resp_skip_validation = &devnet
         .send_custom_rpc("starknet_simulateTransactions", params_skip_validation_and_fee_charge)
         .await
         .unwrap()[0];
-    assert_eq!(resp_skip_validation["fee_estimation"]["gas_price"], to_hex_felt(&wei_price));
+    assert_eq!(resp_skip_validation["fee_estimation"]["l1_gas_price"], to_hex_felt(&wei_price));
     assert_eq!(
-        resp_skip_validation["fee_estimation"]["data_gas_price"],
+        resp_skip_validation["fee_estimation"]["l1_data_gas_price"],
         to_hex_felt(&wei_price_data)
     );
+    assert_eq!(resp_skip_validation["fee_estimation"]["l2_gas_price"], to_hex_felt(&wei_price));
     assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x260b9ade6354d540000");
 
     assert_difference_if_validation(
