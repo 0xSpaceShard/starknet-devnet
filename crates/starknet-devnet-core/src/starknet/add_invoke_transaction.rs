@@ -97,7 +97,7 @@ mod tests {
         ETH_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{Error, TransactionValidationError};
-    use crate::starknet::{Starknet, predeployed};
+    use crate::starknet::{predeployed, Starknet};
     use crate::state::CustomState;
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
@@ -242,7 +242,8 @@ mod tests {
         let initial_balance =
             account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap();
 
-        // dividing by 10, because otherwise it will fail that the total amount of gas exceeds user's balance
+        // dividing by 10, because otherwise it will fail that the total amount of gas exceeds
+        // user's balance
         let numeric_balance = initial_balance.to_string().parse::<u64>().unwrap() / 10;
 
         let invoke_transaction = test_invoke_transaction_v3(
