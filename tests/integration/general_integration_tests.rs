@@ -11,7 +11,7 @@ use crate::common::constants::{
 };
 use crate::common::errors::RpcError;
 use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
-use crate::common::utils::{to_hex_felt, UniqueAutoDeletableFile};
+use crate::common::utils::{UniqueAutoDeletableFile, to_hex_felt};
 
 #[tokio::test]
 /// Asserts that a background instance can be spawned
@@ -80,18 +80,15 @@ async fn too_big_request_rejected_via_rpc() {
         .await
         .expect_err("Request should have been rejected");
 
-    assert_eq!(
-        error,
-        RpcError {
-            code: -32600,
-            message: format!(
-                "Request too big! Server received: 1168 bytes; maximum (specifiable via \
+    assert_eq!(error, RpcError {
+        code: -32600,
+        message: format!(
+            "Request too big! Server received: 1168 bytes; maximum (specifiable via \
                  --request-body-size-limit): {limit} bytes"
-            )
-            .into(),
-            data: None
-        }
-    );
+        )
+        .into(),
+        data: None
+    });
 
     // subtract enough so that the rest of the json body doesn't overflow the limit
     let nonexistent_path = "a".repeat(limit - 100);
@@ -117,6 +114,8 @@ async fn test_config() {
         "gas_price_fri": 7,
         "data_gas_price_wei": 6,
         "data_gas_price_fri": 8,
+        "l2_gas_price_wei": 9,
+        "l2_gas_price_fri": 10,
         "chain_id": "SN_MAIN",
         "dump_on": "exit",
         "dump_path": dump_file.path,
@@ -155,6 +154,10 @@ async fn test_config() {
         &serde_json::to_string(&expected_config["data_gas_price_wei"]).unwrap(),
         "--data-gas-price-fri",
         &serde_json::to_string(&expected_config["data_gas_price_fri"]).unwrap(),
+        "--l2-gas-price",
+        &serde_json::to_string(&expected_config["l2_gas_price_wei"]).unwrap(),
+        "--l2-gas-price-fri",
+        &serde_json::to_string(&expected_config["l2_gas_price_fri"]).unwrap(),
         "--chain-id",
         "MAINNET",
         "--dump-on",
