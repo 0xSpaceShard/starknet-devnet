@@ -26,6 +26,8 @@ JSON-RPC
         "data_gas_price_wei": 10000,
         "gas_price_fri": 10000,
         "data_gas_price_fri": 10000,
+        "l2_gas_price_wei": 1000000,
+        "l2_gas_price_fri": 10000,
         "generate_block": false,
     }
 }
@@ -41,5 +43,7 @@ The expected response from the server will mirror the request gas parameters, co
     "data_gas_price_wei": 10000,
     "gas_price_fri": 10000,
     "data_gas_price_fri": 10000,
+    "l2_gas_price_wei": 10000,
+    "l2_gas_price_fri": 10000,
 }
 ```

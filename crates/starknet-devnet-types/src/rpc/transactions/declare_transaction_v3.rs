@@ -50,4 +50,8 @@ impl DeclareTransactionV3 {
     pub fn get_class_hash(&self) -> &ClassHash {
         &self.class_hash
     }
+
+    pub(crate) fn get_resource_bounds(&self) -> &ResourceBoundsWrapper {
+        &self.resource_bounds
+    }
 }

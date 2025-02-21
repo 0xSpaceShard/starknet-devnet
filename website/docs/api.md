@@ -58,6 +58,8 @@ To retrieve the current configuration of Devnet, as specified via [CLI](running/
   "gas_price_fri": 100000000000,
   "data_gas_price_wei": 100000000000,
   "data_gas_price_fri": 100000000000,
+  "l2_gas_price_wei": 100000000000,
+  "l2_gas_price_fri": 100000000000,
   "chain_id": "SN_SEPOLIA",
   "dump_on": "exit",
   "dump_path": "dump_path.json",

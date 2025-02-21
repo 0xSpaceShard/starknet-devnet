@@ -56,6 +56,10 @@ impl DeployAccountTransactionV3 {
     pub fn get_contract_address(&self) -> &ContractAddress {
         &self.contract_address
     }
+
+    pub(crate) fn get_resource_bounds(&self) -> &ResourceBoundsWrapper {
+        &self.resource_bounds
+    }
 }
 
 impl From<DeployAccountTransactionV3> for BroadcastedDeployAccountTransactionV3 {

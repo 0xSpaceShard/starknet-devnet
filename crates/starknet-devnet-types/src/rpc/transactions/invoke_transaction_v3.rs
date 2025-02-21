@@ -44,6 +44,10 @@ impl InvokeTransactionV3 {
             account_deployment_data: broadcasted_txn.account_deployment_data.clone(),
         }
     }
+
+    pub(crate) fn get_resource_bounds(&self) -> &ResourceBoundsWrapper {
+        &self.resource_bounds
+    }
 }
 
 impl From<InvokeTransactionV3> for BroadcastedInvokeTransactionV3 {
