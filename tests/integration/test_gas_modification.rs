@@ -328,10 +328,10 @@ async fn unsuccessful_declare_set_gas_successful_declare() {
     assert_eq!(latest_block.block_number, 1);
 
     let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
-    assert_eq!(pending_block.l1_gas_price, ResourcePrice {
-        price_in_wei: wei_price.into(),
-        price_in_fri: fri_price.into()
-    });
+    assert_eq!(
+        pending_block.l1_gas_price,
+        ResourcePrice { price_in_wei: wei_price.into(), price_in_fri: fri_price.into() }
+    );
 
     let successful_declare_tx = predeployed_account
         .declare_v2(Arc::new(contract_class), casm_class_hash)
@@ -347,10 +347,13 @@ async fn set_gas_optional_parameters() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
     let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
-    assert_eq!(latest_block.l1_gas_price, ResourcePrice {
-        price_in_wei: (u128::from(DEVNET_DEFAULT_L1_GAS_PRICE)).into(),
-        price_in_fri: (u128::from(DEVNET_DEFAULT_L1_GAS_PRICE)).into(),
-    });
+    assert_eq!(
+        latest_block.l1_gas_price,
+        ResourcePrice {
+            price_in_wei: (u128::from(DEVNET_DEFAULT_L1_GAS_PRICE)).into(),
+            price_in_fri: (u128::from(DEVNET_DEFAULT_L1_GAS_PRICE)).into(),
+        }
+    );
 
     // set nothing, get initial gas information and assert
     let gas_response = devnet.set_gas_price(&json!({}), false).await.unwrap();

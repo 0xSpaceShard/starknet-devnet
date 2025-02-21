@@ -117,9 +117,8 @@ pub fn estimate_message_fee(
         &block_context,
         Transaction::L1Handler(l1_transaction),
         true,
-        GasVectorComputationMode::NoL2Gas, /* using only L1 gas, because messages comming from
-                                            * L1 are L1 transactions, which have their own gas
-                                            * cost */
+        // Using only L1 gas, because msgs coming from L1 are L1 txs, with their own gas cost
+        GasVectorComputationMode::NoL2Gas,
     )
 }
 
