@@ -454,19 +454,18 @@ impl BroadcastedTransactionCommonV3 {
         // 2. l1_gas > 0, l2_gas > 0, l1_data_gas > 0
         match (l1_gas, l2_gas, l1_data_gas) {
             // l1 > 0 and l2 > 0 and l1 data is none => invalid
-            (l1, l2, None) if is_gt_zero(&l1) && is_gt_zero(&l2) => false,
+            (l1, l2, None) if is_gt_zero(l1) && is_gt_zero(l2) => false,
             // l1 > 0 and l2 = 0 and lt data is none => valid
-            (l1, l2, None) if !is_gt_zero(&l2) && is_gt_zero(&l1) => true,
+            (l1, l2, None) if !is_gt_zero(l2) && is_gt_zero(l1) => true,
             (l1, l2, l1_data) => {
-                let l1_gt_zero = is_gt_zero(&l1);
-                let l2_gt_zero = is_gt_zero(&l2);
+                let l1_gt_zero = is_gt_zero(l1);
+                let l2_gt_zero = is_gt_zero(l2);
                 let l1_data_gt_zero = match l1_data.as_ref() {
-                    Some(l1_data) => is_gt_zero(&l1_data),
+                    Some(l1_data) => is_gt_zero(l1_data),
                     None => false,
                 };
 
-                (l1_gt_zero && l2_gt_zero && l1_data_gt_zero)
-                    || (l1_gt_zero && !l2_gt_zero && !l1_data_gt_zero)
+                l1_gt_zero && (l1_data_gt_zero || !l2_gt_zero) && (!l1_data_gt_zero || l2_gt_zero)
             }
         }
     }
