@@ -11,7 +11,7 @@ use crate::common::constants::{
 };
 use crate::common::errors::RpcError;
 use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
-use crate::common::utils::{UniqueAutoDeletableFile, to_hex_felt};
+use crate::common::utils::{to_hex_felt, UniqueAutoDeletableFile};
 
 #[tokio::test]
 /// Asserts that a background instance can be spawned
@@ -80,15 +80,18 @@ async fn too_big_request_rejected_via_rpc() {
         .await
         .expect_err("Request should have been rejected");
 
-    assert_eq!(error, RpcError {
-        code: -32600,
-        message: format!(
-            "Request too big! Server received: 1168 bytes; maximum (specifiable via \
+    assert_eq!(
+        error,
+        RpcError {
+            code: -32600,
+            message: format!(
+                "Request too big! Server received: 1168 bytes; maximum (specifiable via \
                  --request-body-size-limit): {limit} bytes"
-        )
-        .into(),
-        data: None
-    });
+            )
+            .into(),
+            data: None
+        }
+    );
 
     // subtract enough so that the rest of the json body doesn't overflow the limit
     let nonexistent_path = "a".repeat(limit - 100);
