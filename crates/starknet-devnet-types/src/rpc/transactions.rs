@@ -448,38 +448,25 @@ impl BroadcastedTransactionCommonV3 {
     /// zero
     pub fn are_gas_bounds_valid(&self) -> bool {
         let ResourceBoundsMapping { l1_gas, l2_gas, l1_data_gas } = &self.resource_bounds.inner;
+        let is_gt_zero = |gas: &ResourceBounds| gas.max_amount > 0 && gas.max_price_per_unit > 0;
         // valid set of resources are:
         // 1. l1_gas > 0, l2_gas = 0, l1_data_gas = none
         // 2. l1_gas > 0, l2_gas > 0, l1_data_gas > 0
         match (l1_gas, l2_gas, l1_data_gas) {
             // l1 > 0 and l2 > 0 and l1 data is none => invalid
-            (l1, l2, None)
-                if l1.max_amount > 0
-                    && l1.max_price_per_unit > 0
-                    && l2.max_amount > 0
-                    && l2.max_price_per_unit > 0 =>
-            {
-                false
-            }
+            (l1, l2, None) if is_gt_zero(&l1) && is_gt_zero(&l2) => false,
             // l1 > 0 and l2 = 0 and lt data is none => valid
-            (l1, l2, None)
-                if (l2.max_amount == 0 || l2.max_price_per_unit == 0)
-                    && (l1.max_amount > 0 && l1.max_price_per_unit > 0) =>
-            {
-                true
-            }
-            (l1_gas, l2_gas, l1_data_gas) => {
-                let l2_is_zero = (l2_gas.max_amount as u128) * l2_gas.max_price_per_unit == 0;
-                let l1_is_zero = (l1_gas.max_amount as u128) * l1_gas.max_price_per_unit == 0;
-
-                let l1_data_is_zero = match l1_data_gas.as_ref() {
-                    Some(l1_data_gas) => {
-                        (l1_data_gas.max_amount as u128) * l1_data_gas.max_price_per_unit == 0
-                    }
-                    None => true,
+            (l1, l2, None) if !is_gt_zero(&l2) && is_gt_zero(&l1) => true,
+            (l1, l2, l1_data) => {
+                let l1_gt_zero = is_gt_zero(&l1);
+                let l2_gt_zero = is_gt_zero(&l2);
+                let l1_data_gt_zero = match l1_data.as_ref() {
+                    Some(l1_data) => is_gt_zero(&l1_data),
+                    None => false,
                 };
 
-                !(l2_is_zero && l1_is_zero && l1_data_is_zero)
+                (l1_gt_zero && l2_gt_zero && l1_data_gt_zero)
+                    || (l1_gt_zero && !l2_gt_zero && !l1_data_gt_zero)
             }
         }
     }
