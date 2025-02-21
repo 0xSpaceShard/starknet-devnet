@@ -146,7 +146,9 @@
               }
             }
           },
-          "required": ["messaging_contract_address"]
+          "required": [
+            "messaging_contract_address"
+          ]
         }
       },
       "errors": [
@@ -263,7 +265,9 @@
               "$ref": "#/components/schemas/FELT"
             }
           },
-          "required": ["transaction_hash"]
+          "required": [
+            "transaction_hash"
+          ]
         }
       },
       "errors": [
@@ -309,7 +313,9 @@
               "pattern": "^0x[a-fA-F0-9]{64}$"
             }
           },
-          "required": ["message_hash"]
+          "required": [
+            "message_hash"
+          ]
         }
       },
       "errors": [
@@ -333,7 +339,9 @@
               "$ref": "#/components/schemas/FELT"
             }
           },
-          "required": ["block_hash"]
+          "required": [
+            "block_hash"
+          ]
         }
       },
       "errors": [
@@ -370,7 +378,9 @@
               }
             }
           },
-          "required": ["aborted"]
+          "required": [
+            "aborted"
+          ]
         }
       },
       "errors": [
@@ -385,19 +395,27 @@
       "params": [
         {
           "gas_price_wei": {
-            "title": "Gas price in WEI",
+            "title": "L1 Gas price in WEI",
             "$ref": "#/components/schemas/u128"
           },
           "data_gas_price_wei": {
-            "title": "Data gas price in WEI",
+            "title": "L1 Data gas price in WEI",
             "$ref": "#/components/schemas/u128"
           },
           "gas_price_fri": {
-            "title": "Gas price in FRI",
+            "title": "L1 Gas price in FRI",
             "$ref": "#/components/schemas/u128"
           },
           "data_gas_price_fri": {
-            "title": "Data gas price in FRI",
+            "title": "L1 Data gas price in FRI",
+            "$ref": "#/components/schemas/u128"
+          },
+          "l2_gas_price_wei": {
+            "title": "L2 Gas price in WEI",
+            "$ref": "#/components/schemas/u128"
+          },
+          "l2_gas_price_fri": {
+            "title": "L2 Gas price in FRI",
             "$ref": "#/components/schemas/u128"
           },
           "generate_block": {
@@ -417,15 +435,23 @@
               "$ref": "#/components/schemas/u128"
             },
             "data_gas_price_wei": {
-              "title": "Data gas price in WEI",
+              "title": "L1 Data gas price in WEI",
               "$ref": "#/components/schemas/u128"
             },
             "gas_price_fri": {
-              "title": "Gas price in FRI",
+              "title": "L1 Gas price in FRI",
               "$ref": "#/components/schemas/u128"
             },
             "data_gas_price_fri": {
-              "title": "Data gas price in FRI",
+              "title": "L1 Data gas price in FRI",
+              "$ref": "#/components/schemas/u128"
+            },
+            "l2_gas_price_wei": {
+              "title": "L2 Gas price in WEI",
+              "$ref": "#/components/schemas/u128"
+            },
+            "l2_gas_price_fri": {
+              "title": "L2 Gas price in FRI",
               "$ref": "#/components/schemas/u128"
             }
           },
@@ -491,7 +517,10 @@
               "$ref": "#/components/schemas/FELT"
             }
           },
-          "required": ["block_timestamp", "block_hash"]
+          "required": [
+            "block_timestamp",
+            "block_hash"
+          ]
         }
       },
       "errors": [
@@ -527,7 +556,10 @@
               "$ref": "#/components/schemas/FELT"
             }
           },
-          "required": ["block_timestamp", "block_hash"]
+          "required": [
+            "block_timestamp",
+            "block_hash"
+          ]
         }
       },
       "errors": [
@@ -686,7 +718,11 @@
               }
             }
           },
-          "required": ["new_balance", "unit", "tx_hash"]
+          "required": [
+            "new_balance",
+            "unit",
+            "tx_hash"
+          ]
         }
       },
       "errors": [
@@ -756,19 +792,27 @@
               "type": "integer"
             },
             "gas_price_wei": {
-              "title": "Gas price in WEI",
+              "title": "L1 Gas price in WEI",
               "$ref": "#/components/schemas/u128"
             },
             "data_gas_price_wei": {
-              "title": "Data gas price in WEI",
+              "title": "L1 Data gas price in WEI",
               "$ref": "#/components/schemas/u128"
             },
             "gas_price_fri": {
-              "title": "Gas price in FRI",
+              "title": "L1 Gas price in FRI",
               "$ref": "#/components/schemas/u128"
             },
             "data_gas_price_fri": {
-              "title": "Data gas price in FRI",
+              "title": "L1 Data gas price in FRI",
+              "$ref": "#/components/schemas/u128"
+            },
+            "l2_gas_price_wei": {
+              "title": "L2 Gas price in WEI",
+              "$ref": "#/components/schemas/u128"
+            },
+            "l2_gas_price_fri": {
+              "title": "L2 Gas price in FRI",
               "$ref": "#/components/schemas/u128"
             },
             "chain_id": {
@@ -848,7 +892,10 @@
             "$ref": "#/components/schemas/PRICE_UNIT"
           }
         },
-        "required": ["amount", "unit"]
+        "required": [
+          "amount",
+          "unit"
+        ]
       },
       "ACCOUNT_BALANCES": {
         "title": "Account balances",
@@ -877,7 +924,9 @@
                 "$ref": "#/components/schemas/BLOCK_HASH"
               }
             },
-            "required": ["block_hash"]
+            "required": [
+              "block_hash"
+            ]
           },
           {
             "title": "Block number",
@@ -888,7 +937,9 @@
                 "$ref": "#/components/schemas/BLOCK_NUMBER"
               }
             },
-            "required": ["block_number"]
+            "required": [
+              "block_number"
+            ]
           },
           {
             "title": "Block tag",
@@ -900,7 +951,10 @@
         "title": "Block tag",
         "type": "string",
         "description": "A tag specifying a dynamic reference to a block",
-        "enum": ["latest", "pending"]
+        "enum": [
+          "latest",
+          "pending"
+        ]
       },
       "u64": {
         "type": "string",
@@ -974,7 +1028,11 @@
             }
           }
         },
-        "required": ["from_address", "to_address", "payload"]
+        "required": [
+          "from_address",
+          "to_address",
+          "payload"
+        ]
       },
       "MSG_TO_L2": {
         "title": "Message to L2",
@@ -1056,7 +1114,10 @@
       "PRICE_UNIT": {
         "title": "price unit",
         "type": "string",
-        "enum": ["WEI", "FRI"]
+        "enum": [
+          "WEI",
+          "FRI"
+        ]
       }
     },
     "errors": {
