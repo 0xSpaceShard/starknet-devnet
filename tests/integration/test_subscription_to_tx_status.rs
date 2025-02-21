@@ -13,8 +13,8 @@ async fn subscribe_tx_status(
     ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
     tx_hash: &Felt,
 ) -> Result<SubscriptionId, anyhow::Error> {
-    let params = json!({ "transaction_hash": tx_hash });
-    subscribe(ws, "starknet_subscribeTransactionStatus", params).await
+    subscribe(ws, "starknet_subscribeTransactionStatus", json!({ "transaction_hash": tx_hash }))
+        .await
 }
 
 /// Returns (address, amount, tx_hash), with tx_hash being the hash of the minting tx if it's
@@ -161,7 +161,7 @@ async fn should_notify_if_subscribed_before_and_after_tx(devnet: &BackgroundDevn
         assert_no_notifications(&mut ws_after_tx).await;
     }
 
-    // move tx from pending to latest - expect no notifications
+    // In on-demand mode, this moves tx from pending to latest - expect no notifications
     devnet.create_block().await.unwrap();
 
     assert_no_notifications(&mut ws_before_tx).await;
