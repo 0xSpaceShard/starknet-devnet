@@ -44,11 +44,10 @@ pub fn estimate_fee(
                     .or(validate)
                     .unwrap_or(true);
 
-                let gas_vector_computation_mode = txn.gas_vector_computation_mode();
                 Ok((
                     txn.to_sn_api_account_transaction(&chain_id)?,
                     validate,
-                    gas_vector_computation_mode,
+                    txn.gas_vector_computation_mode(),
                 ))
             })
             .collect::<DevnetResult<Vec<_>>>()?
