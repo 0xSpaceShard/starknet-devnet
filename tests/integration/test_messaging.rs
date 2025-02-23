@@ -640,7 +640,7 @@ async fn test_dumpability_of_messaging_contract_loading() {
 }
 
 #[tokio::test]
-async fn flushing_only_new_messages_after_restart() {
+async fn flush_only_new_messages_after_restart() {
     let anvil = BackgroundAnvil::spawn().await.unwrap();
     let (devnet, sn_account, sn_l1l2_contract) = setup_devnet(&[]).await;
 
