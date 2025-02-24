@@ -521,12 +521,12 @@ impl Starknet {
             eth_gas_prices: GasPriceVector {
                 l1_gas_price: nonzero_gas_price!(gas_modification.gas_price_wei),
                 l1_data_gas_price: nonzero_gas_price!(gas_modification.data_gas_price_wei),
-                l2_gas_price: nonzero_gas_price!(gas_modification.gas_price_wei),
+                l2_gas_price: nonzero_gas_price!(gas_modification.l2_gas_price_wei),
             },
             strk_gas_prices: GasPriceVector {
                 l1_gas_price: nonzero_gas_price!(gas_modification.gas_price_fri),
                 l1_data_gas_price: nonzero_gas_price!(gas_modification.data_gas_price_fri),
-                l2_gas_price: nonzero_gas_price!(gas_modification.gas_price_fri),
+                l2_gas_price: nonzero_gas_price!(gas_modification.l2_gas_price_fri),
             },
         };
 
