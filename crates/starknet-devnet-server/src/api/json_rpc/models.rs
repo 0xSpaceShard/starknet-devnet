@@ -5,7 +5,7 @@ use starknet_rs_core::types::{
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::block::BlockId;
+use starknet_types::rpc::block::{BlockId, SubscriptionBlockId};
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, EventFilter, FunctionCall,
@@ -211,9 +211,8 @@ pub struct SubscriptionIdInput {
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
-pub struct TransactionBlockInput {
-    pub transaction_hash: TransactionHash,
-    pub block_id: Option<BlockId>,
+pub struct SubscriptionBlockIdInput {
+    pub block_id: SubscriptionBlockId,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -226,7 +225,7 @@ pub struct PendingTransactionsSubscriptionInput {
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct EventsSubscriptionInput {
-    pub block_id: Option<BlockId>,
+    pub block_id: Option<SubscriptionBlockId>,
     pub from_address: Option<ContractAddress>,
     pub keys: Option<Vec<Vec<Felt>>>,
 }

@@ -66,8 +66,6 @@ pub enum ApiError {
     EntrypointNotFound,
     #[error("Cannot go back more than 1024 blocks")]
     TooManyBlocksBack,
-    #[error("This method does not support being called on the pending block")]
-    CallOnPending,
     #[error("Invalid subscription id")]
     InvalidSubscriptionId,
     #[error("Devnet doesn't support storage proofs")] // slightly modified spec message
@@ -225,11 +223,6 @@ impl ApiError {
                 message: error_message.into(),
                 data: None,
             },
-            ApiError::CallOnPending => RpcError {
-                code: crate::rpc_core::error::ErrorCode::ServerError(69),
-                message: error_message.into(),
-                data: None,
-            },
             ApiError::InvalidSubscriptionId => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(66),
                 message: error_message.into(),
@@ -271,7 +264,6 @@ impl ApiError {
             | Self::HttpApiError(_)
             | Self::EntrypointNotFound
             | Self::TransactionExecutionError { .. }
-            | Self::CallOnPending
             | Self::TooManyBlocksBack
             | Self::InvalidSubscriptionId
             | Self::InsufficientResourcesForValidate

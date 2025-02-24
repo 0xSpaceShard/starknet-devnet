@@ -134,3 +134,91 @@ pub struct ReorgData {
     /// Number of the last known block of the orphaned chain
     pub ending_block_number: BlockNumber,
 }
+
+#[derive(Debug, Clone)]
+pub enum SubscriptionBlockId {
+    Hash(Felt),
+    Number(u64),
+    Latest,
+}
+
+impl<'de> Deserialize<'de> for SubscriptionBlockId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let block_id = ImportedBlockId::deserialize(deserializer)?;
+        Ok(match block_id {
+            ImportedBlockId::Hash(felt) => Self::Hash(felt),
+            ImportedBlockId::Number(n) => Self::Number(n),
+            ImportedBlockId::Tag(ImportedBlockTag::Latest) => Self::Latest,
+            ImportedBlockId::Tag(ImportedBlockTag::Pending) => {
+                return Err(serde::de::Error::custom("Subscription block cannot be 'pending'"));
+            }
+        })
+    }
+}
+
+impl From<SubscriptionBlockId> for ImportedBlockId {
+    fn from(value: SubscriptionBlockId) -> Self {
+        (&value).into()
+    }
+}
+
+impl From<&SubscriptionBlockId> for ImportedBlockId {
+    fn from(value: &SubscriptionBlockId) -> Self {
+        match value {
+            SubscriptionBlockId::Hash(hash) => Self::Hash(*hash),
+            SubscriptionBlockId::Number(n) => Self::Number(*n),
+            SubscriptionBlockId::Latest => Self::Tag(ImportedBlockTag::Latest),
+        }
+    }
+}
+
+#[cfg(test)]
+mod test_subscription_block_id {
+    use serde_json::json;
+
+    use super::SubscriptionBlockId;
+
+    #[test]
+    fn accept_latest() {
+        serde_json::from_value::<SubscriptionBlockId>(json!("latest")).unwrap();
+    }
+
+    #[test]
+    fn reject_pending() {
+        serde_json::from_value::<SubscriptionBlockId>(json!("pending")).unwrap_err();
+    }
+
+    #[test]
+    fn reject_random_string() {
+        serde_json::from_value::<SubscriptionBlockId>(json!("random string")).unwrap_err();
+    }
+
+    #[test]
+    fn accept_valid_felt_as_block_hash() {
+        serde_json::from_value::<SubscriptionBlockId>(json!({ "block_hash": "0x1" })).unwrap();
+    }
+
+    #[test]
+    fn reject_invalid_felt_as_block_hash() {
+        serde_json::from_value::<SubscriptionBlockId>(json!({ "block_hash": "invalid" }))
+            .unwrap_err();
+    }
+
+    #[test]
+    fn reject_unwrapped_felt_as_block_hash() {
+        serde_json::from_value::<SubscriptionBlockId>(json!("0x123")).unwrap_err();
+    }
+
+    #[test]
+    fn accept_valid_number_as_block_number() {
+        serde_json::from_value::<SubscriptionBlockId>(json!({ "block_number": 123 })).unwrap();
+    }
+
+    #[test]
+    fn reject_unwrapped_number_as_block_number() {
+        serde_json::from_value::<SubscriptionBlockId>(json!(123)).unwrap_err();
+    }
+}
