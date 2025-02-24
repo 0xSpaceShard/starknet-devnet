@@ -17,29 +17,64 @@
   </a>
 </p>
 
-A local testnet for Starknet... in Rust!
+## 📖 About
 
-## Features
+Starknet Devnet RS is a local testnet for Starknet written in Rust. This tool is designed for developers who want to test their smart contracts and applications in a local environment that closely resembles the actual Starknet network.
+
+## 🚀 Quick Start
+
+```bash
+# Install via Cargo
+cargo install starknet-devnet
+
+# Or use Docker
+docker pull shardlabs/starknet-devnet-rs:latest
+docker run -p 5050:5050 shardlabs/starknet-devnet-rs:latest
+```
+
+## 💻 System Requirements
+
+- Rust 1.65 or higher
+- Cargo
+- Git
+- Docker (optional)
+
+## ✨ Features
 
 - [Forking](https://0xspaceshard.github.io/starknet-devnet-rs/docs/forking) - interact with contracts deployed on mainnet or testnet
-- [Account impersonation](https://0xspaceshard.github.io/starknet-devnet-rs/docs/account-impersonation)
-- [L1-L2 interaction](https://0xspaceshard.github.io/starknet-devnet-rs/docs/postman)
-- [Predeployed contracts](https://0xspaceshard.github.io/starknet-devnet-rs/docs/predeployed) - accounts, tokens etc.
-- [Block manipulations](https://0xspaceshard.github.io/starknet-devnet-rs/docs/blocks) - creation, abortion etc.
-- [Time manipulations](https://0xspaceshard.github.io/starknet-devnet-rs/docs/starknet-time/)
-- [Dump, load, restart state](https://0xspaceshard.github.io/starknet-devnet-rs/docs/dump-load-restart)
-- [Configurable according to your needs](https://0xspaceshard.github.io/starknet-devnet-rs/docs/running/cli)
+- [Account Impersonation](https://0xspaceshard.github.io/starknet-devnet-rs/docs/account-impersonation) - test with different accounts
+- [L1-L2 Interaction](https://0xspaceshard.github.io/starknet-devnet-rs/docs/postman) - test cross-layer communication
+- [Predeployed Contracts](https://0xspaceshard.github.io/starknet-devnet-rs/docs/predeployed) - accounts, tokens, and more
+- [Block Manipulation](https://0xspaceshard.github.io/starknet-devnet-rs/docs/blocks) - creation, abortion, and more
+- [Time Manipulation](https://0xspaceshard.github.io/starknet-devnet-rs/docs/starknet-time/) - network time control
+- [State Management](https://0xspaceshard.github.io/starknet-devnet-rs/docs/dump-load-restart) - dump, load, and restart state
+- [Flexible Configuration](https://0xspaceshard.github.io/starknet-devnet-rs/docs/running/cli) - customize according to your needs
 
 ## 🌐 Documentation
 
-Find the official documentation [here](https://0xspaceshard.github.io/starknet-devnet-rs/).
+Complete documentation is available [here](https://0xspaceshard.github.io/starknet-devnet-rs/).
 
-## starknet-devnet-js
+### Documentation Structure:
+- [Getting Started Guide](https://0xspaceshard.github.io/starknet-devnet-rs/docs/getting-started)
+- [API Reference](https://0xspaceshard.github.io/starknet-devnet-rs/docs/api)
+- [Usage Examples](https://0xspaceshard.github.io/starknet-devnet-rs/docs/examples)
+- [Frequently Asked Questions](https://0xspaceshard.github.io/starknet-devnet-rs/docs/faq)
 
-Simplify the installation, spawning and usage of Devnet in your tests by relying on the official JavaScript wrapper. Read more [here](https://github.com/0xspaceShard/starknet-devnet-js).
+## 📦 starknet-devnet-js
 
-## ✏️ Contributing
+Simplify the installation, spawning, and usage of Devnet in your tests by using the official JavaScript wrapper. Learn more [here](https://github.com/0xspaceShard/starknet-devnet-js).
 
-We ❤️ and encourage all contributions and thank all the [contributors](https://github.com/0xSpaceShard/starknet-devnet-rs/graphs/contributors)!
+## 🤝 How to Contribute
 
-[Click here](.github/CONTRIBUTING.md) for the development guide.
+We ❤️ and welcome all contributions! Here's how you can help:
+
+1. Fork the repository
+2. Create a branch for your changes
+3. Make your changes and test them
+4. Create a pull request with a description of your changes
+
+Please read our [development guide](.github/CONTRIBUTING.md) before getting started.
+
+## 📝 License
+
+This project is licensed under the MIT License.
