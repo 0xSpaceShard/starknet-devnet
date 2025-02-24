@@ -504,6 +504,14 @@ impl BroadcastedTransaction {
             }
         }
     }
+
+    pub fn is_deprecated(&self) -> bool {
+        match self {
+            BroadcastedTransaction::Invoke(tx) => tx.is_deprecated(),
+            BroadcastedTransaction::Declare(tx) => tx.is_deprecated(),
+            BroadcastedTransaction::DeployAccount(tx) => tx.is_deprecated(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -519,6 +527,13 @@ impl BroadcastedDeclareTransaction {
             BroadcastedDeclareTransaction::V1(v1) => v1.common.is_max_fee_zero_value(),
             BroadcastedDeclareTransaction::V2(v2) => v2.common.is_max_fee_zero_value(),
             BroadcastedDeclareTransaction::V3(v3) => v3.common.is_l1_gas_zero_or_l2_gas_not_zero(),
+        }
+    }
+
+    pub fn is_deprecated(&self) -> bool {
+        match self {
+            BroadcastedDeclareTransaction::V1(_) | BroadcastedDeclareTransaction::V2(_) => true,
+            BroadcastedDeclareTransaction::V3(_) => false,
         }
     }
 
@@ -665,6 +680,13 @@ impl BroadcastedDeployAccountTransaction {
         }
     }
 
+    pub fn is_deprecated(&self) -> bool {
+        match self {
+            BroadcastedDeployAccountTransaction::V1(_) => true,
+            BroadcastedDeployAccountTransaction::V3(_) => false,
+        }
+    }
+
     pub fn is_only_query(&self) -> bool {
         match self {
             BroadcastedDeployAccountTransaction::V1(tx) => tx.common.is_only_query(),
@@ -785,6 +807,13 @@ impl BroadcastedInvokeTransaction {
         match self {
             BroadcastedInvokeTransaction::V1(v1) => v1.common.is_max_fee_zero_value(),
             BroadcastedInvokeTransaction::V3(v3) => v3.common.is_l1_gas_zero_or_l2_gas_not_zero(),
+        }
+    }
+
+    pub fn is_deprecated(&self) -> bool {
+        match self {
+            BroadcastedInvokeTransaction::V1(_) => true,
+            BroadcastedInvokeTransaction::V3(_) => false,
         }
     }
 
