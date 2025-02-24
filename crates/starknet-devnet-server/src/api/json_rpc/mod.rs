@@ -123,24 +123,20 @@ fn log_if_deprecated_tx(request: &JsonRpcRequest) {
     let is_deprecated_tx = match request {
         JsonRpcRequest::AddDeclareTransaction(BroadcastedDeclareTransactionInput {
             declare_transaction: BroadcastedDeclareTransactionEnumWrapper::Declare(tx),
-        }) => match tx {
-            starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V1(_) => true,
-            starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V2(_) => true,
-            starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V3(_) => false,
-        },
+        }) => tx.is_deprecated(),
         JsonRpcRequest::AddDeployAccountTransaction(BroadcastedDeployAccountTransactionInput {
             deploy_account_transaction:
                 BroadcastedDeployAccountTransactionEnumWrapper::DeployAccount(tx),
-        }) => match tx {
-            starknet_types::rpc::transactions::BroadcastedDeployAccountTransaction::V1(_) => true,
-            starknet_types::rpc::transactions::BroadcastedDeployAccountTransaction::V3(_) => false,
-        },
+        }) => tx.is_deprecated(),
         JsonRpcRequest::AddInvokeTransaction(BroadcastedInvokeTransactionInput {
             invoke_transaction: BroadcastedInvokeTransactionEnumWrapper::Invoke(tx),
-        }) => match tx {
-            starknet_types::rpc::transactions::BroadcastedInvokeTransaction::V1(_) => true,
-            starknet_types::rpc::transactions::BroadcastedInvokeTransaction::V3(_) => false,
-        },
+        }) => tx.is_deprecated(),
+        JsonRpcRequest::EstimateFee(EstimateFeeInput { request: txs, .. }) => {
+            txs.iter().any(|tx| tx.is_deprecated())
+        }
+        JsonRpcRequest::SimulateTransactions(SimulateTransactionsInput {
+            transactions, ..
+        }) => transactions.iter().any(|tx| tx.is_deprecated()),
         _ => false,
     };
 

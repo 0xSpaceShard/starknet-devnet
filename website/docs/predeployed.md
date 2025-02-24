@@ -17,7 +17,7 @@ Once you shut down your Devnet, the predeployed account you used ceases to exist
 
 ## Account class selection
 
-Choose between predeploying Cairo 0 (OpenZeppelin 0.5.1) or Cairo 1 (default; OpenZeppelin 0.8.1) accounts by using:
+Choose between predeploying Cairo 0 (OpenZeppelin 0.5.1) or Cairo 1 (default; OpenZeppelin 0.20.0) accounts by using:
 
 ```
 --account-class [cairo0 | cairo1]
