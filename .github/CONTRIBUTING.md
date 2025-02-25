@@ -125,9 +125,13 @@ If you experience memory overuse or flaky tests, try limiting the number of jobs
 
 To test if your contribution presents an improvement in execution time, check out the script at `scripts/benchmark/command_stat_test.py`.
 
+## Updating versions
+
+Generally, when updating to a new version of something (a spec file, a contract artifact, ...), a good rule of thumb is to search the repository for mentions of the old version, both in file names and content. This should also aid in not forgetting to update version mentions in the documentation.
+
 ### Updating OpenZeppelin contracts
 
-Tests in devnet require an erc20 contract with the `Mintable` feature, keep in mind that before the compilation process of [cairo-contracts](https://github.com/OpenZeppelin/cairo-contracts/) you need to mark the `Mintable` check box in this [wizard](https://wizard.openzeppelin.com/cairo) and copy this implementation to `/src/presets/erc20.cairo`.
+Devnet requires an ERC20 contract with the `Mintable` feature; keep in mind that before the local compilation of [cairo-contracts](https://github.com/OpenZeppelin/cairo-contracts/) you need to mark the `Mintable` check box in this [wizard](https://wizard.openzeppelin.com/cairo) and copy the generated file to `packages/presets/src/erc20.cairo` of your local Open Zeppelin repository.
 
 If smart contract constructor logic has changed, Devnet's predeployment logic needs to be changed, e.g. `simulate_constructor` in `crates/starknet-devnet-core/src/account.rs`.
 
