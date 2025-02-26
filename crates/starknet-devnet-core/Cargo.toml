@@ -25,6 +25,7 @@ serde_json = { workspace = true }
 starknet-types-core = { workspace = true }
 starknet-rs-signers = { workspace = true }
 starknet-rs-core = { workspace = true }
+starknet-rs-crypto = { workspace = true }
 starknet-types = { workspace = true }
 rand = { workspace = true }
 rand_mt = { workspace = true }

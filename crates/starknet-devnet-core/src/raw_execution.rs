@@ -1,58 +1,84 @@
 /// Copied from https://github.com/xJonathanLEI/starknet-rs/
-use starknet_rs_core::crypto::pedersen_hash;
 use starknet_rs_core::types::{Call, Felt};
+use starknet_rs_crypto::PoseidonHasher;
 use starknet_types::constants::PREFIX_INVOKE;
 
-#[derive(Debug)]
-pub struct RawExecutionV1 {
-    pub calls: Vec<Call>,
-    pub nonce: Felt,
-    pub max_fee: Felt,
+/// 2 ^ 128 + 3
+const QUERY_VERSION_THREE: Felt =
+    Felt::from_raw([576460752142432688, 18446744073709551584, 17407, 18446744073700081569]);
+
+pub(crate) fn encode_calls(calls: &[Call]) -> Vec<Felt> {
+    let mut execute_calldata: Vec<Felt> = vec![calls.len().into()];
+    for call in calls {
+        execute_calldata.push(call.to); // to
+        execute_calldata.push(call.selector); // selector
+
+        execute_calldata.push(call.calldata.len().into()); // calldata.len()
+        execute_calldata.extend_from_slice(&call.calldata);
+    }
+
+    execute_calldata
 }
 
-pub fn compute_hash_on_elements(data: &[Felt]) -> Felt {
-    let mut current_hash = Felt::ZERO;
+/// Calculates transaction hash given `chain_id`, `address`, `query_only`, and `encoder`.
+pub(crate) fn invoke_v3_hash(
+    encoded_calls: &[Felt],
+    gas: u64,
+    gas_price: u128,
+    nonce: Felt,
+    chain_id: Felt,
+    address: Felt,
+    query_only: bool,
+) -> Felt {
+    let mut hasher = PoseidonHasher::new();
 
-    for item in data.iter() {
-        current_hash = pedersen_hash(&current_hash, item);
-    }
+    hasher.update(PREFIX_INVOKE);
+    hasher.update(if query_only { QUERY_VERSION_THREE } else { Felt::THREE });
+    hasher.update(address);
 
-    let data_len = Felt::from(data.len());
-    pedersen_hash(&current_hash, &data_len)
-}
+    hasher.update({
+        let mut fee_hasher = PoseidonHasher::new();
 
-impl RawExecutionV1 {
-    pub fn raw_calldata(&self) -> Vec<Felt> {
-        let mut concated_calldata: Vec<Felt> = vec![];
-        let mut execute_calldata: Vec<Felt> = vec![self.calls.len().into()];
-        for call in self.calls.iter() {
-            execute_calldata.push(call.to); // to
-            execute_calldata.push(call.selector); // selector
-            execute_calldata.push(concated_calldata.len().into()); // data_offset
-            execute_calldata.push(call.calldata.len().into()); // data_len
+        // Tip: fee market has not been been activated yet so it's hard-coded to be 0
+        fee_hasher.update(Felt::ZERO);
 
-            for item in call.calldata.iter() {
-                concated_calldata.push(*item);
-            }
-        }
-        execute_calldata.push(concated_calldata.len().into()); // calldata_len
-        for item in concated_calldata.into_iter() {
-            execute_calldata.push(item); // calldata
-        }
+        let mut resource_buffer = [
+            0, 0, b'L', b'1', b'_', b'G', b'A', b'S', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        resource_buffer[8..(8 + 8)].copy_from_slice(&gas.to_be_bytes());
+        resource_buffer[(8 + 8)..].copy_from_slice(&gas_price.to_be_bytes());
+        fee_hasher.update(Felt::from_bytes_be(&resource_buffer));
 
-        execute_calldata
-    }
+        // L2 resources are hard-coded to 0
+        let resource_buffer = [
+            0, 0, b'L', b'2', b'_', b'G', b'A', b'S', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        fee_hasher.update(Felt::from_bytes_be(&resource_buffer));
 
-    pub fn transaction_hash(&self, chain_id: Felt, address: Felt) -> Felt {
-        compute_hash_on_elements(&[
-            PREFIX_INVOKE,
-            Felt::ONE, // version
-            address,
-            Felt::ZERO, // entry_point_selector
-            compute_hash_on_elements(&self.raw_calldata()),
-            self.max_fee,
-            chain_id,
-            self.nonce,
-        ])
-    }
+        fee_hasher.finalize()
+    });
+
+    // Hard-coded empty `paymaster_data`
+    hasher.update(PoseidonHasher::new().finalize());
+
+    hasher.update(chain_id);
+    hasher.update(nonce);
+
+    // Hard-coded L1 DA mode for nonce and fee
+    hasher.update(Felt::ZERO);
+
+    // Hard-coded empty `account_deployment_data`
+    hasher.update(PoseidonHasher::new().finalize());
+
+    hasher.update({
+        let mut calldata_hasher = PoseidonHasher::new();
+
+        encoded_calls.iter().for_each(|element| calldata_hasher.update(*element));
+
+        calldata_hasher.finalize()
+    });
+
+    hasher.finalize()
 }
