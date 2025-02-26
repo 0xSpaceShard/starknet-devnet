@@ -62,11 +62,12 @@ use self::transaction_trace::create_trace;
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
-    CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
-    DEVNET_DEFAULT_L1_DATA_GAS_PRICE, DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE,
-    DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, ENTRYPOINT_NOT_FOUND_ERROR_ENCODED,
-    ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS,
-    STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
+    ARGENT_CONTRACT_CLASS_HASH, ARGENT_CONTRACT_SIERRA, ARGENT_MULTISIG_CONTRACT_CLASS_HASH,
+    ARGENT_MULTISIG_CONTRACT_SIERRA, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
+    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_L1_DATA_GAS_PRICE, DEVNET_DEFAULT_L1_GAS_PRICE,
+    DEVNET_DEFAULT_L2_GAS_PRICE, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
+    ENTRYPOINT_NOT_FOUND_ERROR_ENCODED, ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME,
+    ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
 };
 use crate::contract_class_choice::AccountContractClassChoice;
 use crate::error::{DevnetResult, Error, TransactionValidationError};
@@ -162,7 +163,7 @@ impl Starknet {
         let rpc_contract_classes = Arc::new(RwLock::new(CommittedClassStorage::default()));
         let mut state = StarknetState::new(defaulter, rpc_contract_classes.clone());
 
-        // predeclare account classes
+        // predeclare account classes eligible for predeployment
         for account_class_choice in
             [AccountContractClassChoice::Cairo0, AccountContractClassChoice::Cairo1]
         {
@@ -171,6 +172,18 @@ impl Starknet {
                 class_wrapper.class_hash,
                 class_wrapper.contract_class,
             )?;
+        }
+
+        // predeclare argent account classes (not predeployable)
+        if config.predeclare_argent {
+            for (class_hash, raw_sierra) in [
+                (ARGENT_CONTRACT_CLASS_HASH, ARGENT_CONTRACT_SIERRA),
+                (ARGENT_MULTISIG_CONTRACT_CLASS_HASH, ARGENT_MULTISIG_CONTRACT_SIERRA),
+            ] {
+                let contract_class =
+                    ContractClass::Cairo1(ContractClass::cairo_1_from_sierra_json_str(raw_sierra)?);
+                state.predeclare_contract_class(class_hash, contract_class)?;
+            }
         }
 
         // deploy udc, eth erc20 and strk erc20 contracts
@@ -1500,6 +1513,8 @@ mod tests {
     use crate::account::{Account, FeeToken};
     use crate::blocks::StarknetBlock;
     use crate::constants::{
+        ARGENT_CONTRACT_CLASS_HASH, ARGENT_MULTISIG_CONTRACT_CLASS_HASH,
+        CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
         DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE,
         DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, ETH_ERC20_CONTRACT_ADDRESS,
         STRK_ERC20_CONTRACT_ADDRESS,
@@ -1793,6 +1808,21 @@ mod tests {
         match starknet.get_mut_state_at(&BlockId::Number(0)) {
             Err(Error::NoStateAtBlock { .. }) => (),
             _ => panic!("Should fail with NoStateAtBlock."),
+        }
+    }
+
+    #[test]
+    fn assert_expected_predeclared_account_classes() {
+        let config = StarknetConfig { predeclare_argent: true, ..Default::default() };
+        let starknet = Starknet::new(&config).unwrap();
+        for class_hash in [
+            ARGENT_CONTRACT_CLASS_HASH,
+            ARGENT_MULTISIG_CONTRACT_CLASS_HASH,
+            Felt::from_hex_unchecked(CAIRO_0_ACCOUNT_CONTRACT_HASH),
+            Felt::from_hex_unchecked(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH),
+        ] {
+            let contract = starknet.get_class(&BlockId::Tag(BlockTag::Latest), class_hash).unwrap();
+            assert_eq!(contract.generate_hash().unwrap(), class_hash);
         }
     }
 

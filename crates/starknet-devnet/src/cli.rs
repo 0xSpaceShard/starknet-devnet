@@ -7,9 +7,9 @@ use server::restrictive_mode::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
 use server::server::HTTP_API_ROUTES_WITHOUT_LEADING_SLASH;
 use server::ServerConfig;
 use starknet_core::constants::{
-    DEVNET_DEFAULT_L1_DATA_GAS_PRICE, DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE,
-    DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT, DEVNET_DEFAULT_TIMEOUT,
-    DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    ARGENT_CONTRACT_VERSION, ARGENT_MULTISIG_CONTRACT_VERSION, DEVNET_DEFAULT_L1_DATA_GAS_PRICE,
+    DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE, DEVNET_DEFAULT_PORT,
+    DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 use starknet_core::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use starknet_core::random_number_generator::generate_u32_random_number;
@@ -55,6 +55,14 @@ pub(crate) struct Args {
     #[arg(conflicts_with = "account_class_choice")]
     #[arg(help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;")]
     account_class_custom: Option<AccountClassWrapper>,
+
+    #[arg(long = "predeclare-argent")]
+    #[arg(env = "PREDECLARE_ARGENT")]
+    #[arg(help = format!(
+        "If set, predeclares Argent account contract classes: regular ({ARGENT_CONTRACT_VERSION}) \
+        and multisig ({ARGENT_MULTISIG_CONTRACT_VERSION}); does not affect account predeployment;"
+    ))]
+    predeclare_argent: bool,
 
     /// Initial balance of predeployed accounts
     #[arg(long = "initial-balance")]
@@ -264,6 +272,7 @@ impl Args {
                 block_number: self.fork_block,
                 block_hash: None,
             },
+            predeclare_argent: self.predeclare_argent,
             ..Default::default()
         };
 
@@ -632,7 +641,8 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn test_boolean_param_specification_via_env_vars() {
-        let config_source = [("--lite-mode", "LITE_MODE")];
+        let config_source =
+            [("--lite-mode", "LITE_MODE"), ("--predeclare-argent", "PREDECLARE_ARGENT")];
 
         let mut cli_args = vec!["--"];
         for (cli_param, _) in config_source {

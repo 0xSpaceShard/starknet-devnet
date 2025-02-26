@@ -29,9 +29,7 @@ use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use super::background_devnet::BackgroundDevnet;
-use super::constants::{
-    ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH,
-};
+use super::constants::{CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH};
 use super::safe_child::SafeChild;
 
 pub enum ImpersonationAction {
@@ -392,11 +390,12 @@ pub async fn deploy_oz_account(
 /// Assumes the Argent account contract is declared in the target network.
 pub async fn deploy_argent_account(
     devnet: &BackgroundDevnet,
+    class_hash: Felt,
 ) -> Result<(DeployAccountTransactionResult, LocalWallet), anyhow::Error> {
     let signer = get_deployable_account_signer();
     let salt = Felt::THREE;
     let factory = ArgentAccountFactory::new(
-        Felt::from_hex(ARGENT_ACCOUNT_CLASS_HASH)?,
+        class_hash,
         devnet.json_rpc_client.chain_id().await?,
         None,
         signer.clone(),
@@ -408,7 +407,8 @@ pub async fn deploy_argent_account(
 
     let account_address = deployment.address();
     devnet.mint(account_address, 1e18 as u128).await;
-    let deployment_result = deployment.send().await?;
+    let deployment_result =
+        deployment.send().await.map_err(|e| anyhow::Error::msg(format!("{e:?}")))?;
 
     Ok((deployment_result, signer))
 }
