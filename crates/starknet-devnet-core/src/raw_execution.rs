@@ -20,6 +20,8 @@ pub(crate) fn encode_calls(calls: &[Call]) -> Vec<Felt> {
     execute_calldata
 }
 
+// TODO import from starknet-api instead of starknet_rs_crypto being a new dependency
+
 /// Calculates transaction hash given `chain_id`, `address`, `query_only`, and `encoder`.
 pub(crate) fn invoke_v3_hash(
     encoded_calls: &[Felt],
