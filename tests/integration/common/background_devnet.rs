@@ -3,6 +3,7 @@ use std::fmt::LowerHex;
 use std::process::{Command, Stdio};
 use std::time;
 
+use anyhow::anyhow;
 use lazy_static::lazy_static;
 use reqwest::{Client, StatusCode};
 use serde_json::json;
@@ -74,7 +75,7 @@ async fn wait_for_successful_response(
         if let Ok(alive_resp) = client.get(healthcheck_url).send().await {
             let status = alive_resp.status();
             if status != StatusCode::OK {
-                return Err(anyhow::Error::msg(format!("Server responded with: {status}")));
+                return Err(anyhow!("Server responded with: {status}"));
             }
 
             return Ok(());
@@ -83,7 +84,7 @@ async fn wait_for_successful_response(
         tokio::time::sleep(sleep_time).await;
     }
 
-    Err(anyhow::Error::msg(format!("Not responsive: {healthcheck_url}")))
+    Err(anyhow!("Not responsive: {healthcheck_url}"))
 }
 
 impl BackgroundDevnet {

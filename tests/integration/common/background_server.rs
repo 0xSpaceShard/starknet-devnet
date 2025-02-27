@@ -16,13 +16,11 @@ pub(crate) async fn get_acquired_port(
         }
 
         if let Ok(Some(status)) = process.process.try_wait() {
-            return Err(anyhow::Error::msg(format!(
-                "Background Devnet process exited with status {status}"
-            )));
+            return Err(anyhow::anyhow!("Background Devnet process exited with status {status}"));
         }
 
         tokio::time::sleep(sleep_time).await;
     }
 
-    Err(anyhow::Error::msg(format!("Could not identify a unique port used by PID {pid}")))
+    Err(anyhow::anyhow!("Could not identify a unique port used by PID {pid}"))
 }
