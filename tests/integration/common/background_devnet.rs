@@ -107,18 +107,15 @@ async fn wait_for_successful_response(
         tokio::time::sleep(sleep_time).await;
     }
 
-    Err(anyhow::Error::msg("Server not reachable at {}"))
+    Err(anyhow::Error::msg(format!("Not responsive: {healthcheck_url}")))
 }
 
 impl BackgroundDevnet {
-    /// Ensures the background instance spawns at a free port, checks at most `MAX_RETRIES`
-    /// times
-    #[allow(dead_code)] // dead_code needed to pass clippy
     pub(crate) async fn spawn() -> Result<Self, TestError> {
         BackgroundDevnet::spawn_with_additional_args(&[]).await
     }
 
-    pub async fn spawn_forkable_devnet() -> Result<BackgroundDevnet, anyhow::Error> {
+    pub(crate) async fn spawn_forkable_devnet() -> Result<BackgroundDevnet, anyhow::Error> {
         let args = ["--state-archive-capacity", "full"];
         let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await?;
         Ok(devnet)
