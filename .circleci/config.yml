@@ -18,6 +18,19 @@ aliases:
       - image-build-arm
       - binary-build
 
+  - &build_docker
+    context: spaceshard
+    filters:
+      branches:
+        only:
+          - blockifier-0.14-docker
+
+  - &build_docker_publish
+    <<: *build_docker
+    requires:
+      - image-build-amd
+      - image-build-arm
+
   - &linux_build
     machine:
       image: ubuntu-2204:2024.01.2
@@ -167,18 +180,9 @@ jobs:
 workflows:
   build-test-maybe-publish:
     jobs:
-      - build-and-test
-      - binary-build:
-          <<: *on_main
-          matrix:
-            parameters:
-              arch: [x86_64, aarch64]
-              platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
-          target_triplet: << matrix.arch >>-<< matrix.platform >>
-          archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
       - image-build-amd:
-          <<: *on_main
+          <<: *build_docker
       - image-build-arm:
-          <<: *on_main
+          <<: *build_docker
       - publish:
-          <<: *on_main_after_test_and_build
+          <<: *build_docker_publish
