@@ -23,6 +23,7 @@ use super::constants::{
 use super::errors::{RpcError, TestError};
 use super::reqwest_client::{PostReqwestSender, ReqwestClient};
 use super::utils::{to_hex_felt, FeeUnit, ImpersonationAction};
+use crate::common::background_server::get_acquired_port;
 use crate::common::constants::{
     DEVNET_EXECUTABLE_BINARY_PATH, DEVNET_MANIFEST_PATH, ETH_ERC20_CONTRACT_ADDRESS,
 };
@@ -61,31 +62,6 @@ fn get_devnet_command() -> Command {
             .arg("--");
         command
     }
-}
-
-async fn get_acquired_port(
-    process: &mut SafeChild,
-    sleep_time: time::Duration,
-    max_retries: usize,
-) -> Result<u16, anyhow::Error> {
-    let pid = process.id();
-    for _ in 0..max_retries {
-        if let Ok(ports) = listeners::get_ports_by_pid(pid) {
-            if ports.len() == 1 {
-                return Ok(ports.into_iter().next().unwrap());
-            }
-        }
-
-        if let Ok(Some(status)) = process.process.try_wait() {
-            return Err(anyhow::Error::msg(format!(
-                "Background Devnet process exited with status {status}"
-            )));
-        }
-
-        tokio::time::sleep(sleep_time).await;
-    }
-
-    Err(anyhow::Error::msg(format!("Could not identify a unique port used by PID {pid}")))
 }
 
 async fn wait_for_successful_response(
@@ -177,7 +153,7 @@ impl BackgroundDevnet {
         println!("Spawned background devnet at {devnet_url}");
 
         let devnet_rpc_url = Url::parse(format!("{devnet_url}{RPC_PATH}").as_str())?;
-        Ok(BackgroundDevnet {
+        Ok(Self {
             reqwest_client: ReqwestClient::new(devnet_url.clone(), client),
             json_rpc_client: JsonRpcClient::new(HttpTransport::new(devnet_rpc_url.clone())),
             port,

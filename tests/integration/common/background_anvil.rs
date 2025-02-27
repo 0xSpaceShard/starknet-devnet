@@ -6,9 +6,9 @@ use ethers::prelude::*;
 use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 use k256::ecdsa::SigningKey;
-use rand::Rng;
 use reqwest::StatusCode;
 
+use super::background_server::get_acquired_port;
 use super::constants::{DEFAULT_ETH_ACCOUNT_PRIVATE_KEY, HOST};
 use super::errors::TestError;
 use super::safe_child::SafeChild;
@@ -30,31 +30,29 @@ mod abigen {
 }
 
 impl BackgroundAnvil {
-    /// To avoid TOCTOU or binding issues, we try random ports and try to start
-    /// Anvil on this port (as Anvil will actually open the socket right after binding).
-    #[allow(dead_code)] // dead_code needed to pass clippy
     pub(crate) async fn spawn() -> Result<Self, TestError> {
         BackgroundAnvil::spawn_with_additional_args(&[]).await
     }
 
+    /// Spawns an instance at random port. Assumes CLI args in `args` don't contain `--port`.
     pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
-        // Relies on `background_devnet::BackgroundDevnet` starting its check from smaller values
-        // (1025). Relies on the probability of M simultaneously spawned Anvils occupying
-        // different ports being fairly big (N*(N-1)*...*(N-M+1) / N**M; N=65_000-20_000+1)
-        let port = rand::thread_rng().gen_range(20_000..=65_000);
-
         let process = Command::new("anvil")
             .arg("--port")
-            .arg(port.to_string())
+            .arg("0")
             .arg("--silent")
             .args(args)
             .spawn()
             .expect("Could not start background Anvil");
-        let safe_process = SafeChild { process };
+        let mut safe_process = SafeChild { process };
+
+        let sleep_time = time::Duration::from_millis(500);
+        let max_retries = 30;
+        let port = get_acquired_port(&mut safe_process, sleep_time, max_retries)
+            .await
+            .map_err(|e| TestError::AnvilNotStartable(format!("Cannot determine port: {e:?}")))?;
 
         let url = format!("http://{HOST}:{port}");
         let client = reqwest::Client::new();
-        let max_retries = 30;
         for _ in 0..max_retries {
             if let Ok(anvil_block_rsp) = send_dummy_request(&client, &url).await {
                 assert_eq!(anvil_block_rsp.status(), StatusCode::OK);
@@ -65,10 +63,10 @@ impl BackgroundAnvil {
                 return Ok(Self { process: safe_process, url, provider, provider_signer });
             }
 
-            tokio::time::sleep(time::Duration::from_millis(500)).await;
+            tokio::time::sleep(sleep_time).await;
         }
 
-        Err(TestError::AnvilNotStartable)
+        Err(TestError::AnvilNotStartable("Not responsive for too long".into()))
     }
 
     pub async fn deploy_l1l2_contract(
