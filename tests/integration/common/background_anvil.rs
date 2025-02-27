@@ -75,24 +75,20 @@ impl BackgroundAnvil {
         &self,
         messaging_address: Address,
     ) -> Result<Address, TestError> {
-        let contract = abigen::L1L2Example::deploy(
-            self.provider_signer.clone(),
-            messaging_address,
-        )
+        // Required by the new version of anvil, as default is no longer accepted.
+        // We use here the default value from anvil and hardat multiplied by 2.
+        let gas_price = 2_000_000_000;
+        let contract = abigen::L1L2Example::deploy(self.provider_signer.clone(), messaging_address)
             .map_err(|e| {
                 TestError::EthersError(format!(
                     "Error formatting messaging contract deploy request: {e}"
                 ))
             })?
-        // Required by the new version of anvil, as default is no longer accepted.
-        // We use here the default value from anvil and hardat multiplied by 2.
-            .gas_price(2000000000)
+            .gas_price(gas_price)
             .send()
             .await
             .map_err(|e| {
-                TestError::EthersError(format!(
-                    "Error deploying messaging contract: {e}"
-                ))
+                TestError::EthersError(format!("Error deploying messaging contract: {e}"))
             })?;
 
         Ok(contract.address())
