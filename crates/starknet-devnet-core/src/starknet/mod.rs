@@ -851,9 +851,6 @@ impl Starknet {
         let nonce = state
             .get_nonce_at(starknet_api::core::ContractAddress::try_from(chargeable_address)?)?;
 
-        let sufficient_gas = 1_000_000;
-        let l1_gas_price = self.config.gas_price_wei.get();
-
         let unsigned_tx = BroadcastedInvokeTransactionV3 {
             sender_address: ContractAddress::new(chargeable_address)?,
             calldata: Self::minting_calldata(fundable_address, amount, erc20_address)?,
@@ -862,8 +859,8 @@ impl Starknet {
                 signature: vec![],
                 nonce: nonce.0,
                 resource_bounds: ResourceBoundsWrapper::new(
-                    sufficient_gas,
-                    l1_gas_price,
+                    1_000_000, // sufficient L1 gas
+                    self.config.gas_price_wei.get(),
                     0, // TODO gas
                     0,
                     0,
@@ -877,7 +874,7 @@ impl Starknet {
             account_deployment_data: vec![],
         };
 
-        // generate signature by signing the msg hash
+        // generate signature by signing the tx hash
         let signer = LocalWallet::from(SigningKey::from_secret_scalar(felt_from_prefixed_hex(
             CHARGEABLE_ACCOUNT_PRIVATE_KEY,
         )?));
