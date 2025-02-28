@@ -6047,7 +6047,6 @@ dependencies = [
  "serde",
  "serde_json",
  "starknet-core",
- "starknet-crypto 0.7.4",
  "starknet-devnet-types",
  "starknet-signers",
  "starknet-types-core",

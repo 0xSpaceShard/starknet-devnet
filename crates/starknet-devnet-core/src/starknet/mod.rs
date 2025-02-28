@@ -19,8 +19,9 @@ use starknet_api::block::{
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::transaction::fields::{GasVectorComputationMode, Tip};
+use starknet_api::transaction::{TransactionHasher, TransactionVersion};
 use starknet_rs_core::types::{
-    BlockId, BlockTag, Call, ExecutionResult, Felt, Hash256, MsgFromL1, TransactionFinalityStatus,
+    BlockId, BlockTag, ExecutionResult, Felt, Hash256, MsgFromL1, TransactionFinalityStatus,
 };
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_signers::{LocalWallet, Signer, SigningKey};
@@ -76,7 +77,6 @@ use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
 use crate::nonzero_gas_price;
 use crate::predeployed_accounts::PredeployedAccounts;
-use crate::raw_execution::{encode_calls, invoke_v3_hash};
 use crate::stack_trace::{gen_tx_execution_error_trace, ErrorStack};
 use crate::state::state_diff::StateDiff;
 use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
@@ -815,11 +815,34 @@ impl Starknet {
         add_l1_handler_transaction::add_l1_handler_transaction(self, l1_handler_transaction)
     }
 
+    fn minting_calldata(
+        fundable_address: ContractAddress,
+        amount: BigUint,
+        erc20_address: ContractAddress,
+    ) -> DevnetResult<Vec<Felt>> {
+        let (high, low) = split_biguint(amount);
+
+        let mut calldata = vec![
+            Felt::ONE, // number of calls
+            erc20_address.into(),
+            get_selector_from_name("transfer")
+                .map_err(|e| Error::UnexpectedInternalError { msg: e.to_string() })?,
+        ];
+
+        let raw_calldata = vec![Felt::from(fundable_address), low, high];
+        calldata.push(raw_calldata.len().into());
+        for el in raw_calldata {
+            calldata.push(el);
+        }
+
+        Ok(calldata)
+    }
+
     /// Creates an invoke tx for minting, using the chargeable account.
     /// Uses transfer function of the ERC20 contract
     pub async fn mint(
         &mut self,
-        address: ContractAddress,
+        fundable_address: ContractAddress,
         amount: BigUint,
         erc20_address: ContractAddress,
     ) -> DevnetResult<Felt> {
@@ -828,40 +851,15 @@ impl Starknet {
         let nonce = state
             .get_nonce_at(starknet_api::core::ContractAddress::try_from(chargeable_address)?)?;
 
-        let (high, low) = split_biguint(amount);
-        let calldata = vec![Felt::from(address), low, high];
-
-        let calldata = encode_calls(&[Call {
-            to: erc20_address.into(),
-            selector: get_selector_from_name("transfer")
-                .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?,
-            calldata: calldata.clone(),
-        }]);
-
         let sufficient_gas = 1_000_000;
         let l1_gas_price = self.config.gas_price_wei.get();
-        let msg_hash = invoke_v3_hash(
-            &calldata,
-            sufficient_gas,
-            l1_gas_price,
-            nonce.0,
-            self.config.chain_id.to_felt(),
-            chargeable_address,
-            false,
-        );
 
-        // generate signature by signing the msg hash
-        let signer = LocalWallet::from(SigningKey::from_secret_scalar(felt_from_prefixed_hex(
-            CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-        )?));
-        let signature = signer.sign_hash(&msg_hash).await?;
-
-        let invoke_tx = BroadcastedInvokeTransactionV3 {
+        let unsigned_tx = BroadcastedInvokeTransactionV3 {
             sender_address: ContractAddress::new(chargeable_address)?,
-            calldata,
+            calldata: Self::minting_calldata(fundable_address, amount, erc20_address)?,
             common: BroadcastedTransactionCommonV3 {
                 version: Felt::THREE,
-                signature: vec![signature.r, signature.s],
+                signature: vec![],
                 nonce: nonce.0,
                 resource_bounds: ResourceBoundsWrapper::new(
                     sufficient_gas,
@@ -878,6 +876,18 @@ impl Starknet {
             },
             account_deployment_data: vec![],
         };
+
+        // generate signature by signing the msg hash
+        let signer = LocalWallet::from(SigningKey::from_secret_scalar(felt_from_prefixed_hex(
+            CHARGEABLE_ACCOUNT_PRIVATE_KEY,
+        )?));
+        let tx_hash = unsigned_tx
+            .create_sn_api_invoke()?
+            .calculate_transaction_hash(&self.config.chain_id.into(), &TransactionVersion::THREE)?;
+        let signature = signer.sign_hash(&tx_hash).await?;
+
+        let mut invoke_tx = unsigned_tx;
+        invoke_tx.common.signature = vec![signature.r, signature.s];
 
         // apply the invoke tx
         add_invoke_transaction::add_invoke_transaction(

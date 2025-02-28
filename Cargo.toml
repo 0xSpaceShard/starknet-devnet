@@ -82,7 +82,6 @@ starknet_api = { version = "0.14.0-rc.1", features = ["testing"] }
 blockifier = { version = "0.14.0-rc.1" }
 starknet-rs-signers = { version = "0.10.1", package = "starknet-signers" }
 starknet-rs-core = { version = "0.12.1", package = "starknet-core" }
-starknet-rs-crypto = { version = "0.7.4", package = "starknet-crypto" }
 starknet-rs-providers = { version = "0.12.1", package = "starknet-providers" }
 starknet-rs-accounts = { version = "0.12.0", package = "starknet-accounts" }
 starknet-rs-contract = { version = "0.12.0", package = "starknet-contract" }

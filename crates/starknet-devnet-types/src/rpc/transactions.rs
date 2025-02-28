@@ -877,31 +877,7 @@ impl BroadcastedInvokeTransaction {
 
                 starknet_api::transaction::InvokeTransaction::V1(sn_api_transaction)
             }
-            BroadcastedInvokeTransaction::V3(v3) => {
-                let sn_api_transaction = starknet_api::transaction::InvokeTransactionV3 {
-                    resource_bounds: (&v3.common.resource_bounds).into(),
-                    tip: v3.common.tip,
-                    signature: starknet_api::transaction::fields::TransactionSignature(
-                        v3.common.signature.clone(),
-                    ),
-                    nonce: starknet_api::core::Nonce(v3.common.nonce),
-                    sender_address: v3.sender_address.try_into()?,
-                    calldata: starknet_api::transaction::fields::Calldata(Arc::new(
-                        v3.calldata.clone(),
-                    )),
-                    nonce_data_availability_mode: v3.common.nonce_data_availability_mode,
-                    fee_data_availability_mode: v3.common.fee_data_availability_mode,
-                    paymaster_data: starknet_api::transaction::fields::PaymasterData(
-                        v3.common.paymaster_data.clone(),
-                    ),
-                    account_deployment_data:
-                        starknet_api::transaction::fields::AccountDeploymentData(
-                            v3.account_deployment_data.clone(),
-                        ),
-                };
-
-                starknet_api::transaction::InvokeTransaction::V3(sn_api_transaction)
-            }
+            BroadcastedInvokeTransaction::V3(v3) => v3.create_sn_api_invoke()?,
         };
 
         let chain_id = felt_to_sn_api_chain_id(chain_id)?;
