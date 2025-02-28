@@ -29,7 +29,7 @@ use crate::{REQUEST_LOG_ENV_VAR, RESPONSE_LOG_ENV_VAR};
     author,
     version,
     about = "A local testnet for Starknet... in Rust!",
-    long_about = "Documentation: https://0xspaceshard.github.io/starknet-devnet-rs",
+    long_about = "Documentation: https://0xspaceshard.github.io/starknet-devnet",
     propagate_version = true
 )]
 pub(crate) struct Args {
@@ -53,7 +53,9 @@ pub(crate) struct Args {
     #[arg(env = "ACCOUNT_CLASS_CUSTOM")]
     #[arg(value_name = "PATH")]
     #[arg(conflicts_with = "account_class_choice")]
-    #[arg(help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;")]
+    #[arg(
+        help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;"
+    )]
     account_class_custom: Option<AccountClassWrapper>,
 
     #[arg(long = "predeclare-argent")]
@@ -95,7 +97,9 @@ pub(crate) struct Args {
     #[arg(env = "PORT")]
     #[arg(value_name = "PORT")]
     #[arg(default_value_t = DEVNET_DEFAULT_PORT)]
-    #[arg(help = "Specify the port to listen at; If 0, acquires a random free port and prints it;")]
+    #[arg(
+        help = "Specify the port to listen at; If 0, acquires a random free port and prints it;"
+    )]
     port: u16,
 
     // Set start time in seconds
@@ -216,8 +220,8 @@ Sending POST /create_block is also an option in modes other than \"demand\".")]
     #[arg(env = "RESTRICTIVE_MODE")]
     #[arg(num_args = 0..)]
     #[arg(help = "Use Devnet in restrictive mode; You can specify the methods that will be \
-                  forbidden with whitespace-separated values (https://0xspaceshard.github.io/starknet-devnet-rs/docs/restrictive#with-a-list-of-methods). If nothing is specified for this \
-                  argument, then default restricted methods are used (https://0xspaceshard.github.io/starknet-devnet-rs/docs/restrictive#default-restricted-methods).")]
+                  forbidden with whitespace-separated values (https://0xspaceshard.github.io/starknet-devnet/docs/restrictive#with-a-list-of-methods). If nothing is specified for this \
+                  argument, then default restricted methods are used (https://0xspaceshard.github.io/starknet-devnet/docs/restrictive#default-restricted-methods).")]
     restricted_methods: Option<Vec<String>>,
 }
 
