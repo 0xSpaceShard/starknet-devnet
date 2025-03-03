@@ -47,8 +47,8 @@ jobs:
     resource_class: spaceshard/ax41
     steps:
       - run:
-        name: check git
-        command: ssh -vT git@github.com
+          name: check git
+          command: ssh -vT git@github.com
       - checkout
       - run:
           name: Load cache
