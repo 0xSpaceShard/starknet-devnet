@@ -823,8 +823,8 @@ impl Starknet {
         let (high, low) = split_biguint(amount);
 
         let mut calldata = vec![
-            Felt::ONE, // number of calls
-            erc20_address.into(),
+            Felt::ONE,            // number of calls
+            erc20_address.into(), // target address
             get_selector_from_name("transfer")
                 .map_err(|e| Error::UnexpectedInternalError { msg: e.to_string() })?,
         ];
