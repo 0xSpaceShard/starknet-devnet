@@ -30,7 +30,7 @@ $ cargo install starknet-devnet
 - Preferably familiarize yourself with the `cargo install` command ([docs](https://doc.rust-lang.org/cargo/commands/cargo-install.html#dealing-with-the-lockfile)).
 
 ```
-$ cargo install --git https://github.com/0xSpaceShard/starknet-devnet-rs.git --locked
+$ cargo install --git https://github.com/0xSpaceShard/starknet-devnet.git --locked
 ```
 
 ### Run the installed executable
@@ -43,16 +43,16 @@ $ starknet-devnet
 
 ## Fetch a pre-compiled binary executable
 
-If you want to save time and skip project compilation on installation, since Devnet v0.0.5, the Assets section of each [GitHub release](https://github.com/0xSpaceShard/starknet-devnet-rs/releases) contains a set of platform-specific pre-compiled binary executables. Extract and run with:
+If you want to save time and skip project compilation on installation, since Devnet v0.0.5, the Assets section of each [GitHub release](https://github.com/0xSpaceShard/starknet-devnet/releases) contains a set of platform-specific pre-compiled binary executables. Extract and run with:
 
 ```
-$ curl https://github.com/0xSpaceShard/starknet-devnet-rs/releases/download/<VERSION>/<COMPRESSED_ARCHIVE> | tar -xvzf -C <TARGET_DIR>
+$ curl https://github.com/0xSpaceShard/starknet-devnet/releases/download/<VERSION>/<COMPRESSED_ARCHIVE> | tar -xvzf -C <TARGET_DIR>
 $ <TARGET_DIR>/starknet-devnet
 ```
 
 ## Run from source
 
-To install the project from source, after [git-cloning](https://github.com/git-guides/git-clone) the [Devnet repository](https://github.com/0xSpaceShard/starknet-devnet-rs), running the following command will install, build and start Devnet:
+To install the project from source, after [git-cloning](https://github.com/git-guides/git-clone) the [Devnet repository](https://github.com/0xSpaceShard/starknet-devnet), running the following command will install, build and start Devnet:
 
 ```
 $ cargo run

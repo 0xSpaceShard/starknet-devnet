@@ -29,7 +29,7 @@ use crate::{REQUEST_LOG_ENV_VAR, RESPONSE_LOG_ENV_VAR};
     author,
     version,
     about = "A local testnet for Starknet... in Rust!",
-    long_about = "Documentation: https://0xspaceshard.github.io/starknet-devnet-rs",
+    long_about = "Documentation: https://0xspaceshard.github.io/starknet-devnet",
     propagate_version = true
 )]
 pub(crate) struct Args {
@@ -232,8 +232,8 @@ Sending POST /create_block is also an option in modes other than \"demand\".")]
     #[arg(env = "RESTRICTIVE_MODE")]
     #[arg(num_args = 0..)]
     #[arg(help = "Use Devnet in restrictive mode; You can specify the methods that will be \
-                  forbidden with whitespace-separated values (https://0xspaceshard.github.io/starknet-devnet-rs/docs/restrictive#with-a-list-of-methods). If nothing is specified for this \
-                  argument, then default restricted methods are used (https://0xspaceshard.github.io/starknet-devnet-rs/docs/restrictive#default-restricted-methods).")]
+                  forbidden with whitespace-separated values (https://0xspaceshard.github.io/starknet-devnet/docs/restrictive#with-a-list-of-methods). If nothing is specified for this \
+                  argument, then default restricted methods are used (https://0xspaceshard.github.io/starknet-devnet/docs/restrictive#default-restricted-methods).")]
     restricted_methods: Option<Vec<String>>,
 }
 

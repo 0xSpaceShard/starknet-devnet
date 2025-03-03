@@ -10,7 +10,7 @@ To read about PR expectations, check out the [Pull requests](#pull-requests) sec
 
 ### Should you create a PR?
 
-It is advised to [create an issue](https://github.com/0xSpaceShard/starknet-devnet-rs/issues/new/choose) before creating a PR. Creating an issue is the best way to reach somebody with repository-specific experience who can provide more info on how a problem/idea can be addressed and if a PR is needed.
+It is advised to [create an issue](https://github.com/0xSpaceShard/starknet-devnet/issues/new/choose) before creating a PR. Creating an issue is the best way to reach somebody with repository-specific experience who can provide more info on how a problem/idea can be addressed and if a PR is needed.
 
 ### Checklist
 
@@ -23,7 +23,7 @@ Once a PR is created, somebody from the team will review it. When a reviewer lea
 - a request for clarification from the reviewer
 - a link to the commit which addresses the reviewer's observation (simply pasting the sha-digest is enough)
 
-This is an example of a good author-reviewer correspondence: [link](https://github.com/0xSpaceShard/starknet-devnet-rs/pull/310#discussion_r1457142002).
+This is an example of a good author-reviewer correspondence: [link](https://github.com/0xSpaceShard/starknet-devnet/pull/310#discussion_r1457142002).
 
 #### Note to reviewers
 
@@ -35,7 +35,7 @@ $ git remote add <CONTRIBUTOR> <CONTRIBUTOR_GIT_FORK_URL>
 $ git fetch <CONTRIBUTOR>
 $ git checkout -b <CONTRIBUTOR>/<BRANCH> <CONTRIBUTOR>/<BRANCH>
 
-$ git remote set-url --push <CONTRIBUTOR> git@github.com:0xSpaceShard/starknet-devnet-rs.git
+$ git remote set-url --push <CONTRIBUTOR> git@github.com:0xSpaceShard/starknet-devnet.git
 $ git push <CONTRIBUTOR> HEAD
 ```
 
