@@ -21,18 +21,18 @@ A local testnet for Starknet... in Rust!
 
 ## Features
 
-- [Forking](https://0xspaceshard.github.io/starknet-devnet-rs/docs/forking) - interact with contracts deployed on mainnet or testnet
-- [Account impersonation](https://0xspaceshard.github.io/starknet-devnet-rs/docs/account-impersonation)
-- [L1-L2 interaction](https://0xspaceshard.github.io/starknet-devnet-rs/docs/postman)
-- [Predeployed contracts](https://0xspaceshard.github.io/starknet-devnet-rs/docs/predeployed) - accounts, tokens etc.
-- [Block manipulations](https://0xspaceshard.github.io/starknet-devnet-rs/docs/blocks) - creation, abortion etc.
-- [Time manipulations](https://0xspaceshard.github.io/starknet-devnet-rs/docs/starknet-time/)
-- [Dump, load, restart state](https://0xspaceshard.github.io/starknet-devnet-rs/docs/dump-load-restart)
-- [Configurable according to your needs](https://0xspaceshard.github.io/starknet-devnet-rs/docs/running/cli)
+- [Forking](https://0xspaceshard.github.io/starknet-devnet/docs/forking) - interact with contracts deployed on mainnet or testnet
+- [Account impersonation](https://0xspaceshard.github.io/starknet-devnet/docs/account-impersonation)
+- [L1-L2 interaction](https://0xspaceshard.github.io/starknet-devnet/docs/postman)
+- [Predeployed contracts](https://0xspaceshard.github.io/starknet-devnet/docs/predeployed) - accounts, tokens etc.
+- [Block manipulations](https://0xspaceshard.github.io/starknet-devnet/docs/blocks) - creation, abortion etc.
+- [Time manipulations](https://0xspaceshard.github.io/starknet-devnet/docs/starknet-time/)
+- [Dump, load, restart state](https://0xspaceshard.github.io/starknet-devnet/docs/dump-load-restart)
+- [Configurable according to your needs](https://0xspaceshard.github.io/starknet-devnet/docs/running/cli)
 
 ## 🌐 Documentation
 
-Find the official documentation [here](https://0xspaceshard.github.io/starknet-devnet-rs/).
+Find the official documentation [here](https://0xspaceshard.github.io/starknet-devnet/).
 
 ## starknet-devnet-js
 
@@ -40,6 +40,6 @@ Simplify the installation, spawning and usage of Devnet in your tests by relying
 
 ## ✏️ Contributing
 
-We ❤️ and encourage all contributions and thank all the [contributors](https://github.com/0xSpaceShard/starknet-devnet-rs/graphs/contributors)!
+We ❤️ and encourage all contributions and thank all the [contributors](https://github.com/0xSpaceShard/starknet-devnet/graphs/contributors)!
 
 [Click here](.github/CONTRIBUTING.md) for the development guide.
