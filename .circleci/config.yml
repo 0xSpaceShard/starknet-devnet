@@ -48,7 +48,7 @@ jobs:
     steps:
       - run:
           name: check git
-          command: git --version
+          command: env
       - checkout
       - run:
           name: Load cache
