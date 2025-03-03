@@ -74,7 +74,7 @@ impl BackgroundAnvil {
         messaging_address: Address,
     ) -> Result<Address, TestError> {
         // Required by the new version of anvil, as default is no longer accepted.
-        // We use here the default value from anvil and hardat multiplied by 2.
+        // We use here the default value from anvil and hardhat multiplied by 2.
         let gas_price = 2_000_000_000;
         let contract = abigen::L1L2Example::deploy(self.provider_signer.clone(), messaging_address)
             .map_err(|e| {
