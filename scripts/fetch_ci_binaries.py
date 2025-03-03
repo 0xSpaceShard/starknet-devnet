@@ -11,7 +11,7 @@ import requests
 HTTP_TIMEOUT = 5
 
 DEVNET_CI_URL = (
-    "https://circleci.com/api/v1.1/project/github/0xSpaceShard/starknet-devnet-rs"
+    "https://circleci.com/api/v1.1/project/github/0xSpaceShard/starknet-devnet"
 )
 
 ARTIFACT_URL_TEMPLATE = (
