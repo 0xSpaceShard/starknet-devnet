@@ -21,7 +21,7 @@ async fn subscribe_tx_status(
 /// the first thing done on a fresh Devnet using the returned `address` and `amount`.
 fn first_mint_data() -> (Felt, u128, Felt) {
     let expected_tx_hash = Felt::from_hex_unchecked(
-        "0x2c13842a63d019b76805465c3cca99035ac82488856e7763e78427513021a13",
+        "0x3ba27aeaa60c81e3b09f9f54242b39a01a33f7d8de67e0e951fa3eb6e0192a6",
     );
     (Felt::ONE, 10, expected_tx_hash)
 }

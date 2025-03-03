@@ -5,7 +5,6 @@ pub mod contract_class_choice;
 pub mod error;
 pub mod messaging;
 mod predeployed_accounts;
-pub mod raw_execution;
 pub mod stack_trace;
 pub mod starknet;
 mod state;

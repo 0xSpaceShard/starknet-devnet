@@ -6,18 +6,17 @@ use starknet_api::transaction::fields::{Calldata, ContractAddressSalt};
 use starknet_api::{felt, patricia_key};
 use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::error::Error;
 use starknet_types::felt::{felt_from_prefixed_hex, join_felts, split_biguint, ClassHash, Key};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::state::Balance;
-use starknet_types::traits::HashProducer;
 
 use crate::constants::{
-    CAIRO_0_ACCOUNT_CONTRACT, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-    CHARGEABLE_ACCOUNT_PUBLIC_KEY, ISRC6_ID_HEX,
+    CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, CHARGEABLE_ACCOUNT_PUBLIC_KEY,
+    ISRC6_ID_HEX,
 };
+use crate::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use crate::error::DevnetResult;
 use crate::state::state_readers::DictState;
 use crate::state::{CustomState, StarknetState};
@@ -50,8 +49,8 @@ impl Account {
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
     ) -> DevnetResult<Self> {
-        let account_contract_class = Cairo0Json::raw_json_from_json_str(CAIRO_0_ACCOUNT_CONTRACT)?;
-        let class_hash = account_contract_class.generate_hash()?;
+        let AccountClassWrapper { contract_class, class_hash } =
+            AccountContractClassChoice::Cairo1.get_class_wrapper()?;
 
         // very big number
         let initial_balance = BigUint::from(u128::MAX) << 10;
@@ -64,7 +63,7 @@ impl Account {
             )?)?,
             initial_balance,
             class_hash,
-            contract_class: account_contract_class.into(),
+            contract_class,
             eth_fee_token_address,
             strk_fee_token_address,
         })
