@@ -52,7 +52,7 @@ jobs:
 
       - run:
           name: check git
-          command: ls -a
+          command: ls -a ~/
       - checkout
       - run:
           name: Load cache
