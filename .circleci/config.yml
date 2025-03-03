@@ -46,13 +46,6 @@ jobs:
     machine: true
     resource_class: spaceshard/ax41
     steps:
-      - run:
-          name: check git
-          command: env
-
-      - run:
-          name: check git
-          command: ls -a ~/
       - checkout
       - run:
           name: Load cache
