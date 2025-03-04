@@ -16,7 +16,7 @@ pub(crate) async fn get_acquired_port(
         }
 
         if let Ok(Some(status)) = process.process.try_wait() {
-            return Err(anyhow::anyhow!("Background Devnet process exited with status {status}"));
+            return Err(anyhow::anyhow!("Background server process exited with status {status}"));
         }
 
         tokio::time::sleep(sleep_time).await;
