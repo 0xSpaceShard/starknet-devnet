@@ -177,7 +177,7 @@ async fn test_getting_cairo0_class_from_origin_and_fork() {
 
     // assert_eq!(retrieved_class, ContractClass::Legacy(contract_class.compress().unwrap()));
     // TODO For now, successfully unwrapping the retrieved class serves as proof of correctness.
-    // Currently asserting cairo0 artifacts is failing; related: https://github.com/0xSpaceShard/starknet-devnet-rs/pull/380
+    // Currently asserting cairo0 artifacts is failing; related: https://github.com/0xSpaceShard/starknet-devnet/pull/380
 }
 
 #[tokio::test]
@@ -343,7 +343,7 @@ async fn test_deploying_account_with_class_not_present_on_origin() {
 
 #[tokio::test]
 /// For this test to make sense, origin must have a class not by default present in the fork.
-/// If https://github.com/0xSpaceShard/starknet-devnet-rs/issues/373 is addressed,
+/// If https://github.com/0xSpaceShard/starknet-devnet/issues/373 is addressed,
 /// both origin and fork have both of our default cairo0 and cairo1 classes, so using them for
 /// this test wouldn't make sense, as we couldn't be sure that the class used in account
 /// deployment is indeed coming from the origin.
@@ -615,7 +615,7 @@ async fn test_forking_https() {
 #[tokio::test]
 async fn test_forked_devnet_uses_different_contract_class_for_predeployed_tokens() {
     let origin_url = MAINNET_URL;
-    let fork_block = 668276; // data taken from https://github.com/0xSpaceShard/starknet-devnet-rs/issues/587
+    let fork_block = 668276; // data taken from https://github.com/0xSpaceShard/starknet-devnet/issues/587
     let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
         "--fork-network",
         origin_url,

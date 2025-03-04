@@ -10,7 +10,7 @@ To read about PR expectations, check out the [Pull requests](#pull-requests) sec
 
 ### Should you create a PR?
 
-It is advised to [create an issue](https://github.com/0xSpaceShard/starknet-devnet-rs/issues/new/choose) before creating a PR. Creating an issue is the best way to reach somebody with repository-specific experience who can provide more info on how a problem/idea can be addressed and if a PR is needed.
+It is advised to [create an issue](https://github.com/0xSpaceShard/starknet-devnet/issues/new/choose) before creating a PR. Creating an issue is the best way to reach somebody with repository-specific experience who can provide more info on how a problem/idea can be addressed and if a PR is needed.
 
 ### Checklist
 
@@ -23,7 +23,7 @@ Once a PR is created, somebody from the team will review it. When a reviewer lea
 - a request for clarification from the reviewer
 - a link to the commit which addresses the reviewer's observation (simply pasting the sha-digest is enough)
 
-This is an example of a good author-reviewer correspondence: [link](https://github.com/0xSpaceShard/starknet-devnet-rs/pull/310#discussion_r1457142002).
+This is an example of a good author-reviewer correspondence: [link](https://github.com/0xSpaceShard/starknet-devnet/pull/310#discussion_r1457142002).
 
 #### Note to reviewers
 
@@ -35,7 +35,7 @@ $ git remote add <CONTRIBUTOR> <CONTRIBUTOR_GIT_FORK_URL>
 $ git fetch <CONTRIBUTOR>
 $ git checkout -b <CONTRIBUTOR>/<BRANCH> <CONTRIBUTOR>/<BRANCH>
 
-$ git remote set-url --push <CONTRIBUTOR> git@github.com:0xSpaceShard/starknet-devnet-rs.git
+$ git remote set-url --push <CONTRIBUTOR> git@github.com:0xSpaceShard/starknet-devnet.git
 $ git push <CONTRIBUTOR> HEAD
 ```
 
@@ -125,9 +125,13 @@ If you experience memory overuse or flaky tests, try limiting the number of jobs
 
 To test if your contribution presents an improvement in execution time, check out the script at `scripts/benchmark/command_stat_test.py`.
 
+## Updating versions
+
+Generally, when updating to a new version of something (a spec file, a contract artifact, ...), a good rule of thumb is to search the repository for mentions of the old version, both in file names and content. This should also aid in not forgetting to update version mentions in the documentation.
+
 ### Updating OpenZeppelin contracts
 
-Tests in devnet require an erc20 contract with the `Mintable` feature, keep in mind that before the compilation process of [cairo-contracts](https://github.com/OpenZeppelin/cairo-contracts/) you need to mark the `Mintable` check box in this [wizard](https://wizard.openzeppelin.com/cairo) and copy this implementation to `/src/presets/erc20.cairo`.
+Devnet requires an ERC20 contract with the `Mintable` feature; keep in mind that before the local compilation of [cairo-contracts](https://github.com/OpenZeppelin/cairo-contracts/) you need to mark the `Mintable` check box in this [wizard](https://wizard.openzeppelin.com/cairo) and copy the generated file to `packages/presets/src/erc20.cairo` of your local Open Zeppelin repository.
 
 If smart contract constructor logic has changed, Devnet's predeployment logic needs to be changed, e.g. `simulate_constructor` in `crates/starknet-devnet-core/src/account.rs`.
 

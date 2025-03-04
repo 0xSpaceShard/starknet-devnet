@@ -15,8 +15,8 @@ use server::rpc_core::request::{Id, RequestParams, Version};
 use server::server::serve_http_api_json_rpc;
 use starknet_core::account::Account;
 use starknet_core::constants::{
-    ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS,
-    UDC_CONTRACT_CLASS_HASH,
+    ARGENT_CONTRACT_CLASS_HASH, ARGENT_MULTISIG_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS,
+    STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
 use starknet_core::starknet::starknet_config::{
     BlockGenerationOn, DumpOn, ForkConfig, StarknetConfig,
@@ -114,6 +114,15 @@ fn log_predeployed_contracts(config: &StarknetConfig) {
     println!("Address: 0x{:X}", UDC_CONTRACT_ADDRESS);
     println!("Class Hash: 0x{:X}", UDC_CONTRACT_CLASS_HASH);
     println!();
+}
+
+fn log_other_predeclared_contracts(config: &StarknetConfig) {
+    if config.predeclare_argent {
+        println!("Predeclared Argent account classes");
+        println!("Regular class hash: 0x{:X}", ARGENT_CONTRACT_CLASS_HASH);
+        println!("Multisig class hash: 0x{:X}", ARGENT_MULTISIG_CONTRACT_CLASS_HASH);
+        println!();
+    }
 }
 
 fn log_chain_id(chain_id: &ChainId) {
@@ -286,6 +295,7 @@ async fn main() -> Result<(), anyhow::Error> {
     };
 
     log_predeployed_contracts(&starknet_config);
+    log_other_predeclared_contracts(&starknet_config);
     log_chain_id(&starknet_config.chain_id);
 
     let predeployed_accounts = api.starknet.lock().await.get_predeployed_accounts();

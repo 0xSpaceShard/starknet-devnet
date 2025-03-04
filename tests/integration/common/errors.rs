@@ -14,8 +14,8 @@ pub enum TestError {
     #[error("Could not start Devnet. Make sure you built it with `cargo build --release`: {0}")]
     DevnetNotStartable(String),
 
-    #[error("Could not start Anvil")]
-    AnvilNotStartable,
+    #[error("Could not start Anvil: {0}")]
+    AnvilNotStartable(String),
 
     #[error("Ethers error: {0}")]
     EthersError(String),

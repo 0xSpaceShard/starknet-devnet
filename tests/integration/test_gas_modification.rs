@@ -49,7 +49,7 @@ impl SetGasPrice for BackgroundDevnet {
 /// 2. Set the gas values.
 /// 3. Execute simulateTransactions again and check gas fees.
 ///
-/// Chain ID assertion justified in: https://github.com/0xSpaceShard/starknet-devnet-rs/pull/551#discussion_r1682755696
+/// Chain ID assertion justified in: https://github.com/0xSpaceShard/starknet-devnet/pull/551#discussion_r1682755696
 async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
     // get account
     let (signer, account_address) = devnet.get_first_predeployed_account().await;

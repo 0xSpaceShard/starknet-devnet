@@ -24,7 +24,7 @@ use crate::state::{CustomState, StarknetState};
 use crate::traits::{Accounted, Deployed};
 use crate::utils::get_storage_var_address;
 
-/// data taken from https://github.com/0xSpaceShard/starknet-devnet/blob/fb96e0cc3c1c31fb29892ecefd2a670cf8a32b51/starknet_devnet/account.py
+/// data taken from https://github.com/0xSpaceShard/starknet-devnet-deprecated/blob/fb96e0cc3c1c31fb29892ecefd2a670cf8a32b51/starknet_devnet/account.py
 const ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION: &str =
     "0x3FCBF77B28C96F4F2FB5BD2D176AB083A12A5E123ADEB0DE955D7EE228C9854";
 
@@ -228,7 +228,7 @@ mod tests {
     use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
 
     /// Testing if generated account address has the same value as the first account in
-    /// https://github.com/0xSpaceShard/starknet-devnet/blob/9d867e38e6d465e568e82a47e82e40608f6d220f/test/support/schemas/predeployed_accounts_fixed_seed.json
+    /// https://github.com/0xSpaceShard/starknet-devnet-deprecated/blob/9d867e38e6d465e568e82a47e82e40608f6d220f/test/support/schemas/predeployed_accounts_fixed_seed.json
     #[test]
     fn account_address_should_be_equal() {
         let expected_result = ContractAddress::new(
