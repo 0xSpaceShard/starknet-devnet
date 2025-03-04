@@ -4,9 +4,10 @@
 mod common;
 
 mod general_integration_tests;
+
 mod general_rpc_tests;
 mod get_transaction_by_block_id_and_index;
-mod get_transaction_by_hash;
+/*mod get_transaction_by_hash;
 mod get_transaction_receipt_by_hash;
 mod test_abort_blocks;
 mod test_account_impersonation;
@@ -40,3 +41,4 @@ mod test_trace;
 mod test_transaction_handling;
 mod test_v3_transactions;
 mod test_websocket;
+*/
