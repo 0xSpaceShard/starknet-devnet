@@ -269,7 +269,7 @@ impl EthereumMessaging {
         &self,
         cancellation_delay_seconds: U256,
     ) -> DevnetResult<Address> {
-        // Default value from anvil and hardat multiplied by 20.
+        // Default value from anvil and hardhat multiplied by 20.
         let gas_price: U256 = 20000000000_u128.into();
 
         let contract = abigen::MockStarknetMessaging::deploy(

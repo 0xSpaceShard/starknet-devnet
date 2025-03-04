@@ -3,6 +3,7 @@ use std::fmt::LowerHex;
 use std::process::{Command, Stdio};
 use std::time;
 
+use anyhow::anyhow;
 use lazy_static::lazy_static;
 use reqwest::{Client, StatusCode};
 use serde_json::json;
@@ -23,6 +24,7 @@ use super::constants::{
 use super::errors::{RpcError, TestError};
 use super::reqwest_client::{PostReqwestSender, ReqwestClient};
 use super::utils::{to_hex_felt, FeeUnit, ImpersonationAction};
+use crate::common::background_server::get_acquired_port;
 use crate::common::constants::{
     DEVNET_EXECUTABLE_BINARY_PATH, DEVNET_MANIFEST_PATH, ETH_ERC20_CONTRACT_ADDRESS,
 };
@@ -63,31 +65,6 @@ fn get_devnet_command() -> Command {
     }
 }
 
-async fn get_acquired_port(
-    process: &mut SafeChild,
-    sleep_time: time::Duration,
-    max_retries: usize,
-) -> Result<u16, anyhow::Error> {
-    let pid = process.id();
-    for _ in 0..max_retries {
-        if let Ok(ports) = listeners::get_ports_by_pid(pid) {
-            if ports.len() == 1 {
-                return Ok(ports.into_iter().next().unwrap());
-            }
-        }
-
-        if let Ok(Some(status)) = process.process.try_wait() {
-            return Err(anyhow::Error::msg(format!(
-                "Background Devnet process exited with status {status}"
-            )));
-        }
-
-        tokio::time::sleep(sleep_time).await;
-    }
-
-    Err(anyhow::Error::msg(format!("Could not identify a unique port used by PID {pid}")))
-}
-
 async fn wait_for_successful_response(
     client: &Client,
     healthcheck_url: &str,
@@ -98,7 +75,7 @@ async fn wait_for_successful_response(
         if let Ok(alive_resp) = client.get(healthcheck_url).send().await {
             let status = alive_resp.status();
             if status != StatusCode::OK {
-                return Err(anyhow::Error::msg(format!("Server responded with: {status}")));
+                return Err(anyhow!("Server responded with: {status}"));
             }
 
             return Ok(());
@@ -107,18 +84,15 @@ async fn wait_for_successful_response(
         tokio::time::sleep(sleep_time).await;
     }
 
-    Err(anyhow::Error::msg("Server not reachable at {}"))
+    Err(anyhow!("Not responsive: {healthcheck_url}"))
 }
 
 impl BackgroundDevnet {
-    /// Ensures the background instance spawns at a free port, checks at most `MAX_RETRIES`
-    /// times
-    #[allow(dead_code)] // dead_code needed to pass clippy
     pub(crate) async fn spawn() -> Result<Self, TestError> {
         BackgroundDevnet::spawn_with_additional_args(&[]).await
     }
 
-    pub async fn spawn_forkable_devnet() -> Result<BackgroundDevnet, anyhow::Error> {
+    pub(crate) async fn spawn_forkable_devnet() -> Result<BackgroundDevnet, anyhow::Error> {
         let args = ["--state-archive-capacity", "full"];
         let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await?;
         Ok(devnet)
@@ -180,7 +154,7 @@ impl BackgroundDevnet {
         println!("Spawned background devnet at {devnet_url}");
 
         let devnet_rpc_url = Url::parse(format!("{devnet_url}{RPC_PATH}").as_str())?;
-        Ok(BackgroundDevnet {
+        Ok(Self {
             reqwest_client: ReqwestClient::new(devnet_url.clone(), client),
             json_rpc_client: JsonRpcClient::new(HttpTransport::new(devnet_rpc_url.clone())),
             port,
