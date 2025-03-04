@@ -1,7 +1,6 @@
-use cairo_vm::types::builtin_name::BuiltinName;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
-use starknet_api::transaction::Fee;
+use starknet_api::transaction::fields::Fee;
 use starknet_rs_core::types::{ExecutionResult, Hash256, TransactionFinalityStatus};
 
 use crate::contract_address::ContractAddress;
@@ -19,7 +18,20 @@ pub enum TransactionReceipt {
     Common(CommonTransactionReceipt),
 }
 
-#[derive(Debug, Clone, Serialize)]
+impl TransactionReceipt {
+    pub fn get_block_number(&self) -> Option<u64> {
+        match self {
+            TransactionReceipt::Deploy(receipt) => &receipt.common,
+            TransactionReceipt::L1Handler(receipt) => &receipt.common,
+            TransactionReceipt::Common(receipt) => receipt,
+        }
+        .maybe_pending_properties
+        .block_number
+        .map(|BlockNumber(n)| n)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)] // TODO PartialEq, Eq?
 #[cfg_attr(feature = "testing", derive(serde::Deserialize))]
 pub struct DeployTransactionReceipt {
     #[serde(flatten)]
@@ -63,186 +75,18 @@ pub struct CommonTransactionReceipt {
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct ExecutionResources {
-    #[serde(flatten)]
-    pub computation_resources: ComputationResources,
-    pub data_availability: DataAvailability,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct DataAvailability {
-    pub l1_gas: u128,
-    pub l1_data_gas: u128,
-}
-
-/// custom implementation, because serde_json doesn't support deserializing to u128
-/// if the struct is being used as a field in another struct that have #[serde(flatten)] or
-/// #[serde(untagged)]
-impl<'de> Deserialize<'de> for DataAvailability {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let json_obj =
-            serde_json::Value::deserialize(deserializer).map_err(serde::de::Error::custom)?;
-
-        #[derive(Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct InnerDataAvailability {
-            l1_gas: u128,
-            l1_data_gas: u128,
-        }
-
-        let data_availability: InnerDataAvailability =
-            serde_json::from_value(json_obj).map_err(serde::de::Error::custom)?;
-
-        Ok(DataAvailability {
-            l1_gas: data_availability.l1_gas,
-            l1_data_gas: data_availability.l1_data_gas,
-        })
-    }
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
-pub struct ComputationResources {
-    pub steps: usize,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub memory_holes: Option<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub range_check_builtin_applications: Option<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub pedersen_builtin_applications: Option<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub poseidon_builtin_applications: Option<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub ec_op_builtin_applications: Option<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub ecdsa_builtin_applications: Option<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub bitwise_builtin_applications: Option<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub keccak_builtin_applications: Option<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub segment_arena_builtin: Option<usize>,
-}
-
-impl From<&blockifier::execution::call_info::CallInfo> for ComputationResources {
-    fn from(call_info: &blockifier::execution::call_info::CallInfo) -> Self {
-        ComputationResources {
-            steps: call_info.resources.n_steps,
-            memory_holes: if call_info.resources.n_memory_holes == 0 {
-                None
-            } else {
-                Some(call_info.resources.n_memory_holes)
-            },
-            range_check_builtin_applications: Self::get_resource_from_call_info(
-                call_info,
-                &BuiltinName::range_check,
-            ),
-            pedersen_builtin_applications: Self::get_resource_from_call_info(
-                call_info,
-                &BuiltinName::pedersen,
-            ),
-            poseidon_builtin_applications: Self::get_resource_from_call_info(
-                call_info,
-                &BuiltinName::poseidon,
-            ),
-            ec_op_builtin_applications: Self::get_resource_from_call_info(
-                call_info,
-                &BuiltinName::ec_op,
-            ),
-            ecdsa_builtin_applications: Self::get_resource_from_call_info(
-                call_info,
-                &BuiltinName::ecdsa,
-            ),
-            bitwise_builtin_applications: Self::get_resource_from_call_info(
-                call_info,
-                &BuiltinName::bitwise,
-            ),
-            keccak_builtin_applications: Self::get_resource_from_call_info(
-                call_info,
-                &BuiltinName::keccak,
-            ),
-            segment_arena_builtin: Self::get_resource_from_call_info(
-                call_info,
-                &BuiltinName::segment_arena,
-            ),
-        }
-    }
+    pub l1_gas: u64,
+    pub l1_data_gas: u64,
+    pub l2_gas: u64,
 }
 
 impl From<&blockifier::transaction::objects::TransactionExecutionInfo> for ExecutionResources {
-    fn from(execution_info: &blockifier::transaction::objects::TransactionExecutionInfo) -> Self {
-        let memory_holes = execution_info.transaction_receipt.resources.vm_resources.n_memory_holes;
-
-        let computation_resources = ComputationResources {
-            steps: execution_info.transaction_receipt.resources.total_charged_steps(),
-            memory_holes: if memory_holes == 0 { None } else { Some(memory_holes) },
-            range_check_builtin_applications:
-                ComputationResources::get_resource_from_execution_info(
-                    execution_info,
-                    &BuiltinName::range_check,
-                ),
-            pedersen_builtin_applications: ComputationResources::get_resource_from_execution_info(
-                execution_info,
-                &BuiltinName::pedersen,
-            ),
-            poseidon_builtin_applications: ComputationResources::get_resource_from_execution_info(
-                execution_info,
-                &BuiltinName::poseidon,
-            ),
-            ec_op_builtin_applications: ComputationResources::get_resource_from_execution_info(
-                execution_info,
-                &BuiltinName::ec_op,
-            ),
-            ecdsa_builtin_applications: ComputationResources::get_resource_from_execution_info(
-                execution_info,
-                &BuiltinName::ecdsa,
-            ),
-            bitwise_builtin_applications: ComputationResources::get_resource_from_execution_info(
-                execution_info,
-                &BuiltinName::bitwise,
-            ),
-            keccak_builtin_applications: ComputationResources::get_resource_from_execution_info(
-                execution_info,
-                &BuiltinName::keccak,
-            ),
-            segment_arena_builtin: ComputationResources::get_resource_from_execution_info(
-                execution_info,
-                &BuiltinName::segment_arena,
-            ),
-        };
-
-        Self {
-            computation_resources,
-            data_availability: DataAvailability {
-                l1_gas: execution_info.transaction_receipt.da_gas.l1_gas,
-                l1_data_gas: execution_info.transaction_receipt.da_gas.l1_data_gas,
-            },
+    fn from(value: &blockifier::transaction::objects::TransactionExecutionInfo) -> Self {
+        ExecutionResources {
+            l1_gas: value.receipt.gas.l1_gas.0,
+            l1_data_gas: value.receipt.da_gas.l1_data_gas.0,
+            l2_gas: value.receipt.gas.l2_gas.0,
         }
-    }
-}
-
-impl ComputationResources {
-    fn get_resource_from_execution_info(
-        execution_info: &blockifier::transaction::objects::TransactionExecutionInfo,
-        resource_name: &BuiltinName,
-    ) -> Option<usize> {
-        execution_info
-            .transaction_receipt
-            .resources
-            .vm_resources
-            .builtin_instance_counter
-            .get(resource_name)
-            .cloned()
-    }
-
-    fn get_resource_from_call_info(
-        call_info: &blockifier::execution::call_info::CallInfo,
-        resource_name: &BuiltinName,
-    ) -> Option<usize> {
-        call_info.resources.builtin_instance_counter.get(resource_name).cloned()
     }
 }
 

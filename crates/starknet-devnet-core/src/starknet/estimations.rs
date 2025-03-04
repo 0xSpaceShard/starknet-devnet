@@ -1,9 +1,11 @@
 use blockifier::fee::fee_utils::{self};
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
-use blockifier::transaction::account_transaction::AccountTransaction;
+use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::objects::HasRelatedFeeType;
+use blockifier::transaction::transaction_execution::Transaction;
 use blockifier::transaction::transactions::ExecutableTransaction;
+use starknet_api::transaction::fields::GasVectorComputationMode;
 use starknet_rs_core::types::{BlockId, Felt, MsgFromL1, PriceUnit};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::estimate_message_fee::{
@@ -12,6 +14,7 @@ use starknet_types::rpc::estimate_message_fee::{
 use starknet_types::rpc::transactions::BroadcastedTransaction;
 
 use crate::error::{DevnetResult, Error};
+use crate::stack_trace::ErrorStack;
 use crate::starknet::Starknet;
 use crate::utils::get_versioned_constants;
 
@@ -32,14 +35,22 @@ pub fn estimate_fee(
         transactions
             .iter()
             .map(|txn| {
-                Ok((
-                    txn.to_blockifier_account_transaction(&chain_id, true)?,
+                let skip_validate_due_to_impersonation =
                     Starknet::should_transaction_skip_validation_if_sender_is_impersonated(
                         state, &cheats, txn,
-                    )?,
+                    )?;
+                let validate = skip_validate_due_to_impersonation
+                    .then_some(false)
+                    .or(validate)
+                    .unwrap_or(true);
+
+                Ok((
+                    txn.to_sn_api_account_transaction(&chain_id)?,
+                    validate,
+                    txn.gas_vector_computation_mode(),
                 ))
             })
-            .collect::<DevnetResult<Vec<(AccountTransaction, bool)>>>()?
+            .collect::<DevnetResult<Vec<_>>>()?
     };
 
     let mut transactional_state = CachedState::create_transactional(&mut state.state);
@@ -47,27 +58,38 @@ pub fn estimate_fee(
     transactions
         .into_iter()
         .enumerate()
-        .map(|(idx,(transaction, skip_validate_due_to_impersonation))| {
+        .map(|(idx, (transaction, validate, gas_vector_computation_mode))| {
             let estimate_fee_result = estimate_transaction_fee(
                 &mut transactional_state,
                 &block_context,
-                blockifier::transaction::transaction_execution::Transaction::AccountTransaction(
-                    transaction,
+                Transaction::Account(
+                    blockifier::transaction::account_transaction::AccountTransaction {
+                        tx: transaction,
+                        execution_flags: ExecutionFlags {
+                            only_query: true,
+                            charge_fee: charge_fee.unwrap_or(false),
+                            validate,
+                        },
+                    },
                 ),
-                charge_fee,
-                skip_validate_due_to_impersonation.then_some(false).or(validate), /* if skip validate is true, then
-                                                              * this means that this transaction
-                                                              * has to skip validation, because
-                                                              * the sender is impersonated.
-                                                              * Otherwise use the validate parameter that is passed to the estimateFee request */
-                return_error_on_reverted_execution
+                return_error_on_reverted_execution,
+                gas_vector_computation_mode,
             );
 
             match estimate_fee_result {
                 Ok(estimated_fee) => Ok(estimated_fee),
-                // reverted transactions are failing with ExecutionError, but index is set to 0, so we override the index property
-                Err(Error::ExecutionError { execution_error , ..}) => Err(Error::ExecutionError { execution_error, index: idx }),
-                Err(err) => Err(Error::ExecutionError { execution_error: err.to_string(), index: idx }),
+                // reverted transactions are failing with ExecutionError, but index is set to 0, so
+                // we override the index property
+                Err(Error::ContractExecutionError(error_stack)) => {
+                    Err(Error::ContractExecutionErrorInSimulation {
+                        failure_index: idx,
+                        error_stack,
+                    })
+                }
+                Err(err) => Err(Error::ContractExecutionErrorInSimulation {
+                    failure_index: idx,
+                    error_stack: ErrorStack::from_str_err(&err.to_string()),
+                }),
             }
         })
         .collect()
@@ -93,71 +115,64 @@ pub fn estimate_message_fee(
     estimate_transaction_fee(
         &mut transactional_state,
         &block_context,
-        blockifier::transaction::transaction_execution::Transaction::L1HandlerTransaction(
-            l1_transaction,
-        ),
-        None,
-        None,
+        Transaction::L1Handler(l1_transaction),
         true,
+        // Using only L1 gas, because msgs coming from L1 are L1 txs, with their own gas cost
+        GasVectorComputationMode::NoL2Gas,
     )
 }
 
 fn estimate_transaction_fee<S: StateReader>(
     transactional_state: &mut CachedState<S>,
     block_context: &blockifier::context::BlockContext,
-    transaction: blockifier::transaction::transaction_execution::Transaction,
-    charge_fee: Option<bool>,
-    validate: Option<bool>,
+    transaction: Transaction,
     return_error_on_reverted_execution: bool,
+    gas_vector_computation_mode: GasVectorComputationMode,
 ) -> DevnetResult<FeeEstimateWrapper> {
-    let fee_type = match transaction {
-        blockifier::transaction::transaction_execution::Transaction::AccountTransaction(ref tx) => {
-            tx.fee_type()
-        }
-        blockifier::transaction::transaction_execution::Transaction::L1HandlerTransaction(
-            ref tx,
-        ) => tx.fee_type(),
-    };
-
-    let transaction_execution_info = transaction.execute(
-        transactional_state,
-        block_context,
-        charge_fee.unwrap_or(false),
-        validate.unwrap_or(true),
-    )?;
+    let transaction_execution_info = transaction.execute(transactional_state, block_context)?;
 
     // reverted transactions can only be Invoke transactions
     if let (true, Some(revert_error)) =
         (return_error_on_reverted_execution, transaction_execution_info.revert_error)
     {
-        return Err(Error::ExecutionError { execution_error: revert_error, index: 0 });
+        // TODO Users would probably prefer a structured error, but according to the RPC spec, a
+        // string is allowed. We should improve this.
+        return Err(Error::ContractExecutionError(ErrorStack::from_str_err(
+            &revert_error.to_string(),
+        )));
     }
 
-    let gas_vector = transaction_execution_info
-        .transaction_receipt
-        .resources
-        .to_gas_vector(&get_versioned_constants(), block_context.block_info().use_kzg_da)?;
+    let gas_vector = transaction_execution_info.receipt.resources.to_gas_vector(
+        &get_versioned_constants(),
+        block_context.block_info().use_kzg_da,
+        &gas_vector_computation_mode,
+    );
+
+    let fee_type = match &transaction {
+        Transaction::Account(tx) => tx.fee_type(),
+        Transaction::L1Handler(tx) => tx.fee_type(),
+    };
+
     let total_fee =
         fee_utils::get_fee_by_gas_vector(block_context.block_info(), gas_vector, &fee_type);
 
-    let (gas_price, data_gas_price, unit) = match fee_type {
-        blockifier::transaction::objects::FeeType::Strk => (
-            block_context.block_info().gas_prices.strk_l1_gas_price.get(),
-            block_context.block_info().gas_prices.strk_l1_data_gas_price.get(),
-            PriceUnit::Fri,
-        ),
-        blockifier::transaction::objects::FeeType::Eth => (
-            block_context.block_info().gas_prices.eth_l1_gas_price.get(),
-            block_context.block_info().gas_prices.eth_l1_data_gas_price.get(),
-            PriceUnit::Wei,
-        ),
+    let gas_prices = &block_context.block_info().gas_prices;
+    let l1_gas_price = gas_prices.l1_gas_price(&fee_type).get();
+    let data_gas_price = gas_prices.l1_data_gas_price(&fee_type).get();
+    let l2_gas_price = gas_prices.l2_gas_price(&fee_type).get();
+
+    let unit = match fee_type {
+        starknet_api::block::FeeType::Strk => PriceUnit::Fri,
+        starknet_api::block::FeeType::Eth => PriceUnit::Wei,
     };
 
     Ok(FeeEstimateWrapper {
-        gas_consumed: Felt::from(gas_vector.l1_gas),
-        data_gas_consumed: Felt::from(gas_vector.l1_data_gas),
-        gas_price: Felt::from(gas_price),
-        data_gas_price: Felt::from(data_gas_price),
+        l1_gas_consumed: Felt::from(gas_vector.l1_gas),
+        l1_gas_price: Felt::from(l1_gas_price),
+        l1_data_gas_consumed: Felt::from(gas_vector.l1_data_gas),
+        l1_data_gas_price: Felt::from(data_gas_price),
+        l2_gas_consumed: Felt::from(gas_vector.l2_gas),
+        l2_gas_price: Felt::from(l2_gas_price),
         overall_fee: Felt::from(total_fee.0),
         unit,
     })

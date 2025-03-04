@@ -1,4 +1,5 @@
 use blockifier::execution::call_info::CallInfo;
+use blockifier::execution::stack_trace::ErrorStack;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use indexmap::IndexMap;
 use starknet_api::block::BlockNumber;
@@ -13,8 +14,8 @@ use starknet_types::rpc::transaction_receipt::{
     DeployTransactionReceipt, FeeAmount, FeeInUnits, TransactionReceipt,
 };
 use starknet_types::rpc::transactions::{
-    DeclareTransaction, DeployAccountTransaction, InvokeTransaction, Transaction, TransactionTrace,
-    TransactionType, TransactionWithHash,
+    DeclareTransaction, DeployAccountTransaction, InvokeTransaction, Transaction,
+    TransactionStatus, TransactionTrace, TransactionType, TransactionWithHash,
 };
 
 use crate::constants::UDC_CONTRACT_ADDRESS;
@@ -22,7 +23,7 @@ use crate::error::{DevnetResult, Error};
 use crate::traits::{HashIdentified, HashIdentifiedMut};
 
 #[derive(Default)]
-pub(crate) struct StarknetTransactions(IndexMap<TransactionHash, StarknetTransaction>);
+pub struct StarknetTransactions(IndexMap<TransactionHash, StarknetTransaction>);
 
 impl StarknetTransactions {
     pub fn insert(&mut self, transaction_hash: &TransactionHash, transaction: StarknetTransaction) {
@@ -52,7 +53,7 @@ impl HashIdentified for StarknetTransactions {
 
 #[allow(unused)]
 #[derive(Debug)]
-pub(crate) struct StarknetTransaction {
+pub struct StarknetTransaction {
     pub inner: TransactionWithHash,
     pub(crate) finality_status: TransactionFinalityStatus,
     pub(crate) execution_result: ExecutionResult,
@@ -74,8 +75,9 @@ impl StarknetTransaction {
                 true => ExecutionResult::Reverted {
                     reason: execution_info
                         .revert_error
-                        .clone()
-                        .unwrap_or("No revert error".to_string()),
+                        .as_ref()
+                        .unwrap_or(&ErrorStack::default().into())
+                        .to_string(),
                 },
                 false => ExecutionResult::Succeeded,
             },
@@ -165,7 +167,7 @@ impl StarknetTransaction {
         // L1 Handler transactions are in WEI
         // V3 transactions are in STRK(FRI)
         // Other transactions versions are in ETH(WEI)
-        let fee_amount = FeeAmount { amount: self.execution_info.transaction_receipt.fee };
+        let fee_amount = FeeAmount { amount: self.execution_info.receipt.fee };
         let actual_fee_in_units = match self.inner.transaction {
             Transaction::L1Handler(_) => FeeInUnits::WEI(fee_amount),
             Transaction::Declare(DeclareTransaction::V3(_))
@@ -221,6 +223,18 @@ impl StarknetTransaction {
         }
     }
 
+    pub fn get_block_number(&self) -> Option<BlockNumber> {
+        self.block_number
+    }
+
+    pub fn get_status(&self) -> TransactionStatus {
+        TransactionStatus {
+            finality_status: self.finality_status,
+            failure_reason: self.execution_info.revert_error.as_ref().map(|err| err.to_string()),
+            execution_status: self.execution_result.status(),
+        }
+    }
+
     pub fn get_trace(&self) -> Option<TransactionTrace> {
         self.trace.clone()
     }
@@ -270,6 +284,8 @@ impl StarknetTransaction {
 mod tests {
     use blockifier::state::cached_state::CachedState;
     use blockifier::transaction::objects::TransactionExecutionInfo;
+    use blockifier::versioned_constants;
+    use starknet_api::transaction::fields::GasVectorComputationMode;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::rpc::transactions::{TransactionTrace, TransactionWithHash};
 
@@ -285,6 +301,8 @@ mod tests {
             tx.get_type(),
             &Default::default(),
             Default::default(),
+            versioned_constants::VersionedConstants::latest_constants(),
+            &GasVectorComputationMode::All,
         )
         .unwrap()
     }

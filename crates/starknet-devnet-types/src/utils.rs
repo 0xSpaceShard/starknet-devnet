@@ -1,7 +1,11 @@
 use std::io;
 
+use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
+use cairo_lang_starknet_classes::contract_class::ContractClass;
 use serde_json::ser::Formatter;
 use serde_json::{Map, Value};
+
+use crate::error::{DevnetResult, Error, JsonError};
 
 /// The preserve_order feature enabled in the serde_json crate
 /// removing a key from the object changes the order of the keys
@@ -83,21 +87,33 @@ impl Formatter for StarknetFormatter {
     }
 }
 
+pub fn compile_sierra_contract(sierra_contract: &ContractClass) -> DevnetResult<CasmContractClass> {
+    let sierra_contract_json = serde_json::to_value(sierra_contract)
+        .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err)))?;
+
+    compile_sierra_contract_json(sierra_contract_json)
+}
+
+pub fn compile_sierra_contract_json(
+    sierra_contract_json: serde_json::Value,
+) -> DevnetResult<CasmContractClass> {
+    let casm_json = usc::compile_contract(sierra_contract_json)
+        .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+
+    serde_json::from_value::<CasmContractClass>(casm_json)
+        .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err)))
+}
+
 #[cfg(test)]
 pub(crate) mod test_utils {
-    use starknet_api::data_availability::DataAvailabilityMode;
-    use starknet_api::transaction::{ResourceBounds, ResourceBoundsMapping};
-
-    use crate::rpc::transactions::ResourceBoundsWrapper;
-
     pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str =
         "../../contracts/test_artifacts/cairo0/account.json";
 
-    pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
-        "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
-
     pub(crate) const CAIRO_0_RPC_CONTRACT_PATH: &str =
         concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo_0_rpc.json");
+
+    pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
+        "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
 
     /// contract declared in transaction https://alpha4.starknet.io/feeder_gateway/get_transaction?transactionHash=0x01b852f1fe2b13db21a44f8884bc4b7760dc277bb3820b970dba929860275617
     /// cairo code is in the same directory as the sierra artifacts
@@ -106,41 +122,6 @@ pub(crate) mod test_utils {
 
     pub(crate) const CAIRO_1_CONTRACT_SIERRA_HASH: &str =
         "0x113bf26d112a164297e04381212c9bd7409f07591f0a04f539bdf56693eaaf3";
-
-    /// Converts integer to DataAvailabilityMode
-    /// # Arguments
-    ///
-    /// * `da_mode` - integer representing the data availability mode
-    pub(crate) fn from_u8_to_da_mode(da_mode: u8) -> DataAvailabilityMode {
-        match da_mode {
-            0 => DataAvailabilityMode::L1,
-            1 => DataAvailabilityMode::L2,
-            _ => panic!("Invalid data availability mode"),
-        }
-    }
-
-    pub(crate) fn convert_from_sn_api_resource_bounds_mapping(
-        resource_bounds: ResourceBoundsMapping,
-    ) -> ResourceBoundsWrapper {
-        let l1_resource_bounds = resource_bounds
-            .0
-            .get(&starknet_api::transaction::Resource::L1Gas)
-            .cloned()
-            .unwrap_or(ResourceBounds { max_amount: 0, max_price_per_unit: 0 });
-
-        let l2_resource_bounds = resource_bounds
-            .0
-            .get(&starknet_api::transaction::Resource::L2Gas)
-            .cloned()
-            .unwrap_or(ResourceBounds { max_amount: 0, max_price_per_unit: 0 });
-
-        ResourceBoundsWrapper::new(
-            l1_resource_bounds.max_amount,
-            l1_resource_bounds.max_price_per_unit,
-            l2_resource_bounds.max_amount,
-            l2_resource_bounds.max_price_per_unit,
-        )
-    }
 }
 #[cfg(test)]
 mod tests {
@@ -199,9 +180,7 @@ mod tests {
         let value: Value = serde_json::from_str(input).unwrap();
 
         let res = crate::utils::traverse_and_exclude_recursively(&value, &|key, val| {
-            return key == "should_be_removed"
-                && val.is_array()
-                && val.as_array().unwrap().is_empty();
+            key == "should_be_removed" && val.is_array() && val.as_array().unwrap().is_empty()
         });
 
         assert_eq!(res, serde_json::from_str::<serde_json::Value>(expected_output).unwrap());

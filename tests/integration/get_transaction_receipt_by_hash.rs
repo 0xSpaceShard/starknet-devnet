@@ -51,9 +51,7 @@ async fn deploy_account_transaction_receipt() {
         TransactionReceipt::DeployAccount(receipt) => {
             assert_eq!(receipt.contract_address, new_account_address);
         }
-        _ => {
-            panic!("Invalid receipt {:?}", deploy_account_receipt);
-        }
+        _ => panic!("Invalid receipt {:?}", deploy_account_receipt),
     }
 }
 
@@ -242,9 +240,7 @@ async fn declare_v1_transaction_fails_with_insufficient_max_fee() {
 
     match declare_transaction_result {
         Err(ProviderError::StarknetError(StarknetError::InsufficientMaxFee)) => (),
-        _ => {
-            panic!("Invalid result: {:?}", declare_transaction_result);
-        }
+        _ => panic!("Invalid result: {:?}", declare_transaction_result),
     }
 }
 

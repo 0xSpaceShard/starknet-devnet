@@ -1,11 +1,11 @@
-use blockifier::bouncer::{BouncerConfig, BouncerWeights, BuiltinCount};
-use blockifier::versioned_constants::{StarknetVersion, VersionedConstants};
-use serde_json::Value;
-use starknet_rs_core::types::contract::CompiledClass;
+use blockifier::bouncer::{BouncerConfig, BouncerWeights};
+use blockifier::transaction::objects::TransactionExecutionInfo;
+use blockifier::versioned_constants::VersionedConstants;
+use starknet_api::block::StarknetVersion;
 use starknet_rs_core::types::Felt;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
-use crate::error::{DevnetResult, Error};
+use crate::error::DevnetResult;
 
 pub mod random_number_generator {
     use rand::{thread_rng, Rng, SeedableRng};
@@ -39,54 +39,51 @@ pub(crate) fn get_storage_var_address(
     Ok(PatriciaKey::new(storage_var_address)?)
 }
 
+// This should be modified when updating to the version after 0.13.4
 pub(crate) fn get_versioned_constants() -> VersionedConstants {
-    VersionedConstants::get(StarknetVersion::V0_13_2).clone()
+    #[allow(clippy::unwrap_used)]
+    VersionedConstants::get(&StarknetVersion::V0_13_4).unwrap().clone()
 }
 
 /// Values not present here: https://docs.starknet.io/tools/limits-and-triggers/
-/// Asked the blockifier team about the values, they provided them here:
+/// Asked the blockifier team about the values, they provided them in these threads:
 /// https://spaceshard.slack.com/archives/C029F9AN8LX/p1721657837687799?thread_ts=1721400009.781699&cid=C029F9AN8LX
+/// https://spaceshard.slack.com/archives/C029F9AN8LX/p1739259794326519?thread_ts=1738840494.497479&cid=C029F9AN8LX
 pub(crate) fn custom_bouncer_config() -> BouncerConfig {
     BouncerConfig {
         block_max_capacity: BouncerWeights {
-            n_steps: 40_000_000,
-            gas: 4_950_000,
+            l1_gas: 4_950_000,
+            sierra_gas: starknet_api::execution_resources::GasAmount(250_000_000),
             state_diff_size: 4_000,
             n_events: 5_000,
-            builtin_count: BuiltinCount {
-                pedersen: 1_250_000,
-                poseidon: 1_250_000,
-                range_check: 250_000,
-                range_check96: 250_000,
-                add_mod: 250_000,
-                mul_mod: 250_000,
-                ecdsa: 19_531,
-                bitwise: 625_000,
-                ec_op: 39_062,
-                keccak: 19_531,
-            },
             ..BouncerWeights::max()
         },
     }
 }
 
-/// Returns the hash of a compiled class.
-/// # Arguments
-/// * `casm_json` - The compiled class in JSON format.
-pub fn calculate_casm_hash(casm_json: Value) -> DevnetResult<Felt> {
-    serde_json::from_value::<CompiledClass>(casm_json)
-        .map_err(|err| Error::DeserializationError { origin: err.to_string() })?
-        .class_hash()
-        .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })
+#[macro_export]
+macro_rules! nonzero_gas_price {
+    ($value:expr) => {{
+        let gas_price = starknet_api::block::GasPrice(($value).get());
+        starknet_api::block::NonzeroGasPrice::new(gas_price).unwrap()
+    }};
+}
+
+pub(crate) fn maybe_extract_failure_reason(
+    execution_info: &TransactionExecutionInfo,
+) -> Option<String> {
+    execution_info.revert_error.as_ref().map(|err| err.to_string())
 }
 
 #[cfg(test)]
 pub(crate) mod test_utils {
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
-    use starknet_api::transaction::Fee;
+    use starknet_api::transaction::fields::Fee;
     use starknet_rs_core::types::Felt;
+    use starknet_types::compile_sierra_contract;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
+    use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
+    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
@@ -97,7 +94,6 @@ pub(crate) mod test_utils {
     };
     use starknet_types::traits::HashProducer;
 
-    use super::calculate_casm_hash;
     use crate::constants::DEVNET_DEFAULT_CHAIN_ID;
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
 
@@ -129,7 +125,7 @@ pub(crate) mod test_utils {
             Fee(100),
             &vec![],
             dummy_felt(),
-            &contract_class.clone().into(),
+            &contract_class.clone(),
             Felt::ONE,
         );
         let class_hash = contract_class.generate_hash().unwrap();
@@ -149,11 +145,8 @@ pub(crate) mod test_utils {
         sender_address: &ContractAddress,
     ) -> BroadcastedDeclareTransactionV2 {
         let contract_class = dummy_cairo_1_contract_class();
-
-        let casm_contract_class_json =
-            usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap()).unwrap();
-
-        let compiled_class_hash = calculate_casm_hash(casm_contract_class_json).unwrap();
+        let compiled_class_hash =
+            compile_sierra_contract(&contract_class).unwrap().compiled_class_hash();
 
         BroadcastedDeclareTransactionV2::new(
             &contract_class,
@@ -186,6 +179,8 @@ pub(crate) mod test_utils {
                     1,
                     0,
                     0,
+                    0,
+                    0,
                 ),
                 tip: Default::default(),
                 paymaster_data: vec![],
@@ -205,21 +200,37 @@ pub(crate) mod test_utils {
 #[cfg(any(test, feature = "test_utils"))]
 #[allow(clippy::unwrap_used)]
 pub mod exported_test_utils {
-    use starknet_types::contract_class::Cairo0Json;
+    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
+    use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
+    use starknet_types::contract_class::Cairo0ContractClass;
 
-    pub fn dummy_cairo_l1l2_contract() -> Cairo0Json {
+    pub fn dummy_cairo_l1l2_contract() -> Cairo0ContractClass {
         let json_str =
             std::fs::read_to_string("../../contracts/test_artifacts/cairo0/l1l2.json").unwrap();
 
-        Cairo0Json::raw_json_from_json_str(&json_str).unwrap()
+        Cairo0Json::raw_json_from_json_str(&json_str).unwrap().into()
     }
 
-    pub fn dummy_cairo_0_contract_class() -> Cairo0Json {
+    pub fn dummy_cairo_l1l2_contract_codegen() -> LegacyContractClass {
+        let json_str =
+            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/l1l2.json").unwrap();
+
+        serde_json::from_str(&json_str).unwrap()
+    }
+
+    pub fn dummy_cairo_0_contract_class() -> Cairo0ContractClass {
         let json_str =
             std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
                 .unwrap();
 
-        Cairo0Json::raw_json_from_json_str(&json_str).unwrap()
+        Cairo0Json::raw_json_from_json_str(&json_str).unwrap().into()
+    }
+
+    pub fn dummy_cairo_0_contract_class_codegen() -> LegacyContractClass {
+        let json_str =
+            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
+                .unwrap();
+        serde_json::from_str(&json_str).unwrap()
     }
 }
 
@@ -231,7 +242,7 @@ mod tests {
     #[test]
     fn correct_simple_storage_var_address_generated() {
         let expected_storage_var_address =
-            blockifier::abi::abi_utils::get_storage_var_address("simple", &[]);
+            starknet_api::abi::abi_utils::get_storage_var_address("simple", &[]);
         let generated_storage_var_address = get_storage_var_address("simple", &[]).unwrap();
 
         assert_eq!(
@@ -242,7 +253,7 @@ mod tests {
 
     #[test]
     fn correct_complex_storage_var_address_generated() {
-        let expected_storage_var_address = blockifier::abi::abi_utils::get_storage_var_address(
+        let expected_storage_var_address = starknet_api::abi::abi_utils::get_storage_var_address(
             "complex",
             &[test_utils::dummy_felt()],
         );

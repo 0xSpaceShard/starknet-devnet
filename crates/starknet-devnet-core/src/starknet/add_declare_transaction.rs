@@ -1,4 +1,6 @@
+use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::transactions::ExecutableTransaction;
+use starknet_types::compile_sierra_contract;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, CompiledClassHash, TransactionHash};
 use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
@@ -11,14 +13,13 @@ use starknet_types::rpc::transactions::{
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::starknet::Starknet;
 use crate::state::CustomState;
-use crate::utils::calculate_casm_hash;
 
 pub fn add_declare_transaction(
     starknet: &mut Starknet,
     broadcasted_declare_transaction: BroadcastedDeclareTransaction,
 ) -> DevnetResult<(TransactionHash, ClassHash)> {
-    if broadcasted_declare_transaction.is_max_fee_zero_value() {
-        return Err(TransactionValidationError::InsufficientMaxFee.into());
+    if !broadcasted_declare_transaction.is_max_fee_valid() {
+        return Err(TransactionValidationError::InsufficientResourcesForValidate.into());
     }
 
     if broadcasted_declare_transaction.is_only_query() {
@@ -27,11 +28,11 @@ pub fn add_declare_transaction(
         });
     }
 
-    let blockifier_declare_transaction = broadcasted_declare_transaction
-        .create_blockifier_declare(&starknet.chain_id().to_felt(), false)?;
+    let executable_tx =
+        broadcasted_declare_transaction.create_sn_api_declare(&starknet.chain_id().to_felt())?;
 
-    let transaction_hash = blockifier_declare_transaction.tx_hash().0;
-    let class_hash = blockifier_declare_transaction.class_hash().0;
+    let transaction_hash = executable_tx.tx_hash.0;
+    let class_hash = executable_tx.class_hash().0;
 
     let (declare_transaction, contract_class, casm_hash, sender_address) =
         match broadcasted_declare_transaction {
@@ -77,24 +78,19 @@ pub fn add_declare_transaction(
     )?);
 
     let transaction = TransactionWithHash::new(transaction_hash, declare_transaction);
-    let blockifier_execution_info =
-        blockifier::transaction::account_transaction::AccountTransaction::Declare(
-            blockifier_declare_transaction,
-        )
-        .execute(
-            &mut starknet.pending_state.state,
-            &starknet.block_context,
-            true,
-            validate,
-        )?;
+    let execution_info = blockifier::transaction::account_transaction::AccountTransaction {
+        tx: starknet_api::executable_transaction::AccountTransaction::Declare(executable_tx),
+        execution_flags: ExecutionFlags { only_query: false, charge_fee: true, validate },
+    }
+    .execute(&mut starknet.pending_state.state, &starknet.block_context)?;
 
     // if tx successful, store the class
-    if !blockifier_execution_info.is_reverted() {
+    if !execution_info.is_reverted() {
         let state = starknet.get_state();
         state.declare_contract_class(class_hash, casm_hash, contract_class)?;
     }
 
-    starknet.handle_accepted_transaction(transaction, blockifier_execution_info)?;
+    starknet.handle_accepted_transaction(transaction, execution_info)?;
 
     Ok((transaction_hash, class_hash))
 }
@@ -108,16 +104,9 @@ fn assert_casm_hash_is_valid(
     match (contract_class, received_casm_hash) {
         (ContractClass::Cairo0(_), None) => Ok(()), // if cairo0, casm_hash expected to be None
         (ContractClass::Cairo1(cairo_lang_contract_class), Some(received_casm_hash)) => {
-            let casm_json = usc::compile_contract(
-                serde_json::to_value(cairo_lang_contract_class)
-                    .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
-            )
-            .map_err(|err| {
-                let reason = err.to_string();
-                Error::TypesError(starknet_types::error::Error::SierraCompilationError { reason })
-            })?;
+            let casm = compile_sierra_contract(cairo_lang_contract_class)?;
 
-            let calculated_casm_hash = calculate_casm_hash(casm_json)?;
+            let calculated_casm_hash = casm.compiled_class_hash();
             if calculated_casm_hash == received_casm_hash {
                 Ok(())
             } else {
@@ -134,7 +123,7 @@ fn assert_casm_hash_is_valid(
 mod tests {
     use blockifier::state::state_api::StateReader;
     use starknet_api::core::CompiledClassHash;
-    use starknet_api::transaction::Fee;
+    use starknet_api::transaction::fields::Fee;
     use starknet_rs_core::types::{
         BlockId, BlockTag, Felt, TransactionExecutionStatus, TransactionFinalityStatus,
     };
@@ -167,7 +156,7 @@ mod tests {
             Fee(10000),
             &Vec::new(),
             Felt::ZERO,
-            &contract_class.into(),
+            &contract_class,
             Felt::ONE,
         )))
     }
@@ -219,7 +208,9 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            Error::TransactionValidationError(TransactionValidationError::InsufficientMaxFee) => {}
+            Error::TransactionValidationError(
+                TransactionValidationError::InsufficientResourcesForValidate,
+            ) => {}
             _ => panic!("Wrong error type"),
         }
     }
@@ -242,7 +233,9 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            Error::TransactionValidationError(TransactionValidationError::InsufficientMaxFee) => {}
+            Error::TransactionValidationError(
+                TransactionValidationError::InsufficientResourcesForValidate,
+            ) => {}
             _ => panic!("Wrong error type"),
         }
     }
@@ -371,7 +364,7 @@ mod tests {
             Fee(0),
             &vec![],
             dummy_felt(),
-            &dummy_cairo_0_contract_class().into(),
+            &dummy_cairo_0_contract_class(),
             Felt::ONE,
         );
 
@@ -383,7 +376,9 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            Error::TransactionValidationError(TransactionValidationError::InsufficientMaxFee) => {}
+            Error::TransactionValidationError(
+                TransactionValidationError::InsufficientResourcesForValidate,
+            ) => {}
             _ => panic!("Wrong error type"),
         }
     }
@@ -402,7 +397,7 @@ mod tests {
 
         match starknet.add_declare_transaction(declare_txn).unwrap_err() {
             crate::error::Error::TransactionValidationError(
-                crate::error::TransactionValidationError::InsufficientMaxFee,
+                crate::error::TransactionValidationError::InsufficientResourcesForValidate,
             ) => {}
             err => {
                 panic!("Wrong error type received {:?}", err);

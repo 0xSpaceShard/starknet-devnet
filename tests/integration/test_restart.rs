@@ -1,11 +1,10 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
+use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class_codegen;
 use starknet_rs_accounts::{
     Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
 use starknet_rs_core::utils::get_storage_var_address;
 use starknet_rs_providers::{Provider, ProviderError};
@@ -15,7 +14,8 @@ use crate::common::constants::{
     self, CAIRO_0_ACCOUNT_CONTRACT_HASH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    get_deployable_account_signer, remove_file, send_ctrl_c_signal_and_wait, FeeUnit,
+    assert_tx_successful, get_deployable_account_signer, remove_file, send_ctrl_c_signal_and_wait,
+    FeeUnit,
 };
 
 #[tokio::test]
@@ -91,9 +91,10 @@ async fn assert_account_deployment_reverted() {
     let deployment = account_factory.deploy_v1(salt).max_fee(Felt::from(1e18 as u128));
     let deployment_address = deployment.address();
     devnet.mint(deployment_address, 1e18 as u128).await;
-    deployment.send().await.unwrap();
+    let deployment_tx = deployment.send().await.unwrap();
 
-    // assert there is a class associated with the deployment address
+    // assert deployment successful and class associated with deployment address is present
+    assert_tx_successful(&deployment_tx.transaction_hash, &devnet.json_rpc_client).await;
     devnet
         .json_rpc_client
         .get_class_at(BlockId::Tag(BlockTag::Latest), deployment_address)
@@ -134,9 +135,7 @@ async fn assert_gas_price_unaffected_by_restart() {
     ));
 
     // prepare class for estimation of declaration
-    let contract_json = dummy_cairo_0_contract_class();
-    let contract_artifact: Arc<LegacyContractClass> =
-        Arc::new(serde_json::from_value(contract_json.inner).unwrap());
+    let contract_artifact = Arc::new(dummy_cairo_0_contract_class_codegen());
 
     // check gas price via fee estimation
     let estimate_before =

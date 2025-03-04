@@ -48,8 +48,19 @@ pub fn assert_difference_if_validation(
     );
 
     assert!(
-        no_flags_trace["execution_resources"]["steps"].as_u64().unwrap()
-            > skip_validation_trace["execution_resources"]["steps"].as_u64().unwrap()
+        no_flags_trace["execution_resources"]["l1_gas"].as_u64().unwrap()
+            > skip_validation_trace["execution_resources"]["l1_gas"].as_u64().unwrap()
+    );
+
+    assert!(
+        no_flags_trace["execution_resources"]["l1_data_gas"].as_u64().unwrap()
+            >= skip_validation_trace["execution_resources"]["l1_data_gas"].as_u64().unwrap()
+    );
+
+    // TODO gas: which operator to use: > or >= ?
+    assert!(
+        no_flags_trace["execution_resources"]["l2_gas"].as_u64().unwrap()
+            >= skip_validation_trace["execution_resources"]["l2_gas"].as_u64().unwrap()
     );
 
     assert_fee_in_resp_at_least_equal(resp_no_flags, resp_skip_validation);
