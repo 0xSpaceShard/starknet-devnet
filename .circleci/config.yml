@@ -3,33 +3,19 @@
 version: 2.1
 
 aliases:
-  - &on_main
+  - &build_custom
     context: spaceshard
     filters:
       branches:
         only:
-          - main
+          - blockifier-0.14-release
 
-  - &on_main_after_test_and_build
-    <<: *on_main
+  - &build_custom_publish
+    <<: *build_custom
     requires:
-      - build-and-test
       - image-build-amd
       - image-build-arm
       - binary-build
-
-  - &build_docker
-    context: spaceshard
-    filters:
-      branches:
-        only:
-          - blockifier-0.14-docker
-
-  - &build_docker_publish
-    <<: *build_docker
-    requires:
-      - image-build-amd
-      - image-build-arm
 
   - &linux_build
     machine:
@@ -180,9 +166,17 @@ jobs:
 workflows:
   build-test-maybe-publish:
     jobs:
+      - binary-build:
+          <<: *build_custom
+          matrix:
+            parameters:
+              arch: [x86_64, aarch64]
+              platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
+          target_triplet: << matrix.arch >>-<< matrix.platform >>
+          archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
       - image-build-amd:
-          <<: *build_docker
+          <<: *build_custom
       - image-build-arm:
-          <<: *build_docker
+          <<: *build_custom
       - publish:
-          <<: *build_docker_publish
+          <<: *build_custom_publish
