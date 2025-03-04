@@ -30,4 +30,4 @@ Linux*)
     ;;
 esac
 
-"$compiler_command" build --verbose --release --target="$TARGET"
+"$compiler_command" build --verbose --release --bin "starknet-devnet" --target="$TARGET"
