@@ -318,6 +318,7 @@ async fn get_compiled_casm(
         )
         .await
         .map(|json_value| {
+            // Check done because `CasmContractClass` does not perfectly correspond to RPC spec
             if json_value.get("pythonic_hints").is_some() {
                 panic!("Expected no pythonic_hints; found some!");
             }
