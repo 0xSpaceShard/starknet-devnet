@@ -107,7 +107,6 @@ jobs:
       - run:
           name: Compile binary
           command: ./scripts/compile_binary.sh << parameters.target_triplet >>
-          no_output_timeout: 15m
       - run:
           name: Archive and compress binary artifact # only the file, not the whole dir structure
           command: tar -czvf << parameters.archive_path >> --directory target/<< parameters.target_triplet >>/release starknet-devnet
