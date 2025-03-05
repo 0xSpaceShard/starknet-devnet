@@ -745,15 +745,16 @@ impl Starknet {
                 ))
             })?;
 
-        if res.execution.failed
-            && res.execution.retdata.0.first() == Some(&ENTRYPOINT_NOT_FOUND_ERROR_ENCODED)
-        {
-            return Err(Error::EntrypointNotFound);
+        // Discussed in https://spaceshard.slack.com/archives/C03QN20522D/p1735547866439019
+        if res.execution.failed {
+            Err(if res.execution.retdata.0.first() == Some(&ENTRYPOINT_NOT_FOUND_ERROR_ENCODED) {
+                Error::EntrypointNotFound
+            } else {
+                Error::ContractExecutionError(ErrorStack::from_inner_calls(&res.inner_calls))
+            })
+        } else {
+            Ok(res.execution.retdata.0)
         }
-
-        // TODO other cases: https://spaceshard.slack.com/archives/C03QN20522D/p1735547866439019
-
-        Ok(res.execution.retdata.0)
     }
 
     pub fn estimate_fee(
