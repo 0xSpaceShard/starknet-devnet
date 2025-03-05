@@ -62,7 +62,9 @@ pub fn get_compiled_casm_impl(
     let contract_class = get_class_impl(starknet, &BlockId::Tag(BlockTag::Latest), class_hash)?;
     match contract_class {
         ContractClass::Cairo1(sierra_contract_class) => {
-            Ok(compile_sierra_contract(&sierra_contract_class)?)
+            let mut casm = compile_sierra_contract(&sierra_contract_class)?;
+            casm.pythonic_hints = None; // removes the extra key from serialized form
+            Ok(casm)
         }
         ContractClass::Cairo0(_) => Err(Error::StateError(StateError::NoneCasmClass(class_hash))),
     }
