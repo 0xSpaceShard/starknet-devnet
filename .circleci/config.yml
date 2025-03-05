@@ -171,7 +171,9 @@ workflows:
           matrix:
             parameters:
               arch: [x86_64, aarch64]
-              platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
+              # linux-gnu and linux-musl for some reason hanging when compiled with cross
+              # platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
+              platform: [apple-darwin]
           target_triplet: << matrix.arch >>-<< matrix.platform >>
           archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
       - image-build-amd:
