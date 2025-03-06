@@ -248,7 +248,7 @@ impl BackgroundDevnet {
 
     /// Mint some amount of wei at `address` and return the resulting transaction hash.
     pub async fn mint(&self, address: impl LowerHex, mint_amount: u128) -> Felt {
-        self.mint_unit(address, mint_amount, FeeUnit::Wei).await
+        self.mint_unit(address, mint_amount, FeeUnit::Fri).await
     }
 
     pub async fn mint_unit(
