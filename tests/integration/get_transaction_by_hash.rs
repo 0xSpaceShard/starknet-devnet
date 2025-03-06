@@ -43,7 +43,7 @@ async fn get_declare_v3_transaction_by_hash_happy_path() {
 }
 
 #[tokio::test]
-async fn get_deploy_account_v3_transaction_by_hash_happy_path() {
+async fn get_deploy_account_transaction_by_hash_happy_path() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
     let signer = get_deployable_account_signer();
