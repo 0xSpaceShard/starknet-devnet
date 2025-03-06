@@ -188,7 +188,6 @@ mod tests {
     use starknet_types::compile_sierra_contract;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
-    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::state::{Balance, ReplacedClasses};
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
@@ -223,7 +222,7 @@ mod tests {
         let mut state = setup();
 
         let class_hash = ClassHash(Felt::ONE);
-        let casm_hash = felt_from_prefixed_hex(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
+        let casm_hash = DUMMY_CAIRO_1_COMPILED_CLASS_HASH;
 
         // necessary to prevent blockifier's state subtraction panic
         state.get_compiled_class(class_hash).expect_err("Shouldn't yet be declared");

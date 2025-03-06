@@ -78,24 +78,23 @@ pub(crate) fn maybe_extract_failure_reason(
 #[cfg(test)]
 pub(crate) mod test_utils {
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
-    use starknet_api::transaction::fields::Fee;
+    use starknet_api::data_availability::DataAvailabilityMode;
+    use starknet_api::transaction::fields::{Fee, Tip};
     use starknet_rs_core::types::Felt;
     use starknet_types::compile_sierra_contract;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
-    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
-    use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
+    use starknet_types::rpc::transactions::declare_transaction_v3::DeclareTransactionV3;
     use starknet_types::rpc::transactions::{
-        BroadcastedTransactionCommonV3, DeclareTransaction, ResourceBoundsWrapper, Transaction,
-        TransactionWithHash,
+        BroadcastedDeclareTransaction, BroadcastedTransactionCommonV3, DeclareTransaction,
+        ResourceBoundsWrapper, Transaction, TransactionWithHash,
     };
     use starknet_types::traits::HashProducer;
 
     use crate::constants::DEVNET_DEFAULT_CHAIN_ID;
-    use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
 
     pub(crate) fn dummy_felt() -> Felt {
         Felt::from_hex_unchecked("0xDD10")
@@ -110,33 +109,51 @@ pub(crate) mod test_utils {
     }
 
     /// casm hash of dummy_cairo_1_contract_class
-    pub static DUMMY_CAIRO_1_COMPILED_CLASS_HASH: &str =
-        "0x3faafcc98742a29a5ca809bda3c827b2d2c73759c64f695e33106009e7e9fef";
+    pub static DUMMY_CAIRO_1_COMPILED_CLASS_HASH: Felt = Felt::from_hex_unchecked(
+        "0x3faafcc98742a29a5ca809bda3c827b2d2c73759c64f695e33106009e7e9fef",
+    );
 
     pub(crate) fn dummy_contract_address() -> ContractAddress {
         ContractAddress::new(Felt::from_hex_unchecked("0xADD4E55")).unwrap()
     }
 
-    pub(crate) fn dummy_declare_transaction_v1() -> TransactionWithHash {
+    pub(crate) fn dummy_broadcasted_declare_tx_v3(
+        sender_address: ContractAddress,
+    ) -> BroadcastedDeclareTransactionV3 {
+        BroadcastedDeclareTransactionV3 {
+            common: BroadcastedTransactionCommonV3 {
+                version: Felt::THREE,
+                signature: vec![],
+                nonce: dummy_felt(),
+                resource_bounds: todo!(),
+                tip: Tip(0),
+                paymaster_data: vec![],
+                nonce_data_availability_mode: DataAvailabilityMode::L1,
+                fee_data_availability_mode: DataAvailabilityMode::L1,
+            },
+            contract_class: dummy_cairo_1_contract_class(),
+            sender_address,
+            compiled_class_hash: DUMMY_CAIRO_1_COMPILED_CLASS_HASH,
+            account_deployment_data: vec![],
+        }
+    }
+
+    pub(crate) fn dummy_declare_transaction_v3() -> TransactionWithHash {
         let chain_id = DEVNET_DEFAULT_CHAIN_ID.to_felt();
-        let contract_class = dummy_cairo_0_contract_class();
-        let broadcasted_tx = BroadcastedDeclareTransactionV1::new(
-            dummy_contract_address(),
-            Fee(100),
-            &vec![],
-            dummy_felt(),
-            &contract_class.clone(),
-            Felt::ONE,
-        );
-        let class_hash = contract_class.generate_hash().unwrap();
-        let transaction_hash =
-            broadcasted_tx.calculate_transaction_hash(&chain_id, &class_hash).unwrap();
+        let broadcasted_tx = dummy_broadcasted_declare_tx_v3(dummy_contract_address());
+        let sierra_hash =
+            ContractClass::Cairo1(broadcasted_tx.contract_class.clone()).generate_hash().unwrap();
+
+        let transaction_hash = BroadcastedDeclareTransaction::V3(Box::new(broadcasted_tx.clone()))
+            .create_sn_api_declare(&chain_id)
+            .unwrap()
+            .tx_hash;
 
         TransactionWithHash::new(
-            transaction_hash,
-            Transaction::Declare(DeclareTransaction::V1(DeclareTransactionV0V1::new(
+            *transaction_hash,
+            Transaction::Declare(DeclareTransaction::V3(DeclareTransactionV3::new(
                 &broadcasted_tx,
-                class_hash,
+                sierra_hash,
             ))),
         )
     }

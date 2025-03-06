@@ -4,7 +4,6 @@ use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::versioned_constants::VersionedConstants;
-use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use declare_transaction_v0v1::DeclareTransactionV0V1;
 use declare_transaction_v2::DeclareTransactionV2;
@@ -573,7 +572,6 @@ impl BroadcastedTransaction {
 
 #[derive(Debug, Clone)]
 pub enum BroadcastedDeclareTransaction {
-    V1(Box<BroadcastedDeclareTransactionV1>),
     V2(Box<BroadcastedDeclareTransactionV2>),
     V3(Box<BroadcastedDeclareTransactionV3>),
 }
@@ -581,7 +579,6 @@ pub enum BroadcastedDeclareTransaction {
 impl BroadcastedDeclareTransaction {
     pub fn is_max_fee_valid(&self) -> bool {
         match self {
-            BroadcastedDeclareTransaction::V1(v1) => !v1.common.is_max_fee_zero_value(),
             BroadcastedDeclareTransaction::V2(v2) => !v2.common.is_max_fee_zero_value(),
             BroadcastedDeclareTransaction::V3(v3) => v3.common.are_gas_bounds_valid(),
         }
@@ -589,14 +586,13 @@ impl BroadcastedDeclareTransaction {
 
     pub fn is_deprecated(&self) -> bool {
         match self {
-            BroadcastedDeclareTransaction::V1(_) | BroadcastedDeclareTransaction::V2(_) => true,
+            BroadcastedDeclareTransaction::V2(_) => true,
             BroadcastedDeclareTransaction::V3(_) => false,
         }
     }
 
     pub fn is_only_query(&self) -> bool {
         match self {
-            BroadcastedDeclareTransaction::V1(tx) => tx.common.is_only_query(),
             BroadcastedDeclareTransaction::V2(tx) => tx.common.is_only_query(),
             BroadcastedDeclareTransaction::V3(tx) => tx.common.is_only_query(),
         }
@@ -614,29 +610,6 @@ impl BroadcastedDeclareTransaction {
         let sn_api_chain_id = felt_to_sn_api_chain_id(chain_id)?;
 
         let (sn_api_transaction, tx_hash, class_info) = match self {
-            BroadcastedDeclareTransaction::V1(v1) => {
-                let class_hash = v1.generate_class_hash()?;
-
-                let sn_api_declare = starknet_api::transaction::DeclareTransaction::V1(
-                    starknet_api::transaction::DeclareTransactionV0V1 {
-                        class_hash: starknet_api::core::ClassHash(class_hash),
-                        sender_address: v1.sender_address.try_into()?,
-                        nonce: starknet_api::core::Nonce(v1.common.nonce),
-                        max_fee: v1.common.max_fee,
-                        signature: starknet_api::transaction::fields::TransactionSignature(
-                            v1.common.signature.clone(),
-                        ),
-                    },
-                );
-
-                let class_info: ClassInfo =
-                    ContractClass::Cairo0(v1.contract_class.clone()).try_into()?;
-
-                let tx_hash = v1.calculate_transaction_hash(chain_id, &class_hash)?;
-                let sn_api_tx_hash = starknet_api::transaction::TransactionHash(tx_hash);
-
-                (sn_api_declare, sn_api_tx_hash, class_info)
-            }
             BroadcastedDeclareTransaction::V2(v2) => {
                 let sierra_class_hash: Felt = compute_sierra_class_hash(&v2.contract_class)?;
 
@@ -902,12 +875,6 @@ impl<'de> Deserialize<'de> for BroadcastedDeclareTransaction {
         let value = serde_json::Value::deserialize(deserializer)?;
         let version_raw = value.get("version").ok_or(serde::de::Error::missing_field("version"))?;
         match version_raw.as_str() {
-            Some(v) if ["0x1", "0x100000000000000000000000000000001"].contains(&v) => {
-                let unpacked = serde_json::from_value(value).map_err(|e| {
-                    serde::de::Error::custom(format!("Invalid declare transaction v1: {e}"))
-                })?;
-                Ok(BroadcastedDeclareTransaction::V1(Box::new(unpacked)))
-            }
             Some(v) if ["0x2", "0x100000000000000000000000000000002"].contains(&v) => {
                 let unpacked = serde_json::from_value(value).map_err(|e| {
                     serde::de::Error::custom(format!("Invalid declare transaction v2: {e}"))

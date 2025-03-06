@@ -293,7 +293,7 @@ mod tests {
     use crate::starknet::transaction_trace::create_trace;
     use crate::state::state_readers::DictState;
     use crate::traits::HashIdentifiedMut;
-    use crate::utils::test_utils::dummy_declare_transaction_v1;
+    use crate::utils::test_utils::dummy_declare_transaction_v3;
 
     fn dummy_trace(tx: &TransactionWithHash) -> TransactionTrace {
         create_trace(
@@ -309,7 +309,7 @@ mod tests {
 
     #[test]
     fn get_transaction_by_hash() {
-        let tx = dummy_declare_transaction_v1();
+        let tx = dummy_declare_transaction_v3();
 
         let trace = dummy_trace(&tx);
         let sn_tx = StarknetTransaction::create_accepted(
@@ -334,7 +334,7 @@ mod tests {
 
     #[test]
     fn check_correct_successful_transaction_creation() {
-        let tx = dummy_declare_transaction_v1();
+        let tx = dummy_declare_transaction_v3();
         let trace = dummy_trace(&tx);
         let sn_tran =
             StarknetTransaction::create_accepted(&tx, TransactionExecutionInfo::default(), trace);
