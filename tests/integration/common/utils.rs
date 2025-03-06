@@ -1,9 +1,9 @@
 use std::fmt::LowerHex;
-use std::fs;
 use std::path::Path;
 use std::process::{Child, Command};
 use std::sync::Arc;
 use std::time::Duration;
+use std::{fs, u128};
 
 use ethers::types::U256;
 use futures::{SinkExt, StreamExt, TryStreamExt};
@@ -385,7 +385,7 @@ pub async fn deploy_oz_account(
     let deployment = factory.deploy_v3(salt);
 
     let account_address = deployment.address();
-    devnet.mint(account_address, 1e18 as u128).await;
+    devnet.mint(account_address, u128::MAX).await;
     let deployment_result = deployment.send().await?;
 
     Ok((deployment_result, signer))
@@ -410,7 +410,7 @@ pub async fn deploy_argent_account(
     let deployment = factory.deploy_v3(salt);
 
     let account_address = deployment.address();
-    devnet.mint(account_address, 1e18 as u128).await;
+    devnet.mint(account_address, u128::MAX).await;
     let deployment_result =
         deployment.send().await.map_err(|e| anyhow::Error::msg(format!("{e:?}")))?;
 
