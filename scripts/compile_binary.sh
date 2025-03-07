@@ -10,14 +10,14 @@ if [ $# != 1 ]; then
 fi
 TARGET="$1"
 
-if [[ "$TARGET" == *unknown-linux-musl ]]; then
-    sudo apt-get update
-    sudo apt-get install musl-tools
-    musl-gcc --version && echo "Musl successfully installed"
-fi
-
 case "$TARGET" in
 x86_64*)
+    if [[ "$TARGET" == *unknown-linux-musl ]]; then
+        sudo apt-get update
+        sudo apt-get install musl-tools
+        musl-gcc --version && echo "Musl successfully installed"
+    fi
+
     rustup target add "$TARGET"
     compiler_command="cargo"
     ;;
