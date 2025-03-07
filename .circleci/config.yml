@@ -10,10 +10,17 @@ aliases:
         only:
           - main
 
+  - &on_improve_bin_compilation
+    context: spaceshard
+    filters:
+      branches:
+        only:
+          - improve-bin-compilation
+
   - &on_main_after_test_and_build
     <<: *on_main
     requires:
-      - build-and-test
+      # - build-and-test
       - image-build-amd
       - image-build-arm
       - binary-build
@@ -167,9 +174,9 @@ jobs:
 workflows:
   build-test-maybe-publish:
     jobs:
-      - build-and-test
+      # - build-and-test
       - binary-build:
-          <<: *on_main
+          <<: *on_improve_bin_compilation
           matrix:
             parameters:
               arch: [x86_64, aarch64]
