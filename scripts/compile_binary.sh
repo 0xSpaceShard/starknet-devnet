@@ -12,13 +12,12 @@ TARGET="$1"
 
 [[ "$TARGET" == *unknown-linux-musl ]] && apt-get install musl
 
-arch_name=$(uname -m)
-case "$arch_name" in
-"x86_64")
+case "$TARGET" in
+x86_64*)
     rustup target add "$TARGET"
     compiler_command="cargo"
     ;;
-"aarch64")
+aarch64*)
     kernel_name=$(uname -s)
     case "$kernel_name" in
     Linux*)
@@ -37,7 +36,7 @@ case "$arch_name" in
     esac
     ;;
 *)
-    echo >&2 "Unsupported arch: $arch_name"
+    echo >&2 "Unsupported arch in target: $TARGET"
     exit 1
     ;;
 esac
