@@ -2,47 +2,50 @@
 
 set -euo pipefail
 
-CROSS_VERSION="v0.2.5"
-
 if [ $# != 1 ]; then
     echo >&2 "Error: $0 <TARGET>"
     exit 1
 fi
 TARGET="$1"
 
-case "$TARGET" in
-x86_64*)
-    if [[ "$TARGET" == *unknown-linux-musl ]]; then
-        sudo apt-get update
-        sudo apt-get install musl-tools
-        musl-gcc --version && echo "Musl successfully installed"
-    fi
+CARGO_CONFIG=~/.cargo/config.toml
 
-    rustup target add "$TARGET"
-    compiler_command="cargo"
+case "$TARGET" in
+x86_64-unknown-linux-gnu | x86_64-apple-darwin | aarch64-apple-darwin)
+    echo "Target requires no extra actions: $TARGET"
     ;;
-aarch64*)
-    kernel_name=$(uname -s)
-    case "$kernel_name" in
-    Linux*)
-        download_url="https://github.com/cross-rs/cross/releases/download/${CROSS_VERSION}/cross-x86_64-unknown-linux-gnu.tar.gz"
-        curl -SsL "$download_url" | tar -xvz -C /tmp
-        compiler_command="/tmp/cross"
-        ;;
-    Darwin*)
-        rustup target add "$TARGET"
-        compiler_command="cargo"
-        ;;
-    *)
-        echo >&2 "Unsupported kernel: $kernel_name"
-        exit 1
-        ;;
-    esac
+
+x86_64-unknown-linux-musl)
+    sudo apt-get update
+    sudo apt-get install musl-tools
+    musl-gcc --version && echo "Musl successfully installed"
+    ;;
+
+aarch64-unknown-linux-musl)
+    sudo apt-get update
+    sudo apt-get install musl-tools
+    sudo apt-get install musl-cross-make
+
+    aarch64-linux-musl-gcc --version && echo "Cross compiler successfully installed"
+
+    echo '[target.aarch64-unknown-linux-musl]' >>"$CARGO_CONFIG"
+    echo 'linker = "aarch64-linux-musl-gcc"' >>"$CARGO_CONFIG"
+    ;;
+
+aarch64-unknown-linux-gnu)
+    sudo apt-get update
+    sudo apt-get install gcc-aarch64-linux-gnu
+
+    aarch64-linux-gnu-gcc --version && echo "Cross compiler successfully installed"
+
+    echo '[target.aarch64-unknown-linux-gnu]' >>"$CARGO_CONFIG"
+    echo 'linker = "aarch64-linux-gnu-gcc"' >>"$CARGO_CONFIG"
     ;;
 *)
-    echo >&2 "Unsupported arch in target: $TARGET"
-    exit 1
+    echo >&2 "Error: Invalid compilation target: $TARGET"
+    exit 2
     ;;
 esac
 
-"$compiler_command" build --release --target="$TARGET" --bin starknet-devnet
+rustup target add "$TARGET"
+cargo build --release --target="$TARGET" --bin starknet-devnet
