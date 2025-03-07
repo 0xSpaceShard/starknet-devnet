@@ -5,27 +5,39 @@ set -euo pipefail
 CROSS_VERSION="v0.2.5"
 
 if [ $# != 1 ]; then
-    >&2 echo "Error: $0 <TARGET>"
+    echo >&2 "Error: $0 <TARGET>"
     exit 1
 fi
 TARGET="$1"
 
-kernel_name=$(uname -s)
-case "$kernel_name" in
-Darwin*)
-    # on mac (for apple-darwin targets), rely on host compiler's targets
+[[ "$TARGET" == *unknown-linux-musl ]] && apt-get install musl
+
+arch_name=$(uname -m)
+case "$arch_name" in
+"x86_64")
     rustup target add "$TARGET"
     compiler_command="cargo"
     ;;
-Linux*)
-    # on linux, rely on cross compiler
-    download_url="https://github.com/cross-rs/cross/releases/download/${CROSS_VERSION}/cross-x86_64-unknown-linux-gnu.tar.gz"
-    curl -SsL "$download_url" |
-        tar -xvz -C /tmp
-    compiler_command="/tmp/cross"
+"aarch64")
+    kernel_name=$(uname -s)
+    case "$kernel_name" in
+    Linux*)
+        download_url="https://github.com/cross-rs/cross/releases/download/${CROSS_VERSION}/cross-x86_64-unknown-linux-gnu.tar.gz"
+        curl -SsL "$download_url" | tar -xvz -C /tmp
+        compiler_command="/tmp/cross"
+        ;;
+    Darwin*)
+        rustup target add "$TARGET"
+        compiler_command="cargo"
+        ;;
+    *)
+        echo >&2 "Unsupported kernel: $kernel_name"
+        exit 1
+        ;;
+    esac
     ;;
 *)
-    >&2 echo "Unsupported kernel: $kernel_name"
+    echo >&2 "Unsupported arch: $arch_name"
     exit 1
     ;;
 esac
