@@ -80,11 +80,11 @@ enum-helper-macros = "0.0.1"
 starknet-types-core = "0.1.5"
 starknet_api = { version = "0.14.0-rc.1", features = ["testing"] }
 blockifier = { version = "0.14.0-rc.1" }
-starknet-rs-signers = { git = "https://github.com/xJonathanLEI/starknet-rs.git", branch = "dev/jsonrpc_0_8_0", package = "starknet-signers" }
-starknet-rs-core = { git = "https://github.com/xJonathanLEI/starknet-rs.git", branch = "dev/jsonrpc_0_8_0", package = "starknet-core" }
-starknet-rs-providers = { git = "https://github.com/xJonathanLEI/starknet-rs.git", branch = "dev/jsonrpc_0_8_0", package = "starknet-providers" }
-starknet-rs-accounts = { git = "https://github.com/xJonathanLEI/starknet-rs.git", branch = "dev/jsonrpc_0_8_0", package = "starknet-accounts" }
-starknet-rs-contract = { git = "https://github.com/xJonathanLEI/starknet-rs.git", branch = "dev/jsonrpc_0_8_0", package = "starknet-contract" }
+starknet-rs-signers = { git = "https://github.com/marioiordanov/starknet-rs.git", branch = "jsonrpc_0_8_0-fix", package = "starknet-signers" }
+starknet-rs-core = { git = "https://github.com/marioiordanov/starknet-rs.git", branch = "jsonrpc_0_8_0-fix", package = "starknet-core" }
+starknet-rs-providers = { git = "https://github.com/marioiordanov/starknet-rs.git", branch = "jsonrpc_0_8_0-fix", package = "starknet-providers" }
+starknet-rs-accounts = { git = "https://github.com/marioiordanov/starknet-rs.git", branch = "jsonrpc_0_8_0-fix", package = "starknet-accounts" }
+starknet-rs-contract = { git = "https://github.com/marioiordanov/starknet-rs.git", branch = "jsonrpc_0_8_0-fix", package = "starknet-contract" }
 cairo-vm = "=1.0.2"
 
 # Cairo-lang dependencies
