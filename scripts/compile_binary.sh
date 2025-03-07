@@ -10,7 +10,11 @@ if [ $# != 1 ]; then
 fi
 TARGET="$1"
 
-[[ "$TARGET" == *unknown-linux-musl ]] && apt-get install musl
+if [[ "$TARGET" == *unknown-linux-musl ]]; then
+    sudo apt-get update
+    sudo apt-get install musl-tools
+    musl-gcc --version && echo "Musl successfully installed"
+fi
 
 case "$TARGET" in
 x86_64*)
