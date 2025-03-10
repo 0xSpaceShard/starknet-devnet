@@ -23,7 +23,7 @@ x86_64-unknown-linux-musl)
 
 aarch64-unknown-linux-musl)
     sudo apt-get update
-    sudo apt-get install musl-tools musl-dev
+    sudo apt-get install gcc-aarch64-linux-gnu musl-tools musl-dev
 
     echo '[target.aarch64-unknown-linux-musl]' >>"$CARGO_CONFIG"
     # echo 'linker = "aarch64-linux-musl-gcc"' >>"$CARGO_CONFIG"
