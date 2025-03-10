@@ -21,18 +21,9 @@ x86_64-unknown-linux-musl)
     musl-gcc --version && echo "Musl successfully installed"
     ;;
 
-aarch64-unknown-linux-musl)
-    sudo apt-get update
-    sudo apt-get install musl-tools musl-dev
-
-    sudo find / -name aarch64-linux-musl-gcc
-    aarch64-linux-musl-gcc --version
-    echo "Musl successfully installed"
-
-    echo '[target.aarch64-unknown-linux-musl]' >>"$CARGO_CONFIG"
-    echo 'linker = "aarch64-linux-musl-gcc"' >>"$CARGO_CONFIG"
-    echo "Populated Cargo config file"
-    ;;
+# Temporarily disabled
+# aarch64-unknown-linux-musl)
+#     ;;
 
 aarch64-unknown-linux-gnu)
     sudo apt-get update
@@ -44,8 +35,9 @@ aarch64-unknown-linux-gnu)
     echo '[target.aarch64-unknown-linux-gnu]' >>"$CARGO_CONFIG"
     echo 'linker = "aarch64-linux-gnu-gcc"' >>"$CARGO_CONFIG"
     ;;
+
 *)
-    echo >&2 "Error: Invalid compilation target: $TARGET"
+    echo >&2 "Error: Unsupported compilation target: $TARGET"
     exit 2
     ;;
 esac
