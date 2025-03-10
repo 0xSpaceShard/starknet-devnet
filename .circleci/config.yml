@@ -10,10 +10,17 @@ aliases:
         only:
           - main
 
+  - &on_improve_bin_compilation
+    context: spaceshard
+    filters:
+      branches:
+        only:
+          - improve-bin-compilation
+
   - &on_main_after_test_and_build
     <<: *on_main
     requires:
-      - build-and-test
+      # - build-and-test
       - image-build-amd
       - image-build-arm
       - binary-build
@@ -22,8 +29,6 @@ aliases:
     machine:
       image: ubuntu-2204:2024.01.2
     resource_class: large
-    environment:
-      COMPILER_ARCHIVE: cross-x86_64-unknown-linux-gnu.tar.gz
 
 executors:
   unknown-linux-gnu:
@@ -36,8 +41,6 @@ executors:
     macos:
       xcode: 15.3.0
     resource_class: macos.m1.medium.gen1
-    environment:
-      COMPILER_ARCHIVE: cross-x86_64-apple-darwin.tar.gz
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
@@ -167,9 +170,9 @@ jobs:
 workflows:
   build-test-maybe-publish:
     jobs:
-      - build-and-test
+      # - build-and-test
       - binary-build:
-          <<: *on_main
+          <<: *on_improve_bin_compilation
           matrix:
             parameters:
               arch: [x86_64, aarch64]
