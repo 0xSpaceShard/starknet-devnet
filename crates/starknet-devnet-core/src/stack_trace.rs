@@ -1,6 +1,7 @@
 // Copied with minor modifications from blockifier/src/execution/stack_trace.rs.
 // Try removing once included in a blockifier release.
 
+use blockifier::execution::call_info::CallInfo;
 use blockifier::execution::deprecated_syscalls::hint_processor::DeprecatedSyscallExecutionError;
 use blockifier::execution::errors::{
     ConstructorEntryPointExecutionError, EntryPointExecutionError,
@@ -54,6 +55,24 @@ pub struct ErrorStack {
 impl ErrorStack {
     pub fn from_str_err(s: &str) -> Self {
         Self { stack: vec![Frame::StringFrame(s.into())] }
+    }
+
+    pub fn from_inner_calls(_calls: &[CallInfo]) -> Self {
+        unimplemented!("Figure out how to get preamble_type")
+        // Self {
+        //     stack: calls
+        //         .iter()
+        //         .map(|_call| {
+        //             Frame::EntryPoint(EntryPointErrorFrame {
+        //                 depth: todo!(),
+        //                 preamble_type: todo!(),
+        //                 storage_address: todo!(),
+        //                 class_hash: todo!(),
+        //                 selector: todo!(),
+        //             })
+        //         })
+        //         .collect(),
+        // }
     }
 
     pub fn push(&mut self, frame: Frame) {
