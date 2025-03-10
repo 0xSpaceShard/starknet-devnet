@@ -38,9 +38,6 @@ impl EstimateMessageFeeRequestWrapper {
         EthAddressWrapper { inner: self.inner.message.from_address.clone() }
     }
 
-    // Modified approach: Instead of trying to return a reference to a dynamically created object,
-    // let's define a method that allows working with the EthAddressWrapper by reference without
-    // actually returning a reference
     pub fn with_from_address<F, R>(&self, f: F) -> R
     where
         F: FnOnce(&EthAddressWrapper) -> R,
