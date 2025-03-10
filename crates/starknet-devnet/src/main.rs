@@ -56,6 +56,7 @@ const RESPONSE_LOG_ENV_VAR: &str = "response";
 /// paths to some module like this one: `starknet-devnet::cli` nothing gets logged. For example:
 /// `RUST_LOG=request` is translated to `request=TRACE`, which means that will log TRACE level for
 /// request module.
+/// 
 fn configure_tracing() {
     let log_env_var = std::env::var(EnvFilter::DEFAULT_ENV).unwrap_or_default().to_lowercase();
 
