@@ -175,8 +175,10 @@ workflows:
           <<: *on_improve_bin_compilation
           matrix:
             parameters:
-              arch: [x86_64, aarch64]
-              platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
+              # arch: [x86_64, aarch64]
+              # platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
+              arch: [aarch64]
+              platform: [unknown-linux-musl]
           target_triplet: << matrix.arch >>-<< matrix.platform >>
           archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
       - image-build-amd:

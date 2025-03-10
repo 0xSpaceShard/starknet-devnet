@@ -23,13 +23,12 @@ x86_64-unknown-linux-musl)
 
 aarch64-unknown-linux-musl)
     sudo apt-get update
-    sudo apt-get install musl-tools
-    sudo apt-get install musl-cross-make
-
-    aarch64-linux-musl-gcc --version && echo "Cross compiler successfully installed"
+    sudo apt-get install musl-tools musl-dev
 
     echo '[target.aarch64-unknown-linux-musl]' >>"$CARGO_CONFIG"
-    echo 'linker = "aarch64-linux-musl-gcc"' >>"$CARGO_CONFIG"
+    # echo 'linker = "aarch64-linux-musl-gcc"' >>"$CARGO_CONFIG"
+    echo 'linker = "aarch64-unknown-linux-musl-ld"' >>"$CARGO_CONFIG"
+    echo "Populated Cargo config file"
     ;;
 
 aarch64-unknown-linux-gnu)
