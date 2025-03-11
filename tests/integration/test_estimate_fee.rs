@@ -8,10 +8,10 @@ use starknet_rs_accounts::{
 };
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedDeclareTransactionV3,
-    BroadcastedInvokeTransaction, BroadcastedInvokeTransactionV1, BroadcastedInvokeTransactionV3,
-    BroadcastedTransaction, Call, DataAvailabilityMode, FeeEstimate, Felt, FunctionCall,
-    ResourceBounds, ResourceBoundsMapping, StarknetError, TransactionExecutionErrorData,
+    BlockId, BlockTag, BroadcastedDeclareTransactionV3, BroadcastedInvokeTransaction,
+    BroadcastedInvokeTransactionV1, BroadcastedInvokeTransactionV3, BroadcastedTransaction, Call,
+    DataAvailabilityMode, FeeEstimate, Felt, FunctionCall, ResourceBounds, ResourceBoundsMapping,
+    StarknetError, TransactionExecutionErrorData,
 };
 use starknet_rs_core::utils::{
     cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
@@ -29,6 +29,7 @@ use crate::common::constants::{
 use crate::common::utils::{
     assert_json_rpc_errors_equal, assert_tx_reverted, assert_tx_successful, extract_json_rpc_error,
     get_deployable_account_signer, get_flattened_sierra_contract_and_casm_hash,
+    get_simple_contract_in_sierra_and_compiled_class_hash,
 };
 
 fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
@@ -141,59 +142,6 @@ async fn estimate_fee_of_invalid_deploy_account() {
         ),
         other => panic!("Unexpected response: {other:?}"),
     }
-}
-
-#[tokio::test]
-async fn estimate_fee_of_declare_v1() {
-    let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-
-    // get account
-    let (signer, account_address) = devnet.get_first_predeployed_account().await;
-
-    // get class
-    let contract_artifact = Arc::new(dummy_cairo_0_contract_class_codegen());
-
-    // declare class
-    let account = SingleOwnerAccount::new(
-        devnet.clone_provider(),
-        signer,
-        account_address,
-        CHAIN_ID,
-        ExecutionEncoding::New,
-    );
-
-    let fee_estimation = account
-        .declare_legacy(Arc::clone(&contract_artifact))
-        .nonce(Felt::ZERO)
-        .fee_estimate_multiplier(1.0)
-        .estimate_fee()
-        .await
-        .unwrap();
-    assert_fee_estimation(&fee_estimation);
-
-    // try sending with insufficient max fee
-    let unsuccessful_declare_tx = account
-        .declare_legacy(Arc::clone(&contract_artifact))
-        .nonce(Felt::ZERO)
-        .max_fee(fee_estimation.overall_fee - Felt::ONE)
-        .send()
-        .await;
-    match unsuccessful_declare_tx {
-        Err(AccountError::Provider(ProviderError::StarknetError(
-            StarknetError::InsufficientMaxFee,
-        ))) => (),
-        other => panic!("Unexpected result: {other:?}"),
-    };
-
-    // try sending with sufficient max fee
-    let successful_declare_tx = account
-        .declare_legacy(contract_artifact)
-        .nonce(Felt::ZERO)
-        .max_fee(multiply_field_element(fee_estimation.overall_fee, 1.1))
-        .send()
-        .await
-        .unwrap();
-    assert_tx_successful(&successful_declare_tx.transaction_hash, &devnet.json_rpc_client).await;
 }
 
 #[tokio::test]
@@ -525,37 +473,50 @@ async fn estimate_fee_of_multiple_txs() {
     account.set_block_id(BlockId::Tag(BlockTag::Latest));
 
     // get class
-    let contract_class = Arc::new(dummy_cairo_0_contract_class_codegen());
+    let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let contract_class = Arc::new(contract_class);
+    let class_hash = contract_class.class_hash();
 
     let declaration_nonce = Felt::ZERO;
-    let declaration_max_fee = Felt::ZERO;
-    let class_hash = contract_class.class_hash().unwrap();
-    let prepared_legacy_declaration = account
-        .declare_legacy(contract_class.clone())
-        .max_fee(declaration_max_fee)
+    let l1_gas = 0;
+    let l1_gas_price = 0;
+    let prepared_declaration = account
+        .declare_v3(contract_class.clone(), casm_hash)
+        .gas(l1_gas)
+        .gas_price(l1_gas_price)
         .nonce(declaration_nonce)
         .prepared()
         .unwrap();
 
     let query_only = false;
-    let declaration_signature = signer
-        .sign_hash(&prepared_legacy_declaration.transaction_hash(query_only).unwrap())
-        .await
-        .unwrap();
+    let declaration_signature =
+        signer.sign_hash(&prepared_declaration.transaction_hash(query_only)).await.unwrap();
 
     devnet
         .json_rpc_client
         .estimate_fee(
             [
                 BroadcastedTransaction::Declare(
-                    starknet_rs_core::types::BroadcastedDeclareTransaction::V1(
-                        BroadcastedDeclareTransactionV1 {
-                            max_fee: declaration_max_fee,
+                    starknet_rs_core::types::BroadcastedDeclareTransaction::V3(
+                        BroadcastedDeclareTransactionV3 {
                             signature: vec![declaration_signature.r, declaration_signature.s],
                             nonce: declaration_nonce,
                             sender_address: account_address,
-                            contract_class: contract_class.compress().unwrap().into(),
+                            contract_class,
                             is_query: query_only,
+                            compiled_class_hash: casm_hash,
+                            resource_bounds: ResourceBoundsMapping {
+                                l1_gas: ResourceBounds {
+                                    max_amount: l1_gas,
+                                    max_price_per_unit: l1_gas_price,
+                                },
+                                l2_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
+                            },
+                            tip: 0,
+                            paymaster_data: vec![],
+                            account_deployment_data: vec![],
+                            nonce_data_availability_mode: DataAvailabilityMode::L1,
+                            fee_data_availability_mode: DataAvailabilityMode::L1,
                         },
                     ),
                 ),
@@ -567,8 +528,9 @@ async fn estimate_fee_of_multiple_txs() {
                     &[
                         class_hash,
                         Felt::from_hex_unchecked("0x123"), // salt
-                        Felt::ZERO,
-                        Felt::ZERO,
+                        Felt::ZERO,                        // unique
+                        Felt::ONE,                         // ctor args len
+                        Felt::ZERO,                        // ctor args - [initial_balance]
                     ],
                     Felt::ONE,
                 )

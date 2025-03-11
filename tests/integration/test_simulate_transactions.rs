@@ -37,69 +37,6 @@ use crate::common::utils::{
 };
 
 #[tokio::test]
-async fn simulate_declare_v1() {
-    let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-
-    // get account
-    let (signer, account_address) = devnet.get_first_predeployed_account().await;
-    let account = SingleOwnerAccount::new(
-        devnet.clone_provider(),
-        signer.clone(),
-        account_address,
-        CHAIN_ID,
-        ExecutionEncoding::New,
-    );
-
-    let contract_artifact = Arc::new(dummy_cairo_0_contract_class_codegen());
-
-    let max_fee = Felt::ZERO; // TODO try 1e18 as u128 instead
-    let nonce = Felt::ZERO;
-
-    let declaration = account
-        .declare_legacy(contract_artifact.clone())
-        .max_fee(max_fee)
-        .nonce(nonce)
-        .prepared()
-        .unwrap();
-    let declaration_hash = declaration.transaction_hash(false).unwrap();
-    let signature = signer.sign_hash(&declaration_hash).await.unwrap();
-
-    let sender_address_hex = account.address().to_hex_string();
-    let get_params = |simulation_flags: &[&str]| -> serde_json::Value {
-        json!({
-            "block_id": "latest",
-            "simulation_flags": simulation_flags,
-            "transactions": [
-                {
-                    "type": "DECLARE",
-                    "sender_address": sender_address_hex,
-                    "max_fee": to_hex_felt(&max_fee),
-                    "version": "0x1",
-                    "signature": iter_to_hex_felt(&[signature.r, signature.s]),
-                    "nonce": to_num_as_hex(&nonce),
-                    "contract_class": contract_artifact.compress().unwrap(),
-                }
-            ]
-        })
-    };
-
-    let resp_no_flags = &devnet
-        .send_custom_rpc("starknet_simulateTransactions", get_params(&["SKIP_FEE_CHARGE"]))
-        .await
-        .unwrap()[0];
-
-    let resp_skip_validation = &devnet
-        .send_custom_rpc(
-            "starknet_simulateTransactions",
-            get_params(&["SKIP_VALIDATE", "SKIP_FEE_CHARGE"]),
-        )
-        .await
-        .unwrap()[0];
-
-    assert_difference_if_validation(resp_no_flags, resp_skip_validation, &sender_address_hex, true);
-}
-
-#[tokio::test]
 async fn simulate_declare_v2() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 

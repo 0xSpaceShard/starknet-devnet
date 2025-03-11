@@ -347,7 +347,7 @@ mod tests {
     }
 
     #[test]
-    fn add_declare_v1_transaction_should_return_an_error_due_to_not_enough_balance_on_account() {
+    fn add_declare_v3_transaction_should_return_an_error_due_to_not_enough_balance_on_account() {
         let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1);
 
         let declare_txn = dummy_broadcasted_declare_tx_v3(sender.account_address);
@@ -362,7 +362,7 @@ mod tests {
     }
 
     #[test]
-    fn declare_v1_transaction_successful_storage_change() {
+    fn declare_v3_transaction_successful_storage_change() {
         let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(10000);
         let declare_txn = dummy_broadcasted_declare_tx_v3(sender.account_address);
 

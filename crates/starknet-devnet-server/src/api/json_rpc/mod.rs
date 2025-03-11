@@ -1312,48 +1312,6 @@ mod requests_tests {
         );
     }
 
-    fn sample_declare_v1_body() -> serde_json::Value {
-        json!({
-            "type": "DECLARE",
-            "max_fee": "0xA",
-            "version": "0x1",
-            "signature": ["0xFF", "0xAA"],
-            "nonce": "0x0",
-            "sender_address": "0x0001",
-            "contract_class": {
-                "abi": [{
-                    "inputs": [],
-                    "name": "getPublicKey",
-                    "outputs": [
-                        {
-                            "name": "publicKey",
-                            "type": "felt"
-                        }
-                    ],
-                    "stateMutability": "view",
-                    "type": "function"
-                },
-                {
-                    "inputs": [],
-                    "name": "setPublicKey",
-                    "outputs": [
-                        {
-                            "name": "publicKey",
-                            "type": "felt"
-                        }
-                    ],
-                    "type": "function"
-                }],
-                "program": "",
-                "entry_points_by_type": {
-                    "CONSTRUCTOR": [],
-                    "EXTERNAL": [],
-                    "L1_HANDLER": []
-                }
-            }
-        })
-    }
-
     fn sample_declare_v2_body() -> serde_json::Value {
         json!({
             "type":"DECLARE",
@@ -1400,31 +1358,6 @@ mod requests_tests {
     }
 
     #[test]
-    fn deserialize_declare_v1_fee_estimation_request() {
-        assert_deserialization_succeeds(
-            &create_estimate_request(&[sample_declare_v1_body()]).to_string(),
-        );
-        assert_deserialization_succeeds(
-            &create_estimate_request(&[sample_declare_v1_body()]).to_string().replace(
-                r#""version": "0x1""#,
-                r#""version": "0x100000000000000000000000000000001""#,
-            ),
-        );
-        assert_deserialization_fails(
-            &create_estimate_request(&[sample_declare_v1_body()])
-                .to_string()
-                .replace(r#""version":"0x1""#, r#""version":"0x123""#),
-            "Invalid version of declare transaction: \"0x123\"",
-        );
-        assert_deserialization_fails(
-            &create_estimate_request(&[sample_declare_v1_body()])
-                .to_string()
-                .replace(r#""version":"0x1""#, r#""version":"0x2""#),
-            "Invalid declare transaction v2",
-        );
-    }
-
-    #[test]
     fn deserialize_declare_v2_fee_estimation_request() {
         assert_deserialization_succeeds(
             &create_estimate_request(&[sample_declare_v2_body()]).to_string(),
@@ -1444,8 +1377,8 @@ mod requests_tests {
         assert_deserialization_fails(
             &create_estimate_request(&[sample_declare_v2_body()])
                 .to_string()
-                .replace(r#""version":"0x2""#, r#""version":"0x1""#),
-            "Invalid declare transaction v1",
+                .replace(r#""version":"0x2""#, r#""version":"0x3""#),
+            "Invalid declare transaction v3",
         );
     }
 
@@ -1517,49 +1450,6 @@ mod requests_tests {
     }
 
     #[test]
-    fn deserialize_add_declare_transaction_v1_request() {
-        assert_deserialization_succeeds(
-            &create_declare_request(sample_declare_v1_body()).to_string(),
-        );
-
-        assert_deserialization_fails(
-            &create_estimate_request(&[sample_declare_v1_body()])
-                .to_string()
-                .replace(r#""version":"0x1""#, r#""version":"0x2""#),
-            "Invalid declare transaction v2",
-        );
-
-        assert_deserialization_fails(
-            &create_estimate_request(&[sample_declare_v1_body()])
-                .to_string()
-                .replace(r#""version":"0x1""#, r#""version":123"#),
-            "Invalid version of declare transaction: 123",
-        );
-
-        assert_deserialization_fails(
-            &create_estimate_request(&[sample_declare_v1_body()])
-                .to_string()
-                .replace(r#""name":"publicKey""#, r#""name":123"#),
-            "Invalid declare transaction v1: Invalid function ABI entry: invalid type: number, \
-             expected a string",
-        );
-
-        assert_deserialization_fails(
-            &create_estimate_request(&[sample_declare_v1_body()])
-                .to_string()
-                .replace("max_fee", "maxFee"),
-            "Invalid declare transaction v1: missing field `max_fee`",
-        );
-
-        assert_deserialization_fails(
-            &create_declare_request(sample_declare_v1_body())
-                .to_string()
-                .replace(r#""nonce":"0x0""#, r#""nonce":123"#),
-            "Invalid declare transaction v1: invalid type: integer `123`",
-        );
-    }
-
-    #[test]
     fn deserialize_add_declare_transaction_v2_request() {
         assert_deserialization_succeeds(
             &create_declare_request(sample_declare_v2_body()).to_string(),
@@ -1570,13 +1460,6 @@ mod requests_tests {
                 .to_string()
                 .replace(r#""version":"0x2""#, r#""version":"0x123""#),
             "Invalid version of declare transaction: \"0x123\"",
-        );
-
-        assert_deserialization_fails(
-            &create_declare_request(sample_declare_v2_body())
-                .to_string()
-                .replace(r#""version":"0x2""#, r#""version":"0x1""#),
-            "Invalid declare transaction v1",
         );
 
         assert_deserialization_fails(

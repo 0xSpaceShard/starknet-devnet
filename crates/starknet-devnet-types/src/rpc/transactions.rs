@@ -5,7 +5,6 @@ use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::versioned_constants::VersionedConstants;
 use broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-use declare_transaction_v0v1::DeclareTransactionV0V1;
 use declare_transaction_v2::DeclareTransactionV2;
 use deploy_transaction::DeployTransaction;
 use invoke_transaction_v1::InvokeTransactionV1;
@@ -48,7 +47,6 @@ use crate::felt::{
 use crate::rpc::transaction_receipt::{CommonTransactionReceipt, MaybePendingProperties};
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
-pub mod broadcasted_declare_transaction_v1;
 pub mod broadcasted_declare_transaction_v2;
 pub mod broadcasted_declare_transaction_v3;
 pub mod broadcasted_deploy_account_transaction_v1;
@@ -56,7 +54,6 @@ pub mod broadcasted_deploy_account_transaction_v3;
 pub mod broadcasted_invoke_transaction_v1;
 pub mod broadcasted_invoke_transaction_v3;
 
-pub mod declare_transaction_v0v1;
 pub mod declare_transaction_v2;
 pub mod declare_transaction_v3;
 pub mod deploy_account_transaction_v1;
@@ -204,7 +201,6 @@ pub struct TransactionStatus {
 #[cfg_attr(feature = "testing", derive(Deserialize, PartialEq, Eq))]
 #[serde(untagged)]
 pub enum DeclareTransaction {
-    V1(DeclareTransactionV0V1),
     V2(DeclareTransactionV2),
     V3(DeclareTransactionV3),
 }
@@ -212,7 +208,6 @@ pub enum DeclareTransaction {
 impl DeclareTransaction {
     pub fn get_sender_address(&self) -> ContractAddress {
         match self {
-            DeclareTransaction::V1(tx) => tx.sender_address,
             DeclareTransaction::V2(tx) => tx.sender_address,
             DeclareTransaction::V3(tx) => tx.sender_address,
         }
