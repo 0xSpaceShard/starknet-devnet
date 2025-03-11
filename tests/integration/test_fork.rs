@@ -8,8 +8,8 @@ use starknet_rs_accounts::{
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, Call, ContractClass, Felt, FunctionCall, MaybePendingBlockWithTxHashes,
-    StarknetError,
+    BlockId, BlockTag, Call, ContractClass, DeclareTransaction, Felt, FunctionCall,
+    MaybePendingBlockWithTxHashes, StarknetError, Transaction,
 };
 use starknet_rs_core::utils::{
     get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
@@ -699,4 +699,22 @@ async fn test_tx_info_available_from_origin() {
             .await
             .unwrap();
     }
+}
+
+#[tokio::test]
+/// Adding of new declare v1 txs is no longer supported, but fetching old ones still is.
+async fn test_fetching_declare_v1_from_origin() {
+    let forked_devnet =
+        BackgroundDevnet::spawn_with_additional_args(&["--fork-network", MAINNET_URL])
+            .await
+            .unwrap();
+
+    let hash = Felt::from_hex_unchecked(
+        "0xd1085f209ddfe060c0f6d544942473e0eaed4c5292b413af8e197b6b7270c0",
+    );
+
+    match forked_devnet.json_rpc_client.get_transaction_by_hash(hash).await {
+        Ok(Transaction::Declare(DeclareTransaction::V1(_))) => (),
+        other => panic!("Invalid tx resp: {other:?}"),
+    };
 }
