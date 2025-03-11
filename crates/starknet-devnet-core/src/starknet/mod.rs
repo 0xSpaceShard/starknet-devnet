@@ -30,7 +30,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{
-    felt_from_prefixed_hex, split_biguint, BlockHash, ClassHash, TransactionHash,
+    BlockHash, ClassHash, TransactionHash, felt_from_prefixed_hex, split_biguint,
 };
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
@@ -77,7 +77,7 @@ use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
 use crate::nonzero_gas_price;
 use crate::predeployed_accounts::PredeployedAccounts;
-use crate::stack_trace::{gen_tx_execution_error_trace, ErrorStack};
+use crate::stack_trace::{ErrorStack, gen_tx_execution_error_trace};
 use crate::state::state_diff::StateDiff;
 use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
@@ -860,11 +860,11 @@ impl Starknet {
                 nonce: nonce.0,
                 resource_bounds: ResourceBoundsWrapper::new(
                     1_000_000, // sufficient L1 gas
-                    self.config.gas_price_wei.get(),
-                    0, // TODO gas
-                    0,
-                    0,
-                    0,
+                    self.config.gas_price_fri.get(),
+                    1_000_000, // TODO gas
+                    self.config.data_gas_price_fri.get(),
+                    1_000_000_000,
+                    self.config.data_gas_price_fri.get(),
                 ),
                 tip: Tip(0),
                 paymaster_data: vec![],
