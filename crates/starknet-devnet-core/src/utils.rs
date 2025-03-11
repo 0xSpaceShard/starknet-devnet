@@ -221,7 +221,6 @@ pub(crate) mod test_utils {
 #[cfg(any(test, feature = "test_utils"))]
 #[allow(clippy::unwrap_used)]
 pub mod exported_test_utils {
-    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
     use starknet_types::contract_class::Cairo0ContractClass;
 
@@ -232,27 +231,12 @@ pub mod exported_test_utils {
         Cairo0Json::raw_json_from_json_str(&json_str).unwrap().into()
     }
 
-    // TODO move this and dummy_cairo_0_contract_class_codegen where to integration utils
-    pub fn dummy_cairo_l1l2_contract_codegen() -> LegacyContractClass {
-        let json_str =
-            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/l1l2.json").unwrap();
-
-        serde_json::from_str(&json_str).unwrap()
-    }
-
     pub fn dummy_cairo_0_contract_class() -> Cairo0ContractClass {
         let json_str =
             std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
                 .unwrap();
 
         Cairo0Json::raw_json_from_json_str(&json_str).unwrap().into()
-    }
-
-    pub fn dummy_cairo_0_contract_class_codegen() -> LegacyContractClass {
-        let json_str =
-            std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
-                .unwrap();
-        serde_json::from_str(&json_str).unwrap()
     }
 }
 

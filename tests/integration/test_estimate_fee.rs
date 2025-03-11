@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use server::test_utils::assert_contains;
-use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class_codegen;
 use starknet_rs_accounts::{
     Account, AccountError, AccountFactory, AccountFactoryError, ConnectedAccount, ExecutionEncoder,
     ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
@@ -27,8 +26,9 @@ use crate::common::constants::{
     QUERY_VERSION_OFFSET, UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_json_rpc_errors_equal, assert_tx_reverted, assert_tx_successful, extract_json_rpc_error,
-    get_deployable_account_signer, get_flattened_sierra_contract_and_casm_hash,
+    assert_json_rpc_errors_equal, assert_tx_reverted, assert_tx_successful,
+    dummy_cairo_0_contract_class_codegen, extract_json_rpc_error, get_deployable_account_signer,
+    get_flattened_sierra_contract_and_casm_hash,
     get_simple_contract_in_sierra_and_compiled_class_hash,
 };
 

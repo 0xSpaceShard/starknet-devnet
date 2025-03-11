@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use starknet_core::utils::exported_test_utils::dummy_cairo_l1l2_contract_codegen;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{BlockId, BlockTag, EthAddress, Felt, MsgFromL1, StarknetError};
@@ -9,6 +8,7 @@ use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{CHAIN_ID, L1_HANDLER_SELECTOR, MESSAGING_WHITELISTED_L1_CONTRACT};
+use crate::common::utils::dummy_cairo_l1l2_contract_codegen;
 
 #[tokio::test]
 async fn estimate_message_fee() {

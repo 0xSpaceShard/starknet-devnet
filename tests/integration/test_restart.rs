@@ -1,7 +1,6 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class_codegen;
 use starknet_rs_accounts::{
     Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
@@ -14,8 +13,8 @@ use crate::common::constants::{
     self, CAIRO_0_ACCOUNT_CONTRACT_HASH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_tx_successful, get_deployable_account_signer, remove_file, send_ctrl_c_signal_and_wait,
-    FeeUnit,
+    assert_tx_successful, dummy_cairo_0_contract_class_codegen, get_deployable_account_signer,
+    remove_file, send_ctrl_c_signal_and_wait, FeeUnit,
 };
 
 #[tokio::test]

@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use serde_json::json;
 use server::test_utils::assert_contains;
-use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class_codegen;
 use starknet_rs_accounts::{
     Account, AccountError, AccountFactory, ConnectedAccount, ExecutionEncoder, ExecutionEncoding,
     OpenZeppelinAccountFactory, SingleOwnerAccount,
@@ -31,7 +30,7 @@ use crate::common::constants::{
 };
 use crate::common::fees::{assert_difference_if_validation, assert_fee_in_resp_at_least_equal};
 use crate::common::utils::{
-    declare_v3_deploy_v3, get_deployable_account_signer,
+    declare_v3_deploy_v3, dummy_cairo_0_contract_class_codegen, get_deployable_account_signer,
     get_flattened_sierra_contract_and_casm_hash, get_gas_units_and_gas_price, iter_to_hex_felt,
     to_hex_felt, to_num_as_hex,
 };

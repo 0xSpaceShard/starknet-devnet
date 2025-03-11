@@ -130,14 +130,14 @@ mod tests {
     use starknet_types::traits::HashProducer;
 
     use crate::error::{Error, TransactionValidationError};
-    use crate::starknet::Starknet;
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
+    use crate::starknet::Starknet;
     use crate::state::{BlockNumberOrPending, CustomStateReader};
     use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::test_utils::{
-        DUMMY_CAIRO_1_COMPILED_CLASS_HASH, convert_broadcasted_declare_v2_to_v3,
-        dummy_broadcasted_declare_transaction_v2, dummy_broadcasted_declare_tx_v3,
-        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
+        convert_broadcasted_declare_v2_to_v3, dummy_broadcasted_declare_transaction_v2,
+        dummy_broadcasted_declare_tx_v3, dummy_cairo_1_contract_class, dummy_contract_address,
+        dummy_felt, DUMMY_CAIRO_1_COMPILED_CLASS_HASH,
     };
 
     #[test]
