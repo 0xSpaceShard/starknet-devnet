@@ -15,11 +15,13 @@ use starknet_api::block::{BlockNumber, GasPrice};
 use starknet_api::contract_class::{ClassInfo, EntryPointType};
 use starknet_api::core::calculate_contract_address;
 use starknet_api::data_availability::DataAvailabilityMode;
-use starknet_api::transaction::fields::{AllResourceBounds, Fee, GasVectorComputationMode, Tip};
+use starknet_api::transaction::fields::{
+    AllResourceBounds, Fee, GasVectorComputationMode, Tip, ValidResourceBounds,
+};
 use starknet_api::transaction::{TransactionHasher, TransactionOptions, signed_tx_version};
 use starknet_rs_core::types::{
-    BlockId, ExecutionResult, Felt, ResourceBounds, TransactionExecutionStatus,
-    TransactionFinalityStatus,
+    BlockId, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
+    TransactionExecutionStatus, TransactionFinalityStatus,
 };
 use starknet_rs_core::utils::parse_cairo_short_string;
 
@@ -348,27 +350,12 @@ pub struct ResourceBoundsWrapper {
 
 impl From<&ResourceBoundsWrapper> for GasVectorComputationMode {
     fn from(val: &ResourceBoundsWrapper) -> GasVectorComputationMode {
-        match (&val.inner.l1_data_gas, &val.inner.l2_gas) {
-            (None, ResourceBounds { max_amount, max_price_per_unit })
-                if (*max_amount == 0 || *max_price_per_unit == 0) =>
-            {
-                GasVectorComputationMode::NoL2Gas
-            }
-            _ => GasVectorComputationMode::All,
+        let resource_bounds = starknet_api::transaction::fields::ValidResourceBounds::from(val);
+        match resource_bounds {
+            ValidResourceBounds::L1Gas(resource_bounds) => GasVectorComputationMode::NoL2Gas,
+            ValidResourceBounds::AllResources(all_resource_bounds) => GasVectorComputationMode::All,
         }
     }
-}
-
-// TODO: when starknet-rs upgrades to 0.8.0 remove this struct
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ResourceBoundsMapping {
-    /// The max amount and max price per unit of L1 gas used in this tx
-    pub l1_gas: ResourceBounds,
-    /// The max amount and max price per unit of L2 gas used in this tx
-    pub l2_gas: ResourceBounds,
-    /// The max amount and max price per unit of L1 data gas used in this tx
-    pub l1_data_gas: Option<ResourceBounds>,
 }
 
 impl_wrapper_serialize!(ResourceBoundsWrapper);
@@ -383,21 +370,18 @@ impl ResourceBoundsWrapper {
         l2_gas_max_amount: u64,
         l2_gas_max_price_per_unit: u128,
     ) -> Self {
-        let l1_data_gas = if l1_data_gas_max_amount > 0 {
-            Some(ResourceBounds {
-                max_amount: l1_data_gas_max_amount,
-                max_price_per_unit: l1_data_gas_max_price_per_unit,
-            })
-        } else {
-            None
-        };
         ResourceBoundsWrapper {
             inner: ResourceBoundsMapping {
                 l1_gas: ResourceBounds {
                     max_amount: l1_gas_max_amount,
                     max_price_per_unit: l1_gas_max_price_per_unit,
                 },
-                l1_data_gas,
+                l1_data_gas: {
+                    ResourceBounds {
+                        max_amount: l1_data_gas_max_amount,
+                        max_price_per_unit: l1_data_gas_max_price_per_unit,
+                    }
+                },
                 l2_gas: ResourceBounds {
                     max_amount: l2_gas_max_amount,
                     max_price_per_unit: l2_gas_max_price_per_unit,
@@ -418,26 +402,31 @@ fn convert_resource_bounds_from_starknet_rs_to_starknet_api(
 
 impl From<&ResourceBoundsWrapper> for starknet_api::transaction::fields::ValidResourceBounds {
     fn from(value: &ResourceBoundsWrapper) -> Self {
-        match &value.inner.l1_data_gas {
-            Some(l1_data_gas) => {
-                starknet_api::transaction::fields::ValidResourceBounds::AllResources(
-                    AllResourceBounds {
-                        l1_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
-                            value.inner.l1_gas.clone(),
-                        ),
-                        l2_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
-                            value.inner.l2_gas.clone(),
-                        ),
-                        l1_data_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
-                            l1_data_gas.clone(),
-                        ),
-                    },
-                )
-            }
-            None => starknet_api::transaction::fields::ValidResourceBounds::L1Gas(
+        let l1_gas_max_amount = value.inner.l1_gas.max_amount;
+        let l2_gas_max_amount = value.inner.l2_gas.max_amount;
+        let l1_data_gas_max_amount = value.inner.l1_data_gas.max_amount;
+
+        match (l1_gas_max_amount, l2_gas_max_amount, l1_data_gas_max_amount) {
+            // providing max amount 0 for each resource bound is possible in the case of
+            // estimate fee
+            (0, 0, 0) => ValidResourceBounds::AllResources(AllResourceBounds::default()),
+            (l1, 0, 0) => starknet_api::transaction::fields::ValidResourceBounds::L1Gas(
                 convert_resource_bounds_from_starknet_rs_to_starknet_api(
                     value.inner.l1_gas.clone(),
                 ),
+            ),
+            _ => starknet_api::transaction::fields::ValidResourceBounds::AllResources(
+                AllResourceBounds {
+                    l1_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                        value.inner.l1_gas.clone(),
+                    ),
+                    l2_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                        value.inner.l2_gas.clone(),
+                    ),
+                    l1_data_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                        value.inner.l1_data_gas.clone(),
+                    ),
+                },
             ),
         }
     }
@@ -454,16 +443,13 @@ impl BroadcastedTransactionCommonV3 {
         // 2. l1_gas > 0, l2_gas > 0, l1_data_gas > 0
         match (l1_gas, l2_gas, l1_data_gas) {
             // l1 > 0 and l2 > 0 and l1 data is none => invalid
-            (l1, l2, None) if is_gt_zero(l1) && is_gt_zero(l2) => false,
+            (l1, l2, l1_data) if is_gt_zero(l1) && is_gt_zero(l2) && !is_gt_zero(l1_data) => false,
             // l1 > 0 and l2 = 0 and lt data is none => valid
-            (l1, l2, None) if !is_gt_zero(l2) && is_gt_zero(l1) => true,
+            (l1, l2, l1_data) if !is_gt_zero(l2) && !is_gt_zero(l1_data) && is_gt_zero(l1) => true,
             (l1, l2, l1_data) => {
                 let l1_gt_zero = is_gt_zero(l1);
                 let l2_gt_zero = is_gt_zero(l2);
-                let l1_data_gt_zero = match l1_data.as_ref() {
-                    Some(l1_data) => is_gt_zero(l1_data),
-                    None => false,
-                };
+                let l1_data_gt_zero = is_gt_zero(l1_data_gas);
 
                 l1_gt_zero || l2_gt_zero || l1_data_gt_zero
             }
