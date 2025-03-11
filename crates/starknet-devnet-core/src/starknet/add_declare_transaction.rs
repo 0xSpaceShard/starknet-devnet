@@ -115,25 +115,29 @@ fn assert_casm_hash_is_valid(
 mod tests {
     use blockifier::state::state_api::StateReader;
     use starknet_api::core::CompiledClassHash;
-    use starknet_api::transaction::fields::Fee;
+    use starknet_api::data_availability::DataAvailabilityMode;
+    use starknet_api::transaction::fields::{Fee, Tip};
     use starknet_rs_core::types::{
         BlockId, BlockTag, Felt, TransactionExecutionStatus, TransactionFinalityStatus,
     };
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-    use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
+    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
+    use starknet_types::rpc::transactions::{
+        BroadcastedDeclareTransaction, BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
+    };
     use starknet_types::traits::HashProducer;
 
     use crate::error::{Error, TransactionValidationError};
-    use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
     use crate::starknet::Starknet;
+    use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
     use crate::state::{BlockNumberOrPending, CustomStateReader};
-    use crate::traits::HashIdentifiedMut;
+    use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::test_utils::{
-        convert_broadcasted_declare_v2_to_v3, dummy_broadcasted_declare_transaction_v2,
-        dummy_broadcasted_declare_tx_v3, dummy_cairo_1_contract_class, dummy_contract_address,
-        dummy_felt,
+        DUMMY_CAIRO_1_COMPILED_CLASS_HASH, convert_broadcasted_declare_v2_to_v3,
+        dummy_broadcasted_declare_transaction_v2, dummy_broadcasted_declare_tx_v3,
+        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
     };
 
     #[test]
@@ -156,7 +160,7 @@ mod tests {
         );
 
         match result {
-            Err(crate::error::Error::UnsupportedAction { msg }) => {
+            Err(Error::UnsupportedAction { msg }) => {
                 assert_eq!(msg, "only-query transactions are not supported")
             }
             other => panic!("Unexpected result: {other:?}"),
@@ -224,8 +228,8 @@ mod tests {
             .add_declare_transaction(BroadcastedDeclareTransaction::V2(Box::new(declare_txn)))
             .unwrap_err()
         {
-            crate::error::Error::TransactionValidationError(
-                crate::error::TransactionValidationError::InsufficientAccountBalance,
+            Error::TransactionValidationError(
+                TransactionValidationError::InsufficientAccountBalance,
             ) => {}
             err => {
                 panic!("Wrong error type received {:?}", err);
@@ -333,16 +337,32 @@ mod tests {
     fn add_declare_v3_transaction_should_return_an_error_due_to_low_max_fee() {
         let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(20000);
 
-        let mut declare_txn = dummy_broadcasted_declare_tx_v3(sender.account_address);
-        declare_txn.common.resource_bounds = todo!("used to be tx.common.max_fee = Fee(10)");
+        let declare_txn = BroadcastedDeclareTransactionV3 {
+            common: BroadcastedTransactionCommonV3 {
+                version: Felt::THREE,
+                signature: vec![],
+                nonce: Felt::ZERO, // one tx already performed in setup
+                resource_bounds: ResourceBoundsWrapper::new(
+                    1, 1, // l1_gas: amount + price
+                    0, 0, // l1_data_gas
+                    0, 0, // l2_gas
+                ),
+                tip: Tip(0),
+                paymaster_data: vec![],
+                nonce_data_availability_mode: DataAvailabilityMode::L1,
+                fee_data_availability_mode: DataAvailabilityMode::L1,
+            },
+            contract_class: dummy_cairo_1_contract_class(),
+            sender_address: sender.get_address(),
+            compiled_class_hash: DUMMY_CAIRO_1_COMPILED_CLASS_HASH,
+            account_deployment_data: vec![],
+        };
 
         match starknet.add_declare_transaction(declare_txn.into()).unwrap_err() {
-            crate::error::Error::TransactionValidationError(
-                crate::error::TransactionValidationError::InsufficientResourcesForValidate,
+            Error::TransactionValidationError(
+                TransactionValidationError::InsufficientResourcesForValidate,
             ) => {}
-            err => {
-                panic!("Wrong error type received {:?}", err);
-            }
+            err => panic!("Wrong error type received {err:?}"),
         }
     }
 
@@ -352,12 +372,10 @@ mod tests {
 
         let declare_txn = dummy_broadcasted_declare_tx_v3(sender.account_address);
         match starknet.add_declare_transaction(declare_txn.into()).unwrap_err() {
-            crate::error::Error::TransactionValidationError(
-                crate::error::TransactionValidationError::InsufficientAccountBalance,
+            Error::TransactionValidationError(
+                TransactionValidationError::InsufficientAccountBalance,
             ) => {}
-            err => {
-                panic!("Wrong error type received {:?}", err);
-            }
+            err => panic!("Wrong error type received {:?}", err),
         }
     }
 

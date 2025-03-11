@@ -125,7 +125,11 @@ pub(crate) mod test_utils {
                 version: Felt::THREE,
                 signature: vec![],
                 nonce: dummy_felt(),
-                resource_bounds: todo!(),
+                resource_bounds: ResourceBoundsWrapper::new(
+                    1, 1, // l1_gas: amount + price
+                    0, 0, // l1_data_gas
+                    0, 0, // l2_gas
+                ),
                 tip: Tip(0),
                 paymaster_data: vec![],
                 nonce_data_availability_mode: DataAvailabilityMode::L1,
@@ -228,6 +232,7 @@ pub mod exported_test_utils {
         Cairo0Json::raw_json_from_json_str(&json_str).unwrap().into()
     }
 
+    // TODO move this and dummy_cairo_0_contract_class_codegen where to integration utils
     pub fn dummy_cairo_l1l2_contract_codegen() -> LegacyContractClass {
         let json_str =
             std::fs::read_to_string("../../contracts/test_artifacts/cairo0/l1l2.json").unwrap();
