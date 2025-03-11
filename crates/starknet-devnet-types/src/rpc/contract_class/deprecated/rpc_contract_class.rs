@@ -77,10 +77,16 @@ impl HashProducer for DeprecatedContractClass {
 
 impl TryInto<CompressedLegacyContractClass> for DeprecatedContractClass {
     type Error = Error;
+
     fn try_into(self) -> Result<CompressedLegacyContractClass, Self::Error> {
-        // TODO: improve
+        // Convert the DeprecatedContractClass into Cairo0Json
         let cairo0: Cairo0Json = self.try_into()?;
-        cairo0.try_into()
+
+        // Convert Cairo0Json into CompressedLegacyContractClass
+        let compressed_contract_class: CompressedLegacyContractClass = cairo0.try_into()?;
+
+        // Return the compressed contract class
+        Ok(compressed_contract_class)
     }
 }
 

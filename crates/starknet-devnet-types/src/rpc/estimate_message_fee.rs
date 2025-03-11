@@ -34,9 +34,16 @@ impl EstimateMessageFeeRequestWrapper {
         Self { inner: EstimateMessageFeeRequest { message: msg_from_l1, block_id } }
     }
 
-    // TODO: add ref wrapper
     pub fn get_from_address(&self) -> EthAddressWrapper {
         EthAddressWrapper { inner: self.inner.message.from_address.clone() }
+    }
+
+    pub fn with_from_address<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(&EthAddressWrapper) -> R,
+    {
+        let wrapper = EthAddressWrapper { inner: self.inner.message.from_address.clone() };
+        f(&wrapper)
     }
 
     pub fn get_to_address(&self) -> Felt {

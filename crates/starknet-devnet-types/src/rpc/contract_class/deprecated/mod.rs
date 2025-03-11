@@ -12,7 +12,13 @@ pub mod rpc_contract_class;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Cairo0ContractClass {
-    // TODO: remove once starknet_api raised
+    RawJson(Cairo0Json),
+    Rpc(DeprecatedContractClass),
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type", content = "contract_class")]
+enum Cairo0ContractClassSerdeHelper {
     RawJson(Cairo0Json),
     Rpc(DeprecatedContractClass),
 }
@@ -22,10 +28,11 @@ impl Serialize for Cairo0ContractClass {
     where
         S: Serializer,
     {
-        match self {
-            Cairo0ContractClass::RawJson(contract_json) => contract_json.serialize(serializer),
-            Cairo0ContractClass::Rpc(contract) => contract.serialize(serializer),
-        }
+        let helper = match self {
+            Cairo0ContractClass::RawJson(c) => Cairo0ContractClassSerdeHelper::RawJson(c.clone()),
+            Cairo0ContractClass::Rpc(c) => Cairo0ContractClassSerdeHelper::Rpc(c.clone()),
+        };
+        helper.serialize(serializer)
     }
 }
 
@@ -34,7 +41,11 @@ impl<'de> Deserialize<'de> for Cairo0ContractClass {
     where
         D: Deserializer<'de>,
     {
-        Ok(Cairo0ContractClass::Rpc(DeprecatedContractClass::deserialize(deserializer)?))
+        let helper = Cairo0ContractClassSerdeHelper::deserialize(deserializer)?;
+        Ok(match helper {
+            Cairo0ContractClassSerdeHelper::RawJson(c) => Cairo0ContractClass::RawJson(c),
+            Cairo0ContractClassSerdeHelper::Rpc(c) => Cairo0ContractClass::Rpc(c),
+        })
     }
 }
 
@@ -52,6 +63,7 @@ impl From<DeprecatedContractClass> for Cairo0ContractClass {
 
 impl HashProducer for Cairo0ContractClass {
     type Error = Error;
+
     fn generate_hash(&self) -> DevnetResult<Felt> {
         match self {
             Cairo0ContractClass::RawJson(contract_json) => Ok(contract_json.generate_hash()?),
@@ -62,6 +74,7 @@ impl HashProducer for Cairo0ContractClass {
 
 impl TryInto<CompressedLegacyContractClass> for Cairo0ContractClass {
     type Error = Error;
+
     fn try_into(self) -> Result<CompressedLegacyContractClass, Self::Error> {
         match self {
             Cairo0ContractClass::Rpc(contract_class) => contract_class.try_into(),
@@ -72,6 +85,7 @@ impl TryInto<CompressedLegacyContractClass> for Cairo0ContractClass {
 
 impl TryFrom<Cairo0ContractClass> for blockifier::execution::contract_class::ContractClassV0 {
     type Error = Error;
+
     fn try_from(value: Cairo0ContractClass) -> Result<Self, Self::Error> {
         match value {
             Cairo0ContractClass::RawJson(contract_class) => contract_class.try_into(),

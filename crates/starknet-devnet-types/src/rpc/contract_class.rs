@@ -257,7 +257,7 @@ pub fn convert_codegen_to_blockifier_compiled_class(
             let json_value = serde_json::to_value(class).map_err(JsonError::SerdeJsonError)?;
             let casm_json = usc::compile_contract(json_value)
                 .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
-
+              
             let casm = serde_json::from_value::<CasmContractClass>(casm_json)
                 .map_err(|err| Error::JsonError(JsonError::Custom { msg: err.to_string() }))?;
 
