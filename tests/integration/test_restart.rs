@@ -13,8 +13,9 @@ use crate::common::constants::{
     self, CAIRO_0_ACCOUNT_CONTRACT_HASH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_tx_successful, dummy_cairo_0_contract_class_codegen, get_deployable_account_signer,
-    remove_file, send_ctrl_c_signal_and_wait, FeeUnit,
+    assert_tx_successful, get_deployable_account_signer,
+    get_simple_contract_in_sierra_and_compiled_class_hash, remove_file,
+    send_ctrl_c_signal_and_wait, FeeUnit,
 };
 
 #[tokio::test]
@@ -116,12 +117,8 @@ async fn assert_account_deployment_reverted() {
 #[tokio::test]
 async fn assert_gas_price_unaffected_by_restart() {
     let expected_gas_price = 1_000_000_u64;
-    let devnet = BackgroundDevnet::spawn_with_additional_args(&[
-        "--gas-price",
-        &expected_gas_price.to_string(),
-    ])
-    .await
-    .unwrap();
+    let devnet_args = ["--gas-price", &expected_gas_price.to_string()];
+    let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
 
     // get a predeployed account
     let (signer, address) = devnet.get_first_predeployed_account().await;
@@ -133,18 +130,22 @@ async fn assert_gas_price_unaffected_by_restart() {
         ExecutionEncoding::New,
     ));
 
-    // prepare class for estimation of declaration
-    let contract_artifact = Arc::new(dummy_cairo_0_contract_class_codegen());
+    // get class
+    let (contract_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let contract_artifact = Arc::new(contract_artifact);
 
     // check gas price via fee estimation
-    let estimate_before =
-        predeployed_account.declare_legacy(contract_artifact.clone()).estimate_fee().await.unwrap();
+    let estimate_before = predeployed_account
+        .declare_v3(contract_artifact.clone(), casm_hash)
+        .estimate_fee()
+        .await
+        .unwrap();
     assert_eq!(estimate_before.gas_price, Felt::from(expected_gas_price));
 
     devnet.restart().await;
 
     let estimate_after =
-        predeployed_account.declare_legacy(contract_artifact).estimate_fee().await.unwrap();
+        predeployed_account.declare_v3(contract_artifact, casm_hash).estimate_fee().await.unwrap();
 
     // assert gas_price and fee are equal to the values before restart
     assert_eq!(estimate_before.gas_price, estimate_after.gas_price);

@@ -11,8 +11,7 @@ use crate::common::constants::{
     CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH, CHAIN_ID, INVALID_ACCOUNT_SIERRA_PATH,
 };
 use crate::common::utils::{
-    declare_v3_deploy_v3, dummy_cairo_0_contract_class_codegen,
-    get_flattened_sierra_contract_and_casm_hash,
+    declare_v3_deploy_v3, get_flattened_sierra_contract_and_casm_hash,
     get_simple_contract_in_sierra_and_compiled_class_hash,
 };
 
@@ -32,11 +31,12 @@ async fn test_failed_validation_with_expected_message() {
     ));
 
     // get class
-    let contract_artifact = Arc::new(dummy_cairo_0_contract_class_codegen());
+    let (contract_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let contract_artifact = Arc::new(contract_artifact);
 
     // declare class
     let declaration_result =
-        account.declare_legacy(contract_artifact).max_fee(Felt::from(1e18 as u128)).send().await;
+        account.declare_v3(contract_artifact, casm_hash).gas(1e7 as u64).send().await;
 
     match declaration_result {
         Err(AccountError::Provider(ProviderError::StarknetError(

@@ -92,13 +92,6 @@ pub fn get_simple_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasm
     get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH)
 }
 
-pub fn dummy_cairo_l1l2_contract_codegen() -> LegacyContractClass {
-    let json_str =
-        std::fs::read_to_string("../../contracts/test_artifacts/cairo0/l1l2.json").unwrap();
-
-    serde_json::from_str(&json_str).unwrap()
-}
-
 pub fn dummy_cairo_0_contract_class_codegen() -> LegacyContractClass {
     let json_str =
         std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")

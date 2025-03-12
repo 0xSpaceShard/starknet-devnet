@@ -26,9 +26,8 @@ use crate::common::constants::{
     QUERY_VERSION_OFFSET, UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_json_rpc_errors_equal, assert_tx_reverted, assert_tx_successful,
-    dummy_cairo_0_contract_class_codegen, extract_json_rpc_error, get_deployable_account_signer,
-    get_flattened_sierra_contract_and_casm_hash,
+    assert_json_rpc_errors_equal, assert_tx_reverted, assert_tx_successful, extract_json_rpc_error,
+    get_deployable_account_signer, get_flattened_sierra_contract_and_casm_hash,
     get_simple_contract_in_sierra_and_compiled_class_hash,
 };
 
@@ -221,14 +220,15 @@ async fn estimate_fee_of_invoke() {
     ));
 
     // get class
-    let contract_artifact = Arc::new(dummy_cairo_0_contract_class_codegen());
-    let class_hash = contract_artifact.class_hash().unwrap();
+    let (contract_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let contract_artifact = Arc::new(contract_artifact);
+    let class_hash = contract_artifact.class_hash();
 
     // declare class
     let declaration_result = account
-        .declare_legacy(contract_artifact)
+        .declare_v3(contract_artifact, casm_hash)
         .nonce(Felt::ZERO)
-        .max_fee(Felt::from(1e18 as u128))
+        .gas(1e7 as u64)
         .send()
         .await
         .unwrap();
@@ -237,7 +237,7 @@ async fn estimate_fee_of_invoke() {
     // deploy instance of class
     let contract_factory = ContractFactory::new(class_hash, account.clone());
     let salt = Felt::from_hex_unchecked("0x123");
-    let constructor_calldata = vec![];
+    let constructor_calldata = vec![Felt::ZERO];
     let contract_address = get_udc_deployed_address(
         salt,
         class_hash,
@@ -245,17 +245,17 @@ async fn estimate_fee_of_invoke() {
         &constructor_calldata,
     );
     contract_factory
-        .deploy_v1(constructor_calldata, salt, false)
+        .deploy_v3(constructor_calldata, salt, false)
+        .gas(1e7 as u64)
         .send()
         .await
         .expect("Cannot deploy");
 
     // prepare the call used in estimation and actual invoke
-    let increase_amount = Felt::from(100u128);
     let invoke_calls = vec![Call {
         to: contract_address,
         selector: get_selector_from_name("increase_balance").unwrap(),
-        calldata: vec![increase_amount],
+        calldata: vec![Felt::from(100_u128), Felt::ONE], // increment amount
     }];
 
     // estimate the fee
@@ -299,7 +299,7 @@ async fn estimate_fee_of_invoke() {
     account.execute_v1(invoke_calls).max_fee(sufficient_max_fee).send().await.unwrap();
     let balance_after_sufficient =
         devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap();
-    assert_eq!(balance_after_sufficient, vec![increase_amount]);
+    assert_eq!(balance_after_sufficient, vec![Felt::from(101_u128)]);
 }
 
 #[tokio::test]

@@ -8,7 +8,7 @@ use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{CHAIN_ID, L1_HANDLER_SELECTOR, MESSAGING_WHITELISTED_L1_CONTRACT};
-use crate::common::utils::dummy_cairo_l1l2_contract_codegen;
+use crate::common::utils::get_messaging_contract_in_sierra_and_compiled_class_hash;
 
 #[tokio::test]
 async fn estimate_message_fee() {
@@ -25,14 +25,15 @@ async fn estimate_message_fee() {
     ));
 
     // get class
-    let contract_artifact = Arc::new(dummy_cairo_l1l2_contract_codegen());
-    let class_hash = contract_artifact.class_hash().unwrap();
+    let (contract_artifact, casm_hash) = get_messaging_contract_in_sierra_and_compiled_class_hash();
+    let contract_artifact = Arc::new(contract_artifact);
+    let class_hash = contract_artifact.class_hash();
 
     // declare class
     account
-        .declare_legacy(contract_artifact)
+        .declare_v3(contract_artifact, casm_hash)
         .nonce(Felt::ZERO)
-        .max_fee(Felt::from(1e18 as u128))
+        .gas(1e7 as u64)
         .send()
         .await
         .unwrap();
@@ -48,11 +49,12 @@ async fn estimate_message_fee() {
         &constructor_calldata,
     );
     contract_factory
-            .deploy_v1(constructor_calldata, salt, false)
-            .nonce(Felt::ONE)
-            // max fee implicitly estimated
-            .send()
-            .await.expect("Cannot deploy");
+        .deploy_v3(constructor_calldata, salt, false)
+        .nonce(Felt::ONE)
+        .gas(1e7 as u64)
+        .send()
+        .await
+        .expect("Cannot deploy");
 
     let res = devnet
         .json_rpc_client
