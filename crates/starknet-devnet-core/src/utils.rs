@@ -117,6 +117,7 @@ pub(crate) mod test_utils {
         ContractAddress::new(Felt::from_hex_unchecked("0xADD4E55")).unwrap()
     }
 
+    /// unsigned tx
     pub(crate) fn dummy_broadcasted_declare_tx_v3(
         sender_address: ContractAddress,
     ) -> BroadcastedDeclareTransactionV3 {

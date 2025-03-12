@@ -1558,6 +1558,8 @@ mod tests {
             gas_price_fri: nonzero!(1u128),
             data_gas_price_wei: nonzero!(1u128),
             data_gas_price_fri: nonzero!(1u128),
+            l2_gas_price_wei: nonzero!(1u128),
+            l2_gas_price_fri: nonzero!(1u128),
             state_archive,
             ..Default::default()
         })
