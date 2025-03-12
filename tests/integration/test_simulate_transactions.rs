@@ -278,10 +278,10 @@ async fn simulate_invoke_v1() {
             "transactions": [
                 {
                     "type": "INVOKE",
-                    "max_fee": to_hex_felt(&max_fee),
+                    "max_fee": max_fee,
                     "version": "0x1",
                     "signature": iter_to_hex_felt(&[signature.r, signature.s]),
-                    "nonce": to_num_as_hex(&nonce),
+                    "nonce": nonce,
                     "calldata": iter_to_hex_felt(&account.encode_calls(&calls)),
                     "sender_address": sender_address_hex,
                 }
@@ -291,7 +291,6 @@ async fn simulate_invoke_v1() {
 
     let params_no_flags = get_params(&[]);
 
-    todo!("this fails");
     let resp_no_flags =
         &devnet.send_custom_rpc("starknet_simulateTransactions", params_no_flags).await.unwrap()[0];
     assert_eq!(

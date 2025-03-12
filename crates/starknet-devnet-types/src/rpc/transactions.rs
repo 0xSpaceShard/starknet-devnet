@@ -530,7 +530,7 @@ impl BroadcastedTransaction {
     pub fn is_max_fee_valid(&self) -> bool {
         match self {
             BroadcastedTransaction::Invoke(broadcasted_invoke_transaction) => {
-                !broadcasted_invoke_transaction.is_max_fee_valid()
+                broadcasted_invoke_transaction.is_max_fee_valid()
             }
             BroadcastedTransaction::Declare(broadcasted_declare_transaction) => {
                 broadcasted_declare_transaction.is_max_fee_valid()

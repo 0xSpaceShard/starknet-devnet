@@ -14,7 +14,6 @@ use starknet_rs_accounts::{
     Account, AccountFactory, ArgentAccountFactory, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
 use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
 use starknet_rs_core::types::{
     BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult, FeeEstimate,
@@ -90,13 +89,6 @@ pub fn get_block_reader_contract_in_sierra_and_compiled_class_hash() -> SierraWi
 
 pub fn get_simple_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
     get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH)
-}
-
-pub fn dummy_cairo_0_contract_class_codegen() -> LegacyContractClass {
-    let json_str =
-        std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
-            .unwrap();
-    serde_json::from_str(&json_str).unwrap()
 }
 
 pub async fn assert_tx_successful<T: Provider>(tx_hash: &Felt, client: &T) {
