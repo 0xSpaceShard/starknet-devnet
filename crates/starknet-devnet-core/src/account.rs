@@ -223,8 +223,9 @@ mod tests {
     use crate::constants::CAIRO_1_ERC20_CONTRACT_CLASS_HASH;
     use crate::state::{CustomState, StarknetState};
     use crate::traits::{Accounted, Deployed};
-    use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
-    use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
+    use crate::utils::test_utils::{
+        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
+    };
 
     /// Testing if generated account address has the same value as the first account in
     /// https://github.com/0xSpaceShard/starknet-devnet-deprecated/blob/9d867e38e6d465e568e82a47e82e40608f6d220f/test/support/schemas/predeployed_accounts_fixed_seed.json
@@ -316,7 +317,7 @@ mod tests {
                 Felt::from(13431515),
                 Felt::from(11),
                 dummy_felt(),
-                dummy_cairo_0_contract_class().into(),
+                dummy_cairo_1_contract_class().into(),
                 fee_token_address,
                 fee_token_address,
             )

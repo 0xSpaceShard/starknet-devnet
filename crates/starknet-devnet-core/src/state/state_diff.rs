@@ -201,7 +201,6 @@ mod tests {
     use crate::starknet::Starknet;
     use crate::state::{CustomState, StarknetState};
     use crate::traits::Deployed;
-    use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
         cairo_0_account_without_validations, dummy_cairo_1_contract_class, dummy_contract_address,
         dummy_felt, DUMMY_CAIRO_1_COMPILED_CLASS_HASH,
@@ -239,26 +238,6 @@ mod tests {
             class_hash_to_compiled_class_hash: HashMap::from([(class_hash.0, casm_hash)]),
             ..Default::default()
         };
-
-        assert_eq!(generated_diff, expected_diff);
-    }
-
-    #[test]
-    fn correct_difference_in_cairo_0_declared_classes() {
-        let mut state = setup();
-        let class_hash = starknet_api::core::ClassHash(Felt::ONE);
-        let contract_class = ContractClass::Cairo0(dummy_cairo_0_contract_class());
-
-        // necessary to prevent blockifier's state subtraction panic
-        state.get_compiled_class(class_hash).expect_err("Shouldn't yet be declared");
-        state.declare_contract_class(class_hash.0, None, contract_class).unwrap();
-
-        let block_number = 1;
-        let new_classes = state.rpc_contract_classes.write().commit(block_number);
-        let generated_diff = StateDiff::generate(&mut state.state, new_classes).unwrap();
-
-        let expected_diff =
-            StateDiff { cairo_0_declared_contracts: vec![class_hash.0], ..StateDiff::default() };
 
         assert_eq!(generated_diff, expected_diff);
     }
