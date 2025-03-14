@@ -149,6 +149,7 @@ impl From<FeeCheckError> for Error {
 
 impl From<TransactionFeeError> for Error {
     fn from(value: TransactionFeeError) -> Self {
+        // TODO use clippy to force covering all cases explicitly
         match value {
             TransactionFeeError::FeeTransferError { .. }
             | TransactionFeeError::MaxFeeTooLow { .. }
@@ -157,6 +158,7 @@ impl From<TransactionFeeError> for Error {
                 TransactionValidationError::InsufficientResourcesForValidate.into()
             }
             TransactionFeeError::MaxFeeExceedsBalance { .. }
+            | TransactionFeeError::ResourcesBoundsExceedBalance { .. }
             | TransactionFeeError::GasBoundsExceedBalance { .. } => {
                 TransactionValidationError::InsufficientAccountBalance.into()
             }
