@@ -69,7 +69,7 @@ async fn cannot_deploy_undeclared_class() {
     let salt = Felt::from(10);
     let unique = false;
 
-    // second deployment should be unsuccessful
+    // deployment should fail
     match contract_factory.deploy_v3(ctor_args, salt, unique).send().await {
         Err(e) => assert_contains(&format!("{e:?}"), "not declared"),
         other => panic!("Unexpected result: {other:?}"),
