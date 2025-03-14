@@ -149,6 +149,7 @@ impl From<FeeCheckError> for Error {
 
 impl From<TransactionFeeError> for Error {
     fn from(value: TransactionFeeError) -> Self {
+        #[warn(clippy::wildcard_enum_match_arm)]
         match value {
             TransactionFeeError::FeeTransferError { .. }
             | TransactionFeeError::MaxFeeTooLow { .. }
@@ -157,10 +158,15 @@ impl From<TransactionFeeError> for Error {
                 TransactionValidationError::InsufficientResourcesForValidate.into()
             }
             TransactionFeeError::MaxFeeExceedsBalance { .. }
+            | TransactionFeeError::ResourcesBoundsExceedBalance { .. }
             | TransactionFeeError::GasBoundsExceedBalance { .. } => {
                 TransactionValidationError::InsufficientAccountBalance.into()
             }
-            err => Error::TransactionFeeError(err),
+            err @ (TransactionFeeError::CairoResourcesNotContainedInFeeCosts
+            | TransactionFeeError::ExecuteFeeTransferError(_)
+            | TransactionFeeError::InsufficientFee { .. }
+            | TransactionFeeError::MissingL1GasBounds
+            | TransactionFeeError::StateError(_)) => Error::TransactionFeeError(err),
         }
     }
 }
