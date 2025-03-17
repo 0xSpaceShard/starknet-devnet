@@ -46,7 +46,7 @@ mod test_fork;
 mod test_subscription_to_blocks;
 mod test_subscription_to_events;
 mod test_subscription_to_pending_txs;
-// mod test_subscription_to_reorg;
+mod test_subscription_to_reorg;
 // mod test_subscription_to_tx_status;
 // mod test_subscription_with_invalid_block_id;
 // mod test_websocket;*/*/
