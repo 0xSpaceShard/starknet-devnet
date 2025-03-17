@@ -24,10 +24,10 @@ use crate::common::constants::{
     MAINNET_HTTPS_URL, MAINNET_URL,
 };
 use crate::common::utils::{
-    assert_cairo1_classes_equal, assert_json_rpc_errors_equal, assert_tx_successful,
+    FeeUnit, assert_cairo1_classes_equal, assert_json_rpc_errors_equal, assert_tx_successful,
     declare_v3_deploy_v3, extract_json_rpc_error,
     get_block_reader_contract_in_sierra_and_compiled_class_hash, get_contract_balance,
-    get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait, FeeUnit,
+    get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
 };
 
 #[tokio::test]
@@ -136,13 +136,14 @@ async fn test_forked_account_balance() {
     }
 
     // not using get_balance_at_block=2: requires forking with --state-archive-capacity full
-    let final_balance = fork_devnet.get_balance_latest(&dummy_address, FeeUnit::Wei).await.unwrap();
+    let final_balance = fork_devnet.get_balance_latest(&dummy_address, FeeUnit::Fri).await.unwrap();
     let expected_final_balance = (2_u128 * mint_amount).into();
     assert_eq!(final_balance, expected_final_balance);
 }
 
 #[tokio::test]
-async fn test_getting_cairo0_class_from_origin_and_fork() {
+/// Using a fork of a real network because Devnet no longer accepts Cairo 0 class declaraiton
+async fn test_getting_cairo0_class_from_fork() {
     let forked_devnet =
         BackgroundDevnet::spawn_with_additional_args(&["--fork-network", MAINNET_URL])
             .await
@@ -230,8 +231,10 @@ async fn test_origin_declare_deploy_fork_invoke() {
 
     // declare the contract
     let declaration_result = predeployed_account
-        .declare_v2(Arc::new(contract_class), casm_class_hash)
-        .max_fee(Felt::from(1e18 as u128))
+        .declare_v3(Arc::new(contract_class), casm_class_hash)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(5e7 as u64)
         .send()
         .await
         .unwrap();
@@ -242,8 +245,10 @@ async fn test_origin_declare_deploy_fork_invoke() {
     let initial_value = Felt::from(10_u32);
     let ctor_args = vec![initial_value];
     contract_factory
-        .deploy_v1(ctor_args.clone(), Felt::ZERO, false)
-        .max_fee(Felt::from(1e18 as u128))
+        .deploy_v3(ctor_args.clone(), Felt::ZERO, false)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(5e7 as u64)
         .send()
         .await
         .unwrap();
@@ -280,8 +285,10 @@ async fn test_origin_declare_deploy_fork_invoke() {
     }];
 
     let invoke_result = fork_predeployed_account
-        .execute_v1(contract_invoke.clone())
-        .max_fee(Felt::from(1e18 as u128))
+        .execute_v3(contract_invoke.clone())
+        .l1_gas(1e6 as u64)
+        .l1_data_gas(1e6 as u64)
+        .l2_gas(1e6 as u64)
         .send()
         .await
         .unwrap();
@@ -315,7 +322,13 @@ async fn test_deploying_account_with_class_not_present_on_origin() {
     .unwrap();
 
     let salt = Felt::from_hex_unchecked("0x123");
-    let deployment = factory.deploy_v1(salt).max_fee(Felt::from(1e18 as u128)).send().await;
+    let deployment = factory
+        .deploy_v3(salt)
+        .l1_gas(1e6 as u64)
+        .l1_data_gas(1e6 as u64)
+        .l2_gas(1e6 as u64)
+        .send()
+        .await;
     match deployment {
         Err(AccountFactoryError::Provider(ProviderError::StarknetError(
             StarknetError::ClassHashNotFound,
@@ -358,7 +371,8 @@ async fn test_deploying_account_with_class_present_on_origin() {
     .unwrap();
 
     let salt = Felt::from_hex_unchecked("0x123");
-    let deployment = factory.deploy_v1(salt).max_fee(Felt::from(1e18 as u128));
+    let deployment =
+        factory.deploy_v3(salt).l1_gas(1e6 as u64).l1_data_gas(1e6 as u64).l2_gas(1e6 as u64);
     let deployment_address = deployment.address();
     fork_devnet.mint(deployment_address, 1e18 as u128).await;
     deployment.send().await.unwrap();
@@ -479,7 +493,7 @@ async fn test_fork_using_origin_token_contract() {
 
     let fork_devnet = origin_devnet.fork().await.unwrap();
 
-    let fork_balance = fork_devnet.get_balance_latest(&address, FeeUnit::Wei).await.unwrap();
+    let fork_balance = fork_devnet.get_balance_latest(&address, FeeUnit::Fri).await.unwrap();
     assert_eq!(fork_balance, Felt::from(mint_amount));
 }
 
