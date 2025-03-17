@@ -1476,9 +1476,6 @@ impl Starknet {
             BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V3(v3)) => {
                 Some(&v3.sender_address)
             }
-            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(v1)) => {
-                Some(&v1.sender_address)
-            }
             BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(v2)) => {
                 Some(&v2.sender_address)
             }
@@ -1554,7 +1551,7 @@ mod tests {
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::traits::{Accounted, Deployed, HashIdentified};
     use crate::utils::test_utils::{
-        cairo_0_account_without_validations, dummy_contract_address, dummy_declare_transaction_v1,
+        cairo_0_account_without_validations, dummy_contract_address, dummy_declare_transaction_v3,
         dummy_felt,
     };
 
@@ -1569,6 +1566,8 @@ mod tests {
             gas_price_fri: nonzero!(1u128),
             data_gas_price_wei: nonzero!(1u128),
             data_gas_price_fri: nonzero!(1u128),
+            l2_gas_price_wei: nonzero!(1u128),
+            l2_gas_price_fri: nonzero!(1u128),
             state_archive,
             ..Default::default()
         })
@@ -1665,7 +1664,7 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        let tx = dummy_declare_transaction_v1();
+        let tx = dummy_declare_transaction_v3();
 
         // add transaction hash to pending block
         starknet.blocks.pending_block.add_transaction(*tx.get_transaction_hash());
@@ -1966,7 +1965,7 @@ mod tests {
 
         assert_eq!(num_no_transactions.unwrap(), 0);
 
-        let tx = dummy_declare_transaction_v1();
+        let tx = dummy_declare_transaction_v3();
 
         // add transaction hash to pending block
         starknet.blocks.pending_block.add_transaction(*tx.get_transaction_hash());

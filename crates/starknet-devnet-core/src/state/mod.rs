@@ -431,8 +431,10 @@ mod tests {
 
     use super::StarknetState;
     use crate::state::{BlockNumberOrPending, CustomState, CustomStateReader};
-    use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
-    use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
+    use crate::utils::test_utils::{
+        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
+        DUMMY_CAIRO_1_COMPILED_CLASS_HASH,
+    };
 
     pub(crate) fn dummy_contract_storage_key() -> (starknet_api::core::ContractAddress, StorageKey)
     {
@@ -445,7 +447,7 @@ mod tests {
 
         let class_hash = dummy_felt();
         let casm_hash = Some(dummy_felt());
-        let contract_class = ContractClass::Cairo0(dummy_cairo_0_contract_class());
+        let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
 
         state.declare_contract_class(class_hash, casm_hash, contract_class).unwrap();
         assert!(state.is_contract_declared(dummy_felt()));
@@ -483,7 +485,7 @@ mod tests {
     }
 
     #[test]
-    fn declare_cairo_0_contract_class_successfully() {
+    fn declare_cairo_1_contract_class_successfully() {
         let mut state = StarknetState::default();
         let class_hash = starknet_api::core::ClassHash(Felt::from_hex_unchecked("0xFE"));
         let casm_hash = Some(dummy_felt());
@@ -495,7 +497,7 @@ mod tests {
             other => panic!("Invalid result: {other:?}"),
         }
 
-        let contract_class = dummy_cairo_0_contract_class();
+        let contract_class = dummy_cairo_1_contract_class();
         state
             .declare_contract_class(class_hash.0, casm_hash, contract_class.clone().into())
             .unwrap();
@@ -504,9 +506,10 @@ mod tests {
         state.commit_diff(block_number).unwrap();
 
         match state.get_compiled_class(class_hash) {
-            Ok(retrieved_class) => {
-                assert_eq!(retrieved_class, contract_class.clone().try_into().unwrap());
-            }
+            Ok(retrieved_class) => assert_eq!(
+                retrieved_class,
+                ContractClass::Cairo1(contract_class.clone()).try_into().unwrap()
+            ),
             other => panic!("Invalid result: {other:?}"),
         }
 
@@ -519,7 +522,7 @@ mod tests {
     }
 
     #[test]
-    fn deploy_cairo_0_contract_class_successfully() {
+    fn deploy_cairo_1_contract_class_successfully() {
         let (mut state, address) = setup();
         let felt = dummy_felt();
 
@@ -584,9 +587,9 @@ mod tests {
     fn setup() -> (StarknetState, ContractAddress) {
         let mut state = StarknetState::default();
         let address = dummy_contract_address();
-        let contract_class = dummy_cairo_0_contract_class();
+        let contract_class = dummy_cairo_1_contract_class();
         let class_hash = dummy_felt();
-        let casm_hash = Some(dummy_felt());
+        let casm_hash = Some(DUMMY_CAIRO_1_COMPILED_CLASS_HASH);
 
         state.declare_contract_class(class_hash, casm_hash, contract_class.into()).unwrap();
         state.predeploy_contract(address, class_hash).unwrap();

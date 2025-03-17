@@ -191,25 +191,12 @@ impl JsonRpcHandler {
 
 #[cfg(test)]
 mod tests {
-    use crate::api::json_rpc::models::{
-        BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper,
-    };
-    use crate::test_utils::{declare_v1_str, deploy_account_str};
+    use crate::api::json_rpc::models::BroadcastedDeployAccountTransactionEnumWrapper;
+    use crate::test_utils::deploy_account_str;
 
     #[test]
     fn check_correct_deserialization_of_deploy_account_transaction_request() {
         test_deploy_account_transaction();
-    }
-
-    /// The example uses declare_v1.json from test_data/rpc/declare_v1.json
-    /// Which declares the example from https://www.cairo-lang.org/docs/hello_starknet/intro.html#your-first-contract
-    /// The example was compiled locally and send via Postman to https://alpha4.starknet.io/gateway/add_transaction
-    #[test]
-    fn parsed_base64_gzipped_json_contract_class_correctly() {
-        let json_string = declare_v1_str();
-
-        let _broadcasted_declare_transaction_v1: BroadcastedDeclareTransactionEnumWrapper =
-            serde_json::from_str(&json_string).unwrap();
     }
 
     fn test_deploy_account_transaction() -> BroadcastedDeployAccountTransactionEnumWrapper {
