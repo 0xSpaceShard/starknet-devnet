@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use server::test_utils::assert_contains;
-use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class_codegen;
 use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{Call, Felt, InvokeTransactionResult, StarknetError};
 use starknet_rs_core::utils::get_selector_from_name;
@@ -32,11 +31,12 @@ async fn test_failed_validation_with_expected_message() {
     ));
 
     // get class
-    let contract_artifact = Arc::new(dummy_cairo_0_contract_class_codegen());
+    let (contract_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let contract_artifact = Arc::new(contract_artifact);
 
     // declare class
     let declaration_result =
-        account.declare_legacy(contract_artifact).max_fee(Felt::from(1e18 as u128)).send().await;
+        account.declare_v3(contract_artifact, casm_hash).gas(1e7 as u64).send().await;
 
     match declaration_result {
         Err(AccountError::Provider(ProviderError::StarknetError(

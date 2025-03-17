@@ -6,10 +6,9 @@ use starknet_rs_accounts::{
     SingleOwnerAccount,
 };
 use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, Call, ContractClass, Felt, FunctionCall, MaybePendingBlockWithTxHashes,
-    StarknetError,
+    BlockId, BlockTag, Call, ContractClass, DeclareTransaction, Felt, FunctionCall,
+    MaybePendingBlockWithTxHashes, StarknetError, Transaction,
 };
 use starknet_rs_core::utils::{
     get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
@@ -144,35 +143,18 @@ async fn test_forked_account_balance() {
 
 #[tokio::test]
 async fn test_getting_cairo0_class_from_origin_and_fork() {
-    let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
-
-    let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
-    let predeployed_account = Arc::new(SingleOwnerAccount::new(
-        origin_devnet.clone_provider(),
-        signer.clone(),
-        account_address,
-        constants::CHAIN_ID,
-        ExecutionEncoding::New,
-    ));
-
-    let json_string =
-        std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
+    let forked_devnet =
+        BackgroundDevnet::spawn_with_additional_args(&["--fork-network", MAINNET_URL])
+            .await
             .unwrap();
-    let contract_class: Arc<LegacyContractClass> =
-        Arc::new(serde_json::from_str(&json_string).unwrap());
 
-    // declare the contract
-    let declaration_result = predeployed_account
-        .declare_legacy(contract_class.clone())
-        .max_fee(Felt::from(1e18 as u128))
-        .send()
-        .await
-        .unwrap();
+    let class_hash = Felt::from_hex_unchecked(
+        "0x0523be5e7088bf4226d4fdb28c6a19d4d3b93118f7263849a6d8912bf503d672",
+    );
 
-    let fork_devnet = origin_devnet.fork().await.unwrap();
-    let _retrieved_class = fork_devnet
+    let _retrieved_class = forked_devnet
         .json_rpc_client
-        .get_class(BlockId::Tag(BlockTag::Latest), declaration_result.class_hash)
+        .get_class(BlockId::Tag(BlockTag::Latest), class_hash)
         .await
         .unwrap();
 
@@ -699,4 +681,22 @@ async fn test_tx_info_available_from_origin() {
             .await
             .unwrap();
     }
+}
+
+#[tokio::test]
+/// Adding of new declare v1 txs is no longer supported, but fetching old ones still is.
+async fn test_fetching_declare_tx_v1_from_origin() {
+    let forked_devnet =
+        BackgroundDevnet::spawn_with_additional_args(&["--fork-network", MAINNET_URL])
+            .await
+            .unwrap();
+
+    let tx_hash = Felt::from_hex_unchecked(
+        "0xd1085f209ddfe060c0f6d544942473e0eaed4c5292b413af8e197b6b7270c0",
+    );
+
+    match forked_devnet.json_rpc_client.get_transaction_by_hash(tx_hash).await {
+        Ok(Transaction::Declare(DeclareTransaction::V1(_))) => (),
+        other => panic!("Invalid tx resp: {other:?}"),
+    };
 }

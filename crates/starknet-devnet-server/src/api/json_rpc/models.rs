@@ -302,45 +302,6 @@ mod tests {
                 {
                     "type": "DECLARE",
                     "max_fee": "0xA",
-                    "version": "0x1",
-                    "signature": ["0xFF", "0xAA"],
-                    "nonce": "0x0",
-                    "sender_address": "0x0001",
-                    "contract_class": {
-                        "abi": [{
-                            "inputs": [],
-                            "name": "getPublicKey",
-                            "outputs": [
-                                {
-                                    "name": "publicKey",
-                                    "type": "felt"
-                                }
-                            ],
-                            "stateMutability": "view",
-                            "type": "function"
-                        },
-                        {
-                            "inputs": [],
-                            "name": "setPublicKey",
-                            "outputs": [
-                                {
-                                    "name": "publicKey",
-                                    "type": "felt"
-                                }
-                            ],
-                            "type": "function"
-                        }],
-                        "program": "",
-                        "entry_points_by_type": {
-                            "CONSTRUCTOR": [],
-                            "EXTERNAL": [],
-                            "L1_HANDLER": []
-                        }
-                    }
-                },
-                {
-                    "type": "DECLARE",
-                    "max_fee": "0xA",
                     "version": "0x2",
                     "signature": ["0xFF", "0xAA"],
                     "nonce": "0x0",
@@ -425,17 +386,13 @@ mod tests {
 
         let estimate_fee_input = serde_json::from_str::<super::EstimateFeeInput>(json_str).unwrap();
         assert_eq!(estimate_fee_input.block_id.as_ref(), &ImportedBlockId::Number(1));
-        assert_eq!(estimate_fee_input.request.len(), 4);
+        assert_eq!(estimate_fee_input.request.len(), 3);
         assert!(matches!(
             estimate_fee_input.request[0],
-            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(_))
-        ));
-        assert!(matches!(
-            estimate_fee_input.request[1],
             BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(_))
         ));
-        assert!(matches!(estimate_fee_input.request[2], BroadcastedTransaction::Invoke(_)));
-        assert!(matches!(estimate_fee_input.request[3], BroadcastedTransaction::DeployAccount(_)));
+        assert!(matches!(estimate_fee_input.request[1], BroadcastedTransaction::Invoke(_)));
+        assert!(matches!(estimate_fee_input.request[2], BroadcastedTransaction::DeployAccount(_)));
     }
 
     #[test]

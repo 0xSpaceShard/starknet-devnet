@@ -1,13 +1,10 @@
 use std::sync::Arc;
 
-use server::test_utils::declare_v1_str;
 use starknet_rs_accounts::{
     Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
 use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::{
-    BroadcastedDeclareTransactionV1, Call, ExecutionResult, Felt, StarknetError, TransactionReceipt,
-};
+use starknet_rs_core::types::{Call, ExecutionResult, Felt, StarknetError, TransactionReceipt};
 use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::{Provider, ProviderError};
 
@@ -222,56 +219,6 @@ async fn reverted_invoke_transaction_receipt() {
         }
         _ => panic!("Invalid receipt {:?}", transfer_receipt),
     };
-}
-
-#[tokio::test]
-async fn declare_v1_transaction_fails_with_insufficient_max_fee() {
-    let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-    let json_string = declare_v1_str();
-    let declare_txn_v1: BroadcastedDeclareTransactionV1 =
-        serde_json::from_str(&json_string).unwrap();
-
-    let declare_transaction_result = devnet
-        .json_rpc_client
-        .add_declare_transaction(starknet_rs_core::types::BroadcastedDeclareTransaction::V1(
-            declare_txn_v1.clone(),
-        ))
-        .await;
-
-    match declare_transaction_result {
-        Err(ProviderError::StarknetError(StarknetError::InsufficientMaxFee)) => (),
-        _ => panic!("Invalid result: {:?}", declare_transaction_result),
-    }
-}
-
-#[tokio::test]
-async fn declare_v1_accepted_with_numeric_entrypoint_offset() {
-    let devnet = BackgroundDevnet::spawn().await.unwrap();
-
-    let declare_v1 = declare_v1_str();
-    let mut declare_rpc_body: serde_json::Value = serde_json::from_str(&declare_v1).unwrap();
-
-    let entry_points = declare_rpc_body["contract_class"]["entry_points_by_type"]["EXTERNAL"]
-        .as_array_mut()
-        .unwrap();
-    for entry_point in entry_points {
-        // We are assuming hex string format in the loaded artifact;
-        // Converting it to numeric value to test that case
-        let offset_hex_string = entry_point["offset"].as_str().unwrap();
-        entry_point["offset"] = u32::from_str_radix(&offset_hex_string[2..], 16).unwrap().into();
-    }
-
-    let rpc_error = devnet
-        .send_custom_rpc(
-            "starknet_addDeclareTransaction",
-            serde_json::json!({ "declare_transaction": declare_rpc_body }),
-        )
-        .await
-        .unwrap_err();
-
-    // We got error code corresponding to insufficient balance, which is ok;
-    // it's important we didn't get failed JSON schema matching with error -32602
-    assert_eq!(rpc_error.code, 53);
 }
 
 #[tokio::test]

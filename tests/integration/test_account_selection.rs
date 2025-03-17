@@ -2,11 +2,10 @@ use std::sync::Arc;
 
 use serde_json::json;
 use server::test_utils::assert_contains;
-use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class_codegen;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, FunctionCall};
-use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address, UdcUniqueness};
+use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::Provider;
 use starknet_rs_signers::LocalWallet;
 
@@ -83,7 +82,6 @@ async fn can_deploy_new_cairo1_oz_account() {
     assert_tx_successful(&account_deployment.transaction_hash, &devnet.json_rpc_client).await;
 
     let account_address = account_deployment.contract_address;
-    can_declare_deploy_invoke_cairo0_using_account(&devnet, &signer, account_address).await;
     can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
 }
 
@@ -96,7 +94,6 @@ async fn can_deploy_new_cairo1_oz_account_when_cairo0_selected() {
     assert_tx_successful(&account_deployment.transaction_hash, &devnet.json_rpc_client).await;
 
     let account_address = account_deployment.contract_address;
-    can_declare_deploy_invoke_cairo0_using_account(&devnet, &signer, account_address).await;
     can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
 }
 
@@ -109,7 +106,6 @@ async fn can_deploy_new_custom_oz_account() {
     assert_tx_successful(&account_deployment.transaction_hash, &devnet.json_rpc_client).await;
 
     let account_address = account_deployment.contract_address;
-    can_declare_deploy_invoke_cairo0_using_account(&devnet, &signer, account_address).await;
     can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
 }
 
@@ -150,63 +146,6 @@ async fn can_deploy_new_argent_account_from_predeclared_class() {
 
     let account_address = account_deployment.contract_address;
     can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
-}
-
-async fn can_declare_deploy_invoke_cairo0_using_account(
-    devnet: &BackgroundDevnet,
-    signer: &LocalWallet,
-    account_address: Felt,
-) {
-    let account = Arc::new(SingleOwnerAccount::new(
-        devnet.clone_provider(),
-        signer,
-        account_address,
-        devnet.json_rpc_client.chain_id().await.unwrap(),
-        ExecutionEncoding::New,
-    ));
-
-    // get class
-    let contract_class = Arc::new(dummy_cairo_0_contract_class_codegen());
-    let class_hash = contract_class.class_hash().unwrap();
-
-    // declare class
-    let declaration_result = account.declare_legacy(contract_class).send().await.unwrap();
-    assert_eq!(declaration_result.class_hash, class_hash);
-
-    // deploy instance of class
-    let contract_factory = ContractFactory::new(class_hash, account.clone());
-    let salt = Felt::from_hex_unchecked("0x123");
-    let constructor_calldata = vec![];
-    let contract_address = get_udc_deployed_address(
-        salt,
-        class_hash,
-        &UdcUniqueness::NotUnique,
-        &constructor_calldata,
-    );
-    contract_factory
-        .deploy_v1(constructor_calldata, salt, false)
-        .send()
-        .await
-        .expect("Cannot deploy");
-
-    // invoke
-    let increase_amount = Felt::from(100u128);
-    let invoke_calls = vec![Call {
-        to: contract_address,
-        selector: get_selector_from_name("increase_balance").unwrap(),
-        calldata: vec![increase_amount],
-    }];
-    account.execute_v1(invoke_calls).send().await.unwrap();
-
-    // prepare the call used in checking the balance
-    let call = FunctionCall {
-        contract_address,
-        entry_point_selector: get_selector_from_name("get_balance").unwrap(),
-        calldata: vec![],
-    };
-    let balance_after_sufficient =
-        devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap();
-    assert_eq!(balance_after_sufficient, vec![increase_amount]);
 }
 
 async fn can_declare_deploy_invoke_cairo1_using_account(
@@ -261,7 +200,6 @@ async fn can_declare_deploy_invoke_using_predeployed_cairo1() {
     let devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
     let (signer, account_address) = devnet.get_first_predeployed_account().await;
-    can_declare_deploy_invoke_cairo0_using_account(&devnet, &signer, account_address).await;
     can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
 }
 
@@ -271,7 +209,6 @@ async fn can_declare_deploy_invoke_using_predeployed_custom() {
     let devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
     let (signer, account_address) = devnet.get_first_predeployed_account().await;
-    can_declare_deploy_invoke_cairo0_using_account(&devnet, &signer, account_address).await;
     can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
 }
 
