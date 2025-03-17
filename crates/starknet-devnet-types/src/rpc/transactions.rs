@@ -352,8 +352,8 @@ impl From<&ResourceBoundsWrapper> for GasVectorComputationMode {
     fn from(val: &ResourceBoundsWrapper) -> GasVectorComputationMode {
         let resource_bounds = starknet_api::transaction::fields::ValidResourceBounds::from(val);
         match resource_bounds {
-            ValidResourceBounds::L1Gas(resource_bounds) => GasVectorComputationMode::NoL2Gas,
-            ValidResourceBounds::AllResources(all_resource_bounds) => GasVectorComputationMode::All,
+            ValidResourceBounds::L1Gas(_) => GasVectorComputationMode::NoL2Gas,
+            ValidResourceBounds::AllResources(_) => GasVectorComputationMode::All,
         }
     }
 }
@@ -410,7 +410,7 @@ impl From<&ResourceBoundsWrapper> for starknet_api::transaction::fields::ValidRe
             // providing max amount 0 for each resource bound is possible in the case of
             // estimate fee
             (0, 0, 0) => ValidResourceBounds::AllResources(AllResourceBounds::default()),
-            (l1, 0, 0) => starknet_api::transaction::fields::ValidResourceBounds::L1Gas(
+            (_, 0, 0) => starknet_api::transaction::fields::ValidResourceBounds::L1Gas(
                 convert_resource_bounds_from_starknet_rs_to_starknet_api(
                     value.inner.l1_gas.clone(),
                 ),
@@ -449,7 +449,7 @@ impl BroadcastedTransactionCommonV3 {
             (l1, l2, l1_data) => {
                 let l1_gt_zero = is_gt_zero(l1);
                 let l2_gt_zero = is_gt_zero(l2);
-                let l1_data_gt_zero = is_gt_zero(l1_data_gas);
+                let l1_data_gt_zero = is_gt_zero(l1_data);
 
                 l1_gt_zero || l2_gt_zero || l1_data_gt_zero
             }

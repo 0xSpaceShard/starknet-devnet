@@ -16,7 +16,7 @@ use starknet_rs_accounts::{
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
 use starknet_rs_core::types::{
-    BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult, FeeEstimate,
+    BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult,
     Felt, FlattenedSierraClass, FunctionCall,
 };
 use starknet_rs_core::utils::{

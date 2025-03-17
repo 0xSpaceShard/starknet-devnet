@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use server::test_utils::declare_v1_str;
 use starknet_rs_accounts::{
     Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };

@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use blockifier::execution::stack_trace::{ErrorStackSegment, gen_tx_execution_error_trace};
 use blockifier::fee::fee_checks::FeeCheckError;
 use blockifier::transaction::errors::{
@@ -213,12 +211,8 @@ impl From<String> for ContractExecutionError {
     }
 }
 
-use blockifier::{
-    execution::call_info::{self, CallInfo, Retdata},
-    transaction::objects::TransactionExecutionInfo,
-};
+use blockifier::execution::call_info::{CallInfo, Retdata};
 use serde::{Deserialize, Serialize};
-use starknet_rs_core::utils::parse_cairo_short_string;
 
 impl From<blockifier::execution::stack_trace::ErrorStack> for ContractExecutionError {
     fn from(error_stack: blockifier::execution::stack_trace::ErrorStack) -> Self {
@@ -350,18 +344,15 @@ impl From<&CallInfo> for ContractExecutionError {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
+    
 
-    use blockifier::{
-        execution::{
-            call_info::{self, CallInfo, Retdata},
+    use blockifier::execution::{
+            call_info::{CallInfo, Retdata},
             stack_trace::{ErrorStack, ErrorStackSegment},
-        },
-        transaction::objects::TransactionExecutionInfo,
-    };
+        };
     use serde::{Deserialize, Serialize};
     use starknet_api::core::ContractAddress;
-    use starknet_rs_core::utils::parse_cairo_short_string;
+    
     use starknet_types_core::felt::Felt;
 
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

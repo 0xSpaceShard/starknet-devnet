@@ -1522,23 +1522,21 @@ impl Starknet {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
+    
     use std::thread;
     use std::time::Duration;
 
-    use blockifier::execution::call_info::CallInfo;
-    use blockifier::execution::stack_trace::{
-        Cairo1RevertHeader, ErrorStack, extract_trailing_cairo1_revert_trace,
-    };
+    
+    
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
-    use serde::{Deserialize, Serialize};
+    
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, FeeType};
-    use starknet_api::felt;
+    
     use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::{Calldata, felt_from_prefixed_hex};
+    use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::state::Balance;
     use starknet_types::traits::HashProducer;
 

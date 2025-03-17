@@ -3,9 +3,8 @@ use starknet_rs_core::types::{
     BlockId, BlockTag, ContractErrorData, ContractExecutionError, Felt, FunctionCall, StarknetError,
 };
 use starknet_rs_core::utils::{
-    cairo_short_string_to_felt, get_selector_from_name, parse_cairo_short_string,
+    cairo_short_string_to_felt, get_selector_from_name,
 };
-use starknet_rs_providers::jsonrpc::JsonRpcError;
 use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
@@ -14,7 +13,7 @@ use crate::common::constants::{
     ETH_ERC20_CONTRACT_ADDRESS, PREDEPLOYED_ACCOUNT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_json_rpc_errors_equal, declare_v3_deploy_v3, deploy_v3, extract_json_rpc_error,
+    declare_v3_deploy_v3, deploy_v3,
     get_flattened_sierra_contract_and_casm_hash,
 };
 

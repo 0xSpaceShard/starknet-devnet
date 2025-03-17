@@ -2,18 +2,17 @@ use std::sync::Arc;
 
 use serde_json::json;
 use server::test_utils::assert_contains;
-use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class_codegen;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, FunctionCall};
-use starknet_rs_core::utils::{UdcUniqueness, get_selector_from_name, get_udc_deployed_address};
+use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::Provider;
 use starknet_rs_signers::LocalWallet;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
-    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, INTEGRATION_SEPOLIA_HTTP_URL, MAINNET_URL,
+    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, INTEGRATION_SEPOLIA_HTTP_URL,
 };
 use crate::common::reqwest_client::GetReqwestSender;
 use crate::common::utils::{
