@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use blockifier::context::{BlockContext, ChainInfo, TransactionContext};
 use blockifier::execution::common_hints::ExecutionMode;
+use blockifier::execution::stack_trace::gen_tx_execution_error_trace;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::{AccountTransaction, ExecutionFlags};
@@ -73,11 +74,10 @@ use crate::constants::{
     ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
 };
 use crate::contract_class_choice::AccountContractClassChoice;
-use crate::error::{DevnetResult, Error, TransactionValidationError};
+use crate::error::{ContractExecutionError, DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
 use crate::nonzero_gas_price;
 use crate::predeployed_accounts::PredeployedAccounts;
-use crate::stack_trace::{ErrorStack, gen_tx_execution_error_trace};
 use crate::state::state_diff::StateDiff;
 use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
@@ -735,20 +735,23 @@ impl Starknet {
         let res = call
             .execute(&mut transactional_state, &mut execution_context, &mut initial_gas.0)
             .map_err(|error| {
-                Error::ContractExecutionError(gen_tx_execution_error_trace(
-                    &TransactionExecutionError::ExecutionError {
+                Error::ContractExecutionError(
+                    gen_tx_execution_error_trace(&TransactionExecutionError::ExecutionError {
                         error,
                         class_hash,
                         storage_address,
                         selector: starknet_api::core::EntryPointSelector(entrypoint_selector),
-                    },
-                ))
+                    })
+                    .into(),
+                )
             })?;
 
-        if res.execution.failed
-            && res.execution.retdata.0.first() == Some(&ENTRYPOINT_NOT_FOUND_ERROR_ENCODED)
-        {
-            return Err(Error::EntrypointNotFound);
+        if res.execution.failed {
+            if res.execution.retdata.0.first() == Some(&ENTRYPOINT_NOT_FOUND_ERROR_ENCODED) {
+                return Err(Error::EntrypointNotFound);
+            } else {
+                return Err(Error::ContractExecutionError(ContractExecutionError::from(&res)));
+            }
         }
 
         // TODO other cases: https://spaceshard.slack.com/archives/C03QN20522D/p1735547866439019
@@ -1259,10 +1262,8 @@ impl Starknet {
                     if !txn.is_max_fee_valid() && !skip_fee_charge {
                         return Err(Error::ContractExecutionErrorInSimulation {
                             failure_index: tx_idx,
-                            error_stack: ErrorStack::from_str_err(
-                                &TransactionValidationError::InsufficientResourcesForValidate
-                                    .to_string(),
-                            ),
+                            execution_error: ContractExecutionError::from(TransactionValidationError::InsufficientResourcesForValidate
+                                .to_string()),
                         });
                     }
 
@@ -1296,7 +1297,9 @@ impl Starknet {
                 .execute(&mut transactional_state, &block_context)
                 .map_err(|err| Error::ContractExecutionErrorInSimulation {
                     failure_index: tx_idx,
-                    error_stack: gen_tx_execution_error_trace(&err),
+                    execution_error: ContractExecutionError::from(gen_tx_execution_error_trace(
+                        &err,
+                    )),
                 })?;
 
             let block_number = block_context.block_info().block_number.0;
@@ -1519,16 +1522,23 @@ impl Starknet {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
     use std::thread;
     use std::time::Duration;
 
+    use blockifier::execution::call_info::CallInfo;
+    use blockifier::execution::stack_trace::{
+        Cairo1RevertHeader, ErrorStack, extract_trailing_cairo1_revert_trace,
+    };
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
+    use serde::{Deserialize, Serialize};
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, FeeType};
+    use starknet_api::felt;
     use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::felt_from_prefixed_hex;
+    use starknet_types::felt::{Calldata, felt_from_prefixed_hex};
     use starknet_types::rpc::state::Balance;
     use starknet_types::traits::HashProducer;
 

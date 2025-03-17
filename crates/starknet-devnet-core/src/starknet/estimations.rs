@@ -13,8 +13,7 @@ use starknet_types::rpc::estimate_message_fee::{
 };
 use starknet_types::rpc::transactions::BroadcastedTransaction;
 
-use crate::error::{DevnetResult, Error};
-use crate::stack_trace::ErrorStack;
+use crate::error::{ContractExecutionError, DevnetResult, Error};
 use crate::starknet::Starknet;
 use crate::utils::get_versioned_constants;
 
@@ -80,15 +79,15 @@ pub fn estimate_fee(
                 Ok(estimated_fee) => Ok(estimated_fee),
                 // reverted transactions are failing with ExecutionError, but index is set to 0, so
                 // we override the index property
-                Err(Error::ContractExecutionError(error_stack)) => {
+                Err(Error::ContractExecutionError(execution_error)) => {
                     Err(Error::ContractExecutionErrorInSimulation {
                         failure_index: idx,
-                        error_stack,
+                        execution_error,
                     })
                 }
                 Err(err) => Err(Error::ContractExecutionErrorInSimulation {
                     failure_index: idx,
-                    error_stack: ErrorStack::from_str_err(&err.to_string()),
+                    execution_error: ContractExecutionError::from(err.to_string()),
                 }),
             }
         })
@@ -132,14 +131,22 @@ fn estimate_transaction_fee<S: StateReader>(
     let transaction_execution_info = transaction.execute(transactional_state, block_context)?;
 
     // reverted transactions can only be Invoke transactions
-    if let (true, Some(revert_error)) =
-        (return_error_on_reverted_execution, transaction_execution_info.revert_error)
-    {
-        // TODO Users would probably prefer a structured error, but according to the RPC spec, a
-        // string is allowed. We should improve this.
-        return Err(Error::ContractExecutionError(ErrorStack::from_str_err(
-            &revert_error.to_string(),
-        )));
+    match transaction_execution_info.revert_error {
+        Some(revert_error) if return_error_on_reverted_execution => {
+            // TODO Users would probably prefer a structured error, but according to the RPC spec, a
+            // string is allowed. We should improve this for non Execution error
+            match revert_error {
+                blockifier::transaction::objects::RevertError::Execution(error_stack) => {
+                    return Err(Error::ContractExecutionError(ContractExecutionError::from(
+                        error_stack,
+                    )));
+                }
+                blockifier::transaction::objects::RevertError::PostExecution(fee_check_error) => {
+                    return Err(fee_check_error.into());
+                }
+            };
+        }
+        _ => {}
     }
 
     let gas_vector = transaction_execution_info.receipt.resources.to_gas_vector(

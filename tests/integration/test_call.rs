@@ -1,15 +1,20 @@
 use starknet_rs_accounts::SingleOwnerAccount;
-use starknet_rs_core::types::{BlockId, BlockTag, Felt, FunctionCall, StarknetError};
-use starknet_rs_core::utils::{cairo_short_string_to_felt, get_selector_from_name};
+use starknet_rs_core::types::{
+    BlockId, BlockTag, ContractErrorData, ContractExecutionError, Felt, FunctionCall, StarknetError,
+};
+use starknet_rs_core::utils::{
+    cairo_short_string_to_felt, get_selector_from_name, parse_cairo_short_string,
+};
 use starknet_rs_providers::jsonrpc::JsonRpcError;
 use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
-    CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH, ETH_ERC20_CONTRACT_ADDRESS, PREDEPLOYED_ACCOUNT_ADDRESS,
+    CAIRO_1_ACCOUNT_CONTRACT_0_8_0_SIERRA_PATH, CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH,
+    ETH_ERC20_CONTRACT_ADDRESS, PREDEPLOYED_ACCOUNT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_json_rpc_errors_equal, declare_v3_deploy_v3, deploy_v1, extract_json_rpc_error,
+    assert_json_rpc_errors_equal, declare_v3_deploy_v3, deploy_v3, extract_json_rpc_error,
     get_flattened_sierra_contract_and_casm_hash,
 };
 
@@ -61,19 +66,22 @@ async fn calling_nonexistent_cairo0_contract_method() {
         .await
         .expect_err("Should have failed");
 
-    assert_json_rpc_errors_equal(
-        extract_json_rpc_error(err).unwrap(),
-        JsonRpcError {
-            code: 21,
-            message: "Requested entrypoint does not exist in the contract".into(),
-            data: None,
-        },
-    );
+    match err {
+        ProviderError::StarknetError(StarknetError::EntrypointNotFound) => {}
+        _ => {
+            panic!("Invalid error received {:?}", err);
+        }
+    }
 }
 
 #[tokio::test]
 async fn calling_nonexistent_cairo1_contract_method() {
-    let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+    let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+        "--account-class-custom",
+        CAIRO_1_ACCOUNT_CONTRACT_0_8_0_SIERRA_PATH,
+    ])
+    .await
+    .expect("Could not start Devnet");
     let contract_address = Felt::from_hex_unchecked(PREDEPLOYED_ACCOUNT_ADDRESS);
     let entry_point_selector = get_selector_from_name("nonExistentMethod").unwrap();
 
@@ -91,14 +99,12 @@ async fn calling_nonexistent_cairo1_contract_method() {
         .await
         .expect_err("Should have failed");
 
-    assert_json_rpc_errors_equal(
-        extract_json_rpc_error(err).unwrap(),
-        JsonRpcError {
-            code: 21,
-            message: "Requested entrypoint does not exist in the contract".into(),
-            data: None,
-        },
-    );
+    match err {
+        ProviderError::StarknetError(StarknetError::EntrypointNotFound) => {}
+        _ => {
+            panic!("Invalid error received {:?}", err);
+        }
+    }
 }
 
 #[tokio::test]
@@ -119,10 +125,12 @@ async fn call_panicking_method() {
 
     let (class_hash, contract_address) =
         declare_v3_deploy_v3(&account, contract_class, casm_hash, &[]).await.unwrap();
-    let other_contract_address = deploy_v1(&account, class_hash, &[]).await.unwrap();
+
+    let other_contract_address = deploy_v3(&account, class_hash, &[]).await.unwrap();
 
     let top_selector = get_selector_from_name("create_panic_in_another_contract").unwrap();
     let panic_message = cairo_short_string_to_felt("funny_text").unwrap();
+
     let err = devnet
         .json_rpc_client
         .call(
@@ -136,22 +144,45 @@ async fn call_panicking_method() {
         .await
         .unwrap_err();
 
-    assert_json_rpc_errors_equal(
-        extract_json_rpc_error(err).unwrap(),
-        JsonRpcError {
-            code: 40,
-            message: "Contract error".into(),
-            data: Some(serde_json::json!({
-                "contract_address": contract_address,
-                "class_hash": class_hash,
-                "selector": top_selector,
-                "error": {
-                    "contract_address": other_contract_address,
-                    "class_hash": class_hash,
-                    "selector": get_selector_from_name("create_panic").unwrap(),
-                    "error": "Execution failed. Failure reason: 0x66756e6e795f74657874 ('funny_text').\n"
+    match err {
+        ProviderError::StarknetError(StarknetError::ContractError(ContractErrorData {
+            revert_error: contract_error,
+        })) => match contract_error {
+            ContractExecutionError::Nested(root) => {
+                assert_eq!(root.contract_address, contract_address);
+                assert_eq!(root.class_hash, class_hash);
+                assert_eq!(root.selector, top_selector);
+
+                match root.error.as_ref() {
+                    ContractExecutionError::Nested(inner) => {
+                        assert_eq!(inner.contract_address, other_contract_address);
+                        assert_eq!(inner.selector, get_selector_from_name("create_panic").unwrap());
+                        assert_eq!(inner.class_hash, class_hash);
+
+                        match inner.error.as_ref() {
+                            ContractExecutionError::Message(error_msg) => assert!(
+                                error_msg.contains(
+                                    &cairo_short_string_to_felt("funny_text")
+                                        .unwrap()
+                                        .to_hex_string()
+                                )
+                            ),
+                            _ => {
+                                panic!("Expected message structure");
+                            }
+                        }
+                    }
+                    _ => {
+                        panic!("Expected nested structure");
+                    }
                 }
-            })),
+            }
+            _ => {
+                panic!("Invalid error structure");
+            }
         },
-    );
+        _ => {
+            panic!("Invalid error received {:?}", err);
+        }
+    }
 }

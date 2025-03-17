@@ -45,9 +45,12 @@ mod tests {
     // Constants taken from test_estimate_message_fee.rs.
     const WHITELISTED_L1_ADDRESS: &str = "0x8359E4B0152ed5A731162D3c7B0D8D56edB165A0";
 
+    use blockifier::execution::stack_trace::ErrorStack;
     use nonzero_ext::nonzero;
     use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
-    use starknet_rs_core::utils::get_selector_from_name;
+    use starknet_rs_core::utils::{
+        cairo_short_string_to_felt, get_selector_from_name, parse_cairo_short_string,
+    };
     use starknet_types::chain_id::ChainId;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
@@ -59,10 +62,10 @@ mod tests {
     use crate::account::Account;
     use crate::constants::{
         self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
-        ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
+        ENTRYPOINT_NOT_FOUND_ERROR_ENCODED, ETH_ERC20_CONTRACT_ADDRESS,
+        STRK_ERC20_CONTRACT_ADDRESS,
     };
-    use crate::stack_trace::{ErrorStack, Frame};
-    use crate::starknet::{predeployed, Starknet};
+    use crate::starknet::{Starknet, predeployed};
     use crate::state::CustomState;
     use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_l1l2_contract;
@@ -133,23 +136,28 @@ mod tests {
         );
 
         match starknet.add_l1_handler_transaction(transaction) {
-            Err(crate::error::Error::ContractExecutionError(ErrorStack { stack })) => {
-                assert_eq!(stack.len(), 2);
-                match &stack[0] {
-                    Frame::EntryPoint(frame) => {
+            Err(crate::error::Error::ContractExecutionError(execution_error)) => {
+                match execution_error {
+                    crate::error::ContractExecutionError::Nested(
+                        inner_contract_execution_error,
+                    ) => {
+                        assert_eq!(inner_contract_execution_error.selector, withdraw_selector);
                         assert_eq!(
-                            frame.selector.unwrap(),
-                            starknet_api::core::EntryPointSelector(withdraw_selector)
+                            inner_contract_execution_error.contract_address,
+                            starknet_api::core::ContractAddress::try_from(contract_address)
+                                .unwrap()
                         );
-                        assert_eq!(Felt::from(frame.storage_address), Felt::from(contract_address));
-                        assert_eq!(frame.depth, 0);
-                    }
-                    other => panic!("Invalid error frame: {other:?}"),
-                }
 
-                match &stack[1] {
-                    Frame::StringFrame(e) => assert!(e.contains("ENTRYPOINT_NOT_FOUND"), "{e}"),
-                    other => panic!("Invalid error frame: {other:?}"),
+                        // check if there is a felt that corresponds to ENTRYPOINT_NOT_FOUND
+                        assert!(
+                            serde_json::to_string(&inner_contract_execution_error.error)
+                                .unwrap()
+                                .contains(&ENTRYPOINT_NOT_FOUND_ERROR_ENCODED.to_hex_string())
+                        );
+                    }
+                    other_error_trace => {
+                        panic!("Invalid error stack trace {:?}", other_error_trace)
+                    }
                 }
             }
             other => panic!("Wrong result: {other:?}"),

@@ -19,7 +19,9 @@ use starknet_rs_core::types::{
     BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult, FeeEstimate,
     Felt, FlattenedSierraClass, FunctionCall,
 };
-use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
+use starknet_rs_core::utils::{
+    UdcUniqueSettings, get_selector_from_name, get_udc_deployed_address,
+};
 use starknet_rs_providers::jsonrpc::{
     HttpTransport, HttpTransportError, JsonRpcClientError, JsonRpcError,
 };
@@ -29,7 +31,9 @@ use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use super::background_devnet::BackgroundDevnet;
-use super::constants::{CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH};
+use super::constants::{
+    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH, UDC_CONTRACT_ADDRESS,
+};
 use super::safe_child::SafeChild;
 
 pub enum ImpersonationAction {
@@ -240,24 +244,23 @@ impl Drop for UniqueAutoDeletableFile {
 }
 
 /// Deploys an instance of the class whose sierra hash is provided as `class_hash`. Uses a v3 invoke
-/// transaction with only L1_GAS set. Returns the address of the newly deployed contract.
+/// transaction. Returns the address of the newly deployed contract.
 pub async fn deploy_v3(
     account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
     class_hash: Felt,
     ctor_args: &[Felt],
 ) -> Result<Felt, anyhow::Error> {
     let contract_factory = ContractFactory::new(class_hash, account);
-    contract_factory
-        .deploy_v3(ctor_args.to_vec(), Felt::ZERO, false)
-        .l1_gas(1e18 as u64)
-        .send()
-        .await?;
+    contract_factory.deploy_v3(ctor_args.to_vec(), Felt::ZERO, true).send().await?;
 
     // generate the address of the newly deployed contract
     let contract_address = get_udc_deployed_address(
         Felt::ZERO,
         class_hash,
-        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        &starknet_rs_core::utils::UdcUniqueness::Unique(UdcUniqueSettings {
+            deployer_address: account.address(),
+            udc_contract_address: UDC_CONTRACT_ADDRESS,
+        }),
         ctor_args,
     );
 

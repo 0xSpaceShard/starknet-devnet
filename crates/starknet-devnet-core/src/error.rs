@@ -299,6 +299,55 @@ impl From<blockifier::execution::stack_trace::ErrorStack> for ContractExecutionE
     }
 }
 
+impl From<&CallInfo> for ContractExecutionError {
+    fn from(call_info: &CallInfo) -> Self {
+        /// Traces recursively and returns elements starting from the deepest element
+        /// and then moves outward to the enclosing elements
+        fn collect_failed_calls(root_call: &CallInfo) -> Vec<&CallInfo> {
+            let mut calls = vec![];
+
+            for inner_call in root_call.inner_calls.iter() {
+                calls.extend(collect_failed_calls(inner_call));
+            }
+
+            if root_call.execution.failed {
+                calls.push(root_call);
+            }
+
+            calls
+        }
+
+        let failed_calls = collect_failed_calls(call_info);
+
+        // collects retdata of each CallInfo, starting from the outermost element of failed_calls collection
+        // and combines them in 1-dimensional array
+        // It serves as the reason for the failed call stack trace
+        let mut recursive_error = ContractExecutionError::Message(
+            serde_json::to_string(
+                &failed_calls
+                    .iter()
+                    .rev()
+                    .flat_map(|f| f.execution.retdata.clone().0)
+                    .collect::<Vec<Felt>>(),
+            )
+            .unwrap_or_default(),
+        );
+
+        for failed in failed_calls {
+            let current = ContractExecutionError::Nested(InnerContractExecutionError {
+                contract_address: failed.call.storage_address,
+                class_hash: failed.call.class_hash.unwrap_or_default().0,
+                selector: failed.call.entry_point_selector.0,
+                return_data: failed.execution.retdata.clone(),
+                error: Box::new(recursive_error),
+            });
+            recursive_error = current;
+        }
+
+        recursive_error
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
@@ -522,7 +571,7 @@ mod tests {
 
         let failed_calls = collect_failed_calls(&call_info);
 
-        let combined_error_msg = Box::new(ContractExecutionError::Message(
+        let mut recursive_error = Box::new(ContractExecutionError::Message(
             serde_json::to_string(
                 &failed_calls
                     .iter()
@@ -533,29 +582,62 @@ mod tests {
             .unwrap_or_default(),
         ));
 
-        let mut recursive_error = Option::<Box<ContractExecutionError>>::None;
         for f in failed_calls {
-            let current = if let Some(last_failed) = recursive_error.take() {
-                InnerContractExecutionError {
-                    contract_address: f.call.storage_address,
-                    class_hash: f.call.class_hash.unwrap_or_default().0,
-                    selector: f.call.entry_point_selector.0,
-                    return_data: f.execution.retdata.clone(),
-                    error: last_failed,
-                }
-            } else {
-                InnerContractExecutionError {
-                    contract_address: f.call.storage_address,
-                    class_hash: f.call.class_hash.unwrap_or_default().0,
-                    selector: f.call.entry_point_selector.0,
-                    return_data: f.execution.retdata.clone(),
-                    error: combined_error_msg.clone(),
-                }
-            };
-
-            recursive_error = Some(Box::new(ContractExecutionError::Nested(current)));
+            let current = ContractExecutionError::Nested(InnerContractExecutionError {
+                contract_address: f.call.storage_address,
+                class_hash: f.call.class_hash.unwrap_or_default().0,
+                selector: f.call.entry_point_selector.0,
+                return_data: f.execution.retdata.clone(),
+                error: recursive_error,
+            });
+            recursive_error = Box::new(current);
         }
 
-        println!("{}", serde_json::to_string(&recursive_error.unwrap()).unwrap());
+        println!("{}", serde_json::to_string(&recursive_error).unwrap());
+        println!("{}", serde_json::to_string(&ContractExecutionError::from(&call_info)).unwrap());
+    }
+
+    impl From<&CallInfo> for ContractExecutionError {
+        fn from(call_info: &CallInfo) -> Self {
+            fn collect_failed_calls(root_call: &CallInfo) -> Vec<&CallInfo> {
+                let mut calls = vec![];
+
+                for inner_call in root_call.inner_calls.iter() {
+                    calls.extend(collect_failed_calls(inner_call));
+                }
+
+                if root_call.execution.failed {
+                    calls.push(root_call);
+                }
+
+                calls
+            }
+
+            let failed_calls = collect_failed_calls(call_info);
+
+            let mut recursive_error = ContractExecutionError::Message(
+                serde_json::to_string(
+                    &failed_calls
+                        .iter()
+                        .rev()
+                        .flat_map(|f| f.execution.retdata.clone().0)
+                        .collect::<Vec<Felt>>(),
+                )
+                .unwrap_or_default(),
+            );
+
+            for f in failed_calls {
+                let current = ContractExecutionError::Nested(InnerContractExecutionError {
+                    contract_address: f.call.storage_address,
+                    class_hash: f.call.class_hash.unwrap_or_default().0,
+                    selector: f.call.entry_point_selector.0,
+                    return_data: f.execution.retdata.clone(),
+                    error: Box::new(recursive_error),
+                });
+                recursive_error = current;
+            }
+
+            recursive_error
+        }
     }
 }
