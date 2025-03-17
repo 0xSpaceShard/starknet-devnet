@@ -40,8 +40,7 @@ mod test_call;
 // mod test_estimate_message_fee;
 // mod test_simulate_transactions;
 
-// Fabijan
-// mod test_fork;
+mod test_fork;
 
 // Fabijan
 // mod test_subscription_to_blocks;
