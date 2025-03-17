@@ -114,7 +114,6 @@ fn assert_casm_hash_is_valid(
 #[cfg(test)]
 mod tests {
     use blockifier::state::state_api::StateReader;
-    use blockifier::transaction::errors::TransactionFeeError;
     use starknet_api::core::CompiledClassHash;
     use starknet_api::transaction::fields::Fee;
     use starknet_rs_core::types::{
@@ -361,9 +360,9 @@ mod tests {
             1e9 as u64, 1, // l2_gas
         );
         match starknet.add_declare_transaction(declare_txn.into()).unwrap_err() {
-            Error::TransactionFeeError(TransactionFeeError::ResourcesBoundsExceedBalance {
-                ..
-            }) => {}
+            Error::TransactionValidationError(
+                TransactionValidationError::InsufficientAccountBalance,
+            ) => {}
             err => panic!("Wrong error type received {:?}", err),
         }
     }
