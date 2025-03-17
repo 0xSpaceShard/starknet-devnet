@@ -1,4 +1,5 @@
 use std::fmt::LowerHex;
+use std::ops::{Add, Div};
 use std::path::Path;
 use std::process::{Child, Command};
 use std::sync::Arc;
@@ -16,8 +17,8 @@ use starknet_rs_accounts::{
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
 use starknet_rs_core::types::{
-    BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult,
-    Felt, FlattenedSierraClass, FunctionCall,
+    BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult, Felt,
+    FlattenedSierraClass, FunctionCall,
 };
 use starknet_rs_core::utils::{
     UdcUniqueSettings, get_selector_from_name, get_udc_deployed_address,
@@ -41,6 +42,23 @@ pub enum ImpersonationAction {
     StopImpersonateAccount(Felt),
     AutoImpersonate,
     StopAutoImpersonate,
+}
+
+pub(crate) fn convert_from_little_endian_bytes_array<
+    T: PartialOrd + Copy + Default + Add<Output = T> + Div<Output = T>,
+    const N: usize,
+>(
+    byte_array: &[u8],
+) -> T {
+    let (prefix, aligned, suffix) = unsafe { byte_array.align_to::<T>() };
+    if !prefix.is_empty() || !suffix.is_empty() {
+        panic!("Cant convert from byte array");
+    }
+    if aligned.len() > 1 {
+        panic!("byte array doesnt fit into {}", std::any::type_name::<T>());
+    }
+
+    aligned[0]
 }
 
 /// dummy testing value
