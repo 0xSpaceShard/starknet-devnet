@@ -30,10 +30,10 @@ mod test_call;
 // mod test_gas_modification;
 
 // Mario
-// mod test_get_block_txs_count;
-// mod test_get_class;
-// mod test_get_class_hash_at;
-// mod test_get_events;
+mod test_get_block_txs_count;
+mod test_get_class;
+mod test_get_class_hash_at;
+mod test_get_events;
 
 // Mario
 // mod test_estimate_fee;

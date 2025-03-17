@@ -16,7 +16,7 @@ use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
 /// Then the events are being fetched first all of them then in chunks
 async fn get_events_correct_chunking(devnet: &BackgroundDevnet, block_on_demand: bool) {
     let (signer, address) = devnet.get_first_predeployed_account().await;
-    let predeployed_account = SingleOwnerAccount::new(
+    let mut predeployed_account = SingleOwnerAccount::new(
         devnet.clone_provider(),
         signer,
         address,
@@ -24,13 +24,16 @@ async fn get_events_correct_chunking(devnet: &BackgroundDevnet, block_on_demand:
         ExecutionEncoding::New,
     );
 
+    if block_on_demand {
+        predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
+    }
+
     let (cairo_1_contract, casm_class_hash) =
         get_events_contract_in_sierra_and_compiled_class_hash();
 
     // declare the contract
-    let declaration_result = predeployed_account
-        .declare_v2(Arc::new(cairo_1_contract), casm_class_hash)
-        .max_fee(Felt::from(100000000000000000000u128))
+    let declaration_result: starknet_rs_core::types::DeclareTransactionResult = predeployed_account
+        .declare_v3(Arc::new(cairo_1_contract), casm_class_hash)
         .send()
         .await
         .unwrap();
@@ -44,12 +47,7 @@ async fn get_events_correct_chunking(devnet: &BackgroundDevnet, block_on_demand:
     // deploy the contract
     let contract_factory =
         ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
-    contract_factory
-        .deploy_v1(vec![], Felt::ZERO, false)
-        .max_fee(Felt::from(100000000000000000000u128))
-        .send()
-        .await
-        .unwrap();
+    contract_factory.deploy_v3(vec![], Felt::ZERO, false).send().await.unwrap();
 
     if block_on_demand {
         devnet.create_block().await.unwrap();
@@ -74,9 +72,8 @@ async fn get_events_correct_chunking(devnet: &BackgroundDevnet, block_on_demand:
     let nonce = predeployed_account.get_nonce().await.unwrap();
     for n in 0..n_events_contract_invocations {
         predeployed_account
-            .execute_v1(events_contract_call.clone())
+            .execute_v3(events_contract_call.clone())
             .nonce(nonce + Felt::from(n))
-            .max_fee(Felt::from(100000000000000000000u128))
             .send()
             .await
             .unwrap();
