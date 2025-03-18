@@ -17,19 +17,19 @@ mod test_balance;
 mod test_blocks_generation;
 mod test_call;
 
+// Fabijan
 // mod test_dump_and_load;
 // mod test_old_state;
 // mod test_restart;
+// mod test_minting;
+// mod test_gas_modification;
 
 // mod test_v3_transactions;
 // mod test_trace;
 // mod test_transaction_handling;
 // mod test_restrictive_mode;
 
-// mod test_minting;
-// mod test_gas_modification;
 
-// Mario
 mod test_get_block_txs_count;
 mod test_get_class;
 mod test_get_class_hash_at;
@@ -42,7 +42,6 @@ mod test_get_events;
 
 mod test_fork;
 
-// Fabijan
 mod test_subscription_to_blocks;
 mod test_subscription_to_events;
 mod test_subscription_to_pending_txs;
