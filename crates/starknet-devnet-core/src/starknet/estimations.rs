@@ -135,11 +135,12 @@ fn estimate_transaction_fee<S: StateReader>(
         Some(revert_error) if return_error_on_reverted_execution => {
             // TODO Users would probably prefer a structured error, but according to the RPC spec, a
             // string is allowed. We should improve this for non Execution error
+            let revert_error_string = revert_error.to_string();
             match revert_error {
                 blockifier::transaction::objects::RevertError::Execution(error_stack) => {
                     return Err(Error::ContractExecutionError(ContractExecutionError::from((
                         error_stack,
-                        "".to_string(),
+                        revert_error_string,
                     ))));
                 }
                 blockifier::transaction::objects::RevertError::PostExecution(fee_check_error) => {
