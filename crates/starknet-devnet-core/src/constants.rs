@@ -25,7 +25,7 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA: &str = include_str!(concat!(
 ));
 
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
-    "0x044cab2e6a3a7bc516425d06d76c6ffd56ae308864dbc66f8e75028e3784aa29";
+    "0x02b31e19e45c06f29234e06e2ee98a9966479ba3067f8785ed972794fdb0065c";
 
 pub const CAIRO_1_ERC20_CONTRACT: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),

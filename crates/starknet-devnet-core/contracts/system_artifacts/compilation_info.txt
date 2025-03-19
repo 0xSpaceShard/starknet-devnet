@@ -1,0 +1,1 @@
+ERC20 v0.20.0 compiled in a reduced form with Scarb 2.9.2
