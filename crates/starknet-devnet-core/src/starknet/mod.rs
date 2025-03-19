@@ -736,12 +736,12 @@ impl Starknet {
             .execute(&mut transactional_state, &mut execution_context, &mut initial_gas.0)
             .map_err(|error| {
                 Error::ContractExecutionError(
-                    gen_tx_execution_error_trace(&TransactionExecutionError::ExecutionError {
+                    TransactionExecutionError::ExecutionError {
                         error,
                         class_hash,
                         storage_address,
                         selector: starknet_api::core::EntryPointSelector(entrypoint_selector),
-                    })
+                    }
                     .into(),
                 )
             })?;
@@ -1297,9 +1297,7 @@ impl Starknet {
                 .execute(&mut transactional_state, &block_context)
                 .map_err(|err| Error::ContractExecutionErrorInSimulation {
                     failure_index: tx_idx,
-                    execution_error: ContractExecutionError::from(gen_tx_execution_error_trace(
-                        &err,
-                    )),
+                    execution_error: ContractExecutionError::from(err),
                 })?;
 
             let block_number = block_context.block_info().block_number.0;
@@ -1519,17 +1517,15 @@ impl Starknet {
 
 #[cfg(test)]
 mod tests {
-    
+
     use std::thread;
     use std::time::Duration;
 
-    
-    
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
-    
+
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, FeeType};
-    
+
     use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;

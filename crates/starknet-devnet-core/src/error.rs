@@ -131,7 +131,7 @@ impl From<TransactionExecutionError> for Error {
                 TransactionValidationError::ValidationFailure { reason: panic_reason.to_string() }
                     .into()
             }
-            other => Self::ContractExecutionError(gen_tx_execution_error_trace(&other).into()),
+            other => Self::ContractExecutionError(other.into()),
         }
     }
 }
@@ -220,18 +220,38 @@ impl From<String> for ContractExecutionError {
 use blockifier::execution::call_info::{CallInfo, Retdata};
 use serde::{Deserialize, Serialize};
 
-impl From<blockifier::execution::stack_trace::ErrorStack> for ContractExecutionError {
-    fn from(error_stack: blockifier::execution::stack_trace::ErrorStack) -> Self {
+impl From<TransactionExecutionError> for ContractExecutionError {
+    fn from(value: TransactionExecutionError) -> Self {
+        let error_string = value.to_string();
+        let error_stack = gen_tx_execution_error_trace(&value);
+
+        (error_stack, error_string).into()
+    }
+}
+
+impl From<(blockifier::execution::stack_trace::ErrorStack, String)> for ContractExecutionError {
+    fn from(tuple: (blockifier::execution::stack_trace::ErrorStack, String)) -> Self {
+        let error_stack = tuple.0;
+        let error_string = tuple.1;
+
         let mut recursive_error_option = Option::<ContractExecutionError>::None;
+        fn format_error(stringified_error: &str, error_cause: &str) -> String {
+            if stringified_error.is_empty() {
+                format!("{}", error_cause)
+            } else {
+                format!("{} {}", stringified_error, error_cause)
+            }
+        }
 
         // [[[error inner] error outer] root]
 
         for frame in error_stack.stack.iter().rev() {
             let stack_err = match frame {
                 ErrorStackSegment::Cairo1RevertSummary(revert_summary) => {
-                    let mut recursive_error = ContractExecutionError::Message(
-                        serde_json::to_string(&revert_summary.last_retdata.0).unwrap_or_default(),
-                    );
+                    let mut recursive_error = ContractExecutionError::Message(format_error(
+                        &error_string,
+                        &serde_json::to_string(&revert_summary.last_retdata.0).unwrap_or_default(),
+                    ));
 
                     for trace in revert_summary.stack.iter().rev() {
                         recursive_error =
@@ -246,8 +266,12 @@ impl From<blockifier::execution::stack_trace::ErrorStack> for ContractExecutionE
 
                     recursive_error
                 }
-                ErrorStackSegment::Vm(vm) => ContractExecutionError::Message(vm.into()),
-                ErrorStackSegment::StringFrame(msg) => ContractExecutionError::Message(msg.clone()),
+                ErrorStackSegment::Vm(vm) => {
+                    ContractExecutionError::Message(format_error(&error_string, &String::from(vm)))
+                }
+                ErrorStackSegment::StringFrame(msg) => {
+                    ContractExecutionError::Message(format_error(&error_string, msg.as_str()))
+                }
                 ErrorStackSegment::EntryPoint(entry_point_error_frame) => {
                     let error_reason = match entry_point_error_frame.preamble_type {
                         blockifier::execution::stack_trace::PreambleType::CallContract => {
@@ -262,7 +286,7 @@ impl From<blockifier::execution::stack_trace::ErrorStack> for ContractExecutionE
                     };
 
                     let error = recursive_error_option.take().unwrap_or_else(|| {
-                        ContractExecutionError::Message(error_reason.to_string())
+                        ContractExecutionError::Message(format_error(&error_string, error_reason))
                     });
 
                     ContractExecutionError::Nested(InnerContractExecutionError {
@@ -291,10 +315,10 @@ impl From<blockifier::execution::stack_trace::ErrorStack> for ContractExecutionE
                 blockifier::execution::stack_trace::ErrorStackHeader::Validation => {
                     "Validation error"
                 }
-                blockifier::execution::stack_trace::ErrorStackHeader::None => "Unknown error",
+                blockifier::execution::stack_trace::ErrorStackHeader::None => "",
             };
 
-            ContractExecutionError::Message(error_msg.to_string())
+            ContractExecutionError::Message(format!("{} {}", error_string, error_msg.to_string()))
         }
     }
 }
@@ -350,15 +374,14 @@ impl From<&CallInfo> for ContractExecutionError {
 
 #[cfg(test)]
 mod tests {
-    
 
     use blockifier::execution::{
-            call_info::{CallInfo, Retdata},
-            stack_trace::{ErrorStack, ErrorStackSegment},
-        };
+        call_info::{CallInfo, Retdata},
+        stack_trace::{ErrorStack, ErrorStackSegment},
+    };
     use serde::{Deserialize, Serialize};
     use starknet_api::core::ContractAddress;
-    
+
     use starknet_types_core::felt::Felt;
 
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
