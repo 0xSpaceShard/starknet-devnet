@@ -8,9 +8,10 @@ use starknet_rs_accounts::{Account, ExecutionEncoder, ExecutionEncoding, SingleO
 use starknet_rs_core::chain_id::SEPOLIA;
 use starknet_rs_core::types::{
     BlockHashAndNumber, BlockId, BlockTag, BroadcastedInvokeTransactionV3, BroadcastedTransaction,
-    Call, ContractClass, DataAvailabilityMode, ExecuteInvocation, Felt, InvokeTransactionTrace,
-    ResourceBounds, ResourceBoundsMapping, SimulatedTransaction, SimulationFlag,
-    SimulationFlagForEstimateFee, StarknetError, TransactionExecutionErrorData, TransactionTrace,
+    Call, ContractClass, ContractExecutionError, DataAvailabilityMode, ExecuteInvocation, Felt,
+    InnerContractExecutionError, InvokeTransactionTrace, ResourceBounds, ResourceBoundsMapping,
+    SimulatedTransaction, SimulationFlag, SimulationFlagForEstimateFee, StarknetError,
+    TransactionExecutionErrorData, TransactionTrace,
 };
 use starknet_rs_core::utils::{get_selector_from_name, get_storage_var_address};
 use starknet_rs_providers::{Provider, ProviderError};
@@ -145,9 +146,10 @@ async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old
         account.declare_v3(Arc::new(flattened_contract_artifact), casm_hash).send().await.unwrap();
     assert_eq!(declaration_result.class_hash, class_hash);
 
+    let invoked_selector = get_selector_from_name("deployContract").unwrap();
     let calls = vec![Call {
         to: UDC_CONTRACT_ADDRESS,
-        selector: get_selector_from_name("deployContract").unwrap(),
+        selector: invoked_selector,
         calldata: vec![
             class_hash,
             Felt::from_hex_unchecked("0x123"), // salt
@@ -218,13 +220,29 @@ async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old
         .await
         .unwrap();
 
-    let execution_error = match estimate_fee_error {
+    let execution_error_msg = match estimate_fee_error {
         ProviderError::StarknetError(StarknetError::TransactionExecutionError(
-            TransactionExecutionErrorData { execution_error, .. },
+            TransactionExecutionErrorData {
+                execution_error:
+                    ContractExecutionError::Nested(InnerContractExecutionError {
+                        selector: received_selector,
+                        error,
+                        contract_address,
+                        ..
+                    }),
+                ..
+            },
         )) => {
-            // assert_contains(&execution_error, "not declared");
-            println!("DEBUG execution_error: {execution_error:?}");
-            execution_error
+            todo!("decide on what to assert");
+            // assert_eq!(received_selector, invoked_selector);
+            // assert_eq!(contract_address, UDC_CONTRACT_ADDRESS);
+            match error.as_ref() {
+                ContractExecutionError::Message(msg) => {
+                    assert_contains(msg, "is not declared");
+                    msg.clone()
+                },
+                other => panic!("Unexpected error: {other:?}"),
+            }
         }
         other => panic!("Unexpected error: {other:?}"),
     };
@@ -234,9 +252,7 @@ async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old
             execute_invocation: ExecuteInvocation::Reverted(reverted_invocation),
             ..
         }) => {
-            println!("DEBUG reverted_invocation: {reverted_invocation:?}");
-            // assert_eq!(execution_error, reverted_invocation.revert_reason);
-            todo!("LMAO");
+            assert_eq!(execution_error_msg, reverted_invocation.revert_reason);
         }
         other => panic!("Unexpected trace {other:?}"),
     }

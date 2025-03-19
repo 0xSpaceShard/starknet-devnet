@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use blockifier::context::{BlockContext, ChainInfo, TransactionContext};
 use blockifier::execution::common_hints::ExecutionMode;
-use blockifier::execution::stack_trace::gen_tx_execution_error_trace;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::{AccountTransaction, ExecutionFlags};
