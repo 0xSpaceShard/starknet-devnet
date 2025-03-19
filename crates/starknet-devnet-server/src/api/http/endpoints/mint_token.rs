@@ -35,13 +35,12 @@ pub fn get_balance(
         [new_balance_low, new_balance_high] => Ok(join_felts(new_balance_high, new_balance_low)),
         _ => {
             let msg = format!(
-                "Fee token contract expected to return 2 values; got: {:?}",
-                new_balance_raw
+                "Fee token contract expected to return 2 values; got: {new_balance_raw:?}",
             );
 
-            Err(ApiError::ContractError {
-                error: starknet_core::error::Error::UnexpectedInternalError { msg },
-            })
+            Err(ApiError::StarknetDevnetError(
+                starknet_core::error::Error::UnexpectedInternalError { msg },
+            ))
         }
     }
 }

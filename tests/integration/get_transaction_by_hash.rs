@@ -3,7 +3,6 @@ use std::sync::Arc;
 use starknet_rs_accounts::{
     Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, StarknetError};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::{Provider, ProviderError};
@@ -14,38 +13,6 @@ use crate::common::utils::{
     assert_tx_successful, get_deployable_account_signer,
     get_simple_contract_in_sierra_and_compiled_class_hash,
 };
-
-#[tokio::test]
-async fn get_declare_v1_transaction_by_hash_happy_path() {
-    let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo0"])
-        .await
-        .expect("Could not start Devnet");
-    let json_string =
-        std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
-            .unwrap();
-
-    let legacy_contract_class: LegacyContractClass = serde_json::from_str(&json_string).unwrap();
-
-    let (signer, account_address) = devnet.get_first_predeployed_account().await;
-
-    let mut account = SingleOwnerAccount::new(
-        &devnet.json_rpc_client,
-        signer,
-        account_address,
-        constants::CHAIN_ID,
-        ExecutionEncoding::Legacy,
-    );
-    account.set_block_id(BlockId::Tag(BlockTag::Latest));
-
-    let declare_transaction = account
-        .declare_legacy(Arc::new(legacy_contract_class))
-        .nonce(Felt::ZERO)
-        .send()
-        .await
-        .unwrap();
-
-    assert_tx_successful(&declare_transaction.transaction_hash, &devnet.json_rpc_client).await;
-}
 
 #[tokio::test]
 async fn get_declare_v2_transaction_by_hash_happy_path() {

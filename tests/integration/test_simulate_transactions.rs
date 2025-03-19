@@ -1,15 +1,12 @@
 use std::sync::Arc;
-use std::{u128, u64};
 
 use serde_json::json;
 use server::test_utils::assert_contains;
-use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
 use starknet_rs_accounts::{
     Account, AccountError, AccountFactory, ConnectedAccount, ExecutionEncoder, ExecutionEncoding,
     OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
 use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 use starknet_rs_core::types::{
     BlockId, BlockTag, BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV3,
     BroadcastedDeployAccountTransaction, BroadcastedDeployAccountTransactionV3,
@@ -38,71 +35,6 @@ use crate::common::utils::{
     get_simple_contract_in_sierra_and_compiled_class_hash, iter_to_hex_felt, to_hex_felt,
     to_num_as_hex,
 };
-
-#[tokio::test]
-async fn simulate_declare_v1() {
-    let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-
-    // get account
-    let (signer, account_address) = devnet.get_first_predeployed_account().await;
-    let account = SingleOwnerAccount::new(
-        devnet.clone_provider(),
-        signer.clone(),
-        account_address,
-        CHAIN_ID,
-        ExecutionEncoding::New,
-    );
-
-    let contract_json = dummy_cairo_0_contract_class();
-    let contract_artifact: Arc<LegacyContractClass> =
-        Arc::new(serde_json::from_value(contract_json.inner).unwrap());
-
-    let max_fee = Felt::ZERO; // TODO try 1e18 as u128 instead
-    let nonce = Felt::ZERO;
-
-    let declaration = account
-        .declare_legacy(contract_artifact.clone())
-        .max_fee(max_fee)
-        .nonce(nonce)
-        .prepared()
-        .unwrap();
-    let declaration_hash = declaration.transaction_hash(false).unwrap();
-    let signature = signer.sign_hash(&declaration_hash).await.unwrap();
-
-    let sender_address_hex = account.address().to_hex_string();
-    let get_params = |simulation_flags: &[&str]| -> serde_json::Value {
-        json!({
-            "block_id": "latest",
-            "simulation_flags": simulation_flags,
-            "transactions": [
-                {
-                    "type": "DECLARE",
-                    "sender_address": sender_address_hex,
-                    "max_fee": to_hex_felt(&max_fee),
-                    "version": "0x1",
-                    "signature": iter_to_hex_felt(&[signature.r, signature.s]),
-                    "nonce": to_num_as_hex(&nonce),
-                    "contract_class": contract_artifact.compress().unwrap(),
-                }
-            ]
-        })
-    };
-
-    let resp_no_flags = &devnet
-        .send_custom_rpc("starknet_simulateTransactions", get_params(&["SKIP_FEE_CHARGE"]))
-        .await
-        .unwrap()[0];
-
-    let resp_skip_validation = &devnet
-        .send_custom_rpc(
-            "starknet_simulateTransactions",
-            get_params(&["SKIP_VALIDATE", "SKIP_FEE_CHARGE"]),
-        )
-        .await
-        .unwrap()[0];
-
-    assert_difference_if_validation(resp_no_flags, resp_skip_validation, &sender_address_hex, true);
-}
 
 #[tokio::test]
 async fn simulate_declare_v2() {
@@ -297,34 +229,37 @@ async fn simulate_invoke_v1() {
     ));
 
     // get class
-    let contract_json = dummy_cairo_0_contract_class();
-    let contract_artifact: Arc<LegacyContractClass> =
-        Arc::new(serde_json::from_value(contract_json.inner).unwrap());
-    let class_hash = contract_artifact.class_hash().unwrap();
+    let (contract_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let contract_artifact = Arc::new(contract_artifact);
+    let class_hash = contract_artifact.class_hash();
 
     // declare class
     let declaration_result =
-        account.declare_legacy(contract_artifact.clone()).send().await.unwrap();
+        account.declare_v3(contract_artifact, casm_hash).gas(1e7 as u64).send().await.unwrap();
     assert_eq!(declaration_result.class_hash, class_hash);
 
     // deploy instance of class
     let contract_factory = ContractFactory::new(class_hash, account.clone());
     let salt = Felt::from_hex_unchecked("0x123");
-    let constructor_calldata = vec![];
+    let constructor_calldata = vec![Felt::ZERO];
     let contract_address = get_udc_deployed_address(
         salt,
         class_hash,
         &UdcUniqueness::NotUnique,
         &constructor_calldata,
     );
-    contract_factory.deploy_v1(constructor_calldata, salt, false).send().await.unwrap();
+    contract_factory
+        .deploy_v3(constructor_calldata, salt, false)
+        .gas(1e7 as u64)
+        .send()
+        .await
+        .unwrap();
 
     // prepare the call used in simulation
-    let increase_amount = Felt::from(100u128);
     let calls = vec![Call {
         to: contract_address,
         selector: get_selector_from_name("increase_balance").unwrap(),
-        calldata: vec![increase_amount],
+        calldata: vec![Felt::from(100u128), Felt::ZERO], // increase amount
     }];
 
     // TODO fails if max_fee too low, can be used to test reverted case
@@ -343,10 +278,10 @@ async fn simulate_invoke_v1() {
             "transactions": [
                 {
                     "type": "INVOKE",
-                    "max_fee": to_hex_felt(&max_fee),
+                    "max_fee": max_fee,
                     "version": "0x1",
                     "signature": iter_to_hex_felt(&[signature.r, signature.s]),
-                    "nonce": to_num_as_hex(&nonce),
+                    "nonce": nonce,
                     "calldata": iter_to_hex_felt(&account.encode_calls(&calls)),
                     "sender_address": sender_address_hex,
                 }
@@ -437,17 +372,64 @@ async fn using_query_version_if_simulating() {
         "transactions": [
             {
                 "type": "INVOKE",
-                "max_fee": max_fee.to_hex_string(),
+                "max_fee": max_fee,
                 "version": "0x1",
-                "signature": iter_to_hex_felt(&[signature.r, signature.s]),
-                "nonce": to_num_as_hex(&nonce),
-                "calldata": iter_to_hex_felt(&account.encode_calls(&calls)),
-                "sender_address": account.address().to_hex_string(),
+                "signature": [signature.r, signature.s],
+                "nonce": nonce,
+                "calldata": account.encode_calls(&calls),
+                "sender_address": account.address(),
             }
         ]
     });
 
     devnet.send_custom_rpc("starknet_simulateTransactions", invoke_simulation_body).await.unwrap();
+}
+
+#[tokio::test]
+async fn test_simulation_of_panicking_invoke() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+    let (signer, account_address) = devnet.get_first_predeployed_account().await;
+    let account = SingleOwnerAccount::new(
+        &devnet.json_rpc_client,
+        signer.clone(),
+        account_address,
+        devnet.json_rpc_client.chain_id().await.unwrap(),
+        starknet_rs_accounts::ExecutionEncoding::New,
+    );
+
+    let (contract_class, casm_hash) =
+        get_flattened_sierra_contract_and_casm_hash(CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH);
+
+    let (_, contract_address) =
+        declare_v3_deploy_v3(&account, contract_class, casm_hash, &[]).await.unwrap();
+
+    let top_selector = get_selector_from_name("create_panic").unwrap();
+    let panic_message_text = "funny_text";
+    let panic_message = cairo_short_string_to_felt(panic_message_text).unwrap();
+
+    let calls =
+        vec![Call { to: contract_address, selector: top_selector, calldata: vec![panic_message] }];
+
+    let max_fee = Felt::from(1e18 as u128);
+    let nonce = Felt::TWO; // after declare + deploy
+    let simulation = account
+        .execute_v1(calls)
+        .max_fee(max_fee)
+        .nonce(nonce)
+        .simulate(false, false)
+        .await
+        .unwrap();
+
+    match simulation.transaction_trace {
+        TransactionTrace::Invoke(InvokeTransactionTrace {
+            execute_invocation: ExecuteInvocation::Reverted(reverted_invocation),
+            ..
+        }) => {
+            assert_contains(&reverted_invocation.revert_reason, panic_message_text);
+        }
+        other_trace => panic!("Unexpected trace {other_trace:?}"),
+    }
 }
 
 #[tokio::test]
@@ -541,9 +523,7 @@ async fn simulate_of_multiple_txs_shouldnt_return_an_error_if_invoke_transaction
         TransactionTrace::Invoke(InvokeTransactionTrace {
             execute_invocation: ExecuteInvocation::Reverted(reverted_invocation),
             ..
-        }) => {
-            assert_contains(&reverted_invocation.revert_reason, "not found in contract");
-        }
+        }) => assert_contains(&reverted_invocation.revert_reason, "ENTRYPOINT_NOT_FOUND"),
         other_trace => panic!("Unexpected trace {:?}", other_trace),
     }
 }
@@ -672,12 +652,7 @@ async fn simulate_with_max_fee_exceeding_account_balance_returns_error_if_fee_ch
                 execution_error,
                 ..
             }),
-        )) => {
-            assert_contains(
-                &execution_error,
-                "Account balance is not enough to cover the transaction cost.",
-            );
-        }
+        )) => assert_contains(&execution_error, "exceed balance"),
         other => panic!("Unexpected error {other:?}"),
     }
 
@@ -1014,7 +989,8 @@ async fn simulate_invoke_declare_deploy_account_with_either_gas_or_gas_price_set
                 )) => {
                     assert_eq!(
                         execution_error,
-                        "Provided max fee is not enough to cover the transaction cost."
+                        "The transaction's resources don't cover validation or the minimal \
+                         transaction fee."
                     );
                 }
                 other => panic!("Unexpected error: {:?}", other),
@@ -1070,58 +1046,5 @@ async fn simulate_invoke_v3_with_failing_execution_should_return_a_trace_of_reve
             ..
         }) => assert_contains(&reverted_invocation.revert_reason, panic_reason),
         other => panic!("Unexpected trace {other:?}"),
-    }
-}
-
-/// Test with lower than (estimated_gas_units * gas_price) using two flags. With
-/// skip_fee_transfer shouldnt fail, without it should fail.
-#[tokio::test]
-async fn simulate_declare_v3_with_less_than_estimated_fee_should_revert_if_fee_charge_is_not_skipped()
- {
-    let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-    let (sierra_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
-
-    let (signer, account_address) = devnet.get_first_predeployed_account().await;
-
-    let mut account = SingleOwnerAccount::new(
-        &devnet.json_rpc_client,
-        signer,
-        account_address,
-        constants::CHAIN_ID,
-        ExecutionEncoding::New,
-    );
-    account.set_block_id(BlockId::Tag(BlockTag::Latest));
-
-    let fee_estimate = account
-        .declare_v3(Arc::new(sierra_artifact.clone()), casm_hash)
-        .estimate_fee()
-        .await
-        .unwrap();
-
-    let (gas_units, gas_price) = get_gas_units_and_gas_price(fee_estimate);
-
-    for skip_fee_charge in [true, false] {
-        let simulation_result = account
-            .declare_v3(Arc::new(sierra_artifact.clone()), casm_hash)
-            .gas(gas_units)
-            .gas_price(gas_price - 1)
-            .simulate(false, skip_fee_charge)
-            .await;
-
-        match (simulation_result, skip_fee_charge) {
-            (Ok(_), true) => {}
-            (
-                Err(AccountError::Provider(ProviderError::StarknetError(
-                    StarknetError::TransactionExecutionError(TransactionExecutionErrorData {
-                        execution_error,
-                        ..
-                    }),
-                ))),
-                false,
-            ) => {
-                assert_contains(&execution_error, "max fee is not enough");
-            }
-            invalid_combination => panic!("Invalid combination: {invalid_combination:?}"),
-        }
     }
 }

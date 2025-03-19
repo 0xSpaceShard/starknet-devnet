@@ -2,7 +2,8 @@ use std::str::FromStr;
 
 use starknet_rs_core::types::Felt;
 use starknet_rs_core::utils::get_selector_from_name;
-use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
+use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
+use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
 use starknet_types::traits::HashProducer;
 
 use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT, CAIRO_1_ACCOUNT_CONTRACT_SIERRA};
@@ -20,6 +21,7 @@ impl AccountContractClassChoice {
             AccountContractClassChoice::Cairo0 => {
                 let contract_json = Cairo0Json::raw_json_from_json_str(CAIRO_0_ACCOUNT_CONTRACT)?;
                 let contract_class = Cairo0ContractClass::RawJson(contract_json);
+
                 AccountClassWrapper {
                     class_hash: contract_class.generate_hash()?,
                     contract_class: ContractClass::Cairo0(contract_class),

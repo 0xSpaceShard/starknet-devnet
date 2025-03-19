@@ -1,8 +1,8 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_rs_core::types::{CompressedLegacyContractClass, Felt};
 
+use crate::contract_class::deprecated::json_contract_class::Cairo0Json;
 use crate::contract_class::deprecated::rpc_contract_class::DeprecatedContractClass;
-use crate::contract_class::Cairo0Json;
 use crate::error::{DevnetResult, Error};
 use crate::traits::HashProducer;
 
@@ -70,7 +70,7 @@ impl TryInto<CompressedLegacyContractClass> for Cairo0ContractClass {
     }
 }
 
-impl TryFrom<Cairo0ContractClass> for blockifier::execution::contract_class::ContractClassV0 {
+impl TryFrom<Cairo0ContractClass> for starknet_api::deprecated_contract_class::ContractClass {
     type Error = Error;
     fn try_from(value: Cairo0ContractClass) -> Result<Self, Self::Error> {
         match value {

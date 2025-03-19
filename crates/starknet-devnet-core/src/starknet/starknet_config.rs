@@ -11,8 +11,9 @@ use url::Url;
 
 use crate::constants::{
     CAIRO_1_ACCOUNT_CONTRACT_SIERRA, CAIRO_1_ERC20_CONTRACT, CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
-    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE,
-    DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_TEST_SEED, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_L1_DATA_GAS_PRICE,
+    DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE, DEVNET_DEFAULT_TEST_SEED,
+    DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 
 #[derive(Copy, Clone, Debug, clap::ValueEnum, Serialize)]
@@ -109,6 +110,8 @@ pub struct StarknetConfig {
     pub gas_price_fri: NonZeroU128,
     pub data_gas_price_wei: NonZeroU128,
     pub data_gas_price_fri: NonZeroU128,
+    pub l2_gas_price_wei: NonZeroU128,
+    pub l2_gas_price_fri: NonZeroU128,
     #[serde(serialize_with = "serialize_chain_id")]
     pub chain_id: ChainId,
     pub dump_on: Option<DumpOn>,
@@ -127,6 +130,15 @@ pub struct StarknetConfig {
     pub predeclare_argent: bool,
 }
 
+impl StarknetConfig {
+    pub fn uses_pending_block(&self) -> bool {
+        match self.block_generation_on {
+            BlockGenerationOn::Transaction => false,
+            BlockGenerationOn::Demand | BlockGenerationOn::Interval(_) => true,
+        }
+    }
+}
+
 #[allow(clippy::unwrap_used)]
 impl Default for StarknetConfig {
     fn default() -> Self {
@@ -143,10 +155,12 @@ impl Default for StarknetConfig {
             account_contract_class,
             predeployed_accounts_initial_balance: DEVNET_DEFAULT_INITIAL_BALANCE.into(),
             start_time: None,
-            gas_price_wei: DEVNET_DEFAULT_GAS_PRICE,
-            gas_price_fri: DEVNET_DEFAULT_GAS_PRICE,
-            data_gas_price_wei: DEVNET_DEFAULT_DATA_GAS_PRICE,
-            data_gas_price_fri: DEVNET_DEFAULT_DATA_GAS_PRICE,
+            gas_price_wei: DEVNET_DEFAULT_L1_GAS_PRICE.get().try_into().unwrap(),
+            gas_price_fri: DEVNET_DEFAULT_L1_GAS_PRICE.get().try_into().unwrap(),
+            data_gas_price_wei: DEVNET_DEFAULT_L1_DATA_GAS_PRICE.get().try_into().unwrap(),
+            data_gas_price_fri: DEVNET_DEFAULT_L1_DATA_GAS_PRICE.get().try_into().unwrap(),
+            l2_gas_price_wei: DEVNET_DEFAULT_L2_GAS_PRICE.get().try_into().unwrap(),
+            l2_gas_price_fri: DEVNET_DEFAULT_L2_GAS_PRICE.get().try_into().unwrap(),
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
             dump_on: None,
             dump_path: None,

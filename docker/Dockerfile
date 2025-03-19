@@ -1,4 +1,4 @@
-FROM rust:1.76.0-slim-buster as builder
+FROM rust:1.83.0-slim-bullseye AS builder
 
 COPY . .
 
@@ -8,7 +8,7 @@ RUN apt-get -y update && \
 
 RUN cargo build --bin starknet-devnet --release
 
-FROM debian:buster-slim
+FROM debian:bullseye-slim
 
 # Use tini to avoid hanging process on Ctrl+C
 # Use ca-certificates to allow forking from URLs using https scheme

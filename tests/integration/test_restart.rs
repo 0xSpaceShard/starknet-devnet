@@ -1,11 +1,9 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
 use starknet_rs_accounts::{
     Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
 use starknet_rs_core::utils::get_storage_var_address;
 use starknet_rs_providers::{Provider, ProviderError};
@@ -15,7 +13,9 @@ use crate::common::constants::{
     self, CAIRO_0_ACCOUNT_CONTRACT_HASH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    get_deployable_account_signer, remove_file, send_ctrl_c_signal_and_wait, FeeUnit,
+    assert_tx_successful, get_deployable_account_signer,
+    get_simple_contract_in_sierra_and_compiled_class_hash, remove_file,
+    send_ctrl_c_signal_and_wait, FeeUnit,
 };
 
 #[tokio::test]
@@ -91,9 +91,10 @@ async fn assert_account_deployment_reverted() {
     let deployment = account_factory.deploy_v1(salt).max_fee(Felt::from(1e18 as u128));
     let deployment_address = deployment.address();
     devnet.mint(deployment_address, 1e18 as u128).await;
-    deployment.send().await.unwrap();
+    let deployment_tx = deployment.send().await.unwrap();
 
-    // assert there is a class associated with the deployment address
+    // assert deployment successful and class associated with deployment address is present
+    assert_tx_successful(&deployment_tx.transaction_hash, &devnet.json_rpc_client).await;
     devnet
         .json_rpc_client
         .get_class_at(BlockId::Tag(BlockTag::Latest), deployment_address)
@@ -116,12 +117,8 @@ async fn assert_account_deployment_reverted() {
 #[tokio::test]
 async fn assert_gas_price_unaffected_by_restart() {
     let expected_gas_price = 1_000_000_u64;
-    let devnet = BackgroundDevnet::spawn_with_additional_args(&[
-        "--gas-price",
-        &expected_gas_price.to_string(),
-    ])
-    .await
-    .unwrap();
+    let devnet_args = ["--gas-price", &expected_gas_price.to_string()];
+    let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
 
     // get a predeployed account
     let (signer, address) = devnet.get_first_predeployed_account().await;
@@ -133,20 +130,22 @@ async fn assert_gas_price_unaffected_by_restart() {
         ExecutionEncoding::New,
     ));
 
-    // prepare class for estimation of declaration
-    let contract_json = dummy_cairo_0_contract_class();
-    let contract_artifact: Arc<LegacyContractClass> =
-        Arc::new(serde_json::from_value(contract_json.inner).unwrap());
+    // get class
+    let (contract_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let contract_artifact = Arc::new(contract_artifact);
 
     // check gas price via fee estimation
-    let estimate_before =
-        predeployed_account.declare_legacy(contract_artifact.clone()).estimate_fee().await.unwrap();
+    let estimate_before = predeployed_account
+        .declare_v3(contract_artifact.clone(), casm_hash)
+        .estimate_fee()
+        .await
+        .unwrap();
     assert_eq!(estimate_before.gas_price, Felt::from(expected_gas_price));
 
     devnet.restart().await;
 
     let estimate_after =
-        predeployed_account.declare_legacy(contract_artifact).estimate_fee().await.unwrap();
+        predeployed_account.declare_v3(contract_artifact, casm_hash).estimate_fee().await.unwrap();
 
     // assert gas_price and fee are equal to the values before restart
     assert_eq!(estimate_before.gas_price, estimate_after.gas_price);
