@@ -10,7 +10,7 @@ use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
-    self, CAIRO_0_ACCOUNT_CONTRACT_HASH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS,
+    self, CAIRO_0_ACCOUNT_CONTRACT_HASH, CHAIN_ID, STRK_ERC20_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
     FeeUnit, assert_tx_successful, get_deployable_account_signer,
@@ -58,7 +58,7 @@ async fn assert_storage_restarted() {
     let storage_key = get_storage_var_address("ERC20_balances", &[dummy_address]).unwrap();
     let get_storage = || {
         devnet.json_rpc_client.get_storage_at(
-            ETH_ERC20_CONTRACT_ADDRESS,
+            STRK_ERC20_CONTRACT_ADDRESS,
             storage_key,
             BlockId::Tag(BlockTag::Latest),
         )
@@ -123,16 +123,10 @@ async fn assert_gas_price_unaffected_by_restart() {
     assert_ne!(expected_l1_gas_price, expected_data_gas_price);
 
     let devnet_args = [
-        "--gas-price",
-        &expected_l1_gas_price.to_string(),
         "--gas-price-fri",
         &expected_l1_gas_price.to_string(),
-        "--l2-gas-price",
-        &expected_l2_gas_price.to_string(),
         "--l2-gas-price-fri",
         &expected_l2_gas_price.to_string(),
-        "--data-gas-price",
-        &expected_data_gas_price.to_string(),
         "--data-gas-price-fri",
         &expected_data_gas_price.to_string(),
     ];
