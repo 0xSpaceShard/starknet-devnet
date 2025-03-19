@@ -1,12 +1,15 @@
 use std::sync::Arc;
 
 use server::test_utils::assert_contains;
+use starknet_core::constants::{
+    DEVNET_DEFAULT_L1_DATA_GAS_PRICE, DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE,
+};
 use starknet_rs_accounts::{Account, ExecutionEncoder, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::chain_id::SEPOLIA;
 use starknet_rs_core::types::{
-    BlockHashAndNumber, BlockId, BlockTag, BroadcastedInvokeTransaction,
-    BroadcastedInvokeTransactionV1, BroadcastedTransaction, Call, ContractClass, ExecuteInvocation,
-    Felt, InvokeTransactionTrace, SimulatedTransaction, SimulationFlag,
+    BlockHashAndNumber, BlockId, BlockTag, BroadcastedInvokeTransactionV3, BroadcastedTransaction,
+    Call, ContractClass, DataAvailabilityMode, ExecuteInvocation, Felt, InvokeTransactionTrace,
+    ResourceBounds, ResourceBoundsMapping, SimulatedTransaction, SimulationFlag,
     SimulationFlagForEstimateFee, StarknetError, TransactionExecutionErrorData, TransactionTrace,
 };
 use starknet_rs_core::utils::{get_selector_from_name, get_storage_var_address};
@@ -18,8 +21,8 @@ use crate::common::constants::{
     UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_cairo1_classes_equal, get_events_contract_in_sierra_and_compiled_class_hash,
-    get_flattened_sierra_contract_and_casm_hash, FeeUnit,
+    FeeUnit, assert_cairo1_classes_equal, get_events_contract_in_sierra_and_compiled_class_hash,
+    get_flattened_sierra_contract_and_casm_hash,
 };
 
 #[tokio::test]
@@ -45,7 +48,7 @@ async fn get_storage_from_an_old_state() {
     let amount = Felt::from(1_000_000_000);
 
     account
-        .execute_v1(vec![Call {
+        .execute_v3(vec![Call {
             to: ETH_ERC20_CONTRACT_ADDRESS,
             selector: get_selector_from_name("transfer").unwrap(),
             calldata: vec![
@@ -91,7 +94,7 @@ async fn minting_in_multiple_steps_and_getting_balance_at_each_block() {
     let address = Felt::ONE;
 
     let mint_amount = 1e18 as u128;
-    let unit = FeeUnit::Wei;
+    let unit = FeeUnit::Fri;
 
     for _ in 0..3 {
         let BlockHashAndNumber { block_hash, .. } =
@@ -139,7 +142,7 @@ async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old
 
     // declare class
     let declaration_result =
-        account.declare_v2(Arc::new(flattened_contract_artifact), casm_hash).send().await.unwrap();
+        account.declare_v3(Arc::new(flattened_contract_artifact), casm_hash).send().await.unwrap();
     assert_eq!(declaration_result.class_hash, class_hash);
 
     let calls = vec![Call {
@@ -153,22 +156,27 @@ async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old
         ],
     }];
 
-    let calldata = account.encode_calls(&calls);
-
     let block_id = BlockId::Hash(block_hash);
     let estimate_fee_error = devnet
         .json_rpc_client
         .estimate_fee(
-            [BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
-                BroadcastedInvokeTransactionV1 {
-                    max_fee: Felt::ZERO,
-                    signature: vec![],
-                    nonce: Felt::ZERO,
-                    sender_address: account_address,
-                    calldata: calldata.clone(),
-                    is_query: true,
+            [BroadcastedTransaction::Invoke(BroadcastedInvokeTransactionV3 {
+                signature: vec![],
+                nonce: Felt::ZERO,
+                sender_address: account_address,
+                calldata: account.encode_calls(&calls),
+                is_query: true,
+                resource_bounds: ResourceBoundsMapping {
+                    l1_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
+                    l1_data_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
+                    l2_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
                 },
-            ))],
+                tip: 0,
+                paymaster_data: vec![],
+                account_deployment_data: vec![],
+                nonce_data_availability_mode: DataAvailabilityMode::L1,
+                fee_data_availability_mode: DataAvailabilityMode::L1,
+            })],
             [SimulationFlagForEstimateFee::SkipValidate],
             block_id,
         )
@@ -179,26 +187,43 @@ async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old
         .json_rpc_client
         .simulate_transaction(
             block_id,
-            BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
-                BroadcastedInvokeTransactionV1 {
-                    max_fee: Felt::from(1e18 as u128),
-                    signature: vec![],
-                    nonce: Felt::ZERO,
-                    sender_address: account_address,
-                    calldata,
-                    is_query: true,
+            BroadcastedTransaction::Invoke(BroadcastedInvokeTransactionV3 {
+                signature: vec![],
+                nonce: Felt::ZERO,
+                sender_address: account_address,
+                calldata: account.encode_calls(&calls),
+                is_query: true,
+                resource_bounds: ResourceBoundsMapping {
+                    l1_gas: ResourceBounds {
+                        max_amount: 0,
+                        max_price_per_unit: DEVNET_DEFAULT_L1_GAS_PRICE.into(),
+                    },
+                    l1_data_gas: ResourceBounds {
+                        max_amount: 1000,
+                        max_price_per_unit: DEVNET_DEFAULT_L1_DATA_GAS_PRICE.into(),
+                    },
+                    l2_gas: ResourceBounds {
+                        max_amount: 1e7 as u64,
+                        max_price_per_unit: DEVNET_DEFAULT_L2_GAS_PRICE.into(),
+                    },
                 },
-            )),
+                tip: 0,
+                paymaster_data: vec![],
+                account_deployment_data: vec![],
+                nonce_data_availability_mode: DataAvailabilityMode::L1,
+                fee_data_availability_mode: DataAvailabilityMode::L1,
+            }),
             [SimulationFlag::SkipValidate],
         )
         .await
         .unwrap();
 
-    let estimate_fee_error_string = match estimate_fee_error {
+    let execution_error = match estimate_fee_error {
         ProviderError::StarknetError(StarknetError::TransactionExecutionError(
             TransactionExecutionErrorData { execution_error, .. },
         )) => {
-            assert_contains(&execution_error, "not declared");
+            // assert_contains(&execution_error, "not declared");
+            println!("DEBUG execution_error: {execution_error:?}");
             execution_error
         }
         other => panic!("Unexpected error: {other:?}"),
@@ -209,7 +234,9 @@ async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old
             execute_invocation: ExecuteInvocation::Reverted(reverted_invocation),
             ..
         }) => {
-            assert_eq!(estimate_fee_error_string, reverted_invocation.revert_reason);
+            println!("DEBUG reverted_invocation: {reverted_invocation:?}");
+            // assert_eq!(execution_error, reverted_invocation.revert_reason);
+            todo!("LMAO");
         }
         other => panic!("Unexpected trace {other:?}"),
     }
@@ -233,8 +260,10 @@ async fn test_getting_class_at_various_blocks() {
 
     // declare the contract
     let declaration_result = predeployed_account
-        .declare_v2(Arc::new(contract_class.clone()), casm_class_hash)
-        .max_fee(Felt::from(1e18 as u128))
+        .declare_v3(Arc::new(contract_class.clone()), casm_class_hash)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(1e8 as u64)
         .send()
         .await
         .unwrap();
@@ -298,7 +327,7 @@ async fn test_nonce_retrieval_for_an_old_state() {
         .unwrap();
 
     account
-        .execute_v1(vec![Call {
+        .execute_v3(vec![Call {
             to: ETH_ERC20_CONTRACT_ADDRESS,
             selector: get_selector_from_name("transfer").unwrap(),
             calldata: vec![
