@@ -20,8 +20,8 @@ mod test_call;
 // Fabijan
 // mod test_dump_and_load;
 mod test_old_state; // TODO
-mod test_restart; // TODO
-// mod test_minting;
+mod test_restart;
+mod test_minting; // TODO currently all tests passing, but change default to STRK
 // mod test_gas_modification;
 
 // mod test_v3_transactions;
