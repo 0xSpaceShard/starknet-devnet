@@ -44,7 +44,7 @@ Loads a `MockStarknetMessaging` contract. The `address` parameter is optional; i
 
 ### L1 network
 
-The `network_url` parameter refers to the URL of the JSON-RPC API endpoint of the L1 node you've run locally or which is publicly accessible; possibilities include, but are not limited to:
+The `network_url` parameter refers to the URL of the JSON-RPC API endpoint of the L1 node you've run locally, or which is publicly accessible. Possibilities include, but are not limited to:
 
 - [**Anvil**](https://github.com/foundry-rs/foundry/tree/master#anvil)
 - [**Sepolia testnet**](https://sepolia.etherscan.io/)
