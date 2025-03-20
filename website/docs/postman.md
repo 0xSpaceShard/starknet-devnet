@@ -1,8 +1,18 @@
 # L1-L2 interaction via Postman
 
-Postman is a Starknet utility that allows testing L1-L2 interaction. It is **unrelated** to the [Postman API platform](https://www.postman.com/). Ensure you have an L1 node and a Devnet (L2 node) running, [load](#load) a messaging contract, and [flush](#flush) the queue to transmit the messages to their destinations. The functionality relies on two internal message queues: one for L1->L2 messages, another for L2->L1 messages.
+Postman is a Starknet utility that allows testing L1-L2 interaction. It is **unrelated** to the [Postman API platform](https://www.postman.com/). Ensure you have:
 
-You can use [**`starknet-devnet-js`**](https://github.com/0xSpaceShard/starknet-devnet-js) to perform these actions, as witnessed in [**this example**](https://github.com/0xSpaceShard/starknet-devnet-js/blob/master/test/l1-l2-postman.test.ts), or directly send requests to the endpoints specified below.
+- an L1 node (possibilities listed [below](#l1-network))
+- a Devnet instance (acting as L2 node)
+- a [loaded](#load) messaging contract
+  - this is an L1 contract for exchanging messages between L1 and L2
+  - you can deploy a new instance or specify the address of an old one
+- an L1 contract that can interact with the messaging contract
+- an L2 contract that can interact with the messaging contract
+
+There are two internal message queues: one for L1->L2 messages, another for L2->L1 messages. When there are messages in a queue, you will need to [flush](#flush) to transmit the messages to their destinations.
+
+You can use [**`starknet-devnet-js`**](https://github.com/0xSpaceShard/starknet-devnet-js) to assist you in the above listed actions. [**This example**](https://github.com/0xSpaceShard/starknet-devnet-js/blob/master/test/l1-l2-postman.test.ts), especially the `it("should exchange messages between L1 and L2")` test case should be of most help. The required contracts are configured and deployed in the `before` block. Alternatively, you can directly send requests to the endpoints specified below.
 
 ## Load
 
@@ -13,7 +23,7 @@ POST /postman/load_l1_messaging_contract
 ```json
 {
   "network_url": "http://localhost:8545",
-  "address": "0x123...def"
+  "address": "0x123...def" // optional
 }
 ```
 
@@ -32,7 +42,9 @@ JSON-RPC
 
 Loads a `MockStarknetMessaging` contract. The `address` parameter is optional; if provided, the `MockStarknetMessaging` contract will be fetched from that address, otherwise a new one will be deployed.
 
-`network_url` is the URL of the JSON-RPC API of the L1 node you've run locally or that already exists; possibilities include, and are not limited to:
+### L1 network
+
+The parameter `network_url` refers to the URL of the JSON-RPC API of the L1 node you've run locally or that already exists; possibilities include, and are not limited to:
 
 - [**Anvil**](https://github.com/foundry-rs/foundry/tree/master/crates/anvil)
 - [**Sepolia testnet**](https://sepolia.etherscan.io/)
