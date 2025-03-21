@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use blockifier::context::{BlockContext, ChainInfo, TransactionContext};
 use blockifier::execution::common_hints::ExecutionMode;
-use blockifier::execution::stack_trace::gen_tx_execution_error_trace;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::{AccountTransaction, ExecutionFlags};
@@ -122,6 +121,7 @@ impl Default for Starknet {
     fn default() -> Self {
         #[allow(clippy::unwrap_used)]
         let default_gas_price = DEVNET_DEFAULT_L1_GAS_PRICE.get().try_into().unwrap();
+        let default_data_gas_price = DEVNET_DEFAULT_L1_DATA_GAS_PRICE.get().try_into().unwrap();
         Self {
             block_context: Self::init_block_context(
                 DEVNET_DEFAULT_L1_GAS_PRICE,
@@ -146,9 +146,9 @@ impl Default for Starknet {
             next_block_timestamp: None,
             next_block_gas: GasModification {
                 gas_price_wei: default_gas_price,
-                data_gas_price_wei: default_gas_price,
+                data_gas_price_wei: default_data_gas_price,
                 gas_price_fri: default_gas_price,
-                data_gas_price_fri: default_gas_price,
+                data_gas_price_fri: default_data_gas_price,
                 l2_gas_price_fri: DEVNET_DEFAULT_L2_GAS_PRICE,
                 l2_gas_price_wei: DEVNET_DEFAULT_L2_GAS_PRICE,
             },
@@ -327,10 +327,14 @@ impl Starknet {
             GasPrice(self.next_block_gas.gas_price_wei.get());
         self.blocks.pending_block.header.block_header_without_hash.l1_data_gas_price.price_in_wei =
             GasPrice(self.next_block_gas.data_gas_price_wei.get());
+        self.blocks.pending_block.header.block_header_without_hash.l2_gas_price.price_in_wei =
+            GasPrice(self.next_block_gas.l2_gas_price_wei.get());
         self.blocks.pending_block.header.block_header_without_hash.l1_gas_price.price_in_fri =
             GasPrice(self.next_block_gas.gas_price_fri.get());
         self.blocks.pending_block.header.block_header_without_hash.l1_data_gas_price.price_in_fri =
             GasPrice(self.next_block_gas.data_gas_price_fri.get());
+        self.blocks.pending_block.header.block_header_without_hash.l2_gas_price.price_in_fri =
+            GasPrice(self.next_block_gas.l2_gas_price_fri.get());
 
         self.restart_pending_block()?;
 

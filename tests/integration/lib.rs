@@ -17,17 +17,18 @@ mod test_balance;
 mod test_blocks_generation;
 mod test_call;
 
-// Fabijan
-// mod test_dump_and_load;
-// mod test_old_state;
-// mod test_restart;
-// mod test_minting;
-// mod test_gas_modification;
+mod test_dump_and_load;
+mod test_gas_modification;
+mod test_messaging;
+mod test_minting; // TODO currently all tests passing, but change default to STRK
+mod test_old_state; // TODO
+mod test_restart;
 
 // mod test_v3_transactions;
 // mod test_trace;
 // mod test_transaction_handling;
-// mod test_restrictive_mode;
+
+mod test_restrictive_mode;
 
 mod test_get_block_txs_count;
 mod test_get_class;
