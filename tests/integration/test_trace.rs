@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use starknet_core::constants::{
-    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CHARGEABLE_ACCOUNT_ADDRESS, ETH_ERC20_CONTRACT_ADDRESS,
+    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CHARGEABLE_ACCOUNT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
 };
 use starknet_rs_accounts::{
     Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
@@ -11,7 +11,7 @@ use starknet_rs_core::types::{
     BlockId, BlockTag, DeployedContractItem, ExecuteInvocation, Felt, InvokeTransactionTrace,
     StarknetError, TransactionTrace,
 };
-use starknet_rs_core::utils::{get_udc_deployed_address, UdcUniqueness};
+use starknet_rs_core::utils::{UdcUniqueness, get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
@@ -20,8 +20,8 @@ use crate::common::utils::{
     get_deployable_account_signer, get_events_contract_in_sierra_and_compiled_class_hash,
 };
 
-static DUMMY_ADDRESS: u128 = 1;
-static DUMMY_AMOUNT: u128 = 1;
+static DUMMY_ADDRESS: Felt = Felt::from_hex_unchecked("0x7b");
+static DUMMY_AMOUNT: u128 = 456;
 
 fn assert_mint_invocation(trace: &TransactionTrace) {
     match trace {
@@ -29,6 +29,7 @@ fn assert_mint_invocation(trace: &TransactionTrace) {
             validate_invocation,
             execute_invocation: ExecuteInvocation::Success(execute_invocation),
             fee_transfer_invocation,
+            execution_resources,
             ..
         }) => {
             for invocation in [validate_invocation.as_ref().unwrap(), execute_invocation] {
@@ -36,14 +37,25 @@ fn assert_mint_invocation(trace: &TransactionTrace) {
                     invocation.contract_address,
                     Felt::from_hex_unchecked(CHARGEABLE_ACCOUNT_ADDRESS)
                 );
-                assert_eq!(invocation.calldata[6], Felt::from(DUMMY_ADDRESS));
-                assert_eq!(invocation.calldata[7], Felt::from(DUMMY_AMOUNT));
+                assert_eq!(invocation.calldata, vec![
+                    Felt::ONE, // number of calls
+                    STRK_ERC20_CONTRACT_ADDRESS,
+                    get_selector_from_name("transfer").unwrap(),
+                    Felt::THREE, // calldata length
+                    DUMMY_ADDRESS,
+                    Felt::from(DUMMY_AMOUNT), // low bytes
+                    Felt::ZERO                // high bytes
+                ]);
             }
 
             assert_eq!(
                 fee_transfer_invocation.as_ref().unwrap().contract_address,
-                ETH_ERC20_CONTRACT_ADDRESS
+                STRK_ERC20_CONTRACT_ADDRESS
             );
+
+            assert_eq!(execution_resources.l1_gas, 0);
+            assert!(execution_resources.l1_data_gas > 0);
+            assert!(execution_resources.l2_gas > 0);
         }
         other => panic!("Invalid trace: {other:?}"),
     };
@@ -100,8 +112,10 @@ async fn get_declare_trace() {
 
     // declare the contract
     let declaration_result = predeployed_account
-        .declare_v2(Arc::new(cairo_1_contract), casm_class_hash)
-        .max_fee(Felt::from(1e18 as u128))
+        .declare_v3(Arc::new(cairo_1_contract), casm_class_hash)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(1e8 as u64)
         .send()
         .await
         .unwrap();
@@ -129,7 +143,7 @@ async fn get_declare_trace() {
 
         assert_eq!(
             declare_trace.fee_transfer_invocation.unwrap().contract_address,
-            ETH_ERC20_CONTRACT_ADDRESS
+            STRK_ERC20_CONTRACT_ADDRESS
         );
     } else {
         panic!("Could not unpack the transaction trace from {declare_tx_trace:?}");
@@ -154,8 +168,10 @@ async fn test_contract_deployment_trace() {
 
     // declare the contract
     let declaration_result = account
-        .declare_v2(Arc::new(cairo_1_contract), casm_class_hash)
-        .max_fee(Felt::from(1e18 as u128))
+        .declare_v3(Arc::new(cairo_1_contract), casm_class_hash)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(1e8 as u64)
         .send()
         .await
         .unwrap();
@@ -165,8 +181,10 @@ async fn test_contract_deployment_trace() {
     for salt in (0_u32..2).map(Felt::from) {
         let ctor_data = vec![];
         let deployment_tx = contract_factory
-            .deploy_v1(ctor_data.clone(), salt, false)
-            .max_fee(Felt::from(1e18 as u128))
+            .deploy_v3(ctor_data.clone(), salt, false)
+            .l1_gas(0)
+            .l1_data_gas(1000)
+            .l2_gas(5e7 as u64)
             .send()
             .await
             .expect("Cannot deploy");
@@ -185,13 +203,10 @@ async fn test_contract_deployment_trace() {
                 let state_diff = tx.state_diff.unwrap();
                 assert_eq!(state_diff.declared_classes, []);
                 assert_eq!(state_diff.deprecated_declared_classes, []);
-                assert_eq!(
-                    state_diff.deployed_contracts,
-                    [DeployedContractItem {
-                        address: deployment_address,
-                        class_hash: declaration_result.class_hash
-                    }]
-                );
+                assert_eq!(state_diff.deployed_contracts, [DeployedContractItem {
+                    address: deployment_address,
+                    class_hash: declaration_result.class_hash
+                }]);
             }
             other => panic!("Invalid trace: {other:?}"),
         }
@@ -215,16 +230,16 @@ async fn get_deploy_account_trace() {
 
     // deploy account
     let deployment = account_factory
-        .deploy_v1(Felt::from_hex_unchecked("0x123"))
-        .max_fee(Felt::from(1e18 as u128))
-        .nonce(Felt::ZERO)
-        .prepared()
-        .unwrap();
+        .deploy_v3(Felt::from(0x123))
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(5e7 as u64)
+        .nonce(Felt::ZERO);
     let new_account_address = deployment.address();
-    devnet.mint(new_account_address, 1e18 as u128).await;
-    deployment.send().await.unwrap();
+    devnet.mint(new_account_address, u128::MAX).await;
+    let deployment_result = deployment.send().await.unwrap();
 
-    let deployment_hash = deployment.transaction_hash(false);
+    let deployment_hash = deployment_result.transaction_hash;
     let deployment_trace = devnet.json_rpc_client.trace_transaction(deployment_hash).await.unwrap();
 
     if let starknet_rs_core::types::TransactionTrace::DeployAccount(deployment_trace) =
@@ -247,7 +262,7 @@ async fn get_deploy_account_trace() {
 
         assert_eq!(
             deployment_trace.fee_transfer_invocation.unwrap().contract_address,
-            ETH_ERC20_CONTRACT_ADDRESS
+            STRK_ERC20_CONTRACT_ADDRESS
         );
     } else {
         panic!("Could not unpack the transaction trace from {deployment_trace:?}");

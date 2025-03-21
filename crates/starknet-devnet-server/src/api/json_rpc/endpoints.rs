@@ -1,5 +1,4 @@
-use starknet_core::error::{Error, StateError};
-use starknet_core::stack_trace::ErrorStack;
+use starknet_core::error::{ContractExecutionError, Error, StateError};
 use starknet_rs_core::types::{BlockId as ImportedBlockId, MsgFromL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
@@ -17,11 +16,11 @@ use super::error::{ApiError, StrictRpcResult};
 use super::models::{
     BlockHashAndNumberOutput, GetStorageProofInput, L1TransactionHashInput, SyncingOutput,
 };
-use super::{DevnetResponse, JsonRpcHandler, JsonRpcResponse, StarknetResponse, RPC_SPEC_VERSION};
-use crate::api::http::endpoints::accounts::{
-    get_account_balance_impl, get_predeployed_accounts_impl, BalanceQuery, PredeployedAccountsQuery,
-};
+use super::{DevnetResponse, JsonRpcHandler, JsonRpcResponse, RPC_SPEC_VERSION, StarknetResponse};
 use crate::api::http::endpoints::DevnetConfig;
+use crate::api::http::endpoints::accounts::{
+    BalanceQuery, PredeployedAccountsQuery, get_account_balance_impl, get_predeployed_accounts_impl,
+};
 
 const DEFAULT_CONTINUATION_TOKEN: &str = "0";
 
@@ -315,12 +314,10 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(Error::ContractExecutionError(error_stack)) => {
-                Err(ApiError::ContractError { error_stack })
+            Err(Error::ContractExecutionError(execution_error)) => {
+                Err(ApiError::ContractError(execution_error))
             }
-            Err(e) => Err(ApiError::ContractError {
-                error_stack: ErrorStack::from_str_err(&e.to_string()),
-            }),
+            Err(e) => Err(ApiError::ContractError(ContractExecutionError::Message(e.to_string()))),
         }
     }
 
@@ -339,12 +336,10 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(Error::ContractExecutionErrorInSimulation { failure_index, error_stack }) => {
-                Err(ApiError::TransactionExecutionError { failure_index, error_stack })
+            Err(Error::ContractExecutionErrorInSimulation { failure_index, execution_error }) => {
+                Err(ApiError::TransactionExecutionError { failure_index, execution_error })
             }
-            Err(e) => Err(ApiError::ContractError {
-                error_stack: ErrorStack::from_str_err(&e.to_string()),
-            }),
+            Err(e) => Err(ApiError::ContractError(ContractExecutionError::from(e.to_string()))),
         }
     }
 
@@ -360,12 +355,8 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(Error::ContractExecutionError(error)) => {
-                Err(ApiError::ContractError { error_stack: error })
-            }
-            Err(e) => Err(ApiError::ContractError {
-                error_stack: ErrorStack::from_str_err(&e.to_string()),
-            }),
+            Err(Error::ContractExecutionError(error)) => Err(ApiError::ContractError(error)),
+            Err(e) => Err(ApiError::ContractError(ContractExecutionError::from(e.to_string()))),
         }
     }
 
@@ -475,12 +466,10 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(Error::ContractExecutionErrorInSimulation { failure_index, error_stack }) => {
-                Err(ApiError::TransactionExecutionError { failure_index, error_stack })
+            Err(Error::ContractExecutionErrorInSimulation { failure_index, execution_error }) => {
+                Err(ApiError::TransactionExecutionError { failure_index, execution_error })
             }
-            Err(e) => Err(ApiError::ContractError {
-                error_stack: ErrorStack::from_str_err(&e.to_string()),
-            }),
+            Err(e) => Err(ApiError::ContractError(ContractExecutionError::from(e.to_string()))),
         }
     }
 

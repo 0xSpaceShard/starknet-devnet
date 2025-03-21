@@ -1,13 +1,14 @@
 use std::fmt::LowerHex;
-use std::fs;
+use std::ops::{Add, Div};
 use std::path::Path;
 use std::process::{Child, Command};
 use std::sync::Arc;
 use std::time::Duration;
+use std::{fs, u128};
 
 use ethers::types::U256;
 use futures::{SinkExt, StreamExt, TryStreamExt};
-use rand::{thread_rng, Rng};
+use rand::{Rng, thread_rng};
 use serde_json::json;
 use server::test_utils::assert_contains;
 use starknet_rs_accounts::{
@@ -17,9 +18,11 @@ use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
 use starknet_rs_core::types::{
     BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult, FeeEstimate,
-    Felt, FlattenedSierraClass, FunctionCall, NonZeroFelt,
+    Felt, FlattenedSierraClass, FunctionCall, ResourceBounds, ResourceBoundsMapping,
 };
-use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
+use starknet_rs_core::utils::{
+    UdcUniqueSettings, get_selector_from_name, get_udc_deployed_address,
+};
 use starknet_rs_providers::jsonrpc::{
     HttpTransport, HttpTransportError, JsonRpcClientError, JsonRpcError,
 };
@@ -29,7 +32,9 @@ use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use super::background_devnet::BackgroundDevnet;
-use super::constants::{CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH};
+use super::constants::{
+    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH, UDC_CONTRACT_ADDRESS,
+};
 use super::safe_child::SafeChild;
 
 pub enum ImpersonationAction {
@@ -239,25 +244,24 @@ impl Drop for UniqueAutoDeletableFile {
     }
 }
 
-/// Deploys an instance of the class whose sierra hash is provided as `class_hash`. Uses a v1 invoke
+/// Deploys an instance of the class whose sierra hash is provided as `class_hash`. Uses a v3 invoke
 /// transaction. Returns the address of the newly deployed contract.
-pub async fn deploy_v1(
+pub async fn deploy_v3(
     account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
     class_hash: Felt,
     ctor_args: &[Felt],
 ) -> Result<Felt, anyhow::Error> {
     let contract_factory = ContractFactory::new(class_hash, account);
-    contract_factory
-        .deploy_v1(ctor_args.to_vec(), Felt::ZERO, false)
-        .max_fee(Felt::from(1e18 as u128))
-        .send()
-        .await?;
+    contract_factory.deploy_v3(ctor_args.to_vec(), Felt::ZERO, true).send().await?;
 
     // generate the address of the newly deployed contract
     let contract_address = get_udc_deployed_address(
         Felt::ZERO,
         class_hash,
-        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        &starknet_rs_core::utils::UdcUniqueness::Unique(UdcUniqueSettings {
+            deployer_address: account.address(),
+            udc_contract_address: UDC_CONTRACT_ADDRESS,
+        }),
         ctor_args,
     );
 
@@ -301,7 +305,8 @@ pub async fn declare_deploy_simple_contract(
 
     let declaration_result = account
         .declare_v3(Arc::new(contract_class), casm_hash)
-        .gas(overall_declaration_fee / gas_price)
+        .l1_gas(overall_declaration_fee / gas_price)
+        .l1_gas_price(gas_price as u128)
         .send()
         .await?;
 
@@ -311,7 +316,8 @@ pub async fn declare_deploy_simple_contract(
     let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
     contract_factory
         .deploy_v3(ctor_args.to_vec(), salt, false)
-        .gas(overall_deployment_fee / gas_price)
+        .l1_gas(overall_deployment_fee / gas_price)
+        .l1_gas_price(gas_price as u128)
         .send()
         .await?;
 
@@ -339,7 +345,8 @@ pub async fn declare_deploy_events_contract(
 
     let declaration_result = account
         .declare_v3(Arc::new(contract_class), casm_hash)
-        .gas(overall_declaration_fee / gas_price)
+        .l1_gas(overall_declaration_fee / gas_price)
+        .l1_gas_price(gas_price as u128)
         .send()
         .await?;
 
@@ -349,7 +356,8 @@ pub async fn declare_deploy_events_contract(
     let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
     contract_factory
         .deploy_v3(ctor_args.to_vec(), salt, false)
-        .gas(overall_deployment_fee / gas_price)
+        .l1_gas_price(gas_price as u128)
+        .l1_gas(overall_deployment_fee / gas_price)
         .send()
         .await?;
 
@@ -378,10 +386,10 @@ pub async fn deploy_oz_account(
     )
     .await?;
 
-    let deployment = factory.deploy_v1(salt);
+    let deployment = factory.deploy_v3(salt);
 
     let account_address = deployment.address();
-    devnet.mint(account_address, 1e18 as u128).await;
+    devnet.mint(account_address, u128::MAX).await;
     let deployment_result = deployment.send().await?;
 
     Ok((deployment_result, signer))
@@ -403,10 +411,10 @@ pub async fn deploy_argent_account(
     )
     .await?;
 
-    let deployment = factory.deploy_v1(salt);
+    let deployment = factory.deploy_v3(salt);
 
     let account_address = deployment.address();
-    devnet.mint(account_address, 1e18 as u128).await;
+    devnet.mint(account_address, u128::MAX).await;
     let deployment_result = deployment.send().await.map_err(|e| anyhow::anyhow!("{e:?}"))?;
 
     Ok((deployment_result, signer))
@@ -434,15 +442,16 @@ pub fn felt_to_u128(f: Felt) -> u128 {
     bigint.try_into().unwrap()
 }
 
-pub fn get_gas_units_and_gas_price(fee_estimate: FeeEstimate) -> (u64, u128) {
-    let gas_price =
-        u128::from_le_bytes(fee_estimate.gas_price.to_bytes_le()[0..16].try_into().unwrap());
-    let gas_units = fee_estimate
-        .overall_fee
-        .field_div(&NonZeroFelt::from_felt_unchecked(fee_estimate.gas_price));
+// pub fn get_l1_gas_units_and_gas_price(fee_estimate: FeeEstimate) -> (u64, u128) {
+//     let l1_gas_price =
+//         u128::from_le_bytes(fee_estimate.l1_gas_price.to_bytes_le()[0..16].try_into().unwrap());
 
-    (gas_units.to_le_digits().first().cloned().unwrap(), gas_price)
-}
+//     let gas_units = fee_estimate
+//         .overall_fee
+//         .field_div(&NonZeroFelt::from_felt_unchecked(fee_estimate.gas_price));
+
+//     (fee_estimate.l1_gas_consumed, l1_gas_price as u128)
+// }
 
 /// Helper for extracting JSON RPC error from the provider instance of `ProviderError`.
 /// To be used when there are discrepancies between starknet-rs and the target RPC spec.
@@ -572,6 +581,67 @@ pub async fn unsubscribe(
 pub enum FeeUnit {
     Wei,
     Fri,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct LocalFee {
+    pub(crate) l1_gas: u64,
+    pub(crate) l1_gas_price: u128,
+    pub(crate) l1_data_gas: u64,
+    pub(crate) l1_data_gas_price: u128,
+    pub(crate) l2_gas: u64,
+    pub(crate) l2_gas_price: u128,
+    pub(crate) overall: u128,
+}
+
+impl From<LocalFee> for ResourceBoundsMapping {
+    fn from(value: LocalFee) -> Self {
+        ResourceBoundsMapping {
+            l1_gas: ResourceBounds {
+                max_amount: value.l1_gas,
+                max_price_per_unit: value.l1_gas_price,
+            },
+            l1_data_gas: ResourceBounds {
+                max_amount: value.l1_data_gas,
+                max_price_per_unit: value.l1_data_gas_price,
+            },
+            l2_gas: ResourceBounds {
+                max_amount: value.l2_gas,
+                max_price_per_unit: value.l2_gas_price,
+            },
+        }
+    }
+}
+
+impl From<FeeEstimate> for LocalFee {
+    fn from(fee: FeeEstimate) -> Self {
+        let l1_gas_consumed =
+            u64::from_le_bytes(fee.l1_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
+        let l1_gas_price =
+            u128::from_le_bytes(fee.l1_gas_price.to_bytes_le()[..16].try_into().unwrap());
+
+        let l2_gas_consumed =
+            u64::from_le_bytes(fee.l2_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
+        let l2_gas_price =
+            u128::from_le_bytes(fee.l2_gas_price.to_bytes_le()[..16].try_into().unwrap());
+
+        let l1_data_gas_consumed =
+            u64::from_le_bytes(fee.l1_data_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
+        let l1_data_gas_price =
+            u128::from_le_bytes(fee.l1_data_gas_price.to_bytes_le()[..16].try_into().unwrap());
+
+        let overall = u128::from_le_bytes(fee.overall_fee.to_bytes_le()[..16].try_into().unwrap());
+
+        LocalFee {
+            l1_gas: l1_gas_consumed,
+            l1_gas_price,
+            l1_data_gas: l1_data_gas_consumed,
+            l1_data_gas_price,
+            l2_gas: l2_gas_consumed,
+            l2_gas_price,
+            overall,
+        }
+    }
 }
 
 #[cfg(test)]

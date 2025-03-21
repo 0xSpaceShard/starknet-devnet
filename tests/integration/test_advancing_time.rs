@@ -64,8 +64,7 @@ pub async fn setup_timestamp_contract(devnet: &BackgroundDevnet) -> Felt {
     let (cairo_1_contract, casm_class_hash) =
         get_block_reader_contract_in_sierra_and_compiled_class_hash();
     let declaration_result = predeployed_account
-        .declare_v2(Arc::new(cairo_1_contract), casm_class_hash)
-        .max_fee(Felt::from(100000000000000000000u128))
+        .declare_v3(Arc::new(cairo_1_contract), casm_class_hash)
         .send()
         .await
         .unwrap();
@@ -74,12 +73,7 @@ pub async fn setup_timestamp_contract(devnet: &BackgroundDevnet) -> Felt {
     // deploy
     let contract_factory =
         ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
-    contract_factory
-        .deploy_v1(vec![], Felt::ZERO, false)
-        .max_fee(Felt::from(100000000000000000000u128))
-        .send()
-        .await
-        .unwrap();
+    contract_factory.deploy_v3(vec![], Felt::ZERO, false).send().await.unwrap();
 
     get_udc_deployed_address(
         Felt::ZERO,

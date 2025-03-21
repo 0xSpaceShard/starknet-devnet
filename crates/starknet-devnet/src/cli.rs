@@ -129,6 +129,7 @@ pub(crate) struct Args {
     #[arg(help = "Specify the gas price in fri per L1 gas unit;")]
     gas_price_fri: NonZeroU128,
 
+    // TODO perhaps make this affect only fri and remove -fri flags
     // Gas price in wei
     #[arg(long = "data-gas-price")]
     #[arg(env = "DATA_GAS_PRICE")]

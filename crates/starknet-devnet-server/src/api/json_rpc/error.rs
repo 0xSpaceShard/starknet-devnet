@@ -1,4 +1,5 @@
-use starknet_core::stack_trace::{ErrorStack, Frame};
+use serde_json::json;
+use starknet_core::error::ContractExecutionError;
 use starknet_types;
 use thiserror::Error;
 use tracing::error;
@@ -27,9 +28,9 @@ pub enum ApiError {
     #[error("Class hash not found")]
     ClassHashNotFound,
     #[error("Contract error")]
-    ContractError { error_stack: ErrorStack },
+    ContractError(ContractExecutionError),
     #[error("Transaction execution error")]
-    TransactionExecutionError { failure_index: usize, error_stack: ErrorStack },
+    TransactionExecutionError { failure_index: usize, execution_error: ContractExecutionError },
     #[error("There are no blocks")]
     NoBlocks,
     #[error("Requested page size is too big")]
@@ -102,17 +103,19 @@ impl ApiError {
                 message: error_message.into(),
                 data: None,
             },
-            ApiError::ContractError { error_stack } => RpcError {
+            ApiError::ContractError(contract_execution_error) => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(40),
                 message: error_message.into(),
-                data: Some(serialize_error_stack(&error_stack)),
+                data: Some(json!({
+                    "revert_error": contract_execution_error
+                })),
             },
-            ApiError::TransactionExecutionError { error_stack, failure_index } => RpcError {
+            ApiError::TransactionExecutionError { execution_error, failure_index } => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(41),
                 message: error_message.into(),
                 data: Some(serde_json::json!({
                     "transaction_index": failure_index,
-                    "execution_error": serialize_error_stack(&error_stack),
+                    "execution_error": execution_error,
                 })),
             },
             ApiError::NoBlocks => RpcError {
@@ -273,44 +276,15 @@ impl ApiError {
     }
 }
 
-/// Constructs a recursive object from the provided `error_stack`. The topmost call (the first in
-/// the stack's vector) is the outermost in the returned object. Vm frames are skipped as they don't
-/// support nesting (no recursive properties).
-fn serialize_error_stack(error_stack: &ErrorStack) -> serde_json::Value {
-    let mut recursive_error = serde_json::json!(null);
-
-    for frame in error_stack.stack.iter().rev() {
-        match frame {
-            Frame::EntryPoint(entry_point_error_frame) => {
-                recursive_error = serde_json::json!({
-                    "contract_address": entry_point_error_frame.storage_address,
-                    "class_hash": entry_point_error_frame.class_hash,
-                    "selector": entry_point_error_frame.selector,
-                    "error": recursive_error,
-                });
-            }
-            Frame::Cairo1RevertSummary(revert_summary) => {
-                recursive_error = serde_json::json!(revert_summary)
-            }
-            Frame::Vm(_) => { /* do nothing */ }
-            Frame::StringFrame(msg) => {
-                recursive_error = serde_json::json!(*msg);
-            }
-        };
-    }
-
-    recursive_error
-}
-
 pub type StrictRpcResult = Result<JsonRpcResponse, ApiError>;
 
 #[cfg(test)]
 mod tests {
-    use starknet_core::stack_trace::ErrorStack;
+    use starknet_core::error::ContractExecutionError;
 
     use super::StrictRpcResult;
-    use crate::api::json_rpc::error::ApiError;
     use crate::api::json_rpc::ToRpcResponseResult;
+    use crate::api::json_rpc::error::ApiError;
 
     #[test]
     fn contract_not_found_error() {
@@ -380,13 +354,13 @@ mod tests {
     #[test]
     fn contract_error() {
         let api_error =
-            ApiError::ContractError { error_stack: ErrorStack::from_str_err("some_reason") };
+            ApiError::ContractError(ContractExecutionError::Message("some_reason".to_string()));
 
         error_expected_code_and_message(api_error, 40, "Contract error");
 
         // check contract error data property
         let error =
-            ApiError::ContractError { error_stack: ErrorStack::from_str_err("some_reason") }
+            ApiError::ContractError(ContractExecutionError::Message("some_reason".to_string()))
                 .api_error_to_rpc_error();
 
         assert_eq!(error.data.unwrap().as_str().unwrap(), "some_reason");
@@ -397,7 +371,7 @@ mod tests {
         error_expected_code_and_message(
             ApiError::TransactionExecutionError {
                 failure_index: 0,
-                error_stack: ErrorStack::from_str_err("anything"),
+                execution_error: ContractExecutionError::Message("anything".to_string()),
             },
             41,
             "Transaction execution error",
@@ -406,7 +380,7 @@ mod tests {
         error_expected_code_and_data(
             ApiError::TransactionExecutionError {
                 failure_index: 1,
-                error_stack: ErrorStack::from_str_err("anything"),
+                execution_error: ContractExecutionError::Message("anything".to_string()),
             },
             41,
             &serde_json::json!({ "transaction_index": 1, "execution_error": "anything" }),
