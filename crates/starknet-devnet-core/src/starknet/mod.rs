@@ -327,13 +327,13 @@ impl Starknet {
             GasPrice(self.next_block_gas.gas_price_wei.get());
         self.blocks.pending_block.header.block_header_without_hash.l1_data_gas_price.price_in_wei =
             GasPrice(self.next_block_gas.data_gas_price_wei.get());
-        self.blocks.pending_block.header.block_header_without_hash.l1_gas_price.price_in_wei =
+        self.blocks.pending_block.header.block_header_without_hash.l2_gas_price.price_in_wei =
             GasPrice(self.next_block_gas.l2_gas_price_wei.get());
         self.blocks.pending_block.header.block_header_without_hash.l1_gas_price.price_in_fri =
             GasPrice(self.next_block_gas.gas_price_fri.get());
         self.blocks.pending_block.header.block_header_without_hash.l1_data_gas_price.price_in_fri =
             GasPrice(self.next_block_gas.data_gas_price_fri.get());
-        self.blocks.pending_block.header.block_header_without_hash.l1_gas_price.price_in_wei =
+        self.blocks.pending_block.header.block_header_without_hash.l2_gas_price.price_in_fri =
             GasPrice(self.next_block_gas.l2_gas_price_fri.get());
 
         self.restart_pending_block()?;
