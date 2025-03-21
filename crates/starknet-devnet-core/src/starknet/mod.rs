@@ -866,12 +866,12 @@ impl Starknet {
                 signature: vec![],
                 nonce: nonce.0,
                 resource_bounds: ResourceBoundsWrapper::new(
-                    1_000_000, // sufficient L1 gas
+                    1_000_000,
                     self.config.gas_price_fri.get(),
-                    1_000_000, // TODO gas
+                    1_000_000,
                     self.config.data_gas_price_fri.get(),
                     1_000_000_000,
-                    self.config.data_gas_price_fri.get(),
+                    self.config.l2_gas_price_fri.get(),
                 ),
                 tip: Tip(0),
                 paymaster_data: vec![],

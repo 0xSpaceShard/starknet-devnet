@@ -25,9 +25,9 @@ mod test_old_state; // TODO
 mod test_restart;
 
 // mod test_v3_transactions;
-// mod test_trace;
 // mod test_transaction_handling;
 
+mod test_trace;
 mod test_restrictive_mode;
 
 mod test_get_block_txs_count;
