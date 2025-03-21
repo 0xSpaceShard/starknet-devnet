@@ -17,8 +17,7 @@ mod test_balance;
 mod test_blocks_generation;
 mod test_call;
 
-// Fabijan
-// mod test_dump_and_load;
+mod test_dump_and_load;
 mod test_old_state; // TODO
 mod test_restart;
 mod test_minting; // TODO currently all tests passing, but change default to STRK
