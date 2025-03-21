@@ -27,8 +27,8 @@ mod test_gas_modification;
 // mod test_v3_transactions;
 // mod test_trace;
 // mod test_transaction_handling;
-// mod test_restrictive_mode;
 
+mod test_restrictive_mode;
 
 mod test_get_block_txs_count;
 mod test_get_class;
