@@ -26,46 +26,11 @@ use crate::common::constants::{
     QUERY_VERSION_OFFSET, UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_json_rpc_errors_equal, assert_tx_reverted, assert_tx_successful,
-    convert_from_little_endian_bytes_array, extract_json_rpc_error, get_deployable_account_signer,
+    LocalFee, assert_json_rpc_errors_equal, assert_tx_reverted, assert_tx_successful,
+    extract_json_rpc_error, get_deployable_account_signer,
     get_flattened_sierra_contract_and_casm_hash,
     get_simple_contract_in_sierra_and_compiled_class_hash,
 };
-
-struct LocalFee {
-    l1_gas_consumed: u64,
-    l1_gas_price: u128,
-    l1_data_gas_consumed: u64,
-    l1_data_gas_price: u128,
-    l2_gas_consumed: u64,
-    l2_gas_price: u128,
-}
-
-fn fee_estimate_to_local_fee(fee: &FeeEstimate) -> LocalFee {
-    let l1_gas_consumed =
-        convert_from_little_endian_bytes_array::<u64, 8>(&fee.l1_gas_consumed.to_bytes_le()[..8]);
-    let l1_gas_price =
-        convert_from_little_endian_bytes_array::<u128, 16>(&fee.l1_gas_price.to_bytes_le()[..16]);
-    let l1_data_gas_consumed = convert_from_little_endian_bytes_array::<u64, 8>(
-        &fee.l1_data_gas_consumed.to_bytes_le()[..8],
-    );
-    let l1_data_gas_price = convert_from_little_endian_bytes_array::<u128, 16>(
-        &fee.l1_data_gas_price.to_bytes_le()[..16],
-    );
-    let l2_gas_consumed =
-        convert_from_little_endian_bytes_array::<u64, 8>(&fee.l2_gas_consumed.to_bytes_le()[..8]);
-    let l2_gas_price =
-        convert_from_little_endian_bytes_array::<u128, 16>(&fee.l2_gas_price.to_bytes_le()[..16]);
-
-    LocalFee {
-        l1_gas_consumed,
-        l1_gas_price,
-        l1_data_gas_consumed,
-        l1_data_gas_price,
-        l2_gas_consumed,
-        l2_gas_price,
-    }
-}
 
 fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
     assert_eq!(
@@ -117,13 +82,13 @@ async fn estimate_fee_of_deploy_account() {
     // fund the account before deployment
     let mint_amount = fee_estimation.overall_fee * Felt::TWO;
     devnet.mint(deployment_address, mint_amount.to_biguint().try_into().unwrap()).await;
-    let fee = fee_estimate_to_local_fee(&fee_estimation);
+    let fee = LocalFee::from(fee_estimation);
     // try sending with insufficient resource bounds
     let unsuccessful_deployment_tx = account_factory
         .deploy_v3(salt)
-        .l1_data_gas(fee.l1_data_gas_consumed)
-        .l1_gas(fee.l1_gas_consumed)
-        .l2_gas(fee.l2_gas_consumed - 1)
+        .l1_data_gas(fee.l1_data_gas)
+        .l1_gas(fee.l1_gas)
+        .l2_gas(fee.l2_gas - 1)
         .nonce(new_account_nonce)
         .send()
         .await;
@@ -216,14 +181,14 @@ async fn estimate_fee_of_declare_v2() {
     }
     assert_eq!(fee_estimations[0], fee_estimations[1]);
     let fee_estimation = &fee_estimations[0];
-    let fee = fee_estimate_to_local_fee(&fee_estimation);
+    let fee = LocalFee::from(fee_estimation.clone());
     // try sending with insufficient resource bounds
     let unsuccessful_declare_tx = account
         .declare_v3(Arc::clone(&flattened_contract_artifact), casm_hash)
         .nonce(Felt::ZERO)
-        .l1_gas(fee.l1_gas_consumed)
-        .l1_data_gas(fee.l1_data_gas_consumed)
-        .l2_gas(fee.l2_gas_consumed - 1)
+        .l1_gas(fee.l1_gas)
+        .l1_data_gas(fee.l1_data_gas)
+        .l2_gas(fee.l2_gas - 1)
         .send()
         .await;
     match unsuccessful_declare_tx {
@@ -237,9 +202,9 @@ async fn estimate_fee_of_declare_v2() {
     let successful_declare_tx = account
         .declare_v3(Arc::clone(&flattened_contract_artifact), casm_hash)
         .nonce(Felt::ZERO)
-        .l1_gas((fee.l1_gas_consumed as f64 * 1.1) as u64)
-        .l1_data_gas((fee.l1_data_gas_consumed as f64 * 1.1) as u64)
-        .l2_gas((fee.l2_gas_consumed as f64 * 1.1) as u64)
+        .l1_gas((fee.l1_gas as f64 * 1.1) as u64)
+        .l1_data_gas((fee.l1_data_gas as f64 * 1.1) as u64)
+        .l2_gas((fee.l2_gas as f64 * 1.1) as u64)
         .send()
         .await
         .unwrap();
@@ -322,12 +287,12 @@ async fn estimate_fee_of_invoke() {
     .await;
 
     // invoke with sufficient resource bounds
-    let fee = fee_estimate_to_local_fee(&fee_estimation);
+    let fee = LocalFee::from(fee_estimation);
     account
         .execute_v3(invoke_calls)
-        .l1_gas(fee.l1_gas_consumed)
-        .l1_data_gas(fee.l1_data_gas_consumed)
-        .l2_gas(fee.l2_gas_consumed)
+        .l1_gas(fee.l1_gas)
+        .l1_data_gas(fee.l1_data_gas)
+        .l2_gas(fee.l2_gas)
         .send()
         .await
         .unwrap();

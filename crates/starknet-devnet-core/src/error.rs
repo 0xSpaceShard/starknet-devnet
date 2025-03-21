@@ -230,10 +230,9 @@ impl From<TransactionExecutionError> for ContractExecutionError {
 }
 
 impl From<(blockifier::execution::stack_trace::ErrorStack, String)> for ContractExecutionError {
-    fn from(tuple: (blockifier::execution::stack_trace::ErrorStack, String)) -> Self {
-        let error_stack = tuple.0;
-        let error_string = tuple.1;
-
+    fn from(
+        (error_stack, error_string): (blockifier::execution::stack_trace::ErrorStack, String),
+    ) -> Self {
         let mut recursive_error_option = Option::<ContractExecutionError>::None;
         fn format_error(stringified_error: &str, error_cause: &str) -> String {
             if stringified_error.is_empty() {
@@ -315,10 +314,10 @@ impl From<(blockifier::execution::stack_trace::ErrorStack, String)> for Contract
                 blockifier::execution::stack_trace::ErrorStackHeader::Validation => {
                     "Validation error"
                 }
-                blockifier::execution::stack_trace::ErrorStackHeader::None => "",
+                blockifier::execution::stack_trace::ErrorStackHeader::None => "Unknown error",
             };
 
-            ContractExecutionError::Message(format!("{} {}", error_string, error_msg.to_string()))
+            ContractExecutionError::Message(format_error(&error_string, error_msg))
         }
     }
 }

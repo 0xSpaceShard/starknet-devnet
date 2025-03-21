@@ -17,8 +17,8 @@ use starknet_rs_accounts::{
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
 use starknet_rs_core::types::{
-    BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult, Felt,
-    FlattenedSierraClass, FunctionCall,
+    BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult, FeeEstimate,
+    Felt, FlattenedSierraClass, FunctionCall, ResourceBounds, ResourceBoundsMapping,
 };
 use starknet_rs_core::utils::{
     UdcUniqueSettings, get_selector_from_name, get_udc_deployed_address,
@@ -42,23 +42,6 @@ pub enum ImpersonationAction {
     StopImpersonateAccount(Felt),
     AutoImpersonate,
     StopAutoImpersonate,
-}
-
-pub(crate) fn convert_from_little_endian_bytes_array<
-    T: PartialOrd + Copy + Default + Add<Output = T> + Div<Output = T>,
-    const N: usize,
->(
-    byte_array: &[u8],
-) -> T {
-    let (prefix, aligned, suffix) = unsafe { byte_array.align_to::<T>() };
-    if !prefix.is_empty() || !suffix.is_empty() {
-        panic!("Cant convert from byte array");
-    }
-    if aligned.len() > 1 {
-        panic!("byte array doesnt fit into {}", std::any::type_name::<T>());
-    }
-
-    aligned[0]
 }
 
 /// dummy testing value
@@ -598,6 +581,67 @@ pub async fn unsubscribe(
 pub enum FeeUnit {
     Wei,
     Fri,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct LocalFee {
+    pub(crate) l1_gas: u64,
+    pub(crate) l1_gas_price: u128,
+    pub(crate) l1_data_gas: u64,
+    pub(crate) l1_data_gas_price: u128,
+    pub(crate) l2_gas: u64,
+    pub(crate) l2_gas_price: u128,
+    pub(crate) overall: u128,
+}
+
+impl From<LocalFee> for ResourceBoundsMapping {
+    fn from(value: LocalFee) -> Self {
+        ResourceBoundsMapping {
+            l1_gas: ResourceBounds {
+                max_amount: value.l1_gas,
+                max_price_per_unit: value.l1_gas_price,
+            },
+            l1_data_gas: ResourceBounds {
+                max_amount: value.l1_data_gas,
+                max_price_per_unit: value.l1_data_gas_price,
+            },
+            l2_gas: ResourceBounds {
+                max_amount: value.l2_gas,
+                max_price_per_unit: value.l2_gas_price,
+            },
+        }
+    }
+}
+
+impl From<FeeEstimate> for LocalFee {
+    fn from(fee: FeeEstimate) -> Self {
+        let l1_gas_consumed =
+            u64::from_le_bytes(fee.l1_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
+        let l1_gas_price =
+            u128::from_le_bytes(fee.l1_gas_price.to_bytes_le()[..16].try_into().unwrap());
+
+        let l2_gas_consumed =
+            u64::from_le_bytes(fee.l2_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
+        let l2_gas_price =
+            u128::from_le_bytes(fee.l2_gas_price.to_bytes_le()[..16].try_into().unwrap());
+
+        let l1_data_gas_consumed =
+            u64::from_le_bytes(fee.l1_data_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
+        let l1_data_gas_price =
+            u128::from_le_bytes(fee.l1_data_gas_price.to_bytes_le()[..16].try_into().unwrap());
+
+        let overall = u128::from_le_bytes(fee.overall_fee.to_bytes_le()[..16].try_into().unwrap());
+
+        LocalFee {
+            l1_gas: l1_gas_consumed,
+            l1_gas_price,
+            l1_data_gas: l1_data_gas_consumed,
+            l1_data_gas_price,
+            l2_gas: l2_gas_consumed,
+            l2_gas_price,
+            overall,
+        }
+    }
 }
 
 #[cfg(test)]

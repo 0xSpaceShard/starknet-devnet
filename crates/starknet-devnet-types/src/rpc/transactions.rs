@@ -1010,9 +1010,12 @@ pub enum ExecutionInvocation {
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct InvokeTransactionTrace {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub validate_invocation: Option<FunctionInvocation>,
     pub execute_invocation: ExecutionInvocation,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub fee_transfer_invocation: Option<FunctionInvocation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub state_diff: Option<ThinStateDiff>,
     pub execution_resources: ExecutionResources,
 }
@@ -1020,8 +1023,11 @@ pub struct InvokeTransactionTrace {
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct DeclareTransactionTrace {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub validate_invocation: Option<FunctionInvocation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub fee_transfer_invocation: Option<FunctionInvocation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub state_diff: Option<ThinStateDiff>,
     pub execution_resources: ExecutionResources,
 }
@@ -1029,9 +1035,13 @@ pub struct DeclareTransactionTrace {
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct DeployAccountTransactionTrace {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub validate_invocation: Option<FunctionInvocation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub constructor_invocation: Option<FunctionInvocation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub fee_transfer_invocation: Option<FunctionInvocation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub state_diff: Option<ThinStateDiff>,
     pub execution_resources: ExecutionResources,
 }
@@ -1040,6 +1050,7 @@ pub struct DeployAccountTransactionTrace {
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct L1HandlerTransactionTrace {
     pub function_invocation: FunctionInvocation,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub state_diff: Option<ThinStateDiff>,
     pub execution_resources: ExecutionResources,
 }

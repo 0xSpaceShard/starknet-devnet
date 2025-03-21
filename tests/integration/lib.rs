@@ -29,7 +29,6 @@ mod test_call;
 // mod test_transaction_handling;
 // mod test_restrictive_mode;
 
-
 mod test_get_block_txs_count;
 mod test_get_class;
 mod test_get_class_hash_at;
@@ -38,7 +37,7 @@ mod test_get_events;
 // Mario
 mod test_estimate_fee;
 mod test_estimate_message_fee;
-// mod test_simulate_transactions;
+mod test_simulate_transactions;
 
 mod test_fork;
 
