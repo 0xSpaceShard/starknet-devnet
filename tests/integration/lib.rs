@@ -24,7 +24,7 @@ mod test_minting; // TODO currently all tests passing, but change default to STR
 mod test_old_state; // TODO
 mod test_restart;
 
-// mod test_v3_transactions;
+mod test_v3_transactions;
 // mod test_trace;
 // mod test_transaction_handling;
 

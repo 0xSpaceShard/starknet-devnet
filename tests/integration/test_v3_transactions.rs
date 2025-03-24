@@ -19,8 +19,8 @@ use crate::common::constants::{
     self, CAIRO_0_ACCOUNT_CONTRACT_HASH, STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_tx_successful, get_deployable_account_signer, get_gas_units_and_gas_price,
-    get_simple_contract_in_sierra_and_compiled_class_hash, FeeUnit,
+    FeeUnit, LocalFee, assert_tx_successful, get_deployable_account_signer,
+    get_simple_contract_in_sierra_and_compiled_class_hash,
 };
 
 enum Action {
@@ -97,16 +97,7 @@ async fn declare_deploy_happy_path() {
         &starknet_rs_core::utils::UdcUniqueness::NotUnique,
         &[constructor_arg],
     );
-
-    let estimate_fee = account.execute_v3(deploy_call.clone()).estimate_fee().await.unwrap();
-    let gas_steps =
-        estimate_fee.overall_fee.field_div(&NonZeroFelt::try_from(estimate_fee.gas_price).unwrap());
-    let deploy_transaction = account
-        .execute_v3(deploy_call)
-        .gas(gas_steps.to_le_digits().first().cloned().unwrap())
-        .send()
-        .await
-        .unwrap();
+    let deploy_transaction = account.execute_v3(deploy_call).send().await.unwrap();
     assert_tx_successful(&deploy_transaction.transaction_hash, &devnet.json_rpc_client).await;
 
     let class_hash_of_contract = devnet
@@ -241,12 +232,18 @@ async fn redeclaration_has_to_fail() {
 
     let sierra_artifact = Arc::new(sierra_artifact);
     let declaration = account.declare_v3(sierra_artifact.clone(), casm_hash);
-    let fee_estimate = declaration.estimate_fee().await.unwrap();
-    let (gas_units, gas_price) = get_gas_units_and_gas_price(fee_estimate);
+    let fee: LocalFee = declaration.estimate_fee().await.unwrap().into();
 
     declaration.send().await.unwrap();
     // redeclaration
-    match declaration.gas(gas_units).gas_price(gas_price).send().await.unwrap_err() {
+    match declaration
+        .l1_data_gas(fee.l1_data_gas)
+        .l2_gas(fee.l2_gas)
+        .l1_gas(fee.l1_gas)
+        .send()
+        .await
+        .unwrap_err()
+    {
         AccountError::Provider(ProviderError::StarknetError(
             StarknetError::ClassAlreadyDeclared,
         )) => {}
@@ -298,10 +295,7 @@ async fn deploy_account_happy_path() {
     let account_address = deploy_v3.address();
     devnet.mint_unit(account_address, 1e18 as u128, FeeUnit::Fri).await;
 
-    let fee_estimate = deploy_v3.estimate_fee().await.unwrap();
-
-    let (gas_units, gas_price) = get_gas_units_and_gas_price(fee_estimate);
-    let result = deploy_v3.gas(gas_units).gas_price(gas_price).send().await.unwrap();
+    let result = deploy_v3.send().await.unwrap();
     assert_tx_successful(&result.transaction_hash, &devnet.json_rpc_client).await;
 }
 
@@ -331,57 +325,60 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
         }
     };
 
-    let (estimated_gas_units, gas_price) = get_gas_units_and_gas_price(estimate_fee);
+    let LocalFee {
+        l2_gas, l2_gas_price, l1_data_gas, l1_gas, l1_data_gas_price, l1_gas_price, ..
+    } = LocalFee::from(estimate_fee);
 
-    for (gas_units, gas_price) in [
-        (Some(estimated_gas_units - 1), Some(gas_price)),
-        (Some(estimated_gas_units), Some(gas_price - 1)),
-        (Some(estimated_gas_units - 1), Some(gas_price - 1)),
-        (Some(estimated_gas_units - 1), None),
-        (None, Some(gas_price - 1)),
+    for (l2, l2_price) in [
+        (l2_gas - 1, l2_gas_price),
+        (l2_gas, l2_gas_price - 1),
+        (l2_gas - 1, l2_gas_price - 1),
+        (l2_gas - 1, 0),
+        (0, l2_gas_price),
     ] {
         match &transaction_action {
             Action::Declaration(sierra_class, casm_hash) => {
                 let mut declaration =
-                    DeclarationV3::new(sierra_class.clone(), *casm_hash, account.unwrap());
-
-                if let Some(gas_units) = gas_units {
-                    declaration = declaration.gas(gas_units);
-                }
-                if let Some(gas_price) = gas_price {
-                    declaration = declaration.gas_price(gas_price);
-                }
+                    DeclarationV3::new(sierra_class.clone(), *casm_hash, account.unwrap())
+                        .l1_data_gas(l1_data_gas)
+                        .l1_data_gas_price(l1_data_gas_price)
+                        .l1_gas(l1_gas)
+                        .l1_gas_price(l1_gas_price)
+                        .l2_gas(l2)
+                        .l2_gas_price(l2_price);
                 match declaration.send().await.unwrap_err() {
                     starknet_rs_accounts::AccountError::Provider(ProviderError::StarknetError(
-                        StarknetError::InsufficientMaxFee,
+                        StarknetError::InsufficientResourcesForValidate,
                     )) => {}
                     other => panic!("Unexpected error {:?}", other),
                 }
             }
             Action::AccountDeployment(salt) => {
                 let mut account_deployment =
-                    AccountDeploymentV3::new(*salt, account_factory.unwrap());
-                if let Some(gas_units) = gas_units {
-                    account_deployment = account_deployment.gas(gas_units);
-                }
-                if let Some(gas_price) = gas_price {
-                    account_deployment = account_deployment.gas_price(gas_price);
-                }
+                    AccountDeploymentV3::new(*salt, account_factory.unwrap())
+                        .l1_data_gas(l1_data_gas)
+                        .l1_data_gas_price(l1_data_gas_price)
+                        .l1_gas(l1_gas)
+                        .l1_gas_price(l1_gas_price)
+                        .l2_gas(l2)
+                        .l2_gas_price(l2_price);
                 match account_deployment.send().await.unwrap_err() {
                     starknet_rs_accounts::AccountFactoryError::Provider(
-                        ProviderError::StarknetError(StarknetError::InsufficientMaxFee),
+                        ProviderError::StarknetError(
+                            StarknetError::InsufficientResourcesForValidate,
+                        ),
                     ) => {}
                     other => panic!("Unexpected error {:?}", other),
                 }
             }
             Action::Execution(calls) => {
-                let mut execution = ExecutionV3::new(calls.clone(), account.unwrap());
-                if let Some(gas_units) = gas_units {
-                    execution = execution.gas(gas_units);
-                }
-                if let Some(gas_price) = gas_price {
-                    execution = execution.gas_price(gas_price);
-                }
+                let mut execution = ExecutionV3::new(calls.clone(), account.unwrap())
+                    .l1_data_gas(l1_data_gas)
+                    .l1_data_gas_price(l1_data_gas_price)
+                    .l1_gas(l1_gas)
+                    .l1_gas_price(l1_gas_price)
+                    .l2_gas(l2)
+                    .l2_gas_price(l2_price);
                 let transaction_result = execution.send().await;
 
                 match transaction_result {
@@ -395,13 +392,15 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                         let execution_result = receipt.receipt.execution_result();
                         match execution_result {
                             ExecutionResult::Reverted { reason } => {
-                                assert_contains(reason.as_str(), "Insufficient max L1Gas");
+                                assert_contains(reason.as_str(), "Insufficient max L2Gas");
                             }
                             other => panic!("Unexpected result: {:?}", other),
                         }
                     }
                     Err(starknet_rs_accounts::AccountError::Provider(
-                        ProviderError::StarknetError(StarknetError::InsufficientMaxFee),
+                        ProviderError::StarknetError(
+                            StarknetError::InsufficientResourcesForValidate,
+                        ),
                     )) => {}
                     Err(error) => panic!("Unexpected error {:?}", error),
                 }
