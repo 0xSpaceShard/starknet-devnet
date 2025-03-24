@@ -1,5 +1,4 @@
 #![cfg(test)]
-#![allow(deprecated)] // TODO until v1 and v2 transactions are replaced with v3
 
 mod common;
 
@@ -20,15 +19,15 @@ mod test_call;
 mod test_dump_and_load;
 mod test_gas_modification;
 mod test_messaging;
-mod test_minting; // TODO currently all tests passing, but change default to STRK
+mod test_minting;
 mod test_old_state; // TODO
 mod test_restart;
 
+mod test_transaction_handling;
 mod test_v3_transactions;
-// mod test_trace;
-// mod test_transaction_handling;
 
 mod test_restrictive_mode;
+mod test_trace;
 
 mod test_get_block_txs_count;
 mod test_get_class;
