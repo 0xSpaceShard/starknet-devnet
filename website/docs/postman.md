@@ -1,6 +1,6 @@
 # L1-L2 interaction via Postman
 
-Postman is a Starknet utility that allows testing L1-L2 interaction. It is **unrelated** to the [Postman API platform](https://www.postman.com/). Ensure you have:
+Postman is a Starknet utility that allows testing L1-L2 interaction. It is **unrelated** to the [Postman API platform](https://www.postman.com/). To use it, ensure you have:
 
 - an L1 node (possibilities listed [below](#l1-network))
 - a Devnet instance (acting as L2 node)
@@ -41,6 +41,15 @@ JSON-RPC
 ```
 
 Loads a `MockStarknetMessaging` contract. The `address` parameter is optional; if provided, the `MockStarknetMessaging` contract will be fetched from that address, otherwise a new one will be deployed.
+
+:::note L1-L2 with dockerized Devnet
+
+L1-L2 communication requires extra attention if Devnet is [run in a Docker container](./running/docker.md). The `network_url` argument must be on the same network as Devnet. E.g. if your L1 instance is run locally (i.e. using the host machine's network), then:
+
+- on Linux, it is enough to run the Devnet Docker container with `--network host`
+- on Mac and Windows, replace any `http://localhost` or `http://127.0.0.1` occurrence in the value of `network_url` with `http://host.docker.internal`.
+
+:::
 
 ### L1 network
 
