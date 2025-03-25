@@ -1,4 +1,4 @@
-use blockifier::execution::stack_trace::{ErrorStackSegment, gen_tx_execution_error_trace};
+use blockifier::execution::stack_trace::{gen_tx_execution_error_trace, ErrorStackSegment};
 use blockifier::fee::fee_checks::FeeCheckError;
 use blockifier::transaction::errors::{
     TransactionExecutionError, TransactionFeeError, TransactionPreValidationError,
