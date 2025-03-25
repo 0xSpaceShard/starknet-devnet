@@ -11,7 +11,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use ethers::prelude::*;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use server::test_utils::assert_contains;
 use starknet_rs_accounts::{
     Account, AccountError, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
@@ -22,7 +22,7 @@ use starknet_rs_core::types::{
     InvokeTransactionResult, TransactionExecutionStatus, TransactionReceipt,
     TransactionReceiptWithBlockInfo,
 };
-use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address, UdcUniqueness};
+use starknet_rs_core::utils::{UdcUniqueness, get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::LocalWallet;
@@ -35,9 +35,9 @@ use crate::common::constants::{
 };
 use crate::common::errors::RpcError;
 use crate::common::utils::{
-    assert_tx_successful, felt_to_u256, get_messaging_contract_in_sierra_and_compiled_class_hash,
+    UniqueAutoDeletableFile, assert_tx_successful, felt_to_u256,
+    get_messaging_contract_in_sierra_and_compiled_class_hash,
     get_messaging_lib_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
-    UniqueAutoDeletableFile,
 };
 
 const DUMMY_L1_ADDRESS: Felt =
@@ -302,10 +302,9 @@ async fn mock_message_to_l2_creates_a_tx_with_desired_effect() {
     assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
 
     // assert state changed
-    assert_eq!(
-        get_balance(&devnet, l1l2_contract_address, user).await,
-        [user_balance + increment_amount]
-    );
+    assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [
+        user_balance + increment_amount
+    ]);
 
     // assert tx and receipt retrievable and correct
     let expected_calldata =
@@ -529,10 +528,9 @@ async fn assert_l1_handler_tx_can_be_dumped_and_loaded() {
         .await
         .unwrap();
 
-    assert_eq!(
-        get_balance(&dumping_devnet, l1l2_contract_address, user).await,
-        [user_balance + increment_amount]
-    );
+    assert_eq!(get_balance(&dumping_devnet, l1l2_contract_address, user).await, [
+        user_balance + increment_amount
+    ]);
 
     send_ctrl_c_signal_and_wait(&dumping_devnet.process).await;
 
@@ -545,10 +543,9 @@ async fn assert_l1_handler_tx_can_be_dumped_and_loaded() {
     .await
     .unwrap();
 
-    assert_eq!(
-        get_balance(&loading_devnet, l1l2_contract_address, user).await,
-        [user_balance + increment_amount]
-    );
+    assert_eq!(get_balance(&loading_devnet, l1l2_contract_address, user).await, [
+        user_balance + increment_amount
+    ]);
 }
 
 #[tokio::test]
@@ -834,9 +831,10 @@ async fn test_getting_status_of_real_message() {
     anvil.deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, 1.into()).await.unwrap();
 
     // Flush to trigger L2 transaction generation.
-    let generated_l2_txs_raw =
-        &devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap()
-            ["generated_l2_transactions"];
+    let generated_l2_txs_raw = &devnet
+        .send_custom_rpc("devnet_postmanFlush", json!({}))
+        .await
+        .unwrap()["generated_l2_transactions"];
     let generated_l2_txs = generated_l2_txs_raw.as_array().unwrap();
     assert_eq!(generated_l2_txs.len(), 1);
     let generated_l2_tx = &generated_l2_txs[0];
@@ -912,6 +910,6 @@ async fn withdrawing_should_incur_l1_gas_cost() {
             execution_result: ExecutionResult::Reverted { reason },
             ..
         }) => assert_contains(&reason, "Insufficient max L1Gas"),
-        other => panic!("Unexpeted receipt: {other:?}"),
+        other => panic!("Unexpected receipt: {other:?}"),
     }
 }

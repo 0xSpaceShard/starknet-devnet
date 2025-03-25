@@ -1,4 +1,4 @@
-use blockifier::execution::stack_trace::{gen_tx_execution_error_trace, ErrorStackSegment};
+use blockifier::execution::stack_trace::{ErrorStackSegment, gen_tx_execution_error_trace};
 use blockifier::fee::fee_checks::FeeCheckError;
 use blockifier::transaction::errors::{
     TransactionExecutionError, TransactionFeeError, TransactionPreValidationError,
@@ -266,7 +266,7 @@ impl From<(blockifier::execution::stack_trace::ErrorStack, String)> for Contract
                     recursive_error
                 }
 
-                // VMException frame is ommited, unless its the last frame of the error stack. It
+                // VMException frame is ommitted, unless its the last frame of the error stack. It
                 // doesnt produce any meaningful message to the developer
                 ErrorStackSegment::Vm(vm) => recursive_error_option.take().unwrap_or(
                     ContractExecutionError::Message(format_error(&error_string, &String::from(vm))),
