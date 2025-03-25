@@ -1,10 +1,9 @@
 use std::fmt::LowerHex;
-use std::ops::{Add, Div};
+use std::fs;
 use std::path::Path;
 use std::process::{Child, Command};
 use std::sync::Arc;
 use std::time::Duration;
-use std::{fs, u128};
 
 use ethers::types::U256;
 use futures::{SinkExt, StreamExt, TryStreamExt};
@@ -442,17 +441,6 @@ pub fn felt_to_u128(f: Felt) -> u128 {
     bigint.try_into().unwrap()
 }
 
-// pub fn get_l1_gas_units_and_gas_price(fee_estimate: FeeEstimate) -> (u64, u128) {
-//     let l1_gas_price =
-//         u128::from_le_bytes(fee_estimate.l1_gas_price.to_bytes_le()[0..16].try_into().unwrap());
-
-//     let gas_units = fee_estimate
-//         .overall_fee
-//         .field_div(&NonZeroFelt::from_felt_unchecked(fee_estimate.gas_price));
-
-//     (fee_estimate.l1_gas_consumed, l1_gas_price as u128)
-// }
-
 /// Helper for extracting JSON RPC error from the provider instance of `ProviderError`.
 /// To be used when there are discrepancies between starknet-rs and the target RPC spec.
 pub fn extract_json_rpc_error(error: ProviderError) -> Result<JsonRpcError, anyhow::Error> {
@@ -591,7 +579,6 @@ pub(crate) struct LocalFee {
     pub(crate) l1_data_gas_price: u128,
     pub(crate) l2_gas: u64,
     pub(crate) l2_gas_price: u128,
-    pub(crate) overall: u128,
 }
 
 impl From<LocalFee> for ResourceBoundsMapping {
@@ -630,8 +617,6 @@ impl From<FeeEstimate> for LocalFee {
         let l1_data_gas_price =
             u128::from_le_bytes(fee.l1_data_gas_price.to_bytes_le()[..16].try_into().unwrap());
 
-        let overall = u128::from_le_bytes(fee.overall_fee.to_bytes_le()[..16].try_into().unwrap());
-
         LocalFee {
             l1_gas: l1_gas_consumed,
             l1_gas_price,
@@ -639,7 +624,6 @@ impl From<FeeEstimate> for LocalFee {
             l1_data_gas_price,
             l2_gas: l2_gas_consumed,
             l2_gas_price,
-            overall,
         }
     }
 }

@@ -11,7 +11,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use ethers::prelude::*;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use server::test_utils::assert_contains;
 use starknet_rs_accounts::{
     Account, AccountError, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
@@ -22,7 +22,7 @@ use starknet_rs_core::types::{
     InvokeTransactionResult, TransactionExecutionStatus, TransactionReceipt,
     TransactionReceiptWithBlockInfo,
 };
-use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address, UdcUniqueness};
+use starknet_rs_core::utils::{UdcUniqueness, get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::LocalWallet;
@@ -35,9 +35,9 @@ use crate::common::constants::{
 };
 use crate::common::errors::RpcError;
 use crate::common::utils::{
-    assert_tx_successful, felt_to_u256, get_messaging_contract_in_sierra_and_compiled_class_hash,
+    UniqueAutoDeletableFile, assert_tx_successful, felt_to_u256,
+    get_messaging_contract_in_sierra_and_compiled_class_hash,
     get_messaging_lib_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
-    UniqueAutoDeletableFile,
 };
 
 const DUMMY_L1_ADDRESS: Felt =
@@ -187,7 +187,7 @@ async fn assert_withdrawn(
     user: Felt,
     amount: Felt,
 ) -> Result<(), RpcError> {
-    assert_eq!(get_balance(&devnet, from_address, user).await, [Felt::ZERO]);
+    assert_eq!(get_balance(devnet, from_address, user).await, [Felt::ZERO]);
 
     let resp_body =
         devnet.send_custom_rpc("devnet_postmanFlush", json!({ "dry_run": true })).await?;

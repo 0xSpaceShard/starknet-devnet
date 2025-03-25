@@ -10,13 +10,11 @@ use starknet_rs_core::chain_id::SEPOLIA;
 use starknet_rs_core::types::{
     BlockHashAndNumber, BlockId, BlockTag, BroadcastedInvokeTransactionV3, BroadcastedTransaction,
     Call, ContractClass, ContractExecutionError, DataAvailabilityMode, ExecuteInvocation, Felt,
-    InnerContractExecutionError, InvokeTransactionTrace, ResourceBounds, ResourceBoundsMapping,
-    SimulatedTransaction, SimulationFlag, SimulationFlagForEstimateFee, StarknetError,
-    TransactionExecutionErrorData, TransactionTrace,
+    InvokeTransactionTrace, ResourceBounds, ResourceBoundsMapping, SimulatedTransaction,
+    SimulationFlag, SimulationFlagForEstimateFee, StarknetError, TransactionExecutionErrorData,
+    TransactionTrace,
 };
-use starknet_rs_core::utils::{
-    cairo_short_string_to_felt, get_selector_from_name, get_storage_var_address, starknet_keccak,
-};
+use starknet_rs_core::utils::{get_selector_from_name, get_storage_var_address, starknet_keccak};
 use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
@@ -256,8 +254,8 @@ async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old
                             assert_eq!(error_at_to_be_deployed_address.class_hash, class_hash);
                             match error_at_to_be_deployed_address.error.as_ref() {
                                 ContractExecutionError::Message(msg) => {
-                                    assert_contains(&msg, &format!("{class_hash:x}"));
-                                    assert_contains(&msg, "is not declared");
+                                    assert_contains(msg, &format!("{class_hash:x}"));
+                                    assert_contains(msg, "is not declared");
 
                                     msg.clone()
                                 }

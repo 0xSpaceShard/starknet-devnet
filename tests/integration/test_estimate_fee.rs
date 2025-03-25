@@ -15,7 +15,7 @@ use starknet_rs_core::types::{
 use starknet_rs_core::utils::{
     UdcUniqueness, cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address,
 };
-use starknet_rs_providers::jsonrpc::{HttpTransport, JsonRpcError};
+use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
 use starknet_rs_signers::{LocalWallet, Signer};
 
@@ -26,8 +26,7 @@ use crate::common::constants::{
     QUERY_VERSION_OFFSET, UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    LocalFee, assert_json_rpc_errors_equal, assert_tx_reverted, assert_tx_successful,
-    extract_json_rpc_error, get_deployable_account_signer,
+    LocalFee, assert_tx_reverted, assert_tx_successful, get_deployable_account_signer,
     get_flattened_sierra_contract_and_casm_hash,
     get_simple_contract_in_sierra_and_compiled_class_hash,
 };
@@ -40,13 +39,6 @@ fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
         fee_estimation.overall_fee
     );
     assert!(fee_estimation.overall_fee > Felt::ZERO, "Checking fee_estimation: {fee_estimation:?}");
-}
-
-fn multiply_field_element(field_element: Felt, multiplier: f64) -> Felt {
-    let (_, parts) = field_element.to_bigint().to_u64_digits();
-    assert_eq!(parts.len(), 1);
-
-    ((parts[0] as f64 * multiplier) as u128).into()
 }
 
 #[tokio::test]

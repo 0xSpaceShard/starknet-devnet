@@ -7,7 +7,7 @@ use starknet_rs_accounts::{
 };
 use starknet_rs_core::types::{
     BlockId, BlockTag, Call, ExecutionResult, Felt, FlattenedSierraClass, InvokeTransactionResult,
-    NonZeroFelt, StarknetError, U256,
+    StarknetError, U256,
 };
 use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -338,7 +338,7 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
     ] {
         match &transaction_action {
             Action::Declaration(sierra_class, casm_hash) => {
-                let mut declaration =
+                let declaration =
                     DeclarationV3::new(sierra_class.clone(), *casm_hash, account.unwrap())
                         .l1_data_gas(l1_data_gas)
                         .l1_data_gas_price(l1_data_gas_price)
@@ -354,14 +354,13 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                 }
             }
             Action::AccountDeployment(salt) => {
-                let mut account_deployment =
-                    AccountDeploymentV3::new(*salt, account_factory.unwrap())
-                        .l1_data_gas(l1_data_gas)
-                        .l1_data_gas_price(l1_data_gas_price)
-                        .l1_gas(l1_gas)
-                        .l1_gas_price(l1_gas_price)
-                        .l2_gas(l2)
-                        .l2_gas_price(l2_price);
+                let account_deployment = AccountDeploymentV3::new(*salt, account_factory.unwrap())
+                    .l1_data_gas(l1_data_gas)
+                    .l1_data_gas_price(l1_data_gas_price)
+                    .l1_gas(l1_gas)
+                    .l1_gas_price(l1_gas_price)
+                    .l2_gas(l2)
+                    .l2_gas_price(l2_price);
                 match account_deployment.send().await.unwrap_err() {
                     starknet_rs_accounts::AccountFactoryError::Provider(
                         ProviderError::StarknetError(
@@ -372,7 +371,7 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                 }
             }
             Action::Execution(calls) => {
-                let mut execution = ExecutionV3::new(calls.clone(), account.unwrap())
+                let execution = ExecutionV3::new(calls.clone(), account.unwrap())
                     .l1_data_gas(l1_data_gas)
                     .l1_data_gas_price(l1_data_gas_price)
                     .l1_gas(l1_gas)

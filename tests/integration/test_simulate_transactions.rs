@@ -1,7 +1,6 @@
-use std::env;
 use std::sync::Arc;
 
-use serde_json::{de, json};
+use serde_json::json;
 use server::test_utils::assert_contains;
 use starknet_core::constants::STRK_ERC20_CONTRACT_ADDRESS;
 use starknet_rs_accounts::{
@@ -10,25 +9,21 @@ use starknet_rs_accounts::{
 };
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV3,
-    BroadcastedDeployAccountTransaction, BroadcastedDeployAccountTransactionV3,
-    BroadcastedInvokeTransaction, BroadcastedInvokeTransactionV3, BroadcastedTransaction, Call,
-    ContractExecutionError, DataAvailabilityMode, ExecuteInvocation, Felt, FunctionCall,
-    InvokeTransactionTrace, MaybePendingBlockWithTxHashes, ResourceBounds, ResourceBoundsMapping,
-    SimulatedTransaction, SimulationFlag, StarknetError, TransactionExecutionErrorData,
-    TransactionTrace,
+    BlockId, BlockTag, BroadcastedDeclareTransactionV3, BroadcastedDeployAccountTransactionV3,
+    BroadcastedInvokeTransactionV3, BroadcastedTransaction, Call, ContractExecutionError,
+    DataAvailabilityMode, ExecuteInvocation, Felt, FunctionCall, InvokeTransactionTrace,
+    MaybePendingBlockWithTxHashes, ResourceBounds, ResourceBoundsMapping, SimulatedTransaction,
+    SimulationFlag, StarknetError, TransactionExecutionErrorData, TransactionTrace,
 };
 use starknet_rs_core::utils::{
     UdcUniqueness, cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address,
-    parse_cairo_short_string,
 };
 use starknet_rs_providers::{Provider, ProviderError};
 use starknet_rs_signers::{LocalWallet, Signer, SigningKey};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
-    self, CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
-    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, CAIRO_1_CONTRACT_PATH,
+    self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH,
     CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH, CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID,
     ETH_ERC20_CONTRACT_ADDRESS, QUERY_VERSION_OFFSET, UDC_CONTRACT_ADDRESS,
 };
@@ -58,7 +53,6 @@ async fn simulate_declare_v3() {
     let (flattened_contract_artifact, casm_hash) =
         get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH);
 
-    let max_fee = Felt::ZERO;
     let nonce = Felt::ZERO;
     let declaration = account.declare_v3(Arc::new(flattened_contract_artifact.clone()), casm_hash);
 
@@ -753,8 +747,6 @@ async fn simulate_v3_with_skip_fee_charge_deploy_account_declare_deploy_via_invo
     let chain_id = devnet.json_rpc_client.chain_id().await.unwrap();
     let paymaster_data = vec![];
     let tip = 0;
-    let gas = 0;
-    let gas_price = 0;
 
     let account_factory = OpenZeppelinAccountFactory::new(
         account_class_hash,
