@@ -265,11 +265,11 @@ impl From<(blockifier::execution::stack_trace::ErrorStack, String)> for Contract
 
                     recursive_error
                 }
-                ErrorStackSegment::Vm(vm) => {
-                    ContractExecutionError::Message(format_error(&error_string, &String::from(vm)))
-                }
+                ErrorStackSegment::Vm(vm) => recursive_error_option.take().unwrap_or(
+                    ContractExecutionError::Message(format_error(&error_string, &String::from(vm))),
+                ),
                 ErrorStackSegment::StringFrame(msg) => {
-                    ContractExecutionError::Message(format_error(&error_string, msg.as_str()))
+                    ContractExecutionError::Message(format_error("", msg.as_str()))
                 }
                 ErrorStackSegment::EntryPoint(entry_point_error_frame) => {
                     let error_reason = match entry_point_error_frame.preamble_type {
