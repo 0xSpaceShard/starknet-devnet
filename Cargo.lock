@@ -6054,7 +6054,6 @@ version = "0.2.4"
 dependencies = [
  "blockifier",
  "cairo-lang-starknet-classes",
- "cairo-vm",
  "cargo-platform",
  "clap",
  "ethers",
