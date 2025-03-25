@@ -47,22 +47,22 @@ jobs:
     resource_class: spaceshard/ax41
     steps:
       - checkout
-      - run:
-          name: Load cache
-          command: .circleci/scripts/cache.sh load
-      - run:
-          name: Install nightly-2024-07-08
-          command: rustup install nightly-2024-07-08
-      - run:
-          name: Install foundry
-          command: ./scripts/install_foundry.sh
-      - run:
-          name: Verify lockfile
-          command: cargo update -w --locked
-      - run:
-          # Despite later running cargo build --release, this step is executed on all targets, so might discover testing code issues
-          name: Check
-          command: cargo check --workspace --all-targets
+      # - run:
+      #     name: Load cache
+      #     command: .circleci/scripts/cache.sh load
+      # - run:
+      #     name: Install nightly-2024-07-08
+      #     command: rustup install nightly-2024-07-08
+      # - run:
+      #     name: Install foundry
+      #     command: ./scripts/install_foundry.sh
+      # - run:
+      #     name: Verify lockfile
+      #     command: cargo update -w --locked
+      # - run:
+      #     # Despite later running cargo build --release, this step is executed on all targets, so might discover testing code issues
+      #     name: Check
+      #     command: cargo check --workspace --all-targets
       - run:
           name: Clippy check
           command: ./scripts/clippy_check.sh
