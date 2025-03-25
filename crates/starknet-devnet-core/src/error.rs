@@ -266,7 +266,7 @@ impl From<(blockifier::execution::stack_trace::ErrorStack, String)> for Contract
                     recursive_error
                 }
 
-                // VMException frame is ommitted, unless its the last frame of the error stack. It
+                // VMException frame is omitted, unless its the last frame of the error stack. It
                 // doesnt produce any meaningful message to the developer
                 ErrorStackSegment::Vm(vm) => recursive_error_option.take().unwrap_or(
                     ContractExecutionError::Message(format_error(&error_string, &String::from(vm))),
