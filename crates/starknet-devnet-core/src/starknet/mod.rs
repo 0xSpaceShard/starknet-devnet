@@ -119,9 +119,6 @@ pub struct Starknet {
 
 impl Default for Starknet {
     fn default() -> Self {
-        #[allow(clippy::unwrap_used)]
-        let default_gas_price = DEVNET_DEFAULT_L1_GAS_PRICE.get().try_into().unwrap();
-        let default_data_gas_price = DEVNET_DEFAULT_L1_DATA_GAS_PRICE.get().try_into().unwrap();
         Self {
             block_context: Self::init_block_context(
                 DEVNET_DEFAULT_L1_GAS_PRICE,
@@ -145,10 +142,10 @@ impl Default for Starknet {
             pending_block_timestamp_shift: 0,
             next_block_timestamp: None,
             next_block_gas: GasModification {
-                gas_price_wei: default_gas_price,
-                data_gas_price_wei: default_data_gas_price,
-                gas_price_fri: default_gas_price,
-                data_gas_price_fri: default_data_gas_price,
+                gas_price_wei: DEVNET_DEFAULT_L1_GAS_PRICE,
+                data_gas_price_wei: DEVNET_DEFAULT_L1_DATA_GAS_PRICE,
+                gas_price_fri: DEVNET_DEFAULT_L1_GAS_PRICE,
+                data_gas_price_fri: DEVNET_DEFAULT_L1_DATA_GAS_PRICE,
                 l2_gas_price_fri: DEVNET_DEFAULT_L2_GAS_PRICE,
                 l2_gas_price_wei: DEVNET_DEFAULT_L2_GAS_PRICE,
             },

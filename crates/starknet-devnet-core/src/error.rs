@@ -236,7 +236,7 @@ impl From<(blockifier::execution::stack_trace::ErrorStack, String)> for Contract
         let mut recursive_error_option = Option::<ContractExecutionError>::None;
         fn format_error(stringified_error: &str, error_cause: &str) -> String {
             if stringified_error.is_empty() {
-                format!("{}", error_cause)
+                error_cause.to_string()
             } else {
                 format!("{} {}", stringified_error, error_cause)
             }
