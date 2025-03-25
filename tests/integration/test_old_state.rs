@@ -3,6 +3,7 @@ use std::sync::Arc;
 use server::test_utils::assert_contains;
 use starknet_core::constants::{
     DEVNET_DEFAULT_L1_DATA_GAS_PRICE, DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE,
+    UDC_CONTRACT_CLASS_HASH,
 };
 use starknet_rs_accounts::{Account, ExecutionEncoder, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::chain_id::SEPOLIA;
@@ -13,7 +14,9 @@ use starknet_rs_core::types::{
     SimulatedTransaction, SimulationFlag, SimulationFlagForEstimateFee, StarknetError,
     TransactionExecutionErrorData, TransactionTrace,
 };
-use starknet_rs_core::utils::{get_selector_from_name, get_storage_var_address};
+use starknet_rs_core::utils::{
+    cairo_short_string_to_felt, get_selector_from_name, get_storage_var_address, starknet_keccak,
+};
 use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
@@ -220,27 +223,50 @@ async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old
         .await
         .unwrap();
 
+    // The error is expected to be like this:
+    // __execute__ of account contract -> deployContract of UDC contract -> constructor at computed address
     let execution_error_msg = match estimate_fee_error {
         ProviderError::StarknetError(StarknetError::TransactionExecutionError(
             TransactionExecutionErrorData {
-                execution_error:
-                    ContractExecutionError::Nested(InnerContractExecutionError {
-                        selector: received_selector,
-                        error,
-                        contract_address,
-                        ..
-                    }),
+                execution_error: ContractExecutionError::Nested(account_contract_error),
                 ..
             },
         )) => {
-            todo!("decide on what to assert");
-            // assert_eq!(received_selector, invoked_selector);
-            // assert_eq!(contract_address, UDC_CONTRACT_ADDRESS);
-            match error.as_ref() {
-                ContractExecutionError::Message(msg) => {
-                    assert_contains(msg, "is not declared");
-                    msg.clone()
-                },
+            assert_eq!(account_contract_error.selector, starknet_keccak("__execute__".as_bytes()));
+            assert_eq!(account_contract_error.contract_address, account.address());
+
+            let account_class_hash = devnet
+                .json_rpc_client
+                .get_class_hash_at(
+                    BlockId::Tag(BlockTag::Latest),
+                    account_contract_error.contract_address,
+                )
+                .await
+                .unwrap();
+            assert_eq!(account_contract_error.class_hash, account_class_hash);
+
+            match account_contract_error.error.as_ref() {
+                ContractExecutionError::Nested(udc_contract_error) => {
+                    assert_eq!(udc_contract_error.contract_address, UDC_CONTRACT_ADDRESS);
+                    assert_eq!(udc_contract_error.selector, invoked_selector);
+                    assert_eq!(udc_contract_error.class_hash, UDC_CONTRACT_CLASS_HASH);
+
+                    match udc_contract_error.error.as_ref() {
+                        ContractExecutionError::Nested(error_at_to_be_deployed_address) => {
+                            assert_eq!(error_at_to_be_deployed_address.class_hash, class_hash);
+                            match error_at_to_be_deployed_address.error.as_ref() {
+                                ContractExecutionError::Message(msg) => {
+                                    assert_contains(&msg, &format!("{class_hash:x}"));
+                                    assert_contains(&msg, "is not declared");
+
+                                    msg.clone()
+                                }
+                                other => panic!("Unexpected error: {other:?}"),
+                            }
+                        }
+                        other => panic!("Unexpected error: {other:?}"),
+                    }
+                }
                 other => panic!("Unexpected error: {other:?}"),
             }
         }
@@ -252,7 +278,7 @@ async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old
             execute_invocation: ExecuteInvocation::Reverted(reverted_invocation),
             ..
         }) => {
-            assert_eq!(execution_error_msg, reverted_invocation.revert_reason);
+            assert_contains(&reverted_invocation.revert_reason, &execution_error_msg);
         }
         other => panic!("Unexpected trace {other:?}"),
     }
