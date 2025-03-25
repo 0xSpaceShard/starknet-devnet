@@ -23,8 +23,8 @@ use crate::common::constants::{
     UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    FeeUnit, assert_cairo1_classes_equal, get_events_contract_in_sierra_and_compiled_class_hash,
-    get_flattened_sierra_contract_and_casm_hash,
+    assert_cairo1_classes_equal, get_events_contract_in_sierra_and_compiled_class_hash,
+    get_flattened_sierra_contract_and_casm_hash, FeeUnit,
 };
 
 #[tokio::test]
@@ -222,7 +222,8 @@ async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old
         .unwrap();
 
     // The error is expected to be like this:
-    // __execute__ of account contract -> deployContract of UDC contract -> constructor at computed address
+    // __execute__ of account contract -> deployContract of UDC contract -> constructor at computed
+    // address
     let execution_error_msg = match estimate_fee_error {
         ProviderError::StarknetError(StarknetError::TransactionExecutionError(
             TransactionExecutionErrorData {

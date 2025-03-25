@@ -13,7 +13,7 @@ use starknet_rs_core::types::{
     ResourceBounds, ResourceBoundsMapping, StarknetError, TransactionExecutionErrorData,
 };
 use starknet_rs_core::utils::{
-    UdcUniqueness, cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address,
+    cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
 };
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
@@ -26,9 +26,9 @@ use crate::common::constants::{
     QUERY_VERSION_OFFSET, UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    LocalFee, assert_tx_reverted, assert_tx_successful, get_deployable_account_signer,
+    assert_tx_reverted, assert_tx_successful, get_deployable_account_signer,
     get_flattened_sierra_contract_and_casm_hash,
-    get_simple_contract_in_sierra_and_compiled_class_hash,
+    get_simple_contract_in_sierra_and_compiled_class_hash, LocalFee,
 };
 
 fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
@@ -273,9 +273,11 @@ async fn estimate_fee_of_invoke() {
         devnet.json_rpc_client.call(call.clone(), BlockId::Tag(BlockTag::Latest)).await.unwrap();
     assert_eq!(balance_after_insufficient, vec![Felt::ZERO]);
 
-    assert_tx_reverted(&unsuccessful_invoke_tx.transaction_hash, &devnet.json_rpc_client, &[
-        "Insufficient max L2Gas",
-    ])
+    assert_tx_reverted(
+        &unsuccessful_invoke_tx.transaction_hash,
+        &devnet.json_rpc_client,
+        &["Insufficient max L2Gas"],
+    )
     .await;
 
     // invoke with sufficient resource bounds
@@ -434,9 +436,9 @@ async fn broadcasted_invoke_v3_for_estimation(
     // let fee = execution_v3.estimate_fee().await.unwrap();
 
     let l1_gas_consumed = 0;
-    //convert_from_little_endian_bytes_array::<u64, 8>(&fee.l1_gas_consumed.to_bytes_le()[..8]);
+    // convert_from_little_endian_bytes_array::<u64, 8>(&fee.l1_gas_consumed.to_bytes_le()[..8]);
     let l1_gas_price = 0;
-    //convert_from_little_endian_bytes_array::<u128, 16>(&fee.l1_gas_price.to_bytes_le()[..16]);
+    // convert_from_little_endian_bytes_array::<u128, 16>(&fee.l1_gas_price.to_bytes_le()[..16]);
     let l1_data_gas_consumed = 0;
     // convert_from_little_endian_bytes_array::<u64, 8>(
     //     &fee.l1_data_gas_consumed.to_bytes_le()[..8],
@@ -446,9 +448,9 @@ async fn broadcasted_invoke_v3_for_estimation(
     //     &fee.l1_data_gas_price.to_bytes_le()[..16],
     // );
     let l2_gas_consumed = 0;
-    //convert_from_little_endian_bytes_array::<u64, 8>(&fee.l2_gas_consumed.to_bytes_le()[..8]);
+    // convert_from_little_endian_bytes_array::<u64, 8>(&fee.l2_gas_consumed.to_bytes_le()[..8]);
     let l2_gas_price = 0;
-    //convert_from_little_endian_bytes_array::<u128, 16>(&fee.l2_gas_price.to_bytes_le()[..16]);
+    // convert_from_little_endian_bytes_array::<u128, 16>(&fee.l2_gas_price.to_bytes_le()[..16]);
 
     let prepared_invoke = execution_v3
         .nonce(nonce)

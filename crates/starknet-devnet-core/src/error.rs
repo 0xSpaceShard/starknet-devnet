@@ -1,4 +1,4 @@
-use blockifier::execution::stack_trace::{ErrorStackSegment, gen_tx_execution_error_trace};
+use blockifier::execution::stack_trace::{gen_tx_execution_error_trace, ErrorStackSegment};
 use blockifier::fee::fee_checks::FeeCheckError;
 use blockifier::transaction::errors::{
     TransactionExecutionError, TransactionFeeError, TransactionPreValidationError,
@@ -266,7 +266,8 @@ impl From<(blockifier::execution::stack_trace::ErrorStack, String)> for Contract
                     recursive_error
                 }
 
-                // VMException frame is ommited, unless its the last frame of the error stack. It doesnt produce any meaningful message to the developer
+                // VMException frame is ommited, unless its the last frame of the error stack. It
+                // doesnt produce any meaningful message to the developer
                 ErrorStackSegment::Vm(vm) => recursive_error_option.take().unwrap_or(
                     ContractExecutionError::Message(format_error(&error_string, &String::from(vm))),
                 ),
@@ -344,8 +345,8 @@ impl From<&CallInfo> for ContractExecutionError {
 
         let failed_calls = collect_failed_calls(call_info);
 
-        // collects retdata of each CallInfo, starting from the outermost element of failed_calls collection
-        // and combines them in 1-dimensional array
+        // collects retdata of each CallInfo, starting from the outermost element of failed_calls
+        // collection and combines them in 1-dimensional array
         // It serves as the reason for the failed call stack trace
         let mut recursive_error = ContractExecutionError::Message(
             serde_json::to_string(
@@ -376,13 +377,10 @@ impl From<&CallInfo> for ContractExecutionError {
 #[cfg(test)]
 mod tests {
 
-    use blockifier::execution::{
-        call_info::{CallInfo, Retdata},
-        stack_trace::{ErrorStack, ErrorStackSegment},
-    };
+    use blockifier::execution::call_info::{CallInfo, Retdata};
+    use blockifier::execution::stack_trace::{ErrorStack, ErrorStackSegment};
     use serde::{Deserialize, Serialize};
     use starknet_api::core::ContractAddress;
-
     use starknet_types_core::felt::Felt;
 
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

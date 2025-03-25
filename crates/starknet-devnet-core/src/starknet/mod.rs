@@ -30,7 +30,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{
-    BlockHash, ClassHash, TransactionHash, felt_from_prefixed_hex, split_biguint,
+    felt_from_prefixed_hex, split_biguint, BlockHash, ClassHash, TransactionHash,
 };
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
@@ -1524,9 +1524,7 @@ mod tests {
 
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
-
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, FeeType};
-
     use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;

@@ -13,9 +13,9 @@ use crate::common::constants::{
     self, CAIRO_0_ACCOUNT_CONTRACT_HASH, CHAIN_ID, STRK_ERC20_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    FeeUnit, assert_tx_successful, get_deployable_account_signer,
+    assert_tx_successful, get_deployable_account_signer,
     get_simple_contract_in_sierra_and_compiled_class_hash, remove_file,
-    send_ctrl_c_signal_and_wait,
+    send_ctrl_c_signal_and_wait, FeeUnit,
 };
 
 #[tokio::test]

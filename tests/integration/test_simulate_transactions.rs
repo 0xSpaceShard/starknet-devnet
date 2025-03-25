@@ -16,7 +16,7 @@ use starknet_rs_core::types::{
     SimulationFlag, StarknetError, TransactionExecutionErrorData, TransactionTrace,
 };
 use starknet_rs_core::utils::{
-    UdcUniqueness, cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address,
+    cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
 };
 use starknet_rs_providers::{Provider, ProviderError};
 use starknet_rs_signers::{LocalWallet, Signer, SigningKey};
@@ -29,10 +29,10 @@ use crate::common::constants::{
 };
 use crate::common::fees::{assert_difference_if_validation, assert_fee_in_resp_at_least_equal};
 use crate::common::utils::{
-    LocalFee, declare_v3_deploy_v3, get_deployable_account_signer,
+    declare_v3_deploy_v3, get_deployable_account_signer,
     get_flattened_sierra_contract_and_casm_hash,
     get_simple_contract_in_sierra_and_compiled_class_hash, iter_to_hex_felt, to_hex_felt,
-    to_num_as_hex,
+    to_num_as_hex, LocalFee,
 };
 
 #[tokio::test]
@@ -1072,10 +1072,11 @@ async fn simulate_invoke_declare_deploy_account_with_either_gas_or_gas_price_set
 
             devnet
                 .json_rpc_client
-                .simulate_transaction(block_id, &transaction, [
-                    SimulationFlag::SkipValidate,
-                    SimulationFlag::SkipFeeCharge,
-                ])
+                .simulate_transaction(
+                    block_id,
+                    &transaction,
+                    [SimulationFlag::SkipValidate, SimulationFlag::SkipFeeCharge],
+                )
                 .await
                 .unwrap();
         }

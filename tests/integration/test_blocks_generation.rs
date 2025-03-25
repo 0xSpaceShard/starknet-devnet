@@ -17,10 +17,10 @@ use starknet_rs_signers::Signer;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH};
 use crate::common::utils::{
-    FeeUnit, UniqueAutoDeletableFile, assert_equal_elements, assert_tx_successful,
-    get_contract_balance, get_contract_balance_by_block_id,
-    get_events_contract_in_sierra_and_compiled_class_hash,
-    get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
+    assert_equal_elements, assert_tx_successful, get_contract_balance,
+    get_contract_balance_by_block_id, get_events_contract_in_sierra_and_compiled_class_hash,
+    get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait, FeeUnit,
+    UniqueAutoDeletableFile,
 };
 
 static DUMMY_ADDRESS: u128 = 1;
@@ -329,10 +329,13 @@ async fn blocks_on_demand_declarations() {
             Ok(TransactionTrace::Declare(trace)) => {
                 let state_diff = trace.state_diff.unwrap();
                 assert_eq!(state_diff.declared_classes, vec![expected_declaration]);
-                assert_eq!(state_diff.nonces, vec![NonceUpdate {
-                    contract_address: account_address,
-                    nonce: Felt::from(expected_nonce)
-                }])
+                assert_eq!(
+                    state_diff.nonces,
+                    vec![NonceUpdate {
+                        contract_address: account_address,
+                        nonce: Felt::from(expected_nonce)
+                    }]
+                )
             }
             other => panic!("Unexpected response: {other:?}"),
         }

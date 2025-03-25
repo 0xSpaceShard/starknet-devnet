@@ -508,7 +508,10 @@ async fn test_dumping_of_non_rpc_requests() {
     let unit = FeeUnit::Wei;
     let _: serde_json::Value = devnet
         .reqwest_client()
-        .post_json_async("/mint", json!({ "address": address, "amount": mint_amount, "unit": unit }))
+        .post_json_async(
+            "/mint",
+            json!({ "address": address, "amount": mint_amount, "unit": unit }),
+        )
         .await
         .unwrap();
 

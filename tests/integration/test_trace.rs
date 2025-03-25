@@ -11,7 +11,7 @@ use starknet_rs_core::types::{
     BlockId, BlockTag, DeployedContractItem, ExecuteInvocation, Felt, InvokeTransactionTrace,
     StarknetError, TransactionTrace,
 };
-use starknet_rs_core::utils::{UdcUniqueness, get_selector_from_name, get_udc_deployed_address};
+use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address, UdcUniqueness};
 use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
@@ -37,15 +37,18 @@ fn assert_mint_invocation(trace: &TransactionTrace) {
                     invocation.contract_address,
                     Felt::from_hex_unchecked(CHARGEABLE_ACCOUNT_ADDRESS)
                 );
-                assert_eq!(invocation.calldata, vec![
-                    Felt::ONE, // number of calls
-                    STRK_ERC20_CONTRACT_ADDRESS,
-                    get_selector_from_name("transfer").unwrap(),
-                    Felt::THREE, // calldata length
-                    DUMMY_ADDRESS,
-                    Felt::from(DUMMY_AMOUNT), // low bytes
-                    Felt::ZERO                // high bytes
-                ]);
+                assert_eq!(
+                    invocation.calldata,
+                    vec![
+                        Felt::ONE, // number of calls
+                        STRK_ERC20_CONTRACT_ADDRESS,
+                        get_selector_from_name("transfer").unwrap(),
+                        Felt::THREE, // calldata length
+                        DUMMY_ADDRESS,
+                        Felt::from(DUMMY_AMOUNT), // low bytes
+                        Felt::ZERO                // high bytes
+                    ]
+                );
             }
 
             assert_eq!(
@@ -203,10 +206,13 @@ async fn test_contract_deployment_trace() {
                 let state_diff = tx.state_diff.unwrap();
                 assert_eq!(state_diff.declared_classes, []);
                 assert_eq!(state_diff.deprecated_declared_classes, []);
-                assert_eq!(state_diff.deployed_contracts, [DeployedContractItem {
-                    address: deployment_address,
-                    class_hash: declaration_result.class_hash
-                }]);
+                assert_eq!(
+                    state_diff.deployed_contracts,
+                    [DeployedContractItem {
+                        address: deployment_address,
+                        class_hash: declaration_result.class_hash
+                    }]
+                );
             }
             other => panic!("Invalid trace: {other:?}"),
         }

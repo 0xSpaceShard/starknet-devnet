@@ -24,10 +24,10 @@ use crate::common::constants::{
     MAINNET_HTTPS_URL, MAINNET_URL,
 };
 use crate::common::utils::{
-    FeeUnit, assert_cairo1_classes_equal, assert_json_rpc_errors_equal, assert_tx_successful,
+    assert_cairo1_classes_equal, assert_json_rpc_errors_equal, assert_tx_successful,
     declare_v3_deploy_v3, extract_json_rpc_error,
     get_block_reader_contract_in_sierra_and_compiled_class_hash, get_contract_balance,
-    get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
+    get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait, FeeUnit,
 };
 
 #[tokio::test]
