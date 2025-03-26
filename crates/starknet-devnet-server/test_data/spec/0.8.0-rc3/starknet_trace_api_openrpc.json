@@ -1,7 +1,7 @@
 {
   "openrpc": "1.0.0-rc1",
   "info": {
-    "version": "0.8.0",
+    "version": "0.8.0-rc3",
     "title": "StarkNet Trace API",
     "license": {}
   },
@@ -79,17 +79,17 @@
         "schema": {
           "type": "array",
           "items": {
-              "type": "object",
-              "properties": {
-                "transaction_trace": {
-                  "title": "the transaction's trace",
-                  "$ref": "#/components/schemas/TRANSACTION_TRACE"
-                },
-                "fee_estimation": {
-                  "title": "the transaction's resources and fee",
-                  "$ref": "#/components/schemas/FEE_ESTIMATE"
-                }
+            "type": "object",
+            "properties": {
+              "transaction_trace": {
+                "title": "the transaction's trace",
+                "$ref": "#/components/schemas/TRANSACTION_TRACE"
+              },
+              "fee_estimation": {
+                "title": "the transaction's resources and fee",
+                "$ref": "#/components/schemas/FEE_ESTIMATE"
               }
+            }
           }
         }
       },
@@ -170,7 +170,9 @@
                         "type": "string"
                       }
                     },
-                    "required": ["revert_reason"]
+                    "required": [
+                      "revert_reason"
+                    ]
                   }
                 ]
               },
@@ -190,10 +192,16 @@
               "type": {
                 "title": "Type",
                 "type": "string",
-                "enum": ["INVOKE"]
+                "enum": [
+                  "INVOKE"
+                ]
               }
             },
-            "required": ["type", "execute_invocation", "execution_resources"]
+            "required": [
+              "type",
+              "execute_invocation",
+              "execution_resources"
+            ]
           },
           {
             "name": "DECLARE_TXN_TRACE",
@@ -219,10 +227,15 @@
               "type": {
                 "title": "Type",
                 "type": "string",
-                "enum": ["DECLARE"]
+                "enum": [
+                  "DECLARE"
+                ]
               }
             },
-            "required": ["type", "execution_resources"]
+            "required": [
+              "type",
+              "execution_resources"
+            ]
           },
           {
             "name": "DEPLOY_ACCOUNT_TXN_TRACE",
@@ -252,10 +265,16 @@
               "type": {
                 "title": "Type",
                 "type": "string",
-                "enum": ["DEPLOY_ACCOUNT"]
+                "enum": [
+                  "DEPLOY_ACCOUNT"
+                ]
               }
             },
-            "required": ["type", "execution_resources", "constructor_invocation"]
+            "required": [
+              "type",
+              "execution_resources",
+              "constructor_invocation"
+            ]
           },
           {
             "name": "L1_HANDLER_TXN_TRACE",
@@ -279,16 +298,25 @@
               "type": {
                 "title": "Type",
                 "type": "string",
-                "enum": ["L1_HANDLER"]
+                "enum": [
+                  "L1_HANDLER"
+                ]
               }
             },
-            "required": ["type", "function_invocation", "execution_resources"]
+            "required": [
+              "type",
+              "function_invocation",
+              "execution_resources"
+            ]
           }
         ]
       },
       "SIMULATION_FLAG": {
         "type": "string",
-        "enum": ["SKIP_VALIDATE", "SKIP_FEE_CHARGE"],
+        "enum": [
+          "SKIP_VALIDATE",
+          "SKIP_FEE_CHARGE"
+        ],
         "description": "Flags that indicate how to simulate a given transaction. By default, the sequencer behavior is replicated locally (enough funds are expected to be in the account, and fee will be deducted from the balance before the simulation of the next transaction). To skip the fee charge, use the SKIP_FEE_CHARGE flag."
       },
       "NESTED_CALL": {
@@ -352,8 +380,13 @@
               },
               "execution_resources": {
                 "title": "Execution resources",
-                "description": "Resources consumed by the internal call",
+                "description": "Resources consumed by the call tree rooted at this given call (including the root)",
                 "$ref": "#/components/schemas/INNER_CALL_EXECUTION_RESOURCES"
+              },
+              "is_reverted": {
+                "title": "Is Reverted",
+                "description": "true if this inner call panicked",
+                "type": "boolean"
               }
             },
             "required": [
@@ -365,18 +398,27 @@
               "calls",
               "events",
               "messages",
-              "execution_resources"
+              "execution_resources",
+              "is_reverted"
             ]
           }
         ]
       },
       "ENTRY_POINT_TYPE": {
         "type": "string",
-        "enum": ["EXTERNAL", "L1_HANDLER", "CONSTRUCTOR"]
+        "enum": [
+          "EXTERNAL",
+          "L1_HANDLER",
+          "CONSTRUCTOR"
+        ]
       },
       "CALL_TYPE": {
         "type": "string",
-        "enum": ["LIBRARY_CALL", "CALL", "DELEGATE"]
+        "enum": [
+          "LIBRARY_CALL",
+          "CALL",
+          "DELEGATE"
+        ]
       },
       "ORDERED_EVENT": {
         "type": "object",
@@ -434,7 +476,10 @@
             "type": "integer"
           }
         },
-        "required": ["l1_gas", "l2_gas"]
+        "required": [
+          "l1_gas",
+          "l2_gas"
+        ]
       },
       "FELT": {
         "$ref": "./api/starknet_api_openrpc.json#/components/schemas/FELT"
@@ -474,7 +519,10 @@
           "properties": {
             "status": {
               "type": "string",
-              "enum": ["RECEIVED", "REJECTED"]
+              "enum": [
+                "RECEIVED",
+                "REJECTED"
+              ]
             }
           }
         }

@@ -1,7 +1,7 @@
 {
     "openrpc": "1.0.0",
     "info": {
-        "version": "0.8.0",
+        "version": "0.8.0-rc3",
         "title": "API for getting Starknet executables from nodes that store compiled artifacts",
         "license": {}
     },
@@ -90,23 +90,23 @@
                         "type": "string"
                     },
                     "hints": {
-                            "type": "array",
-                            "description": "2-tuple of pc value and an array of hints to execute",
-                            "items": {
-                                "oneOf": [
-                                    {
-                                        "type": "integer"
-                                    },
-                                    {
-                                        "type": "array",
-                                        "items": {
-                                            "$ref": "#/components/schemas/HINT"
-                                        }
+                        "type": "array",
+                        "description": "2-tuple of pc value and an array of hints to execute",
+                        "items": {
+                            "oneOf": [
+                                {
+                                    "type": "integer"
+                                },
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/HINT"
                                     }
-                                ]
-                            },
-                            "minItems": 2,
-                            "maxItems": 2
+                                }
+                            ]
+                        },
+                        "minItems": 2,
+                        "maxItems": 2
                     },
                     "bytecode_segment_lengths": {
                         "type": "array",
@@ -125,24 +125,25 @@
                 ]
             },
             "CASM_ENTRY_POINT": {
-                    "allOf": [
-                        {
-                            "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
-                        },
-                        {
-                            "type": "object",
-                            "properties": {
-                                "builtins": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    }
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "builtins": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
                                 }
-                            },
-                            "required": ["builtins"]
-                        }
-                    ]
-
+                            }
+                        },
+                        "required": [
+                            "builtins"
+                        ]
+                    }
+                ]
             },
             "CellRef": {
                 "title": "CellRef",
@@ -209,42 +210,42 @@
                     "Immediate"
                 ]
             },
-            "BinOp":{
+            "BinOp": {
                 "title": "BinOperand",
                 "type": "object",
-                "properties":{
+                "properties": {
                     "BinOp": {
                         "type": "object",
                         "properties": {
-                        "op": {
-                            "type": "string",
-                            "enum": [
-                                "Add",
-                                "Mul"
-                            ]
+                            "op": {
+                                "type": "string",
+                                "enum": [
+                                    "Add",
+                                    "Mul"
+                                ]
+                            },
+                            "a": {
+                                "$ref": "#/components/schemas/CellRef"
+                            },
+                            "b": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/Deref"
+                                    },
+                                    {
+                                        "$ref": "#/components/schemas/Immediate"
+                                    }
+                                ]
+                            }
                         },
-                        "a": {
-                            "$ref": "#/components/schemas/CellRef"
-                        },
-                        "b": {
-                            "oneOf": [
-                                {
-                                    "$ref": "#/components/schemas/Deref"
-                                },
-                                {
-                                    "$ref": "#/components/schemas/Immediate"
-                                }
-                            ]
-                        }
-                        },
-                        "required":[
+                        "required": [
                             "op",
                             "a",
                             "b"
                         ]
                     }
                 },
-                "required":[
+                "required": [
                     "BinOp"
                 ]
             },
