@@ -137,7 +137,7 @@ async fn estimate_fee_of_invalid_deploy_account() {
 }
 
 #[tokio::test]
-async fn estimate_fee_of_declare_v2() {
+async fn estimate_fee_of_declare_v3() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
     // get account
