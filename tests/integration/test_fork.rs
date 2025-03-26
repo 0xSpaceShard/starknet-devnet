@@ -142,7 +142,7 @@ async fn test_forked_account_balance() {
 }
 
 #[tokio::test]
-/// Using a fork of a real network because Devnet no longer accepts Cairo 0 class declaraiton
+/// Using a fork of a real network because Devnet no longer accepts Cairo 0 class declaration
 async fn test_getting_cairo0_class_from_fork() {
     let forked_devnet =
         BackgroundDevnet::spawn_with_additional_args(&["--fork-network", MAINNET_URL])

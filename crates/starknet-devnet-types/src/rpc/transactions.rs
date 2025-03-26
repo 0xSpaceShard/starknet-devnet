@@ -370,11 +370,9 @@ impl ResourceBoundsWrapper {
                     max_amount: l1_gas_max_amount,
                     max_price_per_unit: l1_gas_max_price_per_unit,
                 },
-                l1_data_gas: {
-                    ResourceBounds {
-                        max_amount: l1_data_gas_max_amount,
-                        max_price_per_unit: l1_data_gas_max_price_per_unit,
-                    }
+                l1_data_gas: ResourceBounds {
+                    max_amount: l1_data_gas_max_amount,
+                    max_price_per_unit: l1_data_gas_max_price_per_unit,
                 },
                 l2_gas: ResourceBounds {
                     max_amount: l2_gas_max_amount,
