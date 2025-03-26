@@ -72,10 +72,7 @@ async fn calling_nonexistent_cairo0_contract_method() {
 
 #[tokio::test]
 async fn calling_nonexistent_cairo1_contract_method() {
-    let devnet = BackgroundDevnet::spawn_with_additional_args(&[
-        "--account-class-custom",
-        CAIRO_1_ACCOUNT_CONTRACT_0_8_0_SIERRA_PATH,
-    ])
+    let devnet = BackgroundDevnet::spawn()
     .await
     .expect("Could not start Devnet");
     let contract_address = Felt::from_hex_unchecked(PREDEPLOYED_ACCOUNT_ADDRESS);
