@@ -372,12 +372,9 @@ impl From<&CallInfo> for ContractExecutionError {
 mod tests {
 
     use blockifier::execution::call_info::{CallInfo, Retdata};
-    use blockifier::execution::stack_trace::{ErrorStack, ErrorStackSegment};
     use serde::{Deserialize, Serialize};
     use starknet_api::core::ContractAddress;
     use starknet_types_core::felt::Felt;
-
-    use super::{header_to_error_msg, preamble_type_to_error_msg};
 
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
     pub struct ContractErrorData {
@@ -402,65 +399,6 @@ mod tests {
         Nested(InnerContractExecutionError),
         /// Terminal error message.
         Message(String),
-    }
-
-    impl From<ErrorStack> for ContractExecutionError {
-        fn from(error_stack: ErrorStack) -> Self {
-            let mut recursive_error_option = Option::<ContractExecutionError>::None;
-
-            // [[[error inner] error outer] root]
-
-            for frame in error_stack.stack.iter().rev() {
-                let stack_err = match frame {
-                    ErrorStackSegment::Cairo1RevertSummary(revert_summary) => {
-                        let mut recursive_error = ContractExecutionError::Message(
-                            serde_json::to_string(&revert_summary.last_retdata).unwrap_or_default(),
-                        );
-
-                        for trace in revert_summary.stack.iter().rev() {
-                            recursive_error =
-                                ContractExecutionError::Nested(InnerContractExecutionError {
-                                    contract_address: trace.contract_address,
-                                    class_hash: trace.class_hash.unwrap_or_default().0,
-                                    selector: trace.selector.0,
-                                    return_data: revert_summary.last_retdata.clone(),
-                                    error: Box::new(recursive_error),
-                                });
-                        }
-
-                        recursive_error
-                    }
-                    ErrorStackSegment::Vm(vm) => ContractExecutionError::Message(vm.into()),
-                    ErrorStackSegment::StringFrame(msg) => {
-                        ContractExecutionError::Message(msg.clone())
-                    }
-                    ErrorStackSegment::EntryPoint(entry_point_error_frame) => {
-                        let error = recursive_error_option.take().unwrap_or_else(|| {
-                            ContractExecutionError::Message(
-                                preamble_type_to_error_msg(&entry_point_error_frame.preamble_type)
-                                    .into(),
-                            )
-                        });
-
-                        ContractExecutionError::Nested(InnerContractExecutionError {
-                            contract_address: entry_point_error_frame.storage_address,
-                            class_hash: entry_point_error_frame.class_hash.0,
-                            selector: entry_point_error_frame.selector.unwrap_or_default().0,
-                            return_data: Retdata(Vec::new()),
-                            error: Box::new(error),
-                        })
-                    }
-                };
-
-                recursive_error_option = Some(stack_err);
-            }
-
-            if let Some(recursive_error) = recursive_error_option {
-                recursive_error
-            } else {
-                ContractExecutionError::Message(header_to_error_msg(&error_stack.header).into())
-            }
-        }
     }
 
     fn collect_failed_calls(root_call: &CallInfo) -> Vec<&CallInfo> {
