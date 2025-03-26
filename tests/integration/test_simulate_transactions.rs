@@ -276,8 +276,7 @@ async fn simulate_invoke_v3() {
         calldata: vec![Felt::from(100u128), Felt::ZERO], // increase amount
     }];
 
-    // TODO fails if max_fee too low, can be used to test reverted case
-    let max_fee = Felt::from(1e18 as u128);
+    // TODO fails if gas bounds too low, can be used to test reverted case
     let nonce = Felt::TWO; // after declare+deploy
     let execution = account.execute_v3(calls.clone());
     let fee = LocalFee::from(execution.estimate_fee().await.unwrap());
@@ -341,7 +340,7 @@ async fn simulate_invoke_v3() {
         resp_no_flags,
         resp_skip_validation,
         &sender_address_hex,
-        max_fee == Felt::ZERO,
+        false, // skip fee
     );
 
     // assert simulations haven't changed the balance property
