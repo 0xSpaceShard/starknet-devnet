@@ -363,7 +363,8 @@ mod tests {
             ApiError::ContractError(ContractExecutionError::Message("some_reason".to_string()))
                 .api_error_to_rpc_error();
 
-        assert_eq!(error.data.unwrap().as_str().unwrap(), "some_reason");
+        let error_data = error.data.unwrap();
+        assert_eq!(error_data["revert_error"].as_str().unwrap(), "some_reason");
     }
 
     #[test]
