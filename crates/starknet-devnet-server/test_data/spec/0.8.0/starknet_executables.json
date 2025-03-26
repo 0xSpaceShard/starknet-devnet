@@ -1,7 +1,7 @@
 {
     "openrpc": "1.0.0",
     "info": {
-        "version": "0.8.0-rc3",
+        "version": "0.8.0",
         "title": "API for getting Starknet executables from nodes that store compiled artifacts",
         "license": {}
     },
@@ -9,7 +9,7 @@
     "methods": [
         {
             "name": "starknet_getCompiledCasm",
-            "summary": "Get the contract class definition in the given block associated with the given hash",
+            "summary": "Get the CASM code resulting from compiling a given class",
             "params": [
                 {
                     "name": "class_hash",
@@ -125,25 +125,26 @@
                 ]
             },
             "CASM_ENTRY_POINT": {
-                "allOf": [
-                    {
-                        "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
+                "type": "object",
+                "properties": {
+                    "offset": {
+                        "title": "Offset",
+                        "description": "The offset of the entry point in the program",
+                        "type": "integer"
                     },
-                    {
-                        "type": "object",
-                        "properties": {
-                            "builtins": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "required": [
-                            "builtins"
-                        ]
+                    "selector": {
+                        "title": "Selector",
+                        "description": "A unique identifier of the entry point (function) in the program",
+                        "$ref": "#/components/schemas/FELT"
+                    },
+                    "builtins": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
-                ]
+                },
+                "required": ["offset", "selector", "builtins"]
             },
             "CellRef": {
                 "title": "CellRef",
@@ -210,42 +211,42 @@
                     "Immediate"
                 ]
             },
-            "BinOp": {
+            "BinOp":{
                 "title": "BinOperand",
                 "type": "object",
-                "properties": {
+                "properties":{
                     "BinOp": {
                         "type": "object",
                         "properties": {
-                            "op": {
-                                "type": "string",
-                                "enum": [
-                                    "Add",
-                                    "Mul"
-                                ]
-                            },
-                            "a": {
-                                "$ref": "#/components/schemas/CellRef"
-                            },
-                            "b": {
-                                "oneOf": [
-                                    {
-                                        "$ref": "#/components/schemas/Deref"
-                                    },
-                                    {
-                                        "$ref": "#/components/schemas/Immediate"
-                                    }
-                                ]
-                            }
+                        "op": {
+                            "type": "string",
+                            "enum": [
+                                "Add",
+                                "Mul"
+                            ]
                         },
-                        "required": [
+                        "a": {
+                            "$ref": "#/components/schemas/CellRef"
+                        },
+                        "b": {
+                            "oneOf": [
+                                {
+                                    "$ref": "#/components/schemas/Deref"
+                                },
+                                {
+                                    "$ref": "#/components/schemas/Immediate"
+                                }
+                            ]
+                        }
+                        },
+                        "required":[
                             "op",
                             "a",
                             "b"
                         ]
                     }
                 },
-                "required": [
+                "required":[
                     "BinOp"
                 ]
             },

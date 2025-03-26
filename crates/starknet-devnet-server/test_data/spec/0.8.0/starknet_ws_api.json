@@ -1,7 +1,7 @@
 {
   "openrpc": "1.3.2",
   "info": {
-    "version": "0.8.0-rc3",
+    "version": "0.8.0",
     "title": "StarkNet WebSocket RPC API",
     "license": {}
   },
@@ -144,7 +144,8 @@
           "$ref": "#/components/schemas/SUBSCRIPTION_ID"
         }
       },
-      "errors": []
+      "errors": [
+      ]
     },
     {
       "name": "starknet_subscriptionTransactionStatus",
@@ -278,6 +279,7 @@
       ]
     }
   ],
+
   "components": {
     "schemas": {
       "FELT": {
@@ -316,9 +318,7 @@
                 "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BLOCK_HASH"
               }
             },
-            "required": [
-              "block_hash"
-            ]
+            "required": ["block_hash"]
           },
           {
             "title": "Block number",
@@ -329,9 +329,7 @@
                 "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BLOCK_NUMBER"
               }
             },
-            "required": [
-              "block_number"
-            ]
+            "required": ["block_number"]
           },
           {
             "title": "Block tag",
@@ -343,9 +341,7 @@
         "title": "Subscription Block tag",
         "type": "string",
         "description": "Same as BLOCK_TAG, but without 'pending'",
-        "enum": [
-          "latest"
-        ]
+        "enum": ["latest"]
       },
       "REORG_DATA": {
         "name": "Reorg Data",
@@ -373,12 +369,7 @@
             "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BLOCK_NUMBER"
           }
         },
-        "required": [
-          "starting_block_hash",
-          "starting_block_number",
-          "ending_block_hash",
-          "ending_block_number"
-        ]
+        "required": ["starting_block_hash", "starting_block_number", "ending_block_hash", "ending_block_number"]
       }
     },
     "errors": {
