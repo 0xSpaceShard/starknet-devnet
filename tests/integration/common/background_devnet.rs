@@ -286,7 +286,7 @@ impl BackgroundDevnet {
             .send_custom_rpc(
                 "devnet_getAccountBalance",
                 json!({
-                    "address": format!("{address:#x}"),
+                    "address": address,
                     "unit": unit,
                     "block_tag": Self::tag_to_str(tag)
                 }),
