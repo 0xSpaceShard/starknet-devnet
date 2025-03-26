@@ -61,7 +61,6 @@ async fn get_deploy_account_transaction_by_hash_happy_path() {
     let deployment = factory.deploy_v3(salt).gas_estimate_multiplier(1.0);
     let deployment_address = deployment.address();
     let fee_estimation = deployment.estimate_fee().await.unwrap();
-    println!("overall fee {}", fee_estimation.overall_fee.to_biguint());
 
     // fund the account before deployment
     let mint_amount = fee_estimation.overall_fee * Felt::TWO;
