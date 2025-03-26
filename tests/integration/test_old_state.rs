@@ -8,10 +8,9 @@ use starknet_rs_accounts::{Account, ExecutionEncoder, ExecutionEncoding, SingleO
 use starknet_rs_core::chain_id::SEPOLIA;
 use starknet_rs_core::types::{
     BlockHashAndNumber, BlockId, BlockTag, BroadcastedInvokeTransactionV3, BroadcastedTransaction,
-    Call, ContractClass, ContractExecutionError, DataAvailabilityMode, ExecuteInvocation, Felt,
-    InnerContractExecutionError, InvokeTransactionTrace, ResourceBounds, ResourceBoundsMapping,
-    SimulatedTransaction, SimulationFlag, SimulationFlagForEstimateFee, StarknetError,
-    TransactionExecutionErrorData, TransactionTrace,
+    Call, ContractClass, DataAvailabilityMode, ExecuteInvocation, Felt, InvokeTransactionTrace,
+    ResourceBounds, ResourceBoundsMapping, SimulatedTransaction, SimulationFlag,
+    SimulationFlagForEstimateFee, StarknetError, TransactionExecutionErrorData, TransactionTrace,
 };
 use starknet_rs_core::utils::{get_selector_from_name, get_storage_var_address};
 use starknet_rs_providers::{Provider, ProviderError};
@@ -22,7 +21,8 @@ use crate::common::constants::{
     UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_cairo1_classes_equal, get_events_contract_in_sierra_and_compiled_class_hash,
+    assert_cairo1_classes_equal, extract_message_error, extract_nested_error,
+    get_events_contract_in_sierra_and_compiled_class_hash,
     get_flattened_sierra_contract_and_casm_hash, FeeUnit,
 };
 
@@ -108,14 +108,6 @@ async fn minting_in_multiple_steps_and_getting_balance_at_each_block() {
         let latest_balance = devnet.get_balance_latest(&address, unit).await.unwrap();
 
         assert_eq!(balance_at_block + Felt::from(mint_amount), latest_balance);
-    }
-}
-
-/// Extract the error that is nested inside the provided `error`.
-fn extract_nested(error: &ContractExecutionError) -> &InnerContractExecutionError {
-    match error {
-        ContractExecutionError::Nested(nested) => nested,
-        other => panic!("Unexpected error: {other:?}"),
     }
 }
 
@@ -223,7 +215,7 @@ async fn fee_estimation_and_simulation_of_deployment_at_old_block_should_not_yie
         ProviderError::StarknetError(StarknetError::TransactionExecutionError(
             TransactionExecutionErrorData { execution_error, .. },
         )) => {
-            let account_error = extract_nested(&execution_error);
+            let account_error = extract_nested_error(&execution_error);
 
             assert_eq!(account_error.selector, get_selector_from_name("__execute__").unwrap());
             assert_eq!(account_error.contract_address, account.address());
@@ -235,18 +227,17 @@ async fn fee_estimation_and_simulation_of_deployment_at_old_block_should_not_yie
                 .unwrap();
             assert_eq!(account_error.class_hash, account_class_hash);
 
-            let udc_error = extract_nested(&account_error.error);
+            let udc_error = extract_nested_error(&account_error.error);
             assert_eq!(udc_error.contract_address, UDC_CONTRACT_ADDRESS);
             assert_eq!(udc_error.selector, udc_selector);
             assert_eq!(udc_error.class_hash, UDC_CONTRACT_CLASS_HASH);
 
-            let error_at_to_be_deployed_address = extract_nested(&udc_error.error);
+            let error_at_to_be_deployed_address = extract_nested_error(&udc_error.error);
             assert_eq!(error_at_to_be_deployed_address.class_hash, class_hash);
             assert_eq!(error_at_to_be_deployed_address.selector, Felt::ZERO);
-            match error_at_to_be_deployed_address.error.as_ref() {
-                ContractExecutionError::Message(msg) => assert_eq!(msg.trim(), &expected_error_msg),
-                other => panic!("Unexpected error: {other:?}"),
-            }
+
+            let error_msg = extract_message_error(&error_at_to_be_deployed_address.error);
+            assert_eq!(error_msg.trim(), &expected_error_msg)
         }
         other => panic!("Unexpected error: {other:?}"),
     };

@@ -16,8 +16,9 @@ use starknet_rs_accounts::{
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
 use starknet_rs_core::types::{
-    BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult, FeeEstimate,
-    Felt, FlattenedSierraClass, FunctionCall, ResourceBounds, ResourceBoundsMapping,
+    BlockId, BlockTag, ContractClass, ContractExecutionError, DeployAccountTransactionResult,
+    ExecutionResult, FeeEstimate, Felt, FlattenedSierraClass, FunctionCall,
+    InnerContractExecutionError, ResourceBounds, ResourceBoundsMapping,
 };
 use starknet_rs_core::utils::{
     get_selector_from_name, get_udc_deployed_address, UdcUniqueSettings,
@@ -461,6 +462,22 @@ pub fn extract_json_rpc_error(error: ProviderError) -> Result<JsonRpcError, anyh
 
 pub fn assert_json_rpc_errors_equal(e1: JsonRpcError, e2: JsonRpcError) {
     assert_eq!((e1.code, e1.message, e1.data), (e2.code, e2.message, e2.data));
+}
+
+/// Extract the message that is encapsulated inside the provided error.
+pub fn extract_message_error(error: &ContractExecutionError) -> &String {
+    match error {
+        ContractExecutionError::Message(msg) => msg,
+        other => panic!("Unexpected error: {other:?}"),
+    }
+}
+
+/// Extract the error that is nested inside the provided `error`.
+pub fn extract_nested_error(error: &ContractExecutionError) -> &InnerContractExecutionError {
+    match error {
+        ContractExecutionError::Nested(nested) => nested,
+        other => panic!("Unexpected error: {other:?}"),
+    }
 }
 
 pub async fn send_text_rpc_via_ws(

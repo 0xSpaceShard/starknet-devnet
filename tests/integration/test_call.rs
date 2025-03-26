@@ -1,6 +1,7 @@
+use server::test_utils::assert_contains;
 use starknet_rs_accounts::SingleOwnerAccount;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, ContractErrorData, ContractExecutionError, Felt, FunctionCall, StarknetError,
+    BlockId, BlockTag, ContractErrorData, Felt, FunctionCall, StarknetError,
 };
 use starknet_rs_core::utils::{cairo_short_string_to_felt, get_selector_from_name};
 use starknet_rs_providers::{Provider, ProviderError};
@@ -11,7 +12,8 @@ use crate::common::constants::{
     ETH_ERC20_CONTRACT_ADDRESS, PREDEPLOYED_ACCOUNT_ADDRESS,
 };
 use crate::common::utils::{
-    declare_v3_deploy_v3, deploy_v3, get_flattened_sierra_contract_and_casm_hash,
+    declare_v3_deploy_v3, deploy_v3, extract_message_error, extract_nested_error,
+    get_flattened_sierra_contract_and_casm_hash,
 };
 
 #[tokio::test]
@@ -142,43 +144,21 @@ async fn call_panicking_method() {
 
     match err {
         ProviderError::StarknetError(StarknetError::ContractError(ContractErrorData {
-            revert_error: contract_error,
-        })) => match contract_error {
-            ContractExecutionError::Nested(root) => {
-                assert_eq!(root.contract_address, contract_address);
-                assert_eq!(root.class_hash, class_hash);
-                assert_eq!(root.selector, top_selector);
+            revert_error,
+        })) => {
+            let root = extract_nested_error(&revert_error);
+            assert_eq!(root.contract_address, contract_address);
+            assert_eq!(root.class_hash, class_hash);
+            assert_eq!(root.selector, top_selector);
 
-                match root.error.as_ref() {
-                    ContractExecutionError::Nested(inner) => {
-                        assert_eq!(inner.contract_address, other_contract_address);
-                        assert_eq!(inner.selector, get_selector_from_name("create_panic").unwrap());
-                        assert_eq!(inner.class_hash, class_hash);
+            let inner = extract_nested_error(&root.error);
+            assert_eq!(inner.contract_address, other_contract_address);
+            assert_eq!(inner.selector, get_selector_from_name("create_panic").unwrap());
+            assert_eq!(inner.class_hash, class_hash);
 
-                        match inner.error.as_ref() {
-                            ContractExecutionError::Message(error_msg) => assert!(
-                                error_msg.contains(
-                                    &cairo_short_string_to_felt("funny_text")
-                                        .unwrap()
-                                        .to_hex_string()
-                                )
-                            ),
-                            _ => {
-                                panic!("Expected message structure");
-                            }
-                        }
-                    }
-                    _ => {
-                        panic!("Expected nested structure");
-                    }
-                }
-            }
-            _ => {
-                panic!("Invalid error structure");
-            }
-        },
-        _ => {
-            panic!("Invalid error received {:?}", err);
+            let error_msg = extract_message_error(&inner.error);
+            assert_contains(error_msg, &panic_message.to_hex_string());
         }
+        _ => panic!("Invalid error received {err:?}"),
     }
 }
