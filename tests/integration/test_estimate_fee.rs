@@ -26,8 +26,8 @@ use crate::common::constants::{
     QUERY_VERSION_OFFSET, UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_tx_reverted, assert_tx_successful, get_deployable_account_signer,
-    get_flattened_sierra_contract_and_casm_hash,
+    assert_tx_reverted, assert_tx_successful, extract_message_error, extract_nested_error,
+    get_deployable_account_signer, get_flattened_sierra_contract_and_casm_hash,
     get_simple_contract_in_sierra_and_compiled_class_hash, LocalFee,
 };
 
@@ -335,11 +335,11 @@ async fn message_available_if_estimation_reverts() {
         .await
         .expect("Cannot deploy");
 
-    let panic_reason = "custom little reason";
+    let panic_reason = cairo_short_string_to_felt("custom little reason").unwrap();
     let calls = vec![Call {
         to: contract_address,
         selector: get_selector_from_name("create_panic").unwrap(),
-        calldata: vec![cairo_short_string_to_felt(panic_reason).unwrap()],
+        calldata: vec![panic_reason],
     }];
 
     let invoke_err = account
@@ -352,17 +352,16 @@ async fn message_available_if_estimation_reverts() {
     match invoke_err {
         AccountError::Provider(ProviderError::StarknetError(
             StarknetError::TransactionExecutionError(TransactionExecutionErrorData {
-                transaction_index,
+                transaction_index: 0,
                 execution_error,
                 ..
             }),
         )) => {
-            assert_eq!(transaction_index, 0);
-
-            assert_contains(
-                &format!("{:?}", execution_error),
-                &cairo_short_string_to_felt(panic_reason).unwrap().to_hex_string(),
-            );
+            let account_error = extract_nested_error(&execution_error);
+            let contract_error = extract_nested_error(&account_error.error);
+            let inner_error = extract_nested_error(&contract_error.error);
+            let error_msg = extract_message_error(&inner_error.error);
+            assert_contains(error_msg, &panic_reason.to_hex_string());
         }
         other => panic!("Invalid err: {other:?}"),
     };
