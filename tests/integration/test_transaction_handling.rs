@@ -35,8 +35,13 @@ async fn test_failed_validation_with_expected_message() {
     let contract_artifact = Arc::new(contract_artifact);
 
     // declare class
-    let declaration_result =
-        account.declare_v3(contract_artifact, casm_hash).gas(1e7 as u64).send().await;
+    let declaration_result = account
+        .declare_v3(contract_artifact, casm_hash)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(5e7 as u64)
+        .send()
+        .await;
 
     match declaration_result {
         Err(AccountError::Provider(ProviderError::StarknetError(
@@ -64,7 +69,7 @@ async fn test_declaration_rejected_if_casm_hash_not_matching() {
     let dummy_casm_hash = Felt::ONE;
 
     let declaration_result = account
-        .declare_v2(Arc::new(contract_class), dummy_casm_hash)
+        .declare_v3(Arc::new(contract_class), dummy_casm_hash)
         .nonce(Felt::ZERO)
         .send()
         .await;
@@ -97,12 +102,14 @@ async fn test_tx_status_content_of_failed_invoke() {
         declare_v3_deploy_v3(&account, sierra, casm_hash, &[]).await.unwrap();
 
     let InvokeTransactionResult { transaction_hash } = account
-        .execute_v1(vec![Call {
+        .execute_v3(vec![Call {
             to: contract_address,
             selector: get_selector_from_name("create_panic").unwrap(),
             calldata: vec![],
         }])
-        .max_fee(Felt::from(1e18 as u128))
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(5e7 as u64)
         .send()
         .await
         .unwrap();

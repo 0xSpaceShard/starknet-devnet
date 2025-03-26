@@ -4,7 +4,9 @@ use starknet_rs_accounts::{
     Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
 use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::{Call, ExecutionResult, Felt, StarknetError, TransactionReceipt};
+use starknet_rs_core::types::{
+    Call, ExecutionResult, Felt, StarknetError, TransactionFinalityStatus, TransactionReceipt,
+};
 use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::{Provider, ProviderError};
 
@@ -31,11 +33,12 @@ async fn deploy_account_transaction_receipt() {
     .unwrap();
     let new_account_nonce = Felt::ZERO;
     let salt = Felt::THREE;
-    let deployment = account_factory.deploy_v1(salt).nonce(new_account_nonce);
+    let deployment = account_factory.deploy_v3(salt).nonce(new_account_nonce);
     let new_account_address = deployment.address();
     devnet.mint(new_account_address, 1e18 as u128).await;
 
-    let deploy_account_result = deployment.max_fee(Felt::from(1e18 as u128)).send().await.unwrap();
+    // Converting Felt to u64 for the gas parameter
+    let deploy_account_result = deployment.send().await.unwrap();
 
     let deploy_account_receipt = devnet
         .json_rpc_client
@@ -68,12 +71,9 @@ async fn deploy_transaction_receipt() {
     let (cairo_1_contract, casm_class_hash) =
         get_events_contract_in_sierra_and_compiled_class_hash();
 
-    let max_fee = Felt::from(1e18 as u128);
-
     // declare the contract
     let declaration_result = predeployed_account
-        .declare_v2(Arc::new(cairo_1_contract), casm_class_hash)
-        .max_fee(max_fee)
+        .declare_v3(Arc::new(cairo_1_contract), casm_class_hash)
         .send()
         .await
         .unwrap();
@@ -84,12 +84,8 @@ async fn deploy_transaction_receipt() {
 
     let salt = Felt::ZERO;
     let constructor_args = Vec::<Felt>::new();
-    let deployment_result = contract_factory
-        .deploy_v1(constructor_args.clone(), salt, false)
-        .max_fee(max_fee)
-        .send()
-        .await
-        .unwrap();
+    let deployment_result =
+        contract_factory.deploy_v3(constructor_args.clone(), salt, false).send().await.unwrap();
 
     let deployment_receipt = devnet
         .json_rpc_client
@@ -107,7 +103,7 @@ async fn deploy_transaction_receipt() {
                 &constructor_args,
             );
             assert_eq!(receipt.contract_address, expected_contract_address);
-            assert!(receipt.actual_fee.amount < max_fee);
+            assert_eq!(receipt.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         }
         _ => panic!("Invalid receipt {:?}", deployment_receipt),
     };
@@ -129,12 +125,9 @@ async fn invalid_deploy_transaction_receipt() {
     let (cairo_1_contract, casm_class_hash) =
         get_events_contract_in_sierra_and_compiled_class_hash();
 
-    let max_fee = Felt::from(1e18 as u128);
-
     // declare the contract
     let declaration_result = predeployed_account
-        .declare_v2(Arc::new(cairo_1_contract), casm_class_hash)
-        .max_fee(max_fee)
+        .declare_v3(Arc::new(cairo_1_contract), casm_class_hash)
         .send()
         .await
         .unwrap();
@@ -145,9 +138,14 @@ async fn invalid_deploy_transaction_receipt() {
 
     let salt = Felt::ZERO;
     let invalid_constructor_args = vec![Felt::ONE];
+    let l1_gas = 0;
+    let l1_data_gas = 1000;
+    let l2_gas = 1e6 as u64;
     let invalid_deployment_result = contract_factory
-        .deploy_v1(invalid_constructor_args, salt, false)
-        .max_fee(max_fee)
+        .deploy_v3(invalid_constructor_args, salt, false)
+        .l1_gas(l1_gas)
+        .l1_data_gas(l1_data_gas)
+        .l2_gas(l2_gas)
         .send()
         .await
         .unwrap();
@@ -166,7 +164,10 @@ async fn invalid_deploy_transaction_receipt() {
                 }
                 other => panic!("Invalid execution result {other:?}"),
             }
-            assert!(receipt.actual_fee.amount < max_fee);
+            assert_eq!(receipt.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+            assert!(receipt.execution_resources.l1_gas <= l1_gas);
+            assert!(receipt.execution_resources.l1_data_gas <= l1_data_gas);
+            assert!(receipt.execution_resources.l2_gas <= l2_gas);
         }
         _ => panic!("Invalid receipt {:?}", invalid_deployment_receipt),
     };
@@ -185,7 +186,7 @@ async fn reverted_invoke_transaction_receipt() {
         ExecutionEncoding::New,
     );
 
-    let transfer_execution = predeployed_account.execute_v1(vec![Call {
+    let transfer_execution = predeployed_account.execute_v3(vec![Call {
         to: ETH_ERC20_CONTRACT_ADDRESS,
         selector: get_selector_from_name("transfer").unwrap(),
         calldata: vec![
@@ -197,10 +198,14 @@ async fn reverted_invoke_transaction_receipt() {
 
     let fee = transfer_execution.estimate_fee().await.unwrap();
 
-    // send transaction with lower than estimated fee
-    // should revert
-    let max_fee = fee.overall_fee - Felt::ONE;
-    let transfer_result = transfer_execution.max_fee(max_fee).send().await.unwrap();
+    // send transaction with lower than estimated overall fee; should revert
+    let transfer_result = transfer_execution
+        .l1_gas(fee.l1_gas_consumed.to_le_digits()[0]) // Using estimated l1 gas as is, because it can be 0
+        .l2_gas(fee.l2_gas_consumed.to_le_digits()[0] - 1) // subtracting 1 from l2 gas
+        .l1_data_gas(fee.l1_data_gas_consumed.to_le_digits()[0]) // using estimated l1 data gas as is
+        .send()
+        .await
+        .unwrap();
 
     let transfer_receipt = devnet
         .json_rpc_client
@@ -215,7 +220,8 @@ async fn reverted_invoke_transaction_receipt() {
                 starknet_rs_core::types::ExecutionResult::Reverted { .. } => (),
                 _ => panic!("Invalid receipt {:?}", receipt),
             }
-            assert_eq!(receipt.actual_fee.amount, max_fee);
+            // due to earlier l2_gas - 1
+            assert!(receipt.actual_fee.amount <= fee.overall_fee - fee.l2_gas_price);
         }
         _ => panic!("Invalid receipt {:?}", transfer_receipt),
     };

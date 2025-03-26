@@ -1,5 +1,4 @@
-use starknet_core::error::{Error, StateError};
-use starknet_core::stack_trace::ErrorStack;
+use starknet_core::error::{ContractExecutionError, Error, StateError};
 use starknet_rs_core::types::{BlockId as ImportedBlockId, MsgFromL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
@@ -315,12 +314,10 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(Error::ContractExecutionError(error_stack)) => {
-                Err(ApiError::ContractError { error_stack })
+            Err(Error::ContractExecutionError(execution_error)) => {
+                Err(ApiError::ContractError(execution_error))
             }
-            Err(e) => Err(ApiError::ContractError {
-                error_stack: ErrorStack::from_str_err(&e.to_string()),
-            }),
+            Err(e) => Err(ApiError::ContractError(ContractExecutionError::Message(e.to_string()))),
         }
     }
 
@@ -339,12 +336,10 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(Error::ContractExecutionErrorInSimulation { failure_index, error_stack }) => {
-                Err(ApiError::TransactionExecutionError { failure_index, error_stack })
+            Err(Error::ContractExecutionErrorInSimulation { failure_index, execution_error }) => {
+                Err(ApiError::TransactionExecutionError { failure_index, execution_error })
             }
-            Err(e) => Err(ApiError::ContractError {
-                error_stack: ErrorStack::from_str_err(&e.to_string()),
-            }),
+            Err(e) => Err(ApiError::ContractError(ContractExecutionError::from(e.to_string()))),
         }
     }
 
@@ -360,12 +355,8 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(Error::ContractExecutionError(error)) => {
-                Err(ApiError::ContractError { error_stack: error })
-            }
-            Err(e) => Err(ApiError::ContractError {
-                error_stack: ErrorStack::from_str_err(&e.to_string()),
-            }),
+            Err(Error::ContractExecutionError(error)) => Err(ApiError::ContractError(error)),
+            Err(e) => Err(ApiError::ContractError(ContractExecutionError::from(e.to_string()))),
         }
     }
 
@@ -475,12 +466,10 @@ impl JsonRpcHandler {
             Err(e @ Error::NoStateAtBlock { .. }) => {
                 Err(ApiError::NoStateAtBlock { msg: e.to_string() })
             }
-            Err(Error::ContractExecutionErrorInSimulation { failure_index, error_stack }) => {
-                Err(ApiError::TransactionExecutionError { failure_index, error_stack })
+            Err(Error::ContractExecutionErrorInSimulation { failure_index, execution_error }) => {
+                Err(ApiError::TransactionExecutionError { failure_index, execution_error })
             }
-            Err(e) => Err(ApiError::ContractError {
-                error_stack: ErrorStack::from_str_err(&e.to_string()),
-            }),
+            Err(e) => Err(ApiError::ContractError(ContractExecutionError::from(e.to_string()))),
         }
     }
 

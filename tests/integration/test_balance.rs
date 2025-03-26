@@ -10,10 +10,10 @@ async fn getting_balance_of_predeployed_contract() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
     let contract_address = Felt::from_hex_unchecked(PREDEPLOYED_ACCOUNT_ADDRESS);
 
-    let retrieved_result =
-        devnet.get_balance_latest(&contract_address, FeeUnit::Wei).await.unwrap();
-
-    assert_eq!(retrieved_result, Felt::from(PREDEPLOYED_ACCOUNT_INITIAL_BALANCE));
+    for unit in [FeeUnit::Fri, FeeUnit::Wei] {
+        let balance = devnet.get_balance_latest(&contract_address, unit).await.unwrap();
+        assert_eq!(balance, Felt::from(PREDEPLOYED_ACCOUNT_INITIAL_BALANCE));
+    }
 }
 
 #[tokio::test]

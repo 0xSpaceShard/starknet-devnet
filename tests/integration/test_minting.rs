@@ -75,7 +75,7 @@ async fn increase_balance_of_undeployed_address_unit_not_specified() {
         resp_body,
         json!({
             "new_balance": DUMMY_AMOUNT.to_string(),
-            "unit": "WEI",
+            "unit": "FRI",
             "tx_hash": null
         })
     );

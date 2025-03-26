@@ -50,16 +50,15 @@ async fn emit_static_event(
     account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
     contract_address: Felt,
 ) -> Result<InvokeTransactionResult, anyhow::Error> {
-    // precalculated
-    let invocation_fee = 15_000_000_000_000_u64;
-    let gas_price = 100_000_000_000_u64;
     account
         .execute_v3(vec![Call {
             to: contract_address,
             selector: get_selector_from_name("emit_event").unwrap(),
             calldata: vec![Felt::ZERO], // what kind of event to emit
         }])
-        .gas(invocation_fee / gas_price)
+        .l1_gas(0)
+        .l1_data_gas(10000)
+        .l2_gas(5e7 as u64)
         .send()
         .await
         .map_err(|e| anyhow::Error::msg(e.to_string()))
