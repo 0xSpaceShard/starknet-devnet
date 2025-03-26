@@ -273,27 +273,27 @@ async fn declare_deploy() {
             .expect("Could not start Devnet");
 
     // check declare transaction
-    let loaded_declare_v2 = devnet_load
+    let loaded_declare = devnet_load
         .json_rpc_client
         .get_transaction_by_hash(declaration_result.transaction_hash)
         .await
         .unwrap();
-    if let Transaction::Declare(DeclareTransaction::V3(tx)) = loaded_declare_v2 {
+    if let Transaction::Declare(DeclareTransaction::V3(tx)) = loaded_declare {
         assert_eq!(tx.transaction_hash, declaration_result.transaction_hash);
     } else {
-        panic!("Could not unpack the transaction from {loaded_declare_v2:?}");
+        panic!("Could not unpack the transaction from {loaded_declare:?}");
     }
 
     // check deploy transaction
-    let loaded_deploy_v2 = devnet_load
+    let loaded_deploy = devnet_load
         .json_rpc_client
         .get_transaction_by_hash(deploy_result.transaction_hash)
         .await
         .unwrap();
-    if let Transaction::Invoke(InvokeTransaction::V3(tx)) = loaded_deploy_v2 {
+    if let Transaction::Invoke(InvokeTransaction::V3(tx)) = loaded_deploy {
         assert_eq!(tx.transaction_hash, deploy_result.transaction_hash);
     } else {
-        panic!("Could not unpack the transaction from {loaded_deploy_v2:?}");
+        panic!("Could not unpack the transaction from {loaded_deploy:?}");
     }
 }
 

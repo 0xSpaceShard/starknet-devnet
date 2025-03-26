@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use server::test_utils::assert_contains;
 use starknet_core::constants::{
     DEVNET_DEFAULT_L1_DATA_GAS_PRICE, DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE,
     UDC_CONTRACT_CLASS_HASH,
@@ -9,12 +8,11 @@ use starknet_rs_accounts::{Account, ExecutionEncoder, ExecutionEncoding, SingleO
 use starknet_rs_core::chain_id::SEPOLIA;
 use starknet_rs_core::types::{
     BlockHashAndNumber, BlockId, BlockTag, BroadcastedInvokeTransactionV3, BroadcastedTransaction,
-    Call, ContractClass, ContractExecutionError, DataAvailabilityMode, ExecuteInvocation, Felt,
-    InvokeTransactionTrace, ResourceBounds, ResourceBoundsMapping, SimulatedTransaction,
-    SimulationFlag, SimulationFlagForEstimateFee, StarknetError, TransactionExecutionErrorData,
-    TransactionTrace,
+    Call, ContractClass, DataAvailabilityMode, ExecuteInvocation, Felt, InvokeTransactionTrace,
+    ResourceBounds, ResourceBoundsMapping, SimulatedTransaction, SimulationFlag,
+    SimulationFlagForEstimateFee, StarknetError, TransactionExecutionErrorData, TransactionTrace,
 };
-use starknet_rs_core::utils::{get_selector_from_name, get_storage_var_address, starknet_keccak};
+use starknet_rs_core::utils::{get_selector_from_name, get_storage_var_address};
 use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
@@ -23,7 +21,8 @@ use crate::common::constants::{
     UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_cairo1_classes_equal, get_events_contract_in_sierra_and_compiled_class_hash,
+    assert_cairo1_classes_equal, extract_message_error, extract_nested_error,
+    get_events_contract_in_sierra_and_compiled_class_hash,
     get_flattened_sierra_contract_and_casm_hash, FeeUnit,
 };
 
@@ -112,11 +111,9 @@ async fn minting_in_multiple_steps_and_getting_balance_at_each_block() {
     }
 }
 
-// estimate fee of invoke transaction that reverts must fail, but simulating the same invoke
-// transaction have to produce trace of a reverted transaction
+/// Fee estimation of invoke tx that reverts must fail; simulating the same tx must produce trace.
 #[tokio::test]
-async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old_block_should_not_produce_the_same_error()
- {
+async fn fee_estimation_and_simulation_of_deployment_at_old_block_should_not_yield_same_error() {
     let devnet =
         BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
             .await
@@ -147,38 +144,38 @@ async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old
         account.declare_v3(Arc::new(flattened_contract_artifact), casm_hash).send().await.unwrap();
     assert_eq!(declaration_result.class_hash, class_hash);
 
-    let invoked_selector = get_selector_from_name("deployContract").unwrap();
+    let udc_selector = get_selector_from_name("deployContract").unwrap();
+    let salt = Felt::from(0x123);
     let calls = vec![Call {
         to: UDC_CONTRACT_ADDRESS,
-        selector: invoked_selector,
-        calldata: vec![
-            class_hash,
-            Felt::from_hex_unchecked("0x123"), // salt
-            Felt::ZERO,
-            Felt::ZERO,
-        ],
+        selector: udc_selector,
+        calldata: vec![class_hash, salt, Felt::ZERO, Felt::ZERO],
     }];
+
+    let create_query_call = |resource_bounds: ResourceBoundsMapping| -> BroadcastedTransaction {
+        BroadcastedTransaction::Invoke(BroadcastedInvokeTransactionV3 {
+            signature: vec![],
+            nonce: Felt::ZERO,
+            sender_address: account_address,
+            calldata: account.encode_calls(&calls),
+            is_query: true,
+            resource_bounds,
+            tip: 0,
+            paymaster_data: vec![],
+            account_deployment_data: vec![],
+            nonce_data_availability_mode: DataAvailabilityMode::L1,
+            fee_data_availability_mode: DataAvailabilityMode::L1,
+        })
+    };
 
     let block_id = BlockId::Hash(block_hash);
     let estimate_fee_error = devnet
         .json_rpc_client
         .estimate_fee(
-            [BroadcastedTransaction::Invoke(BroadcastedInvokeTransactionV3 {
-                signature: vec![],
-                nonce: Felt::ZERO,
-                sender_address: account_address,
-                calldata: account.encode_calls(&calls),
-                is_query: true,
-                resource_bounds: ResourceBoundsMapping {
-                    l1_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
-                    l1_data_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
-                    l2_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
-                },
-                tip: 0,
-                paymaster_data: vec![],
-                account_deployment_data: vec![],
-                nonce_data_availability_mode: DataAvailabilityMode::L1,
-                fee_data_availability_mode: DataAvailabilityMode::L1,
+            [create_query_call(ResourceBoundsMapping {
+                l1_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
+                l1_data_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
+                l2_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
             })],
             [SimulationFlagForEstimateFee::SkipValidate],
             block_id,
@@ -190,95 +187,66 @@ async fn estimate_fee_and_simulate_transaction_for_contract_deployment_in_an_old
         .json_rpc_client
         .simulate_transaction(
             block_id,
-            BroadcastedTransaction::Invoke(BroadcastedInvokeTransactionV3 {
-                signature: vec![],
-                nonce: Felt::ZERO,
-                sender_address: account_address,
-                calldata: account.encode_calls(&calls),
-                is_query: true,
-                resource_bounds: ResourceBoundsMapping {
-                    l1_gas: ResourceBounds {
-                        max_amount: 0,
-                        max_price_per_unit: DEVNET_DEFAULT_L1_GAS_PRICE.into(),
-                    },
-                    l1_data_gas: ResourceBounds {
-                        max_amount: 1000,
-                        max_price_per_unit: DEVNET_DEFAULT_L1_DATA_GAS_PRICE.into(),
-                    },
-                    l2_gas: ResourceBounds {
-                        max_amount: 1e7 as u64,
-                        max_price_per_unit: DEVNET_DEFAULT_L2_GAS_PRICE.into(),
-                    },
+            create_query_call(ResourceBoundsMapping {
+                l1_gas: ResourceBounds {
+                    max_amount: 0,
+                    max_price_per_unit: DEVNET_DEFAULT_L1_GAS_PRICE.into(),
                 },
-                tip: 0,
-                paymaster_data: vec![],
-                account_deployment_data: vec![],
-                nonce_data_availability_mode: DataAvailabilityMode::L1,
-                fee_data_availability_mode: DataAvailabilityMode::L1,
+                l1_data_gas: ResourceBounds {
+                    max_amount: 1000,
+                    max_price_per_unit: DEVNET_DEFAULT_L1_DATA_GAS_PRICE.into(),
+                },
+                l2_gas: ResourceBounds {
+                    max_amount: 1e7 as u64,
+                    max_price_per_unit: DEVNET_DEFAULT_L2_GAS_PRICE.into(),
+                },
             }),
             [SimulationFlag::SkipValidate],
         )
         .await
         .unwrap();
 
-    // The error is expected to be like this:
-    // __execute__ of account contract -> deployContract of UDC contract -> constructor at computed
-    // address
-    let execution_error_msg = match estimate_fee_error {
+    let expected_error_msg =
+        format!("Class with hash {} is not declared.", class_hash.to_fixed_hex_string());
+
+    // Expected error structure:
+    // __execute__ of account contract -> deployContract of UDC -> constructor at computed address
+    match estimate_fee_error {
         ProviderError::StarknetError(StarknetError::TransactionExecutionError(
-            TransactionExecutionErrorData {
-                execution_error: ContractExecutionError::Nested(account_contract_error),
-                ..
-            },
+            TransactionExecutionErrorData { execution_error, .. },
         )) => {
-            assert_eq!(account_contract_error.selector, starknet_keccak("__execute__".as_bytes()));
-            assert_eq!(account_contract_error.contract_address, account.address());
+            let account_error = extract_nested_error(&execution_error);
+
+            assert_eq!(account_error.selector, get_selector_from_name("__execute__").unwrap());
+            assert_eq!(account_error.contract_address, account.address());
 
             let account_class_hash = devnet
                 .json_rpc_client
-                .get_class_hash_at(
-                    BlockId::Tag(BlockTag::Latest),
-                    account_contract_error.contract_address,
-                )
+                .get_class_hash_at(BlockId::Tag(BlockTag::Latest), account_error.contract_address)
                 .await
                 .unwrap();
-            assert_eq!(account_contract_error.class_hash, account_class_hash);
+            assert_eq!(account_error.class_hash, account_class_hash);
 
-            match account_contract_error.error.as_ref() {
-                ContractExecutionError::Nested(udc_contract_error) => {
-                    assert_eq!(udc_contract_error.contract_address, UDC_CONTRACT_ADDRESS);
-                    assert_eq!(udc_contract_error.selector, invoked_selector);
-                    assert_eq!(udc_contract_error.class_hash, UDC_CONTRACT_CLASS_HASH);
+            let udc_error = extract_nested_error(&account_error.error);
+            assert_eq!(udc_error.contract_address, UDC_CONTRACT_ADDRESS);
+            assert_eq!(udc_error.selector, udc_selector);
+            assert_eq!(udc_error.class_hash, UDC_CONTRACT_CLASS_HASH);
 
-                    match udc_contract_error.error.as_ref() {
-                        ContractExecutionError::Nested(error_at_to_be_deployed_address) => {
-                            assert_eq!(error_at_to_be_deployed_address.class_hash, class_hash);
-                            match error_at_to_be_deployed_address.error.as_ref() {
-                                ContractExecutionError::Message(msg) => {
-                                    assert_contains(msg, &format!("{class_hash:x}"));
-                                    assert_contains(msg, "is not declared");
+            let error_at_to_be_deployed_address = extract_nested_error(&udc_error.error);
+            assert_eq!(error_at_to_be_deployed_address.class_hash, class_hash);
+            assert_eq!(error_at_to_be_deployed_address.selector, Felt::ZERO);
 
-                                    msg.clone()
-                                }
-                                other => panic!("Unexpected error: {other:?}"),
-                            }
-                        }
-                        other => panic!("Unexpected error: {other:?}"),
-                    }
-                }
-                other => panic!("Unexpected error: {other:?}"),
-            }
+            let error_msg = extract_message_error(&error_at_to_be_deployed_address.error);
+            assert_eq!(error_msg.trim(), &expected_error_msg)
         }
         other => panic!("Unexpected error: {other:?}"),
     };
 
     match transaction_trace {
         TransactionTrace::Invoke(InvokeTransactionTrace {
-            execute_invocation: ExecuteInvocation::Reverted(reverted_invocation),
+            execute_invocation: ExecuteInvocation::Reverted(reverted),
             ..
-        }) => {
-            assert_contains(&reverted_invocation.revert_reason, &execution_error_msg);
-        }
+        }) => assert!(reverted.revert_reason.trim().ends_with(&expected_error_msg)),
         other => panic!("Unexpected trace {other:?}"),
     }
 }

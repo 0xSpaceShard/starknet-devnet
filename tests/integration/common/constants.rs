@@ -83,7 +83,7 @@ pub const ARGENT_ACCOUNT_CLASS_HASH: &str =
 
 // Forking
 pub const INTEGRATION_SEPOLIA_HTTP_URL: &str =
-    "https://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_8";
+    "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_8";
 
 pub const MAINNET_URL: &str = "http://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_8";
 pub const MAINNET_HTTPS_URL: &str = "https://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_8";
