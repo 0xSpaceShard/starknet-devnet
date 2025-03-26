@@ -8,8 +8,7 @@ use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
-    CAIRO_1_ACCOUNT_CONTRACT_0_8_0_SIERRA_PATH, CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH,
-    ETH_ERC20_CONTRACT_ADDRESS, PREDEPLOYED_ACCOUNT_ADDRESS,
+    CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH, ETH_ERC20_CONTRACT_ADDRESS, PREDEPLOYED_ACCOUNT_ADDRESS,
 };
 use crate::common::utils::{
     declare_v3_deploy_v3, deploy_v3, extract_message_error, extract_nested_error,
@@ -74,9 +73,7 @@ async fn calling_nonexistent_cairo0_contract_method() {
 
 #[tokio::test]
 async fn calling_nonexistent_cairo1_contract_method() {
-    let devnet = BackgroundDevnet::spawn()
-    .await
-    .expect("Could not start Devnet");
+    let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
     let contract_address = Felt::from_hex_unchecked(PREDEPLOYED_ACCOUNT_ADDRESS);
     let entry_point_selector = get_selector_from_name("nonExistentMethod").unwrap();
 
