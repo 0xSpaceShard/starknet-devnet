@@ -433,33 +433,22 @@ async fn broadcasted_invoke_v3_for_estimation(
     let calldata = account.encode_calls(&calls);
 
     let execution_v3 = account.execute_v3(calls);
-    // let fee = execution_v3.estimate_fee().await.unwrap();
 
     let l1_gas_consumed = 0;
-    // convert_from_little_endian_bytes_array::<u64, 8>(&fee.l1_gas_consumed.to_bytes_le()[..8]);
     let l1_gas_price = 0;
-    // convert_from_little_endian_bytes_array::<u128, 16>(&fee.l1_gas_price.to_bytes_le()[..16]);
     let l1_data_gas_consumed = 0;
-    // convert_from_little_endian_bytes_array::<u64, 8>(
-    //     &fee.l1_data_gas_consumed.to_bytes_le()[..8],
-    // );
     let l1_data_gas_price = 0;
-    // convert_from_little_endian_bytes_array::<u128, 16>(
-    //     &fee.l1_data_gas_price.to_bytes_le()[..16],
-    // );
     let l2_gas_consumed = 0;
-    // convert_from_little_endian_bytes_array::<u64, 8>(&fee.l2_gas_consumed.to_bytes_le()[..8]);
     let l2_gas_price = 0;
-    // convert_from_little_endian_bytes_array::<u128, 16>(&fee.l2_gas_price.to_bytes_le()[..16]);
 
     let prepared_invoke = execution_v3
         .nonce(nonce)
-        .l1_gas(0)
-        .l2_gas(0)
-        .l1_data_gas(0)
-        .l1_gas_price(0)
-        .l1_data_gas_price(0)
-        .l2_gas_price(0)
+        .l1_gas(l1_gas_consumed)
+        .l2_gas(l2_gas_consumed)
+        .l1_data_gas(l1_data_gas_consumed)
+        .l1_gas_price(l1_gas_price)
+        .l1_data_gas_price(l1_data_gas_price)
+        .l2_gas_price(l2_gas_price)
         .prepared()?;
 
     let is_query = false;
