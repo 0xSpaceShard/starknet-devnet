@@ -1,5 +1,4 @@
 #![cfg(test)]
-#![allow(deprecated)] // TODO until v1 and v2 transactions are replaced with v3
 
 mod common;
 

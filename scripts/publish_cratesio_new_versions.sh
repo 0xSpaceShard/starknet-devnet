@@ -11,11 +11,11 @@ for workspace_member in $(cargo get --delimiter " " workspace.members); do
     fi
 
     package_version=$(cargo get --entry "$workspace_member" package.version)
-    cratesio_version=$(cargo search "$package_name" | sed -n 's/'$package_name' = "\([^"]*\)".*/\1/p')
 
-    # if local version is different from crates.io version, then publish to crates.io
-    if [ "$package_version" != "$cratesio_version" ]; then
-        echo "Local version of $package_name is $package_version, while the one on crates.io is $cratesio_version"
+    # if local version not present on crates.io, publish it
+    crates_io_url="https://crates.io/api/v1/crates/$package_name"
+    if ! curl -sSLf "$crates_io_url" | jq -r '.versions[].num' | grep -q "^$package_version$"; then
+        echo "The local version of $package_name is $package_version, which is not present on crates.io"
 
         cargo login "$CRATES_IO_API_KEY"
         cargo publish -p "$package_name"

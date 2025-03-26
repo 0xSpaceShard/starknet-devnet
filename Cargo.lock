@@ -5874,9 +5874,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "starknet-accounts"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3fc4364f5684e4a5dcb100847a9ea023deae3815f45526721a6fa94ab595651"
+checksum = "eca52534db01eda3bf3250f398bd4597aed3856d0d17d84070efbc7919abad71"
 dependencies = [
  "async-trait",
  "auto_impl",
@@ -5889,9 +5889,9 @@ dependencies = [
 
 [[package]]
 name = "starknet-contract"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f2102b8f763477a1bdece683da51514bc73829d5dcc3bbe75ff1b6aca6d4e02"
+checksum = "67d8d5a5306527eedcb4bd70afecfc6824add631a08eac8fd1cf9c2bdfd21e77"
 dependencies = [
  "serde",
  "serde_json",
@@ -5904,9 +5904,9 @@ dependencies = [
 
 [[package]]
 name = "starknet-core"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37abf0af45a3b866dd108880ace9949ae7830f6830adb8963024302ae9e82c24"
+checksum = "b53a16799e4a75173839d868a1a48ff5d3e10456febd4dec91b04ba6521741d5"
 dependencies = [
  "base64 0.21.7",
  "crypto-bigint",
@@ -6032,7 +6032,6 @@ version = "0.2.4"
 dependencies = [
  "blockifier",
  "cairo-lang-starknet-classes",
- "cairo-vm",
  "cargo-platform",
  "clap",
  "ethers",
@@ -6131,9 +6130,9 @@ dependencies = [
 
 [[package]]
 name = "starknet-providers"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9256247f718564b3e4c73cc941735012691c14903fbc25cea306745bcbfa384"
+checksum = "c74c3850a661fa1ffd3c3e2cb9db6e28c94ab9aaaa0496503014a814f09cd455"
 dependencies = [
  "async-trait",
  "auto_impl",
@@ -6152,9 +6151,9 @@ dependencies = [
 
 [[package]]
 name = "starknet-signers"
-version = "0.10.1"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79b9cbae629e277fba372b5f22f52aa5dd1dd40c61924bb18bf901d4d830edd1"
+checksum = "c2aeca13b8c61165b69d4775880d74ff9bbb9bafa36a297899e0f160619631b3"
 dependencies = [
  "async-trait",
  "auto_impl",

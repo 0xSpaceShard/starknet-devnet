@@ -91,7 +91,7 @@ pub(crate) async fn get_account_balance_impl(
 ) -> HttpApiResult<AccountBalanceResponse> {
     let account_address = ContractAddress::new(params.address)
         .map_err(|e| HttpApiError::InvalidValueError { msg: e.to_string() })?;
-    let unit = params.unit.unwrap_or(FeeUnit::WEI);
+    let unit = params.unit.unwrap_or(FeeUnit::FRI);
     let erc20_address = get_erc20_address(&unit)
         .map_err(|e| HttpApiError::InvalidValueError { msg: e.to_string() })?;
 

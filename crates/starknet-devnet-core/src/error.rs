@@ -1,3 +1,6 @@
+use blockifier::execution::stack_trace::{
+    gen_tx_execution_error_trace, ErrorStack, ErrorStackHeader, ErrorStackSegment, PreambleType,
+};
 use blockifier::fee::fee_checks::FeeCheckError;
 use blockifier::transaction::errors::{
     TransactionExecutionError, TransactionFeeError, TransactionPreValidationError,
@@ -8,8 +11,6 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_storage_key::ContractStorageKey;
 use thiserror::Error;
 
-use crate::stack_trace::{gen_tx_execution_error_trace, ErrorStack};
-
 #[derive(Error, Debug)]
 pub enum Error {
     #[error(transparent)]
@@ -19,9 +20,12 @@ pub enum Error {
     #[error(transparent)]
     BlockifierStateError(#[from] blockifier::state::errors::StateError),
     #[error("{0:?}")]
-    ContractExecutionError(ErrorStack),
-    #[error("Execution error in simulating transaction no. {failure_index}: {error_stack:?}")]
-    ContractExecutionErrorInSimulation { failure_index: usize, error_stack: ErrorStack },
+    ContractExecutionError(ContractExecutionError),
+    #[error("Execution error in simulating transaction no. {failure_index}: {execution_error:?}")]
+    ContractExecutionErrorInSimulation {
+        failure_index: usize,
+        execution_error: ContractExecutionError,
+    },
     #[error("Types error: {0}")]
     TypesError(#[from] starknet_types::error::Error),
     #[error("I/O error: {0}")]
@@ -129,7 +133,7 @@ impl From<TransactionExecutionError> for Error {
                 TransactionValidationError::ValidationFailure { reason: panic_reason.to_string() }
                     .into()
             }
-            other => Self::ContractExecutionError(gen_tx_execution_error_trace(&other)),
+            other => Self::ContractExecutionError(other.into()),
         }
     }
 }
@@ -149,6 +153,7 @@ impl From<FeeCheckError> for Error {
 
 impl From<TransactionFeeError> for Error {
     fn from(value: TransactionFeeError) -> Self {
+        #[warn(clippy::wildcard_enum_match_arm)]
         match value {
             TransactionFeeError::FeeTransferError { .. }
             | TransactionFeeError::MaxFeeTooLow { .. }
@@ -157,10 +162,15 @@ impl From<TransactionFeeError> for Error {
                 TransactionValidationError::InsufficientResourcesForValidate.into()
             }
             TransactionFeeError::MaxFeeExceedsBalance { .. }
+            | TransactionFeeError::ResourcesBoundsExceedBalance { .. }
             | TransactionFeeError::GasBoundsExceedBalance { .. } => {
                 TransactionValidationError::InsufficientAccountBalance.into()
             }
-            err => Error::TransactionFeeError(err),
+            err @ (TransactionFeeError::CairoResourcesNotContainedInFeeCosts
+            | TransactionFeeError::ExecuteFeeTransferError(_)
+            | TransactionFeeError::InsufficientFee { .. }
+            | TransactionFeeError::MissingL1GasBounds
+            | TransactionFeeError::StateError(_)) => Error::TransactionFeeError(err),
         }
     }
 }
@@ -183,3 +193,177 @@ pub enum MessagingError {
 }
 
 pub type DevnetResult<T, E = Error> = Result<T, E>;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InnerContractExecutionError {
+    pub contract_address: starknet_api::core::ContractAddress,
+    pub class_hash: Felt,
+    pub selector: Felt,
+    #[serde(skip)]
+    pub return_data: Retdata,
+    pub error: Box<ContractExecutionError>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ContractExecutionError {
+    /// Nested contract call stack trace frame.
+    Nested(InnerContractExecutionError),
+    /// Terminal error message.
+    Message(String),
+}
+
+impl From<String> for ContractExecutionError {
+    fn from(value: String) -> Self {
+        ContractExecutionError::Message(value)
+    }
+}
+
+use blockifier::execution::call_info::{CallInfo, Retdata};
+use serde::{Deserialize, Serialize};
+
+impl From<TransactionExecutionError> for ContractExecutionError {
+    fn from(value: TransactionExecutionError) -> Self {
+        let error_stack = gen_tx_execution_error_trace(&value);
+        error_stack.into()
+    }
+}
+
+fn preamble_type_to_error_msg(preamble_type: &PreambleType) -> &'static str {
+    match preamble_type {
+        PreambleType::CallContract => "Error in external contract",
+        PreambleType::LibraryCall => "Error in library call",
+        PreambleType::Constructor => "Error in constructor",
+    }
+}
+
+fn header_to_error_msg(header: &ErrorStackHeader) -> &'static str {
+    match header {
+        ErrorStackHeader::Constructor => "Constructor error",
+        ErrorStackHeader::Execution => "Execution error",
+        ErrorStackHeader::Validation => "Validation error",
+        ErrorStackHeader::None => "Unknown error",
+    }
+}
+
+/// [[[error inner] error outer] root]
+impl From<ErrorStack> for ContractExecutionError {
+    fn from(error_stack: ErrorStack) -> Self {
+        let error_string = error_stack.to_string();
+        fn format_error(stringified_error: &str, error_cause: &str) -> String {
+            if stringified_error.is_empty() {
+                error_cause.to_string()
+            } else {
+                format!("{} {}", stringified_error, error_cause)
+            }
+        }
+
+        let mut recursive_error_option = Option::<ContractExecutionError>::None;
+        for frame in error_stack.stack.iter().rev() {
+            let stack_err = match frame {
+                ErrorStackSegment::Cairo1RevertSummary(revert_summary) => {
+                    let mut recursive_error = ContractExecutionError::Message(format_error(
+                        &error_string,
+                        &serde_json::to_string(&revert_summary.last_retdata.0).unwrap_or_default(),
+                    ));
+
+                    for trace in revert_summary.stack.iter().rev() {
+                        recursive_error =
+                            ContractExecutionError::Nested(InnerContractExecutionError {
+                                contract_address: trace.contract_address,
+                                class_hash: trace.class_hash.unwrap_or_default().0,
+                                selector: trace.selector.0,
+                                return_data: revert_summary.last_retdata.clone(),
+                                error: Box::new(recursive_error),
+                            });
+                    }
+
+                    recursive_error
+                }
+
+                // VMException frame is omitted, unless it's the last frame of the error stack. It
+                // doesn't produce any meaningful message to the developer.
+                ErrorStackSegment::Vm(vm) => recursive_error_option.take().unwrap_or(
+                    ContractExecutionError::Message(format_error(&error_string, &String::from(vm))),
+                ),
+                ErrorStackSegment::StringFrame(msg) => {
+                    ContractExecutionError::Message(format_error("", msg.as_str()))
+                }
+                ErrorStackSegment::EntryPoint(entry_point_error_frame) => {
+                    let error = recursive_error_option.take().unwrap_or_else(|| {
+                        ContractExecutionError::Message(format_error(
+                            &error_string,
+                            preamble_type_to_error_msg(&entry_point_error_frame.preamble_type),
+                        ))
+                    });
+
+                    ContractExecutionError::Nested(InnerContractExecutionError {
+                        contract_address: entry_point_error_frame.storage_address,
+                        class_hash: entry_point_error_frame.class_hash.0,
+                        selector: entry_point_error_frame.selector.unwrap_or_default().0,
+                        return_data: Retdata(Vec::new()),
+                        error: Box::new(error),
+                    })
+                }
+            };
+
+            recursive_error_option = Some(stack_err);
+        }
+
+        if let Some(recursive_error) = recursive_error_option {
+            recursive_error
+        } else {
+            let error_msg = header_to_error_msg(&error_stack.header);
+            ContractExecutionError::Message(format_error(&error_string, error_msg))
+        }
+    }
+}
+
+impl From<&CallInfo> for ContractExecutionError {
+    fn from(call_info: &CallInfo) -> Self {
+        /// Traces recursively and returns elements starting from the deepest element
+        /// and then moves outward to the enclosing elements
+        fn collect_failed_calls(root_call: &CallInfo) -> Vec<&CallInfo> {
+            let mut calls = vec![];
+
+            for inner_call in root_call.inner_calls.iter() {
+                calls.extend(collect_failed_calls(inner_call));
+            }
+
+            if root_call.execution.failed {
+                calls.push(root_call);
+            }
+
+            calls
+        }
+
+        let failed_calls = collect_failed_calls(call_info);
+
+        // collects retdata of each CallInfo, starting from the outermost element of failed_calls
+        // collection and combines them in 1-dimensional array
+        // It serves as the reason for the failed call stack trace
+        let mut recursive_error = ContractExecutionError::Message(
+            serde_json::to_string(
+                &failed_calls
+                    .iter()
+                    .rev()
+                    .flat_map(|f| f.execution.retdata.clone().0)
+                    .collect::<Vec<Felt>>(),
+            )
+            .unwrap_or_default(),
+        );
+
+        for failed in failed_calls {
+            let current = ContractExecutionError::Nested(InnerContractExecutionError {
+                contract_address: failed.call.storage_address,
+                class_hash: failed.call.class_hash.unwrap_or_default().0,
+                selector: failed.call.entry_point_selector.0,
+                return_data: failed.execution.retdata.clone(),
+                error: Box::new(recursive_error),
+            });
+            recursive_error = current;
+        }
+
+        recursive_error
+    }
+}

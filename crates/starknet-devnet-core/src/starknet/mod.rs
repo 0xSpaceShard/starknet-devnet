@@ -73,11 +73,10 @@ use crate::constants::{
     ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
 };
 use crate::contract_class_choice::AccountContractClassChoice;
-use crate::error::{DevnetResult, Error, TransactionValidationError};
+use crate::error::{ContractExecutionError, DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
 use crate::nonzero_gas_price;
 use crate::predeployed_accounts::PredeployedAccounts;
-use crate::stack_trace::{gen_tx_execution_error_trace, ErrorStack};
 use crate::state::state_diff::StateDiff;
 use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
@@ -120,8 +119,6 @@ pub struct Starknet {
 
 impl Default for Starknet {
     fn default() -> Self {
-        #[allow(clippy::unwrap_used)]
-        let default_gas_price = DEVNET_DEFAULT_L1_GAS_PRICE.get().try_into().unwrap();
         Self {
             block_context: Self::init_block_context(
                 DEVNET_DEFAULT_L1_GAS_PRICE,
@@ -145,10 +142,10 @@ impl Default for Starknet {
             pending_block_timestamp_shift: 0,
             next_block_timestamp: None,
             next_block_gas: GasModification {
-                gas_price_wei: default_gas_price,
-                data_gas_price_wei: default_gas_price,
-                gas_price_fri: default_gas_price,
-                data_gas_price_fri: default_gas_price,
+                gas_price_wei: DEVNET_DEFAULT_L1_GAS_PRICE,
+                data_gas_price_wei: DEVNET_DEFAULT_L1_DATA_GAS_PRICE,
+                gas_price_fri: DEVNET_DEFAULT_L1_GAS_PRICE,
+                data_gas_price_fri: DEVNET_DEFAULT_L1_DATA_GAS_PRICE,
                 l2_gas_price_fri: DEVNET_DEFAULT_L2_GAS_PRICE,
                 l2_gas_price_wei: DEVNET_DEFAULT_L2_GAS_PRICE,
             },
@@ -327,10 +324,14 @@ impl Starknet {
             GasPrice(self.next_block_gas.gas_price_wei.get());
         self.blocks.pending_block.header.block_header_without_hash.l1_data_gas_price.price_in_wei =
             GasPrice(self.next_block_gas.data_gas_price_wei.get());
+        self.blocks.pending_block.header.block_header_without_hash.l2_gas_price.price_in_wei =
+            GasPrice(self.next_block_gas.l2_gas_price_wei.get());
         self.blocks.pending_block.header.block_header_without_hash.l1_gas_price.price_in_fri =
             GasPrice(self.next_block_gas.gas_price_fri.get());
         self.blocks.pending_block.header.block_header_without_hash.l1_data_gas_price.price_in_fri =
             GasPrice(self.next_block_gas.data_gas_price_fri.get());
+        self.blocks.pending_block.header.block_header_without_hash.l2_gas_price.price_in_fri =
+            GasPrice(self.next_block_gas.l2_gas_price_fri.get());
 
         self.restart_pending_block()?;
 
@@ -735,20 +736,23 @@ impl Starknet {
         let res = call
             .execute(&mut transactional_state, &mut execution_context, &mut initial_gas.0)
             .map_err(|error| {
-                Error::ContractExecutionError(gen_tx_execution_error_trace(
-                    &TransactionExecutionError::ExecutionError {
+                Error::ContractExecutionError(
+                    TransactionExecutionError::ExecutionError {
                         error,
                         class_hash,
                         storage_address,
                         selector: starknet_api::core::EntryPointSelector(entrypoint_selector),
-                    },
-                ))
+                    }
+                    .into(),
+                )
             })?;
 
-        if res.execution.failed
-            && res.execution.retdata.0.first() == Some(&ENTRYPOINT_NOT_FOUND_ERROR_ENCODED)
-        {
-            return Err(Error::EntrypointNotFound);
+        if res.execution.failed {
+            if res.execution.retdata.0.first() == Some(&ENTRYPOINT_NOT_FOUND_ERROR_ENCODED) {
+                return Err(Error::EntrypointNotFound);
+            } else {
+                return Err(Error::ContractExecutionError(ContractExecutionError::from(&res)));
+            }
         }
 
         // TODO other cases: https://spaceshard.slack.com/archives/C03QN20522D/p1735547866439019
@@ -859,12 +863,12 @@ impl Starknet {
                 signature: vec![],
                 nonce: nonce.0,
                 resource_bounds: ResourceBoundsWrapper::new(
-                    1_000_000, // sufficient L1 gas
-                    self.config.gas_price_wei.get(),
-                    0, // TODO gas
-                    0,
-                    0,
-                    0,
+                    1_000_000,
+                    self.config.gas_price_fri.get(),
+                    1_000_000,
+                    self.config.data_gas_price_fri.get(),
+                    1_000_000_000,
+                    self.config.l2_gas_price_fri.get(),
                 ),
                 tip: Tip(0),
                 paymaster_data: vec![],
@@ -1259,10 +1263,8 @@ impl Starknet {
                     if !txn.is_max_fee_valid() && !skip_fee_charge {
                         return Err(Error::ContractExecutionErrorInSimulation {
                             failure_index: tx_idx,
-                            error_stack: ErrorStack::from_str_err(
-                                &TransactionValidationError::InsufficientResourcesForValidate
-                                    .to_string(),
-                            ),
+                            execution_error: ContractExecutionError::from(TransactionValidationError::InsufficientResourcesForValidate
+                                .to_string()),
                         });
                     }
 
@@ -1296,7 +1298,7 @@ impl Starknet {
                 .execute(&mut transactional_state, &block_context)
                 .map_err(|err| Error::ContractExecutionErrorInSimulation {
                     failure_index: tx_idx,
-                    error_stack: gen_tx_execution_error_trace(&err),
+                    execution_error: ContractExecutionError::from(err),
                 })?;
 
             let block_number = block_context.block_info().block_number.0;
@@ -1473,9 +1475,6 @@ impl Starknet {
             BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V3(v3)) => {
                 Some(&v3.sender_address)
             }
-            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(v1)) => {
-                Some(&v1.sender_address)
-            }
             BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(v2)) => {
                 Some(&v2.sender_address)
             }
@@ -1519,6 +1518,7 @@ impl Starknet {
 
 #[cfg(test)]
 mod tests {
+
     use std::thread;
     use std::time::Duration;
 
@@ -1546,7 +1546,7 @@ mod tests {
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::traits::{Accounted, Deployed, HashIdentified};
     use crate::utils::test_utils::{
-        cairo_0_account_without_validations, dummy_contract_address, dummy_declare_transaction_v1,
+        cairo_0_account_without_validations, dummy_contract_address, dummy_declare_transaction_v3,
         dummy_felt,
     };
 
@@ -1561,6 +1561,8 @@ mod tests {
             gas_price_fri: nonzero!(1u128),
             data_gas_price_wei: nonzero!(1u128),
             data_gas_price_fri: nonzero!(1u128),
+            l2_gas_price_wei: nonzero!(1u128),
+            l2_gas_price_fri: nonzero!(1u128),
             state_archive,
             ..Default::default()
         })
@@ -1657,7 +1659,7 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        let tx = dummy_declare_transaction_v1();
+        let tx = dummy_declare_transaction_v3();
 
         // add transaction hash to pending block
         starknet.blocks.pending_block.add_transaction(*tx.get_transaction_hash());
@@ -1958,7 +1960,7 @@ mod tests {
 
         assert_eq!(num_no_transactions.unwrap(), 0);
 
-        let tx = dummy_declare_transaction_v1();
+        let tx = dummy_declare_transaction_v3();
 
         // add transaction hash to pending block
         starknet.blocks.pending_block.add_transaction(*tx.get_transaction_hash());

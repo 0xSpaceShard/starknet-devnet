@@ -25,7 +25,7 @@ pub const PREDEPLOYED_ACCOUNT_INITIAL_BALANCE: u128 = 1_000_000_000_000_000_000_
 
 // account classes
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
-    "0x044cab2e6a3a7bc516425d06d76c6ffd56ae308864dbc66f8e75028e3784aa29";
+    "0x02b31e19e45c06f29234e06e2ee98a9966479ba3067f8785ed972794fdb0065c";
 pub const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
     "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
@@ -83,10 +83,10 @@ pub const ARGENT_ACCOUNT_CLASS_HASH: &str =
 
 // Forking
 pub const INTEGRATION_SEPOLIA_HTTP_URL: &str =
-    "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7";
+    "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_8";
 
-pub const MAINNET_URL: &str = "http://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_7";
-pub const MAINNET_HTTPS_URL: &str = "https://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_7";
+pub const MAINNET_URL: &str = "http://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_8";
+pub const MAINNET_HTTPS_URL: &str = "https://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_8";
 pub const INTEGRATION_GENESIS_BLOCK_HASH: &str =
     "0x19f675d3fb226821493a6ab9a1955e384bba80f130de625621a418e9a7c0ca3";
 /// The number of the last block at which forking can be done; prior to v0.13.4.

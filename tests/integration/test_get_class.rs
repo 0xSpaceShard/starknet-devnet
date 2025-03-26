@@ -3,7 +3,6 @@ use std::sync::Arc;
 use starknet_core::CasmContractClass;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::chain_id;
-use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 use starknet_rs_core::types::{BlockId, BlockTag, ContractClass, Felt, StarknetError};
 use starknet_rs_providers::jsonrpc::JsonRpcError;
 use starknet_rs_providers::{Provider, ProviderError};
@@ -42,42 +41,6 @@ async fn test_getting_class() {
 }
 
 #[tokio::test]
-async fn test_getting_class_of_declared_cairo0_contract() {
-    let devnet = BackgroundDevnet::spawn().await.unwrap();
-
-    let (signer, account_address) = devnet.get_first_predeployed_account().await;
-    let predeployed_account = Arc::new(SingleOwnerAccount::new(
-        devnet.clone_provider(),
-        signer.clone(),
-        account_address,
-        chain_id::SEPOLIA,
-        ExecutionEncoding::New,
-    ));
-
-    let json_string =
-        std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
-            .unwrap();
-    let contract_class: Arc<LegacyContractClass> =
-        Arc::new(serde_json::from_str(&json_string).unwrap());
-
-    // declare the contract
-    let declaration_result = predeployed_account
-        .declare_legacy(contract_class.clone())
-        .max_fee(Felt::from(1e18 as u128))
-        .send()
-        .await
-        .unwrap();
-
-    let retrieved_class = devnet
-        .json_rpc_client
-        .get_class(BlockId::Tag(BlockTag::Latest), declaration_result.class_hash)
-        .await
-        .unwrap();
-
-    assert_eq!(retrieved_class, ContractClass::Legacy(contract_class.compress().unwrap()));
-}
-
-#[tokio::test]
 async fn test_getting_class_of_declared_cairo1_contract() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
 
@@ -94,8 +57,7 @@ async fn test_getting_class_of_declared_cairo1_contract() {
 
     // declare the contract
     let declaration_result = predeployed_account
-        .declare_v2(Arc::new(contract_class.clone()), casm_class_hash)
-        .max_fee(Felt::from(1e18 as u128))
+        .declare_v3(Arc::new(contract_class.clone()), casm_class_hash)
         .send()
         .await
         .unwrap();
@@ -146,8 +108,7 @@ async fn test_getting_class_with_blocks_on_demand() {
 
     // declare the contract
     let declaration_result = predeployed_account
-        .declare_v2(Arc::new(contract_class.clone()), casm_class_hash)
-        .max_fee(Felt::from(1e18 as u128))
+        .declare_v3(Arc::new(contract_class.clone()), casm_class_hash)
         .send()
         .await
         .unwrap();
@@ -217,8 +178,7 @@ async fn test_getting_class_after_block_abortion() {
 
     // declare the contract
     let declaration_result = predeployed_account
-        .declare_v2(Arc::new(contract_class.clone()), casm_class_hash)
-        .max_fee(Felt::from(1e18 as u128))
+        .declare_v3(Arc::new(contract_class.clone()), casm_class_hash)
         .send()
         .await
         .unwrap();

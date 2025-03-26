@@ -26,7 +26,7 @@ use super::reqwest_client::{PostReqwestSender, ReqwestClient};
 use super::utils::{to_hex_felt, FeeUnit, ImpersonationAction};
 use crate::common::background_server::get_acquired_port;
 use crate::common::constants::{
-    DEVNET_EXECUTABLE_BINARY_PATH, DEVNET_MANIFEST_PATH, ETH_ERC20_CONTRACT_ADDRESS,
+    DEVNET_EXECUTABLE_BINARY_PATH, DEVNET_MANIFEST_PATH, STRK_ERC20_CONTRACT_ADDRESS,
 };
 use crate::common::safe_child::SafeChild;
 
@@ -220,9 +220,9 @@ impl BackgroundDevnet {
         JsonRpcClient::new(HttpTransport::new(self.rpc_url.clone()))
     }
 
-    /// Mint some amount of wei at `address` and return the resulting transaction hash.
+    /// Mint some FRI at `address` and return the resulting transaction hash.
     pub async fn mint(&self, address: impl LowerHex, mint_amount: u128) -> Felt {
-        self.mint_unit(address, mint_amount, FeeUnit::Wei).await
+        self.mint_unit(address, mint_amount, FeeUnit::Fri).await
     }
 
     pub async fn mint_unit(
@@ -253,7 +253,7 @@ impl BackgroundDevnet {
         block_id: BlockId,
     ) -> Result<Felt, anyhow::Error> {
         let call = FunctionCall {
-            contract_address: ETH_ERC20_CONTRACT_ADDRESS,
+            contract_address: STRK_ERC20_CONTRACT_ADDRESS,
             entry_point_selector: get_selector_from_name("balanceOf").unwrap(),
             calldata: vec![*address],
         };
@@ -286,7 +286,7 @@ impl BackgroundDevnet {
             .send_custom_rpc(
                 "devnet_getAccountBalance",
                 json!({
-                    "address": format!("{address:#x}"),
+                    "address": address,
                     "unit": unit,
                     "block_tag": Self::tag_to_str(tag)
                 }),

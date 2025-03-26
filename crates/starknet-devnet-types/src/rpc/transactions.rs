@@ -4,9 +4,7 @@ use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::versioned_constants::VersionedConstants;
-use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-use declare_transaction_v0v1::DeclareTransactionV0V1;
 use declare_transaction_v2::DeclareTransactionV2;
 use deploy_transaction::DeployTransaction;
 use invoke_transaction_v1::InvokeTransactionV1;
@@ -15,11 +13,13 @@ use starknet_api::block::{BlockNumber, GasPrice};
 use starknet_api::contract_class::{ClassInfo, EntryPointType};
 use starknet_api::core::calculate_contract_address;
 use starknet_api::data_availability::DataAvailabilityMode;
-use starknet_api::transaction::fields::{AllResourceBounds, Fee, GasVectorComputationMode, Tip};
+use starknet_api::transaction::fields::{
+    AllResourceBounds, Fee, GasVectorComputationMode, Tip, ValidResourceBounds,
+};
 use starknet_api::transaction::{signed_tx_version, TransactionHasher, TransactionOptions};
 use starknet_rs_core::types::{
-    BlockId, ExecutionResult, Felt, ResourceBounds, TransactionExecutionStatus,
-    TransactionFinalityStatus,
+    BlockId, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
+    TransactionExecutionStatus, TransactionFinalityStatus,
 };
 use starknet_rs_core::utils::parse_cairo_short_string;
 
@@ -49,7 +49,6 @@ use crate::felt::{
 use crate::rpc::transaction_receipt::{CommonTransactionReceipt, MaybePendingProperties};
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
-pub mod broadcasted_declare_transaction_v1;
 pub mod broadcasted_declare_transaction_v2;
 pub mod broadcasted_declare_transaction_v3;
 pub mod broadcasted_deploy_account_transaction_v1;
@@ -57,7 +56,6 @@ pub mod broadcasted_deploy_account_transaction_v3;
 pub mod broadcasted_invoke_transaction_v1;
 pub mod broadcasted_invoke_transaction_v3;
 
-pub mod declare_transaction_v0v1;
 pub mod declare_transaction_v2;
 pub mod declare_transaction_v3;
 pub mod deploy_account_transaction_v1;
@@ -205,7 +203,6 @@ pub struct TransactionStatus {
 #[cfg_attr(feature = "testing", derive(Deserialize, PartialEq, Eq))]
 #[serde(untagged)]
 pub enum DeclareTransaction {
-    V1(DeclareTransactionV0V1),
     V2(DeclareTransactionV2),
     V3(DeclareTransactionV3),
 }
@@ -213,7 +210,6 @@ pub enum DeclareTransaction {
 impl DeclareTransaction {
     pub fn get_sender_address(&self) -> ContractAddress {
         match self {
-            DeclareTransaction::V1(tx) => tx.sender_address,
             DeclareTransaction::V2(tx) => tx.sender_address,
             DeclareTransaction::V3(tx) => tx.sender_address,
         }
@@ -348,27 +344,12 @@ pub struct ResourceBoundsWrapper {
 
 impl From<&ResourceBoundsWrapper> for GasVectorComputationMode {
     fn from(val: &ResourceBoundsWrapper) -> GasVectorComputationMode {
-        match (&val.inner.l1_data_gas, &val.inner.l2_gas) {
-            (None, ResourceBounds { max_amount, max_price_per_unit })
-                if (*max_amount == 0 || *max_price_per_unit == 0) =>
-            {
-                GasVectorComputationMode::NoL2Gas
-            }
-            _ => GasVectorComputationMode::All,
+        let resource_bounds = starknet_api::transaction::fields::ValidResourceBounds::from(val);
+        match resource_bounds {
+            ValidResourceBounds::L1Gas(_) => GasVectorComputationMode::NoL2Gas,
+            ValidResourceBounds::AllResources(_) => GasVectorComputationMode::All,
         }
     }
-}
-
-// TODO: when starknet-rs upgrades to 0.8.0 remove this struct
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ResourceBoundsMapping {
-    /// The max amount and max price per unit of L1 gas used in this tx
-    pub l1_gas: ResourceBounds,
-    /// The max amount and max price per unit of L2 gas used in this tx
-    pub l2_gas: ResourceBounds,
-    /// The max amount and max price per unit of L1 data gas used in this tx
-    pub l1_data_gas: Option<ResourceBounds>,
 }
 
 impl_wrapper_serialize!(ResourceBoundsWrapper);
@@ -383,21 +364,16 @@ impl ResourceBoundsWrapper {
         l2_gas_max_amount: u64,
         l2_gas_max_price_per_unit: u128,
     ) -> Self {
-        let l1_data_gas = if l1_data_gas_max_amount > 0 {
-            Some(ResourceBounds {
-                max_amount: l1_data_gas_max_amount,
-                max_price_per_unit: l1_data_gas_max_price_per_unit,
-            })
-        } else {
-            None
-        };
         ResourceBoundsWrapper {
             inner: ResourceBoundsMapping {
                 l1_gas: ResourceBounds {
                     max_amount: l1_gas_max_amount,
                     max_price_per_unit: l1_gas_max_price_per_unit,
                 },
-                l1_data_gas,
+                l1_data_gas: ResourceBounds {
+                    max_amount: l1_data_gas_max_amount,
+                    max_price_per_unit: l1_data_gas_max_price_per_unit,
+                },
                 l2_gas: ResourceBounds {
                     max_amount: l2_gas_max_amount,
                     max_price_per_unit: l2_gas_max_price_per_unit,
@@ -418,26 +394,31 @@ fn convert_resource_bounds_from_starknet_rs_to_starknet_api(
 
 impl From<&ResourceBoundsWrapper> for starknet_api::transaction::fields::ValidResourceBounds {
     fn from(value: &ResourceBoundsWrapper) -> Self {
-        match &value.inner.l1_data_gas {
-            Some(l1_data_gas) => {
-                starknet_api::transaction::fields::ValidResourceBounds::AllResources(
-                    AllResourceBounds {
-                        l1_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
-                            value.inner.l1_gas.clone(),
-                        ),
-                        l2_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
-                            value.inner.l2_gas.clone(),
-                        ),
-                        l1_data_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
-                            l1_data_gas.clone(),
-                        ),
-                    },
-                )
-            }
-            None => starknet_api::transaction::fields::ValidResourceBounds::L1Gas(
+        let l1_gas_max_amount = value.inner.l1_gas.max_amount;
+        let l2_gas_max_amount = value.inner.l2_gas.max_amount;
+        let l1_data_gas_max_amount = value.inner.l1_data_gas.max_amount;
+
+        match (l1_gas_max_amount, l2_gas_max_amount, l1_data_gas_max_amount) {
+            // providing max amount 0 for each resource bound is possible in the case of
+            // estimate fee
+            (0, 0, 0) => ValidResourceBounds::AllResources(AllResourceBounds::default()),
+            (_, 0, 0) => starknet_api::transaction::fields::ValidResourceBounds::L1Gas(
                 convert_resource_bounds_from_starknet_rs_to_starknet_api(
                     value.inner.l1_gas.clone(),
                 ),
+            ),
+            _ => starknet_api::transaction::fields::ValidResourceBounds::AllResources(
+                AllResourceBounds {
+                    l1_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                        value.inner.l1_gas.clone(),
+                    ),
+                    l2_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                        value.inner.l2_gas.clone(),
+                    ),
+                    l1_data_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                        value.inner.l1_data_gas.clone(),
+                    ),
+                },
             ),
         }
     }
@@ -454,18 +435,15 @@ impl BroadcastedTransactionCommonV3 {
         // 2. l1_gas > 0, l2_gas > 0, l1_data_gas > 0
         match (l1_gas, l2_gas, l1_data_gas) {
             // l1 > 0 and l2 > 0 and l1 data is none => invalid
-            (l1, l2, None) if is_gt_zero(l1) && is_gt_zero(l2) => false,
+            (l1, l2, l1_data) if is_gt_zero(l1) && is_gt_zero(l2) && !is_gt_zero(l1_data) => false,
             // l1 > 0 and l2 = 0 and lt data is none => valid
-            (l1, l2, None) if !is_gt_zero(l2) && is_gt_zero(l1) => true,
+            (l1, l2, l1_data) if !is_gt_zero(l2) && !is_gt_zero(l1_data) && is_gt_zero(l1) => true,
             (l1, l2, l1_data) => {
                 let l1_gt_zero = is_gt_zero(l1);
                 let l2_gt_zero = is_gt_zero(l2);
-                let l1_data_gt_zero = match l1_data.as_ref() {
-                    Some(l1_data) => is_gt_zero(l1_data),
-                    None => false,
-                };
+                let l1_data_gt_zero = is_gt_zero(l1_data);
 
-                l1_gt_zero && (l1_data_gt_zero || !l2_gt_zero) && (!l1_data_gt_zero || l2_gt_zero)
+                l1_gt_zero || l2_gt_zero || l1_data_gt_zero
             }
         }
     }
@@ -536,7 +514,7 @@ impl BroadcastedTransaction {
     pub fn is_max_fee_valid(&self) -> bool {
         match self {
             BroadcastedTransaction::Invoke(broadcasted_invoke_transaction) => {
-                !broadcasted_invoke_transaction.is_max_fee_valid()
+                broadcasted_invoke_transaction.is_max_fee_valid()
             }
             BroadcastedTransaction::Declare(broadcasted_declare_transaction) => {
                 broadcasted_declare_transaction.is_max_fee_valid()
@@ -573,7 +551,6 @@ impl BroadcastedTransaction {
 
 #[derive(Debug, Clone)]
 pub enum BroadcastedDeclareTransaction {
-    V1(Box<BroadcastedDeclareTransactionV1>),
     V2(Box<BroadcastedDeclareTransactionV2>),
     V3(Box<BroadcastedDeclareTransactionV3>),
 }
@@ -581,7 +558,6 @@ pub enum BroadcastedDeclareTransaction {
 impl BroadcastedDeclareTransaction {
     pub fn is_max_fee_valid(&self) -> bool {
         match self {
-            BroadcastedDeclareTransaction::V1(v1) => !v1.common.is_max_fee_zero_value(),
             BroadcastedDeclareTransaction::V2(v2) => !v2.common.is_max_fee_zero_value(),
             BroadcastedDeclareTransaction::V3(v3) => v3.common.are_gas_bounds_valid(),
         }
@@ -589,14 +565,13 @@ impl BroadcastedDeclareTransaction {
 
     pub fn is_deprecated(&self) -> bool {
         match self {
-            BroadcastedDeclareTransaction::V1(_) | BroadcastedDeclareTransaction::V2(_) => true,
+            BroadcastedDeclareTransaction::V2(_) => true,
             BroadcastedDeclareTransaction::V3(_) => false,
         }
     }
 
     pub fn is_only_query(&self) -> bool {
         match self {
-            BroadcastedDeclareTransaction::V1(tx) => tx.common.is_only_query(),
             BroadcastedDeclareTransaction::V2(tx) => tx.common.is_only_query(),
             BroadcastedDeclareTransaction::V3(tx) => tx.common.is_only_query(),
         }
@@ -614,29 +589,6 @@ impl BroadcastedDeclareTransaction {
         let sn_api_chain_id = felt_to_sn_api_chain_id(chain_id)?;
 
         let (sn_api_transaction, tx_hash, class_info) = match self {
-            BroadcastedDeclareTransaction::V1(v1) => {
-                let class_hash = v1.generate_class_hash()?;
-
-                let sn_api_declare = starknet_api::transaction::DeclareTransaction::V1(
-                    starknet_api::transaction::DeclareTransactionV0V1 {
-                        class_hash: starknet_api::core::ClassHash(class_hash),
-                        sender_address: v1.sender_address.try_into()?,
-                        nonce: starknet_api::core::Nonce(v1.common.nonce),
-                        max_fee: v1.common.max_fee,
-                        signature: starknet_api::transaction::fields::TransactionSignature(
-                            v1.common.signature.clone(),
-                        ),
-                    },
-                );
-
-                let class_info: ClassInfo =
-                    ContractClass::Cairo0(v1.contract_class.clone()).try_into()?;
-
-                let tx_hash = v1.calculate_transaction_hash(chain_id, &class_hash)?;
-                let sn_api_tx_hash = starknet_api::transaction::TransactionHash(tx_hash);
-
-                (sn_api_declare, sn_api_tx_hash, class_info)
-            }
             BroadcastedDeclareTransaction::V2(v2) => {
                 let sierra_class_hash: Felt = compute_sierra_class_hash(&v2.contract_class)?;
 
@@ -902,12 +854,6 @@ impl<'de> Deserialize<'de> for BroadcastedDeclareTransaction {
         let value = serde_json::Value::deserialize(deserializer)?;
         let version_raw = value.get("version").ok_or(serde::de::Error::missing_field("version"))?;
         match version_raw.as_str() {
-            Some(v) if ["0x1", "0x100000000000000000000000000000001"].contains(&v) => {
-                let unpacked = serde_json::from_value(value).map_err(|e| {
-                    serde::de::Error::custom(format!("Invalid declare transaction v1: {e}"))
-                })?;
-                Ok(BroadcastedDeclareTransaction::V1(Box::new(unpacked)))
-            }
             Some(v) if ["0x2", "0x100000000000000000000000000000002"].contains(&v) => {
                 let unpacked = serde_json::from_value(value).map_err(|e| {
                     serde::de::Error::custom(format!("Invalid declare transaction v2: {e}"))
@@ -1062,9 +1008,12 @@ pub enum ExecutionInvocation {
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct InvokeTransactionTrace {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub validate_invocation: Option<FunctionInvocation>,
     pub execute_invocation: ExecutionInvocation,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub fee_transfer_invocation: Option<FunctionInvocation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub state_diff: Option<ThinStateDiff>,
     pub execution_resources: ExecutionResources,
 }
@@ -1072,8 +1021,11 @@ pub struct InvokeTransactionTrace {
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct DeclareTransactionTrace {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub validate_invocation: Option<FunctionInvocation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub fee_transfer_invocation: Option<FunctionInvocation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub state_diff: Option<ThinStateDiff>,
     pub execution_resources: ExecutionResources,
 }
@@ -1081,9 +1033,13 @@ pub struct DeclareTransactionTrace {
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct DeployAccountTransactionTrace {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub validate_invocation: Option<FunctionInvocation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub constructor_invocation: Option<FunctionInvocation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub fee_transfer_invocation: Option<FunctionInvocation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub state_diff: Option<ThinStateDiff>,
     pub execution_resources: ExecutionResources,
 }
@@ -1092,6 +1048,7 @@ pub struct DeployAccountTransactionTrace {
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct L1HandlerTransactionTrace {
     pub function_invocation: FunctionInvocation,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub state_diff: Option<ThinStateDiff>,
     pub execution_resources: ExecutionResources,
 }

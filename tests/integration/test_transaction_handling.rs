@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use server::test_utils::assert_contains;
-use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class_codegen;
 use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{Call, Felt, InvokeTransactionResult, StarknetError};
 use starknet_rs_core::utils::get_selector_from_name;
@@ -32,11 +31,17 @@ async fn test_failed_validation_with_expected_message() {
     ));
 
     // get class
-    let contract_artifact = Arc::new(dummy_cairo_0_contract_class_codegen());
+    let (contract_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let contract_artifact = Arc::new(contract_artifact);
 
     // declare class
-    let declaration_result =
-        account.declare_legacy(contract_artifact).max_fee(Felt::from(1e18 as u128)).send().await;
+    let declaration_result = account
+        .declare_v3(contract_artifact, casm_hash)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(5e7 as u64)
+        .send()
+        .await;
 
     match declaration_result {
         Err(AccountError::Provider(ProviderError::StarknetError(
@@ -64,7 +69,7 @@ async fn test_declaration_rejected_if_casm_hash_not_matching() {
     let dummy_casm_hash = Felt::ONE;
 
     let declaration_result = account
-        .declare_v2(Arc::new(contract_class), dummy_casm_hash)
+        .declare_v3(Arc::new(contract_class), dummy_casm_hash)
         .nonce(Felt::ZERO)
         .send()
         .await;
@@ -97,12 +102,14 @@ async fn test_tx_status_content_of_failed_invoke() {
         declare_v3_deploy_v3(&account, sierra, casm_hash, &[]).await.unwrap();
 
     let InvokeTransactionResult { transaction_hash } = account
-        .execute_v1(vec![Call {
+        .execute_v3(vec![Call {
             to: contract_address,
             selector: get_selector_from_name("create_panic").unwrap(),
             calldata: vec![],
         }])
-        .max_fee(Felt::from(1e18 as u128))
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(5e7 as u64)
         .send()
         .await
         .unwrap();
