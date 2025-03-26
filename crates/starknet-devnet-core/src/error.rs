@@ -1,4 +1,6 @@
-use blockifier::execution::stack_trace::{gen_tx_execution_error_trace, ErrorStackSegment};
+use blockifier::execution::stack_trace::{
+    gen_tx_execution_error_trace, ErrorStack, ErrorStackHeader, ErrorStackSegment, PreambleType,
+};
 use blockifier::fee::fee_checks::FeeCheckError;
 use blockifier::transaction::errors::{
     TransactionExecutionError, TransactionFeeError, TransactionPreValidationError,
@@ -222,18 +224,32 @@ use serde::{Deserialize, Serialize};
 
 impl From<TransactionExecutionError> for ContractExecutionError {
     fn from(value: TransactionExecutionError) -> Self {
-        let error_string = value.to_string();
         let error_stack = gen_tx_execution_error_trace(&value);
-
-        (error_stack, error_string).into()
+        error_stack.into()
     }
 }
 
-impl From<(blockifier::execution::stack_trace::ErrorStack, String)> for ContractExecutionError {
-    fn from(
-        (error_stack, error_string): (blockifier::execution::stack_trace::ErrorStack, String),
-    ) -> Self {
-        let mut recursive_error_option = Option::<ContractExecutionError>::None;
+fn preamble_type_to_error_msg(preamble_type: &PreambleType) -> &'static str {
+    match preamble_type {
+        PreambleType::CallContract => "Error in external contract",
+        PreambleType::LibraryCall => "Error in library call",
+        PreambleType::Constructor => "Error in constructor",
+    }
+}
+
+fn header_to_error_msg(header: &ErrorStackHeader) -> &'static str {
+    match header {
+        ErrorStackHeader::Constructor => "Constructor error",
+        ErrorStackHeader::Execution => "Execution error",
+        ErrorStackHeader::Validation => "Validation error",
+        ErrorStackHeader::None => "Unknown error",
+    }
+}
+
+/// [[[error inner] error outer] root]
+impl From<ErrorStack> for ContractExecutionError {
+    fn from(error_stack: ErrorStack) -> Self {
+        let error_string = error_stack.to_string();
         fn format_error(stringified_error: &str, error_cause: &str) -> String {
             if stringified_error.is_empty() {
                 error_cause.to_string()
@@ -242,8 +258,7 @@ impl From<(blockifier::execution::stack_trace::ErrorStack, String)> for Contract
             }
         }
 
-        // [[[error inner] error outer] root]
-
+        let mut recursive_error_option = Option::<ContractExecutionError>::None;
         for frame in error_stack.stack.iter().rev() {
             let stack_err = match frame {
                 ErrorStackSegment::Cairo1RevertSummary(revert_summary) => {
@@ -275,20 +290,11 @@ impl From<(blockifier::execution::stack_trace::ErrorStack, String)> for Contract
                     ContractExecutionError::Message(format_error("", msg.as_str()))
                 }
                 ErrorStackSegment::EntryPoint(entry_point_error_frame) => {
-                    let error_reason = match entry_point_error_frame.preamble_type {
-                        blockifier::execution::stack_trace::PreambleType::CallContract => {
-                            "Error in external contract"
-                        }
-                        blockifier::execution::stack_trace::PreambleType::LibraryCall => {
-                            "Error in library call "
-                        }
-                        blockifier::execution::stack_trace::PreambleType::Constructor => {
-                            "Error in constructor"
-                        }
-                    };
-
                     let error = recursive_error_option.take().unwrap_or_else(|| {
-                        ContractExecutionError::Message(format_error(&error_string, error_reason))
+                        ContractExecutionError::Message(format_error(
+                            &error_string,
+                            preamble_type_to_error_msg(&entry_point_error_frame.preamble_type),
+                        ))
                     });
 
                     ContractExecutionError::Nested(InnerContractExecutionError {
@@ -307,19 +313,7 @@ impl From<(blockifier::execution::stack_trace::ErrorStack, String)> for Contract
         if let Some(recursive_error) = recursive_error_option {
             recursive_error
         } else {
-            let error_msg = match error_stack.header {
-                blockifier::execution::stack_trace::ErrorStackHeader::Constructor => {
-                    "Constructor error"
-                }
-                blockifier::execution::stack_trace::ErrorStackHeader::Execution => {
-                    "Execution error"
-                }
-                blockifier::execution::stack_trace::ErrorStackHeader::Validation => {
-                    "Validation error"
-                }
-                blockifier::execution::stack_trace::ErrorStackHeader::None => "Unknown error",
-            };
-
+            let error_msg = header_to_error_msg(&error_stack.header);
             ContractExecutionError::Message(format_error(&error_string, error_msg))
         }
     }
@@ -383,6 +377,8 @@ mod tests {
     use starknet_api::core::ContractAddress;
     use starknet_types_core::felt::Felt;
 
+    use super::{header_to_error_msg, preamble_type_to_error_msg};
+
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
     pub struct ContractErrorData {
         /// The execution trace up to the point of failure
@@ -439,20 +435,11 @@ mod tests {
                         ContractExecutionError::Message(msg.clone())
                     }
                     ErrorStackSegment::EntryPoint(entry_point_error_frame) => {
-                        let error_reason = match entry_point_error_frame.preamble_type {
-                            blockifier::execution::stack_trace::PreambleType::CallContract => {
-                                "Error in external contract"
-                            }
-                            blockifier::execution::stack_trace::PreambleType::LibraryCall => {
-                                "Error in library call "
-                            }
-                            blockifier::execution::stack_trace::PreambleType::Constructor => {
-                                "Error in constructor"
-                            }
-                        };
-
                         let error = recursive_error_option.take().unwrap_or_else(|| {
-                            ContractExecutionError::Message(error_reason.to_string())
+                            ContractExecutionError::Message(
+                                preamble_type_to_error_msg(&entry_point_error_frame.preamble_type)
+                                    .into(),
+                            )
                         });
 
                         ContractExecutionError::Nested(InnerContractExecutionError {
@@ -471,20 +458,7 @@ mod tests {
             if let Some(recursive_error) = recursive_error_option {
                 recursive_error
             } else {
-                let error_msg = match error_stack.header {
-                    blockifier::execution::stack_trace::ErrorStackHeader::Constructor => {
-                        "Constructor error"
-                    }
-                    blockifier::execution::stack_trace::ErrorStackHeader::Execution => {
-                        "Execution error"
-                    }
-                    blockifier::execution::stack_trace::ErrorStackHeader::Validation => {
-                        "Validation error"
-                    }
-                    blockifier::execution::stack_trace::ErrorStackHeader::None => "Unknown error",
-                };
-
-                ContractExecutionError::Message(error_msg.to_string())
+                ContractExecutionError::Message(header_to_error_msg(&error_stack.header).into())
             }
         }
     }
@@ -502,10 +476,6 @@ mod tests {
 
         calls
     }
-
-    // impl From<CallInfo> for ContractExecutionError {
-    //     fn from(value: CallInfo) -> Self {}
-    // }
 
     #[test]
     fn des_snrs() {
