@@ -978,6 +978,7 @@ pub struct FunctionInvocation {
     events: Vec<OrderedEvent>,
     messages: Vec<OrderedMessageToL1>,
     execution_resources: InnerExecutionResources,
+    is_reverted: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -1131,7 +1132,8 @@ impl FunctionInvocation {
             execution_resources: InnerExecutionResources {
                 l1_gas: gas_vector.l1_gas.0,
                 l2_gas: gas_vector.l2_gas.0,
-            }
+            },
+            is_reverted: call_info.execution.failed,
         })
     }
 }
