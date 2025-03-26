@@ -298,15 +298,11 @@ pub async fn declare_deploy_simple_contract(
 ) -> Result<(Felt, Felt), anyhow::Error> {
     let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
 
-    // precalculated
-    let overall_declaration_fee = 127_200_000_000_000_u64;
-    let overall_deployment_fee = 34_800_000_000_000_u64;
-    let gas_price = 100_000_000_000_u64;
-
     let declaration_result = account
         .declare_v3(Arc::new(contract_class), casm_hash)
-        .l1_gas(overall_declaration_fee / gas_price)
-        .l1_gas_price(gas_price as u128)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(1e8 as u64)
         .send()
         .await?;
 
@@ -316,8 +312,9 @@ pub async fn declare_deploy_simple_contract(
     let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
     contract_factory
         .deploy_v3(ctor_args.to_vec(), salt, false)
-        .l1_gas(overall_deployment_fee / gas_price)
-        .l1_gas_price(gas_price as u128)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(1e7 as u64)
         .send()
         .await?;
 
@@ -338,15 +335,11 @@ pub async fn declare_deploy_events_contract(
 ) -> Result<Felt, anyhow::Error> {
     let (contract_class, casm_hash) = get_events_contract_in_sierra_and_compiled_class_hash();
 
-    // precalculated
-    let overall_declaration_fee = 175_000_000_000_000_u64;
-    let overall_deployment_fee = 25_200_000_000_000_u64;
-    let gas_price = 100_000_000_000_u64;
-
     let declaration_result = account
         .declare_v3(Arc::new(contract_class), casm_hash)
-        .l1_gas(overall_declaration_fee / gas_price)
-        .l1_gas_price(gas_price as u128)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(1e8 as u64)
         .send()
         .await?;
 
@@ -356,8 +349,9 @@ pub async fn declare_deploy_events_contract(
     let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
     contract_factory
         .deploy_v3(ctor_args.to_vec(), salt, false)
-        .l1_gas_price(gas_price as u128)
-        .l1_gas(overall_deployment_fee / gas_price)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(1e8 as u64)
         .send()
         .await?;
 
