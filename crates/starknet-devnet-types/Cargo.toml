@@ -23,7 +23,6 @@ starknet_api = { workspace = true }
 starknet-types-core = { workspace = true }
 thiserror = { workspace = true }
 starknet-rs-core = { workspace = true }
-starknet-rs-crypto = { workspace = true }
 cairo-vm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true, features = [

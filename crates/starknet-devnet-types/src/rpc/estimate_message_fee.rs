@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use blockifier::transaction::transactions::L1HandlerTransaction;
 use serde::Serialize;
 use starknet_api::core::EntryPointSelector;
-use starknet_api::transaction::Calldata;
+use starknet_api::executable_transaction::L1HandlerTransaction;
+use starknet_api::transaction::fields::Calldata;
 use starknet_rs_core::types::requests::EstimateMessageFeeRequest;
 use starknet_rs_core::types::{
     BlockId as SrBlockId, Felt, MsgFromL1 as SrMsgFromL1, MsgFromL1, PriceUnit,
@@ -16,10 +16,12 @@ use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct FeeEstimateWrapper {
-    pub gas_consumed: Felt,
-    pub data_gas_consumed: Felt,
-    pub gas_price: Felt,
-    pub data_gas_price: Felt,
+    pub l1_gas_consumed: Felt,
+    pub l1_data_gas_consumed: Felt,
+    pub l1_gas_price: Felt,
+    pub l1_data_gas_price: Felt,
+    pub l2_gas_consumed: Felt,
+    pub l2_gas_price: Felt,
     pub overall_fee: Felt,
     pub unit: PriceUnit,
 }
@@ -71,7 +73,7 @@ impl EstimateMessageFeeRequestWrapper {
                 calldata: Calldata(Arc::new(calldata)),
                 ..Default::default()
             },
-            paid_fee_on_l1: starknet_api::transaction::Fee(1),
+            paid_fee_on_l1: starknet_api::transaction::fields::Fee(1),
             tx_hash: Default::default(),
         };
 

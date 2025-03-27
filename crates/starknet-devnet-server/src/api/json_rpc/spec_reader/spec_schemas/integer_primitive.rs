@@ -10,6 +10,8 @@ pub struct IntegerPrimitive {
     pub common: Common,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub minimum: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub maximum: Option<i32>,
 }
 
 impl Acceptor for IntegerPrimitive {

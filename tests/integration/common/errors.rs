@@ -1,3 +1,4 @@
+use core::fmt;
 use std::borrow::Cow;
 
 use serde::{self, Deserialize, Serialize};
@@ -57,4 +58,10 @@ pub struct RpcError {
     pub message: Cow<'static, str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<serde_json::Value>,
+}
+
+impl fmt::Display for RpcError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
 }

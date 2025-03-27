@@ -9,6 +9,8 @@ pub struct GasModificationRequest {
     pub data_gas_price_wei: Option<NonZeroU128>,
     pub gas_price_fri: Option<NonZeroU128>,
     pub data_gas_price_fri: Option<NonZeroU128>,
+    pub l2_gas_price_wei: Option<NonZeroU128>,
+    pub l2_gas_price_fri: Option<NonZeroU128>,
     pub generate_block: Option<bool>,
 }
 
@@ -19,6 +21,8 @@ pub struct GasModification {
     pub data_gas_price_wei: NonZeroU128,
     pub gas_price_fri: NonZeroU128,
     pub data_gas_price_fri: NonZeroU128,
+    pub l2_gas_price_wei: NonZeroU128,
+    pub l2_gas_price_fri: NonZeroU128,
 }
 
 impl GasModification {
@@ -34,6 +38,12 @@ impl GasModification {
         }
         if let Some(data_gas_price_fri) = request.data_gas_price_fri {
             self.data_gas_price_fri = data_gas_price_fri;
+        }
+        if let Some(l2_gas_price_wei) = request.l2_gas_price_wei {
+            self.l2_gas_price_wei = l2_gas_price_wei;
+        }
+        if let Some(l2_gas_price_fri) = request.l2_gas_price_fri {
+            self.l2_gas_price_fri = l2_gas_price_fri;
         }
     }
 }

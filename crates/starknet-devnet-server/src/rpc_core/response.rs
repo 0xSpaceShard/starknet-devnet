@@ -15,12 +15,6 @@ pub struct RpcResponse {
     pub(crate) result: ResponseResult,
 }
 
-impl From<RpcError> for RpcResponse {
-    fn from(e: RpcError) -> Self {
-        Self { jsonrpc: Version::V2, id: None, result: ResponseResult::Error(e) }
-    }
-}
-
 impl RpcResponse {
     pub fn new(id: Id, content: impl Into<ResponseResult>) -> Self {
         RpcResponse { jsonrpc: Version::V2, id: Some(id), result: content.into() }
@@ -28,6 +22,10 @@ impl RpcResponse {
 
     pub fn invalid_request(id: Id) -> Self {
         Self::new(id, RpcError::invalid_request())
+    }
+
+    pub fn from_rpc_error(e: RpcError, id: Id) -> Self {
+        Self { jsonrpc: Version::V2, id: Some(id), result: ResponseResult::Error(e) }
     }
 }
 

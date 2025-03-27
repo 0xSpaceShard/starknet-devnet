@@ -3,7 +3,7 @@ use serde_json::Value;
 use starknet_rs_core::types::{CompressedLegacyContractClass, Felt, LegacyEntryPointsByType};
 
 use crate::contract_class::deprecated::abi_entry::{AbiEntry, AbiEntryType};
-use crate::contract_class::Cairo0Json;
+use crate::contract_class::deprecated::Cairo0Json;
 use crate::error::{DevnetResult, Error, JsonError};
 use crate::serde_helpers::base_64_gzipped_json_string::{
     deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order,
@@ -84,7 +84,7 @@ impl TryInto<CompressedLegacyContractClass> for DeprecatedContractClass {
     }
 }
 
-impl TryFrom<DeprecatedContractClass> for blockifier::execution::contract_class::ContractClassV0 {
+impl TryFrom<DeprecatedContractClass> for starknet_api::deprecated_contract_class::ContractClass {
     type Error = Error;
 
     fn try_from(value: DeprecatedContractClass) -> Result<Self, Self::Error> {
@@ -97,7 +97,7 @@ impl TryFrom<DeprecatedContractClass> for blockifier::execution::contract_class:
 mod tests {
     use starknet_rs_core::types::CompressedLegacyContractClass;
 
-    use crate::contract_class::DeprecatedContractClass;
+    use crate::contract_class::deprecated::DeprecatedContractClass;
     use crate::utils::test_utils::CAIRO_0_RPC_CONTRACT_PATH;
 
     #[test]
