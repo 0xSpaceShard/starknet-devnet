@@ -165,7 +165,7 @@ jobs:
 workflows:
   build-test-maybe-publish:
     jobs:
-      # - build-and-test
+      - build-and-test
       - binary-build:
           <<: *on_main
           matrix:
