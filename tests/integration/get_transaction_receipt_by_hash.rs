@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
-use server::test_utils::declare_v1_str;
 use starknet_rs_accounts::{
     Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
-    BroadcastedDeclareTransactionV1, Call, ExecutionResult, Felt, StarknetError, TransactionReceipt,
+    Call, ExecutionResult, Felt, StarknetError, TransactionFinalityStatus, TransactionReceipt,
 };
 use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::{Provider, ProviderError};
@@ -34,11 +33,12 @@ async fn deploy_account_transaction_receipt() {
     .unwrap();
     let new_account_nonce = Felt::ZERO;
     let salt = Felt::THREE;
-    let deployment = account_factory.deploy_v1(salt).nonce(new_account_nonce);
+    let deployment = account_factory.deploy_v3(salt).nonce(new_account_nonce);
     let new_account_address = deployment.address();
     devnet.mint(new_account_address, 1e18 as u128).await;
 
-    let deploy_account_result = deployment.max_fee(Felt::from(1e18 as u128)).send().await.unwrap();
+    // Converting Felt to u64 for the gas parameter
+    let deploy_account_result = deployment.send().await.unwrap();
 
     let deploy_account_receipt = devnet
         .json_rpc_client
@@ -51,9 +51,7 @@ async fn deploy_account_transaction_receipt() {
         TransactionReceipt::DeployAccount(receipt) => {
             assert_eq!(receipt.contract_address, new_account_address);
         }
-        _ => {
-            panic!("Invalid receipt {:?}", deploy_account_receipt);
-        }
+        _ => panic!("Invalid receipt {:?}", deploy_account_receipt),
     }
 }
 
@@ -73,12 +71,9 @@ async fn deploy_transaction_receipt() {
     let (cairo_1_contract, casm_class_hash) =
         get_events_contract_in_sierra_and_compiled_class_hash();
 
-    let max_fee = Felt::from(1e18 as u128);
-
     // declare the contract
     let declaration_result = predeployed_account
-        .declare_v2(Arc::new(cairo_1_contract), casm_class_hash)
-        .max_fee(max_fee)
+        .declare_v3(Arc::new(cairo_1_contract), casm_class_hash)
         .send()
         .await
         .unwrap();
@@ -89,12 +84,8 @@ async fn deploy_transaction_receipt() {
 
     let salt = Felt::ZERO;
     let constructor_args = Vec::<Felt>::new();
-    let deployment_result = contract_factory
-        .deploy_v1(constructor_args.clone(), salt, false)
-        .max_fee(max_fee)
-        .send()
-        .await
-        .unwrap();
+    let deployment_result =
+        contract_factory.deploy_v3(constructor_args.clone(), salt, false).send().await.unwrap();
 
     let deployment_receipt = devnet
         .json_rpc_client
@@ -112,7 +103,7 @@ async fn deploy_transaction_receipt() {
                 &constructor_args,
             );
             assert_eq!(receipt.contract_address, expected_contract_address);
-            assert!(receipt.actual_fee.amount < max_fee);
+            assert_eq!(receipt.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         }
         _ => panic!("Invalid receipt {:?}", deployment_receipt),
     };
@@ -134,12 +125,9 @@ async fn invalid_deploy_transaction_receipt() {
     let (cairo_1_contract, casm_class_hash) =
         get_events_contract_in_sierra_and_compiled_class_hash();
 
-    let max_fee = Felt::from(1e18 as u128);
-
     // declare the contract
     let declaration_result = predeployed_account
-        .declare_v2(Arc::new(cairo_1_contract), casm_class_hash)
-        .max_fee(max_fee)
+        .declare_v3(Arc::new(cairo_1_contract), casm_class_hash)
         .send()
         .await
         .unwrap();
@@ -150,9 +138,14 @@ async fn invalid_deploy_transaction_receipt() {
 
     let salt = Felt::ZERO;
     let invalid_constructor_args = vec![Felt::ONE];
+    let l1_gas = 0;
+    let l1_data_gas = 1000;
+    let l2_gas = 1e6 as u64;
     let invalid_deployment_result = contract_factory
-        .deploy_v1(invalid_constructor_args, salt, false)
-        .max_fee(max_fee)
+        .deploy_v3(invalid_constructor_args, salt, false)
+        .l1_gas(l1_gas)
+        .l1_data_gas(l1_data_gas)
+        .l2_gas(l2_gas)
         .send()
         .await
         .unwrap();
@@ -171,7 +164,10 @@ async fn invalid_deploy_transaction_receipt() {
                 }
                 other => panic!("Invalid execution result {other:?}"),
             }
-            assert!(receipt.actual_fee.amount < max_fee);
+            assert_eq!(receipt.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+            assert!(receipt.execution_resources.l1_gas <= l1_gas);
+            assert!(receipt.execution_resources.l1_data_gas <= l1_data_gas);
+            assert!(receipt.execution_resources.l2_gas <= l2_gas);
         }
         _ => panic!("Invalid receipt {:?}", invalid_deployment_receipt),
     };
@@ -190,7 +186,7 @@ async fn reverted_invoke_transaction_receipt() {
         ExecutionEncoding::New,
     );
 
-    let transfer_execution = predeployed_account.execute_v1(vec![Call {
+    let transfer_execution = predeployed_account.execute_v3(vec![Call {
         to: ETH_ERC20_CONTRACT_ADDRESS,
         selector: get_selector_from_name("transfer").unwrap(),
         calldata: vec![
@@ -202,10 +198,14 @@ async fn reverted_invoke_transaction_receipt() {
 
     let fee = transfer_execution.estimate_fee().await.unwrap();
 
-    // send transaction with lower than estimated fee
-    // should revert
-    let max_fee = fee.overall_fee - Felt::ONE;
-    let transfer_result = transfer_execution.max_fee(max_fee).send().await.unwrap();
+    // send transaction with lower than estimated overall fee; should revert
+    let transfer_result = transfer_execution
+        .l1_gas(fee.l1_gas_consumed.to_le_digits()[0]) // Using estimated l1 gas as is, because it can be 0
+        .l2_gas(fee.l2_gas_consumed.to_le_digits()[0] - 1) // subtracting 1 from l2 gas
+        .l1_data_gas(fee.l1_data_gas_consumed.to_le_digits()[0]) // using estimated l1 data gas as is
+        .send()
+        .await
+        .unwrap();
 
     let transfer_receipt = devnet
         .json_rpc_client
@@ -220,62 +220,11 @@ async fn reverted_invoke_transaction_receipt() {
                 starknet_rs_core::types::ExecutionResult::Reverted { .. } => (),
                 _ => panic!("Invalid receipt {:?}", receipt),
             }
-            assert_eq!(receipt.actual_fee.amount, max_fee);
+            // due to earlier l2_gas - 1
+            assert!(receipt.actual_fee.amount <= fee.overall_fee - fee.l2_gas_price);
         }
         _ => panic!("Invalid receipt {:?}", transfer_receipt),
     };
-}
-
-#[tokio::test]
-async fn declare_v1_transaction_fails_with_insufficient_max_fee() {
-    let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-    let json_string = declare_v1_str();
-    let declare_txn_v1: BroadcastedDeclareTransactionV1 =
-        serde_json::from_str(&json_string).unwrap();
-
-    let declare_transaction_result = devnet
-        .json_rpc_client
-        .add_declare_transaction(starknet_rs_core::types::BroadcastedDeclareTransaction::V1(
-            declare_txn_v1.clone(),
-        ))
-        .await;
-
-    match declare_transaction_result {
-        Err(ProviderError::StarknetError(StarknetError::InsufficientMaxFee)) => (),
-        _ => {
-            panic!("Invalid result: {:?}", declare_transaction_result);
-        }
-    }
-}
-
-#[tokio::test]
-async fn declare_v1_accepted_with_numeric_entrypoint_offset() {
-    let devnet = BackgroundDevnet::spawn().await.unwrap();
-
-    let declare_v1 = declare_v1_str();
-    let mut declare_rpc_body: serde_json::Value = serde_json::from_str(&declare_v1).unwrap();
-
-    let entry_points = declare_rpc_body["contract_class"]["entry_points_by_type"]["EXTERNAL"]
-        .as_array_mut()
-        .unwrap();
-    for entry_point in entry_points {
-        // We are assuming hex string format in the loaded artifact;
-        // Converting it to numeric value to test that case
-        let offset_hex_string = entry_point["offset"].as_str().unwrap();
-        entry_point["offset"] = u32::from_str_radix(&offset_hex_string[2..], 16).unwrap().into();
-    }
-
-    let rpc_error = devnet
-        .send_custom_rpc(
-            "starknet_addDeclareTransaction",
-            serde_json::json!({ "declare_transaction": declare_rpc_body }),
-        )
-        .await
-        .unwrap_err();
-
-    // We got error code corresponding to insufficient balance, which is ok;
-    // it's important we didn't get failed JSON schema matching with error -32602
-    assert_eq!(rpc_error.code, 53);
 }
 
 #[tokio::test]

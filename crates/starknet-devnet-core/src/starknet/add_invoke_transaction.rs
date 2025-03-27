@@ -1,3 +1,4 @@
+use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::TransactionHash;
@@ -14,8 +15,8 @@ pub fn add_invoke_transaction(
     starknet: &mut Starknet,
     broadcasted_invoke_transaction: BroadcastedInvokeTransaction,
 ) -> DevnetResult<TransactionHash> {
-    if broadcasted_invoke_transaction.is_max_fee_zero_value() {
-        return Err(TransactionValidationError::InsufficientMaxFee.into());
+    if !broadcasted_invoke_transaction.is_max_fee_valid() {
+        return Err(TransactionValidationError::InsufficientResourcesForValidate.into());
     }
 
     if broadcasted_invoke_transaction.is_only_query() {
@@ -24,10 +25,10 @@ pub fn add_invoke_transaction(
         });
     }
 
-    let blockifier_invoke_transaction = broadcasted_invoke_transaction
-        .create_blockifier_invoke_transaction(&starknet.chain_id().to_felt(), false)?;
+    let sn_api_transaction =
+        broadcasted_invoke_transaction.create_sn_api_invoke(&starknet.chain_id().to_felt())?;
 
-    let transaction_hash = blockifier_invoke_transaction.tx_hash.0;
+    let transaction_hash = sn_api_transaction.tx_hash.0;
 
     let invoke_transaction = match broadcasted_invoke_transaction {
         BroadcastedInvokeTransaction::V1(ref v1) => {
@@ -41,22 +42,24 @@ pub fn add_invoke_transaction(
     let validate = !(Starknet::is_account_impersonated(
         &mut starknet.pending_state,
         &starknet.cheats,
-        &ContractAddress::from(blockifier_invoke_transaction.sender_address()),
+        &ContractAddress::from(sn_api_transaction.sender_address()),
     )?);
 
     let block_context = starknet.block_context.clone();
 
     let state = &mut starknet.get_state().state;
 
-    let blockifier_execution_info =
-        blockifier::transaction::account_transaction::AccountTransaction::Invoke(
-            blockifier_invoke_transaction,
-        )
-        .execute(state, &block_context, true, validate)?;
+    let execution_info = blockifier::transaction::account_transaction::AccountTransaction {
+        tx: starknet_api::executable_transaction::AccountTransaction::Invoke(sn_api_transaction),
+        execution_flags: ExecutionFlags { only_query: false, charge_fee: true, validate },
+    }
+    .execute(state, &block_context);
+
+    let execution_info = execution_info?;
 
     let transaction = TransactionWithHash::new(transaction_hash, invoke_transaction);
 
-    starknet.handle_accepted_transaction(transaction, blockifier_execution_info)?;
+    starknet.handle_accepted_transaction(transaction, execution_info)?;
 
     Ok(transaction_hash)
 }
@@ -68,12 +71,12 @@ mod tests {
     use blockifier::state::state_api::StateReader;
     use nonzero_ext::nonzero;
     use starknet_api::core::Nonce;
-    use starknet_api::transaction::{Fee, Tip};
+    use starknet_api::transaction::fields::{Fee, Tip};
     use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
+    use starknet_types::contract_class::ContractClass;
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::rpc::gas_modification::GasModification;
     use starknet_types::rpc::state::Balance;
@@ -123,6 +126,8 @@ mod tests {
         ))
     }
 
+    // TODO try using ExecutionResources to reduce number of args
+    #[allow(clippy::too_many_arguments)]
     fn test_invoke_transaction_v3(
         account_address: ContractAddress,
         contract_address: ContractAddress,
@@ -130,6 +135,7 @@ mod tests {
         param: Felt,
         nonce: u128,
         l1_gas_amount: u64,
+        l1_data_gas_amount: u64,
         l2_gas_amount: u64,
     ) -> BroadcastedInvokeTransaction {
         let calldata = vec![
@@ -144,7 +150,14 @@ mod tests {
                 version: Felt::THREE,
                 signature: vec![],
                 nonce: Felt::from(nonce),
-                resource_bounds: ResourceBoundsWrapper::new(l1_gas_amount, 1, l2_gas_amount, 1),
+                resource_bounds: ResourceBoundsWrapper::new(
+                    l1_gas_amount,
+                    1,
+                    l1_data_gas_amount,
+                    1,
+                    l2_gas_amount,
+                    1,
+                ),
                 tip: Tip(0),
                 paymaster_data: vec![],
                 nonce_data_availability_mode:
@@ -168,6 +181,7 @@ mod tests {
             0,
             1,
             0,
+            0,
         );
         match invoke_transaction {
             BroadcastedInvokeTransaction::V3(ref mut v3) => {
@@ -188,32 +202,7 @@ mod tests {
     }
 
     #[test]
-    fn invoke_transaction_v3_should_fail_due_to_no_fee_provided() {
-        let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
-        let account_address = account.get_address();
-
-        let invoke_transaction = test_invoke_transaction_v3(
-            account_address,
-            contract_address,
-            increase_balance_selector,
-            Felt::from(10),
-            0,
-            0,
-            0,
-        );
-
-        let invoke_v3_txn_error = starknet
-            .add_invoke_transaction(invoke_transaction)
-            .expect_err("Expected MaxFeeZeroError");
-
-        match invoke_v3_txn_error {
-            Error::TransactionValidationError(TransactionValidationError::InsufficientMaxFee) => {}
-            _ => panic!("Wrong error type"),
-        }
-    }
-
-    #[test]
-    fn invoke_transaction_v3_successful_execution() {
+    fn invoke_transaction_v3_successful_execution_with_only_l1_gas() {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
         let account_address = account.get_address();
         let initial_balance =
@@ -225,12 +214,8 @@ mod tests {
             increase_balance_selector,
             Felt::from(10),
             0,
-            account
-                .get_balance(&mut starknet.pending_state, crate::account::FeeToken::STRK)
-                .unwrap()
-                .to_string()
-                .parse::<u64>()
-                .unwrap(),
+            initial_balance.to_string().parse::<u64>().unwrap(),
+            0,
             0,
         );
 
@@ -247,47 +232,80 @@ mod tests {
     }
 
     #[test]
-    fn invoke_transaction_v3_positive_l2_gas_should_fail() {
+    fn invoke_transaction_v3_successful_execution_with_all_three_gas_bounds() {
+        let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
+        let account_address = account.get_address();
+        let initial_balance =
+            account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap();
+
+        // dividing by 10, because otherwise it will fail that the total amount of gas exceeds
+        // user's balance
+        let gas_amount = initial_balance.to_string().parse::<u64>().unwrap() / 10;
+
+        let invoke_transaction = test_invoke_transaction_v3(
+            account_address,
+            contract_address,
+            increase_balance_selector,
+            Felt::from(10),
+            0,
+            gas_amount,
+            gas_amount,
+            gas_amount,
+        );
+
+        let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
+
+        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
+
+        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        assert!(
+            account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap()
+                < initial_balance
+        );
+    }
+
+    #[test]
+    fn invoke_transaction_v3_with_invalid_gas_amounts() {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
         let account_address = account.get_address();
 
-        let l1_gas = account
-            .get_balance(&mut starknet.pending_state, crate::account::FeeToken::STRK)
+        let balance: u64 = account
+            .get_balance(&mut starknet.pending_state, FeeToken::STRK)
             .unwrap()
             .to_string()
-            .parse::<u64>()
+            .parse()
             .unwrap();
+        assert!(balance > 0);
 
-        // l2 gas should always be set to zero and l1 gas should be greater than 0 for v3
-        // transactions, this is why these 2 cases should fail
-        let fail_test_cases = [(l1_gas, 1), (0, 1)];
-        for test_case in fail_test_cases {
+        // either only l1_gas is allowed or all three must be set, otherwise invalid
+        for (l1_gas, l1_data_gas, l2_gas) in
+            [(balance, 0, 1), (0, 0, 1), (0, balance, 0), (balance, balance, 0), (0, 0, 0)]
+        {
             let invoke_transaction = test_invoke_transaction_v3(
                 account_address,
                 contract_address,
                 increase_balance_selector,
                 Felt::from(10),
                 0,
-                test_case.0,
-                test_case.1,
+                l1_gas,
+                l1_data_gas,
+                l2_gas,
             );
 
-            let transaction = starknet.add_invoke_transaction(invoke_transaction);
-
-            assert!(transaction.is_err());
-            match transaction.err().unwrap() {
-                Error::TransactionValidationError(
-                    TransactionValidationError::InsufficientMaxFee,
-                ) => {}
-                _ => {
-                    panic!("Wrong error type")
+            match starknet.add_invoke_transaction(invoke_transaction) {
+                Err(Error::TransactionValidationError(
+                    TransactionValidationError::InsufficientResourcesForValidate,
+                )) => {}
+                other => {
+                    panic!("Wrong result: {other:?}")
                 }
             }
         }
     }
 
     #[test]
-    fn invoke_transaction_successful_execution() {
+    fn invoke_transaction_v1_successful_execution() {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
 
         let account_address = account.get_address();
@@ -309,7 +327,7 @@ mod tests {
     }
 
     #[test]
-    fn invoke_transaction_successfully_changes_storage() {
+    fn invoke_transaction_v1_successfully_changes_storage() {
         let (
             mut starknet,
             account,
@@ -364,7 +382,7 @@ mod tests {
     }
 
     #[test]
-    fn invoke_transaction_with_max_fee_zero_should_return_error() {
+    fn invoke_transaction_v1_with_max_fee_zero_should_return_error() {
         let invoke_transaction = BroadcastedInvokeTransactionV1::new(
             dummy_contract_address(),
             Fee(0),
@@ -379,7 +397,9 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            Error::TransactionValidationError(TransactionValidationError::InsufficientMaxFee) => {}
+            Error::TransactionValidationError(
+                TransactionValidationError::InsufficientResourcesForValidate,
+            ) => {}
             _ => panic!("Wrong error type"),
         }
     }
@@ -430,7 +450,7 @@ mod tests {
             Felt::from(10),               // calldata
         ];
 
-        let insufficient_max_fee = 139; // this is minimum fee (enough for passing validation), anything lower than that is bounced back
+        let insufficient_max_fee = 140; // this is minimum fee (enough for passing validation), anything lower than that is bounced back
         let invoke_transaction = BroadcastedInvokeTransactionV1::new(
             account_address.into(),
             Fee(insufficient_max_fee),
@@ -472,7 +492,7 @@ mod tests {
             account_without_validations_contract_class.generate_hash().unwrap();
 
         let account = Account::new(
-            Balance::from(10000_u32),
+            Balance::from(1000000000_u32),
             dummy_felt(),
             dummy_felt(),
             account_without_validations_class_hash,
@@ -485,17 +505,15 @@ mod tests {
         account.deploy(&mut starknet.pending_state).unwrap();
 
         // dummy contract
-        let dummy_contract: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
-        let blockifier = blockifier::execution::contract_class::ContractClassV0::try_from(
-            dummy_contract.clone(),
-        )
-        .unwrap();
-        let increase_balance_selector = get_selector_from_name("increase_balance").unwrap();
+        let dummy_contract = dummy_cairo_0_contract_class();
 
         // check if increase_balance function is present in the contract class
-        blockifier
+        let increase_balance_selector = get_selector_from_name("increase_balance").unwrap();
+        let sn_api_class: starknet_api::deprecated_contract_class::ContractClass =
+            dummy_contract.clone().try_into().unwrap();
+        sn_api_class
             .entry_points_by_type
-            .get(&starknet_api::deprecated_contract_class::EntryPointType::External)
+            .get(&starknet_api::contract_class::EntryPointType::External)
             .unwrap()
             .iter()
             .find(|el| el.selector.0 == increase_balance_selector)
@@ -524,6 +542,8 @@ mod tests {
             nonzero!(1u128),
             nonzero!(1u128),
             nonzero!(1u128),
+            nonzero!(1u128),
+            nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
@@ -532,8 +552,10 @@ mod tests {
         starknet.next_block_gas = GasModification {
             gas_price_wei: nonzero!(1u128),
             data_gas_price_wei: nonzero!(1u128),
+            l2_gas_price_wei: nonzero!(1u128),
             gas_price_fri: nonzero!(1u128),
             data_gas_price_fri: nonzero!(1u128),
+            l2_gas_price_fri: nonzero!(1u128),
         };
 
         starknet.restart_pending_block().unwrap();

@@ -1,4 +1,6 @@
-use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
+use starknet_rs_core::types::{
+    BlockId, BlockTag, Felt, InvokeTransaction, StarknetError, Transaction,
+};
 use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
@@ -6,7 +8,7 @@ use crate::common::background_devnet::BackgroundDevnet;
 #[tokio::test]
 async fn get_transaction_by_block_id_and_index_happy_path() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-    let tx_hash_value = devnet.mint(Felt::ONE, 1).await;
+    let minting_hash = devnet.mint(Felt::ONE, 1).await;
 
     let result = devnet
         .json_rpc_client
@@ -14,11 +16,8 @@ async fn get_transaction_by_block_id_and_index_happy_path() {
         .await
         .unwrap();
 
-    if let starknet_rs_core::types::Transaction::Invoke(
-        starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
-    ) = result
-    {
-        assert_eq!(invoke_v1.transaction_hash, tx_hash_value);
+    if let Transaction::Invoke(InvokeTransaction::V3(tx)) = result {
+        assert_eq!(tx.transaction_hash, minting_hash);
     } else {
         panic!("Could not unpack the transaction from {result:?}");
     }

@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
-use blockifier::transaction::transactions::L1HandlerTransaction as BlockifierL1HandlerTransaction;
 use serde::Serialize;
 use starknet_api::core::{
     ContractAddress as ApiContractAddress, EntryPointSelector as ApiEntryPointSelector,
     Nonce as ApiNonce,
 };
+use starknet_api::executable_transaction::L1HandlerTransaction as ApiL1HandlerTransaction;
+use starknet_api::transaction::fields::{Calldata as ApiCalldata, Fee as ApiFee};
 use starknet_api::transaction::{
-    Calldata as ApiCalldata, Fee as ApiFee, L1HandlerTransaction as ApiL1HandlerTransaction,
     TransactionHash as ApiTransactionHash, TransactionVersion as ApiTransactionVersion,
 };
 use starknet_rs_core::crypto::compute_hash_on_elements;
-use starknet_rs_core::types::Felt;
+use starknet_rs_core::types::{Felt, Hash256};
 
 use super::serialize_paid_fee_on_l1;
 use crate::constants::PREFIX_L1_HANDLER;
@@ -23,6 +23,9 @@ use crate::rpc::messaging::MessageToL2;
 #[derive(Debug, Clone, Default, Serialize, Eq, PartialEq)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct L1HandlerTransaction {
+    /// The hash of the L1 transaction that triggered this L1 handler execution.
+    /// Omissible if received via mock (devnet_postmanSendMessageToL2)
+    pub l1_transaction_hash: Option<Hash256>,
     pub version: TransactionVersion,
     pub nonce: Nonce,
     pub contract_address: ContractAddress,
@@ -58,12 +61,12 @@ impl L1HandlerTransaction {
     }
 
     /// Creates a blockifier version of `L1HandlerTransaction`.
-    pub fn create_blockifier_transaction(
+    pub fn create_sn_api_transaction(
         &self,
         chain_id: Felt,
-    ) -> DevnetResult<BlockifierL1HandlerTransaction> {
-        let transaction = BlockifierL1HandlerTransaction {
-            tx: ApiL1HandlerTransaction {
+    ) -> DevnetResult<ApiL1HandlerTransaction> {
+        let transaction = ApiL1HandlerTransaction {
+            tx: starknet_api::transaction::L1HandlerTransaction {
                 contract_address: ApiContractAddress::try_from(self.contract_address)?,
                 entry_point_selector: ApiEntryPointSelector(self.entry_point_selector),
                 calldata: ApiCalldata(Arc::new(self.calldata.clone())),
@@ -102,9 +105,8 @@ impl L1HandlerTransaction {
             calldata,
             nonce: message.nonce,
             paid_fee_on_l1,
-            // Currently, only version 0 is supported, which
-            // is ensured by default initialization.
-            ..Default::default()
+            l1_transaction_hash: message.l1_transaction_hash,
+            version: Felt::ZERO, // currently, only version 0 is supported
         })
     }
 }
@@ -122,6 +124,7 @@ impl TryFrom<&L1HandlerTransaction> for MessageToL2 {
 
         let payload = value.calldata[1..].to_vec();
         Ok(MessageToL2 {
+            l1_transaction_hash: value.l1_transaction_hash,
             l2_contract_address: value.contract_address,
             entry_point_selector: value.entry_point_selector,
             l1_contract_address: ContractAddress::new(*l1_contract_address)?,
@@ -158,6 +161,7 @@ mod tests {
             vec![felt_from_prefixed_hex(from_address).unwrap(), Felt::ONE, Felt::TWO];
 
         let message = MessageToL2 {
+            l1_transaction_hash: None,
             l1_contract_address: ContractAddress::new(
                 felt_from_prefixed_hex(from_address).unwrap(),
             )
@@ -169,8 +173,6 @@ mod tests {
             nonce: nonce.into(),
             paid_fee_on_l1: fee.into(),
         };
-
-        let chain_id = ChainId::goerli_legacy_id();
 
         let transaction_hash = felt_from_prefixed_hex(
             "0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b",
@@ -199,6 +201,6 @@ mod tests {
         let transaction = L1HandlerTransaction::try_from_message_to_l2(message).unwrap();
 
         assert_eq!(transaction, expected_tx);
-        assert_eq!(transaction.compute_hash(chain_id), transaction_hash);
+        assert_eq!(transaction.compute_hash(ChainId::goerli_legacy_id()), transaction_hash);
     }
 }

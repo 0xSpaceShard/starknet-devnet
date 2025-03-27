@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use starknet_api::transaction::Fee;
+use starknet_api::transaction::fields::Fee;
 
 use crate::felt::{
     Calldata, ClassHash, ContractAddressSalt, Nonce, TransactionSignature, TransactionVersion,
@@ -43,7 +43,7 @@ impl BroadcastedDeployAccountTransactionV1 {
 #[cfg(test)]
 mod tests {
     use serde::Deserialize;
-    use starknet_api::transaction::Fee;
+    use starknet_api::transaction::fields::Fee;
     use starknet_rs_core::types::Felt;
 
     use crate::chain_id::ChainId;
@@ -92,7 +92,7 @@ mod tests {
 
         let blockifier_deploy_account_transaction =
             BroadcastedDeployAccountTransaction::V1(broadcasted_tx)
-                .create_blockifier_deploy_account(&chain_id, false)
+                .create_sn_api_deploy_account(&chain_id)
                 .unwrap();
 
         assert_eq!(

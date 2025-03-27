@@ -1,6 +1,6 @@
 use serde::Serialize;
 use starknet_api::data_availability::DataAvailabilityMode;
-use starknet_api::transaction::Tip;
+use starknet_api::transaction::fields::Tip;
 use starknet_types_core::felt::Felt;
 
 use super::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
@@ -24,7 +24,7 @@ pub struct InvokeTransactionV3 {
     nonce_data_availability_mode: DataAvailabilityMode,
     fee_data_availability_mode: DataAvailabilityMode,
     account_deployment_data: Vec<Felt>,
-    sender_address: ContractAddress,
+    pub(crate) sender_address: ContractAddress,
     calldata: Calldata,
 }
 
@@ -43,6 +43,10 @@ impl InvokeTransactionV3 {
             calldata: broadcasted_txn.calldata.clone(),
             account_deployment_data: broadcasted_txn.account_deployment_data.clone(),
         }
+    }
+
+    pub(crate) fn get_resource_bounds(&self) -> &ResourceBoundsWrapper {
+        &self.resource_bounds
     }
 }
 

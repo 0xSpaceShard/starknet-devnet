@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use tuple_schema::Tuple;
 
 use self::all_of_schema::AllOf;
 use self::array_primitive::ArrayPrimitive;
@@ -17,6 +18,7 @@ pub mod object_primitive;
 pub mod one_of_schema;
 pub mod ref_schema;
 pub mod string_primitive;
+pub mod tuple_schema;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -52,4 +54,5 @@ pub enum Schema {
     OneOf(OneOf),
     AllOf(AllOf),
     Primitive(Primitive),
+    Tuple(Tuple),
 }

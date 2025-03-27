@@ -9,6 +9,8 @@ pub struct ArrayPrimitive {
     #[serde(flatten)]
     pub common: Common,
     pub items: Box<Schema>,
+    pub min_items: Option<u64>,
+    pub max_items: Option<u64>,
 }
 impl Acceptor for ArrayPrimitive {
     fn accept(&self, visitor: &impl Visitor) -> Result<serde_json::Value, String> {

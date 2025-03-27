@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use starknet_api::transaction::Fee;
+use starknet_api::transaction::fields::Fee;
 
 use crate::contract_address::ContractAddress;
 use crate::felt::{Calldata, Nonce, TransactionSignature, TransactionVersion};
@@ -39,7 +39,7 @@ impl BroadcastedInvokeTransactionV1 {
 #[cfg(test)]
 mod tests {
     use serde::Deserialize;
-    use starknet_api::transaction::Fee;
+    use starknet_api::transaction::fields::Fee;
     use starknet_rs_core::types::Felt;
 
     use crate::chain_id::ChainId;
@@ -84,10 +84,9 @@ mod tests {
         );
 
         let chain_id = ChainId::goerli_legacy_id();
-        let blockifier_transaction = BroadcastedInvokeTransaction::V1(transaction)
-            .create_blockifier_invoke_transaction(&chain_id, false)
-            .unwrap();
+        let executable_tx =
+            BroadcastedInvokeTransaction::V1(transaction).create_sn_api_invoke(&chain_id).unwrap();
 
-        assert_eq!(feeder_gateway_transaction.transaction_hash, blockifier_transaction.tx_hash.0);
+        assert_eq!(feeder_gateway_transaction.transaction_hash, *executable_tx.tx_hash());
     }
 }

@@ -14,6 +14,7 @@ pub const DEVNET_EXECUTABLE_BINARY_PATH: &str =
 // URL paths
 pub const RPC_PATH: &str = "/rpc";
 pub const HEALTHCHECK_PATH: &str = "/is_alive";
+pub const WS_PATH: &str = "/ws";
 
 // predeployed account info with seed=42
 pub const PREDEPLOYED_ACCOUNT_ADDRESS: &str =
@@ -47,6 +48,8 @@ pub const STRK_ERC20_CONTRACT_ADDRESS: Felt =
     Felt::from_hex_unchecked("0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d");
 pub const UDC_CONTRACT_ADDRESS: Felt =
     Felt::from_hex_unchecked("0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF");
+pub const UDC_CONTRACT_CLASS_HASH: Felt =
+    Felt::from_hex_unchecked("0x7B3E05F48F0C69E4A65CE5E076A66271A527AFF2C34CE1083EC6E1526997A69");
 
 // Example contract with basic storage read and write - Cairo 1
 pub const CAIRO_1_CONTRACT_PATH: &str =
@@ -82,10 +85,10 @@ pub const ARGENT_ACCOUNT_CLASS_HASH: &str =
 
 // Forking
 pub const INTEGRATION_SEPOLIA_HTTP_URL: &str =
-    "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7";
+    "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_8";
 
-pub const MAINNET_URL: &str = "http://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_7";
-pub const MAINNET_HTTPS_URL: &str = "https://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_7";
+pub const MAINNET_URL: &str = "http://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_8";
+pub const MAINNET_HTTPS_URL: &str = "https://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_8";
 pub const INTEGRATION_GENESIS_BLOCK_HASH: &str =
     "0x19f675d3fb226821493a6ab9a1955e384bba80f130de625621a418e9a7c0ca3";
 /// The number of the last block at which forking can be done; prior to v0.13.4.

@@ -1,5 +1,5 @@
 use serde::Serialize;
-use starknet_api::transaction::Fee;
+use starknet_api::transaction::fields::Fee;
 
 use super::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use crate::contract_address::ContractAddress;
