@@ -15,12 +15,12 @@ The modified gas prices take effect starting with the next block that is generat
 
 The following JSON-RPC request can be used to set gas prices:
 
-```
+```json
 JSON-RPC
 {
     "jsonrpc": "2.0",
     "id": "1",
-    "method": "setGasPrice"
+    "method": "setGasPrice",
     "params": {
         "gas_price_wei": 1000000,
         "data_gas_price_wei": 10000,
@@ -37,13 +37,13 @@ JSON-RPC
 
 The expected response from the server will mirror the request gas parameters, confirming the modification of gas prices:
 
-```
+```json
 {
-    "gas_price_wei": 1000000,
-    "data_gas_price_wei": 10000,
-    "gas_price_fri": 10000,
-    "data_gas_price_fri": 10000,
-    "l2_gas_price_wei": 10000,
-    "l2_gas_price_fri": 10000,
+  "gas_price_wei": 1000000,
+  "data_gas_price_wei": 10000,
+  "gas_price_fri": 10000,
+  "data_gas_price_fri": 10000,
+  "l2_gas_price_wei": 10000,
+  "l2_gas_price_fri": 10000
 }
 ```
