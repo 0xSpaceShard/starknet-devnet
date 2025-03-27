@@ -10,17 +10,10 @@ aliases:
         only:
           - main
 
-  - &on_improve_bin_compilation
-    context: spaceshard
-    filters:
-      branches:
-        only:
-          - improve-bin-compilation
-
   - &on_main_after_test_and_build
     <<: *on_main
     requires:
-      # - build-and-test
+      - build-and-test
       - image-build-amd
       - image-build-arm
       - binary-build
@@ -172,11 +165,14 @@ workflows:
     jobs:
       # - build-and-test
       - binary-build:
-          <<: *on_improve_bin_compilation
+          <<: *on_main
           matrix:
             parameters:
               arch: [x86_64, aarch64]
               platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
+            exclude:
+              - arch: aarch64
+                platform: unknown-linux-musl
           target_triplet: << matrix.arch >>-<< matrix.platform >>
           archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
       - image-build-amd:

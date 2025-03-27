@@ -21,10 +21,6 @@ x86_64-unknown-linux-musl)
     musl-gcc --version && echo "Musl successfully installed"
     ;;
 
-# Temporarily disabled
-# aarch64-unknown-linux-musl)
-#     ;;
-
 aarch64-unknown-linux-gnu)
     sudo apt-get update
     sudo apt-get install gcc-aarch64-linux-gnu
