@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use starknet_core::constants::{
     DEVNET_DEFAULT_L1_DATA_GAS_PRICE, DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE,
-    UDC_CONTRACT_CLASS_HASH,
 };
 use starknet_rs_accounts::{Account, ExecutionEncoder, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::chain_id::SEPOLIA;
@@ -18,7 +17,7 @@ use starknet_rs_providers::{Provider, ProviderError};
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     self, CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS,
-    UDC_CONTRACT_ADDRESS,
+    UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
 use crate::common::utils::{
     assert_cairo1_classes_equal, extract_message_error, extract_nested_error,

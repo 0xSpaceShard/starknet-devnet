@@ -48,6 +48,8 @@ pub const STRK_ERC20_CONTRACT_ADDRESS: Felt =
     Felt::from_hex_unchecked("0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d");
 pub const UDC_CONTRACT_ADDRESS: Felt =
     Felt::from_hex_unchecked("0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF");
+pub const UDC_CONTRACT_CLASS_HASH: Felt =
+    Felt::from_hex_unchecked("0x7B3E05F48F0C69E4A65CE5E076A66271A527AFF2C34CE1083EC6E1526997A69");
 
 // Example contract with basic storage read and write - Cairo 1
 pub const CAIRO_1_CONTRACT_PATH: &str =
