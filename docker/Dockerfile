@@ -1,4 +1,4 @@
-FROM rust:1.83.0-slim-bullseye AS builder
+FROM rust:1.85.0-slim-bullseye AS builder
 
 COPY . .
 

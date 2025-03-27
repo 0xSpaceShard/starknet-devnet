@@ -644,9 +644,7 @@ impl Starknet {
                 let block = self.get_block(block_id)?;
                 let block_hash = block.block_hash();
 
-                let is_block_id_latest =
-                    self.blocks.last_block_hash.map_or(false, |hash| hash == block_hash);
-                if is_block_id_latest {
+                if self.blocks.last_block_hash == Some(block_hash) {
                     return Ok(&mut self.latest_state);
                 }
 
