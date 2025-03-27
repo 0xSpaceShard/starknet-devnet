@@ -2,32 +2,41 @@
 
 set -euo pipefail
 
-CROSS_VERSION="v0.2.5"
-
-if [ $# != 1 ]; then
-    >&2 echo "Error: $0 <TARGET>"
+if [ "$#" -ne 1 ]; then
+    echo >&2 "Error: $0 <TARGET>"
     exit 1
 fi
 TARGET="$1"
 
-kernel_name=$(uname -s)
-case "$kernel_name" in
-Darwin*)
-    # on mac (for apple-darwin targets), rely on host compiler's targets
-    rustup target add "$TARGET"
-    compiler_command="cargo"
+CARGO_CONFIG=~/.cargo/config.toml
+
+case "$TARGET" in
+x86_64-unknown-linux-gnu | x86_64-apple-darwin | aarch64-apple-darwin)
+    echo "Target requires no extra actions: $TARGET"
     ;;
-Linux*)
-    # on linux, rely on cross compiler
-    download_url="https://github.com/cross-rs/cross/releases/download/${CROSS_VERSION}/cross-x86_64-unknown-linux-gnu.tar.gz"
-    curl -SsL "$download_url" |
-        tar -xvz -C /tmp
-    compiler_command="/tmp/cross"
+
+x86_64-unknown-linux-musl)
+    sudo apt-get update
+    sudo apt-get install musl-tools
+    musl-gcc --version && echo "Musl successfully installed"
     ;;
+
+aarch64-unknown-linux-gnu)
+    sudo apt-get update
+    sudo apt-get install gcc-aarch64-linux-gnu
+
+    aarch64-linux-gnu-gcc --version
+    echo "Cross compiler successfully installed"
+
+    echo '[target.aarch64-unknown-linux-gnu]' >>"$CARGO_CONFIG"
+    echo 'linker = "aarch64-linux-gnu-gcc"' >>"$CARGO_CONFIG"
+    ;;
+
 *)
-    >&2 echo "Unsupported kernel: $kernel_name"
-    exit 1
+    echo >&2 "Error: Unsupported compilation target: $TARGET"
+    exit 2
     ;;
 esac
 
-"$compiler_command" build --release --target="$TARGET"
+rustup target add "$TARGET"
+cargo build --release --target="$TARGET" --bin starknet-devnet
