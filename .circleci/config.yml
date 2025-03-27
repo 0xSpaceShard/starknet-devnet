@@ -21,8 +21,6 @@ aliases:
     machine:
       image: ubuntu-2204:2024.01.2
     resource_class: large
-    environment:
-      COMPILER_ARCHIVE: cross-x86_64-unknown-linux-gnu.tar.gz
 
 executors:
   unknown-linux-gnu:
@@ -35,8 +33,6 @@ executors:
     macos:
       xcode: 15.3.0
     resource_class: macos.m1.medium.gen1
-    environment:
-      COMPILER_ARCHIVE: cross-x86_64-apple-darwin.tar.gz
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
@@ -171,9 +167,11 @@ workflows:
           matrix:
             parameters:
               arch: [x86_64, aarch64]
-              # linux-gnu and linux-musl for some reason hanging when compiled with cross
-              # platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
-              platform: [apple-darwin]
+              platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
+            exclude:
+              # This combination cannot be built
+              - arch: aarch64
+                platform: unknown-linux-musl
           target_triplet: << matrix.arch >>-<< matrix.platform >>
           archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
       - image-build-amd:
