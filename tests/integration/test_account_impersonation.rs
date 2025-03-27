@@ -197,7 +197,7 @@ async fn test_simulate_transaction() {
         }
 
         let simulation_result =
-            account.execute_v1(invoke_calls.clone()).simulate(!do_validate, true).await;
+            account.execute_v3(invoke_calls.clone()).simulate(!do_validate, true).await;
         if let Some(error_msg) = expected_error_message {
             let simulation_err = simulation_result.expect_err("Expected simulation to fail");
             assert_contains(&format!("{:?}", simulation_err).to_lowercase(), error_msg);
@@ -227,7 +227,7 @@ async fn test_declare_transaction(
 
     account.set_block_id(BlockId::Tag(BlockTag::Latest));
 
-    account.declare_v2(Arc::new(flattened_class), compiled_class_hash).send().await?;
+    account.declare_v3(Arc::new(flattened_class), compiled_class_hash).send().await?;
 
     Ok(())
 }
@@ -250,7 +250,7 @@ async fn test_invoke_transaction(
 
     let invoke_call = get_invoke_transaction_request(AMOUNT_TO_TRANSFER);
 
-    let result = account.execute_v1(vec![invoke_call]).send().await?;
+    let result = account.execute_v3(vec![invoke_call]).send().await?;
 
     let receipt = forked_devnet
         .json_rpc_client

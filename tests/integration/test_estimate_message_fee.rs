@@ -30,13 +30,7 @@ async fn estimate_message_fee() {
     let class_hash = contract_artifact.class_hash();
 
     // declare class
-    account
-        .declare_v3(contract_artifact, casm_hash)
-        .nonce(Felt::ZERO)
-        .gas(1e7 as u64)
-        .send()
-        .await
-        .unwrap();
+    account.declare_v3(contract_artifact, casm_hash).nonce(Felt::ZERO).send().await.unwrap();
 
     // deploy instance of class
     let contract_factory = ContractFactory::new(class_hash, account.clone());
@@ -51,7 +45,6 @@ async fn estimate_message_fee() {
     contract_factory
         .deploy_v3(constructor_calldata, salt, false)
         .nonce(Felt::ONE)
-        .gas(1e7 as u64)
         .send()
         .await
         .expect("Cannot deploy");
@@ -70,7 +63,8 @@ async fn estimate_message_fee() {
         .await
         .unwrap();
 
-    assert_eq!(res.gas_consumed, Felt::from(16029));
+    assert_eq!(res.l1_gas_consumed, Felt::from(16029));
+    assert_eq!(res.l2_gas_consumed, Felt::ZERO);
 }
 
 #[tokio::test]

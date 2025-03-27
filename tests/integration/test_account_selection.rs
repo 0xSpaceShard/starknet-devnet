@@ -12,7 +12,7 @@ use starknet_rs_signers::LocalWallet;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
-    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, MAINNET_URL,
+    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, INTEGRATION_SEPOLIA_HTTP_URL,
 };
 use crate::common::reqwest_client::GetReqwestSender;
 use crate::common::utils::{
@@ -124,7 +124,7 @@ async fn argent_account_undeployable_by_default() {
 #[tokio::test]
 /// Relying on forking: the origin network is expected to have the account class declared.
 async fn can_deploy_instance_of_argent_account_via_fork() {
-    let cli_args = ["--fork-network", MAINNET_URL];
+    let cli_args = ["--fork-network", INTEGRATION_SEPOLIA_HTTP_URL];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
     let account_hash = Felt::from_hex_unchecked(ARGENT_ACCOUNT_CLASS_HASH);
@@ -164,14 +164,19 @@ async fn can_declare_deploy_invoke_cairo1_using_account(
     let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
 
     // declare the contract
-    let declaration_result =
-        account.declare_v2(Arc::new(contract_class), casm_hash).send().await.unwrap();
+    let declaration_result = account
+        .declare_v3(Arc::new(contract_class), casm_hash)
+        .gas_estimate_multiplier(1.0)
+        .gas_price_estimate_multiplier(1.0)
+        .send()
+        .await
+        .unwrap();
 
     // deploy the contract
     let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
     let initial_value = Felt::from(10_u32);
     let ctor_args = vec![initial_value];
-    contract_factory.deploy_v1(ctor_args.clone(), Felt::ZERO, false).send().await.unwrap();
+    contract_factory.deploy_v3(ctor_args.clone(), Felt::ZERO, false).send().await.unwrap();
 
     // generate the address of the newly deployed contract
     let contract_address = get_udc_deployed_address(
@@ -189,7 +194,7 @@ async fn can_declare_deploy_invoke_cairo1_using_account(
         calldata: vec![increment, Felt::ZERO],
     }];
 
-    let invoke_result = account.execute_v1(contract_invoke.clone()).send().await.unwrap();
+    let invoke_result = account.execute_v3(contract_invoke.clone()).send().await.unwrap();
 
     assert_tx_successful(&invoke_result.transaction_hash, &devnet.json_rpc_client).await;
 }

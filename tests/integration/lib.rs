@@ -1,5 +1,4 @@
 #![cfg(test)]
-#![allow(deprecated)] // TODO until v1 and v2 transactions are replaced with v3
 
 mod common;
 
@@ -15,6 +14,7 @@ mod test_advancing_time;
 mod test_balance;
 mod test_blocks_generation;
 mod test_call;
+mod test_deploy;
 mod test_dump_and_load;
 mod test_estimate_fee;
 mod test_estimate_message_fee;
