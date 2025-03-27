@@ -753,8 +753,6 @@ impl Starknet {
             }
         }
 
-        // TODO other cases: https://spaceshard.slack.com/archives/C03QN20522D/p1735547866439019
-
         Ok(res.execution.retdata.0)
     }
 
