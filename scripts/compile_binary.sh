@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-if [ $# != 1 ]; then
+if [ "$#" -ne 1 ]; then
     echo >&2 "Error: $0 <TARGET>"
     exit 1
 fi

@@ -173,6 +173,7 @@ workflows:
               arch: [x86_64, aarch64]
               platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
             exclude:
+              # This combination cannot be built
               - arch: aarch64
                 platform: unknown-linux-musl
           target_triplet: << matrix.arch >>-<< matrix.platform >>
