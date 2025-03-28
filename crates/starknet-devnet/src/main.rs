@@ -18,6 +18,7 @@ use starknet_core::constants::{
     ARGENT_CONTRACT_CLASS_HASH, ARGENT_MULTISIG_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS,
     STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
+use starknet_core::contract_class_choice::get_account_metadata;
 use starknet_core::starknet::starknet_config::{
     BlockGenerationOn, DumpOn, ForkConfig, StarknetConfig,
 };
@@ -80,8 +81,16 @@ fn log_predeployed_accounts(
     seed: u32,
     initial_balance: Balance,
 ) {
+    if let Some(predeployed_account) = predeployed_accounts.first() {
+        println!(
+            "Predeployed accounts using class {} with hash: {}",
+            get_account_metadata(predeployed_account.class_hash),
+            predeployed_account.class_hash.to_fixed_hex_string()
+        );
+    }
+
     for account in predeployed_accounts {
-        let formatted_str = format!(
+        println!(
             r"
 | Account address |  {}
 | Private key     |  {}
@@ -90,16 +99,13 @@ fn log_predeployed_accounts(
             account.private_key.to_fixed_hex_string(),
             account.public_key.to_fixed_hex_string()
         );
-
-        println!("{}", formatted_str);
     }
 
-    if let Some(predeployed_account) = predeployed_accounts.first() {
+    if !predeployed_accounts.is_empty() {
         println!();
-        let class_hash = predeployed_account.class_hash.to_fixed_hex_string();
-        println!("Predeployed accounts using class with hash: {class_hash}");
-        println!("Initial balance of each account: {} WEI and FRI", initial_balance);
+        println!("Initial balance of each account: {initial_balance} WEI and FRI");
         println!("Seed to replicate this account sequence: {seed}");
+        println!();
     }
 }
 
@@ -127,6 +133,7 @@ fn log_other_predeclared_contracts(config: &StarknetConfig) {
 
 fn log_chain_id(chain_id: &ChainId) {
     println!("Chain ID: {} ({})", chain_id, chain_id.to_felt().to_hex_string());
+    println!();
 }
 
 async fn check_forking_spec_version(
@@ -294,9 +301,9 @@ async fn main() -> Result<(), anyhow::Error> {
         );
     };
 
+    log_chain_id(&starknet_config.chain_id);
     log_predeployed_contracts(&starknet_config);
     log_other_predeclared_contracts(&starknet_config);
-    log_chain_id(&starknet_config.chain_id);
 
     let predeployed_accounts = api.starknet.lock().await.get_predeployed_accounts();
     log_predeployed_accounts(
