@@ -38,7 +38,7 @@ Only Starknet's WebSocket methods are available via this protocol. General JSON-
 
 :::
 
-JSON-RPC [WebSocket methods](https://github.com/starkware-libs/starknet-specs/blob/v0.8.0/api/starknet_ws_api.json) can be accessed via the WebSocket protocol, using text or binary messasges. Devnet listens for new WebSocket connections at `ws://<HOST>:<PORT>/ws` (notice the protocol scheme). E.g. using [`wscat`](https://www.npmjs.com/package/wscat) on the same computer where Devnet is spawned at default host and port:
+JSON-RPC [WebSocket methods](https://github.com/starkware-libs/starknet-specs/blob/v0.8.0/api/starknet_ws_api.json) can be accessed via the WebSocket protocol, using text or binary messages. Devnet listens for new WebSocket connections at `ws://<HOST>:<PORT>/ws` (notice the protocol scheme). E.g. using [`wscat`](https://www.npmjs.com/package/wscat) on the same computer where Devnet is spawned at default host and port:
 
 ```
 $ wscat -c ws://127.0.0.1:5050/ws
