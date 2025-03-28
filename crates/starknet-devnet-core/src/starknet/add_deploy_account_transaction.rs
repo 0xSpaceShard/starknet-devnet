@@ -61,17 +61,15 @@ pub fn add_deploy_account_transaction(
 }
 #[cfg(test)]
 mod tests {
-
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
-    use starknet_api::transaction::fields::{Fee, Tip};
+    use starknet_api::transaction::fields::Tip;
     use starknet_rs_core::types::{
         BlockId, BlockTag, Felt, TransactionExecutionStatus, TransactionFinalityStatus,
     };
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::ClassHash;
-    use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
     use starknet_types::rpc::transactions::{
         BroadcastedDeployAccountTransaction, BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
@@ -83,15 +81,13 @@ mod tests {
         STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{Error, TransactionValidationError};
-    use crate::starknet::{Starknet, predeployed};
+    use crate::starknet::{predeployed, Starknet};
     use crate::state::CustomState;
     use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::cairo_0_account_without_validations;
 
     const GAS_PRICE: u128 = 1_u128;
-
-    // TODO add test for all three gas bounds
 
     fn test_deploy_account_transaction_v3(
         class_hash: ClassHash,
@@ -147,35 +143,26 @@ mod tests {
     #[test]
     fn deploy_account_transaction_v3_with_max_fee_zero_should_return_an_error() {
         let (mut starknet, account_class_hash) = setup();
-        let deploy_account_transaction =
-            test_deploy_account_transaction_v3(account_class_hash, 0, 0, 0, 0);
+        let tx = test_deploy_account_transaction_v3(account_class_hash, 0, 0, 0, 0);
 
-        let txn_err = starknet
-            .add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(
-                deploy_account_transaction,
-            ))
-            .unwrap_err();
-        match txn_err {
-            Error::TransactionValidationError(
+        match starknet.add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(tx)) {
+            Err(Error::TransactionValidationError(
                 TransactionValidationError::InsufficientResourcesForValidate,
-            ) => {}
-            _ => panic!("Wrong error type"),
+            )) => {}
+            other => panic!("Unexpected result: {other:?}"),
         }
     }
 
     #[test]
     fn deploy_account_transaction_v3_should_return_an_error_due_to_not_enough_balance() {
         let (mut starknet, account_class_hash) = setup();
-        let transaction = test_deploy_account_transaction_v3(account_class_hash, 0, 4000, 0, 0);
+        let tx = test_deploy_account_transaction_v3(account_class_hash, 0, 4000, 0, 0);
 
-        match starknet
-            .add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(transaction))
-            .unwrap_err()
-        {
-            Error::TransactionValidationError(
+        match starknet.add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(tx)) {
+            Err(Error::TransactionValidationError(
                 TransactionValidationError::InsufficientAccountBalance,
-            ) => {}
-            err => panic!("Wrong error type: {err:?}"),
+            )) => {}
+            other => panic!("Unexpected result: {other:?}"),
         }
     }
 
@@ -207,55 +194,43 @@ mod tests {
     }
 
     #[test]
-    fn deploy_account_transaction_v1_should_return_an_error_due_to_not_enough_fee() {
+    fn deploy_account_transaction_v3_should_return_an_error_if_insufficient_l1_gas_bounds() {
         let (mut starknet, account_class_hash) = setup();
-
-        let fee_raw: u128 = 1;
-        let transaction = BroadcastedDeployAccountTransactionV1::new(
-            &vec![],
-            Fee(fee_raw),
-            &vec![],
-            Felt::ZERO,
-            account_class_hash,
-            Felt::from(13),
-            Felt::ONE,
-        );
-
-        let executable_tx = BroadcastedDeployAccountTransaction::V1(transaction.clone())
-            .create_sn_api_deploy_account(&DEVNET_DEFAULT_CHAIN_ID.to_felt())
-            .unwrap();
-
-        // change balance at address
-        let account_address = ContractAddress::from(executable_tx.contract_address);
-        let balance_storage_var_address =
-            get_storage_var_address("ERC20_balances", &[account_address.into()])
-                .unwrap()
-                .try_into()
-                .unwrap();
-
-        let account_balance_before_deployment = Felt::from(1_000_000);
-        starknet
-            .pending_state
-            .set_storage_at(
-                starknet.block_context.chain_info().fee_token_addresses.eth_fee_token_address,
-                balance_storage_var_address,
-                account_balance_before_deployment,
-            )
-            .unwrap();
-
-        match starknet
-            .add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V1(transaction))
-            .unwrap_err()
-        {
-            Error::TransactionValidationError(
+        let tx = test_deploy_account_transaction_v3(account_class_hash, 0, 1, 0, 0);
+        match starknet.add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(tx)) {
+            Err(Error::TransactionValidationError(
                 TransactionValidationError::InsufficientResourcesForValidate,
-            ) => {}
-            err => panic!("Wrong error type: {err:?}"),
+            )) => {}
+            other => panic!("Unexpected result: {other:?}"),
         }
     }
 
     #[test]
-    fn test_deploy_account_transaction_v3_successful_execution() {
+    fn deploy_account_transaction_v3_should_return_an_error_if_only_l1_and_l2_gas_specified() {
+        let (mut starknet, account_class_hash) = setup();
+        let tx = test_deploy_account_transaction_v3(account_class_hash, 0, 1000, 0, 1000);
+        match starknet.add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(tx)) {
+            Err(Error::TransactionValidationError(
+                TransactionValidationError::InsufficientResourcesForValidate,
+            )) => {}
+            other => panic!("Unexpected result: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn deploy_account_transaction_v3_should_return_an_error_if_insufficient_l2_gas_bounds() {
+        let (mut starknet, account_class_hash) = setup();
+        let tx = test_deploy_account_transaction_v3(account_class_hash, 0, 1000, 1000, 1);
+        match starknet.add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(tx)) {
+            Err(Error::TransactionValidationError(
+                TransactionValidationError::InsufficientResourcesForValidate,
+            )) => {}
+            other => panic!("Unexpected result: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_deploy_account_transaction_v3_successful_execution_if_only_l1_gas() {
         let (mut starknet, account_class_hash) = setup();
         let transaction = test_deploy_account_transaction_v3(account_class_hash, 0, 4000, 0, 0);
 
@@ -265,6 +240,38 @@ mod tests {
 
         let account_address = ContractAddress::from(executable_tx.contract_address);
         let account_balance_before_deployment = Felt::from(1_000_000);
+        set_strk_balance(&mut starknet, account_address, account_balance_before_deployment);
+
+        let (txn_hash, _) = starknet
+            .add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(transaction))
+            .unwrap();
+        let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
+
+        assert_eq!(txn.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Succeeded);
+
+        assert_eq!(
+            starknet.get_class_hash_at(&BlockId::Tag(BlockTag::Latest), account_address).unwrap(),
+            account_class_hash,
+        );
+
+        let account_balance_after_deployment = get_strk_balance(&starknet, account_address);
+
+        assert!(account_balance_before_deployment > account_balance_after_deployment);
+    }
+
+    #[test]
+    fn test_deploy_account_transaction_v3_successful_execution_if_all_gas_bounds() {
+        let (mut starknet, account_class_hash) = setup();
+        let transaction =
+            test_deploy_account_transaction_v3(account_class_hash, 0, 0, 1000, 1e7 as u64);
+
+        let executable_tx = BroadcastedDeployAccountTransaction::V3(transaction.clone())
+            .create_sn_api_deploy_account(&DEVNET_DEFAULT_CHAIN_ID.to_felt())
+            .unwrap();
+
+        let account_address = ContractAddress::from(executable_tx.contract_address);
+        let account_balance_before_deployment = Felt::from(1e8 as u128);
         set_strk_balance(&mut starknet, account_address, account_balance_before_deployment);
 
         let (txn_hash, _) = starknet

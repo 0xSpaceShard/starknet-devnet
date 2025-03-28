@@ -28,7 +28,6 @@ use self::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTra
 use self::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use self::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use self::declare_transaction_v3::DeclareTransactionV3;
-use self::deploy_account_transaction_v1::DeployAccountTransactionV1;
 use self::deploy_account_transaction_v3::DeployAccountTransactionV3;
 use self::invoke_transaction_v3::InvokeTransactionV3;
 use self::l1_handler_transaction::L1HandlerTransaction;
@@ -50,14 +49,12 @@ use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
 pub mod broadcasted_declare_transaction_v2;
 pub mod broadcasted_declare_transaction_v3;
-pub mod broadcasted_deploy_account_transaction_v1;
 pub mod broadcasted_deploy_account_transaction_v3;
 pub mod broadcasted_invoke_transaction_v1;
 pub mod broadcasted_invoke_transaction_v3;
 
 pub mod declare_transaction_v2;
 pub mod declare_transaction_v3;
-pub mod deploy_account_transaction_v1;
 pub mod deploy_account_transaction_v3;
 pub mod deploy_transaction;
 pub mod invoke_transaction_v1;
@@ -236,14 +233,12 @@ impl InvokeTransaction {
 #[cfg_attr(feature = "testing", derive(Deserialize, PartialEq, Eq))]
 #[serde(untagged)]
 pub enum DeployAccountTransaction {
-    V1(Box<DeployAccountTransactionV1>),
     V3(Box<DeployAccountTransactionV3>),
 }
 
 impl DeployAccountTransaction {
     pub fn get_contract_address(&self) -> &ContractAddress {
         match self {
-            DeployAccountTransaction::V1(tx) => tx.get_contract_address(),
             DeployAccountTransaction::V3(tx) => tx.get_contract_address(),
         }
     }
