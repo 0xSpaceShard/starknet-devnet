@@ -9,7 +9,6 @@ pub const CAIRO_0_ACCOUNT_CONTRACT: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/contracts/accounts_artifacts/OpenZeppelin/0.5.1/Account.cairo/Account.json"
 ));
-
 pub const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
     "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
 
@@ -18,12 +17,10 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/contracts/accounts_artifacts/OpenZeppelin/0.20.0/Account.cairo/Account.sierra"
 );
-
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/contracts/accounts_artifacts/OpenZeppelin/0.20.0/Account.cairo/Account.sierra"
 ));
-
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
     "0x02b31e19e45c06f29234e06e2ee98a9966479ba3067f8785ed972794fdb0065c";
 

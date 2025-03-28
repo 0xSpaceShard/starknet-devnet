@@ -6,8 +6,21 @@ use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
 use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
 use starknet_types::traits::HashProducer;
 
-use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT, CAIRO_1_ACCOUNT_CONTRACT_SIERRA};
+use crate::constants::{
+    CAIRO_0_ACCOUNT_CONTRACT, CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA,
+    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
+};
 use crate::error::DevnetResult;
+
+pub fn get_account_metadata(class_hash: Felt) -> &'static str {
+    if class_hash == Felt::from_hex_unchecked(CAIRO_0_ACCOUNT_CONTRACT_HASH) {
+        "OpenZeppelin 0.5.1"
+    } else if class_hash == Felt::from_hex_unchecked(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH) {
+        "OpenZeppelin 0.20.0"
+    } else {
+        "Custom"
+    }
+}
 
 #[derive(clap::ValueEnum, Debug, Clone)]
 pub enum AccountContractClassChoice {
@@ -36,7 +49,6 @@ impl AccountContractClassChoice {
         })
     }
 }
-
 #[derive(Clone, Debug)]
 pub struct AccountClassWrapper {
     pub contract_class: ContractClass,
@@ -83,12 +95,13 @@ impl FromStr for AccountClassWrapper {
 #[cfg(test)]
 mod tests {
     use clap::ValueEnum;
+    use starknet_rs_core::types::Felt;
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::traits::HashProducer;
 
     use super::AccountContractClassChoice;
     use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH};
-    use crate::contract_class_choice::AccountClassWrapper;
+    use crate::contract_class_choice::{get_account_metadata, AccountClassWrapper};
 
     #[test]
     fn all_methods_work_with_all_options() {
@@ -111,5 +124,24 @@ mod tests {
             AccountContractClassChoice::Cairo1.get_class_wrapper().unwrap().class_hash,
             felt_from_prefixed_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
         )
+    }
+
+    #[test]
+    fn correct_metadata() {
+        assert_eq!(
+            get_account_metadata(
+                AccountContractClassChoice::Cairo0.get_class_wrapper().unwrap().class_hash
+            ),
+            "OpenZeppelin 0.5.1"
+        );
+
+        assert_eq!(
+            get_account_metadata(
+                AccountContractClassChoice::Cairo1.get_class_wrapper().unwrap().class_hash
+            ),
+            "OpenZeppelin 0.20.0"
+        );
+
+        assert_eq!(get_account_metadata(Felt::from(0x123)), "Custom");
     }
 }
