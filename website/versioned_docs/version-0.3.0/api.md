@@ -10,7 +10,11 @@ Both Starknet's and Devnet's JSON-RPC API are reachable at `/rpc` and `/`. E.g. 
 
 ### Starknet API
 
-Unlike Pythonic Devnet, which also supported Starknet's gateway and feeder gateway API, Devnet in Rust supports [Starknet's JSON-RPC API](https://github.com/starkware-libs/starknet-specs/tree/master/api). Since JSON-RPC v0.6.0, to find out which JSON-RPC version is supported by which Devnet version, check out the [releases page](https://github.com/0xspaceshard/starknet-devnet/releases).
+Unlike Pythonic Devnet, which also supported Starknet's gateway and feeder gateway API, Devnet in Rust supports [Starknet's JSON-RPC API](https://github.com/starkware-libs/starknet-specs/tree/master/api), including [WebSocket support](#websocket).
+
+Due to how Devnet internally works, the method `starknet_getStorageProof` is not applicable, and thus not supported.
+
+Since JSON-RPC v0.6.0, to find out which JSON-RPC version is supported by which Devnet version, check out the [releases page](https://github.com/0xspaceshard/starknet-devnet/releases).
 
 ### Devnet API
 
@@ -24,11 +28,17 @@ New features are only supported as part of the JSON-RPC API. Older non-RPC reque
 
 #### Healthcheck
 
-To check if a Devnet instance is alive, send an HTTP request `GET /is_alive`. If alive, the Devnet will reply with a `200 OK` and an appropriate message.
+To check if a Devnet instance is alive, send an HTTP request `GET /is_alive`. If alive, Devnet will reply with a `200 OK` and an appropriate message.
 
 ### WebSocket
 
-JSON-RPC websocket methods can be accessed via the WebSocket protocol. Devnet is listening for new WebSocket connections at `ws://<HOST>:<PORT>/ws` (notice the protocol scheme). Any request body you would send to `/rpc` you can send as a text (or binary) message via WebSocket. E.g. using [`wscat`](https://www.npmjs.com/package/wscat) on the same computer where Devnet is spawned at default host and port:
+:::note Scope
+
+Only Starknet's WebSocket methods are available via this protocol. General JSON-RPC support via WebSocket is not yet a feature of Devnet, meaning it does not support methods like `devnet_mint` or `starknet_getNonce`.
+
+:::
+
+JSON-RPC [WebSocket methods](https://github.com/starkware-libs/starknet-specs/blob/v0.8.0/api/starknet_ws_api.json) can be accessed via the WebSocket protocol, using text or binary messasges. Devnet listens for new WebSocket connections at `ws://<HOST>:<PORT>/ws` (notice the protocol scheme). E.g. using [`wscat`](https://www.npmjs.com/package/wscat) on the same computer where Devnet is spawned at default host and port:
 
 ```
 $ wscat -c ws://127.0.0.1:5050/ws
