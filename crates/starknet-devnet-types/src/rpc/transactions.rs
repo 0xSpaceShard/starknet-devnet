@@ -24,12 +24,10 @@ use starknet_rs_core::types::{
 use starknet_rs_core::utils::parse_cairo_short_string;
 
 use self::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
-use self::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
 use self::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
 use self::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use self::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use self::declare_transaction_v3::DeclareTransactionV3;
-use self::deploy_account_transaction_v1::DeployAccountTransactionV1;
 use self::deploy_account_transaction_v3::DeployAccountTransactionV3;
 use self::invoke_transaction_v3::InvokeTransactionV3;
 use self::l1_handler_transaction::L1HandlerTransaction;
@@ -51,14 +49,12 @@ use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
 pub mod broadcasted_declare_transaction_v2;
 pub mod broadcasted_declare_transaction_v3;
-pub mod broadcasted_deploy_account_transaction_v1;
 pub mod broadcasted_deploy_account_transaction_v3;
 pub mod broadcasted_invoke_transaction_v1;
 pub mod broadcasted_invoke_transaction_v3;
 
 pub mod declare_transaction_v2;
 pub mod declare_transaction_v3;
-pub mod deploy_account_transaction_v1;
 pub mod deploy_account_transaction_v3;
 pub mod deploy_transaction;
 pub mod invoke_transaction_v1;
@@ -237,14 +233,12 @@ impl InvokeTransaction {
 #[cfg_attr(feature = "testing", derive(Deserialize, PartialEq, Eq))]
 #[serde(untagged)]
 pub enum DeployAccountTransaction {
-    V1(Box<DeployAccountTransactionV1>),
     V3(Box<DeployAccountTransactionV3>),
 }
 
 impl DeployAccountTransaction {
     pub fn get_contract_address(&self) -> &ContractAddress {
         match self {
-            DeployAccountTransaction::V1(tx) => tx.get_contract_address(),
             DeployAccountTransaction::V3(tx) => tx.get_contract_address(),
         }
     }
@@ -673,28 +667,24 @@ impl BroadcastedDeclareTransaction {
 
 #[derive(Debug, Clone)]
 pub enum BroadcastedDeployAccountTransaction {
-    V1(BroadcastedDeployAccountTransactionV1),
     V3(BroadcastedDeployAccountTransactionV3),
 }
 
 impl BroadcastedDeployAccountTransaction {
     pub fn is_max_fee_valid(&self) -> bool {
         match self {
-            BroadcastedDeployAccountTransaction::V1(v1) => !v1.common.is_max_fee_zero_value(),
             BroadcastedDeployAccountTransaction::V3(v3) => v3.common.are_gas_bounds_valid(),
         }
     }
 
     pub fn is_deprecated(&self) -> bool {
         match self {
-            BroadcastedDeployAccountTransaction::V1(_) => true,
             BroadcastedDeployAccountTransaction::V3(_) => false,
         }
     }
 
     pub fn is_only_query(&self) -> bool {
         match self {
-            BroadcastedDeployAccountTransaction::V1(tx) => tx.common.is_only_query(),
             BroadcastedDeployAccountTransaction::V3(tx) => tx.common.is_only_query(),
         }
     }
@@ -709,24 +699,6 @@ impl BroadcastedDeployAccountTransaction {
         chain_id: &Felt,
     ) -> DevnetResult<starknet_api::executable_transaction::DeployAccountTransaction> {
         let sn_api_transaction = match self {
-            BroadcastedDeployAccountTransaction::V1(v1) => {
-                let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV1 {
-                    max_fee: v1.common.max_fee,
-                    signature: starknet_api::transaction::fields::TransactionSignature(
-                        v1.common.signature.clone(),
-                    ),
-                    nonce: starknet_api::core::Nonce(v1.common.nonce),
-                    class_hash: starknet_api::core::ClassHash(v1.class_hash),
-                    contract_address_salt: starknet_api::transaction::fields::ContractAddressSalt(
-                        v1.contract_address_salt,
-                    ),
-                    constructor_calldata: starknet_api::transaction::fields::Calldata(Arc::new(
-                        v1.constructor_calldata.clone(),
-                    )),
-                };
-
-                starknet_api::transaction::DeployAccountTransaction::V1(sn_api_transaction)
-            }
             BroadcastedDeployAccountTransaction::V3(v3) => {
                 let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV3 {
                     resource_bounds: (&v3.common.resource_bounds).into(),
@@ -881,12 +853,6 @@ impl<'de> Deserialize<'de> for BroadcastedDeployAccountTransaction {
         let value = serde_json::Value::deserialize(deserializer)?;
         let version_raw = value.get("version").ok_or(serde::de::Error::missing_field("version"))?;
         match version_raw.as_str() {
-            Some(v) if ["0x1", "0x100000000000000000000000000000001"].contains(&v) => {
-                let unpacked = serde_json::from_value(value).map_err(|e| {
-                    serde::de::Error::custom(format!("Invalid deploy account transaction v1: {e}"))
-                })?;
-                Ok(BroadcastedDeployAccountTransaction::V1(unpacked))
-            }
             Some(v) if ["0x3", "0x100000000000000000000000000000003"].contains(&v) => {
                 let unpacked = serde_json::from_value(value).map_err(|e| {
                     serde::de::Error::custom(format!("Invalid deploy account transaction v3: {e}"))
