@@ -208,7 +208,7 @@ mod tests {
     #[test]
     fn deploy_account_transaction_v3_should_return_an_error_if_only_l1_and_l2_gas_specified() {
         let (mut starknet, account_class_hash) = setup();
-        let tx = test_deploy_account_transaction_v3(account_class_hash, 0, 1000, 0, 1000);
+        let tx = test_deploy_account_transaction_v3(account_class_hash, 0, 1000, 0, 1e7 as u64);
         match starknet.add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(tx)) {
             Err(Error::TransactionValidationError(
                 TransactionValidationError::InsufficientResourcesForValidate,
@@ -229,17 +229,17 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_deploy_account_transaction_v3_successful_execution_if_only_l1_gas() {
+    fn successfully_deploy_acc_v3(init_balance: u64, l1_gas: u64, l1_data_gas: u64, l2_gas: u64) {
         let (mut starknet, account_class_hash) = setup();
-        let transaction = test_deploy_account_transaction_v3(account_class_hash, 0, 4000, 0, 0);
+        let transaction =
+            test_deploy_account_transaction_v3(account_class_hash, 0, l1_gas, l1_data_gas, l2_gas);
 
         let executable_tx = BroadcastedDeployAccountTransaction::V3(transaction.clone())
             .create_sn_api_deploy_account(&DEVNET_DEFAULT_CHAIN_ID.to_felt())
             .unwrap();
 
         let account_address = ContractAddress::from(executable_tx.contract_address);
-        let account_balance_before_deployment = Felt::from(1_000_000);
+        let account_balance_before_deployment = Felt::from(init_balance);
         set_strk_balance(&mut starknet, account_address, account_balance_before_deployment);
 
         let (txn_hash, _) = starknet
@@ -261,35 +261,13 @@ mod tests {
     }
 
     #[test]
+    fn test_deploy_account_transaction_v3_successful_execution_if_only_l1_gas() {
+        successfully_deploy_acc_v3(1e6 as u64, 4000, 0, 0);
+    }
+
+    #[test]
     fn test_deploy_account_transaction_v3_successful_execution_if_all_gas_bounds() {
-        let (mut starknet, account_class_hash) = setup();
-        let transaction =
-            test_deploy_account_transaction_v3(account_class_hash, 0, 0, 1000, 1e7 as u64);
-
-        let executable_tx = BroadcastedDeployAccountTransaction::V3(transaction.clone())
-            .create_sn_api_deploy_account(&DEVNET_DEFAULT_CHAIN_ID.to_felt())
-            .unwrap();
-
-        let account_address = ContractAddress::from(executable_tx.contract_address);
-        let account_balance_before_deployment = Felt::from(1e8 as u128);
-        set_strk_balance(&mut starknet, account_address, account_balance_before_deployment);
-
-        let (txn_hash, _) = starknet
-            .add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(transaction))
-            .unwrap();
-        let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
-
-        assert_eq!(txn.finality_status, TransactionFinalityStatus::AcceptedOnL2);
-        assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Succeeded);
-
-        assert_eq!(
-            starknet.get_class_hash_at(&BlockId::Tag(BlockTag::Latest), account_address).unwrap(),
-            account_class_hash,
-        );
-
-        let account_balance_after_deployment = get_strk_balance(&starknet, account_address);
-
-        assert!(account_balance_before_deployment > account_balance_after_deployment);
+        successfully_deploy_acc_v3(1e8 as u64, 0, 1000, 1e7 as u64);
     }
 
     /// Initializes starknet with erc20 contracts, 1 declared contract class. Gas price is set to 1
