@@ -39,6 +39,7 @@ pub struct Account {
     pub account_address: ContractAddress,
     pub initial_balance: Balance,
     pub class_hash: ClassHash,
+    pub class_metadata: &'static str,
     pub(crate) contract_class: ContractClass,
     pub(crate) eth_fee_token_address: ContractAddress,
     pub(crate) strk_fee_token_address: ContractAddress,
@@ -49,7 +50,7 @@ impl Account {
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
     ) -> DevnetResult<Self> {
-        let AccountClassWrapper { contract_class, class_hash } =
+        let AccountClassWrapper { contract_class, class_hash, class_metadata } =
             AccountContractClassChoice::Cairo1.get_class_wrapper()?;
 
         // very big number
@@ -63,6 +64,7 @@ impl Account {
             )?)?,
             initial_balance,
             class_hash,
+            class_metadata,
             contract_class,
             eth_fee_token_address,
             strk_fee_token_address,
@@ -74,6 +76,7 @@ impl Account {
         public_key: Key,
         private_key: Key,
         class_hash: ClassHash,
+        class_metadata: &'static str,
         contract_class: ContractClass,
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
@@ -83,6 +86,7 @@ impl Account {
             public_key,
             private_key,
             class_hash,
+            class_metadata,
             contract_class,
             account_address: Account::compute_account_address(&public_key)?,
             eth_fee_token_address,
@@ -317,6 +321,7 @@ mod tests {
                 Felt::from(13431515),
                 Felt::from(11),
                 dummy_felt(),
+                "Dummy account",
                 dummy_cairo_1_contract_class().into(),
                 fee_token_address,
                 fee_token_address,

@@ -67,6 +67,7 @@ impl AccountGenerator for PredeployedAccounts {
                 self.generate_public_key(&private_key),
                 private_key,
                 class_hash,
+                "Custom",
                 contract_class.clone(),
                 self.eth_fee_token_address,
                 self.strk_fee_token_address,

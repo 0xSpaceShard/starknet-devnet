@@ -1570,6 +1570,7 @@ mod tests {
             dummy_felt(),
             dummy_felt(),
             account_class.generate_hash().unwrap(),
+            "Custom",
             account_class.into(),
             starknet.block_context.chain_info().fee_token_addresses.eth_fee_token_address.into(),
             starknet.block_context.chain_info().fee_token_addresses.strk_fee_token_address.into(),

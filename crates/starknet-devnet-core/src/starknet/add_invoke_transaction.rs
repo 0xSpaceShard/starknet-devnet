@@ -496,6 +496,7 @@ mod tests {
             dummy_felt(),
             dummy_felt(),
             account_without_validations_class_hash,
+            "Custom",
             ContractClass::Cairo0(account_without_validations_contract_class),
             eth_erc_20_contract.get_address(),
             strk_erc_20_contract.get_address(),

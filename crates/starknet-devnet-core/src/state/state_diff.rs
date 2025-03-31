@@ -286,6 +286,7 @@ mod tests {
             dummy_felt(),
             dummy_felt(),
             account_without_validations_class_hash,
+            "Custom",
             ContractClass::Cairo0(account_without_validations_contract_class),
             ContractAddress::new(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
             ContractAddress::new(STRK_ERC20_CONTRACT_ADDRESS).unwrap(),

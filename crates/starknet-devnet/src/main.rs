@@ -18,7 +18,6 @@ use starknet_core::constants::{
     ARGENT_CONTRACT_CLASS_HASH, ARGENT_MULTISIG_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS,
     STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
-use starknet_core::contract_class_choice::get_account_metadata;
 use starknet_core::starknet::starknet_config::{
     BlockGenerationOn, DumpOn, ForkConfig, StarknetConfig,
 };
@@ -84,7 +83,7 @@ fn log_predeployed_accounts(
     if let Some(predeployed_account) = predeployed_accounts.first() {
         println!(
             "Predeployed accounts using class {} with hash: {}",
-            get_account_metadata(predeployed_account.class_hash),
+            predeployed_account.class_metadata,
             predeployed_account.class_hash.to_fixed_hex_string()
         );
     }
