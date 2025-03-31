@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+
 use rand::{Rng, SeedableRng};
 use serde_json::{Map, Value};
 
@@ -111,7 +112,7 @@ impl Visitor for RandDataGenerator<'_> {
 
         let number_of_elements = if min_items == max_items {
             min_items
-        }else {
+        } else {
             rand::thread_rng().gen_range(min_items..max_items)
         };
 
@@ -215,11 +216,7 @@ impl Visitor for RandDataGenerator<'_> {
             }
 
             // combine required and optional fields that will be part of the json object
-            [
-                required_fields.as_slice(),
-                optional_fields.as_slice(),
-            ]
-            .concat()
+            [required_fields.as_slice(), optional_fields.as_slice()].concat()
         };
 
         for (key, inner_schema) in
