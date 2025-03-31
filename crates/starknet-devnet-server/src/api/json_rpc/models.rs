@@ -368,16 +368,33 @@ mod tests {
                   ]
                 },
                 {
-                    "type": "DEPLOY_ACCOUNT",
-                    "max_fee": "0xA",
-                    "version": "0x1",
+                    "type":"DEPLOY_ACCOUNT",
+                    "resource_bounds": {
+                        "l1_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
+                        },
+                        "l1_data_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
+                        },
+                        "l2_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
+                        }
+                    },
+                    "tip": "0xabc",
+                    "paymaster_data": [],
+                    "version": "0x100000000000000000000000000000003",
                     "signature": ["0xFF", "0xAA"],
                     "nonce": "0x0",
                     "contract_address_salt": "0x01",
+                    "class_hash": "0x01",
                     "constructor_calldata": ["0x01"],
-                    "class_hash": "0x01"
+                    "nonce_data_availability_mode": "L1",
+                    "fee_data_availability_mode": "L1"
                 }
-                ],
+            ],
             "block_id": {
                 "block_number": 1
             },
