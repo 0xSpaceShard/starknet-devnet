@@ -16,8 +16,8 @@ use crate::common::constants::{
 };
 use crate::common::reqwest_client::GetReqwestSender;
 use crate::common::utils::{
-    assert_tx_successful, deploy_argent_account, deploy_oz_account,
-    get_simple_contract_in_sierra_and_compiled_class_hash, FeeUnit,
+    FeeUnit, assert_tx_successful, deploy_argent_account, deploy_oz_account,
+    get_simple_contract_in_sierra_and_compiled_class_hash,
 };
 
 pub async fn get_predeployed_accounts(

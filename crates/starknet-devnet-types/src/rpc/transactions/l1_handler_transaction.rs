@@ -17,7 +17,7 @@ use super::serialize_paid_fee_on_l1;
 use crate::constants::PREFIX_L1_HANDLER;
 use crate::contract_address::ContractAddress;
 use crate::error::{ConversionError, DevnetResult, Error};
-use crate::felt::{try_felt_to_num, Calldata, EntryPointSelector, Nonce, TransactionVersion};
+use crate::felt::{Calldata, EntryPointSelector, Nonce, TransactionVersion, try_felt_to_num};
 use crate::rpc::messaging::MessageToL2;
 
 #[derive(Debug, Clone, Default, Serialize, Eq, PartialEq)]

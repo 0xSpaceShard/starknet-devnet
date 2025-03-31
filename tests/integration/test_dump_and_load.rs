@@ -7,7 +7,7 @@ use starknet_rs_providers::Provider;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::reqwest_client::PostReqwestSender;
-use crate::common::utils::{send_ctrl_c_signal_and_wait, FeeUnit, UniqueAutoDeletableFile};
+use crate::common::utils::{FeeUnit, UniqueAutoDeletableFile, send_ctrl_c_signal_and_wait};
 
 static DUMMY_ADDRESS: u128 = 1;
 static DUMMY_AMOUNT: u128 = 1;

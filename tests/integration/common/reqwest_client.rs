@@ -1,8 +1,8 @@
 use std::any::TypeId;
 
 use reqwest::Method;
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use serde_json::json;
 
 use super::errors::ReqwestError;

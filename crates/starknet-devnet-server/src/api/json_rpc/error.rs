@@ -283,8 +283,8 @@ mod tests {
     use starknet_core::error::ContractExecutionError;
 
     use super::StrictRpcResult;
-    use crate::api::json_rpc::error::ApiError;
     use crate::api::json_rpc::ToRpcResponseResult;
+    use crate::api::json_rpc::error::ApiError;
 
     #[test]
     fn contract_not_found_error() {

@@ -432,8 +432,8 @@ mod tests {
     use super::StarknetState;
     use crate::state::{BlockNumberOrPending, CustomState, CustomStateReader};
     use crate::utils::test_utils::{
-        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
-        DUMMY_CAIRO_1_COMPILED_CLASS_HASH,
+        DUMMY_CAIRO_1_COMPILED_CLASS_HASH, dummy_cairo_1_contract_class, dummy_contract_address,
+        dummy_felt,
     };
 
     pub(crate) fn dummy_contract_storage_key() -> (starknet_api::core::ContractAddress, StorageKey)
