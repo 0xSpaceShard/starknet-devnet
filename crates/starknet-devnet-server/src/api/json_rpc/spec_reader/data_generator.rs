@@ -1,6 +1,4 @@
 use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use rand::{Rng, SeedableRng};
 use serde_json::{Map, Value};
 
@@ -70,11 +68,7 @@ impl Visitor for RandDataGenerator<'_> {
 
         if let Some(regex_pattern) = element.pattern.clone() {
             let mut buffer: Vec<u8> = vec![];
-            let duration = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-            let u128_bytes = duration.as_nanos().to_be_bytes();
-            let mut u64_bytes = [0; 8];
-            u64_bytes.copy_from_slice(&u128_bytes[8..16]);
-            let seed = u64::from_be_bytes(u64_bytes);
+            let seed = rand::thread_rng().gen();
 
             regex_generate::Generator::new(
                 &regex_pattern,
@@ -84,6 +78,7 @@ impl Visitor for RandDataGenerator<'_> {
             .unwrap()
             .generate(&mut buffer)
             .unwrap();
+
             let random_string = String::from_utf8(buffer).unwrap();
 
             return Ok(serde_json::Value::String(random_string));
@@ -111,7 +106,9 @@ impl Visitor for RandDataGenerator<'_> {
             return Ok(serde_json::Value::Array(array));
         }
 
-        let number_of_elements = rand::thread_rng().gen_range(1..3);
+        let min_items = element.min_items.unwrap_or(1);
+        let max_items = element.max_items.unwrap_or(3);
+        let number_of_elements = rand::thread_rng().gen_range(min_items..max_items);
 
         for _ in 0..number_of_elements {
             let generated_value =
@@ -193,23 +190,29 @@ impl Visitor for RandDataGenerator<'_> {
         };
 
         // Determine optional fields by removing required fields from all fields
-        let optional_fields: Vec<&String> =
+        let mut optional_fields: Vec<&String> =
             all_fields.iter().filter(|field| !required_fields.contains(field)).cloned().collect();
 
         // if there are no optional fields then all fields have to be included
         let fields_to_include = if optional_fields.is_empty() {
             required_fields
         } else {
-            // decide the starting index in optional fields array
-            let start_idx = rand::thread_rng().gen_range(0..optional_fields.len());
-            // decide the number of optional fields
-            let optional_fields_to_include_count =
-                rand::thread_rng().gen_range(0..=(optional_fields.len() - start_idx));
+            // decide the number of optional fields to remove
+            let mut optional_fields_to_not_include_count =
+                rand::thread_rng().gen_range(0..=optional_fields.len());
+
+            // remove the optional fields 1 by 1
+            while optional_fields_to_not_include_count > 0 {
+                optional_fields_to_not_include_count -= 1;
+
+                let idx_to_remove = rand::thread_rng().gen_range(0..optional_fields.len());
+                optional_fields.swap_remove(idx_to_remove);
+            }
 
             // combine required and optional fields that will be part of the json object
             [
                 required_fields.as_slice(),
-                &optional_fields[start_idx..start_idx + optional_fields_to_include_count],
+                optional_fields.as_slice(),
             ]
             .concat()
         };
