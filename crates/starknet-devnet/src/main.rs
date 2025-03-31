@@ -95,8 +95,8 @@ fn log_predeployed_accounts(
 | Private key     |  {}
 | Public key      |  {}",
             account.account_address.to_fixed_hex_string(),
-            account.private_key.to_fixed_hex_string(),
-            account.public_key.to_fixed_hex_string()
+            account.keys.private_key.to_fixed_hex_string(),
+            account.keys.public_key.to_fixed_hex_string()
         );
     }
 

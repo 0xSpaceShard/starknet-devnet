@@ -66,7 +66,7 @@ mod tests {
     use crate::state::CustomState;
     use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_l1l2_contract;
-    use crate::utils::test_utils::{cairo_0_account_without_validations, dummy_felt};
+    use crate::utils::test_utils::{cairo_0_account_without_validations, dummy_key_pair};
 
     #[test]
     fn l1_handler_transaction_hash_computation() {
@@ -210,8 +210,7 @@ mod tests {
 
         let account = Account::new(
             Balance::from(10000_u32),
-            dummy_felt(),
-            dummy_felt(),
+            dummy_key_pair(),
             account_without_validations_class_hash,
             "Custom",
             ContractClass::Cairo0(account_without_validations_contract_class),

@@ -94,6 +94,7 @@ pub(crate) mod test_utils {
     };
     use starknet_types::traits::HashProducer;
 
+    use crate::account::KeyPair;
     use crate::constants::DEVNET_DEFAULT_CHAIN_ID;
 
     pub(crate) fn dummy_felt() -> Felt {
@@ -216,6 +217,10 @@ pub(crate) mod test_utils {
             compiled_class_hash: declare_v2.compiled_class_hash,
             account_deployment_data: vec![],
         }
+    }
+
+    pub fn dummy_key_pair() -> KeyPair {
+        KeyPair { public_key: dummy_felt(), private_key: dummy_felt() }
     }
 }
 

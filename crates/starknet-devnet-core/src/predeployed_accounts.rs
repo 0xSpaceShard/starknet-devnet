@@ -4,7 +4,7 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Key};
 use starknet_types::rpc::state::Balance;
 
-use crate::account::Account;
+use crate::account::{Account, KeyPair};
 use crate::error::DevnetResult;
 use crate::traits::AccountGenerator;
 use crate::utils::random_number_generator::generate_u128_random_numbers;
@@ -64,8 +64,7 @@ impl AccountGenerator for PredeployedAccounts {
         for private_key in private_keys {
             let account = Account::new(
                 self.initial_balance.clone(),
-                self.generate_public_key(&private_key),
-                private_key,
+                KeyPair { public_key: self.generate_public_key(&private_key), private_key },
                 class_hash,
                 "Custom",
                 contract_class.clone(),
