@@ -192,19 +192,38 @@ impl JsonRpcHandler {
 #[cfg(test)]
 mod tests {
     use crate::api::json_rpc::models::BroadcastedDeployAccountTransactionEnumWrapper;
-    use crate::test_utils::deploy_account_str;
 
     #[test]
     fn check_correct_deserialization_of_deploy_account_transaction_request() {
-        test_deploy_account_transaction();
-    }
-
-    fn test_deploy_account_transaction() -> BroadcastedDeployAccountTransactionEnumWrapper {
-        let json_string = deploy_account_str();
-
-        let broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransactionEnumWrapper =
-            serde_json::from_str(&json_string).unwrap();
-
-        broadcasted_deploy_account_transaction
+        let _: BroadcastedDeployAccountTransactionEnumWrapper = serde_json::from_str(
+            r#"{
+                "type":"DEPLOY_ACCOUNT",
+                "resource_bounds": {
+                    "l1_gas": {
+                        "max_amount": "0x1",
+                        "max_price_per_unit": "0x2"
+                    },
+                    "l1_data_gas": {
+                        "max_amount": "0x1",
+                        "max_price_per_unit": "0x2"
+                    },
+                    "l2_gas": {
+                        "max_amount": "0x1",
+                        "max_price_per_unit": "0x2"
+                    }
+                },
+                "tip": "0xabc",
+                "paymaster_data": [],
+                "version": "0x3",
+                "signature": ["0xFF", "0xAA"],
+                "nonce": "0x0",
+                "contract_address_salt": "0x01",
+                "class_hash": "0x01",
+                "constructor_calldata": ["0x01"],
+                "nonce_data_availability_mode": "L1",
+                "fee_data_availability_mode": "L1"
+            }"#,
+        )
+        .unwrap();
     }
 }

@@ -37,8 +37,6 @@ remove_from_array:
     index: 0
   - path: components/schemas/TRANSACTION_TRACE/oneOf
     index: 3
-  - path: components/schemas/BROADCASTED_DECLARE_TXN/oneOf
-    index: 0
   - path: components/schemas/TXN/oneOf
     index: 3
   - path: components/schemas/TXN/oneOf
@@ -48,6 +46,8 @@ remove_from_array:
   - path: components/schemas/DECLARE_TXN/oneOf
     index: 1
   - path: components/schemas/DECLARE_TXN/oneOf
+    index: 0
+  - path: components/schemas/DEPLOY_ACCOUNT_TXN/oneOf
     index: 0
   - path: components/schemas/HINT/oneOf
     index: 0
