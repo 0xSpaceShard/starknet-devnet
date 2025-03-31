@@ -108,7 +108,12 @@ impl Visitor for RandDataGenerator<'_> {
 
         let min_items = element.min_items.unwrap_or(1);
         let max_items = element.max_items.unwrap_or(3);
-        let number_of_elements = rand::thread_rng().gen_range(min_items..max_items);
+
+        let number_of_elements = if min_items == max_items {
+            min_items
+        }else {
+            rand::thread_rng().gen_range(min_items..max_items)
+        };
 
         for _ in 0..number_of_elements {
             let generated_value =
