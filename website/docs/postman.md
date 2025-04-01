@@ -23,7 +23,8 @@ POST /postman/load_l1_messaging_contract
 ```json
 {
   "network_url": "http://localhost:8545",
-  "address": "0x123...def" // optional
+  "address": "0x123...def", // optional
+  "funded_account_private_key": "0x123...def" // optional
 }
 ```
 
@@ -40,7 +41,7 @@ JSON-RPC
 }
 ```
 
-Loads a `MockStarknetMessaging` contract. The `address` parameter is optional; if provided, the `MockStarknetMessaging` contract will be fetched from that address, otherwise a new one will be deployed.
+Loads a `MockStarknetMessaging` contract. The `address` parameter is optional; if provided, the `MockStarknetMessaging` contract will be fetched from that address, otherwise a new one will be deployed. The `funded_account_private_key` parameter is optional; if provided, then this account would be used as the signer. <br/>NOTE: The account associated with this private key must be pre-funded.
 
 :::note L1-L2 with dockerized Devnet
 
