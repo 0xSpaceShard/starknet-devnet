@@ -204,12 +204,12 @@ impl Visitor for RandDataGenerator<'_> {
             required_fields
         } else {
             // decide the number of optional fields to remove
-            let mut optional_fields_to_not_include_count =
+            let mut optional_fields_left_to_remove =
                 rand::thread_rng().gen_range(0..=optional_fields.len());
 
             // remove the optional fields 1 by 1
-            while optional_fields_to_not_include_count > 0 {
-                optional_fields_to_not_include_count -= 1;
+            while optional_fields_left_to_remove > 0 {
+                optional_fields_left_to_remove -= 1;
 
                 let idx_to_remove = rand::thread_rng().gen_range(0..optional_fields.len());
                 optional_fields.swap_remove(idx_to_remove);
