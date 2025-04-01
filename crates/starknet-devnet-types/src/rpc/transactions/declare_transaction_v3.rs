@@ -3,8 +3,8 @@ use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::transaction::fields::Tip;
 use starknet_types_core::felt::Felt;
 
-use super::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use super::ResourceBoundsWrapper;
+use super::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use crate::contract_address::ContractAddress;
 use crate::felt::{ClassHash, CompiledClassHash, Nonce, TransactionSignature, TransactionVersion};
 

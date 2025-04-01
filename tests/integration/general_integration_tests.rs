@@ -11,7 +11,7 @@ use crate::common::constants::{
 };
 use crate::common::errors::RpcError;
 use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
-use crate::common::utils::{to_hex_felt, UniqueAutoDeletableFile};
+use crate::common::utils::{UniqueAutoDeletableFile, to_hex_felt};
 
 #[tokio::test]
 /// Asserts that a background instance can be spawned

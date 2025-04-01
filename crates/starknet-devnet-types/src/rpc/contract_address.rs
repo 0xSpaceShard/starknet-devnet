@@ -4,7 +4,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_rs_core::types::Felt;
 
 use crate::error::{DevnetResult, Error};
-use crate::patricia_key::{PatriciaKey, PATRICIA_KEY_ZERO};
+use crate::patricia_key::{PATRICIA_KEY_ZERO, PatriciaKey};
 use crate::serde_helpers::hex_string::{
     deserialize_to_prefixed_contract_address, serialize_contract_address_to_prefixed_hex,
 };

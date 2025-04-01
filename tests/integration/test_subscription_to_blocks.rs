@@ -6,11 +6,11 @@ use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
 use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_rs_providers::Provider;
 use tokio::net::TcpStream;
-use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::utils::{
-    assert_no_notifications, receive_notification, subscribe_new_heads, unsubscribe, SubscriptionId,
+    SubscriptionId, assert_no_notifications, receive_notification, subscribe_new_heads, unsubscribe,
 };
 
 async fn receive_block(

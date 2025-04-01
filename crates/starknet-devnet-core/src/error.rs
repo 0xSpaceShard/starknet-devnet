@@ -1,5 +1,5 @@
 use blockifier::execution::stack_trace::{
-    gen_tx_execution_error_trace, ErrorStack, ErrorStackHeader, ErrorStackSegment, PreambleType,
+    ErrorStack, ErrorStackHeader, ErrorStackSegment, PreambleType, gen_tx_execution_error_trace,
 };
 use blockifier::fee::fee_checks::FeeCheckError;
 use blockifier::transaction::errors::{

@@ -7,10 +7,10 @@ use starknet_types::felt::join_felts;
 use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 
-use crate::api::http::models::{MintTokensRequest, MintTokensResponse};
-use crate::api::json_rpc::error::{ApiError, StrictRpcResult};
-use crate::api::json_rpc::DevnetResponse;
 use crate::api::Api;
+use crate::api::http::models::{MintTokensRequest, MintTokensResponse};
+use crate::api::json_rpc::DevnetResponse;
+use crate::api::json_rpc::error::{ApiError, StrictRpcResult};
 
 /// get the balance of the `address`
 pub fn get_balance(

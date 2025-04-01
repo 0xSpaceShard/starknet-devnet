@@ -17,8 +17,8 @@ use starknet_types_core::hash::{Pedersen, StarkHash};
 
 use crate::constants::{DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, STARKNET_VERSION};
 use crate::error::{DevnetResult, Error};
-use crate::state::state_diff::StateDiff;
 use crate::state::StarknetState;
+use crate::state::state_diff::StateDiff;
 use crate::traits::HashIdentified;
 
 pub(crate) struct StarknetBlocks {

@@ -13,7 +13,7 @@ use starknet_rs_core::types::{
     ResourceBounds, ResourceBoundsMapping, StarknetError, TransactionExecutionErrorData,
 };
 use starknet_rs_core::utils::{
-    cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
+    UdcUniqueness, cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address,
 };
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
@@ -26,9 +26,10 @@ use crate::common::constants::{
     QUERY_VERSION_OFFSET, UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_tx_reverted, assert_tx_successful, extract_message_error, extract_nested_error,
-    get_deployable_account_signer, get_flattened_sierra_contract_and_casm_hash,
-    get_simple_contract_in_sierra_and_compiled_class_hash, LocalFee,
+    LocalFee, assert_tx_reverted, assert_tx_successful, extract_message_error,
+    extract_nested_error, get_deployable_account_signer,
+    get_flattened_sierra_contract_and_casm_hash,
+    get_simple_contract_in_sierra_and_compiled_class_hash,
 };
 
 fn assert_fee_estimation(fee_estimation: &FeeEstimate) {

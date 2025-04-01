@@ -36,10 +36,10 @@ use ethers::types::H256;
 use starknet_rs_core::types::{BlockId, ExecutionResult, Felt, Hash256};
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 
+use crate::StarknetBlock;
 use crate::error::{DevnetResult, Error, MessagingError};
 use crate::starknet::Starknet;
 use crate::traits::HashIdentified;
-use crate::StarknetBlock;
 
 pub mod ethereum;
 pub use ethereum::EthereumMessaging;

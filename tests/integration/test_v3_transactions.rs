@@ -19,8 +19,8 @@ use crate::common::constants::{
     self, CAIRO_0_ACCOUNT_CONTRACT_HASH, STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_tx_successful, get_deployable_account_signer,
-    get_simple_contract_in_sierra_and_compiled_class_hash, FeeUnit, LocalFee,
+    FeeUnit, LocalFee, assert_tx_successful, get_deployable_account_signer,
+    get_simple_contract_in_sierra_and_compiled_class_hash,
 };
 
 enum Action {

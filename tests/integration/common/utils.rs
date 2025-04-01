@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use ethers::types::U256;
 use futures::{SinkExt, StreamExt, TryStreamExt};
-use rand::{thread_rng, Rng};
+use rand::{Rng, thread_rng};
 use serde_json::json;
 use server::test_utils::assert_contains;
 use starknet_rs_accounts::{
@@ -21,7 +21,7 @@ use starknet_rs_core::types::{
     InnerContractExecutionError, ResourceBounds, ResourceBoundsMapping,
 };
 use starknet_rs_core::utils::{
-    get_selector_from_name, get_udc_deployed_address, UdcUniqueSettings,
+    UdcUniqueSettings, get_selector_from_name, get_udc_deployed_address,
 };
 use starknet_rs_providers::jsonrpc::{
     HttpTransport, HttpTransportError, JsonRpcClientError, JsonRpcError,

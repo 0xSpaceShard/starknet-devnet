@@ -126,8 +126,8 @@ mod tests {
     use starknet_types::traits::HashProducer;
 
     use crate::error::{Error, TransactionValidationError};
-    use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
     use crate::starknet::Starknet;
+    use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
     use crate::state::{BlockNumberOrPending, CustomStateReader};
     use crate::traits::HashIdentifiedMut;
     use crate::utils::test_utils::{

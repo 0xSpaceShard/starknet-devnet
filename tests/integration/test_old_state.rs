@@ -20,9 +20,9 @@ use crate::common::constants::{
     UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
 use crate::common::utils::{
-    assert_cairo1_classes_equal, extract_message_error, extract_nested_error,
+    FeeUnit, assert_cairo1_classes_equal, extract_message_error, extract_nested_error,
     get_events_contract_in_sierra_and_compiled_class_hash,
-    get_flattened_sierra_contract_and_casm_hash, FeeUnit,
+    get_flattened_sierra_contract_and_casm_hash,
 };
 
 #[tokio::test]
