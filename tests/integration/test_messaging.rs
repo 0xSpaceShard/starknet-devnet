@@ -32,6 +32,7 @@ use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     CHAIN_ID, L1_HANDLER_SELECTOR, MESSAGING_L1_CONTRACT_ADDRESS, MESSAGING_L2_CONTRACT_ADDRESS,
     MESSAGING_WHITELISTED_L1_CONTRACT,
+    TEST_ETH_ACCOUNT_PRIVATE_KEY
 };
 use crate::common::errors::RpcError;
 use crate::common::utils::{
@@ -337,6 +338,23 @@ async fn can_deploy_l1_messaging_contract() {
 
     let body = devnet
         .send_custom_rpc("devnet_postmanLoad", json!({ "network_url": anvil.url }))
+        .await
+        .expect("deploy l1 messaging contract failed");
+
+    assert_eq!(
+        body.get("messaging_contract_address").unwrap().as_str().unwrap(),
+        MESSAGING_L1_ADDRESS
+    );
+}
+
+#[tokio::test]
+async fn deploy_l1_messaging_contract_with_funded_account_private_key() {
+    let anvil = BackgroundAnvil::spawn().await.unwrap();
+
+    let (devnet, _, _) = setup_devnet(&["--account-class", "cairo1"]).await;
+
+    let body = devnet
+        .send_custom_rpc("devnet_postmanLoad", json!({ "network_url": anvil.url, "funded_account_private_key": TEST_ETH_ACCOUNT_PRIVATE_KEY }))
         .await
         .expect("deploy l1 messaging contract failed");
 
