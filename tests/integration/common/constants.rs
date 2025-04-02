@@ -101,8 +101,7 @@ pub const QUERY_VERSION_OFFSET: Felt =
 pub const DEFAULT_ETH_ACCOUNT_PRIVATE_KEY: &str =
     "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
-pub const DEFAULT_ETH_ACCOUNT_ADDRESS: &str =
-    "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+pub const DEFAULT_ETH_ACCOUNT_ADDRESS: &str = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
 
 pub const INCORRECT_ETH_ACCOUNT_PRIVATE_KEY: &str =
     "0x4f3c1d1f8b3e92f5a9d3c6e7b2f45a1e8d6c9b3f7a2e4d5c1f9e3b7a6d2c8f1b";

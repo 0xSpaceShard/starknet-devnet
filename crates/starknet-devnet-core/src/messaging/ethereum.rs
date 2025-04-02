@@ -84,7 +84,8 @@ impl EthereumMessaging {
     ///
     /// * `rpc_url` - The L1 node RPC URL.
     /// * `contract_address` - The messaging contract address deployed on L1 node.
-    /// * `funded_account_private_key` - The private key of the funded account on L1 node to perform the role of signer.
+    /// * `funded_account_private_key` - The private key of the funded account on L1 node to perform
+    ///   the role of signer.
     pub async fn new(
         rpc_url: &str,
         contract_address: Option<&str>,
@@ -100,7 +101,7 @@ impl EthereumMessaging {
 
         let private_key = match funded_account_private_key {
             Some(private_key) => private_key,
-            None => ETH_ACCOUNT_DEFAULT.private_key
+            None => ETH_ACCOUNT_DEFAULT.private_key,
         };
 
         let wallet: LocalWallet =
