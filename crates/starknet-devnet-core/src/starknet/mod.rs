@@ -30,7 +30,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{
-    felt_from_prefixed_hex, split_biguint, BlockHash, ClassHash, TransactionHash,
+    BlockHash, ClassHash, TransactionHash, felt_from_prefixed_hex, split_biguint,
 };
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;

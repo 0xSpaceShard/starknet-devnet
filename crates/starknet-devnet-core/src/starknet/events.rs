@@ -137,9 +137,9 @@ mod tests {
     use starknet_types::rpc::transactions::TransactionWithHash;
 
     use super::{check_if_filter_applies_for_event, get_events};
+    use crate::starknet::Starknet;
     use crate::starknet::events::check_if_filter_applies_for_event_keys;
     use crate::starknet::starknet_config::StarknetConfig;
-    use crate::starknet::Starknet;
     use crate::traits::HashIdentified;
     use crate::utils::test_utils::{dummy_contract_address, dummy_declare_transaction_v3};
 

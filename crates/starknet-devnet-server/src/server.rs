@@ -1,27 +1,27 @@
 use std::time::Duration;
 
+use axum::Router;
 use axum::body::{Body, Bytes};
 use axum::extract::{DefaultBodyLimit, Request, State};
 use axum::http::{HeaderValue, StatusCode};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
-use axum::routing::{get, post, IntoMakeService, MethodRouter};
-use axum::Router;
+use axum::routing::{IntoMakeService, MethodRouter, get, post};
 use http_body_util::BodyExt;
 use lazy_static::lazy_static;
-use reqwest::{header, Method};
+use reqwest::{Method, header};
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 
-use crate::api::http::{endpoints as http, HttpApiHandler};
+use crate::api::http::{HttpApiHandler, endpoints as http};
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::restrictive_mode::is_uri_path_restricted;
 use crate::rpc_core::error::RpcError;
 use crate::rpc_core::response::ResponseResult;
 use crate::rpc_handler::RpcHandler;
-use crate::{http_rpc_router, rpc_handler, ServerConfig};
+use crate::{ServerConfig, http_rpc_router, rpc_handler};
 pub type StarknetDevnetServer = axum::serve::Serve<IntoMakeService<Router>, Router>;
 
 lazy_static! {

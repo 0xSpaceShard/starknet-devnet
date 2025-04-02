@@ -8,7 +8,7 @@ use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::error::Error;
-use starknet_types::felt::{felt_from_prefixed_hex, join_felts, split_biguint, ClassHash, Key};
+use starknet_types::felt::{ClassHash, Key, felt_from_prefixed_hex, join_felts, split_biguint};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::state::Balance;
 

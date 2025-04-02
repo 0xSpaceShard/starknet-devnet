@@ -253,8 +253,8 @@ pub mod dec_string {
 
 pub mod base_64_gzipped_json_string {
     use base64::Engine;
-    use flate2::write::GzEncoder;
     use flate2::Compression;
+    use flate2::write::GzEncoder;
     use serde::{Deserialize, Deserializer, Serializer};
     use serde_json::Value;
     use starknet_rs_core::serde::byte_array::base64 as base64Sir;

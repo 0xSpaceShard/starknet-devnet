@@ -8,9 +8,9 @@ use cli::Args;
 use futures::future::join_all;
 use serde::de::IntoDeserializer;
 use serde_json::json;
+use server::api::Api;
 use server::api::http::HttpApiHandler;
 use server::api::json_rpc::{JsonRpcHandler, RPC_SPEC_VERSION};
-use server::api::Api;
 use server::dump_util::{dump_events, load_events};
 use server::server::serve_http_api_json_rpc;
 use starknet_core::account::Account;
@@ -18,10 +18,10 @@ use starknet_core::constants::{
     ARGENT_CONTRACT_CLASS_HASH, ARGENT_MULTISIG_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS,
     STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
+use starknet_core::starknet::Starknet;
 use starknet_core::starknet::starknet_config::{
     BlockGenerationOn, DumpOn, ForkConfig, StarknetConfig,
 };
-use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::ContractClass::{Legacy, Sierra};
 use starknet_rs_core::types::{
     BlockId, BlockTag, Felt, MaybePendingBlockWithTxHashes, StarknetError,
@@ -33,7 +33,7 @@ use starknet_types::rpc::state::Balance;
 use starknet_types::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 use tokio::net::TcpListener;
 #[cfg(unix)]
-use tokio::signal::unix::{signal, SignalKind};
+use tokio::signal::unix::{SignalKind, signal};
 #[cfg(windows)]
 use tokio::signal::windows::ctrl_c;
 use tokio::task::{self};

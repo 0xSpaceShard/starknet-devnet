@@ -1,8 +1,8 @@
 #!/bin/bash
 
-set -eu
+set -euo pipefail
 
 # should skip if already installed
-cargo +nightly-2024-07-08 install typos-cli
+cargo +nightly-2025-02-20 install typos-cli --version 1.31.0
 
-typos
+typos && echo "No spelling errors!"

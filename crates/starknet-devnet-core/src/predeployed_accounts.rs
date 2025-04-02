@@ -80,7 +80,7 @@ impl AccountGenerator for PredeployedAccounts {
 
 #[cfg(test)]
 mod tests {
-    use rand::{thread_rng, Rng};
+    use rand::{Rng, thread_rng};
     use starknet_types::rpc::state::Balance;
 
     use crate::predeployed_accounts::PredeployedAccounts;

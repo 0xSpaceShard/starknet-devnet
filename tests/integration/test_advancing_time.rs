@@ -11,8 +11,8 @@ use starknet_rs_providers::Provider;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
-    get_block_reader_contract_in_sierra_and_compiled_class_hash, get_unix_timestamp_as_seconds,
-    send_ctrl_c_signal_and_wait, UniqueAutoDeletableFile,
+    UniqueAutoDeletableFile, get_block_reader_contract_in_sierra_and_compiled_class_hash,
+    get_unix_timestamp_as_seconds, send_ctrl_c_signal_and_wait,
 };
 
 const DUMMY_ADDRESS: u128 = 1;
