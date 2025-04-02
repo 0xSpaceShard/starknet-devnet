@@ -30,9 +30,9 @@ use starknet_rs_signers::LocalWallet;
 use crate::common::background_anvil::BackgroundAnvil;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
-    CHAIN_ID, L1_HANDLER_SELECTOR, MESSAGING_L1_CONTRACT_ADDRESS, MESSAGING_L2_CONTRACT_ADDRESS,
-    MESSAGING_WHITELISTED_L1_CONTRACT,
-    DEFAULT_ETH_ACCOUNT_PRIVATE_KEY
+    CHAIN_ID, DEFAULT_ETH_ACCOUNT_ADDRESS, DEFAULT_ETH_ACCOUNT_PRIVATE_KEY,
+    INCORRECT_ETH_ACCOUNT_PRIVATE_KEY, L1_HANDLER_SELECTOR, MESSAGING_L1_CONTRACT_ADDRESS,
+    MESSAGING_L2_CONTRACT_ADDRESS, MESSAGING_WHITELISTED_L1_CONTRACT,
 };
 use crate::common::errors::RpcError;
 use crate::common::utils::{
@@ -348,6 +348,49 @@ async fn can_deploy_l1_messaging_contract() {
 }
 
 #[tokio::test]
+async fn setup_anvil_default_eth_private_key() {
+    let anvil = BackgroundAnvil::spawn().await.unwrap();
+    assert_eq!(anvil.provider_signer.address(), DEFAULT_ETH_ACCOUNT_ADDRESS.parse::<Address>().unwrap());
+}
+
+#[tokio::test]
+#[should_panic]
+async fn setup_anvil_incorrect_eth_private_key() {
+    let anvil =
+        BackgroundAnvil::spawn_with_additional_args(&[], Some(INCORRECT_ETH_ACCOUNT_PRIVATE_KEY))
+            .await
+            .unwrap();
+    
+        let (devnet, _, _) = setup_devnet(&["--account-class", "cairo1"]).await;
+
+        let _body = devnet
+            .send_custom_rpc("devnet_postmanLoad", json!({ "network_url": anvil.url, "funded_account_private_key": INCORRECT_ETH_ACCOUNT_PRIVATE_KEY }))
+            .await
+            .expect("deploy l1 messaging contract failed");
+}
+
+#[tokio::test]
+async fn setup_anvil_correct_eth_private_key() {
+    let anvil =
+        BackgroundAnvil::spawn_with_additional_args(&[], Some(DEFAULT_ETH_ACCOUNT_PRIVATE_KEY))
+            .await
+            .unwrap();
+    assert_eq!(anvil.provider_signer.address(), DEFAULT_ETH_ACCOUNT_ADDRESS.parse::<Address>().unwrap());
+
+    let (devnet, _, _) = setup_devnet(&["--account-class", "cairo1"]).await;
+
+    let body = devnet
+        .send_custom_rpc("devnet_postmanLoad", json!({ "network_url": anvil.url, "funded_account_private_key": DEFAULT_ETH_ACCOUNT_PRIVATE_KEY }))
+        .await
+        .expect("deploy l1 messaging contract failed");
+
+    assert_eq!(
+        body.get("messaging_contract_address").unwrap().as_str().unwrap(),
+        MESSAGING_L1_ADDRESS
+    );
+}
+
+#[tokio::test]
 async fn deploy_l1_messaging_contract_with_funded_account_private_key() {
     let anvil = BackgroundAnvil::spawn().await.unwrap();
 
@@ -571,7 +614,7 @@ async fn assert_l1_handler_tx_can_be_dumped_and_loaded() {
 
 #[tokio::test]
 async fn test_correct_message_order() {
-    let anvil = BackgroundAnvil::spawn_with_additional_args(&["--block-time", "1"]).await.unwrap();
+    let anvil = BackgroundAnvil::spawn_with_additional_args(&["--block-time", "1"], None).await.unwrap();
     let (devnet, sn_account, sn_l1l2_contract) = setup_devnet(&[]).await;
 
     // Load l1 messaging contract.
