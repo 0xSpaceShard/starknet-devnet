@@ -203,7 +203,7 @@ mod tests {
     use crate::traits::Deployed;
     use crate::utils::test_utils::{
         DUMMY_CAIRO_1_COMPILED_CLASS_HASH, cairo_0_account_without_validations,
-        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
+        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt, dummy_key_pair,
     };
 
     #[test]
@@ -283,9 +283,9 @@ mod tests {
 
         let account = Account::new(
             Balance::from(u128::MAX),
-            dummy_felt(),
-            dummy_felt(),
+            dummy_key_pair(),
             account_without_validations_class_hash,
+            "Custom",
             ContractClass::Cairo0(account_without_validations_contract_class),
             ContractAddress::new(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
             ContractAddress::new(STRK_ERC20_CONTRACT_ADDRESS).unwrap(),

@@ -33,12 +33,18 @@ pub enum FeeToken {
 }
 
 #[derive(Clone)]
-pub struct Account {
+pub struct KeyPair {
     pub public_key: Key,
     pub private_key: Key,
+}
+
+#[derive(Clone)]
+pub struct Account {
+    pub keys: KeyPair,
     pub account_address: ContractAddress,
     pub initial_balance: Balance,
     pub class_hash: ClassHash,
+    pub class_metadata: &'static str,
     pub(crate) contract_class: ContractClass,
     pub(crate) eth_fee_token_address: ContractAddress,
     pub(crate) strk_fee_token_address: ContractAddress,
@@ -49,20 +55,23 @@ impl Account {
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
     ) -> DevnetResult<Self> {
-        let AccountClassWrapper { contract_class, class_hash } =
+        let AccountClassWrapper { contract_class, class_hash, class_metadata } =
             AccountContractClassChoice::Cairo1.get_class_wrapper()?;
 
         // very big number
         let initial_balance = BigUint::from(u128::MAX) << 10;
 
         Ok(Self {
-            public_key: Key::from_hex(CHARGEABLE_ACCOUNT_PUBLIC_KEY)?,
-            private_key: Key::from_hex(CHARGEABLE_ACCOUNT_PRIVATE_KEY)?,
+            keys: KeyPair {
+                public_key: Key::from_hex(CHARGEABLE_ACCOUNT_PUBLIC_KEY)?,
+                private_key: Key::from_hex(CHARGEABLE_ACCOUNT_PRIVATE_KEY)?,
+            },
             account_address: ContractAddress::new(felt_from_prefixed_hex(
                 CHARGEABLE_ACCOUNT_ADDRESS,
             )?)?,
             initial_balance,
             class_hash,
+            class_metadata,
             contract_class,
             eth_fee_token_address,
             strk_fee_token_address,
@@ -71,20 +80,21 @@ impl Account {
 
     pub(crate) fn new(
         initial_balance: Balance,
-        public_key: Key,
-        private_key: Key,
+        keys: KeyPair,
         class_hash: ClassHash,
+        class_metadata: &'static str,
         contract_class: ContractClass,
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
     ) -> DevnetResult<Self> {
+        let account_address = Account::compute_account_address(&keys.public_key)?;
         Ok(Self {
             initial_balance,
-            public_key,
-            private_key,
+            keys,
             class_hash,
+            class_metadata,
             contract_class,
-            account_address: Account::compute_account_address(&public_key)?,
+            account_address,
             eth_fee_token_address,
             strk_fee_token_address,
         })
@@ -123,7 +133,7 @@ impl Account {
         state.state.state.set_storage_at(
             core_address,
             public_key_storage_var.try_into()?,
-            self.public_key,
+            self.keys.public_key,
         )?;
 
         Ok(())
@@ -218,7 +228,7 @@ mod tests {
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::state::Balance;
 
-    use super::Account;
+    use super::{Account, KeyPair};
     use crate::account::FeeToken;
     use crate::constants::CAIRO_1_ERC20_CONTRACT_CLASS_HASH;
     use crate::state::{CustomState, StarknetState};
@@ -314,9 +324,9 @@ mod tests {
         (
             Account::new(
                 Balance::from(10_u8),
-                Felt::from(13431515),
-                Felt::from(11),
+                KeyPair { public_key: Felt::from(13431515), private_key: Felt::from(11) },
                 dummy_felt(),
+                "Dummy account",
                 dummy_cairo_1_contract_class().into(),
                 fee_token_address,
                 fee_token_address,

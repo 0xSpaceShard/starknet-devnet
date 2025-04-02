@@ -51,8 +51,8 @@ pub(crate) async fn get_predeployed_accounts_impl(
         .map(|acc| SerializableAccount {
             initial_balance: acc.initial_balance.to_string(),
             address: acc.account_address,
-            public_key: acc.public_key,
-            private_key: acc.private_key,
+            public_key: acc.keys.public_key,
+            private_key: acc.keys.private_key,
             balance: None,
         })
         .collect();
