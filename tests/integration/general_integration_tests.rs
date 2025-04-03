@@ -2,9 +2,7 @@ use reqwest::StatusCode;
 use serde_json::json;
 use starknet_rs_core::codec::Decode;
 use starknet_rs_core::types::{BlockId, BlockTag, ByteArray, Felt, FunctionCall};
-use starknet_rs_core::utils::{
-    get_selector_from_name, get_storage_var_address, parse_cairo_short_string,
-};
+use starknet_rs_core::utils::{get_selector_from_name, get_storage_var_address};
 use starknet_rs_providers::Provider;
 
 use crate::common::background_devnet::BackgroundDevnet;
@@ -189,14 +187,14 @@ async fn test_config() {
     assert_eq!(fetched_config, expected_config);
 }
 
+/// Part of the responsibility of this test was transferred to test
+/// `predeployed_erc20_tokens_return_expected_values_from_property_getters`
 #[tokio::test]
 async fn predeployed_erc20_tokens_have_expected_storage() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
     for (token_address, var_name, expected_value) in [
-        (ETH_ERC20_CONTRACT_ADDRESS, "ERC20_name", "Ether"),
-        (ETH_ERC20_CONTRACT_ADDRESS, "ERC20_symbol", "ETH"),
-        (STRK_ERC20_CONTRACT_ADDRESS, "ERC20_name", "StarkNet Token"),
-        (STRK_ERC20_CONTRACT_ADDRESS, "ERC20_symbol", "STRK"),
+        (ETH_ERC20_CONTRACT_ADDRESS, "ERC20_decimals", Felt::from(18)),
+        (STRK_ERC20_CONTRACT_ADDRESS, "ERC20_decimals", Felt::from(18)),
     ] {
         let actual_value = devnet
             .json_rpc_client
@@ -208,7 +206,7 @@ async fn predeployed_erc20_tokens_have_expected_storage() {
             .await
             .unwrap();
 
-        assert_eq!(parse_cairo_short_string(&actual_value).unwrap().as_str(), expected_value);
+        assert_eq!(actual_value, expected_value);
     }
 }
 
