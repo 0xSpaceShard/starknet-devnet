@@ -1,0 +1,7 @@
+Compiled with:
+scarb 2.9.2 (5070ff374 2024-12-11)
+cairo: 2.9.2 (https://crates.io/crates/cairo-lang-compiler/2.9.2)
+sierra: 1.6.0
+
+Intercepted declaration, logged; this exceeds bytecode size, but not the entire code size
+executable_tx class_info: code_size: 3988580, bytecode_length: 88660

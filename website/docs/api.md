@@ -82,7 +82,6 @@ To retrieve the current configuration of Devnet, as specified via [CLI](running/
     "host": "127.0.0.1",
     "port": 5050,
     "timeout": 120,
-    "request_body_size_limit": 2000000,
     "restricted_methods": null
   },
   "block_generation": null,

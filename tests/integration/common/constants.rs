@@ -59,6 +59,9 @@ pub const CAIRO_1_CONTRACT_PATH: &str =
 pub const CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH: &str =
     "../../contracts/test_artifacts/cairo1/panicking_contract/panicking_contract.sierra";
 
+pub const TOO_BIG_CONTRACT_SIERRA_PATH: &str =
+    "../../contracts/test_artifacts/cairo1/too_big/too_big.sierra";
+
 // Contract which asserts the tx version
 pub const CAIRO_1_VERSION_ASSERTER_SIERRA_PATH: &str =
     "../../contracts/test_artifacts/cairo1/version_asserter/version_asserter.sierra";
