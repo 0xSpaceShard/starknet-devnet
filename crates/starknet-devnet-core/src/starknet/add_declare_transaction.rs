@@ -31,11 +31,6 @@ pub fn add_declare_transaction(
     let executable_tx =
         broadcasted_declare_transaction.create_sn_api_declare(&starknet.chain_id().to_felt())?;
 
-    println!(
-        "DEBUG executable_tx class_info: code_size: {}, bytecode_length: {}",
-        executable_tx.class_info.code_size(),
-        executable_tx.class_info.bytecode_length()
-    );
     if executable_tx.class_info.code_size() > MAXIMUM_CONTRACT_CLASS_SIZE
         || executable_tx.class_info.bytecode_length() > MAXIMUM_CONTRACT_BYTECODE_SIZE
     {
