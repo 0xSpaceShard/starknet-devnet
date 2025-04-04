@@ -39,6 +39,9 @@ impl JsonRpcHandler {
                     starknet_core::error::Error::ClassAlreadyDeclared { .. } => {
                         ApiError::ClassAlreadyDeclared
                     }
+                    starknet_core::error::Error::ContractClassSizeIsTooLarge => {
+                        ApiError::ContractClassSizeIsTooLarge
+                    }
                     unknown_error => ApiError::StarknetDevnetError(unknown_error),
                 },
             )?;

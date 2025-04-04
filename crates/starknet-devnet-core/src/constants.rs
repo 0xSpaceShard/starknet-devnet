@@ -111,3 +111,6 @@ pub const CHARGEABLE_ACCOUNT_ADDRESS: &str =
 
 pub const ENTRYPOINT_NOT_FOUND_ERROR_ENCODED: Felt =
     Felt::from_hex_unchecked("0x454e545259504f494e545f4e4f545f464f554e44");
+
+pub const MAXIMUM_CONTRACT_CLASS_SIZE: usize = 4_089_446;
+pub const MAXIMUM_CONTRACT_BYTECODE_SIZE: usize = 81_920;

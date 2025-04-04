@@ -9,6 +9,7 @@ use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, DeclareTransaction, Transaction, TransactionWithHash,
 };
 
+use crate::constants::{MAXIMUM_CONTRACT_BYTECODE_SIZE, MAXIMUM_CONTRACT_CLASS_SIZE};
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::starknet::Starknet;
 use crate::state::CustomState;
@@ -29,6 +30,17 @@ pub fn add_declare_transaction(
 
     let executable_tx =
         broadcasted_declare_transaction.create_sn_api_declare(&starknet.chain_id().to_felt())?;
+
+    println!(
+        "DEBUG executable_tx class_info: code_size: {}, bytecode_length: {}",
+        executable_tx.class_info.code_size(),
+        executable_tx.class_info.bytecode_length()
+    );
+    if executable_tx.class_info.code_size() > MAXIMUM_CONTRACT_CLASS_SIZE
+        || executable_tx.class_info.bytecode_length() > MAXIMUM_CONTRACT_BYTECODE_SIZE
+    {
+        return Err(Error::ContractClassSizeIsTooLarge);
+    }
 
     let transaction_hash = executable_tx.tx_hash.0;
     let class_hash = executable_tx.class_hash().0;
