@@ -98,7 +98,6 @@ pub const DEVNET_DEFAULT_PORT: u16 = 5050;
 pub const DEVNET_DEFAULT_TIMEOUT: u16 = 120;
 pub const DEVNET_DEFAULT_CHAIN_ID: ChainId = ChainId::Testnet;
 pub const DEVNET_DEFAULT_STARTING_BLOCK_NUMBER: u64 = 0;
-pub const DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT: usize = 2_000_000;
 
 pub const USE_KZG_DA: bool = true;
 

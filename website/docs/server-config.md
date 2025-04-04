@@ -51,13 +51,12 @@ Specify the maximum amount of time an HTTP request can be served. This makes it 
 $ starknet-devnet --timeout <SECONDS>
 ```
 
-## Request body size limit
+## Request size limit
 
-Specify the maximum size of an incoming HTTP request body. This makes it possible to deploy and manage large contracts that take up more space.
+There is no HTTP request size limit, but take care when declaring large classes! Devnet is supposed to follow the limits specified at https://docs.starknet.io/resources/chain-info/#current_limits. So the current limits configured in Devnet are (in bytes):
 
-```
-$ starknet-devnet --request-body-size-limit <BYTES>
-```
+- maximum contract class size: 4089446
+- maximum contract bytecode size: 81920
 
 ## API
 

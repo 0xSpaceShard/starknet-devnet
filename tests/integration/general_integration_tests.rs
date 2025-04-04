@@ -54,7 +54,6 @@ async fn test_config() {
             "host": "0.0.0.0",
             "port": 0, // default value in tests, config not modified upon finding a free port
             "timeout": 121,
-            "request_body_size_limit": 1000,
             "restricted_methods": null,
         },
         "block_generation_on": "demand",
@@ -98,9 +97,6 @@ async fn test_config() {
         expected_config["server_config"]["host"].as_str().unwrap(),
         "--timeout",
         &serde_json::to_string(&expected_config["server_config"]["timeout"]).unwrap(),
-        "--request-body-size-limit",
-        &serde_json::to_string(&expected_config["server_config"]["request_body_size_limit"])
-            .unwrap(),
     ])
     .await
     .unwrap();
