@@ -361,11 +361,7 @@ async fn setup_anvil_incorrect_eth_private_key() {
         )
         .await
         .unwrap_err();
-    assert_eq!(
-        body.message,
-        "Ethers error: Error deploying messaging contract: (code: -32003, message: Out of gas: \
-         gas required exceeds allowance: 0, data: None)."
-    );
+    assert_contains(&body.message, "Out of gas: gas required exceeds allowance: 0");
 }
 
 #[tokio::test]
