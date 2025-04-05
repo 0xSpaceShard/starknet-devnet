@@ -31,14 +31,11 @@ mod abigen {
 
 impl BackgroundAnvil {
     pub(crate) async fn spawn() -> Result<Self, TestError> {
-        BackgroundAnvil::spawn_with_additional_args(&[], None).await
+        BackgroundAnvil::spawn_with_additional_args(&[]).await
     }
 
     /// Spawns an instance at random port. Assumes CLI args in `args` don't contain `--port`.
-    pub(crate) async fn spawn_with_additional_args(
-        args: &[&str],
-        funded_account_private_key: Option<&str>,
-    ) -> Result<Self, TestError> {
+    pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
         let process = Command::new("anvil")
             .arg("--port")
             .arg("0")
@@ -61,14 +58,7 @@ impl BackgroundAnvil {
                 assert_eq!(anvil_block_rsp.status(), StatusCode::OK);
                 println!("Spawned background anvil at {url}");
 
-                let (provider, provider_signer) = setup_ethereum_provider(
-                    &url,
-                    match funded_account_private_key {
-                        Some(private_key) => private_key,
-                        None => DEFAULT_ETH_ACCOUNT_PRIVATE_KEY,
-                    },
-                )
-                .await?;
+                let (provider, provider_signer) = setup_ethereum_provider(&url).await?;
 
                 return Ok(Self { process: safe_process, url, provider, provider_signer });
             }
@@ -174,7 +164,6 @@ impl BackgroundAnvil {
 
 async fn setup_ethereum_provider(
     rpc_url: &str,
-    funded_account_private_key: &str,
 ) -> Result<
     (Arc<Provider<Http>>, Arc<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>),
     TestError,
@@ -186,7 +175,7 @@ async fn setup_ethereum_provider(
     let chain_id =
         provider.get_chainid().await.map_err(|e| TestError::EthersError(e.to_string()))?;
 
-    let wallet: LocalWallet = funded_account_private_key
+    let wallet: LocalWallet = DEFAULT_ETH_ACCOUNT_PRIVATE_KEY
         .parse::<LocalWallet>()
         .map_err(|e| TestError::EthersError(e.to_string()))?
         .with_chain_id(chain_id.as_u32());
