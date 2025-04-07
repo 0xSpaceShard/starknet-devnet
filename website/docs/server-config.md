@@ -57,6 +57,7 @@ There is no HTTP request size limit, but take care when declaring large classes!
 
 - contract class size: 4089446 bytes
 - contract bytecode size: 81920 felts
+- Sierra length: 80000 felts
 
 ## API
 
