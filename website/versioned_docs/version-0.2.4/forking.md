@@ -8,6 +8,12 @@ $ starknet-devnet --fork-network <URL> [--fork-block <BLOCK_NUMBER>]
 
 The value passed to `--fork-network` should be the URL to a Starknet JSON-RPC API provider. Specifying a `--fork-block` is optional; it defaults to the `"latest"` block at the time of Devnet's start-up. All calls will first try Devnet's state and then fall back to the forking block.
 
+:::note How it works
+
+When you send a request to a forked Devnet instance, it first queries Devnet's local state, then it tries the forking origin. The forking is not simply performed on Devnet startup, but happens continuously while the Devnet instance is alive.
+
+:::
+
 ## Account impersonation
 
 [Here](./account-impersonation) you can read more about acting as an account deployed on the origin.
