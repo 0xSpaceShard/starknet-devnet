@@ -31,7 +31,13 @@ pub fn add_declare_transaction(
     let executable_tx =
         broadcasted_declare_transaction.create_sn_api_declare(&starknet.chain_id().to_felt())?;
 
-    if executable_tx.class_info.code_size() > MAXIMUM_CONTRACT_CLASS_SIZE
+    let serialized_class = serde_json::to_vec(&executable_tx.contract_class()).map_err(|e| {
+        Error::UnexpectedInternalError {
+            msg: format!("Could not determine class size via serialization: {e}"),
+        }
+    })?;
+
+    if serialized_class.len() > MAXIMUM_CONTRACT_CLASS_SIZE
         || executable_tx.class_info.bytecode_length() > MAXIMUM_CONTRACT_BYTECODE_SIZE
     {
         return Err(Error::ContractClassSizeIsTooLarge);
