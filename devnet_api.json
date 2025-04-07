@@ -385,27 +385,19 @@
       "params": [
         {
           "gas_price_wei": {
-            "title": "L1 Gas price in WEI",
+            "title": "Gas price in WEI",
             "$ref": "#/components/schemas/u128"
           },
           "data_gas_price_wei": {
-            "title": "L1 Data gas price in WEI",
+            "title": "Data gas price in WEI",
             "$ref": "#/components/schemas/u128"
           },
           "gas_price_fri": {
-            "title": "L1 Gas price in FRI",
+            "title": "Gas price in FRI",
             "$ref": "#/components/schemas/u128"
           },
           "data_gas_price_fri": {
-            "title": "L1 Data gas price in FRI",
-            "$ref": "#/components/schemas/u128"
-          },
-          "l2_gas_price_wei": {
-            "title": "L2 Gas price in WEI",
-            "$ref": "#/components/schemas/u128"
-          },
-          "l2_gas_price_fri": {
-            "title": "L2 Gas price in FRI",
+            "title": "Data gas price in FRI",
             "$ref": "#/components/schemas/u128"
           },
           "generate_block": {
@@ -425,23 +417,15 @@
               "$ref": "#/components/schemas/u128"
             },
             "data_gas_price_wei": {
-              "title": "L1 Data gas price in WEI",
+              "title": "Data gas price in WEI",
               "$ref": "#/components/schemas/u128"
             },
             "gas_price_fri": {
-              "title": "L1 Gas price in FRI",
+              "title": "Gas price in FRI",
               "$ref": "#/components/schemas/u128"
             },
             "data_gas_price_fri": {
-              "title": "L1 Data gas price in FRI",
-              "$ref": "#/components/schemas/u128"
-            },
-            "l2_gas_price_wei": {
-              "title": "L2 Gas price in WEI",
-              "$ref": "#/components/schemas/u128"
-            },
-            "l2_gas_price_fri": {
-              "title": "L2 Gas price in FRI",
+              "title": "Data gas price in FRI",
               "$ref": "#/components/schemas/u128"
             }
           },
@@ -772,27 +756,19 @@
               "type": "integer"
             },
             "gas_price_wei": {
-              "title": "L1 Gas price in WEI",
+              "title": "Gas price in WEI",
               "$ref": "#/components/schemas/u128"
             },
             "data_gas_price_wei": {
-              "title": "L1 Data gas price in WEI",
+              "title": "Data gas price in WEI",
               "$ref": "#/components/schemas/u128"
             },
             "gas_price_fri": {
-              "title": "L1 Gas price in FRI",
+              "title": "Gas price in FRI",
               "$ref": "#/components/schemas/u128"
             },
             "data_gas_price_fri": {
-              "title": "L1 Data gas price in FRI",
-              "$ref": "#/components/schemas/u128"
-            },
-            "l2_gas_price_wei": {
-              "title": "L2 Gas price in WEI",
-              "$ref": "#/components/schemas/u128"
-            },
-            "l2_gas_price_fri": {
-              "title": "L2 Gas price in FRI",
+              "title": "Data gas price in FRI",
               "$ref": "#/components/schemas/u128"
             },
             "chain_id": {
