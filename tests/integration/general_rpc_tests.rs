@@ -1,10 +1,13 @@
 use serde_json::json;
-use starknet_rs_core::types::BlockId;
+use starknet_rs_core::types::ConfirmedBlockId;
+use starknet_rs_providers::Provider;
+use starknet_rs_providers::jsonrpc::JsonRpcError;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::RPC_PATH;
 use crate::common::errors::RpcError;
 use crate::common::reqwest_client::PostReqwestSender;
+use crate::common::utils::{assert_json_rpc_errors_equal, extract_json_rpc_error};
 
 #[tokio::test]
 async fn rpc_at_root() {
@@ -55,13 +58,14 @@ async fn rpc_returns_invalid_params() {
 #[tokio::test]
 async fn storage_proof_request_should_always_return_error() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
-    devnet.create_block().await.unwrap();
+
+    let devnet_storage_proof_msg = "Devnet doesn't support storage proofs";
 
     for (req_params, expected_code, expected_msg) in [
         (json!({}), -32602, "missing field `block_id`"),
-        (json!({ "block_id": BlockId::Number(0) }), 42, "Devnet doesn't support storage proofs"),
-        (json!({ "block_id": "latest" }), 42, "Devnet doesn't support storage proofs"),
-        (json!({ "block_id": BlockId::Number(5) }), 24, "Block not found"),
+        (json!({ "block_id": ConfirmedBlockId::Number(0) }), 42, devnet_storage_proof_msg),
+        (json!({ "block_id": "latest" }), 42, devnet_storage_proof_msg),
+        (json!({ "block_id": ConfirmedBlockId::Number(5) }), 24, "Block not found"),
     ] {
         let error =
             devnet.send_custom_rpc("starknet_getStorageProof", req_params).await.unwrap_err();
@@ -69,5 +73,16 @@ async fn storage_proof_request_should_always_return_error() {
             error,
             RpcError { code: expected_code.into(), message: expected_msg.into(), data: None }
         );
+    }
+
+    // Test with starknet-rs
+    match devnet.json_rpc_client.get_storage_proof(ConfirmedBlockId::Latest, [], [], []).await {
+        // Replace when this is accepted: https://github.com/xJonathanLEI/starknet-rs/pull/714
+        // Err(ProviderError::StarknetError(StarknetError::StorageProofNotSupported)) => (),
+        Err(e) => assert_json_rpc_errors_equal(
+            extract_json_rpc_error(e).unwrap(),
+            JsonRpcError { code: 42, message: devnet_storage_proof_msg.into(), data: None },
+        ),
+        other => panic!("Unexpected result: {other:?}"),
     }
 }
