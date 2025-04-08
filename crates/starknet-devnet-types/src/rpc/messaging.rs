@@ -3,7 +3,7 @@ use starknet_rs_core::types::{EthAddress, Felt, Hash256, MsgToL1, MsgToL2};
 
 use crate::contract_address::ContractAddress;
 use crate::error::{DevnetResult, Error};
-use crate::felt::{try_felt_to_num, Calldata, EntryPointSelector, Nonce};
+use crate::felt::{Calldata, EntryPointSelector, Nonce, try_felt_to_num};
 use crate::rpc::eth_address::EthAddressWrapper;
 
 /// An L1 to L2 message.

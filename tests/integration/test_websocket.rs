@@ -4,7 +4,7 @@ use tokio_tungstenite::connect_async;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::utils::{
-    assert_no_notifications, send_binary_rpc_via_ws, send_text_rpc_via_ws, subscribe, FeeUnit,
+    FeeUnit, assert_no_notifications, send_binary_rpc_via_ws, send_text_rpc_via_ws, subscribe,
 };
 
 #[tokio::test]

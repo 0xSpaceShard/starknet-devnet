@@ -164,14 +164,14 @@ fn generate_json_rpc_response(
 mod tests {
     use std::fs::File;
 
-    use serde::de::DeserializeOwned;
     use serde::Deserialize;
+    use serde::de::DeserializeOwned;
     use serde_json::Value;
 
-    use super::{generate_combined_schema, generate_json_rpc_response, ApiMethod, Spec};
+    use super::{ApiMethod, Spec, generate_combined_schema, generate_json_rpc_response};
     use crate::api::json_rpc::spec_reader::generate_json_rpc_request;
     use crate::api::json_rpc::{
-        JsonRpcRequest, JsonRpcSubscriptionRequest, StarknetResponse, RPC_SPEC_VERSION,
+        JsonRpcRequest, JsonRpcSubscriptionRequest, RPC_SPEC_VERSION, StarknetResponse,
     };
     use crate::subscribe::{SubscriptionConfirmation, SubscriptionResponse};
 

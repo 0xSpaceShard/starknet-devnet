@@ -11,7 +11,7 @@ use starknet_rs_signers::{LocalWallet, SigningKey};
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::STRK_ERC20_CONTRACT_ADDRESS;
 use crate::common::utils::{
-    get_simple_contract_in_sierra_and_compiled_class_hash, FeeUnit, ImpersonationAction,
+    FeeUnit, ImpersonationAction, get_simple_contract_in_sierra_and_compiled_class_hash,
 };
 
 const IMPERSONATED_ACCOUNT_PRIVATE_KEY: Felt = Felt::ONE;

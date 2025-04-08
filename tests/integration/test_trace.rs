@@ -11,7 +11,7 @@ use starknet_rs_core::types::{
     BlockId, BlockTag, DeployedContractItem, ExecuteInvocation, Felt, InvokeTransactionTrace,
     StarknetError, TransactionTrace,
 };
-use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address, UdcUniqueness};
+use starknet_rs_core::utils::{UdcUniqueness, get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;

@@ -133,7 +133,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         to_hex_felt(&DEVNET_DEFAULT_L2_GAS_PRICE)
     );
     assert_eq!(resp_no_flags["transaction_trace"]["execution_resources"]["l1_gas"], 0);
-    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x3c052f75c3b00000");
+    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x99a6dfe5cc0000");
 
     let params_skip_validation_and_fee_charge = get_params(&["SKIP_VALIDATE", "SKIP_FEE_CHARGE"]);
     let resp_skip_validation = &devnet
@@ -157,7 +157,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         to_hex_felt(&DEVNET_DEFAULT_L2_GAS_PRICE)
     );
     assert_eq!(resp_no_flags["transaction_trace"]["execution_resources"]["l1_gas"], 0);
-    assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x3bda8d860a620000");
+    assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x9939bc386c8000");
 
     let should_skip_fee_invocation = true;
     assert_difference_if_validation(
@@ -348,7 +348,7 @@ async fn unsuccessful_declare_set_gas_successful_declare() {
     let l1_gas = 0;
     let l1_data_gas = 1000;
     // used l2 gas (pre-calculated, must be at least this, otherwise insufficient resources): 4.3e7
-    let l2_gas = 1.1e10 as u64; // l2_balance (1e21) / l2_price (1e11) + a bit to exceed balance
+    let l2_gas = 1.1e12 as u64; // l2_balance (1e21) / l2_price (1e9) + a bit to exceed balance
 
     let unsuccessful_declare_tx = predeployed_account
         .declare_v3(shared_class.clone(), casm_class_hash)
@@ -365,7 +365,7 @@ async fn unsuccessful_declare_set_gas_successful_declare() {
         other => panic!("Unexpected result: {other:?}"),
     };
 
-    let new_l2_fri_price = 9e9 as u128; // approximate upper limit that will pass
+    let new_l2_fri_price = 9e7 as u128; // approximate upper limit that will pass
     let gas_price = json!({ "l2_gas_price_fri": new_l2_fri_price });
     let gas_response = devnet.set_gas_price(&gas_price, true).await.unwrap();
     assert_eq!(gas_response["l2_gas_price_fri"], json!(new_l2_fri_price));

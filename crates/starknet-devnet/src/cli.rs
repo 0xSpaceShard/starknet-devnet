@@ -2,14 +2,14 @@ use std::collections::HashSet;
 use std::num::NonZeroU128;
 
 use clap::Parser;
+use server::ServerConfig;
 use server::api::json_rpc::JsonRpcRequest;
 use server::restrictive_mode::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
 use server::server::HTTP_API_ROUTES_WITHOUT_LEADING_SLASH;
-use server::ServerConfig;
 use starknet_core::constants::{
     ARGENT_CONTRACT_VERSION, ARGENT_MULTISIG_CONTRACT_VERSION, DEVNET_DEFAULT_L1_DATA_GAS_PRICE,
     DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE, DEVNET_DEFAULT_PORT,
-    DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 use starknet_core::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use starknet_core::random_number_generator::generate_u32_random_number;
@@ -222,13 +222,6 @@ Sending POST /create_block is also an option in modes other than \"demand\".")]
     #[arg(requires = "fork_network")]
     fork_block: Option<u64>,
 
-    #[arg(long = "request-body-size-limit")]
-    #[arg(env = "REQUEST_BODY_SIZE_LIMIT")]
-    #[arg(value_name = "BYTES")]
-    #[arg(help = "Specify the maximum HTTP request body size;")]
-    #[arg(default_value_t = DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT)]
-    request_body_size_limit: usize,
-
     #[arg(long = "restrictive-mode")]
     #[arg(env = "RESTRICTIVE_MODE")]
     #[arg(num_args = 0..)]
@@ -320,7 +313,6 @@ impl Args {
             host: self.host.inner,
             port: self.port,
             timeout: self.timeout,
-            request_body_size_limit: self.request_body_size_limit,
             log_request,
             log_response,
             restricted_methods,
@@ -553,23 +545,6 @@ mod tests {
     }
 
     #[test]
-    fn allowing_big_positive_request_body_size() {
-        let value = 1_000_000_000;
-        match Args::try_parse_from(["--", "--request-body-size-limit", &value.to_string()]) {
-            Ok(args) => assert_eq!(args.request_body_size_limit, value),
-            Err(e) => panic!("Should have passed; got: {e}"),
-        }
-    }
-
-    #[test]
-    fn not_allowing_negative_request_body_size() {
-        match Args::try_parse_from(["--", "--request-body-size-limit", "-1"]) {
-            Err(_) => (),
-            Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
-        }
-    }
-
-    #[test]
     #[serial_test::serial]
     fn test_variants_of_env_var() {
         for (environment_variable, should_log_request, should_log_response) in [
@@ -611,7 +586,6 @@ mod tests {
             ("--state-archive-capacity", "STATE_ARCHIVE_CAPACITY", "full"),
             ("--fork-network", "FORK_NETWORK", "http://dummy.com"),
             ("--fork-block", "FORK_BLOCK", "42"),
-            ("--request-body-size-limit", "REQUEST_BODY_SIZE_LIMIT", "100"),
             ("--block-generation-on", "BLOCK_GENERATION_ON", "demand"),
         ];
 

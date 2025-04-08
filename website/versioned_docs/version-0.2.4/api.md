@@ -28,7 +28,7 @@ To check if a Devnet instance is alive, send an HTTP request `GET /is_alive`. If
 
 ## Interacting with Devnet in JavaScript and TypeScript
 
-To spawn Devnet and interact with it using the [Devnet API](#devnet-api), you can use [`starknet-devnet-js`](https://github.com/0xSpaceShard/starknet-devnet-js/). This can be especially useful in achieving [L1-L2 communication](./postman.md#l1-l2-interaction-via-postman).
+To spawn Devnet and interact with it using the [Devnet API](#devnet-api), you can use [`starknet-devnet-js`](https://github.com/0xSpaceShard/starknet-devnet-js/). This can be especially useful in achieving [L1-L2 communication](./postman.md).
 
 To interact with Devnet using the [Starknet API](#starknet-api), use [starknet.js](https://www.starknetjs.com/).
 

@@ -16,7 +16,7 @@ use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::transaction::fields::{
     AllResourceBounds, Fee, GasVectorComputationMode, Tip, ValidResourceBounds,
 };
-use starknet_api::transaction::{signed_tx_version, TransactionHasher, TransactionOptions};
+use starknet_api::transaction::{TransactionHasher, TransactionOptions, signed_tx_version};
 use starknet_rs_core::types::{
     BlockId, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
     TransactionExecutionStatus, TransactionFinalityStatus,
@@ -37,7 +37,7 @@ use super::state::ThinStateDiff;
 use super::transaction_receipt::{ExecutionResources, FeeInUnits, TransactionReceipt};
 use crate::constants::QUERY_VERSION_OFFSET;
 use crate::contract_address::ContractAddress;
-use crate::contract_class::{compute_sierra_class_hash, ContractClass};
+use crate::contract_class::{ContractClass, compute_sierra_class_hash};
 use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult};
 use crate::felt::{

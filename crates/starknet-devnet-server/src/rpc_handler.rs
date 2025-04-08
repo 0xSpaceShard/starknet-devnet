@@ -1,11 +1,11 @@
 use std::fmt::{self};
 
+use axum::Json;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::ws::WebSocket;
 use axum::extract::{State, WebSocketUpgrade};
 use axum::response::IntoResponse;
-use axum::Json;
-use futures::{future, FutureExt};
+use futures::{FutureExt, future};
 use serde::de::DeserializeOwned;
 use tracing::{trace, warn};
 

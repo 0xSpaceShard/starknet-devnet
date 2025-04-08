@@ -25,22 +25,27 @@ impl AccountContractClassChoice {
                 AccountClassWrapper {
                     class_hash: contract_class.generate_hash()?,
                     contract_class: ContractClass::Cairo0(contract_class),
+                    class_metadata: "OpenZeppelin 0.5.1",
                 }
             }
             AccountContractClassChoice::Cairo1 => {
                 let contract_class = ContractClass::Cairo1(
                     ContractClass::cairo_1_from_sierra_json_str(CAIRO_1_ACCOUNT_CONTRACT_SIERRA)?,
                 );
-                AccountClassWrapper { class_hash: contract_class.generate_hash()?, contract_class }
+                AccountClassWrapper {
+                    class_hash: contract_class.generate_hash()?,
+                    contract_class,
+                    class_metadata: "OpenZeppelin 0.20.0",
+                }
             }
         })
     }
 }
-
 #[derive(Clone, Debug)]
 pub struct AccountClassWrapper {
     pub contract_class: ContractClass,
     pub class_hash: Felt,
+    pub class_metadata: &'static str,
 }
 
 impl FromStr for AccountClassWrapper {
@@ -76,27 +81,33 @@ impl FromStr for AccountClassWrapper {
         // generate the hash and return
         let contract_class = ContractClass::Cairo1(contract_class);
         let class_hash = contract_class.generate_hash()?;
-        Ok(Self { contract_class, class_hash })
+        Ok(Self { contract_class, class_hash, class_metadata: "Custom" })
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use clap::ValueEnum;
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::traits::HashProducer;
 
     use super::AccountContractClassChoice;
-    use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH};
+    use crate::constants::{
+        CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
+        CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
+    };
     use crate::contract_class_choice::AccountClassWrapper;
 
     #[test]
     fn all_methods_work_with_all_options() {
         for implementation in AccountContractClassChoice::value_variants().iter() {
-            let AccountClassWrapper { contract_class, class_hash } =
+            let AccountClassWrapper { contract_class, class_hash, class_metadata } =
                 implementation.get_class_wrapper().unwrap();
             let generated_hash = contract_class.generate_hash().unwrap();
             assert_eq!(generated_hash, class_hash);
+            assert!(class_metadata.starts_with("OpenZeppelin"));
         }
     }
 
@@ -111,5 +122,21 @@ mod tests {
             AccountContractClassChoice::Cairo1.get_class_wrapper().unwrap().class_hash,
             felt_from_prefixed_hex(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
         )
+    }
+
+    #[test]
+    fn correct_metadata() {
+        assert_eq!(
+            AccountContractClassChoice::Cairo0.get_class_wrapper().unwrap().class_metadata,
+            "OpenZeppelin 0.5.1"
+        );
+        assert_eq!(
+            AccountContractClassChoice::Cairo1.get_class_wrapper().unwrap().class_metadata,
+            "OpenZeppelin 0.20.0"
+        );
+
+        let custom_class =
+            AccountClassWrapper::from_str(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH).unwrap();
+        assert_eq!(custom_class.class_metadata, "Custom");
     }
 }

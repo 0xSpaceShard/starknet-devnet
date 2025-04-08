@@ -1,12 +1,12 @@
 use serde_json::json;
 use starknet_rs_core::types::{BlockId, Felt};
 use tokio::net::TcpStream;
-use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::utils::{
-    assert_no_notifications, receive_rpc_via_ws, subscribe, subscribe_new_heads, unsubscribe,
-    SubscriptionId,
+    SubscriptionId, assert_no_notifications, receive_rpc_via_ws, subscribe, subscribe_new_heads,
+    unsubscribe,
 };
 
 async fn subscribe_tx_status(
@@ -21,7 +21,7 @@ async fn subscribe_tx_status(
 /// the first thing done on a fresh Devnet using the returned `address` and `amount`.
 fn first_mint_data() -> (Felt, u128, Felt) {
     let expected_tx_hash = Felt::from_hex_unchecked(
-        "0xf33a338433016ad79716afb01599f70ce7f03cdf5acda0137095c8407a2c0b",
+        "0x14a51b616fea8a509e624c9bbcadf41dffa466611eb6aa73cde1333cb2960bc",
     );
     (Felt::ONE, 10, expected_tx_hash)
 }

@@ -5,13 +5,13 @@ use starknet_core::constants::CHARGEABLE_ACCOUNT_ADDRESS;
 use starknet_rs_accounts::{ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{DeclareTransaction, Felt, InvokeTransaction, Transaction};
 use tokio::net::TcpStream;
-use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
-    assert_no_notifications, declare_deploy_simple_contract, receive_rpc_via_ws, subscribe,
-    unsubscribe, FeeUnit, SubscriptionId,
+    FeeUnit, SubscriptionId, assert_no_notifications, declare_deploy_simple_contract,
+    receive_rpc_via_ws, subscribe, unsubscribe,
 };
 
 async fn subscribe_pending_txs(

@@ -4,7 +4,7 @@ use starknet_rs_core::types::{BlockId, BlockTag, Felt};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::reqwest_client::PostReqwestSender;
-use crate::common::utils::{assert_tx_reverted, to_hex_felt, FeeUnit};
+use crate::common::utils::{FeeUnit, assert_tx_reverted, to_hex_felt};
 
 static DUMMY_ADDRESS: u128 = 1;
 static DUMMY_AMOUNT: u128 = 1;

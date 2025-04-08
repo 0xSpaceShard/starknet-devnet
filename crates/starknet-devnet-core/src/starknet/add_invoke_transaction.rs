@@ -93,13 +93,13 @@ mod tests {
         ETH_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{Error, TransactionValidationError};
-    use crate::starknet::{predeployed, Starknet};
+    use crate::starknet::{Starknet, predeployed};
     use crate::state::CustomState;
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::{
-        cairo_0_account_without_validations, dummy_contract_address, dummy_felt,
+        cairo_0_account_without_validations, dummy_contract_address, dummy_felt, dummy_key_pair,
     };
 
     fn test_invoke_transaction_v1(
@@ -493,9 +493,9 @@ mod tests {
 
         let account = Account::new(
             Balance::from(1000000000_u32),
-            dummy_felt(),
-            dummy_felt(),
+            dummy_key_pair(),
             account_without_validations_class_hash,
+            "Custom",
             ContractClass::Cairo0(account_without_validations_contract_class),
             eth_erc_20_contract.get_address(),
             strk_erc_20_contract.get_address(),
