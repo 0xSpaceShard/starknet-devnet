@@ -737,18 +737,9 @@
                   "timeout": {
                     "title": "Timeout",
                     "type": "integer"
-                  },
-                  "request_body_size_limit": {
-                    "title": "Request body size limit",
-                    "type": "integer"
                   }
                 },
-                "required": [
-                  "host",
-                  "port",
-                  "timeout",
-                  "request_body_size_limit"
-                ]
+                "required": ["host", "port", "timeout"]
               }
             },
             "seed": {
