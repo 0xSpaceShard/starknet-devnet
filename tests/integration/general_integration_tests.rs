@@ -1,6 +1,8 @@
 use serde_json::json;
-use starknet_rs_core::types::{BlockId, BlockTag, Felt};
-use starknet_rs_core::utils::{get_storage_var_address, parse_cairo_short_string};
+use starknet_rs_core::types::{BlockId, BlockTag, Felt, FunctionCall};
+use starknet_rs_core::utils::{
+    get_selector_from_name, get_storage_var_address, parse_cairo_short_string,
+};
 use starknet_rs_providers::Provider;
 
 use crate::common::background_devnet::BackgroundDevnet;
@@ -124,5 +126,32 @@ async fn predeployed_erc20_tokens_have_expected_storage() {
             .unwrap();
 
         assert_eq!(parse_cairo_short_string(&actual_value).unwrap().as_str(), expected_value);
+    }
+}
+
+#[tokio::test]
+async fn predeployed_erc20_tokens_return_expected_values_from_property_getters() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+    for (token_address, getter_name, expected_value) in [
+        (ETH_ERC20_CONTRACT_ADDRESS, "name", "Ether"),
+        (ETH_ERC20_CONTRACT_ADDRESS, "symbol", "ETH"),
+        (STRK_ERC20_CONTRACT_ADDRESS, "name", "StarkNet Token"),
+        (STRK_ERC20_CONTRACT_ADDRESS, "symbol", "STRK"),
+    ] {
+        let actual_felts = devnet
+            .json_rpc_client
+            .call(
+                FunctionCall {
+                    contract_address: token_address,
+                    entry_point_selector: get_selector_from_name(getter_name).unwrap(),
+                    calldata: vec![],
+                },
+                BlockId::Tag(BlockTag::Latest),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(actual_felts.len(), 1);
+        assert_eq!(parse_cairo_short_string(&actual_felts[0]).unwrap(), expected_value);
     }
 }
