@@ -1465,9 +1465,6 @@ impl Starknet {
         transaction: &BroadcastedTransaction,
     ) -> DevnetResult<bool> {
         let sender_address = match transaction {
-            BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(v1)) => {
-                Some(&v1.sender_address)
-            }
             BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V3(v3)) => {
                 Some(&v3.sender_address)
             }

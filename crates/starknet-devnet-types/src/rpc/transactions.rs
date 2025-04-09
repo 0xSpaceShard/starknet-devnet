@@ -7,7 +7,6 @@ use blockifier::versioned_constants::VersionedConstants;
 use broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use declare_transaction_v2::DeclareTransactionV2;
 use deploy_transaction::DeployTransaction;
-use invoke_transaction_v1::InvokeTransactionV1;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::block::{BlockNumber, GasPrice};
 use starknet_api::contract_class::{ClassInfo, EntryPointType};
@@ -25,7 +24,6 @@ use starknet_rs_core::utils::parse_cairo_short_string;
 
 use self::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use self::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
-use self::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use self::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use self::declare_transaction_v3::DeclareTransactionV3;
 use self::deploy_account_transaction_v3::DeployAccountTransactionV3;
@@ -216,14 +214,12 @@ impl DeclareTransaction {
 #[cfg_attr(feature = "testing", derive(Deserialize, PartialEq, Eq))]
 #[serde(untagged)]
 pub enum InvokeTransaction {
-    V1(InvokeTransactionV1),
     V3(InvokeTransactionV3),
 }
 
 impl InvokeTransaction {
     pub fn get_sender_address(&self) -> ContractAddress {
         match self {
-            InvokeTransaction::V1(tx) => tx.sender_address,
             InvokeTransaction::V3(tx) => tx.sender_address,
         }
     }
@@ -750,28 +746,24 @@ impl BroadcastedDeployAccountTransaction {
 
 #[derive(Debug, Clone)]
 pub enum BroadcastedInvokeTransaction {
-    V1(BroadcastedInvokeTransactionV1),
     V3(BroadcastedInvokeTransactionV3),
 }
 
 impl BroadcastedInvokeTransaction {
     pub fn is_max_fee_valid(&self) -> bool {
         match self {
-            BroadcastedInvokeTransaction::V1(v1) => !v1.common.is_max_fee_zero_value(),
             BroadcastedInvokeTransaction::V3(v3) => v3.common.are_gas_bounds_valid(),
         }
     }
 
     pub fn is_deprecated(&self) -> bool {
         match self {
-            BroadcastedInvokeTransaction::V1(_) => true,
             BroadcastedInvokeTransaction::V3(_) => false,
         }
     }
 
     pub fn is_only_query(&self) -> bool {
         match self {
-            BroadcastedInvokeTransaction::V1(tx) => tx.common.is_only_query(),
             BroadcastedInvokeTransaction::V3(tx) => tx.common.is_only_query(),
         }
     }
@@ -786,21 +778,6 @@ impl BroadcastedInvokeTransaction {
         chain_id: &Felt,
     ) -> DevnetResult<starknet_api::executable_transaction::InvokeTransaction> {
         let sn_api_transaction = match self {
-            BroadcastedInvokeTransaction::V1(v1) => {
-                let sn_api_transaction = starknet_api::transaction::InvokeTransactionV1 {
-                    max_fee: v1.common.max_fee,
-                    signature: starknet_api::transaction::fields::TransactionSignature(
-                        v1.common.signature.clone(),
-                    ),
-                    nonce: starknet_api::core::Nonce(v1.common.nonce),
-                    sender_address: v1.sender_address.try_into()?,
-                    calldata: starknet_api::transaction::fields::Calldata(Arc::new(
-                        v1.calldata.clone(),
-                    )),
-                };
-
-                starknet_api::transaction::InvokeTransaction::V1(sn_api_transaction)
-            }
             BroadcastedInvokeTransaction::V3(v3) => v3.create_sn_api_invoke()?,
         };
 
@@ -874,12 +851,6 @@ impl<'de> Deserialize<'de> for BroadcastedInvokeTransaction {
         let value = serde_json::Value::deserialize(deserializer)?;
         let version_raw = value.get("version").ok_or(serde::de::Error::missing_field("version"))?;
         match version_raw.as_str() {
-            Some(v) if ["0x1", "0x100000000000000000000000000000001"].contains(&v) => {
-                let unpacked = serde_json::from_value(value).map_err(|e| {
-                    serde::de::Error::custom(format!("Invalid invoke transaction v1: {e}"))
-                })?;
-                Ok(BroadcastedInvokeTransaction::V1(unpacked))
-            }
             Some(v) if ["0x3", "0x100000000000000000000000000000003"].contains(&v) => {
                 let unpacked = serde_json::from_value(value).map_err(|e| {
                     serde::de::Error::custom(format!("Invalid invoke transaction v3: {e}"))

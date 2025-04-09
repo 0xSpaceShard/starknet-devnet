@@ -189,9 +189,7 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::rpc::state::{Balance, ReplacedClasses};
-    use starknet_types::rpc::transactions::BroadcastedInvokeTransaction;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-    use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
     use starknet_types::traits::HashProducer;
 
     use super::StateDiff;
@@ -204,6 +202,7 @@ mod tests {
     use crate::utils::test_utils::{
         DUMMY_CAIRO_1_COMPILED_CLASS_HASH, cairo_0_account_without_validations,
         dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt, dummy_key_pair,
+        test_invoke_transaction_v3,
     };
 
     #[test]
@@ -273,6 +272,8 @@ mod tests {
             gas_price_fri: nonzero!(1u128),
             data_gas_price_wei: nonzero!(1u128),
             data_gas_price_fri: nonzero!(1u128),
+            l2_gas_price_wei: nonzero!(1u128),
+            l2_gas_price_fri: nonzero!(1u128),
             ..Default::default()
         })
         .unwrap();
@@ -301,7 +302,7 @@ mod tests {
         // dummy contract
         let replaceable_contract = dummy_cairo_1_contract_class();
 
-        let events_contract = ContractClass::cairo_1_from_sierra_json_str(
+        let replacing_contract = ContractClass::cairo_1_from_sierra_json_str(
             &std::fs::read_to_string(
                 "../../contracts/test_artifacts/cairo1/events/events_2.0.1_compiler.sierra",
             )
@@ -310,7 +311,7 @@ mod tests {
         .unwrap();
 
         for (contract_class, nonce) in
-            [(replaceable_contract.clone(), Felt::ZERO), (events_contract.clone(), Felt::ONE)]
+            [(replaceable_contract.clone(), 0), (replacing_contract.clone(), 1)]
         {
             let compiled_class_hash =
                 compile_sierra_contract(&contract_class).unwrap().compiled_class_hash();
@@ -324,7 +325,7 @@ mod tests {
                             account.account_address,
                             Fee(1e16 as u128),
                             &vec![],
-                            nonce,
+                            nonce.into(),
                             Felt::TWO,
                         ),
                     )),
@@ -333,8 +334,7 @@ mod tests {
         }
 
         let replaceable_contract_address = ContractAddress::new(Felt::ONE).unwrap();
-        let old_class_hash =
-            ContractClass::Cairo1(replaceable_contract.clone()).generate_hash().unwrap();
+        let old_class_hash = ContractClass::Cairo1(replaceable_contract).generate_hash().unwrap();
         starknet
             .pending_state
             .predeploy_contract(replaceable_contract_address, old_class_hash)
@@ -344,19 +344,18 @@ mod tests {
         starknet.generate_new_block_and_state().unwrap();
         starknet.restart_pending_block().unwrap();
 
-        let func_selector = get_selector_from_name("test_replace_class").unwrap();
-        let new_class_hash =
-            ContractClass::Cairo1(events_contract.clone()).generate_hash().unwrap();
-        let calldata = vec![Felt::ONE, func_selector, Felt::ONE, new_class_hash];
+        let new_class_hash = ContractClass::Cairo1(replacing_contract).generate_hash().unwrap();
 
-        let invoke_txn = BroadcastedInvokeTransaction::V1(BroadcastedInvokeTransactionV1::new(
+        let invoke_txn = test_invoke_transaction_v3(
             account.account_address,
-            Fee(1e16 as u128),
-            &vec![],
-            Felt::TWO,
-            &calldata,
-            Felt::ONE,
-        ));
+            replaceable_contract_address,
+            get_selector_from_name("test_replace_class").unwrap(),
+            new_class_hash,
+            2, // nonce
+            0,
+            1000,
+            1e7 as u64,
+        );
 
         starknet.add_invoke_transaction(invoke_txn).unwrap();
 

@@ -87,10 +87,12 @@ pub(crate) mod test_utils {
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
+    use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
     use starknet_types::rpc::transactions::declare_transaction_v3::DeclareTransactionV3;
     use starknet_types::rpc::transactions::{
-        BroadcastedDeclareTransaction, BroadcastedTransactionCommonV3, DeclareTransaction,
-        ResourceBoundsWrapper, Transaction, TransactionWithHash,
+        BroadcastedDeclareTransaction, BroadcastedInvokeTransaction,
+        BroadcastedTransactionCommonV3, DeclareTransaction, ResourceBoundsWrapper, Transaction,
+        TransactionWithHash,
     };
     use starknet_types::traits::HashProducer;
 
@@ -221,6 +223,50 @@ pub(crate) mod test_utils {
 
     pub fn dummy_key_pair() -> KeyPair {
         KeyPair { public_key: dummy_felt(), private_key: dummy_felt() }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn test_invoke_transaction_v3(
+        account_address: ContractAddress,
+        contract_address: ContractAddress,
+        function_selector: Felt,
+        param: Felt,
+        nonce: u128,
+        l1_gas_amount: u64,
+        l1_data_gas_amount: u64,
+        l2_gas_amount: u64,
+    ) -> BroadcastedInvokeTransaction {
+        let calldata = vec![
+            Felt::from(contract_address), // contract address
+            function_selector,            // function selector
+            Felt::ONE,                    // calldata len
+            param,                        // calldata
+        ];
+
+        BroadcastedInvokeTransaction::V3(BroadcastedInvokeTransactionV3 {
+            common: BroadcastedTransactionCommonV3 {
+                version: Felt::THREE,
+                signature: vec![],
+                nonce: Felt::from(nonce),
+                resource_bounds: ResourceBoundsWrapper::new(
+                    l1_gas_amount,
+                    1,
+                    l1_data_gas_amount,
+                    1,
+                    l2_gas_amount,
+                    1,
+                ),
+                tip: Tip(0),
+                paymaster_data: vec![],
+                nonce_data_availability_mode:
+                    starknet_api::data_availability::DataAvailabilityMode::L1,
+                fee_data_availability_mode:
+                    starknet_api::data_availability::DataAvailabilityMode::L1,
+            },
+            sender_address: account_address,
+            calldata,
+            account_deployment_data: vec![],
+        })
     }
 }
 
