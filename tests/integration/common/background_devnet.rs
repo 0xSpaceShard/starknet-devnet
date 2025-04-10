@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::LowerHex;
-use std::process::{Command, Stdio};
+use std::process::{Command, Output, Stdio};
 use std::time;
 
 use anyhow::anyhow;
@@ -47,22 +47,6 @@ lazy_static! {
         ("--initial-balance", PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string()),
         ("--port", 0.to_string()) // random port by default
     ]);
-}
-
-/// If on CircleCI, return the pre-built binary, otherwise rely on cargo.
-fn get_devnet_command() -> Command {
-    if std::env::var("CIRCLECI").is_ok() {
-        Command::new(DEVNET_EXECUTABLE_BINARY_PATH)
-    } else {
-        let mut command = Command::new("cargo");
-        command
-            .arg("run")
-            .arg("--release")
-            .arg("--manifest-path")
-            .arg(DEVNET_MANIFEST_PATH)
-            .arg("--");
-        command
-    }
 }
 
 async fn wait_for_successful_response(
@@ -129,14 +113,35 @@ impl BackgroundDevnet {
         final_args
     }
 
+    fn start_safe_process(args: &[&str]) -> Result<SafeChild, TestError> {
+        // If not on CircleCI, first build the workspace with cargo. Then rely on the built binary.
+        if std::env::var("CIRCLECI").is_err() {
+            let Output { status, stderr, .. } = Command::new("cargo")
+                .args(["build", "--release", "--manifest-path", DEVNET_MANIFEST_PATH])
+                .stdout(Stdio::null())
+                .output()
+                .map_err(|err| {
+                    TestError::DevnetNotStartable(format!("Error spawning build process {err:?}"))
+                })?;
+            if !status.success() {
+                let stderr_str = String::from_utf8_lossy(&stderr);
+                return Err(TestError::DevnetNotStartable(format!(
+                    "Error during build process {stderr_str}"
+                )));
+            }
+        }
+
+        let process = Command::new(DEVNET_EXECUTABLE_BINARY_PATH)
+            .args(Self::add_default_args(args))
+            .stdout(Stdio::piped()) // comment this out for complete devnet stdout
+            .spawn()
+            .map_err(|e| TestError::DevnetNotStartable(format!("Spawning error: {e:?}")))?;
+
+        Ok(SafeChild { process })
+    }
+
     pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
-        let mut devnet_command = get_devnet_command();
-        let process = devnet_command
-                .args(Self::add_default_args(args))
-                .stdout(Stdio::piped()) // comment this out for complete devnet stdout
-                .spawn()
-                .map_err(|e| TestError::DevnetNotStartable(format!("Spawning error: {e:?}")))?;
-        let mut safe_process = SafeChild { process };
+        let mut safe_process = Self::start_safe_process(args)?;
 
         let sleep_time = time::Duration::from_millis(500);
         let max_retries = 60;
