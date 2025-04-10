@@ -52,7 +52,7 @@ pub struct GetStorageProofInput {
     pub block_id: BlockId,
     pub class_hashes: Option<Vec<Felt>>,
     pub contract_addresses: Option<Vec<ContractAddress>>,
-    pub contract_storage_keys: Option<ContractStorage>,
+    pub contracts_storage_keys: Option<Vec<ContractStorage>>,
 }
 
 #[derive(Deserialize, Clone, Debug)]

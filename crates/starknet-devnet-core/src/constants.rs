@@ -26,12 +26,13 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
 
 pub const CAIRO_1_ERC20_CONTRACT: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/contracts/system_artifacts/ERC20_Mintable_OZ_0.20.0.sierra"
+    "/contracts/system_artifacts/ERC20_Mintable_OZ_0.8.1.sierra"
 ));
 
-/// Unlike in previous Devnet versions, now using the actual hash of the predeployed artifact
+/// Hardcoded to match the hash of the unchanged OZ ERC20.cairo even despite the changes: commented
+/// attributes in struct Approval (owner, spender), the addition of mintability.
 pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: Felt =
-    Felt::from_hex_unchecked("0x011374319a6e07b4f2738fa3bfa8cf2181bfb0dbb4d800215baa87b83a57877e");
+    Felt::from_hex_unchecked("0x046ded64ae2dead6448e247234bab192a9c483644395b66f2155f2614e5804b0");
 
 /// only used in tests; if artifact needed in production, add a new constant that uses include_str!
 pub const CAIRO_0_ERC20_CONTRACT_PATH: &str =
