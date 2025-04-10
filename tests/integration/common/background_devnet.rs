@@ -117,7 +117,7 @@ impl BackgroundDevnet {
         // If not on CircleCI, first build the workspace with cargo. Then rely on the built binary.
         if std::env::var("CIRCLECI").is_err() {
             let Output { status, stderr, .. } = Command::new("cargo")
-                .args(["build", "--release", "--manifest-path", DEVNET_MANIFEST_PATH])
+                .args(["build", "--release", "--bin", "starknet-devnet", "--manifest-path", DEVNET_MANIFEST_PATH])
                 .stdout(Stdio::null())
                 .output()
                 .map_err(|err| {
