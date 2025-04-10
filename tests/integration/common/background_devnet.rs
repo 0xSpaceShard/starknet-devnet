@@ -26,7 +26,7 @@ use super::reqwest_client::{PostReqwestSender, ReqwestClient};
 use super::utils::{to_hex_felt, FeeUnit, ImpersonationAction};
 use crate::common::background_server::get_acquired_port;
 use crate::common::constants::{
-    DEVNET_EXECUTABLE_BINARY_PATH, DEVNET_MANIFEST_PATH, STRK_ERC20_CONTRACT_ADDRESS,
+    DEVNET_EXECUTABLE_BINARY_PATH, STRK_ERC20_CONTRACT_ADDRESS,
 };
 use crate::common::safe_child::SafeChild;
 
@@ -117,7 +117,7 @@ impl BackgroundDevnet {
         // If not on CircleCI, first build the workspace with cargo. Then rely on the built binary.
         if std::env::var("CIRCLECI").is_err() {
             let Output { status, stderr, .. } = Command::new("cargo")
-                .args(&["build", "--release"])
+                .args(["build", "--release"])
                 .stdout(Stdio::null())
                 .output()
                 .map_err(|err| {
