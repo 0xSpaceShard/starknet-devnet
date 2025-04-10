@@ -230,18 +230,16 @@ pub(crate) mod test_utils {
         account_address: ContractAddress,
         contract_address: ContractAddress,
         function_selector: Felt,
-        param: Felt,
+        params: &[Felt],
         nonce: u128,
         l1_gas_amount: u64,
         l1_data_gas_amount: u64,
         l2_gas_amount: u64,
     ) -> BroadcastedInvokeTransaction {
-        let calldata = vec![
-            Felt::from(contract_address), // contract address
-            function_selector,            // function selector
-            Felt::ONE,                    // calldata len
-            param,                        // calldata
-        ];
+        // Encode: [addr, selector, params len, *params]
+        let mut calldata = vec![Felt::from(contract_address), function_selector];
+        calldata.push(params.len().into());
+        calldata.extend_from_slice(params);
 
         BroadcastedInvokeTransaction::V3(BroadcastedInvokeTransactionV3 {
             common: BroadcastedTransactionCommonV3 {

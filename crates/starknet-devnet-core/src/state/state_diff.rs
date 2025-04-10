@@ -350,7 +350,7 @@ mod tests {
             account.account_address,
             replaceable_contract_address,
             get_selector_from_name("test_replace_class").unwrap(),
-            new_class_hash,
+            &[new_class_hash],
             2, // nonce
             0,
             1000,

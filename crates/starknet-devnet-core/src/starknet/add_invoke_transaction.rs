@@ -70,6 +70,7 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::contract_storage_key::ContractStorageKey;
+    use starknet_types::num_bigint::BigUint;
     use starknet_types::rpc::gas_modification::GasModification;
     use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::BroadcastedInvokeTransaction;
@@ -97,9 +98,9 @@ mod tests {
             dummy_contract_address(),
             dummy_contract_address(),
             dummy_felt(),
-            Felt::from(10),
-            0,
-            1,
+            &[Felt::from(10)],
+            0, // nonce
+            1, // gas bounds
             0,
             0,
         );
@@ -116,6 +117,12 @@ mod tests {
         };
     }
 
+    fn biguint_to_u64(b: &BigUint) -> u64 {
+        let parts = b.to_u64_digits();
+        assert_eq!(parts.len(), 1);
+        parts[0]
+    }
+
     #[test]
     fn invoke_transaction_v3_successful_execution_with_only_l1_gas() {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
@@ -127,9 +134,9 @@ mod tests {
             account_address,
             contract_address,
             increase_balance_selector,
-            Felt::from(10),
-            0,
-            initial_balance.to_string().parse::<u64>().unwrap(),
+            &[Felt::from(10)],
+            0,                                // nonce
+            biguint_to_u64(&initial_balance), // gas bounds
             0,
             0,
         );
@@ -153,15 +160,14 @@ mod tests {
         let initial_balance =
             account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap();
 
-        // dividing by 10, because otherwise it will fail that the total amount of gas exceeds
-        // user's balance
-        let gas_amount = initial_balance.to_string().parse::<u64>().unwrap() / 10;
+        // dividing by 10, otherwise it fails with gas exceeding user balance
+        let gas_amount = biguint_to_u64(&initial_balance) / 10;
 
         let invoke_transaction = test_invoke_transaction_v3(
             account_address,
             contract_address,
             increase_balance_selector,
-            Felt::from(10),
+            &[Felt::from(10)],
             0,
             gas_amount,
             gas_amount,
@@ -201,7 +207,7 @@ mod tests {
                 account_address,
                 contract_address,
                 increase_balance_selector,
-                Felt::from(10),
+                &[Felt::from(10)],
                 0,
                 l1_gas,
                 l1_data_gas,
@@ -240,7 +246,7 @@ mod tests {
             account_address,
             contract_address,
             increase_balance_selector,
-            Felt::from(10),
+            &[Felt::from(10)],
             0,
             l1_gas_amount,
             l1_data_gas_amount,
@@ -263,8 +269,8 @@ mod tests {
             account_address,
             contract_address,
             increase_balance_selector,
-            Felt::from(15),
-            1,
+            &[Felt::from(15)],
+            1, // nonce
             l1_gas_amount,
             l1_data_gas_amount,
             l2_gas_amount,
@@ -289,7 +295,7 @@ mod tests {
             dummy_contract_address(),
             dummy_contract_address(),
             dummy_felt(),
-            Felt::ZERO,
+            &[Felt::ZERO],
             nonce,
             0,
             0,
@@ -315,9 +321,9 @@ mod tests {
             account_address,
             contract_address,
             increase_balance_selector,
-            dummy_felt(),
+            &[dummy_felt()],
             nonce,
-            0,
+            0, // gas bounds
             1000,
             1e6 as u64,
         );
@@ -348,9 +354,9 @@ mod tests {
             account_address.into(),
             contract_address,
             increase_balance_selector,
-            dummy_felt(),
+            &[dummy_felt()],
             initial_nonce,
-            0,
+            0, // gas bounds
             128,
             480_000, // if less, gets bounced back instead of accepted+reverted
         );
