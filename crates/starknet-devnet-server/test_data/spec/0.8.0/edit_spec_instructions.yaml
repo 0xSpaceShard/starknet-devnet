@@ -31,6 +31,8 @@ add:
 remove_from_array:
   - path: components/schemas/INVOKE_TXN/oneOf
     index: 0
+  - path: components/schemas/INVOKE_TXN/oneOf
+    index: 1
   - path: components/schemas/TXN_STATUS/enum
     index: 1
   - path: components/schemas/TXN_STATUS/enum
