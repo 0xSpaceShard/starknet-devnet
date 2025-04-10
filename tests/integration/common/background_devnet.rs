@@ -113,11 +113,18 @@ impl BackgroundDevnet {
         final_args
     }
 
-    pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
+    fn start_safe_process(args: &[&str]) -> Result<SafeChild, TestError> {
         // If not on CircleCI, first build the workspace with cargo. Then rely on the built binary.
         if std::env::var("CIRCLECI").is_err() {
             let Output { status, stderr, .. } = Command::new("cargo")
-                .args(["build", "--release", "--bin", "starknet-devnet", "--manifest-path", DEVNET_MANIFEST_PATH])
+                .args([
+                    "build",
+                    "--release",
+                    "--bin",
+                    "starknet-devnet",
+                    "--manifest-path",
+                    DEVNET_MANIFEST_PATH,
+                ])
                 .stdout(Stdio::null())
                 .output()
                 .map_err(|err| {
@@ -137,7 +144,11 @@ impl BackgroundDevnet {
             .spawn()
             .map_err(|e| TestError::DevnetNotStartable(format!("Spawning error: {e:?}")))?;
 
-        let mut safe_process = SafeChild { process };
+        Ok(SafeChild { process })
+    }
+
+    pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
+        let mut safe_process = Self::start_safe_process(args)?;
 
         let sleep_time = time::Duration::from_millis(500);
         let max_retries = 60;
