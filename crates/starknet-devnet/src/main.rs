@@ -8,9 +8,9 @@ use cli::Args;
 use futures::future::join_all;
 use serde::de::IntoDeserializer;
 use serde_json::json;
+use server::api::Api;
 use server::api::http::HttpApiHandler;
 use server::api::json_rpc::{JsonRpcHandler, RPC_SPEC_VERSION};
-use server::api::Api;
 use server::dump_util::{dump_events, load_events};
 use server::server::serve_http_api_json_rpc;
 use starknet_core::account::Account;
@@ -18,10 +18,10 @@ use starknet_core::constants::{
     ARGENT_CONTRACT_CLASS_HASH, ARGENT_MULTISIG_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS,
     STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
+use starknet_core::starknet::Starknet;
 use starknet_core::starknet::starknet_config::{
     BlockGenerationOn, DumpOn, ForkConfig, StarknetConfig,
 };
-use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::ContractClass::{Legacy, Sierra};
 use starknet_rs_core::types::{
     BlockId, BlockTag, Felt, MaybePendingBlockWithTxHashes, StarknetError,
@@ -33,7 +33,7 @@ use starknet_types::rpc::state::Balance;
 use starknet_types::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 use tokio::net::TcpListener;
 #[cfg(unix)]
-use tokio::signal::unix::{signal, SignalKind};
+use tokio::signal::unix::{SignalKind, signal};
 #[cfg(windows)]
 use tokio::signal::windows::ctrl_c;
 use tokio::task::{self};
@@ -80,26 +80,31 @@ fn log_predeployed_accounts(
     seed: u32,
     initial_balance: Balance,
 ) {
+    if let Some(predeployed_account) = predeployed_accounts.first() {
+        println!(
+            "Predeployed accounts using class {} with hash: {}",
+            predeployed_account.class_metadata,
+            predeployed_account.class_hash.to_fixed_hex_string()
+        );
+    }
+
     for account in predeployed_accounts {
-        let formatted_str = format!(
+        println!(
             r"
 | Account address |  {}
 | Private key     |  {}
 | Public key      |  {}",
             account.account_address.to_fixed_hex_string(),
-            account.private_key.to_fixed_hex_string(),
-            account.public_key.to_fixed_hex_string()
+            account.keys.private_key.to_fixed_hex_string(),
+            account.keys.public_key.to_fixed_hex_string()
         );
-
-        println!("{}", formatted_str);
     }
 
-    if let Some(predeployed_account) = predeployed_accounts.first() {
+    if !predeployed_accounts.is_empty() {
         println!();
-        let class_hash = predeployed_account.class_hash.to_fixed_hex_string();
-        println!("Predeployed accounts using class with hash: {class_hash}");
-        println!("Initial balance of each account: {} WEI and FRI", initial_balance);
+        println!("Initial balance of each account: {initial_balance} WEI and FRI");
         println!("Seed to replicate this account sequence: {seed}");
+        println!();
     }
 }
 
@@ -127,6 +132,7 @@ fn log_other_predeclared_contracts(config: &StarknetConfig) {
 
 fn log_chain_id(chain_id: &ChainId) {
     println!("Chain ID: {} ({})", chain_id, chain_id.to_felt().to_hex_string());
+    println!();
 }
 
 async fn check_forking_spec_version(
@@ -294,9 +300,9 @@ async fn main() -> Result<(), anyhow::Error> {
         );
     };
 
+    log_chain_id(&starknet_config.chain_id);
     log_predeployed_contracts(&starknet_config);
     log_other_predeclared_contracts(&starknet_config);
-    log_chain_id(&starknet_config.chain_id);
 
     let predeployed_accounts = api.starknet.lock().await.get_predeployed_accounts();
     log_predeployed_accounts(

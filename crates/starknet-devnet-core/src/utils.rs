@@ -8,7 +8,7 @@ use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 use crate::error::DevnetResult;
 
 pub mod random_number_generator {
-    use rand::{thread_rng, Rng, SeedableRng};
+    use rand::{Rng, SeedableRng, thread_rng};
     use rand_mt::Mt64;
 
     pub fn generate_u32_random_number() -> u32 {
@@ -94,6 +94,7 @@ pub(crate) mod test_utils {
     };
     use starknet_types::traits::HashProducer;
 
+    use crate::account::KeyPair;
     use crate::constants::DEVNET_DEFAULT_CHAIN_ID;
 
     pub(crate) fn dummy_felt() -> Felt {
@@ -217,13 +218,17 @@ pub(crate) mod test_utils {
             account_deployment_data: vec![],
         }
     }
+
+    pub fn dummy_key_pair() -> KeyPair {
+        KeyPair { public_key: dummy_felt(), private_key: dummy_felt() }
+    }
 }
 
 #[cfg(any(test, feature = "test_utils"))]
 #[allow(clippy::unwrap_used)]
 pub mod exported_test_utils {
-    use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
     use starknet_types::contract_class::Cairo0ContractClass;
+    use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
 
     pub fn dummy_cairo_l1l2_contract() -> Cairo0ContractClass {
         let json_str =

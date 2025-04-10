@@ -39,7 +39,7 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_0_8_0_SIERRA_PATH: &str = concat!(
 
 // system contracts
 pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: Felt =
-    Felt::from_hex_unchecked("0x011374319a6e07b4f2738fa3bfa8cf2181bfb0dbb4d800215baa87b83a57877e");
+    Felt::from_hex_unchecked("0x046ded64ae2dead6448e247234bab192a9c483644395b66f2155f2614e5804b0");
 pub const ETH_ERC20_CONTRACT_ADDRESS: Felt =
     Felt::from_hex_unchecked("0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7");
 pub const STRK_ERC20_CONTRACT_ADDRESS: Felt =
@@ -56,6 +56,9 @@ pub const CAIRO_1_CONTRACT_PATH: &str =
 // Simple contract with a failable (panicking) function
 pub const CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH: &str =
     "../../contracts/test_artifacts/cairo1/panicking_contract/panicking_contract.sierra";
+
+pub const TOO_BIG_CONTRACT_SIERRA_PATH: &str =
+    "../../contracts/test_artifacts/cairo1/too_big/too_big.sierra";
 
 // Contract which asserts the tx version
 pub const CAIRO_1_VERSION_ASSERTER_SIERRA_PATH: &str =

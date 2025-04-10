@@ -16,11 +16,13 @@ use starknet_rs_signers::LocalWallet;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
-    self, CAIRO_0_ACCOUNT_CONTRACT_HASH, STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS,
+    self, CAIRO_0_ACCOUNT_CONTRACT_HASH, STRK_ERC20_CONTRACT_ADDRESS, TOO_BIG_CONTRACT_SIERRA_PATH,
+    UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_tx_successful, get_deployable_account_signer,
-    get_simple_contract_in_sierra_and_compiled_class_hash, FeeUnit, LocalFee,
+    FeeUnit, LocalFee, assert_tx_successful, get_deployable_account_signer,
+    get_flattened_sierra_contract_and_casm_hash,
+    get_simple_contract_in_sierra_and_compiled_class_hash,
 };
 
 enum Action {
@@ -108,6 +110,7 @@ async fn declare_deploy_happy_path() {
 
     assert_eq!(declare_transaction.class_hash, class_hash_of_contract);
 }
+
 #[tokio::test]
 async fn declare_from_an_account_with_insufficient_strk_tokens_balance() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
@@ -405,5 +408,29 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                 }
             }
         };
+    }
+}
+
+#[tokio::test]
+async fn test_rejection_of_too_big_class_declaration() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+    let (signer, account_address) = devnet.get_first_predeployed_account().await;
+    let account = SingleOwnerAccount::new(
+        &devnet.json_rpc_client,
+        signer,
+        account_address,
+        devnet.json_rpc_client.chain_id().await.unwrap(),
+        ExecutionEncoding::New,
+    );
+
+    let (contract_class, casm_hash) =
+        get_flattened_sierra_contract_and_casm_hash(TOO_BIG_CONTRACT_SIERRA_PATH);
+
+    match account.declare_v3(Arc::new(contract_class), casm_hash).send().await {
+        Err(AccountError::Provider(ProviderError::StarknetError(
+            StarknetError::ContractClassSizeIsTooLarge,
+        ))) => (),
+        other => panic!("Unexpected result: {other:?}"),
     }
 }

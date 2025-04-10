@@ -1,5 +1,5 @@
 use blockifier::execution::stack_trace::{
-    gen_tx_execution_error_trace, ErrorStack, ErrorStackHeader, ErrorStackSegment, PreambleType,
+    ErrorStack, ErrorStackHeader, ErrorStackSegment, PreambleType, gen_tx_execution_error_trace,
 };
 use blockifier::fee::fee_checks::FeeCheckError;
 use blockifier::transaction::errors::{
@@ -78,6 +78,8 @@ pub enum Error {
     ClassAlreadyDeclared { msg: String },
     #[error("Requested entrypoint does not exist in the contract")]
     EntrypointNotFound,
+    #[error("Contract class size it too large")]
+    ContractClassSizeIsTooLarge,
 }
 
 impl From<starknet_types_core::felt::FromStrError> for Error {

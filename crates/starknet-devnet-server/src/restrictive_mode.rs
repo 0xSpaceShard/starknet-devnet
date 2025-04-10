@@ -101,7 +101,7 @@ mod tests {
 
     use super::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
     use crate::restrictive_mode::{
-        is_json_rpc_method_restricted, is_uri_path_restricted, RPC_METHOD_TO_HTTP_URI,
+        RPC_METHOD_TO_HTTP_URI, is_json_rpc_method_restricted, is_uri_path_restricted,
     };
     lazy_static! {
         static ref DEFAULT_RESTRICTED_HTTP_URIS: Vec<String> = DEFAULT_RESTRICTED_JSON_RPC_METHODS

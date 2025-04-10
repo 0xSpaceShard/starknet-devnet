@@ -9,7 +9,6 @@ pub const CAIRO_0_ACCOUNT_CONTRACT: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/contracts/accounts_artifacts/OpenZeppelin/0.5.1/Account.cairo/Account.json"
 ));
-
 pub const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
     "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
 
@@ -18,23 +17,22 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/contracts/accounts_artifacts/OpenZeppelin/0.20.0/Account.cairo/Account.sierra"
 );
-
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/contracts/accounts_artifacts/OpenZeppelin/0.20.0/Account.cairo/Account.sierra"
 ));
-
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
     "0x02b31e19e45c06f29234e06e2ee98a9966479ba3067f8785ed972794fdb0065c";
 
 pub const CAIRO_1_ERC20_CONTRACT: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/contracts/system_artifacts/ERC20_Mintable_OZ_0.20.0.sierra"
+    "/contracts/system_artifacts/ERC20_Mintable_OZ_0.8.1.sierra"
 ));
 
-/// Unlike in previous Devnet versions, now using the actual hash of the predeployed artifact
+/// Hardcoded to match the hash of the unchanged OZ ERC20.cairo even despite the changes: commented
+/// attributes in struct Approval (owner, spender), the addition of mintability.
 pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: Felt =
-    Felt::from_hex_unchecked("0x011374319a6e07b4f2738fa3bfa8cf2181bfb0dbb4d800215baa87b83a57877e");
+    Felt::from_hex_unchecked("0x046ded64ae2dead6448e247234bab192a9c483644395b66f2155f2614e5804b0");
 
 /// only used in tests; if artifact needed in production, add a new constant that uses include_str!
 pub const CAIRO_0_ERC20_CONTRACT_PATH: &str =
@@ -78,7 +76,7 @@ pub const UDC_CONTRACT_ADDRESS: Felt =
 /// https://github.com/OpenZeppelin/cairo-contracts/blob/89a450a88628ec3b86273f261b2d8d1ca9b1522b/src/account/interface.cairo#L7
 pub const ISRC6_ID_HEX: &str = "0x2ceccef7f994940b3962a6c67e0ba4fcd37df7d131417c604f91e03caecc1cd";
 
-pub const STARKNET_VERSION: &str = "0.13.2";
+pub const STARKNET_VERSION: &str = "0.13.5";
 
 /// ERC20 contracts storage variables
 /// taken from starkcan urls:
@@ -93,15 +91,14 @@ pub const DEVNET_DEFAULT_SEED: u32 = 123;
 pub const DEVNET_DEFAULT_TEST_SEED: u32 = 123;
 pub const DEVNET_DEFAULT_TOTAL_ACCOUNTS: u8 = 10;
 pub const DEVNET_DEFAULT_INITIAL_BALANCE: u128 = 1_000_000_000_000_000_000_000;
-pub const DEVNET_DEFAULT_L1_GAS_PRICE: NonZeroU128 = nonzero!(100_000_000_000u128);
-pub const DEVNET_DEFAULT_L1_DATA_GAS_PRICE: NonZeroU128 = nonzero!(100_000_000_000u128);
-pub const DEVNET_DEFAULT_L2_GAS_PRICE: NonZeroU128 = nonzero!(100_000_000_000u128);
+pub const DEVNET_DEFAULT_L1_GAS_PRICE: NonZeroU128 = nonzero!(1_000_000_000u128);
+pub const DEVNET_DEFAULT_L1_DATA_GAS_PRICE: NonZeroU128 = nonzero!(1_000_000_000u128);
+pub const DEVNET_DEFAULT_L2_GAS_PRICE: NonZeroU128 = nonzero!(1_000_000_000u128);
 pub const DEVNET_DEFAULT_HOST: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 pub const DEVNET_DEFAULT_PORT: u16 = 5050;
 pub const DEVNET_DEFAULT_TIMEOUT: u16 = 120;
 pub const DEVNET_DEFAULT_CHAIN_ID: ChainId = ChainId::Testnet;
 pub const DEVNET_DEFAULT_STARTING_BLOCK_NUMBER: u64 = 0;
-pub const DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT: usize = 2_000_000;
 
 pub const USE_KZG_DA: bool = true;
 
@@ -114,3 +111,7 @@ pub const CHARGEABLE_ACCOUNT_ADDRESS: &str =
 
 pub const ENTRYPOINT_NOT_FOUND_ERROR_ENCODED: Felt =
     Felt::from_hex_unchecked("0x454e545259504f494e545f4e4f545f464f554e44");
+
+pub const MAXIMUM_CONTRACT_CLASS_SIZE: usize = 4_089_446;
+pub const MAXIMUM_CONTRACT_BYTECODE_SIZE: usize = 81_920;
+pub const MAXIMUM_SIERRA_LENGTH: usize = 81_920;

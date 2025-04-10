@@ -30,7 +30,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{
-    felt_from_prefixed_hex, split_biguint, BlockHash, ClassHash, TransactionHash,
+    BlockHash, ClassHash, TransactionHash, felt_from_prefixed_hex, split_biguint,
 };
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
@@ -1543,7 +1543,7 @@ mod tests {
     use crate::traits::{Accounted, Deployed, HashIdentified};
     use crate::utils::test_utils::{
         cairo_0_account_without_validations, dummy_contract_address, dummy_declare_transaction_v3,
-        dummy_felt,
+        dummy_felt, dummy_key_pair,
     };
 
     /// Initializes starknet with 1 account that doesn't perform actual tx signature validation.
@@ -1567,9 +1567,9 @@ mod tests {
         let account_class = cairo_0_account_without_validations();
         let acc = Account::new(
             Balance::from(acc_balance),
-            dummy_felt(),
-            dummy_felt(),
+            dummy_key_pair(),
             account_class.generate_hash().unwrap(),
+            "Custom",
             account_class.into(),
             starknet.block_context.chain_info().fee_token_addresses.eth_fee_token_address.into(),
             starknet.block_context.chain_info().fee_token_addresses.strk_fee_token_address.into(),

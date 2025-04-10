@@ -28,8 +28,8 @@ impl OriginError {
                 "This means your program is making Devnet send too many requests to the forking \
                  origin. 1) It could be a temporary issue, so try re-running your program. 2) If \
                  forking is not crucial for your use-case, disable it. 3) Try changing the forking \
-                 URL 4) Consider adding short sleeps to the program from which you are interacting \
-                 with Devnet."
+                 URL. 4) Consider adding short sleeps to the program from which you are \
+                 interacting with Devnet."
             }
             _ => "",
         };

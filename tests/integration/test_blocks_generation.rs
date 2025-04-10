@@ -17,10 +17,10 @@ use starknet_rs_signers::Signer;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH};
 use crate::common::utils::{
-    assert_equal_elements, assert_tx_successful, get_contract_balance,
-    get_contract_balance_by_block_id, get_events_contract_in_sierra_and_compiled_class_hash,
-    get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait, FeeUnit,
-    UniqueAutoDeletableFile,
+    FeeUnit, UniqueAutoDeletableFile, assert_equal_elements, assert_tx_successful,
+    get_contract_balance, get_contract_balance_by_block_id,
+    get_events_contract_in_sierra_and_compiled_class_hash,
+    get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
 };
 
 static DUMMY_ADDRESS: u128 = 1;

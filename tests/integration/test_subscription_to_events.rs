@@ -5,17 +5,17 @@ use starknet_core::constants::{STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, InvokeTransactionResult};
 use starknet_rs_core::utils::get_selector_from_name;
-use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::JsonRpcClient;
+use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_signers::LocalWallet;
 use tokio::net::TcpStream;
-use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
-    assert_no_notifications, declare_deploy_events_contract, receive_notification,
-    receive_rpc_via_ws, subscribe, unsubscribe, SubscriptionId,
+    SubscriptionId, assert_no_notifications, declare_deploy_events_contract, receive_notification,
+    receive_rpc_via_ws, subscribe, unsubscribe,
 };
 
 async fn subscribe_events(

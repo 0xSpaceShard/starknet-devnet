@@ -71,6 +71,8 @@ pub enum ApiError {
     InvalidSubscriptionId,
     #[error("Devnet doesn't support storage proofs")] // slightly modified spec message
     StorageProofNotSupported,
+    #[error("Contract class size it too large")]
+    ContractClassSizeIsTooLarge,
 }
 
 impl ApiError {
@@ -236,6 +238,11 @@ impl ApiError {
                 message: error_message.into(),
                 data: None,
             },
+            ApiError::ContractClassSizeIsTooLarge => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(57),
+                message: error_message.into(),
+                data: None,
+            },
         }
     }
 
@@ -271,6 +278,7 @@ impl ApiError {
             | Self::InvalidSubscriptionId
             | Self::InsufficientResourcesForValidate
             | Self::StorageProofNotSupported
+            | Self::ContractClassSizeIsTooLarge
             | Self::CompiledClassHashMismatch => false,
         }
     }
@@ -283,8 +291,8 @@ mod tests {
     use starknet_core::error::ContractExecutionError;
 
     use super::StrictRpcResult;
-    use crate::api::json_rpc::error::ApiError;
     use crate::api::json_rpc::ToRpcResponseResult;
+    use crate::api::json_rpc::error::ApiError;
 
     #[test]
     fn contract_not_found_error() {

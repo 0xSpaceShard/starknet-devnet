@@ -23,7 +23,7 @@ use super::constants::{
 };
 use super::errors::{RpcError, TestError};
 use super::reqwest_client::{PostReqwestSender, ReqwestClient};
-use super::utils::{to_hex_felt, FeeUnit, ImpersonationAction};
+use super::utils::{FeeUnit, ImpersonationAction, to_hex_felt};
 use crate::common::background_server::get_acquired_port;
 use crate::common::constants::{
     DEVNET_EXECUTABLE_BINARY_PATH, STRK_ERC20_CONTRACT_ADDRESS,
