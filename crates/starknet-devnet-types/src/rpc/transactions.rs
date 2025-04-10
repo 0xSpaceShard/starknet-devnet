@@ -48,14 +48,12 @@ use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 pub mod broadcasted_declare_transaction_v2;
 pub mod broadcasted_declare_transaction_v3;
 pub mod broadcasted_deploy_account_transaction_v3;
-pub mod broadcasted_invoke_transaction_v1;
 pub mod broadcasted_invoke_transaction_v3;
 
 pub mod declare_transaction_v2;
 pub mod declare_transaction_v3;
 pub mod deploy_account_transaction_v3;
 pub mod deploy_transaction;
-pub mod invoke_transaction_v1;
 pub mod invoke_transaction_v3;
 
 pub mod l1_handler_transaction;
