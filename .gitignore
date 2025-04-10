@@ -17,3 +17,7 @@ target/
 
 # VSCode settings
 .vscode/settings.json
+
+# Artifacts of spec testing
+failed_request.json
+failed_response.json

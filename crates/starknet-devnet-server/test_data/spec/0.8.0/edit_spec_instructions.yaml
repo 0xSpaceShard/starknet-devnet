@@ -5,7 +5,7 @@ clean:
 
 # Replace entries at "path" with the specified value in the spec file before processing it
 replace_property:
-# The following comment is for example purpose
+  # The following comment is for example purpose
   # - path: components/schemas/BLOCK_HEADER/properties/l1_gas_price/descritpion
   #   new_name: description
   - path: components/schemas/CASM_COMPILED_CONTRACT_CLASS/properties/hints/items/oneOf
@@ -29,10 +29,12 @@ add:
     new_entry: maximum/32767
 
 remove_from_array:
+  # These steps are executed one by one, meaning the indices are updated step-by-step,
+  # hence index=1 of an array is removed before index=0
   - path: components/schemas/INVOKE_TXN/oneOf
     index: 0
   - path: components/schemas/INVOKE_TXN/oneOf
-    index: 1
+    index: 0
   - path: components/schemas/TXN_STATUS/enum
     index: 1
   - path: components/schemas/TXN_STATUS/enum

@@ -354,18 +354,36 @@ mod tests {
                 },
                 {
                     "type": "INVOKE",
-                    "max_fee": "0x1",
-                    "version": "0x100000000000000000000000000000001",
+                    "resource_bounds": {
+                        "l1_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
+                        },
+                        "l1_data_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
+                        },
+                        "l2_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
+                        }
+                    },
+                    "tip": "0xabc",
+                    "paymaster_data": [],
+                    "account_deployment_data": [],
+                    "version": "0x100000000000000000000000000000003",
                     "signature": [
-                    "0x2"
+                        "0x2"
                     ],
                     "nonce": "0x1",
                     "sender_address": "0x3",
                     "calldata": [
-                    "0x1",
-                    "0x2",
-                    "0x3"
-                  ]
+                        "0x1",
+                        "0x2",
+                        "0x3"
+                    ],
+                    "nonce_data_availability_mode": "L1",
+                    "fee_data_availability_mode": "L1"
                 },
                 {
                     "type":"DEPLOY_ACCOUNT",
