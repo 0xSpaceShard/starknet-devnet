@@ -32,7 +32,7 @@ remove_from_array:
   # These steps are executed one by one, meaning the indices are updated step-by-step,
   # hence index=1 of an array is removed before index=0
   - path: components/schemas/INVOKE_TXN/oneOf
-    index: 0
+    index: 1
   - path: components/schemas/INVOKE_TXN/oneOf
     index: 0
   - path: components/schemas/TXN_STATUS/enum
@@ -47,6 +47,8 @@ remove_from_array:
     index: 1
   - path: components/schemas/TXN_RECEIPT/oneOf
     index: 1
+  - path: components/schemas/DECLARE_TXN/oneOf
+    index: 2
   - path: components/schemas/DECLARE_TXN/oneOf
     index: 1
   - path: components/schemas/DECLARE_TXN/oneOf
