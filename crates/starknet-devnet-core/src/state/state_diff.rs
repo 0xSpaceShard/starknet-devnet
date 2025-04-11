@@ -182,14 +182,13 @@ mod tests {
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
     use starknet_api::core::ClassHash;
-    use starknet_api::transaction::fields::Fee;
     use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::compile_sierra_contract;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::rpc::state::{Balance, ReplacedClasses};
-    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+    use starknet_types::rpc::transactions::ResourceBoundsWrapper;
     use starknet_types::traits::HashProducer;
 
     use super::StateDiff;
@@ -200,9 +199,9 @@ mod tests {
     use crate::state::{CustomState, StarknetState};
     use crate::traits::Deployed;
     use crate::utils::test_utils::{
-        DUMMY_CAIRO_1_COMPILED_CLASS_HASH, cairo_0_account_without_validations,
-        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt, dummy_key_pair,
-        test_invoke_transaction_v3,
+        DUMMY_CAIRO_1_COMPILED_CLASS_HASH, broadcasted_declare_tx_v3,
+        cairo_0_account_without_validations, dummy_cairo_1_contract_class, dummy_contract_address,
+        dummy_felt, dummy_key_pair, test_invoke_transaction_v3,
     };
 
     #[test]
@@ -318,15 +317,17 @@ mod tests {
 
             starknet
                 .add_declare_transaction(
-                    starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V2(Box::new(
-                        BroadcastedDeclareTransactionV2::new(
-                            &contract_class,
-                            compiled_class_hash,
+                    starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V3(Box::new(
+                        broadcasted_declare_tx_v3(
                             account.account_address,
-                            Fee(1e16 as u128),
-                            &vec![],
                             nonce.into(),
-                            Felt::TWO,
+                            contract_class,
+                            compiled_class_hash,
+                            ResourceBoundsWrapper::new(
+                                0, 1, // l1_gas
+                                1000, 1, // l1_data_gas
+                                1e9 as u64, 1, // l2_gas
+                            ),
                         ),
                     )),
                 )

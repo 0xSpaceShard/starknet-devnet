@@ -79,13 +79,11 @@ pub(crate) fn maybe_extract_failure_reason(
 pub(crate) mod test_utils {
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use starknet_api::data_availability::DataAvailabilityMode;
-    use starknet_api::transaction::fields::{Fee, Tip};
+    use starknet_api::transaction::fields::Tip;
     use starknet_rs_core::types::Felt;
-    use starknet_types::compile_sierra_contract;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
-    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
     use starknet_types::rpc::transactions::declare_transaction_v3::DeclareTransactionV3;
@@ -120,6 +118,15 @@ pub(crate) mod test_utils {
         ContractAddress::new(Felt::from_hex_unchecked("0xADD4E55")).unwrap()
     }
 
+    // TODO
+    // pub(crate) fn gas_bounds_with_price_1(
+    //     l1_gas: u64,
+    //     l1_data_gas: u64,
+    //     l2_gas: u64,
+    // ) -> ResourceBoundsWrapper {
+    //     ResourceBoundsWrapper::new(l1_gas, 1, l1_data_gas, 1, l2_gas, 1)
+    // }
+
     /// unsigned tx
     pub(crate) fn dummy_broadcasted_declare_tx_v3(
         sender_address: ContractAddress,
@@ -130,6 +137,7 @@ pub(crate) mod test_utils {
                 signature: vec![],
                 nonce: dummy_felt(),
                 resource_bounds: ResourceBoundsWrapper::new(
+                    // TODO improve gas
                     1, 1, // l1_gas: amount + price
                     0, 0, // l1_data_gas
                     0, 0, // l2_gas
@@ -142,6 +150,33 @@ pub(crate) mod test_utils {
             contract_class: dummy_cairo_1_contract_class(),
             sender_address,
             compiled_class_hash: DUMMY_CAIRO_1_COMPILED_CLASS_HASH,
+            account_deployment_data: vec![],
+        }
+    }
+
+    // TODO improve name
+    /// unsigned tx
+    pub(crate) fn broadcasted_declare_tx_v3(
+        sender_address: ContractAddress,
+        nonce: Felt,
+        contract_class: cairo_lang_starknet_classes::contract_class::ContractClass,
+        compiled_class_hash: Felt,
+        resource_bounds: ResourceBoundsWrapper,
+    ) -> BroadcastedDeclareTransactionV3 {
+        BroadcastedDeclareTransactionV3 {
+            common: BroadcastedTransactionCommonV3 {
+                version: Felt::THREE,
+                signature: vec![],
+                nonce,
+                resource_bounds,
+                tip: Tip(0),
+                paymaster_data: vec![],
+                nonce_data_availability_mode: DataAvailabilityMode::L1,
+                fee_data_availability_mode: DataAvailabilityMode::L1,
+            },
+            contract_class,
+            sender_address,
+            compiled_class_hash,
             account_deployment_data: vec![],
         }
     }
@@ -166,59 +201,11 @@ pub(crate) mod test_utils {
         )
     }
 
-    pub(crate) fn dummy_broadcasted_declare_transaction_v2(
-        sender_address: &ContractAddress,
-    ) -> BroadcastedDeclareTransactionV2 {
-        let contract_class = dummy_cairo_1_contract_class();
-        let compiled_class_hash =
-            compile_sierra_contract(&contract_class).unwrap().compiled_class_hash();
-
-        BroadcastedDeclareTransactionV2::new(
-            &contract_class,
-            compiled_class_hash,
-            *sender_address,
-            Fee(400000),
-            &Vec::new(),
-            Felt::ZERO,
-            Felt::TWO,
-        )
-    }
-
     pub(crate) fn cairo_0_account_without_validations() -> Cairo0ContractClass {
         let account_json_path =
             "../../contracts/test_artifacts/cairo0/account_without_validations/account.json";
 
         Cairo0Json::raw_json_from_path(account_json_path).unwrap().into()
-    }
-
-    pub(crate) fn convert_broadcasted_declare_v2_to_v3(
-        declare_v2: BroadcastedDeclareTransactionV2,
-    ) -> BroadcastedDeclareTransactionV3 {
-        BroadcastedDeclareTransactionV3 {
-            common: BroadcastedTransactionCommonV3 {
-                version: Felt::THREE,
-                signature: declare_v2.common.signature,
-                nonce: declare_v2.common.nonce,
-                resource_bounds: ResourceBoundsWrapper::new(
-                    declare_v2.common.max_fee.0 as u64,
-                    1,
-                    0,
-                    0,
-                    0,
-                    0,
-                ),
-                tip: Default::default(),
-                paymaster_data: vec![],
-                nonce_data_availability_mode:
-                    starknet_api::data_availability::DataAvailabilityMode::L1,
-                fee_data_availability_mode:
-                    starknet_api::data_availability::DataAvailabilityMode::L1,
-            },
-            contract_class: declare_v2.contract_class,
-            sender_address: declare_v2.sender_address,
-            compiled_class_hash: declare_v2.compiled_class_hash,
-            account_deployment_data: vec![],
-        }
     }
 
     pub fn dummy_key_pair() -> KeyPair {

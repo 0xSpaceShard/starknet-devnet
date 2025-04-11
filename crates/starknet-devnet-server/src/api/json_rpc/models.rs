@@ -302,11 +302,14 @@ mod tests {
                 {
                     "type": "DECLARE",
                     "max_fee": "0xA",
-                    "version": "0x2",
+                    "version": "0x3",
                     "signature": ["0xFF", "0xAA"],
                     "nonce": "0x0",
                     "sender_address": "0x0001",
                     "compiled_class_hash": "0x01",
+                    "tip": "0xabc",
+                    "paymaster_data": [],
+                    "account_deployment_data": [],
                     "contract_class": {
                         "sierra_program": ["0xAA", "0xBB"],
                         "contract_class_version": "1.0",
@@ -350,7 +353,9 @@ mod tests {
                                 ]
                             }
                         ]
-                    }
+                    },
+                    "nonce_data_availability_mode": "L1",
+                    "fee_data_availability_mode": "L1"
                 },
                 {
                     "type": "INVOKE",
@@ -372,9 +377,7 @@ mod tests {
                     "paymaster_data": [],
                     "account_deployment_data": [],
                     "version": "0x100000000000000000000000000000003",
-                    "signature": [
-                        "0x2"
-                    ],
+                    "signature": ["0x2"],
                     "nonce": "0x1",
                     "sender_address": "0x3",
                     "calldata": [
@@ -418,13 +421,14 @@ mod tests {
             },
             "simulation_flags": []
         }"#;
+        // TODO check contract_address_salt in deploy_account tx
 
         let estimate_fee_input = serde_json::from_str::<super::EstimateFeeInput>(json_str).unwrap();
         assert_eq!(estimate_fee_input.block_id.as_ref(), &ImportedBlockId::Number(1));
         assert_eq!(estimate_fee_input.request.len(), 3);
         assert!(matches!(
             estimate_fee_input.request[0],
-            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(_))
+            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V3(_))
         ));
         assert!(matches!(estimate_fee_input.request[1], BroadcastedTransaction::Invoke(_)));
         assert!(matches!(estimate_fee_input.request[2], BroadcastedTransaction::DeployAccount(_)));

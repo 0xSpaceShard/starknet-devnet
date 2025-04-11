@@ -1468,9 +1468,6 @@ impl Starknet {
             BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V3(v3)) => {
                 Some(&v3.sender_address)
             }
-            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(v2)) => {
-                Some(&v2.sender_address)
-            }
             BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V3(v3)) => {
                 Some(&v3.sender_address)
             }
