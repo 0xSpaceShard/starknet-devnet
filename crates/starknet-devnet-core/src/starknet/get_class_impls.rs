@@ -74,6 +74,7 @@ pub fn get_compiled_casm_impl(
 mod tests {
     use starknet_rs_core::types::{BlockId, Felt};
     use starknet_types::contract_class::ContractClass;
+    use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
 
     use crate::error::Error;
     use crate::starknet::starknet_config::StateArchiveCapacity;
@@ -96,11 +97,7 @@ mod tests {
 
         let expected: ContractClass = declare_txn.contract_class.clone().into();
         let (_, class_hash) = starknet
-            .add_declare_transaction(
-                starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V3(Box::new(
-                    declare_txn,
-                )),
-            )
+            .add_declare_transaction(BroadcastedDeclareTransaction::V3(Box::new(declare_txn)))
             .unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();

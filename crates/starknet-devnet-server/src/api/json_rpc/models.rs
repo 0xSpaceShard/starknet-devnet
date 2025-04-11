@@ -310,6 +310,7 @@ mod tests {
         match serde_json::from_str::<EstimateFeeInput>(json_str) {
             Err(err) => assert_contains(
                 &err.to_string(),
+                // error indicative of expecting a cairo1 class artifact
                 "Invalid declare transaction v3: missing field `state_mutability`",
             ),
             other => panic!("Invalid result: {other:?}"),

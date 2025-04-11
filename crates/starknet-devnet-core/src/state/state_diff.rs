@@ -188,6 +188,7 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::rpc::state::{Balance, ReplacedClasses};
+    use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
     use starknet_types::traits::HashProducer;
 
     use super::StateDiff;
@@ -315,17 +316,15 @@ mod tests {
                 compile_sierra_contract(&contract_class).unwrap().compiled_class_hash();
 
             starknet
-                .add_declare_transaction(
-                    starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V3(Box::new(
-                        broadcasted_declare_tx_v3(
-                            account.account_address,
-                            nonce.into(),
-                            contract_class,
-                            compiled_class_hash,
-                            resource_bounds_with_price_1(0, 1000, 1e9 as u64),
-                        ),
-                    )),
-                )
+                .add_declare_transaction(BroadcastedDeclareTransaction::V3(Box::new(
+                    broadcasted_declare_tx_v3(
+                        account.account_address,
+                        nonce.into(),
+                        contract_class,
+                        compiled_class_hash,
+                        resource_bounds_with_price_1(0, 1000, 1e9 as u64),
+                    ),
+                )))
                 .unwrap();
         }
 
