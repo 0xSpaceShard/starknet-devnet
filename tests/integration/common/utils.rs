@@ -524,9 +524,13 @@ pub async fn subscribe(
     params: serde_json::Value,
 ) -> Result<SubscriptionId, anyhow::Error> {
     let subscription_confirmation = send_text_rpc_via_ws(ws, subscription_method, params).await?;
-    subscription_confirmation["result"].as_u64().ok_or(anyhow::Error::msg(format!(
-        "No ID in subscription response: {subscription_confirmation}"
-    )))
+    let subscription_str = subscription_confirmation["result"].as_str().ok_or(
+        anyhow::Error::msg(format!("No ID in subscription response: {subscription_confirmation}")),
+    )?;
+
+    subscription_str.parse::<SubscriptionId>().map_err(|_| {
+        anyhow::Error::msg(format!("Subscription ID is not u64: {subscription_confirmation}"))
+    })
 }
 
 /// Tries to read from the provided ws stream. To prevent deadlock, waits for a second at most.
