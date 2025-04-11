@@ -21,8 +21,12 @@ const DUMMY_AMOUNT: u128 = 1;
 const BUFFER_TIME_SECONDS: u64 = 30;
 
 async fn sleep_until_new_timestamp() {
-    // Sometimes sleeping for 1 second isn't enough.
-    tokio::time::sleep(time::Duration::from_millis(1500)).await
+    let now = get_unix_timestamp_as_seconds();
+    tokio::time::sleep(time::Duration::from_millis(100)).await;
+
+    while now == get_unix_timestamp_as_seconds() {
+        tokio::time::sleep(time::Duration::from_millis(100)).await;
+    }
 }
 
 /// Set time and generate a new block
