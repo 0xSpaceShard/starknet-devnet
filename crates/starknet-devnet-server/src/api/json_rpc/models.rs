@@ -201,7 +201,6 @@ pub struct L1TransactionHashInput {
     pub transaction_hash: Hash256,
 }
 
-// pub type SubscriptionId = u64;
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct SubscriptionId(u64);
 
