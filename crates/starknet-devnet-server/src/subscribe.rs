@@ -251,7 +251,7 @@ impl SocketContext {
         rpc_request_id: Id,
         subscription: Subscription,
     ) -> SubscriptionId {
-        let subscription_id = rand::random();
+        let subscription_id: SubscriptionId = rand::random::<u64>().into();
 
         let confirmation = subscription.confirm(subscription_id);
         self.subscriptions.insert(subscription_id, subscription);
