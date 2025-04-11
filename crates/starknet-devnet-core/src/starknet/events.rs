@@ -141,7 +141,7 @@ mod tests {
     use crate::starknet::events::check_if_filter_applies_for_event_keys;
     use crate::starknet::starknet_config::StarknetConfig;
     use crate::traits::HashIdentified;
-    use crate::utils::test_utils::{dummy_contract_address, dummy_declare_transaction_v3};
+    use crate::utils::test_utils::{dummy_contract_address, dummy_declare_tx_v3_with_hash};
 
     #[test]
     fn filter_keys_with_empty_or_no_filter() {
@@ -398,7 +398,7 @@ mod tests {
         // each transaction should have events count equal to the order of the transaction
         let mut starknet = Starknet::new(&StarknetConfig::default()).unwrap();
 
-        let mut transaction = dummy_declare_transaction_v3();
+        let mut transaction = dummy_declare_tx_v3_with_hash();
 
         for idx in 0..5 {
             let txn_info = blockifier::transaction::objects::TransactionExecutionInfo {

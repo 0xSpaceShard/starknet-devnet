@@ -4,8 +4,6 @@ use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::versioned_constants::VersionedConstants;
-use broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-use declare_transaction_v2::DeclareTransactionV2;
 use deploy_transaction::DeployTransaction;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::block::{BlockNumber, GasPrice};
@@ -45,12 +43,10 @@ use crate::felt::{
 use crate::rpc::transaction_receipt::{CommonTransactionReceipt, MaybePendingProperties};
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
-pub mod broadcasted_declare_transaction_v2;
 pub mod broadcasted_declare_transaction_v3;
 pub mod broadcasted_deploy_account_transaction_v3;
 pub mod broadcasted_invoke_transaction_v3;
 
-pub mod declare_transaction_v2;
 pub mod declare_transaction_v3;
 pub mod deploy_account_transaction_v3;
 pub mod deploy_transaction;
@@ -195,14 +191,12 @@ pub struct TransactionStatus {
 #[cfg_attr(feature = "testing", derive(Deserialize, PartialEq, Eq))]
 #[serde(untagged)]
 pub enum DeclareTransaction {
-    V2(DeclareTransactionV2),
     V3(DeclareTransactionV3),
 }
 
 impl DeclareTransaction {
     pub fn get_sender_address(&self) -> ContractAddress {
         match self {
-            DeclareTransaction::V2(tx) => tx.sender_address,
             DeclareTransaction::V3(tx) => tx.sender_address,
         }
     }
@@ -283,6 +277,7 @@ pub struct FunctionCall {
     pub calldata: Calldata,
 }
 
+// TODO remove or rename other instances of fee and max_fee
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BroadcastedTransactionCommon {
     pub max_fee: Fee,
@@ -524,7 +519,6 @@ impl BroadcastedTransaction {
             BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V3(invoke_v3)) => {
                 invoke_v3.common.get_gas_vector_computation_mode()
             }
-            _ => GasVectorComputationMode::NoL2Gas,
         }
     }
 
@@ -539,28 +533,24 @@ impl BroadcastedTransaction {
 
 #[derive(Debug, Clone)]
 pub enum BroadcastedDeclareTransaction {
-    V2(Box<BroadcastedDeclareTransactionV2>),
     V3(Box<BroadcastedDeclareTransactionV3>),
 }
 
 impl BroadcastedDeclareTransaction {
     pub fn is_max_fee_valid(&self) -> bool {
         match self {
-            BroadcastedDeclareTransaction::V2(v2) => !v2.common.is_max_fee_zero_value(),
             BroadcastedDeclareTransaction::V3(v3) => v3.common.are_gas_bounds_valid(),
         }
     }
 
     pub fn is_deprecated(&self) -> bool {
         match self {
-            BroadcastedDeclareTransaction::V2(_) => true,
             BroadcastedDeclareTransaction::V3(_) => false,
         }
     }
 
     pub fn is_only_query(&self) -> bool {
         match self {
-            BroadcastedDeclareTransaction::V2(tx) => tx.common.is_only_query(),
             BroadcastedDeclareTransaction::V3(tx) => tx.common.is_only_query(),
         }
     }
@@ -577,37 +567,6 @@ impl BroadcastedDeclareTransaction {
         let sn_api_chain_id = felt_to_sn_api_chain_id(chain_id)?;
 
         let (sn_api_transaction, tx_hash, class_info) = match self {
-            BroadcastedDeclareTransaction::V2(v2) => {
-                let sierra_class_hash: Felt = compute_sierra_class_hash(&v2.contract_class)?;
-
-                let sn_api_declare = starknet_api::transaction::DeclareTransaction::V2(
-                    starknet_api::transaction::DeclareTransactionV2 {
-                        max_fee: v2.common.max_fee,
-                        signature: starknet_api::transaction::fields::TransactionSignature(
-                            v2.common.signature.clone(),
-                        ),
-                        nonce: starknet_api::core::Nonce(v2.common.nonce),
-                        class_hash: starknet_api::core::ClassHash(sierra_class_hash),
-                        compiled_class_hash: starknet_api::core::CompiledClassHash(
-                            v2.compiled_class_hash,
-                        ),
-                        sender_address: v2.sender_address.try_into()?,
-                    },
-                );
-
-                let class_info: ClassInfo =
-                    ContractClass::Cairo1(v2.contract_class.clone()).try_into()?;
-
-                let tx_version: starknet_api::transaction::TransactionVersion = signed_tx_version(
-                    &sn_api_declare.version(),
-                    &TransactionOptions { only_query: self.is_only_query() },
-                );
-
-                let tx_hash =
-                    sn_api_declare.calculate_transaction_hash(&sn_api_chain_id, &tx_version)?;
-
-                (sn_api_declare, tx_hash, class_info)
-            }
             BroadcastedDeclareTransaction::V3(v3) => {
                 let sierra_class_hash = compute_sierra_class_hash(&v3.contract_class)?;
 
@@ -801,12 +760,6 @@ impl<'de> Deserialize<'de> for BroadcastedDeclareTransaction {
         let value = serde_json::Value::deserialize(deserializer)?;
         let version_raw = value.get("version").ok_or(serde::de::Error::missing_field("version"))?;
         match version_raw.as_str() {
-            Some(v) if ["0x2", "0x100000000000000000000000000000002"].contains(&v) => {
-                let unpacked = serde_json::from_value(value).map_err(|e| {
-                    serde::de::Error::custom(format!("Invalid declare transaction v2: {e}"))
-                })?;
-                Ok(BroadcastedDeclareTransaction::V2(Box::new(unpacked)))
-            }
             Some(v) if ["0x3", "0x100000000000000000000000000000003"].contains(&v) => {
                 let unpacked = serde_json::from_value(value).map_err(|e| {
                     serde::de::Error::custom(format!("Invalid declare transaction v3: {e}"))
