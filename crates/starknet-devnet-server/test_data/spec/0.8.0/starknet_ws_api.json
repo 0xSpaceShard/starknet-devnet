@@ -144,8 +144,7 @@
           "$ref": "#/components/schemas/SUBSCRIPTION_ID"
         }
       },
-      "errors": [
-      ]
+      "errors": []
     },
     {
       "name": "starknet_subscriptionTransactionStatus",
@@ -261,7 +260,7 @@
           "summary": "The subscription to close",
           "required": true,
           "schema": {
-            "type": "integer"
+            "$ref": "#/components/schemas/SUBSCRIPTION_ID"
           }
         }
       ],
@@ -303,7 +302,7 @@
       "SUBSCRIPTION_ID": {
         "name": "subscription id",
         "description": "An identifier for this subscription stream used to associate events with this subscription.",
-        "type": "integer"
+        "type": "string"
       },
       "SUBSCRIPTION_BLOCK_ID": {
         "title": "Subscription Block id",
@@ -369,7 +368,12 @@
             "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BLOCK_NUMBER"
           }
         },
-        "required": ["starting_block_hash", "starting_block_number", "ending_block_hash", "ending_block_number"]
+        "required": [
+          "starting_block_hash",
+          "starting_block_number",
+          "ending_block_hash",
+          "ending_block_number"
+        ]
       }
     },
     "errors": {

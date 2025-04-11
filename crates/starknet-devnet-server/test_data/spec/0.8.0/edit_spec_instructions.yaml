@@ -27,6 +27,10 @@ add:
     new_entry: $ref/#/components/schemas/u64
   - path: components/schemas/CellRef/properties/offset
     new_entry: maximum/32767
+  - path: components/schemas/SUBSCRIPTION_ID
+    new_entry: pattern/^[1-9]{1}[0-9]{0,4}$
+  - path: components/schemas/CONTRACT_CLASS/properties/abi
+    new_entry: pattern/^$
 
 remove_from_array:
   # These steps are executed one by one, meaning the indices are updated step-by-step,

@@ -79,17 +79,17 @@
         "schema": {
           "type": "array",
           "items": {
-            "type": "object",
-            "properties": {
-              "transaction_trace": {
-                "title": "the transaction's trace",
-                "$ref": "#/components/schemas/TRANSACTION_TRACE"
-              },
-              "fee_estimation": {
-                "title": "the transaction's resources and fee",
-                "$ref": "#/components/schemas/FEE_ESTIMATE"
+              "type": "object",
+              "properties": {
+                "transaction_trace": {
+                  "title": "the transaction's trace",
+                  "$ref": "#/components/schemas/TRANSACTION_TRACE"
+                },
+                "fee_estimation": {
+                  "title": "the transaction's resources and fee",
+                  "$ref": "#/components/schemas/FEE_ESTIMATE"
+                }
               }
-            }
           }
         }
       },
@@ -255,7 +255,11 @@
                 "enum": ["DEPLOY_ACCOUNT"]
               }
             },
-            "required": ["type", "execution_resources", "constructor_invocation"]
+            "required": [
+              "type",
+              "execution_resources",
+              "constructor_invocation"
+            ]
           },
           {
             "name": "L1_HANDLER_TXN_TRACE",
