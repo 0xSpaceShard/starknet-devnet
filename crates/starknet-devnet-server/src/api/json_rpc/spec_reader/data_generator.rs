@@ -14,7 +14,7 @@ use super::spec_schemas::tuple_schema::Tuple;
 use super::spec_schemas::{Primitive, Schema};
 
 const MAX_DEPTH: u8 = 5;
-// generate a random string with 1-10 characters
+/// regex pattern for 1-10 characters
 const DEFAULT_STRING_REGEX: &str = "^.{1,10}$";
 
 pub trait Visitor {
@@ -69,6 +69,7 @@ impl Visitor for RandDataGenerator<'_> {
             return Ok(serde_json::Value::String(enums[random_number].clone()));
         }
 
+        // If pattern is not set, then generate a string from the default pattern
         let regex_pattern = element.pattern.as_deref().unwrap_or(DEFAULT_STRING_REGEX);
         let mut buffer: Vec<u8> = vec![];
         let seed = rand::thread_rng().gen();
