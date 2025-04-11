@@ -246,16 +246,32 @@ mod tests {
 
     #[test]
     fn errored_deserialization_of_estimate_fee_with_broadcasted_declare_transaction() {
-        // Errored json struct that passed DECLARE V2, but contract class is of type V1
+        // Errored json struct that passed DECLARE V3, but contract class is of type V1
         let json_str = r#"{
             "request": [{
                 "type": "DECLARE",
-                "max_fee": "0xA",
-                "version": "0x2",
+                "version": "0x3",
                 "signature": ["0xFF", "0xAA"],
                 "nonce": "0x0",
                 "sender_address": "0x0001",
+                "resource_bounds": {
+                    "l1_gas": {
+                        "max_amount": "0x1",
+                        "max_price_per_unit": "0x2"
+                    },
+                    "l1_data_gas": {
+                        "max_amount": "0x1",
+                        "max_price_per_unit": "0x2"
+                    },
+                    "l2_gas": {
+                        "max_amount": "0x1",
+                        "max_price_per_unit": "0x2"
+                    }
+                },
                 "compiled_class_hash": "0x01",
+                "tip": "0xabc",
+                "paymaster_data": [],
+                "account_deployment_data": [],
                 "contract_class": {
                     "abi": [{
                         "inputs": [],
@@ -282,7 +298,9 @@ mod tests {
                     }],
                     "program": "",
                     "entry_points_by_type": {}
-                }
+                },
+                "nonce_data_availability_mode": "L1",
+                "fee_data_availability_mode": "L1"
             }],
             "block_id": {
                 "block_number": 1
@@ -290,7 +308,10 @@ mod tests {
         }"#;
 
         match serde_json::from_str::<EstimateFeeInput>(json_str) {
-            Err(err) => assert_contains(&err.to_string(), "Invalid declare transaction v2"),
+            Err(err) => assert_contains(
+                &err.to_string(),
+                "Invalid declare transaction v3: missing field `state_mutability`",
+            ),
             other => panic!("Invalid result: {other:?}"),
         }
     }
@@ -301,11 +322,24 @@ mod tests {
             "request": [
                 {
                     "type": "DECLARE",
-                    "max_fee": "0xA",
                     "version": "0x3",
                     "signature": ["0xFF", "0xAA"],
                     "nonce": "0x0",
                     "sender_address": "0x0001",
+                    "resource_bounds": {
+                        "l1_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
+                        },
+                        "l1_data_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
+                        },
+                        "l2_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
+                        }
+                    },
                     "compiled_class_hash": "0x01",
                     "tip": "0xabc",
                     "paymaster_data": [],
