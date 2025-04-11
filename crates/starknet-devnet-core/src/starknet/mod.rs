@@ -1536,7 +1536,7 @@ mod tests {
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::traits::{Accounted, Deployed, HashIdentified};
     use crate::utils::test_utils::{
-        cairo_0_account_without_validations, dummy_contract_address, dummy_declare_transaction_v3,
+        cairo_0_account_without_validations, dummy_contract_address, dummy_declare_tx_v3_with_hash,
         dummy_felt, dummy_key_pair,
     };
 
@@ -1649,7 +1649,7 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        let tx = dummy_declare_transaction_v3();
+        let tx = dummy_declare_tx_v3_with_hash();
 
         // add transaction hash to pending block
         starknet.blocks.pending_block.add_transaction(*tx.get_transaction_hash());
@@ -1950,7 +1950,7 @@ mod tests {
 
         assert_eq!(num_no_transactions.unwrap(), 0);
 
-        let tx = dummy_declare_transaction_v3();
+        let tx = dummy_declare_tx_v3_with_hash();
 
         // add transaction hash to pending block
         starknet.blocks.pending_block.add_transaction(*tx.get_transaction_hash());

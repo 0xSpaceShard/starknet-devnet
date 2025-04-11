@@ -78,7 +78,7 @@ mod tests {
     use crate::error::Error;
     use crate::starknet::starknet_config::StateArchiveCapacity;
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account_and_state_capacity;
-    use crate::utils::test_utils::{dummy_broadcasted_declare_tx_v3, resource_bounds_with_price_1};
+    use crate::utils::test_utils::{dummy_class_tx_v3_declaration, resource_bounds_with_price_1};
 
     #[test]
     fn get_sierra_class() {
@@ -88,9 +88,11 @@ mod tests {
                 StateArchiveCapacity::Full,
             );
 
-        let mut declare_txn = dummy_broadcasted_declare_tx_v3(account.account_address);
-        declare_txn.common.nonce = Felt::ZERO;
-        declare_txn.common.resource_bounds = resource_bounds_with_price_1(0, 1000, 1e9 as u64);
+        let declare_txn = dummy_class_tx_v3_declaration(
+            account.account_address,
+            Felt::ZERO,
+            resource_bounds_with_price_1(0, 1000, 1e9 as u64),
+        );
 
         let expected: ContractClass = declare_txn.contract_class.clone().into();
         let (_, class_hash) = starknet

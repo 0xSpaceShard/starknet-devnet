@@ -127,34 +127,20 @@ pub(crate) mod test_utils {
         ResourceBoundsWrapper::new(l1_gas, 1, l1_data_gas, 1, l2_gas, 1)
     }
 
-    /// unsigned tx
-    pub(crate) fn dummy_broadcasted_declare_tx_v3(
+    pub(crate) fn dummy_class_tx_v3_declaration(
         sender_address: ContractAddress,
+        nonce: Felt,
+        resource_bounds: ResourceBoundsWrapper,
     ) -> BroadcastedDeclareTransactionV3 {
-        BroadcastedDeclareTransactionV3 {
-            common: BroadcastedTransactionCommonV3 {
-                version: Felt::THREE,
-                signature: vec![],
-                nonce: dummy_felt(),
-                resource_bounds: ResourceBoundsWrapper::new(
-                    // TODO improve gas
-                    1, 1, // l1_gas: amount + price
-                    0, 0, // l1_data_gas
-                    0, 0, // l2_gas
-                ),
-                tip: Tip(0),
-                paymaster_data: vec![],
-                nonce_data_availability_mode: DataAvailabilityMode::L1,
-                fee_data_availability_mode: DataAvailabilityMode::L1,
-            },
-            contract_class: dummy_cairo_1_contract_class(),
+        broadcasted_declare_tx_v3(
             sender_address,
-            compiled_class_hash: DUMMY_CAIRO_1_COMPILED_CLASS_HASH,
-            account_deployment_data: vec![],
-        }
+            nonce,
+            dummy_cairo_1_contract_class(),
+            DUMMY_CAIRO_1_COMPILED_CLASS_HASH,
+            resource_bounds,
+        )
     }
 
-    // TODO improve name
     /// unsigned tx
     pub(crate) fn broadcasted_declare_tx_v3(
         sender_address: ContractAddress,
@@ -181,21 +167,28 @@ pub(crate) mod test_utils {
         }
     }
 
-    pub(crate) fn dummy_declare_transaction_v3() -> TransactionWithHash {
-        let chain_id = DEVNET_DEFAULT_CHAIN_ID.to_felt();
-        let broadcasted_tx = dummy_broadcasted_declare_tx_v3(dummy_contract_address());
+    pub(crate) fn dummy_declare_tx_v3_with_hash() -> TransactionWithHash {
+        let declare_txn = dummy_class_tx_v3_declaration(
+            dummy_contract_address(),
+            Felt::ZERO,
+            ResourceBoundsWrapper::new(
+                1, 1, // l1_gas
+                0, 0, // l1_data_gas
+                0, 0, // l2_gas
+            ),
+        );
         let sierra_hash =
-            ContractClass::Cairo1(broadcasted_tx.contract_class.clone()).generate_hash().unwrap();
+            ContractClass::Cairo1(declare_txn.contract_class.clone()).generate_hash().unwrap();
 
-        let transaction_hash = BroadcastedDeclareTransaction::V3(Box::new(broadcasted_tx.clone()))
-            .create_sn_api_declare(&chain_id)
+        let tx_hash = BroadcastedDeclareTransaction::V3(Box::new(declare_txn.clone()))
+            .create_sn_api_declare(&DEVNET_DEFAULT_CHAIN_ID.to_felt())
             .unwrap()
             .tx_hash;
 
         TransactionWithHash::new(
-            *transaction_hash,
+            *tx_hash,
             Transaction::Declare(DeclareTransaction::V3(DeclareTransactionV3::new(
-                &broadcasted_tx,
+                &declare_txn,
                 sierra_hash,
             ))),
         )
