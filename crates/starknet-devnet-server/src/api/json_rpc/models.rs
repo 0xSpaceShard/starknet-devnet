@@ -421,7 +421,6 @@ mod tests {
             },
             "simulation_flags": []
         }"#;
-        // TODO check contract_address_salt in deploy_account tx
 
         let estimate_fee_input = serde_json::from_str::<super::EstimateFeeInput>(json_str).unwrap();
         assert_eq!(estimate_fee_input.block_id.as_ref(), &ImportedBlockId::Number(1));

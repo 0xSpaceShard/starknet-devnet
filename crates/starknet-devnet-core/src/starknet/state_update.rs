@@ -23,12 +23,14 @@ mod tests {
     use starknet_types::compile_sierra_contract;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::rpc::state::{ClassHashPair, ContractNonce, ThinStateDiff};
-    use starknet_types::rpc::transactions::{BroadcastedDeclareTransaction, ResourceBoundsWrapper};
+    use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
     use starknet_types::traits::HashProducer;
 
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
     use crate::traits::HashIdentifiedMut;
-    use crate::utils::test_utils::{broadcasted_declare_tx_v3, dummy_cairo_1_contract_class};
+    use crate::utils::test_utils::{
+        broadcasted_declare_tx_v3, dummy_cairo_1_contract_class, resource_bounds_with_price_1,
+    };
 
     #[test]
     /// This test checks that the state update is correct after a declare transaction v3.
@@ -43,11 +45,7 @@ mod tests {
             Felt::ZERO,
             contract_class.clone(),
             compiled_class_hash,
-            ResourceBoundsWrapper::new(
-                0, 1, //  l1_gas
-                1000, 1, // l1_data_gas
-                1e9 as u64, 1, // l2_gas
-            ),
+            resource_bounds_with_price_1(0, 1000, 1e9 as u64),
         );
 
         // first execute declare v3 transaction

@@ -89,7 +89,7 @@ mod tests {
     use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::{
         cairo_0_account_without_validations, dummy_contract_address, dummy_felt, dummy_key_pair,
-        test_invoke_transaction_v3,
+        resource_bounds_with_price_1, test_invoke_transaction_v3,
     };
 
     #[test]
@@ -100,9 +100,7 @@ mod tests {
             dummy_felt(),
             &[Felt::from(10)],
             0, // nonce
-            1, // gas bounds
-            0,
-            0,
+            resource_bounds_with_price_1(1, 0, 0),
         );
 
         let BroadcastedInvokeTransaction::V3(ref mut tx_v3) = invoke_transaction;
@@ -135,10 +133,8 @@ mod tests {
             contract_address,
             increase_balance_selector,
             &[Felt::from(10)],
-            0,                                // nonce
-            biguint_to_u64(&initial_balance), // gas bounds
-            0,
-            0,
+            0, // nonce
+            resource_bounds_with_price_1(biguint_to_u64(&initial_balance), 0, 0),
         );
 
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
@@ -169,9 +165,7 @@ mod tests {
             increase_balance_selector,
             &[Felt::from(10)],
             0,
-            gas_amount,
-            gas_amount,
-            gas_amount,
+            resource_bounds_with_price_1(gas_amount, gas_amount, gas_amount),
         );
 
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
@@ -209,9 +203,7 @@ mod tests {
                 increase_balance_selector,
                 &[Felt::from(10)],
                 0,
-                l1_gas,
-                l1_data_gas,
-                l2_gas,
+                resource_bounds_with_price_1(l1_gas, l1_data_gas, l2_gas),
             );
 
             match starknet.add_invoke_transaction(invoke_transaction) {
@@ -238,19 +230,15 @@ mod tests {
         let storage_key = (*balance_var_storage_address.get_storage_key()).try_into().unwrap();
 
         let account_address = account.get_address();
-        let l1_gas_amount = 0;
-        let l1_data_gas_amount = 1000;
-        let l2_gas_amount = 1e6 as u64;
+        let resource_bounds = resource_bounds_with_price_1(0, 1000, 1e6 as u64);
 
         let invoke_transaction = test_invoke_transaction_v3(
             account_address,
             contract_address,
             increase_balance_selector,
             &[Felt::from(10)],
-            0,
-            l1_gas_amount,
-            l1_data_gas_amount,
-            l2_gas_amount,
+            0, // nonce
+            resource_bounds.clone(),
         );
 
         // invoke transaction
@@ -271,9 +259,7 @@ mod tests {
             increase_balance_selector,
             &[Felt::from(15)],
             1, // nonce
-            l1_gas_amount,
-            l1_data_gas_amount,
-            l2_gas_amount,
+            resource_bounds,
         );
 
         // invoke transaction again
@@ -297,9 +283,7 @@ mod tests {
             dummy_felt(),
             &[Felt::ZERO],
             nonce,
-            0,
-            0,
-            0,
+            resource_bounds_with_price_1(0, 0, 0),
         );
 
         match Starknet::default().add_invoke_transaction(tx) {
@@ -323,9 +307,7 @@ mod tests {
             increase_balance_selector,
             &[dummy_felt()],
             nonce,
-            0, // gas bounds
-            1000,
-            1e6 as u64,
+            resource_bounds_with_price_1(0, 1000, 1e6 as u64),
         );
 
         let transaction_hash = starknet.add_invoke_transaction(tx.clone()).unwrap();
@@ -356,9 +338,8 @@ mod tests {
             increase_balance_selector,
             &[dummy_felt()],
             initial_nonce,
-            0, // gas bounds
-            128,
-            480_000, // if less, gets bounced back instead of accepted+reverted
+            // if less, bounced back instead of accepted+reverted
+            resource_bounds_with_price_1(0, 128, 480_000),
         );
 
         let transaction_hash = starknet.add_invoke_transaction(tx).unwrap();

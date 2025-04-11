@@ -188,7 +188,6 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::rpc::state::{Balance, ReplacedClasses};
-    use starknet_types::rpc::transactions::ResourceBoundsWrapper;
     use starknet_types::traits::HashProducer;
 
     use super::StateDiff;
@@ -201,7 +200,7 @@ mod tests {
     use crate::utils::test_utils::{
         DUMMY_CAIRO_1_COMPILED_CLASS_HASH, broadcasted_declare_tx_v3,
         cairo_0_account_without_validations, dummy_cairo_1_contract_class, dummy_contract_address,
-        dummy_felt, dummy_key_pair, test_invoke_transaction_v3,
+        dummy_felt, dummy_key_pair, resource_bounds_with_price_1, test_invoke_transaction_v3,
     };
 
     #[test]
@@ -323,11 +322,7 @@ mod tests {
                             nonce.into(),
                             contract_class,
                             compiled_class_hash,
-                            ResourceBoundsWrapper::new(
-                                0, 1, // l1_gas
-                                1000, 1, // l1_data_gas
-                                1e9 as u64, 1, // l2_gas
-                            ),
+                            resource_bounds_with_price_1(0, 1000, 1e9 as u64),
                         ),
                     )),
                 )
@@ -353,9 +348,7 @@ mod tests {
             get_selector_from_name("test_replace_class").unwrap(),
             &[new_class_hash],
             2, // nonce
-            0,
-            1000,
-            1e7 as u64,
+            resource_bounds_with_price_1(0, 1000, 1e7 as u64),
         );
 
         starknet.add_invoke_transaction(invoke_txn).unwrap();

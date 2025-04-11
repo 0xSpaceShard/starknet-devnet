@@ -150,7 +150,7 @@ mod tests {
     use crate::traits::HashIdentifiedMut;
     use crate::utils::test_utils::{
         dummy_broadcasted_declare_tx_v3, dummy_cairo_1_contract_class, dummy_contract_address,
-        dummy_felt,
+        dummy_felt, resource_bounds_with_price_1,
     };
 
     #[test]
@@ -160,7 +160,7 @@ mod tests {
                 version: Felt::THREE + QUERY_VERSION_OFFSET,
                 signature: vec![],
                 nonce: dummy_felt(),
-                resource_bounds: ResourceBoundsWrapper::new(1, 1, 1, 1, 1, 1),
+                resource_bounds: resource_bounds_with_price_1(1, 1, 1),
                 tip: Default::default(),
                 paymaster_data: vec![],
                 nonce_data_availability_mode: DataAvailabilityMode::L1,
@@ -219,11 +219,7 @@ mod tests {
 
         let mut declare_txn = dummy_broadcasted_declare_tx_v3(sender.account_address);
         declare_txn.common.nonce = Felt::ZERO;
-        declare_txn.common.resource_bounds = ResourceBoundsWrapper::new(
-            1000, 1, // l1_gas
-            1000, 1, // l1_data_gas
-            1e9 as u64, 1, // l2_gas
-        );
+        declare_txn.common.resource_bounds = resource_bounds_with_price_1(0, 1000, 1e9 as u64);
 
         let (tx_hash, class_hash) =
             starknet.add_declare_transaction(declare_txn.clone().into()).unwrap();
@@ -271,11 +267,7 @@ mod tests {
 
         let mut declare_txn = dummy_broadcasted_declare_tx_v3(sender.account_address);
         declare_txn.common.nonce = Felt::ZERO;
-        declare_txn.common.resource_bounds = ResourceBoundsWrapper::new(
-            1000, 1, // l1_gas
-            1000, 1, // l1_data_gas
-            1e9 as u64, 1, // l2_gas
-        );
+        declare_txn.common.resource_bounds = resource_bounds_with_price_1(0, 1000, 1e9 as u64);
         match starknet.add_declare_transaction(declare_txn.into()).unwrap_err() {
             Error::TransactionValidationError(
                 TransactionValidationError::InsufficientAccountBalance,
@@ -290,11 +282,7 @@ mod tests {
 
         let mut declare_txn = dummy_broadcasted_declare_tx_v3(sender.account_address);
         declare_txn.common.nonce = Felt::ZERO;
-        declare_txn.common.resource_bounds = ResourceBoundsWrapper::new(
-            1000, 1, // l1_gas
-            1000, 1, // l1_data_gas
-            1e9 as u64, 1, // l2_gas
-        );
+        declare_txn.common.resource_bounds = resource_bounds_with_price_1(0, 1000, 1e9 as u64);
 
         // check if contract is not declared
         let expected_class_hash =

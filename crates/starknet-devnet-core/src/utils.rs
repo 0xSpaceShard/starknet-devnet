@@ -118,14 +118,14 @@ pub(crate) mod test_utils {
         ContractAddress::new(Felt::from_hex_unchecked("0xADD4E55")).unwrap()
     }
 
-    // TODO
-    // pub(crate) fn gas_bounds_with_price_1(
-    //     l1_gas: u64,
-    //     l1_data_gas: u64,
-    //     l2_gas: u64,
-    // ) -> ResourceBoundsWrapper {
-    //     ResourceBoundsWrapper::new(l1_gas, 1, l1_data_gas, 1, l2_gas, 1)
-    // }
+    /// Returns a gas bounds object with max amounts set to input params and prices set to 1
+    pub(crate) fn resource_bounds_with_price_1(
+        l1_gas: u64,
+        l1_data_gas: u64,
+        l2_gas: u64,
+    ) -> ResourceBoundsWrapper {
+        ResourceBoundsWrapper::new(l1_gas, 1, l1_data_gas, 1, l2_gas, 1)
+    }
 
     /// unsigned tx
     pub(crate) fn dummy_broadcasted_declare_tx_v3(
@@ -212,16 +212,13 @@ pub(crate) mod test_utils {
         KeyPair { public_key: dummy_felt(), private_key: dummy_felt() }
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn test_invoke_transaction_v3(
         account_address: ContractAddress,
         contract_address: ContractAddress,
         function_selector: Felt,
         params: &[Felt],
         nonce: u128,
-        l1_gas_amount: u64,
-        l1_data_gas_amount: u64,
-        l2_gas_amount: u64,
+        resource_bounds: ResourceBoundsWrapper,
     ) -> BroadcastedInvokeTransaction {
         // Encode: [addr, selector, params len, *params]
         let mut calldata = vec![Felt::from(contract_address), function_selector];
@@ -233,14 +230,7 @@ pub(crate) mod test_utils {
                 version: Felt::THREE,
                 signature: vec![],
                 nonce: Felt::from(nonce),
-                resource_bounds: ResourceBoundsWrapper::new(
-                    l1_gas_amount,
-                    1,
-                    l1_data_gas_amount,
-                    1,
-                    l2_gas_amount,
-                    1,
-                ),
+                resource_bounds,
                 tip: Tip(0),
                 paymaster_data: vec![],
                 nonce_data_availability_mode:
