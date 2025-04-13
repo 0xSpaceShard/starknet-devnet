@@ -38,7 +38,7 @@ pub mod rpc_sierra_contract_class_to_sierra_contract_class {
         use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 
         #[test]
-        fn correct_deserialzation_from_sierra_contract_class_with_abi_field_as_string() {
+        fn correct_deserialization_from_sierra_contract_class_with_abi_field_as_string() {
             #[derive(Deserialize)]
             struct TestDeserialization(
                 #[allow(unused)]
