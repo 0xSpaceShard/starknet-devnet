@@ -16,6 +16,8 @@ You can use [**`starknet-devnet-js`**](https://github.com/0xSpaceShard/starknet-
 
 ## Load
 
+<!-- TODO Add info on how the messaging contract can be deployed various L1 networks. -->
+
 ```
 POST /postman/load_l1_messaging_contract
 ```
