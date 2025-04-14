@@ -219,6 +219,7 @@ impl Serialize for SubscriptionId {
     }
 }
 
+/// Custom deserialization is needed, because subscriber initially received stringified u64 value.
 impl<'de> Deserialize<'de> for SubscriptionId {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
