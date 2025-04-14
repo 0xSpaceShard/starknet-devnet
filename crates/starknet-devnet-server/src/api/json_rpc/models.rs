@@ -201,7 +201,7 @@ pub struct L1TransactionHashInput {
     pub transaction_hash: Hash256,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct SubscriptionId(u64);
 
 impl From<u64> for SubscriptionId {
