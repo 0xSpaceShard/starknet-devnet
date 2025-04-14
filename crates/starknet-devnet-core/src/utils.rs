@@ -127,7 +127,9 @@ pub(crate) mod test_utils {
         ResourceBoundsWrapper::new(l1_gas, 1, l1_data_gas, 1, l2_gas, 1)
     }
 
-    pub(crate) fn dummy_class_tx_v3_declaration(
+    /// Returns an unsigned tx representing a v3 declaration of a predefined dummy
+    /// class. The tx can be sent to Starknet.
+    pub(crate) fn broadcasted_declare_tx_v3_of_dummy_class(
         sender_address: ContractAddress,
         nonce: Felt,
         resource_bounds: ResourceBoundsWrapper,
@@ -141,7 +143,8 @@ pub(crate) mod test_utils {
         )
     }
 
-    /// unsigned tx
+    /// Returns an unsigned tx representing a v3 declaration of the provided class. The
+    /// tx can be sent to Starknet.
     pub(crate) fn broadcasted_declare_tx_v3(
         sender_address: ContractAddress,
         nonce: Felt,
@@ -168,7 +171,7 @@ pub(crate) mod test_utils {
     }
 
     pub(crate) fn dummy_declare_tx_v3_with_hash() -> TransactionWithHash {
-        let declare_txn = dummy_class_tx_v3_declaration(
+        let declare_txn = broadcasted_declare_tx_v3_of_dummy_class(
             dummy_contract_address(),
             Felt::ZERO,
             ResourceBoundsWrapper::new(

@@ -149,8 +149,8 @@ mod tests {
     use crate::state::{BlockNumberOrPending, CustomStateReader};
     use crate::traits::HashIdentifiedMut;
     use crate::utils::test_utils::{
-        dummy_cairo_1_contract_class, dummy_class_tx_v3_declaration, dummy_contract_address,
-        dummy_felt, resource_bounds_with_price_1,
+        broadcasted_declare_tx_v3_of_dummy_class, dummy_cairo_1_contract_class,
+        dummy_contract_address, dummy_felt, resource_bounds_with_price_1,
     };
 
     #[test]
@@ -217,7 +217,7 @@ mod tests {
     fn add_declare_v3_transaction_successful_execution() {
         let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1e18 as u128);
 
-        let declare_tx = dummy_class_tx_v3_declaration(
+        let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
             sender.account_address,
             Felt::ZERO,
             resource_bounds_with_price_1(0, 1000, 1e9 as u64),
@@ -247,7 +247,7 @@ mod tests {
     fn add_declare_v3_transaction_should_return_an_error_due_to_low_max_fee() {
         let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(20000);
 
-        let declare_tx = dummy_class_tx_v3_declaration(
+        let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
             sender.account_address,
             Felt::ZERO,
             resource_bounds_with_price_1(0, 1, 1),
@@ -265,7 +265,7 @@ mod tests {
     fn add_declare_v3_transaction_should_return_an_error_due_to_not_enough_balance_on_account() {
         let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1);
 
-        let declare_tx = dummy_class_tx_v3_declaration(
+        let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
             sender.account_address,
             Felt::ZERO,
             resource_bounds_with_price_1(0, 1000, 1e9 as u64),
@@ -283,7 +283,7 @@ mod tests {
     fn declare_v3_transaction_successful_storage_change() {
         let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1e18 as u128);
 
-        let declare_tx = dummy_class_tx_v3_declaration(
+        let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
             sender.account_address,
             Felt::ZERO,
             resource_bounds_with_price_1(0, 1000, 1e9 as u64),

@@ -79,7 +79,9 @@ mod tests {
     use crate::error::Error;
     use crate::starknet::starknet_config::StateArchiveCapacity;
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account_and_state_capacity;
-    use crate::utils::test_utils::{dummy_class_tx_v3_declaration, resource_bounds_with_price_1};
+    use crate::utils::test_utils::{
+        broadcasted_declare_tx_v3_of_dummy_class, resource_bounds_with_price_1,
+    };
 
     #[test]
     fn get_sierra_class() {
@@ -89,7 +91,7 @@ mod tests {
                 StateArchiveCapacity::Full,
             );
 
-        let declare_txn = dummy_class_tx_v3_declaration(
+        let declare_txn = broadcasted_declare_tx_v3_of_dummy_class(
             account.account_address,
             Felt::ZERO,
             resource_bounds_with_price_1(0, 1000, 1e9 as u64),
