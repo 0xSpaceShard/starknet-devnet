@@ -16,7 +16,7 @@ You can use [**`starknet-devnet-js`**](https://github.com/0xSpaceShard/starknet-
 
 ## Load
 
-<!-- TODO Add info on how the messaging contract can be deployed various L1 networks. -->
+<!-- TODO Add info on how the messaging contract can be deployed on various L1 networks. -->
 
 ```
 POST /postman/load_l1_messaging_contract
@@ -43,7 +43,7 @@ JSON-RPC
 }
 ```
 
-Loads a `MockStarknetMessaging` contract. The `address` parameter is optional; if provided, the `MockStarknetMessaging` contract will be fetched from that address, otherwise a new one will be deployed. 
+Loads a `MockStarknetMessaging` contract. The `address` parameter is optional; if provided, the `MockStarknetMessaging` contract will be fetched from that address, otherwise a new one will be deployed.
 
 The `funded_account_private_key` parameter is optional; if provided, then this account would be used as the signer. The account associated with this private key must be pre-funded.
 
