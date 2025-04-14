@@ -11,7 +11,7 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::utils::{
-     assert_no_notifications, receive_notification, subscribe_new_heads, unsubscribe,
+    assert_no_notifications, receive_notification, subscribe_new_heads, unsubscribe,
 };
 
 async fn receive_block(

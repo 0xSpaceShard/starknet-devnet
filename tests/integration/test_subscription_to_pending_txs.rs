@@ -11,8 +11,8 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
-    FeeUnit, assert_no_notifications, declare_deploy_simple_contract,
-    receive_rpc_via_ws, subscribe, unsubscribe,
+    FeeUnit, assert_no_notifications, declare_deploy_simple_contract, receive_rpc_via_ws,
+    subscribe, unsubscribe,
 };
 
 async fn subscribe_pending_txs(

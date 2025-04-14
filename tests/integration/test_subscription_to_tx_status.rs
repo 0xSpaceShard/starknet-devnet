@@ -6,8 +6,7 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::utils::{
-     assert_no_notifications, receive_rpc_via_ws, subscribe, subscribe_new_heads,
-    unsubscribe,
+    assert_no_notifications, receive_rpc_via_ws, subscribe, subscribe_new_heads, unsubscribe,
 };
 
 async fn subscribe_tx_status(

@@ -93,7 +93,10 @@ async fn socket_with_n_subscriptions_should_get_n_reorg_notifications() {
         // Reorg notifications may be received in any order. To assert one reorg subscription
         // was received per subscription_id, we extract the IDs from notifications, store them
         // in a set, and later assert equality with the set of expected subscription IDs.
-        let notification_id = serde_json::from_value::<SubscriptionId>(notification["params"]["subscription_id"].take()).unwrap();
+        let notification_id = serde_json::from_value::<SubscriptionId>(
+            notification["params"]["subscription_id"].take(),
+        )
+        .unwrap();
 
         notification_ids.insert(notification_id);
 
