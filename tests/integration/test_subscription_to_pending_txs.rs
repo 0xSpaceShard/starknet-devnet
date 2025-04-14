@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use serde_json::json;
-use server::api::json_rpc::models::SubscriptionId;
 use starknet_core::constants::CHARGEABLE_ACCOUNT_ADDRESS;
 use starknet_rs_accounts::{ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{DeclareTransaction, Felt, InvokeTransaction, Transaction};
@@ -11,8 +10,8 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
-    FeeUnit, assert_no_notifications, declare_deploy_simple_contract, receive_rpc_via_ws,
-    subscribe, unsubscribe,
+    FeeUnit, SubscriptionId, assert_no_notifications, declare_deploy_simple_contract,
+    receive_rpc_via_ws, subscribe, unsubscribe,
 };
 
 async fn subscribe_pending_txs(
@@ -85,7 +84,7 @@ async fn without_tx_details_happy_path_multiple_subscribers() {
                 "method": "starknet_subscriptionPendingTransactions",
                 "params": {
                     "result": tx_hash,
-                    "subscription_id": subscription_id,
+                    "subscription_id": subscription_id.to_string(),
                 }
             })
         );
@@ -333,7 +332,7 @@ async fn should_notify_if_tx_already_in_pending_block() {
             "method": "starknet_subscriptionPendingTransactions",
             "params": {
                 "result": tx_hash,
-                "subscription_id": subscription_id,
+                "subscription_id": subscription_id.to_string(),
             }
         })
     );

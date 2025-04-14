@@ -1,12 +1,13 @@
 use std::collections::{HashMap, HashSet};
 
 use serde_json::json;
-use server::api::json_rpc::models::SubscriptionId;
 use starknet_rs_core::types::BlockId;
 use tokio_tungstenite::connect_async;
 
 use crate::common::background_devnet::BackgroundDevnet;
-use crate::common::utils::{assert_no_notifications, receive_rpc_via_ws, subscribe, unsubscribe};
+use crate::common::utils::{
+    SubscriptionId, assert_no_notifications, receive_rpc_via_ws, subscribe, unsubscribe,
+};
 
 #[tokio::test]
 async fn reorg_notification_for_all_subscriptions_except_pending_tx() {
@@ -54,7 +55,7 @@ async fn reorg_notification_for_all_subscriptions_except_pending_tx() {
                 }
             })
         );
-        unsubscribe(ws, *subscription_id).await.unwrap();
+        unsubscribe(ws, subscription_id.clone()).await.unwrap();
     }
 
     // now that all sockets are unsubscribed, abort a new block and assert no notifications
@@ -88,15 +89,16 @@ async fn socket_with_n_subscriptions_should_get_n_reorg_notifications() {
     // Assert n reorg notifications received. The notifications only differ in subscription_id.
     let mut notification_ids = HashSet::new();
     for _ in subscription_ids.iter() {
-        let mut notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
 
         // Reorg notifications may be received in any order. To assert one reorg subscription
         // was received per subscription_id, we extract the IDs from notifications, store them
         // in a set, and later assert equality with the set of expected subscription IDs.
-        let notification_id = serde_json::from_value::<SubscriptionId>(
-            notification["params"]["subscription_id"].take(),
-        )
-        .unwrap();
+        let notification_id = notification["params"]["subscription_id"]
+            .as_str()
+            .unwrap()
+            .parse::<SubscriptionId>()
+            .unwrap();
 
         notification_ids.insert(notification_id);
 

@@ -1,12 +1,11 @@
 use reqwest::StatusCode;
 use serde_json::json;
-use server::test_utils::assert_contains;
 use starknet_rs_core::types::Felt;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE};
 use crate::common::reqwest_client::{GetReqwestSender, HttpEmptyResponseBody, PostReqwestSender};
-use crate::common::utils::FeeUnit;
+use crate::common::utils::{FeeUnit, assert_contains};
 
 static DUMMY_ADDRESS: &str = "0x42";
 static DUMMY_AMOUNT: u128 = 42;

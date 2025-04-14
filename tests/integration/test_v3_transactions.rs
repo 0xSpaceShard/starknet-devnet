@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use server::test_utils::assert_contains;
 use starknet_rs_accounts::{
     Account, AccountDeploymentV3, AccountError, AccountFactory, ConnectedAccount, DeclarationV3,
     ExecutionEncoding, ExecutionV3, OpenZeppelinAccountFactory, SingleOwnerAccount,
@@ -20,7 +19,7 @@ use crate::common::constants::{
     UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    FeeUnit, LocalFee, assert_tx_successful, get_deployable_account_signer,
+    FeeUnit, LocalFee, assert_contains, assert_tx_successful, get_deployable_account_signer,
     get_flattened_sierra_contract_and_casm_hash,
     get_simple_contract_in_sierra_and_compiled_class_hash,
 };

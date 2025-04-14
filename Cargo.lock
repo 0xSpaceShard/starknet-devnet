@@ -3723,7 +3723,6 @@ dependencies = [
  "starknet-contract",
  "starknet-core",
  "starknet-devnet-core",
- "starknet-devnet-server",
  "starknet-providers",
  "starknet-signers",
  "thiserror 1.0.69",

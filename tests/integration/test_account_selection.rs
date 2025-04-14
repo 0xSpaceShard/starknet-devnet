@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use server::test_utils::assert_contains;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, FunctionCall};
@@ -16,7 +15,7 @@ use crate::common::constants::{
 };
 use crate::common::reqwest_client::GetReqwestSender;
 use crate::common::utils::{
-    FeeUnit, assert_tx_successful, deploy_argent_account, deploy_oz_account,
+    FeeUnit, assert_contains, assert_tx_successful, deploy_argent_account, deploy_oz_account,
     get_simple_contract_in_sierra_and_compiled_class_hash,
 };
 

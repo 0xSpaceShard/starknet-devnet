@@ -1,12 +1,12 @@
 use serde_json::json;
-use server::api::json_rpc::models::SubscriptionId;
 use starknet_rs_core::types::{BlockId, Felt};
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::utils::{
-    assert_no_notifications, receive_rpc_via_ws, subscribe, subscribe_new_heads, unsubscribe,
+    SubscriptionId, assert_no_notifications, receive_rpc_via_ws, subscribe, subscribe_new_heads,
+    unsubscribe,
 };
 
 async fn subscribe_tx_status(
