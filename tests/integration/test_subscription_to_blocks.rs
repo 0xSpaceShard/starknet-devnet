@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use serde_json::json;
+use server::api::json_rpc::models::SubscriptionId;
 use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
 use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_rs_providers::Provider;
@@ -10,7 +11,7 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::utils::{
-    SubscriptionId, assert_no_notifications, receive_notification, subscribe_new_heads, unsubscribe,
+     assert_no_notifications, receive_notification, subscribe_new_heads, unsubscribe,
 };
 
 async fn receive_block(
@@ -185,8 +186,7 @@ async fn test_unsubscribing_invalid_id() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
     let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
-    let dummy_id = 123;
-    let unsubscription_resp = unsubscribe(&mut ws, dummy_id).await.unwrap();
+    let unsubscription_resp = unsubscribe(&mut ws, SubscriptionId::from(123u64)).await.unwrap();
 
     assert_eq!(
         unsubscription_resp,

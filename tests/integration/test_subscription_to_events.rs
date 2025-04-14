@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use serde_json::json;
+use server::api::json_rpc::models::SubscriptionId;
 use starknet_core::constants::{STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS};
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, InvokeTransactionResult};
@@ -14,7 +15,7 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
-    SubscriptionId, assert_no_notifications, declare_deploy_events_contract, receive_notification,
+     assert_no_notifications, declare_deploy_events_contract, receive_notification,
     receive_rpc_via_ws, subscribe, unsubscribe,
 };
 

@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use serde_json::json;
+use server::api::json_rpc::models::SubscriptionId;
 use starknet_rs_core::types::BlockId;
 use tokio_tungstenite::connect_async;
 
@@ -92,7 +93,8 @@ async fn socket_with_n_subscriptions_should_get_n_reorg_notifications() {
         // Reorg notifications may be received in any order. To assert one reorg subscription
         // was received per subscription_id, we extract the IDs from notifications, store them
         // in a set, and later assert equality with the set of expected subscription IDs.
-        let notification_id = notification["params"]["subscription_id"].take().as_u64().unwrap();
+        let notification_id = serde_json::from_value::<SubscriptionId>(notification["params"]["subscription_id"].take()).unwrap();
+
         notification_ids.insert(notification_id);
 
         assert_eq!(
