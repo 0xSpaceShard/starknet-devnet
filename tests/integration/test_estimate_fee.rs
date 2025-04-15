@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use server::test_utils::assert_contains;
 use starknet_core::constants::ENTRYPOINT_NOT_FOUND_ERROR_ENCODED;
 use starknet_rs_accounts::{
     Account, AccountError, AccountFactory, AccountFactoryError, ConnectedAccount, ExecutionEncoder,
@@ -26,7 +25,7 @@ use crate::common::constants::{
     QUERY_VERSION_OFFSET, UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    LocalFee, assert_tx_reverted, assert_tx_successful, extract_message_error,
+    LocalFee, assert_contains, assert_tx_reverted, assert_tx_successful, extract_message_error,
     extract_nested_error, get_deployable_account_signer,
     get_flattened_sierra_contract_and_casm_hash,
     get_simple_contract_in_sierra_and_compiled_class_hash,

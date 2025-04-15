@@ -86,7 +86,7 @@ async fn event_subscription_with_no_params_until_unsubscription() {
     let invocation = emit_static_event(&account, contract_address).await.unwrap();
     let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
-    let event = receive_event(&mut ws, subscription_id).await.unwrap();
+    let event = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
     assert_eq!(
         event,
         json!({
@@ -256,22 +256,22 @@ async fn should_notify_of_events_in_old_blocks_with_no_filters() {
     let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
 
     // declaration of events contract fee charge
-    let declaration_fee_event = receive_event(&mut ws, subscription_id).await.unwrap();
+    let declaration_fee_event = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
     assert_eq!(declaration_fee_event["block_number"], 1);
     assert_eq!(declaration_fee_event["from_address"], json!(STRK_ERC20_CONTRACT_ADDRESS));
 
     // deployment of events contract: udc invocation
-    let deployment_udc_event = receive_event(&mut ws, subscription_id).await.unwrap();
+    let deployment_udc_event = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
     assert_eq!(deployment_udc_event["block_number"], 2);
     assert_eq!(deployment_udc_event["from_address"], json!(UDC_CONTRACT_ADDRESS));
 
     // deployment of events contract: fee charge
-    let deployment_fee_event = receive_event(&mut ws, subscription_id).await.unwrap();
+    let deployment_fee_event = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
     assert_eq!(deployment_fee_event["block_number"], 2);
     assert_eq!(deployment_fee_event["from_address"], json!(STRK_ERC20_CONTRACT_ADDRESS),);
 
     // invocation of events contract
-    let invocation_event = receive_event(&mut ws, subscription_id).await.unwrap();
+    let invocation_event = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
     assert_eq!(
         invocation_event,
         json!({
@@ -309,7 +309,7 @@ async fn should_notify_of_old_and_new_events_with_address_filter() {
     let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
 
     // assert presence of old event (event that was triggered before the subscription)
-    let old_invocation_event = receive_event(&mut ws, subscription_id).await.unwrap();
+    let old_invocation_event = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
     assert_eq!(
         old_invocation_event,
         json!({
@@ -326,7 +326,7 @@ async fn should_notify_of_old_and_new_events_with_address_filter() {
     // new event (after subscription)
     let new_invocation = emit_static_event(&account, contract_address).await.unwrap();
     let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
-    let new_invocation_event = receive_event(&mut ws, subscription_id).await.unwrap();
+    let new_invocation_event = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
     assert_eq!(
         new_invocation_event,
         json!({
@@ -358,7 +358,7 @@ async fn should_notify_of_old_and_new_events_with_key_filter() {
     let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
 
     // assert presence of old event (event that was triggered before the subscription)
-    let invocation_event = receive_event(&mut ws, subscription_id).await.unwrap();
+    let invocation_event = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
     assert_eq!(
         invocation_event,
         json!({
@@ -375,7 +375,7 @@ async fn should_notify_of_old_and_new_events_with_key_filter() {
     // new event (after subscription)
     let new_invocation = emit_static_event(&account, contract_address).await.unwrap();
     let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
-    let invocation_event = receive_event(&mut ws, subscription_id).await.unwrap();
+    let invocation_event = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
     assert_eq!(
         invocation_event,
         json!({
@@ -433,7 +433,7 @@ async fn should_notify_of_events_in_old_blocks() {
 
     let mut received_tx_hashes_from_events = HashSet::new();
     for i in 0..expected_events {
-        let event_notification = receive_event(&mut ws, subscription_id).await.unwrap();
+        let event_notification = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
         let tx_hash =
             Felt::from_hex_unchecked(event_notification["transaction_hash"].as_str().unwrap());
         received_tx_hashes_from_events.insert(tx_hash);

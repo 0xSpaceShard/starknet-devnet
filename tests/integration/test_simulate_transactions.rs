@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use server::test_utils::assert_contains;
 use starknet_core::constants::STRK_ERC20_CONTRACT_ADDRESS;
 use starknet_rs_accounts::{
     Account, AccountError, AccountFactory, ConnectedAccount, ExecutionEncoder, ExecutionEncoding,
@@ -29,7 +28,7 @@ use crate::common::constants::{
 };
 use crate::common::fees::{assert_difference_if_validation, assert_fee_in_resp_at_least_equal};
 use crate::common::utils::{
-    LocalFee, declare_v3_deploy_v3, get_deployable_account_signer,
+    LocalFee, assert_contains, declare_v3_deploy_v3, get_deployable_account_signer,
     get_flattened_sierra_contract_and_casm_hash,
     get_simple_contract_in_sierra_and_compiled_class_hash, iter_to_hex_felt, to_hex_felt,
     to_num_as_hex,

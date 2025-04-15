@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use server::test_utils::assert_contains;
 use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{Call, Felt, InvokeTransactionResult, StarknetError};
 use starknet_rs_core::utils::get_selector_from_name;
@@ -11,7 +10,7 @@ use crate::common::constants::{
     CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH, CHAIN_ID, INVALID_ACCOUNT_SIERRA_PATH,
 };
 use crate::common::utils::{
-    declare_v3_deploy_v3, get_flattened_sierra_contract_and_casm_hash,
+    assert_contains, declare_v3_deploy_v3, get_flattened_sierra_contract_and_casm_hash,
     get_simple_contract_in_sierra_and_compiled_class_hash,
 };
 
