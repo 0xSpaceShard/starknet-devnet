@@ -9,7 +9,6 @@ use ethers::types::U256;
 use futures::{SinkExt, StreamExt, TryStreamExt};
 use rand::{Rng, thread_rng};
 use serde_json::json;
-use server::test_utils::assert_contains;
 use starknet_rs_accounts::{
     Account, AccountFactory, ArgentAccountFactory, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
@@ -516,7 +515,7 @@ pub async fn send_binary_rpc_via_ws(
     Ok(resp_body)
 }
 
-pub type SubscriptionId = u64;
+pub type SubscriptionId = String;
 
 pub async fn subscribe(
     ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
@@ -524,9 +523,12 @@ pub async fn subscribe(
     params: serde_json::Value,
 ) -> Result<SubscriptionId, anyhow::Error> {
     let subscription_confirmation = send_text_rpc_via_ws(ws, subscription_method, params).await?;
-    subscription_confirmation["result"].as_u64().ok_or(anyhow::Error::msg(format!(
-        "No ID in subscription response: {subscription_confirmation}"
-    )))
+    Ok(subscription_confirmation["result"]
+        .as_str()
+        .ok_or(anyhow::Error::msg(format!(
+            "No ID in subscription response: {subscription_confirmation}"
+        )))?
+        .to_string())
 }
 
 /// Tries to read from the provided ws stream. To prevent deadlock, waits for a second at most.
@@ -548,7 +550,13 @@ pub async fn receive_notification(
     let mut notification = receive_rpc_via_ws(ws).await?;
     assert_eq!(notification["jsonrpc"], "2.0");
     assert_eq!(notification["method"], method);
-    assert_eq!(notification["params"]["subscription_id"], expected_subscription_id);
+    assert_eq!(
+        notification["params"]["subscription_id"]
+            .as_str()
+            .ok_or(anyhow::Error::msg("No Subscription ID in notification"))?
+            .to_string(),
+        expected_subscription_id
+    );
     Ok(notification["params"]["result"].take())
 }
 
@@ -636,6 +644,18 @@ impl From<FeeEstimate> for LocalFee {
             l2_gas: l2_gas_consumed,
             l2_gas_price,
         }
+    }
+}
+
+/// Panics if `text` does not contain `pattern`
+pub fn assert_contains(text: &str, pattern: &str) {
+    if !text.contains(pattern) {
+        panic!(
+            "Failed content assertion!
+    Pattern: '{pattern}'
+    not present in
+    Text: '{text}'"
+        );
     }
 }
 

@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use server::test_utils::assert_contains;
 use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
@@ -14,7 +13,7 @@ use crate::common::constants::{
     self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
 use crate::common::utils::{
-    extract_message_error, extract_nested_error,
+    assert_contains, extract_message_error, extract_nested_error,
     get_simple_contract_in_sierra_and_compiled_class_hash,
 };
 

@@ -1,4 +1,3 @@
-use server::test_utils::assert_contains;
 use starknet_rs_accounts::SingleOwnerAccount;
 use starknet_rs_core::types::{
     BlockId, BlockTag, ContractErrorData, Felt, FunctionCall, StarknetError,
@@ -11,7 +10,7 @@ use crate::common::constants::{
     CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH, ETH_ERC20_CONTRACT_ADDRESS, PREDEPLOYED_ACCOUNT_ADDRESS,
 };
 use crate::common::utils::{
-    declare_v3_deploy_v3, deploy_v3, extract_message_error, extract_nested_error,
+    assert_contains, declare_v3_deploy_v3, deploy_v3, extract_message_error, extract_nested_error,
     get_flattened_sierra_contract_and_casm_hash,
 };
 

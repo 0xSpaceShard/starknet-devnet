@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use server::test_utils::assert_contains;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{BlockId, BlockTag, Call, ExecutionResult, Felt};
 use starknet_rs_core::utils::get_selector_from_name;
@@ -11,7 +10,8 @@ use starknet_rs_signers::{LocalWallet, SigningKey};
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::STRK_ERC20_CONTRACT_ADDRESS;
 use crate::common::utils::{
-    FeeUnit, ImpersonationAction, get_simple_contract_in_sierra_and_compiled_class_hash,
+    FeeUnit, ImpersonationAction, assert_contains,
+    get_simple_contract_in_sierra_and_compiled_class_hash,
 };
 
 const IMPERSONATED_ACCOUNT_PRIVATE_KEY: Felt = Felt::ONE;

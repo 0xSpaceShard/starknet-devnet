@@ -84,7 +84,7 @@ async fn without_tx_details_happy_path_multiple_subscribers() {
                 "method": "starknet_subscriptionPendingTransactions",
                 "params": {
                     "result": tx_hash,
-                    "subscription_id": subscription_id,
+                    "subscription_id": subscription_id.to_string(),
                 }
             })
         );
@@ -332,7 +332,7 @@ async fn should_notify_if_tx_already_in_pending_block() {
             "method": "starknet_subscriptionPendingTransactions",
             "params": {
                 "result": tx_hash,
-                "subscription_id": subscription_id,
+                "subscription_id": subscription_id.to_string(),
             }
         })
     );

@@ -31,7 +31,7 @@ async fn subscribe_to_new_block_heads_happy_path() {
     for block_i in 1..=2 {
         let created_block_hash = devnet.create_block().await.unwrap();
 
-        let notification_block = receive_block(&mut ws, subscription_id).await.unwrap();
+        let notification_block = receive_block(&mut ws, subscription_id.clone()).await.unwrap();
         assert_eq!(notification_block["block_hash"], json!(created_block_hash));
         assert_eq!(notification_block["block_number"], json!(block_i));
     }
@@ -85,7 +85,7 @@ async fn subscription_to_an_old_block_by_number_should_notify_of_all_blocks_up_t
         subscribe_new_heads(&mut ws, json!({ "block_id": BlockId::Number(0) })).await.unwrap();
 
     for block_i in 0..=n_blocks {
-        let notification_block = receive_block(&mut ws, subscription_id).await.unwrap();
+        let notification_block = receive_block(&mut ws, subscription_id.clone()).await.unwrap();
         assert_eq!(notification_block["block_number"], json!(block_i));
     }
 
@@ -112,7 +112,7 @@ async fn subscription_to_an_old_block_by_hash_should_notify_of_all_blocks_up_to_
 
     let starting_block = 0;
     for block_i in starting_block..=n_blocks {
-        let notification_block = receive_block(&mut ws, subscription_id).await.unwrap();
+        let notification_block = receive_block(&mut ws, subscription_id.clone()).await.unwrap();
         assert_eq!(notification_block["block_number"], json!(block_i));
     }
 
@@ -162,7 +162,7 @@ async fn test_multiple_subscribers_one_unsubscribes() {
     assert_eq!(subscribers.len(), n_subscribers); // assert all IDs are different
 
     // randomly choose one subscriber for unsubscription
-    let unsubscriber_id = *subscribers.keys().next().expect("Should have at least one");
+    let unsubscriber_id = subscribers.keys().next().cloned().expect("Should have at least one");
 
     // unsubscribe
     let mut unsubscriber_ws = subscribers.remove(&unsubscriber_id).unwrap();
@@ -185,8 +185,7 @@ async fn test_unsubscribing_invalid_id() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
     let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
-    let dummy_id = 123;
-    let unsubscription_resp = unsubscribe(&mut ws, dummy_id).await.unwrap();
+    let unsubscription_resp = unsubscribe(&mut ws, "123".to_string()).await.unwrap();
 
     assert_eq!(
         unsubscription_resp,

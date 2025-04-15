@@ -201,7 +201,38 @@ pub struct L1TransactionHashInput {
     pub transaction_hash: Hash256,
 }
 
-pub type SubscriptionId = u64;
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct SubscriptionId(u64);
+
+impl From<u64> for SubscriptionId {
+    fn from(value: u64) -> Self {
+        Self(value)
+    }
+}
+
+impl Serialize for SubscriptionId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.0.to_string())
+    }
+}
+
+/// Custom deserialization is needed, because subscriber initially received stringified u64 value.
+impl<'de> Deserialize<'de> for SubscriptionId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let u64_as_string = String::deserialize(deserializer)?;
+        let subscription_id = u64_as_string.parse::<u64>().map_err(|_| {
+            serde::de::Error::invalid_type(serde::de::Unexpected::Str(&u64_as_string), &"u64")
+        })?;
+
+        Ok(SubscriptionId(subscription_id))
+    }
+}
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]

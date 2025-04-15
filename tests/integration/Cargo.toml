@@ -11,7 +11,6 @@ path = "lib.rs"
 
 [dependencies]
 starknet-core = { workspace = true, features = ["test_utils"] }
-server = { workspace = true, features = ["test_utils"] }
 
 async-trait = { workspace = true }
 axum = { workspace = true }
