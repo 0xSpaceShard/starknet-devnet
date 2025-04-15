@@ -384,19 +384,31 @@ async fn setup_anvil_incorrect_eth_private_key() {
 }
 
 #[tokio::test]
-async fn deploy_l1_messaging_contract_with_funded_account_private_key() {
-    let anvil = BackgroundAnvil::spawn().await.unwrap();
+async fn deploy_l1_messaging_contract_with_custom_key() {
+    let anvil = BackgroundAnvil::spawn_with_additional_args_and_custom_signer(
+        &[],
+        MNEMONIC_FROM_SEED_42,
+        ACCOUNT_0_PRIVATE_KEY_WITH_SEED_42,
+    )
+    .await
+    .unwrap();
 
     let (devnet, _, _) = setup_devnet(&["--account-class", "cairo1"]).await;
 
     let body = devnet
-        .send_custom_rpc("devnet_postmanLoad", json!({ "network_url": anvil.url, "funded_account_private_key": DEFAULT_ETH_ACCOUNT_PRIVATE_KEY }))
+        .send_custom_rpc(
+            "devnet_postmanLoad",
+            json!({
+                "network_url": anvil.url,
+                "funded_account_private_key": ACCOUNT_0_PRIVATE_KEY_WITH_SEED_42
+            }),
+        )
         .await
         .expect("deploy l1 messaging contract failed");
 
     assert_eq!(
         body.get("messaging_contract_address").unwrap().as_str().unwrap(),
-        MESSAGING_L1_ADDRESS
+        "0xca945eebf408d4a73e5d330fc8f6b55cd1e419ff"
     );
 }
 
