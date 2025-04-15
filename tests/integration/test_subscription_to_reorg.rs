@@ -89,12 +89,17 @@ async fn socket_with_n_subscriptions_should_get_n_reorg_notifications() {
     // Assert n reorg notifications received. The notifications only differ in subscription_id.
     let mut notification_ids = HashSet::new();
     for _ in subscription_ids.iter() {
-        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        let mut notification = receive_rpc_via_ws(&mut ws).await.unwrap();
 
         // Reorg notifications may be received in any order. To assert one reorg subscription
         // was received per subscription_id, we extract the IDs from notifications, store them
         // in a set, and later assert equality with the set of expected subscription IDs.
+        // .take() method removes the property from serde_json::Value.
+        // This is intentional, because notifications do not come in deterministic order
+        // and we cant assert the exact notification id in the loop.
+        // Notification IDs are checked outside of the loop.
         let notification_id = notification["params"]["subscription_id"]
+            .take()
             .as_str()
             .unwrap()
             .parse::<SubscriptionId>()
