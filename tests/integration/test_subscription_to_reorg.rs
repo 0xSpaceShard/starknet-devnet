@@ -97,7 +97,6 @@ async fn socket_with_n_subscriptions_should_get_n_reorg_notifications() {
         // .take() method removes the property from serde_json::Value.
         // This is intentional, because notifications do not come in deterministic order
         // and we cant assert the exact notification id in the loop.
-        // Notification IDs are checked outside of the loop.
         let notification_id = notification["params"]["subscription_id"]
             .take()
             .as_str()
