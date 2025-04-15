@@ -1778,7 +1778,7 @@
               },
               "max_fee": {
                 "title": "Max fee",
-                "$ref": "#/components/schemas/u128",
+                "$ref": "#/components/schemas/FELT",
                 "description": "The maximal fee that can be charged for including the transaction"
               },
               "version": {
@@ -1828,7 +1828,7 @@
               },
               "max_fee": {
                 "title": "Max fee",
-                "$ref": "#/components/schemas/u128",
+                "$ref": "#/components/schemas/FELT",
                 "description": "The maximal fee that can be charged for including the transaction"
               },
               "version": {
@@ -1888,7 +1888,7 @@
               },
               "max_fee": {
                 "title": "Max fee",
-                "$ref": "#/components/schemas/u128",
+                "$ref": "#/components/schemas/FELT",
                 "description": "The maximal fee that can be charged for including the transaction"
               },
               "version": {
@@ -2169,7 +2169,7 @@
           },
           "max_fee": {
             "title": "Max fee",
-            "$ref": "#/components/schemas/u128",
+            "$ref": "#/components/schemas/FELT",
             "description": "The maximal fee that can be charged for including the transaction"
           },
           "version": {
@@ -2361,7 +2361,7 @@
           },
           "max_fee": {
             "title": "Max fee",
-            "$ref": "#/components/schemas/u128",
+            "$ref": "#/components/schemas/FELT",
             "description": "The maximal fee that can be charged for including the transaction"
           },
           "version": {
@@ -2427,7 +2427,7 @@
               },
               "max_fee": {
                 "title": "Max fee",
-                "$ref": "#/components/schemas/u128",
+                "$ref": "#/components/schemas/FELT",
                 "description": "The maximal fee that can be charged for including the transaction"
               },
               "version": {
