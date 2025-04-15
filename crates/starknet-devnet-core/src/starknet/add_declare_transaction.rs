@@ -3,7 +3,6 @@ use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_types::compile_sierra_contract;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, CompiledClassHash, TransactionHash};
-use starknet_types::rpc::transactions::declare_transaction_v2::DeclareTransactionV2;
 use starknet_types::rpc::transactions::declare_transaction_v3::DeclareTransactionV3;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, DeclareTransaction, Transaction, TransactionWithHash,
@@ -68,18 +67,6 @@ pub fn add_declare_transaction(
 
     let (declare_transaction, contract_class, casm_hash, sender_address) =
         match broadcasted_declare_transaction {
-            BroadcastedDeclareTransaction::V2(ref v2) => {
-                let declare_transaction = Transaction::Declare(DeclareTransaction::V2(
-                    DeclareTransactionV2::new(v2, class_hash),
-                ));
-
-                (
-                    declare_transaction,
-                    v2.contract_class.clone().into(),
-                    Some(v2.compiled_class_hash),
-                    &v2.sender_address,
-                )
-            }
             BroadcastedDeclareTransaction::V3(ref v3) => {
                 let declare_transaction = Transaction::Declare(DeclareTransaction::V3(
                     DeclareTransactionV3::new(v3, class_hash),
@@ -146,16 +133,14 @@ fn assert_casm_hash_is_valid(
 
 #[cfg(test)]
 mod tests {
-    use blockifier::state::state_api::StateReader;
-    use starknet_api::core::CompiledClassHash;
-    use starknet_api::transaction::fields::Fee;
-    use starknet_rs_core::types::{
-        BlockId, BlockTag, Felt, TransactionExecutionStatus, TransactionFinalityStatus,
-    };
+    use starknet_api::data_availability::DataAvailabilityMode;
+    use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_class::ContractClass;
-    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-    use starknet_types::rpc::transactions::{BroadcastedDeclareTransaction, ResourceBoundsWrapper};
+    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
+    use starknet_types::rpc::transactions::{
+        BroadcastedDeclareTransaction, BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
+    };
     use starknet_types::traits::HashProducer;
 
     use crate::error::{Error, TransactionValidationError};
@@ -164,29 +149,31 @@ mod tests {
     use crate::state::{BlockNumberOrPending, CustomStateReader};
     use crate::traits::HashIdentifiedMut;
     use crate::utils::test_utils::{
-        convert_broadcasted_declare_v2_to_v3, dummy_broadcasted_declare_transaction_v2,
-        dummy_broadcasted_declare_tx_v3, dummy_cairo_1_contract_class, dummy_contract_address,
-        dummy_felt,
+        broadcasted_declare_tx_v3_of_dummy_class, dummy_cairo_1_contract_class,
+        dummy_contract_address, dummy_felt, resource_bounds_with_price_1,
     };
 
     #[test]
     fn declare_transaction_v3_with_query_version_should_return_an_error() {
-        let declare_transaction = BroadcastedDeclareTransactionV2::new(
-            &dummy_cairo_1_contract_class(),
-            dummy_felt(),
-            dummy_contract_address(),
-            Fee(10000),
-            &vec![],
-            dummy_felt(),
-            dummy_felt(),
-        );
+        let declare_tx = BroadcastedDeclareTransactionV3 {
+            common: BroadcastedTransactionCommonV3 {
+                version: Felt::THREE + QUERY_VERSION_OFFSET,
+                signature: vec![],
+                nonce: dummy_felt(),
+                resource_bounds: resource_bounds_with_price_1(1, 1, 1),
+                tip: Default::default(),
+                paymaster_data: vec![],
+                nonce_data_availability_mode: DataAvailabilityMode::L1,
+                fee_data_availability_mode: DataAvailabilityMode::L1,
+            },
+            contract_class: dummy_cairo_1_contract_class(),
+            sender_address: dummy_contract_address(),
+            compiled_class_hash: dummy_felt(),
+            account_deployment_data: vec![],
+        };
 
-        let mut declare_transaction = convert_broadcasted_declare_v2_to_v3(declare_transaction);
-        declare_transaction.common.version = Felt::THREE + QUERY_VERSION_OFFSET;
-
-        let result = Starknet::default().add_declare_transaction(
-            BroadcastedDeclareTransaction::V3(Box::new(declare_transaction)),
-        );
+        let result = Starknet::default()
+            .add_declare_transaction(BroadcastedDeclareTransaction::V3(Box::new(declare_tx)));
 
         match result {
             Err(Error::UnsupportedAction { msg }) => {
@@ -198,21 +185,25 @@ mod tests {
 
     #[test]
     fn declare_transaction_v3_with_max_fee_zero_should_return_an_error() {
-        let declare_transaction = BroadcastedDeclareTransactionV2::new(
-            &dummy_cairo_1_contract_class(),
-            dummy_felt(),
-            dummy_contract_address(),
-            Fee(0),
-            &vec![],
-            dummy_felt(),
-            dummy_felt(),
-        );
+        let declare_tx = BroadcastedDeclareTransactionV3 {
+            common: BroadcastedTransactionCommonV3 {
+                version: Felt::THREE + QUERY_VERSION_OFFSET,
+                signature: vec![],
+                nonce: dummy_felt(),
+                resource_bounds: ResourceBoundsWrapper::new(0, 0, 0, 0, 0, 0),
+                tip: Default::default(),
+                paymaster_data: vec![],
+                nonce_data_availability_mode: DataAvailabilityMode::L1,
+                fee_data_availability_mode: DataAvailabilityMode::L1,
+            },
+            contract_class: dummy_cairo_1_contract_class(),
+            sender_address: dummy_contract_address(),
+            compiled_class_hash: dummy_felt(),
+            account_deployment_data: vec![],
+        };
 
-        let declare_transaction = convert_broadcasted_declare_v2_to_v3(declare_transaction);
-
-        let result = Starknet::default().add_declare_transaction(
-            BroadcastedDeclareTransaction::V3(Box::new(declare_transaction)),
-        );
+        let result = Starknet::default()
+            .add_declare_transaction(BroadcastedDeclareTransaction::V3(Box::new(declare_tx)));
 
         match result {
             Err(Error::TransactionValidationError(
@@ -223,65 +214,24 @@ mod tests {
     }
 
     #[test]
-    fn declare_transaction_v2_with_max_fee_zero_should_return_an_error() {
-        let declare_transaction_v2 = BroadcastedDeclareTransactionV2::new(
-            &dummy_cairo_1_contract_class(),
-            dummy_felt(),
-            dummy_contract_address(),
-            Fee(0),
-            &vec![],
-            dummy_felt(),
-            dummy_felt(),
-        );
-
-        let result = Starknet::default().add_declare_transaction(
-            BroadcastedDeclareTransaction::V2(Box::new(declare_transaction_v2)),
-        );
-
-        assert!(result.is_err());
-        match result.err().unwrap() {
-            Error::TransactionValidationError(
-                TransactionValidationError::InsufficientResourcesForValidate,
-            ) => {}
-            _ => panic!("Wrong error type"),
-        }
-    }
-
-    #[test]
-    fn add_declare_v2_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
-        let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1);
-        let declare_txn = dummy_broadcasted_declare_transaction_v2(&sender.account_address);
-
-        match starknet
-            .add_declare_transaction(BroadcastedDeclareTransaction::V2(Box::new(declare_txn)))
-            .unwrap_err()
-        {
-            Error::TransactionValidationError(
-                TransactionValidationError::InsufficientAccountBalance,
-            ) => {}
-            err => {
-                panic!("Wrong error type received {:?}", err);
-            }
-        }
-    }
-
-    #[test]
     fn add_declare_v3_transaction_successful_execution() {
         let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1e18 as u128);
 
-        let declare_txn = convert_broadcasted_declare_v2_to_v3(
-            dummy_broadcasted_declare_transaction_v2(&sender.account_address),
+        let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
+            sender.account_address,
+            Felt::ZERO,
+            resource_bounds_with_price_1(0, 1000, 1e9 as u64),
         );
 
         let (tx_hash, class_hash) =
-            starknet.add_declare_transaction(declare_txn.clone().into()).unwrap();
+            starknet.add_declare_transaction(declare_tx.clone().into()).unwrap();
 
         let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
 
         // check if generated class hash is expected one
         assert_eq!(
             class_hash,
-            ContractClass::Cairo1(declare_txn.contract_class).generate_hash().unwrap()
+            ContractClass::Cairo1(declare_tx.contract_class).generate_hash().unwrap()
         );
         // check if txn is with status accepted
         assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
@@ -294,86 +244,16 @@ mod tests {
     }
 
     #[test]
-    fn add_declare_v2_transaction_successful_execution() {
-        let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1e8 as u128);
-
-        let declare_txn = dummy_broadcasted_declare_transaction_v2(&sender.account_address);
-        let (tx_hash, class_hash) = starknet
-            .add_declare_transaction(BroadcastedDeclareTransaction::V2(Box::new(
-                declare_txn.clone(),
-            )))
-            .unwrap();
-
-        let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
-
-        // check if generated class hash is expected one
-        let generated_hash =
-            ContractClass::Cairo1(declare_txn.contract_class.clone()).generate_hash().unwrap();
-        assert_eq!(class_hash, generated_hash);
-
-        // check if txn is with status accepted
-        assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
-        assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        assert_eq!(
-            starknet.get_class(&BlockId::Tag(BlockTag::Latest), class_hash).unwrap(),
-            declare_txn.contract_class.into()
-        );
-    }
-
-    #[test]
-    fn declare_v2_transaction_successful_storage_change() {
-        let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1e8 as u128);
-        let declare_txn = dummy_broadcasted_declare_transaction_v2(&sender.account_address);
-        let expected_class_hash =
-            ContractClass::Cairo1(declare_txn.contract_class.clone()).generate_hash().unwrap();
-        let expected_compiled_class_hash = declare_txn.compiled_class_hash;
-
-        // check if contract is not declared
-        assert!(!starknet.pending_state.is_contract_declared(expected_class_hash));
-        assert_eq!(
-            starknet
-                .pending_state
-                .get_compiled_class_hash(starknet_api::core::ClassHash(expected_class_hash))
-                .unwrap(),
-            CompiledClassHash(Felt::ZERO)
-        );
-        assert!(starknet.get_class(&BlockId::Tag(BlockTag::Latest), expected_class_hash).is_err());
-
-        let (tx_hash, retrieved_class_hash) = starknet
-            .add_declare_transaction(BroadcastedDeclareTransaction::V2(Box::new(declare_txn)))
-            .unwrap();
-
-        let retrieved_txn = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
-
-        // check if generated class hash is expected one
-        assert_eq!(retrieved_class_hash, expected_class_hash);
-        // check if txn is with status accepted
-        assert_eq!(retrieved_txn.finality_status, TransactionFinalityStatus::AcceptedOnL2);
-        assert_eq!(retrieved_txn.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        assert!(starknet.pending_state.is_contract_declared(expected_class_hash));
-        assert_eq!(
-            starknet
-                .pending_state
-                .get_compiled_class_hash(starknet_api::core::ClassHash(expected_class_hash))
-                .unwrap()
-                .0,
-            expected_compiled_class_hash
-        );
-    }
-
-    #[test]
     fn add_declare_v3_transaction_should_return_an_error_due_to_low_max_fee() {
         let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(20000);
 
-        let mut declare_txn = dummy_broadcasted_declare_tx_v3(sender.account_address);
-        declare_txn.common.nonce = Felt::ZERO;
-        declare_txn.common.resource_bounds = ResourceBoundsWrapper::new(
-            1, 1, // l1_gas: amount + price
-            0, 0, // l1_data_gas
-            0, 0, // l2_gas
+        let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
+            sender.account_address,
+            Felt::ZERO,
+            resource_bounds_with_price_1(0, 1, 1),
         );
 
-        match starknet.add_declare_transaction(declare_txn.into()) {
+        match starknet.add_declare_transaction(declare_tx.into()) {
             Err(Error::TransactionValidationError(
                 TransactionValidationError::InsufficientResourcesForValidate,
             )) => {}
@@ -385,14 +265,13 @@ mod tests {
     fn add_declare_v3_transaction_should_return_an_error_due_to_not_enough_balance_on_account() {
         let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1);
 
-        let mut declare_txn = dummy_broadcasted_declare_tx_v3(sender.account_address);
-        declare_txn.common.nonce = Felt::ZERO;
-        declare_txn.common.resource_bounds = ResourceBoundsWrapper::new(
-            1000, 1, // l1_gas
-            1000, 1, // l1_data_gas
-            1e9 as u64, 1, // l2_gas
+        let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
+            sender.account_address,
+            Felt::ZERO,
+            resource_bounds_with_price_1(0, 1000, 1e9 as u64),
         );
-        match starknet.add_declare_transaction(declare_txn.into()).unwrap_err() {
+
+        match starknet.add_declare_transaction(declare_tx.into()).unwrap_err() {
             Error::TransactionValidationError(
                 TransactionValidationError::InsufficientAccountBalance,
             ) => {}
@@ -404,20 +283,18 @@ mod tests {
     fn declare_v3_transaction_successful_storage_change() {
         let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1e18 as u128);
 
-        let mut declare_txn = dummy_broadcasted_declare_tx_v3(sender.account_address);
-        declare_txn.common.nonce = Felt::ZERO;
-        declare_txn.common.resource_bounds = ResourceBoundsWrapper::new(
-            1000, 1, // l1_gas
-            1000, 1, // l1_data_gas
-            1e9 as u64, 1, // l2_gas
+        let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
+            sender.account_address,
+            Felt::ZERO,
+            resource_bounds_with_price_1(0, 1000, 1e9 as u64),
         );
 
         // check if contract is not declared
         let expected_class_hash =
-            ContractClass::Cairo1(declare_txn.contract_class.clone()).generate_hash().unwrap();
+            ContractClass::Cairo1(declare_tx.contract_class.clone()).generate_hash().unwrap();
         assert!(!starknet.pending_state.is_contract_declared(expected_class_hash));
 
-        let (tx_hash, class_hash) = starknet.add_declare_transaction(declare_txn.into()).unwrap();
+        let (tx_hash, class_hash) = starknet.add_declare_transaction(declare_tx.into()).unwrap();
 
         let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
 

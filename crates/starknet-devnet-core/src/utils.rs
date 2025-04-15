@@ -79,13 +79,11 @@ pub(crate) fn maybe_extract_failure_reason(
 pub(crate) mod test_utils {
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use starknet_api::data_availability::DataAvailabilityMode;
-    use starknet_api::transaction::fields::{Fee, Tip};
+    use starknet_api::transaction::fields::Tip;
     use starknet_rs_core::types::Felt;
-    use starknet_types::compile_sierra_contract;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
-    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
     use starknet_types::rpc::transactions::declare_transaction_v3::DeclareTransactionV3;
@@ -120,67 +118,82 @@ pub(crate) mod test_utils {
         ContractAddress::new(Felt::from_hex_unchecked("0xADD4E55")).unwrap()
     }
 
-    /// unsigned tx
-    pub(crate) fn dummy_broadcasted_declare_tx_v3(
+    /// Returns a gas bounds object with max amounts set to input params and prices set to 1
+    pub(crate) fn resource_bounds_with_price_1(
+        l1_gas: u64,
+        l1_data_gas: u64,
+        l2_gas: u64,
+    ) -> ResourceBoundsWrapper {
+        ResourceBoundsWrapper::new(l1_gas, 1, l1_data_gas, 1, l2_gas, 1)
+    }
+
+    /// Returns an unsigned tx representing a v3 declaration of a predefined dummy
+    /// class. The tx can be sent to Starknet.
+    pub(crate) fn broadcasted_declare_tx_v3_of_dummy_class(
         sender_address: ContractAddress,
+        nonce: Felt,
+        resource_bounds: ResourceBoundsWrapper,
+    ) -> BroadcastedDeclareTransactionV3 {
+        broadcasted_declare_tx_v3(
+            sender_address,
+            nonce,
+            dummy_cairo_1_contract_class(),
+            DUMMY_CAIRO_1_COMPILED_CLASS_HASH,
+            resource_bounds,
+        )
+    }
+
+    /// Returns an unsigned tx representing a v3 declaration of the provided class. The
+    /// tx can be sent to Starknet.
+    pub(crate) fn broadcasted_declare_tx_v3(
+        sender_address: ContractAddress,
+        nonce: Felt,
+        contract_class: cairo_lang_starknet_classes::contract_class::ContractClass,
+        compiled_class_hash: Felt,
+        resource_bounds: ResourceBoundsWrapper,
     ) -> BroadcastedDeclareTransactionV3 {
         BroadcastedDeclareTransactionV3 {
             common: BroadcastedTransactionCommonV3 {
                 version: Felt::THREE,
                 signature: vec![],
-                nonce: dummy_felt(),
-                resource_bounds: ResourceBoundsWrapper::new(
-                    1, 1, // l1_gas: amount + price
-                    0, 0, // l1_data_gas
-                    0, 0, // l2_gas
-                ),
+                nonce,
+                resource_bounds,
                 tip: Tip(0),
                 paymaster_data: vec![],
                 nonce_data_availability_mode: DataAvailabilityMode::L1,
                 fee_data_availability_mode: DataAvailabilityMode::L1,
             },
-            contract_class: dummy_cairo_1_contract_class(),
+            contract_class,
             sender_address,
-            compiled_class_hash: DUMMY_CAIRO_1_COMPILED_CLASS_HASH,
+            compiled_class_hash,
             account_deployment_data: vec![],
         }
     }
 
-    pub(crate) fn dummy_declare_transaction_v3() -> TransactionWithHash {
-        let chain_id = DEVNET_DEFAULT_CHAIN_ID.to_felt();
-        let broadcasted_tx = dummy_broadcasted_declare_tx_v3(dummy_contract_address());
+    pub(crate) fn dummy_declare_tx_v3_with_hash() -> TransactionWithHash {
+        let declare_txn = broadcasted_declare_tx_v3_of_dummy_class(
+            dummy_contract_address(),
+            Felt::ZERO,
+            ResourceBoundsWrapper::new(
+                1, 1, // l1_gas
+                0, 0, // l1_data_gas
+                0, 0, // l2_gas
+            ),
+        );
         let sierra_hash =
-            ContractClass::Cairo1(broadcasted_tx.contract_class.clone()).generate_hash().unwrap();
+            ContractClass::Cairo1(declare_txn.contract_class.clone()).generate_hash().unwrap();
 
-        let transaction_hash = BroadcastedDeclareTransaction::V3(Box::new(broadcasted_tx.clone()))
-            .create_sn_api_declare(&chain_id)
+        let tx_hash = BroadcastedDeclareTransaction::V3(Box::new(declare_txn.clone()))
+            .create_sn_api_declare(&DEVNET_DEFAULT_CHAIN_ID.to_felt())
             .unwrap()
             .tx_hash;
 
         TransactionWithHash::new(
-            *transaction_hash,
+            *tx_hash,
             Transaction::Declare(DeclareTransaction::V3(DeclareTransactionV3::new(
-                &broadcasted_tx,
+                &declare_txn,
                 sierra_hash,
             ))),
-        )
-    }
-
-    pub(crate) fn dummy_broadcasted_declare_transaction_v2(
-        sender_address: &ContractAddress,
-    ) -> BroadcastedDeclareTransactionV2 {
-        let contract_class = dummy_cairo_1_contract_class();
-        let compiled_class_hash =
-            compile_sierra_contract(&contract_class).unwrap().compiled_class_hash();
-
-        BroadcastedDeclareTransactionV2::new(
-            &contract_class,
-            compiled_class_hash,
-            *sender_address,
-            Fee(400000),
-            &Vec::new(),
-            Felt::ZERO,
-            Felt::TWO,
         )
     }
 
@@ -191,50 +204,17 @@ pub(crate) mod test_utils {
         Cairo0Json::raw_json_from_path(account_json_path).unwrap().into()
     }
 
-    pub(crate) fn convert_broadcasted_declare_v2_to_v3(
-        declare_v2: BroadcastedDeclareTransactionV2,
-    ) -> BroadcastedDeclareTransactionV3 {
-        BroadcastedDeclareTransactionV3 {
-            common: BroadcastedTransactionCommonV3 {
-                version: Felt::THREE,
-                signature: declare_v2.common.signature,
-                nonce: declare_v2.common.nonce,
-                resource_bounds: ResourceBoundsWrapper::new(
-                    declare_v2.common.max_fee.0 as u64,
-                    1,
-                    0,
-                    0,
-                    0,
-                    0,
-                ),
-                tip: Default::default(),
-                paymaster_data: vec![],
-                nonce_data_availability_mode:
-                    starknet_api::data_availability::DataAvailabilityMode::L1,
-                fee_data_availability_mode:
-                    starknet_api::data_availability::DataAvailabilityMode::L1,
-            },
-            contract_class: declare_v2.contract_class,
-            sender_address: declare_v2.sender_address,
-            compiled_class_hash: declare_v2.compiled_class_hash,
-            account_deployment_data: vec![],
-        }
-    }
-
     pub fn dummy_key_pair() -> KeyPair {
         KeyPair { public_key: dummy_felt(), private_key: dummy_felt() }
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn test_invoke_transaction_v3(
         account_address: ContractAddress,
         contract_address: ContractAddress,
         function_selector: Felt,
         params: &[Felt],
         nonce: u128,
-        l1_gas_amount: u64,
-        l1_data_gas_amount: u64,
-        l2_gas_amount: u64,
+        resource_bounds: ResourceBoundsWrapper,
     ) -> BroadcastedInvokeTransaction {
         // Encode: [addr, selector, params len, *params]
         let mut calldata = vec![Felt::from(contract_address), function_selector];
@@ -246,14 +226,7 @@ pub(crate) mod test_utils {
                 version: Felt::THREE,
                 signature: vec![],
                 nonce: Felt::from(nonce),
-                resource_bounds: ResourceBoundsWrapper::new(
-                    l1_gas_amount,
-                    1,
-                    l1_data_gas_amount,
-                    1,
-                    l2_gas_amount,
-                    1,
-                ),
+                resource_bounds,
                 tip: Tip(0),
                 paymaster_data: vec![],
                 nonce_data_availability_mode:

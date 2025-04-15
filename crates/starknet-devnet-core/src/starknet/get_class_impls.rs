@@ -72,31 +72,34 @@ pub fn get_compiled_casm_impl(
 
 #[cfg(test)]
 mod tests {
-    use starknet_rs_core::types::BlockId;
+    use starknet_rs_core::types::{BlockId, Felt};
     use starknet_types::contract_class::ContractClass;
+    use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
 
     use crate::error::Error;
     use crate::starknet::starknet_config::StateArchiveCapacity;
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account_and_state_capacity;
-    use crate::utils::test_utils::dummy_broadcasted_declare_transaction_v2;
+    use crate::utils::test_utils::{
+        broadcasted_declare_tx_v3_of_dummy_class, resource_bounds_with_price_1,
+    };
 
     #[test]
     fn get_sierra_class() {
         let (mut starknet, account) =
             setup_starknet_with_no_signature_check_account_and_state_capacity(
-                1e8 as u128,
+                1e18 as u128,
                 StateArchiveCapacity::Full,
             );
 
-        let declare_txn = dummy_broadcasted_declare_transaction_v2(&account.account_address);
+        let declare_txn = broadcasted_declare_tx_v3_of_dummy_class(
+            account.account_address,
+            Felt::ZERO,
+            resource_bounds_with_price_1(0, 1000, 1e9 as u64),
+        );
 
         let expected: ContractClass = declare_txn.contract_class.clone().into();
         let (_, class_hash) = starknet
-            .add_declare_transaction(
-                starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V2(Box::new(
-                    declare_txn,
-                )),
-            )
+            .add_declare_transaction(BroadcastedDeclareTransaction::V3(Box::new(declare_txn)))
             .unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();

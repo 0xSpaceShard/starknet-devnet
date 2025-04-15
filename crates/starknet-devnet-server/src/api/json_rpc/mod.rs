@@ -1329,15 +1329,31 @@ mod requests_tests {
         );
     }
 
-    fn sample_declare_v2_body() -> serde_json::Value {
+    fn sample_declare_v3_body() -> serde_json::Value {
         json!({
             "type":"DECLARE",
-            "max_fee": "0xde0b6b3a7640000",
-            "version": "0x2",
+            "version": "0x3",
             "signature": [
                 "0x2216f8f4d9abc06e130d2a05b13db61850f0a1d21891c7297b98fd6cc51920d",
                 "0x6aadfb198bbffa8425801a2342f5c6d804745912114d5976f53031cd789bb6d"
             ],
+            "resource_bounds": {
+                "l1_gas": {
+                    "max_amount": "0x1",
+                    "max_price_per_unit": "0x2"
+                },
+                "l1_data_gas": {
+                    "max_amount": "0x1",
+                    "max_price_per_unit": "0x2"
+                },
+                "l2_gas": {
+                    "max_amount": "0x1",
+                    "max_price_per_unit": "0x2"
+                }
+            },
+            "tip": "0xabc",
+            "paymaster_data": [],
+            "account_deployment_data": [],
             "nonce": "0x0",
             "compiled_class_hash":"0x63b33a5f2f46b1445d04c06d7832c48c48ad087ce0803b71f2b8d96353716ca",
             "sender_address":"0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba",
@@ -1350,7 +1366,9 @@ mod requests_tests {
                 },
                 "abi": "[{\"type\": \"function\", \"name\": \"constructor\", \"inputs\": [{\"name\": \"initial_balance\", \"type\": \"core::felt252\"}], \"outputs\": [], \"state_mutability\": \"external\"}, {\"type\": \"function\", \"name\": \"increase_balance\", \"inputs\": [{\"name\": \"amount1\", \"type\": \"core::felt252\"}, {\"name\": \"amount2\", \"type\": \"core::felt252\"}], \"outputs\": [], \"state_mutability\": \"external\"}, {\"type\": \"function\", \"name\": \"get_balance\", \"inputs\": [], \"outputs\": [{\"type\": \"core::felt252\"}], \"state_mutability\": \"view\"}]",
                 "contract_class_version": "0.1.0"
-            }
+            },
+            "nonce_data_availability_mode": "L1",
+            "fee_data_availability_mode": "L1"
         })
     }
 
@@ -1375,27 +1393,15 @@ mod requests_tests {
     }
 
     #[test]
-    fn deserialize_declare_v2_fee_estimation_request() {
+    fn deserialize_declare_v3_fee_estimation_request() {
         assert_deserialization_succeeds(
-            &create_estimate_request(&[sample_declare_v2_body()]).to_string(),
+            &create_estimate_request(&[sample_declare_v3_body()]).to_string(),
         );
         assert_deserialization_succeeds(
-            &create_estimate_request(&[sample_declare_v2_body()]).to_string().replace(
-                r#""version":"0x2""#,
-                r#""version":"0x100000000000000000000000000000002""#,
+            &create_estimate_request(&[sample_declare_v3_body()]).to_string().replace(
+                r#""version":"0x3""#,
+                r#""version":"0x100000000000000000000000000000003""#,
             ),
-        );
-        assert_deserialization_fails(
-            &create_estimate_request(&[sample_declare_v2_body()])
-                .to_string()
-                .replace(r#""version":"0x2""#, r#""version":"0x123""#),
-            "Invalid version of declare transaction: \"0x123\"",
-        );
-        assert_deserialization_fails(
-            &create_estimate_request(&[sample_declare_v2_body()])
-                .to_string()
-                .replace(r#""version":"0x2""#, r#""version":"0x3""#),
-            "Invalid declare transaction v3",
         );
     }
 
@@ -1484,30 +1490,30 @@ mod requests_tests {
     }
 
     #[test]
-    fn deserialize_add_declare_transaction_v2_request() {
+    fn deserialize_add_declare_transaction_v3_request() {
         assert_deserialization_succeeds(
-            &create_declare_request(sample_declare_v2_body()).to_string(),
+            &create_declare_request(sample_declare_v3_body()).to_string(),
         );
 
         assert_deserialization_fails(
-            &create_declare_request(sample_declare_v2_body())
+            &create_declare_request(sample_declare_v3_body())
                 .to_string()
-                .replace(r#""version":"0x2""#, r#""version":"0x123""#),
+                .replace(r#""version":"0x3""#, r#""version":"0x123""#),
             "Invalid version of declare transaction: \"0x123\"",
         );
 
         assert_deserialization_fails(
-            &create_estimate_request(&[sample_declare_v2_body()])
+            &create_estimate_request(&[sample_declare_v3_body()])
                 .to_string()
-                .replace("max_fee", "maxFee"),
-            "Invalid declare transaction v2: missing field `max_fee`",
+                .replace("resource_bounds", "resourceBounds"),
+            "Invalid declare transaction v3: missing field `resource_bounds`",
         );
 
         assert_deserialization_fails(
-            &create_declare_request(sample_declare_v2_body())
+            &create_declare_request(sample_declare_v3_body())
                 .to_string()
                 .replace(r#""nonce":"0x0""#, r#""nonce":123"#),
-            "Invalid declare transaction v2: invalid type: integer `123`",
+            "Invalid declare transaction v3: invalid type: integer `123`",
         );
     }
 
