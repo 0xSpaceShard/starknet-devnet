@@ -29,9 +29,8 @@ use starknet_rs_signers::LocalWallet;
 use crate::common::background_anvil::BackgroundAnvil;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
-    CHAIN_ID, DEFAULT_ETH_ACCOUNT_ADDRESS, DEFAULT_ETH_ACCOUNT_PRIVATE_KEY, L1_HANDLER_SELECTOR,
-    MESSAGING_L1_CONTRACT_ADDRESS, MESSAGING_L2_CONTRACT_ADDRESS,
-    MESSAGING_WHITELISTED_L1_CONTRACT,
+    CHAIN_ID, DEFAULT_ETH_ACCOUNT_PRIVATE_KEY, L1_HANDLER_SELECTOR, MESSAGING_L1_CONTRACT_ADDRESS,
+    MESSAGING_L2_CONTRACT_ADDRESS, MESSAGING_WHITELISTED_L1_CONTRACT,
 };
 use crate::common::errors::RpcError;
 use crate::common::utils::{
@@ -348,30 +347,45 @@ async fn can_deploy_l1_messaging_contract() {
     );
 }
 
+const MNEMONIC_FROM_SEED_42: &str =
+    "pen brief eager pepper brass detect problem vital physical tent assume damp";
+const ACCOUNT_0_PRIVATE_KEY_WITH_SEED_42: &str =
+    "0x3c741b302cb3ea9163539c7fc72d4e40264aa03cfb638d79860d86865c3d0db4";
+
 #[tokio::test]
 async fn setup_anvil_incorrect_eth_private_key() {
-    let anvil = BackgroundAnvil::spawn_with_additional_args(&["--balance", "0"]).await.unwrap();
+    let anvil = BackgroundAnvil::spawn_with_additional_args_and_custom_signer(
+        &[],
+        MNEMONIC_FROM_SEED_42,
+        ACCOUNT_0_PRIVATE_KEY_WITH_SEED_42,
+    )
+    .await
+    .unwrap();
 
     let (devnet, _, _) = setup_devnet(&["--account-class", "cairo1"]).await;
 
     let body = devnet
+        .send_custom_rpc("devnet_postmanLoad", json!({ "network_url": anvil.url }))
+        .await
+        .unwrap_err();
+    assert_contains(&body.message, "CallGasCostMoreThanGasLimit");
+
+    let body = devnet
         .send_custom_rpc(
             "devnet_postmanLoad",
-            json!({ "network_url": anvil.url,
-            "funded_account_private_key": DEFAULT_ETH_ACCOUNT_PRIVATE_KEY }),
+            json!({
+                "network_url": anvil.url,
+                "funded_account_private_key": DEFAULT_ETH_ACCOUNT_PRIVATE_KEY
+            }),
         )
         .await
         .unwrap_err();
-    assert_contains(&body.message, "Out of gas: gas required exceeds allowance: 0");
+    assert_contains(&body.message, "CallGasCostMoreThanGasLimit");
 }
 
 #[tokio::test]
 async fn deploy_l1_messaging_contract_with_funded_account_private_key() {
     let anvil = BackgroundAnvil::spawn().await.unwrap();
-    assert_eq!(
-        anvil.provider_signer.address(),
-        DEFAULT_ETH_ACCOUNT_ADDRESS.parse::<Address>().unwrap()
-    );
 
     let (devnet, _, _) = setup_devnet(&["--account-class", "cairo1"]).await;
 

@@ -9,7 +9,7 @@ use k256::ecdsa::SigningKey;
 use reqwest::StatusCode;
 
 use super::background_server::get_acquired_port;
-use super::constants::{DEFAULT_ETH_ACCOUNT_PRIVATE_KEY, HOST};
+use super::constants::{DEFAULT_ANVIL_MNEMONIC_PHRASE, DEFAULT_ETH_ACCOUNT_PRIVATE_KEY, HOST};
 use super::errors::TestError;
 use super::safe_child::SafeChild;
 
@@ -31,14 +31,19 @@ mod abigen {
 
 impl BackgroundAnvil {
     pub(crate) async fn spawn() -> Result<Self, TestError> {
-        BackgroundAnvil::spawn_with_additional_args(&[]).await
+        Self::spawn_with_additional_args(&[]).await
     }
 
-    /// Spawns an instance at random port. Assumes CLI args in `args` don't contain `--port`.
-    pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
+    pub(crate) async fn spawn_with_additional_args_and_custom_signer(
+        args: &[&str],
+        mnemonic_phrase: &str,
+        private_key: &str,
+    ) -> Result<Self, TestError> {
         let process = Command::new("anvil")
             .arg("--port")
             .arg("0")
+            .arg("--mnemonic")
+            .arg(mnemonic_phrase)
             .arg("--silent")
             .args(args)
             .spawn()
@@ -58,7 +63,8 @@ impl BackgroundAnvil {
                 assert_eq!(anvil_block_rsp.status(), StatusCode::OK);
                 println!("Spawned background anvil at {url}");
 
-                let (provider, provider_signer) = setup_ethereum_provider(&url).await?;
+                let (provider, provider_signer) =
+                    setup_ethereum_provider(&url, private_key).await?;
 
                 return Ok(Self { process: safe_process, url, provider, provider_signer });
             }
@@ -67,6 +73,17 @@ impl BackgroundAnvil {
         }
 
         Err(TestError::AnvilNotStartable("Not responsive for too long".into()))
+    }
+
+    /// Spawns an instance at random port. Assumes CLI args in `args` don't contain `--port` or
+    /// mnemonic parameters. Uses the mnemonic seed defined in constants.
+    pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
+        Self::spawn_with_additional_args_and_custom_signer(
+            args,
+            DEFAULT_ANVIL_MNEMONIC_PHRASE,
+            DEFAULT_ETH_ACCOUNT_PRIVATE_KEY,
+        )
+        .await
     }
 
     pub async fn deploy_l1l2_contract(
@@ -164,18 +181,18 @@ impl BackgroundAnvil {
 
 async fn setup_ethereum_provider(
     rpc_url: &str,
+    private_key: &str,
 ) -> Result<
     (Arc<Provider<Http>>, Arc<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>),
     TestError,
 > {
     let provider = Provider::<Http>::try_from(rpc_url)
-        .map_err(|e| TestError::EthersError(format!("Can't parse L1 node URL: {rpc_url} ({e})")))
-        .map_err(|e| TestError::EthersError(e.to_string()))?;
+        .map_err(|e| TestError::EthersError(format!("Can't parse L1 node URL: {rpc_url} ({e})")))?;
 
     let chain_id =
         provider.get_chainid().await.map_err(|e| TestError::EthersError(e.to_string()))?;
 
-    let wallet: LocalWallet = DEFAULT_ETH_ACCOUNT_PRIVATE_KEY
+    let wallet = private_key
         .parse::<LocalWallet>()
         .map_err(|e| TestError::EthersError(e.to_string()))?
         .with_chain_id(chain_id.as_u32());
