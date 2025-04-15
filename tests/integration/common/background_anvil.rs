@@ -76,7 +76,7 @@ impl BackgroundAnvil {
     }
 
     /// Spawns an instance at random port. Assumes CLI args in `args` don't contain `--port` or
-    /// mnemonic parameters. Uses the mnemonic seed defined in constants.
+    /// mnemonic parameters. Uses the mnemonic phrase defined in constants.
     pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
         Self::spawn_with_additional_args_and_custom_signer(
             args,
