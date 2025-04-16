@@ -427,7 +427,8 @@ impl BroadcastedTransactionCommonV3 {
                 true
             }
             // l2 > 0 and l1_data > 0
-            // l1 gas is not checked, because l1 gas is used for L2->L1 messages and not every transaction sends data to L1
+            // l1 gas is not checked, because l1 gas is used for L2->L1 messages and not every
+            // transaction sends data to L1
             (_, l2, l1_data) if is_gt_zero(l2) && is_gt_zero(l1_data) => true,
             _ => false,
         }
