@@ -47,7 +47,7 @@ pub fn add_declare_transaction(
     starknet: &mut Starknet,
     broadcasted_declare_transaction: BroadcastedDeclareTransaction,
 ) -> DevnetResult<(TransactionHash, ClassHash)> {
-    if !broadcasted_declare_transaction.is_max_fee_valid() {
+    if !broadcasted_declare_transaction.are_gas_bounds_valid() {
         return Err(TransactionValidationError::InsufficientResourcesForValidate.into());
     }
 
@@ -184,7 +184,7 @@ mod tests {
     }
 
     #[test]
-    fn declare_transaction_v3_with_max_fee_zero_should_return_an_error() {
+    fn declare_transaction_v3_with_zero_gas_bounds_should_return_an_error() {
         let declare_tx = BroadcastedDeclareTransactionV3 {
             common: BroadcastedTransactionCommonV3 {
                 version: Felt::THREE + QUERY_VERSION_OFFSET,
@@ -244,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn add_declare_v3_transaction_should_return_an_error_due_to_low_max_fee() {
+    fn add_declare_v3_transaction_should_return_an_error_due_to_low_gas_bounds() {
         let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(20000);
 
         let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(

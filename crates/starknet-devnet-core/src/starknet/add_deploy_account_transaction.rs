@@ -15,7 +15,7 @@ pub fn add_deploy_account_transaction(
     starknet: &mut Starknet,
     broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransaction,
 ) -> DevnetResult<(TransactionHash, ContractAddress)> {
-    if !broadcasted_deploy_account_transaction.is_max_fee_valid() {
+    if !broadcasted_deploy_account_transaction.are_gas_bounds_valid() {
         return Err(TransactionValidationError::InsufficientResourcesForValidate.into());
     }
 
@@ -141,7 +141,7 @@ mod tests {
     }
 
     #[test]
-    fn deploy_account_transaction_v3_with_max_fee_zero_should_return_an_error() {
+    fn deploy_account_transaction_v3_with_zero_gas_bounds_should_return_an_error() {
         let (mut starknet, account_class_hash) = setup();
         let tx = test_deploy_account_transaction_v3(account_class_hash, 0, 0, 0, 0);
 

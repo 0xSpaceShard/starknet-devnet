@@ -91,7 +91,7 @@ async fn estimate_fee_of_deploy_account() {
         other => panic!("Unexpected result: {other:?}"),
     };
 
-    // try sending with sufficient max fee
+    // try sending with sufficient gas bounds
     let successful_deployment = account_factory
         .deploy_v3(salt)
         .gas_estimate_multiplier(1.1)
@@ -190,7 +190,7 @@ async fn estimate_fee_of_declare_v3() {
         other => panic!("Unexpected result: {other:?}"),
     };
 
-    // try sending with sufficient max fee
+    // try sending with sufficient gas bounds
     let successful_declare_tx = account
         .declare_v3(Arc::clone(&flattened_contract_artifact), casm_hash)
         .nonce(Felt::ZERO)
