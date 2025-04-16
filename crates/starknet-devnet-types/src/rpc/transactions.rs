@@ -277,21 +277,8 @@ pub struct FunctionCall {
     pub calldata: Calldata,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct BroadcastedTransactionCommon {
-    pub version: TransactionVersion,
-    pub signature: TransactionSignature,
-    pub nonce: Nonce,
-}
-
 fn is_only_query_common(version: &Felt) -> bool {
     version >= &QUERY_VERSION_OFFSET
-}
-
-impl BroadcastedTransactionCommon {
-    pub fn is_only_query(&self) -> bool {
-        is_only_query_common(&self.version)
-    }
 }
 
 fn felt_to_sn_api_chain_id(f: &Felt) -> DevnetResult<starknet_api::core::ChainId> {
@@ -488,7 +475,7 @@ impl BroadcastedTransaction {
         }
     }
 
-    pub fn are_gas_bounds_fee_valid(&self) -> bool {
+    pub fn are_gas_bounds_valid(&self) -> bool {
         match self {
             BroadcastedTransaction::Invoke(broadcasted_invoke_transaction) => {
                 broadcasted_invoke_transaction.are_gas_bounds_valid()
