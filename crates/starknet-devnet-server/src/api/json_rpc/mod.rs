@@ -119,35 +119,6 @@ pub struct JsonRpcHandler {
     pub server_config: ServerConfig,
 }
 
-fn log_if_deprecated_tx(request: &JsonRpcRequest) {
-    let is_deprecated_tx = match request {
-        JsonRpcRequest::AddDeclareTransaction(BroadcastedDeclareTransactionInput {
-            declare_transaction: BroadcastedDeclareTransactionEnumWrapper::Declare(tx),
-        }) => tx.is_deprecated(),
-        JsonRpcRequest::AddDeployAccountTransaction(BroadcastedDeployAccountTransactionInput {
-            deploy_account_transaction:
-                BroadcastedDeployAccountTransactionEnumWrapper::DeployAccount(tx),
-        }) => tx.is_deprecated(),
-        JsonRpcRequest::AddInvokeTransaction(BroadcastedInvokeTransactionInput {
-            invoke_transaction: BroadcastedInvokeTransactionEnumWrapper::Invoke(tx),
-        }) => tx.is_deprecated(),
-        JsonRpcRequest::EstimateFee(EstimateFeeInput { request: txs, .. }) => {
-            txs.iter().any(|tx| tx.is_deprecated())
-        }
-        JsonRpcRequest::SimulateTransactions(SimulateTransactionsInput {
-            transactions, ..
-        }) => transactions.iter().any(|tx| tx.is_deprecated()),
-        _ => false,
-    };
-
-    if is_deprecated_tx {
-        tracing::warn!(
-            "Received a transaction of a deprecated version! Please modify or upgrade your \
-             Starknet client to use v3 transactions."
-        );
-    }
-}
-
 #[async_trait::async_trait]
 impl RpcHandler for JsonRpcHandler {
     type Request = JsonRpcRequest;
@@ -158,7 +129,6 @@ impl RpcHandler for JsonRpcHandler {
         original_call: RpcMethodCall,
     ) -> ResponseResult {
         info!(target: "rpc", "received method in on_request {}", request);
-        log_if_deprecated_tx(&request);
 
         let is_request_forwardable = request.is_forwardable_to_origin(); // applicable if forking
         let is_request_dumpable = request.is_dumpable();

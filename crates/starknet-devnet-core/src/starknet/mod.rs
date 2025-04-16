@@ -1256,7 +1256,7 @@ impl Starknet {
                     // fail if the fee provided is 0
                     // succeed if the fee provided is 0 and SKIP_FEE_CHARGE is set
                     // succeed if the fee provided is > 0
-                    if !txn.are_gas_bounds_valid() && !skip_fee_charge {
+                    if !skip_fee_charge && !txn.are_gas_bounds_valid()  {
                         return Err(Error::ContractExecutionErrorInSimulation {
                             failure_index: tx_idx,
                             execution_error: ContractExecutionError::from(TransactionValidationError::InsufficientResourcesForValidate
