@@ -67,8 +67,6 @@ remove_from_array:
 
 edit_manually:
   - action: CHANGE
-    what: every max_fee field type to u128
-  - action: CHANGE
     what: add execution_status to TXN_STATUS_RESULT.required array
   - action: ADD
     what: abi to required fields of CONTRACT_CLASS

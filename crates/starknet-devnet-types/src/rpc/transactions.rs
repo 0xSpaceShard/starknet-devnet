@@ -11,7 +11,7 @@ use starknet_api::contract_class::{ClassInfo, EntryPointType};
 use starknet_api::core::calculate_contract_address;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::transaction::fields::{
-    AllResourceBounds, Fee, GasVectorComputationMode, Tip, ValidResourceBounds,
+    AllResourceBounds, GasVectorComputationMode, Tip, ValidResourceBounds,
 };
 use starknet_api::transaction::{TransactionHasher, TransactionOptions, signed_tx_version};
 use starknet_rs_core::types::{
@@ -277,27 +277,8 @@ pub struct FunctionCall {
     pub calldata: Calldata,
 }
 
-// TODO remove or rename other instances of fee and max_fee
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct BroadcastedTransactionCommon {
-    pub max_fee: Fee,
-    pub version: TransactionVersion,
-    pub signature: TransactionSignature,
-    pub nonce: Nonce,
-}
-
 fn is_only_query_common(version: &Felt) -> bool {
     version >= &QUERY_VERSION_OFFSET
-}
-
-impl BroadcastedTransactionCommon {
-    pub fn is_max_fee_zero_value(&self) -> bool {
-        self.max_fee.0 == 0
-    }
-
-    pub fn is_only_query(&self) -> bool {
-        is_only_query_common(&self.version)
-    }
 }
 
 fn felt_to_sn_api_chain_id(f: &Felt) -> DevnetResult<starknet_api::core::ChainId> {
@@ -494,16 +475,16 @@ impl BroadcastedTransaction {
         }
     }
 
-    pub fn is_max_fee_valid(&self) -> bool {
+    pub fn are_gas_bounds_valid(&self) -> bool {
         match self {
             BroadcastedTransaction::Invoke(broadcasted_invoke_transaction) => {
-                broadcasted_invoke_transaction.is_max_fee_valid()
+                broadcasted_invoke_transaction.are_gas_bounds_valid()
             }
             BroadcastedTransaction::Declare(broadcasted_declare_transaction) => {
-                broadcasted_declare_transaction.is_max_fee_valid()
+                broadcasted_declare_transaction.are_gas_bounds_valid()
             }
             BroadcastedTransaction::DeployAccount(broadcasted_deploy_account_transaction) => {
-                broadcasted_deploy_account_transaction.is_max_fee_valid()
+                broadcasted_deploy_account_transaction.are_gas_bounds_valid()
             }
         }
     }
@@ -537,7 +518,7 @@ pub enum BroadcastedDeclareTransaction {
 }
 
 impl BroadcastedDeclareTransaction {
-    pub fn is_max_fee_valid(&self) -> bool {
+    pub fn are_gas_bounds_valid(&self) -> bool {
         match self {
             BroadcastedDeclareTransaction::V3(v3) => v3.common.are_gas_bounds_valid(),
         }
@@ -624,7 +605,7 @@ pub enum BroadcastedDeployAccountTransaction {
 }
 
 impl BroadcastedDeployAccountTransaction {
-    pub fn is_max_fee_valid(&self) -> bool {
+    pub fn are_gas_bounds_valid(&self) -> bool {
         match self {
             BroadcastedDeployAccountTransaction::V3(v3) => v3.common.are_gas_bounds_valid(),
         }
@@ -707,7 +688,7 @@ pub enum BroadcastedInvokeTransaction {
 }
 
 impl BroadcastedInvokeTransaction {
-    pub fn is_max_fee_valid(&self) -> bool {
+    pub fn are_gas_bounds_valid(&self) -> bool {
         match self {
             BroadcastedInvokeTransaction::V3(v3) => v3.common.are_gas_bounds_valid(),
         }

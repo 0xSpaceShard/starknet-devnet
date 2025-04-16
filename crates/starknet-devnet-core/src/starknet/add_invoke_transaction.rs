@@ -14,7 +14,7 @@ pub fn add_invoke_transaction(
     starknet: &mut Starknet,
     broadcasted_invoke_transaction: BroadcastedInvokeTransaction,
 ) -> DevnetResult<TransactionHash> {
-    if !broadcasted_invoke_transaction.is_max_fee_valid() {
+    if !broadcasted_invoke_transaction.are_gas_bounds_valid() {
         return Err(TransactionValidationError::InsufficientResourcesForValidate.into());
     }
 
@@ -275,7 +275,7 @@ mod tests {
     }
 
     #[test]
-    fn invoke_transaction_v3_with_max_fee_zero_should_return_error() {
+    fn invoke_transaction_v3_with_zero_gas_bounds_should_return_error() {
         let nonce = 0;
         let tx = test_invoke_transaction_v3(
             dummy_contract_address(),

@@ -673,8 +673,7 @@ async fn simulate_of_multiple_txs_should_return_index_of_first_failing_transacti
 }
 
 #[tokio::test]
-async fn simulate_with_max_fee_exceeding_account_balance_returns_error_if_fee_charge_is_not_skipped()
- {
+async fn simulate_with_gas_bounds_exceeding_balance_returns_error_if_charging_not_skipped() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
     let (sierra_artifact, casm_hash) =
         get_flattened_sierra_contract_and_casm_hash(CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH);

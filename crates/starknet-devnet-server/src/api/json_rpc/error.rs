@@ -51,7 +51,10 @@ pub enum ApiError {
     InvalidTransactionNonce,
     #[error("The transaction's resources don't cover validation or the minimal transaction fee")]
     InsufficientResourcesForValidate,
-    #[error("Account balance is smaller than the transaction's max_fee")]
+    #[error(
+        "Account balance is smaller than the transaction's maximal fee (calculated as the sum of \
+         each resource's limit x max price)"
+    )]
     InsufficientAccountBalance,
     #[error("Account validation failed")]
     ValidationFailure { reason: String },
@@ -415,7 +418,7 @@ mod tests {
     }
 
     #[test]
-    fn insufficient_max_fee_error() {
+    fn insufficient_resources_error() {
         let devnet_error =
             ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
                 starknet_core::error::TransactionValidationError::InsufficientResourcesForValidate,
@@ -446,7 +449,8 @@ mod tests {
         error_expected_code_and_message(
             ApiError::InsufficientAccountBalance,
             54,
-            "Account balance is smaller than the transaction's max_fee",
+            "Account balance is smaller than the transaction's maximal fee (calculated as the sum \
+             of each resource's limit x max price)",
         );
     }
 
