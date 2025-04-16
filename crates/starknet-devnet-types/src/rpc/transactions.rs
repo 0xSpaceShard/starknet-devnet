@@ -414,20 +414,22 @@ impl BroadcastedTransactionCommonV3 {
         let ResourceBoundsMapping { l1_gas, l2_gas, l1_data_gas } = &self.resource_bounds.inner;
         let is_gt_zero = |gas: &ResourceBounds| gas.max_amount > 0 && gas.max_price_per_unit > 0;
         // valid set of resources are:
-        // 1. l1_gas > 0, l2_gas = 0, l1_data_gas = none
-        // 2. l1_gas > 0, l2_gas > 0, l1_data_gas > 0
+        // 1. l1_gas > 0, l2_gas = 0, l1_data_gas = 0
+        // 2. l2_gas > 0, l1_data_gas > 0
         match (l1_gas, l2_gas, l1_data_gas) {
-            // l1 > 0 and l2 > 0 and l1 data is none => invalid
-            (l1, l2, l1_data) if is_gt_zero(l1) && is_gt_zero(l2) && !is_gt_zero(l1_data) => false,
-            // l1 > 0 and l2 = 0 and lt data is none => valid
-            (l1, l2, l1_data) if !is_gt_zero(l2) && !is_gt_zero(l1_data) && is_gt_zero(l1) => true,
-            (l1, l2, l1_data) => {
-                let l1_gt_zero = is_gt_zero(l1);
-                let l2_gt_zero = is_gt_zero(l2);
-                let l1_data_gt_zero = is_gt_zero(l1_data);
-
-                l1_gt_zero || l2_gt_zero || l1_data_gt_zero
+            // l1 > 0 and l2 = 0 and l1_data = 0 => valid
+            (l1, l2, l1_data) if is_gt_zero(l1) && !is_gt_zero(l2) && !is_gt_zero(l1_data) => {
+                tracing::warn!(
+                    "From version 0.5.0 V3 transactions that specify only L1 gas bounds are \
+                     invalid. Please upgrade your client to provide values for the triplet \
+                     (L1_GAS, L1_DATA_GAS, L2_GAS)."
+                );
+                true
             }
+            // l2 > 0 and l1_data > 0
+            // l1 gas is not checked, because l1 gas is used for L2->L1 messages and not every transaction sends data to L1
+            (_, l2, l1_data) if is_gt_zero(l2) && is_gt_zero(l1_data) => true,
+            _ => false,
         }
     }
 
@@ -521,14 +523,6 @@ impl BroadcastedTransaction {
             }
         }
     }
-
-    pub fn is_deprecated(&self) -> bool {
-        match self {
-            BroadcastedTransaction::Invoke(tx) => tx.is_deprecated(),
-            BroadcastedTransaction::Declare(tx) => tx.is_deprecated(),
-            BroadcastedTransaction::DeployAccount(tx) => tx.is_deprecated(),
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -540,12 +534,6 @@ impl BroadcastedDeclareTransaction {
     pub fn is_max_fee_valid(&self) -> bool {
         match self {
             BroadcastedDeclareTransaction::V3(v3) => v3.common.are_gas_bounds_valid(),
-        }
-    }
-
-    pub fn is_deprecated(&self) -> bool {
-        match self {
-            BroadcastedDeclareTransaction::V3(_) => false,
         }
     }
 
@@ -630,12 +618,6 @@ impl BroadcastedDeployAccountTransaction {
         }
     }
 
-    pub fn is_deprecated(&self) -> bool {
-        match self {
-            BroadcastedDeployAccountTransaction::V3(_) => false,
-        }
-    }
-
     pub fn is_only_query(&self) -> bool {
         match self {
             BroadcastedDeployAccountTransaction::V3(tx) => tx.common.is_only_query(),
@@ -710,12 +692,6 @@ impl BroadcastedInvokeTransaction {
     pub fn is_max_fee_valid(&self) -> bool {
         match self {
             BroadcastedInvokeTransaction::V3(v3) => v3.common.are_gas_bounds_valid(),
-        }
-    }
-
-    pub fn is_deprecated(&self) -> bool {
-        match self {
-            BroadcastedInvokeTransaction::V3(_) => false,
         }
     }
 

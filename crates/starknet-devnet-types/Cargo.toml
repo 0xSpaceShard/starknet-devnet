@@ -32,6 +32,7 @@ serde_json = { workspace = true, features = [
 num-bigint = { workspace = true }
 bigdecimal = { workspace = true }
 usc = { workspace = true }
+tracing = { workspace = true }
 
 # Cairo-lang dependencies
 cairo-lang-compiler = { workspace = true }
