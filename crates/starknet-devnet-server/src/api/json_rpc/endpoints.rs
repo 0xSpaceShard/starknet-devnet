@@ -8,7 +8,7 @@ use starknet_types::rpc::block::{
 };
 use starknet_types::rpc::state::StateUpdateResult;
 use starknet_types::rpc::transactions::{
-    BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, SimulationFlag,
+    BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, SimulationFlag, Transactions,
 };
 use starknet_types::starknet_api::block::BlockStatus;
 
@@ -40,24 +40,20 @@ impl JsonRpcHandler {
             unknown_error => ApiError::StarknetDevnetError(unknown_error),
         })?;
 
-        if block.status() == &BlockStatus::Pending {
-            Ok(StarknetResponse::PendingBlock(PendingBlock {
+        let transactions = Transactions::Hashes(block.get_transactions().to_owned());
+
+        Ok(match block.status() {
+            BlockStatus::Pending => StarknetResponse::PendingBlock(PendingBlock {
                 header: PendingBlockHeader::from(block),
-                transactions: starknet_types::rpc::transactions::Transactions::Hashes(
-                    block.get_transactions().to_owned(),
-                ),
-            })
-            .into())
-        } else {
-            Ok(StarknetResponse::Block(Block {
+                transactions,
+            }),
+            _ => StarknetResponse::Block(Block {
                 status: *block.status(),
                 header: BlockHeader::from(block),
-                transactions: starknet_types::rpc::transactions::Transactions::Hashes(
-                    block.get_transactions().to_owned(),
-                ),
-            })
-            .into())
+                transactions,
+            }),
         }
+        .into())
     }
 
     /// starknet_getBlockWithTxs
