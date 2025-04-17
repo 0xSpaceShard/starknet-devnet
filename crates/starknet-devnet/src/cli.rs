@@ -340,9 +340,7 @@ impl RequestResponseLogging {
 #[cfg(test)]
 mod tests {
     use clap::Parser;
-    use starknet_core::constants::{
-        CAIRO_0_ERC20_CONTRACT_PATH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
-    };
+    use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH;
     use starknet_core::starknet::starknet_config::{
         BlockGenerationOn, DumpOn, StateArchiveCapacity,
     };
@@ -350,6 +348,9 @@ mod tests {
 
     use super::{Args, RequestResponseLogging};
     use crate::ip_addr_wrapper::IpAddrWrapper;
+
+    const CAIRO_0_ERC20_CONTRACT_PATH: &str =
+        "../../contracts/test_artifacts/cairo0/ERC20_Mintable_OZ_0.2.0.json";
 
     #[test]
     fn valid_ip_address() {

@@ -34,10 +34,6 @@ pub const CAIRO_1_ERC20_CONTRACT: &str = include_str!(concat!(
 pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: Felt =
     Felt::from_hex_unchecked("0x046ded64ae2dead6448e247234bab192a9c483644395b66f2155f2614e5804b0");
 
-/// only used in tests; if artifact needed in production, add a new constant that uses include_str!
-pub const CAIRO_0_ERC20_CONTRACT_PATH: &str =
-    concat!(env!("CARGO_MANIFEST_DIR"), "/contracts/system_artifacts/ERC20_Mintable_OZ_0.2.0.json");
-
 pub const ETH_ERC20_CONTRACT_ADDRESS: Felt =
     Felt::from_hex_unchecked("0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7");
 

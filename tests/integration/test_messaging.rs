@@ -19,7 +19,7 @@ use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
     BlockId, BlockTag, Call, ExecutionResult, Felt, FunctionCall, InvokeTransactionReceipt,
     InvokeTransactionResult, TransactionExecutionStatus, TransactionReceipt,
-    TransactionReceiptWithBlockInfo,
+    TransactionReceiptWithBlockInfo, TransactionTrace,
 };
 use starknet_rs_core::utils::{UdcUniqueness, get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -170,12 +170,16 @@ async fn setup_devnet(
     (devnet, account, contract_address)
 }
 
-fn assert_traces(traces: &Value) {
-    assert_eq!(traces["type"], "L1_HANDLER");
-    assert_eq!(traces["function_invocation"]["contract_address"], MESSAGING_L2_CONTRACT_ADDRESS);
-    assert_eq!(traces["function_invocation"]["entry_point_selector"], L1_HANDLER_SELECTOR);
-    assert_eq!(traces["function_invocation"]["calldata"][0], MESSAGING_L1_CONTRACT_ADDRESS);
-    assert!(traces["state_diff"].is_object());
+fn assert_accepted_l1_handler_trace(trace: &TransactionTrace) {
+    if let TransactionTrace::L1Handler(l1_handler_trace) = trace {
+        let invocation = &l1_handler_trace.function_invocation;
+        assert_eq!(invocation.contract_address.to_hex_string(), MESSAGING_L2_CONTRACT_ADDRESS);
+        assert_eq!(invocation.entry_point_selector.to_hex_string(), L1_HANDLER_SELECTOR);
+        assert_eq!(invocation.calldata[0].to_hex_string(), MESSAGING_L1_CONTRACT_ADDRESS);
+        assert!(!invocation.is_reverted);
+    } else {
+        panic!("Invalid trace: {trace:?}")
+    }
 }
 
 /// Assert all funds of the given user are withdrawn. Simulate message flushing.
@@ -453,26 +457,18 @@ async fn can_interact_with_l1() {
     let flush_resp = devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
     let generated_l2_txs = flush_resp["generated_l2_transactions"].as_array().unwrap();
     assert_eq!(generated_l2_txs.len(), 1); // expect this to be the only tx
-    let generated_l2_tx = &generated_l2_txs[0];
+    let generated_l2_tx = Felt::from_hex_unchecked(generated_l2_txs[0].as_str().unwrap());
 
     // Ensure the balance is back to 1 on L2.
     assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ONE]);
 
-    // Assert traces of L1Handler transaction with custom rpc call,
-    // json_rpc_client.trace_transaction() is not supported
-    let l1_handler_tx_trace = &devnet
-        .send_custom_rpc(
-            "starknet_traceTransaction",
-            json!({ "transaction_hash": generated_l2_tx }),
-        )
-        .await
-        .unwrap();
-    assert_traces(l1_handler_tx_trace);
+    let l1_handler_trace = devnet.json_rpc_client.trace_transaction(generated_l2_tx).await.unwrap();
+    assert_accepted_l1_handler_trace(&l1_handler_trace);
 
     send_ctrl_c_signal_and_wait(&devnet.process).await;
 
     // Assert traces of L1Handler with loaded devnets
-    let load_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+    let loaded_devnet = BackgroundDevnet::spawn_with_additional_args(&[
         "--dump-path",
         &dump_file.path,
         "--account-class",
@@ -481,14 +477,9 @@ async fn can_interact_with_l1() {
     .await
     .unwrap();
 
-    let l1_handler_tx_trace_load = &load_devnet
-        .send_custom_rpc(
-            "starknet_traceTransaction",
-            json!({ "transaction_hash": generated_l2_tx }),
-        )
-        .await
-        .unwrap();
-    assert_traces(l1_handler_tx_trace_load);
+    let l1_handler_trace_loaded =
+        loaded_devnet.json_rpc_client.trace_transaction(generated_l2_tx).await.unwrap();
+    assert_accepted_l1_handler_trace(&l1_handler_trace_loaded);
 }
 
 #[tokio::test]
@@ -851,6 +842,7 @@ async fn test_getting_status_of_real_message() {
     assert_eq!(latest_l1_txs.len(), 1);
     let latest_l1_tx = latest_l1_txs[0];
 
+    // Despite starknet-rs supporting this method, we keep custom logic to reduce dependence
     let messages_status = devnet
         .send_custom_rpc("starknet_getMessagesStatus", json!({ "transaction_hash": latest_l1_tx }))
         .await
