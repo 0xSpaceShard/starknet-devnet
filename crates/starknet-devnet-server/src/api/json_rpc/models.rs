@@ -553,7 +553,7 @@ mod tests {
             r#"{"block_id": {"block_hash": "0x01"}, "contract_address_mock": "0x02", "key": "0x03"}"#,
         );
 
-        // Incorrect key key
+        // Incorrect key
         assert_get_storage_input_correctness(
             false,
             expected_storage_input,
