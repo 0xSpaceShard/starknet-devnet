@@ -1,5 +1,5 @@
 use serde_json::json;
-use starknet_rs_core::types::ConfirmedBlockId;
+use starknet_rs_core::types::{ConfirmedBlockId, SyncStatusType};
 use starknet_rs_providers::Provider;
 use starknet_rs_providers::jsonrpc::JsonRpcError;
 
@@ -53,6 +53,12 @@ async fn rpc_returns_invalid_params() {
         .unwrap_err();
 
     assert_eq!(rpc_error.code, -32602);
+}
+
+#[tokio::test]
+async fn syncing_status_always_false() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+    assert_eq!(devnet.json_rpc_client.syncing().await.unwrap(), SyncStatusType::NotSyncing);
 }
 
 #[tokio::test]

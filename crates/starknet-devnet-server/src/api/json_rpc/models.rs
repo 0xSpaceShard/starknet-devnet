@@ -110,7 +110,7 @@ pub struct BlockHashAndNumberOutput {
 #[cfg_attr(test, derive(Deserialize))]
 #[serde(untagged)]
 pub enum SyncingOutput {
-    False(bool),
+    False(bool), // if it seems redundant, check the spec
 }
 
 #[derive(Debug, Clone, Deserialize)]
