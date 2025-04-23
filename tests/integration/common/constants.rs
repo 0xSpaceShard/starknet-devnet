@@ -26,12 +26,12 @@ pub const PREDEPLOYED_ACCOUNT_INITIAL_BALANCE: u128 = 1_000_000_000_000_000_000_
 
 // account classes
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
-    "0x02b31e19e45c06f29234e06e2ee98a9966479ba3067f8785ed972794fdb0065c";
+    "0x05b4b537eaa2399e3aa99c4e2e0208ebd6c71bc1467938cd52c798c601e43564";
 pub const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
     "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../crates/starknet-devnet-core/contracts/accounts_artifacts/OpenZeppelin/0.20.0/Account.\
+    "/../../crates/starknet-devnet-core/contracts/accounts_artifacts/OpenZeppelin/1.0.0/Account.\
      cairo/Account.sierra"
 );
 pub const CAIRO_1_ACCOUNT_CONTRACT_0_8_0_SIERRA_PATH: &str = concat!(

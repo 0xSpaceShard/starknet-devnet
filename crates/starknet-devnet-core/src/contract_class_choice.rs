@@ -35,7 +35,7 @@ impl AccountContractClassChoice {
                 AccountClassWrapper {
                     class_hash: contract_class.generate_hash()?,
                     contract_class,
-                    class_metadata: "OpenZeppelin 0.20.0",
+                    class_metadata: "OpenZeppelin 1.0.0",
                 }
             }
         })
@@ -132,7 +132,7 @@ mod tests {
         );
         assert_eq!(
             AccountContractClassChoice::Cairo1.get_class_wrapper().unwrap().class_metadata,
-            "OpenZeppelin 0.20.0"
+            "OpenZeppelin 1.0.0"
         );
 
         let custom_class =
