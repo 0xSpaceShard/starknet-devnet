@@ -31,7 +31,7 @@ pub const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
     "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../crates/starknet-devnet-core/contracts/accounts_artifacts/OpenZeppelin/0.20.0/Account.\
+    "/../../crates/starknet-devnet-core/contracts/accounts_artifacts/OpenZeppelin/1.0.0/Account.\
      cairo/Account.sierra"
 );
 pub const CAIRO_1_ACCOUNT_CONTRACT_0_8_0_SIERRA_PATH: &str = concat!(
