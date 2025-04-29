@@ -53,7 +53,9 @@ pub(crate) struct Args {
     #[arg(env = "ACCOUNT_CLASS_CUSTOM")]
     #[arg(value_name = "PATH")]
     #[arg(conflicts_with = "account_class_choice")]
-    #[arg(help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;")]
+    #[arg(
+        help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;"
+    )]
     account_class_custom: Option<AccountClassWrapper>,
 
     #[arg(long = "predeclare-argent")]
@@ -95,7 +97,9 @@ pub(crate) struct Args {
     #[arg(env = "PORT")]
     #[arg(value_name = "PORT")]
     #[arg(default_value_t = DEVNET_DEFAULT_PORT)]
-    #[arg(help = "Specify the port to listen at; If 0, acquires a random free port and prints it;")]
+    #[arg(
+        help = "Specify the port to listen at; If 0, acquires a random free port and prints it;"
+    )]
     port: u16,
 
     // Set start time in seconds
@@ -113,54 +117,26 @@ pub(crate) struct Args {
     #[arg(help = "Specify the server timeout in seconds;")]
     timeout: u16,
 
-    // Gas price in wei
-    #[arg(long = "gas-price")]
-    #[arg(env = "GAS_PRICE")]
-    #[arg(value_name = "WEI_PER_GAS_UNIT")]
-    #[arg(default_value_t = DEVNET_DEFAULT_L1_GAS_PRICE)]
-    #[arg(help = "Specify the gas price in wei per L1 gas unit;")]
-    gas_price_wei: NonZeroU128,
-
-    // Gas price in fri
-    #[arg(long = "gas-price-fri")]
+    #[arg(long = "l1-gas-price")]
     #[arg(env = "GAS_PRICE_FRI")]
     #[arg(value_name = "FRI_PER_GAS_UNIT")]
     #[arg(default_value_t = DEVNET_DEFAULT_L1_GAS_PRICE)]
     #[arg(help = "Specify the gas price in fri per L1 gas unit;")]
-    gas_price_fri: NonZeroU128,
+    l1_gas_price: NonZeroU128,
 
-    // TODO perhaps make this affect only fri and remove -fri flags
-    // Gas price in wei
-    #[arg(long = "data-gas-price")]
-    #[arg(env = "DATA_GAS_PRICE")]
-    #[arg(value_name = "WEI_PER_GAS_UNIT")]
-    #[arg(default_value_t = DEVNET_DEFAULT_L1_DATA_GAS_PRICE)]
-    #[arg(help = "Specify the gas price in wei per L1 data gas unit;")]
-    data_gas_price_wei: NonZeroU128,
-
-    // Gas price in fri
-    #[arg(long = "data-gas-price-fri")]
+    #[arg(long = "l1-data-gas-price")]
     #[arg(env = "DATA_GAS_PRICE_FRI")]
     #[arg(value_name = "FRI_PER_GAS_UNIT")]
     #[arg(default_value_t = DEVNET_DEFAULT_L1_DATA_GAS_PRICE)]
     #[arg(help = "Specify the gas price in fri per L1 data gas unit;")]
-    data_gas_price_fri: NonZeroU128,
+    l1_data_gas_price: NonZeroU128,
 
-    // L2 Gas price in wei
     #[arg(long = "l2-gas-price")]
-    #[arg(env = "L2_GAS_PRICE")]
-    #[arg(value_name = "WEI_PER_GAS_UNIT")]
-    #[arg(default_value_t = DEVNET_DEFAULT_L2_GAS_PRICE)]
-    #[arg(help = "Specify the gas price in wei per L2 gas unit;")]
-    l2_gas_price_wei: NonZeroU128,
-
-    // L2 Gas price in fri
-    #[arg(long = "l2-gas-price-fri")]
     #[arg(env = "L2_GAS_PRICE_FRI")]
     #[arg(value_name = "FRI_PER_GAS_UNIT")]
     #[arg(default_value_t = DEVNET_DEFAULT_L2_GAS_PRICE)]
     #[arg(help = "Specify the gas price in fri per L2 gas unit;")]
-    l2_gas_price_fri: NonZeroU128,
+    l2_gas_price: NonZeroU128,
 
     #[arg(long = "chain-id")]
     #[arg(env = "CHAIN_ID")]
@@ -249,12 +225,9 @@ impl Args {
             account_contract_class_hash: account_class_wrapper.class_hash,
             predeployed_accounts_initial_balance: self.initial_balance.0.clone(),
             start_time: self.start_time,
-            gas_price_wei: self.gas_price_wei,
-            gas_price_fri: self.gas_price_fri,
-            data_gas_price_wei: self.data_gas_price_wei,
-            data_gas_price_fri: self.data_gas_price_fri,
-            l2_gas_price_wei: self.l2_gas_price_wei,
-            l2_gas_price_fri: self.l2_gas_price_fri,
+            l1_gas_price: self.l1_gas_price,
+            l1_data_gas_price: self.l1_data_gas_price,
+            l2_gas_price: self.l2_gas_price,
             chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),

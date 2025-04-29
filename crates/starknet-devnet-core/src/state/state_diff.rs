@@ -267,12 +267,9 @@ mod tests {
     #[test]
     fn test_class_replacement_produces_correct_state_diff() {
         let mut starknet = Starknet::new(&StarknetConfig {
-            gas_price_wei: nonzero!(1u128),
-            gas_price_fri: nonzero!(1u128),
-            data_gas_price_wei: nonzero!(1u128),
-            data_gas_price_fri: nonzero!(1u128),
-            l2_gas_price_wei: nonzero!(1u128),
-            l2_gas_price_fri: nonzero!(1u128),
+            l1_gas_price: nonzero!(1u128),
+            l1_data_gas_price: nonzero!(1u128),
+            l2_gas_price: nonzero!(1u128),
             ..Default::default()
         })
         .unwrap();
