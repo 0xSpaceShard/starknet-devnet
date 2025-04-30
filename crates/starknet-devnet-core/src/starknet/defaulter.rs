@@ -68,9 +68,11 @@ impl BlockingOriginReader {
             "id": 0,
         });
 
+        let origin_timeout = std::env::var("DEVNET_ORIGIN_SECS").unwrap().parse().unwrap();
         match self
             .client
             .post(self.url.clone())
+            .timeout(std::time::Duration::from_secs(origin_timeout))
             .header(reqwest::header::CONTENT_TYPE, "application/json")
             .body(body.to_string())
             .send()
