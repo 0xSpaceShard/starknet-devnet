@@ -43,7 +43,9 @@ impl OriginForwarder {
             }
             crate::rpc_core::request::RequestParams::Object(ref mut params) => {
                 if let Some(block_id) = params.get_mut("block_id") {
-                    *block_id = origin_block_id;
+                    if let Some("latest" | "pending") = block_id.as_str() {
+                        *block_id = origin_block_id;
+                    }
                 }
             }
         }

@@ -714,3 +714,31 @@ async fn test_fetching_declare_tx_v1_from_origin() {
         other => panic!("Invalid tx resp: {other:?}"),
     };
 }
+
+#[tokio::test]
+async fn test_call_at_block_not_present_in_origin() {
+    let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
+    let forked_devnet =
+        BackgroundDevnet::spawn_with_additional_args(&["--fork-network", &origin_devnet.url])
+            .await
+            .unwrap();
+
+    for non_existent_block_id in [BlockId::Hash(Felt::ONE), BlockId::Number(2)] {
+        let call_result = forked_devnet
+            .json_rpc_client
+            .call(
+                FunctionCall {
+                    contract_address: Felt::ONE, // dummy
+                    entry_point_selector: get_selector_from_name("dummy").unwrap(),
+                    calldata: vec![],
+                },
+                non_existent_block_id,
+            )
+            .await;
+
+        match call_result {
+            Err(ProviderError::StarknetError(StarknetError::BlockNotFound)) => (),
+            other => panic!("Unexpected result: {other:?}"),
+        }
+    }
+}
