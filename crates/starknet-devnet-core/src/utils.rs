@@ -52,10 +52,10 @@ pub(crate) fn get_versioned_constants() -> VersionedConstants {
 pub(crate) fn custom_bouncer_config() -> BouncerConfig {
     BouncerConfig {
         block_max_capacity: BouncerWeights {
-            l1_gas: 4_950_000,
-            sierra_gas: starknet_api::execution_resources::GasAmount(5_000_000_000),
-            state_diff_size: 4_000,
-            n_events: 5_000,
+            // l1_gas: 4_950_000,
+            // sierra_gas: starknet_api::execution_resources::GasAmount(5_000_000_000),
+            // state_diff_size: 4_000,
+            // n_events: 5_000,
             ..BouncerWeights::max()
         },
     }
