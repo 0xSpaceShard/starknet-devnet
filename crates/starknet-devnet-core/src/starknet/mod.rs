@@ -12,6 +12,7 @@ use blockifier::transaction::transactions::ExecutableTransaction;
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use ethers::types::H256;
 use parking_lot::RwLock;
+use predeployed::Predeployer;
 use starknet_api::block::{
     BlockInfo, BlockNumber, BlockStatus, BlockTimestamp, FeeType, GasPrice, GasPricePerToken,
     GasPriceVector, GasPrices,
@@ -162,108 +163,38 @@ impl Starknet {
         let rpc_contract_classes = Arc::new(RwLock::new(CommittedClassStorage::default()));
         let mut state = StarknetState::new(defaulter, rpc_contract_classes.clone());
 
-        // predeclare account classes eligible for predeployment
-        for account_class_choice in
-            [AccountContractClassChoice::Cairo0, AccountContractClassChoice::Cairo1]
-        {
-            let class_wrapper = account_class_choice.get_class_wrapper()?;
-            state.predeclare_contract_class(
-                class_wrapper.class_hash,
-                class_wrapper.contract_class,
-            )?;
-        }
-
-        // predeclare argent account classes (not predeployable)
-        if config.predeclare_argent {
-            for (class_hash, raw_sierra) in [
-                (ARGENT_CONTRACT_CLASS_HASH, ARGENT_CONTRACT_SIERRA),
-                (ARGENT_MULTISIG_CONTRACT_CLASS_HASH, ARGENT_MULTISIG_CONTRACT_SIERRA),
-            ] {
-                let contract_class =
-                    ContractClass::Cairo1(ContractClass::cairo_1_from_sierra_json_str(raw_sierra)?);
-                state.predeclare_contract_class(class_hash, contract_class)?;
-            }
-        }
-
-        // deploy udc, eth erc20 and strk erc20 contracts
-        let eth_erc20_fee_contract = predeployed::create_erc20_at_address_extended(
-            ETH_ERC20_CONTRACT_ADDRESS,
-            config.eth_erc20_class_hash,
-            &config.eth_erc20_contract_class,
-        )?;
-        let strk_erc20_fee_contract = predeployed::create_erc20_at_address_extended(
-            STRK_ERC20_CONTRACT_ADDRESS,
-            config.strk_erc20_class_hash,
-            &config.strk_erc20_contract_class,
-        )?;
-
-        let udc_contract = predeployed::create_udc()?;
-        udc_contract.deploy(&mut state)?;
-
-        eth_erc20_fee_contract.deploy(&mut state)?;
-        initialize_erc20_at_address(
-            &mut state,
-            ETH_ERC20_CONTRACT_ADDRESS,
-            ETH_ERC20_NAME,
-            ETH_ERC20_SYMBOL,
-        )?;
-
-        strk_erc20_fee_contract.deploy(&mut state)?;
-        initialize_erc20_at_address(
-            &mut state,
-            STRK_ERC20_CONTRACT_ADDRESS,
-            STRK_ERC20_NAME,
-            STRK_ERC20_SYMBOL,
-        )?;
-
-        let mut predeployed_accounts = PredeployedAccounts::new(
-            config.seed,
-            config.predeployed_accounts_initial_balance.clone(),
-            eth_erc20_fee_contract.get_address(),
-            strk_erc20_fee_contract.get_address(),
-        );
-
-        let accounts = predeployed_accounts.generate_accounts(
-            config.total_accounts,
-            config.account_contract_class_hash,
-            &config.account_contract_class,
-        )?;
-        for account in accounts {
-            account.deploy(&mut state)?;
-        }
-
-        let chargeable_account = Account::new_chargeable(
-            eth_erc20_fee_contract.get_address(),
-            strk_erc20_fee_contract.get_address(),
-        )?;
-        chargeable_account.deploy(&mut state)?;
-
-        // when forking, the number of the first new block to be mined is equal to the last origin
+         // when forking, the number of the first new block to be mined is equal to the last origin
         // block (the one specified by the user) plus one.
         // The parent hash of the first new block is equal to the last origin block hash.
         let starting_block_number =
             config.fork_config.block_number.map_or(DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, |n| n + 1);
         let last_block_hash = config.fork_config.block_hash;
 
-        let pending_state_diff = state.commit_diff(starting_block_number)?;
+        let block_context = Self::init_block_context(
+            config.gas_price_wei,
+            config.gas_price_fri,
+            config.data_gas_price_wei,
+            config.data_gas_price_fri,
+            config.l2_gas_price_wei,
+            config.l2_gas_price_fri,
+            ETH_ERC20_CONTRACT_ADDRESS,
+            STRK_ERC20_CONTRACT_ADDRESS,
+            config.chain_id,
+            starting_block_number,
+        );
+
+        let mut predeployer = Predeployer::new(block_context.clone(), &config, state)?;
+
+        predeployer.deploy_eth_fee_token()?.deploy_strk_fee_token()?.deploy_udc()?.deploy_accounts()?;
+
+        let pending_state_diff = predeployer.state.commit_diff(starting_block_number)?;
 
         let mut this = Self {
             latest_state: Default::default(), // temporary - overwritten on genesis block creation
-            pending_state: state,
+            pending_state: predeployer.state,
             pending_state_diff,
-            predeployed_accounts,
-            block_context: Self::init_block_context(
-                config.gas_price_wei,
-                config.gas_price_fri,
-                config.data_gas_price_wei,
-                config.data_gas_price_fri,
-                config.l2_gas_price_wei,
-                config.l2_gas_price_fri,
-                ETH_ERC20_CONTRACT_ADDRESS,
-                STRK_ERC20_CONTRACT_ADDRESS,
-                config.chain_id,
-                starting_block_number,
-            ),
+            predeployed_accounts: predeployer.predeployed_accounts,
+            block_context: block_context,
             blocks: StarknetBlocks::new(starting_block_number, last_block_hash),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
