@@ -46,11 +46,13 @@ struct BlockingOriginReader {
     url: url::Url,
     block_number: u64,
     client: reqwest::blocking::Client,
+    mutex: std::sync::Arc<tokio::sync::Mutex<()>>,
 }
 
 impl BlockingOriginReader {
     fn new(url: url::Url, block_number: u64) -> Self {
-        Self { url, block_number, client: reqwest::blocking::Client::new() }
+        let mutex = std::sync::Arc::new(tokio::sync::Mutex::new(()));
+        Self { url, block_number, client: reqwest::blocking::Client::new(), mutex }
     }
 
     fn send_body(
@@ -69,49 +71,41 @@ impl BlockingOriginReader {
         });
 
         let origin_timeout = std::env::var("DEVNET_ORIGIN_SECS").unwrap().parse().unwrap();
-        let mut retries_left: u32 = std::env::var("ORIGIN_RETRIES").unwrap().parse().unwrap();
-        while retries_left > 0 {
-            retries_left -= 1;
 
-            match self
-                .client
-                .post(self.url.clone())
-                .timeout(std::time::Duration::from_secs(origin_timeout))
-                .header(reqwest::header::CONTENT_TYPE, "application/json")
-                .body(body.to_string())
-                .send()
-            {
-                Ok(mut resp) => {
-                    let resp_status = resp.status();
-                    if resp_status != reqwest::StatusCode::OK {
-                        return Err(OriginError::from_status_code(resp_status));
-                    }
+        let _lock = self.mutex.lock();
 
-                    // load json
-                    let mut buff = vec![];
-                    resp.read_to_end(&mut buff)
-                        .map_err(|e| OriginError::FormatError(e.to_string()))?;
-                    let resp_json_value: serde_json::Value = serde_json::from_slice(&buff)
-                        .map_err(|e| OriginError::FormatError(e.to_string()))?;
-
-                    let result = &resp_json_value["result"];
-                    if result.is_null() {
-                        // the received response is assumed to mean that the origin doesn't contain the
-                        // requested resource
-                        debug!("Origin response contains no 'result': {resp_json_value}");
-                        return Err(OriginError::NoResult);
-                    } else {
-                        return Ok(result.clone());
-                    }
+        match self
+            .client
+            .post(self.url.clone())
+            .timeout(std::time::Duration::from_secs(origin_timeout))
+            .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .body(body.to_string())
+            .send()
+        {
+            Ok(mut resp) => {
+                let resp_status = resp.status();
+                if resp_status != reqwest::StatusCode::OK {
+                    return Err(OriginError::from_status_code(resp_status));
                 }
-                Err(other_err) => {
-                    tracing::info!("Communication error: {other_err}");
-                    tracing::info!("Retrying! Attempts left: {retries_left}");
+
+                // load json
+                let mut buff = vec![];
+                resp.read_to_end(&mut buff).map_err(|e| OriginError::FormatError(e.to_string()))?;
+                let resp_json_value: serde_json::Value = serde_json::from_slice(&buff)
+                    .map_err(|e| OriginError::FormatError(e.to_string()))?;
+
+                let result = &resp_json_value["result"];
+                if result.is_null() {
+                    // the received response is assumed to mean that the origin doesn't contain the
+                    // requested resource
+                    debug!("Origin response contains no 'result': {resp_json_value}");
+                    return Err(OriginError::NoResult);
+                } else {
+                    return Ok(result.clone());
                 }
             }
+            Err(other_err) => return Err(OriginError::CommunicationError(other_err.to_string())),
         }
-
-        Err(OriginError::CommunicationError("Maximum retries used".to_string()))
     }
 }
 
