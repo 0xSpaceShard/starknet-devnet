@@ -1,6 +1,5 @@
 use blockifier::context::BlockContext;
 use blockifier::state::state_api::StateReader;
-use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
 use starknet_types::rpc::state::Balance;
@@ -28,7 +27,6 @@ pub trait HashIdentifiedMut {
 
 pub(crate) trait Deployed {
     fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()>;
-    fn get_address(&self) -> ContractAddress;
     /// `class_hash` is sierra hash for cairo1 contracts
     fn declare_if_undeclared(
         &self,

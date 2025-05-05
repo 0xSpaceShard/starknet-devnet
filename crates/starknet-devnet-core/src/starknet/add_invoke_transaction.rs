@@ -124,7 +124,7 @@ mod tests {
     #[test]
     fn invoke_transaction_v3_successful_execution_with_only_l1_gas() {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
-        let account_address = account.get_address();
+        let account_address = account.account_address;
         let initial_balance =
             account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap();
 
@@ -152,7 +152,7 @@ mod tests {
     #[test]
     fn invoke_transaction_v3_successful_execution_with_all_three_gas_bounds() {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
-        let account_address = account.get_address();
+        let account_address = account.account_address;
         let initial_balance =
             account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap();
 
@@ -183,7 +183,7 @@ mod tests {
     #[test]
     fn invoke_transaction_v3_with_invalid_gas_amounts() {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
-        let account_address = account.get_address();
+        let account_address = account.account_address;
 
         let balance: u64 = account
             .get_balance(&mut starknet.pending_state, FeeToken::STRK)
@@ -229,7 +229,7 @@ mod tests {
         let blockifier_address = contract_address.try_into().unwrap();
         let storage_key = (*balance_var_storage_address.get_storage_key()).try_into().unwrap();
 
-        let account_address = account.get_address();
+        let account_address = account.account_address;
         let resource_bounds = resource_bounds_with_price_1(0, 1000, 1e6 as u64);
 
         let invoke_transaction = test_invoke_transaction_v3(
@@ -298,7 +298,7 @@ mod tests {
     fn invoke_transaction_should_return_an_error_if_same_nonce_supplied() {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
 
-        let account_address = account.get_address();
+        let account_address = account.account_address;
 
         let nonce = 1;
         let tx = test_invoke_transaction_v3(
@@ -326,7 +326,7 @@ mod tests {
     fn nonce_should_be_incremented_if_invoke_reverted() {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
 
-        let account_address = account.get_address().try_into().unwrap();
+        let account_address = account.account_address.try_into().unwrap();
         let initial_nonce =
             starknet.pending_state.get_nonce_at(account_address).unwrap().0.try_into().unwrap();
         assert_eq!(initial_nonce, 1);
@@ -375,8 +375,8 @@ mod tests {
             dummy_key_pair(),
             account_without_validations_class_hash,
             ContractClass::Cairo0(account_without_validations_contract_class),
-            eth_erc_20_contract.get_address(),
-            strk_erc_20_contract.get_address(),
+            eth_erc_20_contract.address,
+            strk_erc_20_contract.address,
             starknet.block_context.clone(),
             crate::account::AccountType::Custom,
             starknet.chain_id().to_felt(),

@@ -13,7 +13,7 @@ use crate::traits::{Accounted, Deployed};
 
 pub(crate) struct SystemContract {
     class_hash: ClassHash,
-    address: ContractAddress,
+    pub(crate) address: ContractAddress,
     contract_class: ContractClass,
 }
 
@@ -49,10 +49,6 @@ impl Deployed for SystemContract {
         self.declare_if_undeclared(state, self.class_hash, &self.contract_class)?;
         state.predeploy_contract(self.address, self.class_hash)?;
         Ok(())
-    }
-
-    fn get_address(&self) -> ContractAddress {
-        self.address
     }
 }
 

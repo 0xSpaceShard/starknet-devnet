@@ -213,8 +213,8 @@ mod tests {
             dummy_key_pair(),
             account_without_validations_class_hash,
             ContractClass::Cairo0(account_without_validations_contract_class),
-            eth_erc_20_contract.get_address(),
-            strk_erc_20_contract.get_address(),
+            eth_erc_20_contract.address,
+            strk_erc_20_contract.address,
             starknet.block_context.clone(),
             crate::account::AccountType::Custom,
             starknet.chain_id().to_felt(),
@@ -280,7 +280,7 @@ mod tests {
 
         (
             starknet,
-            account.get_address(),
+            account.account_address,
             dummy_contract_address,
             deposit_selector,
             withdraw_selector,

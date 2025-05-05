@@ -380,7 +380,7 @@ mod tests {
         let (mut account, _) = setup();
         let expected_address = ContractAddress::new(Felt::from(11111)).unwrap();
         account.account_address = expected_address;
-        assert_eq!(expected_address, account.get_address());
+        assert_eq!(expected_address, account.account_address);
     }
 
     fn setup() -> (Account, StarknetState) {
