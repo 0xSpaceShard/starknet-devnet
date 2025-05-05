@@ -1,10 +1,12 @@
+use blockifier::context::BlockContext;
+use starknet_rs_core::types::Felt;
 use starknet_rs_signers::SigningKey;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Key};
 use starknet_types::rpc::state::Balance;
 
-use crate::account::{Account, KeyPair};
+use crate::account::{Account, AccountType, KeyPair};
 use crate::error::DevnetResult;
 use crate::traits::AccountGenerator;
 use crate::utils::random_number_generator::generate_u128_random_numbers;
@@ -15,7 +17,9 @@ pub(crate) struct PredeployedAccounts {
     initial_balance: Balance,
     eth_fee_token_address: ContractAddress,
     strk_fee_token_address: ContractAddress,
+    account_type: AccountType,
     accounts: Vec<Account>,
+    chain_id: Felt
 }
 
 impl PredeployedAccounts {
@@ -24,6 +28,8 @@ impl PredeployedAccounts {
         initial_balance: Balance,
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
+        account_type: AccountType,
+        chain_id: Felt
     ) -> Self {
         Self {
             seed,
@@ -31,6 +37,8 @@ impl PredeployedAccounts {
             eth_fee_token_address,
             strk_fee_token_address,
             accounts: Vec::new(),
+            account_type,
+            chain_id
         }
     }
 }
@@ -52,24 +60,27 @@ impl PredeployedAccounts {
 
 impl AccountGenerator for PredeployedAccounts {
     type Acc = Account;
-
     fn generate_accounts(
         &mut self,
         number_of_accounts: u8,
         class_hash: ClassHash,
         contract_class: &ContractClass,
+        block_context: BlockContext
     ) -> DevnetResult<&Vec<Self::Acc>> {
         let private_keys = self.generate_private_keys(number_of_accounts);
 
         for private_key in private_keys {
+
             let account = Account::new(
                 self.initial_balance.clone(),
                 KeyPair { public_key: self.generate_public_key(&private_key), private_key },
                 class_hash,
-                "Custom",
                 contract_class.clone(),
                 self.eth_fee_token_address,
                 self.strk_fee_token_address,
+                block_context.clone(),
+                self.account_type,
+                self.chain_id
             )?;
             self.accounts.push(account);
         }
@@ -81,6 +92,7 @@ impl AccountGenerator for PredeployedAccounts {
 #[cfg(test)]
 mod tests {
     use rand::{Rng, thread_rng};
+    use starknet_rs_core::types::Felt;
     use starknet_types::rpc::state::Balance;
 
     use crate::predeployed_accounts::PredeployedAccounts;
@@ -96,6 +108,8 @@ mod tests {
                 Balance::from(1_u8),
                 dummy_contract_address(),
                 dummy_contract_address(),
+                crate::account::AccountType::Custom,
+                Felt::ZERO
             )
             .generate_private_keys(1)[0];
 
@@ -104,6 +118,8 @@ mod tests {
                 Balance::from(1_u8),
                 dummy_contract_address(),
                 dummy_contract_address(),
+                crate::account::AccountType::Custom,
+                Felt::ZERO
             )
             .generate_private_keys(1)[0];
 
@@ -133,6 +149,8 @@ mod tests {
                 Balance::from(1_u8),
                 dummy_contract_address(),
                 dummy_contract_address(),
+                crate::account::AccountType::Custom,
+                Felt::ZERO
             )
             .generate_private_keys(1)[0];
 
@@ -141,6 +159,8 @@ mod tests {
                 Balance::from(1_u8),
                 dummy_contract_address(),
                 dummy_contract_address(),
+                crate::account::AccountType::Custom,
+                Felt::ZERO
             )
             .generate_private_keys(1)[0];
 
