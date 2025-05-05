@@ -285,10 +285,12 @@ mod tests {
             Balance::from(u128::MAX),
             dummy_key_pair(),
             account_without_validations_class_hash,
-            "Custom",
             ContractClass::Cairo0(account_without_validations_contract_class),
             ContractAddress::new(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
             ContractAddress::new(STRK_ERC20_CONTRACT_ADDRESS).unwrap(),
+            starknet.block_context.clone(),
+            crate::account::AccountType::Custom,
+            starknet.chain_id().to_felt()
         )
         .unwrap();
 
@@ -309,8 +311,9 @@ mod tests {
         )
         .unwrap();
 
+
         for (contract_class, nonce) in
-            [(replaceable_contract.clone(), 0), (replacing_contract.clone(), 1)]
+            [(replaceable_contract.clone(), 1), (replacing_contract.clone(), 2)]
         {
             let compiled_class_hash =
                 compile_sierra_contract(&contract_class).unwrap().compiled_class_hash();
@@ -346,7 +349,7 @@ mod tests {
             replaceable_contract_address,
             get_selector_from_name("test_replace_class").unwrap(),
             &[new_class_hash],
-            2, // nonce
+            3, // nonce
             resource_bounds_with_price_1(0, 1000, 1e7 as u64),
         );
 
