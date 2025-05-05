@@ -5,7 +5,6 @@ use blockifier::context::BlockContext;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::transactions::ExecutableTransaction;
-use clap::Arg;
 use starknet_api::core::calculate_contract_address;
 use starknet_api::transaction::fields::{Calldata, ContractAddressSalt};
 use starknet_api::{felt, patricia_key};
@@ -23,12 +22,11 @@ use starknet_types::rpc::transactions::{
 
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, CHARGEABLE_ACCOUNT_PUBLIC_KEY,
-    ISRC6_ID_HEX,
 };
 use crate::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use crate::error::DevnetResult;
 use crate::state::state_readers::DictState;
-use crate::state::{CustomState, StarknetState};
+use crate::state::StarknetState;
 use crate::traits::{Accounted, Deployed};
 use crate::utils::get_storage_var_address;
 
@@ -43,19 +41,19 @@ pub enum FeeToken {
 
 #[derive(Clone, Debug, Default, Copy)]
 pub enum AccountType {
-    OpenZeppelin_0_5_1,
+    OpenZeppelin0_5_1,
     #[default]
-    OpenZeppelin_0_20_0,
-    Argent_0_4_0,
+    OpenZeppelin0_20_0,
+    Argent0_4_0,
     Custom,
 }
 
 impl Display for AccountType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let account_version = match self {
-            AccountType::OpenZeppelin_0_5_1 => "OpenZeppelin 0.5.1",
-            AccountType::OpenZeppelin_0_20_0 => "OpenZeppelin 0.20.0",
-            AccountType::Argent_0_4_0 => "Argent 0.4.0",
+            AccountType::OpenZeppelin0_5_1 => "OpenZeppelin 0.5.1",
+            AccountType::OpenZeppelin0_20_0 => "OpenZeppelin 0.20.0",
+            AccountType::Argent0_4_0 => "Argent 0.4.0",
             AccountType::Custom => "Custom",
         };
 
@@ -89,7 +87,6 @@ impl Account {
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
         block_context: BlockContext,
-        account_type: AccountType,
         chain_id: Felt,
     ) -> DevnetResult<Self> {
         let AccountClassWrapper { contract_class, class_hash, account_type } =
@@ -118,6 +115,7 @@ impl Account {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         initial_balance: Balance,
         keys: KeyPair,
@@ -161,10 +159,10 @@ impl Account {
 
     fn calldata(&self) -> Vec<Felt> {
         match self.account_type {
-            AccountType::OpenZeppelin_0_5_1 | AccountType::OpenZeppelin_0_20_0 => {
+            AccountType::OpenZeppelin0_5_1 | AccountType::OpenZeppelin0_20_0 => {
                 vec![self.keys.public_key]
             }
-            AccountType::Argent_0_4_0 => todo!(),
+            AccountType::Argent0_4_0 => todo!(),
             AccountType::Custom => vec![],
         }
     }
@@ -220,10 +218,6 @@ impl Deployed for Account {
         self.deploy_via_transaction(state)?;
 
         Ok(())
-    }
-
-    fn get_address(&self) -> ContractAddress {
-        self.account_address
     }
 }
 
@@ -292,7 +286,7 @@ impl Accounted for Account {
 #[cfg(test)]
 mod tests {
     use blockifier::context::{BlockContext, ChainInfo};
-    use blockifier::versioned_constants::VersionedConstants;
+
     use starknet_api::block::BlockInfo;
     use starknet_rs_core::types::Felt;
     use starknet_types::chain_id::ChainId;
@@ -303,11 +297,11 @@ mod tests {
     use super::{Account, KeyPair};
     use crate::account::FeeToken;
     use crate::constants::{CAIRO_1_ERC20_CONTRACT_CLASS_HASH, USE_KZG_DA};
-    use crate::starknet::Starknet;
+
     use crate::state::{CustomState, StarknetState};
     use crate::traits::{Accounted, Deployed};
     use crate::utils::test_utils::{
-        cairo_0_account_without_validations, dummy_cairo_1_contract_class, dummy_contract_address,
+        cairo_0_account_without_validations, dummy_contract_address,
         dummy_felt,
     };
     use crate::utils::{custom_bouncer_config, get_versioned_constants};

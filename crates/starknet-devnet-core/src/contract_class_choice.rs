@@ -26,7 +26,7 @@ impl AccountContractClassChoice {
                 AccountClassWrapper {
                     class_hash: contract_class.generate_hash()?,
                     contract_class: ContractClass::Cairo0(contract_class),
-                    account_type: AccountType::OpenZeppelin_0_5_1,
+                    account_type: AccountType::OpenZeppelin0_5_1,
                 }
             }
             AccountContractClassChoice::Cairo1 => {
@@ -36,7 +36,7 @@ impl AccountContractClassChoice {
                 AccountClassWrapper {
                     class_hash: contract_class.generate_hash()?,
                     contract_class,
-                    account_type: AccountType::OpenZeppelin_0_20_0,
+                    account_type: AccountType::OpenZeppelin0_20_0,
                 }
             }
         })
