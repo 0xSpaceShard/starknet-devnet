@@ -176,7 +176,7 @@ impl Default for StarknetConfig {
             eth_erc20_contract_class: CAIRO_1_ERC20_CONTRACT.to_string(),
             strk_erc20_contract_class: CAIRO_1_ERC20_CONTRACT.to_string(),
             predeclare_argent: false,
-            account_type: AccountType::OpenZeppelin_0_20_0,
+            account_type: AccountType::OpenZeppelin0_20_0,
         }
     }
 }

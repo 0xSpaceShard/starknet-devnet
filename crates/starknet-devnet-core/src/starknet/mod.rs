@@ -60,27 +60,23 @@ use tracing::{error, info};
 
 use self::cheats::Cheats;
 use self::defaulter::StarknetDefaulter;
-use self::predeployed::initialize_erc20_at_address;
 use self::starknet_config::{StarknetConfig, StateArchiveCapacity};
 use self::transaction_trace::create_trace;
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
-    ARGENT_CONTRACT_CLASS_HASH, ARGENT_CONTRACT_SIERRA, ARGENT_MULTISIG_CONTRACT_CLASS_HASH,
-    ARGENT_MULTISIG_CONTRACT_SIERRA, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
+    CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
     DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_L1_DATA_GAS_PRICE, DEVNET_DEFAULT_L1_GAS_PRICE,
     DEVNET_DEFAULT_L2_GAS_PRICE, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
-    ENTRYPOINT_NOT_FOUND_ERROR_ENCODED, ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME,
-    ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
+    ENTRYPOINT_NOT_FOUND_ERROR_ENCODED, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS, USE_KZG_DA,
 };
-use crate::contract_class_choice::AccountContractClassChoice;
 use crate::error::{ContractExecutionError, DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
 use crate::nonzero_gas_price;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::state::state_diff::StateDiff;
-use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
-use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
+use crate::state::{CommittedClassStorage, CustomStateReader, StarknetState};
+use crate::traits::{HashIdentified, HashIdentifiedMut};
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
 use crate::utils::{custom_bouncer_config, get_versioned_constants, maybe_extract_failure_reason};
 
@@ -161,7 +157,7 @@ impl Starknet {
     pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
         let defaulter = StarknetDefaulter::new(config.fork_config.clone());
         let rpc_contract_classes = Arc::new(RwLock::new(CommittedClassStorage::default()));
-        let mut state = StarknetState::new(defaulter, rpc_contract_classes.clone());
+        let state = StarknetState::new(defaulter, rpc_contract_classes.clone());
 
         // when forking, the number of the first new block to be mined is equal to the last origin
         // block (the one specified by the user) plus one.
@@ -183,7 +179,7 @@ impl Starknet {
             starting_block_number,
         );
 
-        let mut predeployer = Predeployer::new(block_context.clone(), &config, state)?;
+        let mut predeployer = Predeployer::new(block_context.clone(), config, state)?;
 
         predeployer
             .deploy_eth_fee_token()?

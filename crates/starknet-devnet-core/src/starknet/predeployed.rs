@@ -142,7 +142,6 @@ impl<'a> Predeployer<'a> {
             eth_fee_token_address,
             strk_fee_token_address,
             self.block_context.clone(),
-            self.config.account_type,
             self.chain_id,
         )?;
         chargeable_account.deploy(&mut self.state)?;
