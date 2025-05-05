@@ -7,6 +7,7 @@ use starknet_api::core::{ClassHash, ContractAddress, Nonce, PatriciaKey};
 use starknet_api::state::StorageKey;
 use starknet_rs_core::types::Felt;
 use starknet_types::contract_class::convert_codegen_to_blockifier_compiled_class;
+use tokio::sync::oneshot;
 use tracing::debug;
 
 use super::starknet_config::ForkConfig;
@@ -45,12 +46,37 @@ impl OriginError {
 struct BlockingOriginReader {
     url: url::Url,
     block_number: u64,
-    client: reqwest::blocking::Client,
+    client: reqwest::Client,
 }
 
 impl BlockingOriginReader {
     fn new(url: url::Url, block_number: u64) -> Self {
-        Self { url, block_number, client: reqwest::blocking::Client::new() }
+        Self { url, block_number, client: reqwest::Client::new() }
+    }
+
+    fn blocking_post(&self, body: serde_json::Value) -> Result<serde_json::Value, String> {
+        let (tx, rx) = oneshot::channel();
+
+        let client = self.client.clone();
+        let url = self.url.clone();
+
+        tokio::spawn(async move {
+            let result = async {
+                let resp = client.post(url).json(&body).send().await?;
+
+                resp.json::<serde_json::Value>().await
+            }
+            .await;
+
+            let _ = tx.send(result.map_err(|e| e.to_string()));
+        });
+
+        tokio::task::block_in_place(move || {
+            match rx.blocking_recv() {
+                Ok(res) => res,
+                Err(err) => Err(format!("Error in receiving channel message: {err:?}")),
+            }
+        })
     }
 
     fn send_body(
@@ -69,35 +95,36 @@ impl BlockingOriginReader {
         });
 
         match self
-            .client
-            .post(self.url.clone())
-            .header(reqwest::header::CONTENT_TYPE, "application/json")
-            .body(body.to_string())
-            .send()
+            .blocking_post(body.clone())
         {
-            Ok(mut resp) => {
-                let resp_status = resp.status();
-                if resp_status != reqwest::StatusCode::OK {
-                    return Err(OriginError::from_status_code(resp_status));
-                }
+            Ok(resp_json_value) => {
+                // let resp_status = resp.status();
+                // if resp_status != reqwest::StatusCode::OK {
+                //     return Err(OriginError::from_status_code(resp_status));
+                // }
 
-                // load json
-                let mut buff = vec![];
-                resp.read_to_end(&mut buff).map_err(|e| OriginError::FormatError(e.to_string()))?;
-                let resp_json_value: serde_json::Value = serde_json::from_slice(&buff)
-                    .map_err(|e| OriginError::FormatError(e.to_string()))?;
+                // // load json
+                // let mut buff = vec![];
+                // resp.read_to_end(&mut buff).map_err(|e| OriginError::FormatError(e.to_string()))?;
+                // let resp_json_value: serde_json::Value = serde_json::from_slice(&buff)
+                //     .map_err(|e| OriginError::FormatError(e.to_string()))?;
 
                 let result = &resp_json_value["result"];
                 if result.is_null() {
                     // the received response is assumed to mean that the origin doesn't contain the
                     // requested resource
-                    debug!("Origin response contains no 'result': {resp_json_value}");
+                    debug!("FORK LOG: Origin response contains no 'result': {resp_json_value}");
                     Err(OriginError::NoResult)
                 } else {
+                    debug!("FORK LOG: Successful response from origin for body: {body:?}");
                     Ok(result.clone())
                 }
             }
-            Err(other_err) => Err(OriginError::CommunicationError(other_err.to_string())),
+            Err(other_err) => {
+                debug!("FORK LOG: Error in sending body: {body:?}");
+                debug!("Got error from origin: {other_err:?}");
+                Err(OriginError::CommunicationError(other_err))
+            }
         }
     }
 }

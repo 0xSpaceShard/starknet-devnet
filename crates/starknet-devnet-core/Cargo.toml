@@ -32,6 +32,7 @@ indexmap = { workspace = true }
 url = { workspace = true }
 nonzero_ext = { workspace = true }
 parking_lot = { workspace = true }
+tokio = { workspace = true }
 
 # necessary for installing reqwest in Docker
 openssl = { workspace = true }
