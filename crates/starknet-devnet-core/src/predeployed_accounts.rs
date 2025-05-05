@@ -19,7 +19,7 @@ pub(crate) struct PredeployedAccounts {
     strk_fee_token_address: ContractAddress,
     account_type: AccountType,
     accounts: Vec<Account>,
-    chain_id: Felt
+    chain_id: Felt,
 }
 
 impl PredeployedAccounts {
@@ -29,7 +29,7 @@ impl PredeployedAccounts {
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
         account_type: AccountType,
-        chain_id: Felt
+        chain_id: Felt,
     ) -> Self {
         Self {
             seed,
@@ -38,7 +38,7 @@ impl PredeployedAccounts {
             strk_fee_token_address,
             accounts: Vec::new(),
             account_type,
-            chain_id
+            chain_id,
         }
     }
 }
@@ -65,12 +65,11 @@ impl AccountGenerator for PredeployedAccounts {
         number_of_accounts: u8,
         class_hash: ClassHash,
         contract_class: &ContractClass,
-        block_context: BlockContext
+        block_context: BlockContext,
     ) -> DevnetResult<&Vec<Self::Acc>> {
         let private_keys = self.generate_private_keys(number_of_accounts);
 
         for private_key in private_keys {
-
             let account = Account::new(
                 self.initial_balance.clone(),
                 KeyPair { public_key: self.generate_public_key(&private_key), private_key },
@@ -80,7 +79,7 @@ impl AccountGenerator for PredeployedAccounts {
                 self.strk_fee_token_address,
                 block_context.clone(),
                 self.account_type,
-                self.chain_id
+                self.chain_id,
             )?;
             self.accounts.push(account);
         }
@@ -109,7 +108,7 @@ mod tests {
                 dummy_contract_address(),
                 dummy_contract_address(),
                 crate::account::AccountType::Custom,
-                Felt::ZERO
+                Felt::ZERO,
             )
             .generate_private_keys(1)[0];
 
@@ -119,7 +118,7 @@ mod tests {
                 dummy_contract_address(),
                 dummy_contract_address(),
                 crate::account::AccountType::Custom,
-                Felt::ZERO
+                Felt::ZERO,
             )
             .generate_private_keys(1)[0];
 
@@ -150,7 +149,7 @@ mod tests {
                 dummy_contract_address(),
                 dummy_contract_address(),
                 crate::account::AccountType::Custom,
-                Felt::ZERO
+                Felt::ZERO,
             )
             .generate_private_keys(1)[0];
 
@@ -160,7 +159,7 @@ mod tests {
                 dummy_contract_address(),
                 dummy_contract_address(),
                 crate::account::AccountType::Custom,
-                Felt::ZERO
+                Felt::ZERO,
             )
             .generate_private_keys(1)[0];
 

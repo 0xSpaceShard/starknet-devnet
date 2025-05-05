@@ -5,7 +5,7 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
 use starknet_types::rpc::state::Balance;
 
-use crate::account::{ FeeToken};
+use crate::account::FeeToken;
 use crate::error::DevnetResult;
 use crate::state::state_readers::DictState;
 use crate::state::{CustomState, CustomStateReader, StarknetState};
@@ -69,6 +69,6 @@ pub trait AccountGenerator {
         number_of_accounts: u8,
         class_hash: ClassHash,
         contract_class: &ContractClass,
-        block_context: BlockContext
+        block_context: BlockContext,
     ) -> DevnetResult<&Vec<Self::Acc>>;
 }

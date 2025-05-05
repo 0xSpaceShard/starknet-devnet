@@ -163,7 +163,7 @@ impl Starknet {
         let rpc_contract_classes = Arc::new(RwLock::new(CommittedClassStorage::default()));
         let mut state = StarknetState::new(defaulter, rpc_contract_classes.clone());
 
-         // when forking, the number of the first new block to be mined is equal to the last origin
+        // when forking, the number of the first new block to be mined is equal to the last origin
         // block (the one specified by the user) plus one.
         // The parent hash of the first new block is equal to the last origin block hash.
         let starting_block_number =
@@ -185,7 +185,11 @@ impl Starknet {
 
         let mut predeployer = Predeployer::new(block_context.clone(), &config, state)?;
 
-        predeployer.deploy_eth_fee_token()?.deploy_strk_fee_token()?.deploy_udc()?.deploy_accounts()?;
+        predeployer
+            .deploy_eth_fee_token()?
+            .deploy_strk_fee_token()?
+            .deploy_udc()?
+            .deploy_accounts()?;
 
         let pending_state_diff = predeployer.state.commit_diff(starting_block_number)?;
 
@@ -194,7 +198,7 @@ impl Starknet {
             pending_state: predeployer.state,
             pending_state_diff,
             predeployed_accounts: predeployer.predeployed_accounts,
-            block_context: block_context,
+            block_context,
             blocks: StarknetBlocks::new(starting_block_number, last_block_hash),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
@@ -1499,7 +1503,7 @@ mod tests {
             starknet.block_context.chain_info().fee_token_addresses.strk_fee_token_address.into(),
             starknet.block_context.clone(),
             crate::account::AccountType::Custom,
-            starknet.chain_id().to_felt()
+            starknet.chain_id().to_felt(),
         )
         .unwrap();
         acc.deploy(&mut starknet.pending_state).unwrap();

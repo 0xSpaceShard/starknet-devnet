@@ -17,7 +17,9 @@ use starknet_types::felt::{ClassHash, Key, felt_from_prefixed_hex, join_felts, s
 use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::state::Balance;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
-use starknet_types::rpc::transactions::{BroadcastedDeployAccountTransaction, BroadcastedTransactionCommonV3, ResourceBoundsWrapper};
+use starknet_types::rpc::transactions::{
+    BroadcastedDeployAccountTransaction, BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
+};
 
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, CHARGEABLE_ACCOUNT_PUBLIC_KEY,
@@ -45,7 +47,7 @@ pub enum AccountType {
     #[default]
     OpenZeppelin_0_20_0,
     Argent_0_4_0,
-    Custom
+    Custom,
 }
 
 impl Display for AccountType {
@@ -79,7 +81,7 @@ pub struct Account {
     pub(crate) strk_fee_token_address: ContractAddress,
     block_context: BlockContext,
     account_type: AccountType,
-    chain_id: Felt
+    chain_id: Felt,
 }
 
 impl Account {
@@ -88,7 +90,7 @@ impl Account {
         strk_fee_token_address: ContractAddress,
         block_context: BlockContext,
         account_type: AccountType,
-        chain_id: Felt
+        chain_id: Felt,
     ) -> DevnetResult<Self> {
         let AccountClassWrapper { contract_class, class_hash, account_type } =
             AccountContractClassChoice::Cairo1.get_class_wrapper()?;
@@ -112,7 +114,7 @@ impl Account {
             strk_fee_token_address,
             block_context,
             account_type,
-            chain_id
+            chain_id,
         })
     }
 
@@ -125,7 +127,7 @@ impl Account {
         strk_fee_token_address: ContractAddress,
         block_context: BlockContext,
         account_type: AccountType,
-        chain_id: Felt
+        chain_id: Felt,
     ) -> DevnetResult<Self> {
         let account_address = Account::compute_account_address(&keys.public_key)?;
         Ok(Self {
@@ -139,7 +141,7 @@ impl Account {
             strk_fee_token_address,
             block_context,
             account_type,
-            chain_id
+            chain_id,
         })
     }
 
@@ -159,33 +161,36 @@ impl Account {
 
     fn calldata(&self) -> Vec<Felt> {
         match self.account_type {
-            AccountType::OpenZeppelin_0_5_1 |
-            AccountType::OpenZeppelin_0_20_0 => vec![self.keys.public_key],
+            AccountType::OpenZeppelin_0_5_1 | AccountType::OpenZeppelin_0_20_0 => {
+                vec![self.keys.public_key]
+            }
             AccountType::Argent_0_4_0 => todo!(),
             AccountType::Custom => vec![],
         }
     }
 
-    // simulate constructor logic (register interfaces and set public key), as done in
-    // https://github.com/OpenZeppelin/cairo-contracts/blob/89a450a88628ec3b86273f261b2d8d1ca9b1522b/src/account/account.cairo#L207-L211
-    fn simulate_constructor(&self, state: &mut StarknetState) -> DevnetResult<()> {
+    /// Invoke constructor by executing BroadcastedDeployAccount transaction and change the state
+    fn deploy_via_transaction(&self, state: &mut StarknetState) -> DevnetResult<()> {
         let core_address = self.account_address.try_into()?;
-        let mut deploy_account_txn = BroadcastedDeployAccountTransaction::V3(
-        BroadcastedDeployAccountTransactionV3 {
-            common: BroadcastedTransactionCommonV3 {
-                version: Felt::THREE,
-                signature: vec![],
-                nonce: Felt::ZERO,
-                resource_bounds: ResourceBoundsWrapper::new(0,0,0,0,0,0),
-                tip: Default::default(),
-                paymaster_data: vec![],
-                nonce_data_availability_mode: starknet_api::data_availability::DataAvailabilityMode::L1,
-                fee_data_availability_mode: starknet_api::data_availability::DataAvailabilityMode::L1,
-            },
-            contract_address_salt: Felt::ZERO,
-            constructor_calldata: self.calldata(),
-            class_hash: self.class_hash,
-        }).create_sn_api_deploy_account(&self.chain_id)?;
+        let mut deploy_account_txn =
+            BroadcastedDeployAccountTransaction::V3(BroadcastedDeployAccountTransactionV3 {
+                common: BroadcastedTransactionCommonV3 {
+                    version: Felt::THREE,
+                    signature: vec![],
+                    nonce: Felt::ZERO,
+                    resource_bounds: ResourceBoundsWrapper::new(0, 0, 0, 0, 0, 0),
+                    tip: Default::default(),
+                    paymaster_data: vec![],
+                    nonce_data_availability_mode:
+                        starknet_api::data_availability::DataAvailabilityMode::L1,
+                    fee_data_availability_mode:
+                        starknet_api::data_availability::DataAvailabilityMode::L1,
+                },
+                contract_address_salt: Felt::ZERO,
+                constructor_calldata: self.calldata(),
+                class_hash: self.class_hash,
+            })
+            .create_sn_api_deploy_account(&self.chain_id)?;
 
         deploy_account_txn.contract_address = core_address;
 
@@ -193,8 +198,13 @@ impl Account {
             tx: starknet_api::executable_transaction::AccountTransaction::DeployAccount(
                 deploy_account_txn,
             ),
-            execution_flags: ExecutionFlags { only_query: false, charge_fee: false, validate: false },
-        }.execute(&mut state.state, &self.block_context)?;
+            execution_flags: ExecutionFlags {
+                only_query: false,
+                charge_fee: false,
+                validate: false,
+            },
+        }
+        .execute(&mut state.state, &self.block_context)?;
 
         Ok(())
     }
@@ -204,12 +214,10 @@ impl Deployed for Account {
     fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()> {
         self.declare_if_undeclared(state, self.class_hash, &self.contract_class)?;
 
-        //state.predeploy_contract(self.account_address, self.class_hash)?;
-
         // set balance directly in the most underlying state
         self.set_initial_balance(&mut state.state.state)?;
 
-        self.simulate_constructor(state)?;
+        self.deploy_via_transaction(state)?;
 
         Ok(())
     }
@@ -298,10 +306,11 @@ mod tests {
     use crate::starknet::Starknet;
     use crate::state::{CustomState, StarknetState};
     use crate::traits::{Accounted, Deployed};
-    use crate::utils::{custom_bouncer_config, get_versioned_constants};
     use crate::utils::test_utils::{
-        cairo_0_account_without_validations, dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt
+        cairo_0_account_without_validations, dummy_cairo_1_contract_class, dummy_contract_address,
+        dummy_felt,
     };
+    use crate::utils::{custom_bouncer_config, get_versioned_constants};
 
     /// Testing if generated account address has the same value as the first account in
     /// https://github.com/0xSpaceShard/starknet-devnet-deprecated/blob/9d867e38e6d465e568e82a47e82e40608f6d220f/test/support/schemas/predeployed_accounts_fixed_seed.json
@@ -383,7 +392,12 @@ mod tests {
     fn setup() -> (Account, StarknetState) {
         let mut state = StarknetState::default();
         let fee_token_address = dummy_contract_address();
-        let block_context = BlockContext::new(BlockInfo::create_for_testing_with_kzg(USE_KZG_DA), ChainInfo::default(), get_versioned_constants(), custom_bouncer_config());
+        let block_context = BlockContext::new(
+            BlockInfo::create_for_testing_with_kzg(USE_KZG_DA),
+            ChainInfo::default(),
+            get_versioned_constants(),
+            custom_bouncer_config(),
+        );
 
         let account_contract_class = cairo_0_account_without_validations();
         // deploy the erc20 contract
@@ -399,7 +413,7 @@ mod tests {
                 fee_token_address,
                 block_context,
                 super::AccountType::Custom,
-                ChainId::Testnet.to_felt()
+                ChainId::Testnet.to_felt(),
             )
             .unwrap(),
             state,

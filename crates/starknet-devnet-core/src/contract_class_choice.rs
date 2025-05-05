@@ -6,7 +6,7 @@ use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
 use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
 use starknet_types::traits::HashProducer;
 
-use crate::account::{AccountType};
+use crate::account::AccountType;
 use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT, CAIRO_1_ACCOUNT_CONTRACT_SIERRA};
 use crate::error::DevnetResult;
 
@@ -26,7 +26,7 @@ impl AccountContractClassChoice {
                 AccountClassWrapper {
                     class_hash: contract_class.generate_hash()?,
                     contract_class: ContractClass::Cairo0(contract_class),
-                    account_type: AccountType::OpenZeppelin_0_5_1
+                    account_type: AccountType::OpenZeppelin_0_5_1,
                 }
             }
             AccountContractClassChoice::Cairo1 => {
@@ -46,7 +46,7 @@ impl AccountContractClassChoice {
 pub struct AccountClassWrapper {
     pub contract_class: ContractClass,
     pub class_hash: Felt,
-    pub account_type: AccountType
+    pub account_type: AccountType,
 }
 
 impl FromStr for AccountClassWrapper {
@@ -82,7 +82,7 @@ impl FromStr for AccountClassWrapper {
         // generate the hash and return
         let contract_class = ContractClass::Cairo1(contract_class);
         let class_hash = contract_class.generate_hash()?;
-        Ok(Self { contract_class, class_hash, account_type: AccountType::Custom})
+        Ok(Self { contract_class, class_hash, account_type: AccountType::Custom })
     }
 }
 
@@ -128,11 +128,19 @@ mod tests {
     #[test]
     fn correct_metadata() {
         assert_eq!(
-            AccountContractClassChoice::Cairo0.get_class_wrapper().unwrap().account_type.to_string(),
+            AccountContractClassChoice::Cairo0
+                .get_class_wrapper()
+                .unwrap()
+                .account_type
+                .to_string(),
             "OpenZeppelin 0.5.1"
         );
         assert_eq!(
-            AccountContractClassChoice::Cairo1.get_class_wrapper().unwrap().account_type.to_string(),
+            AccountContractClassChoice::Cairo1
+                .get_class_wrapper()
+                .unwrap()
+                .account_type
+                .to_string(),
             "OpenZeppelin 0.20.0"
         );
 

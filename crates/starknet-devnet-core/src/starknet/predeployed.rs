@@ -6,9 +6,13 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::felt_from_prefixed_hex;
 
+use super::starknet_config::StarknetConfig;
 use crate::account::Account;
 use crate::constants::{
-    ARGENT_CONTRACT_CLASS_HASH, ARGENT_CONTRACT_SIERRA, ARGENT_MULTISIG_CONTRACT_CLASS_HASH, ARGENT_MULTISIG_CONTRACT_SIERRA, CHARGEABLE_ACCOUNT_ADDRESS, ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME, STRK_ERC20_SYMBOL, UDC_CONTRACT, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH
+    ARGENT_CONTRACT_CLASS_HASH, ARGENT_CONTRACT_SIERRA, ARGENT_MULTISIG_CONTRACT_CLASS_HASH,
+    ARGENT_MULTISIG_CONTRACT_SIERRA, CHARGEABLE_ACCOUNT_ADDRESS, ETH_ERC20_CONTRACT_ADDRESS,
+    ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME,
+    STRK_ERC20_SYMBOL, UDC_CONTRACT, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
 use crate::contract_class_choice::AccountContractClassChoice;
 use crate::error::{DevnetResult, Error};
@@ -18,19 +22,21 @@ use crate::system_contract::SystemContract;
 use crate::traits::{AccountGenerator, Deployed};
 use crate::utils::get_storage_var_address;
 
-use super::starknet_config::StarknetConfig;
-
 pub(crate) struct Predeployer<'a> {
     pub(crate) state: StarknetState,
     pub(crate) predeployed_accounts: PredeployedAccounts,
     block_context: BlockContext,
     config: &'a StarknetConfig,
     eth_fee_token_address: Felt,
-    strk_fee_token_address:Felt,
-    chain_id: Felt
+    strk_fee_token_address: Felt,
+    chain_id: Felt,
 }
 impl<'a> Predeployer<'a> {
-    pub(crate) fn new(block_context: BlockContext, config: &'a StarknetConfig, state: StarknetState) -> DevnetResult<Self> {
+    pub(crate) fn new(
+        block_context: BlockContext,
+        config: &'a StarknetConfig,
+        state: StarknetState,
+    ) -> DevnetResult<Self> {
         let chain_id = config.chain_id.to_felt();
         let predeployed_accounts = PredeployedAccounts::new(
             config.seed,
@@ -38,7 +44,7 @@ impl<'a> Predeployer<'a> {
             ContractAddress::new(ETH_ERC20_CONTRACT_ADDRESS)?,
             ContractAddress::new(STRK_ERC20_CONTRACT_ADDRESS)?,
             config.account_type,
-            chain_id
+            chain_id,
         );
 
         Ok(Self {
@@ -48,7 +54,7 @@ impl<'a> Predeployer<'a> {
             strk_fee_token_address: STRK_ERC20_CONTRACT_ADDRESS,
             state,
             predeployed_accounts,
-            chain_id
+            chain_id,
         })
     }
 
@@ -126,7 +132,7 @@ impl<'a> Predeployer<'a> {
             self.config.total_accounts,
             self.config.account_contract_class_hash,
             &self.config.account_contract_class,
-            self.block_context.clone()
+            self.block_context.clone(),
         )?;
         for account in accounts {
             account.deploy(&mut self.state)?;
@@ -137,7 +143,7 @@ impl<'a> Predeployer<'a> {
             strk_fee_token_address,
             self.block_context.clone(),
             self.config.account_type,
-            self.chain_id
+            self.chain_id,
         )?;
         chargeable_account.deploy(&mut self.state)?;
 

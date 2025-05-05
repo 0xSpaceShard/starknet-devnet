@@ -217,7 +217,7 @@ mod tests {
             strk_erc_20_contract.get_address(),
             starknet.block_context.clone(),
             crate::account::AccountType::Custom,
-            starknet.chain_id().to_felt()
+            starknet.chain_id().to_felt(),
         )
         .unwrap();
 

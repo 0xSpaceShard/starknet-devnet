@@ -290,7 +290,7 @@ mod tests {
             ContractAddress::new(STRK_ERC20_CONTRACT_ADDRESS).unwrap(),
             starknet.block_context.clone(),
             crate::account::AccountType::Custom,
-            starknet.chain_id().to_felt()
+            starknet.chain_id().to_felt(),
         )
         .unwrap();
 
@@ -310,7 +310,6 @@ mod tests {
             .unwrap(),
         )
         .unwrap();
-
 
         for (contract_class, nonce) in
             [(replaceable_contract.clone(), 1), (replacing_contract.clone(), 2)]
