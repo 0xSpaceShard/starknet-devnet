@@ -212,10 +212,12 @@ mod tests {
             Balance::from(10000_u32),
             dummy_key_pair(),
             account_without_validations_class_hash,
-            "Custom",
             ContractClass::Cairo0(account_without_validations_contract_class),
             eth_erc_20_contract.get_address(),
             strk_erc_20_contract.get_address(),
+            starknet.block_context.clone(),
+            crate::account::AccountType::Custom,
+            starknet.chain_id().to_felt()
         )
         .unwrap();
 

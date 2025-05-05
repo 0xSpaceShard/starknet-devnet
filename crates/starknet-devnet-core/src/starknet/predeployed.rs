@@ -27,14 +27,18 @@ pub(crate) struct Predeployer<'a> {
     config: &'a StarknetConfig,
     eth_fee_token_address: Felt,
     strk_fee_token_address:Felt,
+    chain_id: Felt
 }
 impl<'a> Predeployer<'a> {
     pub(crate) fn new(block_context: BlockContext, config: &'a StarknetConfig, state: StarknetState) -> DevnetResult<Self> {
+        let chain_id = config.chain_id.to_felt();
         let predeployed_accounts = PredeployedAccounts::new(
             config.seed,
             config.predeployed_accounts_initial_balance.clone(),
             ContractAddress::new(ETH_ERC20_CONTRACT_ADDRESS)?,
             ContractAddress::new(STRK_ERC20_CONTRACT_ADDRESS)?,
+            config.account_type,
+            chain_id
         );
 
         Ok(Self {
@@ -43,7 +47,8 @@ impl<'a> Predeployer<'a> {
             eth_fee_token_address: ETH_ERC20_CONTRACT_ADDRESS,
             strk_fee_token_address: STRK_ERC20_CONTRACT_ADDRESS,
             state,
-            predeployed_accounts
+            predeployed_accounts,
+            chain_id
         })
     }
 
@@ -121,6 +126,7 @@ impl<'a> Predeployer<'a> {
             self.config.total_accounts,
             self.config.account_contract_class_hash,
             &self.config.account_contract_class,
+            self.block_context.clone()
         )?;
         for account in accounts {
             account.deploy(&mut self.state)?;
@@ -129,6 +135,9 @@ impl<'a> Predeployer<'a> {
         let chargeable_account = Account::new_chargeable(
             eth_fee_token_address,
             strk_fee_token_address,
+            self.block_context.clone(),
+            self.config.account_type,
+            self.chain_id
         )?;
         chargeable_account.deploy(&mut self.state)?;
 

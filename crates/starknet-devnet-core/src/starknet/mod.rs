@@ -104,7 +104,7 @@ pub struct Starknet {
     /// Contains the diff since the last block
     pending_state_diff: StateDiff,
     predeployed_accounts: PredeployedAccounts,
-    pub(in crate::starknet) block_context: BlockContext,
+    pub(crate) block_context: BlockContext,
     // To avoid repeating some logic related to blocks,
     // having `blocks` public allows to re-use functions like `get_blocks()`.
     pub(crate) blocks: StarknetBlocks,
@@ -1494,10 +1494,12 @@ mod tests {
             Balance::from(acc_balance),
             dummy_key_pair(),
             account_class.generate_hash().unwrap(),
-            "Custom",
             account_class.into(),
             starknet.block_context.chain_info().fee_token_addresses.eth_fee_token_address.into(),
             starknet.block_context.chain_info().fee_token_addresses.strk_fee_token_address.into(),
+            starknet.block_context.clone(),
+            crate::account::AccountType::Custom,
+            starknet.chain_id().to_felt()
         )
         .unwrap();
         acc.deploy(&mut starknet.pending_state).unwrap();

@@ -219,7 +219,7 @@ mod tests {
 
         let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
             sender.account_address,
-            Felt::ZERO,
+            Felt::ONE,
             resource_bounds_with_price_1(0, 1000, 1e9 as u64),
         );
 
@@ -249,7 +249,7 @@ mod tests {
 
         let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
             sender.account_address,
-            Felt::ZERO,
+            Felt::ONE,
             resource_bounds_with_price_1(0, 1, 1),
         );
 
@@ -267,7 +267,7 @@ mod tests {
 
         let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
             sender.account_address,
-            Felt::ZERO,
+            Felt::ONE,
             resource_bounds_with_price_1(0, 1000, 1e9 as u64),
         );
 
@@ -285,7 +285,7 @@ mod tests {
 
         let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
             sender.account_address,
-            Felt::ZERO,
+            Felt::ONE,
             resource_bounds_with_price_1(0, 1000, 1e9 as u64),
         );
 

@@ -9,12 +9,12 @@ use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
 use url::Url;
 
-use crate::constants::{
+use crate::{account::AccountType, constants::{
     CAIRO_1_ACCOUNT_CONTRACT_SIERRA, CAIRO_1_ERC20_CONTRACT, CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
     DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_L1_DATA_GAS_PRICE,
     DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE, DEVNET_DEFAULT_TEST_SEED,
     DEVNET_DEFAULT_TOTAL_ACCOUNTS,
-};
+}};
 
 #[derive(Copy, Clone, Debug, clap::ValueEnum, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -103,6 +103,8 @@ pub struct StarknetConfig {
     #[serde(skip_serializing)]
     pub account_contract_class: ContractClass,
     pub account_contract_class_hash: Felt,
+    #[serde(skip_serializing)]
+    pub account_type: AccountType,
     #[serde(serialize_with = "serialize_initial_balance")]
     pub predeployed_accounts_initial_balance: Balance,
     pub start_time: Option<u64>,
@@ -173,6 +175,7 @@ impl Default for StarknetConfig {
             eth_erc20_contract_class: CAIRO_1_ERC20_CONTRACT.to_string(),
             strk_erc20_contract_class: CAIRO_1_ERC20_CONTRACT.to_string(),
             predeclare_argent: false,
+            account_type: AccountType::OpenZeppelin_0_20_0
         }
     }
 }

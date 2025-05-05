@@ -42,7 +42,7 @@ mod tests {
 
         let declare_txn = broadcasted_declare_tx_v3(
             acc.account_address,
-            Felt::ZERO,
+            Felt::ONE,
             contract_class.clone(),
             compiled_class_hash,
             resource_bounds_with_price_1(0, 1000, 1e9 as u64),
@@ -66,7 +66,7 @@ mod tests {
                 class_hash: sierra_class_hash,
                 compiled_class_hash,
             }],
-            nonces: vec![ContractNonce { contract_address: acc.account_address, nonce: Felt::ONE }],
+            nonces: vec![ContractNonce { contract_address: acc.account_address, nonce: Felt::TWO }],
             ..Default::default()
         };
 

@@ -133,7 +133,7 @@ mod tests {
             contract_address,
             increase_balance_selector,
             &[Felt::from(10)],
-            0, // nonce
+            1, // nonce
             resource_bounds_with_price_1(biguint_to_u64(&initial_balance), 0, 0),
         );
 
@@ -164,7 +164,7 @@ mod tests {
             contract_address,
             increase_balance_selector,
             &[Felt::from(10)],
-            0,
+            1,
             resource_bounds_with_price_1(gas_amount, gas_amount, gas_amount),
         );
 
@@ -237,7 +237,7 @@ mod tests {
             contract_address,
             increase_balance_selector,
             &[Felt::from(10)],
-            0, // nonce
+            1, // nonce
             resource_bounds.clone(),
         );
 
@@ -258,7 +258,7 @@ mod tests {
             contract_address,
             increase_balance_selector,
             &[Felt::from(15)],
-            1, // nonce
+            2, // nonce
             resource_bounds,
         );
 
@@ -300,7 +300,7 @@ mod tests {
 
         let account_address = account.get_address();
 
-        let nonce = 0;
+        let nonce = 1;
         let tx = test_invoke_transaction_v3(
             account_address,
             contract_address,
@@ -314,7 +314,6 @@ mod tests {
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
         assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
-
         match starknet.add_invoke_transaction(tx) {
             Err(Error::TransactionValidationError(
                 TransactionValidationError::InvalidTransactionNonce,
@@ -330,7 +329,7 @@ mod tests {
         let account_address = account.get_address().try_into().unwrap();
         let initial_nonce =
             starknet.pending_state.get_nonce_at(account_address).unwrap().0.try_into().unwrap();
-        assert_eq!(initial_nonce, 0);
+        assert_eq!(initial_nonce, 1);
 
         let tx = test_invoke_transaction_v3(
             account_address.into(),
@@ -348,7 +347,7 @@ mod tests {
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Reverted);
 
         let nonce_after_reverted = starknet.pending_state.get_nonce_at(account_address).unwrap();
-        assert_eq!(nonce_after_reverted, Nonce(Felt::ONE));
+        assert_eq!(nonce_after_reverted, Nonce(Felt::TWO));
     }
 
     /// Initialize starknet object with: erc20 contract, account contract and  simple contract that
@@ -375,15 +374,17 @@ mod tests {
             Balance::from(1000000000_u32),
             dummy_key_pair(),
             account_without_validations_class_hash,
-            "Custom",
             ContractClass::Cairo0(account_without_validations_contract_class),
             eth_erc_20_contract.get_address(),
             strk_erc_20_contract.get_address(),
+            starknet.block_context.clone(),
+            crate::account::AccountType::Custom,
+            starknet.chain_id().to_felt()
         )
         .unwrap();
 
         account.deploy(&mut starknet.pending_state).unwrap();
-
+        starknet.pending_state.commit_diff(0).unwrap();
         // dummy contract
         let dummy_contract = dummy_cairo_0_contract_class();
 
