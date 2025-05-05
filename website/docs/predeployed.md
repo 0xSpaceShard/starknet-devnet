@@ -31,7 +31,7 @@ Alternatively, provide a path to the [Sierra artifact](https://github.com/starkw
 
 ## Predeclared account classes
 
-Both Cairo 0 and Cairo 1 versions of OpenZeppelin account are always predeclared, regardless of the chosen predeployment variant. If you specify `--predeclare-argent` on startup, the latest regular and multistig Argent account variants will also be predeclared. All predeclared classes can be used in DEPLOY_ACCOUNT transactions.
+Both Cairo 0 and Cairo 1 versions of OpenZeppelin account are always predeclared, regardless of the chosen predeployment variant. If you specify `--predeclare-argent` on startup, the latest regular and multisig Argent account variants will also be predeclared. All predeclared classes can be used in DEPLOY_ACCOUNT transactions.
 
 ## Deploying an undeclared account
 
