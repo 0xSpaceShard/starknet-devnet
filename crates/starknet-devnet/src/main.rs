@@ -170,6 +170,11 @@ async fn set_erc20_contract_class_and_class_hash_if_different_than_default(
         match json_rpc_client.get_class_hash_at(block_id, contract_address).await {
             Ok(origin_class_hash) => {
                 if origin_class_hash != default_class_hash {
+                    tracing::debug!(
+                        "Found ERC20 class hash difference at address {contract_address:#x}; \
+                         origin={origin_class_hash:#x}, default={default_class_hash:#x}. \
+                         Replacing..."
+                    );
                     let origin_contract_class =
                         json_rpc_client.get_class(block_id, origin_class_hash).await?;
                     let contract_class_json_str = match origin_contract_class {

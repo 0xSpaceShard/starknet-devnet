@@ -46,6 +46,7 @@ tokio = { version = "1", features = [
 	"macros",
 	"rt-multi-thread",
 	"signal",
+	"sync",
 ] }
 futures = "0.3"
 async-trait = "0.1"
@@ -69,7 +70,7 @@ rand = "0.8.5"
 rand_chacha = "0.3.1"
 rand_mt = "4.2.2"
 regex_generate = "0.2.3"
-reqwest = { version = "0.12", features = ["blocking", "json"] }
+reqwest = { version = "0.12.15", features = ["json"] }
 url = "2.4"
 usc = { version = "2.4.0", package = "universal-sierra-compiler" }
 num-bigint = { version = "0.4" }

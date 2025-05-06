@@ -13,7 +13,6 @@ use starknet_rs_core::types::{
 use starknet_rs_core::utils::{
     get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
 };
-use starknet_rs_providers::jsonrpc::JsonRpcError;
 use starknet_rs_providers::{Provider, ProviderError};
 use starknet_rs_signers::Signer;
 
@@ -24,7 +23,7 @@ use crate::common::constants::{
     MAINNET_HTTPS_URL, MAINNET_URL,
 };
 use crate::common::utils::{
-    FeeUnit, assert_cairo1_classes_equal, assert_json_rpc_errors_equal, assert_tx_successful,
+    FeeUnit, assert_cairo1_classes_equal, assert_contains, assert_tx_successful,
     declare_v3_deploy_v3, extract_json_rpc_error,
     get_block_reader_contract_in_sierra_and_compiled_class_hash, get_contract_balance,
     get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
@@ -506,18 +505,15 @@ async fn test_fork_if_origin_dies() {
     let address = Felt::ONE;
     match fork_devnet.json_rpc_client.get_nonce(BlockId::Tag(BlockTag::Latest), address).await {
         Err(provider_error) => {
-            assert_json_rpc_errors_equal(
-                extract_json_rpc_error(provider_error).unwrap(),
-                JsonRpcError {
-                    code: -1,
-                    message: format!(
-                        "Failed to read from state: Error in communication with forking origin: \
-                         error sending request for url ({}/).",
-                        origin_devnet.url
-                    ),
-                    data: None,
-                },
+            let received_error = extract_json_rpc_error(provider_error).unwrap();
+            assert_eq!(received_error.code, -1);
+            assert_contains(
+                &received_error.message,
+                "Failed to read from state: Error in communication with forking origin",
             );
+            assert_contains(&received_error.message, "Connection refused");
+            assert_contains(&received_error.message, &format!("url: \"{}/\"", origin_devnet.url));
+            assert_eq!(received_error.data, None);
         }
         unexpected => panic!("Got unexpected resp: {unexpected:?}"),
     }
