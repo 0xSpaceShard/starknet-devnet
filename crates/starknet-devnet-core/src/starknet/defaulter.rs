@@ -1,5 +1,3 @@
-use std::io::Read;
-
 use blockifier::execution::contract_class::RunnableCompiledClass;
 use blockifier::state::errors::StateError;
 use blockifier::state::state_api::StateResult;
@@ -24,8 +22,8 @@ enum OriginError {
 
 impl OriginError {
     fn from_status_code(status_code: reqwest::StatusCode) -> Self {
-        let additional_info = match status_code.as_u16() {
-            429 => {
+        let additional_info = match status_code {
+            reqwest::StatusCode::TOO_MANY_REQUESTS => {
                 "This means your program is making Devnet send too many requests to the forking \
                  origin. 1) It could be a temporary issue, so try re-running your program. 2) If \
                  forking is not crucial for your use-case, disable it. 3) Try changing the forking \
@@ -54,7 +52,8 @@ impl BlockingOriginReader {
         Self { url, block_number, client: reqwest::Client::new() }
     }
 
-    fn blocking_post(&self, body: serde_json::Value) -> Result<serde_json::Value, String> {
+    /// Sends the `body` as JSON payload of a POST request. Expects JSON in response and returns it.
+    fn blocking_post(&self, body: serde_json::Value) -> Result<serde_json::Value, OriginError> {
         let (tx, rx) = oneshot::channel();
 
         let client = self.client.clone();
@@ -62,20 +61,32 @@ impl BlockingOriginReader {
 
         tokio::spawn(async move {
             let result = async {
-                let resp = client.post(url).json(&body).send().await?;
+                // Send tx with JSON payload
+                let resp = client
+                    .post(url)
+                    .json(&body)
+                    .send()
+                    .await
+                    .map_err(|e| OriginError::CommunicationError(format!("{e:?}")))?;
 
-                resp.json::<serde_json::Value>().await
+                let resp_status = resp.status();
+                if resp_status != reqwest::StatusCode::OK {
+                    return Err(OriginError::from_status_code(resp_status));
+                }
+
+                // Load json from response body
+                resp.json::<serde_json::Value>()
+                    .await
+                    .map_err(|e| OriginError::FormatError(format!("Expected JSON response: {e}")))
             }
             .await;
 
-            let _ = tx.send(result.map_err(|e| e.to_string()));
+            tx.send(result)
         });
 
         tokio::task::block_in_place(move || {
-            match rx.blocking_recv() {
-                Ok(res) => res,
-                Err(err) => Err(format!("Error in receiving channel message: {err:?}")),
-            }
+            rx.blocking_recv()
+                .map_err(|e| OriginError::CommunicationError(format!("Channel error: {e}")))?
         })
     }
 
@@ -94,36 +105,22 @@ impl BlockingOriginReader {
             "id": 0,
         });
 
-        match self
-            .blocking_post(body.clone())
-        {
+        match self.blocking_post(body.clone()) {
             Ok(resp_json_value) => {
-                // let resp_status = resp.status();
-                // if resp_status != reqwest::StatusCode::OK {
-                //     return Err(OriginError::from_status_code(resp_status));
-                // }
-
-                // // load json
-                // let mut buff = vec![];
-                // resp.read_to_end(&mut buff).map_err(|e| OriginError::FormatError(e.to_string()))?;
-                // let resp_json_value: serde_json::Value = serde_json::from_slice(&buff)
-                //     .map_err(|e| OriginError::FormatError(e.to_string()))?;
-
                 let result = &resp_json_value["result"];
                 if result.is_null() {
                     // the received response is assumed to mean that the origin doesn't contain the
                     // requested resource
-                    debug!("FORK LOG: Origin response contains no 'result': {resp_json_value}");
+                    debug!("Forking origin response contains no 'result': {resp_json_value}");
                     Err(OriginError::NoResult)
                 } else {
-                    debug!("FORK LOG: Successful response from origin for body: {body:?}");
+                    debug!("Forking origin received {body:?} and successfully returned: {result}");
                     Ok(result.clone())
                 }
             }
             Err(other_err) => {
-                debug!("FORK LOG: Error in sending body: {body:?}");
-                debug!("Got error from origin: {other_err:?}");
-                Err(OriginError::CommunicationError(other_err))
+                debug!("Forking origin received {body:?} and returned error: {other_err:?}");
+                Err(other_err)
             }
         }
     }
