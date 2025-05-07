@@ -61,23 +61,39 @@ impl BlockingOriginReader {
 
         tokio::spawn(async move {
             let result = async {
-                // Send tx with JSON payload
-                let resp = client
-                    .post(url)
-                    .json(&body)
-                    .send()
-                    .await
-                    .map_err(|e| OriginError::CommunicationError(format!("{e:?}")))?;
+                let mut retries_left = 3;
+                loop {
+                    retries_left -= 1;
 
-                let resp_status = resp.status();
-                if resp_status != reqwest::StatusCode::OK {
-                    return Err(OriginError::from_status_code(resp_status));
+                    // Send tx with JSON payload
+                    let resp = client
+                        .post(url.clone())
+                        .json(&body)
+                        .send()
+                        .await
+                        .map_err(|e| OriginError::CommunicationError(format!("{e:?}")))?;
+
+                    match resp.status() {
+                        reqwest::StatusCode::OK => {
+                            // Load json from response body
+                            break resp.json::<serde_json::Value>().await.map_err(|e| {
+                                OriginError::FormatError(format!("Expected JSON response: {e}"))
+                            });
+                        }
+                        // If server-side error like 503, retry
+                        other if other.as_u16() % 100 == 5 && retries_left > 0 => {
+                            let sleep_secs = 1;
+                            debug!(
+                                "Forking origin responded with status {other}. Retries left: \
+                                 {retries_left}. Retrying after {sleep_secs} s."
+                            );
+                            tokio::time::sleep(std::time::Duration::from_secs(sleep_secs)).await;
+                        }
+                        unretriable => {
+                            break Err(OriginError::from_status_code(unretriable));
+                        }
+                    }
                 }
-
-                // Load json from response body
-                resp.json::<serde_json::Value>()
-                    .await
-                    .map_err(|e| OriginError::FormatError(format!("Expected JSON response: {e}")))
             }
             .await;
 
