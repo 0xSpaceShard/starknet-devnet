@@ -95,6 +95,13 @@ pub fn get_simple_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasm
     get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH)
 }
 
+pub fn get_timestamp_asserter() -> SierraWithCasmHash {
+    get_flattened_sierra_contract_and_casm_hash(
+        "../../contracts/test_artifacts/cairo1/timestamp_asserter/target/dev/\
+         cairo_TimestampAsserter.contract_class.json",
+    )
+}
+
 pub async fn assert_tx_successful<T: Provider>(tx_hash: &Felt, client: &T) {
     let receipt = client.get_transaction_receipt(tx_hash).await.unwrap().receipt;
     match receipt.execution_result() {
