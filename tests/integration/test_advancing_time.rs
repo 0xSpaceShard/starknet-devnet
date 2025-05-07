@@ -2,18 +2,21 @@ use std::sync::Arc;
 use std::time;
 
 use serde_json::json;
-use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::{BlockId, BlockTag, Felt, FunctionCall};
+use starknet_rs_core::types::{
+    BlockId, BlockTag, Call, Felt, FunctionCall, StarknetError, TransactionExecutionStatus,
+    TransactionStatus,
+};
 use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
-use starknet_rs_providers::Provider;
+use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
-    UniqueAutoDeletableFile, declare_v3_deploy_v3,
-    get_block_reader_contract_in_sierra_and_compiled_class_hash, get_timestamp_asserter,
-    get_unix_timestamp_as_seconds, send_ctrl_c_signal_and_wait,
+    UniqueAutoDeletableFile, assert_contains, declare_v3_deploy_v3, extract_message_error,
+    extract_nested_error, get_block_reader_contract_in_sierra_and_compiled_class_hash,
+    get_timestamp_asserter, get_unix_timestamp_as_seconds, send_ctrl_c_signal_and_wait,
 };
 
 const DUMMY_ADDRESS: u128 = 1;
@@ -569,7 +572,7 @@ async fn correct_pending_block_timestamp_after_setting() {
 }
 
 #[tokio::test]
-async fn tx_fails_unless_time_incremented() {
+async fn tx_resource_estimation_fails_unless_time_incremented() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
 
     let (signer, address) = devnet.get_first_predeployed_account().await;
@@ -587,6 +590,83 @@ async fn tx_fails_unless_time_incremented() {
     let ctor_args = &[Felt::from(lock_interval)];
     let (_, contract_address) =
         declare_v3_deploy_v3(&account, contract_class, casm_hash, ctor_args).await.unwrap();
-    
-    todo!("Continue");
+
+    let time_check_selector = get_selector_from_name("check_time").unwrap();
+    let time_check_call =
+        Call { to: contract_address, selector: time_check_selector, calldata: vec![] };
+
+    // A failure is expected without time change.
+    let error = account.execute_v3(vec![time_check_call.clone()]).estimate_fee().await.unwrap_err();
+    match error {
+        AccountError::Provider(ProviderError::StarknetError(
+            StarknetError::TransactionExecutionError(error_data),
+        )) => {
+            assert_eq!(error_data.transaction_index, 0);
+
+            let root_error = extract_nested_error(&error_data.execution_error);
+            assert_eq!(root_error.contract_address, account.address());
+            assert_eq!(root_error.selector, get_selector_from_name("__execute__").unwrap());
+
+            // Currently the root error is twice mentioned, so we extract twice
+            let inner_error = extract_nested_error(&root_error.error);
+            let inner_error = extract_nested_error(&inner_error.error);
+            assert_eq!(inner_error.contract_address, contract_address);
+            assert_eq!(inner_error.selector, time_check_selector);
+
+            let message = extract_message_error(&inner_error.error);
+            assert_contains(message, "Wait a bit more");
+        }
+        other => panic!("Invalid error: {other:?}"),
+    }
+
+    // Increasing the system timestamp should make the estimation succeed
+    increase_time(&devnet, lock_interval).await;
+    account.execute_v3(vec![time_check_call]).estimate_fee().await.unwrap();
+}
+
+#[tokio::test]
+async fn tx_execution_fails_unless_time_incremented() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+    let (signer, address) = devnet.get_first_predeployed_account().await;
+    let account = SingleOwnerAccount::new(
+        &devnet.json_rpc_client,
+        signer,
+        address,
+        constants::CHAIN_ID,
+        ExecutionEncoding::New,
+    );
+
+    let (contract_class, casm_hash) = get_timestamp_asserter();
+
+    let lock_interval = 86_400;
+    let ctor_args = &[Felt::from(lock_interval)];
+    let (_, contract_address) =
+        declare_v3_deploy_v3(&account, contract_class, casm_hash, ctor_args).await.unwrap();
+
+    let time_check_selector = get_selector_from_name("check_time").unwrap();
+    let time_check_call =
+        Call { to: contract_address, selector: time_check_selector, calldata: vec![] };
+
+    // A failure is expected without time change.
+    let reverted_tx = account
+        .execute_v3(vec![time_check_call.clone()])
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(1e7 as u64)
+        .send()
+        .await
+        .unwrap();
+
+    match devnet.json_rpc_client.get_transaction_status(reverted_tx.transaction_hash).await {
+        Ok(TransactionStatus::AcceptedOnL2(tx_details)) => {
+            assert_eq!(tx_details.status(), TransactionExecutionStatus::Reverted);
+            assert_contains(tx_details.revert_reason().unwrap(), "Wait a bit more");
+        }
+        other => panic!("Unexpected tx: {other:?}"),
+    }
+
+    // Increasing the system timestamp should make the tx succeed (and the implicit fee estimation)
+    increase_time(&devnet, lock_interval).await;
+    account.execute_v3(vec![time_check_call]).send().await.unwrap();
 }

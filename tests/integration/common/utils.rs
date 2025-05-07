@@ -97,7 +97,8 @@ pub fn get_simple_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasm
 
 pub fn get_timestamp_asserter() -> SierraWithCasmHash {
     get_flattened_sierra_contract_and_casm_hash(
-        "../../contracts/test_artifacts/cairo1/timestamp_asserter/target/dev/cairo_TimestampAsserter.contract_class.json",
+        "../../contracts/test_artifacts/cairo1/timestamp_asserter/target/dev/\
+         cairo_TimestampAsserter.contract_class.json",
     )
 }
 
