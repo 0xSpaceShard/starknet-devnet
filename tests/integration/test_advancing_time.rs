@@ -11,7 +11,8 @@ use starknet_rs_providers::Provider;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
-    UniqueAutoDeletableFile, get_block_reader_contract_in_sierra_and_compiled_class_hash,
+    UniqueAutoDeletableFile, declare_v3_deploy_v3,
+    get_block_reader_contract_in_sierra_and_compiled_class_hash, get_timestamp_asserter,
     get_unix_timestamp_as_seconds, send_ctrl_c_signal_and_wait,
 };
 
@@ -565,4 +566,27 @@ async fn correct_pending_block_timestamp_after_setting() {
 
     let block = devnet.get_pending_block_with_txs().await.unwrap();
     assert_gt_with_buffer(block.timestamp, initial_time);
+}
+
+#[tokio::test]
+async fn tx_fails_unless_time_incremented() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+    let (signer, address) = devnet.get_first_predeployed_account().await;
+    let account = SingleOwnerAccount::new(
+        &devnet.json_rpc_client,
+        signer,
+        address,
+        constants::CHAIN_ID,
+        ExecutionEncoding::New,
+    );
+
+    let (contract_class, casm_hash) = get_timestamp_asserter();
+
+    let lock_interval = 86_400;
+    let ctor_args = &[Felt::from(lock_interval)];
+    let (_, contract_address) =
+        declare_v3_deploy_v3(&account, contract_class, casm_hash, ctor_args).await.unwrap();
+    
+    todo!("Continue");
 }

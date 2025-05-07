@@ -1,0 +1,1 @@
+{"version":1,"contracts":[{"id":"b9jocr0sq8ide","package_name":"cairo","contract_name":"TimestampAsserter","module_path":"cairo::timestamp_asserter::TimestampAsserter","artifacts":{"sierra":"cairo_TimestampAsserter.contract_class.json","casm":null}}]}
