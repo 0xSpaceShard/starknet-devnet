@@ -27,14 +27,14 @@ async fn sleep_until_new_timestamp() {
 
 /// Set time and generate a new block
 /// Returns the block timestamp of the newly generated block
-pub async fn set_time_fn(devnet: &BackgroundDevnet, time: u64) -> u64 {
-    let resp_body: serde_json::Value =
+pub async fn set_time(devnet: &BackgroundDevnet, time: u64) -> u64 {
+    let resp_body =
         devnet.send_custom_rpc("devnet_setTime", json!({ "time": time })).await.unwrap();
 
     resp_body["block_timestamp"].as_u64().unwrap()
 }
 
-pub async fn increase_time_fn(devnet: &BackgroundDevnet, time: u64) {
+pub async fn increase_time(devnet: &BackgroundDevnet, time: u64) {
     devnet.send_custom_rpc("devnet_increaseTime", json!({ "time": time })).await.unwrap();
 }
 
@@ -110,7 +110,7 @@ async fn timestamp_syscall_set_in_past() {
     // set time in past
     let past_time = 1;
 
-    let block_timestamp = set_time_fn(&devnet, past_time).await;
+    let block_timestamp = set_time(&devnet, past_time).await;
     assert_eq!(block_timestamp, past_time);
     devnet.create_block().await.unwrap();
 
@@ -127,7 +127,7 @@ async fn timestamp_syscall_set_in_future() {
 
     // set time in future
     let future_time = now + 1000;
-    let block_timestamp = set_time_fn(&devnet, future_time).await;
+    let block_timestamp = set_time(&devnet, future_time).await;
     assert_eq!(block_timestamp, future_time);
     devnet.create_block().await.unwrap();
 
@@ -143,13 +143,13 @@ async fn timestamp_syscall_increase_time() {
     let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
 
     // increase time
-    let increase_time: u64 = 1000;
+    let time_increment: u64 = 1000;
 
-    increase_time_fn(&devnet, increase_time).await;
+    increase_time(&devnet, time_increment).await;
 
     // check if timestamp is greater/equal
     let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
-    assert_ge_with_buffer(current_timestamp, now + increase_time);
+    assert_ge_with_buffer(current_timestamp, now + time_increment);
 
     sleep_until_new_timestamp().await;
     devnet.create_block().await.unwrap();
@@ -157,7 +157,7 @@ async fn timestamp_syscall_increase_time() {
     // check if timestamp is greater
     let timestamp_after_new_block =
         get_current_timestamp(&devnet, timestamp_contract_address).await;
-    assert_gt_with_buffer(timestamp_after_new_block, now + increase_time);
+    assert_gt_with_buffer(timestamp_after_new_block, now + time_increment);
     assert_gt_with_buffer(timestamp_after_new_block, current_timestamp);
 }
 
@@ -234,7 +234,7 @@ async fn start_time_in_future_syscall() {
 async fn set_time_in_past(devnet: &BackgroundDevnet) {
     // set time and assert if >= past_time, check if inside buffer limit
     let past_time = 1;
-    let block_timestamp = set_time_fn(devnet, past_time).await;
+    let block_timestamp = set_time(devnet, past_time).await;
     assert_eq!(block_timestamp, past_time);
     let set_time_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
     assert_ge_with_buffer(set_time_block.timestamp, past_time);
@@ -274,7 +274,7 @@ async fn set_time_in_future(devnet: &BackgroundDevnet) {
     // set time and assert if >= future_time, check if inside buffer limit
     let now = get_unix_timestamp_as_seconds();
     let future_time = now + 1000;
-    let block_timestamp = set_time_fn(devnet, future_time).await;
+    let block_timestamp = set_time(devnet, future_time).await;
     assert_eq!(block_timestamp, future_time);
     let set_time_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
     assert_ge_with_buffer(set_time_block.timestamp, future_time);
@@ -333,19 +333,19 @@ async fn set_time_wrong_body() {
 }
 
 #[tokio::test]
-async fn increase_time() {
+async fn test_increase_time() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
     let now = get_unix_timestamp_as_seconds();
 
     // increase time and assert if > now, check if inside buffer limit
     let first_increase_time: u64 = 10000;
-    increase_time_fn(&devnet, first_increase_time).await;
+    increase_time(&devnet, first_increase_time).await;
     let first_increase_time_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
     assert_ge_with_buffer(first_increase_time_block.timestamp, now + first_increase_time);
 
     // second increase time, check if inside buffer limit
     let second_increase_time: u64 = 1000;
-    increase_time_fn(&devnet, second_increase_time).await;
+    increase_time(&devnet, second_increase_time).await;
     let second_increase_time_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
     assert_ge_with_buffer(
         second_increase_time_block.timestamp,
@@ -378,15 +378,8 @@ async fn increase_time_empty_body() {
 #[tokio::test]
 async fn increase_time_wrong_body() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-    let rpc_error = devnet
-        .send_custom_rpc(
-            "devnet_increaseTime",
-            json!({
-                "test": 0
-            }),
-        )
-        .await
-        .unwrap_err();
+    let rpc_error =
+        devnet.send_custom_rpc("devnet_increaseTime", json!({ "test": 0 })).await.unwrap_err();
     assert_eq!(rpc_error.code, -32602);
 }
 
@@ -448,14 +441,14 @@ async fn advance_time_combination_test_with_dump_and_load() {
     // increase time and assert if >= start-time argument + first_increase_time, check if inside
     // buffer limit
     let first_increase_time: u64 = 1000;
-    increase_time_fn(&devnet, first_increase_time).await;
+    increase_time(&devnet, first_increase_time).await;
     let first_increase_time_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
     assert_ge_with_buffer(first_increase_time_block.timestamp, past_time + first_increase_time);
 
     // increase the time a second time and assert if >= past_time + first_increase_time +
     // second_increase_time, check if inside buffer limit
     let second_increase_time: u64 = 100;
-    increase_time_fn(&devnet, second_increase_time).await;
+    increase_time(&devnet, second_increase_time).await;
     let second_increase_time_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
     assert_ge_with_buffer(
         second_increase_time_block.timestamp,
@@ -464,7 +457,7 @@ async fn advance_time_combination_test_with_dump_and_load() {
 
     // set time to be now and check if the latest block timestamp >= now, check if
     // it's inside buffer limit
-    let block_timestamp = set_time_fn(&devnet, now).await;
+    let block_timestamp = set_time(&devnet, now).await;
     assert_eq!(block_timestamp, now);
     let set_time_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
     assert_ge_with_buffer(set_time_block.timestamp, now);
@@ -480,7 +473,7 @@ async fn advance_time_combination_test_with_dump_and_load() {
     // increase the time a third time and assert >= last empty block timestamp +
     // third_increase_time, check if inside buffer limit
     let third_increase_time: u64 = 10000;
-    increase_time_fn(&devnet, third_increase_time).await;
+    increase_time(&devnet, third_increase_time).await;
     let third_increase_time_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
     assert_ge_with_buffer(
         third_increase_time_block.timestamp,
