@@ -34,21 +34,15 @@ async fn tx_resource_estimation_fails_on_forked_devnet_with_impersonation_unless
     let (_, contract_address) =
         declare_v3_deploy_v3(&origin_account, contract_class, casm_hash, ctor_args).await.unwrap();
 
-    // Spawn a forked Devnet
-    let forked_devnet = BackgroundDevnet::spawn_with_additional_args(&[
-        "--fork-network",
-        &origin_devnet.url,
-        "--seed",
-        "18726",
-    ])
-    .await
-    .unwrap();
+    // Spawn a forked Devnet; use random seed to force predeployment of new accounts
+    let fork_args = ["--fork-network", &origin_devnet.url, "--seed", "18726"];
+    let forked_devnet = BackgroundDevnet::spawn_with_additional_args(&fork_args).await.unwrap();
 
     // Create a new, dummy account, which should work after activating impersonation
     let fork_account = SingleOwnerAccount::new(
         &forked_devnet.json_rpc_client,
         LocalWallet::from(SigningKey::from_secret_scalar(Felt::TWO)),
-        address,
+        Felt::THREE, // dummy address
         constants::CHAIN_ID,
         ExecutionEncoding::New,
     );
@@ -98,7 +92,7 @@ async fn tx_execution_fails_on_forked_devnet_with_impersonation_unless_time_incr
     let (signer, address) = origin_devnet.get_first_predeployed_account().await;
     let origin_account = SingleOwnerAccount::new(
         &origin_devnet.json_rpc_client,
-        signer.clone(),
+        signer,
         address,
         constants::CHAIN_ID,
         ExecutionEncoding::New,
@@ -111,21 +105,15 @@ async fn tx_execution_fails_on_forked_devnet_with_impersonation_unless_time_incr
     let (_, contract_address) =
         declare_v3_deploy_v3(&origin_account, contract_class, casm_hash, ctor_args).await.unwrap();
 
-    // Spawn a forked Devnet
-    let forked_devnet = BackgroundDevnet::spawn_with_additional_args(&[
-        "--fork-network",
-        &origin_devnet.url,
-        "--seed",
-        "18726",
-    ])
-    .await
-    .unwrap();
+    // Spawn a forked Devnet; use random seed to force predeployment of new accounts
+    let fork_args = ["--fork-network", &origin_devnet.url, "--seed", "18726"];
+    let forked_devnet = BackgroundDevnet::spawn_with_additional_args(&fork_args).await.unwrap();
 
     // Create a new, dummy account, which should work after activating impersonation
     let fork_account = SingleOwnerAccount::new(
         &forked_devnet.json_rpc_client,
         LocalWallet::from(SigningKey::from_secret_scalar(Felt::TWO)),
-        address,
+        Felt::THREE, // dummy address
         constants::CHAIN_ID,
         ExecutionEncoding::New,
     );
