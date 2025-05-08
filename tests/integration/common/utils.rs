@@ -666,6 +666,19 @@ pub fn assert_contains(text: &str, pattern: &str) {
     }
 }
 
+/// Set time and generate a new block
+/// Returns the block timestamp of the newly generated block
+pub async fn set_time(devnet: &BackgroundDevnet, time: u64) -> u64 {
+    let resp_body =
+        devnet.send_custom_rpc("devnet_setTime", json!({ "time": time })).await.unwrap();
+
+    resp_body["block_timestamp"].as_u64().unwrap()
+}
+
+pub async fn increase_time(devnet: &BackgroundDevnet, time: u64) {
+    devnet.send_custom_rpc("devnet_increaseTime", json!({ "time": time })).await.unwrap();
+}
+
 #[cfg(test)]
 mod test_unique_auto_deletable_file {
     use std::path::Path;
