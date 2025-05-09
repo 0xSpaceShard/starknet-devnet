@@ -13,8 +13,7 @@ use crate::common::constants::{
     self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
 use crate::common::utils::{
-    assert_contains, extract_message_error, extract_nested_error,
-    get_simple_contract_in_sierra_and_compiled_class_hash,
+    assert_contains, extract_message_error, extract_nested_error, get_simple_contract_artifacts,
 };
 
 #[tokio::test]
@@ -31,7 +30,7 @@ async fn double_deployment_not_allowed() {
     );
 
     // declare
-    let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_hash) = get_simple_contract_artifacts();
     let declaration_result = account
         .declare_v3(Arc::new(contract_class), casm_hash)
         .l1_gas(0)
@@ -95,7 +94,7 @@ async fn cannot_deploy_undeclared_class() {
     );
 
     // skip declaration
-    let (contract_class, _) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, _) = get_simple_contract_artifacts();
 
     // prepare deployment
     let contract_factory = ContractFactory::new(contract_class.class_hash(), account.clone());

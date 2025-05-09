@@ -18,9 +18,8 @@ use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH};
 use crate::common::utils::{
     FeeUnit, UniqueAutoDeletableFile, assert_equal_elements, assert_tx_successful,
-    get_contract_balance, get_contract_balance_by_block_id,
-    get_events_contract_in_sierra_and_compiled_class_hash,
-    get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
+    get_contract_balance, get_contract_balance_by_block_id, get_events_contract_artifacts,
+    get_simple_contract_artifacts, send_ctrl_c_signal_and_wait,
 };
 
 static DUMMY_ADDRESS: u128 = 1;
@@ -293,10 +292,7 @@ async fn blocks_on_demand_declarations() {
     predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
 
     // perform declarations
-    let classes_with_hash = [
-        get_simple_contract_in_sierra_and_compiled_class_hash(),
-        get_events_contract_in_sierra_and_compiled_class_hash(),
-    ];
+    let classes_with_hash = [get_simple_contract_artifacts(), get_events_contract_artifacts()];
 
     let mut declaration_results = vec![];
     for (nonce, (class, casm_hash)) in classes_with_hash.iter().enumerate() {
@@ -376,7 +372,7 @@ async fn blocks_on_demand_invoke_and_call() {
     );
     predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
 
-    let (contract_class, casm_class_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_class_hash) = get_simple_contract_artifacts();
 
     // declare the contract
     let declaration_result = predeployed_account

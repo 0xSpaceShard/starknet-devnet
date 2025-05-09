@@ -18,7 +18,7 @@ use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{DeclareTransaction, Felt, InvokeTransaction, Transaction};
 
-use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
+use crate::common::utils::get_events_contract_artifacts;
 
 async fn dump_load_dump_load(mode: &str) {
     let dump_file =
@@ -239,8 +239,7 @@ async fn declare_deploy() {
         ExecutionEncoding::New,
     );
 
-    let (cairo_1_contract, casm_class_hash) =
-        get_events_contract_in_sierra_and_compiled_class_hash();
+    let (cairo_1_contract, casm_class_hash) = get_events_contract_artifacts();
 
     // declare the contract
     let declaration_result = predeployed_account

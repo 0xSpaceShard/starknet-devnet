@@ -8,7 +8,7 @@ use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{CHAIN_ID, L1_HANDLER_SELECTOR, MESSAGING_WHITELISTED_L1_CONTRACT};
-use crate::common::utils::get_messaging_contract_in_sierra_and_compiled_class_hash;
+use crate::common::utils::get_messaging_contract_artifacts;
 
 #[tokio::test]
 async fn estimate_message_fee() {
@@ -25,7 +25,7 @@ async fn estimate_message_fee() {
     ));
 
     // get class
-    let (contract_artifact, casm_hash) = get_messaging_contract_in_sierra_and_compiled_class_hash();
+    let (contract_artifact, casm_hash) = get_messaging_contract_artifacts();
     let contract_artifact = Arc::new(contract_artifact);
     let class_hash = contract_artifact.class_hash();
 

@@ -8,7 +8,7 @@ use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
-use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
+use crate::common::utils::get_events_contract_artifacts;
 
 /// The test verifies that the `get_events` RPC method returns the correct events.
 /// The test starts a devnet, gets the first predeployed account, using it declares and deploys
@@ -26,8 +26,7 @@ async fn get_events_correct_chunking(devnet: &BackgroundDevnet, block_on_demand:
 
     predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
 
-    let (cairo_1_contract, casm_class_hash) =
-        get_events_contract_in_sierra_and_compiled_class_hash();
+    let (cairo_1_contract, casm_class_hash) = get_events_contract_artifacts();
 
     // declare the contract
     let declaration_result: starknet_rs_core::types::DeclareTransactionResult = predeployed_account

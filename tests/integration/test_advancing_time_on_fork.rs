@@ -10,7 +10,7 @@ use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
     ImpersonationAction, assert_contains, declare_v3_deploy_v3, extract_message_error,
-    extract_nested_error, get_timestamp_asserter, increase_time,
+    extract_nested_error, get_timestamp_asserter_contract_artifacts, increase_time,
 };
 
 #[tokio::test]
@@ -27,7 +27,7 @@ async fn tx_resource_estimation_fails_on_forked_devnet_with_impersonation_unless
         ExecutionEncoding::New,
     );
 
-    let (contract_class, casm_hash) = get_timestamp_asserter();
+    let (contract_class, casm_hash) = get_timestamp_asserter_contract_artifacts();
 
     let lock_interval = 86_400;
     let ctor_args = &[Felt::from(lock_interval)];
@@ -98,7 +98,7 @@ async fn tx_execution_fails_on_forked_devnet_with_impersonation_unless_time_incr
         ExecutionEncoding::New,
     );
 
-    let (contract_class, casm_hash) = get_timestamp_asserter();
+    let (contract_class, casm_hash) = get_timestamp_asserter_contract_artifacts();
 
     let lock_interval = 86_400;
     let ctor_args = &[Felt::from(lock_interval)];

@@ -69,33 +69,33 @@ pub fn get_flattened_sierra_contract_and_casm_hash(sierra_path: &str) -> SierraW
     (sierra_class.flatten().unwrap(), casm_hash)
 }
 
-pub fn get_messaging_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
+pub fn get_messaging_contract_artifacts() -> SierraWithCasmHash {
     let sierra_path = "../../contracts/l1-l2-artifacts/cairo_l1_l2.contract_class.sierra";
     get_flattened_sierra_contract_and_casm_hash(sierra_path)
 }
 
-pub fn get_messaging_lib_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
+pub fn get_messaging_lib_artifacts() -> SierraWithCasmHash {
     let sierra_path = "../../contracts/l1-l2-artifacts/cairo_l1_l2_lib.contract_class.sierra";
     get_flattened_sierra_contract_and_casm_hash(sierra_path)
 }
 
-pub fn get_events_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
+pub fn get_events_contract_artifacts() -> SierraWithCasmHash {
     let events_sierra_path =
         "../../contracts/test_artifacts/cairo1/events/events_2.0.1_compiler.sierra";
     get_flattened_sierra_contract_and_casm_hash(events_sierra_path)
 }
 
-pub fn get_block_reader_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
+pub fn get_block_reader_contract_artifacts() -> SierraWithCasmHash {
     let timestamp_sierra_path =
         "../../contracts/test_artifacts/cairo1/block_reader/block_reader.sierra";
     get_flattened_sierra_contract_and_casm_hash(timestamp_sierra_path)
 }
 
-pub fn get_simple_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
+pub fn get_simple_contract_artifacts() -> SierraWithCasmHash {
     get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH)
 }
 
-pub fn get_timestamp_asserter() -> SierraWithCasmHash {
+pub fn get_timestamp_asserter_contract_artifacts() -> SierraWithCasmHash {
     get_flattened_sierra_contract_and_casm_hash(
         "../../contracts/test_artifacts/cairo1/timestamp_asserter/target/dev/\
          cairo_TimestampAsserter.contract_class.json",
@@ -302,7 +302,7 @@ pub async fn declare_v3_deploy_v3(
 pub async fn declare_deploy_simple_contract(
     account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
 ) -> Result<(Felt, Felt), anyhow::Error> {
-    let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_hash) = get_simple_contract_artifacts();
 
     let declaration_result = account
         .declare_v3(Arc::new(contract_class), casm_hash)
@@ -339,7 +339,7 @@ pub async fn declare_deploy_simple_contract(
 pub async fn declare_deploy_events_contract(
     account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
 ) -> Result<Felt, anyhow::Error> {
-    let (contract_class, casm_hash) = get_events_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_hash) = get_events_contract_artifacts();
 
     let declaration_result = account
         .declare_v3(Arc::new(contract_class), casm_hash)

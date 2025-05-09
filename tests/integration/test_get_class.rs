@@ -10,7 +10,7 @@ use starknet_rs_providers::{Provider, ProviderError};
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, PREDEPLOYED_ACCOUNT_ADDRESS};
 use crate::common::utils::{
-    assert_cairo1_classes_equal, get_events_contract_in_sierra_and_compiled_class_hash,
+    assert_cairo1_classes_equal, get_events_contract_artifacts,
     get_flattened_sierra_contract_and_casm_hash,
 };
 
@@ -53,7 +53,7 @@ async fn test_getting_class_of_declared_cairo1_contract() {
         ExecutionEncoding::New,
     ));
 
-    let (contract_class, casm_class_hash) = get_events_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_class_hash) = get_events_contract_artifacts();
 
     // declare the contract
     let declaration_result = predeployed_account
@@ -102,7 +102,7 @@ async fn test_getting_class_with_blocks_on_demand() {
         ExecutionEncoding::New,
     ));
 
-    let (contract_class, casm_class_hash) = get_events_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_class_hash) = get_events_contract_artifacts();
 
     let original_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
@@ -174,7 +174,7 @@ async fn test_getting_class_after_block_abortion() {
         ExecutionEncoding::New,
     ));
 
-    let (contract_class, casm_class_hash) = get_events_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_class_hash) = get_events_contract_artifacts();
 
     // declare the contract
     let declaration_result = predeployed_account

@@ -21,8 +21,7 @@ use crate::common::constants::{
 };
 use crate::common::utils::{
     FeeUnit, assert_cairo1_classes_equal, extract_message_error, extract_nested_error,
-    get_events_contract_in_sierra_and_compiled_class_hash,
-    get_flattened_sierra_contract_and_casm_hash,
+    get_events_contract_artifacts, get_flattened_sierra_contract_and_casm_hash,
 };
 
 #[tokio::test]
@@ -264,7 +263,7 @@ async fn test_getting_class_at_various_blocks() {
         ExecutionEncoding::New,
     ));
 
-    let (contract_class, casm_class_hash) = get_events_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_class_hash) = get_events_contract_artifacts();
 
     // declare the contract
     let declaration_result = predeployed_account

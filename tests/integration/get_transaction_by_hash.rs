@@ -12,15 +12,14 @@ use crate::common::constants::{
     self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, ETH_ERC20_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_tx_successful, get_deployable_account_signer,
-    get_simple_contract_in_sierra_and_compiled_class_hash,
+    assert_tx_successful, get_deployable_account_signer, get_simple_contract_artifacts,
 };
 
 #[tokio::test]
 async fn get_declare_v3_transaction_by_hash_happy_path() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-    let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_hash) = get_simple_contract_artifacts();
 
     let (signer, address) = devnet.get_first_predeployed_account().await;
     let mut account = SingleOwnerAccount::new(
