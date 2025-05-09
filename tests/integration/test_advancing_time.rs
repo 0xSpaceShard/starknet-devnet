@@ -16,7 +16,8 @@ use crate::common::constants;
 use crate::common::utils::{
     UniqueAutoDeletableFile, assert_contains, declare_v3_deploy_v3, extract_message_error,
     extract_nested_error, get_block_reader_contract_in_sierra_and_compiled_class_hash,
-    get_timestamp_asserter, get_unix_timestamp_as_seconds, send_ctrl_c_signal_and_wait,
+    get_timestamp_asserter, get_unix_timestamp_as_seconds, increase_time,
+    send_ctrl_c_signal_and_wait, set_time,
 };
 
 const DUMMY_ADDRESS: u128 = 1;
@@ -27,19 +28,6 @@ const BUFFER_TIME_SECONDS: u64 = 30;
 async fn sleep_until_new_timestamp() {
     // Sometimes sleeping for 1 second isn't enough.
     tokio::time::sleep(time::Duration::from_millis(1500)).await
-}
-
-/// Set time and generate a new block
-/// Returns the block timestamp of the newly generated block
-pub async fn set_time(devnet: &BackgroundDevnet, time: u64) -> u64 {
-    let resp_body =
-        devnet.send_custom_rpc("devnet_setTime", json!({ "time": time })).await.unwrap();
-
-    resp_body["block_timestamp"].as_u64().unwrap()
-}
-
-pub async fn increase_time(devnet: &BackgroundDevnet, time: u64) {
-    devnet.send_custom_rpc("devnet_increaseTime", json!({ "time": time })).await.unwrap();
 }
 
 pub fn assert_ge_with_buffer(val1: u64, val2: u64) {

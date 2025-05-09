@@ -8,21 +8,24 @@ This page is about account impersonation. To read about account class selection 
 
 ## Introduction
 
-Devnet allows you to use impersonated account from mainnet/testnet. This means that a transaction sent from an impersonated account will not fail with an invalid signature error. In the general case, a transaction sent with an account that is not in the local state fails with the aforementioned error. For impersonation to work, Devnet needs to be run in [forking mode](./forking.md).
+Devnet allows you to impersonate an account that exists on the Starknet mainnet or testnet. This is achieved by skipping the validation step of transactions for all or some accounts, on a running Devnet via JSON-RPC.
+
+A transaction sent from an impersonated account will not fail with an invalid signature error, which is what happens in the general case of locally absent accounts. For impersonation to work, Devnet needs to [fork](./forking.md) the network that has the desired account.
 
 :::warning Caveat
 
 - Only `INVOKE` and `DECLARE` transactions are supported. `DEPLOY_ACCOUNT` transaction is not supported, but you can create an `INVOKE` transaction to UDC.
-- Overall fee, for transactions sent with an impersonated account, will be lower compared to normal transactions. The reason is that validation part is skipped.
-- The most common way of sending a transaction is via starknet-rs/starknet.js or starkli. Trying to send with an account that **does not** exist even in the origin network will return an error:
-  - In transaction construction, if account nonce is not hardcoded, Devnet is queried and returns `ContractNotFound`.
-  - Otherwise the nonce fetching part is skipped and `InsufficientAccountBalance` is returned.
+- Due to the validation step being skipped, the overall fee of transactions sent with an impersonated account will be lower than regular transactions.
+- Trying to send a transaction with an account that **does not** even exist in the origin network returns an error:
+  - `ContractNotFound` if, during transaction preparation, you do not specify a nonce value, leading to the implicit querying of Devnet for the nonce.
+  - `InsufficientAccountBalance` or similar if the nonce is supplied in the transaction; this happens because the token balance of a non-existent contract is 0 indeed insufficient.
 
 :::
 
-## Disabling impersonation
+## Tips
 
-Click [here](./restrictive.md) to learn how to disable account impersonation.
+- The impersonated account may have had all or a part of its funds used up on the origin network. You may need to give it more funds via [minting](./balance.md).
+- If you're defining a new account in your Starknet client application (starknet.js, starknet.rs, starkli...), you may need to specify a private key for it. Since the signature validation is skipped, you may provide a dummy key.
 
 ## API
 
@@ -83,3 +86,7 @@ Stops the effect of [automatic impersonation](#devnet_autoimpersonate).
     "params": {}
 }
 ```
+
+## Preventing impersonation
+
+If you want to learn about completely preventing impersonation from being activated on your Devnet, click [here](./restrictive.md).

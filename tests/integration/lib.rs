@@ -11,6 +11,7 @@ mod test_abort_blocks;
 mod test_account_impersonation;
 mod test_account_selection;
 mod test_advancing_time;
+mod test_advancing_time_on_fork;
 mod test_balance;
 mod test_blocks_generation;
 mod test_call;
