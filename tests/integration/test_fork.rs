@@ -24,9 +24,8 @@ use crate::common::constants::{
 };
 use crate::common::utils::{
     FeeUnit, assert_cairo1_classes_equal, assert_contains, assert_tx_successful,
-    declare_v3_deploy_v3, extract_json_rpc_error,
-    get_block_reader_contract_in_sierra_and_compiled_class_hash, get_contract_balance,
-    get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
+    declare_v3_deploy_v3, extract_json_rpc_error, get_block_reader_contract_artifacts,
+    get_contract_balance, get_simple_contract_artifacts, send_ctrl_c_signal_and_wait,
 };
 
 #[tokio::test]
@@ -179,7 +178,7 @@ async fn test_getting_cairo1_class_from_origin_and_fork() {
         ExecutionEncoding::New,
     );
 
-    let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_hash) = get_simple_contract_artifacts();
 
     let initial_value = Felt::from(10_u32);
     let ctor_args = vec![initial_value];
@@ -226,7 +225,7 @@ async fn test_origin_declare_deploy_fork_invoke() {
         ExecutionEncoding::New,
     ));
 
-    let (contract_class, casm_class_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_class_hash) = get_simple_contract_artifacts();
 
     // declare the contract
     let declaration_result = predeployed_account
@@ -458,7 +457,7 @@ async fn test_deploying_on_origin_calling_on_fork() {
         ExecutionEncoding::New,
     );
 
-    let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_hash) = get_simple_contract_artifacts();
 
     let initial_value = Felt::from(10_u32);
     let ctor_args = vec![initial_value];
@@ -568,7 +567,7 @@ async fn test_block_count_increased_on_state() {
         ExecutionEncoding::New,
     );
 
-    let (contract_class, casm_hash) = get_block_reader_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_hash) = get_block_reader_contract_artifacts();
 
     let (_, contract_address) =
         declare_v3_deploy_v3(&predeployed_account, contract_class, casm_hash, &[]).await.unwrap();

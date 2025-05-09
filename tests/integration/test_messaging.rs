@@ -35,8 +35,7 @@ use crate::common::constants::{
 use crate::common::errors::RpcError;
 use crate::common::utils::{
     UniqueAutoDeletableFile, assert_contains, assert_tx_successful, felt_to_u256,
-    get_messaging_contract_in_sierra_and_compiled_class_hash,
-    get_messaging_lib_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
+    get_messaging_contract_artifacts, get_messaging_lib_artifacts, send_ctrl_c_signal_and_wait,
 };
 
 const DUMMY_L1_ADDRESS: Felt =
@@ -122,8 +121,7 @@ async fn deploy_l2_msg_contract(
     account: Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>,
 ) -> Result<Felt, anyhow::Error> {
     // Declare l1l2 contract with storage (meant to be deployed).
-    let (sierra_class, casm_class_hash) =
-        get_messaging_contract_in_sierra_and_compiled_class_hash();
+    let (sierra_class, casm_class_hash) = get_messaging_contract_artifacts();
 
     let sierra_class_hash = sierra_class.class_hash();
     account.declare_v3(Arc::new(sierra_class), casm_class_hash).send().await?;
@@ -240,7 +238,7 @@ async fn can_send_message_to_l1_from_library_syscall() {
 
     // Declare l1l2 lib with only one function to send messages.
     // Its class hash can then be ignored, it's hardcoded in the contract.
-    let (sierra_class, casm_class_hash) = get_messaging_lib_in_sierra_and_compiled_class_hash();
+    let (sierra_class, casm_class_hash) = get_messaging_lib_artifacts();
     let lib_sierra_class_hash = sierra_class.class_hash();
 
     account

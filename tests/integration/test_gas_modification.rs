@@ -19,8 +19,7 @@ use crate::common::errors::RpcError;
 use crate::common::fees::assert_difference_if_validation;
 use crate::common::utils::{
     assert_tx_successful, felt_to_u128, get_flattened_sierra_contract_and_casm_hash,
-    get_simple_contract_in_sierra_and_compiled_class_hash, iter_to_hex_felt, to_hex_felt,
-    to_num_as_hex,
+    get_simple_contract_artifacts, iter_to_hex_felt, to_hex_felt, to_num_as_hex,
 };
 
 trait SetGasPrice {
@@ -342,7 +341,7 @@ async fn unsuccessful_declare_set_gas_successful_declare() {
         constants::CHAIN_ID,
         ExecutionEncoding::New,
     ));
-    let (contract_class, casm_class_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_class_hash) = get_simple_contract_artifacts();
     let shared_class = Arc::new(contract_class);
 
     let l1_gas = 0;

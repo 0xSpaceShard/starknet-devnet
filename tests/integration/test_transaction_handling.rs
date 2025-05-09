@@ -11,7 +11,7 @@ use crate::common::constants::{
 };
 use crate::common::utils::{
     assert_contains, declare_v3_deploy_v3, get_flattened_sierra_contract_and_casm_hash,
-    get_simple_contract_in_sierra_and_compiled_class_hash,
+    get_simple_contract_artifacts,
 };
 
 #[tokio::test]
@@ -30,7 +30,7 @@ async fn test_failed_validation_with_expected_message() {
     ));
 
     // get class
-    let (contract_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (contract_artifact, casm_hash) = get_simple_contract_artifacts();
     let contract_artifact = Arc::new(contract_artifact);
 
     // declare class
@@ -64,7 +64,7 @@ async fn test_declaration_rejected_if_casm_hash_not_matching() {
         ExecutionEncoding::New,
     ));
 
-    let (contract_class, _) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, _) = get_simple_contract_artifacts();
     let dummy_casm_hash = Felt::ONE;
 
     let declaration_result = account

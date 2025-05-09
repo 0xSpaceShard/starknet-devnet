@@ -27,8 +27,7 @@ use crate::common::constants::{
 use crate::common::utils::{
     LocalFee, assert_contains, assert_tx_reverted, assert_tx_successful, extract_message_error,
     extract_nested_error, get_deployable_account_signer,
-    get_flattened_sierra_contract_and_casm_hash,
-    get_simple_contract_in_sierra_and_compiled_class_hash,
+    get_flattened_sierra_contract_and_casm_hash, get_simple_contract_artifacts,
 };
 
 fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
@@ -218,7 +217,7 @@ async fn estimate_fee_of_invoke() {
     ));
 
     // get class
-    let (contract_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (contract_artifact, casm_hash) = get_simple_contract_artifacts();
     let contract_artifact = Arc::new(contract_artifact);
     let class_hash = contract_artifact.class_hash();
 
@@ -500,7 +499,7 @@ async fn estimate_fee_of_multiple_txs() {
     account.set_block_id(BlockId::Tag(BlockTag::Latest));
 
     // get class
-    let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_hash) = get_simple_contract_artifacts();
     let contract_class = Arc::new(contract_class);
     let class_hash = contract_class.class_hash();
 

@@ -14,9 +14,7 @@ use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     self, CAIRO_0_ACCOUNT_CONTRACT_HASH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS,
 };
-use crate::common::utils::{
-    get_deployable_account_signer, get_events_contract_in_sierra_and_compiled_class_hash,
-};
+use crate::common::utils::{get_deployable_account_signer, get_events_contract_artifacts};
 
 #[tokio::test]
 async fn deploy_account_transaction_receipt() {
@@ -68,8 +66,7 @@ async fn deploy_transaction_receipt() {
         ExecutionEncoding::New,
     ));
 
-    let (cairo_1_contract, casm_class_hash) =
-        get_events_contract_in_sierra_and_compiled_class_hash();
+    let (cairo_1_contract, casm_class_hash) = get_events_contract_artifacts();
 
     // declare the contract
     let declaration_result = predeployed_account
@@ -122,8 +119,7 @@ async fn invalid_deploy_transaction_receipt() {
         ExecutionEncoding::New,
     ));
 
-    let (cairo_1_contract, casm_class_hash) =
-        get_events_contract_in_sierra_and_compiled_class_hash();
+    let (cairo_1_contract, casm_class_hash) = get_events_contract_artifacts();
 
     // declare the contract
     let declaration_result = predeployed_account

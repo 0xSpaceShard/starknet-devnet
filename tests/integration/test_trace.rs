@@ -16,9 +16,7 @@ use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
-use crate::common::utils::{
-    get_deployable_account_signer, get_events_contract_in_sierra_and_compiled_class_hash,
-};
+use crate::common::utils::{get_deployable_account_signer, get_events_contract_artifacts};
 
 static DUMMY_ADDRESS: Felt = Felt::from_hex_unchecked("0x7b");
 static DUMMY_AMOUNT: u128 = 456;
@@ -110,8 +108,7 @@ async fn get_declare_trace() {
         ExecutionEncoding::New,
     );
 
-    let (cairo_1_contract, casm_class_hash) =
-        get_events_contract_in_sierra_and_compiled_class_hash();
+    let (cairo_1_contract, casm_class_hash) = get_events_contract_artifacts();
 
     // declare the contract
     let declaration_result = predeployed_account
@@ -166,8 +163,7 @@ async fn test_contract_deployment_trace() {
         ExecutionEncoding::New,
     ));
 
-    let (cairo_1_contract, casm_class_hash) =
-        get_events_contract_in_sierra_and_compiled_class_hash();
+    let (cairo_1_contract, casm_class_hash) = get_events_contract_artifacts();
 
     // declare the contract
     let declaration_result = account

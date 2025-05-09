@@ -16,7 +16,7 @@ use crate::common::constants::{
 use crate::common::reqwest_client::GetReqwestSender;
 use crate::common::utils::{
     FeeUnit, assert_contains, assert_tx_successful, deploy_argent_account, deploy_oz_account,
-    get_simple_contract_in_sierra_and_compiled_class_hash,
+    get_simple_contract_artifacts,
 };
 
 pub async fn get_predeployed_accounts(
@@ -160,7 +160,7 @@ async fn can_declare_deploy_invoke_cairo1_using_account(
         ExecutionEncoding::New,
     ));
 
-    let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_hash) = get_simple_contract_artifacts();
 
     // declare the contract
     let declaration_result = account

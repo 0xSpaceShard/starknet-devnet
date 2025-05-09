@@ -10,8 +10,7 @@ use starknet_rs_signers::{LocalWallet, SigningKey};
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::STRK_ERC20_CONTRACT_ADDRESS;
 use crate::common::utils::{
-    FeeUnit, ImpersonationAction, assert_contains,
-    get_simple_contract_in_sierra_and_compiled_class_hash,
+    FeeUnit, ImpersonationAction, assert_contains, get_simple_contract_artifacts,
 };
 
 const IMPERSONATED_ACCOUNT_PRIVATE_KEY: Felt = Felt::ONE;
@@ -222,8 +221,7 @@ async fn test_declare_transaction(
         forked_devnet.execute_impersonation_action(action).await?;
     }
 
-    let (flattened_class, compiled_class_hash) =
-        get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (flattened_class, compiled_class_hash) = get_simple_contract_artifacts();
 
     account.set_block_id(BlockId::Tag(BlockTag::Latest));
 

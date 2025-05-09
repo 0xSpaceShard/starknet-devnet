@@ -20,8 +20,7 @@ use crate::common::constants::{
 };
 use crate::common::utils::{
     FeeUnit, LocalFee, assert_contains, assert_tx_successful, get_deployable_account_signer,
-    get_flattened_sierra_contract_and_casm_hash,
-    get_simple_contract_in_sierra_and_compiled_class_hash,
+    get_flattened_sierra_contract_and_casm_hash, get_simple_contract_artifacts,
 };
 
 enum Action {
@@ -55,7 +54,7 @@ async fn deploy_account_to_an_address_with_insufficient_balance_should_fail() {
 #[tokio::test]
 async fn declare_deploy_happy_path() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-    let (sierra_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (sierra_artifact, casm_hash) = get_simple_contract_artifacts();
 
     let (signer, account_address) = devnet.get_first_predeployed_account().await;
 
@@ -123,7 +122,7 @@ async fn declare_from_an_account_with_insufficient_strk_tokens_balance() {
         ExecutionEncoding::New,
     );
 
-    let (sierra_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (sierra_artifact, casm_hash) = get_simple_contract_artifacts();
     let sierra_artifact = Arc::new(sierra_artifact);
     let declaration = account.declare_v3(sierra_artifact.clone(), casm_hash);
     let estimate_fee = declaration.estimate_fee().await.unwrap();
@@ -220,7 +219,7 @@ async fn deploy_account_with_insufficient_gas_price_and_or_gas_units_should_fail
 #[tokio::test]
 async fn redeclaration_has_to_fail() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-    let (sierra_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (sierra_artifact, casm_hash) = get_simple_contract_artifacts();
     let (signer, account_address) = devnet.get_first_predeployed_account().await;
 
     let mut account = SingleOwnerAccount::new(
@@ -256,7 +255,7 @@ async fn redeclaration_has_to_fail() {
 #[tokio::test]
 async fn declare_with_insufficient_gas_price_and_or_gas_units_should_fail() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-    let (sierra_artifact, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (sierra_artifact, casm_hash) = get_simple_contract_artifacts();
 
     let (signer, account_address) = devnet.get_first_predeployed_account().await;
 

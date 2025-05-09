@@ -15,8 +15,8 @@ use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
     UniqueAutoDeletableFile, assert_contains, declare_v3_deploy_v3, extract_message_error,
-    extract_nested_error, get_block_reader_contract_in_sierra_and_compiled_class_hash,
-    get_timestamp_asserter, get_unix_timestamp_as_seconds, increase_time,
+    extract_nested_error, get_block_reader_contract_artifacts,
+    get_timestamp_asserter_contract_artifacts, get_unix_timestamp_as_seconds, increase_time,
     send_ctrl_c_signal_and_wait, set_time,
 };
 
@@ -53,8 +53,7 @@ pub async fn setup_timestamp_contract(devnet: &BackgroundDevnet) -> Felt {
     );
 
     // declare
-    let (cairo_1_contract, casm_class_hash) =
-        get_block_reader_contract_in_sierra_and_compiled_class_hash();
+    let (cairo_1_contract, casm_class_hash) = get_block_reader_contract_artifacts();
     let declaration_result = predeployed_account
         .declare_v3(Arc::new(cairo_1_contract), casm_class_hash)
         .send()
@@ -572,7 +571,7 @@ async fn tx_resource_estimation_fails_unless_time_incremented() {
         ExecutionEncoding::New,
     );
 
-    let (contract_class, casm_hash) = get_timestamp_asserter();
+    let (contract_class, casm_hash) = get_timestamp_asserter_contract_artifacts();
 
     let lock_interval = 86_400;
     let ctor_args = &[Felt::from(lock_interval)];
@@ -625,7 +624,7 @@ async fn tx_execution_fails_unless_time_incremented() {
         ExecutionEncoding::New,
     );
 
-    let (contract_class, casm_hash) = get_timestamp_asserter();
+    let (contract_class, casm_hash) = get_timestamp_asserter_contract_artifacts();
 
     let lock_interval = 86_400;
     let ctor_args = &[Felt::from(lock_interval)];
