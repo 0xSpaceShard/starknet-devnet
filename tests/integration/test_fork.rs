@@ -659,8 +659,10 @@ async fn test_forked_devnet_new_block_has_parent_hash_of_the_origin_block() {
 
     forked_devnet.create_block().await.unwrap();
 
+    let previous_block_hash = latest_block.block_hash;
     let latest_block = forked_devnet.get_latest_block_with_tx_hashes().await.unwrap();
     assert_ne!(latest_block.parent_hash, origin_block_hash);
+    assert_eq!(latest_block.parent_hash, previous_block_hash);
 }
 
 #[tokio::test]
