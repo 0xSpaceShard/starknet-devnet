@@ -1,31 +1,29 @@
 use std::sync::Arc;
-use std::u128;
 
-use blockifier::abi::sierra_types::next_storage_key;
 use blockifier::state::state_api::StateReader;
-use starknet_api::core::{calculate_contract_address, PatriciaKey};
-use starknet_api::transaction::{Calldata, ContractAddressSalt};
+use starknet_api::core::calculate_contract_address;
+use starknet_api::transaction::fields::{Calldata, ContractAddressSalt};
 use starknet_api::{felt, patricia_key};
 use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::{Cairo0Json, ContractClass};
+use starknet_types::contract_class::ContractClass;
 use starknet_types::error::Error;
-use starknet_types::felt::{felt_from_prefixed_hex, join_felts, split_biguint, ClassHash, Key};
+use starknet_types::felt::{ClassHash, Key, felt_from_prefixed_hex, join_felts, split_biguint};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::state::Balance;
-use starknet_types::traits::HashProducer;
 
 use crate::constants::{
-    CAIRO_0_ACCOUNT_CONTRACT, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-    CHARGEABLE_ACCOUNT_PUBLIC_KEY, ISRC6_ID_HEX,
+    CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, CHARGEABLE_ACCOUNT_PUBLIC_KEY,
+    ISRC6_ID_HEX,
 };
+use crate::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use crate::error::DevnetResult;
 use crate::state::state_readers::DictState;
 use crate::state::{CustomState, StarknetState};
 use crate::traits::{Accounted, Deployed};
 use crate::utils::get_storage_var_address;
 
-/// data taken from https://github.com/0xSpaceShard/starknet-devnet/blob/fb96e0cc3c1c31fb29892ecefd2a670cf8a32b51/starknet_devnet/account.py
+/// data taken from https://github.com/0xSpaceShard/starknet-devnet-deprecated/blob/fb96e0cc3c1c31fb29892ecefd2a670cf8a32b51/starknet_devnet/account.py
 const ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION: &str =
     "0x3FCBF77B28C96F4F2FB5BD2D176AB083A12A5E123ADEB0DE955D7EE228C9854";
 
@@ -35,12 +33,18 @@ pub enum FeeToken {
 }
 
 #[derive(Clone)]
-pub struct Account {
+pub struct KeyPair {
     pub public_key: Key,
     pub private_key: Key,
+}
+
+#[derive(Clone)]
+pub struct Account {
+    pub keys: KeyPair,
     pub account_address: ContractAddress,
     pub initial_balance: Balance,
     pub class_hash: ClassHash,
+    pub class_metadata: &'static str,
     pub(crate) contract_class: ContractClass,
     pub(crate) eth_fee_token_address: ContractAddress,
     pub(crate) strk_fee_token_address: ContractAddress,
@@ -51,21 +55,24 @@ impl Account {
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
     ) -> DevnetResult<Self> {
-        let account_contract_class = Cairo0Json::raw_json_from_json_str(CAIRO_0_ACCOUNT_CONTRACT)?;
-        let class_hash = account_contract_class.generate_hash()?;
+        let AccountClassWrapper { contract_class, class_hash, class_metadata } =
+            AccountContractClassChoice::Cairo1.get_class_wrapper()?;
 
         // very big number
         let initial_balance = BigUint::from(u128::MAX) << 10;
 
         Ok(Self {
-            public_key: Key::from_hex(CHARGEABLE_ACCOUNT_PUBLIC_KEY)?,
-            private_key: Key::from_hex(CHARGEABLE_ACCOUNT_PRIVATE_KEY)?,
+            keys: KeyPair {
+                public_key: Key::from_hex(CHARGEABLE_ACCOUNT_PUBLIC_KEY)?,
+                private_key: Key::from_hex(CHARGEABLE_ACCOUNT_PRIVATE_KEY)?,
+            },
             account_address: ContractAddress::new(felt_from_prefixed_hex(
                 CHARGEABLE_ACCOUNT_ADDRESS,
             )?)?,
             initial_balance,
             class_hash,
-            contract_class: account_contract_class.into(),
+            class_metadata,
+            contract_class,
             eth_fee_token_address,
             strk_fee_token_address,
         })
@@ -73,20 +80,21 @@ impl Account {
 
     pub(crate) fn new(
         initial_balance: Balance,
-        public_key: Key,
-        private_key: Key,
+        keys: KeyPair,
         class_hash: ClassHash,
+        class_metadata: &'static str,
         contract_class: ContractClass,
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
     ) -> DevnetResult<Self> {
+        let account_address = Account::compute_account_address(&keys.public_key)?;
         Ok(Self {
             initial_balance,
-            public_key,
-            private_key,
+            keys,
             class_hash,
+            class_metadata,
             contract_class,
-            account_address: Account::compute_account_address(&public_key)?,
+            account_address,
             eth_fee_token_address,
             strk_fee_token_address,
         })
@@ -125,7 +133,7 @@ impl Account {
         state.state.state.set_storage_at(
             core_address,
             public_key_storage_var.try_into()?,
-            self.public_key,
+            self.keys.public_key,
         )?;
 
         Ok(())
@@ -153,14 +161,16 @@ impl Deployed for Account {
 
 impl Accounted for Account {
     fn set_initial_balance(&self, state: &mut DictState) -> DevnetResult<()> {
-        let storage_var_address_low =
-            get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
-        let storage_var_address_high = next_storage_key(&storage_var_address_low.try_into()?)?;
+        let storage_var_address_low: starknet_api::state::StorageKey =
+            get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?
+                .try_into()?;
 
-        let total_supply_storage_address_low =
+        let storage_var_address_high = storage_var_address_low.next_storage_key()?;
+
+        let total_supply_storage_address_low: starknet_api::state::StorageKey =
             get_storage_var_address("ERC20_total_supply", &[])?.try_into()?;
         let total_supply_storage_address_high =
-            next_storage_key(&total_supply_storage_address_low)?;
+            total_supply_storage_address_low.next_storage_key()?;
 
         let (high, low) = split_biguint(self.initial_balance.clone());
 
@@ -178,8 +188,7 @@ impl Accounted for Account {
             let (new_total_supply_high, new_total_supply_low) = split_biguint(new_total_supply);
 
             // set balance in ERC20_balances
-            state.set_storage_at(token_address, storage_var_address_low.try_into()?, low)?;
-
+            state.set_storage_at(token_address, storage_var_address_low, low)?;
             state.set_storage_at(token_address, storage_var_address_high, high)?;
 
             // set total supply in ERC20_total_supply
@@ -219,16 +228,17 @@ mod tests {
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::state::Balance;
 
-    use super::Account;
+    use super::{Account, KeyPair};
     use crate::account::FeeToken;
     use crate::constants::CAIRO_1_ERC20_CONTRACT_CLASS_HASH;
     use crate::state::{CustomState, StarknetState};
     use crate::traits::{Accounted, Deployed};
-    use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
-    use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
+    use crate::utils::test_utils::{
+        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
+    };
 
     /// Testing if generated account address has the same value as the first account in
-    /// https://github.com/0xSpaceShard/starknet-devnet/blob/9d867e38e6d465e568e82a47e82e40608f6d220f/test/support/schemas/predeployed_accounts_fixed_seed.json
+    /// https://github.com/0xSpaceShard/starknet-devnet-deprecated/blob/9d867e38e6d465e568e82a47e82e40608f6d220f/test/support/schemas/predeployed_accounts_fixed_seed.json
     #[test]
     fn account_address_should_be_equal() {
         let expected_result = ContractAddress::new(
@@ -314,10 +324,10 @@ mod tests {
         (
             Account::new(
                 Balance::from(10_u8),
-                Felt::from(13431515),
-                Felt::from(11),
+                KeyPair { public_key: Felt::from(13431515), private_key: Felt::from(11) },
                 dummy_felt(),
-                dummy_cairo_0_contract_class().into(),
+                "Dummy account",
+                dummy_cairo_1_contract_class().into(),
                 fee_token_address,
                 fee_token_address,
             )

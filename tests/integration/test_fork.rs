@@ -1,16 +1,14 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use server::test_utils::assert_contains;
 use starknet_rs_accounts::{
     Account, AccountFactory, AccountFactoryError, ExecutionEncoding, OpenZeppelinAccountFactory,
     SingleOwnerAccount,
 };
 use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, Call, ContractClass, Felt, FunctionCall, MaybePendingBlockWithTxHashes,
-    StarknetError,
+    BlockId, BlockTag, Call, ContractClass, DeclareTransaction, Felt, FunctionCall,
+    MaybePendingBlockWithTxHashes, StarknetError, Transaction,
 };
 use starknet_rs_core::utils::{
     get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
@@ -25,9 +23,9 @@ use crate::common::constants::{
     MAINNET_HTTPS_URL, MAINNET_URL,
 };
 use crate::common::utils::{
-    assert_cairo1_classes_equal, assert_tx_successful, declare_v3_deploy_v3,
-    get_block_reader_contract_in_sierra_and_compiled_class_hash, get_contract_balance,
-    get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait, FeeUnit,
+    FeeUnit, assert_cairo1_classes_equal, assert_contains, assert_tx_successful,
+    declare_v3_deploy_v3, extract_json_rpc_error, get_block_reader_contract_artifacts,
+    get_contract_balance, get_simple_contract_artifacts, send_ctrl_c_signal_and_wait,
 };
 
 #[tokio::test]
@@ -136,48 +134,32 @@ async fn test_forked_account_balance() {
     }
 
     // not using get_balance_at_block=2: requires forking with --state-archive-capacity full
-    let final_balance = fork_devnet.get_balance_latest(&dummy_address, FeeUnit::Wei).await.unwrap();
+    let final_balance = fork_devnet.get_balance_latest(&dummy_address, FeeUnit::Fri).await.unwrap();
     let expected_final_balance = (2_u128 * mint_amount).into();
     assert_eq!(final_balance, expected_final_balance);
 }
 
 #[tokio::test]
-async fn test_getting_cairo0_class_from_origin_and_fork() {
-    let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
-
-    let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
-    let predeployed_account = Arc::new(SingleOwnerAccount::new(
-        origin_devnet.clone_provider(),
-        signer.clone(),
-        account_address,
-        constants::CHAIN_ID,
-        ExecutionEncoding::New,
-    ));
-
-    let json_string =
-        std::fs::read_to_string("../../contracts/test_artifacts/cairo0/simple_contract.json")
+/// Using a fork of a real network because Devnet no longer accepts Cairo 0 class declaration
+async fn test_getting_cairo0_class_from_fork() {
+    let forked_devnet =
+        BackgroundDevnet::spawn_with_additional_args(&["--fork-network", MAINNET_URL])
+            .await
             .unwrap();
-    let contract_class: Arc<LegacyContractClass> =
-        Arc::new(serde_json::from_str(&json_string).unwrap());
 
-    // declare the contract
-    let declaration_result = predeployed_account
-        .declare_legacy(contract_class.clone())
-        .max_fee(Felt::from(1e18 as u128))
-        .send()
-        .await
-        .unwrap();
+    let class_hash = Felt::from_hex_unchecked(
+        "0x0523be5e7088bf4226d4fdb28c6a19d4d3b93118f7263849a6d8912bf503d672",
+    );
 
-    let fork_devnet = origin_devnet.fork().await.unwrap();
-    let _retrieved_class = fork_devnet
+    let _retrieved_class = forked_devnet
         .json_rpc_client
-        .get_class(BlockId::Tag(BlockTag::Latest), declaration_result.class_hash)
+        .get_class(BlockId::Tag(BlockTag::Latest), class_hash)
         .await
         .unwrap();
 
     // assert_eq!(retrieved_class, ContractClass::Legacy(contract_class.compress().unwrap()));
-    // For now, successfully unwrapping the retrieved class serves as proof of correctness.
-    // Currently asserting cairo0 artifacts is failing; related: https://github.com/0xSpaceShard/starknet-devnet-rs/pull/380
+    // TODO For now, successfully unwrapping the retrieved class serves as proof of correctness.
+    // Currently asserting cairo0 artifacts is failing; related: https://github.com/0xSpaceShard/starknet-devnet/pull/380
 }
 
 #[tokio::test]
@@ -196,7 +178,7 @@ async fn test_getting_cairo1_class_from_origin_and_fork() {
         ExecutionEncoding::New,
     );
 
-    let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_hash) = get_simple_contract_artifacts();
 
     let initial_value = Felt::from(10_u32);
     let ctor_args = vec![initial_value];
@@ -243,12 +225,14 @@ async fn test_origin_declare_deploy_fork_invoke() {
         ExecutionEncoding::New,
     ));
 
-    let (contract_class, casm_class_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_class_hash) = get_simple_contract_artifacts();
 
     // declare the contract
     let declaration_result = predeployed_account
-        .declare_v2(Arc::new(contract_class), casm_class_hash)
-        .max_fee(Felt::from(1e18 as u128))
+        .declare_v3(Arc::new(contract_class), casm_class_hash)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(5e7 as u64)
         .send()
         .await
         .unwrap();
@@ -259,8 +243,10 @@ async fn test_origin_declare_deploy_fork_invoke() {
     let initial_value = Felt::from(10_u32);
     let ctor_args = vec![initial_value];
     contract_factory
-        .deploy_v1(ctor_args.clone(), Felt::ZERO, false)
-        .max_fee(Felt::from(1e18 as u128))
+        .deploy_v3(ctor_args.clone(), Felt::ZERO, false)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(5e7 as u64)
         .send()
         .await
         .unwrap();
@@ -297,8 +283,10 @@ async fn test_origin_declare_deploy_fork_invoke() {
     }];
 
     let invoke_result = fork_predeployed_account
-        .execute_v1(contract_invoke.clone())
-        .max_fee(Felt::from(1e18 as u128))
+        .execute_v3(contract_invoke.clone())
+        .l1_gas(1e6 as u64)
+        .l1_data_gas(1e6 as u64)
+        .l2_gas(1e6 as u64)
         .send()
         .await
         .unwrap();
@@ -332,7 +320,13 @@ async fn test_deploying_account_with_class_not_present_on_origin() {
     .unwrap();
 
     let salt = Felt::from_hex_unchecked("0x123");
-    let deployment = factory.deploy_v1(salt).max_fee(Felt::from(1e18 as u128)).send().await;
+    let deployment = factory
+        .deploy_v3(salt)
+        .l1_gas(1e6 as u64)
+        .l1_data_gas(1e6 as u64)
+        .l2_gas(1e6 as u64)
+        .send()
+        .await;
     match deployment {
         Err(AccountFactoryError::Provider(ProviderError::StarknetError(
             StarknetError::ClassHashNotFound,
@@ -343,7 +337,7 @@ async fn test_deploying_account_with_class_not_present_on_origin() {
 
 #[tokio::test]
 /// For this test to make sense, origin must have a class not by default present in the fork.
-/// If https://github.com/0xSpaceShard/starknet-devnet-rs/issues/373 is addressed,
+/// If https://github.com/0xSpaceShard/starknet-devnet/issues/373 is addressed,
 /// both origin and fork have both of our default cairo0 and cairo1 classes, so using them for
 /// this test wouldn't make sense, as we couldn't be sure that the class used in account
 /// deployment is indeed coming from the origin.
@@ -375,7 +369,8 @@ async fn test_deploying_account_with_class_present_on_origin() {
     .unwrap();
 
     let salt = Felt::from_hex_unchecked("0x123");
-    let deployment = factory.deploy_v1(salt).max_fee(Felt::from(1e18 as u128));
+    let deployment =
+        factory.deploy_v3(salt).l1_gas(1e6 as u64).l1_data_gas(1e6 as u64).l2_gas(1e6 as u64);
     let deployment_address = deployment.address();
     fork_devnet.mint(deployment_address, 1e18 as u128).await;
     deployment.send().await.unwrap();
@@ -449,6 +444,44 @@ async fn test_get_storage_if_contract_deployed_on_origin() {
 }
 
 #[tokio::test]
+async fn test_deploying_on_origin_calling_on_fork() {
+    let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
+
+    // obtain account for deployment
+    let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
+    let predeployed_account = SingleOwnerAccount::new(
+        &origin_devnet.json_rpc_client,
+        signer.clone(),
+        account_address,
+        constants::CHAIN_ID,
+        ExecutionEncoding::New,
+    );
+
+    let (contract_class, casm_hash) = get_simple_contract_artifacts();
+
+    let initial_value = Felt::from(10_u32);
+    let ctor_args = vec![initial_value];
+    let (_, contract_address) =
+        declare_v3_deploy_v3(&predeployed_account, contract_class.clone(), casm_hash, &ctor_args)
+            .await
+            .unwrap();
+
+    let fork_devnet = origin_devnet.fork().await.unwrap();
+
+    let entry_point_selector = get_selector_from_name("get_balance").unwrap();
+    let call_result = fork_devnet
+        .json_rpc_client
+        .call(
+            FunctionCall { contract_address, entry_point_selector, calldata: vec![] },
+            BlockId::Tag(BlockTag::Latest),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(call_result, vec![initial_value]);
+}
+
+#[tokio::test]
 async fn test_fork_using_origin_token_contract() {
     let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
@@ -458,7 +491,7 @@ async fn test_fork_using_origin_token_contract() {
 
     let fork_devnet = origin_devnet.fork().await.unwrap();
 
-    let fork_balance = fork_devnet.get_balance_latest(&address, FeeUnit::Wei).await.unwrap();
+    let fork_balance = fork_devnet.get_balance_latest(&address, FeeUnit::Fri).await.unwrap();
     assert_eq!(fork_balance, Felt::from(mint_amount));
 }
 
@@ -470,7 +503,17 @@ async fn test_fork_if_origin_dies() {
 
     let address = Felt::ONE;
     match fork_devnet.json_rpc_client.get_nonce(BlockId::Tag(BlockTag::Latest), address).await {
-        Err(ProviderError::Other(e)) => assert_contains(&e.to_string(), "error sending request"),
+        Err(provider_error) => {
+            let received_error = extract_json_rpc_error(provider_error).unwrap();
+            assert_eq!(received_error.code, -1);
+            assert_contains(
+                &received_error.message,
+                "Failed to read from state: Error in communication with forking origin",
+            );
+            assert_contains(&received_error.message, "Connection refused");
+            assert_contains(&received_error.message, &format!("url: \"{}/\"", origin_devnet.url));
+            assert_eq!(received_error.data, None);
+        }
         unexpected => panic!("Got unexpected resp: {unexpected:?}"),
     }
 }
@@ -524,7 +567,7 @@ async fn test_block_count_increased_on_state() {
         ExecutionEncoding::New,
     );
 
-    let (contract_class, casm_hash) = get_block_reader_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_hash) = get_block_reader_contract_artifacts();
 
     let (_, contract_address) =
         declare_v3_deploy_v3(&predeployed_account, contract_class, casm_hash, &[]).await.unwrap();
@@ -577,7 +620,7 @@ async fn test_forking_https() {
 #[tokio::test]
 async fn test_forked_devnet_uses_different_contract_class_for_predeployed_tokens() {
     let origin_url = MAINNET_URL;
-    let fork_block = 668276; // data taken from https://github.com/0xSpaceShard/starknet-devnet-rs/issues/587
+    let fork_block = 668276; // data taken from https://github.com/0xSpaceShard/starknet-devnet/issues/587
     let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
         "--fork-network",
         origin_url,
@@ -615,8 +658,10 @@ async fn test_forked_devnet_new_block_has_parent_hash_of_the_origin_block() {
 
     forked_devnet.create_block().await.unwrap();
 
+    let previous_block_hash = latest_block.block_hash;
     let latest_block = forked_devnet.get_latest_block_with_tx_hashes().await.unwrap();
     assert_ne!(latest_block.parent_hash, origin_block_hash);
+    assert_eq!(latest_block.parent_hash, previous_block_hash);
 }
 
 #[tokio::test]
@@ -646,5 +691,51 @@ async fn test_tx_info_available_from_origin() {
             .get_transaction_by_block_id_and_index(block_id, 0)
             .await
             .unwrap();
+    }
+}
+
+#[tokio::test]
+/// Adding of new declare v1 txs is no longer supported, but fetching old ones still is.
+async fn test_fetching_declare_tx_v1_from_origin() {
+    let forked_devnet =
+        BackgroundDevnet::spawn_with_additional_args(&["--fork-network", MAINNET_URL])
+            .await
+            .unwrap();
+
+    let tx_hash = Felt::from_hex_unchecked(
+        "0xd1085f209ddfe060c0f6d544942473e0eaed4c5292b413af8e197b6b7270c0",
+    );
+
+    match forked_devnet.json_rpc_client.get_transaction_by_hash(tx_hash).await {
+        Ok(Transaction::Declare(DeclareTransaction::V1(_))) => (),
+        other => panic!("Invalid tx resp: {other:?}"),
+    };
+}
+
+#[tokio::test]
+async fn test_call_at_block_not_present_in_origin() {
+    let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
+    let forked_devnet =
+        BackgroundDevnet::spawn_with_additional_args(&["--fork-network", &origin_devnet.url])
+            .await
+            .unwrap();
+
+    for non_existent_block_id in [BlockId::Hash(Felt::ONE), BlockId::Number(2)] {
+        let call_result = forked_devnet
+            .json_rpc_client
+            .call(
+                FunctionCall {
+                    contract_address: Felt::ONE, // dummy
+                    entry_point_selector: get_selector_from_name("dummy").unwrap(),
+                    calldata: vec![],
+                },
+                non_existent_block_id,
+            )
+            .await;
+
+        match call_result {
+            Err(ProviderError::StarknetError(StarknetError::BlockNotFound)) => (),
+            other => panic!("Unexpected result: {other:?}"),
+        }
     }
 }

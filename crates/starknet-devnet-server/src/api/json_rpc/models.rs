@@ -1,9 +1,11 @@
 use serde::{Deserialize, Serialize};
-use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
+use starknet_rs_core::types::{
+    Felt, Hash256, TransactionExecutionStatus, TransactionFinalityStatus,
+};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::block::BlockId;
+use starknet_types::rpc::block::{BlockId, SubscriptionBlockId};
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, EventFilter, FunctionCall,
@@ -25,11 +27,32 @@ pub struct TransactionHashInput {
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
+pub struct ClassHashInput {
+    pub class_hash: ClassHash,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct GetStorageInput {
     pub contract_address: ContractAddress,
     pub key: PatriciaKey,
     pub block_id: BlockId,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct ContractStorage {
+    pub contract_address: ContractAddress,
+    pub storage_keys: Vec<Felt>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct GetStorageProofInput {
+    pub block_id: BlockId,
+    pub class_hashes: Option<Vec<Felt>>,
+    pub contract_addresses: Option<Vec<ContractAddress>>,
+    pub contracts_storage_keys: Option<Vec<ContractStorage>>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -87,7 +110,7 @@ pub struct BlockHashAndNumberOutput {
 #[cfg_attr(test, derive(Deserialize))]
 #[serde(untagged)]
 pub enum SyncingOutput {
-    False(bool),
+    False(bool), // if it seems redundant, check the spec
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -172,6 +195,72 @@ pub struct TransactionStatusOutput {
     pub execution_status: TransactionExecutionStatus,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct L1TransactionHashInput {
+    pub transaction_hash: Hash256,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct SubscriptionId(u64);
+
+impl From<u64> for SubscriptionId {
+    fn from(value: u64) -> Self {
+        Self(value)
+    }
+}
+
+impl Serialize for SubscriptionId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.0.to_string())
+    }
+}
+
+/// Custom deserialization is needed, because subscriber initially received stringified u64 value.
+impl<'de> Deserialize<'de> for SubscriptionId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let u64_as_string = String::deserialize(deserializer)?;
+        let subscription_id = u64_as_string.parse::<u64>().map_err(|_| {
+            serde::de::Error::invalid_type(serde::de::Unexpected::Str(&u64_as_string), &"u64")
+        })?;
+
+        Ok(SubscriptionId(subscription_id))
+    }
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct SubscriptionIdInput {
+    pub subscription_id: SubscriptionId,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct SubscriptionBlockIdInput {
+    pub block_id: SubscriptionBlockId,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct PendingTransactionsSubscriptionInput {
+    pub transaction_details: Option<bool>,
+    pub sender_address: Option<Vec<ContractAddress>>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct EventsSubscriptionInput {
+    pub block_id: Option<SubscriptionBlockId>,
+    pub from_address: Option<ContractAddress>,
+    pub keys: Option<Vec<Vec<Felt>>>,
+}
+
 #[cfg(test)]
 mod tests {
     use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag, Felt};
@@ -188,16 +277,32 @@ mod tests {
 
     #[test]
     fn errored_deserialization_of_estimate_fee_with_broadcasted_declare_transaction() {
-        // Errored json struct that passed DECLARE V2, but contract class is of type V1
+        // Errored json struct that passed DECLARE V3, but contract class is of type V1
         let json_str = r#"{
             "request": [{
                 "type": "DECLARE",
-                "max_fee": "0xA",
-                "version": "0x2",
+                "version": "0x3",
                 "signature": ["0xFF", "0xAA"],
                 "nonce": "0x0",
                 "sender_address": "0x0001",
+                "resource_bounds": {
+                    "l1_gas": {
+                        "max_amount": "0x1",
+                        "max_price_per_unit": "0x2"
+                    },
+                    "l1_data_gas": {
+                        "max_amount": "0x1",
+                        "max_price_per_unit": "0x2"
+                    },
+                    "l2_gas": {
+                        "max_amount": "0x1",
+                        "max_price_per_unit": "0x2"
+                    }
+                },
                 "compiled_class_hash": "0x01",
+                "tip": "0xabc",
+                "paymaster_data": [],
+                "account_deployment_data": [],
                 "contract_class": {
                     "abi": [{
                         "inputs": [],
@@ -224,7 +329,9 @@ mod tests {
                     }],
                     "program": "",
                     "entry_points_by_type": {}
-                }
+                },
+                "nonce_data_availability_mode": "L1",
+                "fee_data_availability_mode": "L1"
             }],
             "block_id": {
                 "block_number": 1
@@ -232,7 +339,11 @@ mod tests {
         }"#;
 
         match serde_json::from_str::<EstimateFeeInput>(json_str) {
-            Err(err) => assert_contains(&err.to_string(), "Invalid declare transaction v2"),
+            Err(err) => assert_contains(
+                &err.to_string(),
+                // error indicative of expecting a cairo1 class artifact
+                "Invalid declare transaction v3: missing field `state_mutability`",
+            ),
             other => panic!("Invalid result: {other:?}"),
         }
     }
@@ -243,51 +354,28 @@ mod tests {
             "request": [
                 {
                     "type": "DECLARE",
-                    "max_fee": "0xA",
-                    "version": "0x1",
+                    "version": "0x3",
                     "signature": ["0xFF", "0xAA"],
                     "nonce": "0x0",
                     "sender_address": "0x0001",
-                    "contract_class": {
-                        "abi": [{
-                            "inputs": [],
-                            "name": "getPublicKey",
-                            "outputs": [
-                                {
-                                    "name": "publicKey",
-                                    "type": "felt"
-                                }
-                            ],
-                            "stateMutability": "view",
-                            "type": "function"
+                    "resource_bounds": {
+                        "l1_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
                         },
-                        {
-                            "inputs": [],
-                            "name": "setPublicKey",
-                            "outputs": [
-                                {
-                                    "name": "publicKey",
-                                    "type": "felt"
-                                }
-                            ],
-                            "type": "function"
-                        }],
-                        "program": "",
-                        "entry_points_by_type": {
-                            "CONSTRUCTOR": [],
-                            "EXTERNAL": [],
-                            "L1_HANDLER": []
+                        "l1_data_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
+                        },
+                        "l2_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
                         }
-                    }
-                },
-                {
-                    "type": "DECLARE",
-                    "max_fee": "0xA",
-                    "version": "0x2",
-                    "signature": ["0xFF", "0xAA"],
-                    "nonce": "0x0",
-                    "sender_address": "0x0001",
+                    },
                     "compiled_class_hash": "0x01",
+                    "tip": "0xabc",
+                    "paymaster_data": [],
+                    "account_deployment_data": [],
                     "contract_class": {
                         "sierra_program": ["0xAA", "0xBB"],
                         "contract_class_version": "1.0",
@@ -331,34 +419,69 @@ mod tests {
                                 ]
                             }
                         ]
-                    }
+                    },
+                    "nonce_data_availability_mode": "L1",
+                    "fee_data_availability_mode": "L1"
                 },
                 {
                     "type": "INVOKE",
-                    "max_fee": "0x1",
-                    "version": "0x100000000000000000000000000000001",
-                    "signature": [
-                    "0x2"
-                    ],
+                    "resource_bounds": {
+                        "l1_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
+                        },
+                        "l1_data_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
+                        },
+                        "l2_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
+                        }
+                    },
+                    "tip": "0xabc",
+                    "paymaster_data": [],
+                    "account_deployment_data": [],
+                    "version": "0x100000000000000000000000000000003",
+                    "signature": ["0x2"],
                     "nonce": "0x1",
                     "sender_address": "0x3",
                     "calldata": [
-                    "0x1",
-                    "0x2",
-                    "0x3"
-                  ]
+                        "0x1",
+                        "0x2",
+                        "0x3"
+                    ],
+                    "nonce_data_availability_mode": "L1",
+                    "fee_data_availability_mode": "L1"
                 },
                 {
-                    "type": "DEPLOY_ACCOUNT",
-                    "max_fee": "0xA",
-                    "version": "0x1",
+                    "type":"DEPLOY_ACCOUNT",
+                    "resource_bounds": {
+                        "l1_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
+                        },
+                        "l1_data_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
+                        },
+                        "l2_gas": {
+                            "max_amount": "0x1",
+                            "max_price_per_unit": "0x2"
+                        }
+                    },
+                    "tip": "0xabc",
+                    "paymaster_data": [],
+                    "version": "0x100000000000000000000000000000003",
                     "signature": ["0xFF", "0xAA"],
                     "nonce": "0x0",
                     "contract_address_salt": "0x01",
+                    "class_hash": "0x01",
                     "constructor_calldata": ["0x01"],
-                    "class_hash": "0x01"
+                    "nonce_data_availability_mode": "L1",
+                    "fee_data_availability_mode": "L1"
                 }
-                ],
+            ],
             "block_id": {
                 "block_number": 1
             },
@@ -367,17 +490,13 @@ mod tests {
 
         let estimate_fee_input = serde_json::from_str::<super::EstimateFeeInput>(json_str).unwrap();
         assert_eq!(estimate_fee_input.block_id.as_ref(), &ImportedBlockId::Number(1));
-        assert_eq!(estimate_fee_input.request.len(), 4);
+        assert_eq!(estimate_fee_input.request.len(), 3);
         assert!(matches!(
             estimate_fee_input.request[0],
-            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(_))
+            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V3(_))
         ));
-        assert!(matches!(
-            estimate_fee_input.request[1],
-            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(_))
-        ));
-        assert!(matches!(estimate_fee_input.request[2], BroadcastedTransaction::Invoke(_)));
-        assert!(matches!(estimate_fee_input.request[3], BroadcastedTransaction::DeployAccount(_)));
+        assert!(matches!(estimate_fee_input.request[1], BroadcastedTransaction::Invoke(_)));
+        assert!(matches!(estimate_fee_input.request[2], BroadcastedTransaction::DeployAccount(_)));
     }
 
     #[test]
@@ -434,7 +553,7 @@ mod tests {
             r#"{"block_id": {"block_hash": "0x01"}, "contract_address_mock": "0x02", "key": "0x03"}"#,
         );
 
-        // Incorrect key key
+        // Incorrect key
         assert_get_storage_input_correctness(
             false,
             expected_storage_input,

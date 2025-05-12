@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use server::test_utils::assert_contains;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{BlockId, BlockTag, Call, ExecutionResult, Felt};
 use starknet_rs_core::utils::get_selector_from_name;
@@ -11,7 +10,7 @@ use starknet_rs_signers::{LocalWallet, SigningKey};
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::STRK_ERC20_CONTRACT_ADDRESS;
 use crate::common::utils::{
-    get_simple_contract_in_sierra_and_compiled_class_hash, FeeUnit, ImpersonationAction,
+    FeeUnit, ImpersonationAction, assert_contains, get_simple_contract_artifacts,
 };
 
 const IMPERSONATED_ACCOUNT_PRIVATE_KEY: Felt = Felt::ONE;
@@ -197,7 +196,7 @@ async fn test_simulate_transaction() {
         }
 
         let simulation_result =
-            account.execute_v1(invoke_calls.clone()).simulate(!do_validate, true).await;
+            account.execute_v3(invoke_calls.clone()).simulate(!do_validate, true).await;
         if let Some(error_msg) = expected_error_message {
             let simulation_err = simulation_result.expect_err("Expected simulation to fail");
             assert_contains(&format!("{:?}", simulation_err).to_lowercase(), error_msg);
@@ -222,12 +221,11 @@ async fn test_declare_transaction(
         forked_devnet.execute_impersonation_action(action).await?;
     }
 
-    let (flattened_class, compiled_class_hash) =
-        get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (flattened_class, compiled_class_hash) = get_simple_contract_artifacts();
 
     account.set_block_id(BlockId::Tag(BlockTag::Latest));
 
-    account.declare_v2(Arc::new(flattened_class), compiled_class_hash).send().await?;
+    account.declare_v3(Arc::new(flattened_class), compiled_class_hash).send().await?;
 
     Ok(())
 }
@@ -250,7 +248,7 @@ async fn test_invoke_transaction(
 
     let invoke_call = get_invoke_transaction_request(AMOUNT_TO_TRANSFER);
 
-    let result = account.execute_v1(vec![invoke_call]).send().await?;
+    let result = account.execute_v3(vec![invoke_call]).send().await?;
 
     let receipt = forked_devnet
         .json_rpc_client

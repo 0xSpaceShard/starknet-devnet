@@ -1,15 +1,14 @@
 use std::sync::Arc;
 
-use starknet_core::utils::exported_test_utils::dummy_cairo_l1l2_contract;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 use starknet_rs_core::types::{BlockId, BlockTag, EthAddress, Felt, MsgFromL1, StarknetError};
-use starknet_rs_core::utils::{get_udc_deployed_address, UdcUniqueness};
+use starknet_rs_core::utils::{UdcUniqueness, get_udc_deployed_address};
 use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{CHAIN_ID, L1_HANDLER_SELECTOR, MESSAGING_WHITELISTED_L1_CONTRACT};
+use crate::common::utils::get_messaging_contract_artifacts;
 
 #[tokio::test]
 async fn estimate_message_fee() {
@@ -26,19 +25,12 @@ async fn estimate_message_fee() {
     ));
 
     // get class
-    let contract_json = dummy_cairo_l1l2_contract();
-    let contract_artifact: Arc<LegacyContractClass> =
-        Arc::new(serde_json::from_value(contract_json.inner).unwrap());
-    let class_hash = contract_artifact.class_hash().unwrap();
+    let (contract_artifact, casm_hash) = get_messaging_contract_artifacts();
+    let contract_artifact = Arc::new(contract_artifact);
+    let class_hash = contract_artifact.class_hash();
 
     // declare class
-    account
-        .declare_legacy(contract_artifact.clone())
-        .nonce(Felt::ZERO)
-        .max_fee(Felt::from(1e18 as u128))
-        .send()
-        .await
-        .unwrap();
+    account.declare_v3(contract_artifact, casm_hash).nonce(Felt::ZERO).send().await.unwrap();
 
     // deploy instance of class
     let contract_factory = ContractFactory::new(class_hash, account.clone());
@@ -51,11 +43,11 @@ async fn estimate_message_fee() {
         &constructor_calldata,
     );
     contract_factory
-            .deploy_v1(constructor_calldata, salt, false)
-            .nonce(Felt::ONE)
-            // max fee implicitly estimated
-            .send()
-            .await.expect("Cannot deploy");
+        .deploy_v3(constructor_calldata, salt, false)
+        .nonce(Felt::ONE)
+        .send()
+        .await
+        .expect("Cannot deploy");
 
     let res = devnet
         .json_rpc_client
@@ -71,7 +63,8 @@ async fn estimate_message_fee() {
         .await
         .unwrap();
 
-    assert_eq!(res.gas_consumed, Felt::from(16029));
+    assert_eq!(res.l1_gas_consumed, Felt::from(16029));
+    assert_eq!(res.l2_gas_consumed, Felt::ZERO);
 }
 
 #[tokio::test]

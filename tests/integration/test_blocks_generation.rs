@@ -17,10 +17,9 @@ use starknet_rs_signers::Signer;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH};
 use crate::common::utils::{
-    assert_equal_elements, assert_tx_successful, get_contract_balance,
-    get_contract_balance_by_block_id, get_events_contract_in_sierra_and_compiled_class_hash,
-    get_simple_contract_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait, FeeUnit,
-    UniqueAutoDeletableFile,
+    FeeUnit, UniqueAutoDeletableFile, assert_equal_elements, assert_tx_successful,
+    get_contract_balance, get_contract_balance_by_block_id, get_events_contract_artifacts,
+    get_simple_contract_artifacts, send_ctrl_c_signal_and_wait,
 };
 
 static DUMMY_ADDRESS: u128 = 1;
@@ -145,7 +144,7 @@ async fn assert_pending_block_with_receipts(devnet: &BackgroundDevnet, tx_count:
 
 async fn assert_balance(devnet: &BackgroundDevnet, expected: Felt, tag: BlockTag) {
     let balance =
-        devnet.get_balance_by_tag(&Felt::from(DUMMY_ADDRESS), FeeUnit::Wei, tag).await.unwrap();
+        devnet.get_balance_by_tag(&Felt::from(DUMMY_ADDRESS), FeeUnit::Fri, tag).await.unwrap();
     assert_eq!(balance, expected);
 }
 
@@ -227,7 +226,6 @@ async fn normal_mode_states_and_blocks() {
     assert_pending_block_with_tx_hashes(&devnet, 0).await;
     assert_pending_block_with_txs(&devnet, 0).await;
     assert_pending_block_with_receipts(&devnet, 0).await;
-
     assert_latest_block_with_tx_hashes(&devnet, 5, vec![tx_hashes.last().copied().unwrap()]).await;
     assert_latest_block_with_txs(&devnet, 5, 1).await;
     assert_latest_block_with_receipts(&devnet, 5, 1).await;
@@ -284,24 +282,22 @@ async fn blocks_on_demand_declarations() {
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
 
     let (signer, account_address) = devnet.get_first_predeployed_account().await;
-    let predeployed_account = Arc::new(SingleOwnerAccount::new(
+    let mut predeployed_account = SingleOwnerAccount::new(
         devnet.clone_provider(),
         signer.clone(),
         account_address,
         constants::CHAIN_ID,
         ExecutionEncoding::New,
-    ));
+    );
+    predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
 
     // perform declarations
-    let classes_with_hash = [
-        get_simple_contract_in_sierra_and_compiled_class_hash(),
-        get_events_contract_in_sierra_and_compiled_class_hash(),
-    ];
+    let classes_with_hash = [get_simple_contract_artifacts(), get_events_contract_artifacts()];
+
     let mut declaration_results = vec![];
     for (nonce, (class, casm_hash)) in classes_with_hash.iter().enumerate() {
         let declaration_result = predeployed_account
-            .declare_v2(Arc::new(class.clone()), *casm_hash)
-            .max_fee(Felt::from(1e18 as u128))
+            .declare_v3(Arc::new(class.clone()), *casm_hash)
             .nonce(Felt::from(nonce))
             .send()
             .await
@@ -367,20 +363,20 @@ async fn blocks_on_demand_invoke_and_call() {
     let mut tx_hashes = Vec::new();
 
     let (signer, account_address) = devnet.get_first_predeployed_account().await;
-    let predeployed_account = Arc::new(SingleOwnerAccount::new(
+    let mut predeployed_account = SingleOwnerAccount::new(
         devnet.clone_provider(),
         signer.clone(),
         account_address,
         constants::CHAIN_ID,
         ExecutionEncoding::New,
-    ));
+    );
+    predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
 
-    let (contract_class, casm_class_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
+    let (contract_class, casm_class_hash) = get_simple_contract_artifacts();
 
     // declare the contract
     let declaration_result = predeployed_account
-        .declare_v2(Arc::new(contract_class), casm_class_hash)
-        .max_fee(Felt::from(1e18 as u128))
+        .declare_v3(Arc::new(contract_class), casm_class_hash)
         .nonce(Felt::ZERO)
         .send()
         .await
@@ -394,8 +390,7 @@ async fn blocks_on_demand_invoke_and_call() {
     let initial_value = Felt::from(10_u32);
     let ctor_args = vec![initial_value];
     let deploy_result = contract_factory
-        .deploy_v1(ctor_args.clone(), Felt::ZERO, false)
-        .max_fee(Felt::from(1e18 as u128))
+        .deploy_v3(ctor_args.clone(), Felt::ZERO, false)
         .nonce(Felt::ONE)
         .send()
         .await
@@ -420,8 +415,7 @@ async fn blocks_on_demand_invoke_and_call() {
     let increment_count = 2;
     for i in 1..=increment_count {
         let invoke_result = predeployed_account
-            .execute_v1(contract_invoke.clone())
-            .max_fee(Felt::from(1e18 as u128))
+            .execute_v3(contract_invoke.clone())
             .nonce(Felt::from(i + 1_u128))
             .send()
             .await
@@ -485,9 +479,13 @@ async fn blocks_on_interval() {
 
 #[tokio::test]
 async fn blocks_on_interval_transactions() {
-    let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "2"])
-        .await
-        .expect("Could not start Devnet");
+    let period = 6;
+    let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+        "--block-generation-on",
+        &period.to_string(),
+    ])
+    .await
+    .expect("Could not start Devnet");
 
     let tx_count = 3;
     let mut tx_hashes = Vec::new();
@@ -497,7 +495,7 @@ async fn blocks_on_interval_transactions() {
     }
 
     // wait for one and a half interval
-    tokio::time::sleep(time::Duration::from_secs(3)).await;
+    tokio::time::sleep(time::Duration::from_secs(period * 3 / 2)).await;
 
     // first is genesis block, second block is generated after transactions
     assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await;

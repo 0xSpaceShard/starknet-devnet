@@ -10,21 +10,21 @@ use ngrok::config::TunnelBuilder;
 use ngrok::prelude::TunnelExt;
 use ngrok::tunnel::UrlTunnel;
 use serde::de::IntoDeserializer;
+use serde_json::json;
+use server::api::Api;
 use server::api::http::HttpApiHandler;
 use server::api::json_rpc::{JsonRpcHandler, RPC_SPEC_VERSION};
-use server::api::Api;
-use server::dump_util::{dump_events, load_events, DumpEvent};
-use server::rpc_core::request::{Id, RequestParams, Version};
+use server::dump_util::{dump_events, load_events};
 use server::server::serve_http_api_json_rpc;
 use starknet_core::account::Account;
 use starknet_core::constants::{
-    ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS,
-    UDC_CONTRACT_CLASS_HASH,
+    ARGENT_CONTRACT_CLASS_HASH, ARGENT_MULTISIG_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS,
+    STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
+use starknet_core::starknet::Starknet;
 use starknet_core::starknet::starknet_config::{
     BlockGenerationOn, DumpOn, ForkConfig, StarknetConfig,
 };
-use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::ContractClass::{Legacy, Sierra};
 use starknet_rs_core::types::{
     BlockId, BlockTag, Felt, MaybePendingBlockWithTxHashes, StarknetError,
@@ -36,12 +36,12 @@ use starknet_types::rpc::state::Balance;
 use starknet_types::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 use tokio::net::TcpListener;
 #[cfg(unix)]
-use tokio::signal::unix::{signal, SignalKind};
+use tokio::signal::unix::{SignalKind, signal};
 #[cfg(windows)]
 use tokio::signal::windows::ctrl_c;
 use tokio::task::{self};
 use tokio::time::{interval, sleep};
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 
 mod cli;
@@ -83,26 +83,31 @@ fn log_predeployed_accounts(
     seed: u32,
     initial_balance: Balance,
 ) {
+    if let Some(predeployed_account) = predeployed_accounts.first() {
+        println!(
+            "Predeployed accounts using class {} with hash: {}",
+            predeployed_account.class_metadata,
+            predeployed_account.class_hash.to_fixed_hex_string()
+        );
+    }
+
     for account in predeployed_accounts {
-        let formatted_str = format!(
+        println!(
             r"
 | Account address |  {}
 | Private key     |  {}
 | Public key      |  {}",
             account.account_address.to_fixed_hex_string(),
-            account.private_key.to_fixed_hex_string(),
-            account.public_key.to_fixed_hex_string()
+            account.keys.private_key.to_fixed_hex_string(),
+            account.keys.public_key.to_fixed_hex_string()
         );
-
-        println!("{}", formatted_str);
     }
 
-    if let Some(predeployed_account) = predeployed_accounts.first() {
+    if !predeployed_accounts.is_empty() {
         println!();
-        let class_hash = predeployed_account.class_hash.to_fixed_hex_string();
-        println!("Predeployed accounts using class with hash: {class_hash}");
-        println!("Initial balance of each account: {} WEI and FRI", initial_balance);
+        println!("Initial balance of each account: {initial_balance} WEI and FRI");
         println!("Seed to replicate this account sequence: {seed}");
+        println!();
     }
 }
 
@@ -119,8 +124,18 @@ fn log_predeployed_contracts(config: &StarknetConfig) {
     println!();
 }
 
+fn log_other_predeclared_contracts(config: &StarknetConfig) {
+    if config.predeclare_argent {
+        println!("Predeclared Argent account classes");
+        println!("Regular class hash: 0x{:X}", ARGENT_CONTRACT_CLASS_HASH);
+        println!("Multisig class hash: 0x{:X}", ARGENT_MULTISIG_CONTRACT_CLASS_HASH);
+        println!();
+    }
+}
+
 fn log_chain_id(chain_id: &ChainId) {
     println!("Chain ID: {} ({})", chain_id, chain_id.to_felt().to_hex_string());
+    println!();
 }
 
 async fn check_forking_spec_version(
@@ -158,6 +173,11 @@ async fn set_erc20_contract_class_and_class_hash_if_different_than_default(
         match json_rpc_client.get_class_hash_at(block_id, contract_address).await {
             Ok(origin_class_hash) => {
                 if origin_class_hash != default_class_hash {
+                    tracing::debug!(
+                        "Found ERC20 class hash difference at address {contract_address:#x}; \
+                         origin={origin_class_hash:#x}, default={default_class_hash:#x}. \
+                         Replacing..."
+                    );
                     let origin_contract_class =
                         json_rpc_client.get_class(block_id, origin_class_hash).await?;
                     let contract_class_json_str = match origin_contract_class {
@@ -329,8 +349,9 @@ async fn main() -> Result<(), anyhow::Error> {
         );
     };
 
-    log_predeployed_contracts(&starknet_config);
     log_chain_id(&starknet_config.chain_id);
+    log_predeployed_contracts(&starknet_config);
+    log_other_predeclared_contracts(&starknet_config);
 
     let predeployed_accounts = api.starknet.lock().await.get_predeployed_accounts();
     log_predeployed_accounts(
@@ -363,7 +384,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     if let BlockGenerationOn::Interval(seconds) = starknet_config.block_generation_on {
         // use JoinHandle to run block interval creation as a task
-        let block_interval_handle = task::spawn(create_block_interval(api.clone(), seconds));
+        let full_address = format!("http://{address}");
+        let block_interval_handle = task::spawn(create_block_interval(seconds, full_address));
 
         tasks.push(block_interval_handle);
     }
@@ -389,8 +411,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
 #[allow(clippy::expect_used)]
 async fn create_block_interval(
-    api: Api,
     block_interval_seconds: u64,
+    devnet_address: String,
 ) -> Result<(), std::io::Error> {
     #[cfg(unix)]
     let mut sigint = { signal(SignalKind::interrupt()).expect("Failed to setup SIGINT handler") };
@@ -401,21 +423,21 @@ async fn create_block_interval(
         Box::pin(ctrl_c_signal)
     };
 
+    let devnet_client = reqwest::Client::new();
+    let block_req_body = json!({ "jsonrpc": "2.0", "id": 0, "method": "devnet_createBlock" });
+
+    // avoid creating block instantly after startup
+    sleep(Duration::from_secs(block_interval_seconds)).await;
+
     let mut interval = interval(Duration::from_secs(block_interval_seconds));
     loop {
-        // TODO does this need to be inside of the loop? or outside?
-        // avoid creating block instantly after startup
-        sleep(Duration::from_secs(block_interval_seconds)).await;
-
         tokio::select! {
             _ = interval.tick() => {
-                let mut starknet = api.starknet.lock().await;
-                let mut dumpable_events = api.dumpable_events.lock().await;
-                info!("Generating block on time interval");
-
-                // manually add event for dumping; alternative: create a client and send request
-                starknet.create_block().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
-                dumpable_events.push(DumpEvent { jsonrpc: Version::V2, method: "devnet_createBlock".into(), params: RequestParams::None, id: Id::Number(0) });
+                // By sending a request, we take care of: 1) dumping 2) notifying subscribers
+                match devnet_client.post(&devnet_address).json(&block_req_body).send().await {
+                    Ok(_) => info!("Generating block on time interval"),
+                    Err(e) => error!("Failed block creation on time interval: {e:?}")
+                }
             }
             _ = sigint.recv() => {
                 return Ok(())

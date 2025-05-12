@@ -1,12 +1,11 @@
-use std::io::Read;
-
-use blockifier::execution::contract_class::ContractClass;
+use blockifier::execution::contract_class::RunnableCompiledClass;
 use blockifier::state::errors::StateError;
 use blockifier::state::state_api::StateResult;
 use starknet_api::core::{ClassHash, ContractAddress, Nonce, PatriciaKey};
 use starknet_api::state::StorageKey;
 use starknet_rs_core::types::Felt;
 use starknet_types::contract_class::convert_codegen_to_blockifier_compiled_class;
+use tokio::sync::oneshot;
 use tracing::debug;
 
 use super::starknet_config::ForkConfig;
@@ -23,13 +22,13 @@ enum OriginError {
 
 impl OriginError {
     fn from_status_code(status_code: reqwest::StatusCode) -> Self {
-        let additional_info = match status_code.as_u16() {
-            429 => {
+        let additional_info = match status_code {
+            reqwest::StatusCode::TOO_MANY_REQUESTS => {
                 "This means your program is making Devnet send too many requests to the forking \
                  origin. 1) It could be a temporary issue, so try re-running your program. 2) If \
                  forking is not crucial for your use-case, disable it. 3) Try changing the forking \
-                 URL 4) Consider adding short sleeps to the program from which you are interacting \
-                 with Devnet."
+                 URL. 4) Consider adding short sleeps to the program from which you are \
+                 interacting with Devnet."
             }
             _ => "",
         };
@@ -45,12 +44,66 @@ impl OriginError {
 struct BlockingOriginReader {
     url: url::Url,
     block_number: u64,
-    client: reqwest::blocking::Client,
+    client: reqwest::Client,
 }
 
 impl BlockingOriginReader {
     fn new(url: url::Url, block_number: u64) -> Self {
-        Self { url, block_number, client: reqwest::blocking::Client::new() }
+        Self { url, block_number, client: reqwest::Client::new() }
+    }
+
+    /// Sends the `body` as JSON payload of a POST request. Expects JSON in response and returns it.
+    fn blocking_post(&self, body: serde_json::Value) -> Result<serde_json::Value, OriginError> {
+        let (tx, rx) = oneshot::channel();
+
+        let client = self.client.clone();
+        let url = self.url.clone();
+
+        tokio::spawn(async move {
+            let result = async {
+                let mut retries_left = 3;
+                loop {
+                    retries_left -= 1;
+
+                    // Send tx with JSON payload
+                    let resp = client
+                        .post(url.clone())
+                        .json(&body)
+                        .send()
+                        .await
+                        .map_err(|e| OriginError::CommunicationError(format!("{e:?}")))?;
+
+                    match resp.status() {
+                        reqwest::StatusCode::OK => {
+                            // Load json from response body
+                            break resp.json::<serde_json::Value>().await.map_err(|e| {
+                                OriginError::FormatError(format!("Expected JSON response: {e}"))
+                            });
+                        }
+                        // If server-side error like 503, retry
+                        other if other.as_u16() % 100 == 5 && retries_left > 0 => {
+                            let sleep_secs = 1;
+                            debug!(
+                                "Forking origin responded with status {other}. Retries left: \
+                                 {retries_left}. Retrying after {sleep_secs} s."
+                            );
+                            tokio::time::sleep(std::time::Duration::from_secs(sleep_secs)).await;
+                        }
+                        unretriable => {
+                            break Err(OriginError::from_status_code(unretriable));
+                        }
+                    }
+                }
+            }
+            .await;
+
+            tx.send(result)
+        });
+
+        tokio::task::block_in_place(move || {
+            rx.blocking_recv()
+                .map_err(|e| OriginError::CommunicationError(format!("Channel error: {e}")))?
+        })
     }
 
     fn send_body(
@@ -68,36 +121,23 @@ impl BlockingOriginReader {
             "id": 0,
         });
 
-        match self
-            .client
-            .post(self.url.clone())
-            .header(reqwest::header::CONTENT_TYPE, "application/json")
-            .body(body.to_string())
-            .send()
-        {
-            Ok(mut resp) => {
-                let resp_status = resp.status();
-                if resp_status != reqwest::StatusCode::OK {
-                    return Err(OriginError::from_status_code(resp_status));
-                }
-
-                // load json
-                let mut buff = vec![];
-                resp.read_to_end(&mut buff).map_err(|e| OriginError::FormatError(e.to_string()))?;
-                let resp_json_value: serde_json::Value = serde_json::from_slice(&buff)
-                    .map_err(|e| OriginError::FormatError(e.to_string()))?;
-
+        match self.blocking_post(body.clone()) {
+            Ok(resp_json_value) => {
                 let result = &resp_json_value["result"];
                 if result.is_null() {
                     // the received response is assumed to mean that the origin doesn't contain the
                     // requested resource
-                    debug!("Origin response contains no 'result': {resp_json_value}");
+                    debug!("Forking origin response contains no 'result': {resp_json_value}");
                     Err(OriginError::NoResult)
                 } else {
+                    debug!("Forking origin received {body:?} and successfully returned: {result}");
                     Ok(result.clone())
                 }
             }
-            Err(other_err) => Err(OriginError::CommunicationError(other_err.to_string())),
+            Err(other_err) => {
+                debug!("Forking origin received {body:?} and returned error: {other_err:?}");
+                Err(other_err)
+            }
         }
     }
 }
@@ -140,9 +180,9 @@ impl StarknetDefaulter {
         }
     }
 
-    pub fn get_compiled_contract_class(&self, class_hash: ClassHash) -> StateResult<ContractClass> {
+    pub fn get_compiled_class(&self, class_hash: ClassHash) -> StateResult<RunnableCompiledClass> {
         if let Some(origin) = &self.origin_reader {
-            origin.get_compiled_contract_class(class_hash)
+            origin.get_compiled_class(class_hash)
         } else {
             Err(StateError::UndeclaredClassHash(class_hash))
         }
@@ -214,7 +254,7 @@ impl BlockingOriginReader {
         Ok(class_hash)
     }
 
-    fn get_compiled_contract_class(&self, class_hash: ClassHash) -> StateResult<ContractClass> {
+    fn get_compiled_class(&self, class_hash: ClassHash) -> StateResult<RunnableCompiledClass> {
         match self.send_body(
             "starknet_getClass",
             serde_json::json!({
@@ -227,6 +267,7 @@ impl BlockingOriginReader {
                 let contract_class: starknet_rs_core::types::ContractClass =
                     serde_json::from_value(value)
                         .map_err(|e| StateError::StateReadError(e.to_string()))?;
+
                 convert_codegen_to_blockifier_compiled_class(contract_class)
                     .map_err(|e| StateError::StateReadError(e.to_string()))
             }

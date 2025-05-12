@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use rand::{Rng, SeedableRng};
 use serde_json::{Map, Value};
@@ -11,9 +10,12 @@ use super::spec_schemas::object_primitive::ObjectPrimitive;
 use super::spec_schemas::one_of_schema::OneOf;
 use super::spec_schemas::ref_schema::Reference;
 use super::spec_schemas::string_primitive::StringPrimitive;
+use super::spec_schemas::tuple_schema::Tuple;
 use super::spec_schemas::{Primitive, Schema};
 
 const MAX_DEPTH: u8 = 5;
+/// regex pattern for 1-10 characters
+const DEFAULT_STRING_REGEX: &str = "^.{1,10}$";
 
 pub trait Visitor {
     fn do_for_boolean_primitive(&self) -> Result<serde_json::Value, String>;
@@ -34,6 +36,8 @@ pub trait Visitor {
         &self,
         element: &ObjectPrimitive,
     ) -> Result<serde_json::Value, String>;
+
+    fn do_for_tuple(&self, element: &Tuple) -> Result<serde_json::Value, String>;
 }
 
 pub trait Acceptor {
@@ -51,7 +55,7 @@ impl<'a> RandDataGenerator<'a> {
     }
 }
 
-impl<'a> Visitor for RandDataGenerator<'a> {
+impl Visitor for RandDataGenerator<'_> {
     fn do_for_boolean_primitive(&self) -> Result<serde_json::Value, String> {
         Ok(serde_json::Value::Bool(rand::thread_rng().gen_bool(0.5)))
     }
@@ -65,35 +69,31 @@ impl<'a> Visitor for RandDataGenerator<'a> {
             return Ok(serde_json::Value::String(enums[random_number].clone()));
         }
 
-        if let Some(regex_pattern) = element.pattern.clone() {
-            let mut buffer: Vec<u8> = vec![];
-            let duration = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-            let u128_bytes = duration.as_nanos().to_be_bytes();
-            let mut u64_bytes = [0; 8];
-            u64_bytes.copy_from_slice(&u128_bytes[8..16]);
-            let seed = u64::from_be_bytes(u64_bytes);
+        // If pattern is not set, then generate a string from the default pattern
+        let regex_pattern = element.pattern.as_deref().unwrap_or(DEFAULT_STRING_REGEX);
+        let mut buffer: Vec<u8> = vec![];
+        let seed = rand::thread_rng().gen();
 
-            regex_generate::Generator::new(
-                &regex_pattern,
-                rand_chacha::ChaCha8Rng::seed_from_u64(seed),
-                100,
-            )
-            .unwrap()
-            .generate(&mut buffer)
-            .unwrap();
-            let random_string = String::from_utf8(buffer).unwrap();
+        regex_generate::Generator::new(
+            regex_pattern,
+            rand_chacha::ChaCha8Rng::seed_from_u64(seed),
+            100,
+        )
+        .unwrap()
+        .generate(&mut buffer)
+        .unwrap();
 
-            return Ok(serde_json::Value::String(random_string));
-        }
+        let random_string = String::from_utf8(buffer).unwrap();
 
-        Ok(serde_json::Value::String("".to_string()))
+        Ok(serde_json::Value::String(random_string))
     }
 
     fn do_for_integer_primitive(
         &self,
         element: &IntegerPrimitive,
     ) -> Result<serde_json::Value, String> {
-        let num = rand::thread_rng().gen_range(element.minimum.unwrap_or_default()..i32::MAX);
+        let num = rand::thread_rng()
+            .gen_range(element.minimum.unwrap_or_default()..element.maximum.unwrap_or(i32::MAX));
 
         Ok(serde_json::Value::Number(serde_json::Number::from(num)))
     }
@@ -107,7 +107,10 @@ impl<'a> Visitor for RandDataGenerator<'a> {
             return Ok(serde_json::Value::Array(array));
         }
 
-        let number_of_elements = rand::thread_rng().gen_range(1..3);
+        let min_items = element.min_items.unwrap_or(1);
+        let max_items = element.max_items.unwrap_or(3);
+
+        let number_of_elements = rand::thread_rng().gen_range(min_items..=max_items);
 
         for _ in 0..number_of_elements {
             let generated_value =
@@ -189,25 +192,27 @@ impl<'a> Visitor for RandDataGenerator<'a> {
         };
 
         // Determine optional fields by removing required fields from all fields
-        let optional_fields: Vec<&String> =
+        let mut optional_fields: Vec<&String> =
             all_fields.iter().filter(|field| !required_fields.contains(field)).cloned().collect();
 
         // if there are no optional fields then all fields have to be included
         let fields_to_include = if optional_fields.is_empty() {
             required_fields
         } else {
-            // decide the starting index in optional fields array
-            let start_idx = rand::thread_rng().gen_range(0..optional_fields.len());
-            // decide the number of optional fields
-            let optional_fields_to_include_count =
-                rand::thread_rng().gen_range(0..=(optional_fields.len() - start_idx));
+            // decide the number of optional fields to remove
+            let mut optional_fields_left_to_remove =
+                rand::thread_rng().gen_range(0..=optional_fields.len());
+
+            // remove the optional fields 1 by 1
+            while optional_fields_left_to_remove > 0 {
+                optional_fields_left_to_remove -= 1;
+
+                let idx_to_remove = rand::thread_rng().gen_range(0..optional_fields.len());
+                optional_fields.swap_remove(idx_to_remove);
+            }
 
             // combine required and optional fields that will be part of the json object
-            [
-                required_fields.as_slice(),
-                &optional_fields[start_idx..start_idx + optional_fields_to_include_count],
-            ]
-            .concat()
+            [required_fields.as_slice(), optional_fields.as_slice()].concat()
         };
 
         for (key, inner_schema) in
@@ -234,6 +239,26 @@ impl<'a> Visitor for RandDataGenerator<'a> {
             Ok(Value::Object(accumulated_json_value))
         }
     }
+
+    fn do_for_tuple(&self, element: &Tuple) -> Result<serde_json::Value, String> {
+        let mut array = vec![];
+        if self.depth >= MAX_DEPTH {
+            return Ok(serde_json::Value::Null);
+        }
+
+        for variant in element.variants.iter() {
+            let generated_value = generate_schema_value(variant, self.schemas, self.depth + 1)?;
+
+            if generated_value.is_null() {
+                let generated_value = generate_schema_value(variant, self.schemas, self.depth)?;
+                array.push(generated_value);
+            } else {
+                array.push(generated_value);
+            }
+        }
+
+        Ok(serde_json::Value::Array(array))
+    }
 }
 
 pub fn generate_schema_value(
@@ -259,5 +284,6 @@ pub fn generate_schema_value(
         Schema::Primitive(Primitive::Array(array)) => array.accept(&generator),
         Schema::Primitive(Primitive::Boolean(boolean)) => boolean.accept(&generator),
         Schema::Primitive(Primitive::Object(obj)) => obj.accept(&generator),
+        Schema::Tuple(tuple) => tuple.accept(&generator),
     }
 }

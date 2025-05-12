@@ -1,0 +1,92 @@
+# Remove entries before processing the spec file
+clean:
+  - components/schemas/COMMON_RECEIPT_PROPERTIES/properties/revert_reason/name
+  - components/schemas/PENDING_COMMON_RECEIPT_PROPERTIES/properties/revert_reason/name
+
+# Replace entries at "path" with the specified value in the spec file before processing it
+replace_property:
+  # The following comment is for example purpose
+  # - path: components/schemas/BLOCK_HEADER/properties/l1_gas_price/descritpion
+  #   new_name: description
+  - path: components/schemas/CASM_COMPILED_CONTRACT_CLASS/properties/hints/items/oneOf
+    new_name: tuple
+  - path: components/schemas/DoubleDeref/properties/DoubleDeref/oneOf
+    new_name: tuple
+
+add:
+  - path: components/schemas/NUM_AS_HEX
+    new_entry: pattern/^0x[a-fA-F0-9]{1,10}$
+    replace_mode: true
+  - path: components/schemas/CHAIN_ID
+    new_entry: pattern/^0x[a-fA-F0-9]{1,10}$
+  - path: components/schemas/DEPRECATED_CONTRACT_CLASS/properties/program
+    new_entry: pattern/^$
+  - path: components/schemas/MSG_TO_L1/properties/to_address
+    new_entry: $ref/#/components/schemas/ETH_ADDRESS
+  - path: components/schemas/FEE_PAYMENT/properties/amount
+    new_entry: $ref/#/components/schemas/u64
+  - path: components/schemas/CellRef/properties/offset
+    new_entry: maximum/32767
+  - path: components/schemas/SUBSCRIPTION_ID
+  # The goal of the regex string is to generate valid unsigned integers that will fit in u64 type.
+  # The range (1-5) is selected based on the developer's intuition.
+  # It is arbitrary and not necessarily tied to any specific technical requirement.
+    new_entry: pattern/^[1-9][0-9]{0,4}$
+  - path: components/schemas/CONTRACT_CLASS/properties/abi
+    new_entry: pattern/^$
+
+remove_from_array:
+  # These steps are executed one by one, meaning the indices are updated step-by-step,
+  # hence index=1 of an array is removed before index=0
+  - path: components/schemas/INVOKE_TXN/oneOf
+    index: 1
+  - path: components/schemas/INVOKE_TXN/oneOf
+    index: 0
+  - path: components/schemas/TXN_STATUS/enum
+    index: 1
+  - path: components/schemas/TXN_STATUS/enum
+    index: 0
+  - path: components/schemas/TRANSACTION_TRACE/oneOf
+    index: 3
+  - path: components/schemas/TXN/oneOf
+    index: 3
+  - path: components/schemas/TXN/oneOf
+    index: 1
+  - path: components/schemas/TXN_RECEIPT/oneOf
+    index: 1
+  - path: components/schemas/DECLARE_TXN/oneOf
+    index: 2
+  - path: components/schemas/DECLARE_TXN/oneOf
+    index: 1
+  - path: components/schemas/DECLARE_TXN/oneOf
+    index: 0
+  - path: components/schemas/DEPLOY_ACCOUNT_TXN/oneOf
+    index: 0
+  - path: components/schemas/HINT/oneOf
+    index: 0
+
+edit_manually:
+  - action: CHANGE
+    what: add execution_status to TXN_STATUS_RESULT.required array
+  - action: ADD
+    what: abi to required fields of CONTRACT_CLASS
+  - action: REMOVE
+    what: starknet_syncing -> result -> oneOf SYNC_STATUS variant
+  - action: REMOVE
+    what: starknet_getStorageProof method
+  - action: REMOVE
+    what: remove the outer object of CASM_COMPILED_CONTRACT_CLASS.hints property
+  - action: REMOVE
+    what: remove the outer object (types, items) of DoubleDeref.hints property
+  - action: ADD
+    what: DoubleDeref tuple maximum 32767 to the integer part
+  - action: REMOVE
+    what: removed the outer "schema" object -  instead of being items -> schema -> {type, properties}, now its items -> {type, properties} in starknet_simulateTransactions
+  - action: CHANGE
+    what: components/EVENT to components/EVENT_CONTENT in trace_api spec
+  - action: CHANGE
+    what: ORDERED_EVENT $ref from components/EVENT to components/EVENT_CONTENT in trace_api spec
+  - action: REMOVE
+    what: outer schema object of REORG_DATA.starting_block_hash, REORG_DATA.ending_block_hash in starknet_ws_api.json
+  - action: CHANGE
+    what: components/schemas/FELT/pattern to ^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,61})$

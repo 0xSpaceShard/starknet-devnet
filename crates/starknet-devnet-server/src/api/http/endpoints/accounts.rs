@@ -1,5 +1,5 @@
-use axum::extract::{Query, State};
 use axum::Json;
+use axum::extract::{Query, State};
 use serde::Deserialize;
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::{BlockTag, Felt};
@@ -7,12 +7,12 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 
 use super::mint_token::{get_balance, get_erc20_address};
+use crate::api::Api;
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
     AccountBalanceResponse, AccountBalancesResponse, SerializableAccount,
 };
 use crate::api::http::{HttpApiHandler, HttpApiResult};
-use crate::api::Api;
 
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
@@ -51,8 +51,8 @@ pub(crate) async fn get_predeployed_accounts_impl(
         .map(|acc| SerializableAccount {
             initial_balance: acc.initial_balance.to_string(),
             address: acc.account_address,
-            public_key: acc.public_key,
-            private_key: acc.private_key,
+            public_key: acc.keys.public_key,
+            private_key: acc.keys.private_key,
             balance: None,
         })
         .collect();
@@ -91,7 +91,7 @@ pub(crate) async fn get_account_balance_impl(
 ) -> HttpApiResult<AccountBalanceResponse> {
     let account_address = ContractAddress::new(params.address)
         .map_err(|e| HttpApiError::InvalidValueError { msg: e.to_string() })?;
-    let unit = params.unit.unwrap_or(FeeUnit::WEI);
+    let unit = params.unit.unwrap_or(FeeUnit::FRI);
     let erc20_address = get_erc20_address(&unit)
         .map_err(|e| HttpApiError::InvalidValueError { msg: e.to_string() })?;
 

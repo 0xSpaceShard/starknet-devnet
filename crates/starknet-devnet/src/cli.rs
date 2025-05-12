@@ -2,13 +2,14 @@ use std::collections::HashSet;
 use std::num::NonZeroU128;
 
 use clap::Parser;
+use server::ServerConfig;
 use server::api::json_rpc::JsonRpcRequest;
 use server::restrictive_mode::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
 use server::server::HTTP_API_ROUTES_WITHOUT_LEADING_SLASH;
-use server::ServerConfig;
 use starknet_core::constants::{
-    DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT,
-    DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    ARGENT_CONTRACT_VERSION, ARGENT_MULTISIG_CONTRACT_VERSION, DEVNET_DEFAULT_L1_DATA_GAS_PRICE,
+    DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE, DEVNET_DEFAULT_PORT,
+    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 use starknet_core::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use starknet_core::random_number_generator::generate_u32_random_number;
@@ -28,7 +29,7 @@ use crate::{REQUEST_LOG_ENV_VAR, RESPONSE_LOG_ENV_VAR};
     author,
     version,
     about = "A local testnet for Starknet... in Rust!",
-    long_about = "Documentation: https://0xspaceshard.github.io/starknet-devnet-rs",
+    long_about = "Documentation: https://0xspaceshard.github.io/starknet-devnet",
     propagate_version = true
 )]
 pub(crate) struct Args {
@@ -54,6 +55,14 @@ pub(crate) struct Args {
     #[arg(conflicts_with = "account_class_choice")]
     #[arg(help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;")]
     account_class_custom: Option<AccountClassWrapper>,
+
+    #[arg(long = "predeclare-argent")]
+    #[arg(env = "PREDECLARE_ARGENT")]
+    #[arg(help = format!(
+        "If set, predeclares Argent account contract classes: regular ({ARGENT_CONTRACT_VERSION}) \
+        and multisig ({ARGENT_MULTISIG_CONTRACT_VERSION}); does not affect account predeployment;"
+    ))]
+    predeclare_argent: bool,
 
     /// Initial balance of predeployed accounts
     #[arg(long = "initial-balance")]
@@ -108,33 +117,50 @@ pub(crate) struct Args {
     #[arg(long = "gas-price")]
     #[arg(env = "GAS_PRICE")]
     #[arg(value_name = "WEI_PER_GAS_UNIT")]
-    #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
-    #[arg(help = "Specify the gas price in wei per gas unit;")]
+    #[arg(default_value_t = DEVNET_DEFAULT_L1_GAS_PRICE)]
+    #[arg(help = "Specify the gas price in wei per L1 gas unit;")]
     gas_price_wei: NonZeroU128,
 
     // Gas price in fri
     #[arg(long = "gas-price-fri")]
     #[arg(env = "GAS_PRICE_FRI")]
     #[arg(value_name = "FRI_PER_GAS_UNIT")]
-    #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
-    #[arg(help = "Specify the gas price in fri per gas unit;")]
+    #[arg(default_value_t = DEVNET_DEFAULT_L1_GAS_PRICE)]
+    #[arg(help = "Specify the gas price in fri per L1 gas unit;")]
     gas_price_fri: NonZeroU128,
 
+    // TODO perhaps make this affect only fri and remove -fri flags
     // Gas price in wei
     #[arg(long = "data-gas-price")]
     #[arg(env = "DATA_GAS_PRICE")]
     #[arg(value_name = "WEI_PER_GAS_UNIT")]
-    #[arg(default_value_t = DEVNET_DEFAULT_DATA_GAS_PRICE)]
-    #[arg(help = "Specify the gas price in wei per data gas unit;")]
+    #[arg(default_value_t = DEVNET_DEFAULT_L1_DATA_GAS_PRICE)]
+    #[arg(help = "Specify the gas price in wei per L1 data gas unit;")]
     data_gas_price_wei: NonZeroU128,
 
     // Gas price in fri
     #[arg(long = "data-gas-price-fri")]
     #[arg(env = "DATA_GAS_PRICE_FRI")]
     #[arg(value_name = "FRI_PER_GAS_UNIT")]
-    #[arg(default_value_t = DEVNET_DEFAULT_DATA_GAS_PRICE)]
-    #[arg(help = "Specify the gas price in fri per data gas unit;")]
+    #[arg(default_value_t = DEVNET_DEFAULT_L1_DATA_GAS_PRICE)]
+    #[arg(help = "Specify the gas price in fri per L1 data gas unit;")]
     data_gas_price_fri: NonZeroU128,
+
+    // L2 Gas price in wei
+    #[arg(long = "l2-gas-price")]
+    #[arg(env = "L2_GAS_PRICE")]
+    #[arg(value_name = "WEI_PER_GAS_UNIT")]
+    #[arg(default_value_t = DEVNET_DEFAULT_L2_GAS_PRICE)]
+    #[arg(help = "Specify the gas price in wei per L2 gas unit;")]
+    l2_gas_price_wei: NonZeroU128,
+
+    // L2 Gas price in fri
+    #[arg(long = "l2-gas-price-fri")]
+    #[arg(env = "L2_GAS_PRICE_FRI")]
+    #[arg(value_name = "FRI_PER_GAS_UNIT")]
+    #[arg(default_value_t = DEVNET_DEFAULT_L2_GAS_PRICE)]
+    #[arg(help = "Specify the gas price in fri per L2 gas unit;")]
+    l2_gas_price_fri: NonZeroU128,
 
     #[arg(long = "chain-id")]
     #[arg(env = "CHAIN_ID")]
@@ -196,19 +222,12 @@ Sending POST /create_block is also an option in modes other than \"demand\".")]
     #[arg(requires = "fork_network")]
     fork_block: Option<u64>,
 
-    #[arg(long = "request-body-size-limit")]
-    #[arg(env = "REQUEST_BODY_SIZE_LIMIT")]
-    #[arg(value_name = "BYTES")]
-    #[arg(help = "Specify the maximum HTTP request body size;")]
-    #[arg(default_value_t = DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT)]
-    request_body_size_limit: usize,
-
     #[arg(long = "restrictive-mode")]
     #[arg(env = "RESTRICTIVE_MODE")]
     #[arg(num_args = 0..)]
     #[arg(help = "Use Devnet in restrictive mode; You can specify the methods that will be \
-                  forbidden with whitespace-separated values (https://0xspaceshard.github.io/starknet-devnet-rs/docs/restrictive#with-a-list-of-methods). If nothing is specified for this \
-                  argument, then default restricted methods are used (https://0xspaceshard.github.io/starknet-devnet-rs/docs/restrictive#default-restricted-methods).")]
+                  forbidden with whitespace-separated values (https://0xspaceshard.github.io/starknet-devnet/docs/restrictive#with-a-list-of-methods). If nothing is specified for this \
+                  argument, then default restricted methods are used (https://0xspaceshard.github.io/starknet-devnet/docs/restrictive#default-restricted-methods).")]
     restricted_methods: Option<Vec<String>>,
 
     #[arg(long = "ngrok")]
@@ -251,6 +270,8 @@ impl Args {
             gas_price_fri: self.gas_price_fri,
             data_gas_price_wei: self.data_gas_price_wei,
             data_gas_price_fri: self.data_gas_price_fri,
+            l2_gas_price_wei: self.l2_gas_price_wei,
+            l2_gas_price_fri: self.l2_gas_price_fri,
             chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
@@ -262,6 +283,7 @@ impl Args {
                 block_number: self.fork_block,
                 block_hash: None,
             },
+            predeclare_argent: self.predeclare_argent,
             ..Default::default()
         };
 
@@ -317,7 +339,6 @@ impl Args {
             host: self.host.inner,
             port: self.port,
             timeout: self.timeout,
-            request_body_size_limit: self.request_body_size_limit,
             log_request,
             log_response,
             restricted_methods,
@@ -348,9 +369,7 @@ impl RequestResponseLogging {
 #[cfg(test)]
 mod tests {
     use clap::Parser;
-    use starknet_core::constants::{
-        CAIRO_0_ERC20_CONTRACT_PATH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
-    };
+    use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH;
     use starknet_core::starknet::starknet_config::{
         BlockGenerationOn, DumpOn, StateArchiveCapacity,
     };
@@ -358,6 +377,9 @@ mod tests {
 
     use super::{Args, RequestResponseLogging};
     use crate::ip_addr_wrapper::IpAddrWrapper;
+
+    const CAIRO_0_ERC20_CONTRACT_PATH: &str =
+        "../../contracts/test_artifacts/cairo0/ERC20_Mintable_OZ_0.2.0.json";
 
     #[test]
     fn valid_ip_address() {
@@ -553,23 +575,6 @@ mod tests {
     }
 
     #[test]
-    fn allowing_big_positive_request_body_size() {
-        let value = 1_000_000_000;
-        match Args::try_parse_from(["--", "--request-body-size-limit", &value.to_string()]) {
-            Ok(args) => assert_eq!(args.request_body_size_limit, value),
-            Err(e) => panic!("Should have passed; got: {e}"),
-        }
-    }
-
-    #[test]
-    fn not_allowing_negative_request_body_size() {
-        match Args::try_parse_from(["--", "--request-body-size-limit", "-1"]) {
-            Err(_) => (),
-            Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
-        }
-    }
-
-    #[test]
     #[serial_test::serial]
     fn test_variants_of_env_var() {
         for (environment_variable, should_log_request, should_log_response) in [
@@ -611,7 +616,6 @@ mod tests {
             ("--state-archive-capacity", "STATE_ARCHIVE_CAPACITY", "full"),
             ("--fork-network", "FORK_NETWORK", "http://dummy.com"),
             ("--fork-block", "FORK_BLOCK", "42"),
-            ("--request-body-size-limit", "REQUEST_BODY_SIZE_LIMIT", "100"),
             ("--block-generation-on", "BLOCK_GENERATION_ON", "demand"),
         ];
 
@@ -642,7 +646,8 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn test_boolean_param_specification_via_env_vars() {
-        let config_source = [("--lite-mode", "LITE_MODE")];
+        let config_source =
+            [("--lite-mode", "LITE_MODE"), ("--predeclare-argent", "PREDECLARE_ARGENT")];
 
         let mut cli_args = vec!["--"];
         for (cli_param, _) in config_source {

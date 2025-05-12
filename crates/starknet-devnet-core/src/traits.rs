@@ -56,6 +56,7 @@ pub trait Accounted {
     /// # Arguments
     /// `state` - state of the devnet
     /// `token` - enum `FeeToken` to get balance in
+    #[allow(unused)] // TODO used only in tests?
     fn get_balance(&self, state: &mut impl StateReader, token: FeeToken) -> DevnetResult<Balance>;
 }
 

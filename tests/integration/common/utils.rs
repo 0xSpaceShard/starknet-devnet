@@ -3,27 +3,36 @@ use std::fs;
 use std::path::Path;
 use std::process::{Child, Command};
 use std::sync::Arc;
+use std::time::Duration;
 
 use ethers::types::U256;
-use rand::{thread_rng, Rng};
-use server::test_utils::assert_contains;
+use futures::{SinkExt, StreamExt, TryStreamExt};
+use rand::{Rng, thread_rng};
+use serde_json::json;
 use starknet_rs_accounts::{
     Account, AccountFactory, ArgentAccountFactory, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
 use starknet_rs_core::types::{
-    BlockId, BlockTag, ContractClass, DeployAccountTransactionResult, ExecutionResult, FeeEstimate,
-    Felt, FlattenedSierraClass, FunctionCall, NonZeroFelt,
+    BlockId, BlockTag, ContractClass, ContractExecutionError, DeployAccountTransactionResult,
+    ExecutionResult, FeeEstimate, Felt, FlattenedSierraClass, FunctionCall,
+    InnerContractExecutionError, ResourceBounds, ResourceBoundsMapping,
 };
-use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
-use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_providers::{JsonRpcClient, Provider};
+use starknet_rs_core::utils::{
+    UdcUniqueSettings, get_selector_from_name, get_udc_deployed_address,
+};
+use starknet_rs_providers::jsonrpc::{
+    HttpTransport, HttpTransportError, JsonRpcClientError, JsonRpcError,
+};
+use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
 use starknet_rs_signers::LocalWallet;
+use tokio::net::TcpStream;
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use super::background_devnet::BackgroundDevnet;
 use super::constants::{
-    ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH,
+    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH, UDC_CONTRACT_ADDRESS,
 };
 use super::safe_child::SafeChild;
 
@@ -60,30 +69,37 @@ pub fn get_flattened_sierra_contract_and_casm_hash(sierra_path: &str) -> SierraW
     (sierra_class.flatten().unwrap(), casm_hash)
 }
 
-pub fn get_messaging_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
+pub fn get_messaging_contract_artifacts() -> SierraWithCasmHash {
     let sierra_path = "../../contracts/l1-l2-artifacts/cairo_l1_l2.contract_class.sierra";
     get_flattened_sierra_contract_and_casm_hash(sierra_path)
 }
 
-pub fn get_messaging_lib_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
+pub fn get_messaging_lib_artifacts() -> SierraWithCasmHash {
     let sierra_path = "../../contracts/l1-l2-artifacts/cairo_l1_l2_lib.contract_class.sierra";
     get_flattened_sierra_contract_and_casm_hash(sierra_path)
 }
 
-pub fn get_events_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
+pub fn get_events_contract_artifacts() -> SierraWithCasmHash {
     let events_sierra_path =
         "../../contracts/test_artifacts/cairo1/events/events_2.0.1_compiler.sierra";
     get_flattened_sierra_contract_and_casm_hash(events_sierra_path)
 }
 
-pub fn get_block_reader_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
+pub fn get_block_reader_contract_artifacts() -> SierraWithCasmHash {
     let timestamp_sierra_path =
         "../../contracts/test_artifacts/cairo1/block_reader/block_reader.sierra";
     get_flattened_sierra_contract_and_casm_hash(timestamp_sierra_path)
 }
 
-pub fn get_simple_contract_in_sierra_and_compiled_class_hash() -> SierraWithCasmHash {
+pub fn get_simple_contract_artifacts() -> SierraWithCasmHash {
     get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH)
+}
+
+pub fn get_timestamp_asserter_contract_artifacts() -> SierraWithCasmHash {
+    get_flattened_sierra_contract_and_casm_hash(
+        "../../contracts/test_artifacts/cairo1/timestamp_asserter/target/dev/\
+         cairo_TimestampAsserter.contract_class.json",
+    )
 }
 
 pub async fn assert_tx_successful<T: Provider>(tx_hash: &Felt, client: &T) {
@@ -234,6 +250,30 @@ impl Drop for UniqueAutoDeletableFile {
     }
 }
 
+/// Deploys an instance of the class whose sierra hash is provided as `class_hash`. Uses a v3 invoke
+/// transaction. Returns the address of the newly deployed contract.
+pub async fn deploy_v3(
+    account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
+    class_hash: Felt,
+    ctor_args: &[Felt],
+) -> Result<Felt, anyhow::Error> {
+    let contract_factory = ContractFactory::new(class_hash, account);
+    contract_factory.deploy_v3(ctor_args.to_vec(), Felt::ZERO, true).send().await?;
+
+    // generate the address of the newly deployed contract
+    let contract_address = get_udc_deployed_address(
+        Felt::ZERO,
+        class_hash,
+        &starknet_rs_core::utils::UdcUniqueness::Unique(UdcUniqueSettings {
+            deployer_address: account.address(),
+            udc_contract_address: UDC_CONTRACT_ADDRESS,
+        }),
+        ctor_args,
+    );
+
+    Ok(contract_address)
+}
+
 /// Declares and deploys a Cairo 1 contract; returns class hash and contract address
 pub async fn declare_v3_deploy_v3(
     account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
@@ -259,6 +299,79 @@ pub async fn declare_v3_deploy_v3(
     Ok((declaration_result.class_hash, contract_address))
 }
 
+pub async fn declare_deploy_simple_contract(
+    account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
+) -> Result<(Felt, Felt), anyhow::Error> {
+    let (contract_class, casm_hash) = get_simple_contract_artifacts();
+
+    let declaration_result = account
+        .declare_v3(Arc::new(contract_class), casm_hash)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(1e8 as u64)
+        .send()
+        .await?;
+
+    // deploy the contract
+    let salt = Felt::ZERO;
+    let ctor_args = [Felt::ONE];
+    let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
+    contract_factory
+        .deploy_v3(ctor_args.to_vec(), salt, false)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(1e7 as u64)
+        .send()
+        .await?;
+
+    // generate the address of the newly deployed contract
+    let contract_address = get_udc_deployed_address(
+        salt,
+        declaration_result.class_hash,
+        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        &ctor_args,
+    );
+
+    Ok((declaration_result.class_hash, contract_address))
+}
+
+/// Returns deployment address.
+pub async fn declare_deploy_events_contract(
+    account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
+) -> Result<Felt, anyhow::Error> {
+    let (contract_class, casm_hash) = get_events_contract_artifacts();
+
+    let declaration_result = account
+        .declare_v3(Arc::new(contract_class), casm_hash)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(1e8 as u64)
+        .send()
+        .await?;
+
+    // deploy the contract
+    let salt = Felt::ZERO;
+    let ctor_args = [];
+    let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
+    contract_factory
+        .deploy_v3(ctor_args.to_vec(), salt, false)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(1e8 as u64)
+        .send()
+        .await?;
+
+    // generate the address of the newly deployed contract
+    let contract_address = get_udc_deployed_address(
+        salt,
+        declaration_result.class_hash,
+        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        &ctor_args,
+    );
+
+    Ok(contract_address)
+}
+
 /// Assumes the Cairo1 OpenZepplin contract is declared in the target network.
 pub async fn deploy_oz_account(
     devnet: &BackgroundDevnet,
@@ -273,10 +386,10 @@ pub async fn deploy_oz_account(
     )
     .await?;
 
-    let deployment = factory.deploy_v1(salt);
+    let deployment = factory.deploy_v3(salt);
 
     let account_address = deployment.address();
-    devnet.mint(account_address, 1e18 as u128).await;
+    devnet.mint(account_address, u128::MAX).await;
     let deployment_result = deployment.send().await?;
 
     Ok((deployment_result, signer))
@@ -285,11 +398,12 @@ pub async fn deploy_oz_account(
 /// Assumes the Argent account contract is declared in the target network.
 pub async fn deploy_argent_account(
     devnet: &BackgroundDevnet,
+    class_hash: Felt,
 ) -> Result<(DeployAccountTransactionResult, LocalWallet), anyhow::Error> {
     let signer = get_deployable_account_signer();
     let salt = Felt::THREE;
     let factory = ArgentAccountFactory::new(
-        Felt::from_hex(ARGENT_ACCOUNT_CLASS_HASH)?,
+        class_hash,
         devnet.json_rpc_client.chain_id().await?,
         None,
         signer.clone(),
@@ -297,11 +411,11 @@ pub async fn deploy_argent_account(
     )
     .await?;
 
-    let deployment = factory.deploy_v1(salt);
+    let deployment = factory.deploy_v3(salt);
 
     let account_address = deployment.address();
-    devnet.mint(account_address, 1e18 as u128).await;
-    let deployment_result = deployment.send().await?;
+    devnet.mint(account_address, u128::MAX).await;
+    let deployment_result = deployment.send().await.map_err(|e| anyhow::anyhow!("{e:?}"))?;
 
     Ok((deployment_result, signer))
 }
@@ -328,14 +442,152 @@ pub fn felt_to_u128(f: Felt) -> u128 {
     bigint.try_into().unwrap()
 }
 
-pub fn get_gas_units_and_gas_price(fee_estimate: FeeEstimate) -> (u64, u128) {
-    let gas_price =
-        u128::from_le_bytes(fee_estimate.gas_price.to_bytes_le()[0..16].try_into().unwrap());
-    let gas_units = fee_estimate
-        .overall_fee
-        .field_div(&NonZeroFelt::from_felt_unchecked(fee_estimate.gas_price));
+/// Helper for extracting JSON RPC error from the provider instance of `ProviderError`.
+/// To be used when there are discrepancies between starknet-rs and the target RPC spec.
+pub fn extract_json_rpc_error(error: ProviderError) -> Result<JsonRpcError, anyhow::Error> {
+    match error {
+        ProviderError::Other(provider_impl_error) => {
+            let impl_specific_error: &JsonRpcClientError<HttpTransportError> =
+                provider_impl_error.as_any().downcast_ref().unwrap();
+            match impl_specific_error {
+                JsonRpcClientError::JsonRpcError(json_rpc_error) => Ok(json_rpc_error.clone()),
+                other => {
+                    Err(anyhow::Error::msg(format!("Cannot extract RPC error from: {:?}", other)))
+                }
+            }
+        }
+        other => Err(anyhow::Error::msg(format!("Cannot extract RPC error from: {:?}", other))),
+    }
+}
 
-    (gas_units.to_le_digits().first().cloned().unwrap(), gas_price)
+pub fn assert_json_rpc_errors_equal(e1: JsonRpcError, e2: JsonRpcError) {
+    assert_eq!((e1.code, e1.message, e1.data), (e2.code, e2.message, e2.data));
+}
+
+/// Extract the message that is encapsulated inside the provided error.
+pub fn extract_message_error(error: &ContractExecutionError) -> &String {
+    match error {
+        ContractExecutionError::Message(msg) => msg,
+        other => panic!("Unexpected error: {other:?}"),
+    }
+}
+
+/// Extract the error that is nested inside the provided `error`.
+pub fn extract_nested_error(error: &ContractExecutionError) -> &InnerContractExecutionError {
+    match error {
+        ContractExecutionError::Nested(nested) => nested,
+        other => panic!("Unexpected error: {other:?}"),
+    }
+}
+
+pub async fn send_text_rpc_via_ws(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    method: &str,
+    params: serde_json::Value,
+) -> Result<serde_json::Value, anyhow::Error> {
+    let text_body = json!({
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": method,
+        "params": params,
+    })
+    .to_string();
+    ws.send(tokio_tungstenite::tungstenite::Message::Text(text_body)).await?;
+
+    let resp_raw =
+        ws.next().await.ok_or(anyhow::Error::msg("No response in websocket stream"))??;
+    let resp_body: serde_json::Value = serde_json::from_slice(&resp_raw.into_data())?;
+
+    Ok(resp_body)
+}
+
+pub async fn send_binary_rpc_via_ws(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    method: &str,
+    params: serde_json::Value,
+) -> Result<serde_json::Value, anyhow::Error> {
+    let body = json!({
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": method,
+        "params": params,
+    });
+    let binary_body = serde_json::to_vec(&body)?;
+    ws.send(tokio_tungstenite::tungstenite::Message::Binary(binary_body)).await?;
+
+    let resp_raw =
+        ws.next().await.ok_or(anyhow::Error::msg("No response in websocket stream"))??;
+    let resp_body: serde_json::Value = serde_json::from_slice(&resp_raw.into_data())?;
+
+    Ok(resp_body)
+}
+
+pub type SubscriptionId = String;
+
+pub async fn subscribe(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    subscription_method: &str,
+    params: serde_json::Value,
+) -> Result<SubscriptionId, anyhow::Error> {
+    let subscription_confirmation = send_text_rpc_via_ws(ws, subscription_method, params).await?;
+    Ok(subscription_confirmation["result"]
+        .as_str()
+        .ok_or(anyhow::Error::msg(format!(
+            "No ID in subscription response: {subscription_confirmation}"
+        )))?
+        .to_string())
+}
+
+/// Tries to read from the provided ws stream. To prevent deadlock, waits for a second at most.
+pub async fn receive_rpc_via_ws(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+) -> Result<serde_json::Value, anyhow::Error> {
+    let msg = tokio::time::timeout(Duration::from_secs(1), ws.try_next())
+        .await??
+        .ok_or(anyhow::Error::msg("Nothing to read"))?;
+    Ok(serde_json::from_str(&msg.into_text()?)?)
+}
+
+/// Extract `result` from the notification and assert general properties
+pub async fn receive_notification(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    method: &str,
+    expected_subscription_id: SubscriptionId,
+) -> Result<serde_json::Value, anyhow::Error> {
+    let mut notification = receive_rpc_via_ws(ws).await?;
+    assert_eq!(notification["jsonrpc"], "2.0");
+    assert_eq!(notification["method"], method);
+    assert_eq!(
+        notification["params"]["subscription_id"]
+            .as_str()
+            .ok_or(anyhow::Error::msg("No Subscription ID in notification"))?
+            .to_string(),
+        expected_subscription_id
+    );
+    Ok(notification["params"]["result"].take())
+}
+
+pub async fn assert_no_notifications(ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
+    match receive_rpc_via_ws(ws).await {
+        Ok(resp) => panic!("Expected no notifications; found: {resp}"),
+        Err(e) if e.to_string().contains("deadline has elapsed") => { /* expected */ }
+        Err(e) => panic!("Expected to error out due to empty channel; found: {e}"),
+    }
+}
+
+pub async fn subscribe_new_heads(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    block_specifier: serde_json::Value,
+) -> Result<SubscriptionId, anyhow::Error> {
+    subscribe(ws, "starknet_subscribeNewHeads", block_specifier).await
+}
+
+pub async fn unsubscribe(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    subscription_id: SubscriptionId,
+) -> Result<serde_json::Value, anyhow::Error> {
+    send_text_rpc_via_ws(ws, "starknet_unsubscribe", json!({ "subscription_id": subscription_id }))
+        .await
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -343,6 +595,88 @@ pub fn get_gas_units_and_gas_price(fee_estimate: FeeEstimate) -> (u64, u128) {
 pub enum FeeUnit {
     Wei,
     Fri,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct LocalFee {
+    pub(crate) l1_gas: u64,
+    pub(crate) l1_gas_price: u128,
+    pub(crate) l1_data_gas: u64,
+    pub(crate) l1_data_gas_price: u128,
+    pub(crate) l2_gas: u64,
+    pub(crate) l2_gas_price: u128,
+}
+
+impl From<LocalFee> for ResourceBoundsMapping {
+    fn from(value: LocalFee) -> Self {
+        ResourceBoundsMapping {
+            l1_gas: ResourceBounds {
+                max_amount: value.l1_gas,
+                max_price_per_unit: value.l1_gas_price,
+            },
+            l1_data_gas: ResourceBounds {
+                max_amount: value.l1_data_gas,
+                max_price_per_unit: value.l1_data_gas_price,
+            },
+            l2_gas: ResourceBounds {
+                max_amount: value.l2_gas,
+                max_price_per_unit: value.l2_gas_price,
+            },
+        }
+    }
+}
+
+impl From<FeeEstimate> for LocalFee {
+    fn from(fee: FeeEstimate) -> Self {
+        let l1_gas_consumed =
+            u64::from_le_bytes(fee.l1_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
+        let l1_gas_price =
+            u128::from_le_bytes(fee.l1_gas_price.to_bytes_le()[..16].try_into().unwrap());
+
+        let l2_gas_consumed =
+            u64::from_le_bytes(fee.l2_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
+        let l2_gas_price =
+            u128::from_le_bytes(fee.l2_gas_price.to_bytes_le()[..16].try_into().unwrap());
+
+        let l1_data_gas_consumed =
+            u64::from_le_bytes(fee.l1_data_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
+        let l1_data_gas_price =
+            u128::from_le_bytes(fee.l1_data_gas_price.to_bytes_le()[..16].try_into().unwrap());
+
+        LocalFee {
+            l1_gas: l1_gas_consumed,
+            l1_gas_price,
+            l1_data_gas: l1_data_gas_consumed,
+            l1_data_gas_price,
+            l2_gas: l2_gas_consumed,
+            l2_gas_price,
+        }
+    }
+}
+
+/// Panics if `text` does not contain `pattern`
+pub fn assert_contains(text: &str, pattern: &str) {
+    if !text.contains(pattern) {
+        panic!(
+            "Failed content assertion!
+    Pattern: '{pattern}'
+    not present in
+    Text: '{text}'"
+        );
+    }
+}
+
+/// Set time and generate a new block
+/// Returns the block timestamp of the newly generated block
+pub async fn set_time(devnet: &BackgroundDevnet, time: u64) -> u64 {
+    let resp_body =
+        devnet.send_custom_rpc("devnet_setTime", json!({ "time": time })).await.unwrap();
+
+    resp_body["block_timestamp"].as_u64().unwrap()
+}
+
+pub async fn increase_time(devnet: &BackgroundDevnet, time: u64) {
+    devnet.send_custom_rpc("devnet_increaseTime", json!({ "time": time })).await.unwrap();
 }
 
 #[cfg(test)]

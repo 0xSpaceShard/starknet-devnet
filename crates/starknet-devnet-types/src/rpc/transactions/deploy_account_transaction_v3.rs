@@ -1,6 +1,6 @@
 use serde::Serialize;
 use starknet_api::data_availability::DataAvailabilityMode;
-use starknet_api::transaction::Tip;
+use starknet_api::transaction::fields::Tip;
 use starknet_types_core::felt::Felt;
 
 use super::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
@@ -55,6 +55,10 @@ impl DeployAccountTransactionV3 {
 
     pub fn get_contract_address(&self) -> &ContractAddress {
         &self.contract_address
+    }
+
+    pub(crate) fn get_resource_bounds(&self) -> &ResourceBoundsWrapper {
+        &self.resource_bounds
     }
 }
 

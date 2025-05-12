@@ -29,6 +29,7 @@ All of the methods require smart contract code to be uploaded. It can be done in
 Uploads the smart contract to Walnut and returns a URL for the debug session in the Walnut system.
 
 ### Request:
+
 ```js
 {
     "jsonrpc": "2.0",
@@ -77,6 +78,7 @@ Uploads the smart contract to Walnut and returns a URL for the debug session in 
 
 Uploads the smart contract code and returns the response from Walnut, it contains URL for tracking the status of verification.
 Specifying the `sierra_artifact_source` parameter can be done in the following ways:
+
 1. **Specifying the Path to the sierra file**: Provide the path to the file with the smart contract sierra representation. It is located mostly in `./target/dev/` directory (relative to the directory where `scarb build` is executed) and has extension `.contract_class.json`.
 2. **Sending a JSON Object**: Provide a JSON object with the contents of the sierra file.
 
@@ -117,6 +119,7 @@ Specifying the `sierra_artifact_source` parameter can be done in the following w
 ```
 
 ### Response
+
 ```js
 {
     "jsonrpc": "2.0",

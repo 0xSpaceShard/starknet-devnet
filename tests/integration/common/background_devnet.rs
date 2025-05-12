@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use std::fmt::LowerHex;
-use std::process::{Command, Stdio};
+use std::process::{Command, Output, Stdio};
 use std::time;
 
+use anyhow::anyhow;
 use lazy_static::lazy_static;
 use reqwest::{Client, StatusCode};
 use serde_json::json;
@@ -18,13 +19,14 @@ use starknet_rs_signers::{LocalWallet, SigningKey};
 use url::Url;
 
 use super::constants::{
-    ACCOUNTS, HEALTHCHECK_PATH, HOST, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, RPC_PATH, SEED,
+    ACCOUNTS, HEALTHCHECK_PATH, HOST, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, RPC_PATH, SEED, WS_PATH,
 };
 use super::errors::{RpcError, TestError};
 use super::reqwest_client::{PostReqwestSender, ReqwestClient};
-use super::utils::{to_hex_felt, FeeUnit, ImpersonationAction};
+use super::utils::{FeeUnit, ImpersonationAction, to_hex_felt};
+use crate::common::background_server::get_acquired_port;
 use crate::common::constants::{
-    DEVNET_EXECUTABLE_BINARY_PATH, DEVNET_MANIFEST_PATH, ETH_ERC20_CONTRACT_ADDRESS,
+    DEVNET_EXECUTABLE_BINARY_PATH, DEVNET_MANIFEST_PATH, STRK_ERC20_CONTRACT_ADDRESS,
 };
 use crate::common::safe_child::SafeChild;
 
@@ -32,8 +34,8 @@ use crate::common::safe_child::SafeChild;
 pub struct BackgroundDevnet {
     reqwest_client: ReqwestClient,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
+    port: u16,
     pub process: SafeChild,
-    pub port: u16,
     pub url: String,
     rpc_url: Url,
 }
@@ -47,47 +49,6 @@ lazy_static! {
     ]);
 }
 
-/// If on CircleCI, return the pre-built binary, otherwise rely on cargo.
-fn get_devnet_command() -> Command {
-    if std::env::var("CIRCLECI").is_ok() {
-        Command::new(DEVNET_EXECUTABLE_BINARY_PATH)
-    } else {
-        let mut command = Command::new("cargo");
-        command
-            .arg("run")
-            .arg("--release")
-            .arg("--manifest-path")
-            .arg(DEVNET_MANIFEST_PATH)
-            .arg("--");
-        command
-    }
-}
-
-async fn get_acquired_port(
-    process: &mut SafeChild,
-    sleep_time: time::Duration,
-    max_retries: usize,
-) -> Result<u16, anyhow::Error> {
-    let pid = process.id();
-    for _ in 0..max_retries {
-        if let Ok(ports) = listeners::get_ports_by_pid(pid) {
-            if ports.len() == 1 {
-                return Ok(ports.into_iter().next().unwrap());
-            }
-        }
-
-        if let Ok(Some(status)) = process.process.try_wait() {
-            return Err(anyhow::Error::msg(format!(
-                "Background Devnet process exited with status {status}"
-            )));
-        }
-
-        tokio::time::sleep(sleep_time).await;
-    }
-
-    Err(anyhow::Error::msg(format!("Could not identify a unique port used by PID {pid}")))
-}
-
 async fn wait_for_successful_response(
     client: &Client,
     healthcheck_url: &str,
@@ -98,7 +59,7 @@ async fn wait_for_successful_response(
         if let Ok(alive_resp) = client.get(healthcheck_url).send().await {
             let status = alive_resp.status();
             if status != StatusCode::OK {
-                return Err(anyhow::Error::msg(format!("Server responded with: {status}")));
+                return Err(anyhow!("Server responded with: {status}"));
             }
 
             return Ok(());
@@ -107,18 +68,15 @@ async fn wait_for_successful_response(
         tokio::time::sleep(sleep_time).await;
     }
 
-    Err(anyhow::Error::msg("Server not reachable at {}"))
+    Err(anyhow!("Not responsive: {healthcheck_url}"))
 }
 
 impl BackgroundDevnet {
-    /// Ensures the background instance spawns at a free port, checks at most `MAX_RETRIES`
-    /// times
-    #[allow(dead_code)] // dead_code needed to pass clippy
     pub(crate) async fn spawn() -> Result<Self, TestError> {
         BackgroundDevnet::spawn_with_additional_args(&[]).await
     }
 
-    pub async fn spawn_forkable_devnet() -> Result<BackgroundDevnet, anyhow::Error> {
+    pub(crate) async fn spawn_forkable_devnet() -> Result<BackgroundDevnet, anyhow::Error> {
         let args = ["--state-archive-capacity", "full"];
         let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await?;
         Ok(devnet)
@@ -155,14 +113,35 @@ impl BackgroundDevnet {
         final_args
     }
 
+    fn start_safe_process(args: &[&str]) -> Result<SafeChild, TestError> {
+        // If not on CircleCI, first build the workspace with cargo. Then rely on the built binary.
+        if std::env::var("CIRCLECI").is_err() {
+            let Output { status, stderr, .. } = Command::new("cargo")
+                .args(["build", "--release", "--manifest-path", DEVNET_MANIFEST_PATH])
+                .stdout(Stdio::null())
+                .output()
+                .map_err(|err| {
+                    TestError::DevnetNotStartable(format!("Error spawning build process {err:?}"))
+                })?;
+            if !status.success() {
+                let stderr_str = String::from_utf8_lossy(&stderr);
+                return Err(TestError::DevnetNotStartable(format!(
+                    "Error during build process {stderr_str}"
+                )));
+            }
+        }
+
+        let process = Command::new(DEVNET_EXECUTABLE_BINARY_PATH)
+            .args(Self::add_default_args(args))
+            .stdout(Stdio::piped()) // comment this out for complete devnet stdout
+            .spawn()
+            .map_err(|e| TestError::DevnetNotStartable(format!("Spawning error: {e:?}")))?;
+
+        Ok(SafeChild { process })
+    }
+
     pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
-        let mut devnet_command = get_devnet_command();
-        let process = devnet_command
-                .args(Self::add_default_args(args))
-                .stdout(Stdio::piped()) // comment this out for complete devnet stdout
-                .spawn()
-                .map_err(|e| TestError::DevnetNotStartable(format!("Spawning error: {e:?}")))?;
-        let mut safe_process = SafeChild { process };
+        let mut safe_process = Self::start_safe_process(args)?;
 
         let sleep_time = time::Duration::from_millis(500);
         let max_retries = 60;
@@ -180,7 +159,7 @@ impl BackgroundDevnet {
         println!("Spawned background devnet at {devnet_url}");
 
         let devnet_rpc_url = Url::parse(format!("{devnet_url}{RPC_PATH}").as_str())?;
-        Ok(BackgroundDevnet {
+        Ok(Self {
             reqwest_client: ReqwestClient::new(devnet_url.clone(), client),
             json_rpc_client: JsonRpcClient::new(HttpTransport::new(devnet_rpc_url.clone())),
             port,
@@ -188,6 +167,10 @@ impl BackgroundDevnet {
             url: devnet_url,
             rpc_url: devnet_rpc_url,
         })
+    }
+
+    pub fn ws_url(&self) -> String {
+        format!("ws://{HOST}:{}{WS_PATH}", self.port)
     }
 
     pub async fn send_custom_rpc(
@@ -242,9 +225,9 @@ impl BackgroundDevnet {
         JsonRpcClient::new(HttpTransport::new(self.rpc_url.clone()))
     }
 
-    /// Mint some amount of wei at `address` and return the resulting transaction hash.
+    /// Mint some FRI at `address` and return the resulting transaction hash.
     pub async fn mint(&self, address: impl LowerHex, mint_amount: u128) -> Felt {
-        self.mint_unit(address, mint_amount, FeeUnit::Wei).await
+        self.mint_unit(address, mint_amount, FeeUnit::Fri).await
     }
 
     pub async fn mint_unit(
@@ -275,7 +258,7 @@ impl BackgroundDevnet {
         block_id: BlockId,
     ) -> Result<Felt, anyhow::Error> {
         let call = FunctionCall {
-            contract_address: ETH_ERC20_CONTRACT_ADDRESS,
+            contract_address: STRK_ERC20_CONTRACT_ADDRESS,
             entry_point_selector: get_selector_from_name("balanceOf").unwrap(),
             calldata: vec![*address],
         };
@@ -308,7 +291,7 @@ impl BackgroundDevnet {
             .send_custom_rpc(
                 "devnet_getAccountBalance",
                 json!({
-                    "address": format!("{address:#x}"),
+                    "address": address,
                     "unit": unit,
                     "block_tag": Self::tag_to_str(tag)
                 }),
@@ -403,6 +386,30 @@ impl BackgroundDevnet {
             Ok(MaybePendingBlockWithTxs::PendingBlock(b)) => Ok(b),
             other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
         }
+    }
+
+    pub async fn abort_blocks(
+        &self,
+        starting_block_id: &BlockId,
+    ) -> Result<Vec<Felt>, anyhow::Error> {
+        let mut aborted_blocks = self
+            .send_custom_rpc(
+                "devnet_abortBlocks",
+                json!({ "starting_block_id" : starting_block_id }),
+            )
+            .await
+            .map_err(|e| anyhow::Error::msg(e.to_string()))?;
+
+        let aborted_blocks = aborted_blocks["aborted"]
+            .take()
+            .as_array()
+            .ok_or(anyhow::Error::msg("Invalid abort response"))?
+            .clone();
+
+        Ok(aborted_blocks
+            .into_iter()
+            .map(|block_hash| serde_json::from_value(block_hash).unwrap())
+            .collect())
     }
 
     pub async fn get_config(&self) -> serde_json::Value {

@@ -6,14 +6,16 @@ pub const ACCOUNTS: usize = 3;
 pub const CHAIN_ID: Felt = starknet_rs_core::chain_id::SEPOLIA;
 
 // Devnet executable info
-pub const DEVNET_MANIFEST_PATH: &str =
-    concat!(env!("CARGO_MANIFEST_DIR"), "/../../crates/starknet-devnet/Cargo.toml");
 pub const DEVNET_EXECUTABLE_BINARY_PATH: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/release/starknet-devnet");
+
+pub const DEVNET_MANIFEST_PATH: &str =
+    concat!(env!("CARGO_MANIFEST_DIR"), "/../../crates/starknet-devnet/Cargo.toml");
 
 // URL paths
 pub const RPC_PATH: &str = "/rpc";
 pub const HEALTHCHECK_PATH: &str = "/is_alive";
+pub const WS_PATH: &str = "/ws";
 
 // predeployed account info with seed=42
 pub const PREDEPLOYED_ACCOUNT_ADDRESS: &str =
@@ -24,12 +26,12 @@ pub const PREDEPLOYED_ACCOUNT_INITIAL_BALANCE: u128 = 1_000_000_000_000_000_000_
 
 // account classes
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
-    "0x061dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f";
+    "0x05b4b537eaa2399e3aa99c4e2e0208ebd6c71bc1467938cd52c798c601e43564";
 pub const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
     "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../crates/starknet-devnet-core/contracts/accounts_artifacts/OpenZeppelin/0.8.1/Account.\
+    "/../../crates/starknet-devnet-core/contracts/accounts_artifacts/OpenZeppelin/1.0.0/Account.\
      cairo/Account.sierra"
 );
 pub const CAIRO_1_ACCOUNT_CONTRACT_0_8_0_SIERRA_PATH: &str = concat!(
@@ -47,6 +49,8 @@ pub const STRK_ERC20_CONTRACT_ADDRESS: Felt =
     Felt::from_hex_unchecked("0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d");
 pub const UDC_CONTRACT_ADDRESS: Felt =
     Felt::from_hex_unchecked("0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF");
+pub const UDC_CONTRACT_CLASS_HASH: Felt =
+    Felt::from_hex_unchecked("0x7B3E05F48F0C69E4A65CE5E076A66271A527AFF2C34CE1083EC6E1526997A69");
 
 // Example contract with basic storage read and write - Cairo 1
 pub const CAIRO_1_CONTRACT_PATH: &str =
@@ -55,6 +59,9 @@ pub const CAIRO_1_CONTRACT_PATH: &str =
 // Simple contract with a failable (panicking) function
 pub const CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH: &str =
     "../../contracts/test_artifacts/cairo1/panicking_contract/panicking_contract.sierra";
+
+pub const TOO_BIG_CONTRACT_SIERRA_PATH: &str =
+    "../../contracts/test_artifacts/cairo1/too_big/too_big.sierra";
 
 // Contract which asserts the tx version
 pub const CAIRO_1_VERSION_ASSERTER_SIERRA_PATH: &str =
@@ -78,14 +85,14 @@ pub const INVALID_ACCOUNT_SIERRA_PATH: &str =
 
 /// Argent v0.4.0
 pub const ARGENT_ACCOUNT_CLASS_HASH: &str =
-    "0x36078334509b514626504edc9fb252328d1a240e4e948bef8d0c08dff45927f";
+    "0x036078334509b514626504edc9fb252328d1a240e4e948bef8d0c08dff45927f";
 
 // Forking
 pub const INTEGRATION_SEPOLIA_HTTP_URL: &str =
-    "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7";
+    "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_8";
 
-pub const MAINNET_URL: &str = "http://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_7";
-pub const MAINNET_HTTPS_URL: &str = "https://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_7";
+pub const MAINNET_URL: &str = "http://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_8";
+pub const MAINNET_HTTPS_URL: &str = "https://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_8";
 pub const INTEGRATION_GENESIS_BLOCK_HASH: &str =
     "0x19f675d3fb226821493a6ab9a1955e384bba80f130de625621a418e9a7c0ca3";
 /// The number of the last block at which forking can be done; prior to v0.13.4.

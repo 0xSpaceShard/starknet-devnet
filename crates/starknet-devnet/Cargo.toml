@@ -1,6 +1,6 @@
 [package]
 name = "starknet-devnet"
-version = "0.2.4"
+version = "0.4.1"
 edition = "2021"
 repository.workspace = true
 license-file.workspace = true
@@ -40,6 +40,7 @@ serde = { workspace = true }
 anyhow = { workspace = true }
 starknet-rs-providers = { workspace = true }
 ngrok = { workspace = true }
+reqwest = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

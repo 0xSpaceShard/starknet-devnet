@@ -39,6 +39,9 @@ impl JsonRpcHandler {
                     starknet_core::error::Error::ClassAlreadyDeclared { .. } => {
                         ApiError::ClassAlreadyDeclared
                     }
+                    starknet_core::error::Error::ContractClassSizeIsTooLarge => {
+                        ApiError::ContractClassSizeIsTooLarge
+                    }
                     unknown_error => ApiError::StarknetDevnetError(unknown_error),
                 },
             )?;
@@ -168,6 +171,8 @@ impl JsonRpcHandler {
         let restart_params = data.unwrap_or_default();
         self.api.starknet.lock().await.restart(restart_params.restart_l1_to_l2_messaging)?;
 
+        self.api.sockets.lock().await.clear();
+
         Ok(super::JsonRpcResponse::Empty)
     }
 
@@ -189,33 +194,39 @@ impl JsonRpcHandler {
 
 #[cfg(test)]
 mod tests {
-    use crate::api::json_rpc::models::{
-        BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper,
-    };
-    use crate::test_utils::{declare_v1_str, deploy_account_str};
+    use crate::api::json_rpc::models::BroadcastedDeployAccountTransactionEnumWrapper;
 
     #[test]
     fn check_correct_deserialization_of_deploy_account_transaction_request() {
-        test_deploy_account_transaction();
-    }
-
-    /// The example uses declare_v1.json from test_data/rpc/declare_v1.json
-    /// Which declares the example from https://www.cairo-lang.org/docs/hello_starknet/intro.html#your-first-contract
-    /// The example was compiled locally and send via Postman to https://alpha4.starknet.io/gateway/add_transaction
-    #[test]
-    fn parsed_base64_gzipped_json_contract_class_correctly() {
-        let json_string = declare_v1_str();
-
-        let _broadcasted_declare_transaction_v1: BroadcastedDeclareTransactionEnumWrapper =
-            serde_json::from_str(&json_string).unwrap();
-    }
-
-    fn test_deploy_account_transaction() -> BroadcastedDeployAccountTransactionEnumWrapper {
-        let json_string = deploy_account_str();
-
-        let broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransactionEnumWrapper =
-            serde_json::from_str(&json_string).unwrap();
-
-        broadcasted_deploy_account_transaction
+        let _: BroadcastedDeployAccountTransactionEnumWrapper = serde_json::from_str(
+            r#"{
+                "type":"DEPLOY_ACCOUNT",
+                "resource_bounds": {
+                    "l1_gas": {
+                        "max_amount": "0x1",
+                        "max_price_per_unit": "0x2"
+                    },
+                    "l1_data_gas": {
+                        "max_amount": "0x1",
+                        "max_price_per_unit": "0x2"
+                    },
+                    "l2_gas": {
+                        "max_amount": "0x1",
+                        "max_price_per_unit": "0x2"
+                    }
+                },
+                "tip": "0xabc",
+                "paymaster_data": [],
+                "version": "0x3",
+                "signature": ["0xFF", "0xAA"],
+                "nonce": "0x0",
+                "contract_address_salt": "0x01",
+                "class_hash": "0x01",
+                "constructor_calldata": ["0x01"],
+                "nonce_data_availability_mode": "L1",
+                "fee_data_availability_mode": "L1"
+            }"#,
+        )
+        .unwrap();
     }
 }

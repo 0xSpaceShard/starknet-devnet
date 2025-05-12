@@ -1,6 +1,6 @@
 [package]
 name = "starknet-devnet-server"
-version = "0.2.4"
+version = "0.4.1"
 edition = "2021"
 repository.workspace = true
 license-file.workspace = true
@@ -35,6 +35,7 @@ anyhow = { workspace = true }
 lazy_static = { workspace = true }
 enum-helper-macros = { workspace = true }
 walkdir = { workspace = true }
+rand = { workspace = true }
 regex = { workspace = true }
 url = { workspace = true }
 
@@ -44,7 +45,6 @@ starknet-types = { workspace = true }
 starknet-rs-core = { workspace = true }
 
 [dev-dependencies]
-rand = { workspace = true }
 rand_chacha = { workspace = true }
 regex_generate = { workspace = true }
 serde_yaml = { workspace = true }

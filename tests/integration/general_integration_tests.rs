@@ -1,7 +1,8 @@
-use reqwest::StatusCode;
 use serde_json::json;
-use starknet_rs_core::types::{BlockId, BlockTag, Felt};
-use starknet_rs_core::utils::{get_storage_var_address, parse_cairo_short_string};
+use starknet_rs_core::types::{BlockId, BlockTag, Felt, FunctionCall};
+use starknet_rs_core::utils::{
+    get_selector_from_name, get_storage_var_address, parse_cairo_short_string,
+};
 use starknet_rs_providers::Provider;
 
 use crate::common::background_devnet::BackgroundDevnet;
@@ -9,9 +10,7 @@ use crate::common::constants::{
     CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
     ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
 };
-use crate::common::errors::RpcError;
-use crate::common::reqwest_client::{HttpEmptyResponseBody, PostReqwestSender};
-use crate::common::utils::{to_hex_felt, UniqueAutoDeletableFile};
+use crate::common::utils::{UniqueAutoDeletableFile, to_hex_felt};
 
 #[tokio::test]
 /// Asserts that a background instance can be spawned
@@ -29,81 +28,6 @@ async fn background_devnets_at_different_ports_with_random_acquisition() {
 }
 
 #[tokio::test]
-async fn too_big_request_rejected_via_non_rpc() {
-    let limit = 1_000;
-    let args = ["--request-body-size-limit", &limit.to_string()];
-    let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await.unwrap();
-
-    let too_long_path = "a".repeat(limit + 100);
-    let err = PostReqwestSender::<serde_json::Value, HttpEmptyResponseBody>::post_json_async(
-        devnet.reqwest_client(),
-        "/load",
-        json!({"path": too_long_path}),
-    )
-    .await
-    .expect_err("Request should have been rejected");
-
-    assert_eq!(err.status(), StatusCode::PAYLOAD_TOO_LARGE);
-    assert_eq!(
-        serde_json::from_str::<serde_json::Value>(&err.error_message()).unwrap(),
-        json!({
-            "error": {
-                "code": -32600,
-                "message": format!("Request too big! Server received: 1111 bytes; maximum (specifiable via --request-body-size-limit): {limit} bytes"),
-            }
-        })
-    );
-
-    // subtract enough so that the rest of the json body doesn't overflow the limit
-    let nonexistent_path = "a".repeat(limit - 100);
-    let err = PostReqwestSender::<serde_json::Value, HttpEmptyResponseBody>::post_json_async(
-        devnet.reqwest_client(),
-        "/load",
-        json!({"path": nonexistent_path}),
-    )
-    .await
-    .expect_err("Request should have been rejected");
-
-    assert_eq!(err.status(), StatusCode::BAD_REQUEST);
-    assert_eq!(err.error_message(), json!({ "error": "The file does not exist" }).to_string());
-}
-
-#[tokio::test]
-async fn too_big_request_rejected_via_rpc() {
-    let limit = 1_000;
-    let args = ["--request-body-size-limit", &limit.to_string()];
-    let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await.unwrap();
-
-    let too_long_path = "a".repeat(limit + 100);
-    let error = devnet
-        .send_custom_rpc("devnet_load", serde_json::json!({ "path": too_long_path }))
-        .await
-        .expect_err("Request should have been rejected");
-
-    assert_eq!(
-        error,
-        RpcError {
-            code: -32600,
-            message: format!(
-                "Request too big! Server received: 1168 bytes; maximum (specifiable via \
-                 --request-body-size-limit): {limit} bytes"
-            )
-            .into(),
-            data: None
-        }
-    );
-
-    // subtract enough so that the rest of the json body doesn't overflow the limit
-    let nonexistent_path = "a".repeat(limit - 100);
-    let error = devnet
-        .send_custom_rpc("devnet_load", serde_json::json!({ "path": nonexistent_path }))
-        .await
-        .expect_err("Request should have been rejected");
-
-    assert_eq!(error, RpcError { code: -1, message: "The file does not exist".into(), data: None });
-}
-
-#[tokio::test]
 async fn test_config() {
     // random values
     let dump_file = UniqueAutoDeletableFile::new("dummy");
@@ -117,6 +41,8 @@ async fn test_config() {
         "gas_price_fri": 7,
         "data_gas_price_wei": 6,
         "data_gas_price_fri": 8,
+        "l2_gas_price_wei": 9,
+        "l2_gas_price_fri": 10,
         "chain_id": "SN_MAIN",
         "dump_on": "exit",
         "dump_path": dump_file.path,
@@ -129,7 +55,6 @@ async fn test_config() {
             "host": "0.0.0.0",
             "port": 0, // default value in tests, config not modified upon finding a free port
             "timeout": 121,
-            "request_body_size_limit": 1000,
             "restricted_methods": null,
         },
         "block_generation_on": "demand",
@@ -155,23 +80,24 @@ async fn test_config() {
         &serde_json::to_string(&expected_config["data_gas_price_wei"]).unwrap(),
         "--data-gas-price-fri",
         &serde_json::to_string(&expected_config["data_gas_price_fri"]).unwrap(),
+        "--l2-gas-price",
+        &serde_json::to_string(&expected_config["l2_gas_price_wei"]).unwrap(),
+        "--l2-gas-price-fri",
+        &serde_json::to_string(&expected_config["l2_gas_price_fri"]).unwrap(),
         "--chain-id",
         "MAINNET",
         "--dump-on",
-        &expected_config["dump_on"].as_str().unwrap(),
+        expected_config["dump_on"].as_str().unwrap(),
         "--dump-path",
-        &expected_config["dump_path"].as_str().unwrap(),
+        expected_config["dump_path"].as_str().unwrap(),
         "--block-generation-on",
         "demand",
         "--state-archive-capacity",
-        &expected_config["state_archive"].as_str().unwrap(),
+        expected_config["state_archive"].as_str().unwrap(),
         "--host",
         expected_config["server_config"]["host"].as_str().unwrap(),
         "--timeout",
         &serde_json::to_string(&expected_config["server_config"]["timeout"]).unwrap(),
-        "--request-body-size-limit",
-        &serde_json::to_string(&expected_config["server_config"]["request_body_size_limit"])
-            .unwrap(),
     ])
     .await
     .unwrap();
@@ -200,5 +126,32 @@ async fn predeployed_erc20_tokens_have_expected_storage() {
             .unwrap();
 
         assert_eq!(parse_cairo_short_string(&actual_value).unwrap().as_str(), expected_value);
+    }
+}
+
+#[tokio::test]
+async fn predeployed_erc20_tokens_return_expected_values_from_property_getters() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+    for (token_address, getter_name, expected_value) in [
+        (ETH_ERC20_CONTRACT_ADDRESS, "name", "Ether"),
+        (ETH_ERC20_CONTRACT_ADDRESS, "symbol", "ETH"),
+        (STRK_ERC20_CONTRACT_ADDRESS, "name", "StarkNet Token"),
+        (STRK_ERC20_CONTRACT_ADDRESS, "symbol", "STRK"),
+    ] {
+        let actual_felts = devnet
+            .json_rpc_client
+            .call(
+                FunctionCall {
+                    contract_address: token_address,
+                    entry_point_selector: get_selector_from_name(getter_name).unwrap(),
+                    calldata: vec![],
+                },
+                BlockId::Tag(BlockTag::Latest),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(actual_felts.len(), 1);
+        assert_eq!(parse_cairo_short_string(&actual_felts[0]).unwrap(), expected_value);
     }
 }

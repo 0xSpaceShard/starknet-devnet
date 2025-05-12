@@ -7,7 +7,7 @@ use ethers::prelude::*;
 use ethers::providers::{Http, Provider, ProviderError};
 use ethers::types::{Address, BlockNumber, Log};
 use k256::ecdsa::SigningKey;
-use starknet_rs_core::types::Felt;
+use starknet_rs_core::types::{Felt, Hash256};
 use starknet_types::felt::felt_from_prefixed_hex;
 use starknet_types::rpc::contract_address::ContractAddress;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
@@ -55,13 +55,13 @@ pub struct LogMessageToL2 {
 
 impl From<ProviderError> for Error {
     fn from(e: ProviderError) -> Self {
-        Error::MessagingError(MessagingError::EthersError(format!("ProviderError: {}", e)))
+        Error::MessagingError(MessagingError::EthersError(format!("ProviderError: {e}")))
     }
 }
 
 impl From<WalletError> for Error {
     fn from(e: WalletError) -> Self {
-        Error::MessagingError(MessagingError::EthersError(format!("WalletError: {}", e)))
+        Error::MessagingError(MessagingError::EthersError(format!("WalletError: {e}")))
     }
 }
 
@@ -185,16 +185,16 @@ impl EthereumMessaging {
             let message_hash = U256::from_big_endian(message.hash().as_bytes());
             trace!("Sending message to L1: [{:064x}]", message_hash);
 
-            let from_address = felt_devnet_to_u256(&(message.from_address.into()))?;
-            let to_address = felt_devnet_to_u256(&(message.to_address.clone().into()))?;
-            let payload = felts_devnet_to_u256s(&message.payload)?;
+            let from_address = felt_to_u256(message.from_address.into());
+            let to_address = felt_to_u256(message.to_address.clone().into());
+            let payload = message.payload.iter().map(|f| felt_to_u256(*f)).collect();
 
             match starknet_messaging
                 .mock_send_message_from_l2(from_address, to_address, payload)
                 .send()
                 .await
                 .map_err(|e| Error::MessagingError(MessagingError::EthersError(
-                    format!("Error sending transaction on ethereum: {}", e)
+                    format!("Error sending transaction on ethereum: {e}")
                 )))?
                 .await? // wait for the tx to be mined
             {
@@ -269,7 +269,7 @@ impl EthereumMessaging {
         &self,
         cancellation_delay_seconds: U256,
     ) -> DevnetResult<Address> {
-        // Default value from anvil and hardat multiplied by 20.
+        // Default value from anvil and hardhat multiplied by 20.
         let gas_price: U256 = 20000000000_u128.into();
 
         let contract = abigen::MockStarknetMessaging::deploy(
@@ -302,22 +302,20 @@ impl EthereumMessaging {
 ///
 /// * `log` - The log to be converted.
 pub fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
+    let l1_transaction_hash = log.transaction_hash.map(|h| Hash256::from_bytes(h.to_fixed_bytes()));
     let parsed_log = <LogMessageToL2 as EthLogDecode>::decode_log(&log.into()).map_err(|e| {
-        Error::MessagingError(MessagingError::EthersError(format!("Log parsing failed {}", e)))
+        Error::MessagingError(MessagingError::EthersError(format!("Log parsing failed {e}")))
     })?;
 
-    let from_address = address_to_felt_devnet(&parsed_log.from_address)?;
-    let contract_address = ContractAddress::new(u256_to_felt_devnet(&parsed_log.to_address)?)?;
-    let entry_point_selector = u256_to_felt_devnet(&parsed_log.selector)?;
-    let nonce = u256_to_felt_devnet(&parsed_log.nonce)?;
-    let paid_fee_on_l1 = u256_to_felt_devnet(&parsed_log.fee)?;
-
-    let mut payload = vec![];
-    for u in parsed_log.payload {
-        payload.push(u256_to_felt_devnet(&u)?);
-    }
+    let from_address = address_to_felt(&parsed_log.from_address)?;
+    let contract_address = ContractAddress::new(u256_to_felt(&parsed_log.to_address)?)?;
+    let entry_point_selector = u256_to_felt(&parsed_log.selector)?;
+    let nonce = u256_to_felt(&parsed_log.nonce)?;
+    let paid_fee_on_l1 = u256_to_felt(&parsed_log.fee)?;
+    let payload = parsed_log.payload.iter().map(u256_to_felt).collect::<Result<_, _>>()?;
 
     Ok(MessageToL2 {
+        l1_transaction_hash,
         l2_contract_address: contract_address,
         entry_point_selector,
         l1_contract_address: ContractAddress::new(from_address)?,
@@ -332,7 +330,7 @@ pub fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
 /// # Arguments
 ///
 /// * `v` - The `U256` to be converted.
-fn u256_to_felt_devnet(v: &U256) -> DevnetResult<Felt> {
+fn u256_to_felt(v: &U256) -> DevnetResult<Felt> {
     Ok(felt_from_prefixed_hex(format!("0x{:064x}", v).as_str())?)
 }
 
@@ -340,24 +338,9 @@ fn u256_to_felt_devnet(v: &U256) -> DevnetResult<Felt> {
 ///
 /// # Arguments
 ///
-/// * `v` - The `Felt` to be converted.
-fn felt_devnet_to_u256(v: &Felt) -> DevnetResult<U256> {
-    Ok(U256::from_str_radix(v.to_hex_string().as_str(), 16).map_err(|e| {
-        MessagingError::EthersError(format!("Cant't convert Felt into U256: {}", e))
-    })?)
-}
-
-/// Converts a vector of `Felt` to a vector of `U256`.
-///
-/// # Arguments
-///
-/// * `felts` - The `Felt`s to be converted.
-fn felts_devnet_to_u256s(felts: &[Felt]) -> DevnetResult<Vec<U256>> {
-    let mut buf: Vec<U256> = vec![];
-
-    felts.iter().for_each(|p| buf.extend(felt_devnet_to_u256(p)));
-
-    Ok(buf)
+/// * `f` - The `Felt` to be converted.
+fn felt_to_u256(f: Felt) -> U256 {
+    U256::from_big_endian(&f.to_bytes_be())
 }
 
 /// Converts an `Address` into a `Felt`.
@@ -365,7 +348,7 @@ fn felts_devnet_to_u256s(felts: &[Felt]) -> DevnetResult<Vec<U256>> {
 /// # Arguments
 ///
 /// * `address` - The `Address` to be converted.
-fn address_to_felt_devnet(address: &Address) -> DevnetResult<Felt> {
+fn address_to_felt(address: &Address) -> DevnetResult<Felt> {
     Ok(felt_from_prefixed_hex(format!("0x{:064x}", address).as_str())?)
 }
 
@@ -405,6 +388,7 @@ mod tests {
         };
 
         let expected_message = MessageToL2 {
+            l1_transaction_hash: None,
             l1_contract_address: ContractAddress::new(
                 felt_from_prefixed_hex(from_address).unwrap(),
             )

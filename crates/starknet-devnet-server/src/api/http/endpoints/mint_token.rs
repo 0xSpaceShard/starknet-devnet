@@ -7,10 +7,10 @@ use starknet_types::felt::join_felts;
 use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 
-use crate::api::http::models::{MintTokensRequest, MintTokensResponse};
-use crate::api::json_rpc::error::{ApiError, StrictRpcResult};
-use crate::api::json_rpc::DevnetResponse;
 use crate::api::Api;
+use crate::api::http::models::{MintTokensRequest, MintTokensResponse};
+use crate::api::json_rpc::DevnetResponse;
+use crate::api::json_rpc::error::{ApiError, StrictRpcResult};
 
 /// get the balance of the `address`
 pub fn get_balance(
@@ -35,13 +35,12 @@ pub fn get_balance(
         [new_balance_low, new_balance_high] => Ok(join_felts(new_balance_high, new_balance_low)),
         _ => {
             let msg = format!(
-                "Fee token contract expected to return 2 values; got: {:?}",
-                new_balance_raw
+                "Fee token contract expected to return 2 values; got: {new_balance_raw:?}",
             );
 
-            Err(ApiError::ContractError {
-                error: starknet_core::error::Error::UnexpectedInternalError { msg },
-            })
+            Err(ApiError::StarknetDevnetError(
+                starknet_core::error::Error::UnexpectedInternalError { msg },
+            ))
         }
     }
 }
@@ -58,7 +57,7 @@ pub fn get_erc20_address(unit: &FeeUnit) -> DevnetResult<ContractAddress> {
 
 pub(crate) async fn mint_impl(api: &Api, request: MintTokensRequest) -> StrictRpcResult {
     let mut starknet = api.starknet.lock().await;
-    let unit = request.unit.unwrap_or(FeeUnit::WEI);
+    let unit = request.unit.unwrap_or(FeeUnit::FRI);
     let erc20_address = get_erc20_address(&unit)?;
 
     // increase balance

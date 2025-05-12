@@ -1,27 +1,25 @@
 use std::time::Duration;
 
+use axum::Router;
 use axum::body::{Body, Bytes};
 use axum::extract::{DefaultBodyLimit, Request, State};
 use axum::http::{HeaderValue, StatusCode};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
-use axum::routing::{get, post, IntoMakeService, MethodRouter};
-use axum::Router;
+use axum::routing::{IntoMakeService, MethodRouter, get, post};
 use http_body_util::BodyExt;
 use lazy_static::lazy_static;
-use reqwest::{header, Method};
+use reqwest::{Method, header};
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 
-use crate::api::http::{endpoints as http, HttpApiHandler};
+use crate::api::http::{HttpApiHandler, endpoints as http};
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::restrictive_mode::is_uri_path_restricted;
-use crate::rpc_core::error::RpcError;
-use crate::rpc_core::response::ResponseResult;
 use crate::rpc_handler::RpcHandler;
-use crate::{http_rpc_router, rpc_handler, ServerConfig};
+use crate::{ServerConfig, http_rpc_router, rpc_handler};
 pub type StarknetDevnetServer = axum::serve::Serve<IntoMakeService<Router>, Router>;
 
 lazy_static! {
@@ -57,6 +55,7 @@ fn json_rpc_routes<TJsonRpcHandler: RpcHandler>(json_rpc_handler: TJsonRpcHandle
     Router::new()
         .route("/", post(rpc_handler::handle::<TJsonRpcHandler>))
         .route("/rpc", post(rpc_handler::handle::<TJsonRpcHandler>))
+        .route("/ws", get(rpc_handler::handle_socket::<TJsonRpcHandler>))
         .with_state(json_rpc_handler)
 }
 
@@ -107,10 +106,6 @@ pub async fn serve_http_api_json_rpc(
     routes = routes
         .layer(TimeoutLayer::new(Duration::from_secs(server_config.timeout.into())))
         .layer(DefaultBodyLimit::disable())
-        .layer(axum::middleware::from_fn_with_state(
-            server_config.request_body_size_limit,
-            reject_too_big,
-        ))
         .layer(
             // More details: https://docs.rs/tower-http/latest/tower_http/cors/index.html
             CorsLayer::new()
@@ -169,40 +164,6 @@ async fn request_logging_middleware(
 
     let body = log_body_and_path(body, Some(parts.uri.clone())).await?;
     Ok(next.run(Request::from_parts(parts, body)).await)
-}
-
-async fn reject_too_big(
-    State(payload_limit): State<usize>,
-    request: Request,
-    next: Next,
-) -> Result<impl IntoResponse, (StatusCode, String)> {
-    fn bad_request(e: impl std::fmt::Display) -> (StatusCode, String) {
-        (StatusCode::BAD_REQUEST, format!("Invalid Content-Length: {e}"))
-    }
-
-    if let Some(content_length) = request.headers().get(header::CONTENT_LENGTH) {
-        let content_length: usize =
-            content_length.to_str().map_err(bad_request)?.parse().map_err(bad_request)?;
-
-        if content_length > payload_limit {
-            return Err((
-                StatusCode::PAYLOAD_TOO_LARGE,
-                serde_json::to_string(&ResponseResult::Error(RpcError {
-                    code: crate::rpc_core::error::ErrorCode::InvalidRequest,
-                    message: format!(
-                        "Request too big! Server received: {content_length} bytes; maximum \
-                         (specifiable via --request-body-size-limit): {payload_limit} bytes"
-                    )
-                    .into(),
-                    data: None,
-                }))
-                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?,
-            ));
-        }
-    }
-
-    let response = next.run(request).await;
-    Ok(response)
 }
 
 async fn response_logging_middleware(

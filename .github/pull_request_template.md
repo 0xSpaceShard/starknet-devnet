@@ -10,7 +10,7 @@
 
 <!-- If you are not able to complete one of these steps, you can still create a PR, but note what caused you trouble. -->
 
-- [ ] Checked out the [contribution guidelines](CONTRIBUTING.md)
+- [ ] Checked out the [contribution guidelines](https://github.com/0xSpaceShard/starknet-devnet/blob/main/.github/CONTRIBUTING.md)
 - [ ] Applied formatting - `./scripts/format.sh`
 - [ ] No linter errors - `./scripts/clippy_check.sh`
 - [ ] No unused dependencies - `./scripts/check_unused_deps.sh`
@@ -19,5 +19,5 @@
 - [ ] Rebased to the latest commit of the target branch (or merged it into my branch)
     -   Once you make the PR reviewable, please avoid force-pushing
 - [ ] Updated the docs if needed - `./website/README.md`
-- [ ] Linked the [issues](https://github.com/0xSpaceShard/starknet-devnet-rs/issues) resolvable by this PR - [linking info](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword)
-- [ ] Updated the tests if needed; all passing - [execution info](https://github.com/0xSpaceShard/starknet-devnet-rs/blob/main/.github/CONTRIBUTING.md#test-execution)
+- [ ] Linked the [issues](https://github.com/0xSpaceShard/starknet-devnet/issues) resolvable by this PR - [linking info](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword)
+- [ ] Updated the tests if needed; all passing - [execution info](https://github.com/0xSpaceShard/starknet-devnet/blob/main/.github/CONTRIBUTING.md#test-execution)

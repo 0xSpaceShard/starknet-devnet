@@ -9,8 +9,10 @@ use crate::felt::{BlockHash, TransactionHash};
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct EmittedEvent {
     pub transaction_hash: TransactionHash,
-    pub block_hash: BlockHash,
-    pub block_number: BlockNumber,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub block_hash: Option<BlockHash>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub block_number: Option<BlockNumber>,
     pub from_address: ContractAddress,
     pub keys: Vec<Felt>,
     pub data: Vec<Felt>,
@@ -38,6 +40,16 @@ impl From<&blockifier::execution::call_info::OrderedEvent> for OrderedEvent {
             order: event.order,
             keys: event.event.keys.iter().map(|k| k.0).collect(),
             data: event.event.data.0.clone(),
+        }
+    }
+}
+
+impl From<&EmittedEvent> for Event {
+    fn from(emitted_event: &EmittedEvent) -> Self {
+        Self {
+            from_address: emitted_event.from_address,
+            keys: emitted_event.keys.clone(),
+            data: emitted_event.data.clone(),
         }
     }
 }

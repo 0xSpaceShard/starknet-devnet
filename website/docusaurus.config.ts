@@ -2,7 +2,7 @@ import { themes as prismThemes } from 'prism-react-renderer';
 import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
-const GITHUB_REPO_URL = 'https://github.com/0xSpaceShard/starknet-devnet-rs';
+const GITHUB_REPO_URL = 'https://github.com/0xSpaceShard/starknet-devnet';
 
 const config: Config = {
   title: 'Starknet Devnet',
@@ -13,13 +13,13 @@ const config: Config = {
   url: 'https://0xspaceshard.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/starknet-devnet-rs/',
+  baseUrl: '/starknet-devnet/',
   trailingSlash: false,
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
   organizationName: '0xSpaceShard', // Usually your GitHub org/user name.
-  projectName: 'starknet-devnet-rs', // Usually your repo name.
+  projectName: 'starknet-devnet', // Usually your repo name.
   deploymentBranch: 'gh-pages',
 
   onBrokenLinks: 'throw',

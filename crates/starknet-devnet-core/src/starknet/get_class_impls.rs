@@ -1,6 +1,8 @@
 use blockifier::state::state_api::StateReader;
+use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use starknet_api::block::BlockStatus;
-use starknet_rs_core::types::BlockId;
+use starknet_rs_core::types::{BlockId, BlockTag};
+use starknet_types::compile_sierra_contract;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
@@ -37,6 +39,7 @@ pub fn get_class_impl(
         BlockStatus::Rejected => return Err(Error::NoBlock),
     };
 
+    // Returns sierra for cairo1; returns the only artifact for cairo0.
     match starknet.rpc_contract_classes.read().get_class(&class_hash, &block_number_or_pending) {
         Some(class) => Ok(class.clone()),
         None => Err(Error::StateError(StateError::NoneClassHash(class_hash))),
@@ -52,33 +55,51 @@ pub fn get_class_at_impl(
     starknet.get_class(block_id, class_hash)
 }
 
+pub fn get_compiled_casm_impl(
+    starknet: &Starknet,
+    class_hash: ClassHash,
+) -> DevnetResult<CasmContractClass> {
+    let contract_class = get_class_impl(starknet, &BlockId::Tag(BlockTag::Latest), class_hash)?;
+    match contract_class {
+        ContractClass::Cairo1(sierra_contract_class) => {
+            let mut casm = compile_sierra_contract(&sierra_contract_class)?;
+            casm.pythonic_hints = None; // removes the extra key from serialized form
+            Ok(casm)
+        }
+        ContractClass::Cairo0(_) => Err(Error::StateError(StateError::NoneCasmClass(class_hash))),
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use starknet_rs_core::types::BlockId;
+    use starknet_rs_core::types::{BlockId, Felt};
     use starknet_types::contract_class::ContractClass;
+    use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
 
     use crate::error::Error;
     use crate::starknet::starknet_config::StateArchiveCapacity;
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account_and_state_capacity;
-    use crate::utils::test_utils::dummy_broadcasted_declare_transaction_v2;
+    use crate::utils::test_utils::{
+        broadcasted_declare_tx_v3_of_dummy_class, resource_bounds_with_price_1,
+    };
 
     #[test]
     fn get_sierra_class() {
         let (mut starknet, account) =
             setup_starknet_with_no_signature_check_account_and_state_capacity(
-                1e8 as u128,
+                1e18 as u128,
                 StateArchiveCapacity::Full,
             );
 
-        let declare_txn = dummy_broadcasted_declare_transaction_v2(&account.account_address);
+        let declare_txn = broadcasted_declare_tx_v3_of_dummy_class(
+            account.account_address,
+            Felt::ZERO,
+            resource_bounds_with_price_1(0, 1000, 1e9 as u64),
+        );
 
         let expected: ContractClass = declare_txn.contract_class.clone().into();
         let (_, class_hash) = starknet
-            .add_declare_transaction(
-                starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V2(Box::new(
-                    declare_txn,
-                )),
-            )
+            .add_declare_transaction(BroadcastedDeclareTransaction::V3(Box::new(declare_txn)))
             .unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();

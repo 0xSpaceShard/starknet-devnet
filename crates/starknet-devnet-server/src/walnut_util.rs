@@ -189,8 +189,8 @@ mod tests {
 
     use crate::api::http::models::ContractSource;
     use crate::walnut_util::{
-        get_cairo_and_toml_files_from_contract_source_in_json_format,
-        get_cairo_and_toml_files_from_directory, get_first_word_using_regex, REGEX,
+        REGEX, get_cairo_and_toml_files_from_contract_source_in_json_format,
+        get_cairo_and_toml_files_from_directory, get_first_word_using_regex,
     };
 
     #[test]

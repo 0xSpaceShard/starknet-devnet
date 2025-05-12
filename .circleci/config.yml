@@ -22,8 +22,6 @@ aliases:
     machine:
       image: ubuntu-2204:2024.01.2
     resource_class: large
-    environment:
-      COMPILER_ARCHIVE: cross-x86_64-unknown-linux-gnu.tar.gz
 
 executors:
   unknown-linux-gnu:
@@ -36,8 +34,6 @@ executors:
     macos:
       xcode: 15.3.0
     resource_class: macos.m1.medium.gen1
-    environment:
-      COMPILER_ARCHIVE: cross-x86_64-apple-darwin.tar.gz
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
@@ -51,8 +47,10 @@ jobs:
           name: Load cache
           command: .circleci/scripts/cache.sh load
       - run:
-          name: Install nightly-2024-07-08
-          command: rustup install nightly-2024-07-08
+          name: Install Rust
+          command: |
+            rustup install 1.85.0
+            rustup install nightly-2025-02-20
       - run:
           name: Install foundry
           command: ./scripts/install_foundry.sh
@@ -104,7 +102,7 @@ jobs:
           name: Install Rust
           command: |
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
-              sh -s -- -y --default-toolchain=1.76.0
+              sh -s -- -y --default-toolchain=1.85.0
       - run:
           name: Compile binary
           command: ./scripts/compile_binary.sh << parameters.target_triplet >>
@@ -142,7 +140,7 @@ jobs:
 
   publish:
     docker:
-      - image: cimg/rust:1.76.0-node
+      - image: cimg/rust:1.85.0-node
     resource_class: xlarge
     steps:
       - checkout
@@ -174,6 +172,10 @@ workflows:
             parameters:
               arch: [x86_64, aarch64]
               platform: [unknown-linux-gnu, unknown-linux-musl, apple-darwin]
+            exclude:
+              # This combination cannot be built
+              - arch: aarch64
+                platform: unknown-linux-musl
           target_triplet: << matrix.arch >>-<< matrix.platform >>
           archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
       - image-build-amd:
