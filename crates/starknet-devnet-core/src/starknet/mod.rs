@@ -14,7 +14,7 @@ use ethers::types::H256;
 use parking_lot::RwLock;
 use starknet_api::block::{
     BlockInfo, BlockNumber, BlockStatus, BlockTimestamp, FeeType, GasPrice, GasPricePerToken,
-    GasPriceVector, GasPrices,
+    GasPriceVector, GasPrices, NonzeroGasPrice,
 };
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::data_availability::DataAvailabilityMode;
@@ -96,6 +96,12 @@ mod predeployed;
 pub mod starknet_config;
 mod state_update;
 pub(crate) mod transaction_trace;
+
+const DUMMY_GAS_PRICE_VECTOR: GasPriceVector = GasPriceVector {
+    l1_gas_price: NonzeroGasPrice::MIN,
+    l1_data_gas_price: NonzeroGasPrice::MIN,
+    l2_gas_price: NonzeroGasPrice::MIN,
+};
 
 pub struct Starknet {
     pub latest_state: StarknetState,
@@ -453,11 +459,7 @@ impl Starknet {
             block_timestamp: BlockTimestamp(0),
             sequencer_address: starknet_api::contract_address!("0x1000"),
             gas_prices: GasPrices {
-                eth_gas_prices: GasPriceVector {
-                    l1_gas_price: nonzero_gas_price!(gas_price_wei),
-                    l1_data_gas_price: nonzero_gas_price!(data_gas_price_wei),
-                    l2_gas_price: nonzero_gas_price!(l2_gas_price_wei),
-                },
+                eth_gas_prices: DUMMY_GAS_PRICE_VECTOR,
                 strk_gas_prices: GasPriceVector {
                     l1_gas_price: nonzero_gas_price!(l1_gas_price),
                     l1_data_gas_price: nonzero_gas_price!(l1_data_gas_price),
@@ -507,11 +509,7 @@ impl Starknet {
 
         // Block info gas needs to be set here
         block_info.gas_prices = GasPrices {
-            eth_gas_prices: GasPriceVector {
-                l1_gas_price: nonzero_gas_price!(gas_modification.gas_price_wei),
-                l1_data_gas_price: nonzero_gas_price!(gas_modification.data_gas_price_wei),
-                l2_gas_price: nonzero_gas_price!(gas_modification.l2_gas_price_wei),
-            },
+            eth_gas_prices: DUMMY_GAS_PRICE_VECTOR,
             strk_gas_prices: GasPriceVector {
                 l1_gas_price: nonzero_gas_price!(gas_modification.l1_gas_price),
                 l1_data_gas_price: nonzero_gas_price!(gas_modification.l1_data_gas_price),
