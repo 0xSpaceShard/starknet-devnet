@@ -97,13 +97,12 @@ pub mod starknet_config;
 mod state_update;
 pub(crate) mod transaction_trace;
 
-/// To be used when the actual price is no longer important, e.g. for ETH prices which are no longer
-/// relevant as ETH transactions are no longer supported.
-fn dummy_gas_price_vector() -> GasPriceVector {
+/// Used when the actual prices are no longer important. ETH transactions are no longer supported.
+fn eth_gas_price_vector() -> GasPriceVector {
     GasPriceVector {
-        l1_gas_price: nonzero_gas_price!(NonZeroU128::MAX),
-        l1_data_gas_price: nonzero_gas_price!(NonZeroU128::MAX),
-        l2_gas_price: nonzero_gas_price!(NonZeroU128::MAX),
+        l1_gas_price: nonzero_gas_price!(DEVNET_DEFAULT_L1_GAS_PRICE),
+        l1_data_gas_price: nonzero_gas_price!(DEVNET_DEFAULT_L1_DATA_GAS_PRICE),
+        l2_gas_price: nonzero_gas_price!(DEVNET_DEFAULT_L2_GAS_PRICE),
     }
 }
 
@@ -449,7 +448,7 @@ impl Starknet {
             block_timestamp: BlockTimestamp(0),
             sequencer_address: starknet_api::contract_address!("0x1000"),
             gas_prices: GasPrices {
-                eth_gas_prices: dummy_gas_price_vector(),
+                eth_gas_prices: eth_gas_price_vector(),
                 strk_gas_prices: GasPriceVector {
                     l1_gas_price: nonzero_gas_price!(l1_gas_price),
                     l1_data_gas_price: nonzero_gas_price!(l1_data_gas_price),
@@ -499,7 +498,7 @@ impl Starknet {
 
         // Block info gas needs to be set here
         block_info.gas_prices = GasPrices {
-            eth_gas_prices: dummy_gas_price_vector(),
+            eth_gas_prices: eth_gas_price_vector(),
             strk_gas_prices: GasPriceVector {
                 l1_gas_price: nonzero_gas_price!(gas_modification.l1_gas_price),
                 l1_data_gas_price: nonzero_gas_price!(gas_modification.l1_data_gas_price),
