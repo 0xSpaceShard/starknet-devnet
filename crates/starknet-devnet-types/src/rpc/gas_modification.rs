@@ -32,5 +32,3 @@ impl GasModification {
         }
     }
 }
-
-// TODO impl convertor to GasPriceVector
