@@ -115,8 +115,6 @@ pub struct PendingBlockHeader {
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(Deserialize), serde(deny_unknown_fields))]
 pub struct ResourcePrice {
-    // for now this will be always 0, this field is introduced in 0.5.0
-    // but current version of blockifier/starknet_api doesn't return this value
     pub price_in_fri: Felt,
     pub price_in_wei: Felt,
 }

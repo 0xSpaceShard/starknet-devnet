@@ -384,28 +384,16 @@
       "summary": "Set gas price",
       "params": [
         {
-          "gas_price_wei": {
-            "title": "L1 Gas price in WEI",
+          "l1_gas_price": {
+            "title": "L1 gas price in FRI",
             "$ref": "#/components/schemas/u128"
           },
-          "data_gas_price_wei": {
-            "title": "L1 Data gas price in WEI",
+          "l1_data_gas_price": {
+            "title": "L1 data gas price in FRI",
             "$ref": "#/components/schemas/u128"
           },
-          "gas_price_fri": {
-            "title": "L1 Gas price in FRI",
-            "$ref": "#/components/schemas/u128"
-          },
-          "data_gas_price_fri": {
-            "title": "L1 Data gas price in FRI",
-            "$ref": "#/components/schemas/u128"
-          },
-          "l2_gas_price_wei": {
-            "title": "L2 Gas price in WEI",
-            "$ref": "#/components/schemas/u128"
-          },
-          "l2_gas_price_fri": {
-            "title": "L2 Gas price in FRI",
+          "l2_gas_price": {
+            "title": "L2 gas price in FRI",
             "$ref": "#/components/schemas/u128"
           },
           "generate_block": {
@@ -420,37 +408,20 @@
         "schema": {
           "type": "object",
           "properties": {
-            "gas_price_wei": {
-              "title": "Gas price in WEI",
+            "l1_gas_price": {
+              "title": "L1 gas price in FRI",
               "$ref": "#/components/schemas/u128"
             },
-            "data_gas_price_wei": {
-              "title": "L1 Data gas price in WEI",
+            "l1_data_gas_price": {
+              "title": "L1 data gas price in FRI",
               "$ref": "#/components/schemas/u128"
             },
-            "gas_price_fri": {
-              "title": "L1 Gas price in FRI",
-              "$ref": "#/components/schemas/u128"
-            },
-            "data_gas_price_fri": {
-              "title": "L1 Data gas price in FRI",
-              "$ref": "#/components/schemas/u128"
-            },
-            "l2_gas_price_wei": {
-              "title": "L2 Gas price in WEI",
-              "$ref": "#/components/schemas/u128"
-            },
-            "l2_gas_price_fri": {
-              "title": "L2 Gas price in FRI",
+            "l2_gas_price": {
+              "title": "L2 gas price in FRI",
               "$ref": "#/components/schemas/u128"
             }
           },
-          "required": [
-            "gas_price_wei",
-            "data_gas_price_wei",
-            "gas_price_fri",
-            "data_gas_price_fri"
-          ]
+          "required": ["l1_gas_price", "l1_data_gas_price", "l2_gas_price"]
         }
       },
       "errors": [
@@ -762,28 +733,16 @@
               "title": "Start time",
               "type": "integer"
             },
-            "gas_price_wei": {
-              "title": "L1 Gas price in WEI",
+            "l1_gas_price": {
+              "title": "L1 gas price in FRI",
               "$ref": "#/components/schemas/u128"
             },
-            "data_gas_price_wei": {
-              "title": "L1 Data gas price in WEI",
+            "l1_data_gas_price": {
+              "title": "L1 data gas price in FRI",
               "$ref": "#/components/schemas/u128"
             },
-            "gas_price_fri": {
-              "title": "L1 Gas price in FRI",
-              "$ref": "#/components/schemas/u128"
-            },
-            "data_gas_price_fri": {
-              "title": "L1 Data gas price in FRI",
-              "$ref": "#/components/schemas/u128"
-            },
-            "l2_gas_price_wei": {
-              "title": "L2 Gas price in WEI",
-              "$ref": "#/components/schemas/u128"
-            },
-            "l2_gas_price_fri": {
-              "title": "L2 Gas price in FRI",
+            "l2_gas_price": {
+              "title": "L2 gas price in FRI",
               "$ref": "#/components/schemas/u128"
             },
             "chain_id": {
@@ -828,10 +787,9 @@
             "account_contract_class_hash",
             "predeployed_accounts_initial_balance",
             "start_time",
-            "gas_price_fri",
-            "gas_price_wei",
-            "data_gas_price_fri",
-            "data_gas_price_wei",
+            "l1_gas_price",
+            "l1_data_gas_price",
+            "l2_gas_price",
             "chain_id",
             "block_generation_on",
             "lite_mode",

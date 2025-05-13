@@ -114,21 +114,21 @@ pub(crate) struct Args {
     timeout: u16,
 
     #[arg(long = "l1-gas-price")]
-    #[arg(env = "GAS_PRICE_FRI")]
+    #[arg(env = "L1_GAS_PRICE")]
     #[arg(value_name = "FRI_PER_GAS_UNIT")]
     #[arg(default_value_t = DEVNET_DEFAULT_L1_GAS_PRICE)]
     #[arg(help = "Specify the gas price in fri per L1 gas unit;")]
     l1_gas_price: NonZeroU128,
 
     #[arg(long = "l1-data-gas-price")]
-    #[arg(env = "DATA_GAS_PRICE_FRI")]
+    #[arg(env = "L1_DATA_GAS_PRICE")]
     #[arg(value_name = "FRI_PER_GAS_UNIT")]
     #[arg(default_value_t = DEVNET_DEFAULT_L1_DATA_GAS_PRICE)]
     #[arg(help = "Specify the gas price in fri per L1 data gas unit;")]
     l1_data_gas_price: NonZeroU128,
 
     #[arg(long = "l2-gas-price")]
-    #[arg(env = "L2_GAS_PRICE_FRI")]
+    #[arg(env = "L2_GAS_PRICE")]
     #[arg(value_name = "FRI_PER_GAS_UNIT")]
     #[arg(default_value_t = DEVNET_DEFAULT_L2_GAS_PRICE)]
     #[arg(help = "Specify the gas price in fri per L2 gas unit;")]
@@ -547,10 +547,9 @@ mod tests {
             ("--port", "PORT", "1234"),
             ("--start-time", "START_TIME", "123"),
             ("--timeout", "TIMEOUT", "12"),
-            ("--gas-price", "GAS_PRICE", "1"),
-            ("--gas-price-fri", "GAS_PRICE_FRI", "2"),
-            ("--data-gas-price", "DATA_GAS_PRICE", "3"),
-            ("--data-gas-price-fri", "DATA_GAS_PRICE_FRI", "4"),
+            ("--l1-gas-price", "L1_GAS_PRICE", "1"),
+            ("--l1-data-gas-price", "L1_DATA_GAS_PRICE", "2"),
+            ("--l2-gas-price", "L2_GAS_PRICE", "3"),
             ("--dump-on", "DUMP_ON", "exit"),
             ("--dump-path", "DUMP_PATH", "dummy-path"),
             ("--state-archive-capacity", "STATE_ARCHIVE_CAPACITY", "full"),

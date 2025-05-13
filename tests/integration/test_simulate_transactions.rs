@@ -28,7 +28,7 @@ use crate::common::constants::{
 };
 use crate::common::fees::{assert_difference_if_validation, assert_fee_in_resp_at_least_equal};
 use crate::common::utils::{
-    LocalFee, assert_contains, declare_v3_deploy_v3, get_deployable_account_signer,
+    LocalFee, assert_contains, declare_v3_deploy_v3, felt_to_u128, get_deployable_account_signer,
     get_flattened_sierra_contract_and_casm_hash, get_simple_contract_artifacts, iter_to_hex_felt,
     to_hex_felt, to_num_as_hex,
 };
@@ -456,13 +456,11 @@ async fn test_simulation_of_panicking_invoke() {
         .await
         .unwrap();
 
-    let gas_price = match block {
-        starknet_rs_core::types::MaybePendingBlockWithTxHashes::Block(latest) => {
-            latest.l2_gas_price.price_in_fri
-        }
+    let gas_price = felt_to_u128(match block {
+        MaybePendingBlockWithTxHashes::Block(latest) => latest.l2_gas_price.price_in_fri,
         MaybePendingBlockWithTxHashes::PendingBlock(pending) => pending.l2_gas_price.price_in_fri,
-    };
-    let gas_price = u128::from_le_bytes(gas_price.to_bytes_le()[..16].try_into().unwrap());
+    });
+
     let nonce = Felt::TWO; // after declare + deploy
     let simulation = account
         .execute_v3(calls)
