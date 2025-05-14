@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use starknet_api::block::{
-    BlockHeader, BlockHeaderWithoutHash, BlockNumber, BlockStatus, BlockTimestamp,
+    BlockHeader, BlockHeaderWithoutHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice,
 };
 use starknet_api::data_availability::L1DataAvailabilityMode;
 use starknet_api::felt;
@@ -12,6 +12,7 @@ use starknet_types::felt::{BlockHash, TransactionHash};
 use starknet_types::rpc::block::{
     BlockHeader as TypesBlockHeader, PendingBlockHeader as TypesPendingBlockHeader, ResourcePrice,
 };
+use starknet_types::rpc::gas_modification::GasModification;
 use starknet_types::traits::HashProducer;
 use starknet_types_core::hash::{Pedersen, StarkHash};
 
@@ -392,6 +393,15 @@ impl StarknetBlock {
 
     pub(crate) fn set_timestamp(&mut self, timestamp: BlockTimestamp) {
         self.header.block_header_without_hash.timestamp = timestamp;
+    }
+
+    pub(crate) fn apply_gas_modification(&mut self, gas_modification: &GasModification) {
+        self.header.block_header_without_hash.l1_gas_price.price_in_fri =
+            GasPrice(gas_modification.l1_gas_price.get());
+        self.header.block_header_without_hash.l1_data_gas_price.price_in_fri =
+            GasPrice(gas_modification.l1_data_gas_price.get());
+        self.header.block_header_without_hash.l2_gas_price.price_in_fri =
+            GasPrice(gas_modification.l2_gas_price.get());
     }
 }
 

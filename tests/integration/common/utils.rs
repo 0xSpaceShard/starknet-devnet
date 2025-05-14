@@ -442,6 +442,11 @@ pub fn felt_to_u128(f: Felt) -> u128 {
     bigint.try_into().unwrap()
 }
 
+/// Unchecked conversion  
+fn felt_to_u64(f: Felt) -> u64 {
+    u64::from_le_bytes(f.to_bytes_le()[..8].try_into().unwrap())
+}
+
 /// Helper for extracting JSON RPC error from the provider instance of `ProviderError`.
 /// To be used when there are discrepancies between starknet-rs and the target RPC spec.
 pub fn extract_json_rpc_error(error: ProviderError) -> Result<JsonRpcError, anyhow::Error> {
@@ -628,28 +633,13 @@ impl From<LocalFee> for ResourceBoundsMapping {
 
 impl From<FeeEstimate> for LocalFee {
     fn from(fee: FeeEstimate) -> Self {
-        let l1_gas_consumed =
-            u64::from_le_bytes(fee.l1_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
-        let l1_gas_price =
-            u128::from_le_bytes(fee.l1_gas_price.to_bytes_le()[..16].try_into().unwrap());
-
-        let l2_gas_consumed =
-            u64::from_le_bytes(fee.l2_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
-        let l2_gas_price =
-            u128::from_le_bytes(fee.l2_gas_price.to_bytes_le()[..16].try_into().unwrap());
-
-        let l1_data_gas_consumed =
-            u64::from_le_bytes(fee.l1_data_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
-        let l1_data_gas_price =
-            u128::from_le_bytes(fee.l1_data_gas_price.to_bytes_le()[..16].try_into().unwrap());
-
         LocalFee {
-            l1_gas: l1_gas_consumed,
-            l1_gas_price,
-            l1_data_gas: l1_data_gas_consumed,
-            l1_data_gas_price,
-            l2_gas: l2_gas_consumed,
-            l2_gas_price,
+            l1_gas: felt_to_u64(fee.l1_gas_consumed),
+            l1_gas_price: felt_to_u128(fee.l1_gas_price),
+            l1_data_gas: felt_to_u64(fee.l1_data_gas_consumed),
+            l1_data_gas_price: felt_to_u128(fee.l1_data_gas_price),
+            l2_gas: felt_to_u64(fee.l2_gas_consumed),
+            l2_gas_price: felt_to_u128(fee.l2_gas_price),
         }
     }
 }
