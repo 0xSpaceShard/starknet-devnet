@@ -61,7 +61,7 @@ impl EstimateMessageFeeRequestWrapper {
         &self.inner.message
     }
 
-    pub fn create_blockifier_l1_transaction(&self) -> DevnetResult<L1HandlerTransaction> {
+    pub fn create_blockifier_l1_handler_tx(&self) -> DevnetResult<L1HandlerTransaction> {
         let calldata = [&[self.get_from_address().into()], self.get_payload()].concat();
 
         let l1_transaction = L1HandlerTransaction {
@@ -71,7 +71,8 @@ impl EstimateMessageFeeRequestWrapper {
                 )?,
                 entry_point_selector: EntryPointSelector(self.get_entry_point_selector()),
                 calldata: Calldata(Arc::new(calldata)),
-                ..Default::default()
+                nonce: Default::default(),
+                version: starknet_api::transaction::L1HandlerTransaction::VERSION,
             },
             paid_fee_on_l1: starknet_api::transaction::fields::Fee(1),
             tx_hash: Default::default(),
