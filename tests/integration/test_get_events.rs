@@ -2,18 +2,44 @@ use std::sync::Arc;
 
 use starknet_rs_accounts::{Account, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::{BlockId, BlockTag, Call, EventFilter, Felt, StarknetError};
+use starknet_rs_core::types::{
+    BlockId, BlockTag, Call, EmittedEvent, EventFilter, Felt, StarknetError,
+};
 use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
-use crate::common::constants;
+use crate::common::constants::{self, MAINNET_URL, STRK_ERC20_CONTRACT_ADDRESS};
 use crate::common::utils::get_events_contract_artifacts;
 
-/// The test verifies that the `get_events` RPC method returns the correct events.
-/// The test starts a devnet, gets the first predeployed account, using it declares and deploys
-/// a contract that emits events.
-/// Then the events are being fetched first all of them then in chunks
+async fn get_events_follow_continuation_token(
+    devnet: &BackgroundDevnet,
+    event_filter: EventFilter,
+    chunk_size: u64,
+) -> Result<Vec<EmittedEvent>, ProviderError> {
+    let mut events = vec![];
+    let mut continuation_token: Option<String> = None;
+    loop {
+        let events_page = devnet
+            .json_rpc_client
+            .get_events(event_filter.clone(), continuation_token, chunk_size)
+            .await?;
+
+        events.extend(events_page.events);
+
+        continuation_token = events_page.continuation_token;
+        if continuation_token.is_none() {
+            break;
+        }
+    }
+
+    Ok(events)
+}
+
+/// A helper function which asserts that the `starknet_getEvents` RPC method returns the correct
+/// events. It expects a running Devnet, gets the first predeployed account and uses it to declare
+/// and deploy a contract that emits events. Then the events are fetched: first all in a single
+/// chunk, then in multiple chunks.
 async fn get_events_correct_chunking(devnet: &BackgroundDevnet, block_on_demand: bool) {
     let (signer, address) = devnet.get_first_predeployed_account().await;
     let mut predeployed_account = SingleOwnerAccount::new(
@@ -176,17 +202,123 @@ async fn get_events_errors() {
     }
 }
 
+const FORK_BLOCK: u64 = 1374700;
+
 #[tokio::test]
 async fn get_events_from_forked_devnet_when_last_queried_block_on_origin() {
-    unimplemented!();
+    let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+        "--fork-network",
+        MAINNET_URL,
+        "--fork-block",
+        &FORK_BLOCK.to_string(),
+    ])
+    .await
+    .unwrap();
+
+    assert_eq!(
+        FORK_BLOCK + 1,
+        fork_devnet.get_latest_block_with_tx_hashes().await.unwrap().block_number
+    );
+
+    let chunk_size = 100; // to force pagination
+    let events = get_events_follow_continuation_token(
+        &fork_devnet,
+        EventFilter {
+            from_block: Some(BlockId::Number(FORK_BLOCK)),
+            to_block: Some(BlockId::Number(FORK_BLOCK)),
+            address: Some(STRK_ERC20_CONTRACT_ADDRESS),
+            keys: Some(vec![vec![get_selector_from_name("Transfer").unwrap()]]),
+        },
+        chunk_size,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(events.len(), 330);
 }
 
 #[tokio::test]
 async fn get_events_from_forked_devnet_when_first_queried_block_on_devnet() {
-    unimplemented!();
+    let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+        "--fork-network",
+        MAINNET_URL,
+        "--fork-block",
+        &FORK_BLOCK.to_string(),
+    ])
+    .await
+    .unwrap();
+
+    assert_eq!(
+        FORK_BLOCK + 1,
+        fork_devnet.get_latest_block_with_tx_hashes().await.unwrap().block_number
+    );
+
+    let dummy_address = Felt::ONE;
+    let mint_amount = 10;
+    let n_mints = 3;
+    for _ in 0..n_mints {
+        fork_devnet.mint(dummy_address, mint_amount).await;
+    }
+
+    let chunk_size = 100; // to force pagination
+    let events = get_events_follow_continuation_token(
+        &fork_devnet,
+        EventFilter {
+            from_block: Some(BlockId::Number(FORK_BLOCK + 1)),
+            to_block: None,
+            address: Some(STRK_ERC20_CONTRACT_ADDRESS),
+            keys: Some(vec![vec![get_selector_from_name("Transfer").unwrap()]]),
+        },
+        chunk_size,
+    )
+    .await
+    .unwrap();
+
+    // Each minting creates 2 transfers: one to charge the chargeable contract, one to give funds
+    // to the target address.
+    assert_eq!(events.len(), n_mints * 2);
 }
 
 #[tokio::test]
 async fn get_events_from_forked_devnet_when_first_queried_block_on_origin_and_last_on_devnet() {
-    unimplemented!();
+    let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+        "--fork-network",
+        MAINNET_URL,
+        "--fork-block",
+        &FORK_BLOCK.to_string(),
+    ])
+    .await
+    .unwrap();
+
+    assert_eq!(
+        FORK_BLOCK + 1,
+        fork_devnet.get_latest_block_with_tx_hashes().await.unwrap().block_number
+    );
+
+    let dummy_address = Felt::ONE;
+    let mint_amount = 10;
+    let n_mints = 3;
+    for _ in 0..n_mints {
+        fork_devnet.mint(dummy_address, mint_amount).await;
+    }
+
+    let chunk_size = 100; // to force pagination
+    let events = get_events_follow_continuation_token(
+        &fork_devnet,
+        EventFilter {
+            from_block: Some(BlockId::Number(FORK_BLOCK)),
+            to_block: None,
+            address: Some(STRK_ERC20_CONTRACT_ADDRESS),
+            keys: Some(vec![vec![get_selector_from_name("Transfer").unwrap()]]),
+        },
+        chunk_size,
+    )
+    .await
+    .unwrap();
+
+    let origin_events = 330;
+    // Each minting creates 2 transfers: one to charge the chargeable contract, one to give funds
+    // to the target address.
+    let fork_events = n_mints * 2;
+    assert_eq!(events.len(), origin_events + fork_events);
 }
