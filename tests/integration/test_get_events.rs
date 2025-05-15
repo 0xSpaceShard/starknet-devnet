@@ -175,3 +175,18 @@ async fn get_events_errors() {
         }
     }
 }
+
+#[tokio::test]
+async fn get_events_from_forked_devnet_when_last_queried_block_on_origin() {
+    unimplemented!();
+}
+
+#[tokio::test]
+async fn get_events_from_forked_devnet_when_first_queried_block_on_devnet() {
+    unimplemented!();
+}
+
+#[tokio::test]
+async fn get_events_from_forked_devnet_when_first_queried_block_on_origin_and_last_on_devnet() {
+    unimplemented!();
+}
