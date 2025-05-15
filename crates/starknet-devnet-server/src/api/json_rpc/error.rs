@@ -255,6 +255,7 @@ impl ApiError {
             Self::BlockNotFound
             | Self::TransactionNotFound
             | Self::NoStateAtBlock { .. }
+            | Self::InvalidContinuationToken
             | Self::ClassHashNotFound => true,
             Self::StarknetDevnetError(_)
             | Self::NoTraceAvailable
@@ -265,7 +266,6 @@ impl ApiError {
             | Self::ContractError { .. }
             | Self::NoBlocks
             | Self::RequestPageSizeTooBig
-            | Self::InvalidContinuationToken
             | Self::TooManyKeysInFilter
             | Self::ClassAlreadyDeclared
             | Self::InvalidContractClass
