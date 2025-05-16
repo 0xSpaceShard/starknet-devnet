@@ -396,6 +396,34 @@ impl JsonRpcHandler {
     pub async fn get_events(&self, filter: EventFilter) -> StrictRpcResult {
         let starknet = self.api.starknet.lock().await;
 
+        // determine if forking and if from_block <= fork_block
+        if let Some(origin_caller) = &self.origin_caller {
+            // check final block
+            let to_block_number = match filter.to_block {
+                Some(starknet_rs_core::types::BlockId::Hash(h)) => todo!("check on origin if ok"),
+                Some(starknet_rs_core::types::BlockId::Number(n)) => n,
+                Some(starknet_rs_core::types::BlockId::Tag(tag)) => todo!("default to fork block?"),
+                None => starknet.get_latest_block().unwrap().block_number().0,
+            };
+
+            let to_origin_block_number = u64::min(to_block_number, origin_caller.fork_block_number());
+
+            // check starting block
+            if let Some(from_block_id) = filter.from_block {
+                if let Ok(from_block) = starknet.get_block(&from_block_id) {
+                    // if block present locally, move on
+                } else {
+                    // if block not present locally, check with origin:
+                    //      if from_block <= fork_block:
+                    //          query origin [from_block, min(fork_block, to_block - if any)]
+                    //      if from_block > fork_block: (only possible if from_block is specified as
+                    // hash)          Error: no block
+                }
+            } else {
+                // if no from_block, we have to query from None to to_block_number
+            }
+        }
+
         let page = filter
             .continuation_token
             .unwrap_or(DEFAULT_CONTINUATION_TOKEN.to_string())

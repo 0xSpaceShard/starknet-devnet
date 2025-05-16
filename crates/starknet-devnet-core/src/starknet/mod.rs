@@ -106,7 +106,7 @@ pub struct Starknet {
     pub(in crate::starknet) block_context: BlockContext,
     // To avoid repeating some logic related to blocks,
     // having `blocks` public allows to re-use functions like `get_blocks()`.
-    pub(crate) blocks: StarknetBlocks,
+    pub blocks: StarknetBlocks,
     pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
     pub pending_block_timestamp_shift: i64,

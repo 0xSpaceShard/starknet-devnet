@@ -25,6 +25,10 @@ impl OriginForwarder {
         Self { reqwest_client: reqwest::Client::new(), url: Arc::new(url), block_number }
     }
 
+    pub fn fork_block_number(&self) -> u64 {
+        self.block_number
+    }
+
     /// In case block tag "pending" or "latest" is a part of the request, it is replaced with the
     /// numeric block id of the forked block. Both JSON-RPC 1 and 2 semantics is covered
     fn clone_call_with_origin_block_id(&self, rpc_call: &RpcMethodCall) -> RpcMethodCall {
