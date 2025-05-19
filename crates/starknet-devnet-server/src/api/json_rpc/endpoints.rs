@@ -392,37 +392,107 @@ impl JsonRpcHandler {
         Ok(StarknetResponse::Syncing(SyncingOutput::False(false)).into())
     }
 
+    /// Split into origin and local block ranges (non overlapping, local continuing onto origin)
+    /// Returns: (origin_range, local_start, local_end)
+    async fn split_block_range(
+        &self,
+        from_block: Option<starknet_rs_core::types::BlockId>,
+        to_block: Option<starknet_rs_core::types::BlockId>,
+    ) -> Result<
+        (
+            Option<(u64, u64)>,
+            Option<starknet_rs_core::types::BlockId>,
+            Option<starknet_rs_core::types::BlockId>,
+        ),
+        ApiError,
+    > {
+        let origin_caller = match &self.origin_caller {
+            Some(origin_caller) => origin_caller,
+            None => return Ok((None, from_block, to_block)),
+        };
+
+        let fork_block_number = origin_caller.fork_block_number();
+
+        let from_block_number = match from_block {
+            Some(starknet_rs_core::types::BlockId::Tag(_)) => {
+                return Ok((None, from_block, to_block));
+            }
+            Some(starknet_rs_core::types::BlockId::Number(from_block_number)) => from_block_number,
+            Some(starknet_rs_core::types::BlockId::Hash(hash)) => {
+                origin_caller
+                    .get_block_number(starknet_rs_core::types::BlockId::Hash(hash))
+                    .await?
+                    .0
+            }
+            None => 0, // TODO
+        };
+
+        if from_block_number > fork_block_number {
+            return Ok((
+                None,
+                Some(starknet_rs_core::types::BlockId::Number(from_block_number)),
+                to_block,
+            ));
+        }
+
+        let to_block_number = match to_block {
+            Some(starknet_rs_core::types::BlockId::Tag(_)) | None => {
+                return Ok((
+                    Some((from_block_number, fork_block_number)),
+                    // there is for sure at least one local block
+                    Some(starknet_rs_core::types::BlockId::Number(fork_block_number + 1)),
+                    to_block,
+                ));
+            }
+            Some(starknet_rs_core::types::BlockId::Number(to_block_number)) => to_block_number,
+            Some(starknet_rs_core::types::BlockId::Hash(hash)) => {
+                origin_caller
+                    .get_block_number(starknet_rs_core::types::BlockId::Hash(hash))
+                    .await?
+                    .0
+            }
+        };
+
+        if to_block_number <= fork_block_number {
+            Ok((Some((from_block_number, to_block_number)), None, None))
+        } else {
+            Ok((
+                Some((from_block_number, fork_block_number)),
+                Some(starknet_rs_core::types::BlockId::Number(fork_block_number + 1)),
+                Some(starknet_rs_core::types::BlockId::Number(to_block_number)),
+            ))
+        }
+    }
+
+    async fn get_origin_events(&self, filter: EventFilter) -> EventsChunk {
+        todo!()
+    }
+
     /// starknet_getEvents
     pub async fn get_events(&self, filter: EventFilter) -> StrictRpcResult {
-        let starknet = self.api.starknet.lock().await;
+        let (origin_range, from_local_block_id, to_local_block_id) =
+            self.split_block_range(filter.from_block, filter.to_block).await?;
 
-        // determine if forking and if from_block <= fork_block
-        if let Some(origin_caller) = &self.origin_caller {
-            // check final block
-            let to_block_number = match filter.to_block {
-                Some(starknet_rs_core::types::BlockId::Hash(h)) => todo!("check on origin if ok"),
-                Some(starknet_rs_core::types::BlockId::Number(n)) => n,
-                Some(starknet_rs_core::types::BlockId::Tag(tag)) => todo!("default to fork block?"),
-                None => starknet.get_latest_block().unwrap().block_number().0,
-            };
+        if let Some((from_origin, to_origin)) = origin_range {
+            let origin_events = self
+                .get_origin_events(EventFilter {
+                    from_block: Some(starknet_rs_core::types::BlockId::Number(from_origin)),
+                    to_block: Some(starknet_rs_core::types::BlockId::Number(to_origin)),
+                    address: filter.address,
+                    keys: filter.keys.clone(),
+                    continuation_token: filter.continuation_token.clone(),
+                    chunk_size: filter.chunk_size,
+                })
+                .await;
 
-            let to_origin_block_number = u64::min(to_block_number, origin_caller.fork_block_number());
-
-            // check starting block
-            if let Some(from_block_id) = filter.from_block {
-                if let Ok(from_block) = starknet.get_block(&from_block_id) {
-                    // if block present locally, move on
-                } else {
-                    // if block not present locally, check with origin:
-                    //      if from_block <= fork_block:
-                    //          query origin [from_block, min(fork_block, to_block - if any)]
-                    //      if from_block > fork_block: (only possible if from_block is specified as
-                    // hash)          Error: no block
-                }
-            } else {
-                // if no from_block, we have to query from None to to_block_number
+            if origin_events.continuation_token.is_some() {
+                return Ok(StarknetResponse::Events(origin_events).into());
             }
-        }
+
+            // TODO: if no continuation token, all events from origin are used up, we need to fill
+            // the current chunk and continue querying only the local state; this can be written in
+            // the continuation token
+        };
 
         let page = filter
             .continuation_token
@@ -430,6 +500,7 @@ impl JsonRpcHandler {
             .parse::<usize>()
             .map_err(|_| ApiError::InvalidContinuationToken)?;
 
+        let starknet = self.api.starknet.lock().await;
         let (events, has_more_events) = starknet
             .get_events(
                 filter.from_block,

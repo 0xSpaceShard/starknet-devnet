@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use serde_json::json;
+use starknet_rs_core::types::BlockId;
+use starknet_types::starknet_api::block::BlockNumber;
 
+use super::error::ApiError;
 use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
@@ -80,6 +83,13 @@ impl OriginForwarder {
                 "Error in interacting with origin: {e}"
             ))),
         }
+    }
+
+    pub(crate) async fn get_block_number(
+        &self,
+        block_id: BlockId,
+    ) -> Result<BlockNumber, ApiError> {
+        todo!();
     }
 }
 
