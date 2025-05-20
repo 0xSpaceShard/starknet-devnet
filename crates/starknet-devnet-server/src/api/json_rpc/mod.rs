@@ -231,7 +231,7 @@ impl JsonRpcHandler {
         let origin_caller = if let (Some(url), Some(block_number)) =
             (&starknet_config.fork_config.url, starknet_config.fork_config.block_number)
         {
-            Some(OriginForwarder::new(url.to_string(), block_number))
+            Some(OriginForwarder::new(url.clone(), block_number))
         } else {
             None
         };

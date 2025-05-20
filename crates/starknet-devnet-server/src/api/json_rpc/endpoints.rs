@@ -1,5 +1,6 @@
 use starknet_core::error::{ContractExecutionError, Error, StateError};
 use starknet_rs_core::types::{BlockId as ImportedBlockId, MsgFromL1};
+use starknet_rs_providers::Provider;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
@@ -23,6 +24,7 @@ use crate::api::http::endpoints::accounts::{
 };
 
 const DEFAULT_CONTINUATION_TOKEN: &str = "0";
+const CONTINUATION_TOKEN_ORIGIN_PREFIX: &str = "devnet-origin-";
 
 /// The definitions of JSON-RPC read endpoints defined in starknet_api_openrpc.json
 impl JsonRpcHandler {
@@ -419,10 +421,7 @@ impl JsonRpcHandler {
             }
             Some(starknet_rs_core::types::BlockId::Number(from_block_number)) => from_block_number,
             Some(starknet_rs_core::types::BlockId::Hash(hash)) => {
-                origin_caller
-                    .get_block_number(starknet_rs_core::types::BlockId::Hash(hash))
-                    .await?
-                    .0
+                origin_caller.get_block_number_from_hash(hash).await?
             }
             None => 0, // TODO
         };
@@ -446,10 +445,7 @@ impl JsonRpcHandler {
             }
             Some(starknet_rs_core::types::BlockId::Number(to_block_number)) => to_block_number,
             Some(starknet_rs_core::types::BlockId::Hash(hash)) => {
-                origin_caller
-                    .get_block_number(starknet_rs_core::types::BlockId::Hash(hash))
-                    .await?
-                    .0
+                origin_caller.get_block_number_from_hash(hash).await?
             }
         };
 
@@ -464,62 +460,89 @@ impl JsonRpcHandler {
         }
     }
 
-    async fn get_origin_events(&self, filter: EventFilter) -> EventsChunk {
-        todo!()
-    }
-
+    #[allow(clippy::expect_used)]
     /// starknet_getEvents
     pub async fn get_events(&self, filter: EventFilter) -> StrictRpcResult {
         let (origin_range, from_local_block_id, to_local_block_id) =
             self.split_block_range(filter.from_block, filter.to_block).await?;
 
-        if let Some((from_origin, to_origin)) = origin_range {
-            let origin_events = self
-                .get_origin_events(EventFilter {
-                    from_block: Some(starknet_rs_core::types::BlockId::Number(from_origin)),
-                    to_block: Some(starknet_rs_core::types::BlockId::Number(to_origin)),
-                    address: filter.address,
-                    keys: filter.keys.clone(),
-                    continuation_token: filter.continuation_token.clone(),
-                    chunk_size: filter.chunk_size,
-                })
-                .await;
+        let events_chunk = if origin_range.is_some()
+            && filter
+                .continuation_token
+                .clone()
+                .is_none_or(|token| token.starts_with(CONTINUATION_TOKEN_ORIGIN_PREFIX))
+        {
+            let (from_origin, to_origin) =
+                origin_range.expect("Continuation token implies there are more origin events");
 
-            if origin_events.continuation_token.is_some() {
-                return Ok(StarknetResponse::Events(origin_events).into());
+            let origin_caller = self.origin_caller.as_ref().expect("Origin should be defined");
+
+            let origin_continuation_token = filter.continuation_token.map(|token| {
+                token.trim_start_matches(CONTINUATION_TOKEN_ORIGIN_PREFIX).to_string()
+            });
+
+            let mut origin_events_chunk: EventsChunk = origin_caller
+                .starknet_client
+                .get_events(
+                    starknet_rs_core::types::EventFilter {
+                        from_block: Some(starknet_rs_core::types::BlockId::Number(from_origin)),
+                        to_block: Some(starknet_rs_core::types::BlockId::Number(to_origin)),
+                        address: filter.address.map(|address| address.into()),
+                        keys: filter.keys,
+                    },
+                    origin_continuation_token,
+                    filter.chunk_size,
+                )
+                .await
+                .map_err(|e| {
+                    ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
+                        msg: format!("Error in fetching events from origin: {e:?}"),
+                    })
+                })?
+                .into();
+
+            // If origin has no more chunks, set the token to default, which will signalize the
+            // switch to querying the local state
+            origin_events_chunk.continuation_token = origin_events_chunk
+                .continuation_token
+                .map_or(Some(DEFAULT_CONTINUATION_TOKEN.to_owned()), |token| {
+                    Some(CONTINUATION_TOKEN_ORIGIN_PREFIX.to_owned() + &token)
+                });
+
+            origin_events_chunk
+        } else {
+            let pages_read_so_far = filter
+                .continuation_token
+                .unwrap_or(DEFAULT_CONTINUATION_TOKEN.to_string())
+                .parse::<u64>()
+                .map_err(|_| ApiError::InvalidContinuationToken)?;
+
+            let starknet = self.api.starknet.lock().await;
+            let (events, has_more_events) = starknet
+                .get_events(
+                    from_local_block_id,
+                    to_local_block_id,
+                    filter.address,
+                    filter.keys,
+                    pages_read_so_far * filter.chunk_size,
+                    Some(filter.chunk_size),
+                )
+                .map_err(|e| match e {
+                    Error::NoBlock => ApiError::BlockNotFound,
+                    _ => e.into(),
+                })?;
+
+            EventsChunk {
+                events,
+                continuation_token: if has_more_events {
+                    Some((pages_read_so_far + 1).to_string())
+                } else {
+                    None
+                },
             }
-
-            // TODO: if no continuation token, all events from origin are used up, we need to fill
-            // the current chunk and continue querying only the local state; this can be written in
-            // the continuation token
         };
 
-        let page = filter
-            .continuation_token
-            .unwrap_or(DEFAULT_CONTINUATION_TOKEN.to_string())
-            .parse::<usize>()
-            .map_err(|_| ApiError::InvalidContinuationToken)?;
-
-        let starknet = self.api.starknet.lock().await;
-        let (events, has_more_events) = starknet
-            .get_events(
-                filter.from_block,
-                filter.to_block,
-                filter.address,
-                filter.keys,
-                page * filter.chunk_size,
-                Some(filter.chunk_size),
-            )
-            .map_err(|err| match err {
-                Error::NoBlock => ApiError::BlockNotFound,
-                _ => err.into(),
-            })?;
-
-        Ok(StarknetResponse::Events(EventsChunk {
-            events,
-            continuation_token: if has_more_events { Some((page + 1).to_string()) } else { None },
-        })
-        .into())
+        Ok(StarknetResponse::Events(events_chunk).into())
     }
 
     /// starknet_getNonce

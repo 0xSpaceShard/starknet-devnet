@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use starknet_rs_core::types::BlockId;
-use starknet_types::starknet_api::block::BlockNumber;
+use starknet_rs_core::types::{BlockId, Felt, MaybePendingBlockWithTxHashes};
+use starknet_rs_providers::jsonrpc::HttpTransport;
+use starknet_rs_providers::{JsonRpcClient, Provider};
 
 use super::error::ApiError;
 use crate::rpc_core::error::RpcError;
@@ -21,11 +22,17 @@ pub struct OriginForwarder {
     reqwest_client: reqwest::Client,
     url: Arc<String>,
     block_number: u64,
+    pub starknet_client: JsonRpcClient<HttpTransport>,
 }
 
 impl OriginForwarder {
-    pub fn new(url: String, block_number: u64) -> Self {
-        Self { reqwest_client: reqwest::Client::new(), url: Arc::new(url), block_number }
+    pub fn new(url: url::Url, block_number: u64) -> Self {
+        Self {
+            reqwest_client: reqwest::Client::new(),
+            url: Arc::new(url.to_string()),
+            block_number,
+            starknet_client: JsonRpcClient::new(HttpTransport::new(url)),
+        }
     }
 
     pub fn fork_block_number(&self) -> u64 {
@@ -66,7 +73,7 @@ impl OriginForwarder {
         let rpc_call = self.clone_call_with_origin_block_id(rpc_call);
         let origin_rpc_resp: RpcResponse = self
             .reqwest_client
-            .post(self.url.to_string())
+            .post(self.url.to_string()) // TODO
             .json(&rpc_call)
             .send()
             .await?
@@ -85,11 +92,19 @@ impl OriginForwarder {
         }
     }
 
-    pub(crate) async fn get_block_number(
+    pub(crate) async fn get_block_number_from_hash(
         &self,
-        block_id: BlockId,
-    ) -> Result<BlockNumber, ApiError> {
-        todo!();
+        block_hash: Felt,
+    ) -> Result<u64, ApiError> {
+        match self.starknet_client.get_block_with_tx_hashes(BlockId::Hash(block_hash)).await {
+            Ok(MaybePendingBlockWithTxHashes::Block(block)) => Ok(block.block_number),
+            Ok(MaybePendingBlockWithTxHashes::PendingBlock(_)) => panic!("Impossible"),
+            Err(error) => Err(ApiError::StarknetDevnetError(
+                starknet_core::error::Error::UnexpectedInternalError {
+                    msg: format!("Invalid response from origin: {error}"),
+                },
+            )),
+        }
     }
 }
 
@@ -103,7 +118,8 @@ mod tests {
     #[test]
     fn test_replacing_block_id() {
         let block_number = 10;
-        let forwarder = OriginForwarder::new("http://dummy.com".to_string(), block_number);
+        let forwarder =
+            OriginForwarder::new(url::Url::parse("http://dummy.com").unwrap(), block_number);
 
         let common_body = json!({
             "method": "starknet_dummyMethod",

@@ -106,7 +106,7 @@ pub struct Starknet {
     pub(in crate::starknet) block_context: BlockContext,
     // To avoid repeating some logic related to blocks,
     // having `blocks` public allows to re-use functions like `get_blocks()`.
-    pub blocks: StarknetBlocks,
+    pub(crate) blocks: StarknetBlocks,
     pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
     pub pending_block_timestamp_shift: i64,
@@ -1167,8 +1167,8 @@ impl Starknet {
         to_block: Option<BlockId>,
         address: Option<ContractAddress>,
         keys: Option<Vec<Vec<Felt>>>,
-        skip: usize,
-        limit: Option<usize>,
+        skip: u64,
+        limit: Option<u64>,
     ) -> DevnetResult<(Vec<EmittedEvent>, bool)> {
         events::get_events(self, from_block, to_block, address, keys, skip, limit)
     }

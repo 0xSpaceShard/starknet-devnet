@@ -6075,10 +6075,12 @@ dependencies = [
  "starknet-core",
  "starknet-devnet-core",
  "starknet-devnet-types",
+ "starknet-providers",
  "thiserror 1.0.69",
  "tokio",
  "tower-http",
  "tracing",
+ "url",
 ]
 
 [[package]]
