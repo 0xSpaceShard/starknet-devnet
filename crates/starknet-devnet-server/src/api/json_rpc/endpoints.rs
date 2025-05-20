@@ -396,18 +396,13 @@ impl JsonRpcHandler {
 
     /// Split into origin and local block ranges (non overlapping, local continuing onto origin)
     /// Returns: (origin_range, local_start, local_end)
+    /// All ranges inclusive
     async fn split_block_range(
         &self,
-        from_block: Option<starknet_rs_core::types::BlockId>,
-        to_block: Option<starknet_rs_core::types::BlockId>,
-    ) -> Result<
-        (
-            Option<(u64, u64)>,
-            Option<starknet_rs_core::types::BlockId>,
-            Option<starknet_rs_core::types::BlockId>,
-        ),
-        ApiError,
-    > {
+        from_block: Option<ImportedBlockId>,
+        to_block: Option<ImportedBlockId>,
+    ) -> Result<(Option<(u64, u64)>, Option<ImportedBlockId>, Option<ImportedBlockId>), ApiError>
+    {
         let origin_caller = match &self.origin_caller {
             Some(origin_caller) => origin_caller,
             None => return Ok((None, from_block, to_block)),
@@ -416,48 +411,45 @@ impl JsonRpcHandler {
         let fork_block_number = origin_caller.fork_block_number();
 
         let from_block_number = match from_block {
-            Some(starknet_rs_core::types::BlockId::Tag(_)) => {
+            Some(ImportedBlockId::Tag(_)) => {
                 return Ok((None, from_block, to_block));
             }
-            Some(starknet_rs_core::types::BlockId::Number(from_block_number)) => from_block_number,
-            Some(starknet_rs_core::types::BlockId::Hash(hash)) => {
+            Some(ImportedBlockId::Number(from_block_number)) => from_block_number,
+            Some(ImportedBlockId::Hash(hash)) => {
                 origin_caller.get_block_number_from_hash(hash).await?
             }
-            None => 0, // TODO
+            None => 0, // If no from_block, all blocks before to_block should be queried
         };
 
         if from_block_number > fork_block_number {
-            return Ok((
-                None,
-                Some(starknet_rs_core::types::BlockId::Number(from_block_number)),
-                to_block,
-            ));
+            return Ok((None, Some(ImportedBlockId::Number(from_block_number)), to_block));
         }
 
         let to_block_number = match to_block {
-            Some(starknet_rs_core::types::BlockId::Tag(_)) | None => {
+            // If to_block is Latest, Pending or undefined, all blocks after from_block are queried
+            Some(ImportedBlockId::Tag(_)) | None => {
                 return Ok((
                     Some((from_block_number, fork_block_number)),
                     // there is for sure at least one local block
-                    Some(starknet_rs_core::types::BlockId::Number(fork_block_number + 1)),
+                    Some(ImportedBlockId::Number(fork_block_number + 1)),
                     to_block,
                 ));
             }
-            Some(starknet_rs_core::types::BlockId::Number(to_block_number)) => to_block_number,
-            Some(starknet_rs_core::types::BlockId::Hash(hash)) => {
+            Some(ImportedBlockId::Number(to_block_number)) => to_block_number,
+            Some(ImportedBlockId::Hash(hash)) => {
                 origin_caller.get_block_number_from_hash(hash).await?
             }
         };
 
-        if to_block_number <= fork_block_number {
-            Ok((Some((from_block_number, to_block_number)), None, None))
+        Ok(if to_block_number <= fork_block_number {
+            (Some((from_block_number, to_block_number)), None, None)
         } else {
-            Ok((
+            (
                 Some((from_block_number, fork_block_number)),
-                Some(starknet_rs_core::types::BlockId::Number(fork_block_number + 1)),
-                Some(starknet_rs_core::types::BlockId::Number(to_block_number)),
-            ))
-        }
+                Some(ImportedBlockId::Number(fork_block_number + 1)),
+                Some(ImportedBlockId::Number(to_block_number)),
+            )
+        })
     }
 
     #[allow(clippy::expect_used)]
@@ -485,8 +477,8 @@ impl JsonRpcHandler {
                 .starknet_client
                 .get_events(
                     starknet_rs_core::types::EventFilter {
-                        from_block: Some(starknet_rs_core::types::BlockId::Number(from_origin)),
-                        to_block: Some(starknet_rs_core::types::BlockId::Number(to_origin)),
+                        from_block: Some(ImportedBlockId::Number(from_origin)),
+                        to_block: Some(ImportedBlockId::Number(to_origin)),
                         address: filter.address.map(|address| address.into()),
                         keys: filter.keys,
                     },

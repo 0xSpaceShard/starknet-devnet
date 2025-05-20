@@ -73,7 +73,7 @@ impl OriginForwarder {
         let rpc_call = self.clone_call_with_origin_block_id(rpc_call);
         let origin_rpc_resp: RpcResponse = self
             .reqwest_client
-            .post(self.url.to_string()) // TODO
+            .post(self.url.to_string())
             .json(&rpc_call)
             .send()
             .await?
