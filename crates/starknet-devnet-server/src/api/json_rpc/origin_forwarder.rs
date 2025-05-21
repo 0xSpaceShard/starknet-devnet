@@ -98,7 +98,13 @@ impl OriginForwarder {
     ) -> Result<u64, ApiError> {
         match self.starknet_client.get_block_with_tx_hashes(BlockId::Hash(block_hash)).await {
             Ok(MaybePendingBlockWithTxHashes::Block(block)) => Ok(block.block_number),
-            Ok(MaybePendingBlockWithTxHashes::PendingBlock(_)) => panic!("Impossible"),
+            Ok(MaybePendingBlockWithTxHashes::PendingBlock(_)) => {
+                Err(ApiError::StarknetDevnetError(
+                    starknet_core::error::Error::UnexpectedInternalError {
+                        msg: "Impossible: received pending block when querying by hash".to_string(),
+                    },
+                ))
+            }
             Err(error) => Err(ApiError::StarknetDevnetError(
                 starknet_core::error::Error::UnexpectedInternalError {
                     msg: format!("Invalid response from origin: {error}"),
