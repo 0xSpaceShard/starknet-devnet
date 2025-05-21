@@ -174,7 +174,7 @@ async fn get_events_errors() {
         let chunk_size: u64 = 3;
         let continuation_token: Option<String> = None;
         let event_filter = EventFilter {
-            from_block: Some(BlockId::Number(90000000)),
+            from_block: Some(BlockId::Number(90_000_000)),
             to_block: Some(BlockId::Tag(BlockTag::Latest)),
             address: None,
             keys: None,
@@ -202,18 +202,18 @@ async fn get_events_errors() {
     }
 }
 
+/// Spawns Devnet which forks mainnet at block number `block`.
+async fn fork_mainnet_at(block: u64) -> Result<BackgroundDevnet, anyhow::Error> {
+    let cli_args = ["--fork-network", MAINNET_URL, "--fork-block", &block.to_string()];
+    Ok(BackgroundDevnet::spawn_with_additional_args(&cli_args).await?)
+}
+
 const FORK_BLOCK: u64 = 1374700;
+const EVENTS_IN_FORK_BLOCK: usize = 330;
 
 #[tokio::test]
 async fn get_events_from_forked_devnet_when_last_queried_block_on_origin() {
-    let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
-        "--fork-network",
-        MAINNET_URL,
-        "--fork-block",
-        &FORK_BLOCK.to_string(),
-    ])
-    .await
-    .unwrap();
+    let fork_devnet = fork_mainnet_at(FORK_BLOCK).await.unwrap();
 
     assert_eq!(
         FORK_BLOCK + 1,
@@ -234,19 +234,12 @@ async fn get_events_from_forked_devnet_when_last_queried_block_on_origin() {
     .await
     .unwrap();
 
-    assert_eq!(events.len(), 330);
+    assert_eq!(events.len(), EVENTS_IN_FORK_BLOCK);
 }
 
 #[tokio::test]
 async fn get_events_from_forked_devnet_when_first_queried_block_on_devnet() {
-    let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
-        "--fork-network",
-        MAINNET_URL,
-        "--fork-block",
-        &FORK_BLOCK.to_string(),
-    ])
-    .await
-    .unwrap();
+    let fork_devnet = fork_mainnet_at(FORK_BLOCK).await.unwrap();
 
     assert_eq!(
         FORK_BLOCK + 1,
@@ -281,14 +274,7 @@ async fn get_events_from_forked_devnet_when_first_queried_block_on_devnet() {
 
 #[tokio::test]
 async fn get_events_from_forked_devnet_when_first_queried_block_on_origin_and_last_on_devnet() {
-    let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
-        "--fork-network",
-        MAINNET_URL,
-        "--fork-block",
-        &FORK_BLOCK.to_string(),
-    ])
-    .await
-    .unwrap();
+    let fork_devnet = fork_mainnet_at(FORK_BLOCK).await.unwrap();
 
     assert_eq!(
         FORK_BLOCK + 1,
@@ -316,9 +302,8 @@ async fn get_events_from_forked_devnet_when_first_queried_block_on_origin_and_la
     .await
     .unwrap();
 
-    let origin_events = 330;
     // Each minting creates 2 transfers: one to charge the chargeable contract, one to give funds
     // to the target address.
     let fork_events = n_mints * 2;
-    assert_eq!(events.len(), origin_events + fork_events);
+    assert_eq!(events.len(), EVENTS_IN_FORK_BLOCK + fork_events);
 }

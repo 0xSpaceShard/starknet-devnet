@@ -22,7 +22,7 @@ pub struct OriginForwarder {
     reqwest_client: reqwest::Client,
     url: Arc<String>,
     block_number: u64,
-    pub starknet_client: JsonRpcClient<HttpTransport>,
+    pub(crate) starknet_client: JsonRpcClient<HttpTransport>,
 }
 
 impl OriginForwarder {
@@ -107,7 +107,7 @@ impl OriginForwarder {
             }
             Err(error) => Err(ApiError::StarknetDevnetError(
                 starknet_core::error::Error::UnexpectedInternalError {
-                    msg: format!("Invalid response from origin: {error}"),
+                    msg: format!("Invalid origin response in retrieving block number: {error}"),
                 },
             )),
         }
