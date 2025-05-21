@@ -1,5 +1,5 @@
 use starknet_core::error::{ContractExecutionError, Error, StateError};
-use starknet_rs_core::types::{BlockId as ImportedBlockId, MsgFromL1};
+use starknet_rs_core::types::{BlockId as ImportedBlockId, Felt, MsgFromL1};
 use starknet_rs_providers::Provider;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
@@ -411,9 +411,7 @@ impl JsonRpcHandler {
         let fork_block_number = origin_caller.fork_block_number();
 
         let from_block_number = match from_block {
-            Some(ImportedBlockId::Tag(_)) => {
-                return Ok((None, from_block, to_block));
-            }
+            Some(ImportedBlockId::Tag(_)) => return Ok((None, from_block, to_block)),
             Some(ImportedBlockId::Number(from_block_number)) => from_block_number,
             Some(ImportedBlockId::Hash(hash)) => {
                 origin_caller.get_block_number_from_hash(hash).await?
@@ -422,6 +420,7 @@ impl JsonRpcHandler {
         };
 
         if from_block_number > fork_block_number {
+            // Only local blocks need to be searched
             return Ok((None, Some(ImportedBlockId::Number(from_block_number)), to_block));
         }
 
@@ -452,56 +451,81 @@ impl JsonRpcHandler {
         })
     }
 
-    #[allow(clippy::expect_used)]
+    /// Fetches events from forking origin. The continuation token should be the same as received by
+    /// Devnet (not yet adapted for origin). If more events can be fetched from the origin, this is
+    /// noted in the `continuation_token` of the returned `EventsChunk`.
+    async fn get_origin_events(
+        &self,
+        from_origin: u64,
+        to_origin: u64,
+        continuation_token: Option<String>,
+        address: Option<ContractAddress>,
+        keys: Option<Vec<Vec<Felt>>>,
+        chunk_size: u64,
+    ) -> Result<EventsChunk, ApiError> {
+        let origin_caller = self.origin_caller.as_ref().ok_or(ApiError::StarknetDevnetError(
+            Error::UnexpectedInternalError { msg: "Origin caller unexpectedly undefined".into() },
+        ))?;
+
+        let origin_continuation_token = continuation_token
+            .map(|token| token.trim_start_matches(CONTINUATION_TOKEN_ORIGIN_PREFIX).to_string());
+
+        let mut origin_events_chunk: EventsChunk = origin_caller
+            .starknet_client
+            .get_events(
+                starknet_rs_core::types::EventFilter {
+                    from_block: Some(ImportedBlockId::Number(from_origin)),
+                    to_block: Some(ImportedBlockId::Number(to_origin)),
+                    address: address.map(|address| address.into()),
+                    keys,
+                },
+                origin_continuation_token,
+                chunk_size,
+            )
+            .await
+            .map_err(|e| {
+                ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
+                    msg: format!("Error in fetching origin events: {e:?}"),
+                })
+            })?
+            .into();
+
+        // If origin has no more chunks, set the token to default, which will signalize the
+        // switch to querying the local state on next request.
+        origin_events_chunk.continuation_token = origin_events_chunk
+            .continuation_token
+            .map_or(Some(DEFAULT_CONTINUATION_TOKEN.to_owned()), |token| {
+                Some(CONTINUATION_TOKEN_ORIGIN_PREFIX.to_owned() + &token)
+            });
+
+        Ok(origin_events_chunk)
+    }
+
     /// starknet_getEvents
     pub async fn get_events(&self, filter: EventFilter) -> StrictRpcResult {
         let (origin_range, from_local_block_id, to_local_block_id) =
             self.split_block_range(filter.from_block, filter.to_block).await?;
 
+        // Get events either from forking origin or locally
         let events_chunk = if origin_range.is_some()
             && filter
                 .continuation_token
                 .clone()
                 .is_none_or(|token| token.starts_with(CONTINUATION_TOKEN_ORIGIN_PREFIX))
         {
+            #[allow(clippy::expect_used)]
             let (from_origin, to_origin) =
                 origin_range.expect("Continuation token implies there are more origin events");
 
-            let origin_caller = self.origin_caller.as_ref().expect("Origin should be defined");
-
-            let origin_continuation_token = filter.continuation_token.map(|token| {
-                token.trim_start_matches(CONTINUATION_TOKEN_ORIGIN_PREFIX).to_string()
-            });
-
-            let mut origin_events_chunk: EventsChunk = origin_caller
-                .starknet_client
-                .get_events(
-                    starknet_rs_core::types::EventFilter {
-                        from_block: Some(ImportedBlockId::Number(from_origin)),
-                        to_block: Some(ImportedBlockId::Number(to_origin)),
-                        address: filter.address.map(|address| address.into()),
-                        keys: filter.keys,
-                    },
-                    origin_continuation_token,
-                    filter.chunk_size,
-                )
-                .await
-                .map_err(|e| {
-                    ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
-                        msg: format!("Error in fetching events from origin: {e:?}"),
-                    })
-                })?
-                .into();
-
-            // If origin has no more chunks, set the token to default, which will signalize the
-            // switch to querying the local state
-            origin_events_chunk.continuation_token = origin_events_chunk
-                .continuation_token
-                .map_or(Some(DEFAULT_CONTINUATION_TOKEN.to_owned()), |token| {
-                    Some(CONTINUATION_TOKEN_ORIGIN_PREFIX.to_owned() + &token)
-                });
-
-            origin_events_chunk
+            self.get_origin_events(
+                from_origin,
+                to_origin,
+                filter.continuation_token,
+                filter.address,
+                filter.keys,
+                filter.chunk_size,
+            )
+            .await?
         } else {
             let pages_read_so_far = filter
                 .continuation_token
@@ -526,11 +550,7 @@ impl JsonRpcHandler {
 
             EventsChunk {
                 events,
-                continuation_token: if has_more_events {
-                    Some((pages_read_so_far + 1).to_string())
-                } else {
-                    None
-                },
+                continuation_token: has_more_events.then(|| (pages_read_so_far + 1).to_string()),
             }
         };
 
