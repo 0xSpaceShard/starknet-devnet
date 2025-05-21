@@ -24,8 +24,8 @@ pub(crate) fn get_events(
     to_block: Option<BlockId>,
     contract_address: Option<ContractAddress>,
     keys_filter: Option<Vec<Vec<Felt>>>,
-    mut skip: usize,
-    limit: Option<usize>,
+    mut skip: u64,
+    limit: Option<u64>,
 ) -> DevnetResult<(Vec<EmittedEvent>, bool)> {
     let blocks = starknet.blocks.get_blocks(from_block, to_block)?;
     let mut events: Vec<EmittedEvent> = Vec::new();

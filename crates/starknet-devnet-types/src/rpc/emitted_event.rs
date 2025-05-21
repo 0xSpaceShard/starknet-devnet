@@ -18,6 +18,21 @@ pub struct EmittedEvent {
     pub data: Vec<Felt>,
 }
 
+impl From<starknet_rs_core::types::EmittedEvent> for EmittedEvent {
+    fn from(sn_rs_event: starknet_rs_core::types::EmittedEvent) -> Self {
+        Self {
+            transaction_hash: sn_rs_event.transaction_hash,
+            block_hash: sn_rs_event.block_hash,
+            block_number: sn_rs_event.block_number.map(BlockNumber),
+            #[allow(clippy::expect_used)]
+            from_address: ContractAddress::new(sn_rs_event.from_address)
+                .expect("Converting address to address should not fail"),
+            keys: sn_rs_event.keys,
+            data: sn_rs_event.data,
+        }
+    }
+}
+
 #[derive(Serialize, Clone, Debug)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct Event {

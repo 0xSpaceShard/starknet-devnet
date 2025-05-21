@@ -15,7 +15,7 @@ use starknet_api::transaction::fields::{
 };
 use starknet_api::transaction::{TransactionHasher, TransactionOptions, signed_tx_version};
 use starknet_rs_core::types::{
-    BlockId, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
+    BlockId, EventsPage, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
     TransactionExecutionStatus, TransactionFinalityStatus,
 };
 use starknet_rs_core::utils::parse_cairo_short_string;
@@ -258,7 +258,7 @@ pub struct EventFilter {
     pub address: Option<ContractAddress>,
     pub keys: Option<Vec<Vec<Felt>>>,
     pub continuation_token: Option<String>,
-    pub chunk_size: usize,
+    pub chunk_size: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -267,6 +267,15 @@ pub struct EventsChunk {
     pub events: Vec<crate::emitted_event::EmittedEvent>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub continuation_token: Option<String>,
+}
+
+impl From<EventsPage> for EventsChunk {
+    fn from(events_page: EventsPage) -> Self {
+        Self {
+            events: events_page.events.into_iter().map(|e| e.into()).collect(),
+            continuation_token: events_page.continuation_token,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

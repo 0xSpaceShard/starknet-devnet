@@ -35,11 +35,15 @@ anyhow = { workspace = true }
 lazy_static = { workspace = true }
 enum-helper-macros = { workspace = true }
 rand = { workspace = true }
+starknet-rs-core = { workspace = true }
+
+# forking
+starknet-rs-providers = { workspace = true }
+url = { workspace = true }
 
 # devnet
 starknet-core = { workspace = true }
 starknet-types = { workspace = true }
-starknet-rs-core = { workspace = true }
 
 [dev-dependencies]
 rand_chacha = { workspace = true }
