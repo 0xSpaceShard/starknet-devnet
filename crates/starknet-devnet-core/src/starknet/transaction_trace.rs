@@ -3,7 +3,7 @@ use blockifier::execution::stack_trace::ErrorStack;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::objects::TransactionExecutionInfo;
-use blockifier::versioned_constants::VersionedConstants;
+use blockifier::blockifier_versioned_constants::VersionedConstants;
 use starknet_api::transaction::fields::GasVectorComputationMode;
 use starknet_types::rpc::state::ThinStateDiff;
 use starknet_types::rpc::transaction_receipt::ExecutionResources;
