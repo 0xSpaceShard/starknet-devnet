@@ -97,8 +97,7 @@ pub fn compile_sierra_contract(sierra_contract: &ContractClass) -> DevnetResult<
 pub fn compile_sierra_contract_json(
     sierra_contract_json: serde_json::Value,
 ) -> DevnetResult<CasmContractClass> {
-    let casm_json = usc::compile_contract(sierra_contract_json)
-        .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+    let casm_json = todo!(); // usc::compile_contract(sierra_contract_json).map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
 
     serde_json::from_value::<CasmContractClass>(casm_json)
         .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err)))

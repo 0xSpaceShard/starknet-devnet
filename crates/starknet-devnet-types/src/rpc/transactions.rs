@@ -554,7 +554,7 @@ impl BroadcastedDeclareTransaction {
                         resource_bounds: (&v3.common.resource_bounds).into(),
                         tip: v3.common.tip,
                         signature: starknet_api::transaction::fields::TransactionSignature(
-                            v3.common.signature.clone(),
+                            Arc::new(v3.common.signature.clone()),
                         ),
                         nonce: starknet_api::core::Nonce(v3.common.nonce),
                         class_hash: starknet_api::core::ClassHash(sierra_class_hash),
@@ -630,7 +630,7 @@ impl BroadcastedDeployAccountTransaction {
                     resource_bounds: (&v3.common.resource_bounds).into(),
                     tip: v3.common.tip,
                     signature: starknet_api::transaction::fields::TransactionSignature(
-                        v3.common.signature.clone(),
+                        Arc::new(v3.common.signature.clone()),
                     ),
                     nonce: starknet_api::core::Nonce(v3.common.nonce),
                     class_hash: starknet_api::core::ClassHash(v3.class_hash),
