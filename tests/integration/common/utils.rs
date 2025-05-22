@@ -63,7 +63,7 @@ pub type SierraWithCasmHash = (FlattenedSierraClass, Felt);
 pub fn get_flattened_sierra_contract_and_casm_hash(sierra_path: &str) -> SierraWithCasmHash {
     let sierra_string = std::fs::read_to_string(sierra_path).unwrap();
     let sierra_class: SierraClass = serde_json::from_str(&sierra_string).unwrap();
-    let casm_json = usc::compile_contract(serde_json::from_str(&sierra_string).unwrap()).unwrap();
+    let casm_json = todo!(); // usc::compile_contract(serde_json::from_str(&sierra_string).unwrap()).unwrap();
     let casm_hash =
         serde_json::from_value::<CompiledClass>(casm_json).unwrap().class_hash().unwrap();
     (sierra_class.flatten().unwrap(), casm_hash)

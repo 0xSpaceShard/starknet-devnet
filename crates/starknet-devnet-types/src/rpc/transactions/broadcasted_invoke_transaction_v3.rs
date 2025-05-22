@@ -26,7 +26,7 @@ impl BroadcastedInvokeTransactionV3 {
             resource_bounds: (&self.common.resource_bounds).into(),
             tip: self.common.tip,
             signature: starknet_api::transaction::fields::TransactionSignature(
-                self.common.signature.clone(),
+                Arc::new(self.common.signature.clone()),
             ),
             nonce: starknet_api::core::Nonce(self.common.nonce),
             sender_address: self.sender_address.try_into()?,
