@@ -17,3 +17,5 @@ To release a new Devnet version, follow these steps:
 5. When the CI workflow is done, create a git tag of the form `v<VERSION>`, push it and create a GitHub release with notes describing changes since the last release.
 
 6. Attach the [binary artifacts built in CI](https://circleci.com/docs/artifacts/#artifacts-overview) to the release. Use `scripts/fetch_ci_binaries.py` to fetch all artifacts of a CI workflow.
+
+7. Adapt [starknet-devnet-js](https://github.com/0xSpaceShard/starknet-devnet-js) to the newly released Devnet. Check out one of the [old adaptation PRs](https://github.com/0xSpaceShard/starknet-devnet-js/pulls?q=is%3Apr+is%3Aclosed) for reference.
