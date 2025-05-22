@@ -309,8 +309,7 @@ fn jsonified_sierra_to_runnable_casm(
     jsonified_sierra: serde_json::Value,
     sierra_version: &str,
 ) -> Result<RunnableCompiledClass, Error> {
-    let casm_json = usc::compile_contract(jsonified_sierra)
-        .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+    let casm_json = todo!(); // usc::compile_contract(jsonified_sierra).map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
 
     let casm = serde_json::from_value::<CasmContractClass>(casm_json)
         .map_err(|err| Error::JsonError(JsonError::Custom { msg: err.to_string() }))?;
