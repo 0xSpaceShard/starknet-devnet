@@ -58,9 +58,6 @@ impl Account {
         let AccountClassWrapper { contract_class, class_hash, class_metadata } =
             AccountContractClassChoice::Cairo1.get_class_wrapper()?;
 
-        // very big number
-        let initial_balance = BigUint::from(u128::MAX) << 10;
-
         Ok(Self {
             keys: KeyPair {
                 public_key: Key::from_hex(CHARGEABLE_ACCOUNT_PUBLIC_KEY)?,
@@ -69,7 +66,7 @@ impl Account {
             account_address: ContractAddress::new(felt_from_prefixed_hex(
                 CHARGEABLE_ACCOUNT_ADDRESS,
             )?)?,
-            initial_balance,
+            initial_balance: (BigUint::from(1_u32) << 256) - BigUint::from(1_u32), // max value
             class_hash,
             class_metadata,
             contract_class,
