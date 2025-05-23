@@ -97,18 +97,18 @@ impl Starknet {
     ///
     /// * `rpc_url` - The L1 node RPC URL.
     /// * `contract_address` - The messaging contract address deployed on L1 node.
-    /// * `funded_account_private_key` - The private key of the funded account on L1 node to perform
-    ///   the role of signer.
+    /// * `deployer_account_private_key` - The private key of the funded account on L1 node to
+    ///   perform the role of signer.
     pub async fn configure_messaging(
         &mut self,
         rpc_url: &str,
         contract_address: Option<&str>,
-        funded_account_private_key: Option<&str>,
+        deployer_account_private_key: Option<&str>,
     ) -> DevnetResult<String> {
         tracing::trace!("Configuring messaging: {}", rpc_url);
 
         self.messaging.configure_ethereum(
-            EthereumMessaging::new(rpc_url, contract_address, funded_account_private_key).await?,
+            EthereumMessaging::new(rpc_url, contract_address, deployer_account_private_key).await?,
         );
 
         Ok(format!("0x{:x}", self.messaging.ethereum_ref()?.messaging_contract_address()))

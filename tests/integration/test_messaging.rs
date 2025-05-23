@@ -375,7 +375,7 @@ async fn setup_anvil_incorrect_eth_private_key() {
             "devnet_postmanLoad",
             json!({
                 "network_url": anvil.url,
-                "funded_account_private_key": DEFAULT_ETH_ACCOUNT_PRIVATE_KEY
+                "deployer_account_private_key": DEFAULT_ETH_ACCOUNT_PRIVATE_KEY
             }),
         )
         .await
@@ -400,7 +400,7 @@ async fn deploy_l1_messaging_contract_with_custom_key() {
             "devnet_postmanLoad",
             json!({
                 "network_url": anvil.url,
-                "funded_account_private_key": ACCOUNT_0_PRIVATE_KEY_WITH_SEED_42
+                "deployer_account_private_key": ACCOUNT_0_PRIVATE_KEY_WITH_SEED_42
             }),
         )
         .await

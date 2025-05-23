@@ -23,8 +23,8 @@ pub(crate) async fn postman_load_impl(
     let messaging_contract_address = starknet
         .configure_messaging(
             &data.network_url,
-            data.address.as_deref(),
-            data.funded_account_private_key.as_deref(),
+            data.messaging_contract_address.as_deref(),
+            data.deployer_account_private_key.as_deref(),
         )
         .await?;
 

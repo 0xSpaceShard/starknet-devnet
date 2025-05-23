@@ -16,8 +16,6 @@ You can use [**`starknet-devnet-js`**](https://github.com/0xSpaceShard/starknet-
 
 ## Load
 
-<!-- TODO Add info on how the messaging contract can be deployed on various L1 networks. -->
-
 ```
 POST /postman/load_l1_messaging_contract
 ```
@@ -25,8 +23,8 @@ POST /postman/load_l1_messaging_contract
 ```json
 {
   "network_url": "http://localhost:8545",
-  "address": "0x123...def", // optional
-  "funded_account_private_key": "0xe2ac...583f" // optional, different from the address parameter.
+  "messaging_contract_address": "0x123...def", // optional
+  "deployer_account_private_key": "0xe2ac...583f" // optional
 }
 ```
 
@@ -38,23 +36,12 @@ JSON-RPC
     "method": "devnet_postmanLoad",
     "params": {
       "network_url": "http://localhost:8545",
-      "address": "0x123...def"
+      "messaging_contract_address": "0x123...def"
     }
 }
 ```
 
-Loads a `MockStarknetMessaging` contract. The `address` parameter is optional; if provided, the `MockStarknetMessaging` contract will be fetched from that address, otherwise a new one will be deployed.
-
-The `funded_account_private_key` parameter is optional; if provided, then this account would be used as the signer. The account associated with this private key must be pre-funded.
-
-:::note L1-L2 with dockerized Devnet
-
-L1-L2 communication requires extra attention if Devnet is [run in a Docker container](./running/docker.md). The `network_url` argument must be on the same network as Devnet. E.g. if your L1 instance is run locally (i.e. using the host machine's network), then:
-
-- on Linux, it is enough to run the Devnet Docker container with `--network host`
-- on Mac and Windows, replace any `http://localhost` or `http://127.0.0.1` occurrence in the value of `network_url` with `http://host.docker.internal`.
-
-:::
+Loads a `MockStarknetMessaging` contract instance, potentially deploying a new one, which is used for exchanging message between L1 and L2.
 
 ### L1 network
 
@@ -65,6 +52,24 @@ The `network_url` parameter refers to the URL of the JSON-RPC API endpoint of th
 - [**Ganache**](https://www.npmjs.com/package/ganache)
 - [**Geth**](https://github.com/ethereum/go-ethereum#docker-quick-start)
 - [**Hardhat node**](https://hardhat.org/hardhat-network/#running-stand-alone-in-order-to-support-wallets-and-other-software)
+
+### Messaging contract deployment
+
+Here's how the rest of the parameters should be used, depending on your L1 network:
+
+- If your L1 network already has a messaging contract deployed that you wish to use, populate `messaging_contract_address` with its address.
+- If your L1 network does not have such a contract, or you simplify wish to deploy a new instance, leave out the `messaging_contract_address` property.
+  - If your L1 network is a local testnet (e.g. Anvil) with the default mnemonic seed and a default set of predeployed accounts, you don't have to specify anything else, a new messaging contract shall be deployed.
+  - Otherwise (e.g. on the Sepolia testnet or an Anvil with a custom mnemonic seed) you are expected to populate `deployer_account_private_key` with the private key of a funded account. This property is not applicable if `messaging_contract_address` is specified.
+
+:::note L1-L2 with dockerized Devnet
+
+L1-L2 communication requires extra attention if Devnet is [run in a Docker container](./running/docker.md). The `network_url` argument must be on the same network as Devnet. E.g. if your L1 instance is run locally (i.e. using the host machine's network), then:
+
+- on Linux, it is enough to run the Devnet Docker container with `--network host`
+- on Mac and Windows, replace any `http://localhost` or `http://127.0.0.1` occurrence in the value of `network_url` with `http://host.docker.internal`.
+
+:::
 
 :::info Dumping and Loading
 
@@ -109,7 +114,11 @@ JSON-RPC
 }
 ```
 
+:::note
+
 A running L1 node is required if `dry_run` is not set.
+
+:::
 
 :::info Dumping and Loading
 

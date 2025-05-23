@@ -123,11 +123,19 @@
           }
         },
         {
-          "name": "address",
-          "description": "Address of contract deployed on L1 node",
+          "name": "messaging_contract_address",
+          "description": "Address of an already deployed messaging contract on L1. If specified, no new contract is deployed.",
           "required": false,
           "schema": {
-            "title": "Contract address",
+            "$ref": "#/components/schemas/ETH_ADDRESS"
+          }
+        },
+        {
+          "name": "deployer_account_private_key",
+          "description": "The private key of the account that shall be used for deploying the messaging contract. Not applicable if `messaging_contract_address` is specified.",
+          "required": false,
+          "schema": {
+            "title": "Deployer account private key",
             "type": "string"
           }
         }
@@ -141,8 +149,7 @@
             "messaging_contract_address": {
               "title": "The address of the messaging contract",
               "schema": {
-                "title": "Contract address",
-                "type": "string"
+                "$ref": "#/components/schemas/ETH_ADDRESS"
               }
             }
           },

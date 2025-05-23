@@ -84,12 +84,12 @@ impl EthereumMessaging {
     ///
     /// * `rpc_url` - The L1 node RPC URL.
     /// * `contract_address` - The messaging contract address deployed on L1 node.
-    /// * `funded_account_private_key` - The private key of the funded account on L1 node to perform
-    ///   the role of signer.
+    /// * `deployer_account_private_key` - The private key of the funded account on L1 node to
+    ///   perform the role of signer.
     pub async fn new(
         rpc_url: &str,
         contract_address: Option<&str>,
-        funded_account_private_key: Option<&str>,
+        deployer_account_private_key: Option<&str>,
     ) -> DevnetResult<EthereumMessaging> {
         let provider = Provider::<Http>::try_from(rpc_url).map_err(|e| {
             Error::MessagingError(MessagingError::EthersError(format!(
@@ -99,7 +99,7 @@ impl EthereumMessaging {
 
         let chain_id = provider.get_chainid().await?;
 
-        let private_key = match funded_account_private_key {
+        let private_key = match deployer_account_private_key {
             Some(private_key) => private_key,
             None => ETH_ACCOUNT_DEFAULT.private_key,
         };

@@ -31,8 +31,9 @@ pub struct LoadPath {
 #[cfg_attr(test, derive(Debug))]
 pub struct PostmanLoadL1MessagingContract {
     pub network_url: String,
-    pub address: Option<String>,
-    pub funded_account_private_key: Option<String>,
+    #[serde(alias = "address")]
+    pub messaging_contract_address: Option<String>,
+    pub deployer_account_private_key: Option<String>,
 }
 
 #[derive(Serialize)]
