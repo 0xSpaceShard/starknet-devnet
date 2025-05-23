@@ -347,6 +347,60 @@ async fn can_deploy_l1_messaging_contract() {
     );
 }
 
+#[tokio::test]
+async fn should_fail_on_loading_l1_messaging_contract_if_not_deployed() {
+    let anvil = BackgroundAnvil::spawn().await.unwrap();
+
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+    let error = devnet
+        .send_custom_rpc(
+            "devnet_postmanLoad",
+            json!({ "network_url": anvil.url, "address": MESSAGING_L1_ADDRESS }),
+        )
+        .await
+        .unwrap_err();
+
+    assert_eq!(
+        error,
+        RpcError {
+            code: -1,
+            message: format!(
+                "Ethers error: The specified address ({MESSAGING_L1_ADDRESS}) contains no \
+                 contract."
+            )
+            .into(),
+            data: None
+        }
+    );
+}
+
+#[tokio::test]
+async fn can_load_an_already_deployed_l1_messaging_contract() {
+    let anvil = BackgroundAnvil::spawn().await.unwrap();
+
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+    let body = devnet
+        .send_custom_rpc("devnet_postmanLoad", json!({ "network_url": anvil.url }))
+        .await
+        .expect("deploy l1 messaging contract failed");
+
+    assert_eq!(
+        body.get("messaging_contract_address").unwrap().as_str().unwrap(),
+        MESSAGING_L1_ADDRESS
+    );
+
+    let second_devnet = BackgroundDevnet::spawn().await.unwrap();
+    second_devnet
+        .send_custom_rpc(
+            "devnet_postmanLoad",
+            json!({ "network_url": anvil.url, "address": MESSAGING_L1_ADDRESS }),
+        )
+        .await
+        .unwrap();
+}
+
 const MNEMONIC_FROM_SEED_42: &str =
     "pen brief eager pepper brass detect problem vital physical tent assume damp";
 const ACCOUNT_0_PRIVATE_KEY_WITH_SEED_42: &str =
