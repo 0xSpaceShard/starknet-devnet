@@ -282,9 +282,9 @@ impl StarknetTransaction {
 
 #[cfg(test)]
 mod tests {
+    use blockifier::blockifier_versioned_constants::VersionedConstants;
     use blockifier::state::cached_state::CachedState;
     use blockifier::transaction::objects::TransactionExecutionInfo;
-    use blockifier::blockifier_versioned_constants::VersionedConstants;
     use starknet_api::transaction::fields::GasVectorComputationMode;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::rpc::transactions::{TransactionTrace, TransactionWithHash};

@@ -32,4 +32,4 @@ thiserror = { workspace = true }
 tokio = { workspace = true, features = ["signal"] }
 tokio-tungstenite = { workspace = true }
 url = { workspace = true }
-# usc = { workspace = true }
+usc = { workspace = true }

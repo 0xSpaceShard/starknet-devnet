@@ -1,6 +1,6 @@
+use blockifier::blockifier_versioned_constants::VersionedConstants;
 use blockifier::bouncer::{BouncerConfig, BouncerWeights};
 use blockifier::transaction::objects::TransactionExecutionInfo;
-use blockifier::blockifier_versioned_constants::VersionedConstants;
 use starknet_api::block::StarknetVersion;
 use starknet_rs_core::types::Felt;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
