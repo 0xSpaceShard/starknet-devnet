@@ -356,7 +356,7 @@ async fn should_fail_on_loading_l1_messaging_contract_if_not_deployed() {
     let error = devnet
         .send_custom_rpc(
             "devnet_postmanLoad",
-            json!({ "network_url": anvil.url, "address": MESSAGING_L1_ADDRESS }),
+            json!({ "network_url": anvil.url, "messaging_contract_address": MESSAGING_L1_ADDRESS }),
         )
         .await
         .unwrap_err();
@@ -392,19 +392,31 @@ async fn can_load_an_already_deployed_l1_messaging_contract() {
     );
 
     let second_devnet = BackgroundDevnet::spawn().await.unwrap();
-    second_devnet
-        .send_custom_rpc(
-            "devnet_postmanLoad",
-            json!({ "network_url": anvil.url, "address": MESSAGING_L1_ADDRESS }),
-        )
-        .await
-        .unwrap();
+
+    for address_key in [
+        "messaging_contract_address", // preferred key
+        "address",                    // legacy key
+    ] {
+        let load_result = second_devnet
+            .send_custom_rpc(
+                "devnet_postmanLoad",
+                json!({ "network_url": anvil.url, address_key: MESSAGING_L1_ADDRESS }),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            load_result.get("messaging_contract_address").unwrap().as_str().unwrap(),
+            MESSAGING_L1_ADDRESS
+        );
+    }
 }
 
 const MNEMONIC_FROM_SEED_42: &str =
     "pen brief eager pepper brass detect problem vital physical tent assume damp";
 const ACCOUNT_0_PRIVATE_KEY_WITH_SEED_42: &str =
     "0x3c741b302cb3ea9163539c7fc72d4e40264aa03cfb638d79860d86865c3d0db4";
+const EXPECTED_MESSAGING_CONTRACT_ADDRESS_WITH_SEED_42: &str =
+    "0xca945eebf408d4a73e5d330fc8f6b55cd1e419ff";
 
 #[tokio::test]
 async fn setup_anvil_incorrect_eth_private_key() {
@@ -462,7 +474,7 @@ async fn deploy_l1_messaging_contract_with_custom_key() {
 
     assert_eq!(
         body.get("messaging_contract_address").unwrap().as_str().unwrap(),
-        "0xca945eebf408d4a73e5d330fc8f6b55cd1e419ff"
+        EXPECTED_MESSAGING_CONTRACT_ADDRESS_WITH_SEED_42
     );
 }
 

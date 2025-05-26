@@ -136,7 +136,8 @@
           "required": false,
           "schema": {
             "title": "Deployer account private key",
-            "type": "string"
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{64}$"
           }
         }
       ],
