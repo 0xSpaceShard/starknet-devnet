@@ -28,20 +28,21 @@ POST /postman/load_l1_messaging_contract
 }
 ```
 
-```
-JSON-RPC
+```json
+// JSON-RPC
 {
-    "jsonrpc": "2.0",
-    "id": "1",
-    "method": "devnet_postmanLoad",
-    "params": {
-      "network_url": "http://localhost:8545",
-      "messaging_contract_address": "0x123...def"
-    }
+  "jsonrpc": "2.0",
+  "id": "1",
+  "method": "devnet_postmanLoad",
+  "params": {
+    "network_url": "http://localhost:8545",
+    "messaging_contract_address": "0x123...def", // optional
+    "deployer_account_private_key": "0xe2ac...583f" // optional
+  }
 }
 ```
 
-Loads a `MockStarknetMessaging` contract instance, potentially deploying a new one, which is used for exchanging message between L1 and L2.
+Loads an L1 `MockStarknetMessaging` contract instance, potentially deploying a new one, which is used for message exchange between L1 and L2.
 
 ### L1 network
 
@@ -58,8 +59,9 @@ The `network_url` parameter refers to the URL of the JSON-RPC API endpoint of th
 Here's how the rest of the parameters should be used, depending on your L1 network:
 
 - If your L1 network already has a messaging contract deployed that you wish to use, populate `messaging_contract_address` with its address.
+  - The provided address shall be checked by asserting that there indeed is contract code deployed at that address, without any ABI assertions.
 - If your L1 network does not have such a contract, or you simplify wish to deploy a new instance, leave out the `messaging_contract_address` property.
-  - If your L1 network is a local testnet (e.g. Anvil) with the default mnemonic seed and a default set of predeployed accounts, you don't have to specify anything else, a new messaging contract shall be deployed.
+  - If your L1 network is a local testnet (e.g. Anvil) with the default mnemonic seed and a default set of predeployed accounts, you don't have to specify anything else—a new messaging contract shall be deployed using a predeployed account.
   - Otherwise (e.g. on the Sepolia testnet or an Anvil with a custom mnemonic seed) you are expected to populate `deployer_account_private_key` with the private key of a funded account. This property is not applicable if `messaging_contract_address` is specified.
 
 :::note L1-L2 with dockerized Devnet
