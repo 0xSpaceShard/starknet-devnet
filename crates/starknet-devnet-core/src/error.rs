@@ -157,8 +157,7 @@ impl From<TransactionFeeError> for Error {
         match value {
             TransactionFeeError::FeeTransferError { .. }
             | TransactionFeeError::MaxFeeTooLow { .. }
-            | TransactionFeeError::MaxGasPriceTooLow { .. }
-            | TransactionFeeError::MaxGasAmountTooLow { .. } => {
+            | TransactionFeeError::InsufficientResourceBounds { .. } => {
                 TransactionValidationError::InsufficientResourcesForValidate.into()
             }
             TransactionFeeError::MaxFeeExceedsBalance { .. }
