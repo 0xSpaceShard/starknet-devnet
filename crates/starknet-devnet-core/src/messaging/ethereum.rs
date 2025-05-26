@@ -65,6 +65,25 @@ impl From<WalletError> for Error {
     }
 }
 
+async fn assert_address_contains_any_code(
+    provider: &Provider<Http>,
+    address: Address,
+) -> DevnetResult<()> {
+    let messaging_contract_code = provider.get_code(address, None).await.map_err(|e| {
+        Error::MessagingError(MessagingError::EthersError(format!(
+            "Failed retrieving contract code at address {address}: {e}"
+        )))
+    })?;
+
+    if messaging_contract_code.is_empty() {
+        return Err(Error::MessagingError(MessagingError::EthersError(format!(
+            "The specified address ({address:#x}) contains no contract"
+        ))));
+    }
+
+    Ok(())
+}
+
 #[derive(Clone)]
 /// Ethereum related configuration and types.
 pub struct EthereumMessaging {
@@ -84,9 +103,12 @@ impl EthereumMessaging {
     ///
     /// * `rpc_url` - The L1 node RPC URL.
     /// * `contract_address` - The messaging contract address deployed on L1 node.
+    /// * `deployer_account_private_key` - The private key of the funded account on L1 node to
+    ///   perform the role of signer.
     pub async fn new(
         rpc_url: &str,
         contract_address: Option<&str>,
+        deployer_account_private_key: Option<&str>,
     ) -> DevnetResult<EthereumMessaging> {
         let provider = Provider::<Http>::try_from(rpc_url).map_err(|e| {
             Error::MessagingError(MessagingError::EthersError(format!(
@@ -96,7 +118,10 @@ impl EthereumMessaging {
 
         let chain_id = provider.get_chainid().await?;
 
-        let private_key = ETH_ACCOUNT_DEFAULT.private_key;
+        let private_key = match deployer_account_private_key {
+            Some(private_key) => private_key,
+            None => ETH_ACCOUNT_DEFAULT.private_key,
+        };
 
         let wallet: LocalWallet =
             private_key.parse::<LocalWallet>()?.with_chain_id(chain_id.as_u32());
@@ -104,7 +129,7 @@ impl EthereumMessaging {
         let provider_signer = SignerMiddleware::new(provider.clone(), wallet);
 
         let mut ethereum = EthereumMessaging {
-            provider: Arc::new(provider),
+            provider: Arc::new(provider.clone()),
             provider_signer: Arc::new(provider_signer),
             messaging_contract_address: Address::zero(),
             last_fetched_block: 0,
@@ -116,6 +141,9 @@ impl EthereumMessaging {
                     "Address {address} can't be parsed from string: {e}",
                 )))
             })?;
+
+            assert_address_contains_any_code(&provider, ethereum.messaging_contract_address)
+                .await?;
         } else {
             let cancellation_delay_seconds: U256 = (60 * 60 * 24).into();
             ethereum.messaging_contract_address =

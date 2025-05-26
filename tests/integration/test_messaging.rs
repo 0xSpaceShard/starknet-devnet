@@ -29,8 +29,8 @@ use starknet_rs_signers::LocalWallet;
 use crate::common::background_anvil::BackgroundAnvil;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
-    CHAIN_ID, L1_HANDLER_SELECTOR, MESSAGING_L1_CONTRACT_ADDRESS, MESSAGING_L2_CONTRACT_ADDRESS,
-    MESSAGING_WHITELISTED_L1_CONTRACT,
+    CHAIN_ID, DEFAULT_ETH_ACCOUNT_PRIVATE_KEY, L1_HANDLER_SELECTOR, MESSAGING_L1_CONTRACT_ADDRESS,
+    MESSAGING_L2_CONTRACT_ADDRESS, MESSAGING_WHITELISTED_L1_CONTRACT,
 };
 use crate::common::errors::RpcError;
 use crate::common::utils::{
@@ -344,6 +344,137 @@ async fn can_deploy_l1_messaging_contract() {
     assert_eq!(
         body.get("messaging_contract_address").unwrap().as_str().unwrap(),
         MESSAGING_L1_ADDRESS
+    );
+}
+
+#[tokio::test]
+async fn should_fail_on_loading_l1_messaging_contract_if_not_deployed() {
+    let anvil = BackgroundAnvil::spawn().await.unwrap();
+
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+    let error = devnet
+        .send_custom_rpc(
+            "devnet_postmanLoad",
+            json!({ "network_url": anvil.url, "messaging_contract_address": MESSAGING_L1_ADDRESS }),
+        )
+        .await
+        .unwrap_err();
+
+    assert_eq!(
+        error,
+        RpcError {
+            code: -1,
+            message: format!(
+                "Ethers error: The specified address ({MESSAGING_L1_ADDRESS}) contains no \
+                 contract."
+            )
+            .into(),
+            data: None
+        }
+    );
+}
+
+#[tokio::test]
+async fn can_load_an_already_deployed_l1_messaging_contract() {
+    let anvil = BackgroundAnvil::spawn().await.unwrap();
+
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+    let body = devnet
+        .send_custom_rpc("devnet_postmanLoad", json!({ "network_url": anvil.url }))
+        .await
+        .expect("deploy l1 messaging contract failed");
+
+    assert_eq!(
+        body.get("messaging_contract_address").unwrap().as_str().unwrap(),
+        MESSAGING_L1_ADDRESS
+    );
+
+    let second_devnet = BackgroundDevnet::spawn().await.unwrap();
+
+    for address_key in [
+        "messaging_contract_address", // preferred key
+        "address",                    // legacy key
+    ] {
+        let load_result = second_devnet
+            .send_custom_rpc(
+                "devnet_postmanLoad",
+                json!({ "network_url": anvil.url, address_key: MESSAGING_L1_ADDRESS }),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            load_result.get("messaging_contract_address").unwrap().as_str().unwrap(),
+            MESSAGING_L1_ADDRESS
+        );
+    }
+}
+
+const MNEMONIC_FROM_SEED_42: &str =
+    "pen brief eager pepper brass detect problem vital physical tent assume damp";
+const ACCOUNT_0_PRIVATE_KEY_WITH_SEED_42: &str =
+    "0x3c741b302cb3ea9163539c7fc72d4e40264aa03cfb638d79860d86865c3d0db4";
+const EXPECTED_MESSAGING_CONTRACT_ADDRESS_WITH_SEED_42: &str =
+    "0xca945eebf408d4a73e5d330fc8f6b55cd1e419ff";
+
+#[tokio::test]
+async fn setup_anvil_incorrect_eth_private_key() {
+    let anvil = BackgroundAnvil::spawn_with_additional_args_and_custom_signer(
+        &[],
+        MNEMONIC_FROM_SEED_42,
+        ACCOUNT_0_PRIVATE_KEY_WITH_SEED_42,
+    )
+    .await
+    .unwrap();
+
+    let (devnet, _, _) = setup_devnet(&["--account-class", "cairo1"]).await;
+
+    let body = devnet
+        .send_custom_rpc("devnet_postmanLoad", json!({ "network_url": anvil.url }))
+        .await
+        .unwrap_err();
+    assert_contains(&body.message, "CallGasCostMoreThanGasLimit");
+
+    let body = devnet
+        .send_custom_rpc(
+            "devnet_postmanLoad",
+            json!({
+                "network_url": anvil.url,
+                "deployer_account_private_key": DEFAULT_ETH_ACCOUNT_PRIVATE_KEY
+            }),
+        )
+        .await
+        .unwrap_err();
+    assert_contains(&body.message, "CallGasCostMoreThanGasLimit");
+}
+
+#[tokio::test]
+async fn deploy_l1_messaging_contract_with_custom_key() {
+    let anvil = BackgroundAnvil::spawn_with_additional_args_and_custom_signer(
+        &[],
+        MNEMONIC_FROM_SEED_42,
+        ACCOUNT_0_PRIVATE_KEY_WITH_SEED_42,
+    )
+    .await
+    .unwrap();
+
+    let (devnet, _, _) = setup_devnet(&["--account-class", "cairo1"]).await;
+
+    let body = devnet
+        .send_custom_rpc(
+            "devnet_postmanLoad",
+            json!({
+                "network_url": anvil.url,
+                "deployer_account_private_key": ACCOUNT_0_PRIVATE_KEY_WITH_SEED_42
+            }),
+        )
+        .await
+        .expect("deploy l1 messaging contract failed");
+
+    assert_eq!(
+        body.get("messaging_contract_address").unwrap().as_str().unwrap(),
+        EXPECTED_MESSAGING_CONTRACT_ADDRESS_WITH_SEED_42
     );
 }
 

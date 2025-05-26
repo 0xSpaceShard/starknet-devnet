@@ -20,8 +20,13 @@ pub(crate) async fn postman_load_impl(
     data: PostmanLoadL1MessagingContract,
 ) -> StrictRpcResult {
     let mut starknet = api.starknet.lock().await;
-    let messaging_contract_address =
-        starknet.configure_messaging(&data.network_url, data.address.as_deref()).await?;
+    let messaging_contract_address = starknet
+        .configure_messaging(
+            &data.network_url,
+            data.messaging_contract_address.as_deref(),
+            data.deployer_account_private_key.as_deref(),
+        )
+        .await?;
 
     Ok(DevnetResponse::MessagingContractAddress(MessagingLoadAddress {
         messaging_contract_address,

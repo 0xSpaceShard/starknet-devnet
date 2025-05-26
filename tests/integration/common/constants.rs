@@ -102,5 +102,8 @@ pub const INTEGRATION_SAFE_BLOCK: u64 = 64718;
 pub const QUERY_VERSION_OFFSET: Felt =
     Felt::from_raw([576460752142434320, 18446744073709551584, 17407, 18446744073700081665]);
 
+pub const DEFAULT_ANVIL_MNEMONIC_PHRASE: &str =
+    "test test test test test test test test test test test junk";
+/// Account at index 0 if DEFAULT_ANVIL_MNEMONIC_PHRASE used
 pub const DEFAULT_ETH_ACCOUNT_PRIVATE_KEY: &str =
     "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
