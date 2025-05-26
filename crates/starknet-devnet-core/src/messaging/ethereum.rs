@@ -77,7 +77,7 @@ async fn assert_address_contains_any_code(
 
     if &messaging_contract_code.to_string() == "0x" || messaging_contract_code.len() <= 2 {
         return Err(Error::MessagingError(MessagingError::EthersError(format!(
-            "The specified address ({address}) contains no contract."
+            "The specified address ({address:#x}) contains no contract"
         ))));
     }
 
