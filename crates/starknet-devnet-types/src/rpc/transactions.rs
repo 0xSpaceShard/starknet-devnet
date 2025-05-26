@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
+use blockifier::blockifier_versioned_constants::VersionedConstants;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::objects::TransactionExecutionInfo;
-use blockifier::blockifier_versioned_constants::VersionedConstants;
 use deploy_transaction::DeployTransaction;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::block::{BlockNumber, GasPrice};
@@ -629,9 +629,9 @@ impl BroadcastedDeployAccountTransaction {
                 let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV3 {
                     resource_bounds: (&v3.common.resource_bounds).into(),
                     tip: v3.common.tip,
-                    signature: starknet_api::transaction::fields::TransactionSignature(
-                        Arc::new(v3.common.signature.clone()),
-                    ),
+                    signature: starknet_api::transaction::fields::TransactionSignature(Arc::new(
+                        v3.common.signature.clone(),
+                    )),
                     nonce: starknet_api::core::Nonce(v3.common.nonce),
                     class_hash: starknet_api::core::ClassHash(v3.class_hash),
                     nonce_data_availability_mode: v3.common.nonce_data_availability_mode,
