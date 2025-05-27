@@ -704,7 +704,7 @@ impl Starknet {
         entrypoint_selector: Felt,
         calldata: Vec<Felt>,
     ) -> DevnetResult<Vec<Felt>> {
-        let block_context = self.block_context.clone();
+        let block_context = Arc::new(self.block_context.clone());
         let state = self.get_mut_state_at(block_id)?;
 
         state.assert_contract_deployed(ContractAddress::new(contract_address)?)?;
