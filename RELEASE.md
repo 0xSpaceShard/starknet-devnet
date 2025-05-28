@@ -14,6 +14,8 @@ To release a new Devnet version, follow these steps:
 
 4. The publishing of crates, Docker images and documentation website is done automatically in the CI when the PR is merged into the main branch.
 
+   - This relies on the `CRATES_IO_API_KEY` environment variable to contain a crates.io token with write access.
+
 5. When the CI workflow is done, create a git tag of the form `v<VERSION>`, push it and create a GitHub release with notes describing changes since the last release.
 
 6. Attach the [binary artifacts built in CI](https://circleci.com/docs/artifacts/#artifacts-overview) to the release. Use `scripts/fetch_ci_binaries.py` to fetch all artifacts of a CI workflow.
