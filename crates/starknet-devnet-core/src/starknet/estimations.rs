@@ -68,6 +68,7 @@ pub fn estimate_fee(
                             only_query: true,
                             charge_fee: charge_fee.unwrap_or(false),
                             validate,
+                            strict_nonce_check: todo!(),
                         },
                     },
                 ),
@@ -156,8 +157,12 @@ fn estimate_transaction_fee<S: StateReader>(
         Transaction::L1Handler(tx) => tx.fee_type(),
     };
 
-    let total_fee =
-        fee_utils::get_fee_by_gas_vector(block_context.block_info(), gas_vector, &fee_type);
+    let total_fee = fee_utils::get_fee_by_gas_vector(
+        block_context.block_info(),
+        gas_vector,
+        &fee_type,
+        todo!(),
+    );
 
     let gas_prices = &block_context.block_info().gas_prices;
     let l1_gas_price = gas_prices.l1_gas_price(&fee_type).get();

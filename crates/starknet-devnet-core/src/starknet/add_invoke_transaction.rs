@@ -47,7 +47,12 @@ pub fn add_invoke_transaction(
 
     let execution_info = blockifier::transaction::account_transaction::AccountTransaction {
         tx: starknet_api::executable_transaction::AccountTransaction::Invoke(sn_api_transaction),
-        execution_flags: ExecutionFlags { only_query: false, charge_fee: true, validate },
+        execution_flags: ExecutionFlags {
+            only_query: false,
+            charge_fee: true,
+            validate,
+            strict_nonce_check: todo!(),
+        },
     }
     .execute(state, &block_context);
 

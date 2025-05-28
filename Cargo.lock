@@ -160,7 +160,7 @@ checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
 [[package]]
 name = "apollo_compile_to_native"
 version = "0.15.0-rc.0"
-source = "git+https://github.com/starkware-libs/sequencer.git?rev=86f6bf0e9991a47233c7775fd434d0c97c1c1ee9#86f6bf0e9991a47233c7775fd434d0c97c1c1ee9"
+source = "git+https://github.com/starkware-libs/sequencer.git?rev=e8e11e2d106fb29058ae71cdc593e86f80ab2a52#e8e11e2d106fb29058ae71cdc593e86f80ab2a52"
 dependencies = [
  "apollo_config",
  "serde",
@@ -170,10 +170,11 @@ dependencies = [
 [[package]]
 name = "apollo_config"
 version = "0.15.0-rc.0"
-source = "git+https://github.com/starkware-libs/sequencer.git?rev=86f6bf0e9991a47233c7775fd434d0c97c1c1ee9#86f6bf0e9991a47233c7775fd434d0c97c1c1ee9"
+source = "git+https://github.com/starkware-libs/sequencer.git?rev=e8e11e2d106fb29058ae71cdc593e86f80ab2a52#e8e11e2d106fb29058ae71cdc593e86f80ab2a52"
 dependencies = [
  "apollo_infra_utils",
  "clap",
+ "const_format",
  "itertools 0.12.1",
  "serde",
  "serde_json",
@@ -186,11 +187,12 @@ dependencies = [
 [[package]]
 name = "apollo_infra_utils"
 version = "0.15.0-rc.0"
-source = "git+https://github.com/starkware-libs/sequencer.git?rev=86f6bf0e9991a47233c7775fd434d0c97c1c1ee9#86f6bf0e9991a47233c7775fd434d0c97c1c1ee9"
+source = "git+https://github.com/starkware-libs/sequencer.git?rev=e8e11e2d106fb29058ae71cdc593e86f80ab2a52#e8e11e2d106fb29058ae71cdc593e86f80ab2a52"
 dependencies = [
  "num_enum",
  "serde",
  "serde_json",
+ "thiserror 1.0.69",
  "tokio",
  "tracing",
 ]
@@ -198,7 +200,7 @@ dependencies = [
 [[package]]
 name = "apollo_metrics"
 version = "0.15.0-rc.0"
-source = "git+https://github.com/starkware-libs/sequencer.git?rev=86f6bf0e9991a47233c7775fd434d0c97c1c1ee9#86f6bf0e9991a47233c7775fd434d0c97c1c1ee9"
+source = "git+https://github.com/starkware-libs/sequencer.git?rev=e8e11e2d106fb29058ae71cdc593e86f80ab2a52#e8e11e2d106fb29058ae71cdc593e86f80ab2a52"
 dependencies = [
  "indexmap 2.7.1",
  "metrics",
@@ -778,7 +780,7 @@ dependencies = [
 [[package]]
 name = "blockifier"
 version = "0.15.0-rc.0"
-source = "git+https://github.com/starkware-libs/sequencer.git?rev=86f6bf0e9991a47233c7775fd434d0c97c1c1ee9#86f6bf0e9991a47233c7775fd434d0c97c1c1ee9"
+source = "git+https://github.com/starkware-libs/sequencer.git?rev=e8e11e2d106fb29058ae71cdc593e86f80ab2a52#e8e11e2d106fb29058ae71cdc593e86f80ab2a52"
 dependencies = [
  "anyhow",
  "apollo_compile_to_native",
@@ -1891,9 +1893,9 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm"
-version = "2.0.1"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a01805fcadbebfbfd1e176bc58e6b1be26362792bb008efe59aae9df0bba60a1"
+checksum = "19db45f583a41439f6b15541c0c1f517a1ea4612cc1332174101849206cc5abb"
 dependencies = [
  "anyhow",
  "bincode 2.0.0-rc.3",
@@ -1917,7 +1919,7 @@ dependencies = [
  "sha3",
  "starknet-crypto",
  "starknet-types-core",
- "thiserror-no-std",
+ "thiserror 2.0.11",
  "zip",
 ]
 
@@ -6642,7 +6644,7 @@ dependencies = [
 [[package]]
 name = "starknet_api"
 version = "0.15.0-rc.0"
-source = "git+https://github.com/starkware-libs/sequencer.git?rev=86f6bf0e9991a47233c7775fd434d0c97c1c1ee9#86f6bf0e9991a47233c7775fd434d0c97c1c1ee9"
+source = "git+https://github.com/starkware-libs/sequencer.git?rev=e8e11e2d106fb29058ae71cdc593e86f80ab2a52#e8e11e2d106fb29058ae71cdc593e86f80ab2a52"
 dependencies = [
  "apollo_infra_utils",
  "base64 0.13.1",
@@ -6957,26 +6959,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.98",
-]
-
-[[package]]
-name = "thiserror-impl-no-std"
-version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58e6318948b519ba6dc2b442a6d0b904ebfb8d411a3ad3e07843615a72249758"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 1.0.109",
-]
-
-[[package]]
-name = "thiserror-no-std"
-version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3ad459d94dd517257cc96add8a43190ee620011bb6e6cdc82dafd97dfafafea"
-dependencies = [
- "thiserror-impl-no-std",
 ]
 
 [[package]]
