@@ -18,6 +18,7 @@ use starknet_api::block::{
 };
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::data_availability::DataAvailabilityMode;
+use starknet_api::executable_transaction::AccountTransaction as ExecutableAccountTransaction;
 use starknet_api::transaction::fields::{GasVectorComputationMode, Tip};
 use starknet_api::transaction::{TransactionHasher, TransactionVersion};
 use starknet_rs_core::types::{
@@ -1281,6 +1282,7 @@ impl Starknet {
                             only_query: true,
                             charge_fee: !skip_fee_charge,
                             validate: !(skip_validate || skip_validate_due_to_impersonation),
+                            strict_nonce_check: todo!()
                         })?,
                         txn.get_type(),
                         txn.gas_vector_computation_mode(),
@@ -1485,6 +1487,17 @@ impl Starknet {
             Starknet::is_account_impersonated(state, cheats, sender_address)
         } else {
             Ok(false)
+        }
+    }
+
+    fn should_check_nonce_strictly(&self, tx: ExecutableAccountTransaction) -> bool {
+        todo!(
+            "Probably should implemented on BroadcastedTx type; otherwise estimation not supported"
+        );
+        match tx {
+            ExecutableAccountTransaction::Declare(_) => true,
+            ExecutableAccountTransaction::Invoke(_)
+            | ExecutableAccountTransaction::DeployAccount(_) => self.config.uses_pending_block(),
         }
     }
 

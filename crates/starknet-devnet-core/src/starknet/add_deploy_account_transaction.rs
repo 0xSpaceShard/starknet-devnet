@@ -51,7 +51,12 @@ pub fn add_deploy_account_transaction(
         tx: starknet_api::executable_transaction::AccountTransaction::DeployAccount(
             executable_deploy_account_tx,
         ),
-        execution_flags: ExecutionFlags { only_query: false, charge_fee: true, validate: true },
+        execution_flags: ExecutionFlags {
+            only_query: false,
+            charge_fee: true,
+            validate: true,
+            strict_nonce_check: todo!(),
+        },
     }
     .execute(&mut starknet.pending_state.state, &starknet.block_context)?;
 

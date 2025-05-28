@@ -79,14 +79,15 @@ enum-helper-macros = "0.0.1"
 
 # Starknet dependencies
 starknet-types-core = "0.1.5"
-starknet_api = { git = "https://github.com/starkware-libs/sequencer.git", rev = "86f6bf0e9991a47233c7775fd434d0c97c1c1ee9", features = ["testing"]  }
-blockifier = { git = "https://github.com/starkware-libs/sequencer.git", rev = "86f6bf0e9991a47233c7775fd434d0c97c1c1ee9" }
+# TMP: using revision from branch main-v0.14.0
+starknet_api = { git = "https://github.com/starkware-libs/sequencer.git", rev = "e8e11e2d106fb29058ae71cdc593e86f80ab2a52", features = ["testing"]  }
+blockifier = { git = "https://github.com/starkware-libs/sequencer.git", rev = "e8e11e2d106fb29058ae71cdc593e86f80ab2a52" }
 starknet-rs-signers = { version = "0.11.0", package = "starknet-signers" }
 starknet-rs-core = { version = "0.13.0", package = "starknet-core" }
 starknet-rs-providers = { version = "0.13.0", package = "starknet-providers" }
 starknet-rs-accounts = { version = "0.13.0", package = "starknet-accounts" }
 starknet-rs-contract = { version = "0.13.0", package = "starknet-contract" }
-cairo-vm = "=2.0.1"
+cairo-vm = "=2.1.0"
 
 # Cairo-lang dependencies
 cairo-lang-starknet-classes = "=2.12.0-dev.1"

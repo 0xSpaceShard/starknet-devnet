@@ -92,7 +92,12 @@ pub fn add_declare_transaction(
     let transaction = TransactionWithHash::new(transaction_hash, declare_transaction);
     let execution_info = blockifier::transaction::account_transaction::AccountTransaction {
         tx: starknet_api::executable_transaction::AccountTransaction::Declare(executable_tx),
-        execution_flags: ExecutionFlags { only_query: false, charge_fee: true, validate },
+        execution_flags: ExecutionFlags {
+            only_query: false,
+            charge_fee: true,
+            validate,
+            strict_nonce_check: true, // Starknet 0.14: declare txs do not allow nonce supersession
+        },
     }
     .execute(&mut starknet.pending_state.state, &starknet.block_context)?;
 
