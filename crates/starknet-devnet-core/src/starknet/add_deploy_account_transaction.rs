@@ -47,6 +47,9 @@ pub fn add_deploy_account_transaction(
     let transaction_hash = executable_deploy_account_tx.tx_hash.0;
     let transaction = TransactionWithHash::new(transaction_hash, deploy_account_transaction);
 
+    let strict_nonce_check = broadcasted_deploy_account_transaction
+        .requires_strict_nonce_check(starknet.config.uses_pending_block());
+
     let execution_info = blockifier::transaction::account_transaction::AccountTransaction {
         tx: starknet_api::executable_transaction::AccountTransaction::DeployAccount(
             executable_deploy_account_tx,
@@ -55,7 +58,7 @@ pub fn add_deploy_account_transaction(
             only_query: false,
             charge_fee: true,
             validate: true,
-            strict_nonce_check: todo!(),
+            strict_nonce_check,
         },
     }
     .execute(&mut starknet.pending_state.state, &starknet.block_context)?;

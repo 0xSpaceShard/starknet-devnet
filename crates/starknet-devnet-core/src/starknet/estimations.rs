@@ -5,7 +5,7 @@ use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::objects::HasRelatedFeeType;
 use blockifier::transaction::transaction_execution::Transaction;
 use blockifier::transaction::transactions::ExecutableTransaction;
-use starknet_api::transaction::fields::GasVectorComputationMode;
+use starknet_api::transaction::fields::{GasVectorComputationMode, Tip};
 use starknet_rs_core::types::{BlockId, Felt, MsgFromL1, PriceUnit};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::estimate_message_fee::{
@@ -28,6 +28,7 @@ pub fn estimate_fee(
     let chain_id = starknet.chain_id().to_felt();
     let block_context = starknet.block_context.clone();
     let cheats = starknet.cheats.clone();
+    let using_pending_block = starknet.config.uses_pending_block();
     let state = starknet.get_mut_state_at(block_id)?;
 
     let transactions = {
@@ -47,6 +48,7 @@ pub fn estimate_fee(
                     txn.to_sn_api_account_transaction(&chain_id)?,
                     validate,
                     txn.gas_vector_computation_mode(),
+                    txn.requires_strict_nonce_check(using_pending_block),
                 ))
             })
             .collect::<DevnetResult<Vec<_>>>()?
@@ -57,7 +59,7 @@ pub fn estimate_fee(
     transactions
         .into_iter()
         .enumerate()
-        .map(|(idx, (transaction, validate, gas_vector_computation_mode))| {
+        .map(|(idx, (transaction, validate, gas_vector_computation_mode, strict_nonce_check))| {
             let estimate_fee_result = estimate_transaction_fee(
                 &mut transactional_state,
                 &block_context,
@@ -68,7 +70,7 @@ pub fn estimate_fee(
                             only_query: true,
                             charge_fee: charge_fee.unwrap_or(false),
                             validate,
-                            strict_nonce_check: todo!(),
+                            strict_nonce_check,
                         },
                     },
                 ),
@@ -157,11 +159,12 @@ fn estimate_transaction_fee<S: StateReader>(
         Transaction::L1Handler(tx) => tx.fee_type(),
     };
 
+    // Tip is 1 Gfri according to https://spaceshard.slack.com/archives/C029F9AN8LX/p1748505695689869?thread_ts=1748445660.739039&cid=C029F9AN8LX
     let total_fee = fee_utils::get_fee_by_gas_vector(
         block_context.block_info(),
         gas_vector,
         &fee_type,
-        todo!(),
+        Tip(1e9 as u64),
     );
 
     let gas_prices = &block_context.block_info().gas_prices;
