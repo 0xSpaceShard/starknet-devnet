@@ -514,6 +514,18 @@ impl BroadcastedTransaction {
             }
         }
     }
+
+    pub fn requires_strict_nonce_check(&self, using_pending_block: bool) -> bool {
+        match self {
+            BroadcastedTransaction::Invoke(tx) => {
+                tx.requires_strict_nonce_check(using_pending_block)
+            }
+            BroadcastedTransaction::Declare(_) => true,
+            BroadcastedTransaction::DeployAccount(tx) => {
+                tx.requires_strict_nonce_check(using_pending_block)
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -615,6 +627,10 @@ impl BroadcastedDeployAccountTransaction {
         }
     }
 
+    pub fn requires_strict_nonce_check(&self, using_pending_block: bool) -> bool {
+        !using_pending_block
+    }
+
     /// Creates a blockifier deploy account transaction from the current transaction.
     /// The transaction hash is computed using the given chain id.
     ///
@@ -690,6 +706,10 @@ impl BroadcastedInvokeTransaction {
         match self {
             BroadcastedInvokeTransaction::V3(tx) => tx.common.is_only_query(),
         }
+    }
+
+    pub fn requires_strict_nonce_check(&self, using_pending_block: bool) -> bool {
+        !using_pending_block
     }
 
     /// Creates a blockifier invoke transaction from the current transaction.

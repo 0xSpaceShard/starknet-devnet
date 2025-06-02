@@ -43,6 +43,9 @@ pub fn add_invoke_transaction(
 
     let block_context = starknet.block_context.clone();
 
+    let strict_nonce_check = broadcasted_invoke_transaction
+        .requires_strict_nonce_check(starknet.config.uses_pending_block());
+
     let state = &mut starknet.get_state().state;
 
     let execution_info = blockifier::transaction::account_transaction::AccountTransaction {
@@ -51,7 +54,7 @@ pub fn add_invoke_transaction(
             only_query: false,
             charge_fee: true,
             validate,
-            strict_nonce_check: todo!(),
+            strict_nonce_check,
         },
     }
     .execute(state, &block_context);
