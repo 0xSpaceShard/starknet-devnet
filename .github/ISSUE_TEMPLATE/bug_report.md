@@ -14,18 +14,16 @@ A clear and concise description of what the bug is. If applicable, add screensho
 
 - [ ] This issue is only present on Devnet and cannot be reproduced on the alpha-sepolia testnet (check the box if true).
 
-**To Reproduce**
-Steps to reproduce the behavior:
+**Steps to reproduce the behavior**
 
-1. ...
+1. Start Devnet with ...
 2. ...
    ...
 
 **Devnet version**
 
-- I am using Devnet version:
-- [ ] This happens with a dockerized Devnet (check the box if true).
-- This does not appear on the following Devnet version:
+- I am using Devnet version: <!-- specify the version, commit hash, or image name:tag and note if you are using a dockerized Devnet -->
+- I have found that this issue is not present in Devnet version:
 
 **System specifications**
 
