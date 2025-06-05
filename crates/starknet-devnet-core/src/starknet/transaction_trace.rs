@@ -127,23 +127,13 @@ pub(crate) fn create_trace<S: StateReader>(
             state_diff,
             execution_resources,
         })),
-        TransactionType::L1Handler => {
-            match get_call_info_invocation(
-                state,
-                &execution_info.execute_call_info,
-                versioned_constants,
-                gas_vector_computation_mode,
-            )? {
-                Some(function_invocation) => {
-                    Ok(TransactionTrace::L1Handler(L1HandlerTransactionTrace {
-                        function_invocation,
-                        state_diff,
-                        execution_resources,
-                    }))
-                }
-                _ => Err(Error::NoTransactionTrace),
-            }
-        }
+        TransactionType::L1Handler => Ok(TransactionTrace::L1Handler(L1HandlerTransactionTrace {
+            function_invocation: todo!(
+                "https://github.com/starkware-libs/starknet-specs/issues/302"
+            ),
+            state_diff,
+            execution_resources,
+        })),
         _ => Err(Error::UnsupportedTransactionType),
     }
 }
