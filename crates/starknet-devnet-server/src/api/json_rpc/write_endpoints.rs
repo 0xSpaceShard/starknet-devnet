@@ -78,6 +78,7 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedInvokeTransaction,
     ) -> StrictRpcResult {
+        // TODO locking perhaps not needed here, but only on state
         let transaction_hash = self.api.starknet.lock().await.add_invoke_transaction(request)?;
 
         Ok(StarknetResponse::TransactionHash(TransactionHashOutput { transaction_hash }).into())

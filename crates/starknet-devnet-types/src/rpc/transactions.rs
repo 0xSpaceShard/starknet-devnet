@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use blockifier::blockifier_versioned_constants::VersionedConstants;
@@ -1015,3 +1016,5 @@ pub struct L1HandlerTransactionStatus {
     pub finality_status: TransactionFinalityStatus,
     pub failure_reason: Option<String>,
 }
+
+pub type TransactionMempool = HashMap<ContractAddress, blockifier::transaction::transaction_execution::Transaction>;

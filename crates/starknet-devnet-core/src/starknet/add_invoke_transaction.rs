@@ -29,10 +29,11 @@ pub fn add_invoke_transaction(
 
     let transaction_hash = sn_api_transaction.tx_hash.0;
 
-    let invoke_transaction = match broadcasted_invoke_transaction {
-        BroadcastedInvokeTransaction::V3(ref v3) => {
-            Transaction::Invoke(InvokeTransaction::V3(InvokeTransactionV3::new(v3)))
-        }
+    let (invoke_transaction, sender_address) = match broadcasted_invoke_transaction {
+        BroadcastedInvokeTransaction::V3(ref tx) => (
+            Transaction::Invoke(InvokeTransaction::V3(InvokeTransactionV3::new(tx))),
+            tx.sender_address,
+        ),
     };
 
     let validate = !(Starknet::is_account_impersonated(
@@ -41,29 +42,25 @@ pub fn add_invoke_transaction(
         &ContractAddress::from(sn_api_transaction.sender_address()),
     )?);
 
-    let block_context = starknet.block_context.clone();
-
     let strict_nonce_check = broadcasted_invoke_transaction
         .requires_strict_nonce_check(starknet.config.uses_pending_block());
 
-    let state = &mut starknet.get_state().state;
-
-    let execution_info = blockifier::transaction::account_transaction::AccountTransaction {
-        tx: starknet_api::executable_transaction::AccountTransaction::Invoke(sn_api_transaction),
-        execution_flags: ExecutionFlags {
-            only_query: false,
-            charge_fee: true,
-            validate,
-            strict_nonce_check,
-        },
-    }
-    .execute(state, &block_context);
-
-    let execution_info = execution_info?;
-
-    let transaction = TransactionWithHash::new(transaction_hash, invoke_transaction);
-
-    starknet.handle_accepted_transaction(transaction, execution_info)?;
+    starknet.tx_mempool.insert(
+        sender_address,
+        blockifier::transaction::transaction_execution::Transaction::Account(
+            blockifier::transaction::account_transaction::AccountTransaction {
+                tx: starknet_api::executable_transaction::AccountTransaction::Invoke(
+                    sn_api_transaction,
+                ),
+                execution_flags: ExecutionFlags {
+                    only_query: false,
+                    charge_fee: true,
+                    validate,
+                    strict_nonce_check,
+                },
+            },
+        ),
+    );
 
     Ok(transaction_hash)
 }

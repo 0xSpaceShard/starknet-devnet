@@ -48,11 +48,7 @@ use starknet_types::rpc::transaction_receipt::{
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 use starknet_types::rpc::transactions::{
-    BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
-    BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionCommonV3,
-    L1HandlerTransactionStatus, ResourceBoundsWrapper, SimulatedTransaction, SimulationFlag,
-    TransactionStatus, TransactionTrace, TransactionType, TransactionWithHash,
-    TransactionWithReceipt, Transactions,
+    BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionCommonV3, L1HandlerTransactionStatus, ResourceBoundsWrapper, SimulatedTransaction, SimulationFlag, TransactionMempool, TransactionStatus, TransactionTrace, TransactionType, TransactionWithHash, TransactionWithReceipt, Transactions
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
@@ -99,7 +95,8 @@ pub(crate) mod transaction_trace;
 
 pub struct Starknet {
     pub latest_state: StarknetState,
-    pub pending_state: StarknetState,
+    tx_mempool: TransactionMempool,
+    pub pending_state: StarknetState, // TODO
     /// Contains the diff since the last block
     pending_state_diff: StateDiff,
     predeployed_accounts: PredeployedAccounts,
