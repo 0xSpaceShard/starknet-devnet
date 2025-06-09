@@ -273,7 +273,22 @@ impl Args {
         let RequestResponseLogging { log_request, log_response } =
             RequestResponseLogging::from_rust_log_environment_variable();
 
-        // if restricted_methods are not specified, use default ones
+        let server_config = ServerConfig {
+            host: self.host.inner,
+            port: self.port,
+            timeout: self.timeout,
+            log_request,
+            log_response,
+            restricted_methods: self.get_validated_restricted_methods()?,
+        };
+
+        Ok((starknet_config, server_config))
+    }
+
+    /// Errors if there are unsupported restricted methods/routes. If method list present but empty,
+    /// use default.
+    fn get_validated_restricted_methods(&self) -> Result<Option<Vec<String>>, anyhow::Error> {
+        // If restricted_methods not specified, use default
         let restricted_methods = self.restricted_methods.as_ref().map(|methods| {
             if methods.is_empty() {
                 DEFAULT_RESTRICTED_JSON_RPC_METHODS
@@ -281,14 +296,15 @@ impl Args {
                     .map(|s| s.to_string())
                     .collect::<Vec<String>>()
             } else {
-                // remove leading slashes
+                // Remove leading slashes
                 methods
                     .iter()
                     .map(|s| s.trim_start_matches('/').to_string())
                     .collect::<Vec<String>>()
             }
         });
-        // validate restricted methods
+
+        // Validate restricted methods
         if let Some(methods) = restricted_methods.as_ref() {
             let json_rpc_methods = JsonRpcRequest::all_variants_serde_renames();
             let all_methods: HashSet<_> = HashSet::from_iter(
@@ -302,23 +318,13 @@ impl Args {
             }
             if !wrong_restricted_methods.is_empty() {
                 anyhow::bail!(
-                    "Restricted methods contain JSON-RPC methods and/or HTTP routes that are not \
-                     supported by the server: {}",
-                    wrong_restricted_methods.join(" ")
+                    "Restricted methods contain unsupported JSON-RPC methods or HTTP routes: {}",
+                    wrong_restricted_methods.join(", ")
                 );
             }
         }
 
-        let server_config = ServerConfig {
-            host: self.host.inner,
-            port: self.port,
-            timeout: self.timeout,
-            log_request,
-            log_response,
-            restricted_methods,
-        };
-
-        Ok((starknet_config, server_config))
+        Ok(restricted_methods)
     }
 }
 
@@ -705,11 +711,12 @@ mod tests {
 
     #[test]
     fn check_if_method_with_incorrect_name_will_produce_an_error() {
-        let args = Args::parse_from(["--", "--restrictive-mode", "devnet_dump", "devnet_loadd"]);
+        let args =
+            Args::parse_from(["--", "--restrictive-mode", "devnet_dump", "devnet_loadd", "xyz"]);
         let err = args.to_config().unwrap_err();
         assert!(err.to_string().contains(
-            "Restricted methods contain JSON-RPC methods and/or HTTP routes that are not \
-             supported by the server: devnet_loadd"
+            "Restricted methods contain unsupported JSON-RPC methods or HTTP routes: \
+             devnet_loadd, xyz"
         ));
     }
 
