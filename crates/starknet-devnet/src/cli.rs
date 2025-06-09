@@ -9,7 +9,7 @@ use server::server::HTTP_API_ROUTES_WITHOUT_LEADING_SLASH;
 use starknet_core::constants::{
     ARGENT_CONTRACT_VERSION, ARGENT_MULTISIG_CONTRACT_VERSION, DEVNET_DEFAULT_L1_DATA_GAS_PRICE,
     DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE, DEVNET_DEFAULT_PORT,
-    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS, chargeable_account_initial_balance,
 };
 use starknet_core::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use starknet_core::random_number_generator::generate_u32_random_number;
@@ -17,6 +17,7 @@ use starknet_core::starknet::starknet_config::{
     BlockGenerationOn, DumpOn, ForkConfig, StarknetConfig, StateArchiveCapacity,
 };
 use starknet_types::chain_id::ChainId;
+use starknet_types::num_bigint::BigUint;
 use tracing_subscriber::EnvFilter;
 
 use crate::initial_balance_wrapper::InitialBalanceWrapper;
@@ -273,6 +274,8 @@ impl Args {
         let RequestResponseLogging { log_request, log_response } =
             RequestResponseLogging::from_rust_log_environment_variable();
 
+        self.validate_total_account_balance()?;
+
         let server_config = ServerConfig {
             host: self.host.inner,
             port: self.port,
@@ -283,6 +286,19 @@ impl Args {
         };
 
         Ok((starknet_config, server_config))
+    }
+
+    fn validate_total_account_balance(&self) -> Result<(), anyhow::Error> {
+        let total_supply = self.accounts_count * self.initial_balance.0.clone()
+            + chargeable_account_initial_balance();
+        if total_supply >= (BigUint::from(1_u32) << 256) {
+            anyhow::bail!(
+                "Total balance supply in ERC20 contract exceeded. Reduce the number of \
+                 predeployed accounts (--accounts) or their initial balance (--initial-balance)."
+            )
+        }
+
+        Ok(())
     }
 
     /// Errors if there are unsupported restricted methods/routes. If method list present but empty,
@@ -350,6 +366,7 @@ mod tests {
     use starknet_core::starknet::starknet_config::{
         BlockGenerationOn, DumpOn, StateArchiveCapacity,
     };
+    use starknet_types::num_bigint::BigUint;
     use tracing_subscriber::EnvFilter;
 
     use super::{Args, RequestResponseLogging};
@@ -725,5 +742,39 @@ mod tests {
         Args::parse_from(["--", "--restrictive-mode"]).to_config().unwrap();
 
         Args::parse_from(["--", "--restrictive-mode", "devnet_dump", "/mint"]).to_config().unwrap();
+    }
+
+    #[test]
+    fn should_not_exceed_total_supply() {
+        let initial_balance: BigUint = (BigUint::from(1_u32) << 254) - 1_u32;
+        Args::parse_from([
+            "--",
+            "--accounts",
+            "2",
+            "--initial-balance",
+            &initial_balance.to_str_radix(10),
+        ])
+        .to_config()
+        .unwrap();
+    }
+
+    #[test]
+    /// Fails because
+    fn should_fail_on_exceeded_total_supply() {
+        let initial_balance: BigUint = BigUint::from(1_u32) << 254;
+        let err = Args::parse_from([
+            "--",
+            "--accounts",
+            "2",
+            "--initial-balance",
+            &initial_balance.to_str_radix(10),
+        ])
+        .to_config()
+        .unwrap_err();
+
+        assert!(err.to_string().contains(
+            "Total balance supply in ERC20 contract exceeded. Reduce the number of predeployed \
+             accounts (--accounts) or their initial balance (--initial-balance)."
+        ))
     }
 }

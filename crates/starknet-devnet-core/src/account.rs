@@ -9,12 +9,11 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::error::Error;
 use starknet_types::felt::{ClassHash, Key, felt_from_prefixed_hex, join_felts, split_biguint};
-use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::state::Balance;
 
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, CHARGEABLE_ACCOUNT_PUBLIC_KEY,
-    ISRC6_ID_HEX,
+    ISRC6_ID_HEX, chargeable_account_initial_balance,
 };
 use crate::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use crate::error::DevnetResult;
@@ -66,7 +65,7 @@ impl Account {
             account_address: ContractAddress::new(felt_from_prefixed_hex(
                 CHARGEABLE_ACCOUNT_ADDRESS,
             )?)?,
-            initial_balance: (BigUint::from(1_u32) << 256) - BigUint::from(1_u32), // max value
+            initial_balance: chargeable_account_initial_balance(),
             class_hash,
             class_metadata,
             contract_class,
