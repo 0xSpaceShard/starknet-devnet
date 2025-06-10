@@ -288,6 +288,7 @@ impl Args {
         Ok((starknet_config, server_config))
     }
 
+    /// n_accounts * balance(single_account) + chargeable_balance < u256 capacity
     fn validate_total_account_balance(&self) -> Result<(), anyhow::Error> {
         let total_supply = self.accounts_count * self.initial_balance.0.clone()
             + chargeable_account_initial_balance();
@@ -759,7 +760,7 @@ mod tests {
     }
 
     #[test]
-    /// Fails because
+    /// Fails because 2 * (2 ** 254) + (2 ** 255) = 2 ** 256
     fn should_fail_on_exceeded_total_supply() {
         let initial_balance: BigUint = BigUint::from(1_u32) << 254;
         let err = Args::parse_from([
