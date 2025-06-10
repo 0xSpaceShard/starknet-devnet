@@ -4,6 +4,7 @@ use std::num::NonZeroU128;
 use nonzero_ext::nonzero;
 use starknet_rs_core::types::Felt;
 use starknet_types::chain_id::ChainId;
+use starknet_types::num_bigint::BigUint;
 
 pub const CAIRO_0_ACCOUNT_CONTRACT: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -104,6 +105,11 @@ pub const CHARGEABLE_ACCOUNT_PUBLIC_KEY: &str =
 pub const CHARGEABLE_ACCOUNT_PRIVATE_KEY: &str = "0x5FB2959E3011A873A7160F5BB32B0ECE";
 pub const CHARGEABLE_ACCOUNT_ADDRESS: &str =
     "0x1CAF2DF5ED5DDE1AE3FAEF4ACD72522AC3CB16E23F6DC4C7F9FAED67124C511";
+pub fn chargeable_account_initial_balance() -> BigUint {
+    // Ideally, this would be a constant, but defining it as a string introduces parsing issues and
+    // making lazy_static a dependency seems too much.
+    BigUint::from(1_u32) << 255
+}
 
 pub const ENTRYPOINT_NOT_FOUND_ERROR_ENCODED: Felt =
     Felt::from_hex_unchecked("0x454e545259504f494e545f4e4f545f464f554e44");
