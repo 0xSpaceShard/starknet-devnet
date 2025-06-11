@@ -76,23 +76,23 @@ mod tests {
 
     use super::SystemContract;
     use crate::constants::{
-        CAIRO_1_ERC20_CONTRACT, CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS,
+        ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_CONTRACT_CLASS, ETH_ERC20_CONTRACT_CLASS_HASH,
     };
     use crate::state::StarknetState;
     use crate::traits::Deployed;
 
     #[test]
     fn load_erc20_contract() {
-        assert!(ContractClass::cairo_1_from_sierra_json_str(CAIRO_1_ERC20_CONTRACT).is_ok());
+        assert!(ContractClass::cairo_1_from_sierra_json_str(ETH_ERC20_CONTRACT_CLASS).is_ok());
     }
 
     #[test]
     fn system_account_deployed_successfully() {
         let mut state = StarknetState::default();
         let sys_contract = SystemContract::new_cairo1(
-            CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
+            ETH_ERC20_CONTRACT_CLASS_HASH,
             ETH_ERC20_CONTRACT_ADDRESS,
-            CAIRO_1_ERC20_CONTRACT,
+            ETH_ERC20_CONTRACT_CLASS,
         )
         .unwrap();
 

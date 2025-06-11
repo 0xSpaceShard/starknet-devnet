@@ -825,7 +825,7 @@ impl Starknet {
         let mut calldata = vec![
             Felt::ONE,            // number of calls
             erc20_address.into(), // target address
-            get_selector_from_name("transfer")
+            get_selector_from_name("permissioned_mint")
                 .map_err(|e| Error::UnexpectedInternalError { msg: e.to_string() })?,
         ];
 
@@ -839,7 +839,7 @@ impl Starknet {
     }
 
     /// Creates an invoke tx for minting, using the chargeable account.
-    /// Uses transfer function of the ERC20 contract
+    /// Uses permissioned_mint function of the ERC20 contract
     pub async fn mint(
         &mut self,
         fundable_address: ContractAddress,

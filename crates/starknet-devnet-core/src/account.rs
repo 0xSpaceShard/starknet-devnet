@@ -226,7 +226,7 @@ mod tests {
 
     use super::{Account, KeyPair};
     use crate::account::FeeToken;
-    use crate::constants::CAIRO_1_ERC20_CONTRACT_CLASS_HASH;
+    use crate::constants::STRK_ERC20_CONTRACT_CLASS_HASH;
     use crate::state::{CustomState, StarknetState};
     use crate::traits::{Accounted, Deployed};
     use crate::utils::test_utils::{
@@ -287,12 +287,11 @@ mod tests {
         let expected_balance = Balance::from(100_u8);
         account.initial_balance = expected_balance.clone();
         account.deploy(&mut state).unwrap();
-        let generated_balance = account.get_balance(&mut state, FeeToken::ETH).unwrap();
 
+        let generated_balance = account.get_balance(&mut state, FeeToken::ETH).unwrap();
         assert_eq!(expected_balance, generated_balance);
 
         let generated_balance = account.get_balance(&mut state, FeeToken::STRK).unwrap();
-
         assert_eq!(expected_balance, generated_balance);
     }
 
@@ -315,7 +314,7 @@ mod tests {
         let fee_token_address = dummy_contract_address();
 
         // deploy the erc20 contract
-        state.predeploy_contract(fee_token_address, CAIRO_1_ERC20_CONTRACT_CLASS_HASH).unwrap();
+        state.predeploy_contract(fee_token_address, STRK_ERC20_CONTRACT_CLASS_HASH).unwrap();
 
         (
             Account::new(
