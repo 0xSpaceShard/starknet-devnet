@@ -109,12 +109,12 @@ pub fn estimate_message_fee(
 
     let mut transactional_state = CachedState::create_transactional(&mut state.state);
 
-    let l1_transaction = estimate_message_fee.create_blockifier_l1_transaction()?;
+    let executable_tx = estimate_message_fee.create_blockifier_l1_handler_tx()?;
 
     estimate_transaction_fee(
         &mut transactional_state,
         &block_context,
-        Transaction::L1Handler(l1_transaction),
+        Transaction::L1Handler(executable_tx),
         true,
         // Using only L1 gas, because msgs coming from L1 are L1 txs, with their own gas cost
         GasVectorComputationMode::NoL2Gas,

@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::{BlockId, BlockTag, EthAddress, Felt, MsgFromL1, StarknetError};
+use starknet_rs_core::types::{
+    BlockId, BlockTag, EthAddress, FeeEstimate, Felt, MsgFromL1, StarknetError,
+};
 use starknet_rs_core::utils::{UdcUniqueness, get_udc_deployed_address};
 use starknet_rs_providers::{Provider, ProviderError};
 
@@ -49,7 +51,7 @@ async fn estimate_message_fee() {
         .await
         .expect("Cannot deploy");
 
-    let res = devnet
+    let estimate = devnet
         .json_rpc_client
         .estimate_message_fee(
             MsgFromL1 {
@@ -63,8 +65,20 @@ async fn estimate_message_fee() {
         .await
         .unwrap();
 
-    assert_eq!(res.l1_gas_consumed, Felt::from(16029));
-    assert_eq!(res.l2_gas_consumed, Felt::ZERO);
+    let devnet_default_gas_price = Felt::from(1_000_000_000u128);
+    assert_eq!(
+        estimate,
+        FeeEstimate {
+            l1_gas_consumed: Felt::from(16029),
+            l1_gas_price: devnet_default_gas_price,
+            l2_gas_consumed: Felt::ZERO,
+            l2_gas_price: devnet_default_gas_price,
+            l1_data_gas_consumed: Felt::ZERO,
+            l1_data_gas_price: devnet_default_gas_price,
+            overall_fee: Felt::from(16029),
+            unit: starknet_rs_core::types::PriceUnit::Wei,
+        }
+    );
 }
 
 #[tokio::test]
