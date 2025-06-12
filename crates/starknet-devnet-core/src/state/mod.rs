@@ -409,6 +409,7 @@ impl CustomState for StarknetState {
         contract_address: ContractAddress,
         class_hash: ClassHash,
     ) -> DevnetResult<()> {
+        // TODO: only predeploy if not already deployed; method renaming needed?
         self.state
             .state
             .set_class_hash_at(

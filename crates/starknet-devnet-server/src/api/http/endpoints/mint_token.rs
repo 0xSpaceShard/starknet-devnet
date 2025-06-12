@@ -1,7 +1,7 @@
 use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
 use starknet_core::error::DevnetResult;
 use starknet_core::starknet::Starknet;
-use starknet_rs_core::types::{BlockId, BlockTag, Felt};
+use starknet_rs_core::types::{BlockId, BlockTag, Felt, TransactionExecutionStatus};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::join_felts;
 use starknet_types::num_bigint::BigUint;
@@ -63,9 +63,24 @@ pub(crate) async fn mint_impl(api: &Api, request: MintTokensRequest) -> StrictRp
     // increase balance
     let tx_hash = starknet.mint(request.address, request.amount, erc20_address).await?;
 
-    let new_balance =
-        get_balance(&mut starknet, request.address, erc20_address, BlockTag::Pending)?;
-    let new_balance = new_balance.to_str_radix(10);
+    let tx = starknet.get_transaction_execution_and_finality_status(tx_hash)?;
+    match tx.execution_status {
+        TransactionExecutionStatus::Succeeded => {
+            let new_balance =
+                get_balance(&mut starknet, request.address, erc20_address, BlockTag::Pending)?;
+            let new_balance = new_balance.to_str_radix(10);
 
-    Ok(DevnetResponse::MintTokens(MintTokensResponse { new_balance, unit, tx_hash }).into())
+            Ok(DevnetResponse::MintTokens(MintTokensResponse { new_balance, unit, tx_hash }).into())
+        }
+        TransactionExecutionStatus::Reverted => Err(ApiError::MintingReverted {
+            tx_hash,
+            revert_reason: tx.failure_reason.map(|reason| {
+                if reason.contains("u256_add Overflow") {
+                    "The request overflows the token's total_supply. Consider minting less.".into()
+                } else {
+                    reason
+                }
+            }),
+        }),
+    }
 }

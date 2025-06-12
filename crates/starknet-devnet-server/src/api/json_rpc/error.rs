@@ -1,5 +1,6 @@
 use serde_json::json;
 use starknet_core::error::ContractExecutionError;
+use starknet_rs_core::types::Felt;
 use starknet_types;
 use thiserror::Error;
 use tracing::error;
@@ -76,6 +77,8 @@ pub enum ApiError {
     StorageProofNotSupported,
     #[error("Contract class size it too large")]
     ContractClassSizeIsTooLarge,
+    #[error("Minting reverted")]
+    MintingReverted { tx_hash: Felt, revert_reason: Option<String> },
 }
 
 impl ApiError {
@@ -246,6 +249,11 @@ impl ApiError {
                 message: error_message.into(),
                 data: None,
             },
+            ApiError::MintingReverted { tx_hash, revert_reason: reason } => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
+                message: error_message.into(),
+                data: Some(serde_json::json!({ "tx_hash": tx_hash, "revert_reason": reason })),
+            },
         }
     }
 
@@ -282,6 +290,7 @@ impl ApiError {
             | Self::InsufficientResourcesForValidate
             | Self::StorageProofNotSupported
             | Self::ContractClassSizeIsTooLarge
+            | Self::MintingReverted { .. }
             | Self::CompiledClassHashMismatch => false,
         }
     }

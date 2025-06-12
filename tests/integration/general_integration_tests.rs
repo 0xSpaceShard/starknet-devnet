@@ -7,8 +7,8 @@ use starknet_rs_providers::Provider;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
-    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
-    ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
+    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, ETH_ERC20_CONTRACT_ADDRESS,
+    ETH_ERC20_CONTRACT_CLASS_HASH, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_CLASS_HASH,
 };
 use crate::common::utils::{UniqueAutoDeletableFile, to_hex_felt};
 
@@ -59,8 +59,8 @@ async fn test_config() {
         },
         "block_generation_on": "demand",
         "lite_mode": false,
-        "eth_erc20_class_hash": to_hex_felt(&CAIRO_1_ERC20_CONTRACT_CLASS_HASH),
-        "strk_erc20_class_hash": to_hex_felt(&CAIRO_1_ERC20_CONTRACT_CLASS_HASH),
+        "eth_erc20_class_hash": to_hex_felt(&ETH_ERC20_CONTRACT_CLASS_HASH),
+        "strk_erc20_class_hash": to_hex_felt(&STRK_ERC20_CONTRACT_CLASS_HASH),
     });
 
     let devnet = BackgroundDevnet::spawn_with_additional_args(&[
