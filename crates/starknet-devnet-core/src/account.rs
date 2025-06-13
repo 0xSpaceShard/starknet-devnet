@@ -140,12 +140,12 @@ impl Deployed for Account {
     fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()> {
         self.declare_if_undeclared(state, self.class_hash, &self.contract_class)?;
 
-        state.predeploy_contract(self.account_address, self.class_hash)?;
-
-        // set balance directly in the most underlying state
-        self.set_initial_balance(&mut state.state.state)?;
-
-        self.simulate_constructor(state)?;
+        let freshly_deployed =
+            state.predeploy_if_undeployed(self.account_address, self.class_hash)?;
+        if freshly_deployed {
+            self.set_initial_balance(&mut state.state.state)?;
+            self.simulate_constructor(state)?;
+        };
 
         Ok(())
     }
@@ -156,6 +156,7 @@ impl Deployed for Account {
 }
 
 impl Accounted for Account {
+    // Set balance directly in the most underlying state
     fn set_initial_balance(&self, state: &mut DictState) -> DevnetResult<()> {
         let storage_var_address_low: starknet_api::state::StorageKey =
             get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?
@@ -314,7 +315,7 @@ mod tests {
         let fee_token_address = dummy_contract_address();
 
         // deploy the erc20 contract
-        state.predeploy_contract(fee_token_address, STRK_ERC20_CONTRACT_CLASS_HASH).unwrap();
+        state.predeploy_if_undeployed(fee_token_address, STRK_ERC20_CONTRACT_CLASS_HASH).unwrap();
 
         (
             Account::new(

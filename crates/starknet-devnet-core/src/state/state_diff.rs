@@ -332,7 +332,7 @@ mod tests {
         let old_class_hash = ContractClass::Cairo1(replaceable_contract).generate_hash().unwrap();
         starknet
             .pending_state
-            .predeploy_contract(replaceable_contract_address, old_class_hash)
+            .predeploy_if_undeployed(replaceable_contract_address, old_class_hash)
             .unwrap();
 
         starknet.commit_diff().unwrap();

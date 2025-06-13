@@ -76,7 +76,8 @@ pub(crate) async fn mint_impl(api: &Api, request: MintTokensRequest) -> StrictRp
             tx_hash,
             revert_reason: tx.failure_reason.map(|reason| {
                 if reason.contains("u256_add Overflow") {
-                    "The request overflows the token's total_supply. Consider minting less.".into()
+                    "The requested minting amount overflows the token contract's total_supply."
+                        .into()
                 } else {
                     reason
                 }

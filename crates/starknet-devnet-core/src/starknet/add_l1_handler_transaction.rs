@@ -259,7 +259,7 @@ mod tests {
         // deploy dummy contract
         starknet
             .pending_state
-            .predeploy_contract(dummy_contract_address, dummy_contract_class_hash)
+            .predeploy_if_undeployed(dummy_contract_address, dummy_contract_class_hash)
             .unwrap();
         starknet.block_context = Starknet::init_block_context(
             nonzero!(1u128),
