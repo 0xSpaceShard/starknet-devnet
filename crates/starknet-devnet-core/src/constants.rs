@@ -25,21 +25,29 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA: &str = include_str!(concat!(
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
     "0x05b4b537eaa2399e3aa99c4e2e0208ebd6c71bc1467938cd52c798c601e43564";
 
-pub const CAIRO_1_ERC20_CONTRACT: &str = include_str!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/contracts/system_artifacts/ERC20_Mintable_OZ_0.8.1.sierra"
-));
-
-/// Hardcoded to match the hash of the unchanged OZ ERC20.cairo even despite the changes: commented
-/// attributes in struct Approval (owner, spender), the addition of mintability.
-pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: Felt =
-    Felt::from_hex_unchecked("0x046ded64ae2dead6448e247234bab192a9c483644395b66f2155f2614e5804b0");
-
+pub const ETH_ERC20_CONTRACT_CLASS_HASH: Felt =
+    Felt::from_hex_unchecked("0x9524a94b41c4440a16fd96d7c1ef6ad6f44c1c013e96662734502cd4ee9b1f");
 pub const ETH_ERC20_CONTRACT_ADDRESS: Felt =
     Felt::from_hex_unchecked("0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7");
+pub const ETH_ERC20_CONTRACT_CLASS: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/contracts/system_artifacts/erc20_eth.sierra"
+));
 
 pub const STRK_ERC20_CONTRACT_ADDRESS: Felt =
     Felt::from_hex_unchecked("0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d");
+pub const STRK_ERC20_CONTRACT_CLASS_HASH: Felt =
+    Felt::from_hex_unchecked("0x76791ef97c042f81fbf352ad95f39a22554ee8d7927b2ce3c681f3418b5206a");
+pub const STRK_ERC20_CONTRACT_CLASS: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/contracts/system_artifacts/erc20_strk.sierra"
+));
+
+// ERC20 contracts storage variables; available in source at https://github.com/starknet-io/starkgate-contracts
+pub const ETH_ERC20_NAME: &str = "Ether";
+pub const ETH_ERC20_SYMBOL: &str = "ETH";
+pub const STRK_ERC20_NAME: &str = "StarkNet Token";
+pub const STRK_ERC20_SYMBOL: &str = "STRK";
 
 pub(crate) const UDC_CONTRACT: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -74,15 +82,6 @@ pub const UDC_CONTRACT_ADDRESS: Felt =
 pub const ISRC6_ID_HEX: &str = "0x2ceccef7f994940b3962a6c67e0ba4fcd37df7d131417c604f91e03caecc1cd";
 
 pub const STARKNET_VERSION: &str = "0.13.5";
-
-/// ERC20 contracts storage variables
-/// taken from starkcan urls:
-/// https://testnet.starkscan.co/token/0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7#read-write-contract
-/// https://testnet.starkscan.co/contract/0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d#read-write-contract
-pub const ETH_ERC20_NAME: &str = "Ether";
-pub const ETH_ERC20_SYMBOL: &str = "ETH";
-pub const STRK_ERC20_NAME: &str = "StarkNet Token";
-pub const STRK_ERC20_SYMBOL: &str = "STRK";
 
 pub const DEVNET_DEFAULT_SEED: u32 = 123;
 pub const DEVNET_DEFAULT_TEST_SEED: u32 = 123;

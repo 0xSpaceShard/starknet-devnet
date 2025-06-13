@@ -16,6 +16,8 @@ use crate::common::utils::{
     assert_contains, extract_message_error, extract_nested_error, get_simple_contract_artifacts,
 };
 
+// Testing of account deployment can be found in test_account_selection.rs
+
 #[tokio::test]
 async fn double_deployment_not_allowed() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
