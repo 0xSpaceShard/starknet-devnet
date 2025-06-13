@@ -51,12 +51,12 @@ pub trait CustomState {
     ) -> DevnetResult<()>;
 
     /// Link contract address to class hash. Does not include balance modification or constructor
-    /// simulation. Returns `true` if deployment was performed by this method, `false` otherwise.
-    fn predeploy_if_undeployed(
+    /// simulation.
+    fn predeploy_contract(
         &mut self,
         contract_address: ContractAddress,
         class_hash: ClassHash,
-    ) -> DevnetResult<bool>;
+    ) -> DevnetResult<()>;
 }
 
 #[derive(Default, Clone)]
@@ -405,26 +405,19 @@ impl CustomState for StarknetState {
         Ok(())
     }
 
-    fn predeploy_if_undeployed(
+    fn predeploy_contract(
         &mut self,
         contract_address: ContractAddress,
         class_hash: ClassHash,
-    ) -> DevnetResult<bool> {
+    ) -> DevnetResult<()> {
         let converted_contract_address = contract_address.try_into()?;
 
-        // If present_hash is zero, no contract is currently deployed at the address. If value other
-        // than class_hash, it's already deployed with another class which shall be overwritten.
-        match self.state.get_class_hash_at(converted_contract_address) {
-            Ok(present_hash) if present_hash.0 == class_hash => Ok(false),
-            Ok(_) => {
-                self.state.state.set_class_hash_at(
-                    converted_contract_address,
-                    starknet_api::core::ClassHash(class_hash),
-                )?;
-                Ok(true)
-            }
-            Err(e) => Err(e.into()),
-        }
+        self.state.state.set_class_hash_at(
+            converted_contract_address,
+            starknet_api::core::ClassHash(class_hash),
+        )?;
+
+        Ok(())
     }
 }
 
@@ -480,7 +473,7 @@ mod tests {
     fn apply_state_updates_for_address_nonce_successfully() {
         let mut state = StarknetState::default();
 
-        state.predeploy_if_undeployed(dummy_contract_address(), dummy_felt()).unwrap();
+        state.predeploy_contract(dummy_contract_address(), dummy_felt()).unwrap();
         let contract_address = dummy_contract_address().try_into().unwrap();
 
         // should be zero before update
@@ -535,7 +528,7 @@ mod tests {
         let (mut state, address) = setup();
         let felt = dummy_felt();
 
-        state.predeploy_if_undeployed(address, felt).unwrap();
+        state.predeploy_contract(address, felt).unwrap();
         let core_address = address.try_into().unwrap();
         assert_eq!(state.get_nonce_at(core_address).unwrap(), Nonce(Felt::ZERO));
     }
@@ -568,7 +561,7 @@ mod tests {
         let (contract_address, storage_key) = dummy_contract_storage_key();
         let class_hash = dummy_felt();
 
-        state.predeploy_if_undeployed(contract_address.into(), class_hash).unwrap();
+        state.predeploy_contract(contract_address.into(), class_hash).unwrap();
 
         state.set_storage_at(contract_address, storage_key, expected_result).unwrap();
         let generated_result = state.get_storage_at(contract_address, storage_key).unwrap();
@@ -601,7 +594,7 @@ mod tests {
         let casm_hash = Some(DUMMY_CAIRO_1_COMPILED_CLASS_HASH);
 
         state.declare_contract_class(class_hash, casm_hash, contract_class.into()).unwrap();
-        state.predeploy_if_undeployed(address, class_hash).unwrap();
+        state.predeploy_contract(address, class_hash).unwrap();
 
         (state, address)
     }

@@ -236,7 +236,14 @@ impl Starknet {
             eth_erc20_fee_contract.get_address(),
             strk_erc20_fee_contract.get_address(),
         )?;
-        chargeable_account.deploy(&mut state)?;
+
+        if state
+            .state
+            .get_class_hash_at(chargeable_account.account_address.try_into()?)
+            .is_ok_and(|h| h.0 == Felt::ZERO)
+        {
+            chargeable_account.deploy(&mut state)?;
+        }
 
         // when forking, the number of the first new block to be mined is equal to the last origin
         // block (the one specified by the user) plus one.
