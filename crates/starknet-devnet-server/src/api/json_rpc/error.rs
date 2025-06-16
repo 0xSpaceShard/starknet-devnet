@@ -301,6 +301,7 @@ pub type StrictRpcResult = Result<JsonRpcResponse, ApiError>;
 #[cfg(test)]
 mod tests {
     use starknet_core::error::ContractExecutionError;
+    use starknet_rs_core::types::Felt;
 
     use super::StrictRpcResult;
     use crate::api::json_rpc::ToRpcResponseResult;
@@ -487,6 +488,24 @@ mod tests {
             ApiError::ValidationFailure { reason: reason.clone() },
             55,
             &serde_json::json!(reason),
+        );
+    }
+
+    #[test]
+    fn minting_reverted_error() {
+        let revert_reason = String::from("some kind of reason");
+        let devnet_error = ApiError::MintingReverted {
+            tx_hash: Felt::ONE,
+            revert_reason: Some(revert_reason.clone()),
+        };
+
+        error_expected_code_and_data(
+            devnet_error,
+            -1,
+            &serde_json::json!({
+                "tx_hash": "0x1",
+                "revert_reason": revert_reason,
+            }),
         );
     }
 

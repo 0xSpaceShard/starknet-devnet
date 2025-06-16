@@ -46,7 +46,7 @@ Response:
 }
 ```
 
-In case of a reverted minting request, an error is returned containing the stringified revert reason and the hex-string of the hash of the reverted transaction for further inspection:
+In case of a reverted minting request, an error is returned containing the stringified revert reason and the hex string of the hash of the reverted transaction for further inspection:
 
 ```
 {
