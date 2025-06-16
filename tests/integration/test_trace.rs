@@ -40,7 +40,7 @@ fn assert_mint_invocation(trace: &TransactionTrace) {
                     vec![
                         Felt::ONE, // number of calls
                         STRK_ERC20_CONTRACT_ADDRESS,
-                        get_selector_from_name("transfer").unwrap(),
+                        get_selector_from_name("permissioned_mint").unwrap(),
                         Felt::THREE, // calldata length
                         DUMMY_ADDRESS,
                         Felt::from(DUMMY_AMOUNT), // low bytes

@@ -43,8 +43,7 @@ pub(crate) fn initialize_erc20_at_address(
                 .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?,
         ),
         ("ERC20_decimals", 18.into()),
-        // necessary to set - otherwise minting txs cannot be executed
-        ("Ownable_owner", felt_from_prefixed_hex(CHARGEABLE_ACCOUNT_ADDRESS)?),
+        ("permitted_minter", felt_from_prefixed_hex(CHARGEABLE_ACCOUNT_ADDRESS)?),
     ] {
         let storage_var_address = get_storage_var_address(storage_var_name, &[])?.try_into()?;
         state.set_storage_at(contract_address.try_into()?, storage_var_address, storage_value)?;
@@ -64,15 +63,15 @@ pub(crate) fn create_udc() -> DevnetResult<SystemContract> {
 pub(crate) mod tests {
     use starknet_rs_core::types::Felt;
 
-    use crate::constants::{CAIRO_1_ERC20_CONTRACT, CAIRO_1_ERC20_CONTRACT_CLASS_HASH};
+    use crate::constants::{STRK_ERC20_CONTRACT_CLASS, STRK_ERC20_CONTRACT_CLASS_HASH};
     use crate::error::DevnetResult;
     use crate::system_contract::SystemContract;
 
     pub(crate) fn create_erc20_at_address(contract_address: Felt) -> DevnetResult<SystemContract> {
         let erc20_fee_contract = SystemContract::new_cairo1(
-            CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
+            STRK_ERC20_CONTRACT_CLASS_HASH,
             contract_address,
-            CAIRO_1_ERC20_CONTRACT,
+            STRK_ERC20_CONTRACT_CLASS,
         )?;
         Ok(erc20_fee_contract)
     }

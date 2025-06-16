@@ -50,7 +50,8 @@ pub trait CustomState {
         contract_class: ContractClass,
     ) -> DevnetResult<()>;
 
-    /// Link contract address to class hash
+    /// Link contract address to class hash. Does not include balance modification or constructor
+    /// simulation.
     fn predeploy_contract(
         &mut self,
         contract_address: ContractAddress,
@@ -409,13 +410,14 @@ impl CustomState for StarknetState {
         contract_address: ContractAddress,
         class_hash: ClassHash,
     ) -> DevnetResult<()> {
-        self.state
-            .state
-            .set_class_hash_at(
-                contract_address.try_into()?,
-                starknet_api::core::ClassHash(class_hash),
-            )
-            .map_err(|e| e.into())
+        let converted_contract_address = contract_address.try_into()?;
+
+        self.state.state.set_class_hash_at(
+            converted_contract_address,
+            starknet_api::core::ClassHash(class_hash),
+        )?;
+
+        Ok(())
     }
 }
 

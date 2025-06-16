@@ -18,9 +18,9 @@ use starknet_rs_signers::Signer;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
-    self, CAIRO_1_ACCOUNT_CONTRACT_0_8_0_SIERRA_PATH, CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
+    self, CAIRO_1_ACCOUNT_CONTRACT_0_8_0_SIERRA_PATH, ETH_ERC20_CONTRACT_CLASS_HASH,
     INTEGRATION_GENESIS_BLOCK_HASH, INTEGRATION_SAFE_BLOCK, INTEGRATION_SEPOLIA_HTTP_URL,
-    MAINNET_HTTPS_URL, MAINNET_URL,
+    MAINNET_HTTPS_URL, MAINNET_URL, STRK_ERC20_CONTRACT_CLASS_HASH,
 };
 use crate::common::utils::{
     FeeUnit, assert_cairo1_classes_equal, assert_contains, assert_tx_successful,
@@ -634,14 +634,14 @@ async fn test_forked_devnet_uses_different_contract_class_for_predeployed_tokens
         Felt::from_hex_unchecked(
             fork_devnet.get_config().await["eth_erc20_class_hash"].as_str().unwrap()
         ),
-        CAIRO_1_ERC20_CONTRACT_CLASS_HASH
+        ETH_ERC20_CONTRACT_CLASS_HASH
     );
 
     assert_ne!(
         Felt::from_hex_unchecked(
             fork_devnet.get_config().await["strk_erc20_class_hash"].as_str().unwrap()
         ),
-        CAIRO_1_ERC20_CONTRACT_CLASS_HASH
+        STRK_ERC20_CONTRACT_CLASS_HASH
     );
 }
 

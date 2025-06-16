@@ -46,6 +46,15 @@ Response:
 }
 ```
 
+In case of a reverted minting request, an error is returned containing the stringified revert reason and the hex string of the hash of the reverted transaction for further inspection:
+
+```
+{
+    "tx_hash": "0x123..."
+    "revert_reason": "Something happened"
+}
+```
+
 ## Check balance
 
 Check the balance of an address by sending a `GET` request to `/account_balance`. The address should be a 0x-prefixed hex string; `unit` defaults to `FRI` (the unit of `STRK`) and `block_tag` to `latest`.
