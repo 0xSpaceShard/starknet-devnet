@@ -481,21 +481,9 @@ mod tests {
         blocks.pending_block = block_to_insert.clone();
 
         // latest block returns none, because collection is empty
-        assert!(
-            blocks
-                .block_number_from_block_id(&BlockId::Tag(
-                    starknet_rs_core::types::BlockTag::Latest
-                ))
-                .is_none()
-        );
+        assert!(blocks.block_number_from_block_id(&BlockId::Tag(BlockTag::Latest)).is_none());
         // pending block returns some
-        assert!(
-            blocks
-                .block_number_from_block_id(&BlockId::Tag(
-                    starknet_rs_core::types::BlockTag::Pending
-                ))
-                .is_some()
-        );
+        assert!(blocks.block_number_from_block_id(&BlockId::Tag(BlockTag::Pending)).is_some());
 
         let block_hash = block_to_insert.generate_hash().unwrap();
         block_to_insert.header.block_header_without_hash.block_number = BlockNumber(10);
@@ -508,20 +496,8 @@ mod tests {
         assert!(blocks.block_number_from_block_id(&BlockId::Number(10)).is_some());
         // returns none because there is no block with the given hash
         assert!(blocks.block_number_from_block_id(&BlockId::Hash(Felt::ONE)).is_none());
-        assert!(
-            blocks
-                .block_number_from_block_id(&BlockId::Tag(
-                    starknet_rs_core::types::BlockTag::Latest
-                ))
-                .is_some()
-        );
-        assert!(
-            blocks
-                .block_number_from_block_id(&BlockId::Tag(
-                    starknet_rs_core::types::BlockTag::Pending
-                ))
-                .is_some()
-        );
+        assert!(blocks.block_number_from_block_id(&BlockId::Tag(BlockTag::Latest)).is_some());
+        assert!(blocks.block_number_from_block_id(&BlockId::Tag(BlockTag::Pending)).is_some());
         assert!(blocks.block_number_from_block_id(&BlockId::Hash(block_hash)).is_some());
     }
 
@@ -803,14 +779,10 @@ mod tests {
             blocks.get_by_block_id(&BlockId::Hash(block_to_insert.block_hash())).unwrap();
         assert!(block_to_insert == extracted_block.clone());
 
-        let extracted_block = blocks
-            .get_by_block_id(&BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
-            .unwrap();
+        let extracted_block = blocks.get_by_block_id(&BlockId::Tag(BlockTag::Latest)).unwrap();
         assert!(block_to_insert == extracted_block.clone());
 
-        let extracted_block = blocks
-            .get_by_block_id(&BlockId::Tag(starknet_rs_core::types::BlockTag::Pending))
-            .unwrap();
+        let extracted_block = blocks.get_by_block_id(&BlockId::Tag(BlockTag::Pending)).unwrap();
         assert!(block_to_insert == extracted_block.clone());
 
         match blocks.get_by_block_id(&BlockId::Number(11)) {
