@@ -49,11 +49,13 @@ pub(crate) fn get_versioned_constants() -> VersionedConstants {
 /// Asked the blockifier team about the values, they provided them in these threads:
 /// https://spaceshard.slack.com/archives/C029F9AN8LX/p1721657837687799?thread_ts=1721400009.781699&cid=C029F9AN8LX
 /// https://spaceshard.slack.com/archives/C029F9AN8LX/p1739259794326519?thread_ts=1738840494.497479&cid=C029F9AN8LX
+/// https://spaceshard.slack.com/archives/C029F9AN8LX/p1750171661112469
+/// https://spaceshard.slack.com/archives/C029F9AN8LX/p1750237658621529
 pub(crate) fn custom_bouncer_config() -> BouncerConfig {
     BouncerConfig {
         block_max_capacity: BouncerWeights {
             l1_gas: 4_950_000,
-            sierra_gas: starknet_api::execution_resources::GasAmount(5_000_000_000),
+            sierra_gas: starknet_api::execution_resources::GasAmount(2_000_000_000),
             state_diff_size: 4_000,
             n_events: 5_000,
             ..BouncerWeights::max()
