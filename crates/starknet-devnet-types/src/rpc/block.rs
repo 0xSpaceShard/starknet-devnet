@@ -38,25 +38,24 @@ impl From<BlockId> for ImportedBlockId {
     }
 }
 
+// TODO custom Serialize?
+
 impl<'de> Deserialize<'de> for BlockId {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         let value = serde_json::Value::deserialize(deserializer)?;
-        if value.as_str().is_some() {
-            let block_tag: ImportedBlockTag = serde_json::from_value(value)
-                .map_err(|e| serde::de::Error::custom(format!("Invalid block ID: {e}")))?;
-            Ok(BlockId(ImportedBlockId::Tag(block_tag)))
-        } else if value.as_object().is_some() {
-            let block_id: BlockHashOrNumber = serde_json::from_value(value)
-                .map_err(|e| serde::de::Error::custom(format!("Invalid block ID: {e}")))?;
-            match block_id {
-                BlockHashOrNumber::Hash(hash) => Ok(BlockId(ImportedBlockId::Hash(hash))),
-                BlockHashOrNumber::Number(number) => Ok(BlockId(ImportedBlockId::Number(number))),
+        match value.as_str() {
+            Some("latest") => Ok(Self(ImportedBlockId::Tag(ImportedBlockTag::Latest))),
+            Some("pre_confirmed" | "pending" /* Rename as part of RPC 0.9; keep alias */) => {
+                Ok(Self(ImportedBlockId::Tag(ImportedBlockTag::Pending)))
             }
-        } else {
-            Err(serde::de::Error::custom(format!("Invalid block ID: {value}")))
+            _ => match serde_json::from_value::<BlockHashOrNumber>(value) {
+                Ok(BlockHashOrNumber::Hash(hash)) => Ok(Self(ImportedBlockId::Hash(hash))),
+                Ok(BlockHashOrNumber::Number(n)) => Ok(Self(ImportedBlockId::Number(n))),
+                Err(e) => Err(serde::de::Error::custom(format!("Invalid block ID: {e}"))),
+            },
         }
     }
 }
