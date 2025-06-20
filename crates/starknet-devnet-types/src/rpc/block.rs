@@ -54,7 +54,10 @@ impl<'de> Deserialize<'de> for BlockId {
             _ => match serde_json::from_value::<BlockHashOrNumber>(value) {
                 Ok(BlockHashOrNumber::Hash(hash)) => Ok(Self(ImportedBlockId::Hash(hash))),
                 Ok(BlockHashOrNumber::Number(n)) => Ok(Self(ImportedBlockId::Number(n))),
-                Err(e) => Err(serde::de::Error::custom(format!("Invalid block ID: {e}"))),
+                Err(_) => Err(serde::de::Error::custom(
+                    "Invalid block ID. Expected object with key (block_hash or block_number) or \
+                     tag ('pending' or 'latest').",
+                )),
             },
         }
     }
