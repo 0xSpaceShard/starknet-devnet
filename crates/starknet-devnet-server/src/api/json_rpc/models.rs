@@ -275,6 +275,10 @@ mod tests {
     use super::{BlockIdInput, EstimateFeeInput, GetStorageInput};
     use crate::test_utils::assert_contains;
 
+    const EXPECTED_INVALID_BLOCK_ID_MSG: &str = "Invalid block ID. Expected object with key \
+                                                 (block_hash or block_number) or tag ('pending' \
+                                                 or 'latest').";
+
     #[test]
     fn errored_deserialization_of_estimate_fee_with_broadcasted_declare_transaction() {
         // Errored json struct that passed DECLARE V3, but contract class is of type V1
@@ -657,33 +661,16 @@ mod tests {
 
     #[test]
     fn assert_error_message_for_failed_block_id_deserialization() {
-        for (json_str, expected_msg) in [
-            (
-                r#"{"block_id": {"block_number": 10, "block_hash": "0x1"}}"#,
-                "expected map with a single key",
-            ),
-            (
-                r#"{"block_id": {"block_number": "123"}}"#,
-                "Invalid block ID: invalid type: string \"123\", expected u64",
-            ),
-            (r#"{"block_id": {"block_number": -123}}"#, "Invalid block ID: invalid number"),
-            (
-                r#"{"block_id": {"invalid_key": ""}}"#,
-                "Invalid block ID: unknown variant `invalid_key`, expected `block_hash` or \
-                 `block_number`",
-            ),
-            (
-                r#"{"block_id": {"block_hash": 123}}"#,
-                "Invalid block ID: invalid type: number, expected a 32 byte array ([u8;32]) or a \
-                 hexadecimal string",
-            ),
-            (
-                r#"{"block_id": {"block_hash": ""}}"#,
-                "Invalid block ID: expected hex string to be prefixed by '0x",
-            ),
+        for json_str in [
+            r#"{"block_id": {"block_number": 10, "block_hash": "0x1"}}"#,
+            r#"{"block_id": {"block_number": "123"}}"#,
+            r#"{"block_id": {"block_number": -123}}"#,
+            r#"{"block_id": {"invalid_key": ""}}"#,
+            r#"{"block_id": {"block_hash": 123}}"#,
+            r#"{"block_id": {"block_hash": ""}}"#,
         ] {
             match serde_json::from_str::<BlockIdInput>(json_str) {
-                Err(err) => assert_contains(&err.to_string(), expected_msg),
+                Err(err) => assert_contains(&err.to_string(), EXPECTED_INVALID_BLOCK_ID_MSG),
                 other => panic!("Invalid result: {other:?}"),
             }
         }

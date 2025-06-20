@@ -704,7 +704,7 @@ impl Starknet {
         entrypoint_selector: Felt,
         calldata: Vec<Felt>,
     ) -> DevnetResult<Vec<Felt>> {
-        let block_context = self.block_context.clone();
+        let block_context = Arc::new(self.block_context.clone());
         let state = self.get_mut_state_at(block_id)?;
 
         state.assert_contract_deployed(ContractAddress::new(contract_address)?)?;
@@ -1249,6 +1249,7 @@ impl Starknet {
                 SimulationFlag::SkipFeeCharge => skip_fee_charge = true,
             }
         }
+        let using_pending_block = self.config.uses_pending_block();
 
         let mut transactions_traces: Vec<TransactionTrace> = vec![];
         let cheats = self.cheats.clone();
@@ -1281,6 +1282,7 @@ impl Starknet {
                             only_query: true,
                             charge_fee: !skip_fee_charge,
                             validate: !(skip_validate || skip_validate_due_to_impersonation),
+                            strict_nonce_check: txn.requires_strict_nonce_check(using_pending_block),
                         })?,
                         txn.get_type(),
                         txn.gas_vector_computation_mode(),
