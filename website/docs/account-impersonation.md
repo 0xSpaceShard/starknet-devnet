@@ -2,7 +2,7 @@
 
 :::info
 
-This page is about account impersonation. To read about account class selection and deployment, click [here](./predeployed).
+This page is about account impersonation. To read about account class selection and deployment, click [here](./predeployed.md).
 
 :::
 
