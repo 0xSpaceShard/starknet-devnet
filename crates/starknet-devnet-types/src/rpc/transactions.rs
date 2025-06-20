@@ -922,7 +922,7 @@ pub struct DeployAccountTransactionTrace {
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct L1HandlerTransactionTrace {
-    pub function_invocation: FunctionInvocation,
+    pub function_invocation: ExecutionInvocation,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state_diff: Option<ThinStateDiff>,
     pub execution_resources: ExecutionResources,

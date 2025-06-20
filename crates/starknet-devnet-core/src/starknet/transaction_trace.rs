@@ -128,9 +128,12 @@ pub(crate) fn create_trace<S: StateReader>(
             execution_resources,
         })),
         TransactionType::L1Handler => Ok(TransactionTrace::L1Handler(L1HandlerTransactionTrace {
-            function_invocation: todo!(
-                "https://github.com/starkware-libs/starknet-specs/issues/302"
-            ),
+            function_invocation: get_execute_call_info(
+                state,
+                execution_info,
+                versioned_constants,
+                gas_vector_computation_mode,
+            )?,
             state_diff,
             execution_resources,
         })),

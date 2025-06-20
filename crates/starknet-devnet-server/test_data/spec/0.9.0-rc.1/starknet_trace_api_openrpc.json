@@ -1,7 +1,7 @@
 {
   "openrpc": "1.0.0-rc1",
   "info": {
-    "version": "0.8.1",
+    "version": "0.9.0-rc.1",
     "title": "StarkNet Trace API",
     "license": {}
   },
@@ -112,7 +112,16 @@
           "description": "The hash of the requested block, or number (height) of the requested block, or a block tag",
           "required": true,
           "schema": {
-            "$ref": "#/components/schemas/BLOCK_ID"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BLOCK_ID"
+              },
+              {
+                "not": {
+                  "enum": ["pre_confirmed"]
+                }
+              }
+            ]
           }
         }
       ],
@@ -156,23 +165,8 @@
                 "$ref": "#/components/schemas/FUNCTION_INVOCATION"
               },
               "execute_invocation": {
-                "description": "the trace of the __execute__ call or constructor call, depending on the transaction type (none for declare transactions)",
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/FUNCTION_INVOCATION"
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "revert_reason": {
-                        "name": "revert reason",
-                        "description": "the revert reason for the failed execution",
-                        "type": "string"
-                      }
-                    },
-                    "required": ["revert_reason"]
-                  }
-                ]
+                "description": "the trace of the __execute__ call",
+                "$ref": "#/components/schemas/REVERTIBLE_FUNCTION_INVOCATION"
               },
               "fee_transfer_invocation": {
                 "$ref": "#/components/schemas/FUNCTION_INVOCATION"
@@ -233,7 +227,7 @@
                 "$ref": "#/components/schemas/FUNCTION_INVOCATION"
               },
               "constructor_invocation": {
-                "description": "the trace of the __execute__ call or constructor call, depending on the transaction type (none for declare transactions)",
+                "description": "the trace of the constructor call",
                 "$ref": "#/components/schemas/FUNCTION_INVOCATION"
               },
               "fee_transfer_invocation": {
@@ -267,8 +261,8 @@
             "description": "the execution trace of an L1 handler transaction",
             "properties": {
               "function_invocation": {
-                "description": "the trace of the __execute__ call or constructor call, depending on the transaction type (none for declare transactions)",
-                "$ref": "#/components/schemas/FUNCTION_INVOCATION"
+                "description": "the trace of the L1 handler call",
+                "$ref": "#/components/schemas/REVERTIBLE_FUNCTION_INVOCATION"
               },
               "state_diff": {
                 "title": "state_diff",
@@ -399,7 +393,8 @@
               "order": {
                 "title": "order",
                 "description": "the order of the event within the transaction",
-                "type": "integer"
+                "type": "integer",
+                "minimum": 0
               }
             }
           },
@@ -419,7 +414,8 @@
               "order": {
                 "title": "order",
                 "description": "the order of the message within the transaction",
-                "type": "integer"
+                "type": "integer",
+                "minimum": 0
               }
             }
           },
@@ -436,15 +432,35 @@
           "l1_gas": {
             "title": "L1Gas",
             "description": "l1 gas consumed by this transaction, used for l2-->l1 messages and state updates if blobs are not used",
-            "type": "integer"
+            "type": "integer",
+            "minimum": 0
           },
           "l2_gas": {
             "title": "L2Gas",
             "description": "l2 gas consumed by this transaction, used for computation and calldata",
-            "type": "integer"
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": ["l1_gas", "l2_gas"]
+      },
+      "REVERTIBLE_FUNCTION_INVOCATION": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/FUNCTION_INVOCATION"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "revert_reason": {
+                "name": "revert reason",
+                "description": "the revert reason for the failed invocation",
+                "type": "string"
+              }
+            },
+            "required": ["revert_reason"]
+          }
+        ]
       },
       "FELT": {
         "$ref": "./api/starknet_api_openrpc.json#/components/schemas/FELT"
