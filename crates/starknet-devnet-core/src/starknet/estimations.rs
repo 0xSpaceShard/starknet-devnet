@@ -134,6 +134,7 @@ fn estimate_transaction_fee<S: StateReader>(
     let transaction_execution_info = transaction.execute(transactional_state, block_context)?;
 
     // reverted transactions can only be Invoke transactions
+    // Update: what about L1Handler? and DeployAccount?
     match transaction_execution_info.revert_error {
         Some(revert_error) if return_error_on_reverted_execution => {
             match revert_error {
