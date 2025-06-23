@@ -279,11 +279,6 @@
                 "allOf": [
                   {
                     "$ref": "#/components/schemas/TXN_STATUS"
-                  },
-                  {
-                    "not": {
-                      "enum": ["RECEIVED", "CANDIDATE", "PRE_CONFIRMED"]
-                    }
                   }
                 ]
               },
@@ -1366,9 +1361,7 @@
             "description": "The transactions in this block",
             "type": "array",
             "items": {
-              "schema": {
-                "$ref": "#/components/schemas/TXN_WITH_HASH"
-              }
+              "$ref": "#/components/schemas/TXN_WITH_HASH"
             }
           }
         },
@@ -1731,7 +1724,6 @@
         ]
       },
       "TXN_WITH_HASH": {
-        "schema": {
           "title": "Transaction",
           "allOf": [
             {
@@ -1748,7 +1740,6 @@
               "required": ["transaction_hash"]
             }
           ]
-        }
       },
       "SIGNATURE": {
         "title": "Signature",

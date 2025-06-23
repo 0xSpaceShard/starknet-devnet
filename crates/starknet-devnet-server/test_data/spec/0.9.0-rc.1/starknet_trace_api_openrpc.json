@@ -115,11 +115,6 @@
             "allOf": [
               {
                 "$ref": "#/components/schemas/BLOCK_ID"
-              },
-              {
-                "not": {
-                  "enum": ["pre_confirmed"]
-                }
               }
             ]
           }
