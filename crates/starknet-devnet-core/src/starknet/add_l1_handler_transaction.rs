@@ -54,13 +54,13 @@ mod tests {
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
+    use starknet_types::rpc::transactions::{ExecutionInvocation, TransactionTrace};
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
     use crate::constants::{
         self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
-        ENTRYPOINT_NOT_FOUND_ERROR_ENCODED, ETH_ERC20_CONTRACT_ADDRESS,
-        STRK_ERC20_CONTRACT_ADDRESS,
+        ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::starknet::{Starknet, predeployed};
     use crate::state::CustomState;
@@ -125,39 +125,25 @@ mod tests {
     fn l1_handler_transaction_not_l1_handler_entrypoint() {
         let (mut starknet, _account_address, contract_address, _, withdraw_selector) = setup();
 
-        let transaction = get_l1_handler_tx(
+        let tx = get_l1_handler_tx(
             felt_from_prefixed_hex(WHITELISTED_L1_ADDRESS).unwrap(),
             contract_address,
             withdraw_selector,
             vec![Felt::from(11), Felt::from(9999)],
         );
 
-        match starknet.add_l1_handler_transaction(transaction) {
-            Err(crate::error::Error::ContractExecutionError(execution_error)) => {
-                match execution_error {
-                    crate::error::ContractExecutionError::Nested(
-                        inner_contract_execution_error,
-                    ) => {
-                        assert_eq!(inner_contract_execution_error.selector, withdraw_selector);
-                        assert_eq!(
-                            inner_contract_execution_error.contract_address,
-                            starknet_api::core::ContractAddress::try_from(contract_address)
-                                .unwrap()
-                        );
+        let tx_hash = starknet.add_l1_handler_transaction(tx).unwrap();
 
-                        // check if there is a felt that corresponds to ENTRYPOINT_NOT_FOUND
-                        assert!(
-                            serde_json::to_string(&inner_contract_execution_error.error)
-                                .unwrap()
-                                .contains(&ENTRYPOINT_NOT_FOUND_ERROR_ENCODED.to_hex_string())
-                        );
-                    }
-                    other_error_trace => {
-                        panic!("Invalid error stack trace {:?}", other_error_trace)
-                    }
-                }
+        let trace = match starknet.get_transaction_trace_by_hash(tx_hash) {
+            Ok(TransactionTrace::L1Handler(trace)) => trace,
+            other => panic!("Unexpected trace response: {other:?}"),
+        };
+
+        match trace.function_invocation {
+            ExecutionInvocation::Reverted(reversion) => {
+                assert!(reversion.revert_reason.contains("ENTRYPOINT_NOT_FOUND"));
             }
-            other => panic!("Wrong result: {other:?}"),
+            other => panic!("Unexpected invocation: {other:?}"),
         }
     }
 
