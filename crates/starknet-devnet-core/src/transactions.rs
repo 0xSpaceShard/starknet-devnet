@@ -65,13 +65,13 @@ pub struct StarknetTransaction {
 }
 
 impl StarknetTransaction {
-    pub fn create_accepted(
+    pub fn pre_confirm(
         transaction: &TransactionWithHash,
         execution_info: TransactionExecutionInfo,
         trace: TransactionTrace,
     ) -> Self {
         Self {
-            finality_status: TransactionFinalityStatus::AcceptedOnL2,
+            finality_status: TransactionFinalityStatus::PreConfirmed,
             execution_result: match execution_info.is_reverted() {
                 true => ExecutionResult::Reverted {
                     reason: execution_info
@@ -315,7 +315,7 @@ mod tests {
         let tx = dummy_declare_tx_v3_with_hash();
 
         let trace = dummy_trace(&tx);
-        let sn_tx = StarknetTransaction::create_accepted(
+        let sn_tx = StarknetTransaction::pre_confirm(
             &tx,
             TransactionExecutionInfo::default(),
             trace.clone(),
@@ -323,7 +323,7 @@ mod tests {
         let mut sn_txs = StarknetTransactions::default();
         sn_txs.insert(
             tx.get_transaction_hash(),
-            StarknetTransaction::create_accepted(&tx, TransactionExecutionInfo::default(), trace),
+            StarknetTransaction::pre_confirm(&tx, TransactionExecutionInfo::default(), trace),
         );
 
         let extracted_tran = sn_txs.get_by_hash_mut(tx.get_transaction_hash()).unwrap();
@@ -340,7 +340,7 @@ mod tests {
         let tx = dummy_declare_tx_v3_with_hash();
         let trace = dummy_trace(&tx);
         let sn_tran =
-            StarknetTransaction::create_accepted(&tx, TransactionExecutionInfo::default(), trace);
+            StarknetTransaction::pre_confirm(&tx, TransactionExecutionInfo::default(), trace);
         assert_eq!(sn_tran.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(sn_tran.execution_result.status(), TransactionExecutionStatus::Succeeded);
 

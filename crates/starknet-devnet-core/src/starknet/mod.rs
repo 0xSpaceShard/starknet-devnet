@@ -451,7 +451,7 @@ impl Starknet {
             self.block_context.versioned_constants(),
             &gas_vector_computation_mode,
         )?;
-        let transaction_to_add = StarknetTransaction::create_accepted(&transaction, tx_info, trace);
+        let transaction_to_add = StarknetTransaction::pre_confirm(&transaction, tx_info, trace);
 
         // add accepted transaction to pending block
         self.blocks.pending_block.add_transaction(*transaction_hash);
