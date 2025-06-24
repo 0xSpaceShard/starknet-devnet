@@ -222,16 +222,16 @@ mod tests {
 
                     #[derive(Deserialize)]
                     #[serde(untagged)]
-                    enum ApiWsRequest {
+                    enum ApiOrWsRequest {
                         Api(Box<JsonRpcRequest>),
                         SubscribeWs(JsonRpcSubscriptionRequest),
                         WsNotification(Box<SubscriptionResponse>),
                     }
                     let sn_request =
-                        deserialize_to_type_or_panic::<ApiWsRequest>(request.clone(), &method.name);
+                        deserialize_to_type_or_panic::<ApiOrWsRequest>(request, &method.name);
 
                     match sn_request {
-                        ApiWsRequest::Api(json_rpc_request) => {
+                        ApiOrWsRequest::Api(json_rpc_request) => {
                             let response = response.unwrap();
                             let sn_response: StarknetResponse =
                                 deserialize_to_type_or_panic(response, &method.name);
@@ -242,7 +242,7 @@ mod tests {
                                 method,
                             );
                         }
-                        ApiWsRequest::SubscribeWs(_json_rpc_subscription_request) => {
+                        ApiOrWsRequest::SubscribeWs(_json_rpc_subscription_request) => {
                             let response = response.unwrap();
 
                             deserialize_to_type_or_panic::<SubscriptionConfirmation>(
@@ -250,7 +250,7 @@ mod tests {
                                 &method.name,
                             );
                         }
-                        ApiWsRequest::WsNotification(subscription_response) => {
+                        ApiOrWsRequest::WsNotification(subscription_response) => {
                             match *subscription_response {
                                 SubscriptionResponse::Confirmation { .. } => {
                                     panic!("Unexpected data")
