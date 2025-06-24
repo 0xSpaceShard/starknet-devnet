@@ -8,15 +8,7 @@ use crate::felt::BlockHash;
 use crate::rpc::transactions::Transactions;
 pub type BlockRoot = Felt;
 
-#[derive(Copy, Clone, Debug, Deserialize)]
-pub enum BlockHashOrNumber {
-    #[serde(rename = "block_hash")]
-    Hash(Felt),
-    #[serde(rename = "block_number")]
-    Number(u64),
-}
-
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "testing", derive(PartialEq, Eq))]
 pub struct BlockId(pub ImportedBlockId);
 
@@ -38,15 +30,23 @@ impl From<BlockId> for ImportedBlockId {
     }
 }
 
-// TODO custom Serialize?
-
 impl<'de> Deserialize<'de> for BlockId {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
+        #[derive(Copy, Clone, Debug, Deserialize)]
+        enum BlockHashOrNumber {
+            #[serde(rename = "block_hash")]
+            Hash(Felt),
+            #[serde(rename = "block_number")]
+            Number(u64),
+        }
+
         let value = serde_json::Value::deserialize(deserializer)?;
         match value.as_str() {
+            // TODO according to pre-release notes "pending" should be "latest" in RPC < 0.9
+            // https://docs.google.com/document/d/1wgqtk9L_12trHBJ5SFSWwxiB4u0duureGiBncrmQiv8/edit?pli=1&tab=t.0#heading=h.vzxdj0weuqpj
             Some("latest") => Ok(Self(ImportedBlockId::Tag(ImportedBlockTag::Latest))),
             Some("pre_confirmed" | "pending" /* Rename as part of RPC 0.9; keep alias */) => {
                 Ok(Self(ImportedBlockId::Tag(ImportedBlockTag::Pending)))
