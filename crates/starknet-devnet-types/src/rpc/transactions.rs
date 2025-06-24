@@ -16,7 +16,7 @@ use starknet_api::transaction::fields::{
 use starknet_api::transaction::{TransactionHasher, TransactionOptions, signed_tx_version};
 use starknet_rs_core::types::{
     BlockId, EventsPage, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
-    TransactionExecutionStatus, TransactionFinalityStatus,
+    TransactionExecutionStatus,
 };
 use starknet_rs_core::utils::parse_cairo_short_string;
 
@@ -1014,4 +1014,12 @@ pub struct L1HandlerTransactionStatus {
     pub transaction_hash: TransactionHash,
     pub finality_status: TransactionFinalityStatus,
     pub failure_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TransactionFinalityStatus {
+    AcceptedOnL2,
+    AcceptedOnL1,
+    PreConfirmed,
 }

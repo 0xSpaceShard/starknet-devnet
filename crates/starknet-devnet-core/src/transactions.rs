@@ -3,7 +3,7 @@ use blockifier::execution::stack_trace::ErrorStack;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use indexmap::IndexMap;
 use starknet_api::block::BlockNumber;
-use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
+use starknet_rs_core::types::ExecutionResult;
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{Event, OrderedEvent};
@@ -15,7 +15,8 @@ use starknet_types::rpc::transaction_receipt::{
 };
 use starknet_types::rpc::transactions::{
     DeclareTransaction, DeployAccountTransaction, InvokeTransaction, Transaction,
-    TransactionStatus, TransactionTrace, TransactionType, TransactionWithHash,
+    TransactionFinalityStatus, TransactionStatus, TransactionTrace, TransactionType,
+    TransactionWithHash,
 };
 
 use crate::constants::UDC_CONTRACT_ADDRESS;
@@ -286,8 +287,10 @@ mod tests {
     use blockifier::state::cached_state::CachedState;
     use blockifier::transaction::objects::TransactionExecutionInfo;
     use starknet_api::transaction::fields::GasVectorComputationMode;
-    use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
-    use starknet_types::rpc::transactions::{TransactionTrace, TransactionWithHash};
+    use starknet_rs_core::types::TransactionExecutionStatus;
+    use starknet_types::rpc::transactions::{
+        TransactionFinalityStatus, TransactionTrace, TransactionWithHash,
+    };
 
     use super::{StarknetTransaction, StarknetTransactions};
     use crate::starknet::transaction_trace::create_trace;

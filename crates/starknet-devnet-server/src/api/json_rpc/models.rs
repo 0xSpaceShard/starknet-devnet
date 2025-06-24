@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
-use starknet_rs_core::types::{
-    Felt, Hash256, TransactionExecutionStatus, TransactionFinalityStatus,
-};
+use starknet_rs_core::types::{Felt, Hash256, TransactionExecutionStatus};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
@@ -9,7 +7,7 @@ use starknet_types::rpc::block::{BlockId, SubscriptionBlockId};
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, EventFilter, FunctionCall,
-    SimulationFlag,
+    SimulationFlag, TransactionFinalityStatus,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 

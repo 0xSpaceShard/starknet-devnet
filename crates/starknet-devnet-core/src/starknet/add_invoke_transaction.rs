@@ -72,7 +72,7 @@ mod tests {
     use blockifier::state::state_api::StateReader;
     use nonzero_ext::nonzero;
     use starknet_api::core::Nonce;
-    use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
@@ -81,7 +81,9 @@ mod tests {
     use starknet_types::num_bigint::BigUint;
     use starknet_types::rpc::gas_modification::GasModification;
     use starknet_types::rpc::state::Balance;
-    use starknet_types::rpc::transactions::BroadcastedInvokeTransaction;
+    use starknet_types::rpc::transactions::{
+        BroadcastedInvokeTransaction, TransactionFinalityStatus,
+    };
     use starknet_types::traits::HashProducer;
 
     use crate::account::{Account, FeeToken};

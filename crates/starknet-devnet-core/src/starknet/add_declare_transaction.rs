@@ -139,12 +139,13 @@ fn assert_casm_hash_is_valid(
 #[cfg(test)]
 mod tests {
     use starknet_api::data_availability::DataAvailabilityMode;
-    use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
     use starknet_types::rpc::transactions::{
         BroadcastedDeclareTransaction, BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
+        TransactionFinalityStatus,
     };
     use starknet_types::traits::HashProducer;
 

@@ -46,7 +46,7 @@ mod tests {
     const WHITELISTED_L1_ADDRESS: &str = "0x8359E4B0152ed5A731162D3c7B0D8D56edB165A0";
 
     use nonzero_ext::nonzero;
-    use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::chain_id::ChainId;
     use starknet_types::contract_address::ContractAddress;
@@ -54,7 +54,9 @@ mod tests {
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
-    use starknet_types::rpc::transactions::{ExecutionInvocation, TransactionTrace};
+    use starknet_types::rpc::transactions::{
+        ExecutionInvocation, TransactionFinalityStatus, TransactionTrace,
+    };
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;

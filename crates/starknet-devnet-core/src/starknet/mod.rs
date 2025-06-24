@@ -20,9 +20,7 @@ use starknet_api::core::SequencerContractAddress;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::transaction::fields::{GasVectorComputationMode, Tip};
 use starknet_api::transaction::{TransactionHasher, TransactionVersion};
-use starknet_rs_core::types::{
-    BlockId, BlockTag, ExecutionResult, Felt, Hash256, MsgFromL1, TransactionFinalityStatus,
-};
+use starknet_rs_core::types::{BlockId, BlockTag, ExecutionResult, Felt, Hash256, MsgFromL1};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_signers::{LocalWallet, Signer, SigningKey};
 use starknet_types::chain_id::ChainId;
@@ -51,8 +49,8 @@ use starknet_types::rpc::transactions::{
     BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionCommonV3,
     L1HandlerTransactionStatus, ResourceBoundsWrapper, SimulatedTransaction, SimulationFlag,
-    TransactionStatus, TransactionTrace, TransactionType, TransactionWithHash,
-    TransactionWithReceipt, Transactions,
+    TransactionFinalityStatus, TransactionStatus, TransactionTrace, TransactionType,
+    TransactionWithHash, TransactionWithReceipt, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
