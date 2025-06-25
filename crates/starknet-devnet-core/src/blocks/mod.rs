@@ -1,17 +1,13 @@
 use std::collections::HashMap;
 
 use indexmap::IndexMap;
-use starknet_api::block::{
-    BlockHeader, BlockHeaderWithoutHash, BlockNumber, BlockStatus, BlockTimestamp,
-};
+use starknet_api::block::{BlockHeader, BlockHeaderWithoutHash, BlockNumber, BlockTimestamp};
 use starknet_api::data_availability::L1DataAvailabilityMode;
 use starknet_api::felt;
 use starknet_rs_core::types::{BlockId, BlockTag, Felt};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, TransactionHash};
-use starknet_types::rpc::block::{
-    BlockHeader as TypesBlockHeader, PendingBlockHeader as TypesPendingBlockHeader, ResourcePrice,
-};
+use starknet_types::rpc::block::{BlockStatus, ResourcePrice};
 use starknet_types::traits::HashProducer;
 use starknet_types_core::hash::{Pedersen, StarkHash};
 
@@ -24,7 +20,7 @@ use crate::traits::HashIdentified;
 pub(crate) struct StarknetBlocks {
     pub(crate) num_to_hash: IndexMap<BlockNumber, BlockHash>,
     pub(crate) hash_to_block: HashMap<BlockHash, StarknetBlock>,
-    pub(crate) pending_block: StarknetBlock,
+    pub(crate) pre_confirmed_block: StarknetBlock,
     pub(crate) last_block_hash: Option<BlockHash>,
     pub(crate) hash_to_state_diff: HashMap<BlockHash, StateDiff>,
     pub(crate) hash_to_state: HashMap<BlockHash, StarknetState>,
@@ -48,7 +44,7 @@ impl Default for StarknetBlocks {
         Self {
             num_to_hash: IndexMap::new(),
             hash_to_block: HashMap::new(),
-            pending_block: StarknetBlock::create_pending_block(),
+            pre_confirmed_block: StarknetBlock::create_pre_confirmed_block(),
             last_block_hash: None,
             hash_to_state_diff: HashMap::new(),
             hash_to_state: HashMap::new(),
@@ -61,7 +57,7 @@ impl Default for StarknetBlocks {
 impl StarknetBlocks {
     pub fn new(starting_block_number: u64, last_block_hash: Option<Felt>) -> Self {
         let mut blocks = Self { starting_block_number, ..Default::default() };
-        blocks.pending_block.set_block_number(starting_block_number);
+        blocks.pre_confirmed_block.set_block_number(starting_block_number);
         blocks.last_block_hash = last_block_hash;
         blocks
     }
@@ -102,7 +98,7 @@ impl StarknetBlocks {
         match block_id {
             BlockId::Hash(hash) => self.get_by_hash(*hash),
             BlockId::Number(block_number) => self.get_by_num(&BlockNumber(*block_number)),
-            BlockId::Tag(BlockTag::Pending) => Some(&self.pending_block),
+            BlockId::Tag(BlockTag::Pending) => Some(&self.pre_confirmed_block),
             BlockId::Tag(BlockTag::Latest) => self.get_by_latest_hash(),
         }
     }
@@ -126,7 +122,7 @@ impl StarknetBlocks {
         // used IndexMap to keep elements in the order of the keys
         let mut filtered_blocks: IndexMap<Felt, &StarknetBlock> = IndexMap::new();
 
-        let pending_block_number = self.pending_block.block_number();
+        let pending_block_number = self.pre_confirmed_block.block_number();
 
         let starting_block = if let Some(block_id) = from {
             // If the value for block number provided is not correct it will return None
@@ -181,14 +177,14 @@ impl StarknetBlocks {
         if is_block_number_in_range(pending_block_number, starting_block, ending_block)
             && insert_pending_block_in_final_result
         {
-            result.push(&self.pending_block);
+            result.push(&self.pre_confirmed_block);
         }
 
         Ok(result)
     }
 
     pub fn next_block_number(&self) -> BlockNumber {
-        BlockNumber(self.pending_block.block_number().0 - self.aborted_blocks.len() as u64)
+        BlockNumber(self.pre_confirmed_block.block_number().0 - self.aborted_blocks.len() as u64)
     }
 }
 
@@ -200,10 +196,10 @@ pub struct StarknetBlock {
     pub(crate) status: BlockStatus,
 }
 
-impl From<&StarknetBlock> for TypesPendingBlockHeader {
+impl From<&StarknetBlock> for starknet_types::rpc::block::PreConfirmedBlockHeader {
     fn from(value: &StarknetBlock) -> Self {
         Self {
-            parent_hash: value.parent_hash(),
+            block_number: value.block_number(),
             sequencer_address: value.sequencer_address(),
             timestamp: value.timestamp(),
             starknet_version: STARKNET_VERSION.to_string(),
@@ -260,7 +256,7 @@ impl From<&StarknetBlock> for TypesPendingBlockHeader {
     }
 }
 
-impl From<&StarknetBlock> for TypesBlockHeader {
+impl From<&StarknetBlock> for starknet_types::rpc::block::BlockHeader {
     fn from(value: &StarknetBlock) -> Self {
         Self {
             block_hash: value.block_hash(),
@@ -364,7 +360,7 @@ impl StarknetBlock {
         self.header.block_header_without_hash.block_number
     }
 
-    pub(crate) fn create_pending_block() -> Self {
+    pub(crate) fn create_pre_confirmed_block() -> Self {
         Self {
             header: BlockHeader {
                 block_header_without_hash: BlockHeaderWithoutHash {
@@ -373,7 +369,7 @@ impl StarknetBlock {
                 },
                 ..BlockHeader::default()
             },
-            status: BlockStatus::Pending,
+            status: BlockStatus::PreConfirmed,
             transaction_hashes: Vec::new(),
         }
     }
@@ -424,11 +420,10 @@ impl HashProducer for StarknetBlock {
 
 #[cfg(test)]
 mod tests {
-    use starknet_api::block::{
-        BlockHash, BlockHeader, BlockHeaderWithoutHash, BlockNumber, BlockStatus,
-    };
+    use starknet_api::block::{BlockHash, BlockHeader, BlockHeaderWithoutHash, BlockNumber};
     use starknet_api::data_availability::L1DataAvailabilityMode;
     use starknet_rs_core::types::{BlockId, BlockTag, Felt};
+    use starknet_types::rpc::block::BlockStatus;
     use starknet_types::traits::HashProducer;
 
     use super::{StarknetBlock, StarknetBlocks};
@@ -439,13 +434,13 @@ mod tests {
     fn get_blocks_return_in_correct_order() {
         let mut blocks = StarknetBlocks::default();
         for block_number in 1..=10 {
-            let mut block_to_insert = StarknetBlock::create_pending_block();
+            let mut block_to_insert = StarknetBlock::create_pre_confirmed_block();
             block_to_insert.header.block_header_without_hash.block_number =
                 BlockNumber(block_number);
             block_to_insert.header.block_hash =
                 starknet_api::block::BlockHash(Felt::from(block_number as u128));
             blocks.insert(block_to_insert, StateDiff::default());
-            blocks.pending_block.header.block_header_without_hash.block_number =
+            blocks.pre_confirmed_block.header.block_header_without_hash.block_number =
                 BlockNumber(block_number).unchecked_next();
         }
 
@@ -477,8 +472,8 @@ mod tests {
     #[test]
     fn block_number_from_block_id_should_return_correct_result() {
         let mut blocks = StarknetBlocks::new(0, None);
-        let mut block_to_insert = StarknetBlock::create_pending_block();
-        blocks.pending_block = block_to_insert.clone();
+        let mut block_to_insert = StarknetBlock::create_pre_confirmed_block();
+        blocks.pre_confirmed_block = block_to_insert.clone();
 
         // latest block returns none, because collection is empty
         assert!(
@@ -531,7 +526,7 @@ mod tests {
 
         let last_block_number = 11;
         for block_number in 2..=last_block_number {
-            let mut block_to_insert = StarknetBlock::create_pending_block();
+            let mut block_to_insert = StarknetBlock::create_pre_confirmed_block();
             block_to_insert.header.block_header_without_hash.block_number =
                 BlockNumber(block_number);
             block_to_insert.header.block_hash =
@@ -540,7 +535,7 @@ mod tests {
 
             // last block will be a pending block
             if block_number == last_block_number {
-                blocks.pending_block = block_to_insert;
+                blocks.pre_confirmed_block = block_to_insert;
             }
         }
 
@@ -788,11 +783,11 @@ mod tests {
     #[test]
     fn get_by_block_id_is_correct() {
         let mut blocks = StarknetBlocks::default();
-        let mut block_to_insert = StarknetBlock::create_pending_block();
+        let mut block_to_insert = StarknetBlock::create_pre_confirmed_block();
         block_to_insert.header.block_hash =
             starknet_api::block::BlockHash(block_to_insert.generate_hash().unwrap());
         block_to_insert.header.block_header_without_hash.block_number = BlockNumber(10);
-        blocks.pending_block = block_to_insert.clone();
+        blocks.pre_confirmed_block = block_to_insert.clone();
 
         blocks.insert(block_to_insert.clone(), StateDiff::default());
 
@@ -824,7 +819,7 @@ mod tests {
         let mut blocks = StarknetBlocks::default();
 
         for block_number in 0..3 {
-            let mut block = StarknetBlock::create_pending_block();
+            let mut block = StarknetBlock::create_pre_confirmed_block();
 
             block.status = BlockStatus::AcceptedOnL2;
             block.header.block_header_without_hash.block_number = BlockNumber(block_number);
@@ -879,7 +874,7 @@ mod tests {
     #[test]
     fn get_by_hash_is_correct() {
         let mut blocks = StarknetBlocks::default();
-        let mut block_to_insert = StarknetBlock::create_pending_block();
+        let mut block_to_insert = StarknetBlock::create_pre_confirmed_block();
         block_to_insert.header.block_hash =
             starknet_api::block::BlockHash(block_to_insert.generate_hash().unwrap());
         block_to_insert.header.block_header_without_hash.block_number = BlockNumber(1);
@@ -892,8 +887,8 @@ mod tests {
 
     #[test]
     fn check_pending_block() {
-        let block = StarknetBlock::create_pending_block();
-        assert!(block.status == BlockStatus::Pending);
+        let block = StarknetBlock::create_pre_confirmed_block();
+        assert!(block.status == BlockStatus::PreConfirmed);
         assert!(block.transaction_hashes.is_empty());
         assert_eq!(
             block.header,

@@ -296,7 +296,7 @@ mod tests {
 
         starknet.commit_diff().unwrap();
         starknet.generate_new_block_and_state().unwrap();
-        starknet.restart_pending_block().unwrap();
+        starknet.restart_pre_confirmed_block().unwrap();
 
         // dummy contract
         let replaceable_contract = dummy_cairo_1_contract_class();
@@ -337,7 +337,7 @@ mod tests {
 
         starknet.commit_diff().unwrap();
         starknet.generate_new_block_and_state().unwrap();
-        starknet.restart_pending_block().unwrap();
+        starknet.restart_pre_confirmed_block().unwrap();
 
         let new_class_hash = ContractClass::Cairo1(replacing_contract).generate_hash().unwrap();
 

@@ -152,7 +152,7 @@ mod tests {
     use crate::error::{Error, TransactionValidationError};
     use crate::starknet::Starknet;
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
-    use crate::state::{BlockNumberOrPending, CustomStateReader};
+    use crate::state::{BlockNumberOrPreConfirmed, CustomStateReader};
     use crate::traits::HashIdentifiedMut;
     use crate::utils::test_utils::{
         broadcasted_declare_tx_v3_of_dummy_class, dummy_cairo_1_contract_class,
@@ -245,7 +245,7 @@ mod tests {
         starknet
             .rpc_contract_classes
             .read()
-            .get_class(&class_hash, &BlockNumberOrPending::Number(tx.block_number.unwrap().0))
+            .get_class(&class_hash, &BlockNumberOrPreConfirmed::Number(tx.block_number.unwrap().0))
             .unwrap();
     }
 

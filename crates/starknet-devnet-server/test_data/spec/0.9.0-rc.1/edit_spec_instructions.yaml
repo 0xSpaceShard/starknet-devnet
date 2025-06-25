@@ -1,7 +1,7 @@
 # Remove entries before processing the spec file
 clean:
   - components/schemas/COMMON_RECEIPT_PROPERTIES/properties/revert_reason/name
-  - components/schemas/PENDING_COMMON_RECEIPT_PROPERTIES/properties/revert_reason/name
+  - components/schemas/PENDING_COMMON_RECEIPT_PROPERTIES/properties/revert_reason/name # TODO
 
 # Replace entries at "path" with the specified value in the spec file before processing it
 replace_property:

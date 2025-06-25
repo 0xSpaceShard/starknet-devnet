@@ -262,7 +262,7 @@ mod tests {
             DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
 
-        starknet.restart_pending_block().unwrap();
+        starknet.restart_pre_confirmed_block().unwrap();
 
         (
             starknet,

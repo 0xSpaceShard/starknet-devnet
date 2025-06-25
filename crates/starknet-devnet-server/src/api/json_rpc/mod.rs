@@ -28,7 +28,7 @@ use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_core::{CasmContractClass, StarknetBlock};
 use starknet_rs_core::types::{BlockId, BlockTag, ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::block::{Block, PendingBlock, ReorgData};
+use starknet_types::rpc::block::{Block, PreConfirmedBlock, ReorgData};
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
@@ -1002,7 +1002,7 @@ impl From<DevnetResponse> for JsonRpcResponse {
 #[allow(clippy::large_enum_variant)]
 pub enum StarknetResponse {
     Block(Block),
-    PendingBlock(PendingBlock),
+    PreConfirmedBlock(PreConfirmedBlock),
     StateUpdate(StateUpdate),
     PendingStateUpdate(PendingStateUpdate),
     Felt(Felt),

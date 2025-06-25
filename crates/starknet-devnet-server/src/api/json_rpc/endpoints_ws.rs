@@ -1,9 +1,8 @@
 use starknet_core::error::Error;
 use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::felt::TransactionHash;
-use starknet_types::rpc::block::{BlockResult, PendingBlock};
+use starknet_types::rpc::block::{BlockResult, BlockStatus, PreConfirmedBlock};
 use starknet_types::rpc::transactions::{TransactionWithHash, Transactions};
-use starknet_types::starknet_api::block::BlockStatus;
 
 use super::error::ApiError;
 use super::models::{
@@ -135,7 +134,7 @@ impl JsonRpcHandler {
         let starknet = self.api.starknet.lock().await;
         let block = starknet.get_block_with_transactions(&BlockId::Tag(BlockTag::Pending))?;
         match block {
-            BlockResult::PendingBlock(PendingBlock {
+            BlockResult::PendingBlock(PreConfirmedBlock {
                 transactions: Transactions::Full(txs),
                 ..
             }) => Ok(txs),

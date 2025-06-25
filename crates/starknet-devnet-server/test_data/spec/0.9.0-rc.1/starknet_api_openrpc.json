@@ -276,11 +276,8 @@
               },
               "finality_status": {
                 "title": "finality status",
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/TXN_STATUS"
-                  }
-                ]
+                "type": "string",
+                "enum": ["ACCEPTED_ON_L2", "ACCEPTED_ON_L1"]
               },
               "execution_status": {
                 "title": "execution status",

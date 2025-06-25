@@ -13,8 +13,8 @@ use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use ethers::types::H256;
 use parking_lot::RwLock;
 use starknet_api::block::{
-    BlockInfo, BlockNumber, BlockStatus, BlockTimestamp, FeeType, GasPrice, GasPricePerToken,
-    GasPriceVector, GasPrices,
+    BlockInfo, BlockNumber, BlockTimestamp, FeeType, GasPrice, GasPricePerToken, GasPriceVector,
+    GasPrices,
 };
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::data_availability::DataAvailabilityMode;
@@ -33,7 +33,7 @@ use starknet_types::felt::{
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{
-    Block, BlockHeader, BlockResult, PendingBlock, PendingBlockHeader,
+    Block, BlockHeader, BlockResult, BlockStatus, PreConfirmedBlock, PreConfirmedBlockHeader,
 };
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
 use starknet_types::rpc::gas_modification::{GasModification, GasModificationRequest};
@@ -287,7 +287,7 @@ impl Starknet {
             cheats: Default::default(),
         };
 
-        this.restart_pending_block()?;
+        this.restart_pre_confirmed_block()?;
 
         // Create an empty genesis block, set start_time before if it's set
         if let Some(start_time) = config.start_time {
@@ -325,20 +325,17 @@ impl Starknet {
         Self::set_block_context_gas(&mut self.block_context, &self.next_block_gas);
 
         // Pending block header gas data needs to be set
-        self.blocks.pending_block.header.block_header_without_hash.l1_gas_price.price_in_wei =
-            GasPrice(self.next_block_gas.gas_price_wei.get());
-        self.blocks.pending_block.header.block_header_without_hash.l1_data_gas_price.price_in_wei =
+        let header = &mut self.blocks.pre_confirmed_block.header.block_header_without_hash;
+        header.l1_gas_price.price_in_wei = GasPrice(self.next_block_gas.gas_price_wei.get());
+        header.l1_data_gas_price.price_in_wei =
             GasPrice(self.next_block_gas.data_gas_price_wei.get());
-        self.blocks.pending_block.header.block_header_without_hash.l2_gas_price.price_in_wei =
-            GasPrice(self.next_block_gas.l2_gas_price_wei.get());
-        self.blocks.pending_block.header.block_header_without_hash.l1_gas_price.price_in_fri =
-            GasPrice(self.next_block_gas.gas_price_fri.get());
-        self.blocks.pending_block.header.block_header_without_hash.l1_data_gas_price.price_in_fri =
+        header.l2_gas_price.price_in_wei = GasPrice(self.next_block_gas.l2_gas_price_wei.get());
+        header.l1_gas_price.price_in_fri = GasPrice(self.next_block_gas.gas_price_fri.get());
+        header.l1_data_gas_price.price_in_fri =
             GasPrice(self.next_block_gas.data_gas_price_fri.get());
-        self.blocks.pending_block.header.block_header_without_hash.l2_gas_price.price_in_fri =
-            GasPrice(self.next_block_gas.l2_gas_price_fri.get());
+        header.l2_gas_price.price_in_fri = GasPrice(self.next_block_gas.l2_gas_price_fri.get());
 
-        self.restart_pending_block()?;
+        self.restart_pre_confirmed_block()?;
 
         Ok(())
     }
@@ -359,7 +356,7 @@ impl Starknet {
     /// Transfer data from pending block into new block and save it to blocks collection.
     /// Generates new pending block. Same for pending state. Returns the new block hash.
     pub(crate) fn generate_new_block_and_state(&mut self) -> DevnetResult<Felt> {
-        let mut new_block = self.pending_block().clone();
+        let mut new_block = self.pre_confirmed_block().clone();
 
         // Set new block header
         // TODO why not store the whole next block header instead of storing separate properties?
@@ -454,7 +451,7 @@ impl Starknet {
         let transaction_to_add = StarknetTransaction::pre_confirm(&transaction, tx_info, trace);
 
         // add accepted transaction to pending block
-        self.blocks.pending_block.add_transaction(*transaction_hash);
+        self.blocks.pre_confirmed_block.add_transaction(*transaction_hash);
 
         self.transactions.insert(transaction_hash, transaction_to_add);
 
@@ -576,13 +573,13 @@ impl Starknet {
         );
     }
 
-    fn pending_block(&self) -> &StarknetBlock {
-        &self.blocks.pending_block
+    fn pre_confirmed_block(&self) -> &StarknetBlock {
+        &self.blocks.pre_confirmed_block
     }
 
-    /// Restarts pending block with information from block_context
-    pub(crate) fn restart_pending_block(&mut self) -> DevnetResult<()> {
-        let mut block = StarknetBlock::create_pending_block();
+    /// Restarts pre-confirmed block with information from block_context
+    pub(crate) fn restart_pre_confirmed_block(&mut self) -> DevnetResult<()> {
+        let mut block = StarknetBlock::create_pre_confirmed_block();
 
         block.header.block_header_without_hash.block_number =
             self.block_context.block_info().block_number;
@@ -636,7 +633,7 @@ impl Starknet {
 
         block.set_timestamp(self.block_context.block_info().block_timestamp);
 
-        self.blocks.pending_block = block;
+        self.blocks.pre_confirmed_block = block;
 
         Ok(())
     }
@@ -1064,9 +1061,9 @@ impl Starknet {
             })
             .collect::<DevnetResult<Vec<TransactionWithHash>>>()?;
 
-        if block.status() == &BlockStatus::Pending {
-            Ok(BlockResult::PendingBlock(PendingBlock {
-                header: PendingBlockHeader::from(block),
+        if block.status() == &BlockStatus::PreConfirmed {
+            Ok(BlockResult::PendingBlock(PreConfirmedBlock {
+                header: PreConfirmedBlockHeader::from(block),
                 transactions: Transactions::Full(transactions),
             }))
         } else {
@@ -1108,9 +1105,9 @@ impl Starknet {
                 .push(TransactionWithReceipt { receipt, transaction: transaction.transaction });
         }
 
-        if block.status() == &BlockStatus::Pending {
-            Ok(BlockResult::PendingBlock(PendingBlock {
-                header: PendingBlockHeader::from(block),
+        if block.status() == &BlockStatus::PreConfirmed {
+            Ok(BlockResult::PendingBlock(PreConfirmedBlock {
+                header: PreConfirmedBlockHeader::from(block),
                 transactions: Transactions::FullWithReceipts(transaction_receipts),
             }))
         } else {
@@ -1500,6 +1497,7 @@ impl Starknet {
                         Some(l2_tx) => statuses.push(L1HandlerTransactionStatus {
                             transaction_hash: *l2_tx_hash,
                             finality_status: l2_tx.finality_status,
+                            execution_status: l2_tx.execution_result.status(),
                             failure_reason: maybe_extract_failure_reason(&l2_tx.execution_info),
                         }),
                         // should never happen due to handling in add_l1_handler_transaction
@@ -1515,17 +1513,17 @@ impl Starknet {
 
 #[cfg(test)]
 mod tests {
-
     use std::thread;
     use std::time::Duration;
 
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
-    use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, FeeType};
+    use starknet_api::block::{BlockHash, BlockNumber, BlockTimestamp, FeeType};
     use starknet_rs_core::types::{BlockId, BlockTag, Felt};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::felt_from_prefixed_hex;
+    use starknet_types::rpc::block::BlockStatus;
     use starknet_types::rpc::state::Balance;
     use starknet_types::traits::HashProducer;
 
@@ -1580,7 +1578,7 @@ mod tests {
 
         starknet.commit_diff().unwrap();
         starknet.generate_new_block_and_state().unwrap();
-        starknet.restart_pending_block().unwrap();
+        starknet.restart_pre_confirmed_block().unwrap();
 
         (starknet, acc)
     }
@@ -1646,7 +1644,7 @@ mod tests {
         starknet.generate_pending_block().unwrap();
 
         assert_eq!(
-            starknet.pending_block().header.block_header_without_hash.block_number,
+            starknet.pre_confirmed_block().header.block_header_without_hash.block_number,
             initial_block_number.next().unwrap()
         );
     }
@@ -1659,10 +1657,10 @@ mod tests {
         let tx = dummy_declare_tx_v3_with_hash();
 
         // add transaction hash to pending block
-        starknet.blocks.pending_block.add_transaction(*tx.get_transaction_hash());
+        starknet.blocks.pre_confirmed_block.add_transaction(*tx.get_transaction_hash());
 
         // pending block has some transactions
-        assert!(!starknet.pending_block().get_transactions().is_empty());
+        assert!(!starknet.pre_confirmed_block().get_transactions().is_empty());
         // blocks collection should not be empty
         assert_eq!(starknet.blocks.hash_to_block.len(), 1);
 
@@ -1696,66 +1694,31 @@ mod tests {
         let initial_sequencer = starknet.block_context.block_info().sequencer_address;
 
         // create pending block with some information in it
-        let mut pending_block = StarknetBlock::create_pending_block();
-        pending_block.add_transaction(dummy_felt());
-        pending_block.status = BlockStatus::AcceptedOnL2;
+        let mut pre_confirmed_block = StarknetBlock::create_pre_confirmed_block();
+        pre_confirmed_block.add_transaction(dummy_felt());
+        pre_confirmed_block.status = BlockStatus::AcceptedOnL2;
 
         // assign the pending block
-        starknet.blocks.pending_block = pending_block.clone();
-        assert!(*starknet.pending_block() == pending_block);
+        starknet.blocks.pre_confirmed_block = pre_confirmed_block.clone();
+        assert!(*starknet.pre_confirmed_block() == pre_confirmed_block);
 
         // empty the pending to block and check if it is in starting state
-        starknet.restart_pending_block().unwrap();
+        starknet.restart_pre_confirmed_block().unwrap();
 
-        assert!(*starknet.pending_block() != pending_block);
-        assert_eq!(starknet.pending_block().status, BlockStatus::Pending);
-        assert!(starknet.pending_block().get_transactions().is_empty());
-        assert_eq!(
-            starknet.pending_block().header.block_header_without_hash.timestamp,
-            initial_block_timestamp
-        );
-        assert_eq!(
-            starknet.pending_block().header.block_header_without_hash.block_number,
-            initial_block_number
-        );
-        assert_eq!(
-            starknet.pending_block().header.block_header_without_hash.parent_hash,
-            BlockHash::default()
-        );
-        assert_eq!(
-            starknet.pending_block().header.block_header_without_hash.l1_gas_price.price_in_wei,
-            initial_gas_price_wei.get()
-        );
-        assert_eq!(
-            starknet.pending_block().header.block_header_without_hash.l1_gas_price.price_in_fri,
-            initial_gas_price_fri.get()
-        );
-        assert_eq!(
-            starknet
-                .pending_block()
-                .header
-                .block_header_without_hash
-                .l1_data_gas_price
-                .price_in_wei,
-            initial_data_gas_price_wei.get()
-        );
-        assert_eq!(
-            starknet
-                .pending_block()
-                .header
-                .block_header_without_hash
-                .l1_data_gas_price
-                .price_in_fri,
-            initial_data_gas_price_fri.get()
-        );
-        assert_eq!(
-            starknet.pending_block().header.block_header_without_hash.l2_gas_price.price_in_fri,
-            initial_data_gas_price_fri.get()
-        );
-        assert_eq!(
-            starknet.pending_block().header.block_header_without_hash.sequencer.0,
-            initial_sequencer
-        );
+        assert!(*starknet.pre_confirmed_block() != pre_confirmed_block);
+        assert_eq!(starknet.pre_confirmed_block().status, BlockStatus::PreConfirmed);
+        assert!(starknet.pre_confirmed_block().get_transactions().is_empty());
+
+        let header = &starknet.pre_confirmed_block().header.block_header_without_hash;
+        assert_eq!(header.timestamp, initial_block_timestamp);
+        assert_eq!(header.block_number, initial_block_number);
+        assert_eq!(header.parent_hash, BlockHash::default());
+        assert_eq!(header.l1_gas_price.price_in_wei, initial_gas_price_wei.get());
+        assert_eq!(header.l1_gas_price.price_in_fri, initial_gas_price_fri.get());
+        assert_eq!(header.l1_data_gas_price.price_in_wei, initial_data_gas_price_wei.get());
+        assert_eq!(header.l1_data_gas_price.price_in_fri, initial_data_gas_price_fri.get());
+        assert_eq!(header.l2_gas_price.price_in_fri, initial_gas_price_fri.get());
+        assert_eq!(header.sequencer.0, initial_sequencer);
     }
 
     #[test]
@@ -1960,7 +1923,7 @@ mod tests {
         let tx = dummy_declare_tx_v3_with_hash();
 
         // add transaction hash to pending block
-        starknet.blocks.pending_block.add_transaction(*tx.get_transaction_hash());
+        starknet.blocks.pre_confirmed_block.add_transaction(*tx.get_transaction_hash());
 
         starknet.generate_new_block_and_state().unwrap();
 
@@ -2056,10 +2019,10 @@ mod tests {
         starknet.generate_new_block_and_state().unwrap();
         starknet
             .blocks
-            .pending_block
+            .pre_confirmed_block
             .set_timestamp(BlockTimestamp(Starknet::get_unix_timestamp_as_seconds()));
         let pending_block_timestamp =
-            starknet.pending_block().header.block_header_without_hash.timestamp;
+            starknet.pre_confirmed_block().header.block_header_without_hash.timestamp;
 
         let sleep_duration_secs = 5;
         thread::sleep(Duration::from_secs(sleep_duration_secs));

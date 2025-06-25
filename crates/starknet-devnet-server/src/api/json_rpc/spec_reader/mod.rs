@@ -207,17 +207,27 @@ mod tests {
         let specs = Spec::load_from_dir(format!("{specs_folder}/{RPC_SPEC_VERSION}",).as_str());
         let combined_schema = generate_combined_schema(&specs);
 
-        for _ in 0..1000 {
+        for i in 1..=1000 {
             for spec in specs.iter() {
                 // Iterate over the methods in the spec
                 for method in spec.methods.iter() {
                     // Create a JSON-RPC request for each method
                     let request = generate_json_rpc_request(method, &combined_schema)
-                        .expect("Could not generate the JSON-RPC request");
+                        .unwrap_or_else(|e| {
+                            panic!(
+                                "i={i} Failed generating request for RPC method {}: {e}",
+                                method.name
+                            )
+                        });
 
                     let response = method.result.as_ref().map(|result_schema| {
                         generate_json_rpc_response(&result_schema.schema, &combined_schema)
-                            .expect("Could not generate the JSON-RPC response")
+                            .unwrap_or_else(|e| {
+                                panic!(
+                                    "i={i} Failed generating response for RPC method {}: {e}",
+                                    method.name
+                                )
+                            })
                     });
 
                     #[derive(Deserialize)]
@@ -302,7 +312,7 @@ mod tests {
             | JsonRpcRequest::BlockWithReceipts(_) => {
                 assert!(matches!(
                     sn_response,
-                    StarknetResponse::Block(_) | StarknetResponse::PendingBlock(_)
+                    StarknetResponse::Block(_) | StarknetResponse::PreConfirmedBlock(_)
                 ));
             }
             JsonRpcRequest::BlockHashAndNumber => {

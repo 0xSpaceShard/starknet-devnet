@@ -1013,6 +1013,7 @@ impl FunctionInvocation {
 pub struct L1HandlerTransactionStatus {
     pub transaction_hash: TransactionHash,
     pub finality_status: TransactionFinalityStatus,
+    pub execution_status: TransactionExecutionStatus,
     pub failure_reason: Option<String>,
 }
 

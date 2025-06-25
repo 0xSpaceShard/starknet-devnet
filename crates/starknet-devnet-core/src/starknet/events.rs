@@ -1,7 +1,7 @@
-use starknet_api::block::BlockStatus;
 use starknet_rs_core::types::{BlockId, Felt};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{EmittedEvent, Event};
+use starknet_types::rpc::block::BlockStatus;
 
 use super::Starknet;
 use crate::error::{DevnetResult, Error};
@@ -62,7 +62,7 @@ pub(crate) fn get_events(
                         return Ok((events, true));
                     }
                 }
-                let (block_hash, block_number) = if block.status() == &BlockStatus::Pending {
+                let (block_hash, block_number) = if block.status() == &BlockStatus::PreConfirmed {
                     (None, None)
                 } else {
                     (Some(block.block_hash()), Some(block.block_number()))

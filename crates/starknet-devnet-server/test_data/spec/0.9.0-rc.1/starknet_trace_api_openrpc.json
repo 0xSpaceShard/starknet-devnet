@@ -112,11 +112,7 @@
           "description": "The hash of the requested block, or number (height) of the requested block, or a block tag",
           "required": true,
           "schema": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BLOCK_ID"
-              }
-            ]
+            "$ref": "#/components/schemas/BLOCK_ID"
           }
         }
       ],

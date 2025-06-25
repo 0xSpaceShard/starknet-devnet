@@ -1,15 +1,15 @@
 use blockifier::state::state_api::StateReader;
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
-use starknet_api::block::BlockStatus;
 use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::compile_sierra_contract;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
+use starknet_types::rpc::block::BlockStatus;
 
 use crate::error::{DevnetResult, Error, StateError};
 use crate::starknet::Starknet;
-use crate::state::BlockNumberOrPending;
+use crate::state::BlockNumberOrPreConfirmed;
 
 pub fn get_class_hash_at_impl(
     starknet: &mut Starknet,
@@ -32,9 +32,9 @@ pub fn get_class_impl(
 
     // the underlying logic only works with block number or pending tag
     let block_number_or_pending = match requested_block.status {
-        BlockStatus::Pending => BlockNumberOrPending::Pending,
+        BlockStatus::PreConfirmed => BlockNumberOrPreConfirmed::PreConfirmed,
         BlockStatus::AcceptedOnL2 | BlockStatus::AcceptedOnL1 => {
-            BlockNumberOrPending::Number(requested_block.block_number().0)
+            BlockNumberOrPreConfirmed::Number(requested_block.block_number().0)
         }
         BlockStatus::Rejected => return Err(Error::NoBlock),
     };

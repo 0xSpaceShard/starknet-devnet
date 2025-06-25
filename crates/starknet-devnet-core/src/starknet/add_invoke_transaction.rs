@@ -448,7 +448,7 @@ mod tests {
             l2_gas_price_fri: nonzero!(1u128),
         };
 
-        starknet.restart_pending_block().unwrap();
+        starknet.restart_pre_confirmed_block().unwrap();
 
         (starknet, account, dummy_contract_address, increase_balance_selector, contract_storage_key)
     }

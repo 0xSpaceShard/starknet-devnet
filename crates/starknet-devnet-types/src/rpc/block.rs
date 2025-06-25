@@ -1,5 +1,5 @@
 use serde::{Deserialize, Deserializer, Serialize};
-use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp};
+use starknet_api::block::{BlockNumber, BlockTimestamp};
 use starknet_api::data_availability::L1DataAvailabilityMode;
 use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag as ImportedBlockTag, Felt};
 
@@ -66,7 +66,20 @@ impl<'de> Deserialize<'de> for BlockId {
 #[derive(Debug, Clone)]
 pub enum BlockResult {
     Block(Block),
-    PendingBlock(PendingBlock),
+    PendingBlock(PreConfirmedBlock),
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Deserialize, Serialize, PartialOrd, Ord)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum BlockStatus {
+    /// Almost like pending.
+    PreConfirmed,
+    /// A block that was created on L2.
+    AcceptedOnL2,
+    /// A block that was accepted on L1.
+    AcceptedOnL1,
+    /// A block rejected on L1.
+    Rejected,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -80,9 +93,9 @@ pub struct Block {
 
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(Deserialize), serde(deny_unknown_fields))]
-pub struct PendingBlock {
+pub struct PreConfirmedBlock {
     #[serde(flatten)]
-    pub header: PendingBlockHeader,
+    pub header: PreConfirmedBlockHeader,
     pub transactions: Transactions,
 }
 
@@ -104,8 +117,8 @@ pub struct BlockHeader {
 
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(Deserialize), serde(deny_unknown_fields))]
-pub struct PendingBlockHeader {
-    pub parent_hash: BlockHash,
+pub struct PreConfirmedBlockHeader {
+    pub block_number: BlockNumber,
     pub sequencer_address: ContractAddress,
     pub timestamp: BlockTimestamp,
     pub starknet_version: String,

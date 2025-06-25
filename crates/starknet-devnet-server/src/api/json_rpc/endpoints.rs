@@ -5,13 +5,13 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{
-    Block, BlockHeader, BlockId, BlockResult, PendingBlock, PendingBlockHeader,
+    Block, BlockHeader, BlockId, BlockResult, BlockStatus, PreConfirmedBlock,
+    PreConfirmedBlockHeader,
 };
 use starknet_types::rpc::state::StateUpdateResult;
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, SimulationFlag, Transactions,
 };
-use starknet_types::starknet_api::block::BlockStatus;
 
 use super::error::{ApiError, StrictRpcResult};
 use super::models::{
@@ -45,8 +45,8 @@ impl JsonRpcHandler {
         let transactions = Transactions::Hashes(block.get_transactions().to_owned());
 
         Ok(match block.status() {
-            BlockStatus::Pending => StarknetResponse::PendingBlock(PendingBlock {
-                header: PendingBlockHeader::from(block),
+            BlockStatus::PreConfirmed => StarknetResponse::PreConfirmedBlock(PreConfirmedBlock {
+                header: PreConfirmedBlockHeader::from(block),
                 transactions,
             }),
             _ => StarknetResponse::Block(Block {
@@ -71,7 +71,7 @@ impl JsonRpcHandler {
 
         match block {
             BlockResult::Block(b) => Ok(StarknetResponse::Block(b).into()),
-            BlockResult::PendingBlock(b) => Ok(StarknetResponse::PendingBlock(b).into()),
+            BlockResult::PendingBlock(b) => Ok(StarknetResponse::PreConfirmedBlock(b).into()),
         }
     }
 
@@ -88,7 +88,7 @@ impl JsonRpcHandler {
 
         match block {
             BlockResult::Block(b) => Ok(StarknetResponse::Block(b).into()),
-            BlockResult::PendingBlock(b) => Ok(StarknetResponse::PendingBlock(b).into()),
+            BlockResult::PendingBlock(b) => Ok(StarknetResponse::PreConfirmedBlock(b).into()),
         }
     }
 

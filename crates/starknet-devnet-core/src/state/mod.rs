@@ -19,8 +19,8 @@ use crate::starknet::defaulter::StarknetDefaulter;
 pub(crate) mod state_diff;
 pub(crate) mod state_readers;
 
-pub enum BlockNumberOrPending {
-    Pending,
+pub enum BlockNumberOrPreConfirmed {
+    PreConfirmed,
     Number(u64),
 }
 
@@ -98,12 +98,12 @@ impl CommittedClassStorage {
     pub fn get_class(
         &self,
         class_hash: &ClassHash,
-        block_number_or_pending: &BlockNumberOrPending,
+        block_number_or_pending: &BlockNumberOrPreConfirmed,
     ) -> Option<ContractClass> {
         if let Some((class, storage_block_number)) = self.committed.get(class_hash) {
             // If we're here, the requested class was committed at some point, need to see when.
             match block_number_or_pending {
-                BlockNumberOrPending::Number(query_block_number) => {
+                BlockNumberOrPreConfirmed::Number(query_block_number) => {
                     // If the class was stored before the block at which we are querying (or at that
                     // block), we can return it.
                     if storage_block_number <= query_block_number {
@@ -112,7 +112,7 @@ impl CommittedClassStorage {
                         None
                     }
                 }
-                BlockNumberOrPending::Pending => {
+                BlockNumberOrPreConfirmed::PreConfirmed => {
                     // Class is requested at block_id=pending. Since it's present among the
                     // committed classes, it's in the latest block or older and can be returned.
                     Some(class.clone())
@@ -121,7 +121,7 @@ impl CommittedClassStorage {
         } else if let Some(class) = self.staging.get(class_hash) {
             // If class present in storage.staging, it can only be retrieved if block_id=pending
             match block_number_or_pending {
-                BlockNumberOrPending::Pending => Some(class.clone()),
+                BlockNumberOrPreConfirmed::PreConfirmed => Some(class.clone()),
                 _ => None,
             }
         } else {
@@ -432,7 +432,7 @@ mod tests {
     use starknet_types::contract_class::ContractClass;
 
     use super::StarknetState;
-    use crate::state::{BlockNumberOrPending, CustomState, CustomStateReader};
+    use crate::state::{BlockNumberOrPreConfirmed, CustomState, CustomStateReader};
     use crate::utils::test_utils::{
         DUMMY_CAIRO_1_COMPILED_CLASS_HASH, dummy_cairo_1_contract_class, dummy_contract_address,
         dummy_felt,
@@ -518,7 +518,7 @@ mod tests {
         let retrieved_rpc_class = state
             .rpc_contract_classes
             .read()
-            .get_class(&class_hash, &BlockNumberOrPending::Number(block_number))
+            .get_class(&class_hash, &BlockNumberOrPreConfirmed::Number(block_number))
             .unwrap();
         assert_eq!(retrieved_rpc_class, contract_class.into());
     }
