@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
 use starknet_api::transaction::fields::Fee;
-use starknet_rs_core::types::{ExecutionResult, Hash256, TransactionFinalityStatus};
+use starknet_rs_core::types::{ExecutionResult, Hash256};
 
+use super::transactions::TransactionFinalityStatus;
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
 use crate::felt::{BlockHash, TransactionHash};

@@ -92,7 +92,12 @@ pub fn add_declare_transaction(
     let transaction = TransactionWithHash::new(transaction_hash, declare_transaction);
     let execution_info = blockifier::transaction::account_transaction::AccountTransaction {
         tx: starknet_api::executable_transaction::AccountTransaction::Declare(executable_tx),
-        execution_flags: ExecutionFlags { only_query: false, charge_fee: true, validate },
+        execution_flags: ExecutionFlags {
+            only_query: false,
+            charge_fee: true,
+            validate,
+            strict_nonce_check: true, // Starknet 0.14: declare txs do not allow nonce supersession
+        },
     }
     .execute(&mut starknet.pending_state.state, &starknet.block_context)?;
 
@@ -134,19 +139,20 @@ fn assert_casm_hash_is_valid(
 #[cfg(test)]
 mod tests {
     use starknet_api::data_availability::DataAvailabilityMode;
-    use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
     use starknet_types::rpc::transactions::{
         BroadcastedDeclareTransaction, BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
+        TransactionFinalityStatus,
     };
     use starknet_types::traits::HashProducer;
 
     use crate::error::{Error, TransactionValidationError};
     use crate::starknet::Starknet;
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
-    use crate::state::{BlockNumberOrPending, CustomStateReader};
+    use crate::state::{BlockNumberOrPreConfirmed, CustomStateReader};
     use crate::traits::HashIdentifiedMut;
     use crate::utils::test_utils::{
         broadcasted_declare_tx_v3_of_dummy_class, dummy_cairo_1_contract_class,
@@ -239,7 +245,7 @@ mod tests {
         starknet
             .rpc_contract_classes
             .read()
-            .get_class(&class_hash, &BlockNumberOrPending::Number(tx.block_number.unwrap().0))
+            .get_class(&class_hash, &BlockNumberOrPreConfirmed::Number(tx.block_number.unwrap().0))
             .unwrap();
     }
 

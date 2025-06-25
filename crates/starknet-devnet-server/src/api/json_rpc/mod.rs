@@ -7,7 +7,7 @@ pub(crate) mod origin_forwarder;
 mod spec_reader;
 mod write_endpoints;
 
-pub const RPC_SPEC_VERSION: &str = "0.8.1";
+pub const RPC_SPEC_VERSION: &str = "0.9.0-rc.1";
 
 use std::sync::Arc;
 
@@ -28,7 +28,7 @@ use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_core::{CasmContractClass, StarknetBlock};
 use starknet_rs_core::types::{BlockId, BlockTag, ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::block::{Block, PendingBlock, ReorgData};
+use starknet_types::rpc::block::{Block, PreConfirmedBlock, ReorgData};
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
@@ -1002,7 +1002,7 @@ impl From<DevnetResponse> for JsonRpcResponse {
 #[allow(clippy::large_enum_variant)]
 pub enum StarknetResponse {
     Block(Block),
-    PendingBlock(PendingBlock),
+    PreConfirmedBlock(PreConfirmedBlock),
     StateUpdate(StateUpdate),
     PendingStateUpdate(PendingStateUpdate),
     Felt(Felt),
@@ -1059,6 +1059,10 @@ mod requests_tests {
     use crate::rpc_core::request::RpcMethodCall;
     use crate::test_utils::assert_contains;
 
+    const EXPECTED_INVALID_BLOCK_ID_MSG: &str = "Invalid block ID. Expected object with key \
+                                                 (block_hash or block_number) or tag ('pending' \
+                                                 or 'latest').";
+
     #[test]
     fn deserialize_get_block_with_transaction_hashes_request() {
         let json_str =
@@ -1066,10 +1070,7 @@ mod requests_tests {
         assert_deserialization_succeeds(json_str);
         assert_deserialization_succeeds(&json_str.replace("latest", "pending"));
 
-        assert_deserialization_fails(
-            &json_str.replace("latest", "0x134134"),
-            "Invalid block ID: unknown variant `0x134134`, expected `latest` or `pending`",
-        );
+        assert_deserialization_fails(&json_str.replace("latest", "0x134134"), "Invalid block ID");
     }
 
     #[test]
@@ -1080,7 +1081,7 @@ mod requests_tests {
 
         assert_deserialization_fails(
             json_str.replace("latest", "0x134134").as_str(),
-            "Invalid block ID: unknown variant `0x134134`, expected `latest` or `pending`",
+            EXPECTED_INVALID_BLOCK_ID_MSG,
         );
     }
 
@@ -1092,7 +1093,7 @@ mod requests_tests {
 
         assert_deserialization_fails(
             &json_str.replace("latest", "0x134134"),
-            "Invalid block ID: unknown variant `0x134134`, expected `latest` or `pending`",
+            EXPECTED_INVALID_BLOCK_ID_MSG,
         );
     }
 
@@ -1202,7 +1203,7 @@ mod requests_tests {
 
         assert_deserialization_fails(
             json_str.replace("latest", "0x134134").as_str(),
-            "Invalid block ID: unknown variant `0x134134`, expected `latest` or `pending`",
+            EXPECTED_INVALID_BLOCK_ID_MSG,
         );
     }
 

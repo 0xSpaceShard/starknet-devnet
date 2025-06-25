@@ -43,11 +43,19 @@ pub fn add_invoke_transaction(
 
     let block_context = starknet.block_context.clone();
 
+    let strict_nonce_check = broadcasted_invoke_transaction
+        .requires_strict_nonce_check(starknet.config.uses_pending_block());
+
     let state = &mut starknet.get_state().state;
 
     let execution_info = blockifier::transaction::account_transaction::AccountTransaction {
         tx: starknet_api::executable_transaction::AccountTransaction::Invoke(sn_api_transaction),
-        execution_flags: ExecutionFlags { only_query: false, charge_fee: true, validate },
+        execution_flags: ExecutionFlags {
+            only_query: false,
+            charge_fee: true,
+            validate,
+            strict_nonce_check,
+        },
     }
     .execute(state, &block_context);
 
@@ -64,7 +72,7 @@ mod tests {
     use blockifier::state::state_api::StateReader;
     use nonzero_ext::nonzero;
     use starknet_api::core::Nonce;
-    use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
@@ -73,7 +81,9 @@ mod tests {
     use starknet_types::num_bigint::BigUint;
     use starknet_types::rpc::gas_modification::GasModification;
     use starknet_types::rpc::state::Balance;
-    use starknet_types::rpc::transactions::BroadcastedInvokeTransaction;
+    use starknet_types::rpc::transactions::{
+        BroadcastedInvokeTransaction, TransactionFinalityStatus,
+    };
     use starknet_types::traits::HashProducer;
 
     use crate::account::{Account, FeeToken};
@@ -438,7 +448,7 @@ mod tests {
             l2_gas_price_fri: nonzero!(1u128),
         };
 
-        starknet.restart_pending_block().unwrap();
+        starknet.restart_pre_confirmed_block().unwrap();
 
         (starknet, account, dummy_contract_address, increase_balance_selector, contract_storage_key)
     }

@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
+use blockifier::blockifier_versioned_constants::VersionedConstants;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::objects::TransactionExecutionInfo;
-use blockifier::versioned_constants::VersionedConstants;
 use deploy_transaction::DeployTransaction;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::block::{BlockNumber, GasPrice};
@@ -16,7 +16,7 @@ use starknet_api::transaction::fields::{
 use starknet_api::transaction::{TransactionHasher, TransactionOptions, signed_tx_version};
 use starknet_rs_core::types::{
     BlockId, EventsPage, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
-    TransactionExecutionStatus, TransactionFinalityStatus,
+    TransactionExecutionStatus,
 };
 use starknet_rs_core::utils::parse_cairo_short_string;
 
@@ -514,6 +514,18 @@ impl BroadcastedTransaction {
             }
         }
     }
+
+    pub fn requires_strict_nonce_check(&self, using_pending_block: bool) -> bool {
+        match self {
+            BroadcastedTransaction::Invoke(tx) => {
+                tx.requires_strict_nonce_check(using_pending_block)
+            }
+            BroadcastedTransaction::Declare(_) => true,
+            BroadcastedTransaction::DeployAccount(tx) => {
+                tx.requires_strict_nonce_check(using_pending_block)
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -554,7 +566,7 @@ impl BroadcastedDeclareTransaction {
                         resource_bounds: (&v3.common.resource_bounds).into(),
                         tip: v3.common.tip,
                         signature: starknet_api::transaction::fields::TransactionSignature(
-                            v3.common.signature.clone(),
+                            Arc::new(v3.common.signature.clone()),
                         ),
                         nonce: starknet_api::core::Nonce(v3.common.nonce),
                         class_hash: starknet_api::core::ClassHash(sierra_class_hash),
@@ -615,6 +627,10 @@ impl BroadcastedDeployAccountTransaction {
         }
     }
 
+    pub fn requires_strict_nonce_check(&self, using_pending_block: bool) -> bool {
+        !using_pending_block
+    }
+
     /// Creates a blockifier deploy account transaction from the current transaction.
     /// The transaction hash is computed using the given chain id.
     ///
@@ -629,9 +645,9 @@ impl BroadcastedDeployAccountTransaction {
                 let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV3 {
                     resource_bounds: (&v3.common.resource_bounds).into(),
                     tip: v3.common.tip,
-                    signature: starknet_api::transaction::fields::TransactionSignature(
+                    signature: starknet_api::transaction::fields::TransactionSignature(Arc::new(
                         v3.common.signature.clone(),
-                    ),
+                    )),
                     nonce: starknet_api::core::Nonce(v3.common.nonce),
                     class_hash: starknet_api::core::ClassHash(v3.class_hash),
                     nonce_data_availability_mode: v3.common.nonce_data_availability_mode,
@@ -690,6 +706,10 @@ impl BroadcastedInvokeTransaction {
         match self {
             BroadcastedInvokeTransaction::V3(tx) => tx.common.is_only_query(),
         }
+    }
+
+    pub fn requires_strict_nonce_check(&self, using_pending_block: bool) -> bool {
+        !using_pending_block
     }
 
     /// Creates a blockifier invoke transaction from the current transaction.
@@ -902,7 +922,7 @@ pub struct DeployAccountTransactionTrace {
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct L1HandlerTransactionTrace {
-    pub function_invocation: FunctionInvocation,
+    pub function_invocation: ExecutionInvocation,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state_diff: Option<ThinStateDiff>,
     pub execution_resources: ExecutionResources,
@@ -993,5 +1013,14 @@ impl FunctionInvocation {
 pub struct L1HandlerTransactionStatus {
     pub transaction_hash: TransactionHash,
     pub finality_status: TransactionFinalityStatus,
+    pub execution_status: TransactionExecutionStatus,
     pub failure_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TransactionFinalityStatus {
+    AcceptedOnL2,
+    AcceptedOnL1,
+    PreConfirmed,
 }

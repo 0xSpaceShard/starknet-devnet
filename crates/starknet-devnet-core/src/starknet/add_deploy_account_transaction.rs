@@ -47,11 +47,19 @@ pub fn add_deploy_account_transaction(
     let transaction_hash = executable_deploy_account_tx.tx_hash.0;
     let transaction = TransactionWithHash::new(transaction_hash, deploy_account_transaction);
 
+    let strict_nonce_check = broadcasted_deploy_account_transaction
+        .requires_strict_nonce_check(starknet.config.uses_pending_block());
+
     let execution_info = blockifier::transaction::account_transaction::AccountTransaction {
         tx: starknet_api::executable_transaction::AccountTransaction::DeployAccount(
             executable_deploy_account_tx,
         ),
-        execution_flags: ExecutionFlags { only_query: false, charge_fee: true, validate: true },
+        execution_flags: ExecutionFlags {
+            only_query: false,
+            charge_fee: true,
+            validate: true,
+            strict_nonce_check,
+        },
     }
     .execute(&mut starknet.pending_state.state, &starknet.block_context)?;
 
@@ -64,15 +72,14 @@ mod tests {
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
     use starknet_api::transaction::fields::Tip;
-    use starknet_rs_core::types::{
-        BlockId, BlockTag, Felt, TransactionExecutionStatus, TransactionFinalityStatus,
-    };
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt, TransactionExecutionStatus};
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::ClassHash;
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
     use starknet_types::rpc::transactions::{
         BroadcastedDeployAccountTransaction, BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
+        TransactionFinalityStatus,
     };
     use starknet_types::traits::HashProducer;
 
@@ -300,7 +307,7 @@ mod tests {
             DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
 
-        starknet.restart_pending_block().unwrap();
+        starknet.restart_pre_confirmed_block().unwrap();
 
         (starknet, class_hash)
     }
