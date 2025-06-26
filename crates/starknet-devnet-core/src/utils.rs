@@ -39,10 +39,10 @@ pub(crate) fn get_storage_var_address(
     Ok(PatriciaKey::new(storage_var_address)?)
 }
 
-/// This should be modified when updating to the version after 0.13.5
+/// This should be modified when updating to the version after 0.13.6
 pub(crate) fn get_versioned_constants() -> VersionedConstants {
     #[allow(clippy::unwrap_used)]
-    VersionedConstants::get(&StarknetVersion::V0_13_5).unwrap().clone()
+    VersionedConstants::get(&StarknetVersion::V0_13_6).unwrap().clone()
 }
 
 /// Values not present here: https://docs.starknet.io/tools/limits-and-triggers/
