@@ -560,7 +560,7 @@ dependencies = [
 [[package]]
 name = "blockifier"
 version = "0.14.0-rc.3"
-source = "git+https://github.com/starkware-libs/sequencer.git?branch=main-v0.13.6#c662935dffea67fc8abf8df39092c43171b9c2ea"
+source = "git+https://github.com/starkware-libs/sequencer.git?rev=3f010d153731dcb8f118403d96390933909bb4a6#3f010d153731dcb8f118403d96390933909bb4a6"
 dependencies = [
  "anyhow",
  "ark-ec",
@@ -4428,7 +4428,7 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 [[package]]
 name = "papyrus_config"
 version = "0.14.0-rc.3"
-source = "git+https://github.com/starkware-libs/sequencer.git?branch=main-v0.13.6#c662935dffea67fc8abf8df39092c43171b9c2ea"
+source = "git+https://github.com/starkware-libs/sequencer.git?rev=3f010d153731dcb8f118403d96390933909bb4a6#3f010d153731dcb8f118403d96390933909bb4a6"
 dependencies = [
  "clap",
  "itertools 0.12.1",
@@ -6175,7 +6175,7 @@ dependencies = [
 [[package]]
 name = "starknet_api"
 version = "0.14.0-rc.3"
-source = "git+https://github.com/starkware-libs/sequencer.git?branch=main-v0.13.6#c662935dffea67fc8abf8df39092c43171b9c2ea"
+source = "git+https://github.com/starkware-libs/sequencer.git?rev=3f010d153731dcb8f118403d96390933909bb4a6#3f010d153731dcb8f118403d96390933909bb4a6"
 dependencies = [
  "bitvec",
  "cairo-lang-runner",
@@ -6203,7 +6203,7 @@ dependencies = [
 [[package]]
 name = "starknet_compile_to_native"
 version = "0.14.0-rc.3"
-source = "git+https://github.com/starkware-libs/sequencer.git?branch=main-v0.13.6#c662935dffea67fc8abf8df39092c43171b9c2ea"
+source = "git+https://github.com/starkware-libs/sequencer.git?rev=3f010d153731dcb8f118403d96390933909bb4a6#3f010d153731dcb8f118403d96390933909bb4a6"
 dependencies = [
  "papyrus_config",
  "serde",
@@ -6213,7 +6213,7 @@ dependencies = [
 [[package]]
 name = "starknet_infra_utils"
 version = "0.14.0-rc.3"
-source = "git+https://github.com/starkware-libs/sequencer.git?branch=main-v0.13.6#c662935dffea67fc8abf8df39092c43171b9c2ea"
+source = "git+https://github.com/starkware-libs/sequencer.git?rev=3f010d153731dcb8f118403d96390933909bb4a6#3f010d153731dcb8f118403d96390933909bb4a6"
 dependencies = [
  "tokio",
  "tracing",
