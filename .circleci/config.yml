@@ -151,8 +151,11 @@ jobs:
           fingerprints:
             - "SHA256:y2r0YUdeS8k6XSOFmgNs4wcTJFv+PIgkY0Yz+af6NSU"
       - run:
-          name: Publish new versions to crates.io
-          command: ./scripts/publish_cratesio_new_versions.sh
+          command: echo 'Skipping publishing to crates.io. See root Cargo.toml'
+      # TODO
+      # - run:
+      #     name: Publish new versions to crates.io
+      #     command: ./scripts/publish_cratesio_new_versions.sh
       - run:
           name: Create tags and push joint image manifests
           command: ./docker/tag_images_and_create_joint_image_manifests.sh
