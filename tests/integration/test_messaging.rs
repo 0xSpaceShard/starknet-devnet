@@ -904,6 +904,7 @@ async fn test_getting_status_of_mock_message() {
         json!([{
             "transaction_hash": mock_msg_resp["transaction_hash"],
             "finality_status": "ACCEPTED_ON_L2",
+            "execution_status": "SUCCEEDED",
             "failure_reason": null,
         }])
     );
@@ -981,6 +982,7 @@ async fn test_getting_status_of_real_message() {
         json!([{
             "transaction_hash": generated_l2_tx,
             "finality_status": "ACCEPTED_ON_L2",
+            "execution_status": "SUCCEEDED",
             "failure_reason": null,
         }])
     )
