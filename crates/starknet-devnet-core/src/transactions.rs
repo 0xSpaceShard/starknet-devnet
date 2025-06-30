@@ -341,7 +341,7 @@ mod tests {
         let trace = dummy_trace(&tx);
         let sn_tran =
             StarknetTransaction::pre_confirm(&tx, TransactionExecutionInfo::default(), trace);
-        assert_eq!(sn_tran.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(sn_tran.finality_status, TransactionFinalityStatus::PreConfirmed);
         assert_eq!(sn_tran.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         assert!(sn_tran.block_hash.is_none());
