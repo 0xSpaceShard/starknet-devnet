@@ -1,5 +1,5 @@
 use blockifier::blockifier_versioned_constants::VersionedConstants;
-use blockifier::bouncer::{BouncerConfig, BouncerWeights};
+use blockifier::bouncer::{BouncerConfig, BouncerWeights, BuiltinWeights};
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use starknet_api::block::StarknetVersion;
 use starknet_rs_core::types::Felt;
@@ -53,11 +53,12 @@ pub(crate) fn custom_bouncer_config() -> BouncerConfig {
     BouncerConfig {
         block_max_capacity: BouncerWeights {
             l1_gas: 4_950_000,
-            sierra_gas: starknet_api::execution_resources::GasAmount(5_000_000_000),
+            sierra_gas: starknet_api::execution_resources::GasAmount(2_000_000_000),
             state_diff_size: 4_000,
             n_events: 5_000,
             ..BouncerWeights::max()
         },
+        builtin_weights: BuiltinWeights::default(),
     }
 }
 
