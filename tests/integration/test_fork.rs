@@ -284,9 +284,9 @@ async fn test_origin_declare_deploy_fork_invoke() {
 
     let invoke_result = fork_predeployed_account
         .execute_v3(contract_invoke.clone())
-        .l1_gas(1e6 as u64)
-        .l1_data_gas(1e6 as u64)
-        .l2_gas(1e6 as u64)
+        .l1_gas(0)
+        .l1_data_gas(1e3 as u64)
+        .l2_gas(1e7 as u64)
         .send()
         .await
         .unwrap();

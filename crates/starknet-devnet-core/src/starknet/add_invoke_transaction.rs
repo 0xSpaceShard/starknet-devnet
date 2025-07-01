@@ -349,7 +349,7 @@ mod tests {
             &[dummy_felt()],
             initial_nonce,
             // if less, bounced back instead of accepted+reverted
-            resource_bounds_with_price_1(0, 128, 480_000),
+            resource_bounds_with_price_1(0, 128, 520_000),
         );
 
         let transaction_hash = starknet.add_invoke_transaction(tx).unwrap();
