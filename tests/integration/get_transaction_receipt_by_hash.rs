@@ -196,9 +196,11 @@ async fn reverted_invoke_transaction_receipt() {
 
     // send transaction with lower than estimated overall fee; should revert
     let transfer_result = transfer_execution
-        .l1_gas(fee.l1_gas_consumed.to_le_digits()[0]) // Using estimated l1 gas as is, because it can be 0
-        .l2_gas(fee.l2_gas_consumed.to_le_digits()[0] - 1) // subtracting 1 from l2 gas
-        .l1_data_gas(fee.l1_data_gas_consumed.to_le_digits()[0]) // using estimated l1 data gas as is
+        .l1_gas(fee.l1_gas_consumed.try_into().unwrap()) // Using as is, ok to be 0
+        // .l2_gas_price(u128::try_from(fee.l2_gas_price).unwrap() + (MINIMAL_TIP as u128))
+        .l2_gas(u64::try_from(fee.l2_gas_consumed).unwrap() - 1) // subtract to induce failure
+        // .l2_gas(1156800) // TODO: determined as the actual value used, minus 1
+        .l1_data_gas(fee.l1_data_gas_consumed.try_into().unwrap()) // using as is
         .send()
         .await
         .unwrap();
@@ -213,6 +215,7 @@ async fn reverted_invoke_transaction_receipt() {
     match transfer_receipt {
         TransactionReceipt::Invoke(receipt) => {
             match receipt.execution_result {
+                // TODO add reason assertion
                 starknet_rs_core::types::ExecutionResult::Reverted { .. } => (),
                 _ => panic!("Invalid receipt {:?}", receipt),
             }
