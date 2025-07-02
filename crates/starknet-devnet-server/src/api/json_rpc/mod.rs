@@ -29,9 +29,7 @@ use starknet_core::{CasmContractClass, StarknetBlock};
 use starknet_rs_core::types::{BlockId, BlockTag, ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::block::{Block, PreConfirmedBlock, ReorgData};
-use starknet_types::rpc::estimate_message_fee::{
-    EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
-};
+use starknet_types::rpc::estimate_message_fee::{EstimateMessageFeeRequest, FeeEstimateWrapper};
 use starknet_types::rpc::gas_modification::{GasModification, GasModificationRequest};
 use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
@@ -701,7 +699,7 @@ pub enum JsonRpcRequest {
     #[serde(rename = "starknet_addInvokeTransaction")]
     AddInvokeTransaction(BroadcastedInvokeTransactionInput),
     #[serde(rename = "starknet_estimateMessageFee")]
-    EstimateMessageFee(EstimateMessageFeeRequestWrapper),
+    EstimateMessageFee(EstimateMessageFeeRequest),
     #[serde(rename = "starknet_simulateTransactions")]
     SimulateTransactions(SimulateTransactionsInput),
     #[serde(rename = "starknet_traceTransaction")]

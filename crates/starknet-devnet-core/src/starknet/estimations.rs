@@ -8,9 +8,8 @@ use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_api::transaction::fields::{GasVectorComputationMode, Tip};
 use starknet_rs_core::types::{BlockId, Felt, MsgFromL1, PriceUnit};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::rpc::estimate_message_fee::{
-    EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
-};
+use starknet_types::rpc::block::BlockId as CustomBlockId;
+use starknet_types::rpc::estimate_message_fee::{EstimateMessageFeeRequest, FeeEstimateWrapper};
 use starknet_types::rpc::transactions::BroadcastedTransaction;
 
 use crate::error::{ContractExecutionError, DevnetResult, Error};
@@ -99,13 +98,13 @@ pub fn estimate_fee(
 
 pub fn estimate_message_fee(
     starknet: &mut Starknet,
-    block_id: &BlockId,
+    block_id: &CustomBlockId,
     message: MsgFromL1,
 ) -> DevnetResult<FeeEstimateWrapper> {
-    let estimate_message_fee = EstimateMessageFeeRequestWrapper::new(*block_id, message);
+    let estimate_message_fee = EstimateMessageFeeRequest::new(block_id.clone(), message);
 
     let block_context = starknet.block_context.clone();
-    let state = starknet.get_mut_state_at(estimate_message_fee.get_block_id())?;
+    let state = starknet.get_mut_state_at(&(estimate_message_fee.get_block_id().clone().into()))?;
 
     let address = ContractAddress::new(estimate_message_fee.get_to_address())?;
     state.assert_contract_deployed(address)?;

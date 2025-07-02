@@ -33,7 +33,8 @@ use starknet_types::felt::{
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{
-    Block, BlockHeader, BlockResult, BlockStatus, PreConfirmedBlock, PreConfirmedBlockHeader,
+    Block, BlockHeader, BlockId as CustomBlockId, BlockResult, BlockStatus, PreConfirmedBlock,
+    PreConfirmedBlockHeader,
 };
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
 use starknet_types::rpc::gas_modification::{GasModification, GasModificationRequest};
@@ -775,7 +776,7 @@ impl Starknet {
 
     pub fn estimate_message_fee(
         &mut self,
-        block_id: &BlockId,
+        block_id: &CustomBlockId,
         message: MsgFromL1,
     ) -> DevnetResult<FeeEstimateWrapper> {
         estimations::estimate_message_fee(self, block_id, message)

@@ -15,7 +15,7 @@ use starknet_api::transaction::fields::{
 };
 use starknet_api::transaction::{TransactionHasher, TransactionOptions, signed_tx_version};
 use starknet_rs_core::types::{
-    BlockId, EventsPage, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
+    EventsPage, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
     TransactionExecutionStatus,
 };
 use starknet_rs_core::utils::parse_cairo_short_string;
@@ -27,6 +27,7 @@ use self::declare_transaction_v3::DeclareTransactionV3;
 use self::deploy_account_transaction_v3::DeployAccountTransactionV3;
 use self::invoke_transaction_v3::InvokeTransactionV3;
 use self::l1_handler_transaction::L1HandlerTransaction;
+use super::block::BlockId;
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::messaging::{MessageToL1, OrderedMessageToL1};
 use super::state::ThinStateDiff;
@@ -251,7 +252,7 @@ where
     s.serialize_str(&format!("{paid_fee_on_l1:#x}"))
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct EventFilter {
     pub from_block: Option<BlockId>,
     pub to_block: Option<BlockId>,

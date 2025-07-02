@@ -343,7 +343,7 @@ impl JsonRpcHandler {
 
     pub async fn estimate_message_fee(
         &self,
-        block_id: &ImportedBlockId,
+        block_id: &BlockId,
         message: MsgFromL1,
     ) -> StrictRpcResult {
         match self.api.starknet.lock().await.estimate_message_fee(block_id, message) {
@@ -503,8 +503,12 @@ impl JsonRpcHandler {
 
     /// starknet_getEvents
     pub async fn get_events(&self, filter: EventFilter) -> StrictRpcResult {
-        let (origin_range, from_local_block_id, to_local_block_id) =
-            self.split_block_range(filter.from_block, filter.to_block).await?;
+        let (origin_range, from_local_block_id, to_local_block_id) = self
+            .split_block_range(
+                filter.from_block.map(|b| b.into()),
+                filter.to_block.map(|b| b.into()),
+            )
+            .await?;
 
         // Get events either from forking origin or locally
         let events_chunk = if origin_range.is_some()
