@@ -41,9 +41,7 @@ use starknet_types::rpc::gas_modification::{GasModification, GasModificationRequ
 use starknet_types::rpc::state::{
     PendingStateUpdate, StateUpdate, StateUpdateResult, ThinStateDiff,
 };
-use starknet_types::rpc::transaction_receipt::{
-    DeployTransactionReceipt, L1HandlerTransactionReceipt, TransactionReceipt,
-};
+use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 use starknet_types::rpc::transactions::{
@@ -1085,22 +1083,7 @@ impl Starknet {
                 self.transactions.get_by_hash(*transaction_hash).ok_or(Error::NoTransaction)?;
 
             let transaction = sn_transaction.inner.clone();
-            let mut receipt = sn_transaction.get_receipt()?;
-
-            // remove the fields block_hash and block_number, because they are not needed as per the
-            // spec
-            // @Mario: waiting for the final decision on this fields, so we can refactor this.
-            // Currently the spec is at 0.7.0-rc.1
-            let common_field = match receipt {
-                TransactionReceipt::Deploy(DeployTransactionReceipt { ref mut common, .. })
-                | TransactionReceipt::L1Handler(L1HandlerTransactionReceipt {
-                    ref mut common,
-                    ..
-                })
-                | TransactionReceipt::Common(ref mut common) => common,
-            };
-            common_field.maybe_pending_properties.block_hash = None;
-            common_field.maybe_pending_properties.block_number = None;
+            let receipt = sn_transaction.get_receipt()?;
 
             transaction_receipts
                 .push(TransactionWithReceipt { receipt, transaction: transaction.transaction });

@@ -6,7 +6,7 @@ use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use deploy_transaction::DeployTransaction;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use starknet_api::block::{BlockNumber, GasPrice};
+use starknet_api::block::GasPrice;
 use starknet_api::contract_class::{ClassInfo, EntryPointType};
 use starknet_api::core::calculate_contract_address;
 use starknet_api::data_availability::DataAvailabilityMode;
@@ -38,10 +38,9 @@ use crate::contract_class::{ContractClass, compute_sierra_class_hash};
 use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult};
 use crate::felt::{
-    BlockHash, Calldata, EntryPointSelector, Nonce, TransactionHash, TransactionSignature,
-    TransactionVersion,
+    Calldata, EntryPointSelector, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
 };
-use crate::rpc::transaction_receipt::{CommonTransactionReceipt, MaybePendingProperties};
+use crate::rpc::transaction_receipt::CommonTransactionReceipt;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
 pub mod broadcasted_declare_transaction_v3;
@@ -136,8 +135,6 @@ impl TransactionWithHash {
         &self,
         transaction_events: &[Event],
         transaction_messages_sent: &[MessageToL1],
-        block_hash: Option<&BlockHash>,
-        block_number: Option<BlockNumber>,
         execution_result: &ExecutionResult,
         finality_status: TransactionFinalityStatus,
         actual_fee: FeeInUnits,
@@ -145,8 +142,6 @@ impl TransactionWithHash {
     ) -> CommonTransactionReceipt {
         let r#type = self.get_type();
         let execution_resources = ExecutionResources::from(execution_info);
-        let maybe_pending_properties =
-            MaybePendingProperties { block_number, block_hash: block_hash.cloned() };
 
         CommonTransactionReceipt {
             r#type,
@@ -156,7 +151,6 @@ impl TransactionWithHash {
             events: transaction_events.to_vec(),
             execution_status: execution_result.clone(),
             finality_status,
-            maybe_pending_properties,
             execution_resources,
         }
     }
