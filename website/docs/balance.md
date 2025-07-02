@@ -72,7 +72,7 @@ JSON-RPC
     "params": {
         "address": "0x6e3205f...",
         "unit": "WEI" | "FRI",
-        "block_tag": "latest" | "pending"
+        "block_tag": "latest" | "pre_confirmed"
     }
 }
 ```

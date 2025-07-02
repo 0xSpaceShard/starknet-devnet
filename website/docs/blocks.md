@@ -18,7 +18,7 @@ If you start Devnet with `--block-generation-on transaction`, a new block is gen
 
 ## Creating blocks on demand
 
-If you start Devnet with the `--block-generation-on demand` CLI option, you will enable the possibility to store more than one transaction in the pending block (targetable via block tag `"pending"`).
+If you start Devnet with the `--block-generation-on demand` CLI option, you will enable the possibility to store more than one transaction in the pending block (targetable via block tag `"pre_confirmed"`).
 
 Once you've added the desired transactions into the pending block, you can [request new block creation](#request-new-block-creation). This will convert the pending block to the latest block (targetable via block tag `"latest"`), giving it a block hash and a block number. All subsequent transactions will be stored in a new pending block.
 

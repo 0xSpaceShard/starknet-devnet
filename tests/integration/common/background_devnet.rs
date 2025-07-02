@@ -307,7 +307,7 @@ impl BackgroundDevnet {
     fn tag_to_str(tag: BlockTag) -> &'static str {
         match tag {
             BlockTag::Latest => "latest",
-            BlockTag::Pending => "pending",
+            BlockTag::Pending => "pre_confirmed",
         }
     }
 

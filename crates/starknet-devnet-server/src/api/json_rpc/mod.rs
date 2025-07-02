@@ -1066,7 +1066,7 @@ mod requests_tests {
         let json_str =
             r#"{"method":"starknet_getBlockWithTxHashes","params":{"block_id":"latest"}}"#;
         assert_deserialization_succeeds(json_str);
-        assert_deserialization_succeeds(&json_str.replace("latest", "pending"));
+        assert_deserialization_succeeds(&json_str.replace("latest", "pre_confirmed"));
 
         assert_deserialization_fails(&json_str.replace("latest", "0x134134"), "Invalid block ID");
     }
@@ -1075,7 +1075,7 @@ mod requests_tests {
     fn deserialize_get_block_with_transactions_request() {
         let json_str = r#"{"method":"starknet_getBlockWithTxs","params":{"block_id":"latest"}}"#;
         assert_deserialization_succeeds(json_str);
-        assert_deserialization_succeeds(&json_str.replace("latest", "pending"));
+        assert_deserialization_succeeds(&json_str.replace("latest", "pre_confirmed"));
 
         assert_deserialization_fails(
             json_str.replace("latest", "0x134134").as_str(),
@@ -1087,7 +1087,7 @@ mod requests_tests {
     fn deserialize_get_state_update_request() {
         let json_str = r#"{"method":"starknet_getStateUpdate","params":{"block_id":"latest"}}"#;
         assert_deserialization_succeeds(json_str);
-        assert_deserialization_succeeds(&json_str.replace("latest", "pending"));
+        assert_deserialization_succeeds(&json_str.replace("latest", "pre_confirmed"));
 
         assert_deserialization_fails(
             &json_str.replace("latest", "0x134134"),
@@ -1384,14 +1384,16 @@ mod requests_tests {
                     "address":"0xAAABB",
                     "keys":[["0xFF"], ["0xAA"]],
                     "from_block": "latest",
-                    "to_block": "pending",
+                    "to_block": "pre_confirmed",
                     "continuation_token": "0x11"
                 }
             }
         }"#;
 
         assert_deserialization_succeeds(json_str);
-        assert_deserialization_succeeds(json_str.replace(r#""to_block": "pending","#, "").as_str());
+        assert_deserialization_succeeds(
+            json_str.replace(r#""to_block": "pre_confirmed","#, "").as_str(),
+        );
 
         assert_deserialization_fails(
             json_str.replace(r#""chunk_size": 1,"#, "").as_str(),

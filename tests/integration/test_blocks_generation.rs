@@ -124,7 +124,7 @@ async fn assert_pending_block_with_receipts(devnet: &BackgroundDevnet, tx_count:
         .send_custom_rpc(
             "starknet_getBlockWithReceipts",
             json!(    {
-                "block_id": "pending"
+                "block_id": "pre_confirmed"
             }),
         )
         .await

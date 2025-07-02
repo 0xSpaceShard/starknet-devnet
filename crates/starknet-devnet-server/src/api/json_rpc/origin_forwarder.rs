@@ -39,8 +39,8 @@ impl OriginForwarder {
         self.block_number
     }
 
-    /// In case block tag "pending" or "latest" is a part of the request, it is replaced with the
-    /// numeric block id of the forked block. Both JSON-RPC 1 and 2 semantics is covered
+    /// In case block tag "pre_confirmed" or "latest" is a part of the request, it is replaced with
+    /// the numeric block id of the forked block. Both JSON-RPC 1 and 2 semantics is covered
     fn clone_call_with_origin_block_id(&self, rpc_call: &RpcMethodCall) -> RpcMethodCall {
         let mut new_rpc_call = rpc_call.clone();
         let origin_block_id = json!({ "block_number": self.block_number });
@@ -49,7 +49,7 @@ impl OriginForwarder {
             crate::rpc_core::request::RequestParams::None => (),
             crate::rpc_core::request::RequestParams::Array(ref mut params) => {
                 for param in params.iter_mut() {
-                    if let Some("latest" | "pending") = param.as_str() {
+                    if let Some("latest" | "pre_confirmed") = param.as_str() {
                         *param = origin_block_id;
                         break;
                     }
@@ -57,7 +57,7 @@ impl OriginForwarder {
             }
             crate::rpc_core::request::RequestParams::Object(ref mut params) => {
                 if let Some(block_id) = params.get_mut("block_id") {
-                    if let Some("latest" | "pending") = block_id.as_str() {
+                    if let Some("latest" | "pre_confirmed") = block_id.as_str() {
                         *block_id = origin_block_id;
                     }
                 }
@@ -134,7 +134,11 @@ mod tests {
         for (jsonrpc_value, orig_params, replaced_params) in [
             ("2.0", json!(null), json!(null)),
             ("1.0", json!(["a", 1, "latest", 2]), json!(["a", 1, { "block_number": 10 }, 2])),
-            ("1.0", json!(["a", 1, "pending", 2]), json!(["a", 1, { "block_number": 10 }, 2])),
+            (
+                "1.0",
+                json!(["a", 1, "pre_confirmed", 2]),
+                json!(["a", 1, { "block_number": 10 }, 2]),
+            ),
             (
                 "2.0",
                 json!({ "param1": "a", "param2": 1, "block_id": "latest", "param3": 2 }),
@@ -142,7 +146,7 @@ mod tests {
             ),
             (
                 "2.0",
-                json!({ "param1": "a", "param2": 1, "block_id": "pending", "param3": 2 }),
+                json!({ "param1": "a", "param2": 1, "block_id": "pre_confirmed", "param3": 2 }),
                 json!({ "param1": "a", "param2": 1, "block_id": { "block_number": 10 }, "param3": 2 }),
             ),
         ] {
