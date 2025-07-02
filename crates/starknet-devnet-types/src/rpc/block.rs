@@ -45,12 +45,8 @@ impl<'de> Deserialize<'de> for BlockId {
 
         let value = serde_json::Value::deserialize(deserializer)?;
         match value.as_str() {
-            // TODO according to pre-release notes "pending" should be "latest" in RPC < 0.9
-            // https://docs.google.com/document/d/1wgqtk9L_12trHBJ5SFSWwxiB4u0duureGiBncrmQiv8/edit?pli=1&tab=t.0#heading=h.vzxdj0weuqpj
             Some("latest") => Ok(Self(ImportedBlockId::Tag(ImportedBlockTag::Latest))),
-            Some("pre_confirmed" | "pending" /* Rename as part of RPC 0.9; keep alias */) => {
-                Ok(Self(ImportedBlockId::Tag(ImportedBlockTag::Pending)))
-            }
+            Some("pre_confirmed") => Ok(Self(ImportedBlockId::Tag(ImportedBlockTag::Pending))),
             _ => match serde_json::from_value::<BlockHashOrNumber>(value) {
                 Ok(BlockHashOrNumber::Hash(hash)) => Ok(Self(ImportedBlockId::Hash(hash))),
                 Ok(BlockHashOrNumber::Number(n)) => Ok(Self(ImportedBlockId::Number(n))),
