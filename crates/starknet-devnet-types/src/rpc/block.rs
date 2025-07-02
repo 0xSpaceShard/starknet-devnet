@@ -52,7 +52,7 @@ impl<'de> Deserialize<'de> for BlockId {
                 Ok(BlockHashOrNumber::Number(n)) => Ok(Self(ImportedBlockId::Number(n))),
                 Err(_) => Err(serde::de::Error::custom(
                     "Invalid block ID. Expected object with key (block_hash or block_number) or \
-                     tag ('pending' or 'latest').",
+                     tag ('pre_confirmed' or 'latest').",
                 )),
             },
         }
@@ -62,7 +62,7 @@ impl<'de> Deserialize<'de> for BlockId {
 #[derive(Debug, Clone)]
 pub enum BlockResult {
     Block(Block),
-    PendingBlock(PreConfirmedBlock),
+    PreConfirmedBlock(PreConfirmedBlock),
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Deserialize, Serialize, PartialOrd, Ord)]
@@ -158,13 +158,17 @@ impl<'de> Deserialize<'de> for SubscriptionBlockId {
     where
         D: Deserializer<'de>,
     {
-        let block_id = ImportedBlockId::deserialize(deserializer)?;
+        let block_id = BlockId::deserialize(deserializer)?;
         Ok(match block_id {
-            ImportedBlockId::Hash(felt) => Self::Hash(felt),
-            ImportedBlockId::Number(n) => Self::Number(n),
-            ImportedBlockId::Tag(ImportedBlockTag::Latest) => Self::Latest,
-            ImportedBlockId::Tag(ImportedBlockTag::Pending) => {
-                return Err(serde::de::Error::custom("Subscription block cannot be 'pending'"));
+            BlockId(ImportedBlockId::Hash(felt)) => Self::Hash(felt),
+            BlockId(ImportedBlockId::Number(n)) => Self::Number(n),
+            BlockId(ImportedBlockId::Tag(ImportedBlockTag::Latest)) => Self::Latest,
+            BlockId(ImportedBlockId::Tag(ImportedBlockTag::Pending)) => {
+                // Due to the way deserialization is implemented for custom BlockId, "pre_confirmed"
+                // was indeed mapped to ImportedBlockTag::Pending
+                return Err(serde::de::Error::custom(
+                    "Subscription block cannot be 'pre_confirmed'",
+                ));
             }
         })
     }

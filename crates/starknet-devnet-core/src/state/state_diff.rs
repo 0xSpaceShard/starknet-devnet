@@ -292,7 +292,7 @@ mod tests {
         )
         .unwrap();
 
-        account.deploy(&mut starknet.pending_state).unwrap();
+        account.deploy(&mut starknet.pre_confirmed_state).unwrap();
 
         starknet.commit_diff().unwrap();
         starknet.generate_new_block_and_state().unwrap();
@@ -331,7 +331,7 @@ mod tests {
         let replaceable_contract_address = ContractAddress::new(Felt::ONE).unwrap();
         let old_class_hash = ContractClass::Cairo1(replaceable_contract).generate_hash().unwrap();
         starknet
-            .pending_state
+            .pre_confirmed_state
             .predeploy_contract(replaceable_contract_address, old_class_hash)
             .unwrap();
 

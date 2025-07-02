@@ -122,7 +122,7 @@ impl StarknetBlocks {
         // used IndexMap to keep elements in the order of the keys
         let mut filtered_blocks: IndexMap<Felt, &StarknetBlock> = IndexMap::new();
 
-        let pending_block_number = self.pre_confirmed_block.block_number();
+        let pre_confirmed_block_number = self.pre_confirmed_block.block_number();
 
         let starting_block = if let Some(block_id) = from {
             // If the value for block number provided is not correct it will return None
@@ -157,7 +157,7 @@ impl StarknetBlocks {
             }
         }
 
-        let mut insert_pending_block_in_final_result = true;
+        let mut insert_pre_confirmed_block_in_final_result = true;
         // iterate over the blocks and apply the filter
         // then insert the filtered blocks into the index map
         self.num_to_hash
@@ -166,16 +166,16 @@ impl StarknetBlocks {
                 is_block_number_in_range(**current_block_number, starting_block, ending_block)
             })
             .for_each(|(block_number, block_hash)| {
-                if *block_number == pending_block_number {
-                    insert_pending_block_in_final_result = false;
+                if *block_number == pre_confirmed_block_number {
+                    insert_pre_confirmed_block_in_final_result = false;
                 }
                 filtered_blocks.insert(*block_hash, &self.hash_to_block[block_hash]);
             });
 
         let mut result: Vec<&StarknetBlock> = filtered_blocks.into_values().collect();
 
-        if is_block_number_in_range(pending_block_number, starting_block, ending_block)
-            && insert_pending_block_in_final_result
+        if is_block_number_in_range(pre_confirmed_block_number, starting_block, ending_block)
+            && insert_pre_confirmed_block_in_final_result
         {
             result.push(&self.pre_confirmed_block);
         }
@@ -533,7 +533,7 @@ mod tests {
                 starknet_api::block::BlockHash(Felt::from(block_number as u128));
             blocks.insert(block_to_insert.clone(), StateDiff::default());
 
-            // last block will be a pending block
+            // last block will be a pre_confirmed block
             if block_number == last_block_number {
                 blocks.pre_confirmed_block = block_to_insert;
             }
@@ -886,7 +886,7 @@ mod tests {
     }
 
     #[test]
-    fn check_pending_block() {
+    fn check_pre_confirmed_block() {
         let block = StarknetBlock::create_pre_confirmed_block();
         assert!(block.status == BlockStatus::PreConfirmed);
         assert!(block.transaction_hashes.is_empty());

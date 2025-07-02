@@ -44,8 +44,6 @@ pub enum ApiError {
     ClassAlreadyDeclared,
     #[error("Invalid contract class")]
     InvalidContractClass,
-    #[error("Only latest/pending block is supported")]
-    OnlyLatestBlock,
     #[error("{msg}")]
     UnsupportedAction { msg: String },
     #[error("Invalid transaction nonce")]
@@ -161,11 +159,6 @@ impl ApiError {
                 message: error_message.into(),
                 data: None,
             },
-            ApiError::OnlyLatestBlock => RpcError {
-                code: crate::rpc_core::error::ErrorCode::ServerError(24),
-                message: error_message.into(),
-                data: None,
-            },
             ApiError::UnsupportedAction { msg } => RpcError {
                 code: crate::rpc_core::error::ErrorCode::InvalidRequest,
                 message: msg.into(),
@@ -277,7 +270,6 @@ impl ApiError {
             | Self::TooManyKeysInFilter
             | Self::ClassAlreadyDeclared
             | Self::InvalidContractClass
-            | Self::OnlyLatestBlock
             | Self::UnsupportedAction { .. }
             | Self::InvalidTransactionNonce
             | Self::InsufficientAccountBalance

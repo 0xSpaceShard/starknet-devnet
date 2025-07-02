@@ -234,7 +234,7 @@ async fn should_notify_only_once_in_on_demand_mode() {
         );
     }
 
-    // should not renotify on pending->latest
+    // should not renotify on pre_confirmed->latest
     devnet.create_block().await.unwrap();
     assert_no_notifications(&mut ws_before).await;
     assert_no_notifications(&mut ws_after).await;

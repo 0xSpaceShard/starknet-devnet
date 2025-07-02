@@ -71,7 +71,7 @@ impl JsonRpcHandler {
 
         match block {
             BlockResult::Block(b) => Ok(StarknetResponse::Block(b).into()),
-            BlockResult::PendingBlock(b) => Ok(StarknetResponse::PreConfirmedBlock(b).into()),
+            BlockResult::PreConfirmedBlock(b) => Ok(StarknetResponse::PreConfirmedBlock(b).into()),
         }
     }
 
@@ -88,7 +88,7 @@ impl JsonRpcHandler {
 
         match block {
             BlockResult::Block(b) => Ok(StarknetResponse::Block(b).into()),
-            BlockResult::PendingBlock(b) => Ok(StarknetResponse::PreConfirmedBlock(b).into()),
+            BlockResult::PreConfirmedBlock(b) => Ok(StarknetResponse::PreConfirmedBlock(b).into()),
         }
     }
 
@@ -104,8 +104,8 @@ impl JsonRpcHandler {
 
         match state_update {
             StateUpdateResult::StateUpdate(s) => Ok(StarknetResponse::StateUpdate(s).into()),
-            StateUpdateResult::PendingStateUpdate(s) => {
-                Ok(StarknetResponse::PendingStateUpdate(s).into())
+            StateUpdateResult::PreConfirmedStateUpdate(s) => {
+                Ok(StarknetResponse::PreConfirmedStateUpdate(s).into())
             }
         }
     }
@@ -425,7 +425,8 @@ impl JsonRpcHandler {
         }
 
         let to_block_number = match to_block {
-            // If to_block is Latest, Pending or undefined, all blocks after from_block are queried
+            // If to_block is latest, pre_confirmed or undefined, all blocks after from_block are
+            // queried
             Some(ImportedBlockId::Tag(_)) | None => {
                 return Ok((
                     Some((from_block_number, fork_block_number)),

@@ -61,10 +61,10 @@ pub trait CustomState {
 
 #[derive(Default, Clone)]
 /// Utility structure that makes it easier to calculate state diff later on. Classes are first
-/// inserted into the staging area (pending state), later to be committed (assigned a block number
-/// to mark when they were added). Committed doesn't necessarily mean the class is a part of the
-/// latest state, just that it is bound to be. Since there is no way of telling if a class is in the
-/// latest state or no, retrieving from the latest state has to be done via block number.
+/// inserted into the staging area (pre_confirmed state), later to be committed (assigned a block
+/// number to mark when they were added). Committed doesn't necessarily mean the class is a part of
+/// the latest state, just that it is bound to be. Since there is no way of telling if a class is in
+/// the latest state or no, retrieving from the latest state has to be done via block number.
 pub struct CommittedClassStorage {
     staging: HashMap<ClassHash, ContractClass>,
     committed: HashMap<ClassHash, (ContractClass, u64)>,
@@ -98,11 +98,11 @@ impl CommittedClassStorage {
     pub fn get_class(
         &self,
         class_hash: &ClassHash,
-        block_number_or_pending: &BlockNumberOrPreConfirmed,
+        block_number_or_pre_confirmed: &BlockNumberOrPreConfirmed,
     ) -> Option<ContractClass> {
         if let Some((class, storage_block_number)) = self.committed.get(class_hash) {
             // If we're here, the requested class was committed at some point, need to see when.
-            match block_number_or_pending {
+            match block_number_or_pre_confirmed {
                 BlockNumberOrPreConfirmed::Number(query_block_number) => {
                     // If the class was stored before the block at which we are querying (or at that
                     // block), we can return it.
@@ -113,14 +113,15 @@ impl CommittedClassStorage {
                     }
                 }
                 BlockNumberOrPreConfirmed::PreConfirmed => {
-                    // Class is requested at block_id=pending. Since it's present among the
+                    // Class is requested at block_id=pre_confirmed. Since it's present among the
                     // committed classes, it's in the latest block or older and can be returned.
                     Some(class.clone())
                 }
             }
         } else if let Some(class) = self.staging.get(class_hash) {
-            // If class present in storage.staging, it can only be retrieved if block_id=pending
-            match block_number_or_pending {
+            // If class present in storage.staging, it can only be retrieved if
+            // block_id=pre_confirmed
+            match block_number_or_pre_confirmed {
                 BlockNumberOrPreConfirmed::PreConfirmed => Some(class.clone()),
                 _ => None,
             }

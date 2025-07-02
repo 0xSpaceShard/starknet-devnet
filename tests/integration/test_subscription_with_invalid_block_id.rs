@@ -9,8 +9,8 @@ fn block_not_found_error() -> serde_json::Value {
     json!({ "jsonrpc": "2.0", "id": 0, "error": { "code": 24, "message": "Block not found" } })
 }
 
-fn call_on_pending_error() -> serde_json::Value {
-    json!({ "jsonrpc": "2.0", "id": 0, "error": { "code": -32602, "message": "Subscription block cannot be 'pending'" }})
+fn call_on_pre_confirmed_error() -> serde_json::Value {
+    json!({ "jsonrpc": "2.0", "id": 0, "error": { "code": -32602, "message": "Subscription block cannot be 'pre_confirmed'" }})
 }
 
 #[tokio::test]
@@ -71,6 +71,10 @@ async fn test_pending_block_not_allowed_in_block_and_event_subscription() {
         .await
         .unwrap();
 
-        assert_eq!(subscription_resp, call_on_pending_error(), "Method: {subscription_method}");
+        assert_eq!(
+            subscription_resp,
+            call_on_pre_confirmed_error(),
+            "Method: {subscription_method}"
+        );
     }
 }

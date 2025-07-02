@@ -84,7 +84,7 @@ pub fn add_declare_transaction(
     assert_casm_hash_is_valid(&contract_class, casm_hash)?;
 
     let validate = !(Starknet::is_account_impersonated(
-        &mut starknet.pending_state,
+        &mut starknet.pre_confirmed_state,
         &starknet.cheats,
         sender_address,
     )?);
@@ -99,7 +99,7 @@ pub fn add_declare_transaction(
             strict_nonce_check: true, // Starknet 0.14: declare txs do not allow nonce supersession
         },
     }
-    .execute(&mut starknet.pending_state.state, &starknet.block_context)?;
+    .execute(&mut starknet.pre_confirmed_state.state, &starknet.block_context)?;
 
     // if tx successful, store the class
     if !execution_info.is_reverted() {
@@ -298,7 +298,7 @@ mod tests {
         // check if contract is not declared
         let expected_class_hash =
             ContractClass::Cairo1(declare_tx.contract_class.clone()).generate_hash().unwrap();
-        assert!(!starknet.pending_state.is_contract_declared(expected_class_hash));
+        assert!(!starknet.pre_confirmed_state.is_contract_declared(expected_class_hash));
 
         let (tx_hash, class_hash) = starknet.add_declare_transaction(declare_tx.into()).unwrap();
 
@@ -309,6 +309,6 @@ mod tests {
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         // check if contract is declared
-        assert!(starknet.pending_state.is_contract_declared(class_hash));
+        assert!(starknet.pre_confirmed_state.is_contract_declared(class_hash));
     }
 }

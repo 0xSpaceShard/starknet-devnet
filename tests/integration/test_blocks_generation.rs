@@ -258,7 +258,7 @@ async fn blocks_on_demand_states_and_blocks() {
     assert_latest_block_with_txs(&devnet, 0, 0).await;
     assert_latest_block_with_receipts(&devnet, 0, 0).await;
 
-    // create new block from pending block
+    // create new block from pre_confirmed block
     devnet.create_block().await.unwrap();
 
     assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Pending).await;
@@ -338,7 +338,7 @@ async fn blocks_on_demand_declarations() {
         expected_nonce += 1;
     }
 
-    // assert block state update - should include diff of all txs from pending block
+    // assert block state update - should include diff of all txs from pre_confirmed block
     let expected_block_nonce_update = vec![NonceUpdate {
         contract_address: account_address,
         nonce: Felt::from(classes_with_hash.len()),

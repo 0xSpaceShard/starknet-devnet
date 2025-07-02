@@ -39,7 +39,7 @@ use starknet_types::rpc::block::{
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
 use starknet_types::rpc::gas_modification::{GasModification, GasModificationRequest};
 use starknet_types::rpc::state::{
-    PendingStateUpdate, StateUpdate, StateUpdateResult, ThinStateDiff,
+    PreConfirmedStateUpdate, StateUpdate, StateUpdateResult, ThinStateDiff,
 };
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
@@ -96,9 +96,9 @@ pub(crate) mod transaction_trace;
 
 pub struct Starknet {
     pub latest_state: StarknetState,
-    pub pending_state: StarknetState,
+    pub pre_confirmed_state: StarknetState,
     /// Contains the diff since the last block
-    pending_state_diff: StateDiff,
+    pre_confirmed_state_diff: StateDiff,
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
     // To avoid repeating some logic related to blocks,
@@ -106,7 +106,7 @@ pub struct Starknet {
     pub(crate) blocks: StarknetBlocks,
     pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
-    pub pending_block_timestamp_shift: i64,
+    pub pre_confirmed_block_timestamp_shift: i64,
     pub next_block_timestamp: Option<u64>,
     pub next_block_gas: GasModification,
     pub(crate) messaging: MessagingBroker,
@@ -130,13 +130,13 @@ impl Default for Starknet {
                 DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
             ),
             latest_state: Default::default(),
-            pending_state: Default::default(),
-            pending_state_diff: Default::default(),
+            pre_confirmed_state: Default::default(),
+            pre_confirmed_state_diff: Default::default(),
             predeployed_accounts: Default::default(),
             blocks: Default::default(),
             transactions: Default::default(),
             config: Default::default(),
-            pending_block_timestamp_shift: 0,
+            pre_confirmed_block_timestamp_shift: 0,
             next_block_timestamp: None,
             next_block_gas: GasModification {
                 gas_price_wei: DEVNET_DEFAULT_L1_GAS_PRICE,
@@ -249,12 +249,12 @@ impl Starknet {
             config.fork_config.block_number.map_or(DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, |n| n + 1);
         let last_block_hash = config.fork_config.block_hash;
 
-        let pending_state_diff = state.commit_diff(starting_block_number)?;
+        let pre_confirmed_state_diff = state.commit_diff(starting_block_number)?;
 
         let mut this = Self {
             latest_state: Default::default(), // temporary - overwritten on genesis block creation
-            pending_state: state,
-            pending_state_diff,
+            pre_confirmed_state: state,
+            pre_confirmed_state_diff,
             predeployed_accounts,
             block_context: Self::init_block_context(
                 config.gas_price_wei,
@@ -271,7 +271,7 @@ impl Starknet {
             blocks: StarknetBlocks::new(starting_block_number, last_block_hash),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
-            pending_block_timestamp_shift: 0,
+            pre_confirmed_block_timestamp_shift: 0,
             next_block_timestamp: None,
             next_block_gas: GasModification {
                 gas_price_wei: config.gas_price_wei,
@@ -298,7 +298,7 @@ impl Starknet {
     }
 
     pub fn get_state(&mut self) -> &mut StarknetState {
-        &mut self.pending_state
+        &mut self.pre_confirmed_state
     }
 
     pub fn restart(&mut self, restart_l1_to_l2_messaging: bool) -> DevnetResult<()> {
@@ -317,13 +317,13 @@ impl Starknet {
     }
 
     // Update block context
-    // Initialize values for new pending block
-    pub(crate) fn generate_pending_block(&mut self) -> DevnetResult<()> {
+    // Initialize values for new pre_confirmed block
+    pub(crate) fn generate_pre_confirmed_block(&mut self) -> DevnetResult<()> {
         Self::advance_block_context_block_number(&mut self.block_context);
 
         Self::set_block_context_gas(&mut self.block_context, &self.next_block_gas);
 
-        // Pending block header gas data needs to be set
+        // Pre_confirmed block header gas data needs to be set
         let header = &mut self.blocks.pre_confirmed_block.header.block_header_without_hash;
         header.l1_gas_price.price_in_wei = GasPrice(self.next_block_gas.gas_price_wei.get());
         header.l1_data_gas_price.price_in_wei =
@@ -347,13 +347,13 @@ impl Starknet {
             }
             None => BlockTimestamp(
                 (Starknet::get_unix_timestamp_as_seconds() as i64
-                    + self.pending_block_timestamp_shift) as u64,
+                    + self.pre_confirmed_block_timestamp_shift) as u64,
             ),
         }
     }
 
-    /// Transfer data from pending block into new block and save it to blocks collection.
-    /// Generates new pending block. Same for pending state. Returns the new block hash.
+    /// Transfer data from pre_confirmed block into new block and save it to blocks collection.
+    /// Generates new pre_confirmed block. Same for pre_confirmed state. Returns the new block hash.
     pub(crate) fn generate_new_block_and_state(&mut self) -> DevnetResult<Felt> {
         let mut new_block = self.pre_confirmed_block().clone();
 
@@ -388,7 +388,7 @@ impl Starknet {
 
         let new_block_hash = new_block.header.block_hash.0;
 
-        // update txs block hash block number for each transaction in the pending block
+        // update txs block hash block number for each transaction in the pre_confirmed block
         new_block.get_transactions().iter().for_each(|tx_hash| {
             if let Some(tx) = self.transactions.get_by_hash_mut(tx_hash) {
                 tx.block_hash = Some(new_block_hash);
@@ -399,31 +399,31 @@ impl Starknet {
             }
         });
 
-        // insert pending block in the blocks collection and connect it to the state diff
-        self.blocks.insert(new_block, self.pending_state_diff.clone());
-        self.pending_state_diff = StateDiff::default();
+        // insert pre_confirmed block in the blocks collection and connect it to the state diff
+        self.blocks.insert(new_block, self.pre_confirmed_state_diff.clone());
+        self.pre_confirmed_state_diff = StateDiff::default();
 
         // save into blocks state archive
         if self.config.state_archive == StateArchiveCapacity::Full {
-            let clone = self.pending_state.clone_historic();
+            let clone = self.pre_confirmed_state.clone_historic();
             self.blocks.save_state_at(new_block_hash, clone);
         }
 
-        self.generate_pending_block()?;
+        self.generate_pre_confirmed_block()?;
 
-        // for every new block we need to clone pending state into state
-        self.latest_state = self.pending_state.clone_historic();
+        // for every new block we need to clone pre_confirmed state into state
+        self.latest_state = self.pre_confirmed_state.clone_historic();
 
         Ok(new_block_hash)
     }
 
     /// Commits the changes since the last commit. Use it to commit the changes generated by the
-    /// last tx. Updates the `pending_state_diff` to accumulate the changes since the last block.
-    /// Check `StarknetState::commit_diff` for more info.
+    /// last tx. Updates the `pre_confirmed_state_diff` to accumulate the changes since the last
+    /// block. Check `StarknetState::commit_diff` for more info.
     pub fn commit_diff(&mut self) -> DevnetResult<StateDiff> {
         let next_block_number = self.blocks.next_block_number();
-        let state_diff = self.pending_state.commit_diff(next_block_number.0)?;
-        self.pending_state_diff.extend(&state_diff);
+        let state_diff = self.pre_confirmed_state.commit_diff(next_block_number.0)?;
+        self.pre_confirmed_state_diff.extend(&state_diff);
 
         Ok(state_diff)
     }
@@ -440,7 +440,7 @@ impl Starknet {
         let gas_vector_computation_mode = transaction.transaction.gas_vector_computation_mode();
 
         let trace = create_trace(
-            &mut self.pending_state.state,
+            &mut self.pre_confirmed_state.state,
             transaction.get_type(),
             &tx_info,
             state_diff.into(),
@@ -449,13 +449,13 @@ impl Starknet {
         )?;
         let transaction_to_add = StarknetTransaction::pre_confirm(&transaction, tx_info, trace);
 
-        // add accepted transaction to pending block
+        // add accepted transaction to pre_confirmed block
         self.blocks.pre_confirmed_block.add_transaction(*transaction_hash);
 
         self.transactions.insert(transaction_hash, transaction_to_add);
 
-        // create new block from pending one, only in block-generation-on-transaction mode
-        if !self.config.uses_pending_block() {
+        // create new block from pre_confirmed one, only in block-generation-on-transaction mode
+        if !self.config.uses_pre_confirmed_block() {
             self.generate_new_block_and_state()?;
         }
 
@@ -640,7 +640,7 @@ impl Starknet {
     fn get_mut_state_at(&mut self, block_id: &BlockId) -> DevnetResult<&mut StarknetState> {
         match block_id {
             BlockId::Tag(BlockTag::Latest) => Ok(&mut self.latest_state),
-            BlockId::Tag(BlockTag::Pending) => Ok(&mut self.pending_state),
+            BlockId::Tag(BlockTag::Pending) => Ok(&mut self.pre_confirmed_state),
             _ => {
                 let block = self.get_block(block_id)?;
                 let block_hash = block.block_hash();
@@ -897,9 +897,9 @@ impl Starknet {
     pub fn block_state_update(&self, block_id: &BlockId) -> DevnetResult<StateUpdateResult> {
         let state_update = state_update::state_update_by_block_id(self, block_id)?;
 
-        // StateUpdate needs to be mapped to PendingStateUpdate when block_id is pending
+        // StateUpdate needs to be mapped to PreConfirmedStateUpdate when block_id is pre_confirmed
         if block_id == &BlockId::Tag(BlockTag::Pending) {
-            Ok(StateUpdateResult::PendingStateUpdate(PendingStateUpdate {
+            Ok(StateUpdateResult::PreConfirmedStateUpdate(PreConfirmedStateUpdate {
                 old_root: state_update.old_root,
                 state_diff: state_update.state_diff,
             }))
@@ -1003,13 +1003,13 @@ impl Starknet {
                 Error::NoStateAtBlock { block_id: BlockId::Number(current_block.block_number().0) },
             )?;
 
-            // in the abort block scenario, we need to revert state and pending_state to be able to
-            // use the calls properly
+            // in the abort block scenario, we need to revert state and pre_confirmed_state to be
+            // able to use the calls properly
             self.latest_state = reverted_state.clone_historic();
-            self.pending_state = reverted_state.clone_historic();
+            self.pre_confirmed_state = reverted_state.clone_historic();
         }
 
-        self.pending_state_diff = StateDiff::default();
+        self.pre_confirmed_state_diff = StateDiff::default();
         rpc_contract_classes.empty_staging();
         self.blocks.aborted_blocks = aborted.clone();
 
@@ -1061,7 +1061,7 @@ impl Starknet {
             .collect::<DevnetResult<Vec<TransactionWithHash>>>()?;
 
         if block.status() == &BlockStatus::PreConfirmed {
-            Ok(BlockResult::PendingBlock(PreConfirmedBlock {
+            Ok(BlockResult::PreConfirmedBlock(PreConfirmedBlock {
                 header: PreConfirmedBlockHeader::from(block),
                 transactions: Transactions::Full(transactions),
             }))
@@ -1090,7 +1090,7 @@ impl Starknet {
         }
 
         if block.status() == &BlockStatus::PreConfirmed {
-            Ok(BlockResult::PendingBlock(PreConfirmedBlock {
+            Ok(BlockResult::PreConfirmedBlock(PreConfirmedBlock {
                 header: PreConfirmedBlockHeader::from(block),
                 transactions: Transactions::FullWithReceipts(transaction_receipts),
             }))
@@ -1183,7 +1183,7 @@ impl Starknet {
     ) -> DevnetResult<Vec<BlockTransactionTrace>> {
         let transactions = match self.get_block_with_transactions(block_id)? {
             BlockResult::Block(b) => b.transactions,
-            BlockResult::PendingBlock(b) => b.transactions,
+            BlockResult::PreConfirmedBlock(b) => b.transactions,
         };
 
         let mut traces = Vec::new();
@@ -1228,7 +1228,7 @@ impl Starknet {
                 SimulationFlag::SkipFeeCharge => skip_fee_charge = true,
             }
         }
-        let using_pending_block = self.config.uses_pending_block();
+        let using_pre_confirmed_block = self.config.uses_pre_confirmed_block();
 
         let mut transactions_traces: Vec<TransactionTrace> = vec![];
         let cheats = self.cheats.clone();
@@ -1261,7 +1261,7 @@ impl Starknet {
                             only_query: true,
                             charge_fee: !skip_fee_charge,
                             validate: !(skip_validate || skip_validate_due_to_impersonation),
-                            strict_nonce_check: txn.requires_strict_nonce_check(using_pending_block),
+                            strict_nonce_check: txn.requires_strict_nonce_check(using_pre_confirmed_block),
                         })?,
                         txn.get_type(),
                         txn.gas_vector_computation_mode(),
@@ -1333,7 +1333,7 @@ impl Starknet {
         Ok(simulation_results)
     }
 
-    /// create new block from pending one
+    /// create new block from pre_confirmed one
     pub fn create_block(&mut self) -> DevnetResult<(), Error> {
         self.generate_new_block_and_state()?;
         Ok(())
@@ -1355,13 +1355,15 @@ impl Starknet {
 
     // Set timestamp shift and create empty block
     pub fn increase_time(&mut self, time_shift: u64) -> DevnetResult<(), Error> {
-        self.set_block_timestamp_shift(self.pending_block_timestamp_shift + time_shift as i64);
+        self.set_block_timestamp_shift(
+            self.pre_confirmed_block_timestamp_shift + time_shift as i64,
+        );
         self.create_block()
     }
 
     // Set timestamp shift for next blocks
     pub fn set_block_timestamp_shift(&mut self, timestamp: i64) {
-        self.pending_block_timestamp_shift = timestamp;
+        self.pre_confirmed_block_timestamp_shift = timestamp;
     }
 
     // Set next block timestamp
@@ -1388,7 +1390,7 @@ impl Starknet {
                 msg: "Account impersonation is supported when forking mode is enabled.".to_string(),
             });
         }
-        if self.pending_state.is_contract_deployed_locally(account)? {
+        if self.pre_confirmed_state.is_contract_deployed_locally(account)? {
             return Err(Error::UnsupportedAction {
                 msg: "Account is in local state, cannot be impersonated".to_string(),
             });
@@ -1558,7 +1560,7 @@ mod tests {
             starknet.block_context.chain_info().fee_token_addresses.strk_fee_token_address.into(),
         )
         .unwrap();
-        acc.deploy(&mut starknet.pending_state).unwrap();
+        acc.deploy(&mut starknet.pre_confirmed_state).unwrap();
 
         starknet.commit_diff().unwrap();
         starknet.generate_new_block_and_state().unwrap();
@@ -1586,11 +1588,11 @@ mod tests {
 
         for account in predeployed_accounts {
             let account_balance =
-                account.get_balance(&mut starknet.pending_state, FeeToken::ETH).unwrap();
+                account.get_balance(&mut starknet.pre_confirmed_state, FeeToken::ETH).unwrap();
             assert_eq!(expected_balance, account_balance);
 
             let account_balance =
-                account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap();
+                account.get_balance(&mut starknet.pre_confirmed_state, FeeToken::STRK).unwrap();
             assert_eq!(expected_balance, account_balance);
         }
     }
@@ -1621,11 +1623,11 @@ mod tests {
     }
 
     #[test]
-    fn pending_block_is_correct() {
+    fn pre_confirmed_block_is_correct() {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
         let initial_block_number = starknet.block_context.block_info().block_number;
-        starknet.generate_pending_block().unwrap();
+        starknet.generate_pre_confirmed_block().unwrap();
 
         assert_eq!(
             starknet.pre_confirmed_block().header.block_header_without_hash.block_number,
@@ -1640,10 +1642,10 @@ mod tests {
 
         let tx = dummy_declare_tx_v3_with_hash();
 
-        // add transaction hash to pending block
+        // add transaction hash to pre_confirmed block
         starknet.blocks.pre_confirmed_block.add_transaction(*tx.get_transaction_hash());
 
-        // pending block has some transactions
+        // pre_confirmed block has some transactions
         assert!(!starknet.pre_confirmed_block().get_transactions().is_empty());
         // blocks collection should not be empty
         assert_eq!(starknet.blocks.hash_to_block.len(), 1);
@@ -1661,7 +1663,7 @@ mod tests {
     }
 
     #[test]
-    fn successful_emptying_of_pending_block() {
+    fn successful_emptying_of_pre_confirmed_block() {
         let config = StarknetConfig { start_time: Some(0), ..Default::default() };
         let mut starknet = Starknet::new(&config).unwrap();
 
@@ -1677,16 +1679,16 @@ mod tests {
         let initial_block_timestamp = starknet.block_context.block_info().block_timestamp;
         let initial_sequencer = starknet.block_context.block_info().sequencer_address;
 
-        // create pending block with some information in it
+        // create pre_confirmed block with some information in it
         let mut pre_confirmed_block = StarknetBlock::create_pre_confirmed_block();
         pre_confirmed_block.add_transaction(dummy_felt());
         pre_confirmed_block.status = BlockStatus::AcceptedOnL2;
 
-        // assign the pending block
+        // assign the pre_confirmed block
         starknet.blocks.pre_confirmed_block = pre_confirmed_block.clone();
         assert!(*starknet.pre_confirmed_block() == pre_confirmed_block);
 
-        // empty the pending to block and check if it is in starting state
+        // empty the pre_confirmed to block and check if it is in starting state
         starknet.restart_pre_confirmed_block().unwrap();
 
         assert!(*starknet.pre_confirmed_block() != pre_confirmed_block);
@@ -1733,7 +1735,7 @@ mod tests {
     }
 
     #[test]
-    fn getting_state_of_pending_block() {
+    fn getting_state_of_pre_confirmed_block() {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.get_mut_state_at(&BlockId::Tag(BlockTag::Pending)).expect("Should be OK");
@@ -1906,7 +1908,7 @@ mod tests {
 
         let tx = dummy_declare_tx_v3_with_hash();
 
-        // add transaction hash to pending block
+        // add transaction hash to pre_confirmed block
         starknet.blocks.pre_confirmed_block.add_transaction(*tx.get_transaction_hash());
 
         starknet.generate_new_block_and_state().unwrap();
@@ -1939,7 +1941,7 @@ mod tests {
         // **generate second block**
         // add data to state
         starknet
-            .pending_state
+            .pre_confirmed_state
             .state
             .increment_nonce(dummy_contract_address().try_into().unwrap())
             .unwrap();
@@ -1951,7 +1953,7 @@ mod tests {
         // **generate third block**
         // add data to state
         starknet
-            .pending_state
+            .pre_confirmed_state
             .state
             .increment_nonce(dummy_contract_address().try_into().unwrap())
             .unwrap();
@@ -2005,7 +2007,7 @@ mod tests {
             .blocks
             .pre_confirmed_block
             .set_timestamp(BlockTimestamp(Starknet::get_unix_timestamp_as_seconds()));
-        let pending_block_timestamp =
+        let pre_confirmed_block_timestamp =
             starknet.pre_confirmed_block().header.block_header_without_hash.timestamp;
 
         let sleep_duration_secs = 5;
@@ -2014,10 +2016,10 @@ mod tests {
 
         let block_timestamp =
             starknet.get_latest_block().unwrap().header.block_header_without_hash.timestamp;
-        // check if the pending_block_timestamp is less than the block_timestamp,
+        // check if the pre_confirmed_block_timestamp is less than the block_timestamp,
         // by number of sleep seconds because the timeline of events is this:
-        // ----(pending block timestamp)----(sleep)----(new block timestamp)
-        assert!(pending_block_timestamp.0 + sleep_duration_secs <= block_timestamp.0);
+        // ----(pre_confirmed block timestamp)----(sleep)----(new block timestamp)
+        assert!(pre_confirmed_block_timestamp.0 + sleep_duration_secs <= block_timestamp.0);
     }
 
     #[test]

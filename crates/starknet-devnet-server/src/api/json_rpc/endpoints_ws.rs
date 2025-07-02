@@ -134,7 +134,7 @@ impl JsonRpcHandler {
         let starknet = self.api.starknet.lock().await;
         let block = starknet.get_block_with_transactions(&BlockId::Tag(BlockTag::Pending))?;
         match block {
-            BlockResult::PendingBlock(PreConfirmedBlock {
+            BlockResult::PreConfirmedBlock(PreConfirmedBlock {
                 transactions: Transactions::Full(txs),
                 ..
             }) => Ok(txs),

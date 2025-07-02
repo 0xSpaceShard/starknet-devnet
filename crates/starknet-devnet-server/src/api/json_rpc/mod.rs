@@ -31,7 +31,7 @@ use starknet_types::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::block::{Block, PreConfirmedBlock, ReorgData};
 use starknet_types::rpc::estimate_message_fee::{EstimateMessageFeeRequest, FeeEstimateWrapper};
 use starknet_types::rpc::gas_modification::{GasModification, GasModificationRequest};
-use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
+use starknet_types::rpc::state::{PreConfirmedStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, EventsChunk, L1HandlerTransactionStatus, SimulatedTransaction,
@@ -138,8 +138,8 @@ impl RpcHandler for JsonRpcHandler {
             None
         };
 
-        let old_pending_block =
-            if request.requires_notifying() && self.starknet_config.uses_pending_block() {
+        let old_pre_confirmed_block =
+            if request.requires_notifying() && self.starknet_config.uses_pre_confirmed_block() {
                 Some(self.get_block_by_tag(BlockTag::Pending).await)
             } else {
                 None
@@ -162,7 +162,7 @@ impl RpcHandler for JsonRpcHandler {
             }
         }
 
-        if let Err(e) = self.broadcast_changes(old_latest_block, old_pending_block).await {
+        if let Err(e) = self.broadcast_changes(old_latest_block, old_pre_confirmed_block).await {
             return ResponseResult::Error(e.api_error_to_rpc_error());
         }
 
@@ -242,9 +242,9 @@ impl JsonRpcHandler {
         }
     }
 
-    /// The latest and pending block are always defined, so to avoid having to deal with Err/None in
-    /// places where this method is called, it is defined to return an empty accepted block,
-    /// even though that case should never happen.
+    /// The latest and pre_confirmed block are always defined, so to avoid having to deal with
+    /// Err/None in places where this method is called, it is defined to return an empty
+    /// accepted block, even though that case should never happen.
     async fn get_block_by_tag(&self, tag: BlockTag) -> StarknetBlock {
         let starknet = self.api.starknet.lock().await;
         match starknet.get_block(&BlockId::Tag(tag)) {
@@ -319,7 +319,7 @@ impl JsonRpcHandler {
         let starknet = self.api.starknet.lock().await;
 
         for tx_hash in new_latest_block.get_transactions() {
-            if !self.starknet_config.uses_pending_block() {
+            if !self.starknet_config.uses_pre_confirmed_block() {
                 let tx = starknet
                     .get_transaction_by_hash(*tx_hash)
                     .map_err(error::ApiError::StarknetDevnetError)?;
@@ -1002,7 +1002,7 @@ pub enum StarknetResponse {
     Block(Block),
     PreConfirmedBlock(PreConfirmedBlock),
     StateUpdate(StateUpdate),
-    PendingStateUpdate(PendingStateUpdate),
+    PreConfirmedStateUpdate(PreConfirmedStateUpdate),
     Felt(Felt),
     Transaction(TransactionWithHash),
     TransactionReceiptByTransactionHash(Box<TransactionReceipt>),
@@ -1058,8 +1058,8 @@ mod requests_tests {
     use crate::test_utils::assert_contains;
 
     const EXPECTED_INVALID_BLOCK_ID_MSG: &str = "Invalid block ID. Expected object with key \
-                                                 (block_hash or block_number) or tag ('pending' \
-                                                 or 'latest').";
+                                                 (block_hash or block_number) or tag \
+                                                 ('pre_confirmed' or 'latest').";
 
     #[test]
     fn deserialize_get_block_with_transaction_hashes_request() {

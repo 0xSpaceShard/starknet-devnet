@@ -19,7 +19,7 @@ pub fn add_l1_handler_transaction(
 
     let execution_info =
         blockifier::transaction::transaction_execution::Transaction::L1Handler(executable_tx)
-            .execute(&mut starknet.pending_state.state, &starknet.block_context)?;
+            .execute(&mut starknet.pre_confirmed_state.state, &starknet.block_context)?;
 
     starknet.handle_accepted_transaction(
         TransactionWithHash::new(transaction_hash, Transaction::L1Handler(transaction.clone())),
@@ -185,11 +185,11 @@ mod tests {
         // deploy erc20 contract
         let eth_erc_20_contract =
             predeployed::tests::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
-        eth_erc_20_contract.deploy(&mut starknet.pending_state).unwrap();
+        eth_erc_20_contract.deploy(&mut starknet.pre_confirmed_state).unwrap();
 
         let strk_erc_20_contract =
             predeployed::tests::create_erc20_at_address(STRK_ERC20_CONTRACT_ADDRESS).unwrap();
-        strk_erc_20_contract.deploy(&mut starknet.pending_state).unwrap();
+        strk_erc_20_contract.deploy(&mut starknet.pre_confirmed_state).unwrap();
 
         // deploy account contract
         let account_without_validations_contract_class = cairo_0_account_without_validations();
@@ -207,7 +207,7 @@ mod tests {
         )
         .unwrap();
 
-        account.deploy(&mut starknet.pending_state).unwrap();
+        account.deploy(&mut starknet.pre_confirmed_state).unwrap();
 
         // dummy contract
         let dummy_contract = dummy_cairo_l1l2_contract();
@@ -240,13 +240,13 @@ mod tests {
 
         // declare dummy contract
         starknet
-            .pending_state
+            .pre_confirmed_state
             .declare_contract_class(dummy_contract_class_hash, None, dummy_contract.into())
             .unwrap();
 
         // deploy dummy contract
         starknet
-            .pending_state
+            .pre_confirmed_state
             .predeploy_contract(dummy_contract_address, dummy_contract_class_hash)
             .unwrap();
         starknet.block_context = Starknet::init_block_context(

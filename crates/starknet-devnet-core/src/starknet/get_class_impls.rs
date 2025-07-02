@@ -30,8 +30,8 @@ pub fn get_class_impl(
 ) -> DevnetResult<ContractClass> {
     let requested_block = starknet.get_block(block_id)?;
 
-    // the underlying logic only works with block number or pending tag
-    let block_number_or_pending = match requested_block.status {
+    // the underlying logic only works with block number or pre_confirmed tag
+    let block_number_or_pre_confirmed = match requested_block.status {
         BlockStatus::PreConfirmed => BlockNumberOrPreConfirmed::PreConfirmed,
         BlockStatus::AcceptedOnL2 | BlockStatus::AcceptedOnL1 => {
             BlockNumberOrPreConfirmed::Number(requested_block.block_number().0)
@@ -40,7 +40,11 @@ pub fn get_class_impl(
     };
 
     // Returns sierra for cairo1; returns the only artifact for cairo0.
-    match starknet.rpc_contract_classes.read().get_class(&class_hash, &block_number_or_pending) {
+    match starknet
+        .rpc_contract_classes
+        .read()
+        .get_class(&class_hash, &block_number_or_pre_confirmed)
+    {
         Some(class) => Ok(class.clone()),
         None => Err(Error::StateError(StateError::NoneClassHash(class_hash))),
     }

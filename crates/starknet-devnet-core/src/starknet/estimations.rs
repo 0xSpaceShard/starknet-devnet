@@ -27,7 +27,7 @@ pub fn estimate_fee(
     let chain_id = starknet.chain_id().to_felt();
     let block_context = starknet.block_context.clone();
     let cheats = starknet.cheats.clone();
-    let using_pending_block = starknet.config.uses_pending_block();
+    let using_pre_confirmed_block = starknet.config.uses_pre_confirmed_block();
     let state = starknet.get_mut_state_at(block_id)?;
 
     let transactions = {
@@ -47,7 +47,7 @@ pub fn estimate_fee(
                     txn.to_sn_api_account_transaction(&chain_id)?,
                     validate,
                     txn.gas_vector_computation_mode(),
-                    txn.requires_strict_nonce_check(using_pending_block),
+                    txn.requires_strict_nonce_check(using_pre_confirmed_block),
                 ))
             })
             .collect::<DevnetResult<Vec<_>>>()?

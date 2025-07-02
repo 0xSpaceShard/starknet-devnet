@@ -41,14 +41,14 @@ pub fn add_deploy_account_transaction(
         }
     };
 
-    if !starknet.pending_state.is_contract_declared(class_hash) {
+    if !starknet.pre_confirmed_state.is_contract_declared(class_hash) {
         return Err(Error::StateError(crate::error::StateError::NoneClassHash(class_hash)));
     }
     let transaction_hash = executable_deploy_account_tx.tx_hash.0;
     let transaction = TransactionWithHash::new(transaction_hash, deploy_account_transaction);
 
     let strict_nonce_check = broadcasted_deploy_account_transaction
-        .requires_strict_nonce_check(starknet.config.uses_pending_block());
+        .requires_strict_nonce_check(starknet.config.uses_pre_confirmed_block());
 
     let execution_info = blockifier::transaction::account_transaction::AccountTransaction {
         tx: starknet_api::executable_transaction::AccountTransaction::DeployAccount(
@@ -61,7 +61,7 @@ pub fn add_deploy_account_transaction(
             strict_nonce_check,
         },
     }
-    .execute(&mut starknet.pending_state.state, &starknet.block_context)?;
+    .execute(&mut starknet.pre_confirmed_state.state, &starknet.block_context)?;
 
     starknet.handle_accepted_transaction(transaction, execution_info)?;
 
@@ -182,7 +182,10 @@ mod tests {
 
         let erc20_address =
             starknet.block_context.chain_info().fee_token_addresses.strk_fee_token_address;
-        starknet.pending_state.get_storage_at(erc20_address, balance_storage_var_address).unwrap()
+        starknet
+            .pre_confirmed_state
+            .get_storage_at(erc20_address, balance_storage_var_address)
+            .unwrap()
     }
 
     fn set_strk_balance(starknet: &mut Starknet, address: ContractAddress, amount: Felt) {
@@ -195,7 +198,7 @@ mod tests {
         let erc20_address =
             starknet.block_context.chain_info().fee_token_addresses.strk_fee_token_address;
         starknet
-            .pending_state
+            .pre_confirmed_state
             .set_storage_at(erc20_address, balance_storage_var_address, amount)
             .unwrap();
     }
@@ -284,14 +287,14 @@ mod tests {
         for erc20_address in [ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS] {
             let erc20_contract =
                 predeployed::tests::create_erc20_at_address(erc20_address).unwrap();
-            erc20_contract.deploy(&mut starknet.pending_state).unwrap();
+            erc20_contract.deploy(&mut starknet.pre_confirmed_state).unwrap();
         }
 
         let contract_class = cairo_0_account_without_validations(); // TODO use cairo1
         let class_hash = contract_class.generate_hash().unwrap();
 
         starknet
-            .pending_state
+            .pre_confirmed_state
             .declare_contract_class(class_hash, None, contract_class.into())
             .unwrap();
         starknet.block_context = Starknet::init_block_context(

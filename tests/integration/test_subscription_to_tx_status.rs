@@ -175,7 +175,7 @@ async fn should_notify_if_subscribed_before_and_after_tx(
         assert_no_notifications(&mut ws_after_tx).await;
     }
 
-    // In on-demand mode, this moves tx from pending to latest - expect no notifications
+    // In on-demand mode, this moves tx from pre_confirmed to latest - expect no notifications
     devnet.create_block().await.unwrap();
 
     assert_no_notifications(&mut ws_before_tx).await;

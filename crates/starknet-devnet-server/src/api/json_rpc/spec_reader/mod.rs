@@ -345,7 +345,7 @@ mod tests {
             JsonRpcRequest::StateUpdate(_) => {
                 assert!(matches!(
                     sn_response,
-                    StarknetResponse::StateUpdate(_) | StarknetResponse::PendingStateUpdate(_)
+                    StarknetResponse::StateUpdate(_) | StarknetResponse::PreConfirmedStateUpdate(_)
                 ));
             }
             JsonRpcRequest::Syncing => {

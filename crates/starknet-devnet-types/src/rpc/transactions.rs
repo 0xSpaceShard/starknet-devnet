@@ -510,14 +510,14 @@ impl BroadcastedTransaction {
         }
     }
 
-    pub fn requires_strict_nonce_check(&self, using_pending_block: bool) -> bool {
+    pub fn requires_strict_nonce_check(&self, using_pre_confirmed_block: bool) -> bool {
         match self {
             BroadcastedTransaction::Invoke(tx) => {
-                tx.requires_strict_nonce_check(using_pending_block)
+                tx.requires_strict_nonce_check(using_pre_confirmed_block)
             }
             BroadcastedTransaction::Declare(_) => true,
             BroadcastedTransaction::DeployAccount(tx) => {
-                tx.requires_strict_nonce_check(using_pending_block)
+                tx.requires_strict_nonce_check(using_pre_confirmed_block)
             }
         }
     }
@@ -622,8 +622,8 @@ impl BroadcastedDeployAccountTransaction {
         }
     }
 
-    pub fn requires_strict_nonce_check(&self, using_pending_block: bool) -> bool {
-        !using_pending_block
+    pub fn requires_strict_nonce_check(&self, using_pre_confirmed_block: bool) -> bool {
+        !using_pre_confirmed_block
     }
 
     /// Creates a blockifier deploy account transaction from the current transaction.
@@ -703,8 +703,8 @@ impl BroadcastedInvokeTransaction {
         }
     }
 
-    pub fn requires_strict_nonce_check(&self, using_pending_block: bool) -> bool {
-        !using_pending_block
+    pub fn requires_strict_nonce_check(&self, using_pre_confirmed_block: bool) -> bool {
+        !using_pre_confirmed_block
     }
 
     /// Creates a blockifier invoke transaction from the current transaction.
