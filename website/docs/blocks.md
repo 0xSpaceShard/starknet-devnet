@@ -18,11 +18,11 @@ If you start Devnet with `--block-generation-on transaction`, a new block is gen
 
 ## Creating blocks on demand
 
-If you start Devnet with the `--block-generation-on demand` CLI option, you will enable the possibility to store more than one transaction in the pending block (targetable via block tag `"pre_confirmed"`).
+If you start Devnet with the `--block-generation-on demand` CLI option, you will enable the possibility to store more than one transaction in the pre-confirmed block (targetable via block tag `"pre_confirmed"`).
 
-Once you've added the desired transactions into the pending block, you can [request new block creation](#request-new-block-creation). This will convert the pending block to the latest block (targetable via block tag `"latest"`), giving it a block hash and a block number. All subsequent transactions will be stored in a new pending block.
+Once you've added the desired transactions into the pre-confirmed block, you can [request new block creation](#request-new-block-creation). This will convert the pre-confirmed block to the latest block (targetable via block tag `"latest"`), giving it a block hash and a block number. All subsequent transactions will be stored in a new pre-confirmed block.
 
-In case of demanding block creation with no pending transactions, a new empty block will be generated.
+In case of demanding block creation with no pre-confirmed transactions, a new empty block will be generated.
 
 The creation of the genesis block is not affected by this feature.
 
@@ -75,7 +75,7 @@ Response:
 {"block_hash": "0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67"}
 ```
 
-The newly created block will contain all pending transactions, if any, since the last block creation.
+The newly created block will contain all pre-confirmed transactions, if any, since the last block creation.
 
 ### Timestamp manipulation
 
@@ -138,4 +138,8 @@ Response:
 }
 ```
 
-Note: When aborting block with tag `pending`, block is mined and aborted as latest.
+:::note
+
+When aborting the currently `pre_confirmed` block, it is mined and aborted as latest.
+
+:::

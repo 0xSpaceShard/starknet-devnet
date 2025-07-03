@@ -60,7 +60,7 @@ In case of a reverted minting request, an error is returned containing the strin
 Check the balance of an address by sending a `GET` request to `/account_balance`. The address should be a 0x-prefixed hex string; `unit` defaults to `FRI` (the unit of `STRK`) and `block_tag` to `latest`.
 
 ```
-GET /account_balance?address=<ADDRESS>[&unit=<FRI|WEI>][&block_tag=<latest|pending>]
+GET /account_balance?address=<ADDRESS>[&unit=<FRI|WEI>][&block_tag=<latest|pre_confirmed>]
 ```
 
 ```

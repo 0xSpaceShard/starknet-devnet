@@ -6,10 +6,15 @@ sidebar_position: 1
 
 :::danger Difference disclaimer
 
-- Devnet should not be used as a replacement for official testnets. After testing on Devnet, be sure to test on a testnet (alpha-sepolia)!
+- Devnet should not be used as a replacement for the official testnet. After testing on Devnet, be sure to test on testnet (alpha-sepolia)!
 - Devnet does not organize state data into Merkle-Patricia tries or similar tree-like structures, so:
   - calling the `starknet_getStorageProof` RPC method shall always result in `STORAGE_PROOF_NOT_SUPPORTED`
   - block roots are set to 0
+- The pre-confirmed block is equivalent to the old pending block, except that its transactions are not `ACCEPTED_ON_L2` but `PRE_CONFIRMED`.
+- By default, a new block is mined for each new transactions.
+  - This can be modified by directing all new transactions into a pre-confirmed block, and at some point triggering block creation.
+  - Transactions in a pre-confirmed block cannot be replaced by sending a transaction with a higher free from the same account.
+  - Read more [here](./blocks).
 - The semantics of `REJECTED` and `REVERTED` status of a transaction is not the same as on the official testnet:
 
 | Tx status  | Official testnet                                            | Devnet                                                     |

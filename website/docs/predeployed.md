@@ -51,7 +51,7 @@ The startup log includes:
 
 Account class info can be found in the response to [config request](api#config-api).
 
-Predeployed account details can be retrieved in JSON format by sending a `GET` request to `/predeployed_accounts` or via JSON-RPC. With the additional query parameter `with_balance` set to `true`, ETH and STRK balances at the pending state will be provided, in WEI and FRI, respectively:
+Predeployed account details can be retrieved in JSON format by sending a `GET` request to `/predeployed_accounts` or via JSON-RPC. With the additional query parameter `with_balance` set to `true`, ETH and STRK balances at the pre-confirmed state will be provided, in WEI and FRI, respectively:
 
 ```
 GET /predeployed_accounts?[with_balance=true]
