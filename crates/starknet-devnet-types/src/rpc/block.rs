@@ -190,11 +190,27 @@ impl From<&SubscriptionBlockId> for ImportedBlockId {
     }
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BlockTag {
+    PreConfirmed,
+    Latest,
+}
+
+impl From<BlockTag> for starknet_rs_core::types::BlockTag {
+    fn from(tag: BlockTag) -> Self {
+        match tag {
+            BlockTag::PreConfirmed => starknet_rs_core::types::BlockTag::Pending,
+            BlockTag::Latest => starknet_rs_core::types::BlockTag::Latest,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test_subscription_block_id {
     use serde_json::json;
 
-    use super::SubscriptionBlockId;
+    use super::{BlockTag, SubscriptionBlockId};
 
     #[test]
     fn accept_latest() {
@@ -236,5 +252,18 @@ mod test_subscription_block_id {
     #[test]
     fn reject_unwrapped_number_as_block_number() {
         serde_json::from_value::<SubscriptionBlockId>(json!(123)).unwrap_err();
+    }
+
+    #[test]
+    fn custom_block_tag_deserialization() {
+        match serde_json::from_value::<BlockTag>(json!("latest")) {
+            Ok(BlockTag::Latest) => (),
+            other => panic!("Unexpected result: {other:?}"),
+        }
+
+        match serde_json::from_value::<BlockTag>(json!("pre_confirmed")) {
+            Ok(BlockTag::PreConfirmed) => (),
+            other => panic!("Unexpected result: {other:?}"),
+        }
     }
 }

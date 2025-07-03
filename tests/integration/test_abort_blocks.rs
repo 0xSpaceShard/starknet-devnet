@@ -230,6 +230,7 @@ async fn abort_latest_blocks() {
     abort_blocks_error(&devnet, &BlockId::Tag(BlockTag::Latest), "Genesis block can't be aborted")
         .await;
 }
+
 #[tokio::test]
 async fn abort_pending_block() {
     let devnet = BackgroundDevnet::spawn_with_additional_args(&[
