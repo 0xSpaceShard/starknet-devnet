@@ -240,6 +240,7 @@ async fn set_gas_fork() {
 }
 
 #[tokio::test]
+#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn set_gas_check_blocks() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -334,6 +335,7 @@ async fn set_gas_check_blocks() {
 }
 
 #[tokio::test]
+#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn unsuccessful_declare_set_gas_successful_declare() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
     let (signer, account_address) = devnet.get_first_predeployed_account().await;

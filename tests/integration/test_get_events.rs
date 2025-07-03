@@ -151,6 +151,7 @@ async fn get_events_correct_chunking(devnet: &BackgroundDevnet, block_on_demand:
 }
 
 #[tokio::test]
+#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn get_events_correct_chunking_normal_mode() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -158,6 +159,7 @@ async fn get_events_correct_chunking_normal_mode() {
 }
 
 #[tokio::test]
+#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn get_events_correct_chunking_blocks_generation_on_demand() {
     let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
         .await

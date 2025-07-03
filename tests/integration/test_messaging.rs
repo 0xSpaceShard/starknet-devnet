@@ -213,6 +213,7 @@ async fn assert_withdrawn(
 }
 
 #[tokio::test]
+#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn can_send_message_to_l1() {
     let (devnet, account, l1l2_contract_address) =
         setup_devnet(&["--account-class", "cairo1"]).await;
@@ -232,6 +233,7 @@ async fn can_send_message_to_l1() {
 }
 
 #[tokio::test]
+#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn can_send_message_to_l1_from_library_syscall() {
     let (devnet, account, l1l2_contract_address) =
         setup_devnet(&["--account-class", "cairo1"]).await;
@@ -276,6 +278,7 @@ async fn can_send_message_to_l1_from_library_syscall() {
 }
 
 #[tokio::test]
+#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn mock_message_to_l2_creates_a_tx_with_desired_effect() {
     let (devnet, account, l1l2_contract_address) =
         setup_devnet(&["--account-class", "cairo1"]).await;
@@ -479,6 +482,7 @@ async fn deploy_l1_messaging_contract_with_custom_key() {
 }
 
 #[tokio::test]
+#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn can_consume_from_l2() {
     let (devnet, account, l1l2_contract_address) =
         setup_devnet(&["--account-class", "cairo1"]).await;
@@ -514,6 +518,7 @@ async fn can_consume_from_l2() {
 }
 
 #[tokio::test]
+#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn can_interact_with_l1() {
     let dump_file = UniqueAutoDeletableFile::new("can_interact_with_l1");
     let anvil = BackgroundAnvil::spawn().await.unwrap();
@@ -612,6 +617,7 @@ async fn can_interact_with_l1() {
 }
 
 #[tokio::test]
+#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn assert_l1_handler_tx_can_be_dumped_and_loaded() {
     let dump_file = UniqueAutoDeletableFile::new("dump-with-l1-handler");
     let (dumping_devnet, account, l1l2_contract_address) = setup_devnet(&[
@@ -767,6 +773,7 @@ async fn test_dumpability_of_messaging_contract_loading() {
 }
 
 #[tokio::test]
+#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn flushing_only_new_messages_after_restart() {
     let anvil = BackgroundAnvil::spawn().await.unwrap();
     let (devnet, sn_account, sn_l1l2_contract) = setup_devnet(&[]).await;
@@ -873,6 +880,7 @@ async fn flushing_only_new_messages_after_restart() {
 }
 
 #[tokio::test]
+#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn test_getting_status_of_mock_message() {
     let (devnet, _, l1l2_contract_address) = setup_devnet(&[]).await;
 
@@ -989,6 +997,7 @@ async fn test_getting_status_of_real_message() {
 }
 
 #[tokio::test]
+#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn withdrawing_should_incur_l1_gas_cost() {
     let (devnet, account, l1l2_contract_address) =
         setup_devnet(&["--account-class", "cairo1"]).await;
