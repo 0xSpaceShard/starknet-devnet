@@ -49,6 +49,8 @@ pub(crate) fn get_versioned_constants() -> VersionedConstants {
 /// Asked the blockifier team about the values, they provided them in these threads:
 /// https://spaceshard.slack.com/archives/C029F9AN8LX/p1721657837687799?thread_ts=1721400009.781699&cid=C029F9AN8LX
 /// https://spaceshard.slack.com/archives/C029F9AN8LX/p1739259794326519?thread_ts=1738840494.497479&cid=C029F9AN8LX
+/// https://spaceshard.slack.com/archives/C029F9AN8LX/p1750171661112469
+/// https://spaceshard.slack.com/archives/C029F9AN8LX/p1750237658621529
 pub(crate) fn custom_bouncer_config() -> BouncerConfig {
     BouncerConfig {
         block_max_capacity: BouncerWeights {
