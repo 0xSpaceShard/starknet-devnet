@@ -92,6 +92,7 @@ mod tests {
         ETH_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{Error, TransactionValidationError};
+    use crate::starknet::starknet_config::BlockGenerationOn;
     use crate::starknet::{Starknet, predeployed};
     use crate::state::CustomState;
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
@@ -149,10 +150,10 @@ mod tests {
 
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
 
-        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
+        let retrieved_tx = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
 
-        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
-        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        assert_eq!(retrieved_tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(retrieved_tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
         assert!(
             account.get_balance(&mut starknet.pre_confirmed_state, FeeToken::STRK).unwrap()
                 < initial_balance
@@ -180,10 +181,10 @@ mod tests {
 
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
 
-        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
+        let retrieved_tx = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
 
-        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
-        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        assert_eq!(retrieved_tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(retrieved_tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
         assert!(
             account.get_balance(&mut starknet.pre_confirmed_state, FeeToken::STRK).unwrap()
                 < initial_balance
@@ -253,9 +254,9 @@ mod tests {
 
         // invoke transaction
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
-        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
-        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
-        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        let retrieved_tx = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
+        assert_eq!(retrieved_tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(retrieved_tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         // check storage
         assert_eq!(
@@ -274,10 +275,10 @@ mod tests {
 
         // invoke transaction again
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
-        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
+        let retrieved_tx = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
 
-        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(retrieved_tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        assert_eq!(retrieved_tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(
             starknet.pre_confirmed_state.get_storage_at(blockifier_address, storage_key).unwrap(),
             Felt::from(25)
@@ -305,25 +306,56 @@ mod tests {
     }
 
     #[test]
-    fn invoke_transaction_should_return_an_error_if_same_nonce_supplied() {
+    fn invoke_tx_should_return_error_if_nonce_repeated_in_block_on_demand_mode() {
+        invoke_tx_should_fail_if_nonce_repeated(
+            BlockGenerationOn::Demand,
+            TransactionFinalityStatus::PreConfirmed,
+        );
+    }
+
+    #[test]
+    fn invoke_tx_should_return_error_if_nonce_repeated_in_block_on_tx_mode() {
+        invoke_tx_should_fail_if_nonce_repeated(
+            BlockGenerationOn::Transaction,
+            TransactionFinalityStatus::AcceptedOnL2,
+        );
+    }
+
+    fn invoke_tx_should_fail_if_nonce_repeated(
+        block_generation_mode: BlockGenerationOn,
+        expected_finality_status: TransactionFinalityStatus,
+    ) {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
+        starknet.config.block_generation_on = block_generation_mode;
 
         let account_address = account.get_address();
 
         let nonce = 0;
+        let l2_gas = 1e6 as u64;
         let tx = test_invoke_transaction_v3(
             account_address,
             contract_address,
             increase_balance_selector,
             &[dummy_felt()],
             nonce,
-            resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+            resource_bounds_with_price_1(0, 1000, l2_gas),
         );
 
         let transaction_hash = starknet.add_invoke_transaction(tx.clone()).unwrap();
-        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
-        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
-        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        let retrieved_tx = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
+        assert_eq!(retrieved_tx.finality_status, expected_finality_status);
+        assert_eq!(retrieved_tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
+
+        // new tx with more l2_gas
+        let tx = test_invoke_transaction_v3(
+            account_address,
+            contract_address,
+            increase_balance_selector,
+            &[dummy_felt()],
+            nonce,
+            // if less, bounced back instead of accepted+reverted
+            resource_bounds_with_price_1(0, 1000, l2_gas * 2),
+        );
 
         match starknet.add_invoke_transaction(tx) {
             Err(Error::TransactionValidationError(
@@ -358,13 +390,84 @@ mod tests {
         );
 
         let transaction_hash = starknet.add_invoke_transaction(tx).unwrap();
-        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
-        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
-        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Reverted);
+        let retrieved_tx = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
+        assert_eq!(retrieved_tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(retrieved_tx.execution_result.status(), TransactionExecutionStatus::Reverted);
 
         let nonce_after_reverted =
             starknet.pre_confirmed_state.get_nonce_at(account_address).unwrap();
         assert_eq!(nonce_after_reverted, Nonce(Felt::ONE));
+    }
+
+    #[test]
+    fn invoke_tx_should_fail_if_nonce_higher_than_expected_in_block_on_tx_mode() {
+        let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
+        starknet.config.block_generation_on = BlockGenerationOn::Transaction;
+
+        let nonce = 1; // too high
+        let tx = test_invoke_transaction_v3(
+            account.get_address(),
+            contract_address,
+            increase_balance_selector,
+            &[dummy_felt()],
+            nonce,
+            resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+        );
+
+        match starknet.add_invoke_transaction(tx) {
+            Err(Error::TransactionValidationError(
+                TransactionValidationError::InvalidTransactionNonce,
+            )) => {}
+            other => panic!("Unexpected result: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn invoke_tx_should_pass_if_nonce_higher_than_expected_in_block_on_demand_mode() {
+        let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
+        starknet.config.block_generation_on = BlockGenerationOn::Demand;
+
+        let nonce = 1; // higher than the expected 0
+        let tx = test_invoke_transaction_v3(
+            account.get_address(),
+            contract_address,
+            increase_balance_selector,
+            &[dummy_felt()],
+            nonce,
+            resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+        );
+
+        let tx_hash = starknet.add_invoke_transaction(tx).unwrap();
+        let retrieved_tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
+        assert_eq!(retrieved_tx.finality_status, TransactionFinalityStatus::PreConfirmed);
+        assert_eq!(retrieved_tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        assert_eq!(retrieved_tx.block_number, None);
+    }
+
+    #[test]
+    fn txs_with_successive_nonces_are_acceptable_in_the_same_block() {
+        let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
+        starknet.config.block_generation_on = BlockGenerationOn::Demand;
+
+        for nonce in 1..=2 {
+            let tx = test_invoke_transaction_v3(
+                account.get_address(),
+                contract_address,
+                increase_balance_selector,
+                &[dummy_felt()],
+                nonce,
+                resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+            );
+
+            let tx_hash = starknet.add_invoke_transaction(tx).unwrap();
+            let retrieved_tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
+            assert_eq!(retrieved_tx.finality_status, TransactionFinalityStatus::PreConfirmed);
+            assert_eq!(
+                retrieved_tx.execution_result.status(),
+                TransactionExecutionStatus::Succeeded
+            );
+            assert_eq!(retrieved_tx.block_number, None);
+        }
     }
 
     /// Initialize starknet object with: erc20 contract, account contract and  simple contract that

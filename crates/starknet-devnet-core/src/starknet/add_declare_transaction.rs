@@ -151,6 +151,7 @@ mod tests {
 
     use crate::error::{Error, TransactionValidationError};
     use crate::starknet::Starknet;
+    use crate::starknet::starknet_config::BlockGenerationOn;
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
     use crate::state::{BlockNumberOrPreConfirmed, CustomStateReader};
     use crate::traits::HashIdentifiedMut;
@@ -310,5 +311,77 @@ mod tests {
 
         // check if contract is declared
         assert!(starknet.pre_confirmed_state.is_contract_declared(class_hash));
+    }
+
+    #[test]
+    fn declare_tx_should_fail_if_nonce_repeated() {
+        let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1e18 as u128);
+
+        let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
+            sender.account_address,
+            Felt::ZERO, // nonce
+            resource_bounds_with_price_1(0, 1000, 1e9 as u64),
+        );
+
+        // check if contract is not declared
+        let expected_class_hash =
+            ContractClass::Cairo1(declare_tx.contract_class.clone()).generate_hash().unwrap();
+        assert!(!starknet.pre_confirmed_state.is_contract_declared(expected_class_hash));
+
+        let (tx_hash, class_hash) =
+            starknet.add_declare_transaction(declare_tx.clone().into()).unwrap();
+
+        let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
+
+        // check if txn is with status accepted
+        assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
+
+        // check if contract is declared
+        assert!(starknet.pre_confirmed_state.is_contract_declared(class_hash));
+
+        match starknet.add_declare_transaction(declare_tx.into()) {
+            Err(Error::TransactionValidationError(
+                TransactionValidationError::InvalidTransactionNonce,
+            )) => {}
+            other => panic!("Unexpected result: {other:?}"),
+        };
+
+        assert!(starknet.pre_confirmed_state.is_contract_declared(class_hash));
+    }
+
+    #[test]
+    fn declare_tx_should_fail_if_nonce_higher_than_expected_in_block_on_tx_mode() {
+        declare_tx_should_fail_if_nonce_higher_than_expected(BlockGenerationOn::Transaction);
+    }
+
+    #[test]
+    fn declare_tx_should_fail_if_nonce_higher_than_expected_in_block_on_demand_mode() {
+        declare_tx_should_fail_if_nonce_higher_than_expected(BlockGenerationOn::Demand);
+    }
+
+    fn declare_tx_should_fail_if_nonce_higher_than_expected(
+        block_generation_mode: BlockGenerationOn,
+    ) {
+        let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1e18 as u128);
+        starknet.config.block_generation_on = block_generation_mode;
+
+        let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
+            sender.account_address,
+            Felt::ONE, // nonce too high
+            resource_bounds_with_price_1(0, 1000, 1e9 as u64),
+        );
+
+        // check if contract is not declared
+        let expected_class_hash =
+            ContractClass::Cairo1(declare_tx.contract_class.clone()).generate_hash().unwrap();
+        assert!(!starknet.pre_confirmed_state.is_contract_declared(expected_class_hash));
+
+        match starknet.add_declare_transaction(declare_tx.into()) {
+            Err(Error::TransactionValidationError(
+                TransactionValidationError::InvalidTransactionNonce,
+            )) => {}
+            other => panic!("Unexpected result: {other:?}"),
+        };
     }
 }
