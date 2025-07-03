@@ -1511,9 +1511,11 @@ mod tests {
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::block::BlockStatus;
     use starknet_types::rpc::state::Balance;
+    use starknet_types::rpc::transaction_receipt::TransactionReceipt;
     use starknet_types::traits::HashProducer;
 
     use super::Starknet;
+    use super::starknet_config::BlockGenerationOn;
     use crate::account::{Account, FeeToken};
     use crate::blocks::StarknetBlock;
     use crate::constants::{
@@ -1527,8 +1529,9 @@ mod tests {
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::traits::{Accounted, Deployed, HashIdentified};
     use crate::utils::test_utils::{
-        cairo_0_account_without_validations, dummy_contract_address, dummy_declare_tx_v3_with_hash,
-        dummy_felt, dummy_key_pair,
+        broadcasted_declare_tx_v3_of_dummy_class, cairo_0_account_without_validations,
+        dummy_contract_address, dummy_declare_tx_v3_with_hash, dummy_felt, dummy_key_pair,
+        resource_bounds_with_price_1,
     };
 
     /// Initializes starknet with 1 account that doesn't perform actual tx signature validation.
@@ -2051,6 +2054,42 @@ mod tests {
         match starknet.abort_blocks(BlockId::Hash(dummy_hash)) {
             Err(Error::NoBlock) => (),
             unexpected => panic!("Got unexpected response: {unexpected:?}"),
+        }
+    }
+
+    #[test]
+    fn receipt_should_have_block_properties_after_tx_is_accepted() {
+        let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1e18 as u128);
+        starknet.config.block_generation_on = BlockGenerationOn::Demand;
+
+        let tx = broadcasted_declare_tx_v3_of_dummy_class(
+            sender.account_address,
+            Felt::ZERO,
+            resource_bounds_with_price_1(0, 1000, 1e9 as u64),
+        );
+
+        let (tx_hash, _) = starknet.add_declare_transaction(tx.into()).unwrap();
+
+        let receipt = starknet.get_transaction_receipt_by_hash(&tx_hash).unwrap();
+        match receipt {
+            TransactionReceipt::Common(receipt) => {
+                assert!(receipt.block_hash.is_none());
+                assert!(receipt.block_number.is_none());
+            }
+            other => panic!("Unexpected receipt response: {other:?}"),
+        }
+
+        // receipt should have block params after accepting the tx by triggering block creation
+        starknet.generate_new_block_and_state().unwrap();
+        let latest_block = starknet.get_block(&BlockId::Tag(BlockTag::Latest)).unwrap();
+
+        let receipt = starknet.get_transaction_receipt_by_hash(&tx_hash).unwrap();
+        match receipt {
+            TransactionReceipt::Common(receipt) => {
+                assert_eq!(receipt.block_hash, Some(latest_block.block_hash()));
+                assert_eq!(receipt.block_number, Some(BlockNumber(2))); // setup created block 1
+            }
+            other => panic!("Unexpected receipt response: {other:?}"),
         }
     }
 }
