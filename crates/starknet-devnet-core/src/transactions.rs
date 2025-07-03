@@ -180,6 +180,8 @@ impl StarknetTransaction {
         let mut common_receipt = self.inner.create_common_receipt(
             &transaction_events,
             &transaction_messages,
+            self.block_hash.as_ref(),
+            self.block_number,
             &self.execution_result,
             self.finality_status,
             actual_fee_in_units,

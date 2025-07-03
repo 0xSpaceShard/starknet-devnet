@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
+use starknet_api::block::BlockNumber;
 use starknet_api::transaction::fields::Fee;
 use starknet_rs_core::types::{ExecutionResult, Hash256};
 
+use super::felt::BlockHash;
 use super::transactions::TransactionFinalityStatus;
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
@@ -45,6 +47,10 @@ pub struct CommonTransactionReceipt {
     #[serde(flatten)]
     pub execution_status: ExecutionResult,
     pub finality_status: TransactionFinalityStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub block_hash: Option<BlockHash>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub block_number: Option<BlockNumber>,
     pub execution_resources: ExecutionResources,
 }
 

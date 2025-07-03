@@ -6,7 +6,7 @@ use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use deploy_transaction::DeployTransaction;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use starknet_api::block::GasPrice;
+use starknet_api::block::{BlockNumber, GasPrice};
 use starknet_api::contract_class::{ClassInfo, EntryPointType};
 use starknet_api::core::calculate_contract_address;
 use starknet_api::data_availability::DataAvailabilityMode;
@@ -29,6 +29,7 @@ use self::invoke_transaction_v3::InvokeTransactionV3;
 use self::l1_handler_transaction::L1HandlerTransaction;
 use super::block::BlockId;
 use super::estimate_message_fee::FeeEstimateWrapper;
+use super::felt::BlockHash;
 use super::messaging::{MessageToL1, OrderedMessageToL1};
 use super::state::ThinStateDiff;
 use super::transaction_receipt::{ExecutionResources, FeeInUnits, TransactionReceipt};
@@ -135,6 +136,8 @@ impl TransactionWithHash {
         &self,
         transaction_events: &[Event],
         transaction_messages_sent: &[MessageToL1],
+        block_hash: Option<&BlockHash>,
+        block_number: Option<BlockNumber>,
         execution_result: &ExecutionResult,
         finality_status: TransactionFinalityStatus,
         actual_fee: FeeInUnits,
@@ -151,6 +154,8 @@ impl TransactionWithHash {
             events: transaction_events.to_vec(),
             execution_status: execution_result.clone(),
             finality_status,
+            block_hash: block_hash.cloned(),
+            block_number,
             execution_resources,
         }
     }
