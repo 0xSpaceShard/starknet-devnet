@@ -14,7 +14,9 @@ use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     self, CAIRO_0_ACCOUNT_CONTRACT_HASH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS,
 };
-use crate::common::utils::{get_deployable_account_signer, get_events_contract_artifacts};
+use crate::common::utils::{
+    assert_contains, get_deployable_account_signer, get_events_contract_artifacts,
+};
 
 #[tokio::test]
 async fn deploy_account_transaction_receipt() {
@@ -197,9 +199,9 @@ async fn reverted_invoke_transaction_receipt() {
     // send transaction with lower than estimated overall fee; should revert
     let transfer_result = transfer_execution
         .l1_gas(fee.l1_gas_consumed.try_into().unwrap()) // Using as is, ok to be 0
-        // .l2_gas_price(u128::try_from(fee.l2_gas_price).unwrap() + (MINIMAL_TIP as u128))
+        // TODO restore: .l2_gas_price(u128::try_from(fee.l2_gas_price).unwrap() + (MINIMAL_TIP as u128))
         .l2_gas(u64::try_from(fee.l2_gas_consumed).unwrap() - 1) // subtract to induce failure
-        // .l2_gas(1156800) // TODO: determined as the actual value used, minus 1
+        .l2_gas(1156800 - 1) // TODO: determined experimentally as the actual value used minus 1
         .l1_data_gas(fee.l1_data_gas_consumed.try_into().unwrap()) // using as is
         .send()
         .await
@@ -215,8 +217,9 @@ async fn reverted_invoke_transaction_receipt() {
     match transfer_receipt {
         TransactionReceipt::Invoke(receipt) => {
             match receipt.execution_result {
-                // TODO add reason assertion
-                starknet_rs_core::types::ExecutionResult::Reverted { .. } => (),
+                starknet_rs_core::types::ExecutionResult::Reverted { reason } => {
+                    assert_contains(&reason, "Insufficient max L2Gas");
+                }
                 _ => panic!("Invalid receipt {:?}", receipt),
             }
             // due to earlier l2_gas - 1
