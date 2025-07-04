@@ -80,7 +80,9 @@ enum-helper-macros = "0.0.1"
 # Starknet dependencies
 starknet-types-core = "0.1.5"
 # TODO: from branch main-v0.14.0; replace with a stable release once possible and address the TODO in config.yml
-starknet_api = { git = "https://github.com/starkware-libs/sequencer.git", rev = "9078c47a0789a27f7bea4a6b3e25e7239b839754", features = ["testing"]  }
+starknet_api = { git = "https://github.com/starkware-libs/sequencer.git", rev = "9078c47a0789a27f7bea4a6b3e25e7239b839754", features = [
+	"testing",
+] }
 blockifier = { git = "https://github.com/starkware-libs/sequencer.git", rev = "9078c47a0789a27f7bea4a6b3e25e7239b839754" }
 starknet-rs-signers = { version = "0.11.0", package = "starknet-signers" }
 starknet-rs-core = { version = "0.13.0", package = "starknet-core" }
@@ -105,9 +107,9 @@ cairo-lang-syntax = "=2.12.0-dev.1"
 cairo-lang-utils = "=2.12.0-dev.1"
 
 # Inner dependencies
-starknet-types = { version = "0.4.3", path = "crates/starknet-devnet-types", package = "starknet-devnet-types" }
-starknet-core = { version = "0.4.3", path = "crates/starknet-devnet-core", package = "starknet-devnet-core" }
-server = { version = "0.4.3", path = "crates/starknet-devnet-server", package = "starknet-devnet-server" }
+starknet-types = { version = "0.5.0-rc.0", path = "crates/starknet-devnet-types", package = "starknet-devnet-types" }
+starknet-core = { version = "0.5.0-rc.0", path = "crates/starknet-devnet-core", package = "starknet-devnet-core" }
+server = { version = "0.5.0-rc.0", path = "crates/starknet-devnet-server", package = "starknet-devnet-server" }
 
 # Dependabot alerts
 zerocopy = "0.7.31"
