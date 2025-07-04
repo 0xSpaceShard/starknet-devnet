@@ -15,6 +15,7 @@ To release a new Devnet version, follow these steps:
 4. The publishing of crates, Docker images and documentation website is done automatically in the CI when the PR is merged into the main branch.
 
    - This relies on the `CRATES_IO_API_KEY` environment variable to contain a crates.io token with write access.
+   - If you are creating a pre-release, possibly from a side branch of a PR, CircleCI sets an environment variable indicating that the workflow is a part of a pull request. The documentation framework (Docusaurus) recognizes this and prevents the documentation from being deployed. Either deploy from your local machine (`npm run deploy`), or try manipulating the env var.
 
 5. When the CI workflow is done, create a git tag of the form `v<VERSION>`, push it and create a GitHub release with notes describing changes since the last release.
 
