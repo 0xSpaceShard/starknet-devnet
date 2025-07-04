@@ -79,11 +79,8 @@ enum-helper-macros = "0.0.1"
 
 # Starknet dependencies
 starknet-types-core = "0.1.5"
-# TODO: from branch main-v0.14.0; replace with a stable release once possible and address the TODO in config.yml
-starknet_api = { git = "https://github.com/starkware-libs/sequencer.git", rev = "9078c47a0789a27f7bea4a6b3e25e7239b839754", features = [
-	"testing",
-] }
-blockifier = { git = "https://github.com/starkware-libs/sequencer.git", rev = "9078c47a0789a27f7bea4a6b3e25e7239b839754" }
+starknet_api = { version = "0.15.0-rc.2", features = ["testing"] }
+blockifier = { version = "0.15.0-rc.2" }
 starknet-rs-signers = { version = "0.11.0", package = "starknet-signers" }
 starknet-rs-core = { version = "0.13.0", package = "starknet-core" }
 starknet-rs-providers = { version = "0.13.0", package = "starknet-providers" }
