@@ -151,8 +151,6 @@ jobs:
           fingerprints:
             - "SHA256:y2r0YUdeS8k6XSOFmgNs4wcTJFv+PIgkY0Yz+af6NSU"
       - run:
-          command: echo 'Skipping publishing to crates.io. See root Cargo.toml'
-      - run:
           name: Publish new versions to crates.io
           command: ./scripts/publish_cratesio_new_versions.sh
       - run:
