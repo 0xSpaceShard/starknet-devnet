@@ -9,6 +9,7 @@ aliases:
       branches:
         only:
           - main
+          - starknet-0.14
 
   - &on_main_after_test_and_build
     <<: *on_main
