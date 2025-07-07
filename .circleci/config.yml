@@ -173,8 +173,6 @@ jobs:
       size: medium
 
     steps:
-      - run: rm ~/.gitconfig # to use https instead of ssh
-      - checkout
       - run: curl -o rustup https://sh.rustup.rs
       - run: bash rustup -y
       - run: cargo check
