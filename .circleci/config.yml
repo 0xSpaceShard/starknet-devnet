@@ -174,8 +174,11 @@ jobs:
 
     steps:
       - run: git clone https://github.com/0xSpaceShard/starknet-devnet.git .
-      - run: curl -o rustup https://sh.rustup.rs
-      - run: bash rustup -y
+      # - run: curl -o rustup https://sh.rustup.rs
+      # - run: bash rustup -y
+      - run: rustup --version
+      - run: rustup show
+      - run: choco install -y mingw
       - run: cargo check
 
 # Orchestrate jobs using workflows
