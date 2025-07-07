@@ -173,6 +173,7 @@ jobs:
       size: medium
 
     steps:
+      - run: git clone https://github.com/0xSpaceShard/starknet-devnet.git .
       - run: curl -o rustup https://sh.rustup.rs
       - run: bash rustup -y
       - run: cargo check
