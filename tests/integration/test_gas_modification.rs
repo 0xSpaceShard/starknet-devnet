@@ -135,7 +135,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         to_hex_felt(&DEVNET_DEFAULT_L2_GAS_PRICE)
     );
     assert_eq!(resp_no_flags["transaction_trace"]["execution_resources"]["l1_gas"], 0);
-    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x13396558b158000");
+    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x99cb411f968000");
 
     let params_skip_validation_and_fee_charge = get_params(&["SKIP_VALIDATE", "SKIP_FEE_CHARGE"]);
     let resp_skip_validation = &devnet
@@ -159,7 +159,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         to_hex_felt(&DEVNET_DEFAULT_L2_GAS_PRICE)
     );
     assert_eq!(resp_no_flags["transaction_trace"]["execution_resources"]["l1_gas"], 0);
-    assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x132bc0e30568000");
+    assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x995e1d72370000");
 
     let should_skip_fee_invocation = true;
     assert_difference_if_validation(
@@ -198,7 +198,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         to_hex_felt(&l1_data_fri_price)
     );
     assert_eq!(resp_no_flags["fee_estimation"]["l2_gas_price"], to_hex_felt(&l2_fri_price));
-    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0xe8c07705124d0f5cff0000");
+    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0xe8c077047881faf1800000");
 
     let resp_skip_validation = &devnet
         .send_custom_rpc("starknet_simulateTransactions", params_skip_validation_and_fee_charge)
@@ -210,7 +210,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         to_hex_felt(&l1_data_fri_price)
     );
     assert_eq!(resp_skip_validation["fee_estimation"]["l2_gas_price"], to_hex_felt(&l2_fri_price));
-    assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0xe81b4b22946909601f8000");
+    assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0xe81b4b21fb0b18a2000000");
 
     assert_difference_if_validation(
         resp_no_flags,
