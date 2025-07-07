@@ -196,7 +196,7 @@ workflows:
       #           platform: unknown-linux-musl
       #     target_triplet: << matrix.arch >>-<< matrix.platform >>
       #     archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
-      - test-windows:
+      - test-windows
       #     <<: *on_main
       # - image-build-amd:
       #     <<: *on_main
