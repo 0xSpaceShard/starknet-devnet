@@ -157,13 +157,9 @@ fn estimate_transaction_fee<S: StateReader>(
         Transaction::L1Handler(tx) => tx.fee_type(),
     };
 
-    // Tip is 1 Gfri according to https://spaceshard.slack.com/archives/C029F9AN8LX/p1748505695689869?thread_ts=1748445660.739039&cid=C029F9AN8LX
-    let total_fee = fee_utils::get_fee_by_gas_vector(
-        block_context.block_info(),
-        gas_vector,
-        &fee_type,
-        Tip(1e9 as u64),
-    );
+    // Tip is 0 Gfri according to https://spaceshard.slack.com/archives/C03031Y0LKC/p1751873286905609?thread_ts=1751635985.448309&cid=C03031Y0LKC
+    let total_fee =
+        fee_utils::get_fee_by_gas_vector(block_context.block_info(), gas_vector, &fee_type, Tip(0));
 
     let gas_prices = &block_context.block_info().gas_prices;
     let l1_gas_price = gas_prices.l1_gas_price(&fee_type).get();

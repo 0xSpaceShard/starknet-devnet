@@ -21,7 +21,7 @@ use starknet_rs_signers::{LocalWallet, Signer};
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_CONTRACT_PATH, CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH,
-    CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, MINIMAL_TIP,
+    CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS,
     QUERY_VERSION_OFFSET, UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
@@ -33,8 +33,7 @@ use crate::common::utils::{
 fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
     assert_eq!(
         fee_estimation.l1_data_gas_consumed * fee_estimation.l1_data_gas_price
-            + fee_estimation.l2_gas_consumed
-                * (fee_estimation.l2_gas_price + Felt::from(MINIMAL_TIP))
+            + fee_estimation.l2_gas_consumed * fee_estimation.l2_gas_price
             + fee_estimation.l1_gas_consumed * fee_estimation.l1_gas_price,
         fee_estimation.overall_fee
     );

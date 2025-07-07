@@ -109,6 +109,3 @@ pub const DEFAULT_ANVIL_MNEMONIC_PHRASE: &str =
 /// Account at index 0 if DEFAULT_ANVIL_MNEMONIC_PHRASE used
 pub const DEFAULT_ETH_ACCOUNT_PRIVATE_KEY: &str =
     "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
-
-// Tip is 1 Gfri according to https://spaceshard.slack.com/archives/C029F9AN8LX/p1748505695689869?thread_ts=1748445660.739039&cid=C029F9AN8LX
-pub const MINIMAL_TIP: u64 = 1e9 as u64;
