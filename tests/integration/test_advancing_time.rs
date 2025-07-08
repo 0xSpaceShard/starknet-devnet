@@ -42,6 +42,13 @@ pub fn assert_gt_with_buffer(val1: u64, val2: u64) {
     assert!(val1 <= upper_limit, "Failed inequation: {val1:?} <= {upper_limit:?}");
 }
 
+fn assert_eq_with_buffer(val1: u64, val2: u64) {
+    assert!(
+        val1.abs_diff(val2) < BUFFER_TIME_SECONDS,
+        "Failed equality assertion with buffer: {val1} != {val2}"
+    );
+}
+
 pub async fn setup_timestamp_contract(devnet: &BackgroundDevnet) -> Felt {
     let (signer, address) = devnet.get_first_predeployed_account().await;
     let predeployed_account = SingleOwnerAccount::new(
@@ -299,6 +306,38 @@ async fn set_time_in_future_block_generation_on_demand() {
         .expect("Could not start Devnet");
 
     set_time_in_future(&devnet).await;
+}
+
+#[tokio::test]
+async fn set_time_with_preconfirmed_txs() {
+    let start_time = get_unix_timestamp_as_seconds();
+    let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
+        .await
+        .unwrap();
+
+    let dummy_address = Felt::ONE;
+    let dummy_amount = 1_u128;
+
+    let mut sent_mint_txs = vec![];
+    for _ in 0..2 {
+        let mint_tx = devnet.mint(dummy_address, dummy_amount).await;
+        sent_mint_txs.push(mint_tx);
+    }
+    sent_mint_txs.sort();
+
+    let pre_confirmed_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
+    let mut pre_confirmed_txs = pre_confirmed_block.transactions.clone();
+    pre_confirmed_txs.sort();
+    assert_eq!(pre_confirmed_txs, sent_mint_txs);
+    assert_eq_with_buffer(pre_confirmed_block.timestamp, start_time);
+
+    let future_time = set_time(&devnet, start_time + 1000).await;
+
+    let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+    let mut latest_txs = latest_block.transactions.clone();
+    latest_txs.sort();
+    assert_eq!(latest_txs, sent_mint_txs);
+    assert_ge_with_buffer(latest_block.timestamp, future_time);
 }
 
 #[tokio::test]
