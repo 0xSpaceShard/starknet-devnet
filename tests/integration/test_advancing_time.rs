@@ -309,21 +309,19 @@ async fn set_time_in_future_block_generation_on_demand() {
 }
 
 #[tokio::test]
-async fn set_time_with_preconfirmed_txs() {
+async fn set_time_with_pre_confirmed_txs() {
     let start_time = get_unix_timestamp_as_seconds();
     let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
         .await
         .unwrap();
 
-    let dummy_address = Felt::ONE;
-    let dummy_amount = 1_u128;
-
     let mut sent_mint_txs = vec![];
     for _ in 0..2 {
-        let mint_tx = devnet.mint(dummy_address, dummy_amount).await;
+        // dummy data
+        let mint_tx = devnet.mint(Felt::ONE, 1_u128).await;
         sent_mint_txs.push(mint_tx);
     }
-    sent_mint_txs.sort();
+    sent_mint_txs.sort(); // sorting to allow equality assertion
 
     let pre_confirmed_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
     let mut pre_confirmed_txs = pre_confirmed_block.transactions.clone();
