@@ -17,9 +17,9 @@ use starknet_rs_signers::Signer;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH};
 use crate::common::utils::{
-    FeeUnit, UniqueAutoDeletableFile, assert_equal_elements, assert_tx_successful,
-    get_contract_balance, get_contract_balance_by_block_id, get_events_contract_artifacts,
-    get_simple_contract_artifacts, send_ctrl_c_signal_and_wait,
+    FeeUnit, UniqueAutoDeletableFile, assert_equal_elements, assert_tx_succeeded_pre_confirmed,
+    assert_tx_successful, get_contract_balance, get_contract_balance_by_block_id,
+    get_events_contract_artifacts, get_simple_contract_artifacts, send_ctrl_c_signal_and_wait,
 };
 
 static DUMMY_ADDRESS: u128 = 1;
@@ -67,7 +67,7 @@ async fn assert_pre_confirmed_block_with_tx_hashes(devnet: &BackgroundDevnet, tx
     assert_eq!(pre_confirmed_block.transactions.len(), tx_count);
 
     for tx_hash in pre_confirmed_block.transactions {
-        assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
+        assert_tx_succeeded_pre_confirmed(&tx_hash, &devnet.json_rpc_client).await;
     }
 }
 
@@ -93,7 +93,7 @@ async fn assert_pre_confirmed_block_with_txs(devnet: &BackgroundDevnet, tx_count
     assert_eq!(pre_confirmed_block.transactions.len(), tx_count);
 
     for tx in pre_confirmed_block.transactions {
-        assert_tx_successful(tx.transaction_hash(), &devnet.json_rpc_client).await;
+        assert_tx_succeeded_pre_confirmed(tx.transaction_hash(), &devnet.json_rpc_client).await;
     }
 }
 
@@ -140,7 +140,7 @@ async fn assert_pre_confirmed_block_with_receipts(devnet: &BackgroundDevnet, tx_
     assert_eq!(pre_confirmed_block["transactions"].as_array().unwrap().len(), tx_count);
 
     for tx in pre_confirmed_block["transactions"].as_array().unwrap() {
-        assert_tx_successful(
+        assert_tx_succeeded_pre_confirmed(
             &Felt::from_hex_unchecked(tx["receipt"]["transaction_hash"].as_str().unwrap()),
             &devnet.json_rpc_client,
         )
@@ -219,22 +219,24 @@ async fn assert_get_class_hash_at(devnet: &BackgroundDevnet) {
 async fn normal_mode_states_and_blocks() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
 
-    let tx_count = 5;
+    let tx_count = 5_u64;
     let mut tx_hashes = Vec::new();
     for _ in 0..tx_count {
         let mint_hash = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         tx_hashes.push(mint_hash);
     }
 
-    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::PreConfirmed).await;
-    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest).await;
+    assert_balance(&devnet, Felt::from(tx_count as u128 * DUMMY_AMOUNT), BlockTag::PreConfirmed)
+        .await;
+    assert_balance(&devnet, Felt::from(tx_count as u128 * DUMMY_AMOUNT), BlockTag::Latest).await;
 
     assert_pre_confirmed_block_with_tx_hashes(&devnet, 0).await;
     assert_pre_confirmed_block_with_txs(&devnet, 0).await;
     assert_pre_confirmed_block_with_receipts(&devnet, 0).await;
-    assert_latest_block_with_tx_hashes(&devnet, 5, vec![tx_hashes.last().copied().unwrap()]).await;
-    assert_latest_block_with_txs(&devnet, 5, 1).await;
-    assert_latest_block_with_receipts(&devnet, 5, 1).await;
+    assert_latest_block_with_tx_hashes(&devnet, tx_count, vec![tx_hashes.last().copied().unwrap()])
+        .await;
+    assert_latest_block_with_txs(&devnet, tx_count, 1).await;
+    assert_latest_block_with_receipts(&devnet, tx_count, 1).await;
 
     assert_pre_confirmed_state_update(&devnet).await;
     assert_latest_state_update(&devnet).await;
@@ -310,7 +312,11 @@ async fn blocks_on_demand_declarations() {
             .send()
             .await
             .unwrap();
-        assert_tx_successful(&declaration_result.transaction_hash, &devnet.json_rpc_client).await;
+        assert_tx_succeeded_pre_confirmed(
+            &declaration_result.transaction_hash,
+            &devnet.json_rpc_client,
+        )
+        .await;
         declaration_results.push(declaration_result);
     }
 
@@ -429,7 +435,8 @@ async fn blocks_on_demand_invoke_and_call() {
             .await
             .unwrap();
 
-        assert_tx_successful(&invoke_result.transaction_hash, &devnet.json_rpc_client).await;
+        assert_tx_succeeded_pre_confirmed(&invoke_result.transaction_hash, &devnet.json_rpc_client)
+            .await;
 
         tx_hashes.push(invoke_result.transaction_hash);
     }

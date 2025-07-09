@@ -115,6 +115,19 @@ pub async fn assert_tx_successful<T: Provider>(tx_hash: &Felt, client: &T) {
     }
 }
 
+pub async fn assert_tx_succeeded_pre_confirmed<T: Provider>(tx_hash: &Felt, client: &T) {
+    let receipt = client.get_transaction_receipt(tx_hash).await.unwrap().receipt;
+    match receipt.execution_result() {
+        ExecutionResult::Succeeded => (),
+        other => panic!("Should have succeeded; got: {other:?}"),
+    }
+
+    match receipt.finality_status() {
+        starknet_rs_core::types::TransactionFinalityStatus::PreConfirmed => (),
+        other => panic!("Should be pre_confirmed; got: {other:?}"),
+    }
+}
+
 pub async fn get_contract_balance(devnet: &BackgroundDevnet, contract_address: Felt) -> Felt {
     get_contract_balance_by_block_id(devnet, contract_address, BlockId::Tag(BlockTag::Latest)).await
 }
