@@ -461,8 +461,8 @@ async fn test_simulation_of_panicking_invoke() {
         starknet_rs_core::types::MaybePreConfirmedBlockWithTxHashes::Block(latest) => {
             latest.l2_gas_price.price_in_fri
         }
-        MaybePreConfirmedBlockWithTxHashes::PreConfirmedBlock(pending) => {
-            pending.l2_gas_price.price_in_fri
+        MaybePreConfirmedBlockWithTxHashes::PreConfirmedBlock(pre_confirmed) => {
+            pre_confirmed.l2_gas_price.price_in_fri
         }
     };
     let gas_price = u128::from_le_bytes(gas_price.to_bytes_le()[..16].try_into().unwrap());

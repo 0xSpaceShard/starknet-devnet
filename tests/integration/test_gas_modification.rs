@@ -286,15 +286,15 @@ async fn set_gas_check_blocks() {
     let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
     assert_eq!(latest_block.block_number, 0);
 
-    let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
-    assert_eq!(pending_block.l1_gas_price, default_gas_price);
-    assert_eq!(pending_block.l1_data_gas_price, default_gas_price);
+    let pre_confirmed_block = devnet.get_pre_confirmed_block_with_tx_hashes().await.unwrap();
+    assert_eq!(pre_confirmed_block.l1_gas_price, default_gas_price);
+    assert_eq!(pre_confirmed_block.l1_data_gas_price, default_gas_price);
 
     devnet.create_block().await.unwrap();
 
-    let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
-    assert_eq!(pending_block.l1_gas_price, first_update_gas_price);
-    assert_eq!(pending_block.l1_data_gas_price, first_update_data_gas_price);
+    let pre_confirmed_block = devnet.get_pre_confirmed_block_with_tx_hashes().await.unwrap();
+    assert_eq!(pre_confirmed_block.l1_gas_price, first_update_gas_price);
+    assert_eq!(pre_confirmed_block.l1_data_gas_price, first_update_data_gas_price);
 
     let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
     assert_eq!(latest_block.block_number, 1);
@@ -327,10 +327,10 @@ async fn set_gas_check_blocks() {
     assert_eq!(latest_block.l1_data_gas_price, second_update_data_gas_price);
     assert_eq!(latest_block.l2_gas_price, second_update_l2_gas_price);
 
-    let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
-    assert_eq!(pending_block.l1_gas_price, second_update_gas_price);
-    assert_eq!(pending_block.l1_data_gas_price, second_update_data_gas_price);
-    assert_eq!(pending_block.l2_gas_price, second_update_l2_gas_price);
+    let pre_confirmed_block = devnet.get_pre_confirmed_block_with_tx_hashes().await.unwrap();
+    assert_eq!(pre_confirmed_block.l1_gas_price, second_update_gas_price);
+    assert_eq!(pre_confirmed_block.l1_data_gas_price, second_update_data_gas_price);
+    assert_eq!(pre_confirmed_block.l2_gas_price, second_update_l2_gas_price);
 }
 
 #[tokio::test]
@@ -375,23 +375,23 @@ async fn unsuccessful_declare_set_gas_successful_declare() {
     let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
     assert_eq!(latest_block.block_number, 1);
 
-    let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
+    let pre_confirmed_block = devnet.get_pre_confirmed_block_with_tx_hashes().await.unwrap();
     assert_eq!(
-        pending_block.l1_gas_price,
+        pre_confirmed_block.l1_gas_price,
         ResourcePrice {
             price_in_wei: u128::from(DEVNET_DEFAULT_L1_GAS_PRICE).into(),
             price_in_fri: u128::from(DEVNET_DEFAULT_L1_GAS_PRICE).into()
         }
     );
     assert_eq!(
-        pending_block.l1_data_gas_price,
+        pre_confirmed_block.l1_data_gas_price,
         ResourcePrice {
             price_in_wei: u128::from(DEVNET_DEFAULT_L1_DATA_GAS_PRICE).into(),
             price_in_fri: u128::from(DEVNET_DEFAULT_L1_DATA_GAS_PRICE).into()
         }
     );
     assert_eq!(
-        pending_block.l2_gas_price,
+        pre_confirmed_block.l2_gas_price,
         ResourcePrice {
             price_in_wei: u128::from(DEVNET_DEFAULT_L2_GAS_PRICE).into(),
             price_in_fri: new_l2_fri_price.into()

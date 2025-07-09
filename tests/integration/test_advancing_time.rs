@@ -323,7 +323,7 @@ async fn set_time_with_pre_confirmed_txs() {
     }
     sent_mint_txs.sort(); // sorting to allow equality assertion
 
-    let pre_confirmed_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
+    let pre_confirmed_block = devnet.get_pre_confirmed_block_with_tx_hashes().await.unwrap();
     let mut pre_confirmed_txs = pre_confirmed_block.transactions.clone();
     pre_confirmed_txs.sort();
     assert_eq!(pre_confirmed_txs, sent_mint_txs);
@@ -566,32 +566,32 @@ async fn set_time_with_later_block_generation() {
 }
 
 #[tokio::test]
-async fn correct_pending_block_timestamp() {
+async fn correct_pre_confirmed_block_timestamp() {
     let initial_time = get_unix_timestamp_as_seconds();
     let devnet =
         BackgroundDevnet::spawn_with_additional_args(&["--start-time", &initial_time.to_string()])
             .await
             .unwrap();
 
-    let block = devnet.get_pending_block_with_txs().await.unwrap();
+    let block = devnet.get_pre_confirmed_block_with_txs().await.unwrap();
     assert_eq!(block.timestamp, initial_time);
 }
 
 #[tokio::test]
-async fn correct_pending_block_timestamp_after_setting() {
+async fn correct_pre_confirmed_block_timestamp_after_setting() {
     let initial_time = get_unix_timestamp_as_seconds();
     let devnet =
         BackgroundDevnet::spawn_with_additional_args(&["--start-time", &initial_time.to_string()])
             .await
             .unwrap();
 
-    let block = devnet.get_pending_block_with_txs().await.unwrap();
+    let block = devnet.get_pre_confirmed_block_with_txs().await.unwrap();
     assert_eq!(block.timestamp, initial_time);
 
     sleep_until_new_timestamp().await;
     devnet.create_block().await.unwrap();
 
-    let block = devnet.get_pending_block_with_txs().await.unwrap();
+    let block = devnet.get_pre_confirmed_block_with_txs().await.unwrap();
     assert_gt_with_buffer(block.timestamp, initial_time);
 }
 

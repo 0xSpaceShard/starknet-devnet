@@ -280,7 +280,7 @@ impl BackgroundDevnet {
     }
 
     /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`
-    /// from pending state or latest state
+    /// from pre_confirmed state or latest state
     pub async fn get_balance_by_tag(
         &self,
         address: &Felt,
@@ -365,7 +365,7 @@ impl BackgroundDevnet {
         }
     }
 
-    pub async fn get_pending_block_with_tx_hashes(
+    pub async fn get_pre_confirmed_block_with_tx_hashes(
         &self,
     ) -> Result<PreConfirmedBlockWithTxHashes, anyhow::Error> {
         match self
@@ -385,7 +385,7 @@ impl BackgroundDevnet {
         }
     }
 
-    pub async fn get_pending_block_with_txs(
+    pub async fn get_pre_confirmed_block_with_txs(
         &self,
     ) -> Result<PreConfirmedBlockWithTxs, anyhow::Error> {
         match self.json_rpc_client.get_block_with_txs(BlockId::Tag(BlockTag::PreConfirmed)).await {
