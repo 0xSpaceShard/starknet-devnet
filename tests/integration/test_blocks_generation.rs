@@ -6,7 +6,7 @@ use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
     BlockId, BlockStatus, BlockTag, Call, DeclaredClassItem, Felt, FunctionCall,
-    MaybePendingStateUpdate, NonceUpdate, StateUpdate, TransactionTrace,
+    MaybePreConfirmedStateUpdate, NonceUpdate, StateUpdate, TransactionTrace,
 };
 use starknet_rs_core::utils::{
     get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
@@ -26,17 +26,20 @@ static DUMMY_ADDRESS: u128 = 1;
 static DUMMY_AMOUNT: u128 = 1;
 
 async fn assert_pending_state_update(devnet: &BackgroundDevnet) {
-    let pending_state_update =
-        &devnet.json_rpc_client.get_state_update(BlockId::Tag(BlockTag::Pending)).await.unwrap();
+    let pending_state_update = &devnet
+        .json_rpc_client
+        .get_state_update(BlockId::Tag(BlockTag::PreConfirmed))
+        .await
+        .unwrap();
 
-    assert!(matches!(pending_state_update, MaybePendingStateUpdate::PendingUpdate(_)));
+    assert!(matches!(pending_state_update, MaybePreConfirmedStateUpdate::PreConfirmedUpdate(_)));
 }
 
 async fn assert_latest_state_update(devnet: &BackgroundDevnet) {
     let latest_state_update =
         &devnet.json_rpc_client.get_state_update(BlockId::Tag(BlockTag::Latest)).await.unwrap();
 
-    assert!(matches!(latest_state_update, MaybePendingStateUpdate::Update(_)));
+    assert!(matches!(latest_state_update, MaybePreConfirmedStateUpdate::Update(_)));
 }
 
 async fn assert_latest_block_with_tx_hashes(
@@ -153,7 +156,7 @@ async fn assert_get_nonce(devnet: &BackgroundDevnet) {
 
     let pending_block_nonce = devnet
         .json_rpc_client
-        .get_nonce(BlockId::Tag(BlockTag::Pending), account_address)
+        .get_nonce(BlockId::Tag(BlockTag::PreConfirmed), account_address)
         .await
         .unwrap();
     assert_eq!(pending_block_nonce, Felt::ZERO);
@@ -172,7 +175,7 @@ async fn assert_get_storage_at(devnet: &BackgroundDevnet) {
 
     let pending_block_storage = devnet
         .json_rpc_client
-        .get_storage_at(account_address, key, BlockId::Tag(BlockTag::Pending))
+        .get_storage_at(account_address, key, BlockId::Tag(BlockTag::PreConfirmed))
         .await
         .unwrap();
     assert_eq!(pending_block_storage, Felt::ZERO);
@@ -190,7 +193,7 @@ async fn assert_get_class_hash_at(devnet: &BackgroundDevnet) {
 
     let pending_block_class_hash = devnet
         .json_rpc_client
-        .get_class_hash_at(BlockId::Tag(BlockTag::Pending), account_address)
+        .get_class_hash_at(BlockId::Tag(BlockTag::PreConfirmed), account_address)
         .await
         .unwrap();
     assert_eq!(
@@ -221,7 +224,7 @@ async fn normal_mode_states_and_blocks() {
         tx_hashes.push(mint_hash);
     }
 
-    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::Pending).await;
+    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::PreConfirmed).await;
     assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest).await;
 
     assert_pending_block_with_tx_hashes(&devnet, 0).await;
@@ -249,7 +252,8 @@ async fn blocks_on_demand_states_and_blocks() {
         tx_hashes.push(mint_hash);
     }
 
-    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Pending).await;
+    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::PreConfirmed)
+        .await;
     assert_balance(&devnet, Felt::ZERO, BlockTag::Latest).await;
 
     assert_pending_block_with_tx_hashes(&devnet, tx_count).await;
@@ -263,7 +267,8 @@ async fn blocks_on_demand_states_and_blocks() {
     // create new block from pre_confirmed block
     devnet.create_block().await.unwrap();
 
-    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Pending).await;
+    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::PreConfirmed)
+        .await;
     assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Latest).await;
 
     assert_pending_block_with_tx_hashes(&devnet, 0).await;
@@ -292,7 +297,7 @@ async fn blocks_on_demand_declarations() {
         constants::CHAIN_ID,
         ExecutionEncoding::New,
     );
-    predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
+    predeployed_account.set_block_id(BlockId::Tag(BlockTag::PreConfirmed));
 
     // perform declarations
     let classes_with_hash = [get_simple_contract_artifacts(), get_events_contract_artifacts()];
@@ -348,7 +353,7 @@ async fn blocks_on_demand_declarations() {
     }];
     for block_id in [BlockId::Tag(BlockTag::Latest), BlockId::Hash(declaration_block_hash)] {
         match devnet.json_rpc_client.get_state_update(block_id).await {
-            Ok(MaybePendingStateUpdate::Update(StateUpdate { state_diff, .. })) => {
+            Ok(MaybePreConfirmedStateUpdate::Update(StateUpdate { state_diff, .. })) => {
                 assert_equal_elements(&state_diff.declared_classes, &expected_block_declarations);
                 assert_equal_elements(&state_diff.nonces, &expected_block_nonce_update)
             }
@@ -374,7 +379,7 @@ async fn blocks_on_demand_invoke_and_call() {
         constants::CHAIN_ID,
         ExecutionEncoding::New,
     );
-    predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
+    predeployed_account.set_block_id(BlockId::Tag(BlockTag::PreConfirmed));
 
     let (contract_class, casm_class_hash) = get_simple_contract_artifacts();
 
@@ -436,7 +441,7 @@ async fn blocks_on_demand_invoke_and_call() {
         get_contract_balance_by_block_id(
             &devnet,
             contract_address,
-            BlockId::Tag(BlockTag::Pending)
+            BlockId::Tag(BlockTag::PreConfirmed)
         )
         .await,
         expected_balance
@@ -458,7 +463,7 @@ async fn blocks_on_demand_invoke_and_call() {
         get_contract_balance_by_block_id(
             &devnet,
             contract_address,
-            BlockId::Tag(BlockTag::Pending)
+            BlockId::Tag(BlockTag::PreConfirmed)
         )
         .await,
         expected_balance

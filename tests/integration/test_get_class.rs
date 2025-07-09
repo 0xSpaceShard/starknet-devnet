@@ -132,7 +132,7 @@ async fn test_getting_class_with_blocks_on_demand() {
 
     // getting class at the following block IDs should be successful even before block creation
     let expected_class = ContractClass::Sierra(contract_class);
-    for block_id in [BlockId::Tag(BlockTag::Pending)] {
+    for block_id in [BlockId::Tag(BlockTag::PreConfirmed)] {
         let retrieved_class = devnet
             .json_rpc_client
             .get_class(block_id, declaration_result.class_hash)
@@ -147,7 +147,7 @@ async fn test_getting_class_with_blocks_on_demand() {
     // getting class at the following block IDs should be successful after block creation
     for block_id in [
         BlockId::Tag(BlockTag::Latest),
-        BlockId::Tag(BlockTag::Pending),
+        BlockId::Tag(BlockTag::PreConfirmed),
         declaration_block_number,
         BlockId::Hash(declaration_block_hash),
     ] {
@@ -196,7 +196,7 @@ async fn test_getting_class_after_block_abortion() {
         (BlockId::Number(abortable_block.block_number), StarknetError::BlockNotFound),
         (BlockId::Hash(abortable_block.block_hash), StarknetError::BlockNotFound),
         (BlockId::Tag(BlockTag::Latest), StarknetError::ClassHashNotFound),
-        (BlockId::Tag(BlockTag::Pending), StarknetError::ClassHashNotFound),
+        (BlockId::Tag(BlockTag::PreConfirmed), StarknetError::ClassHashNotFound),
     ] {
         let retrieved =
             devnet.json_rpc_client.get_class(block_id, declaration_result.class_hash).await;
@@ -215,7 +215,7 @@ async fn test_getting_class_after_block_abortion() {
         (BlockId::Hash(abortable_block.block_hash), StarknetError::BlockNotFound),
         (BlockId::Hash(latest_block_hash), StarknetError::ClassHashNotFound),
         (BlockId::Tag(BlockTag::Latest), StarknetError::ClassHashNotFound),
-        (BlockId::Tag(BlockTag::Pending), StarknetError::ClassHashNotFound),
+        (BlockId::Tag(BlockTag::PreConfirmed), StarknetError::ClassHashNotFound),
     ] {
         let retrieved =
             devnet.json_rpc_client.get_class(block_id, declaration_result.class_hash).await;

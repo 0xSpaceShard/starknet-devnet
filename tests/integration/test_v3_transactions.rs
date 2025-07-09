@@ -131,7 +131,8 @@ async fn declare_from_an_account_with_insufficient_strk_tokens_balance() {
         devnet.get_balance_by_tag(&account_address, FeeUnit::Fri, BlockTag::Latest).await.unwrap();
 
     // transfer balance of the account without the amount of fee
-    let amount_to_transfer = account_strk_balance - estimate_fee.overall_fee + Felt::ONE;
+    let amount_to_transfer =
+        account_strk_balance - Felt::from(estimate_fee.overall_fee) + Felt::ONE;
     let amount_to_transfer = U256::from(amount_to_transfer);
 
     let invoke_txn_result = account
@@ -152,7 +153,7 @@ async fn declare_from_an_account_with_insufficient_strk_tokens_balance() {
 
     let account_strk_balance =
         devnet.get_balance_by_tag(&account_address, FeeUnit::Fri, BlockTag::Latest).await.unwrap();
-    assert!(estimate_fee.overall_fee > account_strk_balance);
+    assert!(Felt::from(estimate_fee.overall_fee) > account_strk_balance);
 
     match declaration.send().await.unwrap_err() {
         starknet_rs_accounts::AccountError::Provider(ProviderError::StarknetError(

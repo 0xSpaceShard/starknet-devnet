@@ -628,20 +628,14 @@ impl From<LocalFee> for ResourceBoundsMapping {
 
 impl From<FeeEstimate> for LocalFee {
     fn from(fee: FeeEstimate) -> Self {
-        let l1_gas_consumed =
-            u64::from_le_bytes(fee.l1_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
-        let l1_gas_price =
-            u128::from_le_bytes(fee.l1_gas_price.to_bytes_le()[..16].try_into().unwrap());
+        let l1_gas_consumed = fee.l1_gas_consumed;
+        let l1_gas_price = fee.l1_gas_price;
 
-        let l2_gas_consumed =
-            u64::from_le_bytes(fee.l2_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
-        let l2_gas_price =
-            u128::from_le_bytes(fee.l2_gas_price.to_bytes_le()[..16].try_into().unwrap());
+        let l2_gas_consumed = fee.l2_gas_consumed;
+        let l2_gas_price = fee.l2_gas_price;
 
-        let l1_data_gas_consumed =
-            u64::from_le_bytes(fee.l1_data_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
-        let l1_data_gas_price =
-            u128::from_le_bytes(fee.l1_data_gas_price.to_bytes_le()[..16].try_into().unwrap());
+        let l1_data_gas_consumed = fee.l1_data_gas_consumed;
+        let l1_data_gas_price = fee.l1_data_gas_price;
 
         LocalFee {
             l1_gas: l1_gas_consumed,

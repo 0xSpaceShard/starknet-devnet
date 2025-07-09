@@ -23,11 +23,11 @@ rand = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-starknet-rs-accounts = { workspace = true }
-starknet-rs-contract = { workspace = true }
-starknet-rs-core = { workspace = true }
-starknet-rs-providers = { workspace = true }
-starknet-rs-signers = { workspace = true }
+starknet-rs-accounts = { package = "starknet-accounts", git = "https://github.com/0xSpaceShard/starknet-rs.git", branch = "rpc-0.9" }
+starknet-rs-contract = { package = "starknet-contract", git = "https://github.com/0xSpaceShard/starknet-rs.git", branch = "rpc-0.9" }
+starknet-rs-core = { package = "starknet-core", git = "https://github.com/0xSpaceShard/starknet-rs.git", branch = "rpc-0.9" }
+starknet-rs-providers = { package = "starknet-providers", git = "https://github.com/0xSpaceShard/starknet-rs.git", branch = "rpc-0.9" }
+starknet-rs-signers = { package = "starknet-signers", git = "https://github.com/0xSpaceShard/starknet-rs.git", branch = "rpc-0.9" }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["signal"] }
 tokio-tungstenite = { workspace = true }

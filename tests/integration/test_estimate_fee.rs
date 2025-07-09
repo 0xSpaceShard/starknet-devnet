@@ -31,13 +31,12 @@ use crate::common::utils::{
 };
 
 fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
-    assert_eq!(
-        fee_estimation.l1_data_gas_consumed * fee_estimation.l1_data_gas_price
-            + fee_estimation.l2_gas_consumed * fee_estimation.l2_gas_price
-            + fee_estimation.l1_gas_consumed * fee_estimation.l1_gas_price,
-        fee_estimation.overall_fee
-    );
-    assert!(fee_estimation.overall_fee > Felt::ZERO, "Checking fee_estimation: {fee_estimation:?}");
+    let calculated = u128::from(fee_estimation.l1_data_gas_consumed)
+        * fee_estimation.l1_data_gas_price
+        + u128::from(fee_estimation.l2_gas_consumed) * fee_estimation.l2_gas_price
+        + u128::from(fee_estimation.l1_gas_consumed) * fee_estimation.l1_gas_price;
+    assert_eq!(calculated, fee_estimation.overall_fee);
+    assert!(fee_estimation.overall_fee > 0, "Checking fee_estimation: {fee_estimation:?}");
 }
 
 #[tokio::test]
@@ -71,8 +70,8 @@ async fn estimate_fee_of_deploy_account() {
     assert_fee_estimation(&fee_estimation);
 
     // fund the account before deployment
-    let mint_amount = fee_estimation.overall_fee * Felt::TWO;
-    devnet.mint(deployment_address, mint_amount.to_biguint().try_into().unwrap()).await;
+    let mint_amount = fee_estimation.overall_fee * 2;
+    devnet.mint(deployment_address, mint_amount).await;
     let fee = LocalFee::from(fee_estimation);
     // try sending with insufficient resource bounds
     let unsuccessful_deployment_tx = account_factory

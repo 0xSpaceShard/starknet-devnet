@@ -65,8 +65,8 @@ async fn estimate_message_fee() {
         .await
         .unwrap();
 
-    assert_eq!(res.l1_gas_consumed, Felt::from(16030));
-    assert_eq!(res.l2_gas_consumed, Felt::ZERO);
+    assert_eq!(res.l1_gas_consumed, 16030);
+    assert_eq!(res.l2_gas_consumed, 0);
     assert_eq!(res.unit, PriceUnit::Wei);
 }
 

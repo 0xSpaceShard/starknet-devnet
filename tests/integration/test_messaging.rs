@@ -94,7 +94,7 @@ async fn get_balance(devnet: &BackgroundDevnet, contract_address: Felt, user: Fe
         calldata: vec![user],
     };
 
-    devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Pending)).await.unwrap()
+    devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::PreConfirmed)).await.unwrap()
 }
 
 /// Withdraws the given amount from a user and send this amount in a l2->l1 message
@@ -1018,9 +1018,9 @@ async fn withdrawing_should_incur_l1_gas_cost() {
     }];
 
     let estimation = account.execute_v3(invoke_calls.clone()).estimate_fee().await.unwrap();
-    assert!(estimation.l1_gas_consumed > Felt::ZERO);
-    assert!(estimation.l1_data_gas_consumed > Felt::ZERO);
-    assert!(estimation.l2_gas_consumed > Felt::ZERO);
+    assert!(estimation.l1_gas_consumed > 0);
+    assert!(estimation.l1_data_gas_consumed > 0);
+    assert!(estimation.l2_gas_consumed > 0);
 
     let invocation = account
         .execute_v3(invoke_calls)
