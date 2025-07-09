@@ -198,7 +198,6 @@ async fn should_notify_if_already_in_latest_block_in_on_tx_mode() {
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn should_notify_only_once_in_on_demand_mode() {
     let devnet_args = ["--block-generation-on", "demand"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();

@@ -213,7 +213,6 @@ async fn assert_get_class_hash_at(devnet: &BackgroundDevnet) {
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn normal_mode_states_and_blocks() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
 
@@ -239,7 +238,6 @@ async fn normal_mode_states_and_blocks() {
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn blocks_on_demand_states_and_blocks() {
     let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
         .await
@@ -284,7 +282,6 @@ async fn blocks_on_demand_states_and_blocks() {
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn blocks_on_demand_declarations() {
     let devnet_args = ["--block-generation-on", "demand"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
@@ -363,7 +360,6 @@ async fn blocks_on_demand_declarations() {
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn blocks_on_demand_invoke_and_call() {
     let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
         .await
@@ -549,7 +545,6 @@ async fn blocks_on_interval_dump_and_load() {
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn get_nonce_of_first_predeployed_account_normal_mode() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
 
@@ -557,7 +552,6 @@ async fn get_nonce_of_first_predeployed_account_normal_mode() {
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn get_nonce_of_first_predeployed_account_block_on_demand() {
     let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
         .await
@@ -567,7 +561,6 @@ async fn get_nonce_of_first_predeployed_account_block_on_demand() {
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn get_storage_at_normal_mode() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
 
@@ -575,7 +568,6 @@ async fn get_storage_at_normal_mode() {
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn get_storage_at_block_on_demand() {
     let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
         .await
@@ -585,7 +577,6 @@ async fn get_storage_at_block_on_demand() {
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn get_class_hash_at_normal_mode() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
 
@@ -593,7 +584,6 @@ async fn get_class_hash_at_normal_mode() {
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn get_class_hash_at_block_on_demand() {
     let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
         .await

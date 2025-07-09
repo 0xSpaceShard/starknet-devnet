@@ -250,7 +250,6 @@ async fn fee_estimation_and_simulation_of_deployment_at_old_block_should_not_yie
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn test_getting_class_at_various_blocks() {
     let devnet_args = ["--state-archive-capacity", "full"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();

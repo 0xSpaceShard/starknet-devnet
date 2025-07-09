@@ -566,8 +566,6 @@ async fn set_time_with_later_block_generation() {
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
-
 async fn correct_pending_block_timestamp() {
     let initial_time = get_unix_timestamp_as_seconds();
     let devnet =
@@ -580,7 +578,6 @@ async fn correct_pending_block_timestamp() {
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn correct_pending_block_timestamp_after_setting() {
     let initial_time = get_unix_timestamp_as_seconds();
     let devnet =
