@@ -58,7 +58,7 @@ async fn test_aborted_blocks_not_subscribable() {
 }
 
 #[tokio::test]
-async fn test_pending_block_not_allowed_in_block_and_event_subscription() {
+async fn test_pre_confirmed_block_not_allowed_in_block_and_event_subscription() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
     let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
