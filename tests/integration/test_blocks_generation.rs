@@ -26,10 +26,13 @@ static DUMMY_ADDRESS: u128 = 1;
 static DUMMY_AMOUNT: u128 = 1;
 
 async fn assert_pending_state_update(devnet: &BackgroundDevnet) {
-    let pending_state_update =
-        &devnet.json_rpc_client.get_state_update(BlockId::Tag(BlockTag::Pending)).await.unwrap();
+    let pending_state_update = &devnet
+        .json_rpc_client
+        .get_state_update(BlockId::Tag(BlockTag::PreConfirmed))
+        .await
+        .unwrap();
 
-    assert!(matches!(pending_state_update, MaybePendingStateUpdate::PendingUpdate(_)));
+    assert!(matches!(pending_state_update, MaybePendingStateUpdate::PreConfirmedUpdate(_)));
 }
 
 async fn assert_latest_state_update(devnet: &BackgroundDevnet) {
@@ -153,7 +156,7 @@ async fn assert_get_nonce(devnet: &BackgroundDevnet) {
 
     let pending_block_nonce = devnet
         .json_rpc_client
-        .get_nonce(BlockId::Tag(BlockTag::Pending), account_address)
+        .get_nonce(BlockId::Tag(BlockTag::PreConfirmed), account_address)
         .await
         .unwrap();
     assert_eq!(pending_block_nonce, Felt::ZERO);
@@ -172,7 +175,7 @@ async fn assert_get_storage_at(devnet: &BackgroundDevnet) {
 
     let pending_block_storage = devnet
         .json_rpc_client
-        .get_storage_at(account_address, key, BlockId::Tag(BlockTag::Pending))
+        .get_storage_at(account_address, key, BlockId::Tag(BlockTag::PreConfirmed))
         .await
         .unwrap();
     assert_eq!(pending_block_storage, Felt::ZERO);
@@ -190,7 +193,7 @@ async fn assert_get_class_hash_at(devnet: &BackgroundDevnet) {
 
     let pending_block_class_hash = devnet
         .json_rpc_client
-        .get_class_hash_at(BlockId::Tag(BlockTag::Pending), account_address)
+        .get_class_hash_at(BlockId::Tag(BlockTag::PreConfirmed), account_address)
         .await
         .unwrap();
     assert_eq!(
@@ -221,7 +224,7 @@ async fn normal_mode_states_and_blocks() {
         tx_hashes.push(mint_hash);
     }
 
-    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::Pending).await;
+    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::PreConfirmed).await;
     assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest).await;
 
     assert_pending_block_with_tx_hashes(&devnet, 0).await;
@@ -249,7 +252,8 @@ async fn blocks_on_demand_states_and_blocks() {
         tx_hashes.push(mint_hash);
     }
 
-    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Pending).await;
+    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::PreConfirmed)
+        .await;
     assert_balance(&devnet, Felt::ZERO, BlockTag::Latest).await;
 
     assert_pending_block_with_tx_hashes(&devnet, tx_count).await;
@@ -263,7 +267,8 @@ async fn blocks_on_demand_states_and_blocks() {
     // create new block from pre_confirmed block
     devnet.create_block().await.unwrap();
 
-    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Pending).await;
+    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::PreConfirmed)
+        .await;
     assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Latest).await;
 
     assert_pending_block_with_tx_hashes(&devnet, 0).await;
@@ -292,7 +297,7 @@ async fn blocks_on_demand_declarations() {
         constants::CHAIN_ID,
         ExecutionEncoding::New,
     );
-    predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
+    predeployed_account.set_block_id(BlockId::Tag(BlockTag::PreConfirmed));
 
     // perform declarations
     let classes_with_hash = [get_simple_contract_artifacts(), get_events_contract_artifacts()];
@@ -374,7 +379,7 @@ async fn blocks_on_demand_invoke_and_call() {
         constants::CHAIN_ID,
         ExecutionEncoding::New,
     );
-    predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
+    predeployed_account.set_block_id(BlockId::Tag(BlockTag::PreConfirmed));
 
     let (contract_class, casm_class_hash) = get_simple_contract_artifacts();
 
@@ -436,7 +441,7 @@ async fn blocks_on_demand_invoke_and_call() {
         get_contract_balance_by_block_id(
             &devnet,
             contract_address,
-            BlockId::Tag(BlockTag::Pending)
+            BlockId::Tag(BlockTag::PreConfirmed)
         )
         .await,
         expected_balance
@@ -458,7 +463,7 @@ async fn blocks_on_demand_invoke_and_call() {
         get_contract_balance_by_block_id(
             &devnet,
             contract_address,
-            BlockId::Tag(BlockTag::Pending)
+            BlockId::Tag(BlockTag::PreConfirmed)
         )
         .await,
         expected_balance

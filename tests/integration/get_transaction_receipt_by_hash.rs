@@ -198,10 +198,10 @@ async fn reverted_invoke_transaction_receipt() {
 
     // send transaction with lower than estimated overall fee; should revert
     let transfer_result = transfer_execution
-        .l1_gas(fee.l1_gas_consumed.try_into().unwrap()) // Using as is, ok to be 0
+        .l1_gas(fee.l1_gas_consumed) // Using as is, ok to be 0
         // .l2_gas(u64::try_from(fee.l2_gas_consumed).unwrap() - 1) // subtract to induce failure
         .l2_gas(1156800 - 1) // TODO: determined experimentally as the actual value used minus 1
-        .l1_data_gas(fee.l1_data_gas_consumed.try_into().unwrap()) // using as is
+        .l1_data_gas(fee.l1_data_gas_consumed) // using as is
         .send()
         .await
         .unwrap();
@@ -222,7 +222,7 @@ async fn reverted_invoke_transaction_receipt() {
                 _ => panic!("Invalid receipt {:?}", receipt),
             }
             // due to earlier l2_gas - 1
-            assert!(receipt.actual_fee.amount <= fee.overall_fee - fee.l2_gas_price);
+            assert!(receipt.actual_fee.amount <= Felt::from(fee.overall_fee - fee.l2_gas_price));
         }
         _ => panic!("Invalid receipt {:?}", transfer_receipt),
     };

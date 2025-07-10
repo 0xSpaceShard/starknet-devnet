@@ -8,7 +8,7 @@ use starknet_rs_accounts::{
 };
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, DeployedContractItem, ExecuteInvocation, Felt, InvokeTransactionTrace,
+    ConfirmedBlockId, DeployedContractItem, ExecuteInvocation, Felt, InvokeTransactionTrace,
     StarknetError, TransactionTrace,
 };
 use starknet_rs_core::utils::{UdcUniqueness, get_selector_from_name, get_udc_deployed_address};
@@ -277,11 +277,8 @@ async fn get_traces_from_block() {
 
     let mint_tx_hash: Felt = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
-    let traces = devnet
-        .json_rpc_client
-        .trace_block_transactions(BlockId::Tag(BlockTag::Latest))
-        .await
-        .unwrap();
+    let traces =
+        devnet.json_rpc_client.trace_block_transactions(ConfirmedBlockId::Latest).await.unwrap();
     assert_eq!(traces.len(), 1);
     let trace = &traces[0];
     assert_eq!(trace.transaction_hash, mint_tx_hash);

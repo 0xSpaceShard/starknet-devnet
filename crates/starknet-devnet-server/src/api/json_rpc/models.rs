@@ -582,7 +582,7 @@ mod tests {
         assert_block_id_tag_correctness(true, BlockTag::Latest, r#"{"block_id": "latest"}"#);
         assert_block_id_tag_correctness(
             true,
-            BlockTag::Pending,
+            BlockTag::PreConfirmed,
             r#"{"block_id": "pre_confirmed"}"#,
         );
 
@@ -591,14 +591,18 @@ mod tests {
         assert_block_id_tag_correctness(false, BlockTag::Latest, r#"{"block_id": "pending"}"#);
         assert_block_id_tag_correctness(
             false,
-            BlockTag::Pending,
+            BlockTag::PreConfirmed,
             r#"{"block_id": "pre_confirmed_d"}"#,
         );
 
         // Incorrect key
         assert_block_id_tag_correctness(false, BlockTag::Latest, r#"{"block": "latest"}"#);
-        assert_block_id_tag_correctness(false, BlockTag::Pending, r#"{"block": "pending"}"#);
-        assert_block_id_tag_correctness(false, BlockTag::Pending, r#"{"block": "pre_confirmed"}"#);
+        assert_block_id_tag_correctness(false, BlockTag::PreConfirmed, r#"{"block": "pending"}"#);
+        assert_block_id_tag_correctness(
+            false,
+            BlockTag::PreConfirmed,
+            r#"{"block": "pre_confirmed"}"#,
+        );
     }
 
     #[test]

@@ -2,9 +2,7 @@ use std::sync::Arc;
 
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::{
-    BlockId, BlockTag, EthAddress, Felt, MsgFromL1, PriceUnit, StarknetError,
-};
+use starknet_rs_core::types::{BlockId, BlockTag, EthAddress, Felt, MsgFromL1, StarknetError};
 use starknet_rs_core::utils::{UdcUniqueness, get_udc_deployed_address};
 use starknet_rs_providers::{Provider, ProviderError};
 
@@ -65,9 +63,8 @@ async fn estimate_message_fee() {
         .await
         .unwrap();
 
-    assert_eq!(res.l1_gas_consumed, Felt::from(16030));
-    assert_eq!(res.l2_gas_consumed, Felt::ZERO);
-    assert_eq!(res.unit, PriceUnit::Wei);
+    assert_eq!(res.l1_gas_consumed, 16030);
+    assert_eq!(res.l2_gas_consumed, 0);
 }
 
 #[tokio::test]

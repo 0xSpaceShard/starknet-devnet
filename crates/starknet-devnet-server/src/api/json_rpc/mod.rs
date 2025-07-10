@@ -140,7 +140,7 @@ impl RpcHandler for JsonRpcHandler {
 
         let old_pre_confirmed_block =
             if request.requires_notifying() && self.starknet_config.uses_pre_confirmed_block() {
-                Some(self.get_block_by_tag(BlockTag::Pending).await)
+                Some(self.get_block_by_tag(BlockTag::PreConfirmed).await)
             } else {
                 None
             };
@@ -257,7 +257,7 @@ impl JsonRpcHandler {
         &self,
         old_pending_block: StarknetBlock,
     ) -> Result<(), error::ApiError> {
-        let new_pending_block = self.get_block_by_tag(BlockTag::Pending).await;
+        let new_pending_block = self.get_block_by_tag(BlockTag::PreConfirmed).await;
         let old_pending_txs = old_pending_block.get_transactions();
         let new_pending_txs = new_pending_block.get_transactions();
 
@@ -294,8 +294,8 @@ impl JsonRpcHandler {
             ));
 
             let events = starknet.get_unlimited_events(
-                Some(BlockId::Tag(BlockTag::Pending)),
-                Some(BlockId::Tag(BlockTag::Pending)),
+                Some(BlockId::Tag(BlockTag::PreConfirmed)),
+                Some(BlockId::Tag(BlockTag::PreConfirmed)),
                 None,
                 None,
             )?;

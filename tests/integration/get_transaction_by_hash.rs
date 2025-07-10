@@ -62,8 +62,8 @@ async fn get_deploy_account_transaction_by_hash_happy_path() {
     let fee_estimation = deployment.estimate_fee().await.unwrap();
 
     // fund the account before deployment
-    let mint_amount = fee_estimation.overall_fee * Felt::TWO;
-    devnet.mint(deployment_address, mint_amount.to_biguint().try_into().unwrap()).await;
+    let mint_amount = fee_estimation.overall_fee * 2;
+    devnet.mint(deployment_address, mint_amount).await;
 
     let deploy_account_result = deployment.send().await.unwrap();
     assert_tx_successful(&deploy_account_result.transaction_hash, &devnet.json_rpc_client).await;

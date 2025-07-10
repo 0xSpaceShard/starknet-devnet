@@ -460,7 +460,9 @@ async fn test_simulation_of_panicking_invoke() {
         starknet_rs_core::types::MaybePendingBlockWithTxHashes::Block(latest) => {
             latest.l2_gas_price.price_in_fri
         }
-        MaybePendingBlockWithTxHashes::PendingBlock(pending) => pending.l2_gas_price.price_in_fri,
+        MaybePendingBlockWithTxHashes::PreConfirmedBlock(pending) => {
+            pending.l2_gas_price.price_in_fri
+        }
     };
     let gas_price = u128::from_le_bytes(gas_price.to_bytes_le()[..16].try_into().unwrap());
     let nonce = Felt::TWO; // after declare + deploy

@@ -17,9 +17,10 @@ use starknet_rs_accounts::{
 };
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, Call, ExecutionResult, Felt, FunctionCall, InvokeTransactionReceipt,
-    InvokeTransactionResult, TransactionExecutionStatus, TransactionReceipt,
-    TransactionReceiptWithBlockInfo, TransactionTrace,
+    BlockId, BlockTag, Call, ExecuteInvocation, ExecutionResult, Felt, FunctionCall,
+    InvokeTransactionReceipt, InvokeTransactionResult, L1HandlerTransactionTrace,
+    TransactionExecutionStatus, TransactionReceipt, TransactionReceiptWithBlockInfo,
+    TransactionTrace,
 };
 use starknet_rs_core::utils::{UdcUniqueness, get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -94,7 +95,7 @@ async fn get_balance(devnet: &BackgroundDevnet, contract_address: Felt, user: Fe
         calldata: vec![user],
     };
 
-    devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Pending)).await.unwrap()
+    devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::PreConfirmed)).await.unwrap()
 }
 
 /// Withdraws the given amount from a user and send this amount in a l2->l1 message
@@ -169,14 +170,16 @@ async fn setup_devnet(
 }
 
 fn assert_accepted_l1_handler_trace(trace: &TransactionTrace) {
-    if let TransactionTrace::L1Handler(l1_handler_trace) = trace {
-        let invocation = &l1_handler_trace.function_invocation;
-        assert_eq!(invocation.contract_address.to_hex_string(), MESSAGING_L2_CONTRACT_ADDRESS);
-        assert_eq!(invocation.entry_point_selector.to_hex_string(), L1_HANDLER_SELECTOR);
-        assert_eq!(invocation.calldata[0].to_hex_string(), MESSAGING_L1_CONTRACT_ADDRESS);
-        assert!(!invocation.is_reverted);
-    } else {
-        panic!("Invalid trace: {trace:?}")
+    match trace {
+        TransactionTrace::L1Handler(L1HandlerTransactionTrace {
+            function_invocation: ExecuteInvocation::Success(invocation),
+            ..
+        }) => {
+            assert_eq!(invocation.contract_address.to_hex_string(), MESSAGING_L2_CONTRACT_ADDRESS);
+            assert_eq!(invocation.entry_point_selector.to_hex_string(), L1_HANDLER_SELECTOR);
+            assert_eq!(invocation.calldata[0].to_hex_string(), MESSAGING_L1_CONTRACT_ADDRESS);
+        }
+        other => panic!("Invalid trace: {other:?}"),
     }
 }
 
@@ -1018,9 +1021,9 @@ async fn withdrawing_should_incur_l1_gas_cost() {
     }];
 
     let estimation = account.execute_v3(invoke_calls.clone()).estimate_fee().await.unwrap();
-    assert!(estimation.l1_gas_consumed > Felt::ZERO);
-    assert!(estimation.l1_data_gas_consumed > Felt::ZERO);
-    assert!(estimation.l2_gas_consumed > Felt::ZERO);
+    assert!(estimation.l1_gas_consumed > 0);
+    assert!(estimation.l1_data_gas_consumed > 0);
+    assert!(estimation.l2_gas_consumed > 0);
 
     let invocation = account
         .execute_v3(invoke_calls)

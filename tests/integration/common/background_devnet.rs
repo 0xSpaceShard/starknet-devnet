@@ -9,8 +9,8 @@ use reqwest::{Client, StatusCode};
 use serde_json::json;
 use starknet_rs_core::types::{
     BlockId, BlockTag, BlockWithTxHashes, BlockWithTxs, Felt, FunctionCall,
-    MaybePendingBlockWithTxHashes, MaybePendingBlockWithTxs, PendingBlockWithTxHashes,
-    PendingBlockWithTxs,
+    MaybePendingBlockWithTxHashes, MaybePendingBlockWithTxs, PreConfirmedBlockWithTxHashes,
+    PreConfirmedBlockWithTxs,
 };
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -307,7 +307,7 @@ impl BackgroundDevnet {
     fn tag_to_str(tag: BlockTag) -> &'static str {
         match tag {
             BlockTag::Latest => "latest",
-            BlockTag::Pending => "pre_confirmed",
+            BlockTag::PreConfirmed => "pre_confirmed",
         }
     }
 
@@ -367,9 +367,13 @@ impl BackgroundDevnet {
 
     pub async fn get_pending_block_with_tx_hashes(
         &self,
-    ) -> Result<PendingBlockWithTxHashes, anyhow::Error> {
-        match self.json_rpc_client.get_block_with_tx_hashes(BlockId::Tag(BlockTag::Pending)).await {
-            Ok(MaybePendingBlockWithTxHashes::PendingBlock(b)) => Ok(b),
+    ) -> Result<PreConfirmedBlockWithTxHashes, anyhow::Error> {
+        match self
+            .json_rpc_client
+            .get_block_with_tx_hashes(BlockId::Tag(BlockTag::PreConfirmed))
+            .await
+        {
+            Ok(MaybePendingBlockWithTxHashes::PreConfirmedBlock(b)) => Ok(b),
             other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
         }
     }
@@ -381,9 +385,11 @@ impl BackgroundDevnet {
         }
     }
 
-    pub async fn get_pending_block_with_txs(&self) -> Result<PendingBlockWithTxs, anyhow::Error> {
-        match self.json_rpc_client.get_block_with_txs(BlockId::Tag(BlockTag::Pending)).await {
-            Ok(MaybePendingBlockWithTxs::PendingBlock(b)) => Ok(b),
+    pub async fn get_pending_block_with_txs(
+        &self,
+    ) -> Result<PreConfirmedBlockWithTxs, anyhow::Error> {
+        match self.json_rpc_client.get_block_with_txs(BlockId::Tag(BlockTag::PreConfirmed)).await {
+            Ok(MaybePendingBlockWithTxs::PreConfirmedBlock(b)) => Ok(b),
             other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
         }
     }

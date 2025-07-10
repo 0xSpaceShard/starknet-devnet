@@ -206,7 +206,7 @@ async fn should_notify_only_once_in_on_demand_mode() {
     let (mut ws_after, _) = connect_async(devnet.ws_url()).await.unwrap();
 
     let mut account = get_single_owner_account(&devnet).await;
-    account.set_block_id(BlockId::Tag(BlockTag::Pending)); // for correct nonce in deployment
+    account.set_block_id(BlockId::Tag(BlockTag::PreConfirmed)); // for correct nonce in deployment
 
     let contract_address = declare_deploy_events_contract(&account).await.unwrap();
 

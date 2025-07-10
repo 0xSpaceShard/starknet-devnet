@@ -98,7 +98,7 @@ impl StarknetBlocks {
         match block_id {
             BlockId::Hash(hash) => self.get_by_hash(*hash),
             BlockId::Number(block_number) => self.get_by_num(&BlockNumber(*block_number)),
-            BlockId::Tag(BlockTag::Pending) => Some(&self.pre_confirmed_block),
+            BlockId::Tag(BlockTag::PreConfirmed) => Some(&self.pre_confirmed_block),
             BlockId::Tag(BlockTag::Latest) => self.get_by_latest_hash(),
         }
     }
@@ -478,7 +478,7 @@ mod tests {
         // latest block returns none, because collection is empty
         assert!(blocks.block_number_from_block_id(&BlockId::Tag(BlockTag::Latest)).is_none());
         // pending block returns some
-        assert!(blocks.block_number_from_block_id(&BlockId::Tag(BlockTag::Pending)).is_some());
+        assert!(blocks.block_number_from_block_id(&BlockId::Tag(BlockTag::PreConfirmed)).is_some());
 
         let block_hash = block_to_insert.generate_hash().unwrap();
         block_to_insert.header.block_header_without_hash.block_number = BlockNumber(10);
@@ -492,7 +492,7 @@ mod tests {
         // returns none because there is no block with the given hash
         assert!(blocks.block_number_from_block_id(&BlockId::Hash(Felt::ONE)).is_none());
         assert!(blocks.block_number_from_block_id(&BlockId::Tag(BlockTag::Latest)).is_some());
-        assert!(blocks.block_number_from_block_id(&BlockId::Tag(BlockTag::Pending)).is_some());
+        assert!(blocks.block_number_from_block_id(&BlockId::Tag(BlockTag::PreConfirmed)).is_some());
         assert!(blocks.block_number_from_block_id(&BlockId::Hash(block_hash)).is_some());
     }
 
@@ -533,7 +533,7 @@ mod tests {
         // from filter using tag
         assert_eq!(blocks.get_blocks(Some(BlockId::Tag(BlockTag::Latest)), None).unwrap().len(), 1);
         assert_eq!(
-            blocks.get_blocks(Some(BlockId::Tag(BlockTag::Pending)), None).unwrap().len(),
+            blocks.get_blocks(Some(BlockId::Tag(BlockTag::PreConfirmed)), None).unwrap().len(),
             1
         );
 
@@ -552,7 +552,7 @@ mod tests {
             10
         );
         assert_eq!(
-            blocks.get_blocks(None, Some(BlockId::Tag(BlockTag::Pending))).unwrap().len(),
+            blocks.get_blocks(None, Some(BlockId::Tag(BlockTag::PreConfirmed))).unwrap().len(),
             10
         );
         // First block as to_block query param, should return empty collection
@@ -584,7 +584,7 @@ mod tests {
         );
         assert_eq!(
             blocks
-                .get_blocks(Some(BlockId::Number(2)), Some(BlockId::Tag(BlockTag::Pending)))
+                .get_blocks(Some(BlockId::Number(2)), Some(BlockId::Tag(BlockTag::PreConfirmed)))
                 .unwrap()
                 .len(),
             10
@@ -607,7 +607,7 @@ mod tests {
         );
         assert_eq!(
             blocks
-                .get_blocks(Some(BlockId::Number(11)), Some(BlockId::Tag(BlockTag::Pending)))
+                .get_blocks(Some(BlockId::Number(11)), Some(BlockId::Tag(BlockTag::PreConfirmed)))
                 .unwrap()
                 .len(),
             1
@@ -658,7 +658,7 @@ mod tests {
             blocks
                 .get_blocks(
                     Some(BlockId::Hash(Felt::from(11))),
-                    Some(BlockId::Tag(BlockTag::Pending))
+                    Some(BlockId::Tag(BlockTag::PreConfirmed))
                 )
                 .unwrap()
                 .len(),
@@ -680,7 +680,7 @@ mod tests {
             blocks
                 .get_blocks(
                     Some(BlockId::Tag(BlockTag::Latest)),
-                    Some(BlockId::Tag(BlockTag::Pending))
+                    Some(BlockId::Tag(BlockTag::PreConfirmed))
                 )
                 .unwrap()
                 .len(),
@@ -689,7 +689,7 @@ mod tests {
         assert_eq!(
             blocks
                 .get_blocks(
-                    Some(BlockId::Tag(BlockTag::Pending)),
+                    Some(BlockId::Tag(BlockTag::PreConfirmed)),
                     Some(BlockId::Tag(BlockTag::Latest))
                 )
                 .unwrap()
@@ -699,8 +699,8 @@ mod tests {
         assert_eq!(
             blocks
                 .get_blocks(
-                    Some(BlockId::Tag(BlockTag::Pending)),
-                    Some(BlockId::Tag(BlockTag::Pending))
+                    Some(BlockId::Tag(BlockTag::PreConfirmed)),
+                    Some(BlockId::Tag(BlockTag::PreConfirmed))
                 )
                 .unwrap()
                 .len(),
@@ -727,7 +727,7 @@ mod tests {
         );
         assert_eq!(
             blocks
-                .get_blocks(Some(BlockId::Tag(BlockTag::Pending)), Some(BlockId::Number(11)))
+                .get_blocks(Some(BlockId::Tag(BlockTag::PreConfirmed)), Some(BlockId::Number(11)))
                 .unwrap()
                 .len(),
             1
@@ -735,7 +735,7 @@ mod tests {
         assert_eq!(
             blocks
                 .get_blocks(
-                    Some(BlockId::Tag(BlockTag::Pending)),
+                    Some(BlockId::Tag(BlockTag::PreConfirmed)),
                     Some(BlockId::Hash(Felt::from(11)))
                 )
                 .unwrap()
@@ -777,7 +777,8 @@ mod tests {
         let extracted_block = blocks.get_by_block_id(&BlockId::Tag(BlockTag::Latest)).unwrap();
         assert!(block_to_insert == extracted_block.clone());
 
-        let extracted_block = blocks.get_by_block_id(&BlockId::Tag(BlockTag::Pending)).unwrap();
+        let extracted_block =
+            blocks.get_by_block_id(&BlockId::Tag(BlockTag::PreConfirmed)).unwrap();
         assert!(block_to_insert == extracted_block.clone());
 
         match blocks.get_by_block_id(&BlockId::Number(11)) {

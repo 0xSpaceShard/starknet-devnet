@@ -46,7 +46,7 @@ impl<'de> Deserialize<'de> for BlockId {
         let value = serde_json::Value::deserialize(deserializer)?;
         match value.as_str() {
             Some("latest") => Ok(Self(ImportedBlockId::Tag(ImportedBlockTag::Latest))),
-            Some("pre_confirmed") => Ok(Self(ImportedBlockId::Tag(ImportedBlockTag::Pending))),
+            Some("pre_confirmed") => Ok(Self(ImportedBlockId::Tag(ImportedBlockTag::PreConfirmed))),
             _ => match serde_json::from_value::<BlockHashOrNumber>(value) {
                 Ok(BlockHashOrNumber::Hash(hash)) => Ok(Self(ImportedBlockId::Hash(hash))),
                 Ok(BlockHashOrNumber::Number(n)) => Ok(Self(ImportedBlockId::Number(n))),
@@ -163,9 +163,7 @@ impl<'de> Deserialize<'de> for SubscriptionBlockId {
             BlockId(ImportedBlockId::Hash(felt)) => Self::Hash(felt),
             BlockId(ImportedBlockId::Number(n)) => Self::Number(n),
             BlockId(ImportedBlockId::Tag(ImportedBlockTag::Latest)) => Self::Latest,
-            BlockId(ImportedBlockId::Tag(ImportedBlockTag::Pending)) => {
-                // Due to the way deserialization is implemented for custom BlockId, "pre_confirmed"
-                // was indeed mapped to ImportedBlockTag::Pending
+            BlockId(ImportedBlockId::Tag(ImportedBlockTag::PreConfirmed)) => {
                 return Err(serde::de::Error::custom(
                     "Subscription block cannot be 'pre_confirmed'",
                 ));
@@ -200,7 +198,7 @@ pub enum BlockTag {
 impl From<BlockTag> for starknet_rs_core::types::BlockTag {
     fn from(tag: BlockTag) -> Self {
         match tag {
-            BlockTag::PreConfirmed => starknet_rs_core::types::BlockTag::Pending,
+            BlockTag::PreConfirmed => starknet_rs_core::types::BlockTag::PreConfirmed,
             BlockTag::Latest => starknet_rs_core::types::BlockTag::Latest,
         }
     }

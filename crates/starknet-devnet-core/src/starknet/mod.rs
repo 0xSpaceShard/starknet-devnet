@@ -640,7 +640,7 @@ impl Starknet {
     fn get_mut_state_at(&mut self, block_id: &BlockId) -> DevnetResult<&mut StarknetState> {
         match block_id {
             BlockId::Tag(BlockTag::Latest) => Ok(&mut self.latest_state),
-            BlockId::Tag(BlockTag::Pending) => Ok(&mut self.pre_confirmed_state),
+            BlockId::Tag(BlockTag::PreConfirmed) => Ok(&mut self.pre_confirmed_state),
             _ => {
                 let block = self.get_block(block_id)?;
                 let block_hash = block.block_hash();
@@ -898,7 +898,7 @@ impl Starknet {
         let state_update = state_update::state_update_by_block_id(self, block_id)?;
 
         // StateUpdate needs to be mapped to PreConfirmedStateUpdate when block_id is pre_confirmed
-        if block_id == &BlockId::Tag(BlockTag::Pending) {
+        if block_id == &BlockId::Tag(BlockTag::PreConfirmed) {
             Ok(StateUpdateResult::PreConfirmedStateUpdate(PreConfirmedStateUpdate {
                 old_root: state_update.old_root,
                 state_diff: state_update.state_diff,
@@ -934,7 +934,7 @@ impl Starknet {
             return Err(Error::UnsupportedAction { msg: msg.into() });
         }
 
-        if starting_block_id == BlockId::Tag(BlockTag::Pending) {
+        if starting_block_id == BlockId::Tag(BlockTag::PreConfirmed) {
             self.create_block()?;
             starting_block_id = BlockId::Tag(BlockTag::Latest);
         }
@@ -1741,7 +1741,7 @@ mod tests {
     fn getting_state_of_pre_confirmed_block() {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
-        starknet.get_mut_state_at(&BlockId::Tag(BlockTag::Pending)).expect("Should be OK");
+        starknet.get_mut_state_at(&BlockId::Tag(BlockTag::PreConfirmed)).expect("Should be OK");
     }
 
     #[test]
