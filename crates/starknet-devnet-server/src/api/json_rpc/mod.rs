@@ -7,7 +7,7 @@ pub(crate) mod origin_forwarder;
 mod spec_reader;
 mod write_endpoints;
 
-pub const RPC_SPEC_VERSION: &str = "0.9.0-rc.1";
+pub const RPC_SPEC_VERSION: &str = "0.9.0-rc.2";
 
 use std::sync::Arc;
 
