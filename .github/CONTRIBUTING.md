@@ -137,11 +137,15 @@ If smart contract constructor logic has changed, Devnet's predeployment logic ne
 
 ### Updating Starknet
 
-Updating the underlying Starknet is done by updating the `blockifier` dependency. It also requires updating the `STARKNET_VERSION` constant.
+Updating the underlying Starknet is done by updating the `blockifier` and `starknet_api` dependencies from the [`sequencer` repo](https://github.com/starkware-libs/sequencer/) and addressing changes. Other dependencies might also need to be updated. Sometimes, `blockifier` may not yet be ready, so its development branch or git tag might need to be used. This is acceptable during development, but will prevent Devnet from being releasable on crates.io, as all dependencies for that must also be on crates.io. Devnet maintainers may choose to make pre-releases not available on crates.io.
+
+Starknet adaptation also requires updating the `STARKNET_VERSION` constant and the used `versioned_constants`.
 
 ### Updating JSON-RPC API
 
 Updating the RPC requires following the specification files in the [starknet-specs repository](https://github.com/starkware-libs/starknet-specs). The spec_reader testing utility requires these files to be copied into the Devnet repository. The `RPC_SPEC_VERSION` constant needs to be updated accordingly.
+
+Integration tests highly depend on starknet-rs supporting the same JSON-RPC API version as Devnet. Until an adapted starknet-rs version is released, Devnet maintainers can rely on replacing the starknet-rs dependencies in tests/integration/Cargo.toml with links to SpaceShard's fork of starknet-rs. A full Devnet can be released on crates.io even with such git dependencies because the integration crate is not released. An example of such an adapted branch on SpaceShard's fork is [this](https://github.com/0xSpaceShard/starknet-rs/tree/rpc-0.9).
 
 ### Adding new dependencies
 
