@@ -245,7 +245,7 @@ mod tests {
         let mut state = setup();
         let class_hash = dummy_felt();
         let contract_address = dummy_contract_address();
-        let blockifier_address = contract_address.try_into().unwrap();
+        let blockifier_address = contract_address.into();
 
         // necessary to prevent blockifier's state subtraction panic
         assert_eq!(state.get_class_hash_at(blockifier_address).unwrap(), ClassHash(Felt::ZERO));

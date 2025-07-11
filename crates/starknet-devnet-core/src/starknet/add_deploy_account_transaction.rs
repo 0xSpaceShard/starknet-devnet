@@ -175,10 +175,7 @@ mod tests {
 
     fn get_strk_balance(starknet: &Starknet, address: ContractAddress) -> Felt {
         let balance_storage_var_address =
-            get_storage_var_address("ERC20_balances", &[address.into()])
-                .unwrap()
-                .try_into()
-                .unwrap();
+            get_storage_var_address("ERC20_balances", &[address.into()]).unwrap().into();
 
         let erc20_address =
             starknet.block_context.chain_info().fee_token_addresses.strk_fee_token_address;
@@ -190,10 +187,7 @@ mod tests {
 
     fn set_strk_balance(starknet: &mut Starknet, address: ContractAddress, amount: Felt) {
         let balance_storage_var_address =
-            get_storage_var_address("ERC20_balances", &[address.into()])
-                .unwrap()
-                .try_into()
-                .unwrap();
+            get_storage_var_address("ERC20_balances", &[address.into()]).unwrap().into();
 
         let erc20_address =
             starknet.block_context.chain_info().fee_token_addresses.strk_fee_token_address;

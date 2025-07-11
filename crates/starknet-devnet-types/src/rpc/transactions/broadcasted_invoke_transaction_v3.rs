@@ -29,7 +29,7 @@ impl BroadcastedInvokeTransactionV3 {
                 self.common.signature.clone(),
             )),
             nonce: starknet_api::core::Nonce(self.common.nonce),
-            sender_address: self.sender_address.try_into()?,
+            sender_address: self.sender_address.into(),
             calldata: starknet_api::transaction::fields::Calldata(Arc::new(self.calldata.clone())),
             nonce_data_availability_mode: self.common.nonce_data_availability_mode,
             fee_data_availability_mode: self.common.fee_data_availability_mode,

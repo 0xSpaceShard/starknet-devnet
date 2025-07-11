@@ -212,7 +212,7 @@ impl ApiError {
                         account_nonce,
                         incoming_tx_nonce,
                     } => ApiError::InvalidTransactionNonce {
-                        address: address.try_into().unwrap(),
+                        address: address.into(),
                         account_nonce: *account_nonce,
                         incoming_tx_nonce: *incoming_tx_nonce,
                     },

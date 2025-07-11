@@ -208,10 +208,8 @@ impl StarknetState {
         let mut historic_state = self.state.state.clone();
 
         for (address, class_hash) in state_diff.address_to_class_hash {
-            historic_state.set_class_hash_at(
-                address.try_into()?,
-                starknet_api::core::ClassHash(class_hash),
-            )?;
+            historic_state
+                .set_class_hash_at(address.into(), starknet_api::core::ClassHash(class_hash))?;
         }
         for (class_hash, casm_hash) in state_diff.class_hash_to_compiled_class_hash {
             historic_state.set_compiled_class_hash(
@@ -221,12 +219,12 @@ impl StarknetState {
         }
         for (address, _nonce) in state_diff.address_to_nonce {
             // assuming that historic_state.get_nonce(address) == _nonce - 1
-            historic_state.increment_nonce(address.try_into()?)?;
+            historic_state.increment_nonce(address.into())?;
         }
         for (address, storage_updates) in state_diff.storage_updates {
-            let core_address = address.try_into()?;
+            let core_address = address.into();
             for (key, value) in storage_updates {
-                historic_state.set_storage_at(core_address, key.try_into()?, value)?;
+                historic_state.set_storage_at(core_address, key.into(), value)?;
             }
         }
         for class_hash in state_diff.cairo_0_declared_contracts {
@@ -336,7 +334,7 @@ impl blockifier::state::state_api::StateReader for StarknetState {
 
 impl CustomStateReader for StarknetState {
     fn is_contract_deployed(&self, contract_address: ContractAddress) -> DevnetResult<bool> {
-        let api_address = contract_address.try_into()?;
+        let api_address = contract_address.into();
         let starknet_api::core::ClassHash(class_hash) = self.get_class_hash_at(api_address)?;
         Ok(class_hash != Felt::ZERO)
     }
@@ -353,7 +351,7 @@ impl CustomStateReader for StarknetState {
         &self,
         contract_address: ContractAddress,
     ) -> DevnetResult<bool> {
-        let api_address = contract_address.try_into()?;
+        let api_address = contract_address.into();
         Ok(self.state.state.address_to_class_hash.contains_key(&api_address))
     }
 }
@@ -411,7 +409,7 @@ impl CustomState for StarknetState {
         contract_address: ContractAddress,
         class_hash: ClassHash,
     ) -> DevnetResult<()> {
-        let converted_contract_address = contract_address.try_into()?;
+        let converted_contract_address = contract_address.into();
 
         self.state.state.set_class_hash_at(
             converted_contract_address,
@@ -475,7 +473,7 @@ mod tests {
         let mut state = StarknetState::default();
 
         state.predeploy_contract(dummy_contract_address(), dummy_felt()).unwrap();
-        let contract_address = dummy_contract_address().try_into().unwrap();
+        let contract_address = dummy_contract_address().into();
 
         // should be zero before update
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(Felt::ZERO));
@@ -530,7 +528,7 @@ mod tests {
         let felt = dummy_felt();
 
         state.predeploy_contract(address, felt).unwrap();
-        let core_address = address.try_into().unwrap();
+        let core_address = address.into();
         assert_eq!(state.get_nonce_at(core_address).unwrap(), Nonce(Felt::ZERO));
     }
 
@@ -548,7 +546,7 @@ mod tests {
     fn increment_nonce_successful() {
         let (mut state, address) = setup();
 
-        let core_address = address.try_into().unwrap();
+        let core_address = address.into();
         state.increment_nonce(core_address).unwrap();
 
         let nonce = *state.get_nonce_at(core_address).unwrap();
@@ -583,7 +581,7 @@ mod tests {
     #[test]
     fn get_nonce_should_return_zero_for_freshly_deployed_contract() {
         let (state, address) = setup();
-        let core_address = address.try_into().unwrap();
+        let core_address = address.into();
         assert_eq!(state.get_nonce_at(core_address).unwrap(), Nonce(Felt::ZERO));
     }
 

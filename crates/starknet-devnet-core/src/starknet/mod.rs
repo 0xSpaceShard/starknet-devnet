@@ -236,7 +236,7 @@ impl Starknet {
 
         if state
             .state
-            .get_class_hash_at(chargeable_account.account_address.try_into()?)
+            .get_class_hash_at(chargeable_account.account_address.into())
             .is_ok_and(|h| h.0 == Felt::ZERO)
         {
             chargeable_account.deploy(&mut state)?;
@@ -1028,7 +1028,7 @@ impl Starknet {
     ) -> DevnetResult<Felt> {
         let state = self.get_mut_state_at(block_id)?;
         state.assert_contract_deployed(contract_address)?;
-        let nonce = state.get_nonce_at(contract_address.try_into()?)?;
+        let nonce = state.get_nonce_at(contract_address.into())?;
         Ok(nonce.0)
     }
 
@@ -1040,7 +1040,7 @@ impl Starknet {
     ) -> DevnetResult<Felt> {
         let state = self.get_mut_state_at(block_id)?;
         state.assert_contract_deployed(contract_address)?;
-        Ok(state.get_storage_at(contract_address.try_into()?, storage_key.try_into()?)?)
+        Ok(state.get_storage_at(contract_address.into(), storage_key.into())?)
     }
 
     pub fn get_block(&self, block_id: &BlockId) -> DevnetResult<&StarknetBlock> {
@@ -1946,7 +1946,7 @@ mod tests {
         starknet
             .pre_confirmed_state
             .state
-            .increment_nonce(dummy_contract_address().try_into().unwrap())
+            .increment_nonce(dummy_contract_address().into())
             .unwrap();
 
         // generate new block and save the state
@@ -1958,7 +1958,7 @@ mod tests {
         starknet
             .pre_confirmed_state
             .state
-            .increment_nonce(dummy_contract_address().try_into().unwrap())
+            .increment_nonce(dummy_contract_address().into())
             .unwrap();
 
         // generate new block and save the state
@@ -1971,7 +1971,7 @@ mod tests {
             .hash_to_state
             .get_mut(&second_block)
             .unwrap()
-            .get_nonce_at(dummy_contract_address().try_into().unwrap())
+            .get_nonce_at(dummy_contract_address().into())
             .unwrap();
         let second_block_expected_address_nonce = Felt::ONE;
         assert_eq!(second_block_expected_address_nonce, second_block_address_nonce.0);
@@ -1981,7 +1981,7 @@ mod tests {
             .hash_to_state
             .get_mut(&third_block)
             .unwrap()
-            .get_nonce_at(dummy_contract_address().try_into().unwrap())
+            .get_nonce_at(dummy_contract_address().into())
             .unwrap();
         let third_block_expected_address_nonce = Felt::TWO;
         assert_eq!(third_block_expected_address_nonce, third_block_address_nonce.0);

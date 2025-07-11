@@ -237,8 +237,8 @@ mod tests {
             increase_balance_selector,
             balance_var_storage_address,
         ) = setup();
-        let blockifier_address = contract_address.try_into().unwrap();
-        let storage_key = (*balance_var_storage_address.get_storage_key()).try_into().unwrap();
+        let blockifier_address = contract_address.into();
+        let storage_key = (*balance_var_storage_address.get_storage_key()).into();
 
         let account_address = account.get_address();
         let resource_bounds = resource_bounds_with_price_1(0, 1000, 1e6 as u64);
@@ -376,7 +376,7 @@ mod tests {
     fn nonce_should_be_incremented_if_invoke_reverted() {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
 
-        let account_address = account.get_address().try_into().unwrap();
+        let account_address = account.get_address().into();
         let initial_nonce = starknet
             .pre_confirmed_state
             .get_nonce_at(account_address)

@@ -573,7 +573,7 @@ impl BroadcastedDeclareTransaction {
                         compiled_class_hash: starknet_api::core::CompiledClassHash(
                             v3.compiled_class_hash,
                         ),
-                        sender_address: v3.sender_address.try_into()?,
+                        sender_address: v3.sender_address.into(),
                         nonce_data_availability_mode: v3.common.nonce_data_availability_mode,
                         fee_data_availability_mode: v3.common.fee_data_availability_mode,
                         paymaster_data: starknet_api::transaction::fields::PaymasterData(
