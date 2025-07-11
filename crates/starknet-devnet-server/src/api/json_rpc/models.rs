@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
-use starknet_rs_core::types::{
-    Felt, Hash256, TransactionExecutionStatus, TransactionFinalityStatus,
-};
+use starknet_rs_core::types::{Felt, Hash256, TransactionExecutionStatus};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
@@ -9,7 +7,7 @@ use starknet_types::rpc::block::{BlockId, SubscriptionBlockId};
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, EventFilter, FunctionCall,
-    SimulationFlag,
+    SimulationFlag, TransactionFinalityStatus,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 
@@ -31,7 +29,7 @@ pub struct ClassHashInput {
     pub class_hash: ClassHash,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct GetStorageInput {
@@ -274,6 +272,10 @@ mod tests {
 
     use super::{BlockIdInput, EstimateFeeInput, GetStorageInput};
     use crate::test_utils::assert_contains;
+
+    const EXPECTED_INVALID_BLOCK_ID_MSG: &str = "Invalid block ID. Expected object with key \
+                                                 (block_hash or block_number) or tag \
+                                                 ('pre_confirmed' or 'latest').";
 
     #[test]
     fn errored_deserialization_of_estimate_fee_with_broadcasted_declare_transaction() {
@@ -578,15 +580,29 @@ mod tests {
     #[test]
     fn deserialize_block_id_tag_variants() {
         assert_block_id_tag_correctness(true, BlockTag::Latest, r#"{"block_id": "latest"}"#);
-        assert_block_id_tag_correctness(true, BlockTag::Pending, r#"{"block_id": "pending"}"#);
+        assert_block_id_tag_correctness(
+            true,
+            BlockTag::PreConfirmed,
+            r#"{"block_id": "pre_confirmed"}"#,
+        );
 
         // Incorrect tag
         assert_block_id_tag_correctness(false, BlockTag::Latest, r#"{"block_id": "latests"}"#);
-        assert_block_id_tag_correctness(false, BlockTag::Pending, r#"{"block_id": "pendingg"}"#);
+        assert_block_id_tag_correctness(false, BlockTag::Latest, r#"{"block_id": "pending"}"#);
+        assert_block_id_tag_correctness(
+            false,
+            BlockTag::PreConfirmed,
+            r#"{"block_id": "pre_confirmed_d"}"#,
+        );
 
         // Incorrect key
         assert_block_id_tag_correctness(false, BlockTag::Latest, r#"{"block": "latest"}"#);
-        assert_block_id_tag_correctness(false, BlockTag::Pending, r#"{"block": "pending"}"#);
+        assert_block_id_tag_correctness(false, BlockTag::PreConfirmed, r#"{"block": "pending"}"#);
+        assert_block_id_tag_correctness(
+            false,
+            BlockTag::PreConfirmed,
+            r#"{"block": "pre_confirmed"}"#,
+        );
     }
 
     #[test]
@@ -657,33 +673,16 @@ mod tests {
 
     #[test]
     fn assert_error_message_for_failed_block_id_deserialization() {
-        for (json_str, expected_msg) in [
-            (
-                r#"{"block_id": {"block_number": 10, "block_hash": "0x1"}}"#,
-                "expected map with a single key",
-            ),
-            (
-                r#"{"block_id": {"block_number": "123"}}"#,
-                "Invalid block ID: invalid type: string \"123\", expected u64",
-            ),
-            (r#"{"block_id": {"block_number": -123}}"#, "Invalid block ID: invalid number"),
-            (
-                r#"{"block_id": {"invalid_key": ""}}"#,
-                "Invalid block ID: unknown variant `invalid_key`, expected `block_hash` or \
-                 `block_number`",
-            ),
-            (
-                r#"{"block_id": {"block_hash": 123}}"#,
-                "Invalid block ID: invalid type: number, expected a 32 byte array ([u8;32]) or a \
-                 hexadecimal string",
-            ),
-            (
-                r#"{"block_id": {"block_hash": ""}}"#,
-                "Invalid block ID: expected hex string to be prefixed by '0x",
-            ),
+        for json_str in [
+            r#"{"block_id": {"block_number": 10, "block_hash": "0x1"}}"#,
+            r#"{"block_id": {"block_number": "123"}}"#,
+            r#"{"block_id": {"block_number": -123}}"#,
+            r#"{"block_id": {"invalid_key": ""}}"#,
+            r#"{"block_id": {"block_hash": 123}}"#,
+            r#"{"block_id": {"block_hash": ""}}"#,
         ] {
             match serde_json::from_str::<BlockIdInput>(json_str) {
-                Err(err) => assert_contains(&err.to_string(), expected_msg),
+                Err(err) => assert_contains(&err.to_string(), EXPECTED_INVALID_BLOCK_ID_MSG),
                 other => panic!("Invalid result: {other:?}"),
             }
         }

@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
+use blockifier::blockifier_versioned_constants::VersionedConstants;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::objects::TransactionExecutionInfo;
-use blockifier::versioned_constants::VersionedConstants;
 use deploy_transaction::DeployTransaction;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::block::{BlockNumber, GasPrice};
@@ -15,8 +15,8 @@ use starknet_api::transaction::fields::{
 };
 use starknet_api::transaction::{TransactionHasher, TransactionOptions, signed_tx_version};
 use starknet_rs_core::types::{
-    BlockId, EventsPage, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
-    TransactionExecutionStatus, TransactionFinalityStatus,
+    EventsPage, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
+    TransactionExecutionStatus,
 };
 use starknet_rs_core::utils::parse_cairo_short_string;
 
@@ -27,7 +27,9 @@ use self::declare_transaction_v3::DeclareTransactionV3;
 use self::deploy_account_transaction_v3::DeployAccountTransactionV3;
 use self::invoke_transaction_v3::InvokeTransactionV3;
 use self::l1_handler_transaction::L1HandlerTransaction;
+use super::block::BlockId;
 use super::estimate_message_fee::FeeEstimateWrapper;
+use super::felt::BlockHash;
 use super::messaging::{MessageToL1, OrderedMessageToL1};
 use super::state::ThinStateDiff;
 use super::transaction_receipt::{ExecutionResources, FeeInUnits, TransactionReceipt};
@@ -37,10 +39,9 @@ use crate::contract_class::{ContractClass, compute_sierra_class_hash};
 use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult};
 use crate::felt::{
-    BlockHash, Calldata, EntryPointSelector, Nonce, TransactionHash, TransactionSignature,
-    TransactionVersion,
+    Calldata, EntryPointSelector, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
 };
-use crate::rpc::transaction_receipt::{CommonTransactionReceipt, MaybePendingProperties};
+use crate::rpc::transaction_receipt::CommonTransactionReceipt;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
 pub mod broadcasted_declare_transaction_v3;
@@ -144,8 +145,6 @@ impl TransactionWithHash {
     ) -> CommonTransactionReceipt {
         let r#type = self.get_type();
         let execution_resources = ExecutionResources::from(execution_info);
-        let maybe_pending_properties =
-            MaybePendingProperties { block_number, block_hash: block_hash.cloned() };
 
         CommonTransactionReceipt {
             r#type,
@@ -155,7 +154,8 @@ impl TransactionWithHash {
             events: transaction_events.to_vec(),
             execution_status: execution_result.clone(),
             finality_status,
-            maybe_pending_properties,
+            block_hash: block_hash.cloned(),
+            block_number,
             execution_resources,
         }
     }
@@ -251,7 +251,7 @@ where
     s.serialize_str(&format!("{paid_fee_on_l1:#x}"))
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct EventFilter {
     pub from_block: Option<BlockId>,
     pub to_block: Option<BlockId>,
@@ -514,6 +514,18 @@ impl BroadcastedTransaction {
             }
         }
     }
+
+    pub fn requires_strict_nonce_check(&self, using_pre_confirmed_block: bool) -> bool {
+        match self {
+            BroadcastedTransaction::Invoke(tx) => {
+                tx.requires_strict_nonce_check(using_pre_confirmed_block)
+            }
+            BroadcastedTransaction::Declare(_) => true,
+            BroadcastedTransaction::DeployAccount(tx) => {
+                tx.requires_strict_nonce_check(using_pre_confirmed_block)
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -554,14 +566,14 @@ impl BroadcastedDeclareTransaction {
                         resource_bounds: (&v3.common.resource_bounds).into(),
                         tip: v3.common.tip,
                         signature: starknet_api::transaction::fields::TransactionSignature(
-                            v3.common.signature.clone(),
+                            Arc::new(v3.common.signature.clone()),
                         ),
                         nonce: starknet_api::core::Nonce(v3.common.nonce),
                         class_hash: starknet_api::core::ClassHash(sierra_class_hash),
                         compiled_class_hash: starknet_api::core::CompiledClassHash(
                             v3.compiled_class_hash,
                         ),
-                        sender_address: v3.sender_address.try_into()?,
+                        sender_address: v3.sender_address.into(),
                         nonce_data_availability_mode: v3.common.nonce_data_availability_mode,
                         fee_data_availability_mode: v3.common.fee_data_availability_mode,
                         paymaster_data: starknet_api::transaction::fields::PaymasterData(
@@ -615,6 +627,10 @@ impl BroadcastedDeployAccountTransaction {
         }
     }
 
+    pub fn requires_strict_nonce_check(&self, using_pre_confirmed_block: bool) -> bool {
+        !using_pre_confirmed_block
+    }
+
     /// Creates a blockifier deploy account transaction from the current transaction.
     /// The transaction hash is computed using the given chain id.
     ///
@@ -629,9 +645,9 @@ impl BroadcastedDeployAccountTransaction {
                 let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV3 {
                     resource_bounds: (&v3.common.resource_bounds).into(),
                     tip: v3.common.tip,
-                    signature: starknet_api::transaction::fields::TransactionSignature(
+                    signature: starknet_api::transaction::fields::TransactionSignature(Arc::new(
                         v3.common.signature.clone(),
-                    ),
+                    )),
                     nonce: starknet_api::core::Nonce(v3.common.nonce),
                     class_hash: starknet_api::core::ClassHash(v3.class_hash),
                     nonce_data_availability_mode: v3.common.nonce_data_availability_mode,
@@ -690,6 +706,10 @@ impl BroadcastedInvokeTransaction {
         match self {
             BroadcastedInvokeTransaction::V3(tx) => tx.common.is_only_query(),
         }
+    }
+
+    pub fn requires_strict_nonce_check(&self, using_pre_confirmed_block: bool) -> bool {
+        !using_pre_confirmed_block
     }
 
     /// Creates a blockifier invoke transaction from the current transaction.
@@ -902,7 +922,7 @@ pub struct DeployAccountTransactionTrace {
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct L1HandlerTransactionTrace {
-    pub function_invocation: FunctionInvocation,
+    pub function_invocation: ExecutionInvocation,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state_diff: Option<ThinStateDiff>,
     pub execution_resources: ExecutionResources,
@@ -993,5 +1013,14 @@ impl FunctionInvocation {
 pub struct L1HandlerTransactionStatus {
     pub transaction_hash: TransactionHash,
     pub finality_status: TransactionFinalityStatus,
+    pub execution_status: TransactionExecutionStatus,
     pub failure_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TransactionFinalityStatus {
+    AcceptedOnL2,
+    AcceptedOnL1,
+    PreConfirmed,
 }

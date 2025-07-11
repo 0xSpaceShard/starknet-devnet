@@ -26,10 +26,11 @@ fn first_mint_data() -> (Felt, u128, Felt) {
     (Felt::ONE, 10, expected_tx_hash)
 }
 
-fn assert_successful_mint_notification(
+fn assert_mint_notification_succeeded(
     notification: serde_json::Value,
     tx_hash: Felt,
     subscription_id: SubscriptionId,
+    expected_finality_status: &str,
 ) {
     assert_eq!(
         notification,
@@ -40,7 +41,7 @@ fn assert_successful_mint_notification(
                 "result": {
                     "transaction_hash": tx_hash,
                     "status": {
-                        "finality_status": "ACCEPTED_ON_L2",
+                        "finality_status": expected_finality_status,
                         "failure_reason": null,
                         "execution_status": "SUCCEEDED",
                     },
@@ -64,7 +65,7 @@ async fn subscribe_to_new_tx_status_happy_path() {
     assert_eq!(tx_hash, expected_tx_hash);
 
     let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-    assert_successful_mint_notification(notification, tx_hash, subscription_id);
+    assert_mint_notification_succeeded(notification, tx_hash, subscription_id, "ACCEPTED_ON_L2");
 }
 
 #[tokio::test]
@@ -134,7 +135,10 @@ async fn should_not_receive_block_notification_if_subscribed_to_tx() {
     assert_no_notifications(&mut ws).await;
 }
 
-async fn should_notify_if_subscribed_before_and_after_tx(devnet: &BackgroundDevnet) {
+async fn should_notify_if_subscribed_before_and_after_tx(
+    devnet: &BackgroundDevnet,
+    expected_finality_status: &str,
+) {
     let (address, mint_amount, expected_tx_hash) = first_mint_data();
 
     // should work if subscribing before sending the tx
@@ -147,7 +151,12 @@ async fn should_notify_if_subscribed_before_and_after_tx(devnet: &BackgroundDevn
 
     {
         let notification = receive_rpc_via_ws(&mut ws_before_tx).await.unwrap();
-        assert_successful_mint_notification(notification, tx_hash, subscription_id_before);
+        assert_mint_notification_succeeded(
+            notification,
+            tx_hash,
+            subscription_id_before,
+            expected_finality_status,
+        );
         assert_no_notifications(&mut ws_before_tx).await;
     }
 
@@ -157,11 +166,16 @@ async fn should_notify_if_subscribed_before_and_after_tx(devnet: &BackgroundDevn
         subscribe_tx_status(&mut ws_after_tx, &expected_tx_hash).await.unwrap();
     {
         let notification = receive_rpc_via_ws(&mut ws_after_tx).await.unwrap();
-        assert_successful_mint_notification(notification, tx_hash, subscription_id_after);
+        assert_mint_notification_succeeded(
+            notification,
+            tx_hash,
+            subscription_id_after,
+            expected_finality_status,
+        );
         assert_no_notifications(&mut ws_after_tx).await;
     }
 
-    // In on-demand mode, this moves tx from pending to latest - expect no notifications
+    // In on-demand mode, this moves tx from pre_confirmed to latest - expect no notifications
     devnet.create_block().await.unwrap();
 
     assert_no_notifications(&mut ws_before_tx).await;
@@ -173,7 +187,7 @@ async fn should_notify_in_on_demand_mode() {
     let devnet_args = ["--block-generation-on", "demand"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
 
-    should_notify_if_subscribed_before_and_after_tx(&devnet).await;
+    should_notify_if_subscribed_before_and_after_tx(&devnet, "PRE_CONFIRMED").await;
 }
 
 #[tokio::test]
@@ -190,7 +204,7 @@ async fn should_notify_only_once_in_on_demand_mode() {
     assert_eq!(tx_hash, expected_tx_hash);
 
     let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-    assert_successful_mint_notification(notification, tx_hash, subscription_id);
+    assert_mint_notification_succeeded(notification, tx_hash, subscription_id, "PRE_CONFIRMED");
     assert_no_notifications(&mut ws).await;
 
     let another_tx_hash = devnet.mint(address, mint_amount).await;
@@ -203,7 +217,7 @@ async fn should_notify_in_on_transaction_mode() {
     let devnet_args = ["--block-generation-on", "transaction"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
 
-    should_notify_if_subscribed_before_and_after_tx(&devnet).await;
+    should_notify_if_subscribed_before_and_after_tx(&devnet, "ACCEPTED_ON_L2").await;
 }
 
 #[tokio::test]
@@ -219,7 +233,7 @@ async fn should_notify_if_already_in_latest() {
     let subscription_id = subscribe_tx_status(&mut ws, &tx_hash).await.unwrap();
 
     let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-    assert_successful_mint_notification(notification, tx_hash, subscription_id);
+    assert_mint_notification_succeeded(notification, tx_hash, subscription_id, "ACCEPTED_ON_L2");
 
     devnet.mint(address, mint_amount).await;
     assert_no_notifications(&mut ws).await;
@@ -242,7 +256,7 @@ async fn should_notify_if_already_in_an_old_block() {
     let subscription_id = subscribe_tx_status(&mut ws, &tx_hash).await.unwrap();
 
     let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-    assert_successful_mint_notification(notification, tx_hash, subscription_id);
+    assert_mint_notification_succeeded(notification, tx_hash, subscription_id, "ACCEPTED_ON_L2");
 
     devnet.mint(address, mint_amount).await;
     assert_no_notifications(&mut ws).await;
@@ -260,7 +274,7 @@ async fn should_not_notify_of_status_change_when_block_aborted() {
 
     // as expected, the actual tx accepted notification is first
     let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-    assert_successful_mint_notification(notification, tx_hash, subscription_id);
+    assert_mint_notification_succeeded(notification, tx_hash, subscription_id, "ACCEPTED_ON_L2");
 
     devnet.abort_blocks(&BlockId::Number(1)).await.unwrap();
 

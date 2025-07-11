@@ -8,7 +8,7 @@ use starknet_rs_accounts::{
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
     BlockId, BlockTag, Call, ContractClass, DeclareTransaction, Felt, FunctionCall,
-    MaybePendingBlockWithTxHashes, StarknetError, Transaction,
+    MaybePreConfirmedBlockWithTxHashes, StarknetError, Transaction,
 };
 use starknet_rs_core::utils::{
     get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
@@ -23,7 +23,7 @@ use crate::common::constants::{
     MAINNET_HTTPS_URL, MAINNET_URL, STRK_ERC20_CONTRACT_CLASS_HASH,
 };
 use crate::common::utils::{
-    FeeUnit, assert_cairo1_classes_equal, assert_contains, assert_tx_successful,
+    FeeUnit, assert_cairo1_classes_equal, assert_contains, assert_tx_succeeded_accepted,
     declare_v3_deploy_v3, extract_json_rpc_error, get_block_reader_contract_artifacts,
     get_contract_balance, get_simple_contract_artifacts, send_ctrl_c_signal_and_wait,
 };
@@ -59,7 +59,7 @@ async fn test_forking_sepolia_genesis_block() {
     let resp = &fork_devnet.json_rpc_client.get_block_with_tx_hashes(block_hash).await;
 
     match resp {
-        Ok(MaybePendingBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 0),
+        Ok(MaybePreConfirmedBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 0),
         _ => panic!("Unexpected resp: {resp:?}"),
     };
 }
@@ -98,7 +98,7 @@ async fn test_forking_local_genesis_block() {
     let resp_block_by_hash =
         &fork_devnet.json_rpc_client.get_block_with_tx_hashes(BlockId::Hash(block_hash)).await;
     match resp_block_by_hash {
-        Ok(MaybePendingBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 1),
+        Ok(MaybePreConfirmedBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 1),
         _ => panic!("Unexpected resp: {resp_block_by_hash:?}"),
     };
 
@@ -284,14 +284,15 @@ async fn test_origin_declare_deploy_fork_invoke() {
 
     let invoke_result = fork_predeployed_account
         .execute_v3(contract_invoke.clone())
-        .l1_gas(1e6 as u64)
-        .l1_data_gas(1e6 as u64)
-        .l2_gas(1e6 as u64)
+        .l1_gas(0)
+        .l1_data_gas(1e3 as u64)
+        .l2_gas(1e7 as u64)
         .send()
         .await
         .unwrap();
 
-    assert_tx_successful(&invoke_result.transaction_hash, &fork_devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&invoke_result.transaction_hash, &fork_devnet.json_rpc_client)
+        .await;
 
     // assert origin intact and fork changed
     assert_eq!(get_contract_balance(&origin_devnet, contract_address).await, initial_value);
@@ -536,7 +537,7 @@ async fn test_block_count_increased() {
         fork_devnet.json_rpc_client.get_block_with_tx_hashes(BlockId::Number(2)).await;
 
     match block_after_fork {
-        Ok(MaybePendingBlockWithTxHashes::Block(b)) => {
+        Ok(MaybePreConfirmedBlockWithTxHashes::Block(b)) => {
             assert_eq!((b.block_hash, b.block_number), (forking_block_hash, 2))
         }
         _ => panic!("Unexpected resp: {block_after_fork:?}"),
@@ -547,7 +548,7 @@ async fn test_block_count_increased() {
         fork_devnet.json_rpc_client.get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest)).await;
 
     match new_fork_block {
-        Ok(MaybePendingBlockWithTxHashes::Block(b)) => {
+        Ok(MaybePreConfirmedBlockWithTxHashes::Block(b)) => {
             assert_eq!((b.block_hash, b.block_number), (new_fork_block_hash, 4));
         }
         _ => panic!("Unexpected resp: {new_fork_block:?}"),

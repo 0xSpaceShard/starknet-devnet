@@ -19,8 +19,9 @@ use crate::common::constants::{
     UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    FeeUnit, LocalFee, assert_contains, assert_tx_successful, get_deployable_account_signer,
-    get_flattened_sierra_contract_and_casm_hash, get_simple_contract_artifacts,
+    FeeUnit, LocalFee, assert_contains, assert_tx_succeeded_accepted,
+    get_deployable_account_signer, get_flattened_sierra_contract_and_casm_hash,
+    get_simple_contract_artifacts,
 };
 
 enum Action {
@@ -70,7 +71,8 @@ async fn declare_deploy_happy_path() {
     let declare_transaction =
         account.declare_v3(Arc::new(sierra_artifact), casm_hash).send().await.unwrap();
 
-    assert_tx_successful(&declare_transaction.transaction_hash, &devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&declare_transaction.transaction_hash, &devnet.json_rpc_client)
+        .await;
 
     devnet
         .json_rpc_client
@@ -98,7 +100,8 @@ async fn declare_deploy_happy_path() {
         &[constructor_arg],
     );
     let deploy_transaction = account.execute_v3(deploy_call).send().await.unwrap();
-    assert_tx_successful(&deploy_transaction.transaction_hash, &devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&deploy_transaction.transaction_hash, &devnet.json_rpc_client)
+        .await;
 
     let class_hash_of_contract = devnet
         .json_rpc_client
@@ -131,7 +134,8 @@ async fn declare_from_an_account_with_insufficient_strk_tokens_balance() {
         devnet.get_balance_by_tag(&account_address, FeeUnit::Fri, BlockTag::Latest).await.unwrap();
 
     // transfer balance of the account without the amount of fee
-    let amount_to_transfer = account_strk_balance - estimate_fee.overall_fee + Felt::ONE;
+    let amount_to_transfer =
+        account_strk_balance - Felt::from(estimate_fee.overall_fee) + Felt::ONE;
     let amount_to_transfer = U256::from(amount_to_transfer);
 
     let invoke_txn_result = account
@@ -148,11 +152,12 @@ async fn declare_from_an_account_with_insufficient_strk_tokens_balance() {
         .await
         .unwrap();
 
-    assert_tx_successful(&invoke_txn_result.transaction_hash, &devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&invoke_txn_result.transaction_hash, &devnet.json_rpc_client)
+        .await;
 
     let account_strk_balance =
         devnet.get_balance_by_tag(&account_address, FeeUnit::Fri, BlockTag::Latest).await.unwrap();
-    assert!(estimate_fee.overall_fee > account_strk_balance);
+    assert!(Felt::from(estimate_fee.overall_fee) > account_strk_balance);
 
     match declaration.send().await.unwrap_err() {
         starknet_rs_accounts::AccountError::Provider(ProviderError::StarknetError(
@@ -297,7 +302,7 @@ async fn deploy_account_happy_path() {
     devnet.mint_unit(account_address, 1e18 as u128, FeeUnit::Fri).await;
 
     let result = deploy_v3.send().await.unwrap();
-    assert_tx_successful(&result.transaction_hash, &devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&result.transaction_hash, &devnet.json_rpc_client).await;
 }
 
 /// This function sets the gas price and/or gas units to a value that is less than the estimated

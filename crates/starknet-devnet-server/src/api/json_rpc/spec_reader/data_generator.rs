@@ -158,7 +158,9 @@ impl Visitor for RandDataGenerator<'_> {
             if !generated_value.is_null() {
                 let single_value = generated_value
                     .as_object()
-                    .ok_or("Expected to be an object".to_string())?
+                    .ok_or(format!(
+                        "Expected to be an object: {generated_value:?}. AllOf element: {element:?}"
+                    ))?
                     .clone();
 
                 accumulated_json_value.extend(single_value);

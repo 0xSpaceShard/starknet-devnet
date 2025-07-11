@@ -36,18 +36,26 @@ pub fn add_invoke_transaction(
     };
 
     let validate = !(Starknet::is_account_impersonated(
-        &mut starknet.pending_state,
+        &mut starknet.pre_confirmed_state,
         &starknet.cheats,
         &ContractAddress::from(sn_api_transaction.sender_address()),
     )?);
 
     let block_context = starknet.block_context.clone();
 
+    let strict_nonce_check = broadcasted_invoke_transaction
+        .requires_strict_nonce_check(starknet.config.uses_pre_confirmed_block());
+
     let state = &mut starknet.get_state().state;
 
     let execution_info = blockifier::transaction::account_transaction::AccountTransaction {
         tx: starknet_api::executable_transaction::AccountTransaction::Invoke(sn_api_transaction),
-        execution_flags: ExecutionFlags { only_query: false, charge_fee: true, validate },
+        execution_flags: ExecutionFlags {
+            only_query: false,
+            charge_fee: true,
+            validate,
+            strict_nonce_check,
+        },
     }
     .execute(state, &block_context);
 
@@ -64,7 +72,7 @@ mod tests {
     use blockifier::state::state_api::StateReader;
     use nonzero_ext::nonzero;
     use starknet_api::core::Nonce;
-    use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
@@ -73,7 +81,9 @@ mod tests {
     use starknet_types::num_bigint::BigUint;
     use starknet_types::rpc::gas_modification::GasModification;
     use starknet_types::rpc::state::Balance;
-    use starknet_types::rpc::transactions::BroadcastedInvokeTransaction;
+    use starknet_types::rpc::transactions::{
+        BroadcastedInvokeTransaction, TransactionFinalityStatus,
+    };
     use starknet_types::traits::HashProducer;
 
     use crate::account::{Account, FeeToken};
@@ -82,6 +92,7 @@ mod tests {
         ETH_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{Error, TransactionValidationError};
+    use crate::starknet::starknet_config::BlockGenerationOn;
     use crate::starknet::{Starknet, predeployed};
     use crate::state::CustomState;
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
@@ -126,7 +137,7 @@ mod tests {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
         let account_address = account.get_address();
         let initial_balance =
-            account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap();
+            account.get_balance(&mut starknet.pre_confirmed_state, FeeToken::STRK).unwrap();
 
         let invoke_transaction = test_invoke_transaction_v3(
             account_address,
@@ -139,12 +150,12 @@ mod tests {
 
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
 
-        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
+        let retrieved_tx = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
 
-        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
-        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        assert_eq!(retrieved_tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(retrieved_tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
         assert!(
-            account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap()
+            account.get_balance(&mut starknet.pre_confirmed_state, FeeToken::STRK).unwrap()
                 < initial_balance
         );
     }
@@ -154,7 +165,7 @@ mod tests {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
         let account_address = account.get_address();
         let initial_balance =
-            account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap();
+            account.get_balance(&mut starknet.pre_confirmed_state, FeeToken::STRK).unwrap();
 
         // dividing by 10, otherwise it fails with gas exceeding user balance
         let gas_amount = biguint_to_u64(&initial_balance) / 10;
@@ -170,12 +181,12 @@ mod tests {
 
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
 
-        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
+        let retrieved_tx = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
 
-        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
-        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        assert_eq!(retrieved_tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(retrieved_tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
         assert!(
-            account.get_balance(&mut starknet.pending_state, FeeToken::STRK).unwrap()
+            account.get_balance(&mut starknet.pre_confirmed_state, FeeToken::STRK).unwrap()
                 < initial_balance
         );
     }
@@ -186,7 +197,7 @@ mod tests {
         let account_address = account.get_address();
 
         let balance: u64 = account
-            .get_balance(&mut starknet.pending_state, FeeToken::STRK)
+            .get_balance(&mut starknet.pre_confirmed_state, FeeToken::STRK)
             .unwrap()
             .to_string()
             .parse()
@@ -226,8 +237,8 @@ mod tests {
             increase_balance_selector,
             balance_var_storage_address,
         ) = setup();
-        let blockifier_address = contract_address.try_into().unwrap();
-        let storage_key = (*balance_var_storage_address.get_storage_key()).try_into().unwrap();
+        let blockifier_address = contract_address.into();
+        let storage_key = (*balance_var_storage_address.get_storage_key()).into();
 
         let account_address = account.get_address();
         let resource_bounds = resource_bounds_with_price_1(0, 1000, 1e6 as u64);
@@ -243,13 +254,13 @@ mod tests {
 
         // invoke transaction
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
-        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
-        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
-        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        let retrieved_tx = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
+        assert_eq!(retrieved_tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(retrieved_tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         // check storage
         assert_eq!(
-            starknet.pending_state.get_storage_at(blockifier_address, storage_key).unwrap(),
+            starknet.pre_confirmed_state.get_storage_at(blockifier_address, storage_key).unwrap(),
             Felt::from(10)
         );
 
@@ -264,12 +275,12 @@ mod tests {
 
         // invoke transaction again
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
-        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
+        let retrieved_tx = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
 
-        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(retrieved_tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        assert_eq!(retrieved_tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(
-            starknet.pending_state.get_storage_at(blockifier_address, storage_key).unwrap(),
+            starknet.pre_confirmed_state.get_storage_at(blockifier_address, storage_key).unwrap(),
             Felt::from(25)
         );
     }
@@ -295,30 +306,68 @@ mod tests {
     }
 
     #[test]
-    fn invoke_transaction_should_return_an_error_if_same_nonce_supplied() {
+    fn invoke_tx_should_return_error_if_nonce_repeated_in_block_on_demand_mode() {
+        invoke_tx_should_fail_if_nonce_repeated(
+            BlockGenerationOn::Demand,
+            TransactionFinalityStatus::PreConfirmed,
+        );
+    }
+
+    #[test]
+    fn invoke_tx_should_return_error_if_nonce_repeated_in_block_on_tx_mode() {
+        invoke_tx_should_fail_if_nonce_repeated(
+            BlockGenerationOn::Transaction,
+            TransactionFinalityStatus::AcceptedOnL2,
+        );
+    }
+
+    fn invoke_tx_should_fail_if_nonce_repeated(
+        block_generation_mode: BlockGenerationOn,
+        expected_finality_status: TransactionFinalityStatus,
+    ) {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
+        starknet.config.block_generation_on = block_generation_mode;
 
         let account_address = account.get_address();
 
-        let nonce = 0;
+        let tx_nonce = 0;
+        let l2_gas = 1e6 as u64;
         let tx = test_invoke_transaction_v3(
             account_address,
             contract_address,
             increase_balance_selector,
             &[dummy_felt()],
-            nonce,
-            resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+            tx_nonce,
+            resource_bounds_with_price_1(0, 1000, l2_gas),
         );
 
         let transaction_hash = starknet.add_invoke_transaction(tx.clone()).unwrap();
-        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
-        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
-        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        let retrieved_tx = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
+        assert_eq!(retrieved_tx.finality_status, expected_finality_status);
+        assert_eq!(retrieved_tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
+
+        // new tx with more l2_gas
+        let tx = test_invoke_transaction_v3(
+            account_address,
+            contract_address,
+            increase_balance_selector,
+            &[dummy_felt()],
+            tx_nonce,
+            // if less, bounced back instead of accepted+reverted
+            resource_bounds_with_price_1(0, 1000, l2_gas * 2),
+        );
 
         match starknet.add_invoke_transaction(tx) {
             Err(Error::TransactionValidationError(
-                TransactionValidationError::InvalidTransactionNonce,
-            )) => {}
+                TransactionValidationError::InvalidTransactionNonce {
+                    address,
+                    account_nonce,
+                    incoming_tx_nonce,
+                },
+            )) => assert_eq!(
+                (address, account_nonce, incoming_tx_nonce),
+                (account_address, Nonce(Felt::ONE), Nonce(Felt::from(tx_nonce)))
+            ),
             other => panic!("Unexpected result: {other:?}"),
         }
     }
@@ -327,9 +376,14 @@ mod tests {
     fn nonce_should_be_incremented_if_invoke_reverted() {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
 
-        let account_address = account.get_address().try_into().unwrap();
-        let initial_nonce =
-            starknet.pending_state.get_nonce_at(account_address).unwrap().0.try_into().unwrap();
+        let account_address = account.get_address().into();
+        let initial_nonce = starknet
+            .pre_confirmed_state
+            .get_nonce_at(account_address)
+            .unwrap()
+            .0
+            .try_into()
+            .unwrap();
         assert_eq!(initial_nonce, 0);
 
         let tx = test_invoke_transaction_v3(
@@ -339,16 +393,95 @@ mod tests {
             &[dummy_felt()],
             initial_nonce,
             // if less, bounced back instead of accepted+reverted
-            resource_bounds_with_price_1(0, 128, 480_000),
+            resource_bounds_with_price_1(0, 128, 520_000),
         );
 
         let transaction_hash = starknet.add_invoke_transaction(tx).unwrap();
-        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
-        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
-        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Reverted);
+        let retrieved_tx = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
+        assert_eq!(retrieved_tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(retrieved_tx.execution_result.status(), TransactionExecutionStatus::Reverted);
 
-        let nonce_after_reverted = starknet.pending_state.get_nonce_at(account_address).unwrap();
+        let nonce_after_reverted =
+            starknet.pre_confirmed_state.get_nonce_at(account_address).unwrap();
         assert_eq!(nonce_after_reverted, Nonce(Felt::ONE));
+    }
+
+    #[test]
+    fn invoke_tx_should_fail_if_nonce_higher_than_expected_in_block_on_tx_mode() {
+        let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
+        starknet.config.block_generation_on = BlockGenerationOn::Transaction;
+
+        let tx_nonce = 1; // too high
+        let tx = test_invoke_transaction_v3(
+            account.get_address(),
+            contract_address,
+            increase_balance_selector,
+            &[dummy_felt()],
+            tx_nonce,
+            resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+        );
+
+        match starknet.add_invoke_transaction(tx) {
+            Err(Error::TransactionValidationError(
+                TransactionValidationError::InvalidTransactionNonce {
+                    address,
+                    account_nonce,
+                    incoming_tx_nonce,
+                },
+            )) => assert_eq!(
+                (address, account_nonce, incoming_tx_nonce),
+                (account.get_address(), Nonce(Felt::ZERO), Nonce(Felt::from(tx_nonce)))
+            ),
+            other => panic!("Unexpected result: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn invoke_tx_should_pass_if_nonce_higher_than_expected_in_block_on_demand_mode() {
+        let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
+        starknet.config.block_generation_on = BlockGenerationOn::Demand;
+
+        let nonce = 1; // higher than the expected 0
+        let tx = test_invoke_transaction_v3(
+            account.get_address(),
+            contract_address,
+            increase_balance_selector,
+            &[dummy_felt()],
+            nonce,
+            resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+        );
+
+        let tx_hash = starknet.add_invoke_transaction(tx).unwrap();
+        let retrieved_tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
+        assert_eq!(retrieved_tx.finality_status, TransactionFinalityStatus::PreConfirmed);
+        assert_eq!(retrieved_tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        assert_eq!(retrieved_tx.block_number, None);
+    }
+
+    #[test]
+    fn txs_with_successive_nonces_are_acceptable_in_the_same_block() {
+        let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
+        starknet.config.block_generation_on = BlockGenerationOn::Demand;
+
+        for nonce in 1..=2 {
+            let tx = test_invoke_transaction_v3(
+                account.get_address(),
+                contract_address,
+                increase_balance_selector,
+                &[dummy_felt()],
+                nonce,
+                resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+            );
+
+            let tx_hash = starknet.add_invoke_transaction(tx).unwrap();
+            let retrieved_tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
+            assert_eq!(retrieved_tx.finality_status, TransactionFinalityStatus::PreConfirmed);
+            assert_eq!(
+                retrieved_tx.execution_result.status(),
+                TransactionExecutionStatus::Succeeded
+            );
+            assert_eq!(retrieved_tx.block_number, None);
+        }
     }
 
     /// Initialize starknet object with: erc20 contract, account contract and  simple contract that
@@ -359,12 +492,12 @@ mod tests {
         // deploy erc20 contracts
         let eth_erc_20_contract =
             predeployed::tests::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
-        eth_erc_20_contract.deploy(&mut starknet.pending_state).unwrap();
+        eth_erc_20_contract.deploy(&mut starknet.pre_confirmed_state).unwrap();
 
         let strk_erc_20_contract =
             predeployed::tests::create_erc20_at_address(constants::STRK_ERC20_CONTRACT_ADDRESS)
                 .unwrap();
-        strk_erc_20_contract.deploy(&mut starknet.pending_state).unwrap();
+        strk_erc_20_contract.deploy(&mut starknet.pre_confirmed_state).unwrap();
 
         // deploy account contract
         let account_without_validations_contract_class = cairo_0_account_without_validations();
@@ -382,7 +515,7 @@ mod tests {
         )
         .unwrap();
 
-        account.deploy(&mut starknet.pending_state).unwrap();
+        account.deploy(&mut starknet.pre_confirmed_state).unwrap();
 
         // dummy contract
         let dummy_contract = dummy_cairo_0_contract_class();
@@ -406,13 +539,13 @@ mod tests {
 
         // declare dummy contract
         starknet
-            .pending_state
+            .pre_confirmed_state
             .declare_contract_class(dummy_contract_class_hash, None, dummy_contract.into())
             .unwrap();
 
         // deploy dummy contract
         starknet
-            .pending_state
+            .pre_confirmed_state
             .predeploy_contract(dummy_contract_address, dummy_contract_class_hash)
             .unwrap();
         // change storage of dummy contract
@@ -438,7 +571,7 @@ mod tests {
             l2_gas_price_fri: nonzero!(1u128),
         };
 
-        starknet.restart_pending_block().unwrap();
+        starknet.restart_pre_confirmed_block().unwrap();
 
         (starknet, account, dummy_contract_address, increase_balance_selector, contract_storage_key)
     }

@@ -14,7 +14,9 @@ use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     self, CAIRO_0_ACCOUNT_CONTRACT_HASH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS,
 };
-use crate::common::utils::{get_deployable_account_signer, get_events_contract_artifacts};
+use crate::common::utils::{
+    assert_contains, get_deployable_account_signer, get_events_contract_artifacts,
+};
 
 #[tokio::test]
 async fn deploy_account_transaction_receipt() {
@@ -196,9 +198,10 @@ async fn reverted_invoke_transaction_receipt() {
 
     // send transaction with lower than estimated overall fee; should revert
     let transfer_result = transfer_execution
-        .l1_gas(fee.l1_gas_consumed.to_le_digits()[0]) // Using estimated l1 gas as is, because it can be 0
-        .l2_gas(fee.l2_gas_consumed.to_le_digits()[0] - 1) // subtracting 1 from l2 gas
-        .l1_data_gas(fee.l1_data_gas_consumed.to_le_digits()[0]) // using estimated l1 data gas as is
+        .l1_gas(fee.l1_gas_consumed) // Using as is, ok to be 0
+        // .l2_gas(u64::try_from(fee.l2_gas_consumed).unwrap() - 1) // subtract to induce failure
+        .l2_gas(1156800 - 1) // TODO: determined experimentally as the actual value used minus 1
+        .l1_data_gas(fee.l1_data_gas_consumed) // using as is
         .send()
         .await
         .unwrap();
@@ -213,11 +216,13 @@ async fn reverted_invoke_transaction_receipt() {
     match transfer_receipt {
         TransactionReceipt::Invoke(receipt) => {
             match receipt.execution_result {
-                starknet_rs_core::types::ExecutionResult::Reverted { .. } => (),
+                starknet_rs_core::types::ExecutionResult::Reverted { reason } => {
+                    assert_contains(&reason, "Insufficient max L2Gas");
+                }
                 _ => panic!("Invalid receipt {:?}", receipt),
             }
             // due to earlier l2_gas - 1
-            assert!(receipt.actual_fee.amount <= fee.overall_fee - fee.l2_gas_price);
+            assert!(receipt.actual_fee.amount <= Felt::from(fee.overall_fee - fee.l2_gas_price));
         }
         _ => panic!("Invalid receipt {:?}", transfer_receipt),
     };

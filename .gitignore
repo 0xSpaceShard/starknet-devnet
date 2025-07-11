@@ -21,3 +21,4 @@ debug/
 # Artifacts of spec testing
 failed_request.json
 failed_response.json
+failed_spec.json

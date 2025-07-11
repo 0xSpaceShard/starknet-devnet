@@ -113,7 +113,7 @@ async fn test_tx_status_content_of_failed_invoke() {
         .await
         .unwrap();
 
-    // TODO sending a custom request until starknet-rs is adapted to include failure reason
+    // Sending a custom request because starknet-rs was not adapted at the time of writing.
     let tx_status = devnet
         .send_custom_rpc(
             "starknet_getTransactionStatus",

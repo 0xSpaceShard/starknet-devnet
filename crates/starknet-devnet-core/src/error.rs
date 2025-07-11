@@ -5,6 +5,7 @@ use blockifier::fee::fee_checks::FeeCheckError;
 use blockifier::transaction::errors::{
     TransactionExecutionError, TransactionFeeError, TransactionPreValidationError,
 };
+use starknet_api::core::Nonce;
 use starknet_rs_core::types::{BlockId, Felt};
 use starknet_types;
 use starknet_types::contract_address::ContractAddress;
@@ -105,7 +106,11 @@ pub enum TransactionValidationError {
     #[error("The transaction's resources don't cover validation or the minimal transaction fee.")]
     InsufficientResourcesForValidate,
     #[error("Account transaction nonce is invalid.")]
-    InvalidTransactionNonce,
+    InvalidTransactionNonce {
+        address: ContractAddress,
+        account_nonce: Nonce,
+        incoming_tx_nonce: Nonce,
+    },
     #[error("Account balance is not enough to cover the transaction cost.")]
     InsufficientAccountBalance,
     #[error("Account validation failed: {reason}")]
@@ -116,8 +121,17 @@ impl From<TransactionExecutionError> for Error {
     fn from(value: TransactionExecutionError) -> Self {
         match value {
             TransactionExecutionError::TransactionPreValidationError(
-                TransactionPreValidationError::InvalidNonce { .. },
-            ) => TransactionValidationError::InvalidTransactionNonce.into(),
+                TransactionPreValidationError::InvalidNonce {
+                    address,
+                    account_nonce,
+                    incoming_tx_nonce,
+                },
+            ) => TransactionValidationError::InvalidTransactionNonce {
+                address: address.into(),
+                account_nonce,
+                incoming_tx_nonce,
+            }
+            .into(),
             TransactionExecutionError::FeeCheckError(err) => err.into(),
             TransactionExecutionError::TransactionPreValidationError(
                 TransactionPreValidationError::TransactionFeeError(err),
@@ -157,8 +171,7 @@ impl From<TransactionFeeError> for Error {
         match value {
             TransactionFeeError::FeeTransferError { .. }
             | TransactionFeeError::MaxFeeTooLow { .. }
-            | TransactionFeeError::MaxGasPriceTooLow { .. }
-            | TransactionFeeError::MaxGasAmountTooLow { .. } => {
+            | TransactionFeeError::InsufficientResourceBounds { .. } => {
                 TransactionValidationError::InsufficientResourcesForValidate.into()
             }
             TransactionFeeError::MaxFeeExceedsBalance { .. }

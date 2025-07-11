@@ -2,8 +2,9 @@ use axum::Json;
 use axum::extract::{Query, State};
 use serde::Deserialize;
 use starknet_core::starknet::Starknet;
-use starknet_rs_core::types::{BlockTag, Felt};
+use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
+use starknet_types::rpc::block::BlockTag;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 
 use super::mint_token::{get_balance, get_erc20_address};
@@ -34,7 +35,7 @@ pub(crate) async fn get_balance_unit(
 ) -> HttpApiResult<AccountBalanceResponse> {
     let erc20_address = get_erc20_address(&unit)
         .map_err(|e| HttpApiError::InvalidValueError { msg: e.to_string() })?;
-    let amount = get_balance(starknet, address, erc20_address, BlockTag::Pending)
+    let amount = get_balance(starknet, address, erc20_address, BlockTag::PreConfirmed)
         .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
 
     Ok(AccountBalanceResponse { amount: amount.to_string(), unit })

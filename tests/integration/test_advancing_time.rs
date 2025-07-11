@@ -566,6 +566,7 @@ async fn set_time_with_later_block_generation() {
 }
 
 #[tokio::test]
+
 async fn correct_pending_block_timestamp() {
     let initial_time = get_unix_timestamp_as_seconds();
     let devnet =

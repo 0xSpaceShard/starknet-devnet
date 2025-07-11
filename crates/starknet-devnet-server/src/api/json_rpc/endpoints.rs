@@ -5,13 +5,13 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{
-    Block, BlockHeader, BlockId, BlockResult, PendingBlock, PendingBlockHeader,
+    Block, BlockHeader, BlockId, BlockResult, BlockStatus, PreConfirmedBlock,
+    PreConfirmedBlockHeader,
 };
 use starknet_types::rpc::state::StateUpdateResult;
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, SimulationFlag, Transactions,
 };
-use starknet_types::starknet_api::block::BlockStatus;
 
 use super::error::{ApiError, StrictRpcResult};
 use super::models::{
@@ -45,8 +45,8 @@ impl JsonRpcHandler {
         let transactions = Transactions::Hashes(block.get_transactions().to_owned());
 
         Ok(match block.status() {
-            BlockStatus::Pending => StarknetResponse::PendingBlock(PendingBlock {
-                header: PendingBlockHeader::from(block),
+            BlockStatus::PreConfirmed => StarknetResponse::PreConfirmedBlock(PreConfirmedBlock {
+                header: PreConfirmedBlockHeader::from(block),
                 transactions,
             }),
             _ => StarknetResponse::Block(Block {
@@ -71,7 +71,7 @@ impl JsonRpcHandler {
 
         match block {
             BlockResult::Block(b) => Ok(StarknetResponse::Block(b).into()),
-            BlockResult::PendingBlock(b) => Ok(StarknetResponse::PendingBlock(b).into()),
+            BlockResult::PreConfirmedBlock(b) => Ok(StarknetResponse::PreConfirmedBlock(b).into()),
         }
     }
 
@@ -88,7 +88,7 @@ impl JsonRpcHandler {
 
         match block {
             BlockResult::Block(b) => Ok(StarknetResponse::Block(b).into()),
-            BlockResult::PendingBlock(b) => Ok(StarknetResponse::PendingBlock(b).into()),
+            BlockResult::PreConfirmedBlock(b) => Ok(StarknetResponse::PreConfirmedBlock(b).into()),
         }
     }
 
@@ -104,8 +104,8 @@ impl JsonRpcHandler {
 
         match state_update {
             StateUpdateResult::StateUpdate(s) => Ok(StarknetResponse::StateUpdate(s).into()),
-            StateUpdateResult::PendingStateUpdate(s) => {
-                Ok(StarknetResponse::PendingStateUpdate(s).into())
+            StateUpdateResult::PreConfirmedStateUpdate(s) => {
+                Ok(StarknetResponse::PreConfirmedStateUpdate(s).into())
             }
         }
     }
@@ -343,7 +343,7 @@ impl JsonRpcHandler {
 
     pub async fn estimate_message_fee(
         &self,
-        block_id: &ImportedBlockId,
+        block_id: &BlockId,
         message: MsgFromL1,
     ) -> StrictRpcResult {
         match self.api.starknet.lock().await.estimate_message_fee(block_id, message) {
@@ -425,7 +425,8 @@ impl JsonRpcHandler {
         }
 
         let to_block_number = match to_block {
-            // If to_block is Latest, Pending or undefined, all blocks after from_block are queried
+            // If to_block is latest, pre_confirmed or undefined, all blocks after from_block are
+            // queried
             Some(ImportedBlockId::Tag(_)) | None => {
                 return Ok((
                     Some((from_block_number, fork_block_number)),
@@ -503,8 +504,12 @@ impl JsonRpcHandler {
 
     /// starknet_getEvents
     pub async fn get_events(&self, filter: EventFilter) -> StrictRpcResult {
-        let (origin_range, from_local_block_id, to_local_block_id) =
-            self.split_block_range(filter.from_block, filter.to_block).await?;
+        let (origin_range, from_local_block_id, to_local_block_id) = self
+            .split_block_range(
+                filter.from_block.map(|b| b.into()),
+                filter.to_block.map(|b| b.into()),
+            )
+            .await?;
 
         // Get events either from forking origin or locally
         let events_chunk = if origin_range.is_some()

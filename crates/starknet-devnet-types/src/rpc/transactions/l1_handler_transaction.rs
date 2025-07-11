@@ -67,7 +67,7 @@ impl L1HandlerTransaction {
     ) -> DevnetResult<ApiL1HandlerTransaction> {
         let transaction = ApiL1HandlerTransaction {
             tx: starknet_api::transaction::L1HandlerTransaction {
-                contract_address: ApiContractAddress::try_from(self.contract_address)?,
+                contract_address: ApiContractAddress::from(self.contract_address),
                 entry_point_selector: ApiEntryPointSelector(self.entry_point_selector),
                 calldata: ApiCalldata(Arc::new(self.calldata.clone())),
                 nonce: ApiNonce(self.nonce),

@@ -50,7 +50,7 @@ async fn get_events_correct_chunking(devnet: &BackgroundDevnet, block_on_demand:
         ExecutionEncoding::New,
     );
 
-    predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
+    predeployed_account.set_block_id(BlockId::Tag(BlockTag::PreConfirmed));
 
     let (cairo_1_contract, casm_class_hash) = get_events_contract_artifacts();
 

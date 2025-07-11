@@ -3,7 +3,7 @@ use std::fmt::LowerHex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_rs_core::types::Felt;
 
-use crate::error::{DevnetResult, Error};
+use crate::error::DevnetResult;
 use crate::patricia_key::{PATRICIA_KEY_ZERO, PatriciaKey};
 use crate::serde_helpers::hex_string::{
     deserialize_to_prefixed_contract_address, serialize_contract_address_to_prefixed_hex,
@@ -51,12 +51,9 @@ impl From<starknet_api::core::ContractAddress> for ContractAddress {
     }
 }
 
-impl TryFrom<ContractAddress> for starknet_api::core::ContractAddress {
-    type Error = Error;
-
-    fn try_from(value: ContractAddress) -> DevnetResult<Self> {
-        let patricia_key: starknet_api::core::PatriciaKey = value.0.try_into()?;
-        Ok(starknet_api::core::ContractAddress(patricia_key))
+impl From<ContractAddress> for starknet_api::core::ContractAddress {
+    fn from(value: ContractAddress) -> Self {
+        Self(value.0.into())
     }
 }
 

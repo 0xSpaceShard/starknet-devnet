@@ -17,13 +17,13 @@ pub fn state_update_by_block_id(
 
 #[cfg(test)]
 mod tests {
-    use starknet_rs_core::types::{
-        BlockId, BlockTag, Felt, TransactionExecutionStatus, TransactionFinalityStatus,
-    };
+    use starknet_rs_core::types::{BlockId, BlockTag, Felt, TransactionExecutionStatus};
     use starknet_types::compile_sierra_contract;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::rpc::state::{ClassHashPair, ContractNonce, ThinStateDiff};
-    use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
+    use starknet_types::rpc::transactions::{
+        BroadcastedDeclareTransaction, TransactionFinalityStatus,
+    };
     use starknet_types::traits::HashProducer;
 
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account;

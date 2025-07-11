@@ -923,7 +923,7 @@
         "title": "Block tag",
         "type": "string",
         "description": "A tag specifying a dynamic reference to a block",
-        "enum": ["latest", "pending"]
+        "enum": ["latest", "pre_confirmed"]
       },
       "u64": {
         "type": "string",

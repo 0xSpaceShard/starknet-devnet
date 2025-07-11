@@ -230,6 +230,7 @@ async fn abort_latest_blocks() {
     abort_blocks_error(&devnet, &BlockId::Tag(BlockTag::Latest), "Genesis block can't be aborted")
         .await;
 }
+
 #[tokio::test]
 async fn abort_pending_block() {
     let devnet = BackgroundDevnet::spawn_with_additional_args(&[
@@ -245,12 +246,12 @@ async fn abort_pending_block() {
     devnet.create_block().await.unwrap();
     devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
     let pending_balance = devnet
-        .get_balance_by_tag(&Felt::from(DUMMY_ADDRESS), FeeUnit::Fri, BlockTag::Pending)
+        .get_balance_by_tag(&Felt::from(DUMMY_ADDRESS), FeeUnit::Fri, BlockTag::PreConfirmed)
         .await
         .unwrap();
     assert_eq!(pending_balance, (2 * DUMMY_AMOUNT).into());
 
-    devnet.abort_blocks(&BlockId::Tag(BlockTag::Pending)).await.unwrap();
+    devnet.abort_blocks(&BlockId::Tag(BlockTag::PreConfirmed)).await.unwrap();
     let latest_balance =
         devnet.get_balance_latest(&Felt::from(DUMMY_ADDRESS), FeeUnit::Fri).await.unwrap();
     assert_eq!(latest_balance, DUMMY_AMOUNT.into());

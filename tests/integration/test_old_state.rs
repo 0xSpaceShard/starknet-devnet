@@ -284,7 +284,7 @@ async fn test_getting_class_at_various_blocks() {
     let expected_class = ContractClass::Sierra(contract_class);
     for block_id in [
         BlockId::Tag(BlockTag::Latest),
-        BlockId::Tag(BlockTag::Pending),
+        BlockId::Tag(BlockTag::PreConfirmed),
         BlockId::Number(declaration_block.block_number),
         BlockId::Number(declaration_block.block_number + 1),
         BlockId::Hash(declaration_block.block_hash),
