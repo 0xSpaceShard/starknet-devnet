@@ -18,7 +18,7 @@ use crate::common::constants::{
 use crate::common::errors::RpcError;
 use crate::common::fees::assert_difference_if_validation;
 use crate::common::utils::{
-    assert_tx_successful, felt_to_u128, get_flattened_sierra_contract_and_casm_hash,
+    assert_tx_succeeded_accepted, felt_to_u128, get_flattened_sierra_contract_and_casm_hash,
     get_simple_contract_artifacts, iter_to_hex_felt, to_hex_felt, to_num_as_hex,
 };
 
@@ -406,7 +406,8 @@ async fn unsuccessful_declare_set_gas_successful_declare() {
         .send()
         .await
         .unwrap();
-    assert_tx_successful(&successful_declare_tx.transaction_hash, &devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&successful_declare_tx.transaction_hash, &devnet.json_rpc_client)
+        .await;
 }
 
 #[tokio::test]

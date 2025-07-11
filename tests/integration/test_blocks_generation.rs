@@ -17,9 +17,9 @@ use starknet_rs_signers::Signer;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH};
 use crate::common::utils::{
-    FeeUnit, UniqueAutoDeletableFile, assert_equal_elements, assert_tx_successful,
-    get_contract_balance, get_contract_balance_by_block_id, get_events_contract_artifacts,
-    get_simple_contract_artifacts, send_ctrl_c_signal_and_wait,
+    FeeUnit, UniqueAutoDeletableFile, assert_equal_elements, assert_tx_succeeded_accepted,
+    assert_tx_succeeded_pre_confirmed, get_contract_balance, get_contract_balance_by_block_id,
+    get_events_contract_artifacts, get_simple_contract_artifacts, send_ctrl_c_signal_and_wait,
 };
 
 static DUMMY_ADDRESS: u128 = 1;
@@ -54,7 +54,7 @@ async fn assert_latest_block_with_tx_hashes(
     assert_eq!(latest_block.status, BlockStatus::AcceptedOnL2);
 
     for tx_hash in latest_block.transactions {
-        assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
+        assert_tx_succeeded_accepted(&tx_hash, &devnet.json_rpc_client).await;
     }
 }
 
@@ -64,7 +64,7 @@ async fn assert_pending_block_with_tx_hashes(devnet: &BackgroundDevnet, tx_count
     assert_eq!(pending_block.transactions.len(), tx_count);
 
     for tx_hash in pending_block.transactions {
-        assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
+        assert_tx_succeeded_pre_confirmed(&tx_hash, &devnet.json_rpc_client).await;
     }
 }
 
@@ -80,7 +80,7 @@ async fn assert_latest_block_with_txs(
     assert_eq!(latest_block.transactions.len(), tx_count);
 
     for tx in latest_block.transactions {
-        assert_tx_successful(tx.transaction_hash(), &devnet.json_rpc_client).await;
+        assert_tx_succeeded_accepted(tx.transaction_hash(), &devnet.json_rpc_client).await;
     }
 }
 
@@ -90,7 +90,7 @@ async fn assert_pending_block_with_txs(devnet: &BackgroundDevnet, tx_count: usiz
     assert_eq!(pending_block.transactions.len(), tx_count);
 
     for tx in pending_block.transactions {
-        assert_tx_successful(tx.transaction_hash(), &devnet.json_rpc_client).await;
+        assert_tx_succeeded_pre_confirmed(tx.transaction_hash(), &devnet.json_rpc_client).await;
     }
 }
 
@@ -114,7 +114,7 @@ async fn assert_latest_block_with_receipts(
     assert_eq!(latest_block["status"], "ACCEPTED_ON_L2");
 
     for tx in latest_block["transactions"].as_array().unwrap() {
-        assert_tx_successful(
+        assert_tx_succeeded_accepted(
             &Felt::from_hex_unchecked(tx["receipt"]["transaction_hash"].as_str().unwrap()),
             &devnet.json_rpc_client,
         )
@@ -137,7 +137,7 @@ async fn assert_pending_block_with_receipts(devnet: &BackgroundDevnet, tx_count:
     assert_eq!(pending_block["transactions"].as_array().unwrap().len(), tx_count);
 
     for tx in pending_block["transactions"].as_array().unwrap() {
-        assert_tx_successful(
+        assert_tx_succeeded_pre_confirmed(
             &Felt::from_hex_unchecked(tx["receipt"]["transaction_hash"].as_str().unwrap()),
             &devnet.json_rpc_client,
         )
@@ -307,7 +307,11 @@ async fn blocks_on_demand_declarations() {
             .send()
             .await
             .unwrap();
-        assert_tx_successful(&declaration_result.transaction_hash, &devnet.json_rpc_client).await;
+        assert_tx_succeeded_pre_confirmed(
+            &declaration_result.transaction_hash,
+            &devnet.json_rpc_client,
+        )
+        .await;
         declaration_results.push(declaration_result);
     }
 
@@ -426,7 +430,8 @@ async fn blocks_on_demand_invoke_and_call() {
             .await
             .unwrap();
 
-        assert_tx_successful(&invoke_result.transaction_hash, &devnet.json_rpc_client).await;
+        assert_tx_succeeded_pre_confirmed(&invoke_result.transaction_hash, &devnet.json_rpc_client)
+            .await;
 
         tx_hashes.push(invoke_result.transaction_hash);
     }

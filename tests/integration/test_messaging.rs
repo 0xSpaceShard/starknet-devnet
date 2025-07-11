@@ -35,7 +35,7 @@ use crate::common::constants::{
 };
 use crate::common::errors::RpcError;
 use crate::common::utils::{
-    UniqueAutoDeletableFile, assert_contains, assert_tx_successful, felt_to_u256,
+    UniqueAutoDeletableFile, assert_contains, assert_tx_succeeded_accepted, felt_to_u256,
     get_messaging_contract_artifacts, get_messaging_lib_artifacts, send_ctrl_c_signal_and_wait,
 };
 
@@ -303,7 +303,7 @@ async fn mock_message_to_l2_creates_a_tx_with_desired_effect() {
         .await.unwrap();
     let tx_hash_hex = body.get("transaction_hash").unwrap().as_str().unwrap();
     let tx_hash = Felt::from_hex_unchecked(tx_hash_hex);
-    assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&tx_hash, &devnet.json_rpc_client).await;
 
     // assert state changed
     assert_eq!(

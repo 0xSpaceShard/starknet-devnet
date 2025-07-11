@@ -23,7 +23,7 @@ use crate::common::constants::{
     MAINNET_HTTPS_URL, MAINNET_URL, STRK_ERC20_CONTRACT_CLASS_HASH,
 };
 use crate::common::utils::{
-    FeeUnit, assert_cairo1_classes_equal, assert_contains, assert_tx_successful,
+    FeeUnit, assert_cairo1_classes_equal, assert_contains, assert_tx_succeeded_accepted,
     declare_v3_deploy_v3, extract_json_rpc_error, get_block_reader_contract_artifacts,
     get_contract_balance, get_simple_contract_artifacts, send_ctrl_c_signal_and_wait,
 };
@@ -291,7 +291,8 @@ async fn test_origin_declare_deploy_fork_invoke() {
         .await
         .unwrap();
 
-    assert_tx_successful(&invoke_result.transaction_hash, &fork_devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&invoke_result.transaction_hash, &fork_devnet.json_rpc_client)
+        .await;
 
     // assert origin intact and fork changed
     assert_eq!(get_contract_balance(&origin_devnet, contract_address).await, initial_value);

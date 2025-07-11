@@ -102,7 +102,7 @@ pub fn get_timestamp_asserter_contract_artifacts() -> SierraWithCasmHash {
     )
 }
 
-pub async fn assert_tx_successful<T: Provider>(tx_hash: &Felt, client: &T) {
+pub async fn assert_tx_succeeded_accepted<T: Provider>(tx_hash: &Felt, client: &T) {
     let receipt = client.get_transaction_receipt(tx_hash).await.unwrap().receipt;
     match receipt.execution_result() {
         ExecutionResult::Succeeded => (),
@@ -112,6 +112,19 @@ pub async fn assert_tx_successful<T: Provider>(tx_hash: &Felt, client: &T) {
     match receipt.finality_status() {
         starknet_rs_core::types::TransactionFinalityStatus::AcceptedOnL2 => (),
         other => panic!("Should have been accepted on L2; got: {other:?}"),
+    }
+}
+
+pub async fn assert_tx_succeeded_pre_confirmed<T: Provider>(tx_hash: &Felt, client: &T) {
+    let receipt = client.get_transaction_receipt(tx_hash).await.unwrap().receipt;
+    match receipt.execution_result() {
+        ExecutionResult::Succeeded => (),
+        other => panic!("Should have succeeded; got: {other:?}"),
+    }
+
+    match receipt.finality_status() {
+        starknet_rs_core::types::TransactionFinalityStatus::PreConfirmed => (),
+        other => panic!("Should have been pre-confirmed; got: {other:?}"),
     }
 }
 
