@@ -89,7 +89,6 @@ async fn test_getting_class_at_invalid_address() {
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn test_getting_class_with_blocks_on_demand() {
     let devnet_args = ["--state-archive-capacity", "full", "--block-generation-on", "demand"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
@@ -162,7 +161,6 @@ async fn test_getting_class_with_blocks_on_demand() {
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore when starknet-rs adapted to RPC 0.9"]
 async fn test_getting_class_after_block_abortion() {
     let devnet_args = ["--state-archive-capacity", "full"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
