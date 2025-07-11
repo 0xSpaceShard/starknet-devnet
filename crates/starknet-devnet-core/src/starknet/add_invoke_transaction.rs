@@ -330,14 +330,14 @@ mod tests {
 
         let account_address = account.get_address();
 
-        let nonce = 0;
+        let tx_nonce = 0;
         let l2_gas = 1e6 as u64;
         let tx = test_invoke_transaction_v3(
             account_address,
             contract_address,
             increase_balance_selector,
             &[dummy_felt()],
-            nonce,
+            tx_nonce,
             resource_bounds_with_price_1(0, 1000, l2_gas),
         );
 
@@ -352,15 +352,22 @@ mod tests {
             contract_address,
             increase_balance_selector,
             &[dummy_felt()],
-            nonce,
+            tx_nonce,
             // if less, bounced back instead of accepted+reverted
             resource_bounds_with_price_1(0, 1000, l2_gas * 2),
         );
 
         match starknet.add_invoke_transaction(tx) {
             Err(Error::TransactionValidationError(
-                TransactionValidationError::InvalidTransactionNonce,
-            )) => {}
+                TransactionValidationError::InvalidTransactionNonce {
+                    address,
+                    account_nonce,
+                    incoming_tx_nonce,
+                },
+            )) => assert_eq!(
+                (address, account_nonce, incoming_tx_nonce),
+                (account_address, Nonce(Felt::ONE), Nonce(Felt::from(tx_nonce)))
+            ),
             other => panic!("Unexpected result: {other:?}"),
         }
     }
@@ -404,20 +411,27 @@ mod tests {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
         starknet.config.block_generation_on = BlockGenerationOn::Transaction;
 
-        let nonce = 1; // too high
+        let tx_nonce = 1; // too high
         let tx = test_invoke_transaction_v3(
             account.get_address(),
             contract_address,
             increase_balance_selector,
             &[dummy_felt()],
-            nonce,
+            tx_nonce,
             resource_bounds_with_price_1(0, 1000, 1e6 as u64),
         );
 
         match starknet.add_invoke_transaction(tx) {
             Err(Error::TransactionValidationError(
-                TransactionValidationError::InvalidTransactionNonce,
-            )) => {}
+                TransactionValidationError::InvalidTransactionNonce {
+                    address,
+                    account_nonce,
+                    incoming_tx_nonce,
+                },
+            )) => assert_eq!(
+                (address, account_nonce, incoming_tx_nonce),
+                (account.get_address(), Nonce(Felt::ZERO), Nonce(Felt::from(tx_nonce)))
+            ),
             other => panic!("Unexpected result: {other:?}"),
         }
     }

@@ -1,7 +1,9 @@
 use serde_json::json;
-use starknet_core::error::ContractExecutionError;
+use starknet_core::error::{ContractExecutionError, TransactionValidationError};
 use starknet_rs_core::types::Felt;
 use starknet_types;
+use starknet_types::felt::Nonce;
+use starknet_types::starknet_api::core::ContractAddress;
 use thiserror::Error;
 use tracing::error;
 
@@ -47,7 +49,11 @@ pub enum ApiError {
     #[error("{msg}")]
     UnsupportedAction { msg: String },
     #[error("Invalid transaction nonce")]
-    InvalidTransactionNonce,
+    InvalidTransactionNonce {
+        address: ContractAddress,
+        account_nonce: Nonce,
+        incoming_tx_nonce: Nonce,
+    },
     #[error("The transaction's resources don't cover validation or the minimal transaction fee")]
     InsufficientResourcesForValidate,
     #[error(
@@ -169,11 +175,16 @@ impl ApiError {
                 message: error_message.into(),
                 data: None,
             },
-            ApiError::InvalidTransactionNonce => RpcError {
-                code: crate::rpc_core::error::ErrorCode::ServerError(52),
-                message: error_message.into(),
-                data: None,
-            },
+            ApiError::InvalidTransactionNonce { address, account_nonce, incoming_tx_nonce } => {
+                RpcError {
+                    code: crate::rpc_core::error::ErrorCode::ServerError(52),
+                    message: error_message.into(),
+                    data: Some(json!(format!(
+                        "Invalid transaction nonce of contract at address {address}. Account \
+                         nonce: {account_nonce}; got: {incoming_tx_nonce}."
+                    ))),
+                }
+            }
             ApiError::InsufficientAccountBalance => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(54),
                 message: error_message.into(),
@@ -193,10 +204,24 @@ impl ApiError {
                 starknet_core::error::Error::TransactionValidationError(validation_error),
             ) => {
                 let api_err = match validation_error {
-                    starknet_core::error::TransactionValidationError::InsufficientResourcesForValidate => ApiError::InsufficientResourcesForValidate,
-                    starknet_core::error::TransactionValidationError::InvalidTransactionNonce => ApiError::InvalidTransactionNonce,
-                    starknet_core::error::TransactionValidationError::InsufficientAccountBalance => ApiError::InsufficientAccountBalance,
-                    starknet_core::error::TransactionValidationError::ValidationFailure { reason } => ApiError::ValidationFailure { reason },
+                    TransactionValidationError::InsufficientResourcesForValidate => {
+                        ApiError::InsufficientResourcesForValidate
+                    }
+                    TransactionValidationError::InvalidTransactionNonce {
+                        address,
+                        account_nonce,
+                        incoming_tx_nonce,
+                    } => ApiError::InvalidTransactionNonce {
+                        address: address.try_into().unwrap(),
+                        account_nonce: *account_nonce,
+                        incoming_tx_nonce: *incoming_tx_nonce,
+                    },
+                    TransactionValidationError::InsufficientAccountBalance => {
+                        ApiError::InsufficientAccountBalance
+                    }
+                    TransactionValidationError::ValidationFailure { reason } => {
+                        ApiError::ValidationFailure { reason }
+                    }
                 };
 
                 api_err.api_error_to_rpc_error()
@@ -271,7 +296,7 @@ impl ApiError {
             | Self::ClassAlreadyDeclared
             | Self::InvalidContractClass
             | Self::UnsupportedAction { .. }
-            | Self::InvalidTransactionNonce
+            | Self::InvalidTransactionNonce { .. }
             | Self::InsufficientAccountBalance
             | Self::ValidationFailure { .. }
             | Self::HttpApiError(_)
@@ -292,12 +317,16 @@ pub type StrictRpcResult = Result<JsonRpcResponse, ApiError>;
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
     use starknet_core::error::ContractExecutionError;
     use starknet_rs_core::types::Felt;
+    use starknet_types::contract_address::ContractAddress;
+    use starknet_types::starknet_api::core::Nonce;
 
     use super::StrictRpcResult;
     use crate::api::json_rpc::ToRpcResponseResult;
     use crate::api::json_rpc::error::ApiError;
+    use crate::rpc_core::error::{ErrorCode, RpcError};
 
     #[test]
     fn contract_not_found_error() {
@@ -405,17 +434,24 @@ mod tests {
     fn invalid_transaction_nonce_error() {
         let devnet_error =
             ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
-                starknet_core::error::TransactionValidationError::InvalidTransactionNonce,
+                starknet_core::error::TransactionValidationError::InvalidTransactionNonce {
+                    address: ContractAddress::zero(),
+                    account_nonce: Nonce(Felt::ONE),
+                    incoming_tx_nonce: Nonce(Felt::TWO),
+                },
             ));
 
         assert_eq!(
             devnet_error.api_error_to_rpc_error(),
-            ApiError::InvalidTransactionNonce.api_error_to_rpc_error()
-        );
-        error_expected_code_and_message(
-            ApiError::InvalidTransactionNonce,
-            52,
-            "Invalid transaction nonce",
+            RpcError {
+                code: ErrorCode::ServerError(52),
+                message: "Invalid transaction nonce".into(),
+                data: Some(json!(
+                    "Invalid transaction nonce of contract at address \
+                     0x0000000000000000000000000000000000000000000000000000000000000000. Account \
+                     nonce: 1; got: 2."
+                ))
+            }
         );
     }
 

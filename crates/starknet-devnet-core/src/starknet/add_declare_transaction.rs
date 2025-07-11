@@ -317,9 +317,10 @@ mod tests {
     fn declare_tx_should_fail_if_nonce_repeated() {
         let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1e18 as u128);
 
+        let tx_nonce = Felt::ZERO;
         let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
             sender.account_address,
-            Felt::ZERO, // nonce
+            tx_nonce,
             resource_bounds_with_price_1(0, 1000, 1e9 as u64),
         );
 
@@ -342,8 +343,15 @@ mod tests {
 
         match starknet.add_declare_transaction(declare_tx.into()) {
             Err(Error::TransactionValidationError(
-                TransactionValidationError::InvalidTransactionNonce,
-            )) => {}
+                TransactionValidationError::InvalidTransactionNonce {
+                    address,
+                    account_nonce,
+                    incoming_tx_nonce,
+                },
+            )) => assert_eq!(
+                (address, account_nonce.0, incoming_tx_nonce.0),
+                (sender.account_address, Felt::ONE, tx_nonce)
+            ),
             other => panic!("Unexpected result: {other:?}"),
         };
 
@@ -366,9 +374,10 @@ mod tests {
         let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1e18 as u128);
         starknet.config.block_generation_on = block_generation_mode;
 
+        let tx_nonce = Felt::ONE; // nonce too high
         let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
             sender.account_address,
-            Felt::ONE, // nonce too high
+            tx_nonce,
             resource_bounds_with_price_1(0, 1000, 1e9 as u64),
         );
 
@@ -379,8 +388,15 @@ mod tests {
 
         match starknet.add_declare_transaction(declare_tx.into()) {
             Err(Error::TransactionValidationError(
-                TransactionValidationError::InvalidTransactionNonce,
-            )) => {}
+                TransactionValidationError::InvalidTransactionNonce {
+                    address,
+                    account_nonce,
+                    incoming_tx_nonce,
+                },
+            )) => assert_eq!(
+                (address, account_nonce.0, incoming_tx_nonce.0),
+                (sender.account_address, Felt::ZERO, tx_nonce)
+            ),
             other => panic!("Unexpected result: {other:?}"),
         };
     }
