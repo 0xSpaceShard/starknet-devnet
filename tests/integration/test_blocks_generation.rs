@@ -6,7 +6,7 @@ use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
     BlockId, BlockStatus, BlockTag, Call, DeclaredClassItem, Felt, FunctionCall,
-    MaybePendingStateUpdate, NonceUpdate, StateUpdate, TransactionTrace,
+    MaybePreConfirmedStateUpdate, NonceUpdate, StateUpdate, TransactionTrace,
 };
 use starknet_rs_core::utils::{
     get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
@@ -32,14 +32,14 @@ async fn assert_pending_state_update(devnet: &BackgroundDevnet) {
         .await
         .unwrap();
 
-    assert!(matches!(pending_state_update, MaybePendingStateUpdate::PreConfirmedUpdate(_)));
+    assert!(matches!(pending_state_update, MaybePreConfirmedStateUpdate::PreConfirmedUpdate(_)));
 }
 
 async fn assert_latest_state_update(devnet: &BackgroundDevnet) {
     let latest_state_update =
         &devnet.json_rpc_client.get_state_update(BlockId::Tag(BlockTag::Latest)).await.unwrap();
 
-    assert!(matches!(latest_state_update, MaybePendingStateUpdate::Update(_)));
+    assert!(matches!(latest_state_update, MaybePreConfirmedStateUpdate::Update(_)));
 }
 
 async fn assert_latest_block_with_tx_hashes(
@@ -353,7 +353,7 @@ async fn blocks_on_demand_declarations() {
     }];
     for block_id in [BlockId::Tag(BlockTag::Latest), BlockId::Hash(declaration_block_hash)] {
         match devnet.json_rpc_client.get_state_update(block_id).await {
-            Ok(MaybePendingStateUpdate::Update(StateUpdate { state_diff, .. })) => {
+            Ok(MaybePreConfirmedStateUpdate::Update(StateUpdate { state_diff, .. })) => {
                 assert_equal_elements(&state_diff.declared_classes, &expected_block_declarations);
                 assert_equal_elements(&state_diff.nonces, &expected_block_nonce_update)
             }

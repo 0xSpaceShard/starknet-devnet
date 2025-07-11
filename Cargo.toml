@@ -81,11 +81,11 @@ enum-helper-macros = "0.0.1"
 starknet-types-core = "0.1.5"
 starknet_api = { version = "0.15.0-rc.2", features = ["testing"] }
 blockifier = { version = "0.15.0-rc.2" }
-starknet-rs-signers = { version = "0.14.0-rc.0", package = "starknet-signers" }
-starknet-rs-core = { version = "0.16.0-rc.0", package = "starknet-core" }
-starknet-rs-providers = { version = "0.16.0-rc.0", package = "starknet-providers" }
-starknet-rs-accounts = { version = "0.16.0-rc.0", package = "starknet-accounts" }
-starknet-rs-contract = { version = "0.16.0-rc.0", package = "starknet-contract" }
+starknet-rs-signers = { version = "0.14.0-rc.1", package = "starknet-signers" }
+starknet-rs-core = { version = "0.16.0-rc.1", package = "starknet-core" }
+starknet-rs-providers = { version = "0.16.0-rc.1", package = "starknet-providers" }
+starknet-rs-accounts = { version = "0.16.0-rc.1", package = "starknet-accounts" }
+starknet-rs-contract = { version = "0.16.0-rc.1", package = "starknet-contract" }
 cairo-vm = "=2.2.0"
 
 # Cairo-lang dependencies

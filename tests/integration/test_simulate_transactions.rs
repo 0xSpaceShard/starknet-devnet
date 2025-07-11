@@ -11,8 +11,9 @@ use starknet_rs_core::types::{
     BlockId, BlockTag, BroadcastedDeclareTransactionV3, BroadcastedDeployAccountTransactionV3,
     BroadcastedInvokeTransactionV3, BroadcastedTransaction, Call, ContractExecutionError,
     DataAvailabilityMode, ExecuteInvocation, Felt, FunctionCall, InvokeTransactionTrace,
-    MaybePendingBlockWithTxHashes, ResourceBounds, ResourceBoundsMapping, SimulatedTransaction,
-    SimulationFlag, StarknetError, TransactionExecutionErrorData, TransactionTrace,
+    MaybePreConfirmedBlockWithTxHashes, ResourceBounds, ResourceBoundsMapping,
+    SimulatedTransaction, SimulationFlag, StarknetError, TransactionExecutionErrorData,
+    TransactionTrace,
 };
 use starknet_rs_core::utils::{
     UdcUniqueness, cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address,
@@ -457,10 +458,10 @@ async fn test_simulation_of_panicking_invoke() {
         .unwrap();
 
     let gas_price = match block {
-        starknet_rs_core::types::MaybePendingBlockWithTxHashes::Block(latest) => {
+        starknet_rs_core::types::MaybePreConfirmedBlockWithTxHashes::Block(latest) => {
             latest.l2_gas_price.price_in_fri
         }
-        MaybePendingBlockWithTxHashes::PreConfirmedBlock(pending) => {
+        MaybePreConfirmedBlockWithTxHashes::PreConfirmedBlock(pending) => {
             pending.l2_gas_price.price_in_fri
         }
     };

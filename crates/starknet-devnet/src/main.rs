@@ -24,7 +24,7 @@ use starknet_core::starknet::starknet_config::{
 };
 use starknet_rs_core::types::ContractClass::{Legacy, Sierra};
 use starknet_rs_core::types::{
-    BlockId, BlockTag, Felt, MaybePendingBlockWithTxHashes, StarknetError,
+    BlockId, BlockTag, Felt, MaybePreConfirmedBlockWithTxHashes, StarknetError,
 };
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
@@ -248,7 +248,7 @@ pub async fn set_and_log_fork_config(
     })?;
 
     match block {
-        MaybePendingBlockWithTxHashes::Block(b) => {
+        MaybePreConfirmedBlockWithTxHashes::Block(b) => {
             fork_config.block_number = Some(b.block_number);
             fork_config.block_hash = Some(b.block_hash);
             println!("Forking from block: number={}, hash={:#x}", b.block_number, b.block_hash);

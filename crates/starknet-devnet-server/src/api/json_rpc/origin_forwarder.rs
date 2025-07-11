@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use starknet_rs_core::types::{BlockId, Felt, MaybePendingBlockWithTxHashes};
+use starknet_rs_core::types::{BlockId, Felt, MaybePreConfirmedBlockWithTxHashes};
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 
@@ -97,8 +97,8 @@ impl OriginForwarder {
         block_hash: Felt,
     ) -> Result<u64, ApiError> {
         match self.starknet_client.get_block_with_tx_hashes(BlockId::Hash(block_hash)).await {
-            Ok(MaybePendingBlockWithTxHashes::Block(block)) => Ok(block.block_number),
-            Ok(MaybePendingBlockWithTxHashes::PreConfirmedBlock(_)) => {
+            Ok(MaybePreConfirmedBlockWithTxHashes::Block(block)) => Ok(block.block_number),
+            Ok(MaybePreConfirmedBlockWithTxHashes::PreConfirmedBlock(_)) => {
                 Err(ApiError::StarknetDevnetError(
                     starknet_core::error::Error::UnexpectedInternalError {
                         msg: "Impossible: received pending block when querying by hash".to_string(),
