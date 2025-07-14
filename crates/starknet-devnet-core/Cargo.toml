@@ -1,6 +1,6 @@
 [package]
 name = "starknet-devnet-core"
-version = "0.4.3"
+version = "0.5.0-rc.1"
 edition.workspace = true
 repository.workspace = true
 license-file.workspace = true
@@ -12,7 +12,7 @@ description = "Starknet core logic for devnet"
 workspace = true
 
 [dependencies]
-blockifier = { workspace = true, features = ["transaction_serde"]}
+blockifier = { workspace = true, features = ["transaction_serde"] }
 cairo-lang-starknet-classes = { workspace = true }
 clap = { workspace = true }
 ethers = { workspace = true }
@@ -50,5 +50,5 @@ test_utils = []
 ignored = [
     # read note above
     "openssl",
-    "cargo-platform"
+    "cargo-platform",
 ]

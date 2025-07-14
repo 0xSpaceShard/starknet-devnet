@@ -102,7 +102,7 @@ pub fn get_timestamp_asserter_contract_artifacts() -> SierraWithCasmHash {
     )
 }
 
-pub async fn assert_tx_successful<T: Provider>(tx_hash: &Felt, client: &T) {
+pub async fn assert_tx_succeeded_accepted<T: Provider>(tx_hash: &Felt, client: &T) {
     let receipt = client.get_transaction_receipt(tx_hash).await.unwrap().receipt;
     match receipt.execution_result() {
         ExecutionResult::Succeeded => (),
@@ -112,6 +112,19 @@ pub async fn assert_tx_successful<T: Provider>(tx_hash: &Felt, client: &T) {
     match receipt.finality_status() {
         starknet_rs_core::types::TransactionFinalityStatus::AcceptedOnL2 => (),
         other => panic!("Should have been accepted on L2; got: {other:?}"),
+    }
+}
+
+pub async fn assert_tx_succeeded_pre_confirmed<T: Provider>(tx_hash: &Felt, client: &T) {
+    let receipt = client.get_transaction_receipt(tx_hash).await.unwrap().receipt;
+    match receipt.execution_result() {
+        ExecutionResult::Succeeded => (),
+        other => panic!("Should have succeeded; got: {other:?}"),
+    }
+
+    match receipt.finality_status() {
+        starknet_rs_core::types::TransactionFinalityStatus::PreConfirmed => (),
+        other => panic!("Should have been pre-confirmed; got: {other:?}"),
     }
 }
 
@@ -628,28 +641,13 @@ impl From<LocalFee> for ResourceBoundsMapping {
 
 impl From<FeeEstimate> for LocalFee {
     fn from(fee: FeeEstimate) -> Self {
-        let l1_gas_consumed =
-            u64::from_le_bytes(fee.l1_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
-        let l1_gas_price =
-            u128::from_le_bytes(fee.l1_gas_price.to_bytes_le()[..16].try_into().unwrap());
-
-        let l2_gas_consumed =
-            u64::from_le_bytes(fee.l2_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
-        let l2_gas_price =
-            u128::from_le_bytes(fee.l2_gas_price.to_bytes_le()[..16].try_into().unwrap());
-
-        let l1_data_gas_consumed =
-            u64::from_le_bytes(fee.l1_data_gas_consumed.to_bytes_le()[..8].try_into().unwrap());
-        let l1_data_gas_price =
-            u128::from_le_bytes(fee.l1_data_gas_price.to_bytes_le()[..16].try_into().unwrap());
-
         LocalFee {
-            l1_gas: l1_gas_consumed,
-            l1_gas_price,
-            l1_data_gas: l1_data_gas_consumed,
-            l1_data_gas_price,
-            l2_gas: l2_gas_consumed,
-            l2_gas_price,
+            l1_gas: fee.l1_gas_consumed,
+            l1_gas_price: fee.l1_gas_price,
+            l1_data_gas: fee.l1_data_gas_consumed,
+            l1_data_gas_price: fee.l1_data_gas_price,
+            l2_gas: fee.l2_gas_consumed,
+            l2_gas_price: fee.l2_gas_price,
         }
     }
 }

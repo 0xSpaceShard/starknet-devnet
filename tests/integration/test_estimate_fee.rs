@@ -25,19 +25,18 @@ use crate::common::constants::{
     QUERY_VERSION_OFFSET, UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    LocalFee, assert_contains, assert_tx_reverted, assert_tx_successful, extract_message_error,
-    extract_nested_error, get_deployable_account_signer,
+    LocalFee, assert_contains, assert_tx_reverted, assert_tx_succeeded_accepted,
+    extract_message_error, extract_nested_error, get_deployable_account_signer,
     get_flattened_sierra_contract_and_casm_hash, get_simple_contract_artifacts,
 };
 
 fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
-    assert_eq!(
-        fee_estimation.l1_data_gas_consumed * fee_estimation.l1_data_gas_price
-            + fee_estimation.l2_gas_consumed * fee_estimation.l2_gas_price
-            + fee_estimation.l1_gas_consumed * fee_estimation.l1_gas_price,
-        fee_estimation.overall_fee
-    );
-    assert!(fee_estimation.overall_fee > Felt::ZERO, "Checking fee_estimation: {fee_estimation:?}");
+    let calculated_overall_fee = fee_estimation.l1_data_gas_consumed as u128
+        * fee_estimation.l1_data_gas_price
+        + fee_estimation.l2_gas_consumed as u128 * fee_estimation.l2_gas_price
+        + fee_estimation.l1_gas_consumed as u128 * fee_estimation.l1_gas_price;
+    assert_eq!(calculated_overall_fee, fee_estimation.overall_fee);
+    assert!(fee_estimation.overall_fee > 0, "Checking fee_estimation: {fee_estimation:?}");
 }
 
 #[tokio::test]
@@ -71,8 +70,8 @@ async fn estimate_fee_of_deploy_account() {
     assert_fee_estimation(&fee_estimation);
 
     // fund the account before deployment
-    let mint_amount = fee_estimation.overall_fee * Felt::TWO;
-    devnet.mint(deployment_address, mint_amount.to_biguint().try_into().unwrap()).await;
+    let mint_amount = fee_estimation.overall_fee * 2;
+    devnet.mint(deployment_address, mint_amount).await;
     let fee = LocalFee::from(fee_estimation);
     // try sending with insufficient resource bounds
     let unsuccessful_deployment_tx = account_factory
@@ -99,7 +98,8 @@ async fn estimate_fee_of_deploy_account() {
         .send()
         .await
         .expect("Should deploy with sufficient fee");
-    assert_tx_successful(&successful_deployment.transaction_hash, &devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&successful_deployment.transaction_hash, &devnet.json_rpc_client)
+        .await;
 }
 
 #[tokio::test]
@@ -199,7 +199,8 @@ async fn estimate_fee_of_declare_v3() {
         .send()
         .await
         .unwrap();
-    assert_tx_successful(&successful_declare_tx.transaction_hash, &devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&successful_declare_tx.transaction_hash, &devnet.json_rpc_client)
+        .await;
 }
 
 #[tokio::test]

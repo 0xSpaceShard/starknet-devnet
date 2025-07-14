@@ -207,31 +207,41 @@ mod tests {
         let specs = Spec::load_from_dir(format!("{specs_folder}/{RPC_SPEC_VERSION}",).as_str());
         let combined_schema = generate_combined_schema(&specs);
 
-        for _ in 0..1000 {
+        for i in 1..=1000 {
             for spec in specs.iter() {
                 // Iterate over the methods in the spec
                 for method in spec.methods.iter() {
                     // Create a JSON-RPC request for each method
                     let request = generate_json_rpc_request(method, &combined_schema)
-                        .expect("Could not generate the JSON-RPC request");
+                        .unwrap_or_else(|e| {
+                            panic!(
+                                "i={i} Failed generating request for RPC method {}: {e}",
+                                method.name
+                            )
+                        });
 
                     let response = method.result.as_ref().map(|result_schema| {
                         generate_json_rpc_response(&result_schema.schema, &combined_schema)
-                            .expect("Could not generate the JSON-RPC response")
+                            .unwrap_or_else(|e| {
+                                panic!(
+                                    "i={i} Failed generating response for RPC method {}: {e}",
+                                    method.name
+                                )
+                            })
                     });
 
                     #[derive(Deserialize)]
                     #[serde(untagged)]
-                    enum ApiWsRequest {
+                    enum ApiOrWsRequest {
                         Api(Box<JsonRpcRequest>),
                         SubscribeWs(JsonRpcSubscriptionRequest),
                         WsNotification(Box<SubscriptionResponse>),
                     }
                     let sn_request =
-                        deserialize_to_type_or_panic::<ApiWsRequest>(request.clone(), &method.name);
+                        deserialize_to_type_or_panic::<ApiOrWsRequest>(request, &method.name);
 
                     match sn_request {
-                        ApiWsRequest::Api(json_rpc_request) => {
+                        ApiOrWsRequest::Api(json_rpc_request) => {
                             let response = response.unwrap();
                             let sn_response: StarknetResponse =
                                 deserialize_to_type_or_panic(response, &method.name);
@@ -242,7 +252,7 @@ mod tests {
                                 method,
                             );
                         }
-                        ApiWsRequest::SubscribeWs(_json_rpc_subscription_request) => {
+                        ApiOrWsRequest::SubscribeWs(_json_rpc_subscription_request) => {
                             let response = response.unwrap();
 
                             deserialize_to_type_or_panic::<SubscriptionConfirmation>(
@@ -250,7 +260,7 @@ mod tests {
                                 &method.name,
                             );
                         }
-                        ApiWsRequest::WsNotification(subscription_response) => {
+                        ApiOrWsRequest::WsNotification(subscription_response) => {
                             match *subscription_response {
                                 SubscriptionResponse::Confirmation { .. } => {
                                     panic!("Unexpected data")
@@ -302,7 +312,7 @@ mod tests {
             | JsonRpcRequest::BlockWithReceipts(_) => {
                 assert!(matches!(
                     sn_response,
-                    StarknetResponse::Block(_) | StarknetResponse::PendingBlock(_)
+                    StarknetResponse::Block(_) | StarknetResponse::PreConfirmedBlock(_)
                 ));
             }
             JsonRpcRequest::BlockHashAndNumber => {
@@ -335,7 +345,7 @@ mod tests {
             JsonRpcRequest::StateUpdate(_) => {
                 assert!(matches!(
                     sn_response,
-                    StarknetResponse::StateUpdate(_) | StarknetResponse::PendingStateUpdate(_)
+                    StarknetResponse::StateUpdate(_) | StarknetResponse::PreConfirmedStateUpdate(_)
                 ));
             }
             JsonRpcRequest::Syncing => {

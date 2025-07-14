@@ -1,5 +1,5 @@
 use serde::{Deserialize, Deserializer, Serialize};
-use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp};
+use starknet_api::block::{BlockNumber, BlockTimestamp};
 use starknet_api::data_availability::L1DataAvailabilityMode;
 use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag as ImportedBlockTag, Felt};
 
@@ -8,15 +8,7 @@ use crate::felt::BlockHash;
 use crate::rpc::transactions::Transactions;
 pub type BlockRoot = Felt;
 
-#[derive(Copy, Clone, Debug, Deserialize)]
-pub enum BlockHashOrNumber {
-    #[serde(rename = "block_hash")]
-    Hash(Felt),
-    #[serde(rename = "block_number")]
-    Number(u64),
-}
-
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "testing", derive(PartialEq, Eq))]
 pub struct BlockId(pub ImportedBlockId);
 
@@ -43,20 +35,26 @@ impl<'de> Deserialize<'de> for BlockId {
     where
         D: Deserializer<'de>,
     {
+        #[derive(Copy, Clone, Debug, Deserialize)]
+        enum BlockHashOrNumber {
+            #[serde(rename = "block_hash")]
+            Hash(Felt),
+            #[serde(rename = "block_number")]
+            Number(u64),
+        }
+
         let value = serde_json::Value::deserialize(deserializer)?;
-        if value.as_str().is_some() {
-            let block_tag: ImportedBlockTag = serde_json::from_value(value)
-                .map_err(|e| serde::de::Error::custom(format!("Invalid block ID: {e}")))?;
-            Ok(BlockId(ImportedBlockId::Tag(block_tag)))
-        } else if value.as_object().is_some() {
-            let block_id: BlockHashOrNumber = serde_json::from_value(value)
-                .map_err(|e| serde::de::Error::custom(format!("Invalid block ID: {e}")))?;
-            match block_id {
-                BlockHashOrNumber::Hash(hash) => Ok(BlockId(ImportedBlockId::Hash(hash))),
-                BlockHashOrNumber::Number(number) => Ok(BlockId(ImportedBlockId::Number(number))),
-            }
-        } else {
-            Err(serde::de::Error::custom(format!("Invalid block ID: {value}")))
+        match value.as_str() {
+            Some("latest") => Ok(Self(ImportedBlockId::Tag(ImportedBlockTag::Latest))),
+            Some("pre_confirmed") => Ok(Self(ImportedBlockId::Tag(ImportedBlockTag::PreConfirmed))),
+            _ => match serde_json::from_value::<BlockHashOrNumber>(value) {
+                Ok(BlockHashOrNumber::Hash(hash)) => Ok(Self(ImportedBlockId::Hash(hash))),
+                Ok(BlockHashOrNumber::Number(n)) => Ok(Self(ImportedBlockId::Number(n))),
+                Err(_) => Err(serde::de::Error::custom(
+                    "Invalid block ID. Expected object with key (block_hash or block_number) or \
+                     tag ('pre_confirmed' or 'latest').",
+                )),
+            },
         }
     }
 }
@@ -64,7 +62,20 @@ impl<'de> Deserialize<'de> for BlockId {
 #[derive(Debug, Clone)]
 pub enum BlockResult {
     Block(Block),
-    PendingBlock(PendingBlock),
+    PreConfirmedBlock(PreConfirmedBlock),
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Deserialize, Serialize, PartialOrd, Ord)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum BlockStatus {
+    /// Almost like pending.
+    PreConfirmed,
+    /// A block that was created on L2.
+    AcceptedOnL2,
+    /// A block that was accepted on L1.
+    AcceptedOnL1,
+    /// A block rejected on L1.
+    Rejected,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -78,9 +89,9 @@ pub struct Block {
 
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(Deserialize), serde(deny_unknown_fields))]
-pub struct PendingBlock {
+pub struct PreConfirmedBlock {
     #[serde(flatten)]
-    pub header: PendingBlockHeader,
+    pub header: PreConfirmedBlockHeader,
     pub transactions: Transactions,
 }
 
@@ -102,8 +113,8 @@ pub struct BlockHeader {
 
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(Deserialize), serde(deny_unknown_fields))]
-pub struct PendingBlockHeader {
-    pub parent_hash: BlockHash,
+pub struct PreConfirmedBlockHeader {
+    pub block_number: BlockNumber,
     pub sequencer_address: ContractAddress,
     pub timestamp: BlockTimestamp,
     pub starknet_version: String,
@@ -147,13 +158,15 @@ impl<'de> Deserialize<'de> for SubscriptionBlockId {
     where
         D: Deserializer<'de>,
     {
-        let block_id = ImportedBlockId::deserialize(deserializer)?;
+        let block_id = BlockId::deserialize(deserializer)?;
         Ok(match block_id {
-            ImportedBlockId::Hash(felt) => Self::Hash(felt),
-            ImportedBlockId::Number(n) => Self::Number(n),
-            ImportedBlockId::Tag(ImportedBlockTag::Latest) => Self::Latest,
-            ImportedBlockId::Tag(ImportedBlockTag::Pending) => {
-                return Err(serde::de::Error::custom("Subscription block cannot be 'pending'"));
+            BlockId(ImportedBlockId::Hash(felt)) => Self::Hash(felt),
+            BlockId(ImportedBlockId::Number(n)) => Self::Number(n),
+            BlockId(ImportedBlockId::Tag(ImportedBlockTag::Latest)) => Self::Latest,
+            BlockId(ImportedBlockId::Tag(ImportedBlockTag::PreConfirmed)) => {
+                return Err(serde::de::Error::custom(
+                    "Subscription block cannot be 'pre_confirmed'",
+                ));
             }
         })
     }
@@ -175,11 +188,27 @@ impl From<&SubscriptionBlockId> for ImportedBlockId {
     }
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BlockTag {
+    PreConfirmed,
+    Latest,
+}
+
+impl From<BlockTag> for starknet_rs_core::types::BlockTag {
+    fn from(tag: BlockTag) -> Self {
+        match tag {
+            BlockTag::PreConfirmed => starknet_rs_core::types::BlockTag::PreConfirmed,
+            BlockTag::Latest => starknet_rs_core::types::BlockTag::Latest,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test_subscription_block_id {
     use serde_json::json;
 
-    use super::SubscriptionBlockId;
+    use super::{BlockTag, SubscriptionBlockId};
 
     #[test]
     fn accept_latest() {
@@ -187,8 +216,9 @@ mod test_subscription_block_id {
     }
 
     #[test]
-    fn reject_pending() {
+    fn reject_pending_and_pre_confirmed() {
         serde_json::from_value::<SubscriptionBlockId>(json!("pending")).unwrap_err();
+        serde_json::from_value::<SubscriptionBlockId>(json!("pre_confirmed")).unwrap_err();
     }
 
     #[test]
@@ -220,5 +250,18 @@ mod test_subscription_block_id {
     #[test]
     fn reject_unwrapped_number_as_block_number() {
         serde_json::from_value::<SubscriptionBlockId>(json!(123)).unwrap_err();
+    }
+
+    #[test]
+    fn custom_block_tag_deserialization() {
+        match serde_json::from_value::<BlockTag>(json!("latest")) {
+            Ok(BlockTag::Latest) => (),
+            other => panic!("Unexpected result: {other:?}"),
+        }
+
+        match serde_json::from_value::<BlockTag>(json!("pre_confirmed")) {
+            Ok(BlockTag::PreConfirmed) => (),
+            other => panic!("Unexpected result: {other:?}"),
+        }
     }
 }

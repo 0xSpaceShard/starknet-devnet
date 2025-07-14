@@ -1,11 +1,13 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
 use starknet_api::transaction::fields::Fee;
-use starknet_rs_core::types::{ExecutionResult, Hash256, TransactionFinalityStatus};
+use starknet_rs_core::types::{ExecutionResult, Hash256};
 
+use super::felt::BlockHash;
+use super::transactions::TransactionFinalityStatus;
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
-use crate::felt::{BlockHash, TransactionHash};
+use crate::felt::TransactionHash;
 use crate::rpc::messaging::MessageToL1;
 use crate::rpc::transactions::TransactionType;
 
@@ -16,19 +18,6 @@ pub enum TransactionReceipt {
     Deploy(DeployTransactionReceipt),
     L1Handler(L1HandlerTransactionReceipt),
     Common(CommonTransactionReceipt),
-}
-
-impl TransactionReceipt {
-    pub fn get_block_number(&self) -> Option<u64> {
-        match self {
-            TransactionReceipt::Deploy(receipt) => &receipt.common,
-            TransactionReceipt::L1Handler(receipt) => &receipt.common,
-            TransactionReceipt::Common(receipt) => receipt,
-        }
-        .maybe_pending_properties
-        .block_number
-        .map(|BlockNumber(n)| n)
-    }
 }
 
 #[derive(Debug, Clone, Serialize)] // TODO PartialEq, Eq?
@@ -48,15 +37,6 @@ pub struct L1HandlerTransactionReceipt {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[cfg_attr(feature = "testing", derive(serde::Deserialize))]
-pub struct MaybePendingProperties {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub block_hash: Option<BlockHash>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub block_number: Option<BlockNumber>,
-}
-
-#[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct CommonTransactionReceipt {
     pub r#type: TransactionType,
@@ -67,8 +47,10 @@ pub struct CommonTransactionReceipt {
     #[serde(flatten)]
     pub execution_status: ExecutionResult,
     pub finality_status: TransactionFinalityStatus,
-    #[serde(flatten)]
-    pub maybe_pending_properties: MaybePendingProperties,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub block_hash: Option<BlockHash>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub block_number: Option<BlockNumber>,
     pub execution_resources: ExecutionResources,
 }
 

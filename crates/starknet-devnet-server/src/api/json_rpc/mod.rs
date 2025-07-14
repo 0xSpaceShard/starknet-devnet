@@ -7,7 +7,7 @@ pub(crate) mod origin_forwarder;
 mod spec_reader;
 mod write_endpoints;
 
-pub const RPC_SPEC_VERSION: &str = "0.8.1";
+pub const RPC_SPEC_VERSION: &str = "0.9.0-rc.2";
 
 use std::sync::Arc;
 
@@ -28,12 +28,10 @@ use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_core::{CasmContractClass, StarknetBlock};
 use starknet_rs_core::types::{BlockId, BlockTag, ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::block::{Block, PendingBlock, ReorgData};
-use starknet_types::rpc::estimate_message_fee::{
-    EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
-};
+use starknet_types::rpc::block::{Block, PreConfirmedBlock, ReorgData};
+use starknet_types::rpc::estimate_message_fee::{EstimateMessageFeeRequest, FeeEstimateWrapper};
 use starknet_types::rpc::gas_modification::{GasModification, GasModificationRequest};
-use starknet_types::rpc::state::{PendingStateUpdate, StateUpdate};
+use starknet_types::rpc::state::{PreConfirmedStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, EventsChunk, L1HandlerTransactionStatus, SimulatedTransaction,
@@ -140,9 +138,9 @@ impl RpcHandler for JsonRpcHandler {
             None
         };
 
-        let old_pending_block =
-            if request.requires_notifying() && self.starknet_config.uses_pending_block() {
-                Some(self.get_block_by_tag(BlockTag::Pending).await)
+        let old_pre_confirmed_block =
+            if request.requires_notifying() && self.starknet_config.uses_pre_confirmed_block() {
+                Some(self.get_block_by_tag(BlockTag::PreConfirmed).await)
             } else {
                 None
             };
@@ -164,7 +162,7 @@ impl RpcHandler for JsonRpcHandler {
             }
         }
 
-        if let Err(e) = self.broadcast_changes(old_latest_block, old_pending_block).await {
+        if let Err(e) = self.broadcast_changes(old_latest_block, old_pre_confirmed_block).await {
             return ResponseResult::Error(e.api_error_to_rpc_error());
         }
 
@@ -244,9 +242,9 @@ impl JsonRpcHandler {
         }
     }
 
-    /// The latest and pending block are always defined, so to avoid having to deal with Err/None in
-    /// places where this method is called, it is defined to return an empty accepted block,
-    /// even though that case should never happen.
+    /// The latest and pre_confirmed block are always defined, so to avoid having to deal with
+    /// Err/None in places where this method is called, it is defined to return an empty
+    /// accepted block, even though that case should never happen.
     async fn get_block_by_tag(&self, tag: BlockTag) -> StarknetBlock {
         let starknet = self.api.starknet.lock().await;
         match starknet.get_block(&BlockId::Tag(tag)) {
@@ -259,7 +257,7 @@ impl JsonRpcHandler {
         &self,
         old_pending_block: StarknetBlock,
     ) -> Result<(), error::ApiError> {
-        let new_pending_block = self.get_block_by_tag(BlockTag::Pending).await;
+        let new_pending_block = self.get_block_by_tag(BlockTag::PreConfirmed).await;
         let old_pending_txs = old_pending_block.get_transactions();
         let new_pending_txs = new_pending_block.get_transactions();
 
@@ -296,8 +294,8 @@ impl JsonRpcHandler {
             ));
 
             let events = starknet.get_unlimited_events(
-                Some(BlockId::Tag(BlockTag::Pending)),
-                Some(BlockId::Tag(BlockTag::Pending)),
+                Some(BlockId::Tag(BlockTag::PreConfirmed)),
+                Some(BlockId::Tag(BlockTag::PreConfirmed)),
                 None,
                 None,
             )?;
@@ -321,7 +319,7 @@ impl JsonRpcHandler {
         let starknet = self.api.starknet.lock().await;
 
         for tx_hash in new_latest_block.get_transactions() {
-            if !self.starknet_config.uses_pending_block() {
+            if !self.starknet_config.uses_pre_confirmed_block() {
                 let tx = starknet
                     .get_transaction_by_hash(*tx_hash)
                     .map_err(error::ApiError::StarknetDevnetError)?;
@@ -701,7 +699,7 @@ pub enum JsonRpcRequest {
     #[serde(rename = "starknet_addInvokeTransaction")]
     AddInvokeTransaction(BroadcastedInvokeTransactionInput),
     #[serde(rename = "starknet_estimateMessageFee")]
-    EstimateMessageFee(EstimateMessageFeeRequestWrapper),
+    EstimateMessageFee(EstimateMessageFeeRequest),
     #[serde(rename = "starknet_simulateTransactions")]
     SimulateTransactions(SimulateTransactionsInput),
     #[serde(rename = "starknet_traceTransaction")]
@@ -1002,9 +1000,9 @@ impl From<DevnetResponse> for JsonRpcResponse {
 #[allow(clippy::large_enum_variant)]
 pub enum StarknetResponse {
     Block(Block),
-    PendingBlock(PendingBlock),
+    PreConfirmedBlock(PreConfirmedBlock),
     StateUpdate(StateUpdate),
-    PendingStateUpdate(PendingStateUpdate),
+    PreConfirmedStateUpdate(PreConfirmedStateUpdate),
     Felt(Felt),
     Transaction(TransactionWithHash),
     TransactionReceiptByTransactionHash(Box<TransactionReceipt>),
@@ -1059,28 +1057,29 @@ mod requests_tests {
     use crate::rpc_core::request::RpcMethodCall;
     use crate::test_utils::assert_contains;
 
+    const EXPECTED_INVALID_BLOCK_ID_MSG: &str = "Invalid block ID. Expected object with key \
+                                                 (block_hash or block_number) or tag \
+                                                 ('pre_confirmed' or 'latest').";
+
     #[test]
     fn deserialize_get_block_with_transaction_hashes_request() {
         let json_str =
             r#"{"method":"starknet_getBlockWithTxHashes","params":{"block_id":"latest"}}"#;
         assert_deserialization_succeeds(json_str);
-        assert_deserialization_succeeds(&json_str.replace("latest", "pending"));
+        assert_deserialization_succeeds(&json_str.replace("latest", "pre_confirmed"));
 
-        assert_deserialization_fails(
-            &json_str.replace("latest", "0x134134"),
-            "Invalid block ID: unknown variant `0x134134`, expected `latest` or `pending`",
-        );
+        assert_deserialization_fails(&json_str.replace("latest", "0x134134"), "Invalid block ID");
     }
 
     #[test]
     fn deserialize_get_block_with_transactions_request() {
         let json_str = r#"{"method":"starknet_getBlockWithTxs","params":{"block_id":"latest"}}"#;
         assert_deserialization_succeeds(json_str);
-        assert_deserialization_succeeds(&json_str.replace("latest", "pending"));
+        assert_deserialization_succeeds(&json_str.replace("latest", "pre_confirmed"));
 
         assert_deserialization_fails(
             json_str.replace("latest", "0x134134").as_str(),
-            "Invalid block ID: unknown variant `0x134134`, expected `latest` or `pending`",
+            EXPECTED_INVALID_BLOCK_ID_MSG,
         );
     }
 
@@ -1088,11 +1087,11 @@ mod requests_tests {
     fn deserialize_get_state_update_request() {
         let json_str = r#"{"method":"starknet_getStateUpdate","params":{"block_id":"latest"}}"#;
         assert_deserialization_succeeds(json_str);
-        assert_deserialization_succeeds(&json_str.replace("latest", "pending"));
+        assert_deserialization_succeeds(&json_str.replace("latest", "pre_confirmed"));
 
         assert_deserialization_fails(
             &json_str.replace("latest", "0x134134"),
-            "Invalid block ID: unknown variant `0x134134`, expected `latest` or `pending`",
+            EXPECTED_INVALID_BLOCK_ID_MSG,
         );
     }
 
@@ -1202,7 +1201,7 @@ mod requests_tests {
 
         assert_deserialization_fails(
             json_str.replace("latest", "0x134134").as_str(),
-            "Invalid block ID: unknown variant `0x134134`, expected `latest` or `pending`",
+            EXPECTED_INVALID_BLOCK_ID_MSG,
         );
     }
 
@@ -1385,14 +1384,16 @@ mod requests_tests {
                     "address":"0xAAABB",
                     "keys":[["0xFF"], ["0xAA"]],
                     "from_block": "latest",
-                    "to_block": "pending",
+                    "to_block": "pre_confirmed",
                     "continuation_token": "0x11"
                 }
             }
         }"#;
 
         assert_deserialization_succeeds(json_str);
-        assert_deserialization_succeeds(json_str.replace(r#""to_block": "pending","#, "").as_str());
+        assert_deserialization_succeeds(
+            json_str.replace(r#""to_block": "pre_confirmed","#, "").as_str(),
+        );
 
         assert_deserialization_fails(
             json_str.replace(r#""chunk_size": 1,"#, "").as_str(),

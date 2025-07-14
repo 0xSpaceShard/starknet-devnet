@@ -19,7 +19,7 @@ pub fn add_l1_handler_transaction(
 
     let execution_info =
         blockifier::transaction::transaction_execution::Transaction::L1Handler(executable_tx)
-            .execute(&mut starknet.pending_state.state, &starknet.block_context)?;
+            .execute(&mut starknet.pre_confirmed_state.state, &starknet.block_context)?;
 
     starknet.handle_accepted_transaction(
         TransactionWithHash::new(transaction_hash, Transaction::L1Handler(transaction.clone())),
@@ -46,7 +46,7 @@ mod tests {
     const WHITELISTED_L1_ADDRESS: &str = "0x8359E4B0152ed5A731162D3c7B0D8D56edB165A0";
 
     use nonzero_ext::nonzero;
-    use starknet_rs_core::types::{Felt, TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::chain_id::ChainId;
     use starknet_types::contract_address::ContractAddress;
@@ -54,13 +54,15 @@ mod tests {
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
+    use starknet_types::rpc::transactions::{
+        ExecutionInvocation, TransactionFinalityStatus, TransactionTrace,
+    };
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
     use crate::constants::{
         self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
-        ENTRYPOINT_NOT_FOUND_ERROR_ENCODED, ETH_ERC20_CONTRACT_ADDRESS,
-        STRK_ERC20_CONTRACT_ADDRESS,
+        ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::starknet::{Starknet, predeployed};
     use crate::state::CustomState;
@@ -125,39 +127,25 @@ mod tests {
     fn l1_handler_transaction_not_l1_handler_entrypoint() {
         let (mut starknet, _account_address, contract_address, _, withdraw_selector) = setup();
 
-        let transaction = get_l1_handler_tx(
+        let tx = get_l1_handler_tx(
             felt_from_prefixed_hex(WHITELISTED_L1_ADDRESS).unwrap(),
             contract_address,
             withdraw_selector,
             vec![Felt::from(11), Felt::from(9999)],
         );
 
-        match starknet.add_l1_handler_transaction(transaction) {
-            Err(crate::error::Error::ContractExecutionError(execution_error)) => {
-                match execution_error {
-                    crate::error::ContractExecutionError::Nested(
-                        inner_contract_execution_error,
-                    ) => {
-                        assert_eq!(inner_contract_execution_error.selector, withdraw_selector);
-                        assert_eq!(
-                            inner_contract_execution_error.contract_address,
-                            starknet_api::core::ContractAddress::try_from(contract_address)
-                                .unwrap()
-                        );
+        let tx_hash = starknet.add_l1_handler_transaction(tx).unwrap();
 
-                        // check if there is a felt that corresponds to ENTRYPOINT_NOT_FOUND
-                        assert!(
-                            serde_json::to_string(&inner_contract_execution_error.error)
-                                .unwrap()
-                                .contains(&ENTRYPOINT_NOT_FOUND_ERROR_ENCODED.to_hex_string())
-                        );
-                    }
-                    other_error_trace => {
-                        panic!("Invalid error stack trace {:?}", other_error_trace)
-                    }
-                }
+        let trace = match starknet.get_transaction_trace_by_hash(tx_hash) {
+            Ok(TransactionTrace::L1Handler(trace)) => trace,
+            other => panic!("Unexpected trace response: {other:?}"),
+        };
+
+        match trace.function_invocation {
+            ExecutionInvocation::Reverted(reversion) => {
+                assert!(reversion.revert_reason.contains("ENTRYPOINT_NOT_FOUND"));
             }
-            other => panic!("Wrong result: {other:?}"),
+            other => panic!("Unexpected invocation: {other:?}"),
         }
     }
 
@@ -197,11 +185,11 @@ mod tests {
         // deploy erc20 contract
         let eth_erc_20_contract =
             predeployed::tests::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
-        eth_erc_20_contract.deploy(&mut starknet.pending_state).unwrap();
+        eth_erc_20_contract.deploy(&mut starknet.pre_confirmed_state).unwrap();
 
         let strk_erc_20_contract =
             predeployed::tests::create_erc20_at_address(STRK_ERC20_CONTRACT_ADDRESS).unwrap();
-        strk_erc_20_contract.deploy(&mut starknet.pending_state).unwrap();
+        strk_erc_20_contract.deploy(&mut starknet.pre_confirmed_state).unwrap();
 
         // deploy account contract
         let account_without_validations_contract_class = cairo_0_account_without_validations();
@@ -219,7 +207,7 @@ mod tests {
         )
         .unwrap();
 
-        account.deploy(&mut starknet.pending_state).unwrap();
+        account.deploy(&mut starknet.pre_confirmed_state).unwrap();
 
         // dummy contract
         let dummy_contract = dummy_cairo_l1l2_contract();
@@ -252,13 +240,13 @@ mod tests {
 
         // declare dummy contract
         starknet
-            .pending_state
+            .pre_confirmed_state
             .declare_contract_class(dummy_contract_class_hash, None, dummy_contract.into())
             .unwrap();
 
         // deploy dummy contract
         starknet
-            .pending_state
+            .pre_confirmed_state
             .predeploy_contract(dummy_contract_address, dummy_contract_class_hash)
             .unwrap();
         starknet.block_context = Starknet::init_block_context(
@@ -274,7 +262,7 @@ mod tests {
             DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
 
-        starknet.restart_pending_block().unwrap();
+        starknet.restart_pre_confirmed_block().unwrap();
 
         (
             starknet,

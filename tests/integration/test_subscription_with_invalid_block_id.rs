@@ -9,8 +9,8 @@ fn block_not_found_error() -> serde_json::Value {
     json!({ "jsonrpc": "2.0", "id": 0, "error": { "code": 24, "message": "Block not found" } })
 }
 
-fn call_on_pending_error() -> serde_json::Value {
-    json!({ "jsonrpc": "2.0", "id": 0, "error": { "code": -32602, "message": "Subscription block cannot be 'pending'" }})
+fn call_on_pre_confirmed_error() -> serde_json::Value {
+    json!({ "jsonrpc": "2.0", "id": 0, "error": { "code": -32602, "message": "Subscription block cannot be 'pre_confirmed'" }})
 }
 
 #[tokio::test]
@@ -63,11 +63,18 @@ async fn test_pending_block_not_allowed_in_block_and_event_subscription() {
     let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
     for subscription_method in ["starknet_subscribeNewHeads", "starknet_subscribeEvents"] {
-        let subscription_resp =
-            send_text_rpc_via_ws(&mut ws, subscription_method, json!({ "block_id": "pending" }))
-                .await
-                .unwrap();
+        let subscription_resp = send_text_rpc_via_ws(
+            &mut ws,
+            subscription_method,
+            json!({ "block_id": "pre_confirmed" }),
+        )
+        .await
+        .unwrap();
 
-        assert_eq!(subscription_resp, call_on_pending_error(), "Method: {subscription_method}");
+        assert_eq!(
+            subscription_resp,
+            call_on_pre_confirmed_error(),
+            "Method: {subscription_method}"
+        );
     }
 }

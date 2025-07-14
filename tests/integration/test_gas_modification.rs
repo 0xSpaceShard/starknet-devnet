@@ -18,7 +18,7 @@ use crate::common::constants::{
 use crate::common::errors::RpcError;
 use crate::common::fees::assert_difference_if_validation;
 use crate::common::utils::{
-    assert_tx_successful, felt_to_u128, get_flattened_sierra_contract_and_casm_hash,
+    assert_tx_succeeded_accepted, felt_to_u128, get_flattened_sierra_contract_and_casm_hash,
     get_simple_contract_artifacts, iter_to_hex_felt, to_hex_felt, to_num_as_hex,
 };
 
@@ -51,6 +51,9 @@ impl SetGasPrice for BackgroundDevnet {
 /// 3. Execute simulateTransactions again and check gas fees.
 ///
 /// Chain ID assertion justified in: https://github.com/0xSpaceShard/starknet-devnet/pull/551#discussion_r1682755696
+///
+/// Note to test maintainer: the usual way of adapting this test to a new Starknet version is to
+/// repeatedly run it and hardcode new hex fee values.
 async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
     // get account
     let (signer, account_address) = devnet.get_first_predeployed_account().await;
@@ -132,7 +135,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         to_hex_felt(&DEVNET_DEFAULT_L2_GAS_PRICE)
     );
     assert_eq!(resp_no_flags["transaction_trace"]["execution_resources"]["l1_gas"], 0);
-    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x99a6dfe5cc0000");
+    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0x99cb411f968000");
 
     let params_skip_validation_and_fee_charge = get_params(&["SKIP_VALIDATE", "SKIP_FEE_CHARGE"]);
     let resp_skip_validation = &devnet
@@ -156,7 +159,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         to_hex_felt(&DEVNET_DEFAULT_L2_GAS_PRICE)
     );
     assert_eq!(resp_no_flags["transaction_trace"]["execution_resources"]["l1_gas"], 0);
-    assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x9939bc386c8000");
+    assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x995e1d72370000");
 
     let should_skip_fee_invocation = true;
     assert_difference_if_validation(
@@ -195,7 +198,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         to_hex_felt(&l1_data_fri_price)
     );
     assert_eq!(resp_no_flags["fee_estimation"]["l2_gas_price"], to_hex_felt(&l2_fri_price));
-    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0xe8896863a40504d7000000");
+    assert_eq!(resp_no_flags["fee_estimation"]["overall_fee"], "0xe8c077047881faf1800000");
 
     let resp_skip_validation = &devnet
         .send_custom_rpc("starknet_simulateTransactions", params_skip_validation_and_fee_charge)
@@ -207,7 +210,7 @@ async fn set_gas_scenario(devnet: BackgroundDevnet, expected_chain_id: Felt) {
         to_hex_felt(&l1_data_fri_price)
     );
     assert_eq!(resp_skip_validation["fee_estimation"]["l2_gas_price"], to_hex_felt(&l2_fri_price));
-    assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0xe7e43c81268e2287800000");
+    assert_eq!(resp_skip_validation["fee_estimation"]["overall_fee"], "0xe81b4b21fb0b18a2000000");
 
     assert_difference_if_validation(
         resp_no_flags,
@@ -403,7 +406,8 @@ async fn unsuccessful_declare_set_gas_successful_declare() {
         .send()
         .await
         .unwrap();
-    assert_tx_successful(&successful_declare_tx.transaction_hash, &devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&successful_declare_tx.transaction_hash, &devnet.json_rpc_client)
+        .await;
 }
 
 #[tokio::test]

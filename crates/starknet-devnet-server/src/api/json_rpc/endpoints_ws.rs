@@ -1,9 +1,8 @@
 use starknet_core::error::Error;
 use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::felt::TransactionHash;
-use starknet_types::rpc::block::{BlockResult, PendingBlock};
+use starknet_types::rpc::block::{BlockResult, BlockStatus, PreConfirmedBlock};
 use starknet_types::rpc::transactions::{TransactionWithHash, Transactions};
-use starknet_types::starknet_api::block::BlockStatus;
 
 use super::error::ApiError;
 use super::models::{
@@ -56,7 +55,7 @@ impl JsonRpcHandler {
 
         // Convert pending to latest to prevent getting block_number = 0
         starting_block_id = match starting_block_id {
-            BlockId::Tag(BlockTag::Pending) => BlockId::Tag(BlockTag::Latest),
+            BlockId::Tag(BlockTag::PreConfirmed) => BlockId::Tag(BlockTag::Latest),
             other => other,
         };
 
@@ -133,9 +132,9 @@ impl JsonRpcHandler {
 
     async fn get_pending_txs(&self) -> Result<Vec<TransactionWithHash>, ApiError> {
         let starknet = self.api.starknet.lock().await;
-        let block = starknet.get_block_with_transactions(&BlockId::Tag(BlockTag::Pending))?;
+        let block = starknet.get_block_with_transactions(&BlockId::Tag(BlockTag::PreConfirmed))?;
         match block {
-            BlockResult::PendingBlock(PendingBlock {
+            BlockResult::PreConfirmedBlock(PreConfirmedBlock {
                 transactions: Transactions::Full(txs),
                 ..
             }) => Ok(txs),
@@ -253,7 +252,7 @@ impl JsonRpcHandler {
 
         let events = self.api.starknet.lock().await.get_unlimited_events(
             Some(starting_block_id),
-            Some(BlockId::Tag(BlockTag::Pending)),
+            Some(BlockId::Tag(BlockTag::PreConfirmed)),
             address,
             keys_filter,
         )?;

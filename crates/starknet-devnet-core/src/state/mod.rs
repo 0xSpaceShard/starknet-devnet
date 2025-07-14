@@ -19,8 +19,8 @@ use crate::starknet::defaulter::StarknetDefaulter;
 pub(crate) mod state_diff;
 pub(crate) mod state_readers;
 
-pub enum BlockNumberOrPending {
-    Pending,
+pub enum BlockNumberOrPreConfirmed {
+    PreConfirmed,
     Number(u64),
 }
 
@@ -61,10 +61,10 @@ pub trait CustomState {
 
 #[derive(Default, Clone)]
 /// Utility structure that makes it easier to calculate state diff later on. Classes are first
-/// inserted into the staging area (pending state), later to be committed (assigned a block number
-/// to mark when they were added). Committed doesn't necessarily mean the class is a part of the
-/// latest state, just that it is bound to be. Since there is no way of telling if a class is in the
-/// latest state or no, retrieving from the latest state has to be done via block number.
+/// inserted into the staging area (pre_confirmed state), later to be committed (assigned a block
+/// number to mark when they were added). Committed doesn't necessarily mean the class is a part of
+/// the latest state, just that it is bound to be. Since there is no way of telling if a class is in
+/// the latest state or no, retrieving from the latest state has to be done via block number.
 pub struct CommittedClassStorage {
     staging: HashMap<ClassHash, ContractClass>,
     committed: HashMap<ClassHash, (ContractClass, u64)>,
@@ -98,12 +98,12 @@ impl CommittedClassStorage {
     pub fn get_class(
         &self,
         class_hash: &ClassHash,
-        block_number_or_pending: &BlockNumberOrPending,
+        block_number_or_pre_confirmed: &BlockNumberOrPreConfirmed,
     ) -> Option<ContractClass> {
         if let Some((class, storage_block_number)) = self.committed.get(class_hash) {
             // If we're here, the requested class was committed at some point, need to see when.
-            match block_number_or_pending {
-                BlockNumberOrPending::Number(query_block_number) => {
+            match block_number_or_pre_confirmed {
+                BlockNumberOrPreConfirmed::Number(query_block_number) => {
                     // If the class was stored before the block at which we are querying (or at that
                     // block), we can return it.
                     if storage_block_number <= query_block_number {
@@ -112,16 +112,17 @@ impl CommittedClassStorage {
                         None
                     }
                 }
-                BlockNumberOrPending::Pending => {
-                    // Class is requested at block_id=pending. Since it's present among the
+                BlockNumberOrPreConfirmed::PreConfirmed => {
+                    // Class is requested at block_id=pre_confirmed. Since it's present among the
                     // committed classes, it's in the latest block or older and can be returned.
                     Some(class.clone())
                 }
             }
         } else if let Some(class) = self.staging.get(class_hash) {
-            // If class present in storage.staging, it can only be retrieved if block_id=pending
-            match block_number_or_pending {
-                BlockNumberOrPending::Pending => Some(class.clone()),
+            // If class present in storage.staging, it can only be retrieved if
+            // block_id=pre_confirmed
+            match block_number_or_pre_confirmed {
+                BlockNumberOrPreConfirmed::PreConfirmed => Some(class.clone()),
                 _ => None,
             }
         } else {
@@ -207,10 +208,8 @@ impl StarknetState {
         let mut historic_state = self.state.state.clone();
 
         for (address, class_hash) in state_diff.address_to_class_hash {
-            historic_state.set_class_hash_at(
-                address.try_into()?,
-                starknet_api::core::ClassHash(class_hash),
-            )?;
+            historic_state
+                .set_class_hash_at(address.into(), starknet_api::core::ClassHash(class_hash))?;
         }
         for (class_hash, casm_hash) in state_diff.class_hash_to_compiled_class_hash {
             historic_state.set_compiled_class_hash(
@@ -220,12 +219,12 @@ impl StarknetState {
         }
         for (address, _nonce) in state_diff.address_to_nonce {
             // assuming that historic_state.get_nonce(address) == _nonce - 1
-            historic_state.increment_nonce(address.try_into()?)?;
+            historic_state.increment_nonce(address.into())?;
         }
         for (address, storage_updates) in state_diff.storage_updates {
-            let core_address = address.try_into()?;
+            let core_address = address.into();
             for (key, value) in storage_updates {
-                historic_state.set_storage_at(core_address, key.try_into()?, value)?;
+                historic_state.set_storage_at(core_address, key.into(), value)?;
             }
         }
         for class_hash in state_diff.cairo_0_declared_contracts {
@@ -335,7 +334,7 @@ impl blockifier::state::state_api::StateReader for StarknetState {
 
 impl CustomStateReader for StarknetState {
     fn is_contract_deployed(&self, contract_address: ContractAddress) -> DevnetResult<bool> {
-        let api_address = contract_address.try_into()?;
+        let api_address = contract_address.into();
         let starknet_api::core::ClassHash(class_hash) = self.get_class_hash_at(api_address)?;
         Ok(class_hash != Felt::ZERO)
     }
@@ -352,7 +351,7 @@ impl CustomStateReader for StarknetState {
         &self,
         contract_address: ContractAddress,
     ) -> DevnetResult<bool> {
-        let api_address = contract_address.try_into()?;
+        let api_address = contract_address.into();
         Ok(self.state.state.address_to_class_hash.contains_key(&api_address))
     }
 }
@@ -410,7 +409,7 @@ impl CustomState for StarknetState {
         contract_address: ContractAddress,
         class_hash: ClassHash,
     ) -> DevnetResult<()> {
-        let converted_contract_address = contract_address.try_into()?;
+        let converted_contract_address = contract_address.into();
 
         self.state.state.set_class_hash_at(
             converted_contract_address,
@@ -432,7 +431,7 @@ mod tests {
     use starknet_types::contract_class::ContractClass;
 
     use super::StarknetState;
-    use crate::state::{BlockNumberOrPending, CustomState, CustomStateReader};
+    use crate::state::{BlockNumberOrPreConfirmed, CustomState, CustomStateReader};
     use crate::utils::test_utils::{
         DUMMY_CAIRO_1_COMPILED_CLASS_HASH, dummy_cairo_1_contract_class, dummy_contract_address,
         dummy_felt,
@@ -474,7 +473,7 @@ mod tests {
         let mut state = StarknetState::default();
 
         state.predeploy_contract(dummy_contract_address(), dummy_felt()).unwrap();
-        let contract_address = dummy_contract_address().try_into().unwrap();
+        let contract_address = dummy_contract_address().into();
 
         // should be zero before update
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(Felt::ZERO));
@@ -518,7 +517,7 @@ mod tests {
         let retrieved_rpc_class = state
             .rpc_contract_classes
             .read()
-            .get_class(&class_hash, &BlockNumberOrPending::Number(block_number))
+            .get_class(&class_hash, &BlockNumberOrPreConfirmed::Number(block_number))
             .unwrap();
         assert_eq!(retrieved_rpc_class, contract_class.into());
     }
@@ -529,7 +528,7 @@ mod tests {
         let felt = dummy_felt();
 
         state.predeploy_contract(address, felt).unwrap();
-        let core_address = address.try_into().unwrap();
+        let core_address = address.into();
         assert_eq!(state.get_nonce_at(core_address).unwrap(), Nonce(Felt::ZERO));
     }
 
@@ -547,7 +546,7 @@ mod tests {
     fn increment_nonce_successful() {
         let (mut state, address) = setup();
 
-        let core_address = address.try_into().unwrap();
+        let core_address = address.into();
         state.increment_nonce(core_address).unwrap();
 
         let nonce = *state.get_nonce_at(core_address).unwrap();
@@ -582,7 +581,7 @@ mod tests {
     #[test]
     fn get_nonce_should_return_zero_for_freshly_deployed_contract() {
         let (state, address) = setup();
-        let core_address = address.try_into().unwrap();
+        let core_address = address.into();
         assert_eq!(state.get_nonce_at(core_address).unwrap(), Nonce(Felt::ZERO));
     }
 

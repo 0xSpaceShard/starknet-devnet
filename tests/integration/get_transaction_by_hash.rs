@@ -12,7 +12,7 @@ use crate::common::constants::{
     self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, ETH_ERC20_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_tx_successful, get_deployable_account_signer, get_simple_contract_artifacts,
+    assert_tx_succeeded_accepted, get_deployable_account_signer, get_simple_contract_artifacts,
 };
 
 #[tokio::test]
@@ -38,7 +38,7 @@ async fn get_declare_v3_transaction_by_hash_happy_path() {
         .await
         .unwrap();
 
-    assert_tx_successful(&declare_result.transaction_hash, &devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&declare_result.transaction_hash, &devnet.json_rpc_client).await;
 }
 
 #[tokio::test]
@@ -62,11 +62,12 @@ async fn get_deploy_account_transaction_by_hash_happy_path() {
     let fee_estimation = deployment.estimate_fee().await.unwrap();
 
     // fund the account before deployment
-    let mint_amount = fee_estimation.overall_fee * Felt::TWO;
-    devnet.mint(deployment_address, mint_amount.to_biguint().try_into().unwrap()).await;
+    let mint_amount = fee_estimation.overall_fee * 2;
+    devnet.mint(deployment_address, mint_amount).await;
 
     let deploy_account_result = deployment.send().await.unwrap();
-    assert_tx_successful(&deploy_account_result.transaction_hash, &devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&deploy_account_result.transaction_hash, &devnet.json_rpc_client)
+        .await;
 }
 
 #[tokio::test]
@@ -96,7 +97,7 @@ async fn get_invoke_v3_transaction_by_hash_happy_path() {
         .await
         .unwrap();
 
-    assert_tx_successful(&invoke_tx_result.transaction_hash, &devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&invoke_tx_result.transaction_hash, &devnet.json_rpc_client).await;
 }
 
 #[tokio::test]

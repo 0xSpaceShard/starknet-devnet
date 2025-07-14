@@ -17,9 +17,10 @@ use starknet_rs_accounts::{
 };
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, Call, ExecutionResult, Felt, FunctionCall, InvokeTransactionReceipt,
-    InvokeTransactionResult, TransactionExecutionStatus, TransactionReceipt,
-    TransactionReceiptWithBlockInfo, TransactionTrace,
+    BlockId, BlockTag, Call, ExecuteInvocation, ExecutionResult, Felt, FunctionCall,
+    InvokeTransactionReceipt, InvokeTransactionResult, L1HandlerTransactionTrace,
+    TransactionExecutionStatus, TransactionReceipt, TransactionReceiptWithBlockInfo,
+    TransactionTrace,
 };
 use starknet_rs_core::utils::{UdcUniqueness, get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -34,7 +35,7 @@ use crate::common::constants::{
 };
 use crate::common::errors::RpcError;
 use crate::common::utils::{
-    UniqueAutoDeletableFile, assert_contains, assert_tx_successful, felt_to_u256,
+    UniqueAutoDeletableFile, assert_contains, assert_tx_succeeded_accepted, felt_to_u256,
     get_messaging_contract_artifacts, get_messaging_lib_artifacts, send_ctrl_c_signal_and_wait,
 };
 
@@ -94,7 +95,7 @@ async fn get_balance(devnet: &BackgroundDevnet, contract_address: Felt, user: Fe
         calldata: vec![user],
     };
 
-    devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Pending)).await.unwrap()
+    devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::PreConfirmed)).await.unwrap()
 }
 
 /// Withdraws the given amount from a user and send this amount in a l2->l1 message
@@ -169,14 +170,16 @@ async fn setup_devnet(
 }
 
 fn assert_accepted_l1_handler_trace(trace: &TransactionTrace) {
-    if let TransactionTrace::L1Handler(l1_handler_trace) = trace {
-        let invocation = &l1_handler_trace.function_invocation;
-        assert_eq!(invocation.contract_address.to_hex_string(), MESSAGING_L2_CONTRACT_ADDRESS);
-        assert_eq!(invocation.entry_point_selector.to_hex_string(), L1_HANDLER_SELECTOR);
-        assert_eq!(invocation.calldata[0].to_hex_string(), MESSAGING_L1_CONTRACT_ADDRESS);
-        assert!(!invocation.is_reverted);
-    } else {
-        panic!("Invalid trace: {trace:?}")
+    match trace {
+        TransactionTrace::L1Handler(L1HandlerTransactionTrace {
+            function_invocation: ExecuteInvocation::Success(invocation),
+            ..
+        }) => {
+            assert_eq!(invocation.contract_address.to_hex_string(), MESSAGING_L2_CONTRACT_ADDRESS);
+            assert_eq!(invocation.entry_point_selector.to_hex_string(), L1_HANDLER_SELECTOR);
+            assert_eq!(invocation.calldata[0].to_hex_string(), MESSAGING_L1_CONTRACT_ADDRESS);
+        }
+        other => panic!("Invalid trace: {other:?}"),
     }
 }
 
@@ -300,7 +303,7 @@ async fn mock_message_to_l2_creates_a_tx_with_desired_effect() {
         .await.unwrap();
     let tx_hash_hex = body.get("transaction_hash").unwrap().as_str().unwrap();
     let tx_hash = Felt::from_hex_unchecked(tx_hash_hex);
-    assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&tx_hash, &devnet.json_rpc_client).await;
 
     // assert state changed
     assert_eq!(
@@ -904,6 +907,7 @@ async fn test_getting_status_of_mock_message() {
         json!([{
             "transaction_hash": mock_msg_resp["transaction_hash"],
             "finality_status": "ACCEPTED_ON_L2",
+            "execution_status": "SUCCEEDED",
             "failure_reason": null,
         }])
     );
@@ -981,6 +985,7 @@ async fn test_getting_status_of_real_message() {
         json!([{
             "transaction_hash": generated_l2_tx,
             "finality_status": "ACCEPTED_ON_L2",
+            "execution_status": "SUCCEEDED",
             "failure_reason": null,
         }])
     )
@@ -1007,9 +1012,9 @@ async fn withdrawing_should_incur_l1_gas_cost() {
     }];
 
     let estimation = account.execute_v3(invoke_calls.clone()).estimate_fee().await.unwrap();
-    assert!(estimation.l1_gas_consumed > Felt::ZERO);
-    assert!(estimation.l1_data_gas_consumed > Felt::ZERO);
-    assert!(estimation.l2_gas_consumed > Felt::ZERO);
+    assert!(estimation.l1_gas_consumed > 0);
+    assert!(estimation.l1_data_gas_consumed > 0);
+    assert!(estimation.l2_gas_consumed > 0);
 
     let invocation = account
         .execute_v3(invoke_calls)

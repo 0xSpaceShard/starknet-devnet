@@ -5,12 +5,11 @@ use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::objects::HasRelatedFeeType;
 use blockifier::transaction::transaction_execution::Transaction;
 use blockifier::transaction::transactions::ExecutableTransaction;
-use starknet_api::transaction::fields::GasVectorComputationMode;
+use starknet_api::transaction::fields::{GasVectorComputationMode, Tip};
 use starknet_rs_core::types::{BlockId, Felt, MsgFromL1, PriceUnit};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::rpc::estimate_message_fee::{
-    EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
-};
+use starknet_types::rpc::block::BlockId as CustomBlockId;
+use starknet_types::rpc::estimate_message_fee::{EstimateMessageFeeRequest, FeeEstimateWrapper};
 use starknet_types::rpc::transactions::BroadcastedTransaction;
 
 use crate::error::{ContractExecutionError, DevnetResult, Error};
@@ -28,6 +27,7 @@ pub fn estimate_fee(
     let chain_id = starknet.chain_id().to_felt();
     let block_context = starknet.block_context.clone();
     let cheats = starknet.cheats.clone();
+    let using_pre_confirmed_block = starknet.config.uses_pre_confirmed_block();
     let state = starknet.get_mut_state_at(block_id)?;
 
     let transactions = {
@@ -47,6 +47,7 @@ pub fn estimate_fee(
                     txn.to_sn_api_account_transaction(&chain_id)?,
                     validate,
                     txn.gas_vector_computation_mode(),
+                    txn.requires_strict_nonce_check(using_pre_confirmed_block),
                 ))
             })
             .collect::<DevnetResult<Vec<_>>>()?
@@ -57,7 +58,7 @@ pub fn estimate_fee(
     transactions
         .into_iter()
         .enumerate()
-        .map(|(idx, (transaction, validate, gas_vector_computation_mode))| {
+        .map(|(idx, (transaction, validate, gas_vector_computation_mode, strict_nonce_check))| {
             let estimate_fee_result = estimate_transaction_fee(
                 &mut transactional_state,
                 &block_context,
@@ -68,6 +69,7 @@ pub fn estimate_fee(
                             only_query: true,
                             charge_fee: charge_fee.unwrap_or(false),
                             validate,
+                            strict_nonce_check,
                         },
                     },
                 ),
@@ -96,13 +98,13 @@ pub fn estimate_fee(
 
 pub fn estimate_message_fee(
     starknet: &mut Starknet,
-    block_id: &BlockId,
+    block_id: &CustomBlockId,
     message: MsgFromL1,
 ) -> DevnetResult<FeeEstimateWrapper> {
-    let estimate_message_fee = EstimateMessageFeeRequestWrapper::new(*block_id, message);
+    let estimate_message_fee = EstimateMessageFeeRequest::new(block_id.clone(), message);
 
     let block_context = starknet.block_context.clone();
-    let state = starknet.get_mut_state_at(estimate_message_fee.get_block_id())?;
+    let state = starknet.get_mut_state_at(&(estimate_message_fee.get_block_id().clone().into()))?;
 
     let address = ContractAddress::new(estimate_message_fee.get_to_address())?;
     state.assert_contract_deployed(address)?;
@@ -130,7 +132,6 @@ fn estimate_transaction_fee<S: StateReader>(
 ) -> DevnetResult<FeeEstimateWrapper> {
     let transaction_execution_info = transaction.execute(transactional_state, block_context)?;
 
-    // reverted transactions can only be Invoke transactions
     match transaction_execution_info.revert_error {
         Some(revert_error) if return_error_on_reverted_execution => {
             match revert_error {
@@ -156,8 +157,9 @@ fn estimate_transaction_fee<S: StateReader>(
         Transaction::L1Handler(tx) => tx.fee_type(),
     };
 
+    // Tip is 0 Gfri according to https://spaceshard.slack.com/archives/C03031Y0LKC/p1751873286905609?thread_ts=1751635985.448309&cid=C03031Y0LKC
     let total_fee =
-        fee_utils::get_fee_by_gas_vector(block_context.block_info(), gas_vector, &fee_type);
+        fee_utils::get_fee_by_gas_vector(block_context.block_info(), gas_vector, &fee_type, Tip(0));
 
     let gas_prices = &block_context.block_info().gas_prices;
     let l1_gas_price = gas_prices.l1_gas_price(&fee_type).get();

@@ -131,7 +131,7 @@ pub struct StarknetConfig {
 }
 
 impl StarknetConfig {
-    pub fn uses_pending_block(&self) -> bool {
+    pub fn uses_pre_confirmed_block(&self) -> bool {
         match self.block_generation_on {
             BlockGenerationOn::Transaction => false,
             BlockGenerationOn::Demand | BlockGenerationOn::Interval(_) => true,

@@ -51,11 +51,9 @@ impl From<starknet_api::core::PatriciaKey> for PatriciaKey {
     }
 }
 
-impl TryFrom<PatriciaKey> for starknet_api::core::PatriciaKey {
-    type Error = Error;
-
-    fn try_from(value: PatriciaKey) -> Result<Self, Self::Error> {
-        Ok(starknet_api::core::PatriciaKey::try_from(value.0)?)
+impl From<PatriciaKey> for starknet_api::core::PatriciaKey {
+    fn from(value: PatriciaKey) -> Self {
+        Self::from_hex_unchecked(&value.0.to_hex_string())
     }
 }
 
@@ -67,11 +65,9 @@ impl TryFrom<Felt> for PatriciaKey {
     }
 }
 
-impl TryFrom<PatriciaKey> for starknet_api::state::StorageKey {
-    type Error = Error;
-
-    fn try_from(value: PatriciaKey) -> Result<Self, Self::Error> {
-        Ok(Self(value.try_into()?))
+impl From<PatriciaKey> for starknet_api::state::StorageKey {
+    fn from(value: PatriciaKey) -> Self {
+        Self(value.into())
     }
 }
 

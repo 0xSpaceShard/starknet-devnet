@@ -1,17 +1,14 @@
 use std::sync::Arc;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use starknet_api::core::EntryPointSelector;
 use starknet_api::executable_transaction::L1HandlerTransaction;
 use starknet_api::transaction::fields::Calldata;
-use starknet_rs_core::types::requests::EstimateMessageFeeRequest;
-use starknet_rs_core::types::{
-    BlockId as SrBlockId, Felt, MsgFromL1 as SrMsgFromL1, MsgFromL1, PriceUnit,
-};
+use starknet_rs_core::types::{Felt, MsgFromL1 as SrMsgFromL1, MsgFromL1, PriceUnit};
 
+use super::block::BlockId;
 use crate::error::DevnetResult;
 use crate::rpc::eth_address::EthAddressWrapper;
-use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
@@ -26,39 +23,44 @@ pub struct FeeEstimateWrapper {
     pub unit: PriceUnit,
 }
 
-#[derive(Debug, Clone)]
-pub struct EstimateMessageFeeRequestWrapper {
-    inner: EstimateMessageFeeRequest,
+/// Request for method starknet_estimateMessageFee
+#[derive(Debug, Clone, Deserialize)]
+pub struct EstimateMessageFeeRequest {
+    /// the message's parameters
+    pub message: MsgFromL1,
+    /// The hash of the requested block, or number (height) of the requested block, or a block tag,
+    /// for the block referencing the state or call the transaction on.
+    pub block_id: BlockId,
 }
 
-impl EstimateMessageFeeRequestWrapper {
-    pub fn new(block_id: SrBlockId, msg_from_l1: MsgFromL1) -> Self {
-        Self { inner: EstimateMessageFeeRequest { message: msg_from_l1, block_id } }
+impl EstimateMessageFeeRequest {
+    pub fn new(block_id: BlockId, msg_from_l1: MsgFromL1) -> Self {
+        Self { message: msg_from_l1, block_id }
     }
 
     // TODO: add ref wrapper
     pub fn get_from_address(&self) -> EthAddressWrapper {
-        EthAddressWrapper { inner: self.inner.message.from_address.clone() }
+        EthAddressWrapper { inner: self.message.from_address.clone() }
     }
 
     pub fn get_to_address(&self) -> Felt {
-        self.inner.message.to_address
+        self.message.to_address
     }
 
     pub fn get_entry_point_selector(&self) -> Felt {
-        self.inner.message.entry_point_selector
+        self.message.entry_point_selector
     }
 
     pub fn get_payload(&self) -> &[Felt] {
-        &self.inner.message.payload
+        &self.message.payload
     }
 
-    pub fn get_block_id(&self) -> &SrBlockId {
-        &self.inner.block_id
+    pub fn get_block_id(&self) -> &BlockId {
+        &self.block_id
     }
 
     pub fn get_raw_message(&self) -> &SrMsgFromL1 {
-        &self.inner.message
+        &self.message
     }
 
     pub fn create_blockifier_l1_transaction(&self) -> DevnetResult<L1HandlerTransaction> {
@@ -80,6 +82,3 @@ impl EstimateMessageFeeRequestWrapper {
         Ok(l1_transaction)
     }
 }
-
-impl_wrapper_serialize!(EstimateMessageFeeRequestWrapper);
-impl_wrapper_deserialize!(EstimateMessageFeeRequestWrapper, EstimateMessageFeeRequest);

@@ -1,15 +1,15 @@
 use blockifier::state::state_api::StateReader;
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
-use starknet_api::block::BlockStatus;
 use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::compile_sierra_contract;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
+use starknet_types::rpc::block::BlockStatus;
 
 use crate::error::{DevnetResult, Error, StateError};
 use crate::starknet::Starknet;
-use crate::state::BlockNumberOrPending;
+use crate::state::BlockNumberOrPreConfirmed;
 
 pub fn get_class_hash_at_impl(
     starknet: &mut Starknet,
@@ -17,7 +17,7 @@ pub fn get_class_hash_at_impl(
     contract_address: ContractAddress,
 ) -> DevnetResult<ClassHash> {
     let state = starknet.get_mut_state_at(block_id)?;
-    let core_address = contract_address.try_into()?;
+    let core_address = contract_address.into();
 
     let class_hash = state.get_class_hash_at(core_address)?;
     if class_hash == Default::default() { Err(Error::ContractNotFound) } else { Ok(class_hash.0) }
@@ -30,17 +30,21 @@ pub fn get_class_impl(
 ) -> DevnetResult<ContractClass> {
     let requested_block = starknet.get_block(block_id)?;
 
-    // the underlying logic only works with block number or pending tag
-    let block_number_or_pending = match requested_block.status {
-        BlockStatus::Pending => BlockNumberOrPending::Pending,
+    // the underlying logic only works with block number or pre_confirmed tag
+    let block_number_or_pre_confirmed = match requested_block.status {
+        BlockStatus::PreConfirmed => BlockNumberOrPreConfirmed::PreConfirmed,
         BlockStatus::AcceptedOnL2 | BlockStatus::AcceptedOnL1 => {
-            BlockNumberOrPending::Number(requested_block.block_number().0)
+            BlockNumberOrPreConfirmed::Number(requested_block.block_number().0)
         }
         BlockStatus::Rejected => return Err(Error::NoBlock),
     };
 
     // Returns sierra for cairo1; returns the only artifact for cairo0.
-    match starknet.rpc_contract_classes.read().get_class(&class_hash, &block_number_or_pending) {
+    match starknet
+        .rpc_contract_classes
+        .read()
+        .get_class(&class_hash, &block_number_or_pre_confirmed)
+    {
         Some(class) => Ok(class.clone()),
         None => Err(Error::StateError(StateError::NoneClassHash(class_hash))),
     }

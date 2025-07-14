@@ -14,14 +14,14 @@ pub type Balance = BigUint;
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub enum StateUpdateResult {
     StateUpdate(StateUpdate),
-    PendingStateUpdate(PendingStateUpdate),
+    PreConfirmedStateUpdate(PreConfirmedStateUpdate),
 }
 
 impl StateUpdateResult {
     pub fn get_state_diff(&self) -> &ThinStateDiff {
         match self {
             StateUpdateResult::StateUpdate(s) => &s.state_diff,
-            StateUpdateResult::PendingStateUpdate(s) => &s.state_diff,
+            StateUpdateResult::PreConfirmedStateUpdate(s) => &s.state_diff,
         }
     }
 }
@@ -44,7 +44,7 @@ impl StateUpdate {
 
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
-pub struct PendingStateUpdate {
+pub struct PreConfirmedStateUpdate {
     pub old_root: BlockRoot,
     pub state_diff: ThinStateDiff,
 }

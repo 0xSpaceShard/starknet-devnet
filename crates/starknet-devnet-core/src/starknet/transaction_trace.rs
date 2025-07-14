@@ -1,9 +1,9 @@
+use blockifier::blockifier_versioned_constants::VersionedConstants;
 use blockifier::execution::call_info::CallInfo;
 use blockifier::execution::stack_trace::ErrorStack;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::objects::TransactionExecutionInfo;
-use blockifier::versioned_constants::VersionedConstants;
 use starknet_api::transaction::fields::GasVectorComputationMode;
 use starknet_types::rpc::state::ThinStateDiff;
 use starknet_types::rpc::transaction_receipt::ExecutionResources;
@@ -127,23 +127,16 @@ pub(crate) fn create_trace<S: StateReader>(
             state_diff,
             execution_resources,
         })),
-        TransactionType::L1Handler => {
-            match get_call_info_invocation(
+        TransactionType::L1Handler => Ok(TransactionTrace::L1Handler(L1HandlerTransactionTrace {
+            function_invocation: get_execute_call_info(
                 state,
-                &execution_info.execute_call_info,
+                execution_info,
                 versioned_constants,
                 gas_vector_computation_mode,
-            )? {
-                Some(function_invocation) => {
-                    Ok(TransactionTrace::L1Handler(L1HandlerTransactionTrace {
-                        function_invocation,
-                        state_diff,
-                        execution_resources,
-                    }))
-                }
-                _ => Err(Error::NoTransactionTrace),
-            }
-        }
+            )?,
+            state_diff,
+            execution_resources,
+        })),
         _ => Err(Error::UnsupportedTransactionType),
     }
 }

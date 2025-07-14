@@ -13,8 +13,8 @@ use crate::common::constants::{
     self, CAIRO_0_ACCOUNT_CONTRACT_HASH, CHAIN_ID, STRK_ERC20_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    FeeUnit, assert_tx_successful, get_deployable_account_signer, get_simple_contract_artifacts,
-    remove_file, send_ctrl_c_signal_and_wait,
+    FeeUnit, assert_tx_succeeded_accepted, get_deployable_account_signer,
+    get_simple_contract_artifacts, remove_file, send_ctrl_c_signal_and_wait,
 };
 
 #[tokio::test]
@@ -93,7 +93,7 @@ async fn assert_account_deployment_reverted() {
     let deployment_tx = deployment.send().await.unwrap();
 
     // assert deployment successful and class associated with deployment address is present
-    assert_tx_successful(&deployment_tx.transaction_hash, &devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&deployment_tx.transaction_hash, &devnet.json_rpc_client).await;
     devnet
         .json_rpc_client
         .get_class_at(BlockId::Tag(BlockTag::Latest), deployment_address)
@@ -151,9 +151,9 @@ async fn assert_gas_price_unaffected_by_restart() {
         .estimate_fee()
         .await
         .unwrap();
-    assert_eq!(estimate_before.l1_gas_price, Felt::from(expected_l1_gas_price));
-    assert_eq!(estimate_before.l2_gas_price, Felt::from(expected_l2_gas_price));
-    assert_eq!(estimate_before.l1_data_gas_price, Felt::from(expected_data_gas_price));
+    assert_eq!(estimate_before.l1_gas_price, expected_l1_gas_price.into());
+    assert_eq!(estimate_before.l2_gas_price, expected_l2_gas_price.into());
+    assert_eq!(estimate_before.l1_data_gas_price, expected_data_gas_price.into());
 
     devnet.restart().await;
 
@@ -161,9 +161,9 @@ async fn assert_gas_price_unaffected_by_restart() {
         predeployed_account.declare_v3(contract_artifact, casm_hash).estimate_fee().await.unwrap();
 
     // assert gas_price and fee are equal to the values before restart
-    assert_eq!(estimate_after.l1_gas_price, Felt::from(expected_l1_gas_price));
-    assert_eq!(estimate_after.l2_gas_price, Felt::from(expected_l2_gas_price));
-    assert_eq!(estimate_after.l1_data_gas_price, Felt::from(expected_data_gas_price));
+    assert_eq!(estimate_after.l1_gas_price, expected_l1_gas_price.into());
+    assert_eq!(estimate_after.l2_gas_price, expected_l2_gas_price.into());
+    assert_eq!(estimate_after.l1_data_gas_price, expected_data_gas_price.into());
     assert_eq!(estimate_before.overall_fee, estimate_after.overall_fee);
 }
 

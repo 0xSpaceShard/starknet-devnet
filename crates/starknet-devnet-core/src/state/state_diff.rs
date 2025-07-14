@@ -245,7 +245,7 @@ mod tests {
         let mut state = setup();
         let class_hash = dummy_felt();
         let contract_address = dummy_contract_address();
-        let blockifier_address = contract_address.try_into().unwrap();
+        let blockifier_address = contract_address.into();
 
         // necessary to prevent blockifier's state subtraction panic
         assert_eq!(state.get_class_hash_at(blockifier_address).unwrap(), ClassHash(Felt::ZERO));
@@ -292,11 +292,11 @@ mod tests {
         )
         .unwrap();
 
-        account.deploy(&mut starknet.pending_state).unwrap();
+        account.deploy(&mut starknet.pre_confirmed_state).unwrap();
 
         starknet.commit_diff().unwrap();
         starknet.generate_new_block_and_state().unwrap();
-        starknet.restart_pending_block().unwrap();
+        starknet.restart_pre_confirmed_block().unwrap();
 
         // dummy contract
         let replaceable_contract = dummy_cairo_1_contract_class();
@@ -331,13 +331,13 @@ mod tests {
         let replaceable_contract_address = ContractAddress::new(Felt::ONE).unwrap();
         let old_class_hash = ContractClass::Cairo1(replaceable_contract).generate_hash().unwrap();
         starknet
-            .pending_state
+            .pre_confirmed_state
             .predeploy_contract(replaceable_contract_address, old_class_hash)
             .unwrap();
 
         starknet.commit_diff().unwrap();
         starknet.generate_new_block_and_state().unwrap();
-        starknet.restart_pending_block().unwrap();
+        starknet.restart_pre_confirmed_block().unwrap();
 
         let new_class_hash = ContractClass::Cairo1(replacing_contract).generate_hash().unwrap();
 

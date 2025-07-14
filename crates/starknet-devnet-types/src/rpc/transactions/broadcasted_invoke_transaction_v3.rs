@@ -25,11 +25,11 @@ impl BroadcastedInvokeTransactionV3 {
         let sn_api_transaction = starknet_api::transaction::InvokeTransactionV3 {
             resource_bounds: (&self.common.resource_bounds).into(),
             tip: self.common.tip,
-            signature: starknet_api::transaction::fields::TransactionSignature(
+            signature: starknet_api::transaction::fields::TransactionSignature(Arc::new(
                 self.common.signature.clone(),
-            ),
+            )),
             nonce: starknet_api::core::Nonce(self.common.nonce),
-            sender_address: self.sender_address.try_into()?,
+            sender_address: self.sender_address.into(),
             calldata: starknet_api::transaction::fields::Calldata(Arc::new(self.calldata.clone())),
             nonce_data_availability_mode: self.common.nonce_data_availability_mode,
             fee_data_availability_mode: self.common.fee_data_availability_mode,

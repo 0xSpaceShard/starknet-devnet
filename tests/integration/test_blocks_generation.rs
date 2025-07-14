@@ -6,7 +6,7 @@ use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
     BlockId, BlockStatus, BlockTag, Call, DeclaredClassItem, Felt, FunctionCall,
-    MaybePendingStateUpdate, NonceUpdate, StateUpdate, TransactionTrace,
+    MaybePreConfirmedStateUpdate, NonceUpdate, StateUpdate, TransactionTrace,
 };
 use starknet_rs_core::utils::{
     get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
@@ -17,26 +17,29 @@ use starknet_rs_signers::Signer;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH};
 use crate::common::utils::{
-    FeeUnit, UniqueAutoDeletableFile, assert_equal_elements, assert_tx_successful,
-    get_contract_balance, get_contract_balance_by_block_id, get_events_contract_artifacts,
-    get_simple_contract_artifacts, send_ctrl_c_signal_and_wait,
+    FeeUnit, UniqueAutoDeletableFile, assert_equal_elements, assert_tx_succeeded_accepted,
+    assert_tx_succeeded_pre_confirmed, get_contract_balance, get_contract_balance_by_block_id,
+    get_events_contract_artifacts, get_simple_contract_artifacts, send_ctrl_c_signal_and_wait,
 };
 
 static DUMMY_ADDRESS: u128 = 1;
 static DUMMY_AMOUNT: u128 = 1;
 
 async fn assert_pending_state_update(devnet: &BackgroundDevnet) {
-    let pending_state_update =
-        &devnet.json_rpc_client.get_state_update(BlockId::Tag(BlockTag::Pending)).await.unwrap();
+    let pending_state_update = &devnet
+        .json_rpc_client
+        .get_state_update(BlockId::Tag(BlockTag::PreConfirmed))
+        .await
+        .unwrap();
 
-    assert!(matches!(pending_state_update, MaybePendingStateUpdate::PendingUpdate(_)));
+    assert!(matches!(pending_state_update, MaybePreConfirmedStateUpdate::PreConfirmedUpdate(_)));
 }
 
 async fn assert_latest_state_update(devnet: &BackgroundDevnet) {
     let latest_state_update =
         &devnet.json_rpc_client.get_state_update(BlockId::Tag(BlockTag::Latest)).await.unwrap();
 
-    assert!(matches!(latest_state_update, MaybePendingStateUpdate::Update(_)));
+    assert!(matches!(latest_state_update, MaybePreConfirmedStateUpdate::Update(_)));
 }
 
 async fn assert_latest_block_with_tx_hashes(
@@ -51,7 +54,7 @@ async fn assert_latest_block_with_tx_hashes(
     assert_eq!(latest_block.status, BlockStatus::AcceptedOnL2);
 
     for tx_hash in latest_block.transactions {
-        assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
+        assert_tx_succeeded_accepted(&tx_hash, &devnet.json_rpc_client).await;
     }
 }
 
@@ -61,7 +64,7 @@ async fn assert_pending_block_with_tx_hashes(devnet: &BackgroundDevnet, tx_count
     assert_eq!(pending_block.transactions.len(), tx_count);
 
     for tx_hash in pending_block.transactions {
-        assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
+        assert_tx_succeeded_pre_confirmed(&tx_hash, &devnet.json_rpc_client).await;
     }
 }
 
@@ -77,7 +80,7 @@ async fn assert_latest_block_with_txs(
     assert_eq!(latest_block.transactions.len(), tx_count);
 
     for tx in latest_block.transactions {
-        assert_tx_successful(tx.transaction_hash(), &devnet.json_rpc_client).await;
+        assert_tx_succeeded_accepted(tx.transaction_hash(), &devnet.json_rpc_client).await;
     }
 }
 
@@ -87,7 +90,7 @@ async fn assert_pending_block_with_txs(devnet: &BackgroundDevnet, tx_count: usiz
     assert_eq!(pending_block.transactions.len(), tx_count);
 
     for tx in pending_block.transactions {
-        assert_tx_successful(tx.transaction_hash(), &devnet.json_rpc_client).await;
+        assert_tx_succeeded_pre_confirmed(tx.transaction_hash(), &devnet.json_rpc_client).await;
     }
 }
 
@@ -111,7 +114,7 @@ async fn assert_latest_block_with_receipts(
     assert_eq!(latest_block["status"], "ACCEPTED_ON_L2");
 
     for tx in latest_block["transactions"].as_array().unwrap() {
-        assert_tx_successful(
+        assert_tx_succeeded_accepted(
             &Felt::from_hex_unchecked(tx["receipt"]["transaction_hash"].as_str().unwrap()),
             &devnet.json_rpc_client,
         )
@@ -124,7 +127,7 @@ async fn assert_pending_block_with_receipts(devnet: &BackgroundDevnet, tx_count:
         .send_custom_rpc(
             "starknet_getBlockWithReceipts",
             json!(    {
-                "block_id": "pending"
+                "block_id": "pre_confirmed"
             }),
         )
         .await
@@ -134,7 +137,7 @@ async fn assert_pending_block_with_receipts(devnet: &BackgroundDevnet, tx_count:
     assert_eq!(pending_block["transactions"].as_array().unwrap().len(), tx_count);
 
     for tx in pending_block["transactions"].as_array().unwrap() {
-        assert_tx_successful(
+        assert_tx_succeeded_pre_confirmed(
             &Felt::from_hex_unchecked(tx["receipt"]["transaction_hash"].as_str().unwrap()),
             &devnet.json_rpc_client,
         )
@@ -153,7 +156,7 @@ async fn assert_get_nonce(devnet: &BackgroundDevnet) {
 
     let pending_block_nonce = devnet
         .json_rpc_client
-        .get_nonce(BlockId::Tag(BlockTag::Pending), account_address)
+        .get_nonce(BlockId::Tag(BlockTag::PreConfirmed), account_address)
         .await
         .unwrap();
     assert_eq!(pending_block_nonce, Felt::ZERO);
@@ -172,7 +175,7 @@ async fn assert_get_storage_at(devnet: &BackgroundDevnet) {
 
     let pending_block_storage = devnet
         .json_rpc_client
-        .get_storage_at(account_address, key, BlockId::Tag(BlockTag::Pending))
+        .get_storage_at(account_address, key, BlockId::Tag(BlockTag::PreConfirmed))
         .await
         .unwrap();
     assert_eq!(pending_block_storage, Felt::ZERO);
@@ -190,7 +193,7 @@ async fn assert_get_class_hash_at(devnet: &BackgroundDevnet) {
 
     let pending_block_class_hash = devnet
         .json_rpc_client
-        .get_class_hash_at(BlockId::Tag(BlockTag::Pending), account_address)
+        .get_class_hash_at(BlockId::Tag(BlockTag::PreConfirmed), account_address)
         .await
         .unwrap();
     assert_eq!(
@@ -220,7 +223,7 @@ async fn normal_mode_states_and_blocks() {
         tx_hashes.push(mint_hash);
     }
 
-    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::Pending).await;
+    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::PreConfirmed).await;
     assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest).await;
 
     assert_pending_block_with_tx_hashes(&devnet, 0).await;
@@ -247,7 +250,8 @@ async fn blocks_on_demand_states_and_blocks() {
         tx_hashes.push(mint_hash);
     }
 
-    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Pending).await;
+    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::PreConfirmed)
+        .await;
     assert_balance(&devnet, Felt::ZERO, BlockTag::Latest).await;
 
     assert_pending_block_with_tx_hashes(&devnet, tx_count).await;
@@ -258,10 +262,11 @@ async fn blocks_on_demand_states_and_blocks() {
     assert_latest_block_with_txs(&devnet, 0, 0).await;
     assert_latest_block_with_receipts(&devnet, 0, 0).await;
 
-    // create new block from pending block
+    // create new block from pre_confirmed block
     devnet.create_block().await.unwrap();
 
-    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Pending).await;
+    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::PreConfirmed)
+        .await;
     assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Latest).await;
 
     assert_pending_block_with_tx_hashes(&devnet, 0).await;
@@ -289,7 +294,7 @@ async fn blocks_on_demand_declarations() {
         constants::CHAIN_ID,
         ExecutionEncoding::New,
     );
-    predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
+    predeployed_account.set_block_id(BlockId::Tag(BlockTag::PreConfirmed));
 
     // perform declarations
     let classes_with_hash = [get_simple_contract_artifacts(), get_events_contract_artifacts()];
@@ -302,7 +307,11 @@ async fn blocks_on_demand_declarations() {
             .send()
             .await
             .unwrap();
-        assert_tx_successful(&declaration_result.transaction_hash, &devnet.json_rpc_client).await;
+        assert_tx_succeeded_pre_confirmed(
+            &declaration_result.transaction_hash,
+            &devnet.json_rpc_client,
+        )
+        .await;
         declaration_results.push(declaration_result);
     }
 
@@ -338,14 +347,14 @@ async fn blocks_on_demand_declarations() {
         expected_nonce += 1;
     }
 
-    // assert block state update - should include diff of all txs from pending block
+    // assert block state update - should include diff of all txs from pre_confirmed block
     let expected_block_nonce_update = vec![NonceUpdate {
         contract_address: account_address,
         nonce: Felt::from(classes_with_hash.len()),
     }];
     for block_id in [BlockId::Tag(BlockTag::Latest), BlockId::Hash(declaration_block_hash)] {
         match devnet.json_rpc_client.get_state_update(block_id).await {
-            Ok(MaybePendingStateUpdate::Update(StateUpdate { state_diff, .. })) => {
+            Ok(MaybePreConfirmedStateUpdate::Update(StateUpdate { state_diff, .. })) => {
                 assert_equal_elements(&state_diff.declared_classes, &expected_block_declarations);
                 assert_equal_elements(&state_diff.nonces, &expected_block_nonce_update)
             }
@@ -370,7 +379,7 @@ async fn blocks_on_demand_invoke_and_call() {
         constants::CHAIN_ID,
         ExecutionEncoding::New,
     );
-    predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
+    predeployed_account.set_block_id(BlockId::Tag(BlockTag::PreConfirmed));
 
     let (contract_class, casm_class_hash) = get_simple_contract_artifacts();
 
@@ -421,7 +430,8 @@ async fn blocks_on_demand_invoke_and_call() {
             .await
             .unwrap();
 
-        assert_tx_successful(&invoke_result.transaction_hash, &devnet.json_rpc_client).await;
+        assert_tx_succeeded_pre_confirmed(&invoke_result.transaction_hash, &devnet.json_rpc_client)
+            .await;
 
         tx_hashes.push(invoke_result.transaction_hash);
     }
@@ -432,7 +442,7 @@ async fn blocks_on_demand_invoke_and_call() {
         get_contract_balance_by_block_id(
             &devnet,
             contract_address,
-            BlockId::Tag(BlockTag::Pending)
+            BlockId::Tag(BlockTag::PreConfirmed)
         )
         .await,
         expected_balance
@@ -454,7 +464,7 @@ async fn blocks_on_demand_invoke_and_call() {
         get_contract_balance_by_block_id(
             &devnet,
             contract_address,
-            BlockId::Tag(BlockTag::Pending)
+            BlockId::Tag(BlockTag::PreConfirmed)
         )
         .await,
         expected_balance
