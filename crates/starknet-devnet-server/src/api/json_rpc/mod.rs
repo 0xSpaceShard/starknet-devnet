@@ -53,11 +53,11 @@ use super::Api;
 use super::http::endpoints::DevnetConfig;
 use super::http::endpoints::accounts::{BalanceQuery, PredeployedAccountsQuery};
 use super::http::models::{
-    AbortedBlocks, AbortingBlocks, AccountBalanceResponse, CreatedBlock, DumpPath,
-    DumpResponseBody, FlushParameters, FlushedMessages, IncreaseTime, IncreaseTimeResponse,
-    LoadPath, MessageHash, MessagingLoadAddress, MintTokensRequest, MintTokensResponse,
-    PostmanLoadL1MessagingContract, RestartParameters, SerializableAccount, SetTime,
-    SetTimeResponse,
+    AbortedBlocks, AbortingBlocks, AcceptedOnL1Blocks, AccountBalanceResponse, CreatedBlock,
+    DumpPath, DumpResponseBody, FlushParameters, FlushedMessages, IncreaseTime,
+    IncreaseTimeResponse, LoadPath, MessageHash, MessagingLoadAddress, MintTokensRequest,
+    MintTokensResponse, PostmanLoadL1MessagingContract, RestartParameters, SerializableAccount,
+    SetTime, SetTimeResponse,
 };
 use crate::ServerConfig;
 use crate::api::json_rpc::models::{
@@ -1036,6 +1036,7 @@ pub enum DevnetResponse {
     MessageHash(MessageHash),
     CreatedBlock(CreatedBlock),
     AbortedBlocks(AbortedBlocks),
+    AcceptedOnL1Blocks(AcceptedOnL1Blocks),
     GasModification(GasModification),
     SetTime(SetTimeResponse),
     IncreaseTime(IncreaseTimeResponse),
