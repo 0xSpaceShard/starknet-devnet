@@ -8,6 +8,7 @@ mod get_transaction_by_block_id_and_index;
 mod get_transaction_by_hash;
 mod get_transaction_receipt_by_hash;
 mod test_abort_blocks;
+mod test_accepting_blocks_on_l1;
 mod test_account_impersonation;
 mod test_account_selection;
 mod test_advancing_time;
