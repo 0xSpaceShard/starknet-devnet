@@ -324,10 +324,11 @@ impl JsonRpcHandler {
                     .get_transaction_by_hash(*tx_hash)
                     .map_err(error::ApiError::StarknetDevnetError)?;
 
-                // There are no pending txs in this mode, but basically we are pretending that the
-                // transaction existed for a short period of time in the pending block, thus
-                // triggering the notification. This is important for users depending on this
-                // subscription type to find out about all new transactions.
+                // There are no pre-confirmed txs in this mode, but basically we are pretending that
+                // the transaction existed for a short period of time in the
+                // pre-confirmed block, thus triggering the notification. This is
+                // important for users depending on this subscription type to find
+                // out about all new transactions.
                 notifications.push(NotificationData::PendingTransaction(
                     PendingTransactionNotification::Full(Box::new(tx.clone())),
                 ));
@@ -338,8 +339,9 @@ impl JsonRpcHandler {
                     }),
                 ));
 
-                // If pending block used, tx status notifications have already been sent.
-                // If we are here, pending block is not used and subscribers need to be notified.
+                // If pre-confirmed block used, tx status notifications have already been sent.
+                // If we are here, pre-confirmed block is not used and subscribers need to be
+                // notified.
                 let status = starknet
                     .get_transaction_execution_and_finality_status(*tx_hash)
                     .map_err(error::ApiError::StarknetDevnetError)?;

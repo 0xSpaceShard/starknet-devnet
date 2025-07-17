@@ -68,7 +68,7 @@ pub enum BlockResult {
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Deserialize, Serialize, PartialOrd, Ord)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum BlockStatus {
-    /// Almost like pending.
+    /// Almost like pre-confirmed.
     PreConfirmed,
     /// A block that was created on L2.
     AcceptedOnL2,

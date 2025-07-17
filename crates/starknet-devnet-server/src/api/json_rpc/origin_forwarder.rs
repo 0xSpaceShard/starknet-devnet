@@ -101,7 +101,8 @@ impl OriginForwarder {
             Ok(MaybePreConfirmedBlockWithTxHashes::PreConfirmedBlock(_)) => {
                 Err(ApiError::StarknetDevnetError(
                     starknet_core::error::Error::UnexpectedInternalError {
-                        msg: "Impossible: received pending block when querying by hash".to_string(),
+                        msg: "Impossible: received pre-confirmed block when querying by hash"
+                            .into(),
                     },
                 ))
             }
