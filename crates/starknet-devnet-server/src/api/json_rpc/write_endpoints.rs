@@ -19,8 +19,9 @@ use crate::api::http::endpoints::postman::{
 };
 use crate::api::http::endpoints::time::{increase_time_impl, set_time_impl};
 use crate::api::http::models::{
-    AbortedBlocks, AbortingBlocks, CreatedBlock, DumpPath, FlushParameters, IncreaseTime,
-    MintTokensRequest, PostmanLoadL1MessagingContract, RestartParameters, SetTime,
+    AbortedBlocks, AbortingBlocks, AcceptOnL1Request, AcceptedOnL1Blocks, CreatedBlock, DumpPath,
+    FlushParameters, IncreaseTime, MintTokensRequest, PostmanLoadL1MessagingContract,
+    RestartParameters, SetTime,
 };
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::dump_util::load_events;
@@ -154,6 +155,13 @@ impl JsonRpcHandler {
     pub async fn abort_blocks(&self, data: AbortingBlocks) -> StrictRpcResult {
         let aborted = self.api.starknet.lock().await.abort_blocks(data.starting_block_id.into())?;
         Ok(DevnetResponse::AbortedBlocks(AbortedBlocks { aborted }).into())
+    }
+
+    /// devnet_acceptOnL1
+    pub async fn accept_on_l1(&self, data: AcceptOnL1Request) -> StrictRpcResult {
+        let accepted =
+            self.api.starknet.lock().await.accept_on_l1(data.starting_block_id.into())?;
+        Ok(DevnetResponse::AcceptedOnL1Blocks(AcceptedOnL1Blocks { accepted }).into())
     }
 
     /// devnet_setGasPrice

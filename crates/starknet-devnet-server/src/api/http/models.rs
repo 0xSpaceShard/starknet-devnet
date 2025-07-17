@@ -64,6 +64,18 @@ pub struct AbortedBlocks {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(Debug))]
+pub struct AcceptOnL1Request {
+    pub(crate) starting_block_id: BlockId,
+}
+
+#[derive(Serialize)]
+pub struct AcceptedOnL1Blocks {
+    pub(crate) accepted: Vec<BlockHash>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(test, derive(Debug))]
 pub struct IncreaseTime {
     pub time: u64,
 }

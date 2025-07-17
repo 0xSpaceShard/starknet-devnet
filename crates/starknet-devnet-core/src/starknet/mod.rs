@@ -928,7 +928,10 @@ impl Starknet {
         Ok(self.next_block_gas.clone())
     }
 
-    pub fn abort_blocks(&mut self, mut starting_block_id: BlockId) -> DevnetResult<Vec<Felt>> {
+    pub fn abort_blocks(
+        &mut self,
+        mut starting_block_id: BlockId,
+    ) -> DevnetResult<Vec<TransactionHash>> {
         if self.config.state_archive != StateArchiveCapacity::Full {
             let msg = "The abort blocks feature requires state-archive-capacity set to full.";
             return Err(Error::UnsupportedAction { msg: msg.into() });
@@ -1014,6 +1017,47 @@ impl Starknet {
         self.blocks.aborted_blocks = aborted.clone();
 
         Ok(aborted)
+    }
+
+    fn validate_acceptability_on_l1(&self, block_status: BlockStatus) -> DevnetResult<()> {
+        let err_msg = match block_status {
+            BlockStatus::AcceptedOnL2 => return Ok(()),
+            BlockStatus::PreConfirmed => "Pre-confirmed block cannot be accepted on L1",
+            BlockStatus::AcceptedOnL1 => "Block already accepted on L1",
+            BlockStatus::Rejected => "Rejected block cannot be accepted on L1",
+        };
+
+        Err(Error::UnsupportedAction { msg: err_msg.into() })
+    }
+
+    pub fn accept_on_l1(&mut self, block_id: BlockId) -> DevnetResult<Vec<BlockHash>> {
+        let block = self.get_block(&block_id)?;
+        // Only the starting block is validated; all ancestors are guaranteed to be ACCEPTED_ON_L2
+        self.validate_acceptability_on_l1(block.status)?;
+
+        let mut acceptable_block =
+            self.blocks.hash_to_block.get_mut(&block.block_hash()).ok_or(Error::NoBlock)?;
+        let mut accepted = vec![];
+        while acceptable_block.status != BlockStatus::AcceptedOnL1 {
+            // Accept block on L1
+            acceptable_block.status = BlockStatus::AcceptedOnL1;
+            accepted.push(acceptable_block.block_hash());
+
+            // Mark the transactions from the block as accepted on L1
+            for tx_hash in acceptable_block.get_transactions() {
+                let tx = self.transactions.get_by_hash_mut(tx_hash).ok_or(Error::NoTransaction)?;
+                tx.finality_status = TransactionFinalityStatus::AcceptedOnL1;
+            }
+
+            // Get next block for accepting: parent
+            let parent_block_hash = acceptable_block.parent_hash();
+            match self.blocks.hash_to_block.get_mut(&parent_block_hash) {
+                Some(parent_block) => acceptable_block = parent_block,
+                None => break, // Means genesis block is encountered
+            }
+        }
+
+        Ok(accepted)
     }
 
     pub fn get_block_txs_count(&self, block_id: &BlockId) -> DevnetResult<u64> {

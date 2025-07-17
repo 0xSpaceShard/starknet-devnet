@@ -53,11 +53,11 @@ use super::Api;
 use super::http::endpoints::DevnetConfig;
 use super::http::endpoints::accounts::{BalanceQuery, PredeployedAccountsQuery};
 use super::http::models::{
-    AbortedBlocks, AbortingBlocks, AccountBalanceResponse, CreatedBlock, DumpPath,
-    DumpResponseBody, FlushParameters, FlushedMessages, IncreaseTime, IncreaseTimeResponse,
-    LoadPath, MessageHash, MessagingLoadAddress, MintTokensRequest, MintTokensResponse,
-    PostmanLoadL1MessagingContract, RestartParameters, SerializableAccount, SetTime,
-    SetTimeResponse,
+    AbortedBlocks, AbortingBlocks, AcceptOnL1Request, AcceptedOnL1Blocks, AccountBalanceResponse,
+    CreatedBlock, DumpPath, DumpResponseBody, FlushParameters, FlushedMessages, IncreaseTime,
+    IncreaseTimeResponse, LoadPath, MessageHash, MessagingLoadAddress, MintTokensRequest,
+    MintTokensResponse, PostmanLoadL1MessagingContract, RestartParameters, SerializableAccount,
+    SetTime, SetTimeResponse,
 };
 use crate::ServerConfig;
 use crate::api::json_rpc::models::{
@@ -546,6 +546,7 @@ impl JsonRpcHandler {
             }
             JsonRpcRequest::CreateBlock => self.create_block().await,
             JsonRpcRequest::AbortBlocks(data) => self.abort_blocks(data).await,
+            JsonRpcRequest::AcceptOnL1(data) => self.accept_on_l1(data).await,
             JsonRpcRequest::SetGasPrice(data) => self.set_gas_price(data).await,
             JsonRpcRequest::Restart(data) => self.restart(data).await,
             JsonRpcRequest::SetTime(data) => self.set_time(data).await,
@@ -730,6 +731,8 @@ pub enum JsonRpcRequest {
     CreateBlock,
     #[serde(rename = "devnet_abortBlocks")]
     AbortBlocks(AbortingBlocks),
+    #[serde(rename = "devnet_acceptOnL1")]
+    AcceptOnL1(AcceptOnL1Request),
     #[serde(rename = "devnet_setGasPrice")]
     SetGasPrice(GasModificationRequest),
     #[serde(rename = "devnet_restart", with = "optional_params")]
@@ -759,6 +762,7 @@ impl JsonRpcRequest {
             | Self::PostmanSendMessageToL2(_)
             | Self::CreateBlock
             | Self::AbortBlocks(_)
+            | Self::AcceptOnL1(_)
             | Self::SetTime(_)
             | Self::IncreaseTime(_)
             | Self::Mint(_) => true,
@@ -855,6 +859,7 @@ impl JsonRpcRequest {
             | Self::PostmanConsumeMessageFromL2(_)
             | Self::CreateBlock
             | Self::AbortBlocks(_)
+            | Self::AcceptOnL1(_)
             | Self::SetGasPrice(_)
             | Self::Restart(_)
             | Self::SetTime(_)
@@ -879,6 +884,7 @@ impl JsonRpcRequest {
             | Self::PostmanConsumeMessageFromL2(_)
             | Self::CreateBlock
             | Self::AbortBlocks(_)
+            | Self::AcceptOnL1(_)
             | Self::SetGasPrice(_)
             | Self::SetTime(_)
             | Self::IncreaseTime(_)
@@ -1036,6 +1042,7 @@ pub enum DevnetResponse {
     MessageHash(MessageHash),
     CreatedBlock(CreatedBlock),
     AbortedBlocks(AbortedBlocks),
+    AcceptedOnL1Blocks(AcceptedOnL1Blocks),
     GasModification(GasModification),
     SetTime(SetTimeResponse),
     IncreaseTime(IncreaseTimeResponse),
