@@ -352,11 +352,11 @@
     },
     {
       "name": "devnet_abortBlocks",
-      "summary": "Abort blocks",
+      "summary": "Abort blocks from starting_block_id to the currently latest block",
       "params": [
         {
           "name": "starting_block_id",
-          "description": "The hash of the requested block, or number (height) of the requested block, or a block tag, being the first block to be aborted.",
+          "description": "The first block to be aborted.",
           "required": true,
           "schema": {
             "title": "Block id",
@@ -366,7 +366,7 @@
       ],
       "result": {
         "name": "result",
-        "description": "Arary of aborted blocks hashes.",
+        "description": "Array of block hashes of aborted blocks.",
         "schema": {
           "type": "object",
           "properties": {
@@ -379,6 +379,43 @@
             }
           },
           "required": ["aborted"]
+        }
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/WILDCARD_ERROR"
+        }
+      ]
+    },
+    {
+      "name": "devnet_acceptOnL1",
+      "summary": "Accept on L1 the blocks from starting_block_id to the oldest local block that is accepted on L2",
+      "params": [
+        {
+          "name": "starting_block_id",
+          "description": "The first block to be accepted on L1.",
+          "required": true,
+          "schema": {
+            "title": "Block id",
+            "$ref": "#/components/schemas/BLOCK_ID"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "Array of block hashes of blocks accepted on L1.",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "accepted": {
+              "description": "Accepted blocks hashes",
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/FELT"
+              }
+            }
+          },
+          "required": ["accepted"]
         }
       },
       "errors": [
@@ -923,7 +960,7 @@
         "title": "Block tag",
         "type": "string",
         "description": "A tag specifying a dynamic reference to a block",
-        "enum": ["latest", "pending"]
+        "enum": ["latest", "pre_confirmed"]
       },
       "u64": {
         "type": "string",
