@@ -188,7 +188,7 @@ async fn should_fail_if_accepting_pre_confirmed() {
     assert_eq!(latest_block.block_number, 0);
 
     // Assert pre_confirmed intact
-    let pre_confirmed_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
+    let pre_confirmed_block = devnet.get_pre_confirmed_block_with_tx_hashes().await.unwrap();
     assert_eq!(pre_confirmed_block.transactions, vec![tx_hash]);
 }
 

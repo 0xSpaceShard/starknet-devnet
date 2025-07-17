@@ -477,7 +477,7 @@ mod tests {
 
         // latest block returns none, because collection is empty
         assert!(blocks.block_number_from_block_id(&BlockId::Tag(BlockTag::Latest)).is_none());
-        // pending block returns some
+        // pre-confirmed block returns some
         assert!(blocks.block_number_from_block_id(&BlockId::Tag(BlockTag::PreConfirmed)).is_some());
 
         let block_hash = block_to_insert.generate_hash().unwrap();
@@ -574,7 +574,7 @@ mod tests {
                 .len(),
             8
         );
-        // from first block to latest/pending, should return all blocks
+        // from first block to latest/pre-confirmed, should return all blocks
         assert_eq!(
             blocks
                 .get_blocks(Some(BlockId::Number(2)), Some(BlockId::Tag(BlockTag::Latest)))
@@ -597,7 +597,7 @@ mod tests {
                 .unwrap()
                 .is_empty()
         );
-        // from last block to latest/pending, should return 1 block
+        // from last block to latest/pre-confirmed, should return 1 block
         assert_eq!(
             blocks
                 .get_blocks(Some(BlockId::Number(11)), Some(BlockId::Tag(BlockTag::Latest)))
@@ -643,7 +643,7 @@ mod tests {
                 .len(),
             8
         );
-        // from last block hash to latest/pending
+        // from last block hash to latest/pre-confirmed
         assert_eq!(
             blocks
                 .get_blocks(

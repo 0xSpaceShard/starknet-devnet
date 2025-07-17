@@ -53,7 +53,7 @@ impl JsonRpcHandler {
     ) -> Result<(u64, u64), ApiError> {
         let starknet = self.api.starknet.lock().await;
 
-        // Convert pending to latest to prevent getting block_number = 0
+        // Convert pre-confirmed to latest to prevent getting block_number = 0
         starting_block_id = match starting_block_id {
             BlockId::Tag(BlockTag::PreConfirmed) => BlockId::Tag(BlockTag::Latest),
             other => other,
@@ -110,12 +110,12 @@ impl JsonRpcHandler {
             socket_context.subscribe(rpc_request_id, Subscription::NewHeads).await;
 
         if let BlockId::Tag(_) = block_id {
-            // if the specified block ID is a tag (i.e. latest/pending), no old block handling
+            // if the specified block ID is a tag (i.e. latest/pre-confirmed), no old block handling
             return Ok(());
         }
 
         // Notifying of old blocks. latest_block_number inclusive?
-        // Yes, only if block_id != latest/pending (handled above)
+        // Yes, only if block_id != latest/pre-confirmed (handled above)
         let starknet = self.api.starknet.lock().await;
         for block_n in query_block_number..=latest_block_number {
             let old_block = starknet
@@ -130,7 +130,7 @@ impl JsonRpcHandler {
         Ok(())
     }
 
-    async fn get_pending_txs(&self) -> Result<Vec<TransactionWithHash>, ApiError> {
+    async fn get_pre_confirmed_txs(&self) -> Result<Vec<TransactionWithHash>, ApiError> {
         let starknet = self.api.starknet.lock().await;
         let block = starknet.get_block_with_transactions(&BlockId::Tag(BlockTag::PreConfirmed))?;
         match block {
@@ -175,9 +175,10 @@ impl JsonRpcHandler {
         };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
-        // Only check pending. Regardless of block generation mode, ignore txs in latest block.
-        let pending_txs = self.get_pending_txs().await?;
-        for tx in pending_txs {
+        // Only check pre-confirmed. Regardless of block generation mode, ignore txs in latest
+        // block.
+        let pre_confirmed_txs = self.get_pre_confirmed_txs().await?;
+        for tx in pre_confirmed_txs {
             let notification = if with_details {
                 NotificationData::PendingTransaction(PendingTransactionNotification::Full(
                     Box::new(tx),

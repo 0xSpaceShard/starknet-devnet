@@ -59,7 +59,7 @@ async fn assert_latest_block_with_tx_hashes(
 }
 
 async fn assert_pending_block_with_tx_hashes(devnet: &BackgroundDevnet, tx_count: usize) {
-    let pending_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
+    let pending_block = devnet.get_pre_confirmed_block_with_tx_hashes().await.unwrap();
 
     assert_eq!(pending_block.transactions.len(), tx_count);
 
@@ -85,7 +85,7 @@ async fn assert_latest_block_with_txs(
 }
 
 async fn assert_pending_block_with_txs(devnet: &BackgroundDevnet, tx_count: usize) {
-    let pending_block = devnet.get_pending_block_with_txs().await.unwrap();
+    let pending_block = devnet.get_pre_confirmed_block_with_txs().await.unwrap();
 
     assert_eq!(pending_block.transactions.len(), tx_count);
 
