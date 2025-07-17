@@ -69,7 +69,7 @@ JSON-RPC
 }
 ```
 
-Response:
+Result:
 
 ```
 {"block_hash": "0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67"}
@@ -130,7 +130,7 @@ JSON-RPC
 }
 ```
 
-Response:
+Result:
 
 ```
 {
@@ -147,6 +147,12 @@ When aborting the currently `pre_confirmed` block, it is mined and aborted as la
 ## Accepting blocks on L1
 
 This functionality allows simulating block acceptance on L1 (Ethereum). It merely marks the requested blocks and their transactions as `ACCEPTED_ON_L1`. It is only supported on blocks that are `ACCEPTED_ON_L2` and fails for all others, including blocks already `ACCEPTED_ON_L1`. In case of [forking](./forking), blocks on forking origin cannot be affected by this feature.
+
+:::note
+
+This functionality does not actually perform actions on L1.
+
+:::
 
 ### Example
 
@@ -168,7 +174,7 @@ JSON-RPC
 }
 ```
 
-Response:
+Result:
 
 ```
 {
