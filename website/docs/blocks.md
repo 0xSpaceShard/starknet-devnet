@@ -77,13 +77,13 @@ Response:
 
 The newly created block will contain all pre-confirmed transactions, if any, since the last block creation.
 
-### Timestamp manipulation
+## Timestamp manipulation
 
 To affect the timestamp of the newly created block, check out [this page](./starknet-time#set-time)
 
-## Abort blocks
+## Block abortion
 
-This functionality allows simulating block abortion that can occur on mainnet. It is supported in the `--state-archive-capacity full` mode.
+This functionality allows simulating block abortion that can occur on mainnet. It is only supported if Devnet is started in the `--state-archive-capacity full` mode.
 
 You can abort blocks and revert transactions from the specified block to the currently latest block. Newly created blocks after the abortion will have accepted status and will continue with numbering where the last accepted block left off.
 
@@ -99,7 +99,7 @@ Aborted blocks can only be queried by block hash. Devnet does not support the ab
 
 - blocks in the forking origin (i.e. blocks mined before the forked block)
 - already aborted blocks
-- Devnet's genesis block
+- Devnet's genesis block.
 
 ### Websocket subscription notifications
 
@@ -143,3 +143,35 @@ Response:
 When aborting the currently `pre_confirmed` block, it is mined and aborted as latest.
 
 :::
+
+## Accepting blocks on L1
+
+This functionality allows simulating block acceptance on L1 (Ethereum). It merely marks the requested blocks and their transactions as `ACCEPTED_ON_L1`. It is only supported on blocks that are `ACCEPTED_ON_L2` and fails for all others, including blocks already `ACCEPTED_ON_L1`. In case of [forking](./forking), blocks on forking origin cannot be affected by this feature.
+
+### Example
+
+Assume Devnet has mined blocks with numbers: 0 (origin), 1, 2 and 3. If this feature is invoked with `starting_block_id=BlockNumber(2)`, blocks 0, 1 and 2 shall be `ACCEPTED_ON_L1` and block 3 shall remain `ACCEPTED_ON_L2`. If after that another block (number 4) is mined, and this feature is invoked with `starting_block_id="latest"`, blocks 0, 1, 2, 3 and 4 shall be `ACCEPTED_ON_L1`. If a new block is mined after that (number 5), it shall be `ACCEPTED_ON_L2`.
+
+### Request and response
+
+To accept a block and its transactions on L1, send:
+
+```
+JSON-RPC
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "devnet_acceptOnL1",
+    "params": {
+        "starting_block_id": BLOCK_ID
+    }
+}
+```
+
+Response:
+
+```
+{
+    "accepted": [BLOCK_HASH_0, BLOCK_HASH_1, ...]
+}
+```
