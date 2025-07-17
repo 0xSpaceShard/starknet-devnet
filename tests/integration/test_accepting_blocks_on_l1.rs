@@ -66,13 +66,13 @@ async fn should_convert_accepted_on_l2_with_id_latest() {
     let origin_block_hash = devnet.get_latest_block_with_tx_hashes().await.unwrap().block_hash;
     let mut block_hashes = vec![origin_block_hash];
     for _ in 0..2 {
-        let tx_hash = send_dummy_tx(&devnet).await; // dummy data
+        let tx_hash = send_dummy_tx(&devnet).await;
         tx_hashes.push(tx_hash);
         let block_hash = devnet.get_latest_block_with_tx_hashes().await.unwrap().block_hash;
         block_hashes.push(block_hash);
     }
 
-    block_hashes.reverse(); // the hashes are in reverse chronological order TODO?
+    block_hashes.reverse(); // the hashes are in reverse chronological order
 
     let accepted_block_hashes =
         accept_on_l1(&devnet, &BlockId::Tag(BlockTag::Latest)).await.unwrap();
@@ -90,7 +90,7 @@ async fn should_convert_all_txs_in_block_on_demand() {
     let mut tx_hashes = vec![];
     let origin_block_hash = devnet.get_latest_block_with_tx_hashes().await.unwrap().block_hash;
     for _ in 0..2 {
-        let tx_hash = send_dummy_tx(&devnet).await; // dummy data
+        let tx_hash = send_dummy_tx(&devnet).await;
         tx_hashes.push(tx_hash);
     }
 
@@ -111,14 +111,14 @@ async fn should_convert_accepted_on_l2_with_numeric_id() {
     let origin_block_hash = devnet.get_latest_block_with_tx_hashes().await.unwrap().block_hash;
     let mut block_hashes = vec![origin_block_hash];
 
-    let tx_hash = send_dummy_tx(&devnet).await; // dummy data
+    let tx_hash = send_dummy_tx(&devnet).await;
     let block_hash = devnet.get_latest_block_with_tx_hashes().await.unwrap().block_hash;
     block_hashes.push(block_hash);
 
     // Extra tx that won't be accepted on l1
-    send_dummy_tx(&devnet).await; // dummy data
+    send_dummy_tx(&devnet).await;
 
-    block_hashes.reverse(); // the hashes are in reverse chronological order TODO?
+    block_hashes.reverse(); // the hashes are in reverse chronological order
 
     let accepted_block_hashes = accept_on_l1(&devnet, &BlockId::Number(1)).await.unwrap();
     assert_eq!(accepted_block_hashes, block_hashes);
@@ -134,14 +134,14 @@ async fn should_convert_accepted_on_l2_with_hash_id() {
     let origin_block_hash = devnet.get_latest_block_with_tx_hashes().await.unwrap().block_hash;
     let mut block_hashes = vec![origin_block_hash];
 
-    let tx_hash = send_dummy_tx(&devnet).await; // dummy data
+    let tx_hash = send_dummy_tx(&devnet).await;
     let block_hash = devnet.get_latest_block_with_tx_hashes().await.unwrap().block_hash;
     block_hashes.push(block_hash);
 
     // Extra tx that won't be accepted on l1
-    send_dummy_tx(&devnet).await; // dummy data
+    send_dummy_tx(&devnet).await;
 
-    block_hashes.reverse(); // the hashes are in reverse chronological order TODO?
+    block_hashes.reverse(); // the hashes are in reverse chronological order
 
     let accepted_block_hashes = accept_on_l1(&devnet, &BlockId::Hash(block_hash)).await.unwrap();
     assert_eq!(accepted_block_hashes, block_hashes);
@@ -168,7 +168,7 @@ async fn should_fail_if_accepting_pre_confirmed() {
         .await
         .unwrap();
 
-    let tx_hash = send_dummy_tx(&devnet).await; // dummy data
+    let tx_hash = send_dummy_tx(&devnet).await;
 
     let err = accept_on_l1(&devnet, &BlockId::Tag(BlockTag::PreConfirmed)).await.unwrap_err();
     assert_eq!(
@@ -199,7 +199,7 @@ async fn should_fail_if_accepting_rejected() {
             .await
             .unwrap();
 
-    send_dummy_tx(&devnet).await; // dummy data
+    send_dummy_tx(&devnet).await;
     let aborted_blocks = devnet.abort_blocks(&BlockId::Tag(BlockTag::Latest)).await.unwrap();
     assert_eq!(aborted_blocks.len(), 1);
     let aborted_block_hash = aborted_blocks[0];
