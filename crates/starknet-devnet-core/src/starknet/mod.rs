@@ -1032,6 +1032,7 @@ impl Starknet {
 
     pub fn accept_on_l1(&mut self, block_id: BlockId) -> DevnetResult<Vec<BlockHash>> {
         let block = self.get_block(&block_id)?;
+        // Only the starting block is validated; all ancestors are guaranteed to be ACCEPTED_ON_L2
         self.validate_acceptability_on_l1(block.status)?;
 
         let mut acceptable_block =
