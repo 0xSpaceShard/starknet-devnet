@@ -8,6 +8,11 @@ use starknet_rs_providers::Provider;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::errors::RpcError;
 
+/// Returns the hash of the dummy tx
+async fn send_dummy_tx(devnet: &BackgroundDevnet) -> Felt {
+    devnet.mint(Felt::ONE, 1).await // dummy data
+}
+
 async fn accept_on_l1(
     devnet: &BackgroundDevnet,
     starting_block_id: &BlockId,
@@ -43,6 +48,16 @@ async fn assert_accepted_on_l1(
     }
 }
 
+async fn assert_latest_accepted_on_l2(devnet: &BackgroundDevnet) {
+    let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+    assert_eq!(latest_block.status, BlockStatus::AcceptedOnL2,);
+
+    for tx_hash in latest_block.transactions {
+        let tx_status = devnet.json_rpc_client.get_transaction_status(tx_hash).await.unwrap();
+        assert_eq!(tx_status.finality_status(), SequencerTransactionStatus::AcceptedOnL2)
+    }
+}
+
 #[tokio::test]
 async fn should_convert_accepted_on_l2_with_id_latest() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
@@ -51,7 +66,7 @@ async fn should_convert_accepted_on_l2_with_id_latest() {
     let origin_block_hash = devnet.get_latest_block_with_tx_hashes().await.unwrap().block_hash;
     let mut block_hashes = vec![origin_block_hash];
     for _ in 0..2 {
-        let tx_hash = devnet.mint(Felt::ONE, 1).await; // dummy data
+        let tx_hash = send_dummy_tx(&devnet).await; // dummy data
         tx_hashes.push(tx_hash);
         let block_hash = devnet.get_latest_block_with_tx_hashes().await.unwrap().block_hash;
         block_hashes.push(block_hash);
@@ -75,7 +90,7 @@ async fn should_convert_all_txs_in_block_on_demand() {
     let mut tx_hashes = vec![];
     let origin_block_hash = devnet.get_latest_block_with_tx_hashes().await.unwrap().block_hash;
     for _ in 0..2 {
-        let tx_hash = devnet.mint(Felt::ONE, 1).await; // dummy data
+        let tx_hash = send_dummy_tx(&devnet).await; // dummy data
         tx_hashes.push(tx_hash);
     }
 
@@ -96,12 +111,12 @@ async fn should_convert_accepted_on_l2_with_numeric_id() {
     let origin_block_hash = devnet.get_latest_block_with_tx_hashes().await.unwrap().block_hash;
     let mut block_hashes = vec![origin_block_hash];
 
-    let tx_hash = devnet.mint(Felt::ONE, 1).await; // dummy data
+    let tx_hash = send_dummy_tx(&devnet).await; // dummy data
     let block_hash = devnet.get_latest_block_with_tx_hashes().await.unwrap().block_hash;
     block_hashes.push(block_hash);
 
     // Extra tx that won't be accepted on l1
-    let extra_tx_hash = devnet.mint(Felt::ONE, 1).await; // dummy data
+    send_dummy_tx(&devnet).await; // dummy data
 
     block_hashes.reverse(); // the hashes are in reverse chronological order TODO?
 
@@ -109,21 +124,7 @@ async fn should_convert_accepted_on_l2_with_numeric_id() {
     assert_eq!(accepted_block_hashes, block_hashes);
 
     assert_accepted_on_l1(&devnet, &block_hashes, &[tx_hash]).await;
-
-    // Assert latest block and tx untouched
-    assert_eq!(
-        devnet.get_latest_block_with_tx_hashes().await.unwrap().status,
-        BlockStatus::AcceptedOnL2,
-    );
-    assert_eq!(
-        devnet
-            .json_rpc_client
-            .get_transaction_status(extra_tx_hash)
-            .await
-            .unwrap()
-            .finality_status(),
-        SequencerTransactionStatus::AcceptedOnL2
-    )
+    assert_latest_accepted_on_l2(&devnet).await;
 }
 
 #[tokio::test]
@@ -133,12 +134,12 @@ async fn should_convert_accepted_on_l2_with_hash_id() {
     let origin_block_hash = devnet.get_latest_block_with_tx_hashes().await.unwrap().block_hash;
     let mut block_hashes = vec![origin_block_hash];
 
-    let tx_hash = devnet.mint(Felt::ONE, 1).await; // dummy data
+    let tx_hash = send_dummy_tx(&devnet).await; // dummy data
     let block_hash = devnet.get_latest_block_with_tx_hashes().await.unwrap().block_hash;
     block_hashes.push(block_hash);
 
     // Extra tx that won't be accepted on l1
-    let extra_tx_hash = devnet.mint(Felt::ONE, 1).await; // dummy data
+    send_dummy_tx(&devnet).await; // dummy data
 
     block_hashes.reverse(); // the hashes are in reverse chronological order TODO?
 
@@ -146,39 +147,79 @@ async fn should_convert_accepted_on_l2_with_hash_id() {
     assert_eq!(accepted_block_hashes, block_hashes);
 
     assert_accepted_on_l1(&devnet, &block_hashes, &[tx_hash]).await;
-
-    // Assert latest block and tx untouched
-    assert_eq!(
-        devnet.get_latest_block_with_tx_hashes().await.unwrap().status,
-        BlockStatus::AcceptedOnL2,
-    );
-    assert_eq!(
-        devnet
-            .json_rpc_client
-            .get_transaction_status(extra_tx_hash)
-            .await
-            .unwrap()
-            .finality_status(),
-        SequencerTransactionStatus::AcceptedOnL2
-    )
+    assert_latest_accepted_on_l2(&devnet).await;
 }
 
 #[tokio::test]
 async fn should_fail_if_accepting_already_accepted_on_l1() {
-    todo!()
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+    accept_on_l1(&devnet, &BlockId::Tag(BlockTag::Latest)).await.unwrap();
+    let err = accept_on_l1(&devnet, &BlockId::Tag(BlockTag::Latest)).await.unwrap_err();
+    assert_eq!(
+        err,
+        RpcError { code: -1, message: "Block already accepted on L1".into(), data: None }
+    );
 }
 
 #[tokio::test]
 async fn should_fail_if_accepting_pre_confirmed() {
-    todo!()
+    let devnet = BackgroundDevnet::spawn_with_additional_args(&["--block-generation-on", "demand"])
+        .await
+        .unwrap();
+
+    let tx_hash = send_dummy_tx(&devnet).await; // dummy data
+
+    let err = accept_on_l1(&devnet, &BlockId::Tag(BlockTag::PreConfirmed)).await.unwrap_err();
+    assert_eq!(
+        err,
+        RpcError {
+            code: -1,
+            message: "Pre-confirmed block cannot be accepted on L1".into(),
+            data: None
+        }
+    );
+
+    let tx = devnet.json_rpc_client.get_transaction_status(tx_hash).await.unwrap();
+    assert_eq!(tx.finality_status(), SequencerTransactionStatus::PreConfirmed);
+
+    // Assert genesis still latest
+    let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+    assert_eq!(latest_block.block_number, 0);
+
+    // Assert pre_confirmed intact
+    let pre_confirmed_block = devnet.get_pending_block_with_tx_hashes().await.unwrap();
+    assert_eq!(pre_confirmed_block.transactions, vec![tx_hash]);
 }
 
 #[tokio::test]
 async fn should_fail_if_accepting_rejected() {
-    todo!()
+    let devnet =
+        BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+            .await
+            .unwrap();
+
+    send_dummy_tx(&devnet).await; // dummy data
+    let aborted_blocks = devnet.abort_blocks(&BlockId::Tag(BlockTag::Latest)).await.unwrap();
+    assert_eq!(aborted_blocks.len(), 1);
+    let aborted_block_hash = aborted_blocks[0];
+
+    let err = accept_on_l1(&devnet, &BlockId::Hash(aborted_block_hash)).await.unwrap_err();
+    assert_eq!(
+        err,
+        RpcError {
+            code: -1,
+            message: "Rejected block cannot be accepted on L1".into(),
+            data: None
+        }
+    );
 }
 
 #[tokio::test]
 async fn should_fail_if_invalid_block_id() {
-    todo!("block hash, block number")
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+    for unacceptable_block_id in [BlockId::Hash(Felt::ONE), BlockId::Number(1)] {
+        let err = accept_on_l1(&devnet, &unacceptable_block_id).await.unwrap_err();
+        assert_eq!(err, RpcError { code: -1, message: "No block found".into(), data: None });
+    }
 }

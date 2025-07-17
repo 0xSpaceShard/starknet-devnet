@@ -1022,11 +1022,9 @@ impl Starknet {
     fn validate_acceptability_on_l1(&self, block_status: BlockStatus) -> DevnetResult<()> {
         let err_msg = match block_status {
             BlockStatus::AcceptedOnL2 => return Ok(()),
-            BlockStatus::PreConfirmed => {
-                "Cannot accept a pre-confirmed block on L1; first call devnet_createBlock"
-            }
+            BlockStatus::PreConfirmed => "Pre-confirmed block cannot be accepted on L1",
             BlockStatus::AcceptedOnL1 => "Block already accepted on L1",
-            BlockStatus::Rejected => "Cannot accept a rejected block on L1",
+            BlockStatus::Rejected => "Rejected block cannot be accepted on L1",
         };
 
         Err(Error::UnsupportedAction { msg: err_msg.into() })
