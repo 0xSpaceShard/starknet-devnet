@@ -150,7 +150,7 @@ This functionality allows simulating block acceptance on L1 (Ethereum). It merel
 
 ### Example
 
-Assume Devnet has mined blocks with numbers: 0 (origin), 1, 2 and 3. If this feature is invoked with `starting_block_id=BlockNumber(2)`, blocks 0, 1 and 2 shall be `ACCEPTED_ON_L1` and block 3 shall remain `ACCEPTED_ON_L2`. If after that another block (number 4) is mined, and this feature is invoked with `starting_block_id="latest"`, blocks 0, 1, 2, 3 and 4 shall be `ACCEPTED_ON_L1`. If a new block is mined after that (number 5), it shall be `ACCEPTED_ON_L2`.
+Assume Devnet has mined blocks with numbers: 0 (origin), 1, 2 and 3. If this feature is invoked with `starting_block_id={"block_number": 2}`, blocks 0, 1 and 2 shall be `ACCEPTED_ON_L1` and block 3 shall remain `ACCEPTED_ON_L2`. If after that another block (number 4) is mined, and this feature is invoked with `starting_block_id="latest"`, blocks 0, 1, 2, 3 and 4 shall be `ACCEPTED_ON_L1`. If a new block is mined after that (number 5), it shall be `ACCEPTED_ON_L2`.
 
 ### Request and response
 
