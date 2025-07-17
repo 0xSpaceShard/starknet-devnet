@@ -1056,7 +1056,6 @@ impl Starknet {
             }
         }
 
-        self.blocks.last_accepted_on_l1 = Some(accepted[0]);
         Ok(accepted)
     }
 
