@@ -21,5 +21,5 @@ RUN apt-get -y update && \
 
 COPY --from=builder /target/release/starknet-devnet /usr/local/bin/starknet-devnet
 
-ENTRYPOINT [ "tini", "--", "starknet-devnet", "--host", "0.0.0.0" ]
 EXPOSE 5050
+ENTRYPOINT [ "tini", "--", "starknet-devnet", "--host", "0.0.0.0" ]
