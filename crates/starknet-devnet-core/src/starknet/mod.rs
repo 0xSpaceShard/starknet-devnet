@@ -20,7 +20,7 @@ use starknet_api::core::SequencerContractAddress;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::transaction::fields::{GasVectorComputationMode, Tip};
 use starknet_api::transaction::{TransactionHasher, TransactionVersion};
-use starknet_rs_core::types::{BlockId, BlockTag, ExecutionResult, Felt, Hash256, MsgFromL1};
+use starknet_rs_core::types::{BlockId, BlockTag, Felt, Hash256, MsgFromL1};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_signers::{LocalWallet, Signer, SigningKey};
 use starknet_types::chain_id::ChainId;
@@ -356,6 +356,7 @@ impl Starknet {
     /// Generates new pre_confirmed block. Same for pre_confirmed state. Returns the new block hash.
     pub(crate) fn generate_new_block_and_state(&mut self) -> DevnetResult<Felt> {
         let mut new_block = self.pre_confirmed_block().clone();
+        println!("DEBUG new_block.number in block generation: {}", new_block.block_number());
 
         // Set new block header
         // TODO why not store the whole next block header instead of storing separate properties?
@@ -373,13 +374,14 @@ impl Starknet {
             GasPrice(self.next_block_gas.l2_gas_price_wei.get());
 
         let new_block_number = self.blocks.next_block_number();
+        println!("DEBUG new_block_number in block generation: {new_block_number}");
         new_block.set_block_hash(if self.config.lite_mode {
             BlockHash::from(new_block_number.0)
         } else {
             new_block.generate_hash()?
         });
         new_block.status = BlockStatus::AcceptedOnL2;
-        new_block.header.block_header_without_hash.block_number = new_block_number;
+        new_block.set_block_number(new_block_number.0);
 
         // set block timestamp and context block timestamp for contract execution
         let block_timestamp = self.next_block_timestamp();
@@ -409,11 +411,19 @@ impl Starknet {
             self.blocks.save_state_at(new_block_hash, clone);
         }
 
+        println!(
+            "DEBUG new_block.number in block generation before generate_pre_confirmed_block: {}",
+            new_block.block_number()
+        );
         self.generate_pre_confirmed_block()?;
 
         // for every new block we need to clone pre_confirmed state into state
         self.latest_state = self.pre_confirmed_state.clone_historic();
 
+        println!(
+            "DEBUG new_block.number in block generation before return: {}",
+            new_block.block_number()
+        );
         Ok(new_block_hash)
     }
 
@@ -435,6 +445,10 @@ impl Starknet {
         transaction: TransactionWithHash,
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
+        println!(
+            "DEBUG in handle_accepted_transaction; pre_confirmed_block number: {}",
+            self.blocks.pre_confirmed_block.block_number()
+        );
         let state_diff = self.commit_diff()?;
         let transaction_hash = transaction.get_transaction_hash();
         let gas_vector_computation_mode = transaction.transaction.gas_vector_computation_mode();
@@ -456,7 +470,15 @@ impl Starknet {
 
         // create new block from pre_confirmed one, only in block-generation-on-transaction mode
         if !self.config.uses_pre_confirmed_block() {
+            println!(
+                "DEBUG before new block generation; pre_confirmed_block number: {}",
+                self.blocks.pre_confirmed_block.block_number()
+            );
             self.generate_new_block_and_state()?;
+            println!(
+                "DEBUG after new block generation; pre_confirmed_block number: {}",
+                self.blocks.pre_confirmed_block.block_number()
+            );
         }
 
         Ok(())
@@ -582,49 +604,19 @@ impl Starknet {
 
         block.header.block_header_without_hash.block_number =
             self.block_context.block_info().block_number;
+
+        let gas_prices = &self.block_context.block_info().gas_prices;
         block.header.block_header_without_hash.l1_gas_price = GasPricePerToken {
-            price_in_fri: self
-                .block_context
-                .block_info()
-                .gas_prices
-                .l1_gas_price(&FeeType::Strk)
-                .get(),
-            price_in_wei: self
-                .block_context
-                .block_info()
-                .gas_prices
-                .l1_gas_price(&FeeType::Eth)
-                .get(),
+            price_in_fri: gas_prices.l1_gas_price(&FeeType::Strk).get(),
+            price_in_wei: gas_prices.l1_gas_price(&FeeType::Eth).get(),
         };
         block.header.block_header_without_hash.l1_data_gas_price = GasPricePerToken {
-            price_in_fri: self
-                .block_context
-                .block_info()
-                .gas_prices
-                .l1_data_gas_price(&FeeType::Strk)
-                .get(),
-
-            price_in_wei: self
-                .block_context
-                .block_info()
-                .gas_prices
-                .l1_data_gas_price(&FeeType::Eth)
-                .get(),
+            price_in_fri: gas_prices.l1_data_gas_price(&FeeType::Strk).get(),
+            price_in_wei: gas_prices.l1_data_gas_price(&FeeType::Eth).get(),
         };
         block.header.block_header_without_hash.l2_gas_price = GasPricePerToken {
-            price_in_fri: self
-                .block_context
-                .block_info()
-                .gas_prices
-                .l2_gas_price(&FeeType::Strk)
-                .get(),
-
-            price_in_wei: self
-                .block_context
-                .block_info()
-                .gas_prices
-                .l2_gas_price(&FeeType::Eth)
-                .get(),
+            price_in_fri: gas_prices.l2_gas_price(&FeeType::Strk).get(),
+            price_in_wei: gas_prices.l2_gas_price(&FeeType::Eth).get(),
         };
 
         block.header.block_header_without_hash.sequencer =
@@ -942,14 +934,11 @@ impl Starknet {
             starting_block_id = BlockId::Tag(BlockTag::Latest);
         }
 
+        println!("DEBUG getting block by id");
         let starting_block_hash = match self.blocks.get_by_block_id(&starting_block_id) {
             Some(block) => block.block_hash(),
             None => return Err(Error::NoBlock),
         };
-
-        if self.blocks.aborted_blocks.contains(&starting_block_hash) {
-            return Err(Error::UnsupportedAction { msg: "Block is already aborted".into() });
-        }
 
         let genesis_block = self
             .blocks
@@ -971,52 +960,73 @@ impl Starknet {
 
         // Abort blocks from latest to starting (iterating backwards) and revert transactions.
         while !reached_starting_block {
+            println!("DEBUG in while loop");
             reached_starting_block = next_block_to_abort_hash == starting_block_hash;
-            let block_to_abort = self.blocks.hash_to_block.get_mut(&next_block_to_abort_hash);
 
-            if let Some(block) = block_to_abort {
-                block.status = BlockStatus::Rejected;
-                self.blocks.num_to_hash.shift_remove(&block.block_number());
+            let aborted_block = self.blocks.remove(&next_block_to_abort_hash).ok_or(
+                Error::UnexpectedInternalError {
+                    msg: format!("Cannot find block for abortion: {next_block_to_abort_hash:#x}"),
+                },
+            )?;
 
-                // Revert transactions
-                for tx_hash in block.get_transactions() {
-                    let tx =
-                        self.transactions.get_by_hash_mut(tx_hash).ok_or(Error::NoTransaction)?;
-                    tx.execution_result =
-                        ExecutionResult::Reverted { reason: "Block aborted manually".to_string() };
-                }
-
-                rpc_contract_classes.remove_classes_at(block.block_number().0);
-                aborted.push(block.block_hash());
-
-                // Update next block hash to abort
-                next_block_to_abort_hash = block.parent_hash();
+            // Revert transactions
+            for tx_hash in aborted_block.get_transactions() {
+                self.transactions.remove(tx_hash).ok_or(Error::UnexpectedInternalError {
+                    msg: format!("No tx of abortable block: {tx_hash:#x}"),
+                })?;
             }
+
+            println!("DEBUG got txs");
+
+            rpc_contract_classes.remove_classes_at(aborted_block.block_number().0);
+            aborted.push(aborted_block.block_hash());
+
+            // Update next block hash to abort
+            next_block_to_abort_hash = aborted_block.parent_hash();
         }
-        let last_reached_block_hash = next_block_to_abort_hash;
+        let last_unaborted_block_hash = next_block_to_abort_hash;
 
         // Update last_block_hash based on last reached block and revert state only if
         // starting block is reached in while loop.
         if reached_starting_block {
-            let current_block =
-                self.blocks.hash_to_block.get(&last_reached_block_hash).ok_or(Error::NoBlock)?;
-            self.blocks.last_block_hash = Some(current_block.block_hash());
+            println!("DEBUG reached starting block");
+            self.blocks.last_block_hash = Some(last_unaborted_block_hash);
 
-            let reverted_state = self.blocks.hash_to_state.get(&current_block.block_hash()).ok_or(
-                Error::NoStateAtBlock { block_id: BlockId::Number(current_block.block_number().0) },
+            let reverted_state = self.blocks.hash_to_state.get(&last_unaborted_block_hash).ok_or(
+                Error::NoStateAtBlock { block_id: BlockId::Hash(last_unaborted_block_hash) },
             )?;
 
-            // in the abort block scenario, we need to revert state and pre_confirmed_state to be
-            // able to use the calls properly
+            println!("DEBUG reverted state");
+
+            // In the abort block scenario, we need to revert state and pre_confirmed_state to be
+            // able to use the calls properly.
             self.latest_state = reverted_state.clone_historic();
             self.pre_confirmed_state = reverted_state.clone_historic();
         }
 
         self.pre_confirmed_state_diff = StateDiff::default();
         rpc_contract_classes.empty_staging();
-        self.blocks.aborted_blocks = aborted.clone();
+        self.blocks.aborted_blocks.extend_from_slice(&aborted);
+
+        // Pre-confirmed block is empty, but block number needs to be modified.
+        let old_pre_confirmed_block_number = self.blocks.pre_confirmed_block.block_number().0;
+        let new_pre_confirmed_block_number = old_pre_confirmed_block_number - aborted.len() as u64;
+        println!(
+            "DEBUG pre-confirmed block number; old={old_pre_confirmed_block_number}; new={new_pre_confirmed_block_number}"
+        );
+
+        // self.set_block_number(new_pre_confirmed_block_number);
+        self.blocks.pre_confirmed_block.set_block_number(new_pre_confirmed_block_number);
+        
+        let new_block_context = self.block_context.clone();
+        todo!("MODIFY block number");
+        Starknet::advance_block_context_block_number(&mut self.block_context);
 
         Ok(aborted)
+    }
+
+    pub fn last_aborted_block_hash(&self) -> Option<&BlockHash> {
+        self.blocks.aborted_blocks.last()
     }
 
     fn validate_acceptability_on_l1(&self, block_status: BlockStatus) -> DevnetResult<()> {
@@ -1024,7 +1034,9 @@ impl Starknet {
             BlockStatus::AcceptedOnL2 => return Ok(()),
             BlockStatus::PreConfirmed => "Pre-confirmed block cannot be accepted on L1",
             BlockStatus::AcceptedOnL1 => "Block already accepted on L1",
-            BlockStatus::Rejected => "Rejected block cannot be accepted on L1",
+            BlockStatus::Rejected => {
+                "Rejected blocks should no longer exist; if you see this message, please report a bug at https://github.com/0xSpaceShard/starknet-devnet/issues/new"
+            }
         };
 
         Err(Error::UnsupportedAction { msg: err_msg.into() })

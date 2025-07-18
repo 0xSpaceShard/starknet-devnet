@@ -372,6 +372,7 @@ impl JsonRpcHandler {
         old_latest_block: Option<StarknetBlock>,
         old_pending_block: Option<StarknetBlock>,
     ) -> Result<(), error::ApiError> {
+        println!("DEBUG broadcasting changes");
         let old_latest_block = if let Some(block) = old_latest_block {
             block
         } else {
@@ -382,10 +383,12 @@ impl JsonRpcHandler {
             self.broadcast_pending_tx_changes(old_pending_block).await?;
         }
 
+        println!("DEBUG getting new latest block");
         let new_latest_block = self.get_block_by_tag(BlockTag::Latest).await;
 
         match new_latest_block.block_number().cmp(&old_latest_block.block_number()) {
             std::cmp::Ordering::Less => {
+                println!("DEBUG broadcast reorg");
                 self.broadcast_reorg(old_latest_block, new_latest_block).await?
             }
             std::cmp::Ordering::Equal => { /* no changes required */ }
@@ -400,23 +403,17 @@ impl JsonRpcHandler {
         old_latest_block: StarknetBlock,
         new_latest_block: StarknetBlock,
     ) -> Result<(), error::ApiError> {
-        // Since it is impossible to determine the hash of the former successor of new_latest_block
-        // directly, we iterate from old_latest_block all the way to the aborted successor of
-        // new_latest_block.
-        let new_latest_hash = new_latest_block.block_hash();
-        let mut orphan_starting_block_hash = old_latest_block.block_hash();
         let starknet = self.api.starknet.lock().await;
-        loop {
-            let orphan_block = starknet.get_block(&BlockId::Hash(orphan_starting_block_hash))?;
-            let parent_hash = orphan_block.parent_hash();
-            if parent_hash == new_latest_hash {
-                break;
-            }
-            orphan_starting_block_hash = parent_hash;
-        }
+
+        let last_aborted_block_hash =
+            starknet.last_aborted_block_hash().ok_or(error::ApiError::StarknetDevnetError(
+                starknet_core::error::Error::UnexpectedInternalError {
+                    msg: "Aborted block not written in memory.".into(),
+                },
+            ))?;
 
         let notification = NotificationData::Reorg(ReorgData {
-            starting_block_hash: orphan_starting_block_hash,
+            starting_block_hash: *last_aborted_block_hash,
             starting_block_number: new_latest_block.block_number().unchecked_next(),
             ending_block_hash: old_latest_block.block_hash(),
             ending_block_number: old_latest_block.block_number(),

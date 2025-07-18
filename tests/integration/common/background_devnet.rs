@@ -133,7 +133,7 @@ impl BackgroundDevnet {
 
         let process = Command::new(DEVNET_EXECUTABLE_BINARY_PATH)
             .args(Self::add_default_args(args))
-            .stdout(Stdio::piped()) // comment this out for complete devnet stdout
+            // .stdout(Stdio::piped()) // comment this out for complete devnet stdout
             .spawn()
             .map_err(|e| TestError::DevnetNotStartable(format!("Spawning error: {e:?}")))?;
 
