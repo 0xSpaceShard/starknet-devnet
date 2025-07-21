@@ -356,7 +356,6 @@ impl Starknet {
     /// Generates new pre_confirmed block. Same for pre_confirmed state. Returns the new block hash.
     pub(crate) fn generate_new_block_and_state(&mut self) -> DevnetResult<Felt> {
         let mut new_block = self.pre_confirmed_block().clone();
-        println!("DEBUG new_block.number in block generation: {}", new_block.block_number());
 
         // Set new block header
         // TODO why not store the whole next block header instead of storing separate properties?
@@ -374,7 +373,6 @@ impl Starknet {
             GasPrice(self.next_block_gas.l2_gas_price_wei.get());
 
         let new_block_number = self.blocks.next_block_number();
-        println!("DEBUG new_block_number in block generation: {new_block_number}");
         new_block.set_block_hash(if self.config.lite_mode {
             BlockHash::from(new_block_number.0)
         } else {
@@ -437,10 +435,6 @@ impl Starknet {
         transaction: TransactionWithHash,
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
-        println!(
-            "DEBUG in handle_accepted_transaction; pre_confirmed_block number: {}",
-            self.blocks.pre_confirmed_block.block_number()
-        );
         let state_diff = self.commit_diff()?;
         let transaction_hash = transaction.get_transaction_hash();
         let gas_vector_computation_mode = transaction.transaction.gas_vector_computation_mode();
@@ -462,15 +456,7 @@ impl Starknet {
 
         // create new block from pre_confirmed one, only in block-generation-on-transaction mode
         if !self.config.uses_pre_confirmed_block() {
-            println!(
-                "DEBUG before new block generation; pre_confirmed_block number: {}",
-                self.blocks.pre_confirmed_block.block_number()
-            );
             self.generate_new_block_and_state()?;
-            println!(
-                "DEBUG after new block generation; pre_confirmed_block number: {}",
-                self.blocks.pre_confirmed_block.block_number()
-            );
         }
 
         Ok(())
@@ -544,13 +530,16 @@ impl Starknet {
         );
     }
 
-    fn set_block_context_block_number(block_context: &mut BlockContext, block_number: u64) {
-        let mut block_info = block_context.block_info().clone();
+    fn set_block_number(&mut self, block_number: u64) {
+        self.blocks.pre_confirmed_block.set_block_number(block_number);
+
+        let mut block_info = self.block_context.block_info().clone();
         block_info.block_number.0 = block_number;
+
         // TODO: update block_context via preferred method in the documentation
-        *block_context = BlockContext::new(
+        self.block_context = BlockContext::new(
             block_info,
-            block_context.chain_info().clone(),
+            self.block_context.chain_info().clone(),
             get_versioned_constants(),
             custom_bouncer_config(),
         );
@@ -938,7 +927,6 @@ impl Starknet {
             starting_block_id = BlockId::Tag(BlockTag::Latest);
         }
 
-        println!("DEBUG getting block by id");
         let starting_block_hash = match self.blocks.get_by_block_id(&starting_block_id) {
             Some(block) => block.block_hash(),
             None => return Err(Error::NoBlock),
@@ -964,7 +952,6 @@ impl Starknet {
 
         // Abort blocks from latest to starting (iterating backwards) and revert transactions.
         while !reached_starting_block {
-            println!("DEBUG in while loop");
             reached_starting_block = next_block_to_abort_hash == starting_block_hash;
 
             let aborted_block = self.blocks.remove(&next_block_to_abort_hash).ok_or(
@@ -980,8 +967,6 @@ impl Starknet {
                 })?;
             }
 
-            println!("DEBUG got txs");
-
             rpc_contract_classes.remove_classes_at(aborted_block.block_number().0);
             aborted.push(aborted_block.block_hash());
 
@@ -993,14 +978,11 @@ impl Starknet {
         // Update last_block_hash based on last reached block and revert state only if
         // starting block is reached in while loop.
         if reached_starting_block {
-            println!("DEBUG reached starting block");
             self.blocks.last_block_hash = Some(last_unaborted_block_hash);
 
             let reverted_state = self.blocks.hash_to_state.get(&last_unaborted_block_hash).ok_or(
                 Error::NoStateAtBlock { block_id: BlockId::Hash(last_unaborted_block_hash) },
             )?;
-
-            println!("DEBUG reverted state");
 
             // In the abort block scenario, we need to revert state and pre_confirmed_state to be
             // able to use the calls properly.
@@ -1010,22 +992,14 @@ impl Starknet {
 
         self.pre_confirmed_state_diff = StateDiff::default();
         rpc_contract_classes.empty_staging();
+        drop(rpc_contract_classes); // to later allow set_block_number
         self.blocks.aborted_blocks.extend_from_slice(&aborted);
 
         // Pre-confirmed block is empty, but block number needs to be modified.
         let old_pre_confirmed_block_number = self.blocks.pre_confirmed_block.block_number().0;
         let new_pre_confirmed_block_number = old_pre_confirmed_block_number - aborted.len() as u64;
-        println!(
-            "DEBUG pre-confirmed block number; old={old_pre_confirmed_block_number}; \
-             new={new_pre_confirmed_block_number}"
-        );
 
-        // self.set_block_number(new_pre_confirmed_block_number);
-        self.blocks.pre_confirmed_block.set_block_number(new_pre_confirmed_block_number);
-        Starknet::set_block_context_block_number(
-            &mut self.block_context,
-            new_pre_confirmed_block_number,
-        );
+        self.set_block_number(new_pre_confirmed_block_number);
 
         Ok(aborted)
     }
