@@ -372,7 +372,7 @@ impl Starknet {
         new_block.header.block_header_without_hash.l2_gas_price.price_in_wei =
             GasPrice(self.next_block_gas.l2_gas_price_wei.get());
 
-        let new_block_number = self.blocks.next_block_number();
+        let new_block_number = self.blocks.next_latest_block_number();
         new_block.set_block_hash(if self.config.lite_mode {
             BlockHash::from(new_block_number.0)
         } else {
@@ -421,7 +421,7 @@ impl Starknet {
     /// last tx. Updates the `pre_confirmed_state_diff` to accumulate the changes since the last
     /// block. Check `StarknetState::commit_diff` for more info.
     pub fn commit_diff(&mut self) -> DevnetResult<StateDiff> {
-        let next_block_number = self.blocks.next_block_number();
+        let next_block_number = self.blocks.next_latest_block_number();
         let state_diff = self.pre_confirmed_state.commit_diff(next_block_number.0)?;
         self.pre_confirmed_state_diff.extend(&state_diff);
 

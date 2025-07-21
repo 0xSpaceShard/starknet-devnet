@@ -405,7 +405,7 @@ impl JsonRpcHandler {
         let last_aborted_block_hash =
             starknet.last_aborted_block_hash().ok_or(error::ApiError::StarknetDevnetError(
                 starknet_core::error::Error::UnexpectedInternalError {
-                    msg: "Aborted block not written in memory.".into(),
+                    msg: "Aborted block hash should be defined.".into(),
                 },
             ))?;
 

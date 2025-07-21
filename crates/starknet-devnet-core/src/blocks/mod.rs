@@ -192,7 +192,7 @@ impl StarknetBlocks {
         Some(block)
     }
 
-    pub fn next_block_number(&self) -> BlockNumber {
+    pub fn next_latest_block_number(&self) -> BlockNumber {
         BlockNumber(self.pre_confirmed_block.block_number().0)
     }
 }
