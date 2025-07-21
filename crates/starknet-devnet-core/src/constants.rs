@@ -49,10 +49,21 @@ pub const ETH_ERC20_SYMBOL: &str = "ETH";
 pub const STRK_ERC20_NAME: &str = "StarkNet Token";
 pub const STRK_ERC20_SYMBOL: &str = "STRK";
 
-pub(crate) const UDC_CONTRACT: &str = include_str!(concat!(
+pub(crate) const UDC_LEGACY_CONTRACT: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/contracts/system_artifacts/UDC_OZ_0.5.0.json"
 ));
+pub const UDC_LEGACY_CONTRACT_CLASS_HASH: Felt =
+    Felt::from_hex_unchecked("0x7B3E05F48F0C69E4A65CE5E076A66271A527AFF2C34CE1083EC6E1526997A69");
+pub const UDC_LEGACY_CONTRACT_ADDRESS: Felt =
+    Felt::from_hex_unchecked("0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF");
+
+pub(crate) const UDC_CONTRACT: &str =
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/contracts/system_artifacts/udc_2.sierra"));
+pub const UDC_CONTRACT_CLASS_HASH: Felt =
+    Felt::from_hex_unchecked("0x01b2df6d8861670d4a8ca4670433b2418d78169c2947f46dc614e69f333745c8");
+pub const UDC_CONTRACT_ADDRESS: Felt =
+    Felt::from_hex_unchecked("0x02ceed65a4bd731034c01113685c831b01c15d7d432f71afb1cf1634b53a2125");
 
 /// https://github.com/argentlabs/argent-contracts-starknet/blob/main/deployments/account.txt
 pub const ARGENT_CONTRACT_VERSION: &str = "0.4.0";
@@ -71,12 +82,6 @@ pub(crate) const ARGENT_MULTISIG_CONTRACT_SIERRA: &str = include_str!(concat!(
 ));
 pub const ARGENT_MULTISIG_CONTRACT_CLASS_HASH: Felt =
     Felt::from_hex_unchecked("0x7aeca3456816e3b833506d7cc5c1313d371fbdb0ae95ee70af72a4ddbf42594");
-
-pub const UDC_CONTRACT_CLASS_HASH: Felt =
-    Felt::from_hex_unchecked("0x7B3E05F48F0C69E4A65CE5E076A66271A527AFF2C34CE1083EC6E1526997A69");
-
-pub const UDC_CONTRACT_ADDRESS: Felt =
-    Felt::from_hex_unchecked("0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF");
 
 /// https://github.com/OpenZeppelin/cairo-contracts/blob/89a450a88628ec3b86273f261b2d8d1ca9b1522b/src/account/interface.cairo#L7
 pub const ISRC6_ID_HEX: &str = "0x2ceccef7f994940b3962a6c67e0ba4fcd37df7d131417c604f91e03caecc1cd";

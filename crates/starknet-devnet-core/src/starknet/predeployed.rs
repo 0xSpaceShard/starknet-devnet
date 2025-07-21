@@ -6,6 +6,7 @@ use starknet_types::felt::felt_from_prefixed_hex;
 
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, UDC_CONTRACT, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
+    UDC_LEGACY_CONTRACT, UDC_LEGACY_CONTRACT_ADDRESS, UDC_LEGACY_CONTRACT_CLASS_HASH,
 };
 use crate::error::{DevnetResult, Error};
 use crate::state::StarknetState;
@@ -53,10 +54,20 @@ pub(crate) fn initialize_erc20_at_address(
 }
 
 pub(crate) fn create_udc() -> DevnetResult<SystemContract> {
-    let udc_contract =
-        SystemContract::new_cairo0(UDC_CONTRACT_CLASS_HASH, UDC_CONTRACT_ADDRESS, UDC_CONTRACT)?;
+    let udc =
+        SystemContract::new_cairo1(UDC_CONTRACT_CLASS_HASH, UDC_CONTRACT_ADDRESS, UDC_CONTRACT)?;
 
-    Ok(udc_contract)
+    Ok(udc)
+}
+
+pub(crate) fn create_legacy_udc() -> DevnetResult<SystemContract> {
+    let udc = SystemContract::new_cairo0(
+        UDC_LEGACY_CONTRACT_CLASS_HASH,
+        UDC_LEGACY_CONTRACT_ADDRESS,
+        UDC_LEGACY_CONTRACT,
+    )?;
+
+    Ok(udc)
 }
 
 #[cfg(test)]

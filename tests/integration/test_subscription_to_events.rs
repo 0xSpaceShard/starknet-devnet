@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use serde_json::json;
-use starknet_core::constants::{STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS};
+use starknet_core::constants::{STRK_ERC20_CONTRACT_ADDRESS, UDC_LEGACY_CONTRACT_ADDRESS};
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, InvokeTransactionResult};
 use starknet_rs_core::utils::get_selector_from_name;
@@ -263,7 +263,7 @@ async fn should_notify_of_events_in_old_blocks_with_no_filters() {
     // deployment of events contract: udc invocation
     let deployment_udc_event = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
     assert_eq!(deployment_udc_event["block_number"], 2);
-    assert_eq!(deployment_udc_event["from_address"], json!(UDC_CONTRACT_ADDRESS));
+    assert_eq!(deployment_udc_event["from_address"], json!(UDC_LEGACY_CONTRACT_ADDRESS));
 
     // deployment of events contract: fee charge
     let deployment_fee_event = receive_event(&mut ws, subscription_id.clone()).await.unwrap();

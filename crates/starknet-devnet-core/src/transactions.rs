@@ -19,7 +19,7 @@ use starknet_types::rpc::transactions::{
     TransactionWithHash,
 };
 
-use crate::constants::UDC_CONTRACT_ADDRESS;
+use crate::constants::UDC_LEGACY_CONTRACT_ADDRESS;
 use crate::error::{DevnetResult, Error};
 use crate::traits::{HashIdentified, HashIdentifiedMut};
 
@@ -147,7 +147,7 @@ impl StarknetTransaction {
         let contract_deployed_event_key =
             get_selector_from_name("ContractDeployed").map_err(|_| Error::FormatError)?;
 
-        let udc_address = ContractAddress::new(UDC_CONTRACT_ADDRESS)?;
+        let udc_address = ContractAddress::new(UDC_LEGACY_CONTRACT_ADDRESS)?;
 
         let deployed_address = events
             .iter()
