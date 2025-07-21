@@ -184,24 +184,12 @@ impl StarknetBlocks {
     }
 
     pub(crate) fn remove(&mut self, block_hash: &BlockHash) -> Option<StarknetBlock> {
-        println!("DEBUG removing from hash_to_state");
-        if self.hash_to_state.remove(&block_hash).is_none() {
-            return None;
-        }
-        
-        println!("DEBUG removing from hash_to_state_diff");
-        if self.hash_to_state_diff.remove(&block_hash).is_none() {
-            return None;
-        }
-
-        println!("DEBUG removing from hash_to_block");
-        match self.hash_to_block.remove(&block_hash) {
-            Some(block) => {
-                self.num_to_hash.shift_remove(&block.block_number());
-                Some(block)
-            }
-            None => None,
-        }
+        // Use question marks to early-return None.
+        self.hash_to_state.remove(block_hash)?;
+        self.hash_to_state_diff.remove(block_hash)?;
+        let block = self.hash_to_block.remove(block_hash)?;
+        self.num_to_hash.shift_remove(&block.block_number())?;
+        Some(block)
     }
 
     pub fn next_block_number(&self) -> BlockNumber {

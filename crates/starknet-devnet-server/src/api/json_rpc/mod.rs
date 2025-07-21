@@ -372,7 +372,6 @@ impl JsonRpcHandler {
         old_latest_block: Option<StarknetBlock>,
         old_pending_block: Option<StarknetBlock>,
     ) -> Result<(), error::ApiError> {
-        println!("DEBUG broadcasting changes");
         let old_latest_block = if let Some(block) = old_latest_block {
             block
         } else {
@@ -383,12 +382,10 @@ impl JsonRpcHandler {
             self.broadcast_pending_tx_changes(old_pending_block).await?;
         }
 
-        println!("DEBUG getting new latest block");
         let new_latest_block = self.get_block_by_tag(BlockTag::Latest).await;
 
         match new_latest_block.block_number().cmp(&old_latest_block.block_number()) {
             std::cmp::Ordering::Less => {
-                println!("DEBUG broadcast reorg");
                 self.broadcast_reorg(old_latest_block, new_latest_block).await?
             }
             std::cmp::Ordering::Equal => { /* no changes required */ }

@@ -411,19 +411,11 @@ impl Starknet {
             self.blocks.save_state_at(new_block_hash, clone);
         }
 
-        println!(
-            "DEBUG new_block.number in block generation before generate_pre_confirmed_block: {}",
-            new_block.block_number()
-        );
         self.generate_pre_confirmed_block()?;
 
         // for every new block we need to clone pre_confirmed state into state
         self.latest_state = self.pre_confirmed_state.clone_historic();
 
-        println!(
-            "DEBUG new_block.number in block generation before return: {}",
-            new_block.block_number()
-        );
         Ok(new_block_hash)
     }
 
@@ -543,6 +535,18 @@ impl Starknet {
     fn advance_block_context_block_number(block_context: &mut BlockContext) {
         let mut block_info = block_context.block_info().clone();
         block_info.block_number = block_info.block_number.next().unwrap_or_default();
+        // TODO: update block_context via preferred method in the documentation
+        *block_context = BlockContext::new(
+            block_info,
+            block_context.chain_info().clone(),
+            get_versioned_constants(),
+            custom_bouncer_config(),
+        );
+    }
+
+    fn set_block_context_block_number(block_context: &mut BlockContext, block_number: u64) {
+        let mut block_info = block_context.block_info().clone();
+        block_info.block_number.0 = block_number;
         // TODO: update block_context via preferred method in the documentation
         *block_context = BlockContext::new(
             block_info,
@@ -1012,15 +1016,16 @@ impl Starknet {
         let old_pre_confirmed_block_number = self.blocks.pre_confirmed_block.block_number().0;
         let new_pre_confirmed_block_number = old_pre_confirmed_block_number - aborted.len() as u64;
         println!(
-            "DEBUG pre-confirmed block number; old={old_pre_confirmed_block_number}; new={new_pre_confirmed_block_number}"
+            "DEBUG pre-confirmed block number; old={old_pre_confirmed_block_number}; \
+             new={new_pre_confirmed_block_number}"
         );
 
         // self.set_block_number(new_pre_confirmed_block_number);
         self.blocks.pre_confirmed_block.set_block_number(new_pre_confirmed_block_number);
-        
-        let new_block_context = self.block_context.clone();
-        todo!("MODIFY block number");
-        Starknet::advance_block_context_block_number(&mut self.block_context);
+        Starknet::set_block_context_block_number(
+            &mut self.block_context,
+            new_pre_confirmed_block_number,
+        );
 
         Ok(aborted)
     }

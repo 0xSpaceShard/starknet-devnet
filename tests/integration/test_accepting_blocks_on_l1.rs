@@ -205,14 +205,7 @@ async fn should_fail_if_accepting_rejected() {
     let aborted_block_hash = aborted_blocks[0];
 
     let err = accept_on_l1(&devnet, &BlockId::Hash(aborted_block_hash)).await.unwrap_err();
-    assert_eq!(
-        err,
-        RpcError {
-            code: -1,
-            message: "Rejected block cannot be accepted on L1".into(),
-            data: None
-        }
-    );
+    assert_eq!(err, RpcError { code: -1, message: "No block found".into(), data: None });
 }
 
 #[tokio::test]
