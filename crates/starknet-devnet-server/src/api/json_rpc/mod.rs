@@ -400,23 +400,17 @@ impl JsonRpcHandler {
         old_latest_block: StarknetBlock,
         new_latest_block: StarknetBlock,
     ) -> Result<(), error::ApiError> {
-        // Since it is impossible to determine the hash of the former successor of new_latest_block
-        // directly, we iterate from old_latest_block all the way to the aborted successor of
-        // new_latest_block.
-        let new_latest_hash = new_latest_block.block_hash();
-        let mut orphan_starting_block_hash = old_latest_block.block_hash();
         let starknet = self.api.starknet.lock().await;
-        loop {
-            let orphan_block = starknet.get_block(&BlockId::Hash(orphan_starting_block_hash))?;
-            let parent_hash = orphan_block.parent_hash();
-            if parent_hash == new_latest_hash {
-                break;
-            }
-            orphan_starting_block_hash = parent_hash;
-        }
+
+        let last_aborted_block_hash =
+            starknet.last_aborted_block_hash().ok_or(error::ApiError::StarknetDevnetError(
+                starknet_core::error::Error::UnexpectedInternalError {
+                    msg: "Aborted block hash should be defined.".into(),
+                },
+            ))?;
 
         let notification = NotificationData::Reorg(ReorgData {
-            starting_block_hash: orphan_starting_block_hash,
+            starting_block_hash: *last_aborted_block_hash,
             starting_block_number: new_latest_block.block_number().unchecked_next(),
             ending_block_hash: old_latest_block.block_hash(),
             ending_block_number: old_latest_block.block_number(),

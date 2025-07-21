@@ -20,7 +20,7 @@ use starknet_api::core::SequencerContractAddress;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::transaction::fields::{GasVectorComputationMode, Tip};
 use starknet_api::transaction::{TransactionHasher, TransactionVersion};
-use starknet_rs_core::types::{BlockId, BlockTag, ExecutionResult, Felt, Hash256, MsgFromL1};
+use starknet_rs_core::types::{BlockId, BlockTag, Felt, Hash256, MsgFromL1};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_signers::{LocalWallet, Signer, SigningKey};
 use starknet_types::chain_id::ChainId;
@@ -372,14 +372,14 @@ impl Starknet {
         new_block.header.block_header_without_hash.l2_gas_price.price_in_wei =
             GasPrice(self.next_block_gas.l2_gas_price_wei.get());
 
-        let new_block_number = self.blocks.next_block_number();
+        let new_block_number = self.blocks.next_latest_block_number();
         new_block.set_block_hash(if self.config.lite_mode {
             BlockHash::from(new_block_number.0)
         } else {
             new_block.generate_hash()?
         });
         new_block.status = BlockStatus::AcceptedOnL2;
-        new_block.header.block_header_without_hash.block_number = new_block_number;
+        new_block.set_block_number(new_block_number.0);
 
         // set block timestamp and context block timestamp for contract execution
         let block_timestamp = self.next_block_timestamp();
@@ -421,7 +421,7 @@ impl Starknet {
     /// last tx. Updates the `pre_confirmed_state_diff` to accumulate the changes since the last
     /// block. Check `StarknetState::commit_diff` for more info.
     pub fn commit_diff(&mut self) -> DevnetResult<StateDiff> {
-        let next_block_number = self.blocks.next_block_number();
+        let next_block_number = self.blocks.next_latest_block_number();
         let state_diff = self.pre_confirmed_state.commit_diff(next_block_number.0)?;
         self.pre_confirmed_state_diff.extend(&state_diff);
 
@@ -530,6 +530,21 @@ impl Starknet {
         );
     }
 
+    fn set_block_number(&mut self, block_number: u64) {
+        self.blocks.pre_confirmed_block.set_block_number(block_number);
+
+        let mut block_info = self.block_context.block_info().clone();
+        block_info.block_number.0 = block_number;
+
+        // TODO: update block_context via preferred method in the documentation
+        self.block_context = BlockContext::new(
+            block_info,
+            self.block_context.chain_info().clone(),
+            get_versioned_constants(),
+            custom_bouncer_config(),
+        );
+    }
+
     fn set_block_context_gas(block_context: &mut BlockContext, gas_modification: &GasModification) {
         let mut block_info = block_context.block_info().clone();
 
@@ -582,49 +597,19 @@ impl Starknet {
 
         block.header.block_header_without_hash.block_number =
             self.block_context.block_info().block_number;
+
+        let gas_prices = &self.block_context.block_info().gas_prices;
         block.header.block_header_without_hash.l1_gas_price = GasPricePerToken {
-            price_in_fri: self
-                .block_context
-                .block_info()
-                .gas_prices
-                .l1_gas_price(&FeeType::Strk)
-                .get(),
-            price_in_wei: self
-                .block_context
-                .block_info()
-                .gas_prices
-                .l1_gas_price(&FeeType::Eth)
-                .get(),
+            price_in_fri: gas_prices.l1_gas_price(&FeeType::Strk).get(),
+            price_in_wei: gas_prices.l1_gas_price(&FeeType::Eth).get(),
         };
         block.header.block_header_without_hash.l1_data_gas_price = GasPricePerToken {
-            price_in_fri: self
-                .block_context
-                .block_info()
-                .gas_prices
-                .l1_data_gas_price(&FeeType::Strk)
-                .get(),
-
-            price_in_wei: self
-                .block_context
-                .block_info()
-                .gas_prices
-                .l1_data_gas_price(&FeeType::Eth)
-                .get(),
+            price_in_fri: gas_prices.l1_data_gas_price(&FeeType::Strk).get(),
+            price_in_wei: gas_prices.l1_data_gas_price(&FeeType::Eth).get(),
         };
         block.header.block_header_without_hash.l2_gas_price = GasPricePerToken {
-            price_in_fri: self
-                .block_context
-                .block_info()
-                .gas_prices
-                .l2_gas_price(&FeeType::Strk)
-                .get(),
-
-            price_in_wei: self
-                .block_context
-                .block_info()
-                .gas_prices
-                .l2_gas_price(&FeeType::Eth)
-                .get(),
+            price_in_fri: gas_prices.l2_gas_price(&FeeType::Strk).get(),
+            price_in_wei: gas_prices.l2_gas_price(&FeeType::Eth).get(),
         };
 
         block.header.block_header_without_hash.sequencer =
@@ -947,10 +932,6 @@ impl Starknet {
             None => return Err(Error::NoBlock),
         };
 
-        if self.blocks.aborted_blocks.contains(&starting_block_hash) {
-            return Err(Error::UnsupportedAction { msg: "Block is already aborted".into() });
-        }
-
         let genesis_block = self
             .blocks
             .get_by_block_id(&BlockId::Number(self.blocks.starting_block_number))
@@ -972,51 +953,59 @@ impl Starknet {
         // Abort blocks from latest to starting (iterating backwards) and revert transactions.
         while !reached_starting_block {
             reached_starting_block = next_block_to_abort_hash == starting_block_hash;
-            let block_to_abort = self.blocks.hash_to_block.get_mut(&next_block_to_abort_hash);
 
-            if let Some(block) = block_to_abort {
-                block.status = BlockStatus::Rejected;
-                self.blocks.num_to_hash.shift_remove(&block.block_number());
+            let aborted_block = self.blocks.remove(&next_block_to_abort_hash).ok_or(
+                Error::UnexpectedInternalError {
+                    msg: format!("Cannot find block for abortion: {next_block_to_abort_hash:#x}"),
+                },
+            )?;
 
-                // Revert transactions
-                for tx_hash in block.get_transactions() {
-                    let tx =
-                        self.transactions.get_by_hash_mut(tx_hash).ok_or(Error::NoTransaction)?;
-                    tx.execution_result =
-                        ExecutionResult::Reverted { reason: "Block aborted manually".to_string() };
-                }
-
-                rpc_contract_classes.remove_classes_at(block.block_number().0);
-                aborted.push(block.block_hash());
-
-                // Update next block hash to abort
-                next_block_to_abort_hash = block.parent_hash();
+            // Revert transactions
+            for tx_hash in aborted_block.get_transactions() {
+                self.transactions.remove(tx_hash).ok_or(Error::UnexpectedInternalError {
+                    msg: format!("No tx of abortable block: {tx_hash:#x}"),
+                })?;
             }
+
+            rpc_contract_classes.remove_classes_at(aborted_block.block_number().0);
+            aborted.push(aborted_block.block_hash());
+
+            // Update next block hash to abort
+            next_block_to_abort_hash = aborted_block.parent_hash();
         }
-        let last_reached_block_hash = next_block_to_abort_hash;
+        let last_unaborted_block_hash = next_block_to_abort_hash;
 
         // Update last_block_hash based on last reached block and revert state only if
         // starting block is reached in while loop.
         if reached_starting_block {
-            let current_block =
-                self.blocks.hash_to_block.get(&last_reached_block_hash).ok_or(Error::NoBlock)?;
-            self.blocks.last_block_hash = Some(current_block.block_hash());
+            self.blocks.last_block_hash = Some(last_unaborted_block_hash);
 
-            let reverted_state = self.blocks.hash_to_state.get(&current_block.block_hash()).ok_or(
-                Error::NoStateAtBlock { block_id: BlockId::Number(current_block.block_number().0) },
+            let reverted_state = self.blocks.hash_to_state.get(&last_unaborted_block_hash).ok_or(
+                Error::NoStateAtBlock { block_id: BlockId::Hash(last_unaborted_block_hash) },
             )?;
 
-            // in the abort block scenario, we need to revert state and pre_confirmed_state to be
-            // able to use the calls properly
+            // In the abort block scenario, we need to revert state and pre_confirmed_state to be
+            // able to use the calls properly.
             self.latest_state = reverted_state.clone_historic();
             self.pre_confirmed_state = reverted_state.clone_historic();
         }
 
         self.pre_confirmed_state_diff = StateDiff::default();
         rpc_contract_classes.empty_staging();
-        self.blocks.aborted_blocks = aborted.clone();
+        drop(rpc_contract_classes); // to later allow set_block_number
+        self.blocks.aborted_blocks.extend_from_slice(&aborted);
+
+        // Pre-confirmed block is empty, but block number needs to be modified.
+        let old_pre_confirmed_block_number = self.blocks.pre_confirmed_block.block_number().0;
+        let new_pre_confirmed_block_number = old_pre_confirmed_block_number - aborted.len() as u64;
+
+        self.set_block_number(new_pre_confirmed_block_number);
 
         Ok(aborted)
+    }
+
+    pub fn last_aborted_block_hash(&self) -> Option<&BlockHash> {
+        self.blocks.aborted_blocks.last()
     }
 
     fn validate_acceptability_on_l1(&self, block_status: BlockStatus) -> DevnetResult<()> {
@@ -1024,7 +1013,9 @@ impl Starknet {
             BlockStatus::AcceptedOnL2 => return Ok(()),
             BlockStatus::PreConfirmed => "Pre-confirmed block cannot be accepted on L1",
             BlockStatus::AcceptedOnL1 => "Block already accepted on L1",
-            BlockStatus::Rejected => "Rejected block cannot be accepted on L1",
+            BlockStatus::Rejected => {
+                "Rejected blocks should no longer exist; if you see this message, please report a bug at https://github.com/0xSpaceShard/starknet-devnet/issues/new"
+            }
         };
 
         Err(Error::UnsupportedAction { msg: err_msg.into() })

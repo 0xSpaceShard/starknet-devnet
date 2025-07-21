@@ -34,6 +34,10 @@ impl StarknetTransactions {
     pub fn get(&self, transaction_hash: &TransactionHash) -> Option<&StarknetTransaction> {
         self.0.get(transaction_hash)
     }
+
+    pub fn remove(&mut self, transaction_hash: &TransactionHash) -> Option<StarknetTransaction> {
+        self.0.shift_remove(transaction_hash)
+    }
 }
 
 impl HashIdentifiedMut for StarknetTransactions {
