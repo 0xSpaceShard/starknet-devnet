@@ -194,8 +194,9 @@ impl Starknet {
             &config.strk_erc20_contract_class,
         )?;
 
-        let udc_contract = predeployed::create_udc()?;
-        udc_contract.deploy(&mut state)?;
+        for udc in [predeployed::create_legacy_udc()?, predeployed::create_udc()?] {
+            udc.deploy(&mut state)?;
+        }
 
         eth_erc20_fee_contract.deploy(&mut state)?;
         initialize_erc20_at_address(
