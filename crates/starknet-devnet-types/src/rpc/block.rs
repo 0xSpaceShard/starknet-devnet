@@ -1,33 +1,22 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use starknet_api::block::{BlockNumber, BlockTimestamp};
 use starknet_api::data_availability::L1DataAvailabilityMode;
-use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag as ImportedBlockTag, Felt};
+use starknet_rs_core::types::Felt;
 
 use crate::contract_address::ContractAddress;
 use crate::felt::BlockHash;
 use crate::rpc::transactions::Transactions;
 pub type BlockRoot = Felt;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
 #[cfg_attr(feature = "testing", derive(PartialEq, Eq))]
-pub struct BlockId(pub ImportedBlockId);
-
-impl From<ImportedBlockId> for BlockId {
-    fn from(value: ImportedBlockId) -> Self {
-        Self(value)
-    }
-}
-
-impl AsRef<ImportedBlockId> for BlockId {
-    fn as_ref(&self) -> &ImportedBlockId {
-        &self.0
-    }
-}
-
-impl From<BlockId> for ImportedBlockId {
-    fn from(block_id: BlockId) -> Self {
-        block_id.0
-    }
+pub enum BlockId {
+    /// Block hash.
+    Hash(Felt),
+    /// Block number (height).
+    Number(u64),
+    /// Block tag
+    Tag(BlockTag),
 }
 
 impl<'de> Deserialize<'de> for BlockId {
@@ -45,14 +34,15 @@ impl<'de> Deserialize<'de> for BlockId {
 
         let value = serde_json::Value::deserialize(deserializer)?;
         match value.as_str() {
-            Some("latest") => Ok(Self(ImportedBlockId::Tag(ImportedBlockTag::Latest))),
-            Some("pre_confirmed") => Ok(Self(ImportedBlockId::Tag(ImportedBlockTag::PreConfirmed))),
+            Some("latest") => Ok(Self::Tag(BlockTag::Latest)),
+            Some("pre_confirmed") => Ok(Self::Tag(BlockTag::PreConfirmed)),
+            Some("l1_accepted") => Ok(Self::Tag(BlockTag::L1Accepted)),
             _ => match serde_json::from_value::<BlockHashOrNumber>(value) {
-                Ok(BlockHashOrNumber::Hash(hash)) => Ok(Self(ImportedBlockId::Hash(hash))),
-                Ok(BlockHashOrNumber::Number(n)) => Ok(Self(ImportedBlockId::Number(n))),
+                Ok(BlockHashOrNumber::Hash(hash)) => Ok(Self::Hash(hash)),
+                Ok(BlockHashOrNumber::Number(n)) => Ok(Self::Number(n)),
                 Err(_) => Err(serde::de::Error::custom(
                     "Invalid block ID. Expected object with key (block_hash or block_number) or \
-                     tag ('pre_confirmed' or 'latest').",
+                     tag ('pre_confirmed' or 'latest' or 'l1_accepted').",
                 )),
             },
         }
@@ -151,6 +141,7 @@ pub enum SubscriptionBlockId {
     Hash(Felt),
     Number(u64),
     Latest,
+    L1Accepted,
 }
 
 impl<'de> Deserialize<'de> for SubscriptionBlockId {
@@ -160,48 +151,41 @@ impl<'de> Deserialize<'de> for SubscriptionBlockId {
     {
         let block_id = BlockId::deserialize(deserializer)?;
         Ok(match block_id {
-            BlockId(ImportedBlockId::Hash(felt)) => Self::Hash(felt),
-            BlockId(ImportedBlockId::Number(n)) => Self::Number(n),
-            BlockId(ImportedBlockId::Tag(ImportedBlockTag::Latest)) => Self::Latest,
-            BlockId(ImportedBlockId::Tag(ImportedBlockTag::PreConfirmed)) => {
+            BlockId::Hash(felt) => Self::Hash(felt),
+            BlockId::Number(n) => Self::Number(n),
+            BlockId::Tag(BlockTag::Latest) => Self::Latest,
+            BlockId::Tag(BlockTag::PreConfirmed | BlockTag::L1Accepted) => {
                 return Err(serde::de::Error::custom(
-                    "Subscription block cannot be 'pre_confirmed'",
+                    "Subscription block cannot be 'pre_confirmed' or 'l1_accepted'",
                 ));
             }
         })
     }
 }
 
-impl From<SubscriptionBlockId> for ImportedBlockId {
+impl From<SubscriptionBlockId> for BlockId {
     fn from(value: SubscriptionBlockId) -> Self {
         (&value).into()
     }
 }
 
-impl From<&SubscriptionBlockId> for ImportedBlockId {
+impl From<&SubscriptionBlockId> for BlockId {
     fn from(value: &SubscriptionBlockId) -> Self {
         match value {
             SubscriptionBlockId::Hash(hash) => Self::Hash(*hash),
             SubscriptionBlockId::Number(n) => Self::Number(*n),
-            SubscriptionBlockId::Latest => Self::Tag(ImportedBlockTag::Latest),
+            SubscriptionBlockId::Latest => Self::Tag(BlockTag::Latest),
+            SubscriptionBlockId::L1Accepted => Self::Tag(BlockTag::L1Accepted),
         }
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum BlockTag {
     PreConfirmed,
     Latest,
-}
-
-impl From<BlockTag> for starknet_rs_core::types::BlockTag {
-    fn from(tag: BlockTag) -> Self {
-        match tag {
-            BlockTag::PreConfirmed => starknet_rs_core::types::BlockTag::PreConfirmed,
-            BlockTag::Latest => starknet_rs_core::types::BlockTag::Latest,
-        }
-    }
+    L1Accepted,
 }
 
 #[cfg(test)]

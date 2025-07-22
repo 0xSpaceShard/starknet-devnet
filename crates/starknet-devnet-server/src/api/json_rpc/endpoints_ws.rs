@@ -1,7 +1,6 @@
 use starknet_core::error::Error;
-use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::felt::TransactionHash;
-use starknet_types::rpc::block::{BlockResult, BlockStatus, PreConfirmedBlock};
+use starknet_types::rpc::block::{BlockId, BlockResult, BlockStatus, BlockTag, PreConfirmedBlock};
 use starknet_types::rpc::transactions::{TransactionWithHash, Transactions};
 
 use super::error::ApiError;

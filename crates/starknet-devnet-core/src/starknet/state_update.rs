@@ -1,4 +1,4 @@
-use starknet_rs_core::types::BlockId;
+use starknet_types::rpc::block::BlockId;
 use starknet_types::rpc::state::StateUpdate;
 
 use super::Starknet;
@@ -17,9 +17,10 @@ pub fn state_update_by_block_id(
 
 #[cfg(test)]
 mod tests {
-    use starknet_rs_core::types::{BlockId, BlockTag, Felt, TransactionExecutionStatus};
+    use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
     use starknet_types::compile_sierra_contract;
     use starknet_types::contract_class::ContractClass;
+    use starknet_types::rpc::block::{BlockId, BlockTag};
     use starknet_types::rpc::state::{ClassHashPair, ContractNonce, ThinStateDiff};
     use starknet_types::rpc::transactions::{
         BroadcastedDeclareTransaction, TransactionFinalityStatus,

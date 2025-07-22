@@ -4,10 +4,10 @@ use indexmap::IndexMap;
 use starknet_api::block::{BlockHeader, BlockHeaderWithoutHash, BlockNumber, BlockTimestamp};
 use starknet_api::data_availability::L1DataAvailabilityMode;
 use starknet_api::felt;
-use starknet_rs_core::types::{BlockId, BlockTag, Felt};
+use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, TransactionHash};
-use starknet_types::rpc::block::{BlockStatus, ResourcePrice};
+use starknet_types::rpc::block::{BlockId, BlockStatus, BlockTag, ResourcePrice};
 use starknet_types::traits::HashProducer;
 use starknet_types_core::hash::{Pedersen, StarkHash};
 
@@ -26,6 +26,7 @@ pub(crate) struct StarknetBlocks {
     pub(crate) hash_to_state: HashMap<BlockHash, StarknetState>,
     pub(crate) aborted_blocks: Vec<Felt>,
     pub(crate) starting_block_number: u64,
+    last_accepted_on_l1: Option<BlockHash>,
 }
 
 impl HashIdentified for StarknetBlocks {
@@ -50,6 +51,7 @@ impl Default for StarknetBlocks {
             hash_to_state: HashMap::new(),
             aborted_blocks: Vec::new(),
             starting_block_number: DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
+            last_accepted_on_l1: None,
         }
     }
 }
@@ -100,6 +102,9 @@ impl StarknetBlocks {
             BlockId::Number(block_number) => self.get_by_num(&BlockNumber(*block_number)),
             BlockId::Tag(BlockTag::PreConfirmed) => Some(&self.pre_confirmed_block),
             BlockId::Tag(BlockTag::Latest) => self.get_by_latest_hash(),
+            BlockId::Tag(BlockTag::L1Accepted) => {
+                self.last_accepted_on_l1.and_then(|h| self.get_by_hash(h))
+            }
         }
     }
 
@@ -431,8 +436,8 @@ impl HashProducer for StarknetBlock {
 mod tests {
     use starknet_api::block::{BlockHash, BlockHeader, BlockHeaderWithoutHash, BlockNumber};
     use starknet_api::data_availability::L1DataAvailabilityMode;
-    use starknet_rs_core::types::{BlockId, BlockTag, Felt};
-    use starknet_types::rpc::block::BlockStatus;
+    use starknet_rs_core::types::Felt;
+    use starknet_types::rpc::block::{BlockId, BlockStatus, BlockTag};
     use starknet_types::traits::HashProducer;
 
     use super::{StarknetBlock, StarknetBlocks};

@@ -4,7 +4,7 @@ use serde::Deserialize;
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::rpc::block::BlockTag;
+use starknet_types::rpc::block::{BlockId, BlockTag};
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 
 use super::mint_token::{get_balance, get_erc20_address};
@@ -35,8 +35,9 @@ pub(crate) async fn get_balance_unit(
 ) -> HttpApiResult<AccountBalanceResponse> {
     let erc20_address = get_erc20_address(&unit)
         .map_err(|e| HttpApiError::InvalidValueError { msg: e.to_string() })?;
-    let amount = get_balance(starknet, address, erc20_address, BlockTag::PreConfirmed)
-        .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
+    let amount =
+        get_balance(starknet, address, erc20_address, BlockId::Tag(BlockTag::PreConfirmed))
+            .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
 
     Ok(AccountBalanceResponse { amount: amount.to_string(), unit })
 }
@@ -76,7 +77,7 @@ pub(crate) async fn get_predeployed_accounts_impl(
 pub struct BalanceQuery {
     address: Felt,
     unit: Option<FeeUnit>,
-    block_tag: Option<BlockTag>,
+    block_id: Option<BlockId>,
 }
 
 pub async fn get_account_balance(
@@ -102,7 +103,7 @@ pub(crate) async fn get_account_balance_impl(
         &mut starknet,
         account_address,
         erc20_address,
-        params.block_tag.unwrap_or(BlockTag::Latest),
+        params.block_id.unwrap_or(BlockId::Tag(BlockTag::Latest)),
     )
     .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
 

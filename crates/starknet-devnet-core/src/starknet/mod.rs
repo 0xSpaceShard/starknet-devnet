@@ -20,7 +20,7 @@ use starknet_api::core::SequencerContractAddress;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::transaction::fields::{GasVectorComputationMode, Tip};
 use starknet_api::transaction::{TransactionHasher, TransactionVersion};
-use starknet_rs_core::types::{BlockId, BlockTag, Felt, Hash256, MsgFromL1};
+use starknet_rs_core::types::{Felt, Hash256, MsgFromL1};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_signers::{LocalWallet, Signer, SigningKey};
 use starknet_types::chain_id::ChainId;
@@ -33,8 +33,8 @@ use starknet_types::felt::{
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{
-    Block, BlockHeader, BlockId as CustomBlockId, BlockResult, BlockStatus, PreConfirmedBlock,
-    PreConfirmedBlockHeader,
+    Block, BlockHeader, BlockId as CustomBlockId, BlockResult, BlockStatus,
+    BlockTag as CustomBlockTag, PreConfirmedBlock, PreConfirmedBlockHeader,
 };
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
 use starknet_types::rpc::gas_modification::{GasModification, GasModificationRequest};
@@ -623,10 +623,10 @@ impl Starknet {
         Ok(())
     }
 
-    fn get_mut_state_at(&mut self, block_id: &BlockId) -> DevnetResult<&mut StarknetState> {
+    fn get_mut_state_at(&mut self, block_id: &CustomBlockId) -> DevnetResult<&mut StarknetState> {
         match block_id {
-            BlockId::Tag(BlockTag::Latest) => Ok(&mut self.latest_state),
-            BlockId::Tag(BlockTag::PreConfirmed) => Ok(&mut self.pre_confirmed_state),
+            CustomBlockId::Tag(CustomBlockTag::Latest) => Ok(&mut self.latest_state),
+            CustomBlockId::Tag(CustomBlockTag::PreConfirmed) => Ok(&mut self.pre_confirmed_state),
             _ => {
                 let block = self.get_block(block_id)?;
                 let block_hash = block.block_hash();
@@ -651,7 +651,7 @@ impl Starknet {
 
     pub fn get_class_hash_at(
         &mut self,
-        block_id: &BlockId,
+        block_id: &CustomBlockId,
         contract_address: ContractAddress,
     ) -> DevnetResult<ClassHash> {
         get_class_impls::get_class_hash_at_impl(self, block_id, contract_address)
@@ -659,7 +659,7 @@ impl Starknet {
 
     pub fn get_class(
         &self,
-        block_id: &BlockId,
+        block_id: &CustomBlockId,
         class_hash: ClassHash,
     ) -> DevnetResult<ContractClass> {
         get_class_impls::get_class_impl(self, block_id, class_hash)
@@ -667,7 +667,7 @@ impl Starknet {
 
     pub fn get_class_at(
         &mut self,
-        block_id: &BlockId,
+        block_id: &CustomBlockId,
         contract_address: ContractAddress,
     ) -> DevnetResult<ContractClass> {
         get_class_impls::get_class_at_impl(self, block_id, contract_address)
@@ -679,7 +679,7 @@ impl Starknet {
 
     pub fn call(
         &mut self,
-        block_id: &BlockId,
+        block_id: &CustomBlockId,
         contract_address: Felt,
         entrypoint_selector: Felt,
         calldata: Vec<Felt>,
@@ -745,7 +745,7 @@ impl Starknet {
 
     pub fn estimate_fee(
         &mut self,
-        block_id: &BlockId,
+        block_id: &CustomBlockId,
         transactions: &[BroadcastedTransaction],
         simulation_flags: &[SimulationFlag],
     ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
@@ -880,11 +880,11 @@ impl Starknet {
         )
     }
 
-    pub fn block_state_update(&self, block_id: &BlockId) -> DevnetResult<StateUpdateResult> {
+    pub fn block_state_update(&self, block_id: &CustomBlockId) -> DevnetResult<StateUpdateResult> {
         let state_update = state_update::state_update_by_block_id(self, block_id)?;
 
         // StateUpdate needs to be mapped to PreConfirmedStateUpdate when block_id is pre_confirmed
-        if block_id == &BlockId::Tag(BlockTag::PreConfirmed) {
+        if let CustomBlockId::Tag(CustomBlockTag::PreConfirmed) = block_id {
             Ok(StateUpdateResult::PreConfirmedStateUpdate(PreConfirmedStateUpdate {
                 old_root: state_update.old_root,
                 state_diff: state_update.state_diff,
@@ -916,16 +916,16 @@ impl Starknet {
 
     pub fn abort_blocks(
         &mut self,
-        mut starting_block_id: BlockId,
+        mut starting_block_id: CustomBlockId,
     ) -> DevnetResult<Vec<TransactionHash>> {
         if self.config.state_archive != StateArchiveCapacity::Full {
             let msg = "The abort blocks feature requires state-archive-capacity set to full.";
             return Err(Error::UnsupportedAction { msg: msg.into() });
         }
 
-        if starting_block_id == BlockId::Tag(BlockTag::PreConfirmed) {
+        if let CustomBlockId::Tag(CustomBlockTag::PreConfirmed) = starting_block_id {
             self.create_block()?;
-            starting_block_id = BlockId::Tag(BlockTag::Latest);
+            starting_block_id = CustomBlockId::Tag(CustomBlockTag::Latest);
         }
 
         let starting_block_hash = match self.blocks.get_by_block_id(&starting_block_id) {
@@ -935,7 +935,7 @@ impl Starknet {
 
         let genesis_block = self
             .blocks
-            .get_by_block_id(&BlockId::Number(self.blocks.starting_block_number))
+            .get_by_block_id(&CustomBlockId::Number(self.blocks.starting_block_number))
             .ok_or(Error::UnsupportedAction { msg: "Cannot abort - no genesis block".into() })?;
 
         if starting_block_hash == genesis_block.block_hash() {
@@ -982,7 +982,7 @@ impl Starknet {
             self.blocks.last_block_hash = Some(last_unaborted_block_hash);
 
             let reverted_state = self.blocks.hash_to_state.get(&last_unaborted_block_hash).ok_or(
-                Error::NoStateAtBlock { block_id: BlockId::Hash(last_unaborted_block_hash) },
+                Error::NoStateAtBlock { block_id: CustomBlockId::Hash(last_unaborted_block_hash) },
             )?;
 
             // In the abort block scenario, we need to revert state and pre_confirmed_state to be
@@ -1022,7 +1022,7 @@ impl Starknet {
         Err(Error::UnsupportedAction { msg: err_msg.into() })
     }
 
-    pub fn accept_on_l1(&mut self, block_id: BlockId) -> DevnetResult<Vec<BlockHash>> {
+    pub fn accept_on_l1(&mut self, block_id: CustomBlockId) -> DevnetResult<Vec<BlockHash>> {
         let block = self.get_block(&block_id)?;
         // Only the starting block is validated; all ancestors are guaranteed to be ACCEPTED_ON_L2
         self.validate_acceptability_on_l1(block.status)?;
@@ -1052,14 +1052,14 @@ impl Starknet {
         Ok(accepted)
     }
 
-    pub fn get_block_txs_count(&self, block_id: &BlockId) -> DevnetResult<u64> {
+    pub fn get_block_txs_count(&self, block_id: &CustomBlockId) -> DevnetResult<u64> {
         let block = self.get_block(block_id)?;
         Ok(block.get_transactions().len() as u64)
     }
 
     pub fn contract_nonce_at_block(
         &mut self,
-        block_id: &BlockId,
+        block_id: &CustomBlockId,
         contract_address: ContractAddress,
     ) -> DevnetResult<Felt> {
         let state = self.get_mut_state_at(block_id)?;
@@ -1070,7 +1070,7 @@ impl Starknet {
 
     pub fn contract_storage_at_block(
         &mut self,
-        block_id: &BlockId,
+        block_id: &CustomBlockId,
         contract_address: ContractAddress,
         storage_key: PatriciaKey,
     ) -> DevnetResult<Felt> {
@@ -1079,11 +1079,14 @@ impl Starknet {
         Ok(state.get_storage_at(contract_address.into(), storage_key.into())?)
     }
 
-    pub fn get_block(&self, block_id: &BlockId) -> DevnetResult<&StarknetBlock> {
+    pub fn get_block(&self, block_id: &CustomBlockId) -> DevnetResult<&StarknetBlock> {
         self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)
     }
 
-    pub fn get_block_with_transactions(&self, block_id: &BlockId) -> DevnetResult<BlockResult> {
+    pub fn get_block_with_transactions(
+        &self,
+        block_id: &CustomBlockId,
+    ) -> DevnetResult<BlockResult> {
         let block = self.get_block(block_id)?;
         let transactions = block
             .get_transactions()
@@ -1110,7 +1113,7 @@ impl Starknet {
         }
     }
 
-    pub fn get_block_with_receipts(&self, block_id: &BlockId) -> DevnetResult<BlockResult> {
+    pub fn get_block_with_receipts(&self, block_id: &CustomBlockId) -> DevnetResult<BlockResult> {
         let block = self.get_block(block_id)?;
         let mut transaction_receipts: Vec<TransactionWithReceipt> = vec![];
 
@@ -1141,7 +1144,7 @@ impl Starknet {
 
     pub fn get_transaction_by_block_id_and_index(
         &self,
-        block_id: &BlockId,
+        block_id: &CustomBlockId,
         index: u64,
     ) -> DevnetResult<&TransactionWithHash> {
         let block = self.get_block(block_id)?;
@@ -1156,7 +1159,7 @@ impl Starknet {
     pub fn get_latest_block(&self) -> DevnetResult<StarknetBlock> {
         let block = self
             .blocks
-            .get_by_block_id(&BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
+            .get_by_block_id(&CustomBlockId::Tag(CustomBlockTag::Latest))
             .ok_or(crate::error::Error::NoBlock)?;
 
         Ok(block.clone())
@@ -1174,8 +1177,8 @@ impl Starknet {
 
     pub fn get_unlimited_events(
         &self,
-        from_block: Option<BlockId>,
-        to_block: Option<BlockId>,
+        from_block: Option<CustomBlockId>,
+        to_block: Option<CustomBlockId>,
         address: Option<ContractAddress>,
         keys: Option<Vec<Vec<Felt>>>,
     ) -> DevnetResult<Vec<EmittedEvent>> {
@@ -1185,8 +1188,8 @@ impl Starknet {
 
     pub fn get_events(
         &self,
-        from_block: Option<BlockId>,
-        to_block: Option<BlockId>,
+        from_block: Option<CustomBlockId>,
+        to_block: Option<CustomBlockId>,
         address: Option<ContractAddress>,
         keys: Option<Vec<Vec<Felt>>>,
         skip: u64,
@@ -1215,7 +1218,7 @@ impl Starknet {
 
     pub fn get_transaction_traces_from_block(
         &self,
-        block_id: &BlockId,
+        block_id: &CustomBlockId,
     ) -> DevnetResult<Vec<BlockTransactionTrace>> {
         let transactions = match self.get_block_with_transactions(block_id)? {
             BlockResult::Block(b) => b.transactions,
@@ -1247,7 +1250,7 @@ impl Starknet {
 
     pub fn simulate_transactions(
         &mut self,
-        block_id: &BlockId,
+        block_id: &CustomBlockId,
         transactions: &[BroadcastedTransaction],
         simulation_flags: Vec<SimulationFlag>,
     ) -> DevnetResult<Vec<SimulatedTransaction>> {
@@ -1541,11 +1544,13 @@ mod tests {
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
     use starknet_api::block::{BlockHash, BlockNumber, BlockTimestamp, FeeType};
-    use starknet_rs_core::types::{BlockId, BlockTag, Felt};
+    use starknet_rs_core::types::Felt;
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::felt_from_prefixed_hex;
-    use starknet_types::rpc::block::BlockStatus;
+    use starknet_types::rpc::block::{
+        BlockId as CustomBlockId, BlockStatus, BlockTag as CustomBlockTag,
+    };
     use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transaction_receipt::TransactionReceipt;
     use starknet_types::traits::HashProducer;
@@ -1770,14 +1775,18 @@ mod tests {
     fn getting_state_of_latest_block() {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
-        starknet.get_mut_state_at(&BlockId::Tag(BlockTag::Latest)).expect("Should be OK");
+        starknet
+            .get_mut_state_at(&CustomBlockId::Tag(CustomBlockTag::Latest))
+            .expect("Should be OK");
     }
 
     #[test]
     fn getting_state_of_pre_confirmed_block() {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
-        starknet.get_mut_state_at(&BlockId::Tag(BlockTag::PreConfirmed)).expect("Should be OK");
+        starknet
+            .get_mut_state_at(&CustomBlockId::Tag(CustomBlockTag::PreConfirmed))
+            .expect("Should be OK");
     }
 
     #[test]
@@ -1787,7 +1796,7 @@ mod tests {
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block_and_state().unwrap();
 
-        match starknet.get_mut_state_at(&BlockId::Hash(Felt::ZERO)) {
+        match starknet.get_mut_state_at(&CustomBlockId::Hash(Felt::ZERO)) {
             Err(Error::NoBlock) => (),
             _ => panic!("Should fail with NoBlock"),
         }
@@ -1803,7 +1812,7 @@ mod tests {
         starknet.blocks.hash_to_state.remove(&block_hash);
         starknet.blocks.last_block_hash = Some(genesis_block_hash.block_hash());
 
-        match starknet.get_mut_state_at(&BlockId::Number(1)) {
+        match starknet.get_mut_state_at(&CustomBlockId::Number(1)) {
             Err(Error::NoStateAtBlock { block_id: _ }) => (),
             _ => panic!("Should fail with NoStateAtBlock"),
         }
@@ -1815,7 +1824,7 @@ mod tests {
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block_and_state().unwrap();
 
-        match starknet.get_mut_state_at(&BlockId::Number(0)) {
+        match starknet.get_mut_state_at(&CustomBlockId::Number(0)) {
             Err(Error::NoStateAtBlock { .. }) => (),
             _ => panic!("Should fail with NoStateAtBlock."),
         }
@@ -1831,7 +1840,9 @@ mod tests {
             Felt::from_hex_unchecked(CAIRO_0_ACCOUNT_CONTRACT_HASH),
             Felt::from_hex_unchecked(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH),
         ] {
-            let contract = starknet.get_class(&BlockId::Tag(BlockTag::Latest), class_hash).unwrap();
+            let contract = starknet
+                .get_class(&CustomBlockId::Tag(CustomBlockTag::Latest), class_hash)
+                .unwrap();
             assert_eq!(contract.generate_hash().unwrap(), class_hash);
         }
     }
@@ -1845,7 +1856,7 @@ mod tests {
         let entry_point_selector = get_selector_from_name("balanceOf").unwrap();
 
         match starknet.call(
-            &BlockId::Tag(BlockTag::Latest),
+            &CustomBlockId::Tag(CustomBlockTag::Latest),
             undeployed_address,
             entry_point_selector,
             vec![],
@@ -1864,7 +1875,7 @@ mod tests {
         let entry_point_selector = get_selector_from_name("nonExistentMethod").unwrap();
 
         match starknet.call(
-            &BlockId::Tag(BlockTag::Latest),
+            &CustomBlockId::Tag(CustomBlockTag::Latest),
             ETH_ERC20_CONTRACT_ADDRESS,
             entry_point_selector,
             vec![Felt::from(predeployed_account.account_address)],
@@ -1881,7 +1892,7 @@ mod tests {
     ) -> DevnetResult<Vec<Felt>> {
         let entry_point_selector = get_selector_from_name("balanceOf").unwrap();
         starknet.call(
-            &BlockId::Tag(BlockTag::Latest),
+            &CustomBlockId::Tag(CustomBlockTag::Latest),
             ETH_ERC20_CONTRACT_ADDRESS,
             entry_point_selector,
             vec![Felt::from(contract_address)],
@@ -1941,7 +1952,7 @@ mod tests {
 
         starknet.generate_new_block_and_state().unwrap();
 
-        let num_no_transactions = starknet.get_block_txs_count(&BlockId::Number(1));
+        let num_no_transactions = starknet.get_block_txs_count(&CustomBlockId::Number(1));
 
         assert_eq!(num_no_transactions.unwrap(), 0);
 
@@ -1952,7 +1963,7 @@ mod tests {
 
         starknet.generate_new_block_and_state().unwrap();
 
-        let num_one_transaction = starknet.get_block_txs_count(&BlockId::Number(2));
+        let num_one_transaction = starknet.get_block_txs_count(&CustomBlockId::Number(2));
 
         assert_eq!(num_one_transaction.unwrap(), 1);
     }
@@ -2070,7 +2081,7 @@ mod tests {
         .unwrap();
 
         let dummy_hash = felt_from_prefixed_hex("0x42").unwrap();
-        match starknet.abort_blocks(BlockId::Hash(dummy_hash)) {
+        match starknet.abort_blocks(CustomBlockId::Hash(dummy_hash)) {
             Err(Error::UnsupportedAction { msg }) => {
                 assert!(msg.contains("state-archive-capacity"))
             }
@@ -2087,7 +2098,7 @@ mod tests {
         .unwrap();
 
         let dummy_hash = felt_from_prefixed_hex("0x42").unwrap();
-        match starknet.abort_blocks(BlockId::Hash(dummy_hash)) {
+        match starknet.abort_blocks(CustomBlockId::Hash(dummy_hash)) {
             Err(Error::NoBlock) => (),
             unexpected => panic!("Got unexpected response: {unexpected:?}"),
         }
@@ -2117,7 +2128,7 @@ mod tests {
 
         // receipt should have block params after accepting the tx by triggering block creation
         starknet.generate_new_block_and_state().unwrap();
-        let latest_block = starknet.get_block(&BlockId::Tag(BlockTag::Latest)).unwrap();
+        let latest_block = starknet.get_block(&CustomBlockId::Tag(CustomBlockTag::Latest)).unwrap();
 
         let receipt = starknet.get_transaction_receipt_by_hash(&tx_hash).unwrap();
         match receipt {
