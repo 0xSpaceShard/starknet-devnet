@@ -26,7 +26,7 @@ pub(crate) struct StarknetBlocks {
     pub(crate) hash_to_state: HashMap<BlockHash, StarknetState>,
     pub(crate) aborted_blocks: Vec<Felt>,
     pub(crate) starting_block_number: u64,
-    last_accepted_on_l1: Option<BlockHash>,
+    pub(crate) last_accepted_on_l1: Option<BlockHash>,
 }
 
 impl HashIdentified for StarknetBlocks {
