@@ -81,9 +81,13 @@ The newly created block will contain all pre-confirmed transactions, if any, sin
 
 To affect the timestamp of the newly created block, check out [this page](./starknet-time#set-time)
 
-## Block abortion
+This functionality allows simulating block abortion that can occur on mainnet as a consequence of e.g. block reorganization. Aborted blocks and their transactions are removed from Devnet's memory.
 
-This functionality allows simulating block abortion that can occur on mainnet. It is only supported if Devnet is started in the `--state-archive-capacity full` mode.
+:::note
+
+Block abortion is only supported if Devnet is started in the `--state-archive-capacity full` mode.
+
+:::
 
 You can abort blocks and revert transactions from the specified block to the currently latest block. Newly created blocks after the abortion will have accepted status and will continue with numbering where the last accepted block left off.
 
