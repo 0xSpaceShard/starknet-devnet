@@ -17,7 +17,7 @@ use starknet_rs_providers::{Provider, ProviderError};
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     self, CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS,
-    UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
+    UDC_LEGACY_CONTRACT_ADDRESS, UDC_LEGACY_CONTRACT_CLASS_HASH,
 };
 use crate::common::utils::{
     FeeUnit, assert_cairo1_classes_equal, extract_message_error, extract_nested_error,
@@ -145,7 +145,7 @@ async fn fee_estimation_and_simulation_of_deployment_at_old_block_should_not_yie
     let udc_selector = get_selector_from_name("deployContract").unwrap();
     let salt = Felt::from(0x123);
     let calls = vec![Call {
-        to: UDC_CONTRACT_ADDRESS,
+        to: UDC_LEGACY_CONTRACT_ADDRESS,
         selector: udc_selector,
         calldata: vec![class_hash, salt, Felt::ZERO, Felt::ZERO],
     }];
@@ -226,9 +226,9 @@ async fn fee_estimation_and_simulation_of_deployment_at_old_block_should_not_yie
             assert_eq!(account_error.class_hash, account_class_hash);
 
             let udc_error = extract_nested_error(&account_error.error);
-            assert_eq!(udc_error.contract_address, UDC_CONTRACT_ADDRESS);
+            assert_eq!(udc_error.contract_address, UDC_LEGACY_CONTRACT_ADDRESS);
             assert_eq!(udc_error.selector, udc_selector);
-            assert_eq!(udc_error.class_hash, UDC_CONTRACT_CLASS_HASH);
+            assert_eq!(udc_error.class_hash, UDC_LEGACY_CONTRACT_CLASS_HASH);
 
             let error_at_to_be_deployed_address = extract_nested_error(&udc_error.error);
             assert_eq!(error_at_to_be_deployed_address.class_hash, class_hash);

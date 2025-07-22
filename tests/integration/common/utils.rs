@@ -32,7 +32,7 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use super::background_devnet::BackgroundDevnet;
 use super::constants::{
-    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH, UDC_CONTRACT_ADDRESS,
+    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH, UDC_LEGACY_CONTRACT_ADDRESS,
 };
 use super::safe_child::SafeChild;
 
@@ -279,7 +279,7 @@ pub async fn deploy_v3(
         class_hash,
         &starknet_rs_core::utils::UdcUniqueness::Unique(UdcUniqueSettings {
             deployer_address: account.address(),
-            udc_contract_address: UDC_CONTRACT_ADDRESS,
+            udc_contract_address: UDC_LEGACY_CONTRACT_ADDRESS,
         }),
         ctor_args,
     );

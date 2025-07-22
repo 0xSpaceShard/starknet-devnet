@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use serde_json::json;
-use starknet_core::constants::{STRK_ERC20_CONTRACT_ADDRESS, UDC_LEGACY_CONTRACT_ADDRESS};
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, InvokeTransactionResult};
 use starknet_rs_core::utils::get_selector_from_name;
@@ -12,7 +11,7 @@ use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 
 use crate::common::background_devnet::BackgroundDevnet;
-use crate::common::constants;
+use crate::common::constants::{self, STRK_ERC20_CONTRACT_ADDRESS, UDC_LEGACY_CONTRACT_ADDRESS};
 use crate::common::utils::{
     SubscriptionId, assert_no_notifications, declare_deploy_events_contract, receive_notification,
     receive_rpc_via_ws, subscribe, unsubscribe,

@@ -25,7 +25,7 @@ use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH,
     CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH, CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID,
-    ETH_ERC20_CONTRACT_ADDRESS, QUERY_VERSION_OFFSET, UDC_CONTRACT_ADDRESS,
+    ETH_ERC20_CONTRACT_ADDRESS, QUERY_VERSION_OFFSET, UDC_LEGACY_CONTRACT_ADDRESS,
 };
 use crate::common::fees::{assert_difference_if_validation, assert_fee_in_resp_at_least_equal};
 use crate::common::utils::{
@@ -519,7 +519,7 @@ async fn simulate_of_multiple_txs_shouldnt_return_an_error_if_invoke_transaction
 
     // call non existent method in UDC
     let calls = vec![Call {
-        to: UDC_CONTRACT_ADDRESS,
+        to: UDC_LEGACY_CONTRACT_ADDRESS,
         selector: get_selector_from_name("no_such_method").unwrap(),
         calldata: vec![
             class_hash,
@@ -610,7 +610,7 @@ async fn simulate_of_multiple_txs_should_return_index_of_first_failing_transacti
 
     // call non existent method in UDC
     let calls = vec![Call {
-        to: UDC_CONTRACT_ADDRESS,
+        to: UDC_LEGACY_CONTRACT_ADDRESS,
         selector: get_selector_from_name("no_such_method").unwrap(),
         calldata: vec![
             class_hash,
@@ -830,7 +830,7 @@ async fn simulate_v3_with_skip_fee_charge_deploy_account_declare_deploy_via_invo
 
     // call non existent method in UDC
     let calls = vec![Call {
-        to: UDC_CONTRACT_ADDRESS,
+        to: UDC_LEGACY_CONTRACT_ADDRESS,
         selector: get_selector_from_name("deployContract").unwrap(),
         calldata: vec![
             contract_class_hash,
@@ -909,7 +909,7 @@ async fn simulate_invoke_v3_with_fee_just_below_estimated_should_return_a_trace_
 
     let salt = Felt::from_hex_unchecked("0x123");
     let execution = account.execute_v3(vec![Call {
-        to: UDC_CONTRACT_ADDRESS,
+        to: UDC_LEGACY_CONTRACT_ADDRESS,
         selector: get_selector_from_name("deployContract").unwrap(),
         calldata: vec![
             declare_result.class_hash,

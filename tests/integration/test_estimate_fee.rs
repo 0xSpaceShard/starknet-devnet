@@ -22,7 +22,7 @@ use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_CONTRACT_PATH, CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH,
     CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS,
-    QUERY_VERSION_OFFSET, UDC_CONTRACT_ADDRESS,
+    QUERY_VERSION_OFFSET, UDC_LEGACY_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
     LocalFee, assert_contains, assert_tx_reverted, assert_tx_succeeded_accepted,
@@ -551,7 +551,7 @@ async fn estimate_fee_of_multiple_txs() {
                 broadcasted_invoke_v3_for_estimation(
                     &account,
                     &signer,
-                    UDC_CONTRACT_ADDRESS,
+                    UDC_LEGACY_CONTRACT_ADDRESS,
                     get_selector_from_name("deployContract").unwrap(),
                     &[
                         class_hash,
@@ -666,7 +666,7 @@ async fn estimate_fee_of_multiple_failing_txs_should_return_index_of_the_first_f
 
     // call non existent method in UDC
     let calls = vec![Call {
-        to: UDC_CONTRACT_ADDRESS,
+        to: UDC_LEGACY_CONTRACT_ADDRESS,
         selector: get_selector_from_name("no_such_method").unwrap(),
         calldata: vec![
             class_hash,
