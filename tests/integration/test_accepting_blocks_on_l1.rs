@@ -151,6 +151,16 @@ async fn should_convert_accepted_on_l2_with_hash_id() {
 }
 
 #[tokio::test]
+async fn block_tag_l1_accepted_should_return_last_accepted_on_l1() {
+    unimplemented!()
+}
+
+#[tokio::test]
+async fn block_tag_l1_accepted_should_error_if_no_blocks_accepted_on_l1() {
+    unimplemented!()
+}
+
+#[tokio::test]
 async fn should_fail_if_accepting_already_accepted_on_l1() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
 
