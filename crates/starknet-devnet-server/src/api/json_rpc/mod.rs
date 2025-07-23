@@ -1058,11 +1058,7 @@ mod requests_tests {
 
     use super::JsonRpcRequest;
     use crate::rpc_core::request::RpcMethodCall;
-    use crate::test_utils::assert_contains;
-
-    const EXPECTED_INVALID_BLOCK_ID_MSG: &str = "Invalid block ID. Expected object with key \
-                                                 (block_hash or block_number) or tag \
-                                                 ('pre_confirmed' or 'latest').";
+    use crate::test_utils::{EXPECTED_INVALID_BLOCK_ID_MSG, assert_contains};
 
     #[test]
     fn deserialize_get_block_with_transaction_hashes_request() {

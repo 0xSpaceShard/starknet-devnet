@@ -271,11 +271,7 @@ mod tests {
     };
 
     use super::{BlockIdInput, EstimateFeeInput, GetStorageInput};
-    use crate::test_utils::assert_contains;
-
-    const EXPECTED_INVALID_BLOCK_ID_MSG: &str = "Invalid block ID. Expected object with key \
-                                                 (block_hash or block_number) or tag \
-                                                 ('pre_confirmed' or 'latest').";
+    use crate::test_utils::{EXPECTED_INVALID_BLOCK_ID_MSG, assert_contains};
 
     #[test]
     fn errored_deserialization_of_estimate_fee_with_broadcasted_declare_transaction() {
