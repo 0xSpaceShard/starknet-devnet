@@ -6,10 +6,11 @@ use blockifier::transaction::errors::{
     TransactionExecutionError, TransactionFeeError, TransactionPreValidationError,
 };
 use starknet_api::core::Nonce;
-use starknet_rs_core::types::{BlockId, Felt};
+use starknet_rs_core::types::Felt;
 use starknet_types;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_storage_key::ContractStorageKey;
+use starknet_types::rpc::block::BlockId;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

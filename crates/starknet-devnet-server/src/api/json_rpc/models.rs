@@ -261,21 +261,17 @@ pub struct EventsSubscriptionInput {
 
 #[cfg(test)]
 mod tests {
-    use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag, Felt};
+    use starknet_rs_core::types::Felt;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::patricia_key::PatriciaKey;
-    use starknet_types::rpc::block::BlockId;
+    use starknet_types::rpc::block::{BlockId, BlockTag};
     use starknet_types::rpc::transactions::{
         BroadcastedDeclareTransaction, BroadcastedTransaction,
     };
 
     use super::{BlockIdInput, EstimateFeeInput, GetStorageInput};
-    use crate::test_utils::assert_contains;
-
-    const EXPECTED_INVALID_BLOCK_ID_MSG: &str = "Invalid block ID. Expected object with key \
-                                                 (block_hash or block_number) or tag \
-                                                 ('pre_confirmed' or 'latest').";
+    use crate::test_utils::{EXPECTED_INVALID_BLOCK_ID_MSG, assert_contains};
 
     #[test]
     fn errored_deserialization_of_estimate_fee_with_broadcasted_declare_transaction() {
@@ -491,7 +487,7 @@ mod tests {
         }"#;
 
         let estimate_fee_input = serde_json::from_str::<super::EstimateFeeInput>(json_str).unwrap();
-        assert_eq!(estimate_fee_input.block_id.as_ref(), &ImportedBlockId::Number(1));
+        assert_eq!(estimate_fee_input.block_id, BlockId::Number(1));
         assert_eq!(estimate_fee_input.request.len(), 3);
         assert!(matches!(
             estimate_fee_input.request[0],
@@ -514,7 +510,7 @@ mod tests {
                     entry_point_selector: Felt::TWO,
                     calldata: vec![Felt::THREE],
                 },
-                block_id: BlockId::from(ImportedBlockId::Number(1)),
+                block_id: BlockId::Number(1),
             }
         );
     }
@@ -537,7 +533,7 @@ mod tests {
         }
 
         let expected_storage_input = GetStorageInput {
-            block_id: BlockId::from(ImportedBlockId::Hash(Felt::ONE)),
+            block_id: BlockId::Hash(Felt::ONE),
             contract_address: ContractAddress::new(Felt::TWO).unwrap(),
             key: PatriciaKey::new(Felt::THREE).unwrap(),
         };
@@ -695,7 +691,7 @@ mod tests {
     ) {
         let is_correct =
             serde_json::from_str::<BlockIdInput>(json_str_block_id)
-                .map(|BlockIdInput { block_id }| matches!(block_id.as_ref(), ImportedBlockId::Tag(generated_tag) if *generated_tag == expected_tag))
+                .map(|BlockIdInput { block_id }| matches!(block_id, BlockId::Tag(generated_tag) if generated_tag == expected_tag))
                 .unwrap_or(false);
 
         assert_eq!(should_be_correct, is_correct);
@@ -710,8 +706,8 @@ mod tests {
             serde_json::from_str::<BlockIdInput>(json_str_block_id)
                 .map(
                     |BlockIdInput { block_id }|
-                    matches!(block_id.as_ref(),
-                    ImportedBlockId::Number(generated_block_number) if *generated_block_number == expected_block_number)
+                    matches!(block_id,
+                    BlockId::Number(generated_block_number) if generated_block_number == expected_block_number)
             ).unwrap_or(false);
 
         assert_eq!(should_be_correct, is_correct);
@@ -724,7 +720,7 @@ mod tests {
     ) {
         let is_correct =
             serde_json::from_str::<BlockIdInput>(json_str_block_id)
-                .map(|BlockIdInput { block_id }| matches!(block_id.as_ref(), ImportedBlockId::Hash(generated_block_hash) if *generated_block_hash == felt_from_prefixed_hex(expected_block_hash).unwrap()))
+                .map(|BlockIdInput { block_id }| matches!(block_id, BlockId::Hash(generated_block_hash) if generated_block_hash == felt_from_prefixed_hex(expected_block_hash).unwrap()))
         .unwrap_or(false);
 
         assert_eq!(should_be_correct, is_correct)

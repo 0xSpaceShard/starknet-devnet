@@ -182,11 +182,12 @@ mod tests {
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
     use starknet_api::core::ClassHash;
-    use starknet_rs_core::types::{BlockId, BlockTag, Felt};
+    use starknet_rs_core::types::Felt;
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::compile_sierra_contract;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
+    use starknet_types::rpc::block::{BlockId, BlockTag};
     use starknet_types::rpc::state::{Balance, ReplacedClasses};
     use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
     use starknet_types::traits::HashProducer;

@@ -19,3 +19,7 @@ pub fn assert_contains(text: &str, pattern: &str) {
         );
     }
 }
+
+pub const EXPECTED_INVALID_BLOCK_ID_MSG: &str = "Invalid block ID. Expected object with key \
+                                                 (block_hash or block_number) or tag \
+                                                 ('pre_confirmed' or 'latest' or 'l1_accepted').";

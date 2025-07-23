@@ -153,14 +153,13 @@ impl JsonRpcHandler {
 
     /// devnet_abortBlocks
     pub async fn abort_blocks(&self, data: AbortingBlocks) -> StrictRpcResult {
-        let aborted = self.api.starknet.lock().await.abort_blocks(data.starting_block_id.into())?;
+        let aborted = self.api.starknet.lock().await.abort_blocks(data.starting_block_id)?;
         Ok(DevnetResponse::AbortedBlocks(AbortedBlocks { aborted }).into())
     }
 
     /// devnet_acceptOnL1
     pub async fn accept_on_l1(&self, data: AcceptOnL1Request) -> StrictRpcResult {
-        let accepted =
-            self.api.starknet.lock().await.accept_on_l1(data.starting_block_id.into())?;
+        let accepted = self.api.starknet.lock().await.accept_on_l1(data.starting_block_id)?;
         Ok(DevnetResponse::AcceptedOnL1Blocks(AcceptedOnL1Blocks { accepted }).into())
     }
 

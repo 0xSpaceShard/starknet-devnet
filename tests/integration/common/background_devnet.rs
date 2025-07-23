@@ -293,7 +293,7 @@ impl BackgroundDevnet {
                 json!({
                     "address": address,
                     "unit": unit,
-                    "block_tag": Self::tag_to_str(tag)
+                    "block_id": Self::tag_to_str(tag),
                 }),
             )
             .await

@@ -151,6 +151,31 @@ async fn should_convert_accepted_on_l2_with_hash_id() {
 }
 
 #[tokio::test]
+#[ignore = "Un-ignore after updating starknet-rs"]
+async fn block_tag_l1_accepted_should_return_last_accepted_on_l1() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+    let origin_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+
+    let created_block_hash = devnet.create_block().await.unwrap();
+
+    let accepted = accept_on_l1(&devnet, &BlockId::Hash(created_block_hash)).await.unwrap();
+    assert_eq!(accepted, vec![created_block_hash, origin_block.block_hash]);
+}
+
+#[tokio::test]
+#[ignore = "Un-ignore after updating starknet-rs"]
+async fn txs_of_block_accepted_on_l1_should_have_same_status() {
+    unimplemented!();
+}
+
+#[tokio::test]
+#[ignore = "Un-ignore after updating starknet-rs"]
+async fn block_tag_l1_accepted_should_error_if_no_blocks_accepted_on_l1() {
+    unimplemented!()
+}
+
+#[tokio::test]
 async fn should_fail_if_accepting_already_accepted_on_l1() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
 

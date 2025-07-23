@@ -1,7 +1,7 @@
-use starknet_rs_core::types::{BlockId, Felt};
+use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{EmittedEvent, Event};
-use starknet_types::rpc::block::BlockStatus;
+use starknet_types::rpc::block::{BlockId, BlockStatus};
 
 use super::Starknet;
 use crate::error::{DevnetResult, Error};
@@ -131,9 +131,10 @@ where
 #[cfg(test)]
 mod tests {
     use blockifier::execution::call_info::CallInfo;
-    use starknet_rs_core::types::{BlockId, BlockTag, Felt};
+    use starknet_rs_core::types::Felt;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::emitted_event::Event;
+    use starknet_types::rpc::block::{BlockId, BlockTag};
     use starknet_types::rpc::transactions::TransactionWithHash;
 
     use super::{check_if_filter_applies_for_event, get_events};
@@ -289,8 +290,8 @@ mod tests {
         // no pagination to the latest block events
         let (events, has_more) = get_events(
             &starknet,
-            Some(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)),
-            Some(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)),
+            Some(BlockId::Tag(BlockTag::Latest)),
+            Some(BlockId::Tag(BlockTag::Latest)),
             None,
             None,
             0,
@@ -304,8 +305,8 @@ mod tests {
         // limit the result to only events, should be left 2 more
         let (events, has_more) = get_events(
             &starknet,
-            Some(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)),
-            Some(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)),
+            Some(BlockId::Tag(BlockTag::Latest)),
+            Some(BlockId::Tag(BlockTag::Latest)),
             None,
             None,
             0,
@@ -320,8 +321,8 @@ mod tests {
         // of events for the latest block is 5
         let (events, has_more) = get_events(
             &starknet,
-            Some(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)),
-            Some(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)),
+            Some(BlockId::Tag(BlockTag::Latest)),
+            Some(BlockId::Tag(BlockTag::Latest)),
             None,
             None,
             3,

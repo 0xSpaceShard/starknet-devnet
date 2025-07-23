@@ -1,11 +1,10 @@
 use blockifier::state::state_api::StateReader;
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
-use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::compile_sierra_contract;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
-use starknet_types::rpc::block::BlockStatus;
+use starknet_types::rpc::block::{BlockId, BlockStatus, BlockTag};
 
 use crate::error::{DevnetResult, Error, StateError};
 use crate::starknet::Starknet;
@@ -76,8 +75,9 @@ pub fn get_compiled_casm_impl(
 
 #[cfg(test)]
 mod tests {
-    use starknet_rs_core::types::{BlockId, Felt};
+    use starknet_rs_core::types::Felt;
     use starknet_types::contract_class::ContractClass;
+    use starknet_types::rpc::block::BlockId;
     use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
 
     use crate::error::Error;

@@ -26,9 +26,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_core::{CasmContractClass, StarknetBlock};
-use starknet_rs_core::types::{BlockId, BlockTag, ContractClass as CodegenContractClass, Felt};
+use starknet_rs_core::types::{ContractClass as CodegenContractClass, Felt};
 use starknet_types::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::block::{Block, PreConfirmedBlock, ReorgData};
+use starknet_types::rpc::block::{Block, BlockId, BlockTag, PreConfirmedBlock, ReorgData};
 use starknet_types::rpc::estimate_message_fee::{EstimateMessageFeeRequest, FeeEstimateWrapper};
 use starknet_types::rpc::gas_modification::{GasModification, GasModificationRequest};
 use starknet_types::rpc::state::{PreConfirmedStateUpdate, StateUpdate};
@@ -1058,11 +1058,7 @@ mod requests_tests {
 
     use super::JsonRpcRequest;
     use crate::rpc_core::request::RpcMethodCall;
-    use crate::test_utils::assert_contains;
-
-    const EXPECTED_INVALID_BLOCK_ID_MSG: &str = "Invalid block ID. Expected object with key \
-                                                 (block_hash or block_number) or tag \
-                                                 ('pre_confirmed' or 'latest').";
+    use crate::test_utils::{EXPECTED_INVALID_BLOCK_ID_MSG, assert_contains};
 
     #[test]
     fn deserialize_get_block_with_transaction_hashes_request() {

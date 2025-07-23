@@ -33,7 +33,8 @@
 use std::collections::HashMap;
 
 use ethers::types::H256;
-use starknet_rs_core::types::{BlockId, ExecutionResult, Felt, Hash256};
+use starknet_rs_core::types::{ExecutionResult, Felt, Hash256};
+use starknet_types::rpc::block::BlockId;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 
 use crate::StarknetBlock;
