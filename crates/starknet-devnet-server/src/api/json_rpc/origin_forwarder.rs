@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use starknet_rs_core::types::{BlockId, Felt, MaybePreConfirmedBlockWithTxHashes};
+use starknet_rs_core::types::{BlockId as ImportedBlockId, MaybePreConfirmedBlockWithTxHashes};
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
+use starknet_types::rpc::block::BlockId;
 
 use super::error::ApiError;
 use crate::rpc_core::error::RpcError;
@@ -92,11 +93,11 @@ impl OriginForwarder {
         }
     }
 
-    pub(crate) async fn get_block_number_from_hash(
+    pub(crate) async fn get_block_number_from_block_id(
         &self,
-        block_hash: Felt,
+        block_id: BlockId,
     ) -> Result<u64, ApiError> {
-        match self.starknet_client.get_block_with_tx_hashes(BlockId::Hash(block_hash)).await {
+        match self.starknet_client.get_block_with_tx_hashes(ImportedBlockId::from(block_id)).await {
             Ok(MaybePreConfirmedBlockWithTxHashes::Block(block)) => Ok(block.block_number),
             Ok(MaybePreConfirmedBlockWithTxHashes::PreConfirmedBlock(_)) => {
                 Err(ApiError::StarknetDevnetError(

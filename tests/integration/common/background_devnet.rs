@@ -308,6 +308,7 @@ impl BackgroundDevnet {
         match tag {
             BlockTag::Latest => "latest",
             BlockTag::PreConfirmed => "pre_confirmed",
+            BlockTag::L1Accepted => "l1_accepted",
         }
     }
 
@@ -391,6 +392,20 @@ impl BackgroundDevnet {
         match self.json_rpc_client.get_block_with_txs(BlockId::Tag(BlockTag::PreConfirmed)).await {
             Ok(MaybePreConfirmedBlockWithTxs::PreConfirmedBlock(b)) => Ok(b),
             other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
+        }
+    }
+
+    pub async fn get_l1_accepted_block_with_tx_hashes(
+        &self,
+    ) -> Result<BlockWithTxHashes, anyhow::Error> {
+        match self
+            .json_rpc_client
+            .get_block_with_tx_hashes(BlockId::Tag(BlockTag::L1Accepted))
+            .await
+        {
+            Ok(MaybePreConfirmedBlockWithTxHashes::Block(b)) => Ok(b),
+            Err(e) => Err(anyhow::Error::new(e)),
+            Ok(other) => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
         }
     }
 

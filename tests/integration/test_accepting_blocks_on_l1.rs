@@ -1,9 +1,9 @@
 use serde_json::json;
 use starknet_rs_core::types::{
     BlockId, BlockStatus, BlockTag, Felt, MaybePreConfirmedBlockWithTxHashes,
-    SequencerTransactionStatus,
+    SequencerTransactionStatus, StarknetError,
 };
-use starknet_rs_providers::Provider;
+use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::errors::RpcError;
@@ -151,7 +151,6 @@ async fn should_convert_accepted_on_l2_with_hash_id() {
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore after updating starknet-rs"]
 async fn block_tag_l1_accepted_should_return_last_accepted_on_l1() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
 
@@ -161,18 +160,40 @@ async fn block_tag_l1_accepted_should_return_last_accepted_on_l1() {
 
     let accepted = accept_on_l1(&devnet, &BlockId::Hash(created_block_hash)).await.unwrap();
     assert_eq!(accepted, vec![created_block_hash, origin_block.block_hash]);
+
+    let l1_accepted_block = devnet.get_l1_accepted_block_with_tx_hashes().await.unwrap();
+    assert_eq!(l1_accepted_block.block_hash, created_block_hash);
+
+    // Creating a new block should not affect the response
+    let latest_block_hash = devnet.create_block().await.unwrap();
+    let l1_accepted_block = devnet.get_l1_accepted_block_with_tx_hashes().await.unwrap();
+    assert_eq!(l1_accepted_block.block_hash, created_block_hash);
+    assert_ne!(l1_accepted_block.block_hash, latest_block_hash);
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore after updating starknet-rs"]
-async fn txs_of_block_accepted_on_l1_should_have_same_status() {
-    unimplemented!();
+async fn origin_block_should_be_acceptable_on_l1() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+    let mut origin_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+
+    let accepted = accept_on_l1(&devnet, &BlockId::Hash(origin_block.block_hash)).await.unwrap();
+    assert_eq!(accepted, vec![origin_block.block_hash]);
+
+    let l1_accepted_block = devnet.get_l1_accepted_block_with_tx_hashes().await.unwrap();
+
+    origin_block.status = BlockStatus::AcceptedOnL1;
+    assert_eq!(origin_block, l1_accepted_block);
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore after updating starknet-rs"]
 async fn block_tag_l1_accepted_should_error_if_no_blocks_accepted_on_l1() {
-    unimplemented!()
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+    let err = devnet.get_l1_accepted_block_with_tx_hashes().await.unwrap_err();
+    match err.downcast::<ProviderError>().unwrap() {
+        ProviderError::StarknetError(StarknetError::BlockNotFound) => (),
+        other => panic!("Unexpected error: {other:?}"),
+    }
 }
 
 #[tokio::test]
