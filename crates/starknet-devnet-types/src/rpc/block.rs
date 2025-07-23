@@ -8,8 +8,7 @@ use crate::felt::BlockHash;
 use crate::rpc::transactions::Transactions;
 pub type BlockRoot = Felt;
 
-#[derive(Clone, Debug, Copy)]
-#[cfg_attr(feature = "testing", derive(PartialEq, Eq))]
+#[derive(Clone, Debug, Copy, PartialEq, Eq)]
 pub enum BlockId {
     /// Block hash.
     Hash(Felt),
@@ -154,11 +153,12 @@ impl<'de> Deserialize<'de> for SubscriptionBlockId {
             BlockId::Hash(felt) => Self::Hash(felt),
             BlockId::Number(n) => Self::Number(n),
             BlockId::Tag(BlockTag::Latest) => Self::Latest,
-            BlockId::Tag(BlockTag::PreConfirmed | BlockTag::L1Accepted) => {
+            BlockId::Tag(BlockTag::PreConfirmed) => {
                 return Err(serde::de::Error::custom(
                     "Subscription block cannot be 'pre_confirmed' or 'l1_accepted'",
                 ));
             }
+            BlockId::Tag(BlockTag::L1Accepted) => Self::L1Accepted,
         })
     }
 }
@@ -189,10 +189,43 @@ pub enum BlockTag {
 }
 
 #[cfg(test)]
+mod test_block_id {
+    use serde_json::json;
+    use starknet_rs_core::types::Felt;
+
+    use super::BlockTag;
+    use crate::rpc::block::BlockId;
+
+    #[test]
+    fn custom_block_id_deserialization() {
+        for (raw, expected) in [
+            (r#"{"block_hash": "0x1"}"#, BlockId::Hash(Felt::ONE)),
+            (r#"{"block_number": 123}"#, BlockId::Number(123)),
+            (r#""latest""#, BlockId::Tag(BlockTag::Latest)),
+            (r#""pre_confirmed""#, BlockId::Tag(BlockTag::PreConfirmed)),
+            (r#""l1_accepted""#, BlockId::Tag(BlockTag::L1Accepted)),
+        ] {
+            assert_eq!(serde_json::from_str::<BlockId>(raw).unwrap(), expected);
+        }
+    }
+
+    #[test]
+    fn custom_block_tag_deserialization() {
+        for (raw, expected) in [
+            ("latest", BlockTag::Latest),
+            ("pre_confirmed", BlockTag::PreConfirmed),
+            ("l1_accepted", BlockTag::L1Accepted),
+        ] {
+            assert_eq!(serde_json::from_value::<BlockTag>(json!(raw)).unwrap(), expected);
+        }
+    }
+}
+
+#[cfg(test)]
 mod test_subscription_block_id {
     use serde_json::json;
 
-    use super::{BlockTag, SubscriptionBlockId};
+    use super::SubscriptionBlockId;
 
     #[test]
     fn accept_latest() {
@@ -203,6 +236,11 @@ mod test_subscription_block_id {
     fn reject_pending_and_pre_confirmed() {
         serde_json::from_value::<SubscriptionBlockId>(json!("pending")).unwrap_err();
         serde_json::from_value::<SubscriptionBlockId>(json!("pre_confirmed")).unwrap_err();
+    }
+
+    #[test]
+    fn accept_l1_accepted() {
+        serde_json::from_value::<SubscriptionBlockId>(json!("l1_accepted")).unwrap();
     }
 
     #[test]
@@ -234,18 +272,5 @@ mod test_subscription_block_id {
     #[test]
     fn reject_unwrapped_number_as_block_number() {
         serde_json::from_value::<SubscriptionBlockId>(json!(123)).unwrap_err();
-    }
-
-    #[test]
-    fn custom_block_tag_deserialization() {
-        match serde_json::from_value::<BlockTag>(json!("latest")) {
-            Ok(BlockTag::Latest) => (),
-            other => panic!("Unexpected result: {other:?}"),
-        }
-
-        match serde_json::from_value::<BlockTag>(json!("pre_confirmed")) {
-            Ok(BlockTag::PreConfirmed) => (),
-            other => panic!("Unexpected result: {other:?}"),
-        }
     }
 }
