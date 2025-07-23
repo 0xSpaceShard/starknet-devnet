@@ -450,8 +450,10 @@ impl JsonRpcHandler {
                 }
             }
             Some(BlockId::Number(to_block_number)) => to_block_number,
-            // TODO probably shouldn't immediately try origin
-            Some(BlockId::Hash(hash)) => origin_caller.get_block_number_from_hash(hash).await?,
+            Some(block_id @ BlockId::Hash(hash)) => match starknet.get_block(&block_id) {
+                Ok(block) => block.block_number().0,
+                Err(_) => origin_caller.get_block_number_from_hash(hash).await?,
+            },
         };
 
         Ok(if to_block_number <= fork_block_number {

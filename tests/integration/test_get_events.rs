@@ -281,11 +281,9 @@ async fn get_events_from_forked_devnet_when_first_queried_block_on_origin_and_la
         fork_devnet.get_latest_block_with_tx_hashes().await.unwrap().block_number
     );
 
-    let dummy_address = Felt::ONE;
-    let mint_amount = 10;
     let n_mints = 3;
     for _ in 0..n_mints {
-        fork_devnet.mint(dummy_address, mint_amount).await;
+        fork_devnet.mint(Felt::ONE, 10).await; // dummy data
     }
 
     let chunk_size = 100; // to force pagination
@@ -306,4 +304,41 @@ async fn get_events_from_forked_devnet_when_first_queried_block_on_origin_and_la
     // to the target address.
     let fork_events = n_mints * 2;
     assert_eq!(events.len(), EVENTS_IN_FORK_BLOCK + fork_events);
+}
+
+#[tokio::test]
+#[ignore = "Un-ignore after updating starknet-rs"]
+async fn get_events_since_accepted_on_l1() {
+    unimplemented!();
+}
+
+#[tokio::test]
+/// This is to prevent a bug which appeared specifically if block_id is block hash
+async fn get_events_from_forked_devnet_by_block_hash_with_all_events_present_locally() {
+    let fork_devnet = fork_mainnet_at(FORK_BLOCK).await.unwrap();
+
+    let first_block_after_fork = fork_devnet.get_latest_block_with_tx_hashes().await.unwrap();
+
+    let n_mints = 3;
+    for _ in 0..n_mints {
+        fork_devnet.mint(Felt::ONE, 10).await; // dummy data
+    }
+
+    let latest_block = fork_devnet.get_latest_block_with_tx_hashes().await.unwrap();
+
+    let chunk_size = 100; // to force pagination
+    let events = get_events_follow_continuation_token(
+        &fork_devnet,
+        EventFilter {
+            from_block: Some(BlockId::Hash(first_block_after_fork.block_hash)),
+            to_block: Some(BlockId::Hash(latest_block.block_hash)),
+            address: Some(STRK_ERC20_CONTRACT_ADDRESS),
+            keys: Some(vec![vec![get_selector_from_name("Transfer").unwrap()]]),
+        },
+        chunk_size,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(events.len(), n_mints * 2);
 }
