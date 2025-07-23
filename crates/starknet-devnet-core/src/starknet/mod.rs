@@ -1023,12 +1023,13 @@ impl Starknet {
     }
 
     pub fn accept_on_l1(&mut self, block_id: CustomBlockId) -> DevnetResult<Vec<BlockHash>> {
-        let block = self.get_block(&block_id)?.clone();
+        let block_status = self.get_block(&block_id)?.status;
+        let block_hash = self.get_block(&block_id)?.block_hash();
         // Only the starting block is validated; all ancestors are guaranteed to be ACCEPTED_ON_L2
-        self.validate_acceptability_on_l1(block.status)?;
+        self.validate_acceptability_on_l1(block_status)?;
 
         let mut acceptable_block =
-            self.blocks.hash_to_block.get_mut(&block.block_hash()).ok_or(Error::NoBlock)?;
+            self.blocks.hash_to_block.get_mut(&block_hash).ok_or(Error::NoBlock)?;
         let mut accepted = vec![];
         while acceptable_block.status != BlockStatus::AcceptedOnL1 {
             // Accept block on L1
@@ -1049,7 +1050,7 @@ impl Starknet {
             }
         }
 
-        self.blocks.last_accepted_on_l1 = Some(block.block_hash());
+        self.blocks.last_accepted_on_l1 = Some(block_hash);
         Ok(accepted)
     }
 
