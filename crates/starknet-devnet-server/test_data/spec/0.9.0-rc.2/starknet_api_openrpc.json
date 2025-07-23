@@ -1073,8 +1073,8 @@
       "BLOCK_TAG": {
         "title": "Block tag",
         "type": "string",
-        "description": "A tag specifying a dynamic reference to a block",
-        "enum": ["latest", "pre_confirmed"]
+        "description": "A tag specifying a dynamic reference to a block. Tag `l1_accepted` refers to the latest Starknet block which was included in a state update on L1 and finalized by the consensus on L1. Tag `latest` refers to the latest Starknet block finalized by the consensus on L2. Tag `pre_confirmed` refers to the block which is currently being built by the block proposer in height `latest` + 1.",
+        "enum": ["l1_accepted", "latest", "pre_confirmed"]
       },
       "SYNC_STATUS": {
         "title": "Sync status",
@@ -1521,10 +1521,7 @@
           "l1_data_gas_price",
           "l1_da_mode",
           "starknet_version"
-        ],
-        "not": {
-          "required": ["block_hash", "new_root"]
-        }
+        ]
       },
       "BLOCK_WITH_TX_HASHES": {
         "title": "Block with transaction hashes",
@@ -2943,7 +2940,7 @@
           },
           "failure_reason": {
             "title": "failure reason",
-            "description": "the failure reason, only appears if finality_status is REJECTED or execution_status is REVERTED",
+            "description": "the failure reason, only appears if execution_status is REVERTED",
             "type": "string"
           }
         },
@@ -2985,8 +2982,7 @@
         "enum": [
           "PRE_CONFIRMED",
           "ACCEPTED_ON_L2",
-          "ACCEPTED_ON_L1",
-          "REJECTED"
+          "ACCEPTED_ON_L1"
         ],
         "description": "The status of the block"
       },

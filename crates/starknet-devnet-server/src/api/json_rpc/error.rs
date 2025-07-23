@@ -79,7 +79,7 @@ pub enum ApiError {
     InvalidSubscriptionId,
     #[error("Devnet doesn't support storage proofs")] // slightly modified spec message
     StorageProofNotSupported,
-    #[error("Contract class size it too large")]
+    #[error("Contract class size is too large")]
     ContractClassSizeIsTooLarge,
     #[error("Minting reverted")]
     MintingReverted { tx_hash: Felt, revert_reason: Option<String> },
