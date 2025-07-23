@@ -155,7 +155,7 @@ impl<'de> Deserialize<'de> for SubscriptionBlockId {
             BlockId::Tag(BlockTag::Latest) => Self::Latest,
             BlockId::Tag(BlockTag::PreConfirmed) => {
                 return Err(serde::de::Error::custom(
-                    "Subscription block cannot be 'pre_confirmed' or 'l1_accepted'",
+                    "Subscription block cannot be 'pre_confirmed'",
                 ));
             }
             BlockId::Tag(BlockTag::L1Accepted) => Self::L1Accepted,
