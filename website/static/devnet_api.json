@@ -671,11 +671,11 @@
               "$ref": "#/components/schemas/PRICE_UNIT"
             }
           },
-          "block_tag": {
-            "title": "Block tag",
+          "block_id": {
+            "title": "Block ID",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/BLOCK_TAG"
+              "$ref": "#/components/schemas/BLOCK_ID"
             }
           }
         }
