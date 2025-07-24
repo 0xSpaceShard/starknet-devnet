@@ -386,6 +386,16 @@ impl BackgroundDevnet {
         }
     }
 
+    pub async fn get_confirmed_block_with_tx_hashes(
+        &self,
+        block_id: &BlockId,
+    ) -> Result<BlockWithTxHashes, anyhow::Error> {
+        match self.json_rpc_client.get_block_with_tx_hashes(block_id).await {
+            Ok(MaybePreConfirmedBlockWithTxHashes::Block(block)) => Ok(block),
+            other => Err(anyhow::format_err!("Got unexpected block response: {other:?}")),
+        }
+    }
+
     pub async fn get_pre_confirmed_block_with_txs(
         &self,
     ) -> Result<PreConfirmedBlockWithTxs, anyhow::Error> {
@@ -431,6 +441,19 @@ impl BackgroundDevnet {
             .into_iter()
             .map(|block_hash| serde_json::from_value(block_hash).unwrap())
             .collect())
+    }
+
+    pub async fn accept_on_l1(&self, starting_block_id: &BlockId) -> Result<Vec<Felt>, RpcError> {
+        let accepted_block_hashes_raw = self
+            .send_custom_rpc(
+                "devnet_acceptOnL1",
+                json!({ "starting_block_id" : starting_block_id }),
+            )
+            .await?;
+
+        let accepted_block_hashes =
+            serde_json::from_value(accepted_block_hashes_raw["accepted"].clone()).unwrap();
+        Ok(accepted_block_hashes)
     }
 
     pub async fn get_config(&self) -> serde_json::Value {

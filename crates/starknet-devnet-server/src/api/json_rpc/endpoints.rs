@@ -407,17 +407,13 @@ impl JsonRpcHandler {
             Some(BlockId::Tag(BlockTag::Latest | BlockTag::PreConfirmed)) => {
                 return Ok((None, from_block, to_block));
             }
-            Some(block_id @ BlockId::Tag(BlockTag::L1Accepted)) => {
+            Some(block_id @ (BlockId::Tag(BlockTag::L1Accepted) | BlockId::Hash(_))) => {
                 match starknet.get_block(&block_id) {
                     Ok(block) => block.block_number().0,
                     Err(_) => origin_caller.get_block_number_from_block_id(block_id).await?,
                 }
             }
             Some(BlockId::Number(from_block_number)) => from_block_number,
-            Some(block_id @ BlockId::Hash(_)) => match starknet.get_block(&block_id) {
-                Ok(block) => block.block_number().0,
-                Err(_) => origin_caller.get_block_number_from_block_id(block_id).await?,
-            },
             None => 0, // If no from_block, all blocks before to_block should be queried
         };
 
@@ -437,24 +433,21 @@ impl JsonRpcHandler {
                     to_block,
                 ));
             }
-            Some(block_id @ BlockId::Tag(BlockTag::L1Accepted)) => {
+            Some(block_id @ (BlockId::Tag(BlockTag::L1Accepted) | BlockId::Hash(_))) => {
                 match starknet.get_block(&block_id) {
                     Ok(block) => block.block_number().0,
                     Err(_) => origin_caller.get_block_number_from_block_id(block_id).await?,
                 }
             }
             Some(BlockId::Number(to_block_number)) => to_block_number,
-            Some(block_id @ BlockId::Hash(_)) => match starknet.get_block(&block_id) {
-                Ok(block) => block.block_number().0,
-                Err(_) => origin_caller.get_block_number_from_block_id(block_id).await?,
-            },
         };
 
+        let origin_range = Some((from_block_number, to_block_number));
         Ok(if to_block_number <= fork_block_number {
-            (Some((from_block_number, to_block_number)), None, None)
+            (origin_range, None, None)
         } else {
             (
-                Some((from_block_number, fork_block_number)),
+                origin_range,
                 Some(BlockId::Number(fork_block_number + 1)),
                 Some(BlockId::Number(to_block_number)),
             )

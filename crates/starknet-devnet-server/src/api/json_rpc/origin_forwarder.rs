@@ -1,10 +1,13 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use starknet_rs_core::types::{BlockId as ImportedBlockId, MaybePreConfirmedBlockWithTxHashes};
+use starknet_rs_core::types::{
+    BlockId as ImportedBlockId, BlockTag as ImportedBlockTag, BlockWithTxHashes,
+    MaybePreConfirmedBlockWithTxHashes,
+};
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
-use starknet_types::rpc::block::BlockId;
+use starknet_types::rpc::block::{BlockId, BlockTag};
 
 use super::error::ApiError;
 use crate::rpc_core::error::RpcError;
@@ -50,16 +53,31 @@ impl OriginForwarder {
             crate::rpc_core::request::RequestParams::None => (),
             crate::rpc_core::request::RequestParams::Array(ref mut params) => {
                 for param in params.iter_mut() {
-                    if let Some("latest" | "pre_confirmed") = param.as_str() {
-                        *param = origin_block_id;
-                        break;
+                    match param.as_str() {
+                        Some("latest" | "pre_confirmed") => {
+                            *param = origin_block_id;
+                            break;
+                        }
+                        Some("l1_accepted") => {
+                            tracing::warn!("Assuming fork block is ACCEPTED_ON_L1");
+                            *param = origin_block_id;
+                            break;
+                        }
+                        _ => (),
                     }
                 }
             }
             crate::rpc_core::request::RequestParams::Object(ref mut params) => {
                 if let Some(block_id) = params.get_mut("block_id") {
-                    if let Some("latest" | "pre_confirmed") = block_id.as_str() {
-                        *block_id = origin_block_id;
+                    match block_id.as_str() {
+                        Some("latest" | "pre_confirmed") => {
+                            *block_id = origin_block_id;
+                        }
+                        Some("l1_accepted") => {
+                            tracing::warn!("Assuming fork block is ACCEPTED_ON_L1");
+                            *block_id = origin_block_id;
+                        }
+                        _ => (),
                     }
                 }
             }
@@ -93,17 +111,36 @@ impl OriginForwarder {
         }
     }
 
+    async fn get_l1_accepted_block(&self) -> Result<BlockWithTxHashes, ApiError> {
+        let tag = ImportedBlockId::Tag(ImportedBlockTag::L1Accepted);
+        match self.starknet_client.get_block_with_tx_hashes(tag).await {
+            Ok(MaybePreConfirmedBlockWithTxHashes::Block(block)) => Ok(block),
+            other => Err(ApiError::StarknetDevnetError(
+                starknet_core::error::Error::UnexpectedInternalError {
+                    msg: format!(
+                        "Failed retrieval of l1_accepted block from forking origin. Got: {other:?}"
+                    ),
+                },
+            )),
+        }
+    }
+
+    /// Only use with confirmed block ID
     pub(crate) async fn get_block_number_from_block_id(
         &self,
         block_id: BlockId,
     ) -> Result<u64, ApiError> {
+        if block_id == BlockId::Tag(BlockTag::L1Accepted) {
+            let l1_accepted_block = self.get_l1_accepted_block().await?;
+            return Ok(std::cmp::min(l1_accepted_block.block_number, self.fork_block_number()));
+        }
+
         match self.starknet_client.get_block_with_tx_hashes(ImportedBlockId::from(block_id)).await {
             Ok(MaybePreConfirmedBlockWithTxHashes::Block(block)) => Ok(block.block_number),
-            Ok(MaybePreConfirmedBlockWithTxHashes::PreConfirmedBlock(_)) => {
+            Ok(MaybePreConfirmedBlockWithTxHashes::PreConfirmedBlock(block)) => {
                 Err(ApiError::StarknetDevnetError(
                     starknet_core::error::Error::UnexpectedInternalError {
-                        msg: "Impossible: received pre-confirmed block when querying by hash"
-                            .into(),
+                        msg: format!("Impossible: expected a confirmed block; got: {block:?}"),
                     },
                 ))
             }

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use starknet_rs_accounts::{Account, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, Call, EmittedEvent, EventFilter, Felt, StarknetError,
+    BlockId, BlockStatus, BlockTag, Call, EmittedEvent, EventFilter, Felt, StarknetError,
 };
 use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::{Provider, ProviderError};
@@ -208,15 +208,15 @@ async fn fork_mainnet_at(block: u64) -> Result<BackgroundDevnet, anyhow::Error> 
     Ok(BackgroundDevnet::spawn_with_additional_args(&cli_args).await?)
 }
 
-const FORK_BLOCK: u64 = 1374700;
+const FORK_BLOCK_NUMBER: u64 = 1374700;
 const EVENTS_IN_FORK_BLOCK: usize = 330;
 
 #[tokio::test]
 async fn get_events_from_forked_devnet_when_last_queried_block_on_origin() {
-    let fork_devnet = fork_mainnet_at(FORK_BLOCK).await.unwrap();
+    let fork_devnet = fork_mainnet_at(FORK_BLOCK_NUMBER).await.unwrap();
 
     assert_eq!(
-        FORK_BLOCK + 1,
+        FORK_BLOCK_NUMBER + 1,
         fork_devnet.get_latest_block_with_tx_hashes().await.unwrap().block_number
     );
 
@@ -224,8 +224,8 @@ async fn get_events_from_forked_devnet_when_last_queried_block_on_origin() {
     let events = get_events_follow_continuation_token(
         &fork_devnet,
         EventFilter {
-            from_block: Some(BlockId::Number(FORK_BLOCK)),
-            to_block: Some(BlockId::Number(FORK_BLOCK)),
+            from_block: Some(BlockId::Number(FORK_BLOCK_NUMBER)),
+            to_block: Some(BlockId::Number(FORK_BLOCK_NUMBER)),
             address: Some(STRK_ERC20_CONTRACT_ADDRESS),
             keys: Some(vec![vec![get_selector_from_name("Transfer").unwrap()]]),
         },
@@ -239,10 +239,10 @@ async fn get_events_from_forked_devnet_when_last_queried_block_on_origin() {
 
 #[tokio::test]
 async fn get_events_from_forked_devnet_when_first_queried_block_on_devnet() {
-    let fork_devnet = fork_mainnet_at(FORK_BLOCK).await.unwrap();
+    let fork_devnet = fork_mainnet_at(FORK_BLOCK_NUMBER).await.unwrap();
 
     assert_eq!(
-        FORK_BLOCK + 1,
+        FORK_BLOCK_NUMBER + 1,
         fork_devnet.get_latest_block_with_tx_hashes().await.unwrap().block_number
     );
 
@@ -257,7 +257,7 @@ async fn get_events_from_forked_devnet_when_first_queried_block_on_devnet() {
     let events = get_events_follow_continuation_token(
         &fork_devnet,
         EventFilter {
-            from_block: Some(BlockId::Number(FORK_BLOCK + 1)),
+            from_block: Some(BlockId::Number(FORK_BLOCK_NUMBER + 1)),
             to_block: None,
             address: Some(STRK_ERC20_CONTRACT_ADDRESS),
             keys: Some(vec![vec![get_selector_from_name("Transfer").unwrap()]]),
@@ -274,10 +274,10 @@ async fn get_events_from_forked_devnet_when_first_queried_block_on_devnet() {
 
 #[tokio::test]
 async fn get_events_from_forked_devnet_when_first_queried_block_on_origin_and_last_on_devnet() {
-    let fork_devnet = fork_mainnet_at(FORK_BLOCK).await.unwrap();
+    let fork_devnet = fork_mainnet_at(FORK_BLOCK_NUMBER).await.unwrap();
 
     assert_eq!(
-        FORK_BLOCK + 1,
+        FORK_BLOCK_NUMBER + 1,
         fork_devnet.get_latest_block_with_tx_hashes().await.unwrap().block_number
     );
 
@@ -290,7 +290,7 @@ async fn get_events_from_forked_devnet_when_first_queried_block_on_origin_and_la
     let events = get_events_follow_continuation_token(
         &fork_devnet,
         EventFilter {
-            from_block: Some(BlockId::Number(FORK_BLOCK)),
+            from_block: Some(BlockId::Number(FORK_BLOCK_NUMBER)),
             to_block: None,
             address: Some(STRK_ERC20_CONTRACT_ADDRESS),
             keys: Some(vec![vec![get_selector_from_name("Transfer").unwrap()]]),
@@ -307,15 +307,68 @@ async fn get_events_from_forked_devnet_when_first_queried_block_on_origin_and_la
 }
 
 #[tokio::test]
-#[ignore = "Un-ignore after updating starknet-rs"]
-async fn get_events_since_accepted_on_l1() {
-    unimplemented!();
+async fn get_events_since_accepted_on_l1_on_origin() {
+    let fork_devnet = fork_mainnet_at(FORK_BLOCK_NUMBER).await.unwrap();
+
+    // accepted_on_l1 should be on origin
+    let fork_block = fork_devnet
+        .get_confirmed_block_with_tx_hashes(&BlockId::Number(FORK_BLOCK_NUMBER))
+        .await
+        .unwrap();
+    assert_eq!(fork_block.status, BlockStatus::AcceptedOnL1);
+
+    let n_mints = 1;
+    for _ in 0..n_mints {
+        fork_devnet.mint(Felt::ONE, 1).await; // dummy data
+    }
+
+    let events = get_events_follow_continuation_token(
+        &fork_devnet,
+        EventFilter {
+            from_block: Some(BlockId::Tag(BlockTag::L1Accepted)), // origin
+            to_block: None,
+            address: Some(STRK_ERC20_CONTRACT_ADDRESS),
+            keys: Some(vec![vec![get_selector_from_name("Transfer").unwrap()]]),
+        },
+        100, // chunk size
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(events.len(), n_mints * 2 + EVENTS_IN_FORK_BLOCK);
+}
+
+#[tokio::test]
+async fn get_events_from_forked_devnet_since_locally_present_accepted_on_l1() {
+    let fork_devnet = fork_mainnet_at(FORK_BLOCK_NUMBER).await.unwrap();
+
+    let n_mints = 1;
+    for _ in 0..n_mints {
+        fork_devnet.mint(Felt::ONE, 1).await; // dummy data
+    }
+
+    fork_devnet.accept_on_l1(&BlockId::Tag(BlockTag::Latest)).await.unwrap();
+
+    let events = get_events_follow_continuation_token(
+        &fork_devnet,
+        EventFilter {
+            from_block: Some(BlockId::Tag(BlockTag::L1Accepted)),
+            to_block: None,
+            address: Some(STRK_ERC20_CONTRACT_ADDRESS),
+            keys: Some(vec![vec![get_selector_from_name("Transfer").unwrap()]]),
+        },
+        100, // chunk size
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(events.len(), n_mints * 2);
 }
 
 #[tokio::test]
 /// This is to prevent a bug which appeared specifically if block_id is block hash
 async fn get_events_from_forked_devnet_by_block_hash_with_all_events_present_locally() {
-    let fork_devnet = fork_mainnet_at(FORK_BLOCK).await.unwrap();
+    let fork_devnet = fork_mainnet_at(FORK_BLOCK_NUMBER).await.unwrap();
 
     let first_block_after_fork = fork_devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
