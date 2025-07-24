@@ -746,6 +746,7 @@ async fn get_block_accepted_on_l1_from_origin() {
     let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
     origin_devnet.accept_on_l1(&BlockId::Tag(BlockTag::Latest)).await.unwrap();
 
+    // Forked Devnet introducs an origin block of its own. Forking by default from origin latest.
     let forked_devnet =
         BackgroundDevnet::spawn_with_additional_args(&["--fork-network", &origin_devnet.url])
             .await
@@ -754,6 +755,7 @@ async fn get_block_accepted_on_l1_from_origin() {
     let latest_block = forked_devnet.get_latest_block_with_tx_hashes().await.unwrap();
     assert_eq!(latest_block.block_number, 1);
 
+    // Should be on origin.
     let l1_accepted_block = forked_devnet.get_l1_accepted_block_with_tx_hashes().await.unwrap();
     assert_eq!(l1_accepted_block.block_number, 0);
 }
