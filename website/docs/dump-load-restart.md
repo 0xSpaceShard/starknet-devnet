@@ -86,7 +86,7 @@ If you dumped a Devnet utilizing one class for account predeployment (e.g. `--ac
 
 ## Restarting
 
-Devnet can be restarted by making a `JSON-RPC` request with method name `devnet_restart`. All of the deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests that may have been loaded from a dump file on startup. Websocket subscriptions will also be forgotten.
+Devnet can be restarted by making a `JSON-RPC` request with method name `devnet_restart`. All deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests that may have been loaded from a dump file on startup. Websocket subscriptions will also be forgotten.
 
 ### Restarting and L1-L2 messaging
 

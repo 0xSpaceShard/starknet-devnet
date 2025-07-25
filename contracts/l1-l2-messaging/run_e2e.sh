@@ -13,9 +13,12 @@ forge install --root ./solidity
 forge build --root ./solidity
 
 # Deploy mock messaging contract on L1.
-curl --json \
-     -d '{"network_url": "http://127.0.0.1:8545"}' \
-     http://127.0.0.1:5050/postman/load_l1_messaging_contract
+curl http://127.0.0.1:5050/ --json '{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "devnet_postmanLoad",
+  "params": { "network_url": "http://127.0.0.1:8545" }
+}'
 
 # Deploy L1L2 contract on L1.
 pushd ./solidity
