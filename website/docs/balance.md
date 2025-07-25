@@ -27,7 +27,7 @@ JSON-RPC
 }
 ```
 
-Response:
+Result:
 
 ```
 {

@@ -154,7 +154,7 @@ JSON-RPC
 }
 ```
 
-Response:
+Result:
 
 ```js
 { "transaction_hash": "0x0548c761a9fd5512782998b2da6f44c42bf78fb88c3794eea330a91c9abb10bb" }
@@ -186,7 +186,7 @@ JSON-RPC
 }
 ```
 
-Response:
+Result:
 
 ```js
 {"message_hash": "0xae14f241131b524ac8d043d9cb4934253ac5c5589afef19f0d761816a9c7e26d"}
