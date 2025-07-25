@@ -619,15 +619,3 @@ async fn get_data_by_specifying_latest_block_hash_and_number() {
         assert_eq!(storage, signer.get_public_key().await.unwrap().scalar());
     }
 }
-
-#[tokio::test]
-async fn block_generation_via_non_rpc() {
-    let devnet = BackgroundDevnet::spawn().await.unwrap();
-
-    let last_block_before = devnet.get_latest_block_with_tx_hashes().await.unwrap();
-
-    let _ = devnet.reqwest_client().post_no_body("/create_block").await.unwrap();
-
-    let last_block_after = devnet.get_latest_block_with_tx_hashes().await.unwrap();
-    assert_eq!(last_block_after.block_number, last_block_before.block_number + 1);
-}

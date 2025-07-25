@@ -5,8 +5,13 @@ set -eu
 N=$1
 
 for _ in $(seq 1 $N); do
-    curl -w "\n" -sSf -H "Content-Type: application/json" -d '{
-        "amount": 1,
-        "address": "0x1"
-    }' localhost:5050/mint
+    curl localhost:5050/ -w "\n" -sSf --json '{
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "devnet_mint",
+        "params": {
+            "amount": 1,
+            "address": "0x1"
+        }
+    }'
 done
