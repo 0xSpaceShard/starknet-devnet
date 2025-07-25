@@ -25,8 +25,6 @@ use crate::api::http::endpoints::accounts::{
 
 const DEFAULT_CONTINUATION_TOKEN: &str = "0";
 const CONTINUATION_TOKEN_ORIGIN_PREFIX: &str = "devnet-origin-";
-const L1_ACCEPTED_NOTICE: &str =
-    "l1_accepted is currently not a supported block_id for querying events from forking origin.";
 
 /// The definitions of JSON-RPC read endpoints defined in starknet_api_openrpc.json
 impl JsonRpcHandler {
@@ -409,19 +407,13 @@ impl JsonRpcHandler {
             Some(BlockId::Tag(BlockTag::Latest | BlockTag::PreConfirmed)) => {
                 return Ok((None, from_block, to_block));
             }
-            Some(block_id @ BlockId::Tag(BlockTag::L1Accepted)) => {
+            Some(block_id @ (BlockId::Tag(BlockTag::L1Accepted) | BlockId::Hash(_))) => {
                 match starknet.get_block(&block_id) {
                     Ok(block) => block.block_number().0,
-                    Err(_) => {
-                        return Err(ApiError::UnsupportedAction { msg: L1_ACCEPTED_NOTICE.into() });
-                    }
+                    Err(_) => origin_caller.get_block_number_from_block_id(block_id).await?,
                 }
             }
             Some(BlockId::Number(from_block_number)) => from_block_number,
-            Some(block_id @ BlockId::Hash(hash)) => match starknet.get_block(&block_id) {
-                Ok(block) => block.block_number().0,
-                Err(_) => origin_caller.get_block_number_from_hash(hash).await?,
-            },
             None => 0, // If no from_block, all blocks before to_block should be queried
         };
 
@@ -441,26 +433,21 @@ impl JsonRpcHandler {
                     to_block,
                 ));
             }
-            Some(block_id @ BlockId::Tag(BlockTag::L1Accepted)) => {
+            Some(block_id @ (BlockId::Tag(BlockTag::L1Accepted) | BlockId::Hash(_))) => {
                 match starknet.get_block(&block_id) {
                     Ok(block) => block.block_number().0,
-                    Err(_) => {
-                        return Err(ApiError::UnsupportedAction { msg: L1_ACCEPTED_NOTICE.into() });
-                    }
+                    Err(_) => origin_caller.get_block_number_from_block_id(block_id).await?,
                 }
             }
             Some(BlockId::Number(to_block_number)) => to_block_number,
-            Some(block_id @ BlockId::Hash(hash)) => match starknet.get_block(&block_id) {
-                Ok(block) => block.block_number().0,
-                Err(_) => origin_caller.get_block_number_from_hash(hash).await?,
-            },
         };
 
+        let origin_range = Some((from_block_number, to_block_number));
         Ok(if to_block_number <= fork_block_number {
-            (Some((from_block_number, to_block_number)), None, None)
+            (origin_range, None, None)
         } else {
             (
-                Some((from_block_number, fork_block_number)),
+                origin_range,
                 Some(BlockId::Number(fork_block_number + 1)),
                 Some(BlockId::Number(to_block_number)),
             )

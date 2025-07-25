@@ -18,6 +18,16 @@ pub enum BlockId {
     Tag(BlockTag),
 }
 
+impl From<BlockId> for starknet_rs_core::types::BlockId {
+    fn from(block_id: BlockId) -> Self {
+        match block_id {
+            BlockId::Hash(felt) => Self::Hash(felt),
+            BlockId::Number(n) => Self::Number(n),
+            BlockId::Tag(tag) => Self::Tag(tag.into()),
+        }
+    }
+}
+
 impl<'de> Deserialize<'de> for BlockId {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -186,6 +196,16 @@ pub enum BlockTag {
     PreConfirmed,
     Latest,
     L1Accepted,
+}
+
+impl From<BlockTag> for starknet_rs_core::types::BlockTag {
+    fn from(tag: BlockTag) -> Self {
+        match tag {
+            BlockTag::PreConfirmed => Self::PreConfirmed,
+            BlockTag::Latest => Self::Latest,
+            BlockTag::L1Accepted => Self::L1Accepted,
+        }
+    }
 }
 
 #[cfg(test)]

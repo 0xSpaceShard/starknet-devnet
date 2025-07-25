@@ -78,7 +78,7 @@ pub enum Error {
     ClassAlreadyDeclared { msg: String },
     #[error("Requested entrypoint does not exist in the contract")]
     EntrypointNotFound,
-    #[error("Contract class size it too large")]
+    #[error("Contract class size is too large")]
     ContractClassSizeIsTooLarge,
 }
 
