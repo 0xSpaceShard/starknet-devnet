@@ -13,7 +13,7 @@ forge install --root ./solidity
 forge build --root ./solidity
 
 # Deploy mock messaging contract on L1.
-curl -H 'Content-Type: application/json' \
+curl --json \
      -d '{"network_url": "http://127.0.0.1:8545"}' \
      http://127.0.0.1:5050/postman/load_l1_messaging_contract
 
@@ -38,7 +38,12 @@ starkli invoke $CONTRACT_L2 increase_balance 0x1 0xff --max-fee-raw $MAX_FEE
 starkli invoke $CONTRACT_L2 withdraw 0x1 1 $CONTRACT_L1 --max-fee-raw $MAX_FEE
 
 # Flush messages to actually send the message to L1.
-curl -H 'Content-Type: application/json' -X POST http://127.0.0.1:5050/postman/flush
+curl http://127.0.0.1:5050/ --json '{
+  "jsonrpc": "2.0",
+  "method": "devnet_postmanFlush",
+  "params": {},
+  "id": 1
+}'
 
 # Consume the message on L1.
 cast send $CONTRACT_L1 "withdraw(uint256, uint256, uint256)" \
@@ -53,29 +58,42 @@ cast send $CONTRACT_L1 "deposit(uint256, uint256, uint256)" \
      --gas-limit 999999 --value 1gwei
 
 # Flush messages to actually send message to L2.
-curl -H 'Content-Type: application/json' -X POST http://127.0.0.1:5050/postman/flush
+curl http://127.0.0.1:5050/ --json '{
+  "jsonrpc": "2.0",
+  "method": "devnet_postmanFlush",
+  "params": {},
+  "id": 1
+}'
 
 # Simulate message from L1 to increase the balance.
 DEPOSIT_SELECTOR=$(starkli selector "deposit")
-curl -H 'Content-Type: application/json' \
-     -d '{
-          "paid_fee_on_l1": "0x123",
-          "l2_contract_address": "'$CONTRACT_L2'",
-          "l1_contract_address": "'$CONTRACT_L1'",
-          "entry_point_selector": "'$DEPOSIT_SELECTOR'",
-          "payload": ["0x1", "0x2"], "nonce": "0x1"
-     }' \
-     http://127.0.0.1:5050/postman/send_message_to_l2
+curl http://127.0.0.1:5050/ --json '{
+  "jsonrpc": "2.0",
+  "method": "devnet_postmanSendMessageToL2",
+  "params": {
+    "paid_fee_on_l1": "0x123",
+    "l2_contract_address": "'$CONTRACT_L2'",
+    "l1_contract_address": "'$CONTRACT_L1'",
+    "entry_point_selector": "'$DEPOSIT_SELECTOR'",
+    "payload": ["0x1", "0x2"],
+    "nonce": "0x1"
+  },
+  "id": 1
+}'
 
 # Send back some balance to consume manually.
 starkli invoke $CONTRACT_L2 withdraw 0x1 0x2 $CONTRACT_L1 --max-fee-raw $MAX_FEE
 
-curl -H 'Content-Type: application/json' \
-     -d '{
-          "from_address": "'$CONTRACT_L2'",
-          "to_address": "'$CONTRACT_L1'",
-          "payload": ["0x0","0x1","0x2"]
-     }' \
-     http://127.0.0.1:5050/postman/consume_message_from_l2
+curl http://127.0.0.1:5050/ --json '{
+  "jsonrpc": "2.0",
+  "method": "devnet_postmanConsumeMessageFromL2",
+  "params": {
+    "from_address": "'$CONTRACT_L2'",
+    "to_address": "'$CONTRACT_L1'",
+    "payload": ["0x0", "0x1", "0x2"]
+  },
+  "id": 1
+}'
+
 
 starkli call $CONTRACT_L2 get_balance 0x1

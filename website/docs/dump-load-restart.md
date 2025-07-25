@@ -20,17 +20,13 @@ $ starknet-devnet --dump-on block --dump-path <PATH>
 
 ### Dumping on request
 
-You can request dumping by sending `POST` to `/dump` or via JSON-RPC. An optional file path can be provided in the request or on startup via `--dump-path <FILE>` (the HTTP request parameter takes precedence). If no dumping path is specified, the dump is included in the response body. This means that if you request dumping via [`curl`](https://curl.se/), it will be printed to STDOUT, which you can then redirect to a destination of your choice.
+You can request dumping via JSON-RPC. An optional file path can be provided in the request or on startup via `--dump-path <FILE>` (the HTTP request parameter takes precedence). If no dumping path is specified, the dump is included in the response body. This means that if you request dumping via [`curl`](https://curl.se/), it will be printed to STDOUT, which you can then redirect to a destination of your choice.
 
 ```
 $ starknet-devnet --dump-on <MODE> [--dump-path <FILE>]
 ```
 
 - No body parameters:
-
-```
-POST /dump
-```
 
 ```
 JSON-RPC
@@ -42,14 +38,6 @@ JSON-RPC
 ```
 
 - With a custom path:
-
-```
-POST /dump
-{
-  // optional; defaults to the path specified via CLI if defined
-  "path": <PATH>
-}
-```
 
 ```
 JSON-RPC
@@ -74,12 +62,7 @@ To load a preserved Devnet instance, the options are:
 $ starknet-devnet --dump-path <PATH>
 ```
 
-- Loading on request, which replaces the current state with the one in the provided file. It can be done by sending `POST` to `/load` or via JSON-RPC:
-
-```
-POST /load
-{ "path": <PATH> }
-```
+- Loading on request, which replaces the current state with the one in the provided file. It can be done via JSON-RPC:
 
 ```
 JSON-RPC
@@ -103,7 +86,7 @@ If you dumped a Devnet utilizing one class for account predeployment (e.g. `--ac
 
 ## Restarting
 
-Devnet can be restarted by making a `POST /restart` request (no body required) or `JSON-RPC` request with method name `devnet_restart`. All of the deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests that may have been loaded from a dump file on startup. Websocket subscriptions will also be forgotten.
+Devnet can be restarted by making a `JSON-RPC` request with method name `devnet_restart`. All of the deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests that may have been loaded from a dump file on startup. Websocket subscriptions will also be forgotten.
 
 ### Restarting and L1-L2 messaging
 
