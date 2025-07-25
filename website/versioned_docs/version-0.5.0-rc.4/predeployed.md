@@ -1,6 +1,17 @@
 # Predeployed contracts
 
-Devnet predeploys a [UDC](https://docs.openzeppelin.com/contracts-cairo/udc), two [ERC20 (fee token)](https://docs.openzeppelin.com/contracts-cairo/erc20) contracts (one for STRK, one for ETH) and a set of predeployed funded accounts.
+Devnet predeploys:
+
+- two [UDCs](https://docs.openzeppelin.com/contracts-cairo/udc)
+  - on the same addresses as Starknet mainnet/testnet
+  - a legacy instance serving only the `deployContract` entrypoint
+  - a UDC 2 instance serving both `deployContract` and `deploy_contract` entrypoints
+- two [ERC20 (fee token)](https://docs.openzeppelin.com/contracts-cairo/erc20) contracts
+  - on the same addresses as Starknet mainnet/testnet
+  - one for STRK
+  - one for ETH
+- a set of predeployed funded accounts
+  - not a feature of Starknet mainnet/testnet.
 
 The set of accounts can be controlled via [CLI options](./running/cli): `--accounts <NUMBER_OF>`, `--initial-balance <WEI>`, `--seed <VALUE>`.
 

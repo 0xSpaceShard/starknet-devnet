@@ -58,7 +58,7 @@ $ starknet-devnet --block-generation-on 10
 
 ## Request new block creation
 
-To request the creation of a new block, `POST` a request with no body to `/create_block` or send:
+To request the creation of a new block, send:
 
 ```
 JSON-RPC
@@ -80,6 +80,8 @@ The newly created block will contain all pre-confirmed transactions, if any, sin
 ## Timestamp manipulation
 
 To affect the timestamp of the newly created block, check out [this page](./starknet-time#set-time)
+
+## Block abortion
 
 This functionality allows simulating block abortion that can occur on mainnet as a consequence of e.g. block reorganization. Aborted blocks and their transactions are removed from Devnet's memory.
 
@@ -113,14 +115,7 @@ If a socket has subscribed to transaction status changes of a transaction `tx1` 
 
 ### Request and response
 
-To abort, send one of the following:
-
-```
-POST /abort_blocks
-{
-    "starting_block_id": BLOCK_ID
-}
-```
+To abort, send:
 
 ```
 JSON-RPC
