@@ -16,18 +16,6 @@ You can use [**`starknet-devnet-js`**](https://github.com/0xSpaceShard/starknet-
 
 ## Load
 
-```
-POST /postman/load_l1_messaging_contract
-```
-
-```json
-{
-  "network_url": "http://localhost:8545",
-  "messaging_contract_address": "0x123...def", // optional
-  "deployer_account_private_key": "0xe2ac...583f" // optional
-}
-```
-
 ```json
 // JSON-RPC
 {
@@ -82,10 +70,6 @@ Loading a messaging contract is a dumpable event, meaning that, if you've enable
 ## Flush
 
 ```
-POST /postman/flush
-```
-
-```
 JSON-RPC
 {
     "jsonrpc": "2.0",
@@ -97,22 +81,12 @@ JSON-RPC
 Goes through the newly enqueued messages since the last flush, consuming and sending them from L1 to L2 and from L2 to L1. Use it for end-to-end testing. Requires no body. Optionally, set the `dry_run` boolean flag to just see the result of flushing, without actually triggering it:
 
 ```
-POST /postman/flush
-```
-
-```js
-{ "dry_run": true }
-```
-
-```
 JSON-RPC
 {
     "jsonrpc": "2.0",
     "id": "1",
     "method": "devnet_postmanFlush",
-    "params": {
-      "dry_run": true
-    }
+    "params": { "dry_run": true }
 }
 ```
 
@@ -163,24 +137,6 @@ Sends a mock transactions to L2, as if coming from L1, without the need for runn
 In regular (non-mocking) L1-L2 interaction, `nonce` is determined by the L1 Starknet contract. In this mock case, it is up to the developer to set it.
 
 ```
-POST /postman/send_message_to_l2
-```
-
-Request:
-
-```js
-{
-    "l2_contract_address": "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2",
-    "entry_point_selector": "0xC73F681176FC7B3F9693986FD7B14581E8D540519E27400E88B8713932BE01",
-    "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-    "payload": [ "0x1", "0x2" ],
-    "paid_fee_on_l1": "0x123456abcdef",
-    "nonce": "0x0",
-    "l1_transaction_hash": "0x000abc123", // optional
-}
-```
-
-```
 JSON-RPC
 {
     "jsonrpc": "2.0",
@@ -198,7 +154,7 @@ JSON-RPC
 }
 ```
 
-Response:
+Result:
 
 ```js
 { "transaction_hash": "0x0548c761a9fd5512782998b2da6f44c42bf78fb88c3794eea330a91c9abb10bb" }
@@ -217,20 +173,6 @@ A running L1 node is required for this operation.
 :::
 
 ```
-POST /postman/consume_message_from_l2
-```
-
-Request:
-
-```js
-{
-    "from_address": "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2",
-    "to_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-    "payload": ["0x0", "0x1", "0x3e8"],
-}
-```
-
-```
 JSON-RPC
 {
     "jsonrpc": "2.0",
@@ -244,7 +186,7 @@ JSON-RPC
 }
 ```
 
-Response:
+Result:
 
 ```js
 {"message_hash": "0xae14f241131b524ac8d043d9cb4934253ac5c5589afef19f0d761816a9c7e26d"}

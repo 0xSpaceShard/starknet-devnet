@@ -10,9 +10,15 @@ The value passed to `--fork-network` should be the URL to a Starknet JSON-RPC AP
 
 :::note How it works
 
-When you send a request to a forked Devnet instance, it first queries Devnet's local state, then it tries the forking origin. The forking is not simply performed on Devnet startup, but happens continuously while the Devnet instance is alive.
+When you send a request to a forked Devnet instance, it first queries Devnet's local state, then tries the forking origin. Forking is not a step simply performed on Devnet startup, but happens continuously while the Devnet instance is alive.
 
 :::
+
+## Forking and ACCEPTED_ON_L1
+
+Assume you have run Devnet as a fork from an origin at a block that is not yet `ACCEPTED_ON_L1`, but only `ACCEPTED_ON_L2`. If in your state queries you specify `block_id: "l1_accepted"`, and there are no local blocks marked as `ACCEPTED_ON_L1`, Devnet will assume the forking block has become `ACCEPTED_ON_L1`.
+
+Read more about marking blocks as `ACCEPTED_ON_L1` on Devnet: [link](./blocks#accepting-blocks-on-l1).
 
 ## Account impersonation
 
