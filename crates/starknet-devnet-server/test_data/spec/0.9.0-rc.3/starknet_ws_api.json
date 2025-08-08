@@ -194,17 +194,8 @@
           "schema": {
             "type": "array",
             "items": {
-              "allOf": [
-                {
-                  "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN_FINALITY_STATUS"
-                },
-                {
-                  "not": {
-                    "type": "string",
-                    "enum": ["ACCEPTED_ON_L1"]
-                  }
-                }
-              ]
+              "type": "string",
+              "enum": ["PRE_CONFIRMED", "ACCEPTED_ON_L2"]
             }
           }
         },
@@ -265,9 +256,7 @@
           "schema": {
             "type": "array",
             "items": {
-              "items": {
-                "$ref": "#/components/schemas/TXN_STATUS_WITHOUT_L1"
-              }
+              "$ref": "#/components/schemas/TXN_STATUS_WITHOUT_L1"
             }
           }
         },
@@ -404,36 +393,52 @@
         "type": "string"
       },
       "SUBSCRIPTION_BLOCK_ID": {
-        "title": "Subscription Block id",
-        "description": "Block hash, number or tag, same as BLOCK_ID, but without 'pre_confirmed' or 'l1_accepted'",
-        "schema": {
-          "title": "Block id",
-          "allOf": [
-            {
-              "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BLOCK_ID"
-            },
-                        {
-              "not": {
-                "type": "string",
-                "enum": ["l1_accepted", "pre_confirmed"]
+        "title": "Block id",
+        "description": "Block hash, number or tag",
+        "oneOf": [
+          {
+            "title": "Block hash",
+            "type": "object",
+            "properties": {
+              "block_hash": {
+                "title": "Block hash",
+                "$ref": "#/components/schemas/BLOCK_HASH"
               }
-            }
-          ]
-        }
+            },
+            "required": ["block_hash"]
+          },
+          {
+            "title": "Block number",
+            "type": "object",
+            "properties": {
+              "block_number": {
+                "title": "Block number",
+                "$ref": "#/components/schemas/BLOCK_NUMBER"
+              }
+            },
+            "required": ["block_number"]
+          },
+          {
+            "title": "Block tag",
+            "$ref": "#/components/schemas/SUBSCRIPTION_BLOCK_TAG"
+          }
+        ]
+      },
+      "SUBSCRIPTION_BLOCK_TAG": {
+        "title": "Subscription Block tag",
+        "type": "string",
+        "description": "Same as BLOCK_TAG, but without 'l1_accepted' or 'pre_confirmed'",
+        "enum": ["latest"]
       },
       "TXN_STATUS_WITHOUT_L1": {
         "title": "Transaction status without ACCEPTED_ON_L1",
         "description": "Transaction status for new transactions subscription",
-        "allOf": [
-          {
-            "$ref": "./api/starknet_api_openrpc.json#/components/schemas/TXN_STATUS"
-          },
-          {
-            "not": {
-              "type": "string",
-              "enum": ["ACCEPTED_ON_L1"]
-            }
-          }
+        "type": "string",
+        "enum": [
+          "RECEIVED",
+          "CANDIDATE",
+          "PRE_CONFIRMED",
+          "ACCEPTED_ON_L2"
         ]
       },
 
