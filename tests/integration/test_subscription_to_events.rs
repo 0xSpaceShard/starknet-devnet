@@ -2,7 +2,9 @@ use std::collections::HashSet;
 
 use serde_json::json;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, InvokeTransactionResult};
+use starknet_rs_core::types::{
+    BlockId, BlockTag, Call, Felt, InvokeTransactionResult, TransactionFinalityStatus,
+};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::JsonRpcClient;
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -94,7 +96,8 @@ async fn event_subscription_with_no_params_until_unsubscription() {
             "block_number": latest_block.block_number,
             "from_address": contract_address,
             "keys": [static_event_key()],
-            "data": []
+            "data": [],
+            "finality_status": TransactionFinalityStatus::AcceptedOnL2,
         })
     );
 
@@ -130,7 +133,8 @@ async fn should_notify_only_from_filtered_address() {
             "block_number": latest_block.block_number,
             "from_address": contract_address,
             "keys": [static_event_key()],
-            "data": []
+            "data": [],
+            "finality_status": TransactionFinalityStatus::AcceptedOnL2,
         })
     );
 
@@ -160,7 +164,8 @@ async fn should_notify_of_new_events_only_from_filtered_key() {
             "block_number": latest_block.block_number,
             "from_address": contract_address,
             "keys": [static_event_key()],
-            "data": []
+            "data": [],
+            "finality_status": TransactionFinalityStatus::AcceptedOnL2,
         })
     );
 
@@ -189,7 +194,8 @@ async fn should_notify_if_already_in_latest_block_in_on_tx_mode() {
             "block_number": latest_block.block_number,
             "from_address": contract_address,
             "keys": [static_event_key()],
-            "data": []
+            "data": [],
+            "finality_status": TransactionFinalityStatus::AcceptedOnL2,
         })
     );
 
@@ -209,7 +215,7 @@ async fn should_notify_only_once_in_on_demand_mode() {
     let contract_address = declare_deploy_events_contract(&account).await.unwrap();
 
     let subscription_id_before =
-        subscribe_events(&mut ws_before, json!({ "from_address": contract_address }))
+        subscribe_events(&mut ws_before, json!({ "from_address": contract_address, "finality_status": TransactionFinalityStatus::PreConfirmed }))
             .await
             .unwrap();
 
@@ -229,6 +235,7 @@ async fn should_notify_only_once_in_on_demand_mode() {
                 "from_address": contract_address,
                 "keys": [static_event_key()],
                 "data": [],
+                "finality_status": TransactionFinalityStatus::PreConfirmed,
             })
         );
     }
@@ -237,6 +244,8 @@ async fn should_notify_only_once_in_on_demand_mode() {
     devnet.create_block().await.unwrap();
     assert_no_notifications(&mut ws_before).await;
     assert_no_notifications(&mut ws_after).await;
+
+    todo!("Cover cases for all finality_statuses");
 }
 
 #[tokio::test]
@@ -279,7 +288,8 @@ async fn should_notify_of_events_in_old_blocks_with_no_filters() {
             "block_number": latest_block.block_number,
             "from_address": contract_address,
             "keys": [static_event_key()],
-            "data": []
+            "data": [],
+            "finality_status": TransactionFinalityStatus::AcceptedOnL2,
         })
     );
 
@@ -317,7 +327,8 @@ async fn should_notify_of_old_and_new_events_with_address_filter() {
             "block_number": block_before_subscription.block_number,
             "from_address": contract_address,
             "keys": [static_event_key()],
-            "data": []
+            "data": [],
+            "finality_status": TransactionFinalityStatus::AcceptedOnL2,
         })
     );
     assert_no_notifications(&mut ws).await;
@@ -334,7 +345,8 @@ async fn should_notify_of_old_and_new_events_with_address_filter() {
             "block_number": latest_block.block_number,
             "from_address": contract_address,
             "keys": [static_event_key()],
-            "data": []
+            "data": [],
+            "finality_status": TransactionFinalityStatus::AcceptedOnL2,
         })
     );
     assert_no_notifications(&mut ws).await;
@@ -366,7 +378,8 @@ async fn should_notify_of_old_and_new_events_with_key_filter() {
             "block_number": block_before_subscription.block_number,
             "from_address": contract_address,
             "keys": [static_event_key()],
-            "data": []
+            "data": [],
+            "finality_status": TransactionFinalityStatus::AcceptedOnL2,
         })
     );
     assert_no_notifications(&mut ws).await;
@@ -383,7 +396,8 @@ async fn should_notify_of_old_and_new_events_with_key_filter() {
             "block_number": latest_block.block_number,
             "from_address": contract_address,
             "keys": [static_event_key()],
-            "data": []
+            "data": [],
+            "finality_status": TransactionFinalityStatus::AcceptedOnL2,
         })
     );
     assert_no_notifications(&mut ws).await;

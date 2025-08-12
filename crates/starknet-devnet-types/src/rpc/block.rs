@@ -159,17 +159,17 @@ impl<'de> Deserialize<'de> for SubscriptionBlockId {
         D: Deserializer<'de>,
     {
         let block_id = BlockId::deserialize(deserializer)?;
-        Ok(match block_id {
-            BlockId::Hash(felt) => Self::Hash(felt),
-            BlockId::Number(n) => Self::Number(n),
-            BlockId::Tag(BlockTag::Latest) => Self::Latest,
+        match block_id {
+            BlockId::Hash(felt) => Ok(Self::Hash(felt)),
+            BlockId::Number(n) => Ok(Self::Number(n)),
+            BlockId::Tag(BlockTag::Latest) => Ok(Self::Latest),
             BlockId::Tag(BlockTag::PreConfirmed) => {
-                return Err(serde::de::Error::custom(
-                    "Subscription block cannot be 'pre_confirmed'",
-                ));
+                Err(serde::de::Error::custom("Subscription block cannot be 'pre_confirmed'"))
             }
-            BlockId::Tag(BlockTag::L1Accepted) => Self::L1Accepted,
-        })
+            BlockId::Tag(BlockTag::L1Accepted) => {
+                Err(serde::de::Error::custom("Subscription block cannot be 'l1_accepted'"))
+            }
+        }
     }
 }
 
