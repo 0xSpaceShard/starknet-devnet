@@ -483,6 +483,251 @@ async fn test_deploying_on_origin_calling_on_fork() {
 }
 
 #[tokio::test]
+async fn test_fork_state_remains_after_origin_changes() {
+    let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
+
+    let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
+    let predeployed_account = SingleOwnerAccount::new(
+        &origin_devnet.json_rpc_client,
+        signer.clone(),
+        account_address,
+        constants::CHAIN_ID,
+        ExecutionEncoding::New,
+    );
+
+    let (contract_class, casm_hash) = get_simple_contract_artifacts();
+
+    let initial_value = Felt::from(2_u32);
+    let ctor_args = vec![initial_value];
+
+    // Block 1 => Origin Devnet
+    let (_, contract_address) =
+        declare_v3_deploy_v3(&predeployed_account, contract_class.clone(), casm_hash, &ctor_args)
+            .await
+            .unwrap();
+    let entry_point_selector = get_selector_from_name("get_balance").unwrap();
+    let call_result = origin_devnet
+        .json_rpc_client
+        .call(
+            FunctionCall { contract_address, entry_point_selector, calldata: vec![] },
+            BlockId::Tag(BlockTag::Latest),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(call_result, vec![initial_value]);
+
+    // Block 2 => Origin Devnet
+    let increment_value = Felt::from(7_u32);
+    let contract_invoke = vec![Call {
+        to: contract_address,
+        selector: get_selector_from_name("increase_balance").unwrap(),
+        calldata: vec![increment_value, Felt::ZERO],
+    }];
+
+    let invoke_result = predeployed_account
+        .execute_v3(contract_invoke.clone())
+        .l1_gas(0)
+        .l1_data_gas(1e3 as u64)
+        .l2_gas(1e7 as u64)
+        .send()
+        .await
+        .unwrap();
+
+    assert_tx_succeeded_accepted(&invoke_result.transaction_hash, &origin_devnet.json_rpc_client)
+        .await;
+    assert_eq!(
+        get_contract_balance(&origin_devnet, contract_address).await,
+        initial_value + increment_value
+    );
+
+    let fork_devnet = origin_devnet.fork().await.unwrap();
+    assert_eq!(
+        get_contract_balance(&fork_devnet, contract_address).await,
+        initial_value + increment_value
+    );
+
+    // Block 3 => Origin Devnet
+    let increment_value_ii = Felt::from(19_u32);
+    let contract_invoke_ii = vec![Call {
+        to: contract_address,
+        selector: get_selector_from_name("increase_balance").unwrap(),
+        calldata: vec![increment_value_ii, Felt::ZERO],
+    }];
+
+    let invoke_result_ii = predeployed_account
+        .execute_v3(contract_invoke_ii.clone())
+        .l1_gas(0)
+        .l1_data_gas(1e3 as u64)
+        .l2_gas(1e7 as u64)
+        .send()
+        .await
+        .unwrap();
+
+    assert_tx_succeeded_accepted(
+        &invoke_result_ii.transaction_hash,
+        &origin_devnet.json_rpc_client,
+    )
+    .await;
+    assert_eq!(
+        get_contract_balance(&origin_devnet, contract_address).await,
+        initial_value + increment_value + increment_value_ii
+    );
+
+    // Asserting here that forked devnet balance didn't change
+    // after it was forked from the origin devnet at block 2
+    assert_eq!(
+        get_contract_balance(&fork_devnet, contract_address).await,
+        initial_value + increment_value
+    );
+
+    // Block 4 => Origin Devnet
+    let increment_value_iii = Felt::from(57_u32);
+    let contract_invoke_iii = vec![Call {
+        to: contract_address,
+        selector: get_selector_from_name("increase_balance").unwrap(),
+        calldata: vec![increment_value_iii, Felt::ZERO],
+    }];
+
+    let invoke_result_iii = predeployed_account
+        .execute_v3(contract_invoke_iii.clone())
+        .l1_gas(0)
+        .l1_data_gas(1e3 as u64)
+        .l2_gas(1e7 as u64)
+        .send()
+        .await
+        .unwrap();
+
+    assert_tx_succeeded_accepted(
+        &invoke_result_iii.transaction_hash,
+        &origin_devnet.json_rpc_client,
+    )
+    .await;
+    assert_eq!(
+        get_contract_balance(&origin_devnet, contract_address).await,
+        initial_value + increment_value + increment_value_ii + increment_value_iii
+    );
+
+    // Asserting here that forked devnet balance didn't change
+    // after it was forked from the origin devnet at block 2
+    assert_eq!(
+        get_contract_balance(&fork_devnet, contract_address).await,
+        initial_value + increment_value
+    );
+}
+
+#[tokio::test]
+async fn test_fork_state_changes_does_not_affect_origin_state() {
+    let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
+    let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
+
+    let origin_predeployed_account = SingleOwnerAccount::new(
+        &origin_devnet.json_rpc_client,
+        signer.clone(),
+        account_address,
+        constants::CHAIN_ID,
+        ExecutionEncoding::New,
+    );
+
+    let (contract_class, casm_hash) = get_simple_contract_artifacts();
+
+    let initial_value = Felt::from(2_u32);
+    let ctor_args = vec![initial_value];
+
+    // Block 1 => Origin Devnet
+    let (_, contract_address) = declare_v3_deploy_v3(
+        &origin_predeployed_account,
+        contract_class.clone(),
+        casm_hash,
+        &ctor_args,
+    )
+    .await
+    .unwrap();
+    let entry_point_selector = get_selector_from_name("get_balance").unwrap();
+    let origin_call_result = origin_devnet
+        .json_rpc_client
+        .call(
+            FunctionCall { contract_address, entry_point_selector, calldata: vec![] },
+            BlockId::Tag(BlockTag::Latest),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(origin_call_result, vec![initial_value]);
+
+    let fork_devnet = origin_devnet.fork().await.unwrap();
+    let fork_call_result = fork_devnet
+        .json_rpc_client
+        .call(
+            FunctionCall { contract_address, entry_point_selector, calldata: vec![] },
+            BlockId::Tag(BlockTag::Latest),
+        )
+        .await
+        .unwrap();
+
+    let fork_predeployed_account = SingleOwnerAccount::new(
+        fork_devnet.clone_provider(),
+        signer,
+        account_address,
+        constants::CHAIN_ID,
+        ExecutionEncoding::New,
+    );
+
+    assert_eq!(fork_call_result, vec![initial_value]);
+
+    let origin_increment_value = Felt::from(7_u32);
+    let contract_invoke = vec![Call {
+        to: contract_address,
+        selector: get_selector_from_name("increase_balance").unwrap(),
+        calldata: vec![origin_increment_value, Felt::ZERO],
+    }];
+
+    let invoke_result = origin_predeployed_account
+        .execute_v3(contract_invoke.clone())
+        .l1_gas(0)
+        .l1_data_gas(1e3 as u64)
+        .l2_gas(1e7 as u64)
+        .send()
+        .await
+        .unwrap();
+
+    assert_tx_succeeded_accepted(&invoke_result.transaction_hash, &origin_devnet.json_rpc_client)
+        .await;
+    assert_eq!(
+        get_contract_balance(&origin_devnet, contract_address).await,
+        initial_value + origin_increment_value
+    );
+
+    let fork_increment_value = Felt::from(13_u32);
+    let contract_invoke = vec![Call {
+        to: contract_address,
+        selector: get_selector_from_name("increase_balance").unwrap(),
+        calldata: vec![fork_increment_value, Felt::ZERO],
+    }];
+
+    let invoke_result = fork_predeployed_account
+        .execute_v3(contract_invoke.clone())
+        .l1_gas(0)
+        .l1_data_gas(1e3 as u64)
+        .l2_gas(1e7 as u64)
+        .send()
+        .await
+        .unwrap();
+
+    assert_tx_succeeded_accepted(&invoke_result.transaction_hash, &fork_devnet.json_rpc_client)
+        .await;
+    assert_eq!(
+        get_contract_balance(&fork_devnet, contract_address).await,
+        initial_value + fork_increment_value
+    );
+
+    assert_ne!(
+        get_contract_balance(&origin_devnet, contract_address).await,
+        get_contract_balance(&fork_devnet, contract_address).await
+    );
+}
+
+#[tokio::test]
 async fn test_fork_using_origin_token_contract() {
     let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
