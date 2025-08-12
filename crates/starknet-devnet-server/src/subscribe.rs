@@ -8,7 +8,7 @@ use serde::{self, Deserialize, Serialize};
 use starknet_core::starknet::events::check_if_filter_applies_for_event;
 use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::emitted_event::EmittedEvent;
+use starknet_types::emitted_event::{SubscribableEventStatus, SubscriptionEmittedEvent};
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::block::{BlockHeader, ReorgData};
 use starknet_types::rpc::transactions::{TransactionStatus, TransactionWithHash};
@@ -76,10 +76,20 @@ impl AddressFilter {
 #[derive(Debug)]
 pub enum Subscription {
     NewHeads,
-    TransactionStatus { transaction_hash: TransactionHash },
-    PendingTransactionsFull { address_filter: AddressFilter },
-    PendingTransactionsHash { address_filter: AddressFilter },
-    Events { address: Option<ContractAddress>, keys_filter: Option<Vec<Vec<Felt>>> },
+    TransactionStatus {
+        transaction_hash: TransactionHash,
+    },
+    PendingTransactionsFull {
+        address_filter: AddressFilter,
+    },
+    PendingTransactionsHash {
+        address_filter: AddressFilter,
+    },
+    Events {
+        address: Option<ContractAddress>,
+        keys_filter: Option<Vec<Vec<Felt>>>,
+        finality_status_filter: SubscribableEventStatus,
+    },
 }
 
 impl Subscription {
@@ -118,15 +128,20 @@ impl Subscription {
                 Some(address) => address_filter.passes(&address),
                 None => true,
             },
-            (Subscription::Events { address, keys_filter }, NotificationData::Event(event)) => {
-                check_if_filter_applies_for_event(address, keys_filter, &event.into())
+            (
+                Subscription::Events { address, keys_filter, finality_status_filter },
+                NotificationData::Event(event_with_finality_status),
+            ) => {
+                let event = (&event_with_finality_status.emitted_event).into();
+                check_if_filter_applies_for_event(address, keys_filter, &event)
+                    && event_with_finality_status.finality_status >= *finality_status_filter
             }
             (
                 Subscription::NewHeads
                 | Subscription::TransactionStatus { .. }
                 | Subscription::Events { .. },
                 NotificationData::Reorg(_),
-            ) => true, // any subscription other than pending tx requires reorg notification
+            ) => true, // any subscription other than pending tx requires reorg notification // TODO
             _ => false,
         }
     }
@@ -186,7 +201,7 @@ pub enum NotificationData {
     NewHeads(BlockHeader),
     TransactionStatus(NewTransactionStatus),
     PendingTransaction(PendingTransactionNotification),
-    Event(EmittedEvent),
+    Event(SubscriptionEmittedEvent),
     Reorg(ReorgData),
 }
 
@@ -213,7 +228,7 @@ pub(crate) enum SubscriptionNotification {
     #[serde(rename = "starknet_subscriptionPendingTransactions")]
     PendingTransaction { subscription_id: SubscriptionId, result: PendingTransactionNotification },
     #[serde(rename = "starknet_subscriptionEvents")]
-    Event { subscription_id: SubscriptionId, result: EmittedEvent },
+    Event { subscription_id: SubscriptionId, result: SubscriptionEmittedEvent },
     #[serde(rename = "starknet_subscriptionReorg")]
     Reorg { subscription_id: SubscriptionId, result: ReorgData },
 }

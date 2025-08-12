@@ -1,7 +1,8 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
 use starknet_types_core::felt::Felt;
 
+use super::transactions::TransactionFinalityStatus;
 use crate::contract_address::ContractAddress;
 use crate::felt::{BlockHash, TransactionHash};
 
@@ -67,4 +68,34 @@ impl From<&EmittedEvent> for Event {
             data: emitted_event.data.clone(),
         }
     }
+}
+
+impl From<EmittedEvent> for Event {
+    fn from(emitted_event: EmittedEvent) -> Self {
+        (&emitted_event).into()
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum SubscribableEventStatus {
+    PreConfirmed,
+    AcceptedOnL2,
+}
+
+impl From<SubscribableEventStatus> for TransactionFinalityStatus {
+    fn from(subscribable_status: SubscribableEventStatus) -> Self {
+        match subscribable_status {
+            SubscribableEventStatus::PreConfirmed => Self::PreConfirmed,
+            SubscribableEventStatus::AcceptedOnL2 => Self::AcceptedOnL2,
+        }
+    }
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[cfg_attr(feature = "testing", derive(Deserialize), serde(deny_unknown_fields))]
+pub struct SubscriptionEmittedEvent {
+    #[serde(flatten)]
+    pub emitted_event: EmittedEvent,
+    pub finality_status: SubscribableEventStatus,
 }

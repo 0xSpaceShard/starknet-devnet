@@ -1,4 +1,5 @@
 use starknet_core::error::Error;
+use starknet_types::emitted_event::{SubscribableEventStatus, SubscriptionEmittedEvent};
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::block::{BlockId, BlockResult, BlockStatus, BlockTag, PreConfirmedBlock};
 use starknet_types::rpc::transactions::{TransactionWithHash, Transactions};
@@ -242,23 +243,42 @@ impl JsonRpcHandler {
 
         self.get_validated_block_number_range(starting_block_id).await?;
 
-        let keys_filter =
-            maybe_subscription_input.and_then(|subscription_input| subscription_input.keys);
+        let keys_filter = maybe_subscription_input
+            .as_ref()
+            .and_then(|subscription_input| subscription_input.keys.clone());
+
+        let finality_status_filter = maybe_subscription_input
+            .and_then(|subscription_input| subscription_input.finality_status)
+            .unwrap_or(SubscribableEventStatus::AcceptedOnL2);
 
         let mut sockets = self.api.sockets.lock().await;
         let socket_context = sockets.get_mut(&socket_id)?;
-        let subscription = Subscription::Events { address, keys_filter: keys_filter.clone() };
+        let subscription = Subscription::Events {
+            address,
+            keys_filter: keys_filter.clone(),
+            finality_status_filter: finality_status_filter.clone(),
+        };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
-        let events = self.api.starknet.lock().await.get_unlimited_events(
+        let starknet = self.api.starknet.lock().await;
+        let events = starknet.get_unlimited_events(
             Some(starting_block_id),
             Some(BlockId::Tag(BlockTag::PreConfirmed)),
             address,
             keys_filter,
+            Some(finality_status_filter.clone().into()),
         )?;
 
         for event in events {
-            socket_context.notify(subscription_id, NotificationData::Event(event)).await;
+            socket_context
+                .notify(
+                    subscription_id,
+                    NotificationData::Event(SubscriptionEmittedEvent {
+                        emitted_event: event,
+                        finality_status: finality_status_filter.clone(),
+                    }),
+                )
+                .await;
         }
 
         Ok(())

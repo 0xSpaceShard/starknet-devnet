@@ -543,6 +543,7 @@ impl JsonRpcHandler {
                     to_local_block_id,
                     filter.address,
                     filter.keys,
+                    None,
                     pages_read_so_far * filter.chunk_size,
                     Some(filter.chunk_size),
                 )

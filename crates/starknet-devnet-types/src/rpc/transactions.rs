@@ -1017,10 +1017,10 @@ pub struct L1HandlerTransactionStatus {
     pub failure_reason: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransactionFinalityStatus {
+    PreConfirmed,
     AcceptedOnL2,
     AcceptedOnL1,
-    PreConfirmed,
 }
