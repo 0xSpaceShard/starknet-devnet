@@ -18,8 +18,8 @@ use futures::{SinkExt, StreamExt};
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     ClassHashInput, EstimateFeeInput, EventsInput, EventsSubscriptionInput, GetStorageInput,
-    GetStorageProofInput, L1TransactionHashInput, PendingTransactionsSubscriptionInput,
-    SubscriptionBlockIdInput, SubscriptionIdInput, TransactionHashInput, TransactionHashOutput,
+    GetStorageProofInput, L1TransactionHashInput, SubscriptionBlockIdInput, SubscriptionIdInput,
+    TransactionHashInput, TransactionHashOutput, TransactionSubscriptionInput,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -73,8 +73,8 @@ use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
 use crate::subscribe::{
-    NewTransactionStatus, NotificationData, PendingTransactionNotification, SocketId,
-    TransactionHashWrapper,
+    NewTransactionNotification, NewTransactionStatus, NotificationData, SocketId,
+    TransactionFinalityStatusWithoutL1,
 };
 
 /// Helper trait to easily convert results to rpc results
@@ -254,17 +254,17 @@ impl JsonRpcHandler {
         }
     }
 
-    async fn broadcast_pending_tx_changes(
+    async fn broadcast_pre_confirmed_tx_changes(
         &self,
-        old_pending_block: StarknetBlock,
+        old_pre_confirmed_block: StarknetBlock,
     ) -> Result<(), error::ApiError> {
-        let new_pending_block = self.get_block_by_tag(BlockTag::PreConfirmed).await;
-        let old_pending_txs = old_pending_block.get_transactions();
-        let new_pending_txs = new_pending_block.get_transactions();
+        let new_pre_confirmed_block = self.get_block_by_tag(BlockTag::PreConfirmed).await;
+        let old_pre_confirmed_txs = old_pre_confirmed_block.get_transactions();
+        let new_pre_confirmed_txs = new_pre_confirmed_block.get_transactions();
 
-        if new_pending_txs.len() > old_pending_txs.len() {
+        if new_pre_confirmed_txs.len() > old_pre_confirmed_txs.len() {
             #[allow(clippy::expect_used)]
-            let new_tx_hash = new_pending_txs.last().expect("has at least one element");
+            let new_tx_hash = new_pre_confirmed_txs.last().expect("has at least one element");
 
             let starknet = self.api.starknet.lock().await;
 
@@ -283,16 +283,10 @@ impl JsonRpcHandler {
                 .get_transaction_by_hash(*new_tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
 
-            notifications.push(NotificationData::PendingTransaction(
-                PendingTransactionNotification::Full(Box::new(tx.clone())),
-            ));
-
-            notifications.push(NotificationData::PendingTransaction(
-                PendingTransactionNotification::Hash(TransactionHashWrapper {
-                    hash: *tx.get_transaction_hash(),
-                    sender_address: tx.get_sender_address(),
-                }),
-            ));
+            notifications.push(NotificationData::NewTransaction(NewTransactionNotification {
+                tx: tx.clone(),
+                finality_status: TransactionFinalityStatusWithoutL1::PreConfirmed,
+            }));
 
             let events = starknet.get_unlimited_events(
                 Some(BlockId::Tag(BlockTag::PreConfirmed)),
@@ -336,15 +330,10 @@ impl JsonRpcHandler {
                 // pre-confirmed block, thus triggering the notification. This is
                 // important for users depending on this subscription type to find
                 // out about all new transactions.
-                notifications.push(NotificationData::PendingTransaction(
-                    PendingTransactionNotification::Full(Box::new(tx.clone())),
-                ));
-                notifications.push(NotificationData::PendingTransaction(
-                    PendingTransactionNotification::Hash(TransactionHashWrapper {
-                        hash: *tx_hash,
-                        sender_address: tx.get_sender_address(),
-                    }),
-                ));
+                notifications.push(NotificationData::NewTransaction(NewTransactionNotification {
+                    tx: tx.clone(),
+                    finality_status: TransactionFinalityStatusWithoutL1::AcceptedOnL2,
+                }));
 
                 // If pre-confirmed block used, tx status notifications have already been sent.
                 // If we are here, pre-confirmed block is not used and subscribers need to be
@@ -391,7 +380,7 @@ impl JsonRpcHandler {
         };
 
         if let Some(old_pending_block) = old_pending_block {
-            self.broadcast_pending_tx_changes(old_pending_block).await?;
+            self.broadcast_pre_confirmed_tx_changes(old_pending_block).await?;
         }
 
         let new_latest_block = self.get_block_by_tag(BlockTag::Latest).await;
@@ -948,10 +937,10 @@ pub enum JsonRpcSubscriptionRequest {
     NewHeads(Option<SubscriptionBlockIdInput>),
     #[serde(rename = "starknet_subscribeTransactionStatus")]
     TransactionStatus(TransactionHashInput),
-    #[serde(rename = "starknet_subscribePendingTransactions", with = "optional_params")]
-    PendingTransactions(Option<PendingTransactionsSubscriptionInput>),
     #[serde(rename = "starknet_subscribeEvents")]
     Events(Option<EventsSubscriptionInput>),
+    #[serde(rename = "starknet_subscribeNewTransactions", with = "optional_params")]
+    NewTransactions(Option<TransactionSubscriptionInput>),
     #[serde(rename = "starknet_unsubscribe")]
     Unsubscribe(SubscriptionIdInput),
 }

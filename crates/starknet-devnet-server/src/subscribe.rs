@@ -73,17 +73,29 @@ impl AddressFilter {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct StatusFilter {
+    status_container: Vec<TransactionFinalityStatusWithoutL1>,
+}
+
+impl StatusFilter {
+    pub(crate) fn new(status_container: Vec<TransactionFinalityStatusWithoutL1>) -> Self {
+        Self { status_container }
+    }
+    pub(crate) fn passes(&self, status: &TransactionFinalityStatusWithoutL1) -> bool {
+        self.status_container.is_empty() || self.status_container.contains(status)
+    }
+}
+
 #[derive(Debug)]
 pub enum Subscription {
     NewHeads,
     TransactionStatus {
         transaction_hash: TransactionHash,
     },
-    PendingTransactionsFull {
+    NewTransactions {
         address_filter: AddressFilter,
-    },
-    PendingTransactionsHash {
-        address_filter: AddressFilter,
+        status_filter: StatusFilter,
     },
     Events {
         address: Option<ContractAddress>,
@@ -97,10 +109,7 @@ impl Subscription {
         match self {
             Subscription::NewHeads => SubscriptionConfirmation::NewSubscription(id),
             Subscription::TransactionStatus { .. } => SubscriptionConfirmation::NewSubscription(id),
-            Subscription::PendingTransactionsFull { .. }
-            | Subscription::PendingTransactionsHash { .. } => {
-                SubscriptionConfirmation::NewSubscription(id)
-            }
+            Subscription::NewTransactions { .. } => SubscriptionConfirmation::NewSubscription(id),
             Subscription::Events { .. } => SubscriptionConfirmation::NewSubscription(id),
         }
     }
@@ -113,19 +122,15 @@ impl Subscription {
                 NotificationData::TransactionStatus(notification),
             ) => subscription_hash == &notification.transaction_hash,
             (
-                Subscription::PendingTransactionsFull { address_filter },
-                NotificationData::PendingTransaction(PendingTransactionNotification::Full(tx)),
+                Subscription::NewTransactions { address_filter, status_filter },
+                NotificationData::NewTransaction(NewTransactionNotification {
+                    tx,
+                    finality_status,
+                }),
             ) => match tx.get_sender_address() {
-                Some(address) => address_filter.passes(&address),
-                None => true,
-            },
-            (
-                Subscription::PendingTransactionsHash { address_filter },
-                NotificationData::PendingTransaction(PendingTransactionNotification::Hash(
-                    hash_wrapper,
-                )),
-            ) => match hash_wrapper.sender_address {
-                Some(address) => address_filter.passes(&address),
+                Some(address) => {
+                    address_filter.passes(&address) && status_filter.passes(finality_status)
+                }
                 None => true,
             },
             (
@@ -188,19 +193,25 @@ impl<'de> Deserialize<'de> for TransactionHashWrapper {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum TransactionFinalityStatusWithoutL1 {
+    PreConfirmed,
+    AcceptedOnL2,
+}
+
 #[derive(Debug, Clone, Serialize)]
-#[serde(untagged)]
 #[cfg_attr(test, derive(Deserialize))]
-pub enum PendingTransactionNotification {
-    Hash(TransactionHashWrapper),
-    Full(Box<TransactionWithHash>),
+pub struct NewTransactionNotification {
+    #[serde(flatten)]
+    pub tx: TransactionWithHash,
+    pub finality_status: TransactionFinalityStatusWithoutL1,
 }
 
 #[derive(Debug, Clone)]
 pub enum NotificationData {
     NewHeads(BlockHeader),
     TransactionStatus(NewTransactionStatus),
-    PendingTransaction(PendingTransactionNotification),
+    NewTransaction(NewTransactionNotification),
     Event(SubscriptionEmittedEvent),
     Reorg(ReorgData),
 }
@@ -226,7 +237,7 @@ pub(crate) enum SubscriptionNotification {
     #[serde(rename = "starknet_subscriptionTransactionStatus")]
     TransactionStatus { subscription_id: SubscriptionId, result: NewTransactionStatus },
     #[serde(rename = "starknet_subscriptionPendingTransactions")]
-    PendingTransaction { subscription_id: SubscriptionId, result: PendingTransactionNotification },
+    PendingTransaction { subscription_id: SubscriptionId, result: NewTransactionNotification },
     #[serde(rename = "starknet_subscriptionEvents")]
     Event { subscription_id: SubscriptionId, result: SubscriptionEmittedEvent },
     #[serde(rename = "starknet_subscriptionReorg")]
@@ -308,7 +319,7 @@ impl SocketContext {
                 }
             }
 
-            NotificationData::PendingTransaction(pending_transaction_notification) => {
+            NotificationData::NewTransaction(pending_transaction_notification) => {
                 SubscriptionNotification::PendingTransaction {
                     subscription_id,
                     result: pending_transaction_notification,
