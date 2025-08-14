@@ -288,15 +288,11 @@ impl JsonRpcHandler {
         )?;
 
         for event in events {
-            socket_context
-                .notify(
-                    subscription_id,
-                    NotificationData::Event(SubscriptionEmittedEvent {
-                        emitted_event: event,
-                        finality_status: finality_status_filter.clone(),
-                    }),
-                )
-                .await;
+            let notification_data = NotificationData::Event(SubscriptionEmittedEvent {
+                emitted_event: event,
+                finality_status: finality_status_filter.clone(),
+            });
+            socket_context.notify(subscription_id, notification_data).await;
         }
 
         Ok(())

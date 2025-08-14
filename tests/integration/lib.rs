@@ -34,7 +34,7 @@ mod test_restrictive_mode;
 mod test_simulate_transactions;
 mod test_subscription_to_blocks;
 mod test_subscription_to_events;
-mod test_subscription_to_pending_txs;
+mod test_subscription_to_new_txs;
 mod test_subscription_to_reorg;
 mod test_subscription_to_tx_status;
 mod test_subscription_with_invalid_block_id;

@@ -319,48 +319,43 @@ impl JsonRpcHandler {
 
         let starknet = self.api.starknet.lock().await;
 
-        for tx_hash in new_latest_block.get_transactions() {
-            if !self.starknet_config.uses_pre_confirmed_block() {
-                let tx = starknet
-                    .get_transaction_by_hash(*tx_hash)
-                    .map_err(error::ApiError::StarknetDevnetError)?;
+        let latest_txs = new_latest_block.get_transactions();
+        for tx_hash in latest_txs {
+            let tx = starknet
+                .get_transaction_by_hash(*tx_hash)
+                .map_err(error::ApiError::StarknetDevnetError)?;
 
-                // There are no pre-confirmed txs in this mode, but basically we are pretending that
-                // the transaction existed for a short period of time in the
-                // pre-confirmed block, thus triggering the notification. This is
-                // important for users depending on this subscription type to find
-                // out about all new transactions.
-                notifications.push(NotificationData::NewTransaction(NewTransactionNotification {
-                    tx: tx.clone(),
-                    finality_status: TransactionFinalityStatusWithoutL1::AcceptedOnL2,
-                }));
+            notifications.push(NotificationData::NewTransaction(NewTransactionNotification {
+                tx: tx.clone(),
+                finality_status: TransactionFinalityStatusWithoutL1::AcceptedOnL2,
+            }));
 
-                // If pre-confirmed block used, tx status notifications have already been sent.
-                // If we are here, pre-confirmed block is not used and subscribers need to be
-                // notified.
-                let status = starknet
-                    .get_transaction_execution_and_finality_status(*tx_hash)
-                    .map_err(error::ApiError::StarknetDevnetError)?;
-                notifications.push(NotificationData::TransactionStatus(NewTransactionStatus {
-                    transaction_hash: *tx_hash,
-                    status,
-                }));
+            // If pre-confirmed block used, tx status notifications have already been sent.
+            // If we are here, pre-confirmed block is not used and subscribers need to be
+            // notified.
+            let status = starknet
+                .get_transaction_execution_and_finality_status(*tx_hash)
+                .map_err(error::ApiError::StarknetDevnetError)?;
+            notifications.push(NotificationData::TransactionStatus(NewTransactionStatus {
+                transaction_hash: *tx_hash,
+                status,
+            }));
+        }
 
-                let events = starknet.get_unlimited_events(
-                    Some(BlockId::Tag(BlockTag::Latest)),
-                    Some(BlockId::Tag(BlockTag::Latest)),
-                    None,
-                    None,
-                    None, // latest block only has txs accepted on l2
-                )?;
-                for event in events {
-                    notifications.push(NotificationData::Event(SubscriptionEmittedEvent {
-                        emitted_event: event,
-                        // latest block only has txs accepted on l2
-                        finality_status: SubscribableEventStatus::AcceptedOnL2,
-                    }));
-                }
-            }
+        // TODO filter events? by what?
+        let events = starknet.get_unlimited_events(
+            Some(BlockId::Tag(BlockTag::Latest)),
+            Some(BlockId::Tag(BlockTag::Latest)),
+            None,
+            None,
+            None, // latest block only has txs accepted on l2
+        )?;
+        for event in events {
+            notifications.push(NotificationData::Event(SubscriptionEmittedEvent {
+                emitted_event: event,
+                // latest block only has txs accepted on l2
+                finality_status: SubscribableEventStatus::AcceptedOnL2,
+            }));
         }
 
         self.api.sockets.lock().await.notify_subscribers(&notifications).await;
@@ -371,7 +366,7 @@ impl JsonRpcHandler {
     async fn broadcast_changes(
         &self,
         old_latest_block: Option<StarknetBlock>,
-        old_pending_block: Option<StarknetBlock>,
+        old_pre_confirmed_block: Option<StarknetBlock>,
     ) -> Result<(), error::ApiError> {
         let old_latest_block = if let Some(block) = old_latest_block {
             block
@@ -379,8 +374,8 @@ impl JsonRpcHandler {
             return Ok(());
         };
 
-        if let Some(old_pending_block) = old_pending_block {
-            self.broadcast_pre_confirmed_tx_changes(old_pending_block).await?;
+        if let Some(old_pre_confirmed_block) = old_pre_confirmed_block {
+            self.broadcast_pre_confirmed_tx_changes(old_pre_confirmed_block).await?;
         }
 
         let new_latest_block = self.get_block_by_tag(BlockTag::Latest).await;

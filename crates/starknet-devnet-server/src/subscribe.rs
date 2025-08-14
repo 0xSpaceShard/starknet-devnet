@@ -139,14 +139,15 @@ impl Subscription {
             ) => {
                 let event = (&event_with_finality_status.emitted_event).into();
                 check_if_filter_applies_for_event(address, keys_filter, &event)
-                    && event_with_finality_status.finality_status >= *finality_status_filter
+                    && event_with_finality_status.finality_status == *finality_status_filter
             }
             (
                 Subscription::NewHeads
                 | Subscription::TransactionStatus { .. }
-                | Subscription::Events { .. },
+                | Subscription::Events { .. }
+                | Subscription::NewTransactions { .. },
                 NotificationData::Reorg(_),
-            ) => true, // any subscription other than pending tx requires reorg notification // TODO
+            ) => true, // All subscriptions require a reorg notification
             _ => false,
         }
     }
@@ -194,6 +195,7 @@ impl<'de> Deserialize<'de> for TransactionHashWrapper {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransactionFinalityStatusWithoutL1 {
     PreConfirmed,
     AcceptedOnL2,
@@ -236,8 +238,8 @@ pub(crate) enum SubscriptionNotification {
     NewHeads { subscription_id: SubscriptionId, result: BlockHeader },
     #[serde(rename = "starknet_subscriptionTransactionStatus")]
     TransactionStatus { subscription_id: SubscriptionId, result: NewTransactionStatus },
-    #[serde(rename = "starknet_subscriptionPendingTransactions")]
-    PendingTransaction { subscription_id: SubscriptionId, result: NewTransactionNotification },
+    #[serde(rename = "starknet_subscriptionNewTransaction")]
+    NewTransaction { subscription_id: SubscriptionId, result: NewTransactionNotification },
     #[serde(rename = "starknet_subscriptionEvents")]
     Event { subscription_id: SubscriptionId, result: SubscriptionEmittedEvent },
     #[serde(rename = "starknet_subscriptionReorg")]
@@ -320,7 +322,7 @@ impl SocketContext {
             }
 
             NotificationData::NewTransaction(pending_transaction_notification) => {
-                SubscriptionNotification::PendingTransaction {
+                SubscriptionNotification::NewTransaction {
                     subscription_id,
                     result: pending_transaction_notification,
                 }
