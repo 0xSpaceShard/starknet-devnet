@@ -228,24 +228,6 @@ impl OriginReader for NodeApiOriginReader {
             }
         }
     }
-
-    // fn get_block_hash(&self, block_number: u64) -> StateResult<Felt> {
-    //     let storage = match self.send_body(
-    //         "starknet_getBlockWithTxHashes",
-    //         serde_json::json!({
-    //             "block_id": {
-    //                 "block_number": block_number,
-    //             }
-    //         }),
-    //     ) {
-    //         Err(OriginError::NoResult) => Default::default(),
-    //         Err(other_error) => return Err(StateError::StateReadError(other_error.to_string())),
-    //         Ok(value) => {
-    //             get_json_value_from_object_by_keys(["result", "block_hash"].as_slice(), &value)?
-    //         }
-    //     };
-    //     Ok(storage)
-    // }
 }
 
 /// EMPTY ORIGIN READER
@@ -273,10 +255,6 @@ impl OriginReader for EmptyOriginReader {
     fn get_class_hash_at(&self, _contract_address: ContractAddress) -> StateResult<ClassHash> {
         Ok(Default::default())
     }
-
-    // fn get_block_hash(&self, _block_number: u64) -> StateResult<Felt> {
-    //     Ok(Default::default())
-    // }
 }
 
 #[derive(Debug, Clone)]
@@ -345,14 +323,6 @@ impl Default for StarknetDefaulter {
         Self::create_empty_defaulter()
     }
 }
-
-// impl Deref for StarknetDefaulter {
-//     type Target = dyn OriginReader;
-
-//     fn deref(&self) -> &Self::Target {
-//         self.reader.deref()
-//     }
-// }
 
 impl OriginReader for StarknetDefaulter {
     fn get_storage_at(
@@ -452,32 +422,3 @@ fn convert_json_value_to_felt(json_value: serde_json::Value) -> StateResult<Felt
 fn convert_patricia_key_to_hex(key: PatriciaKey) -> String {
     key.key().to_hex_string()
 }
-
-// fn get_json_value_from_object_by_keys(
-//     keys: &[&str],
-//     value: &serde_json::Value,
-// ) -> StateResult<Felt> {
-//     match value {
-//         serde_json::Value::Object(map) => {
-//             if let Some((first, others)) = keys.split_first() {
-//                 let val = map.get(*first).ok_or(StateError::StateReadError(format!(
-//                     "Key '{}' not found in JSON object",
-//                     first
-//                 )))?;
-
-//                 if others.is_empty() {
-//                     // If no more keys, return the value as Felt
-//                     convert_json_value_to_felt(val.clone())
-//                 } else {
-//                     // Recur with the rest of the keys
-//                     get_json_value_from_object_by_keys(others, val)
-//                 }
-//             } else {
-//                 Err(StateError::StateReadError(
-//                     "No keys provided to search in JSON object".to_string(),
-//                 ))
-//             }
-//         }
-//         _ => Err(StateError::StateReadError("Expected a JSON object".to_string())),
-//     }
-// }
