@@ -227,7 +227,7 @@ async fn should_not_notify_if_tx_by_filtered_address_in_latest_block_in_on_deman
     let acceptable_address = CHARGEABLE_ACCOUNT_ADDRESS;
     subscribe_new_txs(
         &mut ws,
-        json!({ "finality_status": ["PRE_CONFIRMED"], "sender_address": [acceptable_address] }),
+        json!({ "finality_status": [TransactionFinalityStatus::PreConfirmed], "sender_address": [acceptable_address] }),
     )
     .await
     .unwrap();
@@ -248,7 +248,7 @@ async fn should_not_notify_if_tx_by_filtered_address_in_latest_block_in_on_tx_mo
     let acceptable_address = CHARGEABLE_ACCOUNT_ADDRESS;
     subscribe_new_txs(
         &mut ws,
-        json!({ "finality_status": ["PRE_CONFIRMED"], "sender_address": [acceptable_address] }),
+        json!({ "finality_status": [TransactionFinalityStatus::PreConfirmed], "sender_address": [acceptable_address] }),
     )
     .await
     .unwrap();
@@ -266,7 +266,8 @@ async fn should_not_notify_if_tx_already_in_latest_block_in_on_demand_mode() {
     devnet.create_block().await.unwrap();
 
     // Subscribe AFTER the tx and block creation.
-    subscribe_new_txs(&mut ws, json!({ "finality_status": ["PRE_CONFIRMED"] })).await.unwrap();
+    let finality_status = TransactionFinalityStatus::PreConfirmed;
+    subscribe_new_txs(&mut ws, json!({ "finality_status": [finality_status] })).await.unwrap();
     assert_no_notifications(&mut ws).await;
 }
 
@@ -279,7 +280,8 @@ async fn should_not_notify_if_tx_already_in_latest_block_in_on_tx_mode() {
     send_dummy_mint_tx(&devnet).await;
 
     // Subscribe AFTER the tx and block creation.
-    subscribe_new_txs(&mut ws, json!({ "finality_status": ["PRE_CONFIRMED"] })).await.unwrap();
+    let finality_status = TransactionFinalityStatus::PreConfirmed;
+    subscribe_new_txs(&mut ws, json!({ "finality_status": [finality_status] })).await.unwrap();
     assert_no_notifications(&mut ws).await;
 }
 
@@ -289,13 +291,14 @@ async fn should_not_notify_on_read_request_if_txs_in_pre_confirmed_block() {
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
     let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
-    subscribe_new_txs(&mut ws, json!({ "finality_status": ["PRE_CONFIRMED"] })).await.unwrap();
+    let finality_status = TransactionFinalityStatus::PreConfirmed;
+    subscribe_new_txs(&mut ws, json!({ "finality_status": [finality_status] })).await.unwrap();
 
     send_dummy_mint_tx(&devnet).await;
 
     receive_rpc_via_ws(&mut ws).await.unwrap();
 
-    // read request should have no impact
+    // Read request should have no impact
     let dummy_address = Felt::ONE;
     devnet.get_balance_latest(&dummy_address, FeeUnit::Wei).await.unwrap();
 
@@ -320,8 +323,9 @@ async fn should_notify_twice_if_subscribed_to_both_finality_statuses() {
         assert_eq!(notification_tx["finality_status"].take(), json!(finality_status));
         let extracted_tx: Transaction = serde_json::from_value(notification_tx).unwrap();
         assert_eq!(extracted_tx.transaction_hash(), &tx_hash);
+
         assert_no_notifications(&mut ws).await;
-        devnet.create_block().await.unwrap();
+        devnet.create_block().await.unwrap(); // On first loop iteration, this changes tx status
     }
 
     assert_no_notifications(&mut ws).await;
