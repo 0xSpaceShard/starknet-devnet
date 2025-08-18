@@ -11,6 +11,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{SubscribableEventStatus, SubscriptionEmittedEvent};
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::block::{BlockHeader, ReorgData};
+use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{TransactionStatus, TransactionWithHash};
 use tokio::sync::Mutex;
 
@@ -97,6 +98,10 @@ pub enum Subscription {
         address_filter: AddressFilter,
         status_filter: StatusFilter,
     },
+    NewTransactionReceipts {
+        address_filter: AddressFilter,
+        status_filter: StatusFilter,
+    },
     Events {
         address: Option<ContractAddress>,
         keys_filter: Option<Vec<Vec<Felt>>>,
@@ -110,6 +115,9 @@ impl Subscription {
             Subscription::NewHeads => SubscriptionConfirmation::NewSubscription(id),
             Subscription::TransactionStatus { .. } => SubscriptionConfirmation::NewSubscription(id),
             Subscription::NewTransactions { .. } => SubscriptionConfirmation::NewSubscription(id),
+            Subscription::NewTransactionReceipts { .. } => {
+                SubscriptionConfirmation::NewSubscription(id)
+            }
             Subscription::Events { .. } => SubscriptionConfirmation::NewSubscription(id),
         }
     }
@@ -214,6 +222,7 @@ pub enum NotificationData {
     NewHeads(BlockHeader),
     TransactionStatus(NewTransactionStatus),
     NewTransaction(NewTransactionNotification),
+    NewTransactionReceipt(TransactionReceipt),
     Event(SubscriptionEmittedEvent),
     Reorg(ReorgData),
 }
@@ -240,6 +249,8 @@ pub(crate) enum SubscriptionNotification {
     TransactionStatus { subscription_id: SubscriptionId, result: NewTransactionStatus },
     #[serde(rename = "starknet_subscriptionNewTransaction")]
     NewTransaction { subscription_id: SubscriptionId, result: NewTransactionNotification },
+    #[serde(rename = "starknet_subscriptionNewTransactionReceipts")]
+    NewTransactionReceipt { subscription_id: SubscriptionId, result: TransactionReceipt },
     #[serde(rename = "starknet_subscriptionEvents")]
     Event { subscription_id: SubscriptionId, result: SubscriptionEmittedEvent },
     #[serde(rename = "starknet_subscriptionReorg")]
@@ -321,10 +332,17 @@ impl SocketContext {
                 }
             }
 
-            NotificationData::NewTransaction(pending_transaction_notification) => {
+            NotificationData::NewTransaction(tx_notification) => {
                 SubscriptionNotification::NewTransaction {
                     subscription_id,
-                    result: pending_transaction_notification,
+                    result: tx_notification,
+                }
+            }
+
+            NotificationData::NewTransactionReceipt(tx_receipt) => {
+                SubscriptionNotification::NewTransactionReceipt {
+                    subscription_id,
+                    result: tx_receipt,
                 }
             }
 

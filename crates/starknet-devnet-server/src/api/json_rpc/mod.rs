@@ -936,6 +936,8 @@ pub enum JsonRpcSubscriptionRequest {
     Events(Option<EventsSubscriptionInput>),
     #[serde(rename = "starknet_subscribeNewTransactions", with = "optional_params")]
     NewTransactions(Option<TransactionSubscriptionInput>),
+    #[serde(rename = "starknet_subscribeNewTransactionReceipts", with = "optional_params")]
+    NewTransactionReceipts(Option<TransactionSubscriptionInput>),
     #[serde(rename = "starknet_unsubscribe")]
     Unsubscribe(SubscriptionIdInput),
 }

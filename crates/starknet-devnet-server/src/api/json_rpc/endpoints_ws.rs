@@ -4,6 +4,7 @@ use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::block::{
     Block, BlockId, BlockResult, BlockStatus, BlockTag, PreConfirmedBlock,
 };
+use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{TransactionWithHash, Transactions};
 
 use super::error::ApiError;
@@ -35,6 +36,9 @@ impl JsonRpcHandler {
             }) => self.subscribe_tx_status(transaction_hash, rpc_request_id, socket_id).await,
             JsonRpcSubscriptionRequest::NewTransactions(data) => {
                 self.subscribe_new_txs(data, rpc_request_id, socket_id).await
+            }
+            JsonRpcSubscriptionRequest::NewTransactionReceipts(data) => {
+                self.subscribe_new_tx_receipts(data, rpc_request_id, socket_id).await
             }
             JsonRpcSubscriptionRequest::Events(data) => {
                 self.subscribe_events(data, rpc_request_id, socket_id).await
@@ -132,6 +136,30 @@ impl JsonRpcHandler {
         Ok(())
     }
 
+    async fn get_tx_receipts(
+        &self,
+        block_id: &BlockId,
+    ) -> Result<Vec<TransactionReceipt>, ApiError> {
+        let starknet = self.api.starknet.lock().await;
+        let block = starknet.get_block_with_receipts(block_id)?;
+
+        let txs = match block {
+            BlockResult::Block(block) => block.transactions,
+            BlockResult::PreConfirmedBlock(pre_confirmed_block) => pre_confirmed_block.transactions,
+        };
+
+        let txs_with_receipt = match txs {
+            Transactions::Hashes(_) | Transactions::Full(_) => {
+                return Err(ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
+                    msg: format!("Invalid txs: {txs:?}"),
+                }));
+            }
+            Transactions::FullWithReceipts(txs_with_receipt) => txs_with_receipt,
+        };
+
+        Ok(txs_with_receipt.into_iter().map(|tx_with_receipt| tx_with_receipt.receipt).collect())
+    }
+
     async fn get_pre_confirmed_txs(&self) -> Result<Vec<TransactionWithHash>, ApiError> {
         let starknet = self.api.starknet.lock().await;
         let block = starknet.get_block_with_transactions(&BlockId::Tag(BlockTag::PreConfirmed))?;
@@ -209,6 +237,52 @@ impl JsonRpcHandler {
                     finality_status: TransactionFinalityStatusWithoutL1::AcceptedOnL2,
                 });
                 socket_context.notify(subscription_id, notification).await;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Does not return TOO_MANY_ADDRESSES_IN_FILTER
+    /// TODO: refactor
+    pub async fn subscribe_new_tx_receipts(
+        &self,
+        maybe_subscription_input: Option<TransactionSubscriptionInput>,
+        rpc_request_id: Id,
+        socket_id: SocketId,
+    ) -> Result<(), ApiError> {
+        let status_filter = StatusFilter::new(
+            maybe_subscription_input
+                .as_ref()
+                .and_then(|subscription_input| subscription_input.finality_status.clone())
+                .unwrap_or_else(|| vec![TransactionFinalityStatusWithoutL1::AcceptedOnL2]),
+        );
+
+        let address_filter = AddressFilter::new(
+            maybe_subscription_input
+                .and_then(|subscription_input| subscription_input.sender_address)
+                .unwrap_or_default(),
+        );
+
+        let mut sockets = self.api.sockets.lock().await;
+        let socket_context = sockets.get_mut(&socket_id)?;
+
+        let subscription = Subscription::NewTransactionReceipts {
+            address_filter,
+            status_filter: status_filter.clone(),
+        };
+        let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
+
+        for (finality_status, tag) in [
+            (TransactionFinalityStatusWithoutL1::PreConfirmed, BlockTag::PreConfirmed),
+            (TransactionFinalityStatusWithoutL1::AcceptedOnL2, BlockTag::Latest),
+        ] {
+            if status_filter.passes(&finality_status) {
+                let receipts = self.get_tx_receipts(&BlockId::Tag(tag)).await?;
+                for receipt in receipts {
+                    let notification = NotificationData::NewTransactionReceipt(receipt);
+                    socket_context.notify(subscription_id, notification).await;
+                }
             }
         }
 
