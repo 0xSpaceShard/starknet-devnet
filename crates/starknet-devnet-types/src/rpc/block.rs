@@ -253,14 +253,10 @@ mod test_subscription_block_id {
     }
 
     #[test]
-    fn reject_pending_and_pre_confirmed() {
-        serde_json::from_value::<SubscriptionBlockId>(json!("pending")).unwrap_err();
-        serde_json::from_value::<SubscriptionBlockId>(json!("pre_confirmed")).unwrap_err();
-    }
-
-    #[test]
-    fn accept_l1_accepted() {
-        serde_json::from_value::<SubscriptionBlockId>(json!("l1_accepted")).unwrap();
+    fn reject_non_latest_subscription_block_tag() {
+        for tag in ["pending", "pre_confirmed", "l1_accepted"] {
+            serde_json::from_value::<SubscriptionBlockId>(json!(tag)).unwrap_err();
+        }
     }
 
     #[test]
