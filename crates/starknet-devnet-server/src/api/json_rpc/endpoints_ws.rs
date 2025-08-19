@@ -1,9 +1,7 @@
 use starknet_core::error::Error;
 use starknet_types::emitted_event::SubscriptionEmittedEvent;
 use starknet_types::felt::TransactionHash;
-use starknet_types::rpc::block::{
-    Block, BlockId, BlockResult, BlockStatus, BlockTag, PreConfirmedBlock,
-};
+use starknet_types::rpc::block::{BlockId, BlockResult, BlockStatus, BlockTag};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
     TransactionFinalityStatus, TransactionWithHash, Transactions,
@@ -162,35 +160,44 @@ impl JsonRpcHandler {
         Ok(txs_with_receipt.into_iter().map(|tx_with_receipt| tx_with_receipt.receipt).collect())
     }
 
-    async fn get_pre_confirmed_txs(&self) -> Result<Vec<TransactionWithHash>, ApiError> {
+    async fn get_txs(&self, block_id: &BlockId) -> Result<Vec<TransactionWithHash>, ApiError> {
         let starknet = self.api.starknet.lock().await;
-        let block = starknet.get_block_with_transactions(&BlockId::Tag(BlockTag::PreConfirmed))?;
-        match block {
-            BlockResult::PreConfirmedBlock(PreConfirmedBlock {
-                transactions: Transactions::Full(txs),
-                ..
-            }) => Ok(txs),
-            _ => {
-                // Never reached if get_block_with_transactions properly implemented.
-                Err(ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
-                    msg: "Invalid block".into(),
-                }))
+        let block = starknet.get_block_with_transactions(block_id)?;
+
+        let txs = match block {
+            BlockResult::Block(block) => block.transactions,
+            BlockResult::PreConfirmedBlock(pre_confirmed_block) => pre_confirmed_block.transactions,
+        };
+
+        let full_txs = match txs {
+            Transactions::Full(txs) => txs,
+            Transactions::FullWithReceipts(_) | Transactions::Hashes(_) => {
+                return Err(ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
+                    msg: format!("Invalid txs: {txs:?}"),
+                }));
             }
-        }
+        };
+
+        Ok(full_txs)
     }
 
-    async fn get_latest_txs(&self) -> Result<Vec<TransactionWithHash>, ApiError> {
-        let starknet = self.api.starknet.lock().await;
-        let block = starknet.get_block_with_transactions(&BlockId::Tag(BlockTag::Latest))?;
-        match block {
-            BlockResult::Block(Block { transactions: Transactions::Full(txs), .. }) => Ok(txs),
-            _ => {
-                // Never reached if get_block_with_transactions properly implemented.
-                Err(ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
-                    msg: "Invalid block".into(),
-                }))
-            }
-        }
+    fn to_filters(
+        maybe_subscription_input: Option<TransactionSubscriptionInput>,
+    ) -> (StatusFilter, AddressFilter) {
+        let status_filter = StatusFilter::new(
+            maybe_subscription_input
+                .as_ref()
+                .and_then(|subscription_input| subscription_input.finality_status.clone())
+                .unwrap_or_else(|| vec![TransactionFinalityStatusWithoutL1::AcceptedOnL2]),
+        );
+
+        let address_filter = AddressFilter::new(
+            maybe_subscription_input
+                .and_then(|subscription_input| subscription_input.sender_address)
+                .unwrap_or_default(),
+        );
+
+        (status_filter, address_filter)
     }
 
     /// Does not return TOO_MANY_ADDRESSES_IN_FILTER
@@ -200,45 +207,30 @@ impl JsonRpcHandler {
         rpc_request_id: Id,
         socket_id: SocketId,
     ) -> Result<(), ApiError> {
-        let status_filter = StatusFilter::new(
-            maybe_subscription_input
-                .as_ref()
-                .and_then(|subscription_input| subscription_input.finality_status.clone())
-                .unwrap_or_else(|| vec![TransactionFinalityStatusWithoutL1::AcceptedOnL2]),
-        );
-
-        let address_filter = AddressFilter::new(
-            maybe_subscription_input
-                .and_then(|subscription_input| subscription_input.sender_address)
-                .unwrap_or_default(),
-        );
+        let (status_filter, address_filter) = Self::to_filters(maybe_subscription_input);
 
         let mut sockets = self.api.sockets.lock().await;
         let socket_context = sockets.get_mut(&socket_id)?;
 
+        // TODO consider moving to function end to avoid cloning
         let subscription =
             Subscription::NewTransactions { address_filter, status_filter: status_filter.clone() };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
-        if status_filter.passes(&TransactionFinalityStatusWithoutL1::PreConfirmed) {
-            let pre_confirmed_txs = self.get_pre_confirmed_txs().await?;
-            for tx in pre_confirmed_txs {
-                let notification = NotificationData::NewTransaction(NewTransactionNotification {
-                    tx,
-                    finality_status: TransactionFinalityStatusWithoutL1::PreConfirmed,
-                });
-                socket_context.notify(subscription_id, notification).await;
-            }
-        }
-
-        if status_filter.passes(&TransactionFinalityStatusWithoutL1::AcceptedOnL2) {
-            let latest_txs = self.get_latest_txs().await?;
-            for tx in latest_txs {
-                let notification = NotificationData::NewTransaction(NewTransactionNotification {
-                    tx,
-                    finality_status: TransactionFinalityStatusWithoutL1::AcceptedOnL2,
-                });
-                socket_context.notify(subscription_id, notification).await;
+        for (finality_status, block_tag) in [
+            (TransactionFinalityStatusWithoutL1::PreConfirmed, BlockTag::PreConfirmed),
+            (TransactionFinalityStatusWithoutL1::AcceptedOnL2, BlockTag::Latest),
+        ] {
+            if status_filter.passes(&finality_status) {
+                let txs = self.get_txs(&BlockId::Tag(block_tag)).await?;
+                for tx in txs {
+                    let notification =
+                        NotificationData::NewTransaction(NewTransactionNotification {
+                            tx,
+                            finality_status: finality_status.clone(),
+                        });
+                    socket_context.notify(subscription_id, notification).await;
+                }
             }
         }
 
@@ -246,25 +238,13 @@ impl JsonRpcHandler {
     }
 
     /// Does not return TOO_MANY_ADDRESSES_IN_FILTER
-    /// TODO: refactor
     pub async fn subscribe_new_tx_receipts(
         &self,
         maybe_subscription_input: Option<TransactionSubscriptionInput>,
         rpc_request_id: Id,
         socket_id: SocketId,
     ) -> Result<(), ApiError> {
-        let status_filter = StatusFilter::new(
-            maybe_subscription_input
-                .as_ref()
-                .and_then(|subscription_input| subscription_input.finality_status.clone())
-                .unwrap_or_else(|| vec![TransactionFinalityStatusWithoutL1::AcceptedOnL2]),
-        );
-
-        let address_filter = AddressFilter::new(
-            maybe_subscription_input
-                .and_then(|subscription_input| subscription_input.sender_address)
-                .unwrap_or_default(),
-        );
+        let (status_filter, address_filter) = Self::to_filters(maybe_subscription_input);
 
         let mut sockets = self.api.sockets.lock().await;
         let socket_context = sockets.get_mut(&socket_id)?;
@@ -275,12 +255,12 @@ impl JsonRpcHandler {
         };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
-        for (finality_status, tag) in [
+        for (finality_status, block_tag) in [
             (TransactionFinalityStatusWithoutL1::PreConfirmed, BlockTag::PreConfirmed),
             (TransactionFinalityStatusWithoutL1::AcceptedOnL2, BlockTag::Latest),
         ] {
             if status_filter.passes(&finality_status) {
-                let receipts = self.get_tx_receipts(&BlockId::Tag(tag)).await?;
+                let receipts = self.get_tx_receipts(&BlockId::Tag(block_tag)).await?;
                 for receipt in receipts {
                     let notification = NotificationData::NewTransactionReceipt(receipt);
                     socket_context.notify(subscription_id, notification).await;
