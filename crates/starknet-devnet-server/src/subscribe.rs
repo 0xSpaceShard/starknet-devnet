@@ -85,8 +85,18 @@ impl StatusFilter {
     pub(crate) fn new(status_container: Vec<TransactionFinalityStatusWithoutL1>) -> Self {
         Self { status_container }
     }
-    pub(crate) fn passes(&self, status: &TransactionFinalityStatusWithoutL1) -> bool {
-        self.status_container.is_empty() || self.status_container.contains(status)
+
+    pub(crate) fn passes(&self, status: &TransactionFinalityStatus) -> bool {
+        self.status_container.is_empty()
+            || match status {
+                TransactionFinalityStatus::PreConfirmed => self
+                    .status_container
+                    .contains(&TransactionFinalityStatusWithoutL1::PreConfirmed),
+                TransactionFinalityStatus::AcceptedOnL2 => self
+                    .status_container
+                    .contains(&TransactionFinalityStatusWithoutL1::AcceptedOnL2),
+                TransactionFinalityStatus::AcceptedOnL1 => false,
+            }
     }
 }
 
@@ -107,7 +117,7 @@ pub enum Subscription {
     Events {
         address: Option<ContractAddress>,
         keys_filter: Option<Vec<Vec<Felt>>>,
-        finality_status_filter: TransactionFinalityStatus,
+        finality_status_filter: TransactionFinalityStatus, // TODO rename
     },
 }
 
@@ -143,6 +153,19 @@ impl Subscription {
                 }
                 None => true,
             },
+            (
+                Subscription::NewTransactionReceipts { address_filter, status_filter },
+                NotificationData::NewTransactionReceipt(NewTransactionReceiptNotification {
+                    tx_receipt,
+                    sender_address,
+                }),
+            ) => {
+                status_filter.passes(tx_receipt.finality_status())
+                    && match sender_address {
+                        Some(address) => address_filter.passes(address),
+                        None => true,
+                    }
+            }
             (
                 Subscription::Events { address, keys_filter, finality_status_filter },
                 NotificationData::Event(event_with_finality_status),
@@ -208,6 +231,13 @@ impl<'de> Deserialize<'de> for TransactionHashWrapper {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransactionFinalityStatusWithoutL1 {
+    PreConfirmed,
+    AcceptedOnL2,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TransactionStatusWithoutL1 {
     // CANDIDATE and RECEIVED don't exist in Devnet, they become PRE_CONFIRMED on deserialization.
     // TODO: note in PR description and in docs
     #[serde(alias = "CANDIDATE", alias = "RECEIVED")]
@@ -220,7 +250,13 @@ pub enum TransactionFinalityStatusWithoutL1 {
 pub struct NewTransactionNotification {
     #[serde(flatten)]
     pub tx: TransactionWithHash,
-    pub finality_status: TransactionFinalityStatusWithoutL1,
+    pub finality_status: TransactionFinalityStatus,
+}
+
+#[derive(Debug, Clone)]
+pub struct NewTransactionReceiptNotification {
+    pub tx_receipt: TransactionReceipt,
+    pub sender_address: Option<ContractAddress>,
 }
 
 #[derive(Debug, Clone)]
@@ -228,7 +264,7 @@ pub enum NotificationData {
     NewHeads(BlockHeader),
     TransactionStatus(NewTransactionStatus),
     NewTransaction(NewTransactionNotification),
-    NewTransactionReceipt(TransactionReceipt),
+    NewTransactionReceipt(NewTransactionReceiptNotification),
     Event(SubscriptionEmittedEvent),
     Reorg(ReorgData),
 }
@@ -345,10 +381,10 @@ impl SocketContext {
                 }
             }
 
-            NotificationData::NewTransactionReceipt(tx_receipt) => {
+            NotificationData::NewTransactionReceipt(tx_receipt_notification) => {
                 SubscriptionNotification::NewTransactionReceipt {
                     subscription_id,
-                    result: tx_receipt,
+                    result: tx_receipt_notification.tx_receipt,
                 }
             }
 

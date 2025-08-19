@@ -102,6 +102,16 @@ impl Transaction {
             _ => GasVectorComputationMode::NoL2Gas,
         }
     }
+
+    pub fn get_sender_address(&self) -> Option<ContractAddress> {
+        match self {
+            Self::Declare(tx) => Some(tx.get_sender_address()),
+            Self::DeployAccount(tx) => Some(*tx.get_contract_address()),
+            Self::Deploy(_) => None,
+            Self::Invoke(tx) => Some(tx.get_sender_address()),
+            Self::L1Handler(tx) => Some(tx.contract_address),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -161,13 +171,7 @@ impl TransactionWithHash {
     }
 
     pub fn get_sender_address(&self) -> Option<ContractAddress> {
-        match &self.transaction {
-            Transaction::Declare(tx) => Some(tx.get_sender_address()),
-            Transaction::DeployAccount(tx) => Some(*tx.get_contract_address()),
-            Transaction::Deploy(_) => None,
-            Transaction::Invoke(tx) => Some(tx.get_sender_address()),
-            Transaction::L1Handler(tx) => Some(tx.contract_address),
-        }
+        self.transaction.get_sender_address()
     }
 }
 

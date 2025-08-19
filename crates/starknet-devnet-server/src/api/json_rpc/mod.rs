@@ -73,8 +73,8 @@ use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
 use crate::subscribe::{
-    NewTransactionNotification, NewTransactionStatus, NotificationData, SocketId,
-    TransactionFinalityStatusWithoutL1,
+    NewTransactionNotification, NewTransactionReceiptNotification, NewTransactionStatus,
+    NotificationData, SocketId,
 };
 
 /// Helper trait to easily convert results to rpc results
@@ -283,13 +283,19 @@ impl JsonRpcHandler {
                 .map_err(error::ApiError::StarknetDevnetError)?;
             notifications.push(NotificationData::NewTransaction(NewTransactionNotification {
                 tx: tx.clone(),
-                finality_status: TransactionFinalityStatusWithoutL1::PreConfirmed,
+                finality_status: TransactionFinalityStatus::PreConfirmed,
             }));
 
             let receipt = starknet
                 .get_transaction_receipt_by_hash(new_tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
-            notifications.push(NotificationData::NewTransactionReceipt(receipt));
+
+            notifications.push(NotificationData::NewTransactionReceipt(
+                NewTransactionReceiptNotification {
+                    tx_receipt: receipt,
+                    sender_address: tx.get_sender_address(),
+                },
+            ));
 
             let events = starknet.get_unlimited_events(
                 Some(BlockId::Tag(BlockTag::PreConfirmed)),
@@ -329,7 +335,7 @@ impl JsonRpcHandler {
                 .map_err(error::ApiError::StarknetDevnetError)?;
             notifications.push(NotificationData::NewTransaction(NewTransactionNotification {
                 tx: tx.clone(),
-                finality_status: TransactionFinalityStatusWithoutL1::AcceptedOnL2,
+                finality_status: TransactionFinalityStatus::AcceptedOnL2,
             }));
 
             // If pre-confirmed block used, tx status notifications have already been sent.
@@ -346,7 +352,12 @@ impl JsonRpcHandler {
             let receipt = starknet
                 .get_transaction_receipt_by_hash(tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
-            notifications.push(NotificationData::NewTransactionReceipt(receipt));
+            notifications.push(NotificationData::NewTransactionReceipt(
+                NewTransactionReceiptNotification {
+                    tx_receipt: receipt,
+                    sender_address: tx.get_sender_address(),
+                },
+            ));
         }
 
         // TODO filter events? by what?
@@ -403,7 +414,7 @@ impl JsonRpcHandler {
         old_latest_block: StarknetBlock,
         new_latest_block: StarknetBlock,
     ) -> Result<(), error::ApiError> {
-        let starknet = self.api.starknet.lock().await;
+        let starknet = self.api.starknet.lock().await; // TODO release lock immediately
 
         let last_aborted_block_hash =
             starknet.last_aborted_block_hash().ok_or(error::ApiError::StarknetDevnetError(
