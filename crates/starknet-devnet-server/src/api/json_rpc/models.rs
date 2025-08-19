@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::{Felt, Hash256, TransactionExecutionStatus};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::emitted_event::SubscribableEventStatus;
 use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{BlockId, SubscriptionBlockId};
@@ -253,7 +252,7 @@ pub struct EventsSubscriptionInput {
     pub block_id: Option<SubscriptionBlockId>,
     pub from_address: Option<ContractAddress>,
     pub keys: Option<Vec<Vec<Felt>>>,
-    pub finality_status: Option<SubscribableEventStatus>,
+    pub finality_status: Option<TransactionFinalityStatus>,
 }
 
 #[derive(Deserialize, Clone, Debug)]

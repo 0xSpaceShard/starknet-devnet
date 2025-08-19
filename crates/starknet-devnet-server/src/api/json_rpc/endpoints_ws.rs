@@ -1,11 +1,13 @@
 use starknet_core::error::Error;
-use starknet_types::emitted_event::{SubscribableEventStatus, SubscriptionEmittedEvent};
+use starknet_types::emitted_event::SubscriptionEmittedEvent;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::block::{
     Block, BlockId, BlockResult, BlockStatus, BlockTag, PreConfirmedBlock,
 };
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
-use starknet_types::rpc::transactions::{TransactionWithHash, Transactions};
+use starknet_types::rpc::transactions::{
+    TransactionFinalityStatus, TransactionWithHash, Transactions,
+};
 
 use super::error::ApiError;
 use super::models::{
@@ -341,14 +343,14 @@ impl JsonRpcHandler {
 
         let finality_status_filter = maybe_subscription_input
             .and_then(|subscription_input| subscription_input.finality_status)
-            .unwrap_or(SubscribableEventStatus::AcceptedOnL2);
+            .unwrap_or(TransactionFinalityStatus::AcceptedOnL2);
 
         let mut sockets = self.api.sockets.lock().await;
         let socket_context = sockets.get_mut(&socket_id)?;
         let subscription = Subscription::Events {
             address,
             keys_filter: keys_filter.clone(),
-            finality_status_filter: finality_status_filter.clone(),
+            finality_status_filter,
         };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
@@ -358,13 +360,13 @@ impl JsonRpcHandler {
             Some(BlockId::Tag(BlockTag::PreConfirmed)),
             address,
             keys_filter,
-            Some(finality_status_filter.clone().into()),
+            Some(finality_status_filter),
         )?;
 
         for event in events {
             let notification_data = NotificationData::Event(SubscriptionEmittedEvent {
                 emitted_event: event,
-                finality_status: finality_status_filter.clone(),
+                finality_status: finality_status_filter,
             });
             socket_context.notify(subscription_id, notification_data).await;
         }

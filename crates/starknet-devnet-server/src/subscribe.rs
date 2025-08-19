@@ -8,11 +8,13 @@ use serde::{self, Deserialize, Serialize};
 use starknet_core::starknet::events::check_if_filter_applies_for_event;
 use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::emitted_event::{SubscribableEventStatus, SubscriptionEmittedEvent};
+use starknet_types::emitted_event::SubscriptionEmittedEvent;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::block::{BlockHeader, ReorgData};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
-use starknet_types::rpc::transactions::{TransactionStatus, TransactionWithHash};
+use starknet_types::rpc::transactions::{
+    TransactionFinalityStatus, TransactionStatus, TransactionWithHash,
+};
 use tokio::sync::Mutex;
 
 use crate::api::json_rpc::error::ApiError;
@@ -105,7 +107,7 @@ pub enum Subscription {
     Events {
         address: Option<ContractAddress>,
         keys_filter: Option<Vec<Vec<Felt>>>,
-        finality_status_filter: SubscribableEventStatus,
+        finality_status_filter: TransactionFinalityStatus,
     },
 }
 
@@ -205,6 +207,9 @@ impl<'de> Deserialize<'de> for TransactionHashWrapper {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransactionFinalityStatusWithoutL1 {
+    // CANDIDATE and RECEIVED don't exist in Devnet, they become PRE_CONFIRMED on deserialization.
+    // TODO: note in PR description and in docs
+    #[serde(alias = "CANDIDATE", alias = "RECEIVED")]
     PreConfirmed,
     AcceptedOnL2,
 }

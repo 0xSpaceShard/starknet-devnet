@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use starknet_api::block::BlockNumber;
 use starknet_types_core::felt::Felt;
 
@@ -76,26 +76,10 @@ impl From<EmittedEvent> for Event {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum SubscribableEventStatus {
-    PreConfirmed,
-    AcceptedOnL2,
-}
-
-impl From<SubscribableEventStatus> for TransactionFinalityStatus {
-    fn from(subscribable_status: SubscribableEventStatus) -> Self {
-        match subscribable_status {
-            SubscribableEventStatus::PreConfirmed => Self::PreConfirmed,
-            SubscribableEventStatus::AcceptedOnL2 => Self::AcceptedOnL2,
-        }
-    }
-}
-
 #[derive(Serialize, Clone, Debug)]
-#[cfg_attr(feature = "testing", derive(Deserialize), serde(deny_unknown_fields))]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct SubscriptionEmittedEvent {
     #[serde(flatten)]
     pub emitted_event: EmittedEvent,
-    pub finality_status: SubscribableEventStatus,
+    pub finality_status: TransactionFinalityStatus,
 }

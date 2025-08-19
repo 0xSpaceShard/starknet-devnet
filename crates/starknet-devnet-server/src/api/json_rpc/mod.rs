@@ -27,7 +27,7 @@ use serde_json::json;
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_core::{CasmContractClass, StarknetBlock};
 use starknet_rs_core::types::{ContractClass as CodegenContractClass, Felt};
-use starknet_types::emitted_event::{SubscribableEventStatus, SubscriptionEmittedEvent};
+use starknet_types::emitted_event::SubscriptionEmittedEvent;
 use starknet_types::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::block::{Block, BlockId, BlockTag, PreConfirmedBlock, ReorgData};
 use starknet_types::rpc::estimate_message_fee::{EstimateMessageFeeRequest, FeeEstimateWrapper};
@@ -36,7 +36,7 @@ use starknet_types::rpc::state::{PreConfirmedStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, EventsChunk, L1HandlerTransactionStatus, SimulatedTransaction,
-    TransactionStatus, TransactionTrace, TransactionWithHash,
+    TransactionFinalityStatus, TransactionStatus, TransactionTrace, TransactionWithHash,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 use tokio::sync::Mutex;
@@ -299,7 +299,7 @@ impl JsonRpcHandler {
                 let subscription_event = SubscriptionEmittedEvent {
                     emitted_event,
                     // pre-confirmed block only has pre-confirmed txs
-                    finality_status: SubscribableEventStatus::PreConfirmed,
+                    finality_status: TransactionFinalityStatus::PreConfirmed,
                 };
                 notifications.push(NotificationData::Event(subscription_event));
             }
@@ -353,8 +353,8 @@ impl JsonRpcHandler {
         for event in events {
             notifications.push(NotificationData::Event(SubscriptionEmittedEvent {
                 emitted_event: event,
-                // latest block only has txs accepted on l2
-                finality_status: SubscribableEventStatus::AcceptedOnL2,
+                // latest block only has txs accepted on L2
+                finality_status: TransactionFinalityStatus::AcceptedOnL2,
             }));
         }
 
