@@ -273,7 +273,6 @@ impl JsonRpcHandler {
             let status = starknet
                 .get_transaction_execution_and_finality_status(*new_tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
-
             notifications.push(NotificationData::TransactionStatus(NewTransactionStatus {
                 transaction_hash: *new_tx_hash,
                 status,
@@ -282,11 +281,15 @@ impl JsonRpcHandler {
             let tx = starknet
                 .get_transaction_by_hash(*new_tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
-
             notifications.push(NotificationData::NewTransaction(NewTransactionNotification {
                 tx: tx.clone(),
                 finality_status: TransactionFinalityStatusWithoutL1::PreConfirmed,
             }));
+
+            let receipt = starknet
+                .get_transaction_receipt_by_hash(new_tx_hash)
+                .map_err(error::ApiError::StarknetDevnetError)?;
+            notifications.push(NotificationData::NewTransactionReceipt(receipt));
 
             let events = starknet.get_unlimited_events(
                 Some(BlockId::Tag(BlockTag::PreConfirmed)),
@@ -324,15 +327,14 @@ impl JsonRpcHandler {
             let tx = starknet
                 .get_transaction_by_hash(*tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
-
             notifications.push(NotificationData::NewTransaction(NewTransactionNotification {
                 tx: tx.clone(),
                 finality_status: TransactionFinalityStatusWithoutL1::AcceptedOnL2,
             }));
 
             // If pre-confirmed block used, tx status notifications have already been sent.
-            // If we are here, pre-confirmed block is not used and subscribers need to be
-            // notified.
+            // If we are here, pre-confirmed block is not used and subscribers need to be notified.
+            // TODO is this comment still valid?
             let status = starknet
                 .get_transaction_execution_and_finality_status(*tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
@@ -340,6 +342,11 @@ impl JsonRpcHandler {
                 transaction_hash: *tx_hash,
                 status,
             }));
+
+            let receipt = starknet
+                .get_transaction_receipt_by_hash(tx_hash)
+                .map_err(error::ApiError::StarknetDevnetError)?;
+            notifications.push(NotificationData::NewTransactionReceipt(receipt));
         }
 
         // TODO filter events? by what?

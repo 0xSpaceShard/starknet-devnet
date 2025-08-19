@@ -155,7 +155,8 @@ impl Subscription {
                 Subscription::NewHeads
                 | Subscription::TransactionStatus { .. }
                 | Subscription::Events { .. }
-                | Subscription::NewTransactions { .. },
+                | Subscription::NewTransactions { .. }
+                | Subscription::NewTransactionReceipts { .. },
                 NotificationData::Reorg(_),
             ) => true, // All subscriptions require a reorg notification
             _ => false,
