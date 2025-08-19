@@ -496,6 +496,7 @@ async fn test_fork_state_remains_after_origin_changes() {
     );
 
     let (contract_class, casm_hash) = get_simple_contract_artifacts();
+
     let initial_value = Felt::from(2_u32);
     let ctor_args = vec![initial_value];
 
@@ -504,7 +505,7 @@ async fn test_fork_state_remains_after_origin_changes() {
             .await
             .unwrap();
     let entry_point_selector = get_selector_from_name("get_balance").unwrap();
-    let _call_result = origin_devnet
+    let call_result = origin_devnet
         .json_rpc_client
         .call(
             FunctionCall { contract_address, entry_point_selector, calldata: vec![] },
@@ -512,43 +513,49 @@ async fn test_fork_state_remains_after_origin_changes() {
         )
         .await
         .unwrap();
+    assert_eq!(call_result, vec![initial_value]);
 
+    origin_devnet.create_block().await.unwrap();
     let fork_devnet = origin_devnet.fork().await.unwrap();
-    assert_eq!(get_contract_balance(&fork_devnet, contract_address).await, initial_value);
-
-    let increment_value = Felt::from(7_u32);
-    let contract_invoke = vec![Call {
-        to: contract_address,
-        selector: get_selector_from_name("increase_balance").unwrap(),
-        calldata: vec![increment_value, Felt::ZERO],
-    }];
-
-    let _invoke_result = predeployed_account
-        .execute_v3(contract_invoke.clone())
-        .l1_gas(0)
-        .l1_data_gas(1e3 as u64)
-        .l2_gas(1e7 as u64)
-        .send()
-        .await
-        .unwrap();
-
-    assert_ne!(
-        get_contract_balance(&origin_devnet, contract_address).await,
-        get_contract_balance(&fork_devnet, contract_address).await,
-    );
     assert_eq!(
-        get_contract_balance(&origin_devnet, contract_address).await,
-        initial_value + increment_value
+        get_contract_balance(&fork_devnet, contract_address).await,
+        get_contract_balance(&origin_devnet, contract_address).await
     );
-    assert_eq!(get_contract_balance(&fork_devnet, contract_address).await, initial_value);
+
+    let selector = get_selector_from_name("increase_balance").unwrap();
+    for i in 0..2 {
+        let increment_value = Felt::from(19_u32 * i);
+        let invoke_result_ii = predeployed_account
+            .execute_v3(vec![Call {
+                to: contract_address,
+                selector,
+                calldata: vec![increment_value, Felt::ZERO],
+            }])
+            .l1_gas(0)
+            .l1_data_gas(1e3 as u64)
+            .l2_gas(1e7 as u64)
+            .send()
+            .await
+            .unwrap();
+
+        assert_tx_succeeded_accepted(
+            &invoke_result_ii.transaction_hash,
+            &origin_devnet.json_rpc_client,
+        )
+        .await;
+        assert_eq!(
+            get_contract_balance(&origin_devnet, contract_address).await,
+            initial_value + increment_value
+        );
+        assert_eq!(get_contract_balance(&fork_devnet, contract_address).await, initial_value);
+    }
 }
 
 #[tokio::test]
 async fn test_fork_state_changes_does_not_affect_origin_state() {
     let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
     let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
-
-    let predeployed_account = SingleOwnerAccount::new(
+    let origin_predeployed_account = SingleOwnerAccount::new(
         &origin_devnet.json_rpc_client,
         signer.clone(),
         account_address,
@@ -559,57 +566,48 @@ async fn test_fork_state_changes_does_not_affect_origin_state() {
     let (contract_class, casm_hash) = get_simple_contract_artifacts();
     let initial_value = Felt::from(2_u32);
     let ctor_args = vec![initial_value];
-
-    let (_, to) =
-        declare_v3_deploy_v3(&predeployed_account, contract_class.clone(), casm_hash, &ctor_args)
-            .await
-            .unwrap();
+    let (_, contract_address) = declare_v3_deploy_v3(
+        &origin_predeployed_account,
+        contract_class.clone(),
+        casm_hash,
+        &ctor_args,
+    )
+    .await
+    .unwrap();
 
     let fork_devnet = origin_devnet.fork().await.unwrap();
-    let selector = get_selector_from_name("increase_balance").unwrap();
-
-    let origin_increment_value = Felt::from(7_u32);
-    let contract_invoke =
-        vec![Call { to, selector, calldata: vec![origin_increment_value, Felt::ZERO] }];
-
-    let _invoke_result = predeployed_account
-        .execute_v3(contract_invoke.clone())
-        .l1_gas(0)
-        .l1_data_gas(1e3 as u64)
-        .l2_gas(1e7 as u64)
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(
-        get_contract_balance(&origin_devnet, to).await,
-        initial_value + origin_increment_value
-    );
-
     let fork_predeployed_account = SingleOwnerAccount::new(
         &fork_devnet.json_rpc_client,
-        signer.clone(),
+        signer,
         account_address,
         constants::CHAIN_ID,
         ExecutionEncoding::New,
     );
-    let fork_increment_value = Felt::from(13_u32);
-    let contract_invoke =
-        vec![Call { to, selector, calldata: vec![fork_increment_value, Felt::ZERO] }];
 
-    let _invoke_result = fork_predeployed_account
-        .execute_v3(contract_invoke.clone())
-        .l1_gas(0)
-        .l1_data_gas(1e3 as u64)
-        .l2_gas(1e7 as u64)
-        .send()
-        .await
-        .unwrap();
+    assert_eq!(
+        get_contract_balance(&fork_devnet, contract_address).await,
+        get_contract_balance(&origin_devnet, contract_address).await
+    );
 
-    assert_eq!(get_contract_balance(&fork_devnet, to).await, initial_value + fork_increment_value);
+    let calls = vec![(origin_predeployed_account, 7_u32), (fork_predeployed_account, 13_u32)];
+    for (account, increment) in calls {
+        let _invoke_result = account
+            .execute_v3(vec![Call {
+                to: contract_address,
+                selector: get_selector_from_name("increase_balance").unwrap(),
+                calldata: vec![Felt::from(increment), Felt::ZERO],
+            }])
+            .l1_gas(0)
+            .l1_data_gas(1e3 as u64)
+            .l2_gas(1e7 as u64)
+            .send()
+            .await
+            .unwrap();
+    }
+
     assert_ne!(
-        get_contract_balance(&origin_devnet, to).await,
-        get_contract_balance(&fork_devnet, to).await
+        get_contract_balance(&origin_devnet, contract_address).await,
+        get_contract_balance(&fork_devnet, contract_address).await
     );
 }
 
