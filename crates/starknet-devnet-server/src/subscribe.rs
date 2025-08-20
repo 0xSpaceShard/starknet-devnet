@@ -108,7 +108,7 @@ pub enum Subscription {
     Events {
         address: Option<ContractAddress>,
         keys_filter: Option<Vec<Vec<Felt>>>,
-        finality_status_filter: TransactionFinalityStatus, // TODO rename
+        status_filter: StatusFilter,
     },
 }
 
@@ -158,12 +158,12 @@ impl Subscription {
                     }
             }
             (
-                Subscription::Events { address, keys_filter, finality_status_filter },
+                Subscription::Events { address, keys_filter, status_filter },
                 NotificationData::Event(event_with_finality_status),
             ) => {
                 let event = (&event_with_finality_status.emitted_event).into();
                 check_if_filter_applies_for_event(address, keys_filter, &event)
-                    && event_with_finality_status.finality_status == *finality_status_filter
+                    && status_filter.passes(&event_with_finality_status.finality_status)
             }
             (
                 Subscription::NewHeads

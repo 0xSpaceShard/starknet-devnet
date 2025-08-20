@@ -331,7 +331,7 @@ impl JsonRpcHandler {
             .as_ref()
             .and_then(|subscription_input| subscription_input.keys.clone());
 
-        let finality_status_filter = maybe_subscription_input
+        let finality_status = maybe_subscription_input
             .and_then(|subscription_input| subscription_input.finality_status)
             .unwrap_or(TransactionFinalityStatus::AcceptedOnL2);
 
@@ -340,7 +340,7 @@ impl JsonRpcHandler {
         let subscription = Subscription::Events {
             address,
             keys_filter: keys_filter.clone(),
-            finality_status_filter,
+            status_filter: StatusFilter::new(vec![finality_status]),
         };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
@@ -349,13 +349,13 @@ impl JsonRpcHandler {
             Some(BlockId::Tag(BlockTag::PreConfirmed)),
             address,
             keys_filter,
-            Some(finality_status_filter),
+            Some(finality_status),
         )?;
 
         for event in events {
             let notification_data = NotificationData::Event(SubscriptionEmittedEvent {
                 emitted_event: event,
-                finality_status: finality_status_filter,
+                finality_status,
             });
             socket_context.notify(subscription_id, notification_data).await;
         }
