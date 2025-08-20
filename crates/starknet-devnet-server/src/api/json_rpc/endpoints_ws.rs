@@ -16,7 +16,6 @@ use crate::rpc_core::request::Id;
 use crate::subscribe::{
     AddressFilter, NewTransactionNotification, NewTransactionReceiptNotification,
     NewTransactionStatus, NotificationData, SocketId, StatusFilter, Subscription,
-    TransactionFinalityStatusWithoutL1, TransactionStatusWithoutL1,
 };
 
 /// The definitions of JSON-RPC read endpoints defined in starknet_ws_api.json
@@ -188,11 +187,13 @@ impl JsonRpcHandler {
         let status_filter = StatusFilter::new(
             maybe_subscription_input
                 .as_ref()
-                .and_then(|subscription_input| subscription_input.finality_status.clone())
-                .unwrap_or_else(|| vec![TransactionStatusWithoutL1::AcceptedOnL2])
-                .into_iter()
-                .map(|status| status.into())
-                .collect(),
+                .and_then(|input| input.finality_status.as_ref())
+                .map_or_else(
+                    || vec![TransactionFinalityStatus::AcceptedOnL2],
+                    |statuses| {
+                        statuses.iter().cloned().map(TransactionFinalityStatus::from).collect()
+                    },
+                ),
         );
 
         let address_filter = AddressFilter::new(
@@ -239,8 +240,13 @@ impl JsonRpcHandler {
         let status_filter = StatusFilter::new(
             maybe_subscription_input
                 .as_ref()
-                .and_then(|subscription_input| subscription_input.finality_status.clone())
-                .unwrap_or_else(|| vec![TransactionFinalityStatusWithoutL1::AcceptedOnL2]),
+                .and_then(|input| input.finality_status.as_ref())
+                .map_or_else(
+                    || vec![TransactionFinalityStatus::AcceptedOnL2],
+                    |statuses| {
+                        statuses.iter().cloned().map(TransactionFinalityStatus::from).collect()
+                    },
+                ),
         );
 
         let address_filter = AddressFilter::new(

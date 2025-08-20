@@ -82,10 +82,8 @@ pub struct StatusFilter {
 }
 
 impl StatusFilter {
-    pub(crate) fn new(status_container: Vec<TransactionFinalityStatusWithoutL1>) -> Self {
-        Self {
-            status_container: status_container.into_iter().map(|status| status.into()).collect(),
-        }
+    pub(crate) fn new(status_container: Vec<TransactionFinalityStatus>) -> Self {
+        Self { status_container }
     }
 
     pub(crate) fn passes(&self, status: &TransactionFinalityStatus) -> bool {
@@ -231,9 +229,9 @@ pub enum TransactionFinalityStatusWithoutL1 {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransactionStatusWithoutL1 {
-    // Devnet doesn't use CANDIDATE or RECEIVED, they become PRE_CONFIRMED on deserialization.
-    // TODO: note in PR description and in docs
-    #[serde(alias = "CANDIDATE", alias = "RECEIVED")]
+    // TODO: note in PR description and in docs that CANDIDATE and RECEIVED have no effect
+    Received,
+    Candidate,
     PreConfirmed,
     AcceptedOnL2,
 }
@@ -247,9 +245,11 @@ impl From<TransactionFinalityStatusWithoutL1> for TransactionFinalityStatus {
     }
 }
 
-impl From<TransactionStatusWithoutL1> for TransactionFinalityStatusWithoutL1 {
+impl From<TransactionStatusWithoutL1> for TransactionFinalityStatus {
     fn from(status: TransactionStatusWithoutL1) -> Self {
         match status {
+            TransactionStatusWithoutL1::Received => Self::Received,
+            TransactionStatusWithoutL1::Candidate => Self::Candidate,
             TransactionStatusWithoutL1::PreConfirmed => Self::PreConfirmed,
             TransactionStatusWithoutL1::AcceptedOnL2 => Self::AcceptedOnL2,
         }
