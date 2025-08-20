@@ -14,14 +14,10 @@ sidebar_position: 1
 - By default, a new block is mined for each new transactions.
   - This can be modified by directing all new transactions into a pre-confirmed block, and at some point triggering block creation.
   - Transactions in a pre-confirmed block cannot be replaced by sending a transaction with a higher free from the same account.
-  - Read more [here](./blocks).
-- The semantics of transaction/finality statuses is not the same as in the official network:
-  - `RECEIVED` and `CANDIDATE` are not used in Devnet.
-  - `REVERTED` means that validation or execution of a transaction has failed, in which case it is not included in a block.
-  - `PRE_CONFIRMED` behaves like the old `PENDING` status - it is the status assigned to the transactions in a pre-confirmed block, which is a precursor to a stable latest block.
-  - Transactions are never automatically `ACCEPTED_ON_L1`, unless the user performs an action,
-
-Read more about changing the transaction status from [`PRE_CONFIRMED` to `ACCEPTED_ON_L2`](./blocks#creating-blocks-on-demand) and from [`ACCEPTED_ON_L2` to `ACCEPTED_ON_L1`](./blocks#accepting-blocks-on-l1).
+  - Read more about transitioning a transaction [from `PRE_CONFIRMED` to `ACCEPTED_ON_L2`](./blocks#creating-blocks-on-demand).
+- `RECEIVED` and `CANDIDATE` are not used in Devnet.
+- Transactions are never automatically `ACCEPTED_ON_L1`, unless the user performs an action.
+  - Read more about transitioning a transaction [from `ACCEPTED_ON_L2` to `ACCEPTED_ON_L1`](./blocks#accepting-blocks-on-l1).
 
 :::
 
