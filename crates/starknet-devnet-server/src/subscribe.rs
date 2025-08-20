@@ -229,7 +229,6 @@ pub enum TransactionFinalityStatusWithoutL1 {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransactionStatusWithoutL1 {
-    // TODO: note in PR description and in docs that CANDIDATE and RECEIVED have no effect
     Received,
     Candidate,
     PreConfirmed,

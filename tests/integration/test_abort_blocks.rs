@@ -304,7 +304,7 @@ async fn abort_latest_blocks() {
 }
 
 #[tokio::test]
-async fn abort_pending_block() {
+async fn abort_pre_confirmed_block() {
     let devnet = BackgroundDevnet::spawn_with_additional_args(&[
         "--state-archive-capacity",
         "full",
@@ -317,11 +317,11 @@ async fn abort_pending_block() {
     devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
     devnet.create_block().await.unwrap();
     devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-    let pending_balance = devnet
+    let pre_confirmed_balance = devnet
         .get_balance_by_tag(&Felt::from(DUMMY_ADDRESS), FeeUnit::Fri, BlockTag::PreConfirmed)
         .await
         .unwrap();
-    assert_eq!(pending_balance, (2 * DUMMY_AMOUNT).into());
+    assert_eq!(pre_confirmed_balance, (2 * DUMMY_AMOUNT).into());
 
     devnet.abort_blocks(&BlockId::Tag(BlockTag::PreConfirmed)).await.unwrap();
     let latest_balance =

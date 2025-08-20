@@ -249,60 +249,74 @@ async fn should_notify_only_once_for_pre_confirmed_in_on_demand_mode() {
 }
 
 #[tokio::test]
-async fn should_notify_only_once_for_accepted_on_l2_in_on_demand_mode() {
+async fn should_notify_only_once_for_accepted_on_l2_in_on_demand_mode_with_explicit_tx_status() {
     let devnet_args = ["--block-generation-on", "demand"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
-
-    // Should work for subscriptions before and after the tx occurs.
-    // Should work for explicitly and implicitly defined finality status.
-    let (mut ws_explicit_before, _) = connect_async(devnet.ws_url()).await.unwrap();
-    let (mut ws_implicit_before, _) = connect_async(devnet.ws_url()).await.unwrap();
-    let (mut ws_explicit_after, _) = connect_async(devnet.ws_url()).await.unwrap();
-    let (mut ws_implicit_after, _) = connect_async(devnet.ws_url()).await.unwrap();
 
     let mut account = get_single_owner_account(&devnet).await;
     account.set_block_id(BlockId::Tag(BlockTag::PreConfirmed)); // for correct nonce in deployment
 
     // Define what's needed for requests and responses
     let contract_address = declare_deploy_events_contract(&account).await.unwrap();
-    let finality_status = TransactionFinalityStatus::AcceptedOnL2;
-    let explicit_subscription_request =
-        json!({ "from_address": contract_address, "finality_status": finality_status });
-    let implicit_subscription_request = json!({ "from_address": contract_address });
+
+    should_notify_only_once_for_accepted_on_l2_in_on_demand_mode(
+        &devnet,
+        &account,
+        contract_address,
+        json!({ "from_address": contract_address, "finality_status": TransactionFinalityStatus::AcceptedOnL2 }),
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn should_notify_only_once_for_accepted_on_l2_in_on_demand_mode_with_implicit_tx_status() {
+    let devnet_args = ["--block-generation-on", "demand"];
+    let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+
+    let mut account = get_single_owner_account(&devnet).await;
+    account.set_block_id(BlockId::Tag(BlockTag::PreConfirmed)); // for correct nonce in deployment
+
+    // Define what's needed for requests and responses
+    let contract_address = declare_deploy_events_contract(&account).await.unwrap();
+
+    should_notify_only_once_for_accepted_on_l2_in_on_demand_mode(
+        &devnet,
+        &account,
+        contract_address,
+        json!({ "from_address": contract_address }),
+    )
+    .await;
+}
+
+async fn should_notify_only_once_for_accepted_on_l2_in_on_demand_mode(
+    devnet: &BackgroundDevnet,
+    account: &SingleOwnerAccount<&JsonRpcClient<HttpTransport>, LocalWallet>,
+    contract_address: Felt,
+    subscription_request: serde_json::Value,
+) {
+    // Should work for subscriptions before and after the tx occurs.
+    // Should work for explicitly and implicitly defined finality status.
+    let (mut ws_before, _) = connect_async(devnet.ws_url()).await.unwrap();
+    let (mut ws_after, _) = connect_async(devnet.ws_url()).await.unwrap();
 
     // Subscribe before tx
-    let explicit_subscription_id_before =
-        subscribe_events(&mut ws_explicit_before, explicit_subscription_request.clone())
-            .await
-            .unwrap();
-    let implicit_subscription_id_before =
-        subscribe_events(&mut ws_implicit_before, implicit_subscription_request.clone())
-            .await
-            .unwrap();
+    let subscription_id_before =
+        subscribe_events(&mut ws_before, subscription_request.clone()).await.unwrap();
 
-    let invocation = emit_static_event(&account, contract_address).await.unwrap();
+    let invocation = emit_static_event(account, contract_address).await.unwrap();
 
     // Subscribe after tx
-    let explicit_subscription_id_after =
-        subscribe_events(&mut ws_explicit_after, explicit_subscription_request).await.unwrap();
-    let implicit_subscription_id_after =
-        subscribe_events(&mut ws_implicit_after, implicit_subscription_request).await.unwrap();
+    let subscription_id_after =
+        subscribe_events(&mut ws_after, subscription_request).await.unwrap();
 
     // No notifications before block creation and conversion from pre-confirmed to accepted_on_l2
-    assert_no_notifications(&mut ws_explicit_before).await;
-    assert_no_notifications(&mut ws_implicit_before).await;
-    assert_no_notifications(&mut ws_explicit_after).await;
-    assert_no_notifications(&mut ws_implicit_after).await;
+    assert_no_notifications(&mut ws_before).await;
+    assert_no_notifications(&mut ws_after).await;
     let created_block_hash = devnet.create_block().await.unwrap();
 
-    // TODO perhaps add subscription here
-
-    for (ws, subscription_id) in [
-        (&mut ws_explicit_before, explicit_subscription_id_before),
-        (&mut ws_implicit_before, implicit_subscription_id_before),
-        (&mut ws_explicit_after, explicit_subscription_id_after),
-        (&mut ws_implicit_after, implicit_subscription_id_after),
-    ] {
+    for (ws, subscription_id) in
+        [(&mut ws_before, subscription_id_before), (&mut ws_after, subscription_id_after)]
+    {
         let event = receive_event(ws, subscription_id).await.unwrap();
         assert_eq!(
             event,
@@ -313,17 +327,15 @@ async fn should_notify_only_once_for_accepted_on_l2_in_on_demand_mode() {
                 "from_address": contract_address,
                 "keys": [static_event_key()],
                 "data": [],
-                "finality_status": finality_status,
+                "finality_status": TransactionFinalityStatus::AcceptedOnL2,
             })
         );
     }
 
     // Should not re-notify on next block
-    // devnet.create_block().await.unwrap();
-    assert_no_notifications(&mut ws_explicit_before).await;
-    assert_no_notifications(&mut ws_implicit_before).await;
-    assert_no_notifications(&mut ws_explicit_after).await;
-    assert_no_notifications(&mut ws_implicit_after).await;
+    devnet.create_block().await.unwrap();
+    assert_no_notifications(&mut ws_before).await;
+    assert_no_notifications(&mut ws_after).await;
 }
 
 #[tokio::test]

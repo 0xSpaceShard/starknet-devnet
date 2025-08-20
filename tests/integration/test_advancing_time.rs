@@ -567,7 +567,7 @@ async fn set_time_with_later_block_generation() {
 
 #[tokio::test]
 
-async fn correct_pending_block_timestamp() {
+async fn correct_pre_confirmed_block_timestamp() {
     let initial_time = get_unix_timestamp_as_seconds();
     let devnet =
         BackgroundDevnet::spawn_with_additional_args(&["--start-time", &initial_time.to_string()])
@@ -579,7 +579,7 @@ async fn correct_pending_block_timestamp() {
 }
 
 #[tokio::test]
-async fn correct_pending_block_timestamp_after_setting() {
+async fn correct_pre_confirmed_block_timestamp_after_setting() {
     let initial_time = get_unix_timestamp_as_seconds();
     let devnet =
         BackgroundDevnet::spawn_with_additional_args(&["--start-time", &initial_time.to_string()])
