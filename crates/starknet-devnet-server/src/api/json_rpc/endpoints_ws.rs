@@ -201,7 +201,6 @@ impl JsonRpcHandler {
         let mut sockets = self.api.sockets.lock().await;
         let socket_context = sockets.get_mut(&socket_id)?;
 
-        // TODO consider moving to function end to avoid cloning
         let subscription =
             Subscription::NewTransactions { address_filter, status_filter: status_filter.clone() };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
