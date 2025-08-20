@@ -157,24 +157,20 @@ impl JsonRpcHandler {
     }
 
     async fn get_txs(&self, block_id: &BlockId) -> Result<Vec<TransactionWithHash>, ApiError> {
-        let starknet = self.api.starknet.lock().await;
-        let block = starknet.get_block_with_transactions(block_id)?;
-
+        let block = self.api.starknet.lock().await.get_block_with_transactions(block_id)?;
         let txs = match block {
             BlockResult::Block(block) => block.transactions,
             BlockResult::PreConfirmedBlock(pre_confirmed_block) => pre_confirmed_block.transactions,
         };
 
-        let full_txs = match txs {
-            Transactions::Full(txs) => txs,
+        match txs {
+            Transactions::Full(txs) => Ok(txs),
             Transactions::FullWithReceipts(_) | Transactions::Hashes(_) => {
-                return Err(ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
+                Err(ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
                     msg: format!("Invalid txs: {txs:?}"),
-                }));
+                }))
             }
-        };
-
-        Ok(full_txs)
+        }
     }
 
     /// Does not return TOO_MANY_ADDRESSES_IN_FILTER
@@ -348,8 +344,7 @@ impl JsonRpcHandler {
         };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
-        let starknet = self.api.starknet.lock().await;
-        let events = starknet.get_unlimited_events(
+        let events = self.api.starknet.lock().await.get_unlimited_events(
             Some(starting_block_id),
             Some(BlockId::Tag(BlockTag::PreConfirmed)),
             address,

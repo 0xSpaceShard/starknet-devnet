@@ -65,22 +65,19 @@ pub(crate) async fn postman_flush_impl(
     data: Option<FlushParameters>,
     rpc_handler: &JsonRpcHandler,
 ) -> StrictRpcResult {
-    // Need to handle L1 to L2 first in case those messages create L2 to L1 messages.
-    let mut starknet = api.starknet.lock().await;
-
     let is_dry_run = if let Some(params) = data { params.dry_run } else { false };
 
+    // Need to handle L1 to L2 first in case those messages create L2 to L1 messages.
     let mut messages_to_l2 = vec![];
     let mut generated_l2_transactions = vec![];
     if !is_dry_run {
         // Fetch and execute messages to L2.
-        messages_to_l2 = starknet.fetch_messages_to_l2().await.map_err(|e| {
+        // It is important that api.starknet is dropped immediately to allow rpc execution
+        messages_to_l2 = api.starknet.lock().await.fetch_messages_to_l2().await.map_err(|e| {
             ApiError::RpcError(RpcError::internal_error_with(format!(
                 "Error in fetching messages to L2: {e}"
             )))
         })?;
-
-        drop(starknet); // drop to avoid deadlock, later re-acquire
 
         for message in &messages_to_l2 {
             let rpc_call = message.try_into().map_err(|e| {
@@ -92,11 +89,10 @@ pub(crate) async fn postman_flush_impl(
                 execute_rpc_tx(rpc_handler, rpc_call).await.map_err(ApiError::RpcError)?;
             generated_l2_transactions.push(tx_hash);
         }
-
-        starknet = api.starknet.lock().await;
     };
 
     // Collect and send messages to L1.
+    let mut starknet = api.starknet.lock().await;
     let messages_to_l1 = starknet.collect_messages_to_l1().await.map_err(|e| {
         ApiError::RpcError(RpcError::internal_error_with(format!(
             "Error in collecting messages to L1: {e}"

@@ -13,6 +13,7 @@ use std::sync::Arc;
 
 use axum::extract::ws::{Message, WebSocket};
 use enum_helper_macros::{AllVariantsSerdeRenames, VariantName};
+use error::ApiError;
 use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
 use models::{
@@ -267,9 +268,8 @@ impl JsonRpcHandler {
             #[allow(clippy::expect_used)]
             let new_tx_hash = new_pre_confirmed_txs.last().expect("has at least one element");
 
-            let starknet = self.api.starknet.lock().await;
-
             let mut notifications = vec![];
+            let starknet = self.api.starknet.lock().await;
 
             let status = starknet
                 .get_transaction_execution_and_finality_status(*new_tx_hash)
@@ -329,6 +329,7 @@ impl JsonRpcHandler {
 
         let starknet = self.api.starknet.lock().await;
 
+        let finality_status = TransactionFinalityStatus::AcceptedOnL2;
         let latest_txs = new_latest_block.get_transactions();
         for tx_hash in latest_txs {
             let tx = starknet
@@ -336,12 +337,9 @@ impl JsonRpcHandler {
                 .map_err(error::ApiError::StarknetDevnetError)?;
             notifications.push(NotificationData::NewTransaction(NewTransactionNotification {
                 tx: tx.clone(),
-                finality_status: TransactionFinalityStatus::AcceptedOnL2,
+                finality_status,
             }));
 
-            // If pre-confirmed block used, tx status notifications have already been sent.
-            // If we are here, pre-confirmed block is not used and subscribers need to be notified.
-            // TODO is this comment still valid?
             let status = starknet
                 .get_transaction_execution_and_finality_status(*tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
@@ -350,30 +348,28 @@ impl JsonRpcHandler {
                 status,
             }));
 
-            let receipt = starknet
+            let tx_receipt = starknet
                 .get_transaction_receipt_by_hash(tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
             notifications.push(NotificationData::NewTransactionReceipt(
                 NewTransactionReceiptNotification {
-                    tx_receipt: receipt,
+                    tx_receipt,
                     sender_address: tx.get_sender_address(),
                 },
             ));
         }
 
-        // TODO filter events? by what?
         let events = starknet.get_unlimited_events(
             Some(BlockId::Tag(BlockTag::Latest)),
             Some(BlockId::Tag(BlockTag::Latest)),
             None,
             None,
-            None, // latest block only has txs accepted on l2
+            None, // latest block only has txs accepted on L2
         )?;
-        for event in events {
+        for emitted_event in events {
             notifications.push(NotificationData::Event(SubscriptionEmittedEvent {
-                emitted_event: event,
-                // latest block only has txs accepted on L2
-                finality_status: TransactionFinalityStatus::AcceptedOnL2,
+                emitted_event,
+                finality_status,
             }));
         }
 
@@ -387,9 +383,7 @@ impl JsonRpcHandler {
         old_latest_block: Option<StarknetBlock>,
         old_pre_confirmed_block: Option<StarknetBlock>,
     ) -> Result<(), error::ApiError> {
-        let old_latest_block = if let Some(block) = old_latest_block {
-            block
-        } else {
+        let Some(old_latest_block) = old_latest_block else {
             return Ok(());
         };
 
@@ -414,18 +408,18 @@ impl JsonRpcHandler {
         &self,
         old_latest_block: StarknetBlock,
         new_latest_block: StarknetBlock,
-    ) -> Result<(), error::ApiError> {
-        let starknet = self.api.starknet.lock().await; // TODO release lock immediately
-
+    ) -> Result<(), ApiError> {
         let last_aborted_block_hash =
-            starknet.last_aborted_block_hash().ok_or(error::ApiError::StarknetDevnetError(
-                starknet_core::error::Error::UnexpectedInternalError {
-                    msg: "Aborted block hash should be defined.".into(),
-                },
-            ))?;
+            *self.api.starknet.lock().await.last_aborted_block_hash().ok_or(
+                ApiError::StarknetDevnetError(
+                    starknet_core::error::Error::UnexpectedInternalError {
+                        msg: "Aborted block hash should be defined.".into(),
+                    },
+                ),
+            )?;
 
         let notification = NotificationData::Reorg(ReorgData {
-            starting_block_hash: *last_aborted_block_hash,
+            starting_block_hash: last_aborted_block_hash,
             starting_block_number: new_latest_block.block_number().unchecked_next(),
             ending_block_hash: old_latest_block.block_hash(),
             ending_block_number: old_latest_block.block_number(),
