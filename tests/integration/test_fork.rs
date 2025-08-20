@@ -515,17 +515,10 @@ async fn test_fork_state_remains_after_origin_changes() {
         .unwrap();
     assert_eq!(call_result, vec![initial_value]);
 
-    origin_devnet.create_block().await.unwrap();
-    let fork_devnet = origin_devnet.fork().await.unwrap();
-    assert_eq!(
-        get_contract_balance(&fork_devnet, contract_address).await,
-        get_contract_balance(&origin_devnet, contract_address).await
-    );
-
     let selector = get_selector_from_name("increase_balance").unwrap();
-    for i in 0..2 {
+    for i in 1..4 {
         let increment_value = Felt::from(19_u32 * i);
-        let invoke_result_ii = predeployed_account
+        let invoke_result = predeployed_account
             .execute_v3(vec![Call {
                 to: contract_address,
                 selector,
@@ -539,16 +532,26 @@ async fn test_fork_state_remains_after_origin_changes() {
             .unwrap();
 
         assert_tx_succeeded_accepted(
-            &invoke_result_ii.transaction_hash,
+            &invoke_result.transaction_hash,
             &origin_devnet.json_rpc_client,
         )
         .await;
-        assert_eq!(
-            get_contract_balance(&origin_devnet, contract_address).await,
-            initial_value + increment_value
-        );
-        assert_eq!(get_contract_balance(&fork_devnet, contract_address).await, initial_value);
     }
+
+    let fork_block = 2;
+    let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+        "--fork-network",
+        &origin_devnet.url,
+        "--fork-block",
+        &fork_block.to_string(),
+    ])
+    .await
+    .unwrap();
+    assert_eq!(get_contract_balance(&fork_devnet, contract_address).await, initial_value);
+    assert_eq!(
+        get_contract_balance(&origin_devnet, contract_address).await,
+        initial_value + Felt::from(114_u32) // (19 * 1 + 19 * 2 + 19 * 3)
+    );
 }
 
 #[tokio::test]
@@ -575,7 +578,15 @@ async fn test_fork_state_changes_does_not_affect_origin_state() {
     .await
     .unwrap();
 
-    let fork_devnet = origin_devnet.fork().await.unwrap();
+    let fork_block = 2;
+    let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+        "--fork-network",
+        &origin_devnet.url,
+        "--fork-block",
+        &fork_block.to_string(),
+    ])
+    .await
+    .unwrap();
     let fork_predeployed_account = SingleOwnerAccount::new(
         &fork_devnet.json_rpc_client,
         signer,
