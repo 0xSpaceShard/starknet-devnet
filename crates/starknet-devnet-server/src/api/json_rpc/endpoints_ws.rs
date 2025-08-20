@@ -9,14 +9,14 @@ use starknet_types::rpc::transactions::{
 use super::error::ApiError;
 use super::models::{
     EventsSubscriptionInput, SubscriptionBlockIdInput, SubscriptionIdInput, TransactionHashInput,
-    TransactionSubscriptionInput,
+    TransactionReceiptSubscriptionInput, TransactionSubscriptionInput,
 };
 use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
 use crate::rpc_core::request::Id;
 use crate::subscribe::{
     AddressFilter, NewTransactionNotification, NewTransactionReceiptNotification,
     NewTransactionStatus, NotificationData, SocketId, StatusFilter, Subscription,
-    TransactionFinalityStatusWithoutL1,
+    TransactionFinalityStatusWithoutL1, TransactionStatusWithoutL1,
 };
 
 /// The definitions of JSON-RPC read endpoints defined in starknet_ws_api.json
@@ -178,26 +178,6 @@ impl JsonRpcHandler {
         Ok(full_txs)
     }
 
-    // TODO turns out this function isn't universal
-    fn to_filters(
-        maybe_subscription_input: Option<TransactionSubscriptionInput>,
-    ) -> (StatusFilter, AddressFilter) {
-        let status_filter = StatusFilter::new(
-            maybe_subscription_input
-                .as_ref()
-                .and_then(|subscription_input| subscription_input.finality_status.clone())
-                .unwrap_or_else(|| vec![TransactionFinalityStatusWithoutL1::AcceptedOnL2]),
-        );
-
-        let address_filter = AddressFilter::new(
-            maybe_subscription_input
-                .and_then(|subscription_input| subscription_input.sender_address)
-                .unwrap_or_default(),
-        );
-
-        (status_filter, address_filter)
-    }
-
     /// Does not return TOO_MANY_ADDRESSES_IN_FILTER
     pub async fn subscribe_new_txs(
         &self,
@@ -205,7 +185,21 @@ impl JsonRpcHandler {
         rpc_request_id: Id,
         socket_id: SocketId,
     ) -> Result<(), ApiError> {
-        let (status_filter, address_filter) = Self::to_filters(maybe_subscription_input);
+        let status_filter = StatusFilter::new(
+            maybe_subscription_input
+                .as_ref()
+                .and_then(|subscription_input| subscription_input.finality_status.clone())
+                .unwrap_or_else(|| vec![TransactionStatusWithoutL1::AcceptedOnL2])
+                .into_iter()
+                .map(|status| status.into())
+                .collect(),
+        );
+
+        let address_filter = AddressFilter::new(
+            maybe_subscription_input
+                .and_then(|subscription_input| subscription_input.sender_address)
+                .unwrap_or_default(),
+        );
 
         let mut sockets = self.api.sockets.lock().await;
         let socket_context = sockets.get_mut(&socket_id)?;
@@ -238,11 +232,22 @@ impl JsonRpcHandler {
     /// Does not return TOO_MANY_ADDRESSES_IN_FILTER
     pub async fn subscribe_new_tx_receipts(
         &self,
-        maybe_subscription_input: Option<TransactionSubscriptionInput>,
+        maybe_subscription_input: Option<TransactionReceiptSubscriptionInput>,
         rpc_request_id: Id,
         socket_id: SocketId,
     ) -> Result<(), ApiError> {
-        let (status_filter, address_filter) = Self::to_filters(maybe_subscription_input);
+        let status_filter = StatusFilter::new(
+            maybe_subscription_input
+                .as_ref()
+                .and_then(|subscription_input| subscription_input.finality_status.clone())
+                .unwrap_or_else(|| vec![TransactionFinalityStatusWithoutL1::AcceptedOnL2]),
+        );
+
+        let address_filter = AddressFilter::new(
+            maybe_subscription_input
+                .and_then(|subscription_input| subscription_input.sender_address)
+                .unwrap_or_default(),
+        );
 
         let mut sockets = self.api.sockets.lock().await;
         let socket_context = sockets.get_mut(&socket_id)?;

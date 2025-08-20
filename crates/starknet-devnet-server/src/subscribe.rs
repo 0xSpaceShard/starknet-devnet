@@ -78,25 +78,18 @@ impl AddressFilter {
 
 #[derive(Debug, Clone)]
 pub struct StatusFilter {
-    status_container: Vec<TransactionFinalityStatusWithoutL1>,
+    status_container: Vec<TransactionFinalityStatus>,
 }
 
 impl StatusFilter {
     pub(crate) fn new(status_container: Vec<TransactionFinalityStatusWithoutL1>) -> Self {
-        Self { status_container }
+        Self {
+            status_container: status_container.into_iter().map(|status| status.into()).collect(),
+        }
     }
 
     pub(crate) fn passes(&self, status: &TransactionFinalityStatus) -> bool {
-        self.status_container.is_empty()
-            || match status {
-                TransactionFinalityStatus::PreConfirmed => self
-                    .status_container
-                    .contains(&TransactionFinalityStatusWithoutL1::PreConfirmed),
-                TransactionFinalityStatus::AcceptedOnL2 => self
-                    .status_container
-                    .contains(&TransactionFinalityStatusWithoutL1::AcceptedOnL2),
-                TransactionFinalityStatus::AcceptedOnL1 => false,
-            }
+        self.status_container.is_empty() || self.status_container.contains(status)
     }
 }
 
@@ -238,11 +231,29 @@ pub enum TransactionFinalityStatusWithoutL1 {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransactionStatusWithoutL1 {
-    // CANDIDATE and RECEIVED don't exist in Devnet, they become PRE_CONFIRMED on deserialization.
+    // Devnet doesn't use CANDIDATE or RECEIVED, they become PRE_CONFIRMED on deserialization.
     // TODO: note in PR description and in docs
     #[serde(alias = "CANDIDATE", alias = "RECEIVED")]
     PreConfirmed,
     AcceptedOnL2,
+}
+
+impl From<TransactionFinalityStatusWithoutL1> for TransactionFinalityStatus {
+    fn from(status: TransactionFinalityStatusWithoutL1) -> Self {
+        match status {
+            TransactionFinalityStatusWithoutL1::PreConfirmed => Self::PreConfirmed,
+            TransactionFinalityStatusWithoutL1::AcceptedOnL2 => Self::AcceptedOnL2,
+        }
+    }
+}
+
+impl From<TransactionStatusWithoutL1> for TransactionFinalityStatusWithoutL1 {
+    fn from(status: TransactionStatusWithoutL1) -> Self {
+        match status {
+            TransactionStatusWithoutL1::PreConfirmed => Self::PreConfirmed,
+            TransactionStatusWithoutL1::AcceptedOnL2 => Self::AcceptedOnL2,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]

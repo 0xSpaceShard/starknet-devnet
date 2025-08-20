@@ -19,7 +19,8 @@ use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     ClassHashInput, EstimateFeeInput, EventsInput, EventsSubscriptionInput, GetStorageInput,
     GetStorageProofInput, L1TransactionHashInput, SubscriptionBlockIdInput, SubscriptionIdInput,
-    TransactionHashInput, TransactionHashOutput, TransactionSubscriptionInput,
+    TransactionHashInput, TransactionHashOutput, TransactionReceiptSubscriptionInput,
+    TransactionSubscriptionInput,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -955,7 +956,7 @@ pub enum JsonRpcSubscriptionRequest {
     #[serde(rename = "starknet_subscribeNewTransactions", with = "optional_params")]
     NewTransactions(Option<TransactionSubscriptionInput>),
     #[serde(rename = "starknet_subscribeNewTransactionReceipts", with = "optional_params")]
-    NewTransactionReceipts(Option<TransactionSubscriptionInput>),
+    NewTransactionReceipts(Option<TransactionReceiptSubscriptionInput>),
     #[serde(rename = "starknet_unsubscribe")]
     Unsubscribe(SubscriptionIdInput),
 }

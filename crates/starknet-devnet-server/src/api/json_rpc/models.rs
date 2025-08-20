@@ -11,7 +11,7 @@ use starknet_types::rpc::transactions::{
 };
 use starknet_types::starknet_api::block::BlockNumber;
 
-use crate::subscribe::TransactionFinalityStatusWithoutL1;
+use crate::subscribe::{TransactionFinalityStatusWithoutL1, TransactionStatusWithoutL1};
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
@@ -258,6 +258,13 @@ pub struct EventsSubscriptionInput {
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct TransactionSubscriptionInput {
+    pub sender_address: Option<Vec<ContractAddress>>,
+    pub finality_status: Option<Vec<TransactionStatusWithoutL1>>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct TransactionReceiptSubscriptionInput {
     pub sender_address: Option<Vec<ContractAddress>>,
     pub finality_status: Option<Vec<TransactionFinalityStatusWithoutL1>>,
 }
