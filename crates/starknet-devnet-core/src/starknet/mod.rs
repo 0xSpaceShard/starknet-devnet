@@ -1183,21 +1183,42 @@ impl Starknet {
         to_block: Option<CustomBlockId>,
         address: Option<ContractAddress>,
         keys: Option<Vec<Vec<Felt>>>,
+        finality_status_filter: Option<TransactionFinalityStatus>,
     ) -> DevnetResult<Vec<EmittedEvent>> {
-        events::get_events(self, from_block, to_block, address, keys, 0, None)
-            .map(|(emitted_events, _)| emitted_events)
+        events::get_events(
+            self,
+            from_block,
+            to_block,
+            address,
+            keys,
+            finality_status_filter,
+            0,
+            None,
+        )
+        .map(|(emitted_events, _)| emitted_events)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn get_events(
         &self,
         from_block: Option<CustomBlockId>,
         to_block: Option<CustomBlockId>,
         address: Option<ContractAddress>,
         keys: Option<Vec<Vec<Felt>>>,
+        finality_status_filter: Option<TransactionFinalityStatus>,
         skip: u64,
         limit: Option<u64>,
     ) -> DevnetResult<(Vec<EmittedEvent>, bool)> {
-        events::get_events(self, from_block, to_block, address, keys, skip, limit)
+        events::get_events(
+            self,
+            from_block,
+            to_block,
+            address,
+            keys,
+            finality_status_filter,
+            skip,
+            limit,
+        )
     }
 
     pub fn get_transaction_receipt_by_hash(

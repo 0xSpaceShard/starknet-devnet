@@ -1,7 +1,7 @@
 {
   "openrpc": "1.0.0-rc1",
   "info": {
-    "version": "0.9.0-rc.2",
+    "version": "0.9.0",
     "title": "StarkNet Node API",
     "license": {}
   },
@@ -2860,10 +2860,10 @@
               },
               "block_number": {
                 "title": "Block number",
-                "$ref": "#/components/schemas/BLOCK_NUMBER",
-                "description": "If this field is missing, it means the receipt belongs to the pre-confirmed block"
+                "$ref": "#/components/schemas/BLOCK_NUMBER"
               }
-            }
+            },
+            "required": ["block_number"]
           }
         ]
       },
@@ -2979,11 +2979,7 @@
       "BLOCK_STATUS": {
         "title": "Block status",
         "type": "string",
-        "enum": [
-          "PRE_CONFIRMED",
-          "ACCEPTED_ON_L2",
-          "ACCEPTED_ON_L1"
-        ],
+        "enum": ["PRE_CONFIRMED", "ACCEPTED_ON_L2", "ACCEPTED_ON_L1"],
         "description": "The status of the block"
       },
       "FUNCTION_CALL": {

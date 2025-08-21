@@ -36,6 +36,18 @@ pub struct L1HandlerTransactionReceipt {
     pub message_hash: Hash256,
 }
 
+impl TransactionReceipt {
+    pub fn finality_status(&self) -> &TransactionFinalityStatus {
+        let common = match self {
+            TransactionReceipt::Deploy(receipt) => &receipt.common,
+            TransactionReceipt::L1Handler(receipt) => &receipt.common,
+            TransactionReceipt::Common(common) => common,
+        };
+
+        &common.finality_status
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct CommonTransactionReceipt {

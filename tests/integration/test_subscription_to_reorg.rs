@@ -10,7 +10,7 @@ use crate::common::utils::{
 };
 
 #[tokio::test]
-async fn reorg_notification_for_all_subscriptions_except_pending_tx() {
+async fn reorg_notification_for_all_subscriptions() {
     let devnet_args = ["--state-archive-capacity", "full"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
 
@@ -23,17 +23,14 @@ async fn reorg_notification_for_all_subscriptions_except_pending_tx() {
         ("starknet_subscribeNewHeads", json!({})),
         ("starknet_subscribeTransactionStatus", json!({ "transaction_hash": "0x1" })),
         ("starknet_subscribeEvents", json!({})),
+        ("starknet_subscribeNewTransactions", json!({})),
+        ("starknet_subscribeNewTransactionReceipts", json!({})),
     ] {
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
         let subscription_id =
             subscribe(&mut ws, subscription_method, subscription_params).await.unwrap();
         notifiable_subscribers.insert(subscription_id, ws);
     }
-
-    let (mut unnotifiable_ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-    subscribe(&mut unnotifiable_ws, "starknet_subscribePendingTransactions", json!({}))
-        .await
-        .unwrap();
 
     // assert that block-, tx_status- and event-subscribers got notified; unsubscribe them
     devnet.abort_blocks(&BlockId::Hash(starting_block_hash)).await.unwrap();
@@ -64,8 +61,6 @@ async fn reorg_notification_for_all_subscriptions_except_pending_tx() {
     for (_, mut ws) in notifiable_subscribers {
         assert_no_notifications(&mut ws).await;
     }
-
-    assert_no_notifications(&mut unnotifiable_ws).await;
 }
 
 #[tokio::test]

@@ -13,6 +13,10 @@ fn call_on_pre_confirmed_error() -> serde_json::Value {
     json!({ "jsonrpc": "2.0", "id": 0, "error": { "code": -32602, "message": "Subscription block cannot be 'pre_confirmed'" }})
 }
 
+fn call_on_l1_accepted_error() -> serde_json::Value {
+    json!({ "jsonrpc": "2.0", "id": 0, "error": { "code": -32602, "message": "Subscription block cannot be 'l1_accepted'" }})
+}
+
 #[tokio::test]
 async fn test_subscribing_to_non_existent_block() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
@@ -58,7 +62,7 @@ async fn test_aborted_blocks_not_subscribable() {
 }
 
 #[tokio::test]
-async fn test_pending_block_not_allowed_in_block_and_event_subscription() {
+async fn test_pre_confirmed_block_not_allowed_in_block_and_event_subscription() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
     let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
@@ -76,5 +80,23 @@ async fn test_pending_block_not_allowed_in_block_and_event_subscription() {
             call_on_pre_confirmed_error(),
             "Method: {subscription_method}"
         );
+    }
+}
+
+#[tokio::test]
+async fn test_l1_accepted_block_not_allowed_in_block_and_event_subscription() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+    let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+    for subscription_method in ["starknet_subscribeNewHeads", "starknet_subscribeEvents"] {
+        let subscription_resp = send_text_rpc_via_ws(
+            &mut ws,
+            subscription_method,
+            json!({ "block_id": "l1_accepted" }),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(subscription_resp, call_on_l1_accepted_error(), "Method: {subscription_method}");
     }
 }

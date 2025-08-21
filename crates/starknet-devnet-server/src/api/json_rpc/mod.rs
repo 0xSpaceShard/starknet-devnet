@@ -7,19 +7,21 @@ pub(crate) mod origin_forwarder;
 mod spec_reader;
 mod write_endpoints;
 
-pub const RPC_SPEC_VERSION: &str = "0.9.0-rc.2";
+pub const RPC_SPEC_VERSION: &str = "0.9.0";
 
 use std::sync::Arc;
 
 use axum::extract::ws::{Message, WebSocket};
 use enum_helper_macros::{AllVariantsSerdeRenames, VariantName};
+use error::ApiError;
 use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     ClassHashInput, EstimateFeeInput, EventsInput, EventsSubscriptionInput, GetStorageInput,
-    GetStorageProofInput, L1TransactionHashInput, PendingTransactionsSubscriptionInput,
-    SubscriptionBlockIdInput, SubscriptionIdInput, TransactionHashInput, TransactionHashOutput,
+    GetStorageProofInput, L1TransactionHashInput, SubscriptionBlockIdInput, SubscriptionIdInput,
+    TransactionHashInput, TransactionHashOutput, TransactionReceiptSubscriptionInput,
+    TransactionSubscriptionInput,
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -27,6 +29,7 @@ use serde_json::json;
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_core::{CasmContractClass, StarknetBlock};
 use starknet_rs_core::types::{ContractClass as CodegenContractClass, Felt};
+use starknet_types::emitted_event::SubscriptionEmittedEvent;
 use starknet_types::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::block::{Block, BlockId, BlockTag, PreConfirmedBlock, ReorgData};
 use starknet_types::rpc::estimate_message_fee::{EstimateMessageFeeRequest, FeeEstimateWrapper};
@@ -35,7 +38,7 @@ use starknet_types::rpc::state::{PreConfirmedStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, EventsChunk, L1HandlerTransactionStatus, SimulatedTransaction,
-    TransactionStatus, TransactionTrace, TransactionWithHash,
+    TransactionFinalityStatus, TransactionStatus, TransactionTrace, TransactionWithHash,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 use tokio::sync::Mutex;
@@ -72,8 +75,8 @@ use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
 use crate::subscribe::{
-    NewTransactionStatus, NotificationData, PendingTransactionNotification, SocketId,
-    TransactionHashWrapper,
+    NewTransactionNotification, NewTransactionReceiptNotification, NewTransactionStatus,
+    NotificationData, SocketId,
 };
 
 /// Helper trait to easily convert results to rpc results
@@ -253,26 +256,24 @@ impl JsonRpcHandler {
         }
     }
 
-    async fn broadcast_pending_tx_changes(
+    async fn broadcast_pre_confirmed_tx_changes(
         &self,
-        old_pending_block: StarknetBlock,
+        old_pre_confirmed_block: StarknetBlock,
     ) -> Result<(), error::ApiError> {
-        let new_pending_block = self.get_block_by_tag(BlockTag::PreConfirmed).await;
-        let old_pending_txs = old_pending_block.get_transactions();
-        let new_pending_txs = new_pending_block.get_transactions();
+        let new_pre_confirmed_block = self.get_block_by_tag(BlockTag::PreConfirmed).await;
+        let old_pre_confirmed_txs = old_pre_confirmed_block.get_transactions();
+        let new_pre_confirmed_txs = new_pre_confirmed_block.get_transactions();
 
-        if new_pending_txs.len() > old_pending_txs.len() {
+        if new_pre_confirmed_txs.len() > old_pre_confirmed_txs.len() {
             #[allow(clippy::expect_used)]
-            let new_tx_hash = new_pending_txs.last().expect("has at least one element");
-
-            let starknet = self.api.starknet.lock().await;
+            let new_tx_hash = new_pre_confirmed_txs.last().expect("has at least one element");
 
             let mut notifications = vec![];
+            let starknet = self.api.starknet.lock().await;
 
             let status = starknet
                 .get_transaction_execution_and_finality_status(*new_tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
-
             notifications.push(NotificationData::TransactionStatus(NewTransactionStatus {
                 transaction_hash: *new_tx_hash,
                 status,
@@ -281,16 +282,20 @@ impl JsonRpcHandler {
             let tx = starknet
                 .get_transaction_by_hash(*new_tx_hash)
                 .map_err(error::ApiError::StarknetDevnetError)?;
+            notifications.push(NotificationData::NewTransaction(NewTransactionNotification {
+                tx: tx.clone(),
+                finality_status: TransactionFinalityStatus::PreConfirmed,
+            }));
 
-            notifications.push(NotificationData::PendingTransaction(
-                PendingTransactionNotification::Full(Box::new(tx.clone())),
-            ));
+            let receipt = starknet
+                .get_transaction_receipt_by_hash(new_tx_hash)
+                .map_err(error::ApiError::StarknetDevnetError)?;
 
-            notifications.push(NotificationData::PendingTransaction(
-                PendingTransactionNotification::Hash(TransactionHashWrapper {
-                    hash: *tx.get_transaction_hash(),
+            notifications.push(NotificationData::NewTransactionReceipt(
+                NewTransactionReceiptNotification {
+                    tx_receipt: receipt,
                     sender_address: tx.get_sender_address(),
-                }),
+                },
             ));
 
             let events = starknet.get_unlimited_events(
@@ -298,9 +303,16 @@ impl JsonRpcHandler {
                 Some(BlockId::Tag(BlockTag::PreConfirmed)),
                 None,
                 None,
+                None, // pre-confirmed block only has pre-confirmed txs
             )?;
-            for event in events.into_iter().filter(|e| &e.transaction_hash == new_tx_hash) {
-                notifications.push(NotificationData::Event(event));
+
+            drop(starknet); // Drop immediately after last use
+
+            for emitted_event in events.into_iter().filter(|e| &e.transaction_hash == new_tx_hash) {
+                notifications.push(NotificationData::Event(SubscriptionEmittedEvent {
+                    emitted_event,
+                    finality_status: TransactionFinalityStatus::PreConfirmed,
+                }));
             }
 
             self.api.sockets.lock().await.notify_subscribers(&notifications).await;
@@ -318,48 +330,51 @@ impl JsonRpcHandler {
 
         let starknet = self.api.starknet.lock().await;
 
-        for tx_hash in new_latest_block.get_transactions() {
-            if !self.starknet_config.uses_pre_confirmed_block() {
-                let tx = starknet
-                    .get_transaction_by_hash(*tx_hash)
-                    .map_err(error::ApiError::StarknetDevnetError)?;
+        let finality_status = TransactionFinalityStatus::AcceptedOnL2;
+        let latest_txs = new_latest_block.get_transactions();
+        for tx_hash in latest_txs {
+            let tx = starknet
+                .get_transaction_by_hash(*tx_hash)
+                .map_err(error::ApiError::StarknetDevnetError)?;
+            notifications.push(NotificationData::NewTransaction(NewTransactionNotification {
+                tx: tx.clone(),
+                finality_status,
+            }));
 
-                // There are no pre-confirmed txs in this mode, but basically we are pretending that
-                // the transaction existed for a short period of time in the
-                // pre-confirmed block, thus triggering the notification. This is
-                // important for users depending on this subscription type to find
-                // out about all new transactions.
-                notifications.push(NotificationData::PendingTransaction(
-                    PendingTransactionNotification::Full(Box::new(tx.clone())),
-                ));
-                notifications.push(NotificationData::PendingTransaction(
-                    PendingTransactionNotification::Hash(TransactionHashWrapper {
-                        hash: *tx_hash,
-                        sender_address: tx.get_sender_address(),
-                    }),
-                ));
+            let status = starknet
+                .get_transaction_execution_and_finality_status(*tx_hash)
+                .map_err(error::ApiError::StarknetDevnetError)?;
+            notifications.push(NotificationData::TransactionStatus(NewTransactionStatus {
+                transaction_hash: *tx_hash,
+                status,
+            }));
 
-                // If pre-confirmed block used, tx status notifications have already been sent.
-                // If we are here, pre-confirmed block is not used and subscribers need to be
-                // notified.
-                let status = starknet
-                    .get_transaction_execution_and_finality_status(*tx_hash)
-                    .map_err(error::ApiError::StarknetDevnetError)?;
-                notifications.push(NotificationData::TransactionStatus(NewTransactionStatus {
-                    transaction_hash: *tx_hash,
-                    status,
-                }));
+            let tx_receipt = starknet
+                .get_transaction_receipt_by_hash(tx_hash)
+                .map_err(error::ApiError::StarknetDevnetError)?;
+            notifications.push(NotificationData::NewTransactionReceipt(
+                NewTransactionReceiptNotification {
+                    tx_receipt,
+                    sender_address: tx.get_sender_address(),
+                },
+            ));
+        }
 
-                let events = starknet.get_unlimited_events(
-                    Some(BlockId::Tag(BlockTag::Latest)),
-                    Some(BlockId::Tag(BlockTag::Latest)),
-                    None,
-                    None,
-                )?;
-                for event in events {
-                    notifications.push(NotificationData::Event(event));
-                }
-            }
+        let events = starknet.get_unlimited_events(
+            Some(BlockId::Tag(BlockTag::Latest)),
+            Some(BlockId::Tag(BlockTag::Latest)),
+            None,
+            None,
+            None, // latest block only has txs accepted on L2
+        )?;
+
+        drop(starknet); // Drop immediately after last use
+
+        for emitted_event in events {
+            notifications.push(NotificationData::Event(SubscriptionEmittedEvent {
+                emitted_event,
+                finality_status,
+            }));
         }
 
         self.api.sockets.lock().await.notify_subscribers(&notifications).await;
@@ -370,16 +385,14 @@ impl JsonRpcHandler {
     async fn broadcast_changes(
         &self,
         old_latest_block: Option<StarknetBlock>,
-        old_pending_block: Option<StarknetBlock>,
+        old_pre_confirmed_block: Option<StarknetBlock>,
     ) -> Result<(), error::ApiError> {
-        let old_latest_block = if let Some(block) = old_latest_block {
-            block
-        } else {
+        let Some(old_latest_block) = old_latest_block else {
             return Ok(());
         };
 
-        if let Some(old_pending_block) = old_pending_block {
-            self.broadcast_pending_tx_changes(old_pending_block).await?;
+        if let Some(old_pre_confirmed_block) = old_pre_confirmed_block {
+            self.broadcast_pre_confirmed_tx_changes(old_pre_confirmed_block).await?;
         }
 
         let new_latest_block = self.get_block_by_tag(BlockTag::Latest).await;
@@ -399,18 +412,18 @@ impl JsonRpcHandler {
         &self,
         old_latest_block: StarknetBlock,
         new_latest_block: StarknetBlock,
-    ) -> Result<(), error::ApiError> {
-        let starknet = self.api.starknet.lock().await;
-
+    ) -> Result<(), ApiError> {
         let last_aborted_block_hash =
-            starknet.last_aborted_block_hash().ok_or(error::ApiError::StarknetDevnetError(
-                starknet_core::error::Error::UnexpectedInternalError {
-                    msg: "Aborted block hash should be defined.".into(),
-                },
-            ))?;
+            *self.api.starknet.lock().await.last_aborted_block_hash().ok_or(
+                ApiError::StarknetDevnetError(
+                    starknet_core::error::Error::UnexpectedInternalError {
+                        msg: "Aborted block hash should be defined.".into(),
+                    },
+                ),
+            )?;
 
         let notification = NotificationData::Reorg(ReorgData {
-            starting_block_hash: *last_aborted_block_hash,
+            starting_block_hash: last_aborted_block_hash,
             starting_block_number: new_latest_block.block_number().unchecked_next(),
             ending_block_hash: old_latest_block.block_hash(),
             ending_block_number: old_latest_block.block_number(),
@@ -936,10 +949,12 @@ pub enum JsonRpcSubscriptionRequest {
     NewHeads(Option<SubscriptionBlockIdInput>),
     #[serde(rename = "starknet_subscribeTransactionStatus")]
     TransactionStatus(TransactionHashInput),
-    #[serde(rename = "starknet_subscribePendingTransactions", with = "optional_params")]
-    PendingTransactions(Option<PendingTransactionsSubscriptionInput>),
     #[serde(rename = "starknet_subscribeEvents")]
     Events(Option<EventsSubscriptionInput>),
+    #[serde(rename = "starknet_subscribeNewTransactions", with = "optional_params")]
+    NewTransactions(Option<TransactionSubscriptionInput>),
+    #[serde(rename = "starknet_subscribeNewTransactionReceipts", with = "optional_params")]
+    NewTransactionReceipts(Option<TransactionReceiptSubscriptionInput>),
     #[serde(rename = "starknet_unsubscribe")]
     Unsubscribe(SubscriptionIdInput),
 }

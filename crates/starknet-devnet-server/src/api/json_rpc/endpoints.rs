@@ -60,13 +60,13 @@ impl JsonRpcHandler {
 
     /// starknet_getBlockWithTxs
     pub async fn get_block_with_txs(&self, block_id: BlockId) -> StrictRpcResult {
-        let starknet = self.api.starknet.lock().await;
-
-        let block = starknet.get_block_with_transactions(&block_id).map_err(|err| match err {
-            Error::NoBlock => ApiError::BlockNotFound,
-            Error::NoTransaction => ApiError::TransactionNotFound,
-            unknown_error => ApiError::StarknetDevnetError(unknown_error),
-        })?;
+        let block = self.api.starknet.lock().await.get_block_with_transactions(&block_id).map_err(
+            |err| match err {
+                Error::NoBlock => ApiError::BlockNotFound,
+                Error::NoTransaction => ApiError::TransactionNotFound,
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            },
+        )?;
 
         match block {
             BlockResult::Block(b) => Ok(StarknetResponse::Block(b).into()),
@@ -93,12 +93,11 @@ impl JsonRpcHandler {
 
     /// starknet_getStateUpdate
     pub async fn get_state_update(&self, block_id: BlockId) -> StrictRpcResult {
-        let starknet = self.api.starknet.lock().await;
-
-        let state_update = starknet.block_state_update(&block_id).map_err(|err| match err {
-            Error::NoBlock => ApiError::BlockNotFound,
-            unknown_error => ApiError::StarknetDevnetError(unknown_error),
-        })?;
+        let state_update =
+            self.api.starknet.lock().await.block_state_update(&block_id).map_err(|e| match e {
+                Error::NoBlock => ApiError::BlockNotFound,
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            })?;
 
         match state_update {
             StateUpdateResult::StateUpdate(s) => Ok(StarknetResponse::StateUpdate(s).into()),
@@ -289,9 +288,7 @@ impl JsonRpcHandler {
 
     /// starknet_call
     pub async fn call(&self, block_id: BlockId, request: FunctionCall) -> StrictRpcResult {
-        let mut starknet = self.api.starknet.lock().await;
-
-        match starknet.call(
+        match self.api.starknet.lock().await.call(
             &block_id,
             request.contract_address.into(),
             request.entry_point_selector,
@@ -318,8 +315,7 @@ impl JsonRpcHandler {
         request: Vec<BroadcastedTransaction>,
         simulation_flags: Vec<SimulationFlag>,
     ) -> StrictRpcResult {
-        let mut starknet = self.api.starknet.lock().await;
-        match starknet.estimate_fee(&block_id, &request, &simulation_flags) {
+        match self.api.starknet.lock().await.estimate_fee(&block_id, &request, &simulation_flags) {
             Ok(result) => Ok(StarknetResponse::EstimateFee(result).into()),
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
@@ -543,6 +539,7 @@ impl JsonRpcHandler {
                     to_local_block_id,
                     filter.address,
                     filter.keys,
+                    None,
                     pages_read_so_far * filter.chunk_size,
                     Some(filter.chunk_size),
                 )
@@ -589,7 +586,6 @@ impl JsonRpcHandler {
         transactions: Vec<BroadcastedTransaction>,
         simulation_flags: Vec<SimulationFlag>,
     ) -> StrictRpcResult {
-        // borrowing as write/mutable because trace calculation requires so
         let mut starknet = self.api.starknet.lock().await;
 
         match starknet.simulate_transactions(&block_id, &transactions, simulation_flags) {

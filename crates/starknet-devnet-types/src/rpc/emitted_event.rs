@@ -2,6 +2,7 @@ use serde::Serialize;
 use starknet_api::block::BlockNumber;
 use starknet_types_core::felt::Felt;
 
+use super::transactions::TransactionFinalityStatus;
 use crate::contract_address::ContractAddress;
 use crate::felt::{BlockHash, TransactionHash};
 
@@ -67,4 +68,18 @@ impl From<&EmittedEvent> for Event {
             data: emitted_event.data.clone(),
         }
     }
+}
+
+impl From<EmittedEvent> for Event {
+    fn from(emitted_event: EmittedEvent) -> Self {
+        (&emitted_event).into()
+    }
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+pub struct SubscriptionEmittedEvent {
+    #[serde(flatten)]
+    pub emitted_event: EmittedEvent,
+    pub finality_status: TransactionFinalityStatus,
 }

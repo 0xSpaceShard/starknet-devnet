@@ -2,6 +2,7 @@ use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{EmittedEvent, Event};
 use starknet_types::rpc::block::{BlockId, BlockStatus};
+use starknet_types::rpc::transactions::TransactionFinalityStatus;
 
 use super::Starknet;
 use crate::error::{DevnetResult, Error};
@@ -18,12 +19,14 @@ use crate::traits::HashIdentified;
 /// * `keys_filter` - Optional. The keys to filter the events by.
 /// * `skip` - The number of elements to skip.
 /// * `limit` - Optional. The maximum number of elements to return.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn get_events(
     starknet: &Starknet,
     from_block: Option<BlockId>,
     to_block: Option<BlockId>,
     contract_address: Option<ContractAddress>,
     keys_filter: Option<Vec<Vec<Felt>>>,
+    finality_status_filter: Option<TransactionFinalityStatus>,
     mut skip: u64,
     limit: Option<u64>,
 ) -> DevnetResult<(Vec<EmittedEvent>, bool)> {
@@ -37,6 +40,12 @@ pub(crate) fn get_events(
         for transaction_hash in block.get_transactions() {
             let transaction =
                 starknet.transactions.get_by_hash(*transaction_hash).ok_or(Error::NoTransaction)?;
+
+            if let Some(finality_status_filter) = finality_status_filter {
+                if transaction.finality_status < finality_status_filter {
+                    continue;
+                }
+            }
 
             // filter the events from the transaction
             let filtered_transaction_events = transaction
@@ -294,6 +303,7 @@ mod tests {
             Some(BlockId::Tag(BlockTag::Latest)),
             None,
             None,
+            None,
             0,
             None,
         )
@@ -307,6 +317,7 @@ mod tests {
             &starknet,
             Some(BlockId::Tag(BlockTag::Latest)),
             Some(BlockId::Tag(BlockTag::Latest)),
+            None,
             None,
             None,
             0,
@@ -325,6 +336,7 @@ mod tests {
             Some(BlockId::Tag(BlockTag::Latest)),
             None,
             None,
+            None,
             3,
             Some(3),
         )
@@ -339,27 +351,30 @@ mod tests {
         let starknet = setup();
 
         // returns all events from all blocks
-        let (events, has_more) = get_events(&starknet, None, None, None, None, 0, None).unwrap();
+        let (events, has_more) =
+            get_events(&starknet, None, None, None, None, None, 0, None).unwrap();
 
         assert_eq!(events.len(), 15);
         assert!(!has_more);
 
         // returns all events from all blocks, skip 3, but limit the result to 10
         let (events, has_more) =
-            get_events(&starknet, None, None, None, None, 3, Some(10)).unwrap();
+            get_events(&starknet, None, None, None, None, None, 3, Some(10)).unwrap();
         assert_eq!(events.len(), 10);
         assert!(has_more);
 
         // returns all events from the first 2 blocks, skip 3, but limit the result to 1
         let (events, has_more) =
-            get_events(&starknet, None, Some(BlockId::Number(2)), None, None, 3, Some(1)).unwrap();
+            get_events(&starknet, None, Some(BlockId::Number(2)), None, None, None, 3, Some(1))
+                .unwrap();
         assert_eq!(events.len(), 0);
         assert!(!has_more);
 
         // returns all events from the first 2 blocks, skip 1, but limit the result to 1, it should
         // return 1 event and should be more
         let (events, has_more) =
-            get_events(&starknet, None, Some(BlockId::Number(2)), None, None, 1, Some(1)).unwrap();
+            get_events(&starknet, None, Some(BlockId::Number(2)), None, None, None, 1, Some(1))
+                .unwrap();
         assert_eq!(events.len(), 1);
         assert!(has_more);
     }
@@ -369,9 +384,17 @@ mod tests {
         let starknet = setup();
 
         // events with key 15 should be only 1 in the 5th transaction
-        let (events, _) =
-            get_events(&starknet, None, None, None, Some(vec![vec![Felt::from(15)]]), 0, None)
-                .unwrap();
+        let (events, _) = get_events(
+            &starknet,
+            None,
+            None,
+            None,
+            Some(vec![vec![Felt::from(15)]]),
+            None,
+            0,
+            None,
+        )
+        .unwrap();
 
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].transaction_hash, Felt::from(104));
@@ -379,9 +402,17 @@ mod tests {
         assert_eq!(events[0].keys[0], Felt::from(15));
         assert_eq!(events[0].data[0], Felt::from(25));
 
-        let (events, _) =
-            get_events(&starknet, None, None, None, Some(vec![vec![Felt::from(12)]]), 0, None)
-                .unwrap();
+        let (events, _) = get_events(
+            &starknet,
+            None,
+            None,
+            None,
+            Some(vec![vec![Felt::from(12)]]),
+            None,
+            0,
+            None,
+        )
+        .unwrap();
 
         assert_eq!(events.len(), 4);
         // start from transaction hash 101 because from the setup the first transaction has

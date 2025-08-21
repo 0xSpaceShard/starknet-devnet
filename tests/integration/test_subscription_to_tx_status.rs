@@ -137,49 +137,44 @@ async fn should_not_receive_block_notification_if_subscribed_to_tx() {
 
 async fn should_notify_if_subscribed_before_and_after_tx(
     devnet: &BackgroundDevnet,
+    ws_before_tx: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    ws_after_tx: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
     expected_finality_status: &str,
-) {
+) -> (Felt, String, String) {
     let (address, mint_amount, expected_tx_hash) = first_mint_data();
 
     // should work if subscribing before sending the tx
-    let (mut ws_before_tx, _) = connect_async(devnet.ws_url()).await.unwrap();
     let subscription_id_before =
-        subscribe_tx_status(&mut ws_before_tx, &expected_tx_hash).await.unwrap();
+        subscribe_tx_status(ws_before_tx, &expected_tx_hash).await.unwrap();
 
     let tx_hash = devnet.mint(address, mint_amount).await;
     assert_eq!(tx_hash, expected_tx_hash);
 
     {
-        let notification = receive_rpc_via_ws(&mut ws_before_tx).await.unwrap();
+        let notification = receive_rpc_via_ws(ws_before_tx).await.unwrap();
         assert_mint_notification_succeeded(
             notification,
             tx_hash,
-            subscription_id_before,
+            subscription_id_before.clone(),
             expected_finality_status,
         );
-        assert_no_notifications(&mut ws_before_tx).await;
+        assert_no_notifications(ws_before_tx).await;
     }
 
     // should work even if subscribing after the tx was sent
-    let (mut ws_after_tx, _) = connect_async(devnet.ws_url()).await.unwrap();
-    let subscription_id_after =
-        subscribe_tx_status(&mut ws_after_tx, &expected_tx_hash).await.unwrap();
+    let subscription_id_after = subscribe_tx_status(ws_after_tx, &expected_tx_hash).await.unwrap();
     {
-        let notification = receive_rpc_via_ws(&mut ws_after_tx).await.unwrap();
+        let notification = receive_rpc_via_ws(ws_after_tx).await.unwrap();
         assert_mint_notification_succeeded(
             notification,
             tx_hash,
-            subscription_id_after,
+            subscription_id_after.clone(),
             expected_finality_status,
         );
-        assert_no_notifications(&mut ws_after_tx).await;
+        assert_no_notifications(ws_after_tx).await;
     }
 
-    // In on-demand mode, this moves tx from pre_confirmed to latest - expect no notifications
-    devnet.create_block().await.unwrap();
-
-    assert_no_notifications(&mut ws_before_tx).await;
-    assert_no_notifications(&mut ws_after_tx).await;
+    (tx_hash, subscription_id_before, subscription_id_after)
 }
 
 #[tokio::test]
@@ -187,7 +182,33 @@ async fn should_notify_in_on_demand_mode() {
     let devnet_args = ["--block-generation-on", "demand"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
 
-    should_notify_if_subscribed_before_and_after_tx(&devnet, "PRE_CONFIRMED").await;
+    let (mut ws_before_tx, _) = connect_async(devnet.ws_url()).await.unwrap();
+    let (mut ws_after_tx, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+    let (mint_tx_hash, subscription_id_before, subscription_id_after) =
+        should_notify_if_subscribed_before_and_after_tx(
+            &devnet,
+            &mut ws_before_tx,
+            &mut ws_after_tx,
+            "PRE_CONFIRMED",
+        )
+        .await;
+
+    // Creating a new block should make txs go: PRE_CONFIRMED->ACCEPTED_ON_L2
+    devnet.create_block().await.unwrap();
+
+    for (mut ws, subscription_id) in
+        [(ws_before_tx, subscription_id_before), (ws_after_tx, subscription_id_after)]
+    {
+        let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
+        assert_mint_notification_succeeded(
+            notification,
+            mint_tx_hash,
+            subscription_id,
+            "ACCEPTED_ON_L2",
+        );
+        assert_no_notifications(&mut ws).await;
+    }
 }
 
 #[tokio::test]
@@ -217,7 +238,22 @@ async fn should_notify_in_on_transaction_mode() {
     let devnet_args = ["--block-generation-on", "transaction"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
 
-    should_notify_if_subscribed_before_and_after_tx(&devnet, "ACCEPTED_ON_L2").await;
+    let (mut ws_before_tx, _) = connect_async(devnet.ws_url()).await.unwrap();
+    let (mut ws_after_tx, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+    should_notify_if_subscribed_before_and_after_tx(
+        &devnet,
+        &mut ws_before_tx,
+        &mut ws_after_tx,
+        "ACCEPTED_ON_L2",
+    )
+    .await;
+
+    // Expect no new notifications on creating a new empty block
+    devnet.create_block().await.unwrap();
+
+    assert_no_notifications(&mut ws_before_tx).await;
+    assert_no_notifications(&mut ws_after_tx).await;
 }
 
 #[tokio::test]

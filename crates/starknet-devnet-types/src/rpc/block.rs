@@ -159,23 +159,23 @@ impl<'de> Deserialize<'de> for SubscriptionBlockId {
         D: Deserializer<'de>,
     {
         let block_id = BlockId::deserialize(deserializer)?;
-        Ok(match block_id {
-            BlockId::Hash(felt) => Self::Hash(felt),
-            BlockId::Number(n) => Self::Number(n),
-            BlockId::Tag(BlockTag::Latest) => Self::Latest,
+        match block_id {
+            BlockId::Hash(felt) => Ok(Self::Hash(felt)),
+            BlockId::Number(n) => Ok(Self::Number(n)),
+            BlockId::Tag(BlockTag::Latest) => Ok(Self::Latest),
             BlockId::Tag(BlockTag::PreConfirmed) => {
-                return Err(serde::de::Error::custom(
-                    "Subscription block cannot be 'pre_confirmed'",
-                ));
+                Err(serde::de::Error::custom("Subscription block cannot be 'pre_confirmed'"))
             }
-            BlockId::Tag(BlockTag::L1Accepted) => Self::L1Accepted,
-        })
+            BlockId::Tag(BlockTag::L1Accepted) => {
+                Err(serde::de::Error::custom("Subscription block cannot be 'l1_accepted'"))
+            }
+        }
     }
 }
 
 impl From<SubscriptionBlockId> for BlockId {
-    fn from(value: SubscriptionBlockId) -> Self {
-        (&value).into()
+    fn from(block_id: SubscriptionBlockId) -> Self {
+        (&block_id).into()
     }
 }
 
@@ -253,14 +253,10 @@ mod test_subscription_block_id {
     }
 
     #[test]
-    fn reject_pending_and_pre_confirmed() {
-        serde_json::from_value::<SubscriptionBlockId>(json!("pending")).unwrap_err();
-        serde_json::from_value::<SubscriptionBlockId>(json!("pre_confirmed")).unwrap_err();
-    }
-
-    #[test]
-    fn accept_l1_accepted() {
-        serde_json::from_value::<SubscriptionBlockId>(json!("l1_accepted")).unwrap();
+    fn reject_non_latest_subscription_block_tag() {
+        for tag in ["pending", "pre_confirmed", "l1_accepted"] {
+            serde_json::from_value::<SubscriptionBlockId>(json!(tag)).unwrap_err();
+        }
     }
 
     #[test]

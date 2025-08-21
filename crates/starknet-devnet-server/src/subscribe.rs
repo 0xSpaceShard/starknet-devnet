@@ -8,10 +8,13 @@ use serde::{self, Deserialize, Serialize};
 use starknet_core::starknet::events::check_if_filter_applies_for_event;
 use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::emitted_event::EmittedEvent;
+use starknet_types::emitted_event::SubscriptionEmittedEvent;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::block::{BlockHeader, ReorgData};
-use starknet_types::rpc::transactions::{TransactionStatus, TransactionWithHash};
+use starknet_types::rpc::transaction_receipt::TransactionReceipt;
+use starknet_types::rpc::transactions::{
+    TransactionFinalityStatus, TransactionStatus, TransactionWithHash,
+};
 use tokio::sync::Mutex;
 
 use crate::api::json_rpc::error::ApiError;
@@ -73,13 +76,40 @@ impl AddressFilter {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct StatusFilter {
+    status_container: Vec<TransactionFinalityStatus>,
+}
+
+impl StatusFilter {
+    pub(crate) fn new(status_container: Vec<TransactionFinalityStatus>) -> Self {
+        Self { status_container }
+    }
+
+    pub(crate) fn passes(&self, status: &TransactionFinalityStatus) -> bool {
+        self.status_container.is_empty() || self.status_container.contains(status)
+    }
+}
+
 #[derive(Debug)]
 pub enum Subscription {
     NewHeads,
-    TransactionStatus { transaction_hash: TransactionHash },
-    PendingTransactionsFull { address_filter: AddressFilter },
-    PendingTransactionsHash { address_filter: AddressFilter },
-    Events { address: Option<ContractAddress>, keys_filter: Option<Vec<Vec<Felt>>> },
+    TransactionStatus {
+        transaction_hash: TransactionHash,
+    },
+    NewTransactions {
+        address_filter: AddressFilter,
+        status_filter: StatusFilter,
+    },
+    NewTransactionReceipts {
+        address_filter: AddressFilter,
+        status_filter: StatusFilter,
+    },
+    Events {
+        address: Option<ContractAddress>,
+        keys_filter: Option<Vec<Vec<Felt>>>,
+        status_filter: StatusFilter,
+    },
 }
 
 impl Subscription {
@@ -87,8 +117,8 @@ impl Subscription {
         match self {
             Subscription::NewHeads => SubscriptionConfirmation::NewSubscription(id),
             Subscription::TransactionStatus { .. } => SubscriptionConfirmation::NewSubscription(id),
-            Subscription::PendingTransactionsFull { .. }
-            | Subscription::PendingTransactionsHash { .. } => {
+            Subscription::NewTransactions { .. } => SubscriptionConfirmation::NewSubscription(id),
+            Subscription::NewTransactionReceipts { .. } => {
                 SubscriptionConfirmation::NewSubscription(id)
             }
             Subscription::Events { .. } => SubscriptionConfirmation::NewSubscription(id),
@@ -103,30 +133,46 @@ impl Subscription {
                 NotificationData::TransactionStatus(notification),
             ) => subscription_hash == &notification.transaction_hash,
             (
-                Subscription::PendingTransactionsFull { address_filter },
-                NotificationData::PendingTransaction(PendingTransactionNotification::Full(tx)),
+                Subscription::NewTransactions { address_filter, status_filter },
+                NotificationData::NewTransaction(NewTransactionNotification {
+                    tx,
+                    finality_status,
+                }),
             ) => match tx.get_sender_address() {
-                Some(address) => address_filter.passes(&address),
+                Some(address) => {
+                    address_filter.passes(&address) && status_filter.passes(finality_status)
+                }
                 None => true,
             },
             (
-                Subscription::PendingTransactionsHash { address_filter },
-                NotificationData::PendingTransaction(PendingTransactionNotification::Hash(
-                    hash_wrapper,
-                )),
-            ) => match hash_wrapper.sender_address {
-                Some(address) => address_filter.passes(&address),
-                None => true,
-            },
-            (Subscription::Events { address, keys_filter }, NotificationData::Event(event)) => {
-                check_if_filter_applies_for_event(address, keys_filter, &event.into())
+                Subscription::NewTransactionReceipts { address_filter, status_filter },
+                NotificationData::NewTransactionReceipt(NewTransactionReceiptNotification {
+                    tx_receipt,
+                    sender_address,
+                }),
+            ) => {
+                status_filter.passes(tx_receipt.finality_status())
+                    && match sender_address {
+                        Some(address) => address_filter.passes(address),
+                        None => true,
+                    }
+            }
+            (
+                Subscription::Events { address, keys_filter, status_filter },
+                NotificationData::Event(event_with_finality_status),
+            ) => {
+                let event = (&event_with_finality_status.emitted_event).into();
+                check_if_filter_applies_for_event(address, keys_filter, &event)
+                    && status_filter.passes(&event_with_finality_status.finality_status)
             }
             (
                 Subscription::NewHeads
                 | Subscription::TransactionStatus { .. }
-                | Subscription::Events { .. },
+                | Subscription::Events { .. }
+                | Subscription::NewTransactions { .. }
+                | Subscription::NewTransactionReceipts { .. },
                 NotificationData::Reorg(_),
-            ) => true, // any subscription other than pending tx requires reorg notification
+            ) => true, // All subscriptions require a reorg notification
             _ => false,
         }
     }
@@ -173,20 +219,63 @@ impl<'de> Deserialize<'de> for TransactionHashWrapper {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TransactionFinalityStatusWithoutL1 {
+    PreConfirmed,
+    AcceptedOnL2,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TransactionStatusWithoutL1 {
+    Received,
+    Candidate,
+    PreConfirmed,
+    AcceptedOnL2,
+}
+
+impl From<TransactionFinalityStatusWithoutL1> for TransactionFinalityStatus {
+    fn from(status: TransactionFinalityStatusWithoutL1) -> Self {
+        match status {
+            TransactionFinalityStatusWithoutL1::PreConfirmed => Self::PreConfirmed,
+            TransactionFinalityStatusWithoutL1::AcceptedOnL2 => Self::AcceptedOnL2,
+        }
+    }
+}
+
+impl From<TransactionStatusWithoutL1> for TransactionFinalityStatus {
+    fn from(status: TransactionStatusWithoutL1) -> Self {
+        match status {
+            TransactionStatusWithoutL1::Received => Self::Received,
+            TransactionStatusWithoutL1::Candidate => Self::Candidate,
+            TransactionStatusWithoutL1::PreConfirmed => Self::PreConfirmed,
+            TransactionStatusWithoutL1::AcceptedOnL2 => Self::AcceptedOnL2,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
-#[serde(untagged)]
 #[cfg_attr(test, derive(Deserialize))]
-pub enum PendingTransactionNotification {
-    Hash(TransactionHashWrapper),
-    Full(Box<TransactionWithHash>),
+pub struct NewTransactionNotification {
+    #[serde(flatten)]
+    pub tx: TransactionWithHash,
+    pub finality_status: TransactionFinalityStatus,
+}
+
+#[derive(Debug, Clone)]
+pub struct NewTransactionReceiptNotification {
+    pub tx_receipt: TransactionReceipt,
+    pub sender_address: Option<ContractAddress>,
 }
 
 #[derive(Debug, Clone)]
 pub enum NotificationData {
     NewHeads(BlockHeader),
     TransactionStatus(NewTransactionStatus),
-    PendingTransaction(PendingTransactionNotification),
-    Event(EmittedEvent),
+    NewTransaction(NewTransactionNotification),
+    NewTransactionReceipt(NewTransactionReceiptNotification),
+    Event(SubscriptionEmittedEvent),
     Reorg(ReorgData),
 }
 
@@ -210,10 +299,12 @@ pub(crate) enum SubscriptionNotification {
     NewHeads { subscription_id: SubscriptionId, result: BlockHeader },
     #[serde(rename = "starknet_subscriptionTransactionStatus")]
     TransactionStatus { subscription_id: SubscriptionId, result: NewTransactionStatus },
-    #[serde(rename = "starknet_subscriptionPendingTransactions")]
-    PendingTransaction { subscription_id: SubscriptionId, result: PendingTransactionNotification },
+    #[serde(rename = "starknet_subscriptionNewTransaction")]
+    NewTransaction { subscription_id: SubscriptionId, result: NewTransactionNotification },
+    #[serde(rename = "starknet_subscriptionNewTransactionReceipts")]
+    NewTransactionReceipt { subscription_id: SubscriptionId, result: TransactionReceipt },
     #[serde(rename = "starknet_subscriptionEvents")]
-    Event { subscription_id: SubscriptionId, result: EmittedEvent },
+    Event { subscription_id: SubscriptionId, result: SubscriptionEmittedEvent },
     #[serde(rename = "starknet_subscriptionReorg")]
     Reorg { subscription_id: SubscriptionId, result: ReorgData },
 }
@@ -293,10 +384,17 @@ impl SocketContext {
                 }
             }
 
-            NotificationData::PendingTransaction(pending_transaction_notification) => {
-                SubscriptionNotification::PendingTransaction {
+            NotificationData::NewTransaction(tx_notification) => {
+                SubscriptionNotification::NewTransaction {
                     subscription_id,
-                    result: pending_transaction_notification,
+                    result: tx_notification,
+                }
+            }
+
+            NotificationData::NewTransactionReceipt(tx_receipt_notification) => {
+                SubscriptionNotification::NewTransactionReceipt {
+                    subscription_id,
+                    result: tx_receipt_notification.tx_receipt,
                 }
             }
 
