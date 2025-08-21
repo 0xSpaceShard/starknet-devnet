@@ -609,3 +609,29 @@ async fn get_data_by_specifying_latest_block_hash_and_number() {
         assert_eq!(storage, signer.get_public_key().await.unwrap().scalar());
     }
 }
+
+#[tokio::test]
+async fn should_get_block_with_receipts() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+    let mint_hash = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+
+    let block_id = BlockId::Tag(BlockTag::Latest);
+    let block = devnet
+        .send_custom_rpc("starknet_getBlockWithReceipts", json!({ "block_id": block_id }))
+        .await
+        .unwrap();
+
+    assert_eq!(block["status"], json!(BlockStatus::AcceptedOnL2));
+    assert_eq!(block["block_number"], json!(1));
+    let txs = block["transactions"].as_array().unwrap();
+
+    assert_eq!(txs.len(), 1);
+
+    // This used to be a bug
+    let receipt = &txs[0]["receipt"];
+    assert!(receipt["block_number"].is_null());
+    assert!(receipt["block_hash"].is_null());
+
+    assert_eq!(receipt["transaction_hash"], json!(mint_hash));
+}
