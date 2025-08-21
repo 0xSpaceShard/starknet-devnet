@@ -10,6 +10,8 @@ To release a new Devnet version, follow these steps:
    $ npm --prefix website run docusaurus docs:version <VERSION>
    ```
 
+   - Feel free to delete documentation entries of old release candidates. E.g. if releasing 0.5.0, delete all files containing in them or in their names references of 0.5.0-rc.2. Or if releasing 0.5.0-rc.2, delete the entry of 0.5.0-rc.1.
+
 3. Create a PR styled after [this one](https://github.com/0xSpaceShard/starknet-devnet-rs/pull/473).
 
 4. The publishing of crates, Docker images and documentation website is done automatically in the CI when the PR is merged into the main branch.
