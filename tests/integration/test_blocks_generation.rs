@@ -103,12 +103,7 @@ async fn assert_latest_block_with_receipts(
     tx_count: usize,
 ) {
     let latest_block = &devnet
-        .send_custom_rpc(
-            "starknet_getBlockWithReceipts",
-            json!(    {
-                "block_id": "latest"
-            }),
-        )
+        .send_custom_rpc("starknet_getBlockWithReceipts", json!({ "block_id": "latest" }))
         .await
         .unwrap();
 
