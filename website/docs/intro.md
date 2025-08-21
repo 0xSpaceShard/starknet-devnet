@@ -8,16 +8,16 @@ sidebar_position: 1
 
 - Devnet should not be used as a replacement for the official testnet. After testing on Devnet, be sure to test on testnet (alpha-sepolia)!
 - Devnet does not organize state data into Merkle-Patricia tries or similar tree-like structures, so:
-  - calling the `starknet_getStorageProof` RPC method shall always result in `STORAGE_PROOF_NOT_SUPPORTED`
-  - block roots are set to 0
+  - Calling the `starknet_getStorageProof` RPC method shall always result in `STORAGE_PROOF_NOT_SUPPORTED`.
+  - Block roots are set to 0.
 - The pre-confirmed block is equivalent to the old pending block, except that its transactions are not `ACCEPTED_ON_L2` but `PRE_CONFIRMED`.
-- By default, a new block is mined for each new transactions.
+- By default, a new block is mined for each new transaction.
   - This can be modified by directing all new transactions into a pre-confirmed block, and at some point triggering block creation.
   - Transactions in a pre-confirmed block cannot be replaced by sending a transaction with a higher free from the same account.
   - Read more about transitioning a transaction [from `PRE_CONFIRMED` to `ACCEPTED_ON_L2`](./blocks#creating-blocks-on-demand).
-- `RECEIVED` and `CANDIDATE` are not used in Devnet.
 - Transactions are never automatically `ACCEPTED_ON_L1`, unless the user performs an action.
   - Read more about transitioning a transaction [from `ACCEPTED_ON_L2` to `ACCEPTED_ON_L1`](./blocks#accepting-blocks-on-l1).
+- `RECEIVED` and `CANDIDATE` statuses are not used in Devnet.
 
 :::
 
