@@ -1124,7 +1124,8 @@ impl Starknet {
                 self.transactions.get_by_hash(*transaction_hash).ok_or(Error::NoTransaction)?;
 
             let transaction = sn_transaction.inner.clone();
-            let receipt = sn_transaction.get_receipt()?;
+            let mut receipt = sn_transaction.get_receipt()?;
+            receipt.clear_block_properties(); // Already contained in block header
 
             transaction_receipts
                 .push(TransactionWithReceipt { receipt, transaction: transaction.transaction });
