@@ -616,6 +616,8 @@ async fn should_get_block_with_receipts() {
 
     let mint_hash = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
+    // Sending a custom request to allow asserting property presence. Starknet-rs impl of the
+    // receipt doesn't report extra properties.
     let block_id = BlockId::Tag(BlockTag::Latest);
     let block = devnet
         .send_custom_rpc("starknet_getBlockWithReceipts", json!({ "block_id": block_id }))
