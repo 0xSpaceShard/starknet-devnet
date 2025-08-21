@@ -14,15 +14,10 @@ sidebar_position: 1
 - By default, a new block is mined for each new transactions.
   - This can be modified by directing all new transactions into a pre-confirmed block, and at some point triggering block creation.
   - Transactions in a pre-confirmed block cannot be replaced by sending a transaction with a higher free from the same account.
-  - Read more [here](./blocks).
-- The semantics of `REJECTED` and `REVERTED` status of a transaction is not the same as on the official testnet:
-
-| Tx status  | Official testnet                                            | Devnet                                                     |
-| ---------- | ----------------------------------------------------------- | ---------------------------------------------------------- |
-| `REJECTED` | validation failed; not included in a block                  | not used                                                   |
-| `REVERTED` | validation passed but execution failed; included in a block | validation or execution failed; not included in a block`*` |
-
-`*`: dummy zeroes (0) in tx info for block number and tx index
+  - Read more about transitioning a transaction [from `PRE_CONFIRMED` to `ACCEPTED_ON_L2`](./blocks#creating-blocks-on-demand).
+- `RECEIVED` and `CANDIDATE` are not used in Devnet.
+- Transactions are never automatically `ACCEPTED_ON_L1`, unless the user performs an action.
+  - Read more about transitioning a transaction [from `ACCEPTED_ON_L2` to `ACCEPTED_ON_L1`](./blocks#accepting-blocks-on-l1).
 
 :::
 
