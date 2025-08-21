@@ -174,8 +174,8 @@ impl<'de> Deserialize<'de> for SubscriptionBlockId {
 }
 
 impl From<SubscriptionBlockId> for BlockId {
-    fn from(value: SubscriptionBlockId) -> Self {
-        (&value).into()
+    fn from(block_id: SubscriptionBlockId) -> Self {
+        (&block_id).into()
     }
 }
 

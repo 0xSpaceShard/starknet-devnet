@@ -320,8 +320,7 @@ impl JsonRpcHandler {
 
         let starting_block_id = maybe_subscription_input
             .as_ref()
-            .and_then(|subscription_input| subscription_input.block_id.as_ref())
-            .map(|b| b.into())
+            .and_then(|subscription_input| subscription_input.block_id.as_ref().map(BlockId::from))
             .unwrap_or(BlockId::Tag(BlockTag::Latest));
 
         self.get_validated_block_number_range(starting_block_id).await?;
@@ -345,7 +344,7 @@ impl JsonRpcHandler {
 
         let events = self.api.starknet.lock().await.get_unlimited_events(
             Some(starting_block_id),
-            Some(BlockId::Tag(BlockTag::PreConfirmed)),
+            Some(BlockId::Tag(BlockTag::PreConfirmed)), // Last block; filtering by status
             address,
             keys_filter,
             Some(finality_status),

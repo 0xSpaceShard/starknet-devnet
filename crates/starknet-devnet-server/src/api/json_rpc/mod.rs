@@ -305,13 +305,14 @@ impl JsonRpcHandler {
                 None,
                 None, // pre-confirmed block only has pre-confirmed txs
             )?;
+
+            drop(starknet); // Drop immediately after last use
+
             for emitted_event in events.into_iter().filter(|e| &e.transaction_hash == new_tx_hash) {
-                let subscription_event = SubscriptionEmittedEvent {
+                notifications.push(NotificationData::Event(SubscriptionEmittedEvent {
                     emitted_event,
-                    // pre-confirmed block only has pre-confirmed txs
                     finality_status: TransactionFinalityStatus::PreConfirmed,
-                };
-                notifications.push(NotificationData::Event(subscription_event));
+                }));
             }
 
             self.api.sockets.lock().await.notify_subscribers(&notifications).await;
@@ -366,6 +367,9 @@ impl JsonRpcHandler {
             None,
             None, // latest block only has txs accepted on L2
         )?;
+
+        drop(starknet); // Drop immediately after last use
+
         for emitted_event in events {
             notifications.push(NotificationData::Event(SubscriptionEmittedEvent {
                 emitted_event,
