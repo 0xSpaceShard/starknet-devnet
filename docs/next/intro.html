@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.3.2">
 <title data-rh="true">Intro | Starknet Devnet</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:image" content="https://0xspaceshard.github.io/starknet-devnet/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://0xspaceshard.github.io/starknet-devnet/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://0xspaceshard.github.io/starknet-devnet/docs/next/intro"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Intro | Starknet Devnet"><meta data-rh="true" name="description" content="- Devnet should not be used as a replacement for the official testnet. After testing on Devnet, be sure to test on testnet (alpha-sepolia)!"><meta data-rh="true" property="og:description" content="- Devnet should not be used as a replacement for the official testnet. After testing on Devnet, be sure to test on testnet (alpha-sepolia)!"><link data-rh="true" rel="icon" href="/starknet-devnet/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://0xspaceshard.github.io/starknet-devnet/docs/next/intro"><link data-rh="true" rel="alternate" href="https://0xspaceshard.github.io/starknet-devnet/docs/next/intro" hreflang="en"><link data-rh="true" rel="alternate" href="https://0xspaceshard.github.io/starknet-devnet/docs/next/intro" hreflang="x-default"><link rel="stylesheet" href="/starknet-devnet/assets/css/styles.672a8b88.css">
-<script src="/starknet-devnet/assets/js/runtime~main.ad450773.js" defer="defer"></script>
+<script src="/starknet-devnet/assets/js/runtime~main.18a5d519.js" defer="defer"></script>
 <script src="/starknet-devnet/assets/js/main.ceea98b4.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -13,24 +13,24 @@
 <li>Devnet should not be used as a replacement for the official testnet. After testing on Devnet, be sure to test on testnet (alpha-sepolia)!</li>
 <li>Devnet does not organize state data into Merkle-Patricia tries or similar tree-like structures, so:<!-- -->
 <ul>
-<li>calling the <code>starknet_getStorageProof</code> RPC method shall always result in <code>STORAGE_PROOF_NOT_SUPPORTED</code></li>
-<li>block roots are set to 0</li>
+<li>Calling the <code>starknet_getStorageProof</code> RPC method shall always result in <code>STORAGE_PROOF_NOT_SUPPORTED</code>.</li>
+<li>Block roots are set to 0.</li>
 </ul>
 </li>
 <li>The pre-confirmed block is equivalent to the old pending block, except that its transactions are not <code>ACCEPTED_ON_L2</code> but <code>PRE_CONFIRMED</code>.</li>
-<li>By default, a new block is mined for each new transactions.<!-- -->
+<li>By default, a new block is mined for each new transaction.<!-- -->
 <ul>
 <li>This can be modified by directing all new transactions into a pre-confirmed block, and at some point triggering block creation.</li>
 <li>Transactions in a pre-confirmed block cannot be replaced by sending a transaction with a higher free from the same account.</li>
 <li>Read more about transitioning a transaction <a href="/starknet-devnet/docs/next/blocks#creating-blocks-on-demand">from <code>PRE_CONFIRMED</code> to <code>ACCEPTED_ON_L2</code></a>.</li>
 </ul>
 </li>
-<li><code>RECEIVED</code> and <code>CANDIDATE</code> are not used in Devnet.</li>
 <li>Transactions are never automatically <code>ACCEPTED_ON_L1</code>, unless the user performs an action.<!-- -->
 <ul>
 <li>Read more about transitioning a transaction <a href="/starknet-devnet/docs/next/blocks#accepting-blocks-on-l1">from <code>ACCEPTED_ON_L2</code> to <code>ACCEPTED_ON_L1</code></a>.</li>
 </ul>
 </li>
+<li><code>RECEIVED</code> and <code>CANDIDATE</code> statuses are not used in Devnet.</li>
 </ul></div></div>
 <p>You may now proceed with <a href="/starknet-devnet/docs/next/running/install">running Devnet</a> and checking out the multitude of features listed in the sidebar on the left.</p>
 <h1>Limits</h1>
