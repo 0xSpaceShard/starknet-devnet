@@ -76,14 +76,13 @@ impl JsonRpcHandler {
 
     /// starknet_getBlockWithReceipts
     pub async fn get_block_with_receipts(&self, block_id: BlockId) -> StrictRpcResult {
-        let block =
-            self.api.starknet.lock().await.get_block_with_receipts(&block_id).map_err(|err| {
-                match err {
-                    Error::NoBlock => ApiError::BlockNotFound,
-                    Error::NoTransaction => ApiError::TransactionNotFound,
-                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
-                }
-            })?;
+        let block = self.api.starknet.lock().await.get_block_with_receipts(&block_id).map_err(
+            |e| match e {
+                Error::NoBlock => ApiError::BlockNotFound,
+                Error::NoTransaction => ApiError::TransactionNotFound,
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            },
+        )?;
 
         match block {
             BlockResult::Block(b) => Ok(StarknetResponse::Block(b).into()),

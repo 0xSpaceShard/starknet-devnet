@@ -20,7 +20,7 @@ pub enum TransactionReceipt {
     Common(CommonTransactionReceipt),
 }
 
-#[derive(Debug, Clone, Serialize)] // TODO PartialEq, Eq?
+#[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize))]
 pub struct DeployTransactionReceipt {
     #[serde(flatten)]
@@ -45,6 +45,17 @@ impl TransactionReceipt {
         };
 
         &common.finality_status
+    }
+
+    pub fn clear_block_properties(&mut self) {
+        let common = match self {
+            TransactionReceipt::Deploy(receipt) => &mut receipt.common,
+            TransactionReceipt::L1Handler(receipt) => &mut receipt.common,
+            TransactionReceipt::Common(common) => common,
+        };
+
+        common.block_hash = None;
+        common.block_number = None;
     }
 }
 
