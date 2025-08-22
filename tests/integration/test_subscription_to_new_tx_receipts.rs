@@ -4,8 +4,7 @@ use serde_json::json;
 use starknet_core::constants::CHARGEABLE_ACCOUNT_ADDRESS;
 use starknet_rs_accounts::{ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{
-    DeclareTransactionReceipt, DeployTransactionReceipt, Felt, InvokeTransactionReceipt,
-    TransactionFinalityStatus,
+    DeclareTransactionReceipt, Felt, InvokeTransactionReceipt, TransactionFinalityStatus,
 };
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
@@ -181,7 +180,7 @@ async fn should_notify_for_filtered_address() {
 
     // Assert received deployment notification
     let deployment_notification = receive_new_tx_receipt(&mut ws, subscription_id).await.unwrap();
-    let deployment_receipt: DeployTransactionReceipt =
+    let deployment_receipt: InvokeTransactionReceipt =
         serde_json::from_value(deployment_notification).unwrap();
     assert_eq!(deployment_receipt.finality_status, TransactionFinalityStatus::AcceptedOnL2);
 
