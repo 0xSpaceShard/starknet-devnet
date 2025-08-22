@@ -600,13 +600,18 @@ async fn test_fork_state_changes_does_not_affect_origin_state() {
         get_contract_balance(&origin_devnet, contract_address).await
     );
 
-    let calls = vec![(origin_predeployed_account, 7_u32), (fork_predeployed_account, 13_u32)];
+    let origin_increment = Felt::from(7_u32);
+    let fork_increment = Felt::from(13_u32);
+    let calls = vec![
+        (origin_predeployed_account, origin_increment),
+        (fork_predeployed_account, fork_increment),
+    ];
     for (account, increment) in calls {
         let _invoke_result = account
             .execute_v3(vec![Call {
                 to: contract_address,
                 selector: get_selector_from_name("increase_balance").unwrap(),
-                calldata: vec![Felt::from(increment), Felt::ZERO],
+                calldata: vec![increment, Felt::ZERO],
             }])
             .l1_gas(0)
             .l1_data_gas(1e3 as u64)
@@ -616,9 +621,13 @@ async fn test_fork_state_changes_does_not_affect_origin_state() {
             .unwrap();
     }
 
-    assert_ne!(
+    assert_eq!(
         get_contract_balance(&origin_devnet, contract_address).await,
-        get_contract_balance(&fork_devnet, contract_address).await
+        initial_value + origin_increment
+    );
+    assert_eq!(
+        get_contract_balance(&fork_devnet, contract_address).await,
+        initial_value + fork_increment
     );
 }
 
