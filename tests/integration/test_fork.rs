@@ -516,8 +516,8 @@ async fn test_fork_state_remains_after_origin_changes() {
     assert_eq!(call_result, vec![initial_value]);
 
     let selector = get_selector_from_name("increase_balance").unwrap();
-    for i in 1..4 {
-        let increment_value = Felt::from(19_u32 * i);
+    for i in 1..=3 {
+        let increment_value = Felt::from(19_u32 * i); // i is the index of the iteration (1, 2, 3)
         let invoke_result = predeployed_account
             .execute_v3(vec![Call {
                 to: contract_address,
@@ -547,10 +547,12 @@ async fn test_fork_state_remains_after_origin_changes() {
     ])
     .await
     .unwrap();
+
+    // Assert fork intact and origin changed
     assert_eq!(get_contract_balance(&fork_devnet, contract_address).await, initial_value);
     assert_eq!(
         get_contract_balance(&origin_devnet, contract_address).await,
-        initial_value + Felt::from(114_u32) // (19 * 1 + 19 * 2 + 19 * 3)
+        initial_value + Felt::from(19 * 1 + 19 * 2 + 19 * 3)
     );
 }
 
