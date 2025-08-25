@@ -4,23 +4,21 @@ use blockifier::transaction::objects::TransactionExecutionInfo;
 use indexmap::IndexMap;
 use starknet_api::block::BlockNumber;
 use starknet_rs_core::types::ExecutionResult;
-use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{Event, OrderedEvent};
 use starknet_types::felt::{BlockHash, TransactionHash};
 use starknet_types::messaging::MessageToL2;
 use starknet_types::rpc::messaging::{MessageToL1, OrderedMessageToL1};
 use starknet_types::rpc::transaction_receipt::{
-    DeployTransactionReceipt, FeeAmount, FeeInUnits, TransactionReceipt,
+    DeployAccountTransactionReceipt, FeeAmount, FeeInUnits, L1HandlerTransactionReceipt,
+    TransactionReceipt,
 };
 use starknet_types::rpc::transactions::{
     DeclareTransaction, DeployAccountTransaction, InvokeTransaction, Transaction,
-    TransactionFinalityStatus, TransactionStatus, TransactionTrace, TransactionType,
-    TransactionWithHash,
+    TransactionFinalityStatus, TransactionStatus, TransactionTrace, TransactionWithHash,
 };
 
-use crate::constants::{UDC_CONTRACT_ADDRESS, UDC_LEGACY_CONTRACT_ADDRESS};
-use crate::error::{DevnetResult, Error};
+use crate::error::DevnetResult;
 use crate::traits::{HashIdentified, HashIdentifiedMut};
 
 #[derive(Default)]
@@ -136,35 +134,6 @@ impl StarknetTransaction {
         events
     }
 
-    /// Scans through events and gets information from Event generated from UDC with specific
-    /// ContractDeployed. Returns the contract address
-    ///
-    /// # Arguments
-    /// * `events` - The events that will be searched
-    pub fn get_deployed_address_from_events(
-        events: &[Event],
-    ) -> DevnetResult<Option<ContractAddress>> {
-        let contract_deployed_event_key =
-            get_selector_from_name("ContractDeployed").map_err(|_| Error::FormatError)?;
-
-        let udc_legacy_address = ContractAddress::new(UDC_LEGACY_CONTRACT_ADDRESS)?;
-        let udc_address = ContractAddress::new(UDC_CONTRACT_ADDRESS)?;
-
-        let deployed_address = events
-            .iter()
-            .find(|e| {
-                (e.from_address == udc_legacy_address || e.from_address == udc_address)
-                    && e.keys.contains(&contract_deployed_event_key)
-            })
-            .map(|e| e.data.first().cloned().unwrap_or_default());
-
-        Ok(if let Some(contract_address) = deployed_address {
-            Some(ContractAddress::new(contract_address)?)
-        } else {
-            None
-        })
-    }
-
     pub fn get_receipt(&self) -> DevnetResult<TransactionReceipt> {
         let transaction_events = self.get_events();
 
@@ -183,7 +152,7 @@ impl StarknetTransaction {
             _ => FeeInUnits::WEI(fee_amount),
         };
 
-        let mut common_receipt = self.inner.create_common_receipt(
+        let common_receipt = self.inner.create_common_receipt(
             &transaction_events,
             &transaction_messages,
             self.block_hash.as_ref(),
@@ -196,35 +165,18 @@ impl StarknetTransaction {
 
         match &self.inner.transaction {
             Transaction::DeployAccount(deploy_account_txn) => {
-                Ok(TransactionReceipt::Deploy(DeployTransactionReceipt {
+                Ok(TransactionReceipt::DeployAccount(DeployAccountTransactionReceipt {
                     common: common_receipt,
                     contract_address: *deploy_account_txn.get_contract_address(),
                 }))
             }
-            Transaction::Invoke(_) => {
-                let deployed_address =
-                    StarknetTransaction::get_deployed_address_from_events(&transaction_events)?;
-
-                let receipt = if let Some(contract_address) = deployed_address {
-                    common_receipt.r#type = TransactionType::Deploy;
-                    TransactionReceipt::Deploy(DeployTransactionReceipt {
-                        common: common_receipt,
-                        contract_address,
-                    })
-                } else {
-                    TransactionReceipt::Common(common_receipt)
-                };
-
-                Ok(receipt)
-            }
+            Transaction::Invoke(_) => Ok(TransactionReceipt::Common(common_receipt)),
             Transaction::L1Handler(l1_transaction) => {
                 let msg_hash = MessageToL2::try_from(l1_transaction)?.hash()?;
-                Ok(TransactionReceipt::L1Handler(
-                    starknet_types::rpc::transaction_receipt::L1HandlerTransactionReceipt {
-                        common: common_receipt,
-                        message_hash: msg_hash,
-                    },
-                ))
+                Ok(TransactionReceipt::L1Handler(L1HandlerTransactionReceipt {
+                    common: common_receipt,
+                    message_hash: msg_hash,
+                }))
             }
             _ => Ok(TransactionReceipt::Common(common_receipt)),
         }
