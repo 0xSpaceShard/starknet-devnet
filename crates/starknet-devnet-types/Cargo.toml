@@ -16,7 +16,7 @@ workspace = true
 
 [dependencies]
 base64 = { workspace = true }
-blockifier = { workspace = true }
+blockifier = { workspace = true, features = ["cairo_native"] }
 cairo-lang-starknet-classes = { workspace = true }
 flate2 = { workspace = true }
 starknet_api = { workspace = true }
