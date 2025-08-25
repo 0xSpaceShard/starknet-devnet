@@ -43,6 +43,7 @@ jobs:
     resource_class: spaceshard/ax41
     steps:
       - checkout
+      - run: llvm-config --version && exit 1
       - run:
           name: Load cache
           command: .circleci/scripts/cache.sh load
