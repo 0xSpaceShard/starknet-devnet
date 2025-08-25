@@ -13,6 +13,7 @@ use starknet_rs_providers::{Provider, ProviderError};
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     self, CAIRO_0_ACCOUNT_CONTRACT_HASH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS,
+    STRK_ERC20_CONTRACT_ADDRESS, UDC_LEGACY_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
     assert_contains, get_deployable_account_signer, get_events_contract_artifacts,
@@ -59,11 +60,11 @@ async fn deploy_account_transaction_receipt() {
 async fn deploy_transaction_receipt() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-    let (signer, address) = devnet.get_first_predeployed_account().await;
+    let (signer, account_address) = devnet.get_first_predeployed_account().await;
     let predeployed_account = Arc::new(SingleOwnerAccount::new(
         devnet.clone_provider(),
         signer,
-        address,
+        account_address,
         constants::CHAIN_ID,
         ExecutionEncoding::New,
     ));
@@ -94,15 +95,39 @@ async fn deploy_transaction_receipt() {
         .receipt;
 
     match deployment_receipt {
-        TransactionReceipt::Deploy(receipt) => {
+        TransactionReceipt::Invoke(receipt) => {
+            assert_eq!(receipt.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+
             let expected_contract_address = get_udc_deployed_address(
                 salt,
                 declaration_result.class_hash,
                 &starknet_rs_core::utils::UdcUniqueness::NotUnique,
                 &constructor_args,
             );
-            assert_eq!(receipt.contract_address, expected_contract_address);
-            assert_eq!(receipt.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+
+            assert_eq!(receipt.events.len(), 2); // UDC and STRK events
+
+            // Assert UDC event
+            let deployment_event = receipt
+                .events
+                .iter()
+                .find(|e| e.from_address == UDC_LEGACY_CONTRACT_ADDRESS)
+                .unwrap();
+            assert_eq!(
+                deployment_event.keys,
+                vec![get_selector_from_name("ContractDeployed").unwrap()]
+            );
+            assert_eq!(deployment_event.data[0], expected_contract_address);
+            assert_eq!(deployment_event.data[1], account_address);
+
+            // Assert STRK fee charge event
+            let fee_charge_event = receipt
+                .events
+                .iter()
+                .find(|e| e.from_address == STRK_ERC20_CONTRACT_ADDRESS)
+                .unwrap();
+            assert_eq!(fee_charge_event.keys, vec![get_selector_from_name("Transfer").unwrap()]);
+            assert_eq!(fee_charge_event.data[0], account_address);
         }
         _ => panic!("Invalid receipt {:?}", deployment_receipt),
     };

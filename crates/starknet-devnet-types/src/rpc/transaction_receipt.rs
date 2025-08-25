@@ -15,9 +15,18 @@ use crate::rpc::transactions::TransactionType;
 #[serde(untagged)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize))]
 pub enum TransactionReceipt {
+    DeployAccount(DeployAccountTransactionReceipt),
     Deploy(DeployTransactionReceipt),
     L1Handler(L1HandlerTransactionReceipt),
     Common(CommonTransactionReceipt),
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize))]
+pub struct DeployAccountTransactionReceipt {
+    #[serde(flatten)]
+    pub common: CommonTransactionReceipt,
+    pub contract_address: ContractAddress,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -39,6 +48,7 @@ pub struct L1HandlerTransactionReceipt {
 impl TransactionReceipt {
     pub fn finality_status(&self) -> &TransactionFinalityStatus {
         let common = match self {
+            TransactionReceipt::DeployAccount(receipt) => &receipt.common,
             TransactionReceipt::Deploy(receipt) => &receipt.common,
             TransactionReceipt::L1Handler(receipt) => &receipt.common,
             TransactionReceipt::Common(common) => common,
@@ -49,6 +59,7 @@ impl TransactionReceipt {
 
     pub fn clear_block_properties(&mut self) {
         let common = match self {
+            TransactionReceipt::DeployAccount(receipt) => &mut receipt.common,
             TransactionReceipt::Deploy(receipt) => &mut receipt.common,
             TransactionReceipt::L1Handler(receipt) => &mut receipt.common,
             TransactionReceipt::Common(common) => common,
