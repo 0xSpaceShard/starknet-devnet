@@ -43,16 +43,9 @@ jobs:
     resource_class: spaceshard/ax41
     steps:
       - checkout
-      - run: llvm-config --version && exit 1
       - run:
           name: Load cache
           command: .circleci/scripts/cache.sh load
-      - run:
-          name: Install LLVM
-          command: |
-            curl https://apt.llvm.org/llvm.sh -Lo llvm.sh
-            bash ./llvm.sh 19 all
-            rm -f ./llvm.sh
       - run:
           name: Install Rust
           command: |
