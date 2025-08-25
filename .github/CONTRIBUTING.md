@@ -151,6 +151,10 @@ Integration tests highly depend on starknet-rs supporting the same JSON-RPC API 
 
 When adding new Rust dependencies, specify them in the root Cargo.toml and use `{ workspace = true }` in crate-specific Cargo.toml files.
 
+### Adding new artifacts
+
+When adding new compilation artifacts, e.g. in the format of JSON files, please minify them to reduce: your footprint, the codebase size, artifact loading time. This can be achieved using your IDE's minifier tool/plugin. This doesn't apply to JSON-RPC spec files.
+
 ### Updating documentation
 
 The documentation website content has [its own readme](../website/README.md).
