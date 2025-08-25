@@ -105,9 +105,14 @@ async fn deploy_transaction_receipt() {
                 &constructor_args,
             );
 
-            assert_eq!(receipt.events.len(), 2);
-            let deployment_event = &receipt.events[0];
-            assert_eq!(deployment_event.from_address, UDC_LEGACY_CONTRACT_ADDRESS);
+            assert_eq!(receipt.events.len(), 2); // UDC and STRK events
+
+            // Assert UDC event
+            let deployment_event = receipt
+                .events
+                .iter()
+                .find(|e| e.from_address == UDC_LEGACY_CONTRACT_ADDRESS)
+                .unwrap();
             assert_eq!(
                 deployment_event.keys,
                 vec![get_selector_from_name("ContractDeployed").unwrap()]
@@ -115,8 +120,12 @@ async fn deploy_transaction_receipt() {
             assert_eq!(deployment_event.data[0], expected_contract_address);
             assert_eq!(deployment_event.data[1], account_address);
 
-            let fee_charge_event = &receipt.events[1];
-            assert_eq!(fee_charge_event.from_address, STRK_ERC20_CONTRACT_ADDRESS);
+            // Assert STRK fee charge event
+            let fee_charge_event = receipt
+                .events
+                .iter()
+                .find(|e| e.from_address == STRK_ERC20_CONTRACT_ADDRESS)
+                .unwrap();
             assert_eq!(fee_charge_event.keys, vec![get_selector_from_name("Transfer").unwrap()]);
             assert_eq!(fee_charge_event.data[0], account_address);
         }
