@@ -483,6 +483,66 @@ async fn test_deploying_on_origin_calling_on_fork() {
 }
 
 #[tokio::test]
+async fn changes_in_origin_after_forking_block_should_not_affect_fork_state() {
+    let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
+
+    let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
+    let predeployed_account = SingleOwnerAccount::new(
+        &origin_devnet.json_rpc_client,
+        signer.clone(),
+        account_address,
+        constants::CHAIN_ID,
+        ExecutionEncoding::New,
+    );
+
+    let (contract_class, casm_hash) = get_simple_contract_artifacts();
+
+    let initial_value = Felt::from(2_u32);
+    let ctor_args = vec![initial_value];
+
+    let (_, contract_address) =
+        declare_v3_deploy_v3(&predeployed_account, contract_class.clone(), casm_hash, &ctor_args)
+            .await
+            .unwrap();
+
+    let increment_value = Felt::from(19);
+    let invoke_result = predeployed_account
+        .execute_v3(vec![Call {
+            to: contract_address,
+            selector: get_selector_from_name("increase_balance").unwrap(),
+            calldata: vec![increment_value, Felt::ZERO],
+        }])
+        .l1_gas(0)
+        .l1_data_gas(1e3 as u64)
+        .l2_gas(1e7 as u64)
+        .send()
+        .await
+        .unwrap();
+
+    assert_tx_succeeded_accepted(&invoke_result.transaction_hash, &origin_devnet.json_rpc_client)
+        .await;
+    let latest_origin_block_number = origin_devnet.json_rpc_client.block_number().await.unwrap();
+    assert_eq!(latest_origin_block_number, 3); // declare, deploy, invoke
+
+    let fork_block_number = latest_origin_block_number - 1;
+    let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+        "--fork-network",
+        &origin_devnet.url,
+        "--fork-block",
+        &fork_block_number.to_string(),
+    ])
+    .await
+    .unwrap();
+
+    // Assert fork intact and origin changed
+    assert_eq!(get_contract_balance(&fork_devnet, contract_address).await, initial_value);
+    assert_eq!(
+        get_contract_balance(&origin_devnet, contract_address).await,
+        initial_value + increment_value
+    );
+}
+
+#[tokio::test]
 async fn test_fork_using_origin_token_contract() {
     let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
 
