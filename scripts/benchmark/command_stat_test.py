@@ -25,13 +25,14 @@ DEVNET_PORT = "5050"
 DEVNET_URL = f"http://localhost:{DEVNET_PORT}"
 REQUEST_TIMEOUT = 2
 
-ORIGINAL_COMMAND: str = f"cargo run --release -- --port {DEVNET_PORT}"
+ORIGINAL_COMMAND: str = f"docker run -it --rm --network host shardlabs/starknet-devnet-rs:normal-blockifier --port {DEVNET_PORT}"
 """
 The original baseline command used for starting Devnet. Modify it freely.
 Be sure to have compiled the program before executing the script to avoid timeout.
 """
 
-IMPROVED_COMMAND: str = f"cargo run --release -- --port {DEVNET_PORT} --lite-mode"
+# IMPROVED_COMMAND: str = f"cargo run --release -- --port {DEVNET_PORT} --lite-mode"
+IMPROVED_COMMAND: str = f"docker run -it --rm --network host shardlabs/starknet-devnet-rs:cairo-native --port {DEVNET_PORT}"
 """
 The command used for starting Devnet in improved mode. Modify it freely.
 """
@@ -45,7 +46,7 @@ Or in terms of memory, that it uses more memory. If you want to use this script
 to test if two commands are simply different, change the alternative to "two-sided".
 """
 
-SAMPLE_SIZE = 2
+SAMPLE_SIZE = 10
 
 
 def ensure_process_started(proc: subprocess.Popen):
