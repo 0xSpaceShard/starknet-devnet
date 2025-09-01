@@ -134,18 +134,26 @@ async fn should_notify_for_multiple_subscribers_with_default_params() {
 #[tokio::test]
 async fn should_stop_notifying_after_unsubscription() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
-    let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-
-    let subscription_id = subscribe_new_tx_receipts(&mut ws, json!({})).await.unwrap();
-
-    send_dummy_mint_tx(&devnet).await;
-    receive_rpc_via_ws(&mut ws).await.unwrap();
-
-    let unsubscription = unsubscribe(&mut ws, subscription_id).await.unwrap();
-    assert_eq!(unsubscription, json!({ "jsonrpc": "2.0", "id": 0, "result": true }));
+    let mut subscribers = vec![];
+    for _ in 0..3 {
+        let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+        let subscription_id = subscribe_new_tx_receipts(&mut ws, json!({})).await.unwrap();
+        subscribers.push((ws, subscription_id));
+    }
 
     send_dummy_mint_tx(&devnet).await;
-    assert_no_notifications(&mut ws).await;
+
+    for (ws, subscription_id) in subscribers.iter_mut() {
+        receive_rpc_via_ws(ws).await.unwrap();
+        let unsubscription = unsubscribe(ws, subscription_id.clone()).await.unwrap();
+        assert_eq!(unsubscription, json!({ "jsonrpc": "2.0", "id": 0, "result": true }));
+    }
+
+    send_dummy_mint_tx(&devnet).await;
+
+    for (mut ws, _) in subscribers {
+        assert_no_notifications(&mut ws).await;
+    }
 }
 
 #[tokio::test]
