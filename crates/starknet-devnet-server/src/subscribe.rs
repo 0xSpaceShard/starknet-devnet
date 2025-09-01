@@ -358,17 +358,13 @@ impl SocketContext {
         rpc_request_id: Id,
         subscription_id: SubscriptionId,
     ) -> Result<(), ApiError> {
-        match self.subscriptions.remove(&subscription_id) {
-            Some(_) => {
-                self.send(SubscriptionResponse::Confirmation {
-                    rpc_request_id,
-                    result: SubscriptionConfirmation::Unsubscription(true),
-                })
-                .await;
-                Ok(())
-            }
-            None => Err(ApiError::InvalidSubscriptionId),
-        }
+        self.subscriptions.remove(&subscription_id).ok_or(ApiError::InvalidSubscriptionId)?;
+        self.send(SubscriptionResponse::Confirmation {
+            rpc_request_id,
+            result: SubscriptionConfirmation::Unsubscription(true),
+        })
+        .await;
+        Ok(())
     }
 
     pub async fn notify(&self, subscription_id: SubscriptionId, data: NotificationData) {
