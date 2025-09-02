@@ -4,7 +4,8 @@ use serde_json::json;
 use starknet_core::constants::CHARGEABLE_ACCOUNT_ADDRESS;
 use starknet_rs_accounts::{ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{
-    DeclareTransactionReceipt, Felt, InvokeTransactionReceipt, TransactionFinalityStatus,
+    DeclareTransactionReceipt, Felt, InvokeTransactionReceipt, Transaction,
+    TransactionFinalityStatus, TransactionReceipt,
 };
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
@@ -15,6 +16,7 @@ use crate::common::utils::{
     FeeUnit, SubscriptionId, assert_no_notifications, declare_deploy_simple_contract,
     receive_notification, receive_rpc_via_ws, subscribe, unsubscribe,
 };
+use crate::test_subscription_to_new_txs::{receive_new_tx, subscribe_new_txs};
 
 async fn send_dummy_mint_tx(devnet: &BackgroundDevnet) -> Felt {
     devnet.mint(Felt::ONE, 123).await
@@ -154,6 +156,30 @@ async fn should_stop_notifying_after_unsubscription() {
     for (mut ws, _) in subscribers {
         assert_no_notifications(&mut ws).await;
     }
+}
+
+#[tokio::test]
+async fn should_work_with_subscription_to_receipts_and_txs() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+    let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+    let receipt_subscription_id = subscribe_new_tx_receipts(&mut ws, json!({})).await.unwrap();
+    let tx_subscription_id = subscribe_new_txs(&mut ws, json!({})).await.unwrap();
+
+    for _ in 0..2 {
+        let tx_hash = send_dummy_mint_tx(&devnet).await;
+
+        // TODO reduce cloning by changing the exepeted type to reference
+        let tx_raw = receive_new_tx(&mut ws, tx_subscription_id.clone()).await.unwrap();
+        let tx: Transaction = serde_json::from_value(tx_raw).unwrap();
+        assert_eq!(tx.transaction_hash(), &tx_hash);
+
+        let receipt_raw =
+            receive_new_tx_receipt(&mut ws, receipt_subscription_id.clone()).await.unwrap();
+        let receipt: TransactionReceipt = serde_json::from_value(receipt_raw).unwrap();
+        assert_eq!(receipt.transaction_hash(), &tx_hash);
+    }
+
+    assert_no_notifications(&mut ws).await;
 }
 
 #[tokio::test]

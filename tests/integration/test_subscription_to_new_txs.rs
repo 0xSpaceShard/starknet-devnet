@@ -20,14 +20,14 @@ async fn send_dummy_mint_tx(devnet: &BackgroundDevnet) -> Felt {
     devnet.mint(Felt::ONE, 123).await
 }
 
-async fn subscribe_new_txs(
+pub async fn subscribe_new_txs(
     ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
     params: serde_json::Value,
 ) -> Result<SubscriptionId, anyhow::Error> {
     subscribe(ws, "starknet_subscribeNewTransactions", params).await
 }
 
-async fn receive_new_tx(
+pub async fn receive_new_tx(
     ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
     expected_subscription_id: SubscriptionId,
 ) -> Result<serde_json::Value, anyhow::Error> {
