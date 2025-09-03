@@ -342,15 +342,20 @@ impl SocketContext {
         rpc_request_id: Id,
         subscription: Subscription,
     ) -> SubscriptionId {
-        let subscription_id: SubscriptionId = rand::random::<u64>().into();
+        loop {
+            let subscription_id: SubscriptionId = rand::random::<u64>().into();
+            if self.subscriptions.contains_key(&subscription_id) {
+                continue;
+            }
 
-        let confirmation = subscription.confirm(subscription_id);
-        self.subscriptions.insert(subscription_id, subscription);
+            let confirmation = subscription.confirm(subscription_id);
+            self.subscriptions.insert(subscription_id, subscription);
 
-        self.send(SubscriptionResponse::Confirmation { rpc_request_id, result: confirmation })
-            .await;
+            self.send(SubscriptionResponse::Confirmation { rpc_request_id, result: confirmation })
+                .await;
 
-        subscription_id
+            return subscription_id;
+        }
     }
 
     pub async fn unsubscribe(
