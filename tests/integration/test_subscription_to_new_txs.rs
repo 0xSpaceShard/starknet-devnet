@@ -5,6 +5,7 @@ use starknet_core::constants::CHARGEABLE_ACCOUNT_ADDRESS;
 use starknet_rs_accounts::{ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{
     DeclareTransactionV3, Felt, InvokeTransactionV3, Transaction, TransactionFinalityStatus,
+    TransactionReceiptWithBlockInfo
 };
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
@@ -13,7 +14,7 @@ use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
     FeeUnit, SubscriptionId, assert_no_notifications, declare_deploy_simple_contract,
-    receive_notification, receive_rpc_via_ws, subscribe, unsubscribe,
+    deploy_oz_account, receive_notification, receive_rpc_via_ws, subscribe, unsubscribe,
 };
 
 async fn send_dummy_mint_tx(devnet: &BackgroundDevnet) -> Felt {
@@ -337,4 +338,22 @@ async fn should_notify_twice_if_subscribed_to_both_finality_statuses() {
     }
 
     assert_no_notifications(&mut ws).await;
+}
+
+#[tokio::test]
+async fn test_deploy_account_tx_notification() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+    let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+    let subscription_id = subscribe_new_txs(&mut ws, json!({})).await.unwrap();
+
+    let (deployment_result, _) = deploy_oz_account(&devnet).await.unwrap();
+
+    let receipt_notification = receive_new_tx(&mut ws, subscription_id).await.unwrap();
+
+    let receipt_with_block_info: TransactionReceiptWithBlockInfo =
+        serde_json::from_value(receipt_notification).unwrap();
+    assert_eq!(
+        receipt_with_block_info.receipt.transaction_hash(),
+        &deployment_result.transaction_hash
+    );
 }

@@ -5,7 +5,7 @@ use starknet_core::constants::CHARGEABLE_ACCOUNT_ADDRESS;
 use starknet_rs_accounts::{ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{
     DeclareTransactionReceipt, Felt, InvokeTransactionReceipt, Transaction,
-    TransactionFinalityStatus, TransactionReceipt,
+    TransactionFinalityStatus, TransactionReceipt, TransactionReceiptWithBlockInfo,
 };
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
@@ -14,7 +14,7 @@ use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
     FeeUnit, SubscriptionId, assert_no_notifications, declare_deploy_simple_contract,
-    receive_notification, receive_rpc_via_ws, subscribe, unsubscribe,
+    deploy_oz_account, receive_notification, receive_rpc_via_ws, subscribe, unsubscribe,
 };
 use crate::test_subscription_to_new_txs::{receive_new_tx, subscribe_new_txs};
 
@@ -66,6 +66,8 @@ async fn should_notify_of_pre_confirmed_txs_with_block_generation_on_demand() {
     let tx_hash = send_dummy_mint_tx(&devnet).await;
 
     let receipt_notification = receive_new_tx_receipt(&mut ws, subscription_id).await.unwrap();
+    // TODO assert block params present
+    println!("DEBUG receipt_notification pre_confirmed: {receipt_notification}");
     let extracted_receipt: InvokeTransactionReceipt =
         serde_json::from_value(receipt_notification).unwrap();
     assert_eq!(extracted_receipt.transaction_hash, tx_hash);
@@ -98,6 +100,7 @@ async fn should_notify_of_accepted_on_l2_with_block_generation_on_tx() {
         [(explicit_ws, explicit_subscription_id), (implicit_ws, implicit_subscription_id)]
     {
         let receipt_notification = receive_new_tx_receipt(&mut ws, subscription_id).await.unwrap();
+        println!("DEBUG receipt_notification: {receipt_notification}");
         let extracted_receipt: InvokeTransactionReceipt =
             serde_json::from_value(receipt_notification).unwrap();
         assert_eq!(extracted_receipt.transaction_hash, tx_hash);
@@ -110,7 +113,7 @@ async fn should_notify_of_accepted_on_l2_with_block_generation_on_tx() {
 async fn should_notify_for_multiple_subscribers_with_default_params() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
 
-    let subscription_params = json!({});
+    let subscription_params = json!({}); // TODO define below, and in other file, too
     let mut subscribers = HashMap::new();
     for _ in 0..2 {
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
@@ -175,6 +178,7 @@ async fn should_work_with_subscription_to_receipts_and_txs() {
 
         let receipt_raw =
             receive_new_tx_receipt(&mut ws, receipt_subscription_id.clone()).await.unwrap();
+        println!("DEBUG receipt_raw: {receipt_raw}");
         let receipt: TransactionReceipt = serde_json::from_value(receipt_raw).unwrap();
         assert_eq!(receipt.transaction_hash(), &tx_hash);
     }
@@ -208,12 +212,14 @@ async fn should_notify_for_filtered_address() {
     // Assert received declaration notification
     let declaration_notification =
         receive_new_tx_receipt(&mut ws, subscription_id.clone()).await.unwrap();
+    println!("DEBUG declaration_notification: {declaration_notification}");
     let declaration_receipt: DeclareTransactionReceipt =
         serde_json::from_value(declaration_notification).unwrap();
     assert_eq!(declaration_receipt.finality_status, TransactionFinalityStatus::AcceptedOnL2);
 
     // Assert received deployment notification
     let deployment_notification = receive_new_tx_receipt(&mut ws, subscription_id).await.unwrap();
+    println!("DEBUG deployment_notification: {deployment_notification}");
     let deployment_receipt: InvokeTransactionReceipt =
         serde_json::from_value(deployment_notification).unwrap();
     assert_eq!(deployment_receipt.finality_status, TransactionFinalityStatus::AcceptedOnL2);
@@ -388,4 +394,26 @@ async fn should_notify_twice_if_subscribed_to_both_finality_statuses() {
     }
 
     assert_no_notifications(&mut ws).await;
+}
+
+#[tokio::test]
+async fn test_deploy_account_receipt_notification() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+    let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+    let subscription_id = subscribe_new_tx_receipts(&mut ws, json!({})).await.unwrap();
+
+    let (deployment_result, _) = deploy_oz_account(&devnet).await.unwrap();
+
+    let _minting_notification =
+        receive_new_tx_receipt(&mut ws, subscription_id.clone()).await.unwrap();
+
+    let deployment_notification = receive_new_tx_receipt(&mut ws, subscription_id).await.unwrap();
+    println!("DEBUG deployment_notification: {deployment_notification}");
+    let deployment_receipt_with_block: TransactionReceiptWithBlockInfo =
+        serde_json::from_value(deployment_notification).unwrap();
+
+    assert_eq!(
+        deployment_receipt_with_block.receipt.transaction_hash(),
+        &deployment_result.transaction_hash
+    );
 }

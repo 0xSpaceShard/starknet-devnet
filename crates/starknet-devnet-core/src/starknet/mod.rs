@@ -2144,7 +2144,7 @@ mod tests {
         let receipt = starknet.get_transaction_receipt_by_hash(&tx_hash).unwrap();
         match receipt {
             TransactionReceipt::Common(receipt) => {
-                assert!(receipt.block_hash.is_none());
+                assert!(receipt.block_hash.is_none()); // TODO wrong?
                 assert!(receipt.block_number.is_none());
             }
             other => panic!("Unexpected receipt response: {other:?}"),
