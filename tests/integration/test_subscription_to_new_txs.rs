@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 use serde_json::json;
-use starknet_core::constants::CHARGEABLE_ACCOUNT_ADDRESS;
+use starknet_core::constants::{ARGENT_CONTRACT_CLASS_HASH, CHARGEABLE_ACCOUNT_ADDRESS};
 use starknet_rs_accounts::{ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{
     DeclareTransactionV3, Felt, InvokeTransactionV3, Transaction, TransactionFinalityStatus,
-    TransactionReceiptWithBlockInfo
+    TransactionReceiptWithBlockInfo,
 };
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
@@ -14,7 +14,8 @@ use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
     FeeUnit, SubscriptionId, assert_no_notifications, declare_deploy_simple_contract,
-    deploy_oz_account, receive_notification, receive_rpc_via_ws, subscribe, unsubscribe,
+    deploy_argent_account, deploy_oz_account, receive_notification, receive_rpc_via_ws, subscribe,
+    unsubscribe,
 };
 
 async fn send_dummy_mint_tx(devnet: &BackgroundDevnet) -> Felt {
@@ -99,12 +100,10 @@ async fn should_notify_of_accepted_on_l2_with_block_generation_on_tx() {
 async fn should_notify_for_multiple_subscribers_with_default_params() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
 
-    let subscription_params = json!({});
     let mut subscribers = HashMap::new();
     for _ in 0..2 {
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-        let subscription_id =
-            subscribe_new_txs(&mut ws, subscription_params.clone()).await.unwrap();
+        let subscription_id = subscribe_new_txs(&mut ws, json!({})).await.unwrap();
         subscribers.insert(subscription_id, ws);
     }
 
@@ -289,9 +288,12 @@ async fn should_not_notify_if_tx_already_in_latest_block_in_on_tx_mode() {
     send_dummy_mint_tx(&devnet).await;
 
     // Subscribe AFTER the tx and block creation.
-    let finality_status = TransactionFinalityStatus::PreConfirmed;
-    subscribe_new_txs(&mut ws, json!({ "finality_status": [finality_status] })).await.unwrap();
-    assert_no_notifications(&mut ws).await;
+    for finality_status in
+        [TransactionFinalityStatus::PreConfirmed, TransactionFinalityStatus::AcceptedOnL2]
+    {
+        subscribe_new_txs(&mut ws, json!({ "finality_status": [finality_status] })).await.unwrap();
+        assert_no_notifications(&mut ws).await;
+    }
 }
 
 #[tokio::test]
@@ -354,6 +356,28 @@ async fn test_deploy_account_tx_notification() {
         serde_json::from_value(receipt_notification).unwrap();
     assert_eq!(
         receipt_with_block_info.receipt.transaction_hash(),
+        &deployment_result.transaction_hash
+    );
+}
+
+#[tokio::test]
+async fn test_deploy_account_receipt_notification() {
+    let devnet =
+        BackgroundDevnet::spawn_with_additional_args(&["--predeclare-argent"]).await.unwrap();
+    let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+    let subscription_id = subscribe_new_txs(&mut ws, json!({})).await.unwrap();
+
+    let (deployment_result, _) =
+        deploy_argent_account(&devnet, ARGENT_CONTRACT_CLASS_HASH).await.unwrap();
+
+    let _minting_notification = receive_new_tx(&mut ws, subscription_id.clone()).await.unwrap();
+
+    let deployment_notification = receive_new_tx(&mut ws, subscription_id).await.unwrap();
+    let deployment_receipt_with_block: TransactionReceiptWithBlockInfo =
+        serde_json::from_value(deployment_notification).unwrap();
+
+    assert_eq!(
+        deployment_receipt_with_block.receipt.transaction_hash(),
         &deployment_result.transaction_hash
     );
 }

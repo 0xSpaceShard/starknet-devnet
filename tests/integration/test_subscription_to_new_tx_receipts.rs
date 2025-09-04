@@ -66,8 +66,6 @@ async fn should_notify_of_pre_confirmed_txs_with_block_generation_on_demand() {
     let tx_hash = send_dummy_mint_tx(&devnet).await;
 
     let receipt_notification = receive_new_tx_receipt(&mut ws, subscription_id).await.unwrap();
-    // TODO assert block params present
-    println!("DEBUG receipt_notification pre_confirmed: {receipt_notification}");
     let extracted_receipt: InvokeTransactionReceipt =
         serde_json::from_value(receipt_notification).unwrap();
     assert_eq!(extracted_receipt.transaction_hash, tx_hash);
@@ -100,7 +98,6 @@ async fn should_notify_of_accepted_on_l2_with_block_generation_on_tx() {
         [(explicit_ws, explicit_subscription_id), (implicit_ws, implicit_subscription_id)]
     {
         let receipt_notification = receive_new_tx_receipt(&mut ws, subscription_id).await.unwrap();
-        println!("DEBUG receipt_notification: {receipt_notification}");
         let extracted_receipt: InvokeTransactionReceipt =
             serde_json::from_value(receipt_notification).unwrap();
         assert_eq!(extracted_receipt.transaction_hash, tx_hash);
@@ -113,12 +110,10 @@ async fn should_notify_of_accepted_on_l2_with_block_generation_on_tx() {
 async fn should_notify_for_multiple_subscribers_with_default_params() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
 
-    let subscription_params = json!({}); // TODO define below, and in other file, too
     let mut subscribers = HashMap::new();
     for _ in 0..2 {
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-        let subscription_id =
-            subscribe_new_tx_receipts(&mut ws, subscription_params.clone()).await.unwrap();
+        let subscription_id = subscribe_new_tx_receipts(&mut ws, json!({})).await.unwrap();
         subscribers.insert(subscription_id, ws);
     }
 
@@ -171,14 +166,12 @@ async fn should_work_with_subscription_to_receipts_and_txs() {
     for _ in 0..2 {
         let tx_hash = send_dummy_mint_tx(&devnet).await;
 
-        // TODO reduce cloning by changing the exepeted type to reference
         let tx_raw = receive_new_tx(&mut ws, tx_subscription_id.clone()).await.unwrap();
         let tx: Transaction = serde_json::from_value(tx_raw).unwrap();
         assert_eq!(tx.transaction_hash(), &tx_hash);
 
         let receipt_raw =
             receive_new_tx_receipt(&mut ws, receipt_subscription_id.clone()).await.unwrap();
-        println!("DEBUG receipt_raw: {receipt_raw}");
         let receipt: TransactionReceipt = serde_json::from_value(receipt_raw).unwrap();
         assert_eq!(receipt.transaction_hash(), &tx_hash);
     }
@@ -212,14 +205,12 @@ async fn should_notify_for_filtered_address() {
     // Assert received declaration notification
     let declaration_notification =
         receive_new_tx_receipt(&mut ws, subscription_id.clone()).await.unwrap();
-    println!("DEBUG declaration_notification: {declaration_notification}");
     let declaration_receipt: DeclareTransactionReceipt =
         serde_json::from_value(declaration_notification).unwrap();
     assert_eq!(declaration_receipt.finality_status, TransactionFinalityStatus::AcceptedOnL2);
 
     // Assert received deployment notification
     let deployment_notification = receive_new_tx_receipt(&mut ws, subscription_id).await.unwrap();
-    println!("DEBUG deployment_notification: {deployment_notification}");
     let deployment_receipt: InvokeTransactionReceipt =
         serde_json::from_value(deployment_notification).unwrap();
     assert_eq!(deployment_receipt.finality_status, TransactionFinalityStatus::AcceptedOnL2);
@@ -337,10 +328,35 @@ async fn should_not_notify_if_tx_already_in_latest_block_in_on_tx_mode() {
     send_dummy_mint_tx(&devnet).await;
 
     // Subscribe AFTER the tx and block creation.
-    let finality_status = TransactionFinalityStatus::PreConfirmed;
-    subscribe_new_tx_receipts(&mut ws, json!({ "finality_status": [finality_status] }))
-        .await
-        .unwrap();
+    for finality_status in
+        [TransactionFinalityStatus::PreConfirmed, TransactionFinalityStatus::AcceptedOnL2]
+    {
+        subscribe_new_tx_receipts(&mut ws, json!({ "finality_status": [finality_status] }))
+            .await
+            .unwrap();
+        assert_no_notifications(&mut ws).await;
+    }
+}
+
+#[tokio::test]
+async fn should_notify_if_tx_already_in_latest_block_in_on_tx_mode_and_filtering_accepted_on_l2() {
+    let devnet_args = ["--block-generation-on", "transaction"];
+    let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+    let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+    let mint_tx_hash = send_dummy_mint_tx(&devnet).await;
+
+    // Subscribe AFTER the tx and block creation.
+    let finality_status = TransactionFinalityStatus::AcceptedOnL2;
+    let subscription_id =
+        subscribe_new_tx_receipts(&mut ws, json!({ "finality_status": [finality_status] }))
+            .await
+            .unwrap();
+
+    let notification = receive_new_tx_receipt(&mut ws, subscription_id).await.unwrap();
+    let receipt: InvokeTransactionReceipt = serde_json::from_value(notification).unwrap();
+    assert_eq!(receipt.transaction_hash, mint_tx_hash);
+
     assert_no_notifications(&mut ws).await;
 }
 
@@ -408,7 +424,6 @@ async fn test_deploy_account_receipt_notification() {
         receive_new_tx_receipt(&mut ws, subscription_id.clone()).await.unwrap();
 
     let deployment_notification = receive_new_tx_receipt(&mut ws, subscription_id).await.unwrap();
-    println!("DEBUG deployment_notification: {deployment_notification}");
     let deployment_receipt_with_block: TransactionReceiptWithBlockInfo =
         serde_json::from_value(deployment_notification).unwrap();
 
