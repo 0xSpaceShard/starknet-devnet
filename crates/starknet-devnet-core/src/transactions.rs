@@ -54,7 +54,7 @@ impl HashIdentified for StarknetTransactions {
     }
 }
 
-#[allow(unused)]
+// TODO #[allow(unused)]
 #[derive(Debug)]
 pub struct StarknetTransaction {
     pub inner: TransactionWithHash,
@@ -68,9 +68,10 @@ pub struct StarknetTransaction {
 
 impl StarknetTransaction {
     pub fn pre_confirm(
-        transaction: &TransactionWithHash,
+        transaction: &TransactionWithHash, // consider passing the object, not reference
         execution_info: TransactionExecutionInfo,
         trace: TransactionTrace,
+        pre_confirmed_block_number: BlockNumber,
     ) -> Self {
         Self {
             finality_status: TransactionFinalityStatus::PreConfirmed,
@@ -86,7 +87,7 @@ impl StarknetTransaction {
             },
             inner: transaction.clone(),
             block_hash: None,
-            block_number: None,
+            block_number: Some(pre_confirmed_block_number),
             execution_info,
             trace: Some(trace),
         }
@@ -244,6 +245,7 @@ mod tests {
     use blockifier::blockifier_versioned_constants::VersionedConstants;
     use blockifier::state::cached_state::CachedState;
     use blockifier::transaction::objects::TransactionExecutionInfo;
+    use starknet_api::block::BlockNumber;
     use starknet_api::transaction::fields::GasVectorComputationMode;
     use starknet_rs_core::types::TransactionExecutionStatus;
     use starknet_types::rpc::transactions::{
@@ -273,15 +275,22 @@ mod tests {
         let tx = dummy_declare_tx_v3_with_hash();
 
         let trace = dummy_trace(&tx);
+        let block_number = BlockNumber(1);
         let sn_tx = StarknetTransaction::pre_confirm(
             &tx,
             TransactionExecutionInfo::default(),
             trace.clone(),
+            block_number,
         );
         let mut sn_txs = StarknetTransactions::default();
         sn_txs.insert(
             tx.get_transaction_hash(),
-            StarknetTransaction::pre_confirm(&tx, TransactionExecutionInfo::default(), trace),
+            StarknetTransaction::pre_confirm(
+                &tx,
+                TransactionExecutionInfo::default(),
+                trace,
+                block_number,
+            ),
         );
 
         let extracted_tran = sn_txs.get_by_hash_mut(tx.get_transaction_hash()).unwrap();
@@ -291,19 +300,25 @@ mod tests {
         assert!(sn_tx.inner == extracted_tran.inner);
         assert_eq!(sn_tx.finality_status, extracted_tran.finality_status);
         assert_eq!(sn_tx.execution_info, extracted_tran.execution_info);
+        assert_eq!(sn_tx.block_number, Some(block_number));
     }
 
     #[test]
     fn check_correct_successful_transaction_creation() {
         let tx = dummy_declare_tx_v3_with_hash();
         let trace = dummy_trace(&tx);
-        let sn_tran =
-            StarknetTransaction::pre_confirm(&tx, TransactionExecutionInfo::default(), trace);
+        let block_number = BlockNumber(42);
+        let sn_tran = StarknetTransaction::pre_confirm(
+            &tx,
+            TransactionExecutionInfo::default(),
+            trace,
+            block_number,
+        );
         assert_eq!(sn_tran.finality_status, TransactionFinalityStatus::PreConfirmed);
         assert_eq!(sn_tran.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         assert!(sn_tran.block_hash.is_none());
-        assert!(sn_tran.block_number.is_none());
+        assert_eq!(sn_tran.block_number, Some(block_number));
         assert_eq!(sn_tran.inner, tx);
     }
 }

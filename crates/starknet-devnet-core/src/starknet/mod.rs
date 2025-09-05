@@ -389,11 +389,10 @@ impl Starknet {
 
         let new_block_hash = new_block.header.block_hash.0;
 
-        // update txs block hash block number for each transaction in the pre_confirmed block
+        // update block hash for each pre_confirmed tx; block number should already be set
         new_block.get_transactions().iter().for_each(|tx_hash| {
             if let Some(tx) = self.transactions.get_by_hash_mut(tx_hash) {
                 tx.block_hash = Some(new_block_hash);
-                tx.block_number = Some(new_block_number);
                 tx.finality_status = TransactionFinalityStatus::AcceptedOnL2;
             } else {
                 error!("Transaction is not present in the transactions collection");
@@ -448,7 +447,13 @@ impl Starknet {
             self.block_context.versioned_constants(),
             &gas_vector_computation_mode,
         )?;
-        let transaction_to_add = StarknetTransaction::pre_confirm(&transaction, tx_info, trace);
+
+        let transaction_to_add = StarknetTransaction::pre_confirm(
+            &transaction,
+            tx_info,
+            trace,
+            self.blocks.pre_confirmed_block.block_number(),
+        );
 
         // add accepted transaction to pre_confirmed block
         self.blocks.pre_confirmed_block.add_transaction(*transaction_hash);
@@ -2144,8 +2149,8 @@ mod tests {
         let receipt = starknet.get_transaction_receipt_by_hash(&tx_hash).unwrap();
         match receipt {
             TransactionReceipt::Common(receipt) => {
-                assert!(receipt.block_hash.is_none()); // TODO wrong?
-                assert!(receipt.block_number.is_none());
+                assert!(receipt.block_hash.is_none());
+                assert_eq!(receipt.block_number, Some(BlockNumber(2)));
             }
             other => panic!("Unexpected receipt response: {other:?}"),
         }
