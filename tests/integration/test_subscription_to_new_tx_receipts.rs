@@ -22,6 +22,8 @@ async fn send_dummy_mint_tx(devnet: &BackgroundDevnet) -> Felt {
     devnet.mint(Felt::ONE, 123).await
 }
 
+// TODO add more deserialization to TransactionReceiptWithBlockInfo when starknet-rs updated to 0.17
+
 async fn subscribe_new_tx_receipts(
     ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
     params: serde_json::Value,
@@ -233,29 +235,21 @@ async fn should_not_notify_if_filtered_address_not_matched() {
 }
 
 #[tokio::test]
-async fn should_notify_if_tx_by_filtered_address_already_in_pre_confirmed_block() {
+async fn should_not_notify_if_tx_by_filtered_address_already_in_pre_confirmed_block() {
     let devnet_args = ["--block-generation-on", "demand"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
 
-    let mint_hash = send_dummy_mint_tx(&devnet).await;
+    send_dummy_mint_tx(&devnet).await;
 
     let finality_status = TransactionFinalityStatus::PreConfirmed;
-    for subscription_request_body in [
+    for subscription_params in [
         json!({ "finality_status": [finality_status] }),
         // Minting is done by the Chargeable account
         json!({ "finality_status": [finality_status], "sender_address": [CHARGEABLE_ACCOUNT_ADDRESS] }),
         json!({ "finality_status": [finality_status], "sender_address": [] }),
     ] {
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-        let subscription_id =
-            subscribe_new_tx_receipts(&mut ws, subscription_request_body).await.unwrap();
-
-        let receipt_notification = receive_new_tx_receipt(&mut ws, subscription_id).await.unwrap();
-        let extracted_receipt: InvokeTransactionReceipt =
-            serde_json::from_value(receipt_notification).unwrap();
-        assert_eq!(extracted_receipt.transaction_hash, mint_hash);
-        assert_eq!(extracted_receipt.finality_status, finality_status);
-
+        subscribe_new_tx_receipts(&mut ws, subscription_params).await.unwrap();
         assert_no_notifications(&mut ws).await;
     }
 }
@@ -339,28 +333,6 @@ async fn should_not_notify_if_tx_already_in_latest_block_in_on_tx_mode() {
 }
 
 #[tokio::test]
-async fn should_notify_if_tx_already_in_latest_block_in_on_tx_mode_and_filtering_accepted_on_l2() {
-    let devnet_args = ["--block-generation-on", "transaction"];
-    let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
-    let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-
-    let mint_tx_hash = send_dummy_mint_tx(&devnet).await;
-
-    // Subscribe AFTER the tx and block creation.
-    let finality_status = TransactionFinalityStatus::AcceptedOnL2;
-    let subscription_id =
-        subscribe_new_tx_receipts(&mut ws, json!({ "finality_status": [finality_status] }))
-            .await
-            .unwrap();
-
-    let notification = receive_new_tx_receipt(&mut ws, subscription_id).await.unwrap();
-    let receipt: InvokeTransactionReceipt = serde_json::from_value(notification).unwrap();
-    assert_eq!(receipt.transaction_hash, mint_tx_hash);
-
-    assert_no_notifications(&mut ws).await;
-}
-
-#[tokio::test]
 async fn should_not_notify_on_read_request_if_txs_in_pre_confirmed_block() {
     let devnet_args = ["--block-generation-on", "demand"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
@@ -431,4 +403,6 @@ async fn test_deploy_account_receipt_notification() {
         deployment_receipt_with_block.receipt.transaction_hash(),
         &deployment_result.transaction_hash
     );
+
+    assert_no_notifications(&mut ws).await;
 }

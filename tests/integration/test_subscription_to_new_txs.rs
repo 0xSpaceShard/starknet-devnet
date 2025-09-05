@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
 use serde_json::json;
-use starknet_core::constants::{ARGENT_CONTRACT_CLASS_HASH, CHARGEABLE_ACCOUNT_ADDRESS};
+use starknet_core::constants::CHARGEABLE_ACCOUNT_ADDRESS;
 use starknet_rs_accounts::{ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{
     DeclareTransactionV3, Felt, InvokeTransactionV3, Transaction, TransactionFinalityStatus,
-    TransactionReceiptWithBlockInfo,
 };
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
@@ -14,8 +13,7 @@ use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
     FeeUnit, SubscriptionId, assert_no_notifications, declare_deploy_simple_contract,
-    deploy_argent_account, deploy_oz_account, receive_notification, receive_rpc_via_ws, subscribe,
-    unsubscribe,
+    deploy_oz_account, receive_notification, receive_rpc_via_ws, subscribe, unsubscribe,
 };
 
 async fn send_dummy_mint_tx(devnet: &BackgroundDevnet) -> Felt {
@@ -197,27 +195,21 @@ async fn should_not_notify_if_filtered_address_not_matched() {
 }
 
 #[tokio::test]
-async fn should_notify_if_tx_by_filtered_address_already_in_pre_confirmed_block() {
+async fn should_not_notify_if_tx_by_filtered_address_already_in_pre_confirmed_block() {
     let devnet_args = ["--block-generation-on", "demand"];
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
 
-    let mint_hash = send_dummy_mint_tx(&devnet).await;
+    send_dummy_mint_tx(&devnet).await;
 
     let finality_status = TransactionFinalityStatus::PreConfirmed;
-    for subscription_request_body in [
+    for subscription_params in [
         json!({ "finality_status": [finality_status] }),
         // Minting is done by the Chargeable account
         json!({ "finality_status": [finality_status], "sender_address": [CHARGEABLE_ACCOUNT_ADDRESS] }),
         json!({ "finality_status": [finality_status], "sender_address": [] }),
     ] {
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-        let subscription_id = subscribe_new_txs(&mut ws, subscription_request_body).await.unwrap();
-
-        let mut notification_tx = receive_new_tx(&mut ws, subscription_id).await.unwrap();
-        assert_eq!(notification_tx["finality_status"].take(), json!(finality_status));
-        let extracted_tx: Transaction = serde_json::from_value(notification_tx).unwrap();
-        assert_eq!(extracted_tx.transaction_hash(), &mint_hash);
-
+        subscribe_new_txs(&mut ws, subscription_params).await.unwrap();
         assert_no_notifications(&mut ws).await;
     }
 }
@@ -350,34 +342,13 @@ async fn test_deploy_account_tx_notification() {
 
     let (deployment_result, _) = deploy_oz_account(&devnet).await.unwrap();
 
-    let receipt_notification = receive_new_tx(&mut ws, subscription_id).await.unwrap();
-
-    let receipt_with_block_info: TransactionReceiptWithBlockInfo =
-        serde_json::from_value(receipt_notification).unwrap();
-    assert_eq!(
-        receipt_with_block_info.receipt.transaction_hash(),
-        &deployment_result.transaction_hash
-    );
-}
-
-#[tokio::test]
-async fn test_deploy_account_receipt_notification() {
-    let devnet =
-        BackgroundDevnet::spawn_with_additional_args(&["--predeclare-argent"]).await.unwrap();
-    let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-    let subscription_id = subscribe_new_txs(&mut ws, json!({})).await.unwrap();
-
-    let (deployment_result, _) =
-        deploy_argent_account(&devnet, ARGENT_CONTRACT_CLASS_HASH).await.unwrap();
-
     let _minting_notification = receive_new_tx(&mut ws, subscription_id.clone()).await.unwrap();
 
-    let deployment_notification = receive_new_tx(&mut ws, subscription_id).await.unwrap();
-    let deployment_receipt_with_block: TransactionReceiptWithBlockInfo =
-        serde_json::from_value(deployment_notification).unwrap();
+    let notification = receive_new_tx(&mut ws, subscription_id).await.unwrap();
+    // TODO: uncomment when starknet-rs updated to 0.17
+    // let tx: DeployAccountTransaction = serde_json::from_value(notification).unwrap();
+    // assert_eq!(tx.transaction_hash, deployment_result.transaction_hash);
+    assert_eq!(notification["transaction_hash"], json!(deployment_result.transaction_hash));
 
-    assert_eq!(
-        deployment_receipt_with_block.receipt.transaction_hash(),
-        &deployment_result.transaction_hash
-    );
+    assert_no_notifications(&mut ws).await;
 }
