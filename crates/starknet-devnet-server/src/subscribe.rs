@@ -332,6 +332,7 @@ impl SocketContext {
     async fn send(&self, subscription_response: SubscriptionResponse) {
         let resp_serialized = subscription_response.to_serialized_rpc_response().to_string();
 
+        tracing::trace!(target: "ws.subscriptions", response = %resp_serialized, "subscription response");
         if let Err(e) = self.sender.lock().await.send(Message::Text(resp_serialized)).await {
             tracing::error!("Failed writing to socket: {}", e.to_string());
         }
@@ -342,15 +343,20 @@ impl SocketContext {
         rpc_request_id: Id,
         subscription: Subscription,
     ) -> SubscriptionId {
-        let subscription_id: SubscriptionId = rand::random::<u64>().into();
+        loop {
+            let subscription_id: SubscriptionId = rand::random::<u64>().into();
+            if self.subscriptions.contains_key(&subscription_id) {
+                continue;
+            }
 
-        let confirmation = subscription.confirm(subscription_id);
-        self.subscriptions.insert(subscription_id, subscription);
+            let confirmation = subscription.confirm(subscription_id);
+            self.subscriptions.insert(subscription_id, subscription);
 
-        self.send(SubscriptionResponse::Confirmation { rpc_request_id, result: confirmation })
-            .await;
+            self.send(SubscriptionResponse::Confirmation { rpc_request_id, result: confirmation })
+                .await;
 
-        subscription_id
+            return subscription_id;
+        }
     }
 
     pub async fn unsubscribe(
@@ -358,17 +364,13 @@ impl SocketContext {
         rpc_request_id: Id,
         subscription_id: SubscriptionId,
     ) -> Result<(), ApiError> {
-        match self.subscriptions.remove(&subscription_id) {
-            Some(_) => {
-                self.send(SubscriptionResponse::Confirmation {
-                    rpc_request_id,
-                    result: SubscriptionConfirmation::Unsubscription(true),
-                })
-                .await;
-                Ok(())
-            }
-            None => Err(ApiError::InvalidSubscriptionId),
-        }
+        self.subscriptions.remove(&subscription_id).ok_or(ApiError::InvalidSubscriptionId)?;
+        self.send(SubscriptionResponse::Confirmation {
+            rpc_request_id,
+            result: SubscriptionConfirmation::Unsubscription(true),
+        })
+        .await;
+        Ok(())
     }
 
     pub async fn notify(&self, subscription_id: SubscriptionId, data: NotificationData) {

@@ -78,6 +78,7 @@ async fn event_subscription_with_no_params_until_unsubscription() {
 
     let account = get_single_owner_account(&devnet).await;
     let contract_address = declare_deploy_events_contract(&account).await.unwrap();
+    assert_ne!(contract_address, account.address());
 
     // discard notifications emitted by system contracts - asserted in a separate test
     receive_rpc_via_ws(&mut ws).await.unwrap(); // erc20 - fee charge
