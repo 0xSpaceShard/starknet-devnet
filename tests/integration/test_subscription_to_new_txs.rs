@@ -12,12 +12,8 @@ use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
     FeeUnit, assert_no_notifications, declare_deploy_simple_contract, deploy_oz_account,
-    receive_new_tx, receive_rpc_via_ws, subscribe_new_txs, unsubscribe,
+    receive_new_tx, receive_rpc_via_ws, send_dummy_mint_tx, subscribe_new_txs, unsubscribe,
 };
-
-async fn send_dummy_mint_tx(devnet: &BackgroundDevnet) -> Felt {
-    devnet.mint(Felt::ONE, 123).await
-}
 
 #[tokio::test]
 async fn should_not_notify_in_block_on_demand_mode_if_default_subscription_params() {

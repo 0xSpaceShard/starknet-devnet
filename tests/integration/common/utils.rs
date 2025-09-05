@@ -618,6 +618,10 @@ pub async fn unsubscribe(
         .await
 }
 
+pub async fn send_dummy_mint_tx(devnet: &BackgroundDevnet) -> Felt {
+    devnet.mint(Felt::ONE, 123).await
+}
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FeeUnit {
