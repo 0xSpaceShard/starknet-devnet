@@ -392,6 +392,7 @@ impl Starknet {
         // update block hash for each pre_confirmed tx; block number should already be set
         new_block.get_transactions().iter().for_each(|tx_hash| {
             if let Some(tx) = self.transactions.get_by_hash_mut(tx_hash) {
+                debug_assert_eq!(tx.block_number, Some(new_block_number));
                 tx.block_hash = Some(new_block_hash);
                 tx.finality_status = TransactionFinalityStatus::AcceptedOnL2;
             } else {

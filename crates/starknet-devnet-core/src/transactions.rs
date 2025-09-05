@@ -54,7 +54,6 @@ impl HashIdentified for StarknetTransactions {
     }
 }
 
-// TODO #[allow(unused)]
 #[derive(Debug)]
 pub struct StarknetTransaction {
     pub inner: TransactionWithHash,
@@ -68,7 +67,7 @@ pub struct StarknetTransaction {
 
 impl StarknetTransaction {
     pub fn pre_confirm(
-        transaction: &TransactionWithHash, // consider passing the object, not reference
+        transaction: &TransactionWithHash,
         execution_info: TransactionExecutionInfo,
         trace: TransactionTrace,
         pre_confirmed_block_number: BlockNumber,

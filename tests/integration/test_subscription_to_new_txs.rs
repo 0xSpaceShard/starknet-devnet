@@ -6,32 +6,17 @@ use starknet_rs_accounts::{ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{
     DeclareTransactionV3, Felt, InvokeTransactionV3, Transaction, TransactionFinalityStatus,
 };
-use tokio::net::TcpStream;
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
+use tokio_tungstenite::connect_async;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
-    FeeUnit, SubscriptionId, assert_no_notifications, declare_deploy_simple_contract,
-    deploy_oz_account, receive_notification, receive_rpc_via_ws, subscribe, unsubscribe,
+    FeeUnit, assert_no_notifications, declare_deploy_simple_contract, deploy_oz_account,
+    receive_new_tx, receive_rpc_via_ws, subscribe_new_txs, unsubscribe,
 };
 
 async fn send_dummy_mint_tx(devnet: &BackgroundDevnet) -> Felt {
     devnet.mint(Felt::ONE, 123).await
-}
-
-pub async fn subscribe_new_txs(
-    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
-    params: serde_json::Value,
-) -> Result<SubscriptionId, anyhow::Error> {
-    subscribe(ws, "starknet_subscribeNewTransactions", params).await
-}
-
-pub async fn receive_new_tx(
-    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
-    expected_subscription_id: SubscriptionId,
-) -> Result<serde_json::Value, anyhow::Error> {
-    receive_notification(ws, "starknet_subscriptionNewTransaction", expected_subscription_id).await
 }
 
 #[tokio::test]

@@ -160,8 +160,7 @@ impl JsonRpcHandler {
         let mut sockets = self.api.sockets.lock().await;
         let socket_context = sockets.get_mut(&socket_id)?;
 
-        let subscription =
-            Subscription::NewTransactions { address_filter, status_filter: status_filter.clone() };
+        let subscription = Subscription::NewTransactions { address_filter, status_filter };
         socket_context.subscribe(rpc_request_id, subscription).await;
 
         Ok(())
@@ -195,10 +194,7 @@ impl JsonRpcHandler {
         let mut sockets = self.api.sockets.lock().await;
         let socket_context = sockets.get_mut(&socket_id)?;
 
-        let subscription = Subscription::NewTransactionReceipts {
-            address_filter,
-            status_filter: status_filter.clone(),
-        };
+        let subscription = Subscription::NewTransactionReceipts { address_filter, status_filter };
         socket_context.subscribe(rpc_request_id, subscription).await;
 
         Ok(())

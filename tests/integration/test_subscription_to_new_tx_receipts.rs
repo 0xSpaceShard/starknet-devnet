@@ -14,9 +14,9 @@ use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{
     FeeUnit, SubscriptionId, assert_no_notifications, declare_deploy_simple_contract,
-    deploy_oz_account, receive_notification, receive_rpc_via_ws, subscribe, unsubscribe,
+    deploy_oz_account, receive_new_tx, receive_notification, receive_rpc_via_ws, subscribe,
+    subscribe_new_txs, unsubscribe,
 };
-use crate::test_subscription_to_new_txs::{receive_new_tx, subscribe_new_txs};
 
 async fn send_dummy_mint_tx(devnet: &BackgroundDevnet) -> Felt {
     devnet.mint(Felt::ONE, 123).await

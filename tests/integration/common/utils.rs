@@ -595,6 +595,20 @@ pub async fn subscribe_new_heads(
     subscribe(ws, "starknet_subscribeNewHeads", block_specifier).await
 }
 
+pub async fn subscribe_new_txs(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    params: serde_json::Value,
+) -> Result<SubscriptionId, anyhow::Error> {
+    subscribe(ws, "starknet_subscribeNewTransactions", params).await
+}
+
+pub async fn receive_new_tx(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    expected_subscription_id: SubscriptionId,
+) -> Result<serde_json::Value, anyhow::Error> {
+    receive_notification(ws, "starknet_subscriptionNewTransaction", expected_subscription_id).await
+}
+
 pub async fn unsubscribe(
     ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
     subscription_id: SubscriptionId,

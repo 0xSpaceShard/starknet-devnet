@@ -332,7 +332,7 @@ impl SocketContext {
     async fn send(&self, subscription_response: SubscriptionResponse) {
         let resp_serialized = subscription_response.to_serialized_rpc_response().to_string();
 
-        tracing::trace!("Subscription response: {resp_serialized}");
+        tracing::trace!(target: "ws.subscriptions", response = %resp_serialized, "subscription response");
         if let Err(e) = self.sender.lock().await.send(Message::Text(resp_serialized)).await {
             tracing::error!("Failed writing to socket: {}", e.to_string());
         }
