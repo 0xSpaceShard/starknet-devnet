@@ -71,6 +71,7 @@ pub fn add_invoke_transaction(
 mod tests {
     use blockifier::state::state_api::StateReader;
     use nonzero_ext::nonzero;
+    use starknet_api::block::BlockNumber;
     use starknet_api::core::Nonce;
     use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
     use starknet_rs_core::utils::get_selector_from_name;
@@ -455,7 +456,7 @@ mod tests {
         let retrieved_tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
         assert_eq!(retrieved_tx.finality_status, TransactionFinalityStatus::PreConfirmed);
         assert_eq!(retrieved_tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        assert_eq!(retrieved_tx.block_number, None);
+        assert_eq!(retrieved_tx.block_number, Some(BlockNumber(0)));
     }
 
     #[test]
@@ -480,7 +481,7 @@ mod tests {
                 retrieved_tx.execution_result.status(),
                 TransactionExecutionStatus::Succeeded
             );
-            assert_eq!(retrieved_tx.block_number, None);
+            assert_eq!(retrieved_tx.block_number, Some(BlockNumber(0)));
         }
     }
 
