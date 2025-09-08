@@ -4,7 +4,7 @@ To release a new Devnet version, follow these steps:
 
 1. Increment the semver in Cargo.toml of those Devnet crates that have changed. Use `scripts/check_crate_changes.sh` for this.
 
-2. Add a documentation entry for the incoming version by running:
+2. Add a documentation entry for the incoming version (without the v- prefix) by running:
 
    ```
    $ npm --prefix website run docusaurus docs:version <VERSION>
