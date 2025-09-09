@@ -1,11 +1,9 @@
-use std::collections::HashSet;
 use std::num::NonZeroU128;
 
 use clap::Parser;
 use server::ServerConfig;
 use server::api::json_rpc::JsonRpcRequest;
 use server::restrictive_mode::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
-use server::server::HTTP_API_ROUTES_WITHOUT_LEADING_SLASH;
 use starknet_core::constants::{
     ARGENT_CONTRACT_VERSION, ARGENT_MULTISIG_CONTRACT_VERSION, DEVNET_DEFAULT_L1_DATA_GAS_PRICE,
     DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE, DEVNET_DEFAULT_PORT,
@@ -197,10 +195,10 @@ pub(crate) struct Args {
     #[arg(default_value = "transaction")]
     #[arg(help = "Specify when to generate a new block. Possible values are:
 - \"transaction\" - new block generated on each transaction
-- \"demand\" - new block creatable solely by sending a POST request to /create_block
+- \"demand\" - new block creatable solely by calling the devnet_createBlock JSON-RPC method
 - <INTERVAL> - a positive integer indicating after how many seconds a new block is generated
 
-Sending POST /create_block is also an option in modes other than \"demand\".")]
+Calling devnet_createBlock JSON-RPC method is also an option in modes other than \"demand\".")]
     block_generation_on: BlockGenerationOn,
 
     #[arg(long = "state-archive-capacity")]
@@ -302,46 +300,30 @@ impl Args {
         Ok(())
     }
 
-    /// Errors if there are unsupported restricted methods/routes. If method list present but empty,
-    /// use default.
+    /// Errors if there are unsupported restricted methods/routes.
     fn get_validated_restricted_methods(&self) -> Result<Option<Vec<String>>, anyhow::Error> {
-        // If restricted_methods not specified, use default
-        let restricted_methods = self.restricted_methods.as_ref().map(|methods| {
-            if methods.is_empty() {
-                DEFAULT_RESTRICTED_JSON_RPC_METHODS
-                    .iter()
-                    .map(|s| s.to_string())
-                    .collect::<Vec<String>>()
-            } else {
-                // Remove leading slashes
-                methods
-                    .iter()
-                    .map(|s| s.trim_start_matches('/').to_string())
-                    .collect::<Vec<String>>()
+        match &self.restricted_methods {
+            None => Ok(None),
+            Some(methods) if methods.is_empty() => {
+                Ok(Some(DEFAULT_RESTRICTED_JSON_RPC_METHODS.to_vec()))
             }
-        });
-
-        // Validate restricted methods
-        if let Some(methods) = restricted_methods.as_ref() {
-            let json_rpc_methods = JsonRpcRequest::all_variants_serde_renames();
-            let all_methods: HashSet<_> = HashSet::from_iter(
-                json_rpc_methods.iter().chain(HTTP_API_ROUTES_WITHOUT_LEADING_SLASH.iter()),
-            );
-            let mut wrong_restricted_methods = vec![];
-            for method in methods {
-                if !all_methods.contains(method) {
-                    wrong_restricted_methods.push(method.clone());
+            Some(methods) => {
+                let json_rpc_methods = JsonRpcRequest::all_variants_serde_renames();
+                let mut wrong_restricted_methods = vec![];
+                for method in methods {
+                    if !json_rpc_methods.contains(method) {
+                        wrong_restricted_methods.push(method.clone());
+                    }
                 }
-            }
-            if !wrong_restricted_methods.is_empty() {
-                anyhow::bail!(
-                    "Restricted methods contain unsupported JSON-RPC methods or HTTP routes: {}",
-                    wrong_restricted_methods.join(", ")
-                );
+                if !wrong_restricted_methods.is_empty() {
+                    anyhow::bail!(
+                        "Restricted methods contain unsupported JSON-RPC methods: {}",
+                        wrong_restricted_methods.join(", ")
+                    );
+                }
+                Ok(Some(methods.clone()))
             }
         }
-
-        Ok(restricted_methods)
     }
 }
 

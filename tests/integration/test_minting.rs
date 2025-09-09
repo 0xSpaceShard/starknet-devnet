@@ -1,10 +1,8 @@
-use reqwest::StatusCode;
 use serde_json::json;
 use starknet_rs_core::types::Felt;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE};
-use crate::common::reqwest_client::{GetReqwestSender, HttpEmptyResponseBody};
 use crate::common::utils::FeeUnit;
 
 static DUMMY_ADDRESS: &str = "0x42";
@@ -145,16 +143,6 @@ async fn reject_missing_amount() {
     reject_bad_minting_request(json!({ "address": DUMMY_ADDRESS })).await;
 }
 
-async fn reject_bad_balance_query(devnet: &BackgroundDevnet, query: &str) {
-    let resp = devnet
-        .reqwest_client()
-        .get_json_async("/account_balance", Some(query.into()))
-        .await
-        .map(|_: HttpEmptyResponseBody| ())
-        .unwrap_err();
-    assert_eq!(resp.status(), StatusCode::BAD_REQUEST, "Checking status of {resp:?}");
-}
-
 async fn reject_bad_json_rpc_request(devnet: &BackgroundDevnet, body: serde_json::Value) {
     let rpc_error = devnet.send_custom_rpc("devnet_getAccountBalance", body).await.unwrap_err();
     assert_eq!(rpc_error.code, -32602);
@@ -163,20 +151,17 @@ async fn reject_bad_json_rpc_request(devnet: &BackgroundDevnet, body: serde_json
 #[tokio::test]
 async fn reject_if_no_params_when_querying() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
-    reject_bad_balance_query(&devnet, "").await;
     reject_bad_json_rpc_request(&devnet, json!({})).await;
 }
 
 #[tokio::test]
 async fn reject_missing_address_when_querying() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
-    reject_bad_balance_query(&devnet, "unit=FRI").await;
     reject_bad_json_rpc_request(&devnet, json!({ "unit": "FRI" })).await;
 }
 
 #[tokio::test]
 async fn reject_invalid_unit_when_querying() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
-    reject_bad_balance_query(&devnet, "address=0x1&unit=INVALID").await;
     reject_bad_json_rpc_request(&devnet, json!({ "address": "0x1", "unit": "INVALID" })).await;
 }

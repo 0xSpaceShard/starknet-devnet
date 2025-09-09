@@ -17,7 +17,7 @@ use super::error::{ApiError, StrictRpcResult};
 use super::models::{
     BlockHashAndNumberOutput, GetStorageProofInput, L1TransactionHashInput, SyncingOutput,
 };
-use super::{DevnetResponse, JsonRpcHandler, JsonRpcResponse, RPC_SPEC_VERSION, StarknetResponse};
+use super::{DevnetResponse, JsonRpcHandler, RPC_SPEC_VERSION, StarknetResponse};
 use crate::api::http::endpoints::DevnetConfig;
 use crate::api::http::endpoints::accounts::{
     BalanceQuery, PredeployedAccountsQuery, get_account_balance_impl, get_predeployed_accounts_impl,
@@ -661,7 +661,7 @@ impl JsonRpcHandler {
     }
 
     /// devnet_getConfig
-    pub async fn get_devnet_config(&self) -> Result<JsonRpcResponse, ApiError> {
+    pub async fn get_devnet_config(&self) -> StrictRpcResult {
         Ok(DevnetResponse::DevnetConfig(DevnetConfig {
             starknet_config: self.api.starknet.lock().await.config.clone(),
             server_config: self.server_config.clone(),
