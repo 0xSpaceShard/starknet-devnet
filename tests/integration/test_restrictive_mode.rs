@@ -2,7 +2,6 @@ use serde_json::json;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::errors::RpcError;
-use crate::common::reqwest_client::{GetReqwestSender, HttpEmptyResponseBody};
 
 #[tokio::test]
 async fn restrictive_mode_with_default_methods_doesnt_affect_other_functionality() {
@@ -10,12 +9,7 @@ async fn restrictive_mode_with_default_methods_doesnt_affect_other_functionality
         .await
         .expect("Could not start Devnet");
 
-    devnet
-        .reqwest_client()
-        .get_json_async("/config", None)
-        .await
-        .map(|_: HttpEmptyResponseBody| ())
-        .unwrap();
+    devnet.send_custom_rpc("devnet_getConfig", json!({})).await.unwrap();
 }
 
 #[tokio::test]

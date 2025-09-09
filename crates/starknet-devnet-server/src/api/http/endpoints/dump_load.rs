@@ -1,19 +1,8 @@
-use axum::Json;
-use axum::extract::State;
-
-use super::extract_optional_json_from_request;
 use crate::api::Api;
+use crate::api::http::HttpApiResult;
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{DumpPath, DumpResponseBody};
-use crate::api::http::{HttpApiHandler, HttpApiResult};
 use crate::dump_util::dump_events;
-
-pub async fn dump(
-    State(state): State<HttpApiHandler>,
-    optional_path: Option<Json<DumpPath>>,
-) -> HttpApiResult<Json<DumpResponseBody>> {
-    dump_impl(&state.api, extract_optional_json_from_request(optional_path)).await.map(Json::from)
-}
 
 pub(crate) async fn dump_impl(
     api: &Api,

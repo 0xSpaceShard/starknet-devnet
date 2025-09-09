@@ -9,10 +9,9 @@ use futures::future::join_all;
 use serde::de::IntoDeserializer;
 use serde_json::json;
 use server::api::Api;
-use server::api::http::HttpApiHandler;
 use server::api::json_rpc::{JsonRpcHandler, RPC_SPEC_VERSION};
 use server::dump_util::{dump_events, load_events};
-use server::server::serve_http_api_json_rpc;
+use server::server::serve_http_json_rpc;
 use starknet_core::account::Account;
 use starknet_core::constants::{
     ARGENT_CONTRACT_CLASS_HASH, ARGENT_MULTISIG_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS,
@@ -331,11 +330,7 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     };
 
-    let http_api_handler =
-        HttpApiHandler { api: api.clone(), server_config: server_config.clone() };
-
-    let server =
-        serve_http_api_json_rpc(listener, &server_config, json_rpc_handler, http_api_handler).await;
+    let server = serve_http_json_rpc(listener, &server_config, json_rpc_handler).await;
     info!("Starknet Devnet listening on {}", address);
 
     let mut tasks = vec![];

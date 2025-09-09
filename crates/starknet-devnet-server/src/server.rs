@@ -2,54 +2,22 @@ use std::time::Duration;
 
 use axum::Router;
 use axum::body::{Body, Bytes};
-use axum::extract::{DefaultBodyLimit, Request, State};
+use axum::extract::{DefaultBodyLimit, Request};
 use axum::http::{HeaderValue, StatusCode};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
-use axum::routing::{IntoMakeService, MethodRouter, get, post};
+use axum::routing::{IntoMakeService, get, post};
 use http_body_util::BodyExt;
-use lazy_static::lazy_static;
 use reqwest::{Method, header};
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 
-use crate::api::http::{HttpApiHandler, endpoints as http};
 use crate::api::json_rpc::JsonRpcHandler;
-use crate::restrictive_mode::is_uri_path_restricted;
 use crate::rpc_handler::RpcHandler;
-use crate::{ServerConfig, http_rpc_router, rpc_handler};
+use crate::{ServerConfig, rpc_handler};
 pub type StarknetDevnetServer = axum::serve::Serve<IntoMakeService<Router>, Router>;
-
-lazy_static! {
-    static ref HTTP_API_ROUTES_WITH_HANDLERS: [(&'static str, MethodRouter<HttpApiHandler>); 5] = [
-        ("/is_alive", get(http::is_alive)),
-        ("/dump", post(http::dump_load::dump)),
-        ("/predeployed_accounts", get(http::accounts::get_predeployed_accounts)),
-        ("/account_balance", get(http::accounts::get_account_balance)),
-        ("/config", get(http::get_devnet_config))
-    ];
-    pub static ref HTTP_API_ROUTES_WITHOUT_LEADING_SLASH: Vec<String> =
-        HTTP_API_ROUTES_WITH_HANDLERS
-            .iter()
-            .map(|(path, _)| path)
-            .chain(&[
-                "/load",
-                "/postman/load_l1_messaging_contract",
-                "/postman/flush",
-                "/postman/send_message_to_l2",
-                "/postman/consume_message_from_l2",
-                "/create_block",
-                "/abort_blocks",
-                "/restart",
-                "/set_time",
-                "/increase_time",
-                "/mint"
-            ])
-            .map(|path| String::from((*path).trim_start_matches('/')))
-            .collect::<Vec<String>>();
-}
 
 fn json_rpc_routes<TJsonRpcHandler: RpcHandler>(json_rpc_handler: TJsonRpcHandler) -> Router {
     Router::new()
@@ -59,44 +27,15 @@ fn json_rpc_routes<TJsonRpcHandler: RpcHandler>(json_rpc_handler: TJsonRpcHandle
         .with_state(json_rpc_handler)
 }
 
-fn http_api_routes(http_api_handler: HttpApiHandler) -> Router {
-    let mut router = Router::new();
-    for (path, method_router) in HTTP_API_ROUTES_WITH_HANDLERS.iter() {
-        let method_router = method_router.clone();
-        router = router.route(path, method_router);
-    }
-    router.with_state(http_api_handler)
-}
-
-// TODO make type generic as in fn json_rpc_routes
-fn converted_http_api_routes(json_rpc_handler: JsonRpcHandler) -> Router {
-    http_rpc_router![
-        ("/postman/load_l1_messaging_contract", devnet_postmanLoad),
-        ("/postman/flush", devnet_postmanFlush),
-        ("/postman/send_message_to_l2", devnet_postmanSendMessageToL2),
-        ("/postman/consume_message_from_l2", devnet_postmanConsumeMessageFromL2),
-        ("/load", devnet_load), // not here for dumping purposes; needs access to json_rpc_handler
-        ("/create_block", devnet_createBlock),
-        ("/abort_blocks", devnet_abortBlocks),
-        ("/restart", devnet_restart),
-        ("/set_time", devnet_setTime),
-        ("/increase_time", devnet_increaseTime),
-        ("/mint", devnet_mint),
-    ]
-    .with_state(json_rpc_handler)
-}
-
 /// Configures an [axum::Server] that handles related JSON-RPC calls and web API calls via HTTP.
-pub async fn serve_http_api_json_rpc(
+pub async fn serve_http_json_rpc(
     tcp_listener: TcpListener,
     server_config: &ServerConfig,
     json_rpc_handler: JsonRpcHandler,
-    http_handler: HttpApiHandler,
 ) -> StarknetDevnetServer {
     let mut routes = Router::new()
+        .route("/is_alive", get(|| async { "Alive!!!" })) // Only REST endpoint to simplify liveness probe
         .merge(json_rpc_routes(json_rpc_handler.clone()))
-        .merge(http_api_routes(http_handler))
-        .merge(converted_http_api_routes(json_rpc_handler))
         .layer(TraceLayer::new_for_http());
 
     if server_config.log_response {
@@ -116,13 +55,6 @@ pub async fn serve_http_api_json_rpc(
 
     if server_config.log_request {
         routes = routes.layer(axum::middleware::from_fn(request_logging_middleware));
-    }
-
-    if server_config.restricted_methods.is_some() {
-        routes = routes.layer(axum::middleware::from_fn_with_state(
-            server_config.clone(),
-            restrictive_middleware,
-        ));
     }
 
     axum::serve(tcp_listener, routes.into_make_service())
@@ -178,17 +110,4 @@ async fn response_logging_middleware(
 
     let response = Response::from_parts(parts, body);
     Ok(response)
-}
-
-async fn restrictive_middleware(
-    State(server_config): State<ServerConfig>,
-    request: Request,
-    next: Next,
-) -> Result<impl IntoResponse, (StatusCode, String)> {
-    if let Some(restricted_paths) = &server_config.restricted_methods {
-        if is_uri_path_restricted(request.uri().path(), restricted_paths) {
-            return Err((StatusCode::FORBIDDEN, "Devnet is in restrictive mode".to_string()));
-        }
-    }
-    Ok(next.run(request).await)
 }

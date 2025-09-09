@@ -31,17 +31,6 @@ pub enum ReqwestError {
 }
 
 impl ReqwestError {
-    pub fn reqwest_error(&self) -> &reqwest::Error {
-        match self {
-            ReqwestError::Error(e) => e,
-            ReqwestError::ErrorWithMessage { error, .. } => error,
-        }
-    }
-
-    pub fn status(&self) -> reqwest::StatusCode {
-        self.reqwest_error().status().unwrap()
-    }
-
     pub fn error_message(&self) -> String {
         match self {
             ReqwestError::Error(_) => "".to_string(),

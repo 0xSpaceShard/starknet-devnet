@@ -1,5 +1,3 @@
-use axum::Json;
-use axum::extract::{Query, State};
 use serde::Deserialize;
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::Felt;
@@ -9,11 +7,11 @@ use starknet_types::rpc::transaction_receipt::FeeUnit;
 
 use super::mint_token::{get_balance, get_erc20_address};
 use crate::api::Api;
+use crate::api::http::HttpApiResult;
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
     AccountBalanceResponse, AccountBalancesResponse, SerializableAccount,
 };
-use crate::api::http::{HttpApiHandler, HttpApiResult};
 
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
@@ -21,14 +19,7 @@ pub struct PredeployedAccountsQuery {
     pub with_balance: Option<bool>,
 }
 
-pub async fn get_predeployed_accounts(
-    State(state): State<HttpApiHandler>,
-    Query(params): Query<PredeployedAccountsQuery>,
-) -> HttpApiResult<Json<Vec<SerializableAccount>>> {
-    get_predeployed_accounts_impl(&state.api, params).await.map(Json::from)
-}
-
-pub(crate) async fn get_balance_unit(
+pub(crate) fn get_balance_unit(
     starknet: &mut Starknet,
     address: ContractAddress,
     unit: FeeUnit,
@@ -62,8 +53,8 @@ pub(crate) async fn get_predeployed_accounts_impl(
     // handle with_balance query string
     if let Some(true) = params.with_balance {
         for account in predeployed_accounts.iter_mut() {
-            let eth = get_balance_unit(&mut starknet, account.address, FeeUnit::WEI).await?;
-            let strk = get_balance_unit(&mut starknet, account.address, FeeUnit::FRI).await?;
+            let eth = get_balance_unit(&mut starknet, account.address, FeeUnit::WEI)?;
+            let strk = get_balance_unit(&mut starknet, account.address, FeeUnit::FRI)?;
 
             account.balance = Some(AccountBalancesResponse { eth, strk });
         }
@@ -78,13 +69,6 @@ pub struct BalanceQuery {
     address: Felt,
     unit: Option<FeeUnit>,
     block_id: Option<BlockId>,
-}
-
-pub async fn get_account_balance(
-    State(state): State<HttpApiHandler>,
-    Query(params): Query<BalanceQuery>,
-) -> HttpApiResult<Json<AccountBalanceResponse>> {
-    get_account_balance_impl(&state.api, params).await.map(Json::from)
 }
 
 pub(crate) async fn get_account_balance_impl(

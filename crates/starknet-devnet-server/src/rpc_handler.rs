@@ -69,56 +69,6 @@ pub async fn handle_socket<THandler: RpcHandler>(
     )
 }
 
-#[macro_export]
-/// Match a list of comma-separated pairs enclosed in square brackets. First pair member is the HTTP
-/// path which is mapped to an RPC request with the method that is the second pair member. Using the
-/// same identifier for the handler function name and the method name provided in the RPC request.
-macro_rules! http_rpc_router {
-    ( $( ( $http_path:expr, $rpc_method_name:ident ) ),* $(,)?  ) => {
-        {
-            use axum::extract::State;
-            use axum::Json;
-            use $crate::rpc_core::request::{Version, Id, RpcCall, RpcMethodCall, RequestParams};
-            use $crate::rpc_core::response::{RpcResponse, ResponseResult};
-            use $crate::rpc_handler::handle_call;
-            use $crate::api::http::HttpApiResult;
-            use $crate::api::http::error::HttpApiError;
-
-            let mut router = Router::new();
-            $(
-                #[allow(non_snake_case)]
-                pub async fn $rpc_method_name<THandler: RpcHandler>(
-                    State(handler): State<THandler>,
-                    request: Option<Json<serde_json::Map<String, serde_json::Value>>>,
-                ) -> HttpApiResult<Json<serde_json::Value>>{
-                    // Convert normal HTTP request to RPC by wrapping
-                    let rpc_call = RpcCall::MethodCall(RpcMethodCall {
-                        jsonrpc: Version::V2,
-                        method: stringify!($rpc_method_name).to_string(),
-                        params: RequestParams::Object(request.unwrap_or_default().0),
-                        id: Id::Number(0),
-                    });
-
-                    // Obtain the RPC response
-                    let rpc_resp: RpcResponse = handle_call(rpc_call, handler)
-                        .await
-                        .unwrap_or_else(|| RpcResponse::invalid_request(Id::Number(-1)))
-                        .into();
-
-                    // Convert the response from RPC to normal HTTP: extract the result/error
-                    match rpc_resp.result {
-                        ResponseResult::Success(result) => Ok(Json(result)),
-                        ResponseResult::Error(e) => Err(HttpApiError::GeneralError(e.message.into())),
-                    }
-                }
-
-                router = router.route($http_path, post($rpc_method_name::<JsonRpcHandler>));
-            )*
-            router
-        }
-    };
-}
-
 /// Handle the JSON-RPC [Request]
 ///
 /// This will try to deserialize the payload into the request type of the handler and if successful
