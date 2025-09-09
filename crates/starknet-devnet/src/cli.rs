@@ -309,12 +309,11 @@ impl Args {
             }
             Some(methods) => {
                 let json_rpc_methods = JsonRpcRequest::all_variants_serde_renames();
-                let mut wrong_restricted_methods = vec![];
-                for method in methods {
-                    if !json_rpc_methods.contains(method) {
-                        wrong_restricted_methods.push(method.clone());
-                    }
-                }
+                let wrong_restricted_methods: Vec<_> = methods
+                    .iter()
+                    .filter(|method| !json_rpc_methods.contains(method))
+                    .cloned()
+                    .collect();
                 if !wrong_restricted_methods.is_empty() {
                     anyhow::bail!(
                         "Restricted methods contain unsupported JSON-RPC methods: {}",
