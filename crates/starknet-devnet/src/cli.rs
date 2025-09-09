@@ -715,8 +715,7 @@ mod tests {
             Args::parse_from(["--", "--restrictive-mode", "devnet_dump", "devnet_loadd", "xyz"]);
         let err = args.to_config().unwrap_err();
         assert!(err.to_string().contains(
-            "Restricted methods contain unsupported JSON-RPC methods or HTTP routes: \
-             devnet_loadd, xyz"
+            "Restricted methods contain unsupported JSON-RPC methods: devnet_loadd, xyz"
         ));
     }
 
@@ -724,7 +723,9 @@ mod tests {
     fn check_if_methods_with_correct_names_will_not_produce_an_error() {
         Args::parse_from(["--", "--restrictive-mode"]).to_config().unwrap();
 
-        Args::parse_from(["--", "--restrictive-mode", "devnet_dump", "/mint"]).to_config().unwrap();
+        Args::parse_from(["--", "--restrictive-mode", "devnet_dump", "devnet_mint"])
+            .to_config()
+            .unwrap();
     }
 
     #[test]
