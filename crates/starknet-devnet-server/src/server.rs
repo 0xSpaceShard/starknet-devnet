@@ -34,7 +34,7 @@ pub async fn serve_http_json_rpc(
     json_rpc_handler: JsonRpcHandler,
 ) -> StarknetDevnetServer {
     let mut routes = Router::new()
-        .route("/is_alive", get(|| async { "Alive!!!" }))// Only REST endpoint to simplify liveness probe
+        .route("/is_alive", get(|| async { "Alive!!!" })) // Only REST endpoint to simplify liveness probe
         .merge(json_rpc_routes(json_rpc_handler.clone()))
         .layer(TraceLayer::new_for_http());
 

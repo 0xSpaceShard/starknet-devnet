@@ -710,11 +710,17 @@ mod tests {
 
     #[test]
     fn check_if_method_with_incorrect_name_will_produce_an_error() {
-        let args =
-            Args::parse_from(["--", "--restrictive-mode", "devnet_dump", "devnet_loadd", "xyz"]);
+        let args = Args::parse_from([
+            "--",
+            "--restrictive-mode",
+            "devnet_dump",
+            "devnet_loadd",
+            "xyz",
+            "/mint",
+        ]);
         let err = args.to_config().unwrap_err();
         assert!(err.to_string().contains(
-            "Restricted methods contain unsupported JSON-RPC methods: devnet_loadd, xyz"
+            "Restricted methods contain unsupported JSON-RPC methods: devnet_loadd, xyz, /mint"
         ));
     }
 
