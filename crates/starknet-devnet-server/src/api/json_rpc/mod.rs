@@ -1060,9 +1060,8 @@ where
     serde_json::from_value::<D>(deserializable_call).map_err(|err| {
         let err = err.to_string();
         // since JSON-RPC specification requires returning a Method Not Found error,
-        // we apply a hacky way to induce this - checking the stringified error message
-        let distinctive_error = format!("unknown variant `{}`", call.method);
-        if err.contains(&distinctive_error) {
+        // we apply a hacky way to decide - checking the stringified error message
+        if err.contains("Invalid method") {
             error!(target: "rpc", method = ?call.method, "failed to deserialize method due to unknown variant");
             RpcError::method_not_found()
         } else {
@@ -1216,7 +1215,7 @@ mod requests_tests {
 
         assert_deserialization_fails(
             &json_str.replace(r#""contract_address":"0x134134""#, r#""contract_address": 123"#),
-            "invalid type: integer `123`, expected a string",
+            "invalid type: number, expected a string",
         );
     }
 
@@ -1356,7 +1355,7 @@ mod requests_tests {
         );
         assert_deserialization_fails(
             json_str.replace(r#""calldata":["0x134134"]"#, r#""calldata":[123]"#).as_str(),
-            "invalid type: integer `123`",
+            "invalid type: number, expected a 32 byte array ([u8;32]) or a hexadecimal string",
         );
     }
 
