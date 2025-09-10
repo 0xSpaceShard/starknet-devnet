@@ -1,7 +1,5 @@
 FROM rust:1.86-alpine AS builder
 
-WORKDIR /app
-
 COPY . .
 
 RUN apk update && \
@@ -15,7 +13,7 @@ FROM alpine:3.22
 # Use ca-certificates to allow forking from URLs using https scheme
 RUN apk add --no-cache tini ca-certificates
 
-COPY --from=builder /app/target/release/starknet-devnet /usr/local/bin/starknet-devnet
+COPY --from=builder /target/release/starknet-devnet /usr/local/bin/starknet-devnet
 
 # The default port; exposing is beneficial if using Docker GUI
 EXPOSE 5050
