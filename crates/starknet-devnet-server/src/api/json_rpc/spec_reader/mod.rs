@@ -172,6 +172,7 @@ mod tests {
     use crate::api::json_rpc::spec_reader::generate_json_rpc_request;
     use crate::api::json_rpc::{
         JsonRpcRequest, JsonRpcSubscriptionRequest, RPC_SPEC_VERSION, StarknetResponse,
+        StarknetSpecRequest,
     };
     use crate::subscribe::{SubscriptionConfirmation, SubscriptionResponse};
 
@@ -301,96 +302,109 @@ mod tests {
         method: &ApiMethod,
     ) {
         match sn_request {
-            JsonRpcRequest::TransactionReceiptByTransactionHash(_) => {
-                assert!(matches!(
-                    sn_response,
-                    StarknetResponse::TransactionReceiptByTransactionHash(_)
-                ));
-            }
-            JsonRpcRequest::BlockWithTransactionHashes(_)
-            | JsonRpcRequest::BlockWithFullTransactions(_)
-            | JsonRpcRequest::BlockWithReceipts(_) => {
-                assert!(matches!(
-                    sn_response,
-                    StarknetResponse::Block(_) | StarknetResponse::PreConfirmedBlock(_)
-                ));
-            }
-            JsonRpcRequest::BlockHashAndNumber => {
-                assert!(matches!(sn_response, StarknetResponse::BlockHashAndNumber(_)));
-            }
-            JsonRpcRequest::BlockTransactionCount(_) | JsonRpcRequest::BlockNumber => {
-                assert!(matches!(
-                    sn_response,
-                    StarknetResponse::BlockTransactionCount(_) | StarknetResponse::BlockNumber(_)
-                ));
-            }
-            JsonRpcRequest::Call(_) => {
-                assert!(matches!(sn_response, StarknetResponse::Call(_)));
-            }
-            JsonRpcRequest::ClassAtContractAddress(_) | JsonRpcRequest::ClassByHash(_) => {
-                assert!(matches!(sn_response, StarknetResponse::ContractClass(_)));
-            }
-            JsonRpcRequest::EstimateFee(_) => {
-                assert!(matches!(sn_response, StarknetResponse::EstimateFee(_)));
-            }
-            JsonRpcRequest::EstimateMessageFee(_) => {
-                assert!(matches!(sn_response, StarknetResponse::EstimateMessageFee(_)));
-            }
-            JsonRpcRequest::Events(_) => {
-                assert!(matches!(sn_response, StarknetResponse::Events(_)));
-            }
-            JsonRpcRequest::SimulateTransactions(_) => {
-                assert!(matches!(sn_response, StarknetResponse::SimulateTransactions(_)));
-            }
-            JsonRpcRequest::StateUpdate(_) => {
-                assert!(matches!(
-                    sn_response,
-                    StarknetResponse::StateUpdate(_) | StarknetResponse::PreConfirmedStateUpdate(_)
-                ));
-            }
-            JsonRpcRequest::Syncing => {
-                assert!(matches!(sn_response, StarknetResponse::Syncing(_)));
-            }
-            JsonRpcRequest::TransactionStatusByHash(_) => {
-                assert!(matches!(sn_response, StarknetResponse::TransactionStatusByHash(_)));
-            }
-            JsonRpcRequest::AddDeclareTransaction(_) => {
-                assert!(matches!(sn_response, StarknetResponse::AddDeclareTransaction(_)));
-            }
-            JsonRpcRequest::AddDeployAccountTransaction(_) => {
-                assert!(matches!(sn_response, StarknetResponse::AddDeployAccountTransaction(_)));
-            }
-            JsonRpcRequest::AddInvokeTransaction(_) => {
-                assert!(matches!(sn_response, StarknetResponse::TransactionHash(_)));
-            }
-            JsonRpcRequest::SpecVersion => {
-                assert!(matches!(sn_response, StarknetResponse::String(_)));
-            }
-            JsonRpcRequest::TransactionByHash(_)
-            | JsonRpcRequest::TransactionByBlockAndIndex(_) => {
-                assert!(matches!(sn_response, StarknetResponse::Transaction(_)));
-            }
-            JsonRpcRequest::ContractNonce(_)
-            | JsonRpcRequest::ChainId
-            | JsonRpcRequest::ClassHashAtContractAddress(_)
-            | JsonRpcRequest::StorageAt(_) => {
-                assert!(matches!(sn_response, StarknetResponse::Felt(_)));
-            }
-            JsonRpcRequest::TraceTransaction(_) => {
-                assert!(matches!(sn_response, StarknetResponse::TraceTransaction(_)));
-            }
-            JsonRpcRequest::BlockTransactionTraces(_) => {
-                assert!(matches!(sn_response, StarknetResponse::BlockTransactionTraces(_)));
-            }
-            JsonRpcRequest::MessagesStatusByL1Hash(_) => {
-                assert!(matches!(sn_response, StarknetResponse::MessagesStatusByL1Hash(_)));
-            }
-            JsonRpcRequest::CompiledCasmByClassHash(_) => {
-                assert!(matches!(sn_response, StarknetResponse::CompiledCasm(_)));
-            }
+            // TODO reuse assert!(matches!())
+            JsonRpcRequest::StarknetSpecRequest(req) => match req {
+                StarknetSpecRequest::BlockWithTransactionHashes(_)
+                | StarknetSpecRequest::BlockWithFullTransactions(_)
+                | StarknetSpecRequest::BlockWithReceipts(_) => {
+                    assert!(matches!(
+                        sn_response,
+                        StarknetResponse::Block(_) | StarknetResponse::PreConfirmedBlock(_)
+                    ));
+                }
+                StarknetSpecRequest::TransactionReceiptByTransactionHash(_) => {
+                    assert!(matches!(
+                        sn_response,
+                        StarknetResponse::TransactionReceiptByTransactionHash(_)
+                    ));
+                }
+                StarknetSpecRequest::ClassAtContractAddress(_)
+                | StarknetSpecRequest::ClassByHash(_) => {
+                    assert!(matches!(sn_response, StarknetResponse::ContractClass(_)));
+                }
+                StarknetSpecRequest::BlockTransactionCount(_)
+                | StarknetSpecRequest::BlockNumber => {
+                    assert!(matches!(
+                        sn_response,
+                        StarknetResponse::BlockTransactionCount(_)
+                            | StarknetResponse::BlockNumber(_)
+                    ));
+                }
+                StarknetSpecRequest::Call(_) => {
+                    assert!(matches!(sn_response, StarknetResponse::Call(_)))
+                }
+                StarknetSpecRequest::EstimateFee(_) => {
+                    assert!(matches!(sn_response, StarknetResponse::EstimateFee(_)))
+                }
+                StarknetSpecRequest::BlockHashAndNumber => {
+                    assert!(matches!(sn_response, StarknetResponse::BlockHashAndNumber(_)));
+                }
+                StarknetSpecRequest::EstimateMessageFee(_) => {
+                    assert!(matches!(sn_response, StarknetResponse::EstimateMessageFee(_)));
+                }
+                StarknetSpecRequest::Events(_) => {
+                    assert!(matches!(sn_response, StarknetResponse::Events(_)));
+                }
+                StarknetSpecRequest::SimulateTransactions(_) => {
+                    assert!(matches!(sn_response, StarknetResponse::SimulateTransactions(_)));
+                }
+                StarknetSpecRequest::StateUpdate(_) => {
+                    assert!(matches!(
+                        sn_response,
+                        StarknetResponse::StateUpdate(_)
+                            | StarknetResponse::PreConfirmedStateUpdate(_)
+                    ));
+                }
+                StarknetSpecRequest::Syncing => {
+                    assert!(matches!(sn_response, StarknetResponse::Syncing(_)));
+                }
+                StarknetSpecRequest::TransactionStatusByHash(_) => {
+                    assert!(matches!(sn_response, StarknetResponse::TransactionStatusByHash(_)));
+                }
+                StarknetSpecRequest::AddDeclareTransaction(_) => {
+                    assert!(matches!(sn_response, StarknetResponse::AddDeclareTransaction(_)));
+                }
+                StarknetSpecRequest::AddDeployAccountTransaction(_) => {
+                    assert!(matches!(
+                        sn_response,
+                        StarknetResponse::AddDeployAccountTransaction(_)
+                    ));
+                }
+                StarknetSpecRequest::AddInvokeTransaction(_) => {
+                    assert!(matches!(sn_response, StarknetResponse::TransactionHash(_)));
+                }
+                StarknetSpecRequest::SpecVersion => {
+                    assert!(matches!(sn_response, StarknetResponse::String(_)));
+                }
+                StarknetSpecRequest::TransactionByHash(_)
+                | StarknetSpecRequest::TransactionByBlockAndIndex(_) => {
+                    assert!(matches!(sn_response, StarknetResponse::Transaction(_)));
+                }
+                StarknetSpecRequest::ContractNonce(_)
+                | StarknetSpecRequest::ChainId
+                | StarknetSpecRequest::ClassHashAtContractAddress(_)
+                | StarknetSpecRequest::StorageAt(_) => {
+                    assert!(matches!(sn_response, StarknetResponse::Felt(_)));
+                }
+                StarknetSpecRequest::TraceTransaction(_) => {
+                    assert!(matches!(sn_response, StarknetResponse::TraceTransaction(_)));
+                }
+                StarknetSpecRequest::BlockTransactionTraces(_) => {
+                    assert!(matches!(sn_response, StarknetResponse::BlockTransactionTraces(_)));
+                }
+                StarknetSpecRequest::MessagesStatusByL1Hash(_) => {
+                    assert!(matches!(sn_response, StarknetResponse::MessagesStatusByL1Hash(_)));
+                }
+                StarknetSpecRequest::CompiledCasmByClassHash(_) => {
+                    assert!(matches!(sn_response, StarknetResponse::CompiledCasm(_)));
+                }
+                StarknetSpecRequest::StorageProof(_) => {
+                    panic!("Should never be matched, unused by Devnet")
+                }
+            },
             _ => panic!(
-                "Unhandled cases. Usually devnet specific methods. This match case must not be \
-                 reached, because this method covers starknet RPC method (starknet_.....) {:?} {}",
+                "Devnet methods not asserted. This match case must not be reached, because this \
+                 method covers starknet RPC method (starknet_.....) {:?} {}",
                 sn_request, method.name
             ),
         }

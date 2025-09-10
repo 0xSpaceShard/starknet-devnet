@@ -8,6 +8,7 @@ const RPC_METHOD_GET_PREDEPLOYED_ACCOUNTS: &str = "devnet_getPredeployedAccounts
 const RPC_METHOD_IMPERSONATE_ACCOUNT: &str = "devnet_impersonateAccount";
 const RPC_METHOD_AUTO_IMPERSONATE: &str = "devnet_autoImpersonate";
 
+// TODO is this level of complication necessary?
 use lazy_static::lazy_static;
 lazy_static! {
     pub static ref DEFAULT_RESTRICTED_JSON_RPC_METHODS: Vec<String> = vec![

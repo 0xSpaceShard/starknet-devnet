@@ -1,5 +1,5 @@
 use serde_json::json;
-use starknet_rs_core::types::Felt;
+use starknet_rs_core::types::{Felt, Transaction};
 use tokio_tungstenite::connect_async;
 
 use crate::common::background_devnet::BackgroundDevnet;
@@ -8,28 +8,6 @@ use crate::common::utils::{
 };
 
 #[tokio::test]
-/// Testing for all non-ws methods would be longsome, so we just test for one devnet_ and one
-/// starknet_ method
-async fn test_general_rpc_support_via_websocket_is_disabled() {
-    let devnet = BackgroundDevnet::spawn().await.unwrap();
-    let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
-
-    let expected_resp =
-        json!({"jsonrpc":"2.0", "id":0, "error":{"code":-32601, "message":"Method not found"}});
-
-    assert_eq!(
-        send_text_rpc_via_ws(&mut ws, "devnet_mint", json!({})).await.unwrap(),
-        expected_resp,
-    );
-
-    assert_eq!(
-        send_text_rpc_via_ws(&mut ws, "starknet_syncing", json!({})).await.unwrap(),
-        expected_resp,
-    );
-}
-
-#[tokio::test]
-#[ignore = "General RPC support via websocket is disabled"]
 async fn mint_and_check_tx_via_websocket() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
     let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
@@ -37,16 +15,12 @@ async fn mint_and_check_tx_via_websocket() {
     let mint_resp = send_text_rpc_via_ws(
         &mut ws,
         "devnet_mint",
-        json!({
-            "address": "0x1",
-            "amount": 100,
-            "unit": "WEI",
-        }),
+        json!({ "address": "0x1", "amount": 100, "unit": "WEI" }),
     )
     .await
     .unwrap();
 
-    let tx_hash = mint_resp["result"]["tx_hash"].as_str().unwrap();
+    let tx_hash = Felt::from_hex_unchecked(mint_resp["result"]["tx_hash"].as_str().unwrap());
 
     let tx = send_text_rpc_via_ws(
         &mut ws,
@@ -56,11 +30,11 @@ async fn mint_and_check_tx_via_websocket() {
     .await
     .unwrap();
 
-    assert!(tx["result"].is_object());
+    let tx: Transaction = serde_json::from_value(tx).unwrap();
+    assert_eq!(tx.transaction_hash(), &tx_hash);
 }
 
 #[tokio::test]
-#[ignore = "General RPC support via websocket is disabled"]
 async fn create_block_via_binary_ws_message() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
     let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
@@ -82,7 +56,6 @@ async fn create_block_via_binary_ws_message() {
 }
 
 #[tokio::test]
-#[ignore = "General RPC support via websocket is disabled"]
 async fn multiple_ws_connections() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
     let iterations = 10;
@@ -113,8 +86,7 @@ async fn multiple_ws_connections() {
 }
 
 #[tokio::test]
-#[ignore = "General RPC support via websocket is disabled"]
-async fn invalid_request() {
+async fn invalid_general_rpc_request() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
     let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
