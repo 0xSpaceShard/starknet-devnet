@@ -302,7 +302,6 @@ mod tests {
         method: &ApiMethod,
     ) {
         match sn_request {
-            // TODO reuse assert!(matches!())
             JsonRpcRequest::StarknetSpecRequest(req) => match req {
                 StarknetSpecRequest::BlockWithTransactionHashes(_)
                 | StarknetSpecRequest::BlockWithFullTransactions(_)

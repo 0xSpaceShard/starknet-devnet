@@ -435,7 +435,7 @@ impl JsonRpcHandler {
 
     /// Matches the request to the corresponding enum variant and executes the request.
     async fn execute(&self, req: JsonRpcRequest) -> Result<JsonRpcResponse, error::ApiError> {
-        trace!(target: "JsonRpcHandler::execute", "executing starknet request"); // TODO devnet?
+        trace!(target: "JsonRpcHandler::execute", "executing request");
         match req {
             JsonRpcRequest::StarknetSpecRequest(req) => self.execute_starknet_spec(req).await,
             JsonRpcRequest::DevnetSpecRequest(req) => self.execute_devnet_spec(req).await,
@@ -613,7 +613,7 @@ impl JsonRpcHandler {
         }
     }
 
-    fn allows_method(&self, method: &String) -> bool {
+    fn allows_method(&self, method: &str) -> bool {
         if let Some(restricted_methods) = &self.server_config.restricted_methods {
             if is_json_rpc_method_restricted(method, restricted_methods) {
                 return false;
@@ -1722,7 +1722,7 @@ mod requests_tests {
 
     fn assert_deserialization_fails(json_str: &str, expected_msg: &str) {
         match serde_json::from_str::<JsonRpcRequest>(json_str) {
-            Err(err) => assert_contains(&err.to_string(), expected_msg),
+            Err(err) => assert_contains(&err.to_string(), expected_msg).unwrap(),
             other => panic!("Invalid result: {other:?}"),
         }
     }

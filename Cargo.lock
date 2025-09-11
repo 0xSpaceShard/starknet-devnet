@@ -6617,7 +6617,6 @@ dependencies = [
  "enum-helper-macros",
  "futures",
  "http-body-util",
- "lazy_static",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
  "regex_generate",

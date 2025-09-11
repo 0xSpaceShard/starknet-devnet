@@ -304,9 +304,9 @@ impl Args {
     fn get_validated_restricted_methods(&self) -> Result<Option<Vec<String>>, anyhow::Error> {
         match &self.restricted_methods {
             None => Ok(None),
-            Some(methods) if methods.is_empty() => {
-                Ok(Some(DEFAULT_RESTRICTED_JSON_RPC_METHODS.to_vec()))
-            }
+            Some(methods) if methods.is_empty() => Ok(Some(
+                DEFAULT_RESTRICTED_JSON_RPC_METHODS.iter().map(|m| m.to_string()).collect(),
+            )),
             Some(methods) => {
                 let json_rpc_methods = JsonRpcRequest::all_variants_serde_renames();
                 let wrong_restricted_methods: Vec<_> = methods
