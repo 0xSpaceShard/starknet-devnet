@@ -821,16 +821,16 @@ impl<'de> Deserialize<'de> for JsonRpcRequest {
     where
         D: serde::Deserializer<'de>,
     {
-        let v = serde_json::Value::deserialize(deserializer)?;
+        let raw_req = serde_json::Value::deserialize(deserializer)?;
 
-        let method = v.get("method").and_then(|m| m.as_str()).unwrap_or("<missing>");
+        let method = raw_req.get("method").and_then(|m| m.as_str()).unwrap_or("<missing>");
 
         match method {
             method if method.starts_with("starknet_") => Ok(Self::StarknetSpecRequest(
-                serde_json::from_value(v).map_err(serde::de::Error::custom)?,
+                serde_json::from_value(raw_req).map_err(serde::de::Error::custom)?,
             )),
             method if method.starts_with("devnet_") => Ok(Self::DevnetSpecRequest(
-                serde_json::from_value(v).map_err(serde::de::Error::custom)?,
+                serde_json::from_value(raw_req).map_err(serde::de::Error::custom)?,
             )),
             invalid => Err(serde::de::Error::custom(format!("Invalid method: {invalid}"))),
         }
@@ -1048,11 +1048,30 @@ impl JsonRpcRequest {
     }
 }
 
-#[derive(Deserialize)]
-#[serde(untagged)]
 pub enum JsonRpcWsRequest {
     OneTimeRequest(Box<JsonRpcRequest>),
     SubscriptionRequest(JsonRpcSubscriptionRequest),
+}
+
+impl<'de> Deserialize<'de> for JsonRpcWsRequest {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let raw_req = serde_json::Value::deserialize(deserializer)?;
+
+        let method = raw_req.get("method").and_then(|m| m.as_str()).unwrap_or("<missing>");
+
+        if method.starts_with("starknet_subscribe") || method == "starknet_unsubscribe" {
+            Ok(Self::SubscriptionRequest(
+                serde_json::from_value(raw_req).map_err(serde::de::Error::custom)?,
+            ))
+        } else {
+            Ok(Self::OneTimeRequest(
+                serde_json::from_value(raw_req).map_err(serde::de::Error::custom)?,
+            ))
+        }
+    }
 }
 
 #[derive(Deserialize, AllVariantsSerdeRenames, VariantName)]

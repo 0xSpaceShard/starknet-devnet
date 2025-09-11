@@ -93,8 +93,7 @@ async fn storage_proof_request_should_always_return_error() {
     }
 }
 
-// TODO test contract declaration, deployment, invocation, call
-
-// TODO test method restriction
-
-// TODO test dumping/loading
+// TODO test via ws, either here or in test_websocket.rs:
+// - contract declaration, deployment, invocation, call
+// - method restriction
+// - dumping/loading
