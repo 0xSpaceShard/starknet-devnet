@@ -625,7 +625,8 @@ impl JsonRpcHandler {
 
     /// Since some subscriptions might need to send multiple messages, sending messages other than
     /// errors is left to individual RPC method handlers and this method returns an empty successful
-    /// Result.
+    /// Result. A one-time request also returns an empty successful result, but actually sends the
+    /// message.
     async fn on_websocket_rpc_call(
         &self,
         call: &RpcMethodCall,
@@ -633,10 +634,28 @@ impl JsonRpcHandler {
     ) -> Result<(), RpcError> {
         trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received websocket call");
 
-        let req = to_json_rpc_request(call)?;
-        self.execute_ws(req, call.id.clone(), socket_id)
-            .await
-            .map_err(|e| e.api_error_to_rpc_error())
+        let req: JsonRpcWsRequest = to_json_rpc_request(call)?;
+        match req {
+            JsonRpcWsRequest::OneTimeRequest(req) => {
+                let resp_result = self.on_request(*req, call.clone()).await;
+                let mut sockets = self.api.sockets.lock().await;
+
+                let socket_context =
+                    sockets.get_mut(&socket_id).map_err(|e| e.api_error_to_rpc_error())?;
+
+                match resp_result {
+                    ResponseResult::Success(result_value) => {
+                        socket_context.send_rpc_response(result_value, call.id.clone()).await;
+                        Ok(())
+                    }
+                    ResponseResult::Error(rpc_error) => Err(rpc_error),
+                }
+            }
+            JsonRpcWsRequest::SubscriptionRequest(req) => self
+                .execute_ws_subscription(req, call.id.clone(), socket_id)
+                .await
+                .map_err(|e| e.api_error_to_rpc_error()),
+        }
     }
 
     async fn update_dump(&self, event: &RpcMethodCall) -> Result<(), RpcError> {
@@ -1029,6 +1048,13 @@ impl JsonRpcRequest {
     }
 }
 
+#[derive(Deserialize)]
+#[serde(untagged)]
+pub enum JsonRpcWsRequest {
+    OneTimeRequest(Box<JsonRpcRequest>),
+    SubscriptionRequest(JsonRpcSubscriptionRequest),
+}
+
 #[derive(Deserialize, AllVariantsSerdeRenames, VariantName)]
 #[cfg_attr(test, derive(Debug))]
 #[serde(tag = "method", content = "params")]
@@ -1061,11 +1087,11 @@ where
         let err = err.to_string();
         // since JSON-RPC specification requires returning a Method Not Found error,
         // we apply a hacky way to decide - checking the stringified error message
-        if err.contains("Invalid method") {
-            error!(target: "rpc", method = ?call.method, "failed to deserialize method due to unknown variant");
+        if err.contains("Invalid method") || err.contains(&format!("unknown variant `{}`", call.method)) {
+            error!(target: "rpc", method = ?call.method, "failed to deserialize RPC call: unknown method");
             RpcError::method_not_found()
         } else {
-            error!(target: "rpc", method = ?call.method, ?err, "failed to deserialize method");
+            error!(target: "rpc", method = ?call.method, ?err, "failed to deserialize RPC call: invalid params");
             RpcError::invalid_params(err)
         }
     })

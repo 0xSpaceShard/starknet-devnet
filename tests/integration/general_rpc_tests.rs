@@ -39,11 +39,7 @@ async fn rpc_returns_method_not_found() {
         let rpc_error = devnet.send_custom_rpc(invalid_method, json!({})).await.unwrap_err();
         assert_eq!(
             rpc_error,
-            RpcError {
-                code: -32601,
-                message: format!("Invalid method: {invalid_method}").into(),
-                data: None
-            }
+            RpcError { code: -32601, message: "Method not found".into(), data: None }
         );
     }
 }
@@ -96,3 +92,9 @@ async fn storage_proof_request_should_always_return_error() {
         other => panic!("Unexpected result: {other:?}"),
     }
 }
+
+// TODO test contract declaration, deployment, invocation, call
+
+// TODO test method restriction
+
+// TODO test dumping/loading
