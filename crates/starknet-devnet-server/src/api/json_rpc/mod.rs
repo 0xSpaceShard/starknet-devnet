@@ -1119,14 +1119,11 @@ where
 
 impl std::fmt::Display for JsonRpcRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::StarknetSpecRequest(req) => req.variant_name(),
-                Self::DevnetSpecRequest(req) => req.variant_name(),
-            }
-        )
+        let variant_name = match self {
+            Self::StarknetSpecRequest(req) => req.variant_name(),
+            Self::DevnetSpecRequest(req) => req.variant_name(),
+        };
+        write!(f, "{}", variant_name)
     }
 }
 

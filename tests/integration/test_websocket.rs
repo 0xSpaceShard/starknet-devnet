@@ -127,10 +127,7 @@ async fn test_invalid_rpc_methods_via_ws() {
             json!({
                 "jsonrpc": "2.0",
                 "id": 0,
-                "error": {
-                    "code": -32601,
-                    "message": "Method not found",
-                }
+                "error": { "code": -32601, "message": "Method not found" }
             })
         );
     }
@@ -158,32 +155,38 @@ async fn method_restriction_applies_via_ws() {
 }
 
 #[tokio::test]
+// Dumping section isolated to prevent variable mixing
 async fn should_load_correct_devnet_with_state_modified_via_ws() {
-    let devnet_args = ["--dump-on", "request"];
-    let devnet_dumpable = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
-
-    let (mut ws_on_dumped, _) = connect_async(devnet_dumpable.ws_url()).await.unwrap();
-
+    // Common to dumpable and loaded Devnet
+    let dump_file = UniqueAutoDeletableFile::new("tmp");
     let mint_address = "0x1";
     let mint_amount = 100;
-    send_text_rpc_via_ws(
-        &mut ws_on_dumped,
-        "devnet_mint",
-        json!({ "address": mint_address, "amount": mint_amount, "unit": "FRI" }),
-    )
-    .await
-    .unwrap();
 
-    let dump_file = UniqueAutoDeletableFile::new("tmp");
+    {
+        let devnet_args = ["--dump-on", "request"];
+        let devnet_dumpable =
+            BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
+        let (mut ws_on_dumped, _) = connect_async(devnet_dumpable.ws_url()).await.unwrap();
 
-    let dump_resp =
-        send_text_rpc_via_ws(&mut ws_on_dumped, "devnet_dump", json!({ "path": dump_file.path }))
-            .await
-            .unwrap();
-    assert_eq!(dump_resp, json!({ "jsonrpc": "2.0", "id": 0, "result": null }));
+        send_text_rpc_via_ws(
+            &mut ws_on_dumped,
+            "devnet_mint",
+            json!({ "address": mint_address, "amount": mint_amount, "unit": "FRI" }),
+        )
+        .await
+        .unwrap();
 
-    drop(ws_on_dumped);
-    send_ctrl_c_signal_and_wait(&devnet_dumpable.process).await;
+        let dump_resp = send_text_rpc_via_ws(
+            &mut ws_on_dumped,
+            "devnet_dump",
+            json!({ "path": dump_file.path }),
+        )
+        .await
+        .unwrap();
+        assert_eq!(dump_resp, json!({ "jsonrpc": "2.0", "id": 0, "result": null }));
+
+        send_ctrl_c_signal_and_wait(&devnet_dumpable.process).await;
+    }
 
     let devnet_loaded = BackgroundDevnet::spawn().await.unwrap();
     let (mut ws_on_loaded, _) = connect_async(devnet_loaded.ws_url()).await.unwrap();
@@ -204,7 +207,7 @@ async fn should_load_correct_devnet_with_state_modified_via_ws() {
 
     assert_eq!(
         balance_resp,
-        json!({ "jsonrpc": "2.0", "id": 0, "result": {"amount": "100", "unit": "FRI"} })
+        json!({ "jsonrpc": "2.0", "id": 0, "result": {"amount": mint_amount.to_string(), "unit": "FRI"} })
     );
 }
 
@@ -216,11 +219,10 @@ async fn should_support_restarting_via_ws() {
     let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
     let mint_address = "0x1";
-    let mint_amount = 100;
     send_text_rpc_via_ws(
         &mut ws,
         "devnet_mint",
-        json!({ "address": mint_address, "amount": mint_amount, "unit": "FRI" }),
+        json!({ "address": mint_address, "amount": 100, "unit": "FRI" }),
     )
     .await
     .unwrap();
@@ -260,7 +262,7 @@ async fn should_declare_via_ws() {
     let (simple_class, casm_hash) = get_simple_contract_artifacts();
     let simple_class = Arc::new(simple_class);
 
-    // Prepare declaration - make a signable instance
+    // Prepare declaration - create a signable tx
     let declaration = account.declare_v3(simple_class.clone(), casm_hash);
     let nonce = Felt::ZERO;
     let fee = LocalFee::from(declaration.estimate_fee().await.unwrap());
