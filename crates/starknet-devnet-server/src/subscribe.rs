@@ -57,7 +57,9 @@ impl SocketCollection {
     }
 
     pub fn clear(&mut self) {
-        self.sockets.clear();
+        self.sockets
+            .iter_mut()
+            .for_each(|(_, socket_context)| socket_context.subscriptions.clear());
         tracing::info!("Websocket memory cleared. No subscribers.");
     }
 }
@@ -329,13 +331,29 @@ impl SocketContext {
         Self { sender, subscriptions: HashMap::new() }
     }
 
-    async fn send(&self, subscription_response: SubscriptionResponse) {
-        let resp_serialized = subscription_response.to_serialized_rpc_response().to_string();
-
-        tracing::trace!(target: "ws.subscriptions", response = %resp_serialized, "subscription response");
-        if let Err(e) = self.sender.lock().await.send(Message::Text(resp_serialized)).await {
+    async fn send_serialized(&self, resp: String) {
+        if let Err(e) = self.sender.lock().await.send(Message::Text(resp)).await {
             tracing::error!("Failed writing to socket: {}", e.to_string());
         }
+    }
+
+    pub async fn send_rpc_response(&self, result: serde_json::Value, id: Id) {
+        let resp_serialized = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": id,
+            "result": result,
+        })
+        .to_string();
+
+        tracing::trace!(target: "ws.json-rpc-api", response = %resp_serialized, "JSON-RPC response");
+        self.send_serialized(resp_serialized).await;
+    }
+
+    async fn send_subscription_response(&self, resp: SubscriptionResponse) {
+        let resp_serialized = resp.to_serialized_rpc_response().to_string();
+
+        tracing::trace!(target: "ws.subscriptions", response = %resp_serialized, "subscription response");
+        self.send_serialized(resp_serialized).await;
     }
 
     pub async fn subscribe(
@@ -352,8 +370,11 @@ impl SocketContext {
             let confirmation = subscription.confirm(subscription_id);
             self.subscriptions.insert(subscription_id, subscription);
 
-            self.send(SubscriptionResponse::Confirmation { rpc_request_id, result: confirmation })
-                .await;
+            self.send_subscription_response(SubscriptionResponse::Confirmation {
+                rpc_request_id,
+                result: confirmation,
+            })
+            .await;
 
             return subscription_id;
         }
@@ -365,7 +386,7 @@ impl SocketContext {
         subscription_id: SubscriptionId,
     ) -> Result<(), ApiError> {
         self.subscriptions.remove(&subscription_id).ok_or(ApiError::InvalidSubscriptionId)?;
-        self.send(SubscriptionResponse::Confirmation {
+        self.send_subscription_response(SubscriptionResponse::Confirmation {
             rpc_request_id,
             result: SubscriptionConfirmation::Unsubscription(true),
         })
@@ -409,7 +430,10 @@ impl SocketContext {
             }
         };
 
-        self.send(SubscriptionResponse::Notification(Box::new(notification_data))).await;
+        self.send_subscription_response(SubscriptionResponse::Notification(Box::new(
+            notification_data,
+        )))
+        .await;
     }
 
     pub async fn notify_subscribers(&self, notification: &NotificationData) {

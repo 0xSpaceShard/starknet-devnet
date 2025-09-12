@@ -351,7 +351,8 @@ mod tests {
                 &err.to_string(),
                 // error indicative of expecting a cairo1 class artifact
                 "Invalid declare transaction v3: missing field `state_mutability`",
-            ),
+            )
+            .unwrap(),
             other => panic!("Invalid result: {other:?}"),
         }
     }
@@ -688,7 +689,7 @@ mod tests {
             r#"{"block_id": {"block_hash": ""}}"#,
         ] {
             match serde_json::from_str::<BlockIdInput>(json_str) {
-                Err(err) => assert_contains(&err.to_string(), EXPECTED_INVALID_BLOCK_ID_MSG),
+                Err(e) => assert_contains(&e.to_string(), EXPECTED_INVALID_BLOCK_ID_MSG).unwrap(),
                 other => panic!("Invalid result: {other:?}"),
             }
         }
