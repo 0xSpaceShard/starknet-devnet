@@ -178,7 +178,7 @@ impl RpcHandler for JsonRpcHandler {
 
     async fn on_call(&self, call: RpcMethodCall) -> RpcResponse {
         let id = call.id.clone();
-        trace!(target: "rpc",  id = ?id , method = ?call.method, "received method call");
+        trace!(target: "rpc",  id = ?id, method = ?call.method, "received method call");
 
         match to_json_rpc_request(&call) {
             Ok(req) => {
@@ -633,7 +633,7 @@ impl JsonRpcHandler {
         call: &RpcMethodCall,
         socket_id: SocketId,
     ) -> Result<(), RpcError> {
-        trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received websocket call");
+        trace!(target: "rpc",  id = ?call.id, method = ?call.method, "received websocket call");
 
         let req: JsonRpcWsRequest = to_json_rpc_request(call)?;
         match req {

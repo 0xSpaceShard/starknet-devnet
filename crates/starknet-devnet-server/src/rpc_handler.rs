@@ -100,7 +100,7 @@ pub(crate) async fn handle_call<THandler: RpcHandler>(
 ) -> Option<RpcResponse> {
     match call {
         RpcCall::MethodCall(call) => {
-            trace!(target: "rpc", id = ?call.id , method = ?call.method, "handling call");
+            trace!(target: "rpc", id = ?call.id, method = ?call.method, "handling call");
             Some(handler.on_call(call).await)
         }
         RpcCall::Notification(notification) => {
@@ -108,7 +108,7 @@ pub(crate) async fn handle_call<THandler: RpcHandler>(
             None
         }
         RpcCall::Invalid { id } => {
-            warn!(target: "rpc", ?id,  "invalid rpc call");
+            warn!(target: "rpc", ?id, "invalid rpc call");
             Some(RpcResponse::invalid_request(id))
         }
     }
