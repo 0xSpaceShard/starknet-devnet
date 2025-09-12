@@ -1,23 +1,17 @@
-FROM rust:1.86.0-slim-bullseye AS builder
+FROM rust:1.86-alpine3.21 AS builder
 
 COPY . .
 
-RUN apt-get -y update && \
-    apt-get install pkg-config -y && \
-    apt-get install make -y
+RUN apk update && \
+    apk add --no-cache pkgconfig make musl-dev openssl-dev perl
 
 RUN cargo build --bin starknet-devnet --release
 
-FROM debian:bullseye-slim
+FROM alpine:3.21
 
 # Use tini to avoid hanging process on Ctrl+C
 # Use ca-certificates to allow forking from URLs using https scheme
-RUN apt-get -y update && \
-    apt-get install tini && \
-    apt-get install ca-certificates -y && \
-    apt-get autoremove -y && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache tini ca-certificates
 
 COPY --from=builder /target/release/starknet-devnet /usr/local/bin/starknet-devnet
 
