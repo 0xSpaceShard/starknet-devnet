@@ -67,7 +67,7 @@ async fn create_block_via_binary_ws_message() {
 #[tokio::test]
 async fn multiple_ws_connections() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
-    let iterations = 2;
+    let iterations = 10;
 
     let mut ws_streams = vec![];
     for _ in 0..iterations {
@@ -76,7 +76,7 @@ async fn multiple_ws_connections() {
     }
 
     let dummy_address = Felt::ONE;
-    let single_mint_amount = 10;
+    let single_mint_amount = 11;
     let mint_params = json!({ "address": dummy_address, "amount": single_mint_amount });
     for ws in &mut ws_streams {
         send_text_rpc_via_ws(ws, "devnet_mint", mint_params.clone()).await.unwrap();
