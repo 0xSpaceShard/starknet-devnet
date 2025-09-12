@@ -57,7 +57,9 @@ impl SocketCollection {
     }
 
     pub fn clear(&mut self) {
-        self.sockets.clear();
+        self.sockets
+            .iter_mut()
+            .for_each(|(_, socket_context)| socket_context.subscriptions.clear());
         tracing::info!("Websocket memory cleared. No subscribers.");
     }
 }

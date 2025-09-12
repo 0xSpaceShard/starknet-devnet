@@ -100,7 +100,7 @@ pub(crate) async fn handle_call<THandler: RpcHandler>(
 ) -> Option<RpcResponse> {
     match call {
         RpcCall::MethodCall(call) => {
-            trace!(target: "rpc", id = ?call.id , method = ?call.method,  "handling call");
+            trace!(target: "rpc", id = ?call.id , method = ?call.method, "handling call");
             Some(handler.on_call(call).await)
         }
         RpcCall::Notification(notification) => {

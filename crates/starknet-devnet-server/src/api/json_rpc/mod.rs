@@ -131,6 +131,10 @@ impl RpcHandler for JsonRpcHandler {
     ) -> ResponseResult {
         info!(target: "rpc", "received method in on_request {}", request);
 
+        if !self.allows_method(&original_call.method) {
+            return ResponseResult::Error(RpcError::new(ErrorCode::MethodForbidden));
+        }
+
         let is_request_forwardable = request.is_forwardable_to_origin(); // applicable if forking
         let is_request_dumpable = request.is_dumpable();
 
@@ -173,18 +177,15 @@ impl RpcHandler for JsonRpcHandler {
     }
 
     async fn on_call(&self, call: RpcMethodCall) -> RpcResponse {
-        trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received method call");
-
-        if !self.allows_method(&call.method) {
-            return RpcResponse::from_rpc_error(RpcError::new(ErrorCode::MethodForbidden), call.id);
-        }
+        let id = call.id.clone();
+        trace!(target: "rpc",  id = ?id , method = ?call.method, "received method call");
 
         match to_json_rpc_request(&call) {
             Ok(req) => {
-                let result = self.on_request(req, call.clone()).await;
-                RpcResponse::new(call.id, result)
+                let result = self.on_request(req, call).await;
+                RpcResponse::new(id, result)
             }
-            Err(e) => RpcResponse::from_rpc_error(e, call.id),
+            Err(e) => RpcResponse::from_rpc_error(e, id),
         }
     }
 
