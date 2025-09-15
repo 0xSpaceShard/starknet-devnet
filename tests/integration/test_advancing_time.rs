@@ -639,7 +639,7 @@ async fn tx_resource_estimation_fails_unless_time_incremented() {
             assert_eq!(inner_error.selector, time_check_selector);
 
             let message = extract_message_error(&inner_error.error);
-            assert_contains(message, "Wait a bit more");
+            assert_contains(message, "Wait a bit more").unwrap();
         }
         other => panic!("Invalid error: {other:?}"),
     }
@@ -686,7 +686,7 @@ async fn tx_execution_fails_unless_time_incremented() {
     match devnet.json_rpc_client.get_transaction_status(reverted_tx.transaction_hash).await {
         Ok(TransactionStatus::AcceptedOnL2(tx_details)) => {
             assert_eq!(tx_details.status(), TransactionExecutionStatus::Reverted);
-            assert_contains(tx_details.revert_reason().unwrap(), "Wait a bit more");
+            assert_contains(tx_details.revert_reason().unwrap(), "Wait a bit more").unwrap();
         }
         other => panic!("Unexpected tx: {other:?}"),
     }

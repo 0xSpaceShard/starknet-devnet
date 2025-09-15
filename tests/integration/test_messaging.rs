@@ -440,7 +440,7 @@ async fn setup_anvil_incorrect_eth_private_key() {
         .send_custom_rpc("devnet_postmanLoad", json!({ "network_url": anvil.url }))
         .await
         .unwrap_err();
-    assert_contains(&body.message, "CallGasCostMoreThanGasLimit");
+    assert_contains(&body.message, "CallGasCostMoreThanGasLimit").unwrap();
 
     let body = devnet
         .send_custom_rpc(
@@ -452,7 +452,7 @@ async fn setup_anvil_incorrect_eth_private_key() {
         )
         .await
         .unwrap_err();
-    assert_contains(&body.message, "CallGasCostMoreThanGasLimit");
+    assert_contains(&body.message, "CallGasCostMoreThanGasLimit").unwrap();
 }
 
 #[tokio::test]
@@ -765,8 +765,8 @@ async fn test_dumpability_of_messaging_contract_loading() {
     send_ctrl_c_signal_and_wait(&anvil.process).await;
     match devnet.send_custom_rpc("devnet_load", json!({ "path": dump_file.path })).await {
         Err(RpcError { message, .. }) => {
-            assert_contains(&message, "error sending request for url");
-            assert_contains(&message, &anvil.url);
+            assert_contains(&message, "error sending request for url").unwrap();
+            assert_contains(&message, &anvil.url).unwrap();
         }
         other => panic!("Unexpected response: {other:?}"),
     };
@@ -1040,7 +1040,7 @@ async fn withdrawing_should_incur_l1_gas_cost() {
         TransactionReceipt::Invoke(InvokeTransactionReceipt {
             execution_result: ExecutionResult::Reverted { reason },
             ..
-        }) => assert_contains(&reason, "Insufficient max L1Gas"),
+        }) => assert_contains(&reason, "Insufficient max L1Gas").unwrap(),
         other => panic!("Unexpected receipt: {other:?}"),
     }
 }

@@ -150,7 +150,7 @@ async fn call_panicking_method() {
             assert_eq!(inner.class_hash, class_hash);
 
             let error_msg = extract_message_error(&inner.error);
-            assert_contains(error_msg, &panic_message.to_hex_string());
+            assert_contains(error_msg, &panic_message.to_hex_string()).unwrap();
         }
         _ => panic!("Invalid error received {err:?}"),
     }

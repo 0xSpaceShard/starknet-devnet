@@ -78,7 +78,7 @@ async fn double_deployment_not_allowed() {
             assert_eq!(undeployed_contract_error.selector, Felt::ZERO); // constructor
 
             let msg_error = extract_message_error(&undeployed_contract_error.error);
-            assert_contains(msg_error, "contract already deployed");
+            assert_contains(msg_error, "contract already deployed").unwrap();
         }
         other => panic!("Unexpected result: {other:?}"),
     };
@@ -108,7 +108,7 @@ async fn cannot_deploy_undeclared_class() {
 
     // deployment should fail
     match contract_factory.deploy_v3(ctor_args, salt, unique).send().await {
-        Err(e) => assert_contains(&format!("{e:?}"), "not declared"),
+        Err(e) => assert_contains(&format!("{e:?}"), "not declared").unwrap(),
         other => panic!("Unexpected result: {other:?}"),
     };
 }

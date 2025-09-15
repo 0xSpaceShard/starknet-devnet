@@ -585,9 +585,11 @@ async fn test_fork_if_origin_dies() {
             assert_contains(
                 &received_error.message,
                 "Failed to read from state: Error in communication with forking origin",
-            );
-            assert_contains(&received_error.message, "Connection refused");
-            assert_contains(&received_error.message, &format!("url: \"{}/\"", origin_devnet.url));
+            )
+            .unwrap();
+            assert_contains(&received_error.message, "Connection refused").unwrap();
+            assert_contains(&received_error.message, &format!("url: \"{}/\"", origin_devnet.url))
+                .unwrap();
             assert_eq!(received_error.data, None);
         }
         unexpected => panic!("Got unexpected resp: {unexpected:?}"),

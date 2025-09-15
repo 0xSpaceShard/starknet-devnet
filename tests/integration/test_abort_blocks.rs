@@ -18,7 +18,7 @@ async fn abort_blocks_error(
         .send_custom_rpc("devnet_abortBlocks", json!({ "starting_block_id" : starting_block_id }))
         .await
         .unwrap_err();
-    assert_contains(&aborted_blocks_error.message, expected_message_substring);
+    assert_contains(&aborted_blocks_error.message, expected_message_substring).unwrap();
 }
 
 async fn assert_block_aborted(devnet: &BackgroundDevnet, block_hash: &Felt) {

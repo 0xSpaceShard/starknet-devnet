@@ -140,7 +140,8 @@ async fn argent_account_undeployable_by_default() {
     assert_contains(
         &error.to_string(),
         &format!("Class with hash {ARGENT_ACCOUNT_CLASS_HASH} is not declared"),
-    );
+    )
+    .unwrap();
 }
 
 #[tokio::test]
