@@ -513,10 +513,12 @@ pub fn extract_message_error(error: &ContractExecutionError) -> Result<&String, 
 }
 
 /// Extract the error that is nested inside the provided `error`.
-pub fn extract_nested_error(error: &ContractExecutionError) -> &InnerContractExecutionError {
+pub fn extract_nested_error(
+    error: &ContractExecutionError,
+) -> Result<&InnerContractExecutionError, anyhow::Error> {
     match error {
-        ContractExecutionError::Nested(nested) => nested,
-        other => panic!("Unexpected error: {other:?}"),
+        ContractExecutionError::Nested(nested) => Ok(nested),
+        other => anyhow::bail!("Unexpected error: {other:?}"),
     }
 }
 

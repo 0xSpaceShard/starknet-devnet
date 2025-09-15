@@ -68,12 +68,12 @@ async fn double_deployment_not_allowed() {
             );
             assert_eq!(top_error.selector, get_selector_from_name("__execute__").unwrap());
 
-            let udc_error = extract_nested_error(&top_error.error);
+            let udc_error = extract_nested_error(&top_error.error).unwrap();
             assert_eq!(udc_error.contract_address, UDC_LEGACY_CONTRACT_ADDRESS);
             assert_eq!(udc_error.class_hash, UDC_LEGACY_CONTRACT_CLASS_HASH);
             assert_eq!(udc_error.selector, get_selector_from_name("deployContract").unwrap());
 
-            let undeployed_contract_error = extract_nested_error(&udc_error.error);
+            let undeployed_contract_error = extract_nested_error(&udc_error.error).unwrap();
             assert_eq!(undeployed_contract_error.class_hash, declaration_result.class_hash);
             assert_eq!(undeployed_contract_error.selector, Felt::ZERO); // constructor
 
