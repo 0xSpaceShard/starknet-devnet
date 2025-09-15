@@ -646,9 +646,7 @@ impl JsonRpcHandler {
         let predeployed_accounts = get_predeployed_accounts_impl(
             &self.api,
             params.unwrap_or(PredeployedAccountsQuery { with_balance: Option::None }),
-        )
-        .await
-        .map_err(ApiError::from)?;
+        ).await?;
 
         Ok(DevnetResponse::PredeployedAccounts(predeployed_accounts).into())
     }
@@ -656,7 +654,7 @@ impl JsonRpcHandler {
     /// devnet_getAccountBalance
     pub async fn get_account_balance(&self, params: BalanceQuery) -> StrictRpcResult {
         let account_balance =
-            get_account_balance_impl(&self.api, params).await.map_err(ApiError::from)?;
+            get_account_balance_impl(&self.api, params).await?;
 
         Ok(DevnetResponse::AccountBalance(account_balance).into())
     }
