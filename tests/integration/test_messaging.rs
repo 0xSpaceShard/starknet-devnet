@@ -303,7 +303,10 @@ async fn mock_message_to_l2_creates_a_tx_with_desired_effect() {
         .await.unwrap();
     let tx_hash_hex = body.get("transaction_hash").unwrap().as_str().unwrap();
     let tx_hash = Felt::from_hex_unchecked(tx_hash_hex);
-    assert_tx_succeeded_accepted(&tx_hash, &devnet.json_rpc_client).await;
+    match assert_tx_succeeded_accepted(&tx_hash, &devnet.json_rpc_client).await {
+        Ok(_) => (),
+        Err(e) => panic!("Transaction failed: {}", e),
+    };
 
     // assert state changed
     assert_eq!(
@@ -957,9 +960,10 @@ async fn test_getting_status_of_real_message() {
     anvil.deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, 1.into()).await.unwrap();
 
     // Flush to trigger L2 transaction generation.
-    let generated_l2_txs_raw =
-        &devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap()
-            ["generated_l2_transactions"];
+    let generated_l2_txs_raw = &devnet
+        .send_custom_rpc("devnet_postmanFlush", json!({}))
+        .await
+        .unwrap()["generated_l2_transactions"];
     let generated_l2_txs = generated_l2_txs_raw.as_array().unwrap();
     assert_eq!(generated_l2_txs.len(), 1);
     let generated_l2_tx = &generated_l2_txs[0];

@@ -136,8 +136,15 @@ async fn test_all_udc_deployment_methods_supported() {
         .send()
         .await
         .unwrap();
-    assert_tx_succeeded_accepted(&declaration_result.transaction_hash, &devnet.json_rpc_client)
-        .await;
+    match assert_tx_succeeded_accepted(
+        &declaration_result.transaction_hash,
+        &devnet.json_rpc_client,
+    )
+    .await
+    {
+        Ok(_) => {}
+        Err(e) => panic!("Transaction failed: {}", e),
+    };
 
     let mut salt = Felt::ONE;
     let legacy_deployment_method = "deployContract";
@@ -161,7 +168,11 @@ async fn test_all_udc_deployment_methods_supported() {
         salt += Felt::ONE; // iI salt not changed, error: contract already deployed
 
         let invoke_result = account.execute_v3(contract_invoke.clone()).send().await.unwrap();
-        assert_tx_succeeded_accepted(&invoke_result.transaction_hash, &devnet.json_rpc_client)
-            .await;
+        match assert_tx_succeeded_accepted(&invoke_result.transaction_hash, &devnet.json_rpc_client)
+            .await
+        {
+            Ok(_) => {}
+            Err(e) => panic!("Transaction failed: {}", e),
+        };
     }
 }

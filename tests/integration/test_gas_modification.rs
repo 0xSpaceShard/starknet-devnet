@@ -406,8 +406,15 @@ async fn unsuccessful_declare_set_gas_successful_declare() {
         .send()
         .await
         .unwrap();
-    assert_tx_succeeded_accepted(&successful_declare_tx.transaction_hash, &devnet.json_rpc_client)
-        .await;
+    match assert_tx_succeeded_accepted(
+        &successful_declare_tx.transaction_hash,
+        &devnet.json_rpc_client,
+    )
+    .await
+    {
+        Ok(_) => (),
+        Err(e) => panic!("Transaction failed: {}", e),
+    }
 }
 
 #[tokio::test]

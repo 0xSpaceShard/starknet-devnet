@@ -98,8 +98,15 @@ async fn estimate_fee_of_deploy_account() {
         .send()
         .await
         .expect("Should deploy with sufficient fee");
-    assert_tx_succeeded_accepted(&successful_deployment.transaction_hash, &devnet.json_rpc_client)
-        .await;
+    match assert_tx_succeeded_accepted(
+        &successful_deployment.transaction_hash,
+        &devnet.json_rpc_client,
+    )
+    .await
+    {
+        Ok(_) => {}
+        Err(e) => panic!("Transaction failed: {}", e),
+    };
 }
 
 #[tokio::test]
@@ -199,8 +206,15 @@ async fn estimate_fee_of_declare_v3() {
         .send()
         .await
         .unwrap();
-    assert_tx_succeeded_accepted(&successful_declare_tx.transaction_hash, &devnet.json_rpc_client)
-        .await;
+    match assert_tx_succeeded_accepted(
+        &successful_declare_tx.transaction_hash,
+        &devnet.json_rpc_client,
+    )
+    .await
+    {
+        Ok(_) => {}
+        Err(e) => panic!("Transaction failed: {}", e),
+    };
 }
 
 #[tokio::test]
