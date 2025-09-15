@@ -35,7 +35,7 @@ async fn rpc_returns_correct_spec_version() {
 #[tokio::test]
 async fn rpc_returns_method_not_found() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
-    for invalid_method in ["invalid_method", "starknet_specVersion_butWrong"] {
+    for invalid_method in ["invalid_method", "starknet_specVersion_butWrong", "devnet_invalid"] {
         let rpc_error = devnet.send_custom_rpc(invalid_method, json!({})).await.unwrap_err();
         assert_eq!(
             rpc_error,

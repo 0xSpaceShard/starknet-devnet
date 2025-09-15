@@ -32,13 +32,7 @@ To check if a Devnet instance is alive, send an HTTP request `GET /is_alive`. If
 
 ### WebSocket
 
-:::note Scope
-
-Only Starknet's WebSocket methods are available via this protocol. General JSON-RPC support via WebSocket is not yet a feature of Devnet, meaning it does not support methods like `devnet_mint` or `starknet_getNonce`.
-
-:::
-
-JSON-RPC [WebSocket methods](https://github.com/starkware-libs/starknet-specs/blob/v0.8.0/api/starknet_ws_api.json) can be accessed via the WebSocket protocol, using text or binary messages. Devnet listens for new WebSocket connections at `ws://<HOST>:<PORT>/ws` (notice the protocol scheme). E.g. using [`wscat`](https://www.npmjs.com/package/wscat) on the same computer where Devnet is spawned at default host and port:
+The whole [Starknet](#starknet-api) and [Devnet](#devnet-api) JSON-RPC API, including [WebSocket subscription methods](https://github.com/starkware-libs/starknet-specs/blob/v0.9.0/api/starknet_ws_api.json) can be accessed via the WebSocket protocol, using text or binary messages. Devnet listens for new WebSocket connections at `ws://<HOST>:<PORT>/ws` (notice the protocol scheme). E.g. using [`wscat`](https://www.npmjs.com/package/wscat) on the same computer where Devnet is spawned at default host and port:
 
 ```
 $ wscat -c ws://127.0.0.1:5050/ws
@@ -46,6 +40,10 @@ Connected (press CTRL+C to quit)
 > { "jsonrpc": "2.0", "id": 0, "method": "starknet_subscribeNewHeads" }
 < {"id":0,"result":2935616350010920547,"jsonrpc":"2.0"}
 ```
+
+#### WebSocket persistence
+
+[Restarting](./dump-load-restart#restarting) and [loading](./dump-load-restart#loading) do not affect Devnet's WebSocket connections, but remove all subscriptions.
 
 ## Interacting with Devnet in JavaScript and TypeScript
 

@@ -17,7 +17,7 @@ use crate::subscribe::{
 
 /// The definitions of JSON-RPC read endpoints defined in starknet_ws_api.json
 impl JsonRpcHandler {
-    pub async fn execute_ws(
+    pub async fn execute_ws_subscription(
         &self,
         request: JsonRpcSubscriptionRequest,
         rpc_request_id: Id,

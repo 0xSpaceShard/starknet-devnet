@@ -32,7 +32,6 @@ serde_json = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
-lazy_static = { workspace = true }
 enum-helper-macros = { workspace = true }
 rand = { workspace = true }
 starknet-rs-core = { workspace = true }
