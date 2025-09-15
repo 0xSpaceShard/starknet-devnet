@@ -84,9 +84,13 @@ Dumping and loading are not guaranteed to work across versions. I.e. if you dump
 
 If you dumped a Devnet utilizing one class for account predeployment (e.g. `--account-class cairo0`), you should use the same option when loading. The same applies for dumping a Devnet in `--block-generation-on demand` mode.
 
+Loading does not affect WebSocket connections, but removes all WebSocket [subscriptions](./api#websocket).
+
 ## Restarting
 
-Devnet can be restarted by making a `JSON-RPC` request with method name `devnet_restart`. All deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests that may have been loaded from a dump file on startup. Websocket subscriptions will also be forgotten.
+Devnet can be restarted by making a `JSON-RPC` request with method name `devnet_restart`. All deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests that may have been loaded from a dump file on startup.
+
+Restarting does not affect WebSocket connections, but removes all WebSocket [subscriptions](./api#websocket).
 
 ### Restarting and L1-L2 messaging
 

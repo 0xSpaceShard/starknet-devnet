@@ -41,6 +41,10 @@ Connected (press CTRL+C to quit)
 < {"id":0,"result":2935616350010920547,"jsonrpc":"2.0"}
 ```
 
+#### WebSocket persistence
+
+[Restarting](./dump-load-restart#restarting) and [loading](./dump-load-restart#loading) do not affect Devnet's WebSocket connections, but remove all subscriptions.
+
 ## Interacting with Devnet in JavaScript and TypeScript
 
 To spawn Devnet and interact with it using the [Devnet API](#devnet-api), you can use [`starknet-devnet-js`](https://github.com/0xSpaceShard/starknet-devnet-js/). This can be especially useful in achieving [L1-L2 communication](./postman.md).
