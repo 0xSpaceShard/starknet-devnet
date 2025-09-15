@@ -18,13 +18,13 @@ async fn assert_accepted_on_l1(
     devnet: &BackgroundDevnet,
     block_hashes: &[Felt],
     tx_hashes: &[Felt],
-) {
+) -> Result<(), anyhow::Error> {
     for block_hash in block_hashes {
         match devnet.json_rpc_client.get_block_with_tx_hashes(BlockId::Hash(*block_hash)).await {
             Ok(MaybePreConfirmedBlockWithTxHashes::Block(block)) => {
                 assert_eq!(block.status, BlockStatus::AcceptedOnL1)
             }
-            other => panic!("Unexpected block: {other:?}"),
+            other => anyhow::bail!("Unexpected block: {other:?}"),
         }
     }
 
@@ -32,6 +32,8 @@ async fn assert_accepted_on_l1(
         let tx_status = devnet.json_rpc_client.get_transaction_status(tx_hash).await.unwrap();
         assert_eq!(tx_status.finality_status(), SequencerTransactionStatus::AcceptedOnL1);
     }
+
+    Ok(())
 }
 
 async fn assert_latest_accepted_on_l2(devnet: &BackgroundDevnet) {
@@ -63,7 +65,7 @@ async fn should_convert_accepted_on_l2_with_id_latest() {
     let accepted_block_hashes = devnet.accept_on_l1(&BlockId::Tag(BlockTag::Latest)).await.unwrap();
     assert_eq!(accepted_block_hashes, block_hashes);
 
-    assert_accepted_on_l1(&devnet, &block_hashes, &tx_hashes).await;
+    assert_accepted_on_l1(&devnet, &block_hashes, &tx_hashes).await.unwrap();
 }
 
 #[tokio::test]
@@ -85,7 +87,7 @@ async fn should_convert_all_txs_in_block_on_demand() {
     let accepted_block_hashes = devnet.accept_on_l1(&BlockId::Tag(BlockTag::Latest)).await.unwrap();
     assert_eq!(accepted_block_hashes, block_hashes);
 
-    assert_accepted_on_l1(&devnet, &block_hashes, &tx_hashes).await;
+    assert_accepted_on_l1(&devnet, &block_hashes, &tx_hashes).await.unwrap();
 }
 
 #[tokio::test]
@@ -107,7 +109,7 @@ async fn should_convert_accepted_on_l2_with_numeric_id() {
     let accepted_block_hashes = devnet.accept_on_l1(&BlockId::Number(1)).await.unwrap();
     assert_eq!(accepted_block_hashes, block_hashes);
 
-    assert_accepted_on_l1(&devnet, &block_hashes, &[tx_hash]).await;
+    assert_accepted_on_l1(&devnet, &block_hashes, &[tx_hash]).await.unwrap();
     assert_latest_accepted_on_l2(&devnet).await;
 }
 
@@ -130,7 +132,7 @@ async fn should_convert_accepted_on_l2_with_hash_id() {
     let accepted_block_hashes = devnet.accept_on_l1(&BlockId::Hash(block_hash)).await.unwrap();
     assert_eq!(accepted_block_hashes, block_hashes);
 
-    assert_accepted_on_l1(&devnet, &block_hashes, &[tx_hash]).await;
+    assert_accepted_on_l1(&devnet, &block_hashes, &[tx_hash]).await.unwrap();
     assert_latest_accepted_on_l2(&devnet).await;
 }
 

@@ -101,7 +101,7 @@ async fn assert_latest_block_with_receipts(
     devnet: &BackgroundDevnet,
     block_number: u64,
     tx_count: usize,
-) {
+) -> Result<(), anyhow::Error> {
     let latest_block = &devnet
         .send_custom_rpc("starknet_getBlockWithReceipts", json!({ "block_id": "latest" }))
         .await
@@ -119,9 +119,11 @@ async fn assert_latest_block_with_receipts(
         .await
         {
             Ok(_) => {}
-            Err(e) => panic!("Transaction failed: {}", e),
+            Err(e) => anyhow::bail!("Transaction failed: {}", e),
         };
     }
+
+    Ok(())
 }
 
 async fn assert_pre_confirmed_block_with_receipts(devnet: &BackgroundDevnet, tx_count: usize) {
@@ -225,7 +227,7 @@ async fn normal_mode_states_and_blocks() {
     assert_pre_confirmed_block_with_receipts(&devnet, 0).await;
     assert_latest_block_with_tx_hashes(&devnet, 5, vec![tx_hashes.last().copied().unwrap()]).await;
     assert_latest_block_with_txs(&devnet, 5, 1).await;
-    assert_latest_block_with_receipts(&devnet, 5, 1).await;
+    assert_latest_block_with_receipts(&devnet, 5, 1).await.unwrap();
 
     assert_pre_confirmed_state_update(&devnet).await;
     assert_latest_state_update(&devnet).await;
@@ -254,7 +256,7 @@ async fn blocks_on_demand_states_and_blocks() {
 
     assert_latest_block_with_tx_hashes(&devnet, 0, vec![]).await;
     assert_latest_block_with_txs(&devnet, 0, 0).await;
-    assert_latest_block_with_receipts(&devnet, 0, 0).await;
+    assert_latest_block_with_receipts(&devnet, 0, 0).await.unwrap();
 
     // create new block from pre_confirmed block
     devnet.create_block().await.unwrap();
@@ -269,7 +271,7 @@ async fn blocks_on_demand_states_and_blocks() {
 
     assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await;
     assert_latest_block_with_txs(&devnet, 1, tx_count).await;
-    assert_latest_block_with_receipts(&devnet, 1, tx_count).await;
+    assert_latest_block_with_receipts(&devnet, 1, tx_count).await.unwrap();
 
     assert_pre_confirmed_state_update(&devnet).await;
     assert_latest_state_update(&devnet).await;

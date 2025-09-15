@@ -33,13 +33,17 @@ async fn assert_block_aborted(devnet: &BackgroundDevnet, block_hash: &Felt) {
     assert_eq!(err, RpcError { code: 24, message: "Block not found".into(), data: None })
 }
 
-async fn assert_txs_aborted(devnet: &BackgroundDevnet, tx_hashes: &[Felt]) {
+async fn assert_txs_aborted(
+    devnet: &BackgroundDevnet,
+    tx_hashes: &[Felt],
+) -> Result<(), anyhow::Error> {
     for tx_hash in tx_hashes {
         match devnet.json_rpc_client.get_transaction_by_hash(tx_hash).await {
             Err(ProviderError::StarknetError(StarknetError::TransactionHashNotFound)) => (),
-            other => panic!("Unexpected tx response: {other:?}"),
+            other => anyhow::bail!("Unexpected tx response: {other:?}"),
         }
     }
+    Ok(())
 }
 
 #[tokio::test]
@@ -108,7 +112,7 @@ async fn abort_block_with_transaction() {
     assert_eq!(aborted_blocks, vec![latest_block.block_hash]);
 
     assert_block_aborted(&devnet, &latest_block.block_hash).await;
-    assert_txs_aborted(&devnet, &[mint_hash]).await;
+    assert_txs_aborted(&devnet, &[mint_hash]).await.unwrap();
 }
 
 #[tokio::test]
