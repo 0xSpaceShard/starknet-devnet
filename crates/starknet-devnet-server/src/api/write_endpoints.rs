@@ -8,9 +8,9 @@ use starknet_types::rpc::transactions::{
 
 use super::error::{ApiError, StrictRpcResult};
 use super::models::{
-    DeclareTransactionOutput, DeployAccountTransactionOutput, TransactionHashOutput,
+    DeclareTransactionOutput, DeployAccountTransactionOutput, DevnetResponse, JsonRpcResponse,
+    StarknetResponse, TransactionHashOutput,
 };
-use super::{DevnetResponse, StarknetResponse};
 use crate::api::JsonRpcHandler;
 use crate::api::endpoints_impl::dump_load::dump_impl;
 use crate::api::endpoints_impl::mint_token::mint_impl;
@@ -88,21 +88,21 @@ impl JsonRpcHandler {
     pub async fn impersonate_account(&self, address: ContractAddress) -> StrictRpcResult {
         let mut starknet = self.api.starknet.lock().await;
         starknet.impersonate_account(address)?;
-        Ok(super::JsonRpcResponse::Empty)
+        Ok(JsonRpcResponse::Empty)
     }
 
     /// devnet_stopImpersonateAccount
     pub async fn stop_impersonating_account(&self, address: ContractAddress) -> StrictRpcResult {
         let mut starknet = self.api.starknet.lock().await;
         starknet.stop_impersonating_account(&address);
-        Ok(super::JsonRpcResponse::Empty)
+        Ok(JsonRpcResponse::Empty)
     }
 
     /// devnet_autoImpersonate | devnet_stopAutoImpersonate
     pub async fn set_auto_impersonate(&self, auto_impersonation: bool) -> StrictRpcResult {
         let mut starknet = self.api.starknet.lock().await;
         starknet.set_auto_impersonate_account(auto_impersonation)?;
-        Ok(super::JsonRpcResponse::Empty)
+        Ok(JsonRpcResponse::Empty)
     }
 
     /// devnet_dump
@@ -118,7 +118,7 @@ impl JsonRpcHandler {
         self.restart(Some(RestartParameters { restart_l1_to_l2_messaging: true })).await?;
         self.re_execute(&events).await.map_err(ApiError::RpcError)?;
 
-        Ok(super::JsonRpcResponse::Empty)
+        Ok(JsonRpcResponse::Empty)
     }
 
     /// devnet_postmanLoad
@@ -180,7 +180,7 @@ impl JsonRpcHandler {
 
         self.api.sockets.lock().await.clear();
 
-        Ok(super::JsonRpcResponse::Empty)
+        Ok(JsonRpcResponse::Empty)
     }
 
     /// devnet_setTime

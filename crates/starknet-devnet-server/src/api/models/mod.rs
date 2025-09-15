@@ -1,3 +1,11 @@
+mod json_rpc_request;
+mod json_rpc_response;
+
+pub use json_rpc_request::{
+    DevnetSpecRequest, JsonRpcRequest, JsonRpcSubscriptionRequest, JsonRpcWsRequest,
+    StarknetSpecRequest, ToRpcResponseResult, WILDCARD_RPC_ERROR_CODE, to_json_rpc_request,
+};
+pub use json_rpc_response::{DevnetResponse, JsonRpcResponse, StarknetResponse};
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::{Felt, Hash256, TransactionExecutionStatus};
 use starknet_types::contract_address::ContractAddress;
@@ -17,6 +25,7 @@ use starknet_types::starknet_api::block::BlockNumber;
 
 use crate::rpc_core::request::RpcMethodCall;
 use crate::subscribe::{TransactionFinalityStatusWithoutL1, TransactionStatusWithoutL1};
+
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockIdInput {

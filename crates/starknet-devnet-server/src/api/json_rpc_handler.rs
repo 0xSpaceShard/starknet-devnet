@@ -1,5 +1,3 @@
-pub const RPC_SPEC_VERSION: &str = "0.9.0";
-
 use std::sync::Arc;
 
 use axum::extract::ws::{Message, WebSocket};
@@ -20,14 +18,12 @@ use crate::api::models::{
     BlockIdInput, BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeclareTransactionInput,
     BroadcastedDeployAccountTransactionEnumWrapper, BroadcastedDeployAccountTransactionInput,
     BroadcastedInvokeTransactionEnumWrapper, BroadcastedInvokeTransactionInput, CallInput,
-    ClassHashInput, EstimateFeeInput, EventsInput, GetStorageInput, LoadPath,
-    SimulateTransactionsInput, TransactionHashInput,
+    ClassHashInput, DevnetSpecRequest, EstimateFeeInput, EventsInput, GetStorageInput,
+    JsonRpcRequest, JsonRpcResponse, JsonRpcWsRequest, LoadPath, SimulateTransactionsInput,
+    StarknetSpecRequest, ToRpcResponseResult, TransactionHashInput, to_json_rpc_request,
 };
 use crate::api::origin_forwarder::OriginForwarder;
-use crate::api::{
-    Api, ApiError, DevnetSpecRequest, JsonRpcRequest, JsonRpcResponse, JsonRpcWsRequest,
-    StarknetSpecRequest, ToRpcResponseResult, error, to_json_rpc_request,
-};
+use crate::api::{Api, ApiError, error};
 use crate::dump_util::dump_event;
 use crate::restrictive_mode::is_json_rpc_method_restricted;
 use crate::rpc_core::error::{ErrorCode, RpcError};

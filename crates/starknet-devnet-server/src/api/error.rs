@@ -7,7 +7,7 @@ use starknet_types::starknet_api::core::ContractAddress;
 use thiserror::Error;
 use tracing::error;
 
-use super::{JsonRpcResponse, WILDCARD_RPC_ERROR_CODE};
+use crate::api::models::{JsonRpcResponse, WILDCARD_RPC_ERROR_CODE};
 use crate::rpc_core::error::RpcError;
 
 #[allow(unused)]
@@ -351,8 +351,8 @@ mod tests {
     use starknet_types::starknet_api::core::Nonce;
 
     use super::StrictRpcResult;
-    use crate::api::ToRpcResponseResult;
     use crate::api::error::ApiError;
+    use crate::api::models::ToRpcResponseResult;
     use crate::rpc_core::error::{ErrorCode, RpcError};
 
     #[test]

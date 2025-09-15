@@ -2,7 +2,7 @@ use std::num::NonZeroU128;
 
 use clap::Parser;
 use server::ServerConfig;
-use server::api::JsonRpcRequest;
+use server::api::models::JsonRpcRequest;
 use server::restrictive_mode::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
 use starknet_core::constants::{
     ARGENT_CONTRACT_VERSION, ARGENT_MULTISIG_CONTRACT_VERSION, DEVNET_DEFAULT_L1_DATA_GAS_PRICE,

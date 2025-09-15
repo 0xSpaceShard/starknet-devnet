@@ -4,10 +4,10 @@ use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransact
 
 use crate::api::error::{ApiError, StrictRpcResult};
 use crate::api::models::{
-    FlushParameters, FlushedMessages, MessageHash, MessagingLoadAddress,
+    DevnetResponse, FlushParameters, FlushedMessages, MessageHash, MessagingLoadAddress,
     PostmanLoadL1MessagingContract, TransactionHashOutput,
 };
-use crate::api::{Api, DevnetResponse, JsonRpcHandler};
+use crate::api::{Api, JsonRpcHandler};
 use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::ResponseResult;

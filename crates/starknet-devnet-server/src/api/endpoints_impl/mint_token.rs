@@ -8,9 +8,9 @@ use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::block::{BlockId, BlockTag};
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 
+use crate::api::Api;
 use crate::api::error::{ApiError, StrictRpcResult};
-use crate::api::models::{MintTokensRequest, MintTokensResponse};
-use crate::api::{Api, DevnetResponse};
+use crate::api::models::{DevnetResponse, MintTokensRequest, MintTokensResponse};
 
 /// get the balance of the `address`
 pub fn get_balance(

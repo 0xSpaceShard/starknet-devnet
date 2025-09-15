@@ -17,11 +17,11 @@ use super::error::{ApiError, StrictRpcResult};
 use super::models::{
     BlockHashAndNumberOutput, GetStorageProofInput, L1TransactionHashInput, SyncingOutput,
 };
-use super::{DevnetResponse, RPC_SPEC_VERSION, StarknetResponse};
-use crate::api::JsonRpcHandler;
 use crate::api::endpoints_impl::accounts::{
     BalanceQuery, PredeployedAccountsQuery, get_account_balance_impl, get_predeployed_accounts_impl,
 };
+use crate::api::models::{DevnetResponse, StarknetResponse};
+use crate::api::{JsonRpcHandler, RPC_SPEC_VERSION};
 use crate::config::DevnetConfig;
 
 const DEFAULT_CONTINUATION_TOKEN: &str = "0";
@@ -646,15 +646,15 @@ impl JsonRpcHandler {
         let predeployed_accounts = get_predeployed_accounts_impl(
             &self.api,
             params.unwrap_or(PredeployedAccountsQuery { with_balance: Option::None }),
-        ).await?;
+        )
+        .await?;
 
         Ok(DevnetResponse::PredeployedAccounts(predeployed_accounts).into())
     }
 
     /// devnet_getAccountBalance
     pub async fn get_account_balance(&self, params: BalanceQuery) -> StrictRpcResult {
-        let account_balance =
-            get_account_balance_impl(&self.api, params).await?;
+        let account_balance = get_account_balance_impl(&self.api, params).await?;
 
         Ok(DevnetResponse::AccountBalance(account_balance).into())
     }
