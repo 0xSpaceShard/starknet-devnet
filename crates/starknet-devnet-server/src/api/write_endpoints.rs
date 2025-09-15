@@ -11,19 +11,19 @@ use super::models::{
     DeclareTransactionOutput, DeployAccountTransactionOutput, TransactionHashOutput,
 };
 use super::{DevnetResponse, StarknetResponse};
-use crate::api::http::endpoints::dump_load::dump_impl;
-use crate::api::http::endpoints::mint_token::mint_impl;
-use crate::api::http::endpoints::postman::{
+use crate::api::JsonRpcHandler;
+use crate::api::endpoints_impl::dump_load::dump_impl;
+use crate::api::endpoints_impl::mint_token::mint_impl;
+use crate::api::endpoints_impl::postman::{
     postman_consume_message_from_l2_impl, postman_flush_impl, postman_load_impl,
     postman_send_message_to_l2_impl,
 };
-use crate::api::http::endpoints::time::{increase_time_impl, set_time_impl};
-use crate::api::http::models::{
+use crate::api::endpoints_impl::time::{increase_time_impl, set_time_impl};
+use crate::api::models::{
     AbortedBlocks, AbortingBlocks, AcceptOnL1Request, AcceptedOnL1Blocks, CreatedBlock, DumpPath,
     FlushParameters, IncreaseTime, MintTokensRequest, PostmanLoadL1MessagingContract,
     RestartParameters, SetTime,
 };
-use crate::api::json_rpc::JsonRpcHandler;
 use crate::dump_util::load_events;
 
 impl JsonRpcHandler {
@@ -107,7 +107,7 @@ impl JsonRpcHandler {
 
     /// devnet_dump
     pub async fn dump(&self, path: Option<DumpPath>) -> StrictRpcResult {
-        let dump = dump_impl(&self.api, path).await.map_err(ApiError::from)?;
+        let dump = dump_impl(&self.api, path).await?;
         Ok(DevnetResponse::DevnetDump(dump).into())
     }
 
@@ -201,7 +201,7 @@ impl JsonRpcHandler {
 
 #[cfg(test)]
 mod tests {
-    use crate::api::json_rpc::models::BroadcastedDeployAccountTransactionEnumWrapper;
+    use crate::api::models::BroadcastedDeployAccountTransactionEnumWrapper;
 
     #[test]
     fn check_correct_deserialization_of_deploy_account_transaction_request() {

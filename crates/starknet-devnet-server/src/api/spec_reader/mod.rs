@@ -169,8 +169,8 @@ mod tests {
     use serde_json::Value;
 
     use super::{ApiMethod, Spec, generate_combined_schema, generate_json_rpc_response};
-    use crate::api::json_rpc::spec_reader::generate_json_rpc_request;
-    use crate::api::json_rpc::{
+    use crate::api::spec_reader::generate_json_rpc_request;
+    use crate::api::{
         JsonRpcRequest, JsonRpcSubscriptionRequest, RPC_SPEC_VERSION, StarknetResponse,
         StarknetSpecRequest,
     };

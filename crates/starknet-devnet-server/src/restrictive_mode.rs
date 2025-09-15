@@ -19,7 +19,7 @@ pub(crate) fn is_json_rpc_method_restricted<T: AsRef<str>, U: AsRef<str>>(
 #[cfg(test)]
 mod tests {
     use super::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
-    use crate::api::json_rpc::JsonRpcRequest;
+    use crate::api::JsonRpcRequest;
     use crate::restrictive_mode::is_json_rpc_method_restricted;
     #[test]
     fn test_provided_method_is_restricted() {

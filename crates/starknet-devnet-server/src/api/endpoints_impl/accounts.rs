@@ -7,11 +7,8 @@ use starknet_types::rpc::transaction_receipt::FeeUnit;
 
 use super::mint_token::{get_balance, get_erc20_address};
 use crate::api::Api;
-use crate::api::http::HttpApiResult;
-use crate::api::http::error::HttpApiError;
-use crate::api::http::models::{
-    AccountBalanceResponse, AccountBalancesResponse, SerializableAccount,
-};
+use crate::api::error::ApiError;
+use crate::api::models::{AccountBalanceResponse, AccountBalancesResponse, SerializableAccount};
 
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
@@ -23,12 +20,12 @@ pub(crate) fn get_balance_unit(
     starknet: &mut Starknet,
     address: ContractAddress,
     unit: FeeUnit,
-) -> HttpApiResult<AccountBalanceResponse> {
-    let erc20_address = get_erc20_address(&unit)
-        .map_err(|e| HttpApiError::InvalidValueError { msg: e.to_string() })?;
+) -> Result<AccountBalanceResponse, ApiError> {
+    let erc20_address =
+        get_erc20_address(&unit).map_err(|e| ApiError::InvalidValueError { msg: e.to_string() })?;
     let amount =
         get_balance(starknet, address, erc20_address, BlockId::Tag(BlockTag::PreConfirmed))
-            .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
+            .map_err(|e| ApiError::GeneralError(e.to_string()))?;
 
     Ok(AccountBalanceResponse { amount: amount.to_string(), unit })
 }
@@ -36,7 +33,7 @@ pub(crate) fn get_balance_unit(
 pub(crate) async fn get_predeployed_accounts_impl(
     api: &Api,
     params: PredeployedAccountsQuery,
-) -> HttpApiResult<Vec<SerializableAccount>> {
+) -> Result<Vec<SerializableAccount>, ApiError> {
     let mut starknet = api.starknet.lock().await;
     let mut predeployed_accounts: Vec<_> = starknet
         .get_predeployed_accounts()
@@ -74,12 +71,12 @@ pub struct BalanceQuery {
 pub(crate) async fn get_account_balance_impl(
     api: &Api,
     params: BalanceQuery,
-) -> HttpApiResult<AccountBalanceResponse> {
+) -> Result<AccountBalanceResponse, ApiError> {
     let account_address = ContractAddress::new(params.address)
-        .map_err(|e| HttpApiError::InvalidValueError { msg: e.to_string() })?;
+        .map_err(|e| ApiError::InvalidValueError { msg: e.to_string() })?;
     let unit = params.unit.unwrap_or(FeeUnit::FRI);
-    let erc20_address = get_erc20_address(&unit)
-        .map_err(|e| HttpApiError::InvalidValueError { msg: e.to_string() })?;
+    let erc20_address =
+        get_erc20_address(&unit).map_err(|e| ApiError::InvalidValueError { msg: e.to_string() })?;
 
     let mut starknet = api.starknet.lock().await;
 
@@ -89,7 +86,7 @@ pub(crate) async fn get_account_balance_impl(
         erc20_address,
         params.block_id.unwrap_or(BlockId::Tag(BlockTag::Latest)),
     )
-    .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
+    .map_err(|e| ApiError::GeneralError(e.to_string()))?;
 
     Ok(AccountBalanceResponse { amount: amount.to_string(), unit })
 }

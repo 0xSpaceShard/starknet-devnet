@@ -1,18 +1,19 @@
 use serde::{Deserialize, Serialize};
 
 use super::{Common, Schema};
-use crate::api::json_rpc::spec_reader::data_generator::{Acceptor, Visitor};
+use crate::api::spec_reader::data_generator::{Acceptor, Visitor};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct OneOf {
+pub struct ArrayPrimitive {
     #[serde(flatten)]
     pub common: Common,
-    pub one_of: Vec<Schema>,
+    pub items: Box<Schema>,
+    pub min_items: Option<u64>,
+    pub max_items: Option<u64>,
 }
-
-impl Acceptor for OneOf {
+impl Acceptor for ArrayPrimitive {
     fn accept(&self, visitor: &impl Visitor) -> Result<serde_json::Value, String> {
-        visitor.do_for_one_of(self)
+        visitor.do_for_array_primitive(self)
     }
 }

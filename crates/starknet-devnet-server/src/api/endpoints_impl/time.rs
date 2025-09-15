@@ -1,7 +1,6 @@
-use crate::api::Api;
-use crate::api::http::models::{IncreaseTime, IncreaseTimeResponse, SetTime, SetTimeResponse};
-use crate::api::json_rpc::DevnetResponse;
-use crate::api::json_rpc::error::StrictRpcResult;
+use crate::api::error::StrictRpcResult;
+use crate::api::models::{IncreaseTime, IncreaseTimeResponse, SetTime, SetTimeResponse};
+use crate::api::{Api, DevnetResponse};
 
 pub(crate) async fn set_time_impl(api: &Api, data: SetTime) -> StrictRpcResult {
     let mut starknet = api.starknet.lock().await;

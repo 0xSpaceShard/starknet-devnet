@@ -17,11 +17,12 @@ use super::error::{ApiError, StrictRpcResult};
 use super::models::{
     BlockHashAndNumberOutput, GetStorageProofInput, L1TransactionHashInput, SyncingOutput,
 };
-use super::{DevnetResponse, JsonRpcHandler, RPC_SPEC_VERSION, StarknetResponse};
-use crate::api::http::endpoints::DevnetConfig;
-use crate::api::http::endpoints::accounts::{
+use super::{DevnetResponse, RPC_SPEC_VERSION, StarknetResponse};
+use crate::api::JsonRpcHandler;
+use crate::api::endpoints_impl::accounts::{
     BalanceQuery, PredeployedAccountsQuery, get_account_balance_impl, get_predeployed_accounts_impl,
 };
+use crate::config::DevnetConfig;
 
 const DEFAULT_CONTINUATION_TOKEN: &str = "0";
 const CONTINUATION_TOKEN_ORIGIN_PREFIX: &str = "devnet-origin-";

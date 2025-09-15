@@ -2,14 +2,12 @@ use starknet_types::felt::{TransactionHash, felt_from_prefixed_hex};
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 
-use crate::api::Api;
-use crate::api::http::models::{
+use crate::api::error::{ApiError, StrictRpcResult};
+use crate::api::models::{
     FlushParameters, FlushedMessages, MessageHash, MessagingLoadAddress,
-    PostmanLoadL1MessagingContract,
+    PostmanLoadL1MessagingContract, TransactionHashOutput,
 };
-use crate::api::json_rpc::error::{ApiError, StrictRpcResult};
-use crate::api::json_rpc::models::TransactionHashOutput;
-use crate::api::json_rpc::{DevnetResponse, JsonRpcHandler};
+use crate::api::{Api, DevnetResponse, JsonRpcHandler};
 use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::ResponseResult;
