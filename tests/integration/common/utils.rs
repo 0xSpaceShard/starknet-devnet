@@ -451,14 +451,22 @@ pub async fn deploy_argent_account(
 
 /// Assert that the set of elements of `iterable1` is a subset of the elements of `iterable2` and
 /// vice versa.
-pub fn assert_equal_elements<T>(iterable1: &[T], iterable2: &[T])
+pub fn assert_equal_elements<T>(iterable1: &[T], iterable2: &[T]) -> Result<(), anyhow::Error>
 where
     T: PartialEq,
 {
     assert_eq!(iterable1.len(), iterable2.len());
-    for e in iterable1 {
-        assert!(iterable2.contains(e));
+    match iterable1.len() == iterable2.len() {
+        true => (),
+        false => return Err(anyhow::anyhow!("Length mismatch")),
     }
+    for e in iterable1 {
+        match iterable2.contains(e) {
+            true => (),
+            false => return Err(anyhow::anyhow!("Element mismatch")),
+        }
+    }
+    Ok(())
 }
 
 pub fn felt_to_u256(f: Felt) -> U256 {

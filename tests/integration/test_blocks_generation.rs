@@ -355,8 +355,9 @@ async fn blocks_on_demand_declarations() {
     for block_id in [BlockId::Tag(BlockTag::Latest), BlockId::Hash(declaration_block_hash)] {
         match devnet.json_rpc_client.get_state_update(block_id).await {
             Ok(MaybePreConfirmedStateUpdate::Update(StateUpdate { state_diff, .. })) => {
-                assert_equal_elements(&state_diff.declared_classes, &expected_block_declarations);
-                assert_equal_elements(&state_diff.nonces, &expected_block_nonce_update)
+                assert_equal_elements(&state_diff.declared_classes, &expected_block_declarations)
+                    .unwrap();
+                assert_equal_elements(&state_diff.nonces, &expected_block_nonce_update).unwrap()
             }
             other => panic!("Unexpected response: {other:?}"),
         }
