@@ -609,11 +609,16 @@ pub async fn receive_notification(
     Ok(notification["params"]["result"].take())
 }
 
-pub async fn assert_no_notifications(ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
+pub async fn assert_no_notifications(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+) -> Result<(), anyhow::Error> {
     match receive_rpc_via_ws(ws).await {
-        Ok(resp) => panic!("Expected no notifications; found: {resp}"),
-        Err(e) if e.to_string().contains("deadline has elapsed") => { /* expected */ }
-        Err(e) => panic!("Expected to error out due to empty channel; found: {e}"),
+        Ok(resp) => anyhow::bail!("Expected no notifications; found: {resp}"),
+        Err(e) if e.to_string().contains("deadline has elapsed") => {
+            /* expected */
+            Ok(())
+        }
+        Err(e) => anyhow::bail!("Expected to error out due to empty channel; found: {e}"),
     }
 }
 
