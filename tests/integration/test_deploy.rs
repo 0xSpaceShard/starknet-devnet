@@ -77,7 +77,7 @@ async fn double_deployment_not_allowed() {
             assert_eq!(undeployed_contract_error.class_hash, declaration_result.class_hash);
             assert_eq!(undeployed_contract_error.selector, Felt::ZERO); // constructor
 
-            let msg_error = extract_message_error(&undeployed_contract_error.error);
+            let msg_error = extract_message_error(&undeployed_contract_error.error).unwrap();
             assert_contains(msg_error, "contract already deployed").unwrap();
         }
         other => panic!("Unexpected result: {other:?}"),

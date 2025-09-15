@@ -234,7 +234,7 @@ async fn fee_estimation_and_simulation_of_deployment_at_old_block_should_not_yie
             assert_eq!(error_at_to_be_deployed_address.class_hash, class_hash);
             assert_eq!(error_at_to_be_deployed_address.selector, Felt::ZERO);
 
-            let error_msg = extract_message_error(&error_at_to_be_deployed_address.error);
+            let error_msg = extract_message_error(&error_at_to_be_deployed_address.error).unwrap();
             assert_eq!(error_msg.trim(), &expected_error_msg)
         }
         other => panic!("Unexpected error: {other:?}"),

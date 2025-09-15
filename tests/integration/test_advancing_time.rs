@@ -638,7 +638,7 @@ async fn tx_resource_estimation_fails_unless_time_incremented() {
             assert_eq!(inner_error.contract_address, contract_address);
             assert_eq!(inner_error.selector, time_check_selector);
 
-            let message = extract_message_error(&inner_error.error);
+            let message = extract_message_error(&inner_error.error).unwrap();
             assert_contains(message, "Wait a bit more").unwrap();
         }
         other => panic!("Invalid error: {other:?}"),

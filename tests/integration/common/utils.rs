@@ -505,10 +505,10 @@ pub fn assert_json_rpc_errors_equal(e1: JsonRpcError, e2: JsonRpcError) {
 }
 
 /// Extract the message that is encapsulated inside the provided error.
-pub fn extract_message_error(error: &ContractExecutionError) -> &String {
+pub fn extract_message_error(error: &ContractExecutionError) -> Result<&String, anyhow::Error> {
     match error {
-        ContractExecutionError::Message(msg) => msg,
-        other => panic!("Unexpected error: {other:?}"),
+        ContractExecutionError::Message(msg) => Ok(msg),
+        other => anyhow::bail!("Unexpected error: {other:?}"),
     }
 }
 

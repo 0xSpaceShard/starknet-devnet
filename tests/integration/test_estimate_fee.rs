@@ -379,7 +379,7 @@ async fn message_available_if_estimation_reverts() {
             let account_error = extract_nested_error(&execution_error);
             let contract_error = extract_nested_error(&account_error.error);
             let inner_error = extract_nested_error(&contract_error.error);
-            let error_msg = extract_message_error(&inner_error.error);
+            let error_msg = extract_message_error(&inner_error.error).unwrap();
             assert_contains(error_msg, &panic_reason.to_hex_string()).unwrap();
         }
         other => panic!("Invalid err: {other:?}"),
