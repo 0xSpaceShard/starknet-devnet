@@ -438,16 +438,14 @@ async fn blocks_on_demand_invoke_and_call() {
     }
 
     let expected_balance = initial_value + (increment * Felt::from(increment_count));
-
-    assert_eq!(
-        get_contract_balance_by_block_id(
-            &devnet,
-            contract_address,
-            BlockId::Tag(BlockTag::PreConfirmed)
-        )
-        .await,
-        expected_balance
-    );
+    let contract_balance = get_contract_balance_by_block_id(
+        &devnet,
+        contract_address,
+        BlockId::Tag(BlockTag::PreConfirmed),
+    )
+    .await
+    .unwrap();
+    assert_eq!(contract_balance, expected_balance);
 
     let contract_call = FunctionCall {
         contract_address,
@@ -461,16 +459,16 @@ async fn blocks_on_demand_invoke_and_call() {
     devnet.create_block().await.unwrap();
 
     assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await;
-    assert_eq!(
-        get_contract_balance_by_block_id(
-            &devnet,
-            contract_address,
-            BlockId::Tag(BlockTag::PreConfirmed)
-        )
-        .await,
-        expected_balance
-    );
-    assert_eq!(get_contract_balance(&devnet, contract_address).await, expected_balance);
+    let contract_balance = get_contract_balance_by_block_id(
+        &devnet,
+        contract_address,
+        BlockId::Tag(BlockTag::PreConfirmed),
+    )
+    .await
+    .unwrap();
+    assert_eq!(contract_balance, expected_balance);
+    let contract_balance = get_contract_balance(&devnet, contract_address).await.unwrap();
+    assert_eq!(contract_balance, expected_balance);
 }
 
 #[tokio::test]

@@ -136,7 +136,10 @@ pub async fn assert_tx_succeeded_pre_confirmed<T: Provider>(_tx_hash: &Felt, _cl
     // }
 }
 
-pub async fn get_contract_balance(devnet: &BackgroundDevnet, contract_address: Felt) -> Felt {
+pub async fn get_contract_balance(
+    devnet: &BackgroundDevnet,
+    contract_address: Felt,
+) -> Result<Felt, anyhow::Error> {
     get_contract_balance_by_block_id(devnet, contract_address, BlockId::Tag(BlockTag::Latest)).await
 }
 
@@ -144,7 +147,7 @@ pub async fn get_contract_balance_by_block_id(
     devnet: &BackgroundDevnet,
     contract_address: Felt,
     block_id: BlockId,
-) -> Felt {
+) -> Result<Felt, anyhow::Error> {
     let contract_call = FunctionCall {
         contract_address,
         entry_point_selector: get_selector_from_name("get_balance").unwrap(),
@@ -153,9 +156,9 @@ pub async fn get_contract_balance_by_block_id(
     match devnet.json_rpc_client.call(contract_call, block_id).await {
         Ok(res) => {
             assert_eq!(res.len(), 1);
-            res[0]
+            Ok(res[0])
         }
-        Err(e) => panic!("Call failed: {e}"),
+        Err(e) => anyhow::bail!("Call failed: {e}"),
     }
 }
 

@@ -260,11 +260,12 @@ async fn test_origin_declare_deploy_fork_invoke() {
     );
 
     // assert correctly deployed
-    assert_eq!(get_contract_balance(&origin_devnet, contract_address).await, initial_value);
+    let origin_balance = get_contract_balance(&origin_devnet, contract_address).await.unwrap();
+    assert_eq!(origin_balance, initial_value);
 
     let fork_devnet = origin_devnet.fork().await.unwrap();
-
-    assert_eq!(get_contract_balance(&fork_devnet, contract_address).await, initial_value);
+    let fork_balance = get_contract_balance(&fork_devnet, contract_address).await.unwrap();
+    assert_eq!(fork_balance, initial_value);
 
     let fork_predeployed_account = SingleOwnerAccount::new(
         fork_devnet.clone_provider(),
@@ -302,11 +303,10 @@ async fn test_origin_declare_deploy_fork_invoke() {
     };
 
     // assert origin intact and fork changed
-    assert_eq!(get_contract_balance(&origin_devnet, contract_address).await, initial_value);
-    assert_eq!(
-        get_contract_balance(&fork_devnet, contract_address).await,
-        initial_value + increment
-    );
+    let origin_balance = get_contract_balance(&origin_devnet, contract_address).await.unwrap();
+    assert_eq!(origin_balance, initial_value);
+    let fork_balance = get_contract_balance(&fork_devnet, contract_address).await.unwrap();
+    assert_eq!(fork_balance, initial_value + increment);
 }
 
 #[tokio::test]
@@ -550,11 +550,11 @@ async fn changes_in_origin_after_forking_block_should_not_affect_fork_state() {
     .unwrap();
 
     // Assert fork intact and origin changed
-    assert_eq!(get_contract_balance(&fork_devnet, contract_address).await, initial_value);
-    assert_eq!(
-        get_contract_balance(&origin_devnet, contract_address).await,
-        initial_value + increment_value
-    );
+    let fork_balance = get_contract_balance(&fork_devnet, contract_address).await.unwrap();
+    assert_eq!(fork_balance, initial_value);
+
+    let origin_balance = get_contract_balance(&origin_devnet, contract_address).await.unwrap();
+    assert_eq!(origin_balance, initial_value + increment_value);
 }
 
 #[tokio::test]
