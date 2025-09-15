@@ -57,10 +57,7 @@ async fn assert_latest_block_with_tx_hashes(
     assert_eq!(latest_block.status, BlockStatus::AcceptedOnL2);
 
     for tx_hash in latest_block.transactions {
-        match assert_tx_succeeded_accepted(&tx_hash, &devnet.json_rpc_client).await {
-            Ok(_) => {}
-            Err(e) => panic!("Transaction failed: {}", e),
-        };
+        assert_tx_succeeded_accepted(&tx_hash, &devnet.json_rpc_client).await.unwrap();
     }
 }
 
@@ -86,10 +83,7 @@ async fn assert_latest_block_with_txs(
     assert_eq!(latest_block.transactions.len(), tx_count);
 
     for tx in latest_block.transactions {
-        match assert_tx_succeeded_accepted(tx.transaction_hash(), &devnet.json_rpc_client).await {
-            Ok(_) => {}
-            Err(e) => panic!("Transaction failed: {}", e),
-        };
+        assert_tx_succeeded_accepted(tx.transaction_hash(), &devnet.json_rpc_client).await.unwrap();
     }
 }
 

@@ -71,15 +71,9 @@ async fn declare_deploy_happy_path() {
     let declare_transaction =
         account.declare_v3(Arc::new(sierra_artifact), casm_hash).send().await.unwrap();
 
-    match assert_tx_succeeded_accepted(
-        &declare_transaction.transaction_hash,
-        &devnet.json_rpc_client,
-    )
-    .await
-    {
-        Ok(_) => (),
-        Err(e) => panic!("Transaction failed: {}", e),
-    };
+    assert_tx_succeeded_accepted(&declare_transaction.transaction_hash, &devnet.json_rpc_client)
+        .await
+        .unwrap();
 
     devnet
         .json_rpc_client
@@ -107,15 +101,9 @@ async fn declare_deploy_happy_path() {
         &[constructor_arg],
     );
     let deploy_transaction = account.execute_v3(deploy_call).send().await.unwrap();
-    match assert_tx_succeeded_accepted(
-        &deploy_transaction.transaction_hash,
-        &devnet.json_rpc_client,
-    )
-    .await
-    {
-        Ok(_) => (),
-        Err(e) => panic!("Transaction failed: {}", e),
-    };
+    assert_tx_succeeded_accepted(&deploy_transaction.transaction_hash, &devnet.json_rpc_client)
+        .await
+        .unwrap();
 
     let class_hash_of_contract = devnet
         .json_rpc_client
@@ -166,12 +154,9 @@ async fn declare_from_an_account_with_insufficient_strk_tokens_balance() {
         .await
         .unwrap();
 
-    match assert_tx_succeeded_accepted(&invoke_txn_result.transaction_hash, &devnet.json_rpc_client)
+    assert_tx_succeeded_accepted(&invoke_txn_result.transaction_hash, &devnet.json_rpc_client)
         .await
-    {
-        Ok(_) => (),
-        Err(e) => panic!("Transaction failed: {}", e),
-    };
+        .unwrap();
 
     let account_strk_balance =
         devnet.get_balance_by_tag(&account_address, FeeUnit::Fri, BlockTag::Latest).await.unwrap();

@@ -93,12 +93,9 @@ async fn assert_account_deployment_reverted() {
     let deployment_tx = deployment.send().await.unwrap();
 
     // assert deployment successful and class associated with deployment address is present
-    match assert_tx_succeeded_accepted(&deployment_tx.transaction_hash, &devnet.json_rpc_client)
+    assert_tx_succeeded_accepted(&deployment_tx.transaction_hash, &devnet.json_rpc_client)
         .await
-    {
-        Ok(_) => (),
-        Err(e) => panic!("Transaction failed: {}", e),
-    };
+        .unwrap();
 
     devnet
         .json_rpc_client

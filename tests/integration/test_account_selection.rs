@@ -77,15 +77,9 @@ async fn can_deploy_new_cairo1_oz_account() {
     let devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
     let (account_deployment, signer) = deploy_oz_account(&devnet).await.unwrap();
-    match assert_tx_succeeded_accepted(
-        &account_deployment.transaction_hash,
-        &devnet.json_rpc_client,
-    )
-    .await
-    {
-        Ok(()) => (),
-        Err(err) => panic!("Transaction failed: {}", err),
-    };
+    assert_tx_succeeded_accepted(&account_deployment.transaction_hash, &devnet.json_rpc_client)
+        .await
+        .unwrap();
 
     let account_address = account_deployment.contract_address;
     can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
@@ -97,15 +91,9 @@ async fn can_deploy_new_cairo1_oz_account_when_cairo0_selected() {
     let devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
     let (account_deployment, signer) = deploy_oz_account(&devnet).await.unwrap();
-    match assert_tx_succeeded_accepted(
-        &account_deployment.transaction_hash,
-        &devnet.json_rpc_client,
-    )
-    .await
-    {
-        Ok(()) => (),
-        Err(err) => panic!("Transaction failed: {}", err),
-    };
+    assert_tx_succeeded_accepted(&account_deployment.transaction_hash, &devnet.json_rpc_client)
+        .await
+        .unwrap();
 
     let account_address = account_deployment.contract_address;
     can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
@@ -117,15 +105,9 @@ async fn can_deploy_new_custom_oz_account() {
     let devnet = BackgroundDevnet::spawn_with_additional_args(&cli_args).await.unwrap();
 
     let (account_deployment, signer) = deploy_oz_account(&devnet).await.unwrap();
-    match assert_tx_succeeded_accepted(
-        &account_deployment.transaction_hash,
-        &devnet.json_rpc_client,
-    )
-    .await
-    {
-        Ok(()) => (),
-        Err(err) => panic!("Transaction failed: {}", err),
-    };
+    assert_tx_succeeded_accepted(&account_deployment.transaction_hash, &devnet.json_rpc_client)
+        .await
+        .unwrap();
 
     let account_address = account_deployment.contract_address;
     can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
@@ -152,15 +134,9 @@ async fn can_deploy_instance_of_argent_account_via_fork() {
 
     let account_hash = Felt::from_hex_unchecked(ARGENT_ACCOUNT_CLASS_HASH);
     let (account_deployment, signer) = deploy_argent_account(&devnet, account_hash).await.unwrap();
-    match assert_tx_succeeded_accepted(
-        &account_deployment.transaction_hash,
-        &devnet.json_rpc_client,
-    )
-    .await
-    {
-        Ok(_) => (),
-        Err(e) => panic!("Transaction failed: {}", e),
-    };
+    assert_tx_succeeded_accepted(&account_deployment.transaction_hash, &devnet.json_rpc_client)
+        .await
+        .unwrap();
 
     let account_address = account_deployment.contract_address;
     can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
@@ -235,12 +211,9 @@ async fn can_declare_deploy_invoke_cairo1_using_account(
 
     let invoke_result = account.execute_v3(contract_invoke.clone()).send().await.unwrap();
 
-    match assert_tx_succeeded_accepted(&invoke_result.transaction_hash, &devnet.json_rpc_client)
+    assert_tx_succeeded_accepted(&invoke_result.transaction_hash, &devnet.json_rpc_client)
         .await
-    {
-        Ok(_) => (),
-        Err(e) => panic!("Transaction failed: {}", e),
-    };
+        .unwrap();
 }
 
 #[tokio::test]

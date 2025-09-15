@@ -303,10 +303,7 @@ async fn mock_message_to_l2_creates_a_tx_with_desired_effect() {
         .await.unwrap();
     let tx_hash_hex = body.get("transaction_hash").unwrap().as_str().unwrap();
     let tx_hash = Felt::from_hex_unchecked(tx_hash_hex);
-    match assert_tx_succeeded_accepted(&tx_hash, &devnet.json_rpc_client).await {
-        Ok(_) => (),
-        Err(e) => panic!("Transaction failed: {}", e),
-    };
+    assert_tx_succeeded_accepted(&tx_hash, &devnet.json_rpc_client).await.unwrap();
 
     // assert state changed
     assert_eq!(

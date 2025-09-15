@@ -38,12 +38,9 @@ async fn get_declare_v3_transaction_by_hash_happy_path() {
         .await
         .unwrap();
 
-    match assert_tx_succeeded_accepted(&declare_result.transaction_hash, &devnet.json_rpc_client)
+    assert_tx_succeeded_accepted(&declare_result.transaction_hash, &devnet.json_rpc_client)
         .await
-    {
-        Ok(()) => (),
-        Err(err) => panic!("Transaction failed: {}", err),
-    };
+        .unwrap();
 }
 
 #[tokio::test]
@@ -71,15 +68,9 @@ async fn get_deploy_account_transaction_by_hash_happy_path() {
     devnet.mint(deployment_address, mint_amount).await;
 
     let deploy_account_result = deployment.send().await.unwrap();
-    match assert_tx_succeeded_accepted(
-        &deploy_account_result.transaction_hash,
-        &devnet.json_rpc_client,
-    )
-    .await
-    {
-        Ok(()) => (),
-        Err(err) => panic!("Transaction failed: {}", err),
-    };
+    assert_tx_succeeded_accepted(&deploy_account_result.transaction_hash, &devnet.json_rpc_client)
+        .await
+        .unwrap();
 }
 
 #[tokio::test]
@@ -109,12 +100,9 @@ async fn get_invoke_v3_transaction_by_hash_happy_path() {
         .await
         .unwrap();
 
-    match assert_tx_succeeded_accepted(&invoke_tx_result.transaction_hash, &devnet.json_rpc_client)
+    assert_tx_succeeded_accepted(&invoke_tx_result.transaction_hash, &devnet.json_rpc_client)
         .await
-    {
-        Ok(()) => (),
-        Err(err) => panic!("Transaction failed: {}", err),
-    };
+        .unwrap();
 }
 
 #[tokio::test]

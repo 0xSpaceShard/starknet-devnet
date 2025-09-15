@@ -292,15 +292,9 @@ async fn test_origin_declare_deploy_fork_invoke() {
         .await
         .unwrap();
 
-    match assert_tx_succeeded_accepted(
-        &invoke_result.transaction_hash,
-        &fork_devnet.json_rpc_client,
-    )
-    .await
-    {
-        Ok(_) => {}
-        Err(e) => panic!("Transaction failed: {}", e),
-    };
+    assert_tx_succeeded_accepted(&invoke_result.transaction_hash, &fork_devnet.json_rpc_client)
+        .await
+        .unwrap();
 
     // assert origin intact and fork changed
     let origin_balance = get_contract_balance(&origin_devnet, contract_address).await.unwrap();
@@ -526,15 +520,9 @@ async fn changes_in_origin_after_forking_block_should_not_affect_fork_state() {
         .await
         .unwrap();
 
-    match assert_tx_succeeded_accepted(
-        &invoke_result.transaction_hash,
-        &origin_devnet.json_rpc_client,
-    )
-    .await
-    {
-        Ok(_) => (),
-        Err(e) => panic!("Transaction failed: {}", e),
-    }
+    assert_tx_succeeded_accepted(&invoke_result.transaction_hash, &origin_devnet.json_rpc_client)
+        .await
+        .unwrap();
 
     let latest_origin_block_number = origin_devnet.json_rpc_client.block_number().await.unwrap();
     assert_eq!(latest_origin_block_number, 3); // declare, deploy, invoke
