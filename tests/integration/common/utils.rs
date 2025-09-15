@@ -17,7 +17,7 @@ use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
 use starknet_rs_core::types::{
     BlockId, BlockTag, ContractClass, ContractExecutionError, DeployAccountTransactionResult,
     ExecutionResult, FeeEstimate, Felt, FlattenedSierraClass, FunctionCall,
-    InnerContractExecutionError, ResourceBounds, ResourceBoundsMapping,
+    InnerContractExecutionError, ResourceBounds, ResourceBoundsMapping, TransactionReceipt,
 };
 use starknet_rs_core::utils::{
     UdcUniqueSettings, get_selector_from_name, get_udc_deployed_address,
@@ -163,15 +163,23 @@ pub async fn assert_tx_reverted<T: Provider>(
     tx_hash: &Felt,
     client: &T,
     expected_failure_reasons: &[&str],
-) {
-    let receipt = client.get_transaction_receipt(tx_hash).await.unwrap().receipt;
+) -> Result<(), anyhow::Error> {
+    let receipt: TransactionReceipt = match client.get_transaction_receipt(tx_hash).await {
+        Ok(receipt) => receipt.receipt,
+        Err(e) => return Err(e.into()),
+    };
+
     match receipt.execution_result() {
         ExecutionResult::Reverted { reason } => {
             for expected_reason in expected_failure_reasons {
-                assert_contains(reason, expected_reason).unwrap();
+                match assert_contains(reason, expected_reason) {
+                    Ok(_) => (),
+                    Err(e) => return Err(e),
+                }
             }
+            Ok(())
         }
-        other => panic!("Should have reverted; got: {other:?}; receipt: {receipt:?}"),
+        other => anyhow::bail!("Should have reverted; got: {other:?}; receipt: {receipt:?}"),
     }
 }
 
