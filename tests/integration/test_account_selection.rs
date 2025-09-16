@@ -149,15 +149,9 @@ async fn can_deploy_new_argent_account_from_predeclared_class() {
 
     let account_hash = Felt::from_hex_unchecked(ARGENT_ACCOUNT_CLASS_HASH);
     let (account_deployment, signer) = deploy_argent_account(&devnet, account_hash).await.unwrap();
-    match assert_tx_succeeded_accepted(
-        &account_deployment.transaction_hash,
-        &devnet.json_rpc_client,
-    )
-    .await
-    {
-        Ok(_) => (),
-        Err(e) => panic!("Transaction failed: {}", e),
-    };
+    assert_tx_succeeded_accepted(&account_deployment.transaction_hash, &devnet.json_rpc_client)
+        .await
+        .unwrap();
 
     let account_address = account_deployment.contract_address;
     can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;

@@ -1,4 +1,4 @@
-use std::fmt::LowerHex;
+use std::fmt::{Debug, LowerHex};
 use std::fs;
 use std::path::Path;
 use std::process::{Child, Command};
@@ -106,10 +106,7 @@ pub async fn assert_tx_succeeded_accepted<T: Provider>(
     tx_hash: &Felt,
     client: &T,
 ) -> Result<(), anyhow::Error> {
-    let receipt = match client.get_transaction_receipt(tx_hash).await {
-        Ok(receipt) => receipt.receipt,
-        Err(err) => return Err(err.into()),
-    };
+    let receipt = client.get_transaction_receipt(tx_hash).await?.receipt;
 
     match receipt.execution_result() {
         ExecutionResult::Succeeded => (),
@@ -154,11 +151,8 @@ pub async fn get_contract_balance_by_block_id(
         calldata: vec![],
     };
     match devnet.json_rpc_client.call(contract_call, block_id).await {
-        Ok(res) => {
-            assert_eq!(res.len(), 1);
-            Ok(res[0])
-        }
-        Err(e) => anyhow::bail!("Call failed: {e}"),
+        Ok(res) if res.len() == 1 => Ok(res[0]),
+        other => anyhow::bail!("Expected a single-felt result; got: {other:?}"),
     }
 }
 
@@ -167,18 +161,12 @@ pub async fn assert_tx_reverted<T: Provider>(
     client: &T,
     expected_failure_reasons: &[&str],
 ) -> Result<(), anyhow::Error> {
-    let receipt: TransactionReceipt = match client.get_transaction_receipt(tx_hash).await {
-        Ok(receipt) => receipt.receipt,
-        Err(e) => return Err(e.into()),
-    };
+    let receipt: TransactionReceipt = client.get_transaction_receipt(tx_hash).await?.receipt;
 
     match receipt.execution_result() {
         ExecutionResult::Reverted { reason } => {
             for expected_reason in expected_failure_reasons {
-                match assert_contains(reason, expected_reason) {
-                    Ok(_) => (),
-                    Err(e) => return Err(e),
-                }
+                assert_contains(reason, expected_reason)?
             }
             Ok(())
         }
@@ -233,7 +221,7 @@ async fn send_ctrl_c_signal(process: &Child) {
 
 fn take_abi_from_json(value: &mut serde_json::Value) -> Result<serde_json::Value, anyhow::Error> {
     let abi_jsonified = value["abi"].take();
-    assert_ne!(abi_jsonified, serde_json::json!(null));
+    anyhow::ensure!(abi_jsonified != serde_json::json!(null));
     Ok(serde_json::from_str(abi_jsonified.as_str().unwrap())?)
 }
 
@@ -249,8 +237,8 @@ pub fn assert_cairo1_classes_equal(
     let abi_a = take_abi_from_json(&mut class_a_jsonified)?;
     let abi_b = take_abi_from_json(&mut class_b_jsonified)?;
 
-    assert_eq!(class_a_jsonified, class_b_jsonified);
-    assert_eq!(abi_a, abi_b);
+    anyhow::ensure!(class_a_jsonified == class_b_jsonified);
+    anyhow::ensure!(abi_a == abi_b);
 
     Ok(())
 }
@@ -456,17 +444,14 @@ pub async fn deploy_argent_account(
 /// vice versa.
 pub fn assert_equal_elements<T>(iterable1: &[T], iterable2: &[T]) -> Result<(), anyhow::Error>
 where
-    T: PartialEq,
+    T: PartialEq + Debug,
 {
-    assert_eq!(iterable1.len(), iterable2.len());
-    match iterable1.len() == iterable2.len() {
-        true => (),
-        false => return Err(anyhow::anyhow!("Length mismatch")),
+    if iterable1.len() != iterable2.len() {
+        anyhow::bail!("Length mismatch: left = {}, right = {}", iterable1.len(), iterable2.len());
     }
     for e in iterable1 {
-        match iterable2.contains(e) {
-            true => (),
-            false => return Err(anyhow::anyhow!("Element mismatch")),
+        if !iterable2.contains(e) {
+            anyhow::bail!("Element {:?} from left not found in right", e);
         }
     }
     Ok(())
@@ -500,8 +485,12 @@ pub fn extract_json_rpc_error(error: ProviderError) -> Result<JsonRpcError, anyh
     }
 }
 
-pub fn assert_json_rpc_errors_equal(e1: JsonRpcError, e2: JsonRpcError) {
-    assert_eq!((e1.code, e1.message, e1.data), (e2.code, e2.message, e2.data));
+pub fn assert_json_rpc_errors_equal(
+    e1: JsonRpcError,
+    e2: JsonRpcError,
+) -> Result<(), anyhow::Error> {
+    anyhow::ensure!((e1.code, e1.message, e1.data) == (e2.code, e2.message, e2.data));
+    Ok(())
 }
 
 /// Extract the message that is encapsulated inside the provided error.
@@ -597,14 +586,14 @@ pub async fn receive_notification(
     expected_subscription_id: SubscriptionId,
 ) -> Result<serde_json::Value, anyhow::Error> {
     let mut notification = receive_rpc_via_ws(ws).await?;
-    assert_eq!(notification["jsonrpc"], "2.0");
-    assert_eq!(notification["method"], method);
-    assert_eq!(
+    anyhow::ensure!(notification["jsonrpc"] == "2.0");
+    anyhow::ensure!(notification["method"] == method);
+    anyhow::ensure!(
         notification["params"]["subscription_id"]
             .as_str()
             .ok_or(anyhow::Error::msg("No Subscription ID in notification"))?
-            .to_string(),
-        expected_subscription_id
+            .to_string()
+            == expected_subscription_id
     );
     Ok(notification["params"]["result"].take())
 }
@@ -614,10 +603,7 @@ pub async fn assert_no_notifications(
 ) -> Result<(), anyhow::Error> {
     match receive_rpc_via_ws(ws).await {
         Ok(resp) => anyhow::bail!("Expected no notifications; found: {resp}"),
-        Err(e) if e.to_string().contains("deadline has elapsed") => {
-            /* expected */
-            Ok(())
-        }
+        Err(e) if e.to_string().contains("deadline has elapsed") => Ok(()), /* expected */
         Err(e) => anyhow::bail!("Expected to error out due to empty channel; found: {e}"),
     }
 }

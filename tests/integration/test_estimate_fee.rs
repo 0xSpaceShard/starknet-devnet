@@ -276,16 +276,13 @@ async fn estimate_fee_of_invoke() {
         devnet.json_rpc_client.call(call.clone(), BlockId::Tag(BlockTag::Latest)).await.unwrap();
     assert_eq!(balance_after_insufficient, vec![Felt::ZERO]);
 
-    match assert_tx_reverted(
+    assert_tx_reverted(
         &unsuccessful_invoke_tx.transaction_hash,
         &devnet.json_rpc_client,
         &["Insufficient max L2Gas"],
     )
     .await
-    {
-        Ok(_) => {}
-        Err(e) => panic!("Transaction not reverted: {:?}", e),
-    };
+    .unwrap();
 
     // invoke with sufficient resource bounds
     let fee = LocalFee::from(fee_estimation);

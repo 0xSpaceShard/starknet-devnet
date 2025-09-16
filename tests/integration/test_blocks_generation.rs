@@ -107,20 +107,17 @@ async fn assert_latest_block_with_receipts(
         .await
         .unwrap();
 
-    assert_eq!(latest_block["transactions"].as_array().unwrap().len(), tx_count);
-    assert_eq!(latest_block["block_number"], block_number);
-    assert_eq!(latest_block["status"], "ACCEPTED_ON_L2");
+    anyhow::ensure!(latest_block["transactions"].as_array().unwrap().len() == tx_count);
+    anyhow::ensure!(latest_block["block_number"] == block_number);
+    anyhow::ensure!(latest_block["status"] == "ACCEPTED_ON_L2");
 
     for tx in latest_block["transactions"].as_array().unwrap() {
-        match assert_tx_succeeded_accepted(
+        assert_tx_succeeded_accepted(
             &Felt::from_hex_unchecked(tx["receipt"]["transaction_hash"].as_str().unwrap()),
             &devnet.json_rpc_client,
         )
         .await
-        {
-            Ok(_) => {}
-            Err(e) => anyhow::bail!("Transaction failed: {}", e),
-        };
+        .unwrap();
     }
 
     Ok(())

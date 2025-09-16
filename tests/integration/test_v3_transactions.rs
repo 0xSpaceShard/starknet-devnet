@@ -305,10 +305,7 @@ async fn deploy_account_happy_path() {
     devnet.mint_unit(account_address, 1e18 as u128, FeeUnit::Fri).await;
 
     let result = deploy_v3.send().await.unwrap();
-    match assert_tx_succeeded_accepted(&result.transaction_hash, &devnet.json_rpc_client).await {
-        Ok(_) => (),
-        Err(e) => panic!("Transaction failed: {}", e),
-    };
+    assert_tx_succeeded_accepted(&result.transaction_hash, &devnet.json_rpc_client).await.unwrap();
 }
 
 /// This function sets the gas price and/or gas units to a value that is less than the estimated
