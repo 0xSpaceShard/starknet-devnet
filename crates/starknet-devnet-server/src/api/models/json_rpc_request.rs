@@ -7,7 +7,7 @@ use starknet_types::rpc::estimate_message_fee::EstimateMessageFeeRequest;
 use starknet_types::rpc::gas_modification::GasModificationRequest;
 use tracing::error;
 
-use crate::api::endpoints_impl::accounts::{BalanceQuery, PredeployedAccountsQuery};
+use crate::api::account_helpers::{BalanceQuery, PredeployedAccountsQuery};
 use crate::api::error::StrictRpcResult;
 use crate::api::models::{
     AbortingBlocks, AcceptOnL1Request, AccountAddressInput, BlockAndClassHashInput,

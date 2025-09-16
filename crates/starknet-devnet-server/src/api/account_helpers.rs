@@ -1,18 +1,31 @@
+use serde::Deserialize;
 use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
 use starknet_core::error::DevnetResult;
 use starknet_core::starknet::Starknet;
-use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
+use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::join_felts;
 use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::block::{BlockId, BlockTag};
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 
-use crate::api::Api;
-use crate::api::error::{ApiError, StrictRpcResult};
-use crate::api::models::{DevnetResponse, MintTokensRequest, MintTokensResponse};
+use crate::api::error::ApiError;
+use crate::api::models::AccountBalanceResponse;
 
-/// get the balance of the `address`
+#[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct BalanceQuery {
+    pub address: Felt,
+    pub unit: Option<FeeUnit>,
+    pub block_id: Option<BlockId>,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct PredeployedAccountsQuery {
+    pub with_balance: Option<bool>,
+}
+
 pub fn get_balance(
     starknet: &mut Starknet,
     address: ContractAddress,
@@ -55,37 +68,16 @@ pub fn get_erc20_address(unit: &FeeUnit) -> DevnetResult<ContractAddress> {
     Ok(ContractAddress::new(erc20_contract_address)?)
 }
 
-pub(crate) async fn mint_impl(api: &Api, request: MintTokensRequest) -> StrictRpcResult {
-    let mut starknet = api.starknet.lock().await;
-    let unit = request.unit.unwrap_or(FeeUnit::FRI);
-    let erc20_address = get_erc20_address(&unit)?;
+pub fn get_balance_unit(
+    starknet: &mut Starknet,
+    address: ContractAddress,
+    unit: FeeUnit,
+) -> Result<AccountBalanceResponse, ApiError> {
+    let erc20_address =
+        get_erc20_address(&unit).map_err(|e| ApiError::InvalidValueError { msg: e.to_string() })?;
+    let amount =
+        get_balance(starknet, address, erc20_address, BlockId::Tag(BlockTag::PreConfirmed))
+            .map_err(|e| ApiError::GeneralError(e.to_string()))?;
 
-    // increase balance
-    let tx_hash = starknet.mint(request.address, request.amount, erc20_address).await?;
-
-    let tx = starknet.get_transaction_execution_and_finality_status(tx_hash)?;
-    match tx.execution_status {
-        TransactionExecutionStatus::Succeeded => {
-            let new_balance = get_balance(
-                &mut starknet,
-                request.address,
-                erc20_address,
-                BlockId::Tag(BlockTag::PreConfirmed),
-            )?;
-            let new_balance = new_balance.to_str_radix(10);
-
-            Ok(DevnetResponse::MintTokens(MintTokensResponse { new_balance, unit, tx_hash }).into())
-        }
-        TransactionExecutionStatus::Reverted => Err(ApiError::MintingReverted {
-            tx_hash,
-            revert_reason: tx.failure_reason.map(|reason| {
-                if reason.contains("u256_add Overflow") {
-                    "The requested minting amount overflows the token contract's total_supply."
-                        .into()
-                } else {
-                    reason
-                }
-            }),
-        }),
-    }
+    Ok(AccountBalanceResponse { amount: amount.to_string(), unit })
 }

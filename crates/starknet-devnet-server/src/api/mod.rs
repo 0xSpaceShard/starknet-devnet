@@ -9,8 +9,8 @@ use tracing::error;
 use crate::dump_util::DumpEvent;
 use crate::subscribe::SocketCollection;
 
+mod account_helpers;
 mod endpoints;
-mod endpoints_impl;
 mod endpoints_ws;
 pub mod error;
 pub mod json_rpc_handler;
