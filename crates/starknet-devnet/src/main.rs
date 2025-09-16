@@ -291,14 +291,13 @@ async fn main() -> Result<(), anyhow::Error> {
         starknet_config.chain_id = json_rpc_client.chain_id().await?.into();
     }
 
-    let starknet = Starknet::new(&starknet_config)?;
-    let api = Api::new(starknet);
+    let mut starknet = Starknet::new(&starknet_config)?;
 
     let (address, listener) = bind_port(server_config.host, server_config.port).await?;
 
     // set block timestamp shift during startup if start time is set
     if let Some(start_time) = starknet_config.start_time {
-        api.starknet.lock().await.set_block_timestamp_shift(
+        starknet.set_block_timestamp_shift(
             start_time as i64 - Starknet::get_unix_timestamp_as_seconds() as i64,
         );
     };
@@ -306,14 +305,13 @@ async fn main() -> Result<(), anyhow::Error> {
     log_chain_id(&starknet_config.chain_id);
     log_predeployed_contracts(&starknet_config);
     log_other_predeclared_contracts(&starknet_config);
-
-    let predeployed_accounts = api.starknet.lock().await.get_predeployed_accounts();
     log_predeployed_accounts(
-        &predeployed_accounts,
+        &starknet.get_predeployed_accounts(),
         starknet_config.seed,
         starknet_config.predeployed_accounts_initial_balance.clone(),
     );
 
+    let api = Api::new(starknet);
     let json_rpc_handler = JsonRpcHandler::new(api.clone(), &starknet_config, &server_config);
     if let Some(dump_path) = &starknet_config.dump_path {
         // Try to load events from the path. Since the same CLI parameter is used for dump and load
@@ -344,11 +342,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // run server also as a JoinHandle
     let server_handle =
-        task::spawn(server.with_graceful_shutdown(shutdown_signal(api.clone())).into_future());
+        task::spawn(server.with_graceful_shutdown(shutdown_signal(api)).into_future());
     tasks.push(server_handle);
-
-    // wait for ctrl + c signal (SIGINT)
-    shutdown_signal(api.clone()).await;
 
     // join all tasks
     let results = join_all(tasks).await;
