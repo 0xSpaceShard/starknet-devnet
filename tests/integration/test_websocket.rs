@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use futures::{SinkExt, StreamExt};
 use serde_json::json;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{
@@ -107,6 +108,26 @@ async fn restarting_should_forget_all_websocket_subscriptions() {
     devnet.restart().await;
 
     assert_no_notifications(&mut ws).await;
+}
+
+#[tokio::test]
+async fn test_deserialization_error_via_ws() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+    let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+    let _ =
+        ws.send(tokio_tungstenite::tungstenite::Message::Text("garbage_string".to_string())).await;
+
+    let resp_raw = ws.next().await.unwrap().unwrap();
+    let resp: serde_json::Value = serde_json::from_slice(&resp_raw.into_data()).unwrap();
+    assert_eq!(
+        resp,
+        json!({
+            "jsonrpc": "2.0",
+            "id": serde_json::Value::Null,
+            "error": { "code": -32700, "message": "Parse error", "data": {"reason" : "expected value at line 1 column 1"} }
+        })
+    );
 }
 
 #[tokio::test]

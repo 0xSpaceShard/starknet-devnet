@@ -12,7 +12,6 @@ use starknet_types::rpc::transactions::TransactionFinalityStatus;
 use tokio::sync::Mutex;
 use tracing::{info, trace};
 
-use crate::ServerConfig;
 use crate::api::models::{
     AccountAddressInput, BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput,
     BlockIdInput, BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeclareTransactionInput,
@@ -34,6 +33,7 @@ use crate::subscribe::{
     NewTransactionNotification, NewTransactionReceiptNotification, NewTransactionStatus,
     NotificationData, SocketId,
 };
+use crate::{ServerConfig, rpc_core};
 
 /// This object will be used as a shared state between HTTP calls.
 /// Is similar to the HttpApiHandler but is with extended functionality and is used for JSON-RPC
@@ -141,8 +141,8 @@ impl RpcHandler for JsonRpcHandler {
             }
         }
 
+        self.api.sockets.lock().await.remove(&socket_id);
         if socket_safely_closed {
-            self.api.sockets.lock().await.remove(&socket_id);
             tracing::info!("Websocket disconnected");
         } else {
             tracing::error!("Failed socket read");
@@ -532,7 +532,11 @@ impl JsonRpcHandler {
                 Ok(_) => return,
                 Err(e) => json!(RpcResponse::from_rpc_error(e, rpc_call.id)).to_string(),
             },
-            Err(e) => e.to_string(),
+            Err(e) => json!(RpcResponse::from_rpc_error(
+                RpcError::parse_error(e.to_string()),
+                rpc_core::request::Id::Null
+            ))
+            .to_string(),
         };
 
         if let Err(e) = ws.lock().await.send(Message::Text(error_serialized)).await {

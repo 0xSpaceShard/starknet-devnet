@@ -52,7 +52,16 @@ pub async fn handle<THandler: RpcHandler>(
             .into(),
         Err(err) => {
             warn!(target: "rpc", ?err, "invalid request");
-            Response::error(RpcError::invalid_request()).into()
+            match &err {
+                JsonRejection::JsonSyntaxError(_) => {
+                    warn!(target: "rpc", "syntax error in json");
+                    Response::error(RpcError::parse_error(err.to_string())).into()
+                }
+                _ => {
+                    warn!(target: "rpc", ?err, "unknown json rejection error");
+                    Response::error(RpcError::invalid_request_with_reason(err.to_string())).into()
+                }
+            }
         }
     }
 }
