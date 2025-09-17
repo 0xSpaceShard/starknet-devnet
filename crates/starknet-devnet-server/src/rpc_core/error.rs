@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use std::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::json;
 
 /// Represents a JSON-RPC error
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -29,7 +30,7 @@ impl RpcError {
         RpcError {
             code: ErrorCode::ParseError,
             message: Cow::Borrowed(ErrorCode::ParseError.message()),
-            data: Some(serde_json::json!({ "reason": reason.into() })),
+            data: Some(json!({ "reason": reason.into() })),
         }
     }
     /// Creates a new `MethodNotFound`
@@ -50,7 +51,7 @@ impl RpcError {
         RpcError {
             code: ErrorCode::InvalidRequest,
             message: Cow::Borrowed(ErrorCode::InvalidRequest.message()),
-            data: Some(serde_json::json!({ "reason": reason.into() })),
+            data: Some(json!({ "reason": reason.into() })),
         }
     }
 
