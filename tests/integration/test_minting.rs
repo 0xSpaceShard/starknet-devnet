@@ -13,7 +13,7 @@ async fn increase_balance_happy_path(
     init_amount: u128,
     mint_amount: u128,
     unit: FeeUnit,
-) {
+) -> Result<(), anyhow::Error> {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
     let mut resp_body: serde_json::Value = devnet
@@ -25,36 +25,36 @@ async fn increase_balance_happy_path(
                 "unit": unit,
             }),
         )
-        .await
-        .unwrap();
+        .await?;
 
     // tx hash is not constant so we just assert its general form
     let tx_hash_value = resp_body["tx_hash"].take();
-    assert!(tx_hash_value.as_str().unwrap().starts_with("0x"));
+    anyhow::ensure!(tx_hash_value.as_str().unwrap().starts_with("0x"));
 
     let final_balance = Felt::from(init_amount) + Felt::from(mint_amount);
-    assert_eq!(
-        resp_body,
-        json!({
-            "new_balance": final_balance.to_biguint().to_string(),
-            "unit": unit,
-            "tx_hash": null
-        })
+    anyhow::ensure!(
+        resp_body
+            == json!({
+                "new_balance": final_balance.to_biguint().to_string(),
+                "unit": unit,
+                "tx_hash": null
+            })
     );
 
     let new_balance =
         devnet.get_balance_latest(&Felt::from_hex_unchecked(address), unit).await.unwrap();
-    assert_eq!(final_balance, new_balance);
+    anyhow::ensure!(final_balance == new_balance);
+    Ok(())
 }
 
 #[tokio::test]
 async fn increase_balance_of_undeployed_address_wei() {
-    increase_balance_happy_path(DUMMY_ADDRESS, 0, DUMMY_AMOUNT, FeeUnit::Wei).await;
+    increase_balance_happy_path(DUMMY_ADDRESS, 0, DUMMY_AMOUNT, FeeUnit::Wei).await.unwrap();
 }
 
 #[tokio::test]
 async fn increase_balance_of_undeployed_address_fri() {
-    increase_balance_happy_path(DUMMY_ADDRESS, 0, DUMMY_AMOUNT, FeeUnit::Fri).await;
+    increase_balance_happy_path(DUMMY_ADDRESS, 0, DUMMY_AMOUNT, FeeUnit::Fri).await.unwrap();
 }
 
 #[tokio::test]
@@ -89,6 +89,7 @@ async fn increase_balance_of_predeployed_account() {
         FeeUnit::Wei,
     )
     .await
+    .unwrap()
 }
 
 #[tokio::test]
@@ -100,6 +101,7 @@ async fn increase_balance_of_predeployed_account_u256() {
         FeeUnit::Wei,
     )
     .await
+    .unwrap()
 }
 
 #[tokio::test]

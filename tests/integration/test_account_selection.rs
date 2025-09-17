@@ -42,33 +42,38 @@ async fn spawnable_with_custom_account_cairo_1() {
 }
 
 /// Common body for tests defined below
-async fn correct_artifact_test_body(devnet_args: &[&str], expected_hash_hex: &str) {
-    let devnet = BackgroundDevnet::spawn_with_additional_args(devnet_args).await.unwrap();
+async fn correct_artifact_test_body(
+    devnet_args: &[&str],
+    expected_hash_hex: &str,
+) -> Result<(), anyhow::Error> {
+    let devnet = BackgroundDevnet::spawn_with_additional_args(devnet_args).await?;
 
     let (_, account_address) = devnet.get_first_predeployed_account().await;
     let retrieved_class_hash = devnet
         .json_rpc_client
         .get_class_hash_at(BlockId::Tag(BlockTag::Latest), account_address)
-        .await
-        .unwrap();
+        .await?;
     let expected_hash = Felt::from_hex_unchecked(expected_hash_hex);
-    assert_eq!(retrieved_class_hash, expected_hash);
+    anyhow::ensure!(retrieved_class_hash == expected_hash);
 
     let config = devnet.get_config().await;
-    let config_class_hash_hex = config["account_contract_class_hash"].as_str().unwrap();
-    assert_eq!(Felt::from_hex_unchecked(config_class_hash_hex), expected_hash);
+    let config_class_hash_hex = config["account_contract_class_hash"]
+        .as_str()
+        .ok_or(anyhow::anyhow!("contract class hash not found"))?;
+    anyhow::ensure!(Felt::from_hex_unchecked(config_class_hash_hex) == expected_hash);
+    Ok(())
 }
 
 #[tokio::test]
 async fn correct_cairo1_artifact() {
     let cli_args = ["--account-class", "cairo1"];
-    correct_artifact_test_body(&cli_args, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).await;
+    correct_artifact_test_body(&cli_args, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).await.unwrap();
 }
 
 #[tokio::test]
 async fn correct_custom_artifact() {
     let cli_args = ["--account-class-custom", CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH];
-    correct_artifact_test_body(&cli_args, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).await;
+    correct_artifact_test_body(&cli_args, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).await.unwrap();
 }
 
 #[tokio::test]

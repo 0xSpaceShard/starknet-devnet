@@ -110,12 +110,12 @@ pub async fn assert_tx_succeeded_accepted<T: Provider>(
 
     match receipt.execution_result() {
         ExecutionResult::Succeeded => (),
-        other => anyhow::bail!("Should have succeeded; got: {other:?}"),
+        other => anyhow::bail!("Tx {tx_hash:#x} should have succeeded; got: {other:?}"),
     }
 
     match receipt.finality_status() {
         starknet_rs_core::types::TransactionFinalityStatus::AcceptedOnL2 => Ok(()),
-        other => anyhow::bail!("Should have been accepted on L2; got: {other:?}"),
+        other => anyhow::bail!("Tx {tx_hash:#x} should have been accepted on L2; got: {other:?}"),
     }
 }
 
@@ -435,7 +435,7 @@ pub async fn deploy_argent_account(
 
     let account_address = deployment.address();
     devnet.mint(account_address, u128::MAX).await;
-    let deployment_result = deployment.send().await.map_err(|e| anyhow::anyhow!("{e:?}"))?;
+    let deployment_result = deployment.send().await?;
 
     Ok((deployment_result, signer))
 }

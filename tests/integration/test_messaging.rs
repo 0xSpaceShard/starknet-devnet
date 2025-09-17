@@ -70,7 +70,7 @@ async fn increase_balance<A: ConnectedAccount + Send + Sync + 'static>(
     contract_address: Felt,
     user: Felt,
     amount: Felt,
-) {
+) -> Result<(), anyhow::Error> {
     let invoke_calls = vec![Call {
         to: contract_address,
         selector: get_selector_from_name("increase_balance").unwrap(),
@@ -84,18 +84,24 @@ async fn increase_balance<A: ConnectedAccount + Send + Sync + 'static>(
         .l2_gas(5e7 as u64)
         .send()
         .await
-        .unwrap();
+        .map_err(|err| anyhow::anyhow!("invoke error {:?}", err))?;
+    Ok(())
 }
 
 /// Gets the balance for the given user.
-async fn get_balance(devnet: &BackgroundDevnet, contract_address: Felt, user: Felt) -> Vec<Felt> {
+async fn get_balance(
+    devnet: &BackgroundDevnet,
+    contract_address: Felt,
+    user: Felt,
+) -> Result<Vec<Felt>, anyhow::Error> {
     let call = FunctionCall {
         contract_address,
         entry_point_selector: get_selector_from_name("get_balance").unwrap(),
         calldata: vec![user],
     };
 
-    devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::PreConfirmed)).await.unwrap()
+    let result = devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::PreConfirmed)).await?;
+    Ok(result)
 }
 
 /// Withdraws the given amount from a user and send this amount in a l2->l1 message
@@ -137,12 +143,7 @@ async fn deploy_l2_msg_contract(
         &UdcUniqueness::NotUnique,
         &constructor_calldata,
     );
-    contract_factory
-        .deploy_v3(constructor_calldata, salt, false)
-        .nonce(Felt::ONE)
-        .send()
-        .await
-        .unwrap();
+    contract_factory.deploy_v3(constructor_calldata, salt, false).nonce(Felt::ONE).send().await?;
 
     Ok(contract_address)
 }
@@ -151,8 +152,11 @@ async fn deploy_l2_msg_contract(
 /// Returns (devnet instance, account used for deployment, l1-l2 contract address).
 async fn setup_devnet(
     devnet_args: &[&str],
-) -> (BackgroundDevnet, Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>, Felt) {
-    let devnet = BackgroundDevnet::spawn_with_additional_args(devnet_args).await.unwrap();
+) -> Result<
+    (BackgroundDevnet, Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>, Felt),
+    anyhow::Error,
+> {
+    let devnet = BackgroundDevnet::spawn_with_additional_args(devnet_args).await?;
 
     let (signer, account_address) = devnet.get_first_predeployed_account().await;
 
@@ -164,22 +168,27 @@ async fn setup_devnet(
         ExecutionEncoding::New,
     ));
 
-    let contract_address = deploy_l2_msg_contract(account.clone()).await.unwrap();
+    let contract_address = deploy_l2_msg_contract(account.clone()).await?;
 
-    (devnet, account, contract_address)
+    Ok((devnet, account, contract_address))
 }
 
-fn assert_accepted_l1_handler_trace(trace: &TransactionTrace) {
+fn assert_accepted_l1_handler_trace(trace: &TransactionTrace) -> Result<(), anyhow::Error> {
     match trace {
         TransactionTrace::L1Handler(L1HandlerTransactionTrace {
             function_invocation: ExecuteInvocation::Success(invocation),
             ..
         }) => {
-            assert_eq!(invocation.contract_address.to_hex_string(), MESSAGING_L2_CONTRACT_ADDRESS);
-            assert_eq!(invocation.entry_point_selector.to_hex_string(), L1_HANDLER_SELECTOR);
-            assert_eq!(invocation.calldata[0].to_hex_string(), MESSAGING_L1_CONTRACT_ADDRESS);
+            anyhow::ensure!(
+                invocation.contract_address.to_hex_string() == MESSAGING_L2_CONTRACT_ADDRESS
+            );
+            anyhow::ensure!(invocation.entry_point_selector.to_hex_string() == L1_HANDLER_SELECTOR);
+            anyhow::ensure!(
+                invocation.calldata[0].to_hex_string() == MESSAGING_L1_CONTRACT_ADDRESS
+            );
+            Ok(())
         }
-        other => panic!("Invalid trace: {other:?}"),
+        other => anyhow::bail!("Invalid trace: {other:?}"),
     }
 }
 
@@ -190,26 +199,26 @@ async fn assert_withdrawn(
     to_address: Felt,
     user: Felt,
     amount: Felt,
-) -> Result<(), RpcError> {
-    assert_eq!(get_balance(devnet, from_address, user).await, [Felt::ZERO]);
+) -> Result<(), anyhow::Error> {
+    anyhow::ensure!(get_balance(devnet, from_address, user).await.unwrap() == [Felt::ZERO]);
 
     let resp_body =
         devnet.send_custom_rpc("devnet_postmanFlush", json!({ "dry_run": true })).await?;
 
-    assert_eq!(
-        resp_body,
-        json!({
-            "messages_to_l1": [
-                {
-                    "from_address": from_address,
-                    "to_address": to_address,
-                    "payload": [MESSAGE_WITHDRAW_OPCODE, user, amount]
-                }
-            ],
-            "messages_to_l2": [],
-            "generated_l2_transactions": [],
-            "l1_provider": "dry run"
-        })
+    anyhow::ensure!(
+        resp_body
+            == json!({
+                "messages_to_l1": [
+                    {
+                        "from_address": from_address,
+                        "to_address": to_address,
+                        "payload": [MESSAGE_WITHDRAW_OPCODE, user, amount]
+                    }
+                ],
+                "messages_to_l2": [],
+                "generated_l2_transactions": [],
+                "l1_provider": "dry run"
+            })
     );
 
     Ok(())
@@ -218,13 +227,13 @@ async fn assert_withdrawn(
 #[tokio::test]
 async fn can_send_message_to_l1() {
     let (devnet, account, l1l2_contract_address) =
-        setup_devnet(&["--account-class", "cairo1"]).await;
+        setup_devnet(&["--account-class", "cairo1"]).await.unwrap();
     let user = Felt::ONE;
 
     // Set balance to 1 for user.
     let user_balance = Felt::ONE;
-    increase_balance(account.clone(), l1l2_contract_address, user, user_balance).await;
-    assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
+    increase_balance(account.clone(), l1l2_contract_address, user, user_balance).await.unwrap();
+    assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await.unwrap(), [user_balance]);
 
     // We don't actually send a message to L1 in this test.
     let l1_address = DUMMY_L1_ADDRESS;
@@ -237,7 +246,7 @@ async fn can_send_message_to_l1() {
 #[tokio::test]
 async fn can_send_message_to_l1_from_library_syscall() {
     let (devnet, account, l1l2_contract_address) =
-        setup_devnet(&["--account-class", "cairo1"]).await;
+        setup_devnet(&["--account-class", "cairo1"]).await.unwrap();
 
     // Declare l1l2 lib with only one function to send messages.
     // Its class hash can then be ignored, it's hardcoded in the contract.
@@ -257,8 +266,10 @@ async fn can_send_message_to_l1_from_library_syscall() {
 
     // Set balance to 1 for user.
     let user_balance = Felt::ONE;
-    increase_balance(Arc::clone(&account), l1l2_contract_address, user, user_balance).await;
-    assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
+    increase_balance(Arc::clone(&account), l1l2_contract_address, user, user_balance)
+        .await
+        .unwrap();
+    assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await.unwrap(), [user_balance]);
 
     // We don't actually send a message to the L1 in this test.
     let l1_address = DUMMY_L1_ADDRESS;
@@ -281,13 +292,13 @@ async fn can_send_message_to_l1_from_library_syscall() {
 #[tokio::test]
 async fn mock_message_to_l2_creates_a_tx_with_desired_effect() {
     let (devnet, account, l1l2_contract_address) =
-        setup_devnet(&["--account-class", "cairo1"]).await;
+        setup_devnet(&["--account-class", "cairo1"]).await.unwrap();
     let user = Felt::ONE;
 
     // Set balance to 1 for user.
     let user_balance = Felt::ONE;
-    increase_balance(account, l1l2_contract_address, user, user_balance).await;
-    assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
+    increase_balance(account, l1l2_contract_address, user, user_balance).await.unwrap();
+    assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await.unwrap(), [user_balance]);
 
     // Use postman to send a message to l2 without l1 - the message increments user balance
     let increment_amount = Felt::from_hex_unchecked("0xff");
@@ -307,7 +318,7 @@ async fn mock_message_to_l2_creates_a_tx_with_desired_effect() {
 
     // assert state changed
     assert_eq!(
-        get_balance(&devnet, l1l2_contract_address, user).await,
+        get_balance(&devnet, l1l2_contract_address, user).await.unwrap(),
         [user_balance + increment_amount]
     );
 
@@ -337,7 +348,7 @@ async fn mock_message_to_l2_creates_a_tx_with_desired_effect() {
 async fn can_deploy_l1_messaging_contract() {
     let anvil = BackgroundAnvil::spawn().await.unwrap();
 
-    let (devnet, _, _) = setup_devnet(&["--account-class", "cairo1"]).await;
+    let (devnet, _, _) = setup_devnet(&["--account-class", "cairo1"]).await.unwrap();
 
     let body = devnet
         .send_custom_rpc("devnet_postmanLoad", json!({ "network_url": anvil.url }))
@@ -431,7 +442,7 @@ async fn setup_anvil_incorrect_eth_private_key() {
     .await
     .unwrap();
 
-    let (devnet, _, _) = setup_devnet(&["--account-class", "cairo1"]).await;
+    let (devnet, _, _) = setup_devnet(&["--account-class", "cairo1"]).await.unwrap();
 
     let body = devnet
         .send_custom_rpc("devnet_postmanLoad", json!({ "network_url": anvil.url }))
@@ -462,7 +473,7 @@ async fn deploy_l1_messaging_contract_with_custom_key() {
     .await
     .unwrap();
 
-    let (devnet, _, _) = setup_devnet(&["--account-class", "cairo1"]).await;
+    let (devnet, _, _) = setup_devnet(&["--account-class", "cairo1"]).await.unwrap();
 
     let body = devnet
         .send_custom_rpc(
@@ -484,20 +495,20 @@ async fn deploy_l1_messaging_contract_with_custom_key() {
 #[tokio::test]
 async fn can_consume_from_l2() {
     let (devnet, account, l1l2_contract_address) =
-        setup_devnet(&["--account-class", "cairo1"]).await;
+        setup_devnet(&["--account-class", "cairo1"]).await.unwrap();
     let user = Felt::ONE;
 
     // Set balance to 1 for user.
     let user_balance = Felt::ONE;
-    increase_balance(account.clone(), l1l2_contract_address, user, user_balance).await;
-    assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
+    increase_balance(account.clone(), l1l2_contract_address, user, user_balance).await.unwrap();
+    assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await.unwrap(), [user_balance]);
 
     // We don't need valid l1 address as we don't use L1 node.
     let l1_address = DUMMY_L1_ADDRESS;
 
     // Withdraw the 1 amount in a l2->l1 message.
     withdraw(account, l1l2_contract_address, user, user_balance, l1_address).await.unwrap();
-    assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [Felt::ZERO]);
+    assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await.unwrap(), [Felt::ZERO]);
 
     let body = devnet
         .send_custom_rpc(
@@ -528,7 +539,8 @@ async fn can_interact_with_l1() {
         "--dump-on",
         "exit",
     ])
-    .await;
+    .await
+    .unwrap();
 
     // Load l1 messaging contract.
     let body: serde_json::Value = devnet
@@ -552,14 +564,14 @@ async fn can_interact_with_l1() {
 
     // Set balance to 1 for the user 1 on L2.
     let user_balance = Felt::ONE;
-    increase_balance(sn_account.clone(), sn_l1l2_contract, user_sn, user_balance).await;
-    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [user_balance]);
+    increase_balance(sn_account.clone(), sn_l1l2_contract, user_sn, user_balance).await.unwrap();
+    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await.unwrap(), [user_balance]);
 
     // Withdraw the amount 1 from user 1 balance on L2 to send it on L1 with a l2->l1 message.
     withdraw(sn_account, sn_l1l2_contract, user_sn, user_balance, eth_l1l2_address_felt)
         .await
         .unwrap();
-    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ZERO]);
+    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await.unwrap(), [Felt::ZERO]);
 
     // Flush to send the messages.
     devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.expect("flush failed");
@@ -583,7 +595,7 @@ async fn can_interact_with_l1() {
 
     // Balances on both layers is 0 at this point.
     assert_eq!(user_balance_eth, 0.into());
-    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ZERO]);
+    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await.unwrap(), [Felt::ZERO]);
 
     // Flush messages to have MessageToL2 executed.
     let flush_resp = devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
@@ -592,10 +604,10 @@ async fn can_interact_with_l1() {
     let generated_l2_tx = Felt::from_hex_unchecked(generated_l2_txs[0].as_str().unwrap());
 
     // Ensure the balance is back to 1 on L2.
-    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ONE]);
+    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await.unwrap(), [Felt::ONE]);
 
     let l1_handler_trace = devnet.json_rpc_client.trace_transaction(generated_l2_tx).await.unwrap();
-    assert_accepted_l1_handler_trace(&l1_handler_trace);
+    assert_accepted_l1_handler_trace(&l1_handler_trace).unwrap();
 
     send_ctrl_c_signal_and_wait(&devnet.process).await;
 
@@ -611,7 +623,7 @@ async fn can_interact_with_l1() {
 
     let l1_handler_trace_loaded =
         loaded_devnet.json_rpc_client.trace_transaction(generated_l2_tx).await.unwrap();
-    assert_accepted_l1_handler_trace(&l1_handler_trace_loaded);
+    assert_accepted_l1_handler_trace(&l1_handler_trace_loaded).unwrap();
 }
 
 #[tokio::test]
@@ -625,13 +637,19 @@ async fn assert_l1_handler_tx_can_be_dumped_and_loaded() {
         "--dump-path",
         &dump_file.path,
     ])
-    .await;
+    .await
+    .unwrap();
 
     // Set balance for user
     let user = Felt::ONE;
     let user_balance = Felt::ONE;
-    increase_balance(Arc::clone(&account), l1l2_contract_address, user, user_balance).await;
-    assert_eq!(get_balance(&dumping_devnet, l1l2_contract_address, user).await, [user_balance]);
+    increase_balance(Arc::clone(&account), l1l2_contract_address, user, user_balance)
+        .await
+        .unwrap();
+    assert_eq!(
+        get_balance(&dumping_devnet, l1l2_contract_address, user).await.unwrap(),
+        [user_balance]
+    );
 
     // Use postman to send a message to l2 without l1 - the message increments user balance
     let increment_amount = Felt::from(0xff);
@@ -652,7 +670,7 @@ async fn assert_l1_handler_tx_can_be_dumped_and_loaded() {
         .unwrap();
 
     assert_eq!(
-        get_balance(&dumping_devnet, l1l2_contract_address, user).await,
+        get_balance(&dumping_devnet, l1l2_contract_address, user).await.unwrap(),
         [user_balance + increment_amount]
     );
 
@@ -668,7 +686,7 @@ async fn assert_l1_handler_tx_can_be_dumped_and_loaded() {
     .unwrap();
 
     assert_eq!(
-        get_balance(&loading_devnet, l1l2_contract_address, user).await,
+        get_balance(&loading_devnet, l1l2_contract_address, user).await.unwrap(),
         [user_balance + increment_amount]
     );
 }
@@ -676,7 +694,7 @@ async fn assert_l1_handler_tx_can_be_dumped_and_loaded() {
 #[tokio::test]
 async fn test_correct_message_order() {
     let anvil = BackgroundAnvil::spawn_with_additional_args(&["--block-time", "1"]).await.unwrap();
-    let (devnet, sn_account, sn_l1l2_contract) = setup_devnet(&[]).await;
+    let (devnet, sn_account, sn_l1l2_contract) = setup_devnet(&[]).await.unwrap();
 
     // Load l1 messaging contract.
     let load_resp: serde_json::Value = devnet
@@ -700,7 +718,9 @@ async fn test_correct_message_order() {
 
     // Set balance for the user on L2.
     let init_balance = 5_u64;
-    increase_balance(sn_account.clone(), sn_l1l2_contract, user_sn, init_balance.into()).await;
+    increase_balance(sn_account.clone(), sn_l1l2_contract, user_sn, init_balance.into())
+        .await
+        .unwrap();
 
     // Withdraw the set amount from user 1 balance on L2 to send it on L1 with a l2->l1 message.
     withdraw(sn_account, sn_l1l2_contract, user_sn, init_balance.into(), eth_l1l2_address_felt)
@@ -772,7 +792,7 @@ async fn test_dumpability_of_messaging_contract_loading() {
 #[tokio::test]
 async fn flushing_only_new_messages_after_restart() {
     let anvil = BackgroundAnvil::spawn().await.unwrap();
-    let (devnet, sn_account, sn_l1l2_contract) = setup_devnet(&[]).await;
+    let (devnet, sn_account, sn_l1l2_contract) = setup_devnet(&[]).await.unwrap();
 
     // Load l1 messaging contract.
     let load_resp = devnet
@@ -796,14 +816,14 @@ async fn flushing_only_new_messages_after_restart() {
 
     // Set balance to for the user 1 on L2.
     let user_balance = Felt::TWO;
-    increase_balance(sn_account.clone(), sn_l1l2_contract, user_sn, user_balance).await;
-    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [user_balance]);
+    increase_balance(sn_account.clone(), sn_l1l2_contract, user_sn, user_balance).await.unwrap();
+    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await.unwrap(), [user_balance]);
 
     // Withdraw on L2 to send it to L1 with a l2->l1 message.
     withdraw(sn_account.clone(), sn_l1l2_contract, user_sn, user_balance, eth_l1l2_address_felt)
         .await
         .unwrap();
-    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ZERO]);
+    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await.unwrap(), [Felt::ZERO]);
 
     // Flush to send the messages.
     devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
@@ -837,14 +857,14 @@ async fn flushing_only_new_messages_after_restart() {
 
     let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
     assert_eq!(user_balance_eth, 1.into()); // 2 - 1
-    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ZERO]);
+    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await.unwrap(), [Felt::ZERO]);
 
     // Flush messages to have MessageToL2 executed.
     devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
 
     let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
     assert_eq!(user_balance_eth, deposit_amount.into());
-    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ONE]);
+    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await.unwrap(), [Felt::ONE]);
 
     // Restart Devnet, l1-l2 messaging should be intact
     devnet.restart().await;
@@ -858,7 +878,7 @@ async fn flushing_only_new_messages_after_restart() {
     // Redeploy
     let sn_l1l2_contract = deploy_l2_msg_contract(sn_account).await.unwrap();
     let sn_l1l2_contract_u256 = felt_to_u256(sn_l1l2_contract);
-    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ZERO]);
+    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await.unwrap(), [Felt::ZERO]);
 
     // Trigger a new action to return funds to L2
     anvil
@@ -869,15 +889,15 @@ async fn flushing_only_new_messages_after_restart() {
     // After depositing, there should be no funds on L1; also no funds on L2 before flushing.
     let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
     assert_eq!(user_balance_eth, 0.into()); // 2 - 1 - 1
-    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ZERO]);
+    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await.unwrap(), [Felt::ZERO]);
 
     devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
-    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [Felt::ONE]);
+    assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await.unwrap(), [Felt::ONE]);
 }
 
 #[tokio::test]
 async fn test_getting_status_of_mock_message() {
-    let (devnet, _, l1l2_contract_address) = setup_devnet(&[]).await;
+    let (devnet, _, l1l2_contract_address) = setup_devnet(&[]).await.unwrap();
 
     // Use postman to send a message to l2 without l1 - the message increments user balance
     let increment_amount = Felt::from(0xff);
@@ -896,7 +916,10 @@ async fn test_getting_status_of_mock_message() {
 
     let mock_msg_resp =
         devnet.send_custom_rpc("devnet_postmanSendMessageToL2", mock_msg_body).await.unwrap();
-    assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [increment_amount]);
+    assert_eq!(
+        get_balance(&devnet, l1l2_contract_address, user).await.unwrap(),
+        [increment_amount]
+    );
 
     let messages_status = devnet
         .send_custom_rpc("starknet_getMessagesStatus", json!({ "transaction_hash": l1_tx_hash }))
@@ -916,7 +939,7 @@ async fn test_getting_status_of_mock_message() {
 #[tokio::test]
 async fn test_getting_status_of_real_message() {
     let anvil = BackgroundAnvil::spawn().await.unwrap();
-    let (devnet, sn_account, sn_l1l2_contract) = setup_devnet(&[]).await;
+    let (devnet, sn_account, sn_l1l2_contract) = setup_devnet(&[]).await.unwrap();
 
     // Load l1 messaging contract.
     let body: serde_json::Value = devnet
@@ -939,7 +962,7 @@ async fn test_getting_status_of_real_message() {
     // Set balance to 1 for the user 1 on L2 and withdraw to L1.
     let user_sn = Felt::ONE;
     let user_balance = Felt::ONE;
-    increase_balance(sn_account.clone(), sn_l1l2_contract, user_sn, user_balance).await;
+    increase_balance(sn_account.clone(), sn_l1l2_contract, user_sn, user_balance).await.unwrap();
     withdraw(sn_account, sn_l1l2_contract, user_sn, user_balance, eth_l1l2_address_felt)
         .await
         .unwrap();
@@ -995,13 +1018,13 @@ async fn test_getting_status_of_real_message() {
 #[tokio::test]
 async fn withdrawing_should_incur_l1_gas_cost() {
     let (devnet, account, l1l2_contract_address) =
-        setup_devnet(&["--account-class", "cairo1"]).await;
+        setup_devnet(&["--account-class", "cairo1"]).await.unwrap();
     let user = Felt::ONE;
 
     // Set balance to 1 for user.
     let user_balance = Felt::ONE;
-    increase_balance(account.clone(), l1l2_contract_address, user, user_balance).await;
-    assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
+    increase_balance(account.clone(), l1l2_contract_address, user, user_balance).await.unwrap();
+    assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await.unwrap(), [user_balance]);
 
     // We don't actually send a message to L1 in this test.
     let l1_address = DUMMY_L1_ADDRESS;

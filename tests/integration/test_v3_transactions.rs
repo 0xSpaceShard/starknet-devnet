@@ -196,7 +196,7 @@ async fn invoke_with_insufficient_gas_price_and_or_gas_units_should_fail() {
             Some(&account),
             Option::<&OpenZeppelinAccountFactory<LocalWallet, JsonRpcClient<HttpTransport>>>::None,
         )
-        .await;
+        .await.unwrap();
 }
 
 #[tokio::test]
@@ -221,7 +221,7 @@ async fn deploy_account_with_insufficient_gas_price_and_or_gas_units_should_fail
             Option::<&SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>::None,
             Some(&factory),
         )
-        .await
+        .await.unwrap()
 }
 
 #[tokio::test]
@@ -283,7 +283,7 @@ async fn declare_with_insufficient_gas_price_and_or_gas_units_should_fail() {
             Some(&account),
             Option::<&OpenZeppelinAccountFactory<LocalWallet, JsonRpcClient<HttpTransport>>>::None,
         )
-        .await;
+        .await.unwrap();
 }
 
 #[tokio::test]
@@ -318,19 +318,28 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
     transaction_action: Action,
     account: Option<&A>,
     account_factory: Option<&F>,
-) {
+) -> Result<(), anyhow::Error> {
     let estimate_fee = match &transaction_action {
-        Action::Declaration(sierra_class, casm_hash) => {
-            DeclarationV3::new(sierra_class.clone(), *casm_hash, account.unwrap())
+        Action::Declaration(sierra_class, casm_hash) => DeclarationV3::new(
+            sierra_class.clone(),
+            *casm_hash,
+            account.ok_or(anyhow::anyhow!("Account not found"))?,
+        )
+        .estimate_fee()
+        .await
+        .map_err(|e| anyhow::Error::msg(e.to_string()))?,
+        Action::AccountDeployment(salt) => AccountDeploymentV3::new(
+            *salt,
+            account_factory.ok_or(anyhow::anyhow!("Account Factory is None"))?,
+        )
+        .estimate_fee()
+        .await
+        .map_err(|e| anyhow::Error::msg(e.to_string()))?,
+        Action::Execution(calls) => {
+            ExecutionV3::new(calls.clone(), account.ok_or(anyhow::anyhow!("Account not found"))?)
                 .estimate_fee()
                 .await
-                .unwrap()
-        }
-        Action::AccountDeployment(salt) => {
-            AccountDeploymentV3::new(*salt, account_factory.unwrap()).estimate_fee().await.unwrap()
-        }
-        Action::Execution(calls) => {
-            ExecutionV3::new(calls.clone(), account.unwrap()).estimate_fee().await.unwrap()
+                .map_err(|e| anyhow::Error::msg(e.to_string()))?
         }
     };
 
@@ -359,7 +368,7 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                     starknet_rs_accounts::AccountError::Provider(ProviderError::StarknetError(
                         StarknetError::InsufficientResourcesForValidate,
                     )) => {}
-                    other => panic!("Unexpected error {:?}", other),
+                    other => anyhow::bail!("Unexpected error {:?}", other),
                 }
             }
             Action::AccountDeployment(salt) => {
@@ -376,7 +385,7 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                             StarknetError::InsufficientResourcesForValidate,
                         ),
                     ) => {}
-                    other => panic!("Unexpected error {:?}", other),
+                    other => anyhow::bail!("Unexpected error {:?}", other),
                 }
             }
             Action::Execution(calls) => {
@@ -392,17 +401,16 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                 match transaction_result {
                     Ok(InvokeTransactionResult { transaction_hash }) => {
                         let receipt = account
-                            .unwrap()
+                            .ok_or(anyhow::anyhow!("Account not found"))?
                             .provider()
                             .get_transaction_receipt(transaction_hash)
-                            .await
-                            .unwrap();
+                            .await?;
                         let execution_result = receipt.receipt.execution_result();
                         match execution_result {
                             ExecutionResult::Reverted { reason } => {
                                 assert_contains(reason.as_str(), "Insufficient max L2Gas").unwrap();
                             }
-                            other => panic!("Unexpected result: {:?}", other),
+                            other => anyhow::bail!("Unexpected result: {:?}", other),
                         }
                     }
                     Err(starknet_rs_accounts::AccountError::Provider(
@@ -410,11 +418,13 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                             StarknetError::InsufficientResourcesForValidate,
                         ),
                     )) => {}
-                    Err(error) => panic!("Unexpected error {:?}", error),
+                    Err(error) => anyhow::bail!("Unexpected error {:?}", error),
                 }
             }
         };
     }
+
+    Ok(())
 }
 
 #[tokio::test]

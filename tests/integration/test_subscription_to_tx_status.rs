@@ -31,25 +31,26 @@ fn assert_mint_notification_succeeded(
     tx_hash: Felt,
     subscription_id: SubscriptionId,
     expected_finality_status: &str,
-) {
-    assert_eq!(
-        notification,
-        json!({
-            "jsonrpc": "2.0",
-            "method": "starknet_subscriptionTransactionStatus",
-            "params": {
-                "result": {
-                    "transaction_hash": tx_hash,
-                    "status": {
-                        "finality_status": expected_finality_status,
-                        "failure_reason": null,
-                        "execution_status": "SUCCEEDED",
+) -> Result<(), anyhow::Error> {
+    anyhow::ensure!(
+        notification
+            == json!({
+                "jsonrpc": "2.0",
+                "method": "starknet_subscriptionTransactionStatus",
+                "params": {
+                    "result": {
+                        "transaction_hash": tx_hash,
+                        "status": {
+                            "finality_status": expected_finality_status,
+                            "failure_reason": null,
+                            "execution_status": "SUCCEEDED",
+                        },
                     },
-                },
-                "subscription_id": subscription_id,
-            }
-        })
+                    "subscription_id": subscription_id,
+                }
+            })
     );
+    Ok(())
 }
 
 #[tokio::test]
@@ -65,7 +66,8 @@ async fn subscribe_to_new_tx_status_happy_path() {
     assert_eq!(tx_hash, expected_tx_hash);
 
     let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-    assert_mint_notification_succeeded(notification, tx_hash, subscription_id, "ACCEPTED_ON_L2");
+    assert_mint_notification_succeeded(notification, tx_hash, subscription_id, "ACCEPTED_ON_L2")
+        .unwrap();
 }
 
 #[tokio::test]
@@ -140,15 +142,14 @@ async fn should_notify_if_subscribed_before_and_after_tx(
     ws_before_tx: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
     ws_after_tx: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
     expected_finality_status: &str,
-) -> (Felt, String, String) {
+) -> Result<(Felt, String, String), anyhow::Error> {
     let (address, mint_amount, expected_tx_hash) = first_mint_data();
 
     // should work if subscribing before sending the tx
-    let subscription_id_before =
-        subscribe_tx_status(ws_before_tx, &expected_tx_hash).await.unwrap();
+    let subscription_id_before = subscribe_tx_status(ws_before_tx, &expected_tx_hash).await?;
 
     let tx_hash = devnet.mint(address, mint_amount).await;
-    assert_eq!(tx_hash, expected_tx_hash);
+    anyhow::ensure!(tx_hash == expected_tx_hash);
 
     {
         let notification = receive_rpc_via_ws(ws_before_tx).await.unwrap();
@@ -157,24 +158,24 @@ async fn should_notify_if_subscribed_before_and_after_tx(
             tx_hash,
             subscription_id_before.clone(),
             expected_finality_status,
-        );
-        assert_no_notifications(ws_before_tx).await.unwrap();
+        )?;
+        assert_no_notifications(ws_before_tx).await?;
     }
 
     // should work even if subscribing after the tx was sent
-    let subscription_id_after = subscribe_tx_status(ws_after_tx, &expected_tx_hash).await.unwrap();
+    let subscription_id_after = subscribe_tx_status(ws_after_tx, &expected_tx_hash).await?;
     {
-        let notification = receive_rpc_via_ws(ws_after_tx).await.unwrap();
+        let notification = receive_rpc_via_ws(ws_after_tx).await?;
         assert_mint_notification_succeeded(
             notification,
             tx_hash,
             subscription_id_after.clone(),
             expected_finality_status,
-        );
-        assert_no_notifications(ws_after_tx).await.unwrap();
+        )?;
+        assert_no_notifications(ws_after_tx).await?;
     }
 
-    (tx_hash, subscription_id_before, subscription_id_after)
+    Ok((tx_hash, subscription_id_before, subscription_id_after))
 }
 
 #[tokio::test]
@@ -192,7 +193,8 @@ async fn should_notify_in_on_demand_mode() {
             &mut ws_after_tx,
             "PRE_CONFIRMED",
         )
-        .await;
+        .await
+        .unwrap();
 
     // Creating a new block should make txs go: PRE_CONFIRMED->ACCEPTED_ON_L2
     devnet.create_block().await.unwrap();
@@ -206,7 +208,8 @@ async fn should_notify_in_on_demand_mode() {
             mint_tx_hash,
             subscription_id,
             "ACCEPTED_ON_L2",
-        );
+        )
+        .unwrap();
         assert_no_notifications(&mut ws).await.unwrap();
     }
 }
@@ -225,7 +228,8 @@ async fn should_notify_only_once_in_on_demand_mode() {
     assert_eq!(tx_hash, expected_tx_hash);
 
     let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-    assert_mint_notification_succeeded(notification, tx_hash, subscription_id, "PRE_CONFIRMED");
+    assert_mint_notification_succeeded(notification, tx_hash, subscription_id, "PRE_CONFIRMED")
+        .unwrap();
     assert_no_notifications(&mut ws).await.unwrap();
 
     let another_tx_hash = devnet.mint(address, mint_amount).await;
@@ -247,7 +251,8 @@ async fn should_notify_in_on_transaction_mode() {
         &mut ws_after_tx,
         "ACCEPTED_ON_L2",
     )
-    .await;
+    .await
+    .unwrap();
 
     // Expect no new notifications on creating a new empty block
     devnet.create_block().await.unwrap();
@@ -269,7 +274,8 @@ async fn should_notify_if_already_in_latest() {
     let subscription_id = subscribe_tx_status(&mut ws, &tx_hash).await.unwrap();
 
     let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-    assert_mint_notification_succeeded(notification, tx_hash, subscription_id, "ACCEPTED_ON_L2");
+    assert_mint_notification_succeeded(notification, tx_hash, subscription_id, "ACCEPTED_ON_L2")
+        .unwrap();
 
     devnet.mint(address, mint_amount).await;
     assert_no_notifications(&mut ws).await.unwrap();
@@ -292,7 +298,8 @@ async fn should_notify_if_already_in_an_old_block() {
     let subscription_id = subscribe_tx_status(&mut ws, &tx_hash).await.unwrap();
 
     let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-    assert_mint_notification_succeeded(notification, tx_hash, subscription_id, "ACCEPTED_ON_L2");
+    assert_mint_notification_succeeded(notification, tx_hash, subscription_id, "ACCEPTED_ON_L2")
+        .unwrap();
 
     devnet.mint(address, mint_amount).await;
     assert_no_notifications(&mut ws).await.unwrap();
@@ -310,7 +317,8 @@ async fn should_not_notify_of_status_change_when_block_aborted() {
 
     // as expected, the actual tx accepted notification is first
     let notification = receive_rpc_via_ws(&mut ws).await.unwrap();
-    assert_mint_notification_succeeded(notification, tx_hash, subscription_id, "ACCEPTED_ON_L2");
+    assert_mint_notification_succeeded(notification, tx_hash, subscription_id, "ACCEPTED_ON_L2")
+        .unwrap();
 
     devnet.abort_blocks(&BlockId::Number(1)).await.unwrap();
 
