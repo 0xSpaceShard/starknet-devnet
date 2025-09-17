@@ -9,6 +9,7 @@ use starknet_types::rpc::block::{
     PreConfirmedBlockHeader,
 };
 use starknet_types::rpc::state::StateUpdateResult;
+use starknet_types::rpc::transaction_receipt::FeeUnit;
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, SimulationFlag, Transactions,
 };
@@ -17,11 +18,15 @@ use super::error::{ApiError, StrictRpcResult};
 use super::models::{
     BlockHashAndNumberOutput, GetStorageProofInput, L1TransactionHashInput, SyncingOutput,
 };
-use super::{DevnetResponse, JsonRpcHandler, RPC_SPEC_VERSION, StarknetResponse};
-use crate::api::http::endpoints::DevnetConfig;
-use crate::api::http::endpoints::accounts::{
-    BalanceQuery, PredeployedAccountsQuery, get_account_balance_impl, get_predeployed_accounts_impl,
+use crate::api::account_helpers::{
+    BalanceQuery, PredeployedAccountsQuery, get_balance, get_balance_unit, get_erc20_address,
 };
+use crate::api::models::{
+    AccountBalanceResponse, AccountBalancesResponse, DevnetResponse, SerializableAccount,
+    StarknetResponse,
+};
+use crate::api::{JsonRpcHandler, RPC_SPEC_VERSION};
+use crate::config::DevnetConfig;
 
 const DEFAULT_CONTINUATION_TOKEN: &str = "0";
 const CONTINUATION_TOKEN_ORIGIN_PREFIX: &str = "devnet-origin-";
@@ -642,22 +647,55 @@ impl JsonRpcHandler {
         &self,
         params: Option<PredeployedAccountsQuery>,
     ) -> StrictRpcResult {
-        let predeployed_accounts = get_predeployed_accounts_impl(
-            &self.api,
-            params.unwrap_or(PredeployedAccountsQuery { with_balance: Option::None }),
-        )
-        .await
-        .map_err(ApiError::from)?;
+        let mut starknet = self.api.starknet.lock().await;
+        let mut predeployed_accounts: Vec<_> = starknet
+            .get_predeployed_accounts()
+            .into_iter()
+            .map(|acc| SerializableAccount {
+                initial_balance: acc.initial_balance.to_string(),
+                address: acc.account_address,
+                public_key: acc.keys.public_key,
+                private_key: acc.keys.private_key,
+                balance: None,
+            })
+            .collect();
 
+        // handle with_balance query string
+        if let Some(true) =
+            params.unwrap_or(PredeployedAccountsQuery { with_balance: Option::None }).with_balance
+        {
+            for account in predeployed_accounts.iter_mut() {
+                let eth = get_balance_unit(&mut starknet, account.address, FeeUnit::WEI)?;
+                let strk = get_balance_unit(&mut starknet, account.address, FeeUnit::FRI)?;
+
+                account.balance = Some(AccountBalancesResponse { eth, strk });
+            }
+        }
         Ok(DevnetResponse::PredeployedAccounts(predeployed_accounts).into())
     }
 
     /// devnet_getAccountBalance
     pub async fn get_account_balance(&self, params: BalanceQuery) -> StrictRpcResult {
-        let account_balance =
-            get_account_balance_impl(&self.api, params).await.map_err(ApiError::from)?;
+        let account_address = ContractAddress::new(params.address)
+            .map_err(|e| ApiError::InvalidValueError { msg: e.to_string() })?;
+        let unit = params.unit.unwrap_or(FeeUnit::FRI);
+        let erc20_address = get_erc20_address(&unit)
+            .map_err(|e| ApiError::InvalidValueError { msg: e.to_string() })?;
 
-        Ok(DevnetResponse::AccountBalance(account_balance).into())
+        let mut starknet = self.api.starknet.lock().await;
+
+        let amount = get_balance(
+            &mut starknet,
+            account_address,
+            erc20_address,
+            params.block_id.unwrap_or(BlockId::Tag(BlockTag::Latest)),
+        )
+        .map_err(|e| ApiError::GeneralError(e.to_string()))?;
+        Ok(DevnetResponse::AccountBalance(AccountBalanceResponse {
+            amount: amount.to_string(),
+            unit,
+        })
+        .into())
     }
 
     /// devnet_getConfig

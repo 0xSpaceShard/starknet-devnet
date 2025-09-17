@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::Common;
-use crate::api::json_rpc::spec_reader::data_generator::{Acceptor, Visitor};
+use crate::api::spec_reader::data_generator::{Acceptor, Visitor};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

@@ -1,21 +1,24 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
-use super::Common;
-use crate::api::json_rpc::spec_reader::data_generator::{Acceptor, Visitor};
+use super::{Common, Schema};
+use crate::api::spec_reader::data_generator::{Acceptor, Visitor};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct IntegerPrimitive {
+pub struct ObjectPrimitive {
     #[serde(flatten)]
     pub common: Common,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub minimum: Option<i32>,
+    pub summary: Option<String>,
+    pub properties: HashMap<String, Schema>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub maximum: Option<i32>,
+    pub required: Option<Vec<String>>,
 }
 
-impl Acceptor for IntegerPrimitive {
+impl Acceptor for ObjectPrimitive {
     fn accept(&self, visitor: &impl Visitor) -> Result<serde_json::Value, String> {
-        visitor.do_for_integer_primitive(self)
+        visitor.do_for_object_primitive(self)
     }
 }

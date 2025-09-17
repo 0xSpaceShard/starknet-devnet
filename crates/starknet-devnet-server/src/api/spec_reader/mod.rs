@@ -169,11 +169,11 @@ mod tests {
     use serde_json::Value;
 
     use super::{ApiMethod, Spec, generate_combined_schema, generate_json_rpc_response};
-    use crate::api::json_rpc::spec_reader::generate_json_rpc_request;
-    use crate::api::json_rpc::{
-        JsonRpcRequest, JsonRpcSubscriptionRequest, RPC_SPEC_VERSION, StarknetResponse,
-        StarknetSpecRequest,
+    use crate::api::RPC_SPEC_VERSION;
+    use crate::api::models::{
+        JsonRpcRequest, JsonRpcSubscriptionRequest, StarknetResponse, StarknetSpecRequest,
     };
+    use crate::api::spec_reader::generate_json_rpc_request;
     use crate::subscribe::{SubscriptionConfirmation, SubscriptionResponse};
 
     #[test]

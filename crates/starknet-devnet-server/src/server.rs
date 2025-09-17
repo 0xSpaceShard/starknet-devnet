@@ -14,7 +14,7 @@ use tower_http::cors::CorsLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 
-use crate::api::json_rpc::JsonRpcHandler;
+use crate::api::JsonRpcHandler;
 use crate::rpc_handler::RpcHandler;
 use crate::{ServerConfig, rpc_handler};
 pub type StarknetDevnetServer = axum::serve::Serve<IntoMakeService<Router>, Router>;

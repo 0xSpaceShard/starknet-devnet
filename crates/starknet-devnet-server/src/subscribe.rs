@@ -17,8 +17,8 @@ use starknet_types::rpc::transactions::{
 };
 use tokio::sync::Mutex;
 
-use crate::api::json_rpc::error::ApiError;
-use crate::api::json_rpc::models::SubscriptionId;
+use crate::api::error::ApiError;
+use crate::api::models::SubscriptionId;
 use crate::rpc_core::request::Id;
 
 pub type SocketId = u64;

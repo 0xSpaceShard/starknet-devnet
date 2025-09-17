@@ -4,12 +4,13 @@ use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::block::{BlockId, BlockStatus, BlockTag};
 use starknet_types::rpc::transactions::TransactionFinalityStatus;
 
+use super::JsonRpcHandler;
 use super::error::ApiError;
 use super::models::{
     EventsSubscriptionInput, SubscriptionBlockIdInput, SubscriptionIdInput, TransactionHashInput,
     TransactionReceiptSubscriptionInput, TransactionSubscriptionInput,
 };
-use super::{JsonRpcHandler, JsonRpcSubscriptionRequest};
+use crate::api::models::JsonRpcSubscriptionRequest;
 use crate::rpc_core::request::Id;
 use crate::subscribe::{
     AddressFilter, NewTransactionStatus, NotificationData, SocketId, StatusFilter, Subscription,

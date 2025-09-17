@@ -7,13 +7,14 @@ use starknet_types::starknet_api::core::ContractAddress;
 use thiserror::Error;
 use tracing::error;
 
-use super::{JsonRpcResponse, WILDCARD_RPC_ERROR_CODE};
-use crate::api::http::error::HttpApiError;
+use crate::api::models::{JsonRpcResponse, WILDCARD_RPC_ERROR_CODE};
 use crate::rpc_core::error::RpcError;
 
 #[allow(unused)]
 #[derive(Error, Debug)]
 pub enum ApiError {
+    #[error("{0}")]
+    GeneralError(String),
     #[error(transparent)]
     StarknetDevnetError(#[from] starknet_core::error::Error),
     #[error("Types error")]
@@ -67,8 +68,6 @@ pub enum ApiError {
     NoTraceAvailable,
     #[error("{msg}")]
     NoStateAtBlock { msg: String },
-    #[error(transparent)]
-    HttpApiError(#[from] HttpApiError),
     #[error("the compiled class hash did not match the one supplied in the transaction")]
     CompiledClassHashMismatch,
     #[error("Requested entrypoint does not exist in the contract")]
@@ -83,12 +82,23 @@ pub enum ApiError {
     ContractClassSizeIsTooLarge,
     #[error("Minting reverted")]
     MintingReverted { tx_hash: Felt, revert_reason: Option<String> },
+    #[error("The dump operation failed: {msg}")]
+    DumpError { msg: String },
+    #[error("Messaging error: {msg}")]
+    MessagingError { msg: String },
+    #[error("Invalid value: {msg}")]
+    InvalidValueError { msg: String },
 }
 
 impl ApiError {
     pub fn api_error_to_rpc_error(self) -> RpcError {
         let error_message = self.to_string();
         match self {
+            ApiError::GeneralError(err) => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
+                message: err.into(),
+                data: None,
+            },
             ApiError::RpcError(rpc_error) => rpc_error,
             ApiError::BlockNotFound => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(24),
@@ -241,7 +251,6 @@ impl ApiError {
                 message: error_message.into(),
                 data: None,
             },
-            ApiError::HttpApiError(http_api_error) => http_api_error.http_api_error_to_rpc_error(),
             ApiError::EntrypointNotFound => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(21),
                 message: error_message.into(),
@@ -272,6 +281,21 @@ impl ApiError {
                 message: error_message.into(),
                 data: Some(serde_json::json!({ "tx_hash": tx_hash, "revert_reason": reason })),
             },
+            ApiError::DumpError { msg } => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
+                message: msg.into(),
+                data: None,
+            },
+            ApiError::MessagingError { msg } => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
+                message: msg.into(),
+                data: None,
+            },
+            ApiError::InvalidValueError { msg } => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
+                message: msg.into(),
+                data: None,
+            },
         }
     }
 
@@ -282,7 +306,8 @@ impl ApiError {
             | Self::TransactionNotFound
             | Self::NoStateAtBlock { .. }
             | Self::ClassHashNotFound => true,
-            Self::StarknetDevnetError(_)
+            Self::GeneralError {..}
+            | Self::StarknetDevnetError(_)
             | Self::NoTraceAvailable
             | Self::TypesError(_)
             | Self::RpcError(_)
@@ -299,7 +324,6 @@ impl ApiError {
             | Self::InvalidTransactionNonce { .. }
             | Self::InsufficientAccountBalance
             | Self::ValidationFailure { .. }
-            | Self::HttpApiError(_)
             | Self::EntrypointNotFound
             | Self::TransactionExecutionError { .. }
             | Self::TooManyBlocksBack
@@ -308,7 +332,10 @@ impl ApiError {
             | Self::StorageProofNotSupported
             | Self::ContractClassSizeIsTooLarge
             | Self::MintingReverted { .. }
-            | Self::CompiledClassHashMismatch => false,
+            | Self::CompiledClassHashMismatch
+            | Self::DumpError { .. }
+            | Self::MessagingError { .. }
+            | Self::InvalidValueError { .. } => false,
         }
     }
 }
@@ -324,8 +351,8 @@ mod tests {
     use starknet_types::starknet_api::core::Nonce;
 
     use super::StrictRpcResult;
-    use crate::api::json_rpc::ToRpcResponseResult;
-    use crate::api::json_rpc::error::ApiError;
+    use crate::api::error::ApiError;
+    use crate::api::models::ToRpcResponseResult;
     use crate::rpc_core::error::{ErrorCode, RpcError};
 
     #[test]
