@@ -165,3 +165,32 @@ async fn reject_invalid_unit_when_querying() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
     reject_bad_json_rpc_request(&devnet, json!({ "address": "0x1", "unit": "INVALID" })).await;
 }
+
+#[tokio::test]
+async fn test_overflow_behavior() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+    let mint_err = devnet
+        .send_custom_rpc(
+            "devnet_mint",
+            serde_json::from_str(r#"{{
+                "address": "0x1",
+                "amount" : 72370055773322622139731865630429942408293740416025352524660990004945706024960, 
+                "unit": "FRI"
+            }}"#).unwrap()
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(
+        (
+            mint_err.code,
+            mint_err.message,
+            mint_err.data.unwrap()["revert_reason"].as_str().unwrap()
+        ),
+        (
+            -1,
+            "Minting reverted".into(),
+            "The requested minting amount overflows the token contract's total_supply."
+        )
+    );
+}
