@@ -170,6 +170,7 @@ async fn reject_invalid_unit_when_querying() {
 async fn test_overflow_behavior() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
 
+    // Sending a random too big value to a random address
     let mint_err = devnet
         .send_custom_rpc(
             "devnet_mint",
@@ -181,6 +182,8 @@ async fn test_overflow_behavior() {
         )
         .await
         .unwrap_err();
+
+    // The complete error also contains the tx hash, which cannot be asserted in a stable way.
     assert_eq!(
         (
             mint_err.code,
