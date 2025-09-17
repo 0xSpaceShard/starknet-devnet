@@ -92,3 +92,98 @@ async fn storage_proof_request_should_always_return_error() {
         other => panic!("Unexpected result: {other:?}"),
     }
 }
+
+#[tokio::test]
+async fn test_json_syntax_error_handling() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+    
+    // Send a malformed JSON request
+    let resp = reqwest::Client::new()
+        .post(format!("{}/rpc", devnet.url))
+        .header("Content-Type", "application/json")
+        .body("{ this is not valid JSON }")
+        .send()
+        .await
+        .unwrap();
+    
+    assert_eq!(resp.status(), reqwest::StatusCode::OK);
+    let error_resp: serde_json::Value = resp.json().await.unwrap();
+        
+    assert_eq!(
+        error_resp,
+        json!({
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32700,
+                "message": "Parse error",
+                "data": {
+                    "reason": "Failed to parse the request body as JSON"
+                }
+            },
+            "id": null
+        })
+    );
+    
+}
+
+#[tokio::test]
+async fn test_invalid_request_error_handling() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+    
+    let resp = reqwest::Client::new()
+        .post(format!("{}/rpc", devnet.url))
+        .header("Content-Type", "application/json")
+        .json(&json!({
+            "jsonrpc": "2.0",
+            "params": [],
+            "id": 1
+        }))
+        .send()
+        .await
+        .unwrap();
+    
+    let error_resp: serde_json::Value = resp.json().await.unwrap();
+    
+    assert_eq!(
+        error_resp,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "error": {
+                "code": -32600,
+                "message": "Invalid request"
+            }
+        })
+    );
+}
+
+#[tokio::test]
+async fn test_missing_json_content_type() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+    
+    // Send request without content-type header
+    let resp = reqwest::Client::new()
+        .post(format!("{}/rpc", devnet.url))
+        .body(r#"{"jsonrpc": "2.0", "method": "starknet_chainId", "params": [], "id": 1}"#)
+        .send()
+        .await
+        .unwrap();
+    
+    assert_eq!(resp.status(), reqwest::StatusCode::OK);
+    let error_resp: serde_json::Value = resp.json().await.unwrap();
+    assert_eq!(
+        error_resp,
+        json!({
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32600,
+                "message": "Invalid request",
+                "data": {
+                    "reason": "Missing content type"
+                }
+            },
+            "id": null
+        })
+    );
+
+}
