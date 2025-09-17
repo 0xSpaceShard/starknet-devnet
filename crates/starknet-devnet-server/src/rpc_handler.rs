@@ -50,28 +50,28 @@ pub async fn handle<THandler: RpcHandler>(
             .await
             .unwrap_or_else(|| Response::error(RpcError::invalid_request()))
             .into(),
-        Err(err) => {
-            match &err {
-                JsonRejection::JsonSyntaxError(e) => {
-                    let error_msg = e.to_string();
-                    let details = error_msg.split(" at line").next().unwrap_or(&error_msg).trim();
-                    warn!(target: "rpc", "JSON syntax error: {}", details);
-                    Response::error(RpcError::parse_error(details)).into()
-                }
-                JsonRejection::JsonDataError(e) => {
-                    warn!(target: "rpc", "JSON data error: {}", e);
-                    Response::error(RpcError::invalid_request_with_reason(format!("Data error: {}", e))).into()
-                }
-                JsonRejection::MissingJsonContentType(e) => {
-                    warn!(target: "rpc", "Missing JSON content type: {}", e);
-                    Response::error(RpcError::invalid_request_with_reason("Missing content type")).into()
-                }
-                _ => {
-                    warn!(target: "rpc", "Request rejection: {}", err);
-                    Response::error(RpcError::invalid_request_with_reason(err.to_string())).into()
-                }
+        Err(err) => match &err {
+            JsonRejection::JsonSyntaxError(e) => {
+                let error_msg = e.to_string();
+                let details = error_msg.split(" at line").next().unwrap_or(&error_msg).trim();
+                warn!(target: "rpc", "JSON syntax error: {}", details);
+                Response::error(RpcError::parse_error(details)).into()
             }
-        }
+            JsonRejection::JsonDataError(e) => {
+                warn!(target: "rpc", "JSON data error: {}", e);
+                Response::error(RpcError::invalid_request_with_reason(format!("Data error: {}", e)))
+                    .into()
+            }
+            JsonRejection::MissingJsonContentType(e) => {
+                warn!(target: "rpc", "Missing JSON content type: {}", e);
+                Response::error(RpcError::invalid_request_with_reason("Missing content type"))
+                    .into()
+            }
+            _ => {
+                warn!(target: "rpc", "Request rejection: {}", err);
+                Response::error(RpcError::invalid_request_with_reason(err.to_string())).into()
+            }
+        },
     }
 }
 

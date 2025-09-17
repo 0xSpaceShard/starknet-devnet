@@ -96,7 +96,7 @@ async fn storage_proof_request_should_always_return_error() {
 #[tokio::test]
 async fn test_json_syntax_error_handling() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
-    
+
     // Send a malformed JSON request
     let resp = reqwest::Client::new()
         .post(format!("{}/rpc", devnet.url))
@@ -105,10 +105,10 @@ async fn test_json_syntax_error_handling() {
         .send()
         .await
         .unwrap();
-    
+
     assert_eq!(resp.status(), reqwest::StatusCode::OK);
     let error_resp: serde_json::Value = resp.json().await.unwrap();
-        
+
     assert_eq!(
         error_resp,
         json!({
@@ -123,13 +123,12 @@ async fn test_json_syntax_error_handling() {
             "id": null
         })
     );
-    
 }
 
 #[tokio::test]
 async fn test_invalid_request_error_handling() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
-    
+
     let resp = reqwest::Client::new()
         .post(format!("{}/rpc", devnet.url))
         .header("Content-Type", "application/json")
@@ -141,9 +140,9 @@ async fn test_invalid_request_error_handling() {
         .send()
         .await
         .unwrap();
-    
+
     let error_resp: serde_json::Value = resp.json().await.unwrap();
-    
+
     assert_eq!(
         error_resp,
         json!({
@@ -160,7 +159,7 @@ async fn test_invalid_request_error_handling() {
 #[tokio::test]
 async fn test_missing_json_content_type() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
-    
+
     // Send request without content-type header
     let resp = reqwest::Client::new()
         .post(format!("{}/rpc", devnet.url))
@@ -168,7 +167,7 @@ async fn test_missing_json_content_type() {
         .send()
         .await
         .unwrap();
-    
+
     assert_eq!(resp.status(), reqwest::StatusCode::OK);
     let error_resp: serde_json::Value = resp.json().await.unwrap();
     assert_eq!(
@@ -185,5 +184,4 @@ async fn test_missing_json_content_type() {
             "id": null
         })
     );
-
 }
