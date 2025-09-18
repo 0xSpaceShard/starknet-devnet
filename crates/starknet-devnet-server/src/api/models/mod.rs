@@ -775,7 +775,7 @@ mod tests {
         );
 
         // Incorrect tag
-        assert_block_id_tag_correctness(false, BlockTag::Latest, r#"{"block_id": "latests"}"#);
+        assert_block_id_tag_correctness(false, BlockTag::Latest, r#"{"block_id": "latestx"}"#);
         assert_block_id_tag_correctness(false, BlockTag::Latest, r#"{"block_id": "pending"}"#);
         assert_block_id_tag_correctness(
             false,
