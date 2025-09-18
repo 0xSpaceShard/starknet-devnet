@@ -174,11 +174,11 @@ async fn test_overflow_behavior() {
     let mint_err = devnet
         .send_custom_rpc(
             "devnet_mint",
-            serde_json::from_str(r#"{{
+            serde_json::from_str(r#"{
                 "address": "0x1",
-                "amount" : 72370055773322622139731865630429942408293740416025352524660990004945706024960, 
+                "amount": 72370055773322622139731865630429942408293740416025352524660990004945706024960, 
                 "unit": "FRI"
-            }}"#).unwrap()
+            }"#).unwrap()
         )
         .await
         .unwrap_err();
