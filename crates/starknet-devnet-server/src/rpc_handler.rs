@@ -53,9 +53,8 @@ pub async fn handle<THandler: RpcHandler>(
         Err(err) => match &err {
             JsonRejection::JsonSyntaxError(e) => {
                 let error_msg = e.to_string();
-                let details = error_msg.split(" at line").next().unwrap_or(&error_msg).trim();
-                warn!(target: "rpc", "JSON syntax error: {}", details);
-                Response::error(RpcError::parse_error(details)).into()
+                warn!(target: "rpc", "JSON syntax error: {}", error_msg);
+                Response::error(RpcError::parse_error(error_msg)).into()
             }
             JsonRejection::JsonDataError(e) => {
                 warn!(target: "rpc", "JSON data error: {}", e);

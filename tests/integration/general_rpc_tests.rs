@@ -141,8 +141,8 @@ async fn test_invalid_request_error_handling() {
         .await
         .unwrap();
 
+    assert_eq!(resp.status(), reqwest::StatusCode::OK);
     let error_resp: serde_json::Value = resp.json().await.unwrap();
-
     assert_eq!(
         error_resp,
         json!({
