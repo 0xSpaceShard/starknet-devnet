@@ -41,7 +41,7 @@ http-body-util = { version = "0.1" }
 tower-http = { version = "0.5", features = ["full"] }
 
 # async
-tokio = { version = "1", features = [
+tokio = { version = "1.43.1", features = [
 	"time",
 	"macros",
 	"rt-multi-thread",
@@ -53,7 +53,7 @@ async-trait = "0.1"
 
 # tracing
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tracing-subscriber = { version = "0.3.20", features = ["env-filter", "fmt"] }
 
 # misc
 base64 = { version = "0.22" }
@@ -112,10 +112,12 @@ server = { version = "0.5.1", path = "crates/starknet-devnet-server", package = 
 zerocopy = "0.7.31"
 unsafe-libyaml = "0.2.10"
 h2 = "0.4"
+ring = "0.17.13"
 
 ethers = { version = "2.0.11" }
 
-openssl = { version = "0.10", features = ["vendored"] }
+# Changed from 0.10 to 0.10.72 as suggested by Dependabot: https://github.com/0xSpaceShard/starknet-devnet/security/dependabot/53
+openssl = { version = "0.10.72", features = ["vendored"] }
 
 parking_lot = "0.12.3"
 
