@@ -19,14 +19,14 @@ The modified gas prices take effect starting with the next block that is generat
 
 ### JSON-RPC Request
 
-The following JSON-RPC request can be used to set gas prices:
+The following JSON-RPC request can be used to set gas prices (all properties optional):
 
 ```json
 JSON-RPC
 {
     "jsonrpc": "2.0",
     "id": "1",
-    "method": "setGasPrice",
+    "method": "devnet_setGasPrice",
     "params": {
         "gas_price_wei": 1000000,
         "data_gas_price_wei": 10000,
