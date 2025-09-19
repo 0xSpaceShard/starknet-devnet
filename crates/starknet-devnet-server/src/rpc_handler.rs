@@ -50,10 +50,27 @@ pub async fn handle<THandler: RpcHandler>(
             .await
             .unwrap_or_else(|| Response::error(RpcError::invalid_request()))
             .into(),
-        Err(err) => {
-            warn!(target: "rpc", ?err, "invalid request");
-            Response::error(RpcError::invalid_request()).into()
-        }
+        Err(err) => match &err {
+            JsonRejection::JsonSyntaxError(e) => {
+                let error_msg = e.to_string();
+                warn!(target: "rpc", "JSON syntax error: {}", error_msg);
+                Response::error(RpcError::parse_error(error_msg)).into()
+            }
+            JsonRejection::JsonDataError(e) => {
+                warn!(target: "rpc", "JSON data error: {}", e);
+                Response::error(RpcError::invalid_request_with_reason(format!("Data error: {}", e)))
+                    .into()
+            }
+            JsonRejection::MissingJsonContentType(e) => {
+                warn!(target: "rpc", "Missing JSON content type: {}", e);
+                Response::error(RpcError::invalid_request_with_reason("Missing content type"))
+                    .into()
+            }
+            _ => {
+                warn!(target: "rpc", "Request rejection: {}", err);
+                Response::error(RpcError::invalid_request_with_reason(err.to_string())).into()
+            }
+        },
     }
 }
 
