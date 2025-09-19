@@ -54,13 +54,24 @@ async fn correct_artifact_test_body(
         .get_class_hash_at(BlockId::Tag(BlockTag::Latest), account_address)
         .await?;
     let expected_hash = Felt::from_hex_unchecked(expected_hash_hex);
-    anyhow::ensure!(retrieved_class_hash == expected_hash);
+    anyhow::ensure!(
+        retrieved_class_hash == expected_hash,
+        format!(
+            "assertion `left == right` failed, left: {retrieved_class_hash}, right: {expected_hash}"
+        )
+    );
 
     let config = devnet.get_config().await;
     let config_class_hash_hex = config["account_contract_class_hash"]
         .as_str()
         .ok_or(anyhow::anyhow!("contract class hash not found"))?;
-    anyhow::ensure!(Felt::from_hex_unchecked(config_class_hash_hex) == expected_hash);
+    let config_class_hash = Felt::from_hex_unchecked(config_class_hash_hex);
+    anyhow::ensure!(
+        config_class_hash == expected_hash,
+        format!(
+            "assertion `left == right` failed, left: {config_class_hash}, right: {expected_hash}"
+        )
+    );
     Ok(())
 }
 

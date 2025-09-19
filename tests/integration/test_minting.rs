@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use serde_json::json;
 use starknet_rs_core::types::Felt;
 
@@ -29,21 +30,29 @@ async fn increase_balance_happy_path(
 
     // tx hash is not constant so we just assert its general form
     let tx_hash_value = resp_body["tx_hash"].take();
-    anyhow::ensure!(tx_hash_value.as_str().unwrap().starts_with("0x"));
+    let tx_hash = tx_hash_value
+        .as_str()
+        .ok_or(anyhow!("failed to parse transaction hash"))?
+        .starts_with("0x");
+    anyhow::ensure!(tx_hash, "Transaction hash does not start with '0x'");
 
     let final_balance = Felt::from(init_amount) + Felt::from(mint_amount);
+    let expected_resp_body = json!({
+        "new_balance": final_balance.to_biguint().to_string(),
+        "unit": unit,
+        "tx_hash": null
+    });
     anyhow::ensure!(
-        resp_body
-            == json!({
-                "new_balance": final_balance.to_biguint().to_string(),
-                "unit": unit,
-                "tx_hash": null
-            })
+        resp_body == expected_resp_body,
+        format!("assertion `left == right` failed, left: {resp_body}, right: {expected_resp_body}")
     );
 
     let new_balance =
         devnet.get_balance_latest(&Felt::from_hex_unchecked(address), unit).await.unwrap();
-    anyhow::ensure!(final_balance == new_balance);
+    anyhow::ensure!(
+        final_balance == new_balance,
+        format!("assertion `left == right` failed, left: {final_balance}, right: {new_balance}")
+    );
     Ok(())
 }
 

@@ -32,23 +32,24 @@ fn assert_mint_notification_succeeded(
     subscription_id: SubscriptionId,
     expected_finality_status: &str,
 ) -> Result<(), anyhow::Error> {
+    let expected_resp = json!({
+        "jsonrpc": "2.0",
+        "method": "starknet_subscriptionTransactionStatus",
+        "params": {
+            "result": {
+                "transaction_hash": tx_hash,
+                "status": {
+                    "finality_status": expected_finality_status,
+                    "failure_reason": null,
+                    "execution_status": "SUCCEEDED",
+                },
+            },
+            "subscription_id": subscription_id,
+        }
+    });
     anyhow::ensure!(
-        notification
-            == json!({
-                "jsonrpc": "2.0",
-                "method": "starknet_subscriptionTransactionStatus",
-                "params": {
-                    "result": {
-                        "transaction_hash": tx_hash,
-                        "status": {
-                            "finality_status": expected_finality_status,
-                            "failure_reason": null,
-                            "execution_status": "SUCCEEDED",
-                        },
-                    },
-                    "subscription_id": subscription_id,
-                }
-            })
+        notification == expected_resp,
+        format!("assertion `left == right` failed, left: {notification}, right: {expected_resp}")
     );
     Ok(())
 }

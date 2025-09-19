@@ -47,7 +47,13 @@ async fn dump_load_dump_load(mode: &str) -> Result<(), anyhow::Error> {
     .await?;
 
     let last_block = devnet_load.get_latest_block_with_tx_hashes().await?;
-    anyhow::ensure!(last_block.block_number == 4);
+    anyhow::ensure!(
+        last_block.block_number == 4,
+        format!(
+            "assertion `left == right` failed, left: {}, right: {}",
+            last_block.block_number, 4
+        )
+    );
     Ok(())
 }
 

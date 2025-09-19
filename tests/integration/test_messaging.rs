@@ -180,11 +180,28 @@ fn assert_accepted_l1_handler_trace(trace: &TransactionTrace) -> Result<(), anyh
             ..
         }) => {
             anyhow::ensure!(
-                invocation.contract_address.to_hex_string() == MESSAGING_L2_CONTRACT_ADDRESS
+                invocation.contract_address.to_hex_string() == MESSAGING_L2_CONTRACT_ADDRESS,
+                format!(
+                    "assertion `left == right` failed, left: {}, right: {}",
+                    invocation.contract_address.to_hex_string(),
+                    MESSAGING_L2_CONTRACT_ADDRESS
+                )
             );
-            anyhow::ensure!(invocation.entry_point_selector.to_hex_string() == L1_HANDLER_SELECTOR);
             anyhow::ensure!(
-                invocation.calldata[0].to_hex_string() == MESSAGING_L1_CONTRACT_ADDRESS
+                invocation.entry_point_selector.to_hex_string() == L1_HANDLER_SELECTOR,
+                format!(
+                    "assertion `left == right` failed, left: {}, right: {}",
+                    invocation.entry_point_selector.to_hex_string(),
+                    L1_HANDLER_SELECTOR
+                )
+            );
+            anyhow::ensure!(
+                invocation.calldata[0].to_hex_string() == MESSAGING_L1_CONTRACT_ADDRESS,
+                format!(
+                    "assertion `left == right` failed, left: {}, right: {}",
+                    invocation.calldata[0].to_hex_string(),
+                    MESSAGING_L1_CONTRACT_ADDRESS
+                )
             );
             Ok(())
         }
@@ -200,25 +217,33 @@ async fn assert_withdrawn(
     user: Felt,
     amount: Felt,
 ) -> Result<(), anyhow::Error> {
-    anyhow::ensure!(get_balance(devnet, from_address, user).await.unwrap() == [Felt::ZERO]);
+    let balance = get_balance(devnet, from_address, user).await?;
+    anyhow::ensure!(
+        balance == [Felt::ZERO],
+        format!("assertion `left == right` failed, left: {:?}, right: {:?}", balance, [Felt::ZERO])
+    );
 
     let resp_body =
         devnet.send_custom_rpc("devnet_postmanFlush", json!({ "dry_run": true })).await?;
 
+    let expected_resp = json!({
+        "messages_to_l1": [
+            {
+                "from_address": from_address,
+                "to_address": to_address,
+                "payload": [MESSAGE_WITHDRAW_OPCODE, user, amount]
+            }
+        ],
+        "messages_to_l2": [],
+        "generated_l2_transactions": [],
+        "l1_provider": "dry run"
+    });
     anyhow::ensure!(
-        resp_body
-            == json!({
-                "messages_to_l1": [
-                    {
-                        "from_address": from_address,
-                        "to_address": to_address,
-                        "payload": [MESSAGE_WITHDRAW_OPCODE, user, amount]
-                    }
-                ],
-                "messages_to_l2": [],
-                "generated_l2_transactions": [],
-                "l1_provider": "dry run"
-            })
+        resp_body == expected_resp,
+        format!(
+            "assertion `left == right` failed, left: {:?}, right: {:?}",
+            resp_body, expected_resp
+        )
     );
 
     Ok(())

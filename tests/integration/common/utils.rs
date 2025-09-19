@@ -221,7 +221,11 @@ async fn send_ctrl_c_signal(process: &Child) {
 
 fn take_abi_from_json(value: &mut serde_json::Value) -> Result<serde_json::Value, anyhow::Error> {
     let abi_jsonified = value["abi"].take();
-    anyhow::ensure!(abi_jsonified != serde_json::json!(null));
+    let json_null = serde_json::json!(null);
+    anyhow::ensure!(
+        abi_jsonified != json_null,
+        format!("assertion `left == right` failed, left: {abi_jsonified}, right: {json_null}")
+    );
     Ok(serde_json::from_str(abi_jsonified.as_str().unwrap())?)
 }
 
@@ -237,8 +241,16 @@ pub fn assert_cairo1_classes_equal(
     let abi_a = take_abi_from_json(&mut class_a_jsonified)?;
     let abi_b = take_abi_from_json(&mut class_b_jsonified)?;
 
-    anyhow::ensure!(class_a_jsonified == class_b_jsonified);
-    anyhow::ensure!(abi_a == abi_b);
+    anyhow::ensure!(
+        class_a_jsonified == class_b_jsonified,
+        format!(
+            "assertion `left == right` failed, left: {class_a_jsonified}, right: {class_b_jsonified}"
+        )
+    );
+    anyhow::ensure!(
+        abi_a == abi_b,
+        format!("assertion `left == right` failed, left: {abi_a}, right: {abi_b}")
+    );
 
     Ok(())
 }
@@ -489,7 +501,13 @@ pub fn assert_json_rpc_errors_equal(
     e1: JsonRpcError,
     e2: JsonRpcError,
 ) -> Result<(), anyhow::Error> {
-    anyhow::ensure!((e1.code, e1.message, e1.data) == (e2.code, e2.message, e2.data));
+    anyhow::ensure!(
+        (e1.code, &e1.message, &e1.data) == (e2.code, &e2.message, &e2.data),
+        format!(
+            "assertion `left == right` failed, left: ({}, {}, {:?}), right: ({}, {}, {:?})",
+            e1.code, e1.message, e1.data, e2.code, e2.message, e2.data
+        )
+    );
     Ok(())
 }
 
@@ -586,14 +604,30 @@ pub async fn receive_notification(
     expected_subscription_id: SubscriptionId,
 ) -> Result<serde_json::Value, anyhow::Error> {
     let mut notification = receive_rpc_via_ws(ws).await?;
-    anyhow::ensure!(notification["jsonrpc"] == "2.0");
-    anyhow::ensure!(notification["method"] == method);
     anyhow::ensure!(
-        notification["params"]["subscription_id"]
-            .as_str()
-            .ok_or(anyhow::Error::msg("No Subscription ID in notification"))?
-            .to_string()
-            == expected_subscription_id
+        notification["jsonrpc"] == "2.0",
+        format!(
+            "assertion `left == right` failed, left: {}, right: {}",
+            notification["jsonrpc"], "2.0"
+        )
+    );
+    anyhow::ensure!(
+        notification["method"] == method,
+        format!(
+            "assertion `left == right` failed, left: {}, right: {method}",
+            notification["method"]
+        )
+    );
+    let subscription_id = notification["params"]["subscription_id"]
+        .as_str()
+        .ok_or(anyhow::Error::msg("No Subscription ID in notification"))?
+        .to_string();
+    anyhow::ensure!(
+        subscription_id == expected_subscription_id,
+        format!(
+            "assertion `left == right` failed, left: {}, right: {expected_subscription_id}",
+            subscription_id
+        )
     );
     Ok(notification["params"]["result"].take())
 }

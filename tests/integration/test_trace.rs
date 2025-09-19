@@ -33,30 +33,63 @@ fn assert_mint_invocation(trace: &TransactionTrace) -> Result<(), anyhow::Error>
             for invocation in [validate_invocation.as_ref().unwrap(), execute_invocation] {
                 anyhow::ensure!(
                     invocation.contract_address
-                        == Felt::from_hex_unchecked(CHARGEABLE_ACCOUNT_ADDRESS)
+                        == Felt::from_hex_unchecked(CHARGEABLE_ACCOUNT_ADDRESS),
+                    format!(
+                        "assertion `left == right` failed, left: {}, right: {}",
+                        invocation.contract_address,
+                        Felt::from_hex_unchecked(CHARGEABLE_ACCOUNT_ADDRESS)
+                    )
                 );
+                let expected_calldata = vec![
+                    Felt::ONE, // number of calls
+                    STRK_ERC20_CONTRACT_ADDRESS,
+                    get_selector_from_name("permissioned_mint").unwrap(),
+                    Felt::THREE, // calldata length
+                    DUMMY_ADDRESS,
+                    Felt::from(DUMMY_AMOUNT), // low bytes
+                    Felt::ZERO,               // high bytes
+                ];
                 anyhow::ensure!(
-                    invocation.calldata
-                        == vec![
-                            Felt::ONE, // number of calls
-                            STRK_ERC20_CONTRACT_ADDRESS,
-                            get_selector_from_name("permissioned_mint").unwrap(),
-                            Felt::THREE, // calldata length
-                            DUMMY_ADDRESS,
-                            Felt::from(DUMMY_AMOUNT), // low bytes
-                            Felt::ZERO                // high bytes
-                        ]
+                    invocation.calldata == expected_calldata,
+                    format!(
+                        "assertion `left == right` failed, left: {:?}, right: {:?}",
+                        invocation.calldata, expected_calldata
+                    )
                 );
             }
 
+            let fee_transfer_contract_address = fee_transfer_invocation
+                .as_ref()
+                .ok_or(anyhow::anyhow!("failed to reference fee transfer invocation"))?
+                .contract_address;
             anyhow::ensure!(
-                fee_transfer_invocation.as_ref().unwrap().contract_address
-                    == STRK_ERC20_CONTRACT_ADDRESS
+                fee_transfer_contract_address == STRK_ERC20_CONTRACT_ADDRESS,
+                format!(
+                    "assertion `left == right` failed, left: {fee_transfer_contract_address}, right: {STRK_ERC20_CONTRACT_ADDRESS}"
+                )
             );
 
-            anyhow::ensure!(execution_resources.l1_gas == 0);
-            anyhow::ensure!(execution_resources.l1_data_gas > 0);
-            anyhow::ensure!(execution_resources.l2_gas > 0);
+            anyhow::ensure!(
+                execution_resources.l1_gas == 0,
+                format!(
+                    "assertion `left == right` failed, left: {}, right: {}",
+                    execution_resources.l1_gas, 0
+                )
+            );
+            anyhow::ensure!(
+                execution_resources.l1_data_gas > 0,
+                format!(
+                    "assertion `left == right` failed, left: {}, right: {}",
+                    execution_resources.l1_data_gas, 0
+                )
+            );
+            anyhow::ensure!(
+                execution_resources.l2_gas > 0,
+                format!(
+                    "assertion `left == right` failed, left: {}, right: {}",
+                    execution_resources.l2_gas, 0
+                )
+            );
         }
         other => anyhow::bail!("Invalid trace: {other:?}"),
     };

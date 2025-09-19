@@ -22,7 +22,14 @@ async fn assert_accepted_on_l1(
     for block_hash in block_hashes {
         match devnet.json_rpc_client.get_block_with_tx_hashes(BlockId::Hash(*block_hash)).await {
             Ok(MaybePreConfirmedBlockWithTxHashes::Block(block)) => {
-                anyhow::ensure!(block.status == BlockStatus::AcceptedOnL1)
+                anyhow::ensure!(
+                    block.status == BlockStatus::AcceptedOnL1,
+                    format!(
+                        "assertion `left == right` failed, left: {:?}, right: {:?}",
+                        block.status,
+                        BlockStatus::AcceptedOnL1
+                    )
+                )
             }
             other => anyhow::bail!("Unexpected block: {other:?}"),
         }
@@ -30,7 +37,14 @@ async fn assert_accepted_on_l1(
 
     for tx_hash in tx_hashes {
         let tx_status = devnet.json_rpc_client.get_transaction_status(tx_hash).await.unwrap();
-        anyhow::ensure!(tx_status.finality_status() == SequencerTransactionStatus::AcceptedOnL1);
+        let tx_finality_status = tx_status.finality_status();
+        anyhow::ensure!(
+            tx_finality_status == SequencerTransactionStatus::AcceptedOnL1,
+            format!(
+                "assertion `left == right` failed, left: {tx_finality_status:?}, right: {:?}",
+                SequencerTransactionStatus::AcceptedOnL1
+            )
+        );
     }
 
     Ok(())
@@ -38,11 +52,26 @@ async fn assert_accepted_on_l1(
 
 async fn assert_latest_accepted_on_l2(devnet: &BackgroundDevnet) -> Result<(), anyhow::Error> {
     let latest_block = devnet.get_latest_block_with_tx_hashes().await?;
-    anyhow::ensure!(latest_block.status == BlockStatus::AcceptedOnL2,);
+    anyhow::ensure!(
+        latest_block.status == BlockStatus::AcceptedOnL2,
+        format!(
+            "assertion `left == right` failed, left: {:?}, right: {:?}",
+            latest_block.status,
+            BlockStatus::AcceptedOnL2
+        )
+    );
 
     for tx_hash in latest_block.transactions {
         let tx_status = devnet.json_rpc_client.get_transaction_status(tx_hash).await?;
-        anyhow::ensure!(tx_status.finality_status() == SequencerTransactionStatus::AcceptedOnL2)
+        let tx_finality_status = tx_status.finality_status();
+        anyhow::ensure!(
+            tx_finality_status == SequencerTransactionStatus::AcceptedOnL2,
+            format!(
+                "assertion `left == right` failed, left: {:?}, right: {:?}",
+                tx_finality_status,
+                SequencerTransactionStatus::AcceptedOnL2
+            )
+        )
     }
 
     Ok(())
