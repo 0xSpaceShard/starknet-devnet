@@ -27,6 +27,7 @@ use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::LocalWallet;
 
+use crate::assert_eq_prop;
 use crate::common::background_anvil::BackgroundAnvil;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
@@ -179,30 +180,12 @@ fn assert_accepted_l1_handler_trace(trace: &TransactionTrace) -> Result<(), anyh
             function_invocation: ExecuteInvocation::Success(invocation),
             ..
         }) => {
-            anyhow::ensure!(
-                invocation.contract_address.to_hex_string() == MESSAGING_L2_CONTRACT_ADDRESS,
-                format!(
-                    "assertion `left == right` failed, left: {}, right: {}",
-                    invocation.contract_address.to_hex_string(),
-                    MESSAGING_L2_CONTRACT_ADDRESS
-                )
-            );
-            anyhow::ensure!(
-                invocation.entry_point_selector.to_hex_string() == L1_HANDLER_SELECTOR,
-                format!(
-                    "assertion `left == right` failed, left: {}, right: {}",
-                    invocation.entry_point_selector.to_hex_string(),
-                    L1_HANDLER_SELECTOR
-                )
-            );
-            anyhow::ensure!(
-                invocation.calldata[0].to_hex_string() == MESSAGING_L1_CONTRACT_ADDRESS,
-                format!(
-                    "assertion `left == right` failed, left: {}, right: {}",
-                    invocation.calldata[0].to_hex_string(),
-                    MESSAGING_L1_CONTRACT_ADDRESS
-                )
-            );
+            assert_eq_prop!(
+                invocation.contract_address.to_hex_string(),
+                MESSAGING_L2_CONTRACT_ADDRESS
+            )?;
+            assert_eq_prop!(invocation.entry_point_selector.to_hex_string(), L1_HANDLER_SELECTOR)?;
+            assert_eq_prop!(invocation.calldata[0].to_hex_string(), MESSAGING_L1_CONTRACT_ADDRESS)?;
             Ok(())
         }
         other => anyhow::bail!("Invalid trace: {other:?}"),
@@ -218,10 +201,7 @@ async fn assert_withdrawn(
     amount: Felt,
 ) -> Result<(), anyhow::Error> {
     let balance = get_balance(devnet, from_address, user).await?;
-    anyhow::ensure!(
-        balance == [Felt::ZERO],
-        format!("assertion `left == right` failed, left: {:?}, right: {:?}", balance, [Felt::ZERO])
-    );
+    assert_eq_prop!(balance, [Felt::ZERO])?;
 
     let resp_body =
         devnet.send_custom_rpc("devnet_postmanFlush", json!({ "dry_run": true })).await?;
@@ -238,13 +218,7 @@ async fn assert_withdrawn(
         "generated_l2_transactions": [],
         "l1_provider": "dry run"
     });
-    anyhow::ensure!(
-        resp_body == expected_resp,
-        format!(
-            "assertion `left == right` failed, left: {:?}, right: {:?}",
-            resp_body, expected_resp
-        )
-    );
+    assert_eq_prop!(resp_body, expected_resp)?;
 
     Ok(())
 }

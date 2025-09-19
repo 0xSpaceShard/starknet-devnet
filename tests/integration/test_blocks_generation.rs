@@ -22,6 +22,7 @@ use crate::common::utils::{
     assert_tx_succeeded_pre_confirmed, get_contract_balance, get_contract_balance_by_block_id,
     get_events_contract_artifacts, get_simple_contract_artifacts, send_ctrl_c_signal_and_wait,
 };
+use crate::{assert_eq_prop, assert_prop};
 
 static DUMMY_ADDRESS: u128 = 1;
 static DUMMY_AMOUNT: u128 = 1;
@@ -30,11 +31,10 @@ async fn assert_pre_confirmed_state_update(devnet: &BackgroundDevnet) -> Result<
     let pre_confirmed_state_update =
         &devnet.json_rpc_client.get_state_update(BlockId::Tag(BlockTag::PreConfirmed)).await?;
 
-    anyhow::ensure!(
+    assert_prop!(
         matches!(pre_confirmed_state_update, MaybePreConfirmedStateUpdate::PreConfirmedUpdate(_)),
-        "Expected a pre-confirmed state update, but found: {:?}",
-        pre_confirmed_state_update
-    );
+        "Expected a pre-confirmed state update, but found: "
+    )?;
     Ok(())
 }
 
@@ -42,11 +42,10 @@ async fn assert_latest_state_update(devnet: &BackgroundDevnet) -> Result<(), any
     let latest_state_update =
         &devnet.json_rpc_client.get_state_update(BlockId::Tag(BlockTag::Latest)).await?;
 
-    anyhow::ensure!(
+    assert_prop!(
         matches!(latest_state_update, MaybePreConfirmedStateUpdate::Update(_)),
-        "Expected an update state update, but found: {:?}",
-        latest_state_update
-    );
+        "Expected an update state update, but found: "
+    )?;
     Ok(())
 }
 
@@ -57,28 +56,9 @@ async fn assert_latest_block_with_tx_hashes(
 ) -> Result<(), anyhow::Error> {
     let latest_block = devnet.get_latest_block_with_tx_hashes().await?;
 
-    anyhow::ensure!(
-        latest_block.block_number == block_number,
-        format!(
-            "assertion `left == right` failed, left: {}, right: {block_number}",
-            latest_block.block_number
-        )
-    );
-    anyhow::ensure!(
-        transactions == latest_block.transactions,
-        format!(
-            "assertion `left == right` failed, left: {transactions:?}, right: {:?}",
-            latest_block.transactions
-        )
-    );
-    anyhow::ensure!(
-        latest_block.status == BlockStatus::AcceptedOnL2,
-        format!(
-            "assertion `left == right` failed, left: {:?}, right: {:?}",
-            latest_block.status,
-            BlockStatus::AcceptedOnL2
-        )
-    );
+    assert_eq_prop!(latest_block.block_number, block_number)?;
+    assert_eq_prop!(transactions, latest_block.transactions)?;
+    assert_eq_prop!(latest_block.status, BlockStatus::AcceptedOnL2)?;
 
     for tx_hash in latest_block.transactions {
         assert_tx_succeeded_accepted(&tx_hash, &devnet.json_rpc_client).await?;
@@ -91,14 +71,7 @@ async fn assert_pre_confirmed_block_with_tx_hashes(
     tx_count: usize,
 ) -> Result<(), anyhow::Error> {
     let pre_confirmed_block = devnet.get_pre_confirmed_block_with_tx_hashes().await?;
-
-    let pre_confirmed_block_tx_count = pre_confirmed_block.transactions.len();
-    anyhow::ensure!(
-        pre_confirmed_block_tx_count == tx_count,
-        format!(
-            "assertion `left == right` failed, left: {pre_confirmed_block_tx_count}, right: {tx_count}"
-        )
-    );
+    assert_eq_prop!(pre_confirmed_block.transactions.len(), tx_count)?;
 
     for tx_hash in pre_confirmed_block.transactions {
         assert_tx_succeeded_pre_confirmed(&tx_hash, &devnet.json_rpc_client).await;
@@ -114,28 +87,9 @@ async fn assert_latest_block_with_txs(
 ) -> Result<(), anyhow::Error> {
     let latest_block = devnet.get_latest_block_with_txs().await?;
 
-    anyhow::ensure!(
-        latest_block.block_number == block_number,
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            latest_block.block_number, block_number
-        )
-    );
-    anyhow::ensure!(
-        latest_block.status == BlockStatus::AcceptedOnL2,
-        format!(
-            "assertion `left == right` failed, left: {:?}, right: {:?}",
-            latest_block.status,
-            BlockStatus::AcceptedOnL2
-        )
-    );
-    let latest_block_tx_count = latest_block.transactions.len();
-    anyhow::ensure!(
-        latest_block_tx_count == tx_count,
-        format!(
-            "assertion `left == right` failed, left: {latest_block_tx_count}, right: {tx_count}"
-        )
-    );
+    assert_eq_prop!(latest_block.block_number, block_number)?;
+    assert_eq_prop!(latest_block.status, BlockStatus::AcceptedOnL2)?;
+    assert_eq_prop!(latest_block.transactions.len(), tx_count)?;
 
     for tx in latest_block.transactions {
         assert_tx_succeeded_accepted(tx.transaction_hash(), &devnet.json_rpc_client).await?;
@@ -150,13 +104,7 @@ async fn assert_pre_confirmed_block_with_txs(
 ) -> Result<(), anyhow::Error> {
     let pre_confirmed_block = devnet.get_pre_confirmed_block_with_txs().await?;
 
-    let pre_confirmed_block_tx_count = pre_confirmed_block.transactions.len();
-    anyhow::ensure!(
-        pre_confirmed_block_tx_count == tx_count,
-        format!(
-            "assertion `left == right` failed, left: {pre_confirmed_block_tx_count}, right: {tx_count}"
-        )
-    );
+    assert_eq_prop!(pre_confirmed_block.transactions.len(), tx_count)?;
 
     for tx in pre_confirmed_block.transactions {
         assert_tx_succeeded_pre_confirmed(tx.transaction_hash(), &devnet.json_rpc_client).await;
@@ -178,26 +126,9 @@ async fn assert_latest_block_with_receipts(
         .as_array()
         .ok_or(anyhow!("cannot convert block txs to array"))?
         .len();
-    anyhow::ensure!(
-        latest_block_tx_count == tx_count,
-        format!(
-            "assertion `left == right` failed, left: {latest_block_tx_count}, right: {tx_count}"
-        )
-    );
-    anyhow::ensure!(
-        latest_block["block_number"] == block_number,
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            latest_block["block_number"], block_number
-        )
-    );
-    anyhow::ensure!(
-        latest_block["status"] == "ACCEPTED_ON_L2",
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            latest_block["status"], "ACCEPTED_ON_L2"
-        )
-    );
+    assert_eq_prop!(latest_block_tx_count, tx_count)?;
+    assert_eq_prop!(latest_block["block_number"], block_number)?;
+    assert_eq_prop!(latest_block["status"], "ACCEPTED_ON_L2")?;
 
     for tx in latest_block["transactions"].as_array().unwrap() {
         assert_tx_succeeded_accepted(
@@ -222,23 +153,15 @@ async fn assert_pre_confirmed_block_with_receipts(
         .send_custom_rpc("starknet_getBlockWithReceipts", json!({ "block_id": "pre_confirmed" }))
         .await?;
 
-    anyhow::ensure!(
+    assert_prop!(
         pre_confirmed_block["status"].is_null(),
-        format!(
-            "assertion failed, expected preconfirmed block status to be null, got: {}",
-            pre_confirmed_block["status"]
-        )
-    );
+        "expected preconfirmed block status to be null, got: "
+    )?;
     let pre_confirmed_block_tx_count = pre_confirmed_block["transactions"]
         .as_array()
         .ok_or(anyhow!("failed to convert block transactions to array"))?
         .len();
-    anyhow::ensure!(
-        pre_confirmed_block_tx_count == tx_count,
-        format!(
-            "assertion `left == right` failed, left: {pre_confirmed_block_tx_count}, right: {tx_count}"
-        )
-    );
+    assert_eq_prop!(pre_confirmed_block_tx_count, tx_count)?;
 
     for tx in pre_confirmed_block["transactions"].as_array().unwrap() {
         let tx_hash = Felt::from_hex_unchecked(
@@ -258,10 +181,7 @@ async fn assert_balance(
     tag: BlockTag,
 ) -> Result<(), anyhow::Error> {
     let balance = devnet.get_balance_by_tag(&Felt::from(DUMMY_ADDRESS), FeeUnit::Fri, tag).await?;
-    anyhow::ensure!(
-        balance == expected,
-        format!("assertion `left == right` failed, left: {balance}, right: {expected}")
-    );
+    assert_eq_prop!(balance, expected)?;
     Ok(())
 }
 
@@ -272,23 +192,11 @@ async fn assert_get_nonce(devnet: &BackgroundDevnet) -> Result<(), anyhow::Error
         .json_rpc_client
         .get_nonce(BlockId::Tag(BlockTag::PreConfirmed), account_address)
         .await?;
-    anyhow::ensure!(
-        pre_confirmed_block_nonce == Felt::ZERO,
-        format!(
-            "assertion `left == right` failed, left: {pre_confirmed_block_nonce}, right: {}",
-            Felt::ZERO
-        )
-    );
+    assert_eq_prop!(pre_confirmed_block_nonce, Felt::ZERO)?;
 
     let latest_block_nonce =
         devnet.json_rpc_client.get_nonce(BlockId::Tag(BlockTag::Latest), account_address).await?;
-    anyhow::ensure!(
-        latest_block_nonce == Felt::ZERO,
-        format!(
-            "assertion `left == right` failed, left: {latest_block_nonce}, right: {}",
-            Felt::ZERO
-        )
-    );
+    assert_eq_prop!(latest_block_nonce, Felt::ZERO)?;
     Ok(())
 }
 
@@ -300,25 +208,13 @@ async fn assert_get_storage_at(devnet: &BackgroundDevnet) -> Result<(), anyhow::
         .json_rpc_client
         .get_storage_at(account_address, key, BlockId::Tag(BlockTag::PreConfirmed))
         .await?;
-    anyhow::ensure!(
-        pre_confirmed_block_storage == Felt::ZERO,
-        format!(
-            "assertion `left == right` failed, left: {pre_confirmed_block_storage}, right: {}",
-            Felt::ZERO
-        )
-    );
+    assert_eq_prop!(pre_confirmed_block_storage, Felt::ZERO)?;
 
     let latest_block_storage = devnet
         .json_rpc_client
         .get_storage_at(account_address, key, BlockId::Tag(BlockTag::Latest))
         .await?;
-    anyhow::ensure!(
-        latest_block_storage == Felt::ZERO,
-        format!(
-            "assertion `left == right` failed, left: {latest_block_storage}, right: {}",
-            Felt::ZERO
-        )
-    );
+    assert_eq_prop!(latest_block_storage, Felt::ZERO)?;
     Ok(())
 }
 
@@ -330,23 +226,13 @@ async fn assert_get_class_hash_at(devnet: &BackgroundDevnet) -> Result<(), anyho
         .get_class_hash_at(BlockId::Tag(BlockTag::PreConfirmed), account_address)
         .await?;
     let sierra_hash = Felt::from_hex_unchecked(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH);
-    anyhow::ensure!(
-        pre_confirmed_block_class_hash == sierra_hash,
-        format!(
-            "assertion `left == right` failed, left: {pre_confirmed_block_class_hash}, right: {sierra_hash}"
-        )
-    );
+    assert_eq_prop!(pre_confirmed_block_class_hash, sierra_hash)?;
 
     let latest_block_class_hash = devnet
         .json_rpc_client
         .get_class_hash_at(BlockId::Tag(BlockTag::Latest), account_address)
         .await?;
-    anyhow::ensure!(
-        latest_block_class_hash == sierra_hash,
-        format!(
-            "assertion `left == right` failed, left: {latest_block_class_hash}, right: {sierra_hash}"
-        )
-    );
+    assert_eq_prop!(latest_block_class_hash, sierra_hash)?;
     Ok(())
 }
 

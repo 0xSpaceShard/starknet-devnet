@@ -2,6 +2,7 @@ use serde_json::json;
 use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
 use starknet_rs_providers::{Provider, ProviderError};
 
+use crate::assert_eq_prop;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::errors::RpcError;
 use crate::common::utils::{FeeUnit, assert_contains, to_hex_felt};
@@ -33,11 +34,7 @@ async fn assert_block_aborted(
         .await
         .unwrap_err();
 
-    let expected_error = RpcError { code: 24, message: "Block not found".into(), data: None };
-    anyhow::ensure!(
-        err == expected_error,
-        format!("assertion `left == right` failed, left: {err}, right: {expected_error}")
-    );
+    assert_eq_prop!(err, RpcError { code: 24, message: "Block not found".into(), data: None })?;
     Ok(())
 }
 

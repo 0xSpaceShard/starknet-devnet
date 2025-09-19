@@ -8,6 +8,7 @@ use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::Provider;
 use starknet_rs_signers::LocalWallet;
 
+use crate::assert_eq_prop;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
@@ -54,24 +55,14 @@ async fn correct_artifact_test_body(
         .get_class_hash_at(BlockId::Tag(BlockTag::Latest), account_address)
         .await?;
     let expected_hash = Felt::from_hex_unchecked(expected_hash_hex);
-    anyhow::ensure!(
-        retrieved_class_hash == expected_hash,
-        format!(
-            "assertion `left == right` failed, left: {retrieved_class_hash}, right: {expected_hash}"
-        )
-    );
+    assert_eq_prop!(retrieved_class_hash, expected_hash)?;
 
     let config = devnet.get_config().await;
     let config_class_hash_hex = config["account_contract_class_hash"]
         .as_str()
         .ok_or(anyhow::anyhow!("contract class hash not found"))?;
     let config_class_hash = Felt::from_hex_unchecked(config_class_hash_hex);
-    anyhow::ensure!(
-        config_class_hash == expected_hash,
-        format!(
-            "assertion `left == right` failed, left: {config_class_hash}, right: {expected_hash}"
-        )
-    );
+    assert_eq_prop!(config_class_hash, expected_hash)?;
     Ok(())
 }
 

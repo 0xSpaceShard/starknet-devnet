@@ -3,6 +3,7 @@ use starknet_rs_core::types::{BlockId, Felt};
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 
+use crate::assert_eq_prop;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::utils::{
     SubscriptionId, assert_no_notifications, receive_rpc_via_ws, subscribe, subscribe_new_heads,
@@ -47,10 +48,7 @@ fn assert_mint_notification_succeeded(
             "subscription_id": subscription_id,
         }
     });
-    anyhow::ensure!(
-        notification == expected_resp,
-        format!("assertion `left == right` failed, left: {notification}, right: {expected_resp}")
-    );
+    assert_eq_prop!(notification, expected_resp)?;
     Ok(())
 }
 
@@ -150,7 +148,7 @@ async fn should_notify_if_subscribed_before_and_after_tx(
     let subscription_id_before = subscribe_tx_status(ws_before_tx, &expected_tx_hash).await?;
 
     let tx_hash = devnet.mint(address, mint_amount).await;
-    anyhow::ensure!(tx_hash == expected_tx_hash);
+    assert_eq_prop!(tx_hash, expected_tx_hash)?;
 
     {
         let notification = receive_rpc_via_ws(ws_before_tx).await.unwrap();

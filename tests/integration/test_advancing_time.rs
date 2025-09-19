@@ -19,6 +19,7 @@ use crate::common::utils::{
     get_timestamp_asserter_contract_artifacts, get_unix_timestamp_as_seconds, increase_time,
     send_ctrl_c_signal_and_wait, set_time,
 };
+use crate::{assert_gte_prop, assert_lte_prop};
 
 const DUMMY_ADDRESS: u128 = 1;
 const DUMMY_AMOUNT: u128 = 1;
@@ -31,16 +32,16 @@ async fn sleep_until_new_timestamp() {
 }
 
 pub fn assert_ge_with_buffer(val1: u64, val2: u64) -> Result<(), anyhow::Error> {
-    anyhow::ensure!(val1 >= val2, "Failed inequation: {val1:?} >= {val2:?}");
+    assert_gte_prop!(val1, val2)?;
     let upper_limit = val2 + BUFFER_TIME_SECONDS;
-    anyhow::ensure!(val1 <= upper_limit, "Failed inequation: {val1:?} <= {upper_limit:?}");
+    assert_lte_prop!(val1, upper_limit)?;
     Ok(())
 }
 
 pub fn assert_gt_with_buffer(val1: u64, val2: u64) -> Result<(), anyhow::Error> {
-    anyhow::ensure!(val1 > val2, "Failed inequation: {val1:?} > {val2:?}");
+    assert_gte_prop!(val1, val2)?;
     let upper_limit = val2 + BUFFER_TIME_SECONDS;
-    anyhow::ensure!(val1 <= upper_limit, "Failed inequation: {val1:?} <= {upper_limit:?}");
+    assert_lte_prop!(val1, upper_limit)?;
     Ok(())
 }
 

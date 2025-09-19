@@ -1,4 +1,7 @@
 #![cfg(test)]
+
+#[macro_use]
+pub mod assertions;
 pub mod background_anvil;
 pub mod background_devnet;
 mod background_server;

@@ -1,3 +1,4 @@
+use crate::{assert_eq_prop, assert_ne_prop};
 use std::fmt::{Debug, LowerHex};
 use std::fs;
 use std::path::Path;
@@ -222,10 +223,7 @@ async fn send_ctrl_c_signal(process: &Child) {
 fn take_abi_from_json(value: &mut serde_json::Value) -> Result<serde_json::Value, anyhow::Error> {
     let abi_jsonified = value["abi"].take();
     let json_null = serde_json::json!(null);
-    anyhow::ensure!(
-        abi_jsonified != json_null,
-        format!("assertion `left == right` failed, left: {abi_jsonified}, right: {json_null}")
-    );
+    assert_ne_prop!(abi_jsonified, json_null)?;
     Ok(serde_json::from_str(abi_jsonified.as_str().unwrap())?)
 }
 
@@ -241,16 +239,8 @@ pub fn assert_cairo1_classes_equal(
     let abi_a = take_abi_from_json(&mut class_a_jsonified)?;
     let abi_b = take_abi_from_json(&mut class_b_jsonified)?;
 
-    anyhow::ensure!(
-        class_a_jsonified == class_b_jsonified,
-        format!(
-            "assertion `left == right` failed, left: {class_a_jsonified}, right: {class_b_jsonified}"
-        )
-    );
-    anyhow::ensure!(
-        abi_a == abi_b,
-        format!("assertion `left == right` failed, left: {abi_a}, right: {abi_b}")
-    );
+    assert_eq_prop!(class_a_jsonified, class_b_jsonified)?;
+    assert_eq_prop!(abi_a, abi_b)?;
 
     Ok(())
 }
@@ -458,9 +448,7 @@ pub fn assert_equal_elements<T>(iterable1: &[T], iterable2: &[T]) -> Result<(), 
 where
     T: PartialEq + Debug,
 {
-    if iterable1.len() != iterable2.len() {
-        anyhow::bail!("Length mismatch: left = {}, right = {}", iterable1.len(), iterable2.len());
-    }
+    assert_eq_prop!(iterable1.len(), iterable2.len())?;
     for e in iterable1 {
         if !iterable2.contains(e) {
             anyhow::bail!("Element {:?} from left not found in right", e);
@@ -501,13 +489,7 @@ pub fn assert_json_rpc_errors_equal(
     e1: JsonRpcError,
     e2: JsonRpcError,
 ) -> Result<(), anyhow::Error> {
-    anyhow::ensure!(
-        (e1.code, &e1.message, &e1.data) == (e2.code, &e2.message, &e2.data),
-        format!(
-            "assertion `left == right` failed, left: ({}, {}, {:?}), right: ({}, {}, {:?})",
-            e1.code, e1.message, e1.data, e2.code, e2.message, e2.data
-        )
-    );
+    assert_eq_prop!((e1.code, &e1.message, &e1.data), (e2.code, &e2.message, &e2.data))?;
     Ok(())
 }
 
@@ -604,31 +586,13 @@ pub async fn receive_notification(
     expected_subscription_id: SubscriptionId,
 ) -> Result<serde_json::Value, anyhow::Error> {
     let mut notification = receive_rpc_via_ws(ws).await?;
-    anyhow::ensure!(
-        notification["jsonrpc"] == "2.0",
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            notification["jsonrpc"], "2.0"
-        )
-    );
-    anyhow::ensure!(
-        notification["method"] == method,
-        format!(
-            "assertion `left == right` failed, left: {}, right: {method}",
-            notification["method"]
-        )
-    );
+    assert_eq_prop!(notification["jsonrpc"], "2.0")?;
+    assert_eq_prop!(notification["method"], method)?;
     let subscription_id = notification["params"]["subscription_id"]
         .as_str()
         .ok_or(anyhow::Error::msg("No Subscription ID in notification"))?
         .to_string();
-    anyhow::ensure!(
-        subscription_id == expected_subscription_id,
-        format!(
-            "assertion `left == right` failed, left: {}, right: {expected_subscription_id}",
-            subscription_id
-        )
-    );
+    assert_eq_prop!(subscription_id, expected_subscription_id)?;
     Ok(notification["params"]["result"].take())
 }
 

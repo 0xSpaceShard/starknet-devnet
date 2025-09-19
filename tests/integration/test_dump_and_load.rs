@@ -4,6 +4,7 @@ use std::time;
 use serde_json::json;
 use starknet_rs_providers::Provider;
 
+use crate::assert_eq_prop;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{FeeUnit, UniqueAutoDeletableFile, send_ctrl_c_signal_and_wait};
@@ -47,13 +48,7 @@ async fn dump_load_dump_load(mode: &str) -> Result<(), anyhow::Error> {
     .await?;
 
     let last_block = devnet_load.get_latest_block_with_tx_hashes().await?;
-    anyhow::ensure!(
-        last_block.block_number == 4,
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            last_block.block_number, 4
-        )
-    );
+    assert_eq_prop!(last_block.block_number, 4)?;
     Ok(())
 }
 

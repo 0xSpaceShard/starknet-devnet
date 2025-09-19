@@ -17,6 +17,7 @@ use starknet_rs_providers::{Provider, ProviderError};
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{get_deployable_account_signer, get_events_contract_artifacts};
+use crate::{assert_eq_prop, assert_gte_prop};
 
 static DUMMY_ADDRESS: Felt = Felt::from_hex_unchecked("0x7b");
 static DUMMY_AMOUNT: u128 = 456;
@@ -31,15 +32,10 @@ fn assert_mint_invocation(trace: &TransactionTrace) -> Result<(), anyhow::Error>
             ..
         }) => {
             for invocation in [validate_invocation.as_ref().unwrap(), execute_invocation] {
-                anyhow::ensure!(
-                    invocation.contract_address
-                        == Felt::from_hex_unchecked(CHARGEABLE_ACCOUNT_ADDRESS),
-                    format!(
-                        "assertion `left == right` failed, left: {}, right: {}",
-                        invocation.contract_address,
-                        Felt::from_hex_unchecked(CHARGEABLE_ACCOUNT_ADDRESS)
-                    )
-                );
+                assert_eq_prop!(
+                    invocation.contract_address,
+                    Felt::from_hex_unchecked(CHARGEABLE_ACCOUNT_ADDRESS)
+                )?;
                 let expected_calldata = vec![
                     Felt::ONE, // number of calls
                     STRK_ERC20_CONTRACT_ADDRESS,
@@ -49,47 +45,18 @@ fn assert_mint_invocation(trace: &TransactionTrace) -> Result<(), anyhow::Error>
                     Felt::from(DUMMY_AMOUNT), // low bytes
                     Felt::ZERO,               // high bytes
                 ];
-                anyhow::ensure!(
-                    invocation.calldata == expected_calldata,
-                    format!(
-                        "assertion `left == right` failed, left: {:?}, right: {:?}",
-                        invocation.calldata, expected_calldata
-                    )
-                );
+                assert_eq_prop!(invocation.calldata, expected_calldata)?;
             }
 
             let fee_transfer_contract_address = fee_transfer_invocation
                 .as_ref()
                 .ok_or(anyhow::anyhow!("failed to reference fee transfer invocation"))?
                 .contract_address;
-            anyhow::ensure!(
-                fee_transfer_contract_address == STRK_ERC20_CONTRACT_ADDRESS,
-                format!(
-                    "assertion `left == right` failed, left: {fee_transfer_contract_address}, right: {STRK_ERC20_CONTRACT_ADDRESS}"
-                )
-            );
+            assert_eq_prop!(fee_transfer_contract_address, STRK_ERC20_CONTRACT_ADDRESS)?;
 
-            anyhow::ensure!(
-                execution_resources.l1_gas == 0,
-                format!(
-                    "assertion `left == right` failed, left: {}, right: {}",
-                    execution_resources.l1_gas, 0
-                )
-            );
-            anyhow::ensure!(
-                execution_resources.l1_data_gas > 0,
-                format!(
-                    "assertion `left == right` failed, left: {}, right: {}",
-                    execution_resources.l1_data_gas, 0
-                )
-            );
-            anyhow::ensure!(
-                execution_resources.l2_gas > 0,
-                format!(
-                    "assertion `left == right` failed, left: {}, right: {}",
-                    execution_resources.l2_gas, 0
-                )
-            );
+            assert_eq_prop!(execution_resources.l1_gas, 0)?;
+            assert_gte_prop!(execution_resources.l1_data_gas, 0)?;
+            assert_gte_prop!(execution_resources.l2_gas, 0)?;
         }
         other => anyhow::bail!("Invalid trace: {other:?}"),
     };

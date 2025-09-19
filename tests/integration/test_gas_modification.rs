@@ -11,6 +11,7 @@ use starknet_rs_core::utils::cairo_short_string_to_felt;
 use starknet_rs_providers::{Provider, ProviderError};
 use starknet_rs_signers::Signer;
 
+use crate::assert_eq_prop;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     self, CAIRO_1_CONTRACT_PATH, INTEGRATION_SAFE_BLOCK, INTEGRATION_SEPOLIA_HTTP_URL,
@@ -117,59 +118,27 @@ async fn set_gas_scenario(
     };
 
     let chain_id = devnet.json_rpc_client.chain_id().await?;
-    anyhow::ensure!(
-        chain_id == expected_chain_id,
-        format!(
-            "Chain ID mismatch: assertion `left == right` failed, left: {chain_id}, right: {expected_chain_id}"
-        )
-    );
+    assert_eq_prop!(chain_id, expected_chain_id)?;
 
     let params_skip_fee_charge = get_params(&["SKIP_FEE_CHARGE"]);
     let resp_no_flags = &devnet
         .send_custom_rpc("starknet_simulateTransactions", params_skip_fee_charge.clone())
         .await
         .map_err(|err| anyhow::anyhow!("failed to simulate transactions {:?}", err))?[0];
-    anyhow::ensure!(
-        resp_no_flags["fee_estimation"]["l1_gas_price"]
-            == to_hex_felt(&DEVNET_DEFAULT_L1_GAS_PRICE),
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_no_flags["fee_estimation"]["l1_gas_price"],
-            to_hex_felt(&DEVNET_DEFAULT_L1_GAS_PRICE)
-        )
-    );
-    anyhow::ensure!(
-        resp_no_flags["fee_estimation"]["l1_data_gas_price"]
-            == to_hex_felt(&DEVNET_DEFAULT_L1_DATA_GAS_PRICE),
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_no_flags["fee_estimation"]["l1_data_gas_price"],
-            to_hex_felt(&DEVNET_DEFAULT_L1_DATA_GAS_PRICE)
-        )
-    );
-    anyhow::ensure!(
-        resp_no_flags["fee_estimation"]["l2_gas_price"]
-            == to_hex_felt(&DEVNET_DEFAULT_L2_GAS_PRICE),
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_no_flags["fee_estimation"]["l2_gas_price"],
-            to_hex_felt(&DEVNET_DEFAULT_L2_GAS_PRICE)
-        )
-    );
-    anyhow::ensure!(
-        resp_no_flags["transaction_trace"]["execution_resources"]["l1_gas"] == 0,
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_no_flags["transaction_trace"]["execution_resources"]["l1_gas"], 0
-        )
-    );
-    anyhow::ensure!(
-        resp_no_flags["fee_estimation"]["overall_fee"] == "0x99cb411f968000",
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_no_flags["fee_estimation"]["overall_fee"], "0x99cb411f968000"
-        )
-    );
+    assert_eq_prop!(
+        resp_no_flags["fee_estimation"]["l1_gas_price"],
+        to_hex_felt(&DEVNET_DEFAULT_L1_GAS_PRICE)
+    )?;
+    assert_eq_prop!(
+        resp_no_flags["fee_estimation"]["l1_data_gas_price"],
+        to_hex_felt(&DEVNET_DEFAULT_L1_DATA_GAS_PRICE)
+    )?;
+    assert_eq_prop!(
+        resp_no_flags["fee_estimation"]["l2_gas_price"],
+        to_hex_felt(&DEVNET_DEFAULT_L2_GAS_PRICE)
+    )?;
+    assert_eq_prop!(resp_no_flags["transaction_trace"]["execution_resources"]["l1_gas"], 0)?;
+    assert_eq_prop!(resp_no_flags["fee_estimation"]["overall_fee"], "0x99cb411f968000")?;
 
     let params_skip_validation_and_fee_charge = get_params(&["SKIP_VALIDATE", "SKIP_FEE_CHARGE"]);
     let resp_skip_validation = &devnet
@@ -180,47 +149,20 @@ async fn set_gas_scenario(
         .await
         .map_err(|err| anyhow::anyhow!("failed to simulate transactions {:?}", err))?[0];
 
-    anyhow::ensure!(
-        resp_skip_validation["fee_estimation"]["l1_gas_price"]
-            == to_hex_felt(&DEVNET_DEFAULT_L1_GAS_PRICE),
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_skip_validation["fee_estimation"]["l1_gas_price"],
-            to_hex_felt(&DEVNET_DEFAULT_L1_GAS_PRICE)
-        )
-    );
-    anyhow::ensure!(
-        resp_skip_validation["fee_estimation"]["l1_data_gas_price"]
-            == to_hex_felt(&DEVNET_DEFAULT_L1_DATA_GAS_PRICE),
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_skip_validation["fee_estimation"]["l1_data_gas_price"],
-            to_hex_felt(&DEVNET_DEFAULT_L1_DATA_GAS_PRICE)
-        )
-    );
-    anyhow::ensure!(
-        resp_skip_validation["fee_estimation"]["l2_gas_price"]
-            == to_hex_felt(&DEVNET_DEFAULT_L2_GAS_PRICE),
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_skip_validation["fee_estimation"]["l2_gas_price"],
-            to_hex_felt(&DEVNET_DEFAULT_L2_GAS_PRICE)
-        )
-    );
-    anyhow::ensure!(
-        resp_no_flags["transaction_trace"]["execution_resources"]["l1_gas"] == 0,
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_no_flags["transaction_trace"]["execution_resources"]["l1_gas"], 0
-        )
-    );
-    anyhow::ensure!(
-        resp_skip_validation["fee_estimation"]["overall_fee"] == "0x995e1d72370000",
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_skip_validation["fee_estimation"]["overall_fee"], "0x995e1d72370000"
-        )
-    );
+    assert_eq_prop!(
+        resp_skip_validation["fee_estimation"]["l1_gas_price"],
+        to_hex_felt(&DEVNET_DEFAULT_L1_GAS_PRICE)
+    )?;
+    assert_eq_prop!(
+        resp_skip_validation["fee_estimation"]["l1_data_gas_price"],
+        to_hex_felt(&DEVNET_DEFAULT_L1_DATA_GAS_PRICE)
+    )?;
+    assert_eq_prop!(
+        resp_skip_validation["fee_estimation"]["l2_gas_price"],
+        to_hex_felt(&DEVNET_DEFAULT_L2_GAS_PRICE)
+    )?;
+    assert_eq_prop!(resp_no_flags["transaction_trace"]["execution_resources"]["l1_gas"], 0)?;
+    assert_eq_prop!(resp_skip_validation["fee_estimation"]["overall_fee"], "0x995e1d72370000")?;
 
     let should_skip_fee_invocation = true;
     assert_difference_if_validation(
@@ -243,87 +185,41 @@ async fn set_gas_scenario(
     });
     let gas_response = &devnet.set_gas_price(&gas_request, true).await?;
 
-    anyhow::ensure!(
-        gas_response == &gas_request,
-        format!("assertion `left == right` failed, left: {gas_response}, right: {}", &gas_request)
-    );
+    assert_eq_prop!(gas_response, &gas_request)?;
 
     let chain_id = devnet.json_rpc_client.chain_id().await?;
-    anyhow::ensure!(
-        chain_id == expected_chain_id,
-        format!("assertion `left == right` failed, left: {chain_id}, right: {expected_chain_id}")
-    );
+    assert_eq_prop!(chain_id, expected_chain_id)?;
 
     let resp_no_flags =
         &devnet.send_custom_rpc("starknet_simulateTransactions", params_skip_fee_charge).await?[0];
 
-    anyhow::ensure!(
-        resp_no_flags["fee_estimation"]["l1_gas_price"] == to_hex_felt(&l1_fri_price),
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_no_flags["fee_estimation"]["l1_gas_price"],
-            to_hex_felt(&l1_fri_price)
-        )
-    );
-    anyhow::ensure!(
-        resp_no_flags["fee_estimation"]["l1_data_gas_price"] == to_hex_felt(&l1_data_fri_price),
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_no_flags["fee_estimation"]["l1_data_gas_price"],
-            to_hex_felt(&l1_data_fri_price)
-        )
-    );
-    anyhow::ensure!(
-        resp_no_flags["fee_estimation"]["l2_gas_price"] == to_hex_felt(&l2_fri_price),
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_no_flags["fee_estimation"]["l2_gas_price"],
-            to_hex_felt(&l2_fri_price)
-        )
-    );
-    anyhow::ensure!(
-        resp_no_flags["fee_estimation"]["overall_fee"] == "0xe8c077047881faf1800000",
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_no_flags["fee_estimation"]["overall_fee"], "0xe8c077047881faf1800000"
-        )
-    );
+    assert_eq_prop!(resp_no_flags["fee_estimation"]["l1_gas_price"], to_hex_felt(&l1_fri_price))?;
+    assert_eq_prop!(
+        resp_no_flags["fee_estimation"]["l1_data_gas_price"],
+        to_hex_felt(&l1_data_fri_price)
+    )?;
+    assert_eq_prop!(resp_no_flags["fee_estimation"]["l2_gas_price"], to_hex_felt(&l2_fri_price))?;
+    assert_eq_prop!(resp_no_flags["fee_estimation"]["overall_fee"], "0xe8c077047881faf1800000")?;
 
     let resp_skip_validation = &devnet
         .send_custom_rpc("starknet_simulateTransactions", params_skip_validation_and_fee_charge)
         .await?[0];
-    anyhow::ensure!(
-        resp_skip_validation["fee_estimation"]["l1_gas_price"] == to_hex_felt(&l1_fri_price),
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_skip_validation["fee_estimation"]["l1_gas_price"],
-            to_hex_felt(&l1_fri_price)
-        )
-    );
-    anyhow::ensure!(
-        resp_skip_validation["fee_estimation"]["l1_data_gas_price"]
-            == to_hex_felt(&l1_data_fri_price),
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_skip_validation["fee_estimation"]["l1_data_gas_price"],
-            to_hex_felt(&l1_data_fri_price)
-        )
-    );
-    anyhow::ensure!(
-        resp_skip_validation["fee_estimation"]["l2_gas_price"] == to_hex_felt(&l2_fri_price),
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_skip_validation["fee_estimation"]["l2_gas_price"],
-            to_hex_felt(&l2_fri_price)
-        )
-    );
-    anyhow::ensure!(
-        resp_skip_validation["fee_estimation"]["overall_fee"] == "0xe81b4b21fb0b18a2000000",
-        format!(
-            "assertion `left == right` failed, left: {}, right: {}",
-            resp_skip_validation["fee_estimation"]["overall_fee"], "0xe81b4b21fb0b18a2000000"
-        )
-    );
+    assert_eq_prop!(
+        resp_skip_validation["fee_estimation"]["l1_gas_price"],
+        to_hex_felt(&l1_fri_price)
+    )?;
+    assert_eq_prop!(
+        resp_skip_validation["fee_estimation"]["l1_data_gas_price"],
+        to_hex_felt(&l1_data_fri_price)
+    )?;
+    assert_eq_prop!(
+        resp_skip_validation["fee_estimation"]["l2_gas_price"],
+        to_hex_felt(&l2_fri_price)
+    )?;
+    assert_eq_prop!(
+        resp_skip_validation["fee_estimation"]["overall_fee"],
+        "0xe81b4b21fb0b18a2000000"
+    )?;
 
     assert_difference_if_validation(
         resp_no_flags,

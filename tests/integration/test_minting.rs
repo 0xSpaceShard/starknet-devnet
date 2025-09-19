@@ -5,6 +5,7 @@ use starknet_rs_core::types::Felt;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE};
 use crate::common::utils::FeeUnit;
+use crate::{assert_eq_prop, assert_prop};
 
 static DUMMY_ADDRESS: &str = "0x42";
 static DUMMY_AMOUNT: u128 = 42;
@@ -34,7 +35,7 @@ async fn increase_balance_happy_path(
         .as_str()
         .ok_or(anyhow!("failed to parse transaction hash"))?
         .starts_with("0x");
-    anyhow::ensure!(tx_hash, "Transaction hash does not start with '0x'");
+    assert_prop!(tx_hash, "Transaction hash does not start with '0x'")?;
 
     let final_balance = Felt::from(init_amount) + Felt::from(mint_amount);
     let expected_resp_body = json!({
@@ -42,17 +43,11 @@ async fn increase_balance_happy_path(
         "unit": unit,
         "tx_hash": null
     });
-    anyhow::ensure!(
-        resp_body == expected_resp_body,
-        format!("assertion `left == right` failed, left: {resp_body}, right: {expected_resp_body}")
-    );
+    assert_eq_prop!(resp_body, expected_resp_body)?;
 
     let new_balance =
         devnet.get_balance_latest(&Felt::from_hex_unchecked(address), unit).await.unwrap();
-    anyhow::ensure!(
-        final_balance == new_balance,
-        format!("assertion `left == right` failed, left: {final_balance}, right: {new_balance}")
-    );
+    assert_eq_prop!(final_balance, new_balance)?;
     Ok(())
 }
 
