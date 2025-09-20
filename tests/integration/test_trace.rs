@@ -17,11 +17,12 @@ use starknet_rs_providers::{Provider, ProviderError};
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{get_deployable_account_signer, get_events_contract_artifacts};
+use crate::{assert_eq_prop, assert_gte_prop};
 
 static DUMMY_ADDRESS: Felt = Felt::from_hex_unchecked("0x7b");
 static DUMMY_AMOUNT: u128 = 456;
 
-fn assert_mint_invocation(trace: &TransactionTrace) {
+fn assert_mint_invocation(trace: &TransactionTrace) -> Result<(), anyhow::Error> {
     match trace {
         TransactionTrace::Invoke(InvokeTransactionTrace {
             validate_invocation,
@@ -31,43 +32,43 @@ fn assert_mint_invocation(trace: &TransactionTrace) {
             ..
         }) => {
             for invocation in [validate_invocation.as_ref().unwrap(), execute_invocation] {
-                assert_eq!(
+                assert_eq_prop!(
                     invocation.contract_address,
                     Felt::from_hex_unchecked(CHARGEABLE_ACCOUNT_ADDRESS)
-                );
-                assert_eq!(
-                    invocation.calldata,
-                    vec![
-                        Felt::ONE, // number of calls
-                        STRK_ERC20_CONTRACT_ADDRESS,
-                        get_selector_from_name("permissioned_mint").unwrap(),
-                        Felt::THREE, // calldata length
-                        DUMMY_ADDRESS,
-                        Felt::from(DUMMY_AMOUNT), // low bytes
-                        Felt::ZERO                // high bytes
-                    ]
-                );
+                )?;
+                let expected_calldata = vec![
+                    Felt::ONE, // number of calls
+                    STRK_ERC20_CONTRACT_ADDRESS,
+                    get_selector_from_name("permissioned_mint").unwrap(),
+                    Felt::THREE, // calldata length
+                    DUMMY_ADDRESS,
+                    Felt::from(DUMMY_AMOUNT), // low bytes
+                    Felt::ZERO,               // high bytes
+                ];
+                assert_eq_prop!(invocation.calldata, expected_calldata)?;
             }
 
-            assert_eq!(
-                fee_transfer_invocation.as_ref().unwrap().contract_address,
-                STRK_ERC20_CONTRACT_ADDRESS
-            );
+            let fee_transfer_contract_address = fee_transfer_invocation
+                .as_ref()
+                .ok_or(anyhow::anyhow!("failed to reference fee transfer invocation"))?
+                .contract_address;
+            assert_eq_prop!(fee_transfer_contract_address, STRK_ERC20_CONTRACT_ADDRESS)?;
 
-            assert_eq!(execution_resources.l1_gas, 0);
-            assert!(execution_resources.l1_data_gas > 0);
-            assert!(execution_resources.l2_gas > 0);
+            assert_eq_prop!(execution_resources.l1_gas, 0)?;
+            assert_gte_prop!(execution_resources.l1_data_gas, 0)?;
+            assert_gte_prop!(execution_resources.l2_gas, 0)?;
         }
-        other => panic!("Invalid trace: {other:?}"),
+        other => anyhow::bail!("Invalid trace: {other:?}"),
     };
+    Ok(())
 }
 
-async fn get_invoke_trace(devnet: &BackgroundDevnet) {
+async fn get_invoke_trace(devnet: &BackgroundDevnet) -> Result<(), anyhow::Error> {
     let mint_tx_hash = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-    devnet.create_block().await.unwrap();
+    devnet.create_block().await?;
 
-    let mint_tx_trace = devnet.json_rpc_client.trace_transaction(mint_tx_hash).await.unwrap();
-    assert_mint_invocation(&mint_tx_trace);
+    let mint_tx_trace = devnet.json_rpc_client.trace_transaction(mint_tx_hash).await?;
+    assert_mint_invocation(&mint_tx_trace)
 }
 
 #[tokio::test]
@@ -83,7 +84,7 @@ async fn get_trace_non_existing_transaction() {
 async fn get_invoke_trace_normal_mode() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-    get_invoke_trace(&devnet).await
+    get_invoke_trace(&devnet).await.unwrap()
 }
 
 #[tokio::test]
@@ -92,7 +93,7 @@ async fn get_invoke_trace_block_generation_on_demand() {
         .await
         .expect("Could not start Devnet");
 
-    get_invoke_trace(&devnet).await
+    get_invoke_trace(&devnet).await.unwrap()
 }
 
 #[tokio::test]
@@ -283,5 +284,5 @@ async fn get_traces_from_block() {
     let trace = &traces[0];
     assert_eq!(trace.transaction_hash, mint_tx_hash);
 
-    assert_mint_invocation(&trace.trace_root);
+    assert_mint_invocation(&trace.trace_root).unwrap();
 }

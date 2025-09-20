@@ -54,3 +54,5 @@ impl fmt::Display for RpcError {
         write!(f, "{self:?}")
     }
 }
+
+impl std::error::Error for RpcError {}

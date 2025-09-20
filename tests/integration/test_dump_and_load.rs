@@ -4,6 +4,7 @@ use std::time;
 use serde_json::json;
 use starknet_rs_providers::Provider;
 
+use crate::assert_eq_prop;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
 use crate::common::utils::{FeeUnit, UniqueAutoDeletableFile, send_ctrl_c_signal_and_wait};
@@ -19,7 +20,7 @@ use starknet_rs_core::types::{DeclareTransaction, Felt, InvokeTransaction, Trans
 
 use crate::common::utils::get_events_contract_artifacts;
 
-async fn dump_load_dump_load(mode: &str) {
+async fn dump_load_dump_load(mode: &str) -> Result<(), anyhow::Error> {
     let dump_file =
         UniqueAutoDeletableFile::new(("dump_load_dump_load_on_".to_owned() + mode).as_str());
 
@@ -30,8 +31,7 @@ async fn dump_load_dump_load(mode: &str) {
             "--dump-on",
             mode,
         ])
-        .await
-        .expect("Could not start Devnet");
+        .await?;
 
         devnet_dump.create_block().await.unwrap();
         devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
@@ -45,11 +45,11 @@ async fn dump_load_dump_load(mode: &str) {
         "--dump-on",
         mode,
     ])
-    .await
-    .expect("Could not start Devnet");
+    .await?;
 
-    let last_block = devnet_load.get_latest_block_with_tx_hashes().await.unwrap();
-    assert_eq!(last_block.block_number, 4);
+    let last_block = devnet_load.get_latest_block_with_tx_hashes().await?;
+    assert_eq_prop!(last_block.block_number, 4)?;
+    Ok(())
 }
 
 #[tokio::test]
@@ -85,12 +85,12 @@ async fn dump_load_dump_load_without_path() {
 
 #[tokio::test]
 async fn dump_load_dump_load_on_exit() {
-    dump_load_dump_load("exit").await;
+    dump_load_dump_load("exit").await.unwrap();
 }
 
 #[tokio::test]
 async fn dump_load_dump_load_on_transaction() {
-    dump_load_dump_load("block").await;
+    dump_load_dump_load("block").await.unwrap();
 }
 
 #[tokio::test]

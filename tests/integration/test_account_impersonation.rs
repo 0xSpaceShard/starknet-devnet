@@ -199,7 +199,7 @@ async fn test_simulate_transaction() {
             account.execute_v3(invoke_calls.clone()).simulate(!do_validate, true).await;
         if let Some(error_msg) = expected_error_message {
             let simulation_err = simulation_result.expect_err("Expected simulation to fail");
-            assert_contains(&format!("{:?}", simulation_err).to_lowercase(), error_msg);
+            assert_contains(&format!("{:?}", simulation_err).to_lowercase(), error_msg).unwrap();
         } else {
             simulation_result.expect("Expected simulation to succeed");
         }
@@ -268,5 +268,5 @@ async fn test_invoke_transaction(
 
 fn assert_anyhow_error_contains_message(error: anyhow::Error, message: &str) {
     let error_string = format!("{:?}", error.root_cause()).to_lowercase();
-    assert_contains(&error_string, message);
+    assert_contains(&error_string, message).unwrap();
 }

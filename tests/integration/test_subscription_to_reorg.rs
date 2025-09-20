@@ -59,7 +59,7 @@ async fn reorg_notification_for_all_subscriptions() {
     let additional_block_hash = devnet.create_block().await.unwrap();
     devnet.abort_blocks(&BlockId::Hash(additional_block_hash)).await.unwrap();
     for (_, mut ws) in notifiable_subscribers {
-        assert_no_notifications(&mut ws).await;
+        assert_no_notifications(&mut ws).await.unwrap();
     }
 }
 
@@ -121,5 +121,5 @@ async fn socket_with_n_subscriptions_should_get_n_reorg_notifications() {
 
     assert_eq!(notification_ids, HashSet::from_iter(subscription_ids));
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }

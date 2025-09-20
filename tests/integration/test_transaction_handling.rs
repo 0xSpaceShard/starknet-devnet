@@ -45,7 +45,7 @@ async fn test_failed_validation_with_expected_message() {
     match declaration_result {
         Err(AccountError::Provider(ProviderError::StarknetError(
             StarknetError::ValidationFailure(message),
-        ))) => assert_contains(&message, "FAILED VALIDATE DECLARE"),
+        ))) => assert_contains(&message, "FAILED VALIDATE DECLARE").unwrap(),
         other => panic!("Unexpected result: {other:?}"),
     }
 }
@@ -123,6 +123,7 @@ async fn test_tx_status_content_of_failed_invoke() {
         .unwrap();
 
     assert_eq!(tx_status["finality_status"], "ACCEPTED_ON_L2");
-    assert_contains(tx_status["failure_reason"].as_str().unwrap(), "Error in the called contract");
+    assert_contains(tx_status["failure_reason"].as_str().unwrap(), "Error in the called contract")
+        .unwrap();
     assert_eq!(tx_status["execution_status"], "REVERTED");
 }

@@ -1,4 +1,5 @@
-use std::fmt::LowerHex;
+use crate::{assert_eq_prop, assert_ne_prop};
+use std::fmt::{Debug, LowerHex};
 use std::fs;
 use std::path::Path;
 use std::process::{Child, Command};
@@ -17,7 +18,7 @@ use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
 use starknet_rs_core::types::{
     BlockId, BlockTag, ContractClass, ContractExecutionError, DeployAccountTransactionResult,
     ExecutionResult, FeeEstimate, Felt, FlattenedSierraClass, FunctionCall,
-    InnerContractExecutionError, ResourceBounds, ResourceBoundsMapping,
+    InnerContractExecutionError, ResourceBounds, ResourceBoundsMapping, TransactionReceipt,
 };
 use starknet_rs_core::utils::{
     UdcUniqueSettings, get_selector_from_name, get_udc_deployed_address,
@@ -102,16 +103,20 @@ pub fn get_timestamp_asserter_contract_artifacts() -> SierraWithCasmHash {
     )
 }
 
-pub async fn assert_tx_succeeded_accepted<T: Provider>(tx_hash: &Felt, client: &T) {
-    let receipt = client.get_transaction_receipt(tx_hash).await.unwrap().receipt;
+pub async fn assert_tx_succeeded_accepted<T: Provider>(
+    tx_hash: &Felt,
+    client: &T,
+) -> Result<(), anyhow::Error> {
+    let receipt = client.get_transaction_receipt(tx_hash).await?.receipt;
+
     match receipt.execution_result() {
         ExecutionResult::Succeeded => (),
-        other => panic!("Should have succeeded; got: {other:?}"),
+        other => anyhow::bail!("Tx {tx_hash:#x} should have succeeded; got: {other:?}"),
     }
 
     match receipt.finality_status() {
-        starknet_rs_core::types::TransactionFinalityStatus::AcceptedOnL2 => (),
-        other => panic!("Should have been accepted on L2; got: {other:?}"),
+        starknet_rs_core::types::TransactionFinalityStatus::AcceptedOnL2 => Ok(()),
+        other => anyhow::bail!("Tx {tx_hash:#x} should have been accepted on L2; got: {other:?}"),
     }
 }
 
@@ -129,7 +134,10 @@ pub async fn assert_tx_succeeded_pre_confirmed<T: Provider>(_tx_hash: &Felt, _cl
     // }
 }
 
-pub async fn get_contract_balance(devnet: &BackgroundDevnet, contract_address: Felt) -> Felt {
+pub async fn get_contract_balance(
+    devnet: &BackgroundDevnet,
+    contract_address: Felt,
+) -> Result<Felt, anyhow::Error> {
     get_contract_balance_by_block_id(devnet, contract_address, BlockId::Tag(BlockTag::Latest)).await
 }
 
@@ -137,18 +145,15 @@ pub async fn get_contract_balance_by_block_id(
     devnet: &BackgroundDevnet,
     contract_address: Felt,
     block_id: BlockId,
-) -> Felt {
+) -> Result<Felt, anyhow::Error> {
     let contract_call = FunctionCall {
         contract_address,
         entry_point_selector: get_selector_from_name("get_balance").unwrap(),
         calldata: vec![],
     };
     match devnet.json_rpc_client.call(contract_call, block_id).await {
-        Ok(res) => {
-            assert_eq!(res.len(), 1);
-            res[0]
-        }
-        Err(e) => panic!("Call failed: {e}"),
+        Ok(res) if res.len() == 1 => Ok(res[0]),
+        other => anyhow::bail!("Expected a single-felt result; got: {other:?}"),
     }
 }
 
@@ -156,15 +161,17 @@ pub async fn assert_tx_reverted<T: Provider>(
     tx_hash: &Felt,
     client: &T,
     expected_failure_reasons: &[&str],
-) {
-    let receipt = client.get_transaction_receipt(tx_hash).await.unwrap().receipt;
+) -> Result<(), anyhow::Error> {
+    let receipt: TransactionReceipt = client.get_transaction_receipt(tx_hash).await?.receipt;
+
     match receipt.execution_result() {
         ExecutionResult::Reverted { reason } => {
             for expected_reason in expected_failure_reasons {
-                assert_contains(reason, expected_reason);
+                assert_contains(reason, expected_reason)?
             }
+            Ok(())
         }
-        other => panic!("Should have reverted; got: {other:?}; receipt: {receipt:?}"),
+        other => anyhow::bail!("Should have reverted; got: {other:?}; receipt: {receipt:?}"),
     }
 }
 
@@ -215,7 +222,8 @@ async fn send_ctrl_c_signal(process: &Child) {
 
 fn take_abi_from_json(value: &mut serde_json::Value) -> Result<serde_json::Value, anyhow::Error> {
     let abi_jsonified = value["abi"].take();
-    assert_ne!(abi_jsonified, serde_json::json!(null));
+    let json_null = serde_json::json!(null);
+    assert_ne_prop!(abi_jsonified, json_null)?;
     Ok(serde_json::from_str(abi_jsonified.as_str().unwrap())?)
 }
 
@@ -231,8 +239,8 @@ pub fn assert_cairo1_classes_equal(
     let abi_a = take_abi_from_json(&mut class_a_jsonified)?;
     let abi_b = take_abi_from_json(&mut class_b_jsonified)?;
 
-    assert_eq!(class_a_jsonified, class_b_jsonified);
-    assert_eq!(abi_a, abi_b);
+    assert_eq_prop!(class_a_jsonified, class_b_jsonified)?;
+    assert_eq_prop!(abi_a, abi_b)?;
 
     Ok(())
 }
@@ -429,21 +437,24 @@ pub async fn deploy_argent_account(
 
     let account_address = deployment.address();
     devnet.mint(account_address, u128::MAX).await;
-    let deployment_result = deployment.send().await.map_err(|e| anyhow::anyhow!("{e:?}"))?;
+    let deployment_result = deployment.send().await?;
 
     Ok((deployment_result, signer))
 }
 
 /// Assert that the set of elements of `iterable1` is a subset of the elements of `iterable2` and
 /// vice versa.
-pub fn assert_equal_elements<T>(iterable1: &[T], iterable2: &[T])
+pub fn assert_equal_elements<T>(iterable1: &[T], iterable2: &[T]) -> Result<(), anyhow::Error>
 where
-    T: PartialEq,
+    T: PartialEq + Debug,
 {
-    assert_eq!(iterable1.len(), iterable2.len());
+    assert_eq_prop!(iterable1.len(), iterable2.len())?;
     for e in iterable1 {
-        assert!(iterable2.contains(e));
+        if !iterable2.contains(e) {
+            anyhow::bail!("Element {:?} from left not found in right", e);
+        }
     }
+    Ok(())
 }
 
 pub fn felt_to_u256(f: Felt) -> U256 {
@@ -474,23 +485,29 @@ pub fn extract_json_rpc_error(error: ProviderError) -> Result<JsonRpcError, anyh
     }
 }
 
-pub fn assert_json_rpc_errors_equal(e1: JsonRpcError, e2: JsonRpcError) {
-    assert_eq!((e1.code, e1.message, e1.data), (e2.code, e2.message, e2.data));
+pub fn assert_json_rpc_errors_equal(
+    e1: JsonRpcError,
+    e2: JsonRpcError,
+) -> Result<(), anyhow::Error> {
+    assert_eq_prop!((e1.code, &e1.message, &e1.data), (e2.code, &e2.message, &e2.data))?;
+    Ok(())
 }
 
 /// Extract the message that is encapsulated inside the provided error.
-pub fn extract_message_error(error: &ContractExecutionError) -> &String {
+pub fn extract_message_error(error: &ContractExecutionError) -> Result<&String, anyhow::Error> {
     match error {
-        ContractExecutionError::Message(msg) => msg,
-        other => panic!("Unexpected error: {other:?}"),
+        ContractExecutionError::Message(msg) => Ok(msg),
+        other => anyhow::bail!("Unexpected error: {other:?}"),
     }
 }
 
 /// Extract the error that is nested inside the provided `error`.
-pub fn extract_nested_error(error: &ContractExecutionError) -> &InnerContractExecutionError {
+pub fn extract_nested_error(
+    error: &ContractExecutionError,
+) -> Result<&InnerContractExecutionError, anyhow::Error> {
     match error {
-        ContractExecutionError::Nested(nested) => nested,
-        other => panic!("Unexpected error: {other:?}"),
+        ContractExecutionError::Nested(nested) => Ok(nested),
+        other => anyhow::bail!("Unexpected error: {other:?}"),
     }
 }
 
@@ -569,23 +586,23 @@ pub async fn receive_notification(
     expected_subscription_id: SubscriptionId,
 ) -> Result<serde_json::Value, anyhow::Error> {
     let mut notification = receive_rpc_via_ws(ws).await?;
-    assert_eq!(notification["jsonrpc"], "2.0");
-    assert_eq!(notification["method"], method);
-    assert_eq!(
-        notification["params"]["subscription_id"]
-            .as_str()
-            .ok_or(anyhow::Error::msg("No Subscription ID in notification"))?
-            .to_string(),
-        expected_subscription_id
-    );
+    assert_eq_prop!(notification["jsonrpc"], "2.0")?;
+    assert_eq_prop!(notification["method"], method)?;
+    let subscription_id = notification["params"]["subscription_id"]
+        .as_str()
+        .ok_or(anyhow::Error::msg("No Subscription ID in notification"))?
+        .to_string();
+    assert_eq_prop!(subscription_id, expected_subscription_id)?;
     Ok(notification["params"]["result"].take())
 }
 
-pub async fn assert_no_notifications(ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
+pub async fn assert_no_notifications(
+    ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+) -> Result<(), anyhow::Error> {
     match receive_rpc_via_ws(ws).await {
-        Ok(resp) => panic!("Expected no notifications; found: {resp}"),
-        Err(e) if e.to_string().contains("deadline has elapsed") => { /* expected */ }
-        Err(e) => panic!("Expected to error out due to empty channel; found: {e}"),
+        Ok(resp) => anyhow::bail!("Expected no notifications; found: {resp}"),
+        Err(e) if e.to_string().contains("deadline has elapsed") => Ok(()), /* expected */
+        Err(e) => anyhow::bail!("Expected to error out due to empty channel; found: {e}"),
     }
 }
 
@@ -672,15 +689,16 @@ impl From<FeeEstimate> for LocalFee {
 }
 
 /// Panics if `text` does not contain `pattern`
-pub fn assert_contains(text: &str, pattern: &str) {
+pub fn assert_contains(text: &str, pattern: &str) -> Result<(), anyhow::Error> {
     if !text.contains(pattern) {
-        panic!(
+        anyhow::bail!(
             "Failed content assertion!
     Pattern: '{pattern}'
     not present in
     Text: '{text}'"
         );
     }
+    Ok(())
 }
 
 /// Set time and generate a new block

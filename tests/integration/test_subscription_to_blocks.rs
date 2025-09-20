@@ -43,7 +43,7 @@ async fn should_not_receive_block_notification_if_not_subscribed() {
     let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
     devnet.create_block().await.unwrap();
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -89,7 +89,7 @@ async fn subscription_to_an_old_block_by_number_should_notify_of_all_blocks_up_t
         assert_eq!(notification_block["block_number"], json!(block_i));
     }
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -116,7 +116,7 @@ async fn subscription_to_an_old_block_by_hash_should_notify_of_all_blocks_up_to_
         assert_eq!(notification_block["block_number"], json!(block_i));
     }
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -137,11 +137,11 @@ async fn assert_latest_block_is_default() {
 
     let notification_block_latest =
         receive_block(&mut ws_latest, subscription_id_latest).await.unwrap();
-    assert_no_notifications(&mut ws_latest).await;
+    assert_no_notifications(&mut ws_latest).await.unwrap();
 
     let notification_block_default =
         receive_block(&mut ws_default, subscription_id_default).await.unwrap();
-    assert_no_notifications(&mut ws_default).await;
+    assert_no_notifications(&mut ws_default).await.unwrap();
 
     assert_eq!(notification_block_latest, notification_block_default);
 }
@@ -177,7 +177,7 @@ async fn test_multiple_subscribers_one_unsubscribes() {
         assert_eq!(notification_block["block_hash"], json!(created_block_hash));
     }
 
-    assert_no_notifications(&mut unsubscriber_ws).await;
+    assert_no_notifications(&mut unsubscriber_ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -213,7 +213,7 @@ async fn read_only_methods_do_not_generate_notifications() {
         .await
         .unwrap();
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -227,7 +227,7 @@ async fn test_notifications_in_block_on_demand_mode() {
     let dummy_address = 0x1;
     devnet.mint(dummy_address, 1).await;
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 
     let created_block_hash = devnet.create_block().await.unwrap();
 

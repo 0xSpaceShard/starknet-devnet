@@ -485,7 +485,7 @@ async fn test_simulation_of_panicking_invoke() {
             execute_invocation: ExecuteInvocation::Reverted(reverted_invocation),
             ..
         }) => {
-            assert_contains(&reverted_invocation.revert_reason, panic_message_text);
+            assert_contains(&reverted_invocation.revert_reason, panic_message_text).unwrap();
         }
         other_trace => panic!("Unexpected trace {other_trace:?}"),
     }
@@ -577,7 +577,7 @@ async fn simulate_of_multiple_txs_shouldnt_return_an_error_if_invoke_transaction
         TransactionTrace::Invoke(InvokeTransactionTrace {
             execute_invocation: ExecuteInvocation::Reverted(reverted_invocation),
             ..
-        }) => assert_contains(&reverted_invocation.revert_reason, "ENTRYPOINT_NOT_FOUND"),
+        }) => assert_contains(&reverted_invocation.revert_reason, "ENTRYPOINT_NOT_FOUND").unwrap(),
         other_trace => panic!("Unexpected trace {:?}", other_trace),
     }
 }
@@ -709,7 +709,7 @@ async fn simulate_with_gas_bounds_exceeding_balance_returns_error_if_charging_no
                 execution_error,
                 ..
             }),
-        )) => assert_contains(&format!("{:?}", execution_error), "exceed balance"),
+        )) => assert_contains(&format!("{:?}", execution_error), "exceed balance").unwrap(),
         other => panic!("Unexpected error {other:?}"),
     }
 
@@ -936,7 +936,7 @@ async fn simulate_invoke_v3_with_fee_just_below_estimated_should_return_a_trace_
         TransactionTrace::Invoke(InvokeTransactionTrace {
             execute_invocation: ExecuteInvocation::Reverted(reverted_invocation),
             ..
-        }) => assert_contains(&reverted_invocation.revert_reason, "Insufficient"),
+        }) => assert_contains(&reverted_invocation.revert_reason, "Insufficient").unwrap(),
         other => panic!("Unexpected trace {other:?}"),
     }
 }
@@ -1117,7 +1117,7 @@ async fn simulate_invoke_v3_with_failing_execution_should_return_a_trace_of_reve
         TransactionTrace::Invoke(InvokeTransactionTrace {
             execute_invocation: ExecuteInvocation::Reverted(reverted_invocation),
             ..
-        }) => assert_contains(&reverted_invocation.revert_reason, panic_reason),
+        }) => assert_contains(&reverted_invocation.revert_reason, panic_reason).unwrap(),
         other => panic!("Unexpected trace {other:?}"),
     }
 }

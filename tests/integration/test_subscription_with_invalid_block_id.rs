@@ -34,7 +34,7 @@ async fn test_subscribing_to_non_existent_block() {
         }
     }
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -58,7 +58,7 @@ async fn test_aborted_blocks_not_subscribable() {
         }
     }
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]

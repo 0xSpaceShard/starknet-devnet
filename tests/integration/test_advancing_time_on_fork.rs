@@ -64,18 +64,18 @@ async fn tx_resource_estimation_fails_on_forked_devnet_with_impersonation_unless
         )) => {
             assert_eq!(error_data.transaction_index, 0);
 
-            let root_error = extract_nested_error(&error_data.execution_error);
+            let root_error = extract_nested_error(&error_data.execution_error).unwrap();
             assert_eq!(root_error.contract_address, fork_account.address());
             assert_eq!(root_error.selector, get_selector_from_name("__execute__").unwrap());
 
             // Currently the root error is twice mentioned, so we extract twice
-            let inner_error = extract_nested_error(&root_error.error);
-            let inner_error = extract_nested_error(&inner_error.error);
+            let inner_error = extract_nested_error(&root_error.error).unwrap();
+            let inner_error = extract_nested_error(&inner_error.error).unwrap();
             assert_eq!(inner_error.contract_address, contract_address);
             assert_eq!(inner_error.selector, time_check_selector);
 
-            let message = extract_message_error(&inner_error.error);
-            assert_contains(message, "Wait a bit more");
+            let message = extract_message_error(&inner_error.error).unwrap();
+            assert_contains(message, "Wait a bit more").unwrap();
         }
         other => panic!("Invalid error: {other:?}"),
     }
@@ -139,7 +139,7 @@ async fn tx_execution_fails_on_forked_devnet_with_impersonation_unless_time_incr
     match forked_devnet.json_rpc_client.get_transaction_status(reverted_tx.transaction_hash).await {
         Ok(TransactionStatus::AcceptedOnL2(tx_details)) => {
             assert_eq!(tx_details.status(), TransactionExecutionStatus::Reverted);
-            assert_contains(tx_details.revert_reason().unwrap(), "Wait a bit more");
+            assert_contains(tx_details.revert_reason().unwrap(), "Wait a bit more").unwrap();
         }
         other => panic!("Unexpected tx: {other:?}"),
     }
