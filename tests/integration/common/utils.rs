@@ -447,9 +447,9 @@ where
     T: PartialEq + Debug,
 {
     assert_eq_prop!(iterable1.len(), iterable2.len())?;
-    for e in iterable1 {
-        if !iterable2.contains(e) {
-            anyhow::bail!("Element {e:?} from left not found in right");
+    for el in iterable1 {
+        if !iterable2.contains(el) {
+            anyhow::bail!("Element {el:?} from left not found in right");
         }
     }
     Ok(())
