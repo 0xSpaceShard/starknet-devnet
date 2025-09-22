@@ -12,6 +12,7 @@ use crate::common::constants::STRK_ERC20_CONTRACT_ADDRESS;
 use crate::common::utils::{
     FeeUnit, ImpersonationAction, assert_contains, get_simple_contract_artifacts,
 };
+use crate::{assert_eq_prop, assert_gte_prop};
 
 const IMPERSONATED_ACCOUNT_PRIVATE_KEY: Felt = Felt::ONE;
 // Felt::from(100000000000)
@@ -256,14 +257,13 @@ async fn test_invoke_transaction(
         .await?
         .receipt;
 
-    assert_eq!(receipt.execution_result(), &ExecutionResult::Succeeded);
+    assert_eq_prop!(receipt.execution_result(), &ExecutionResult::Succeeded)?;
 
     let forked_account_balance = forked_devnet
         .get_balance_by_tag(&account.address(), FeeUnit::Fri, BlockTag::Latest)
         .await?;
-    assert!(forked_account_initial_balance >= AMOUNT_TO_TRANSFER + forked_account_balance);
 
-    Ok(())
+    assert_gte_prop!(forked_account_initial_balance, AMOUNT_TO_TRANSFER + forked_account_balance)
 }
 
 fn assert_anyhow_error_contains_message(error: anyhow::Error, message: &str) {

@@ -48,8 +48,7 @@ async fn dump_load_dump_load(mode: &str) -> Result<(), anyhow::Error> {
     .await?;
 
     let last_block = devnet_load.get_latest_block_with_tx_hashes().await?;
-    assert_eq_prop!(last_block.block_number, 4)?;
-    Ok(())
+    assert_eq_prop!(last_block.block_number, 4)
 }
 
 #[tokio::test]

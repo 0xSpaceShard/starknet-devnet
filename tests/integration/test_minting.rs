@@ -47,8 +47,7 @@ async fn increase_balance_happy_path(
 
     let new_balance =
         devnet.get_balance_latest(&Felt::from_hex_unchecked(address), unit).await.unwrap();
-    assert_eq_prop!(final_balance, new_balance)?;
-    Ok(())
+    assert_eq_prop!(final_balance, new_balance)
 }
 
 #[tokio::test]

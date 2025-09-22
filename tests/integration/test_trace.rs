@@ -56,11 +56,10 @@ fn assert_mint_invocation(trace: &TransactionTrace) -> Result<(), anyhow::Error>
 
             assert_eq_prop!(execution_resources.l1_gas, 0)?;
             assert_gte_prop!(execution_resources.l1_data_gas, 0)?;
-            assert_gte_prop!(execution_resources.l2_gas, 0)?;
+            assert_gte_prop!(execution_resources.l2_gas, 0)
         }
         other => anyhow::bail!("Invalid trace: {other:?}"),
-    };
-    Ok(())
+    }
 }
 
 async fn get_invoke_trace(devnet: &BackgroundDevnet) -> Result<(), anyhow::Error> {

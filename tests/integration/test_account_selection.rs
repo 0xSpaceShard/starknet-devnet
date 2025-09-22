@@ -62,8 +62,7 @@ async fn correct_artifact_test_body(
         .as_str()
         .ok_or(anyhow::anyhow!("contract class hash not found"))?;
     let config_class_hash = Felt::from_hex_unchecked(config_class_hash_hex);
-    assert_eq_prop!(config_class_hash, expected_hash)?;
-    Ok(())
+    assert_eq_prop!(config_class_hash, expected_hash)
 }
 
 #[tokio::test]
@@ -235,7 +234,10 @@ async fn can_declare_deploy_invoke_using_predeployed_custom() {
     can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
 }
 
-async fn assert_supports_isrc6(devnet: &BackgroundDevnet, account_address: Felt) {
+async fn assert_supports_isrc6(
+    devnet: &BackgroundDevnet,
+    account_address: Felt,
+) -> Result<(), anyhow::Error> {
     // https://github.com/OpenZeppelin/cairo-contracts/blob/89a450a88628ec3b86273f261b2d8d1ca9b1522b/src/account/interface.cairo#L7
     let interface_id_hex = "0x2ceccef7f994940b3962a6c67e0ba4fcd37df7d131417c604f91e03caecc1cd";
     let interface_id = Felt::from_hex_unchecked(interface_id_hex);
@@ -247,7 +249,7 @@ async fn assert_supports_isrc6(devnet: &BackgroundDevnet, account_address: Felt)
     };
 
     let supports = devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap();
-    assert_eq!(supports, vec![Felt::ONE]);
+    assert_eq_prop!(supports, vec![Felt::ONE])
 }
 
 #[tokio::test]
@@ -255,7 +257,7 @@ async fn test_interface_support_of_predeployed_account() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
     let (_, account_address) = devnet.get_first_predeployed_account().await;
 
-    assert_supports_isrc6(&devnet, account_address).await;
+    assert_supports_isrc6(&devnet, account_address).await.unwrap();
 }
 
 #[tokio::test]
@@ -264,7 +266,7 @@ async fn test_interface_support_of_newly_deployed_account() {
 
     let (account_deployment, _) = deploy_oz_account(&devnet).await.unwrap();
 
-    assert_supports_isrc6(&devnet, account_deployment.contract_address).await;
+    assert_supports_isrc6(&devnet, account_deployment.contract_address).await.unwrap();
 }
 
 #[tokio::test]
