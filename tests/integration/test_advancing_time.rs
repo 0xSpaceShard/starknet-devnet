@@ -34,15 +34,13 @@ async fn sleep_until_new_timestamp() {
 pub fn assert_ge_with_buffer(val1: u64, val2: u64) -> Result<(), anyhow::Error> {
     assert_gte_prop!(val1, val2)?;
     let upper_limit = val2 + BUFFER_TIME_SECONDS;
-    assert_lte_prop!(val1, upper_limit)?;
-    Ok(())
+    assert_lte_prop!(val1, upper_limit)
 }
 
 pub fn assert_gt_with_buffer(val1: u64, val2: u64) -> Result<(), anyhow::Error> {
     assert_gte_prop!(val1, val2)?;
     let upper_limit = val2 + BUFFER_TIME_SECONDS;
-    assert_lte_prop!(val1, upper_limit)?;
-    Ok(())
+    assert_lte_prop!(val1, upper_limit)
 }
 
 fn assert_eq_with_buffer(val1: u64, val2: u64) {

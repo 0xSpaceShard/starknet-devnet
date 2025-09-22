@@ -1,4 +1,4 @@
-/// Asserts that a boolean expression is `true` at runtime, propagating an `Err` if it's false.
+/// Asserts that a boolean expression is `true` at runtime, propagating an `Err` if `false`.
 #[macro_export]
 macro_rules! assert_prop {
     ($cond:expr) => {
@@ -24,7 +24,7 @@ macro_rules! assert_prop {
     };
 }
 
-/// Asserts that two expressions are equal to each other, propagating an `Err` if they are not.
+/// Asserts that two expressions are equal to each other, propagating an `Err` if not.
 #[macro_export]
 macro_rules! assert_eq_prop {
     ($left:expr, $right:expr) => {
@@ -35,10 +35,8 @@ macro_rules! assert_eq_prop {
                 } else {
                     Err(anyhow::anyhow!(
                         "Assertion failed: `(left == right)`
-  left: `{:?}`,
- right: `{:?}`",
-                        left_val,
-                        right_val
+  left: `{left_val:?}`,
+ right: `{right_val:?}`"
                     ))
                 }
             }
@@ -52,11 +50,9 @@ macro_rules! assert_eq_prop {
                 } else {
                     Err(anyhow::anyhow!(
                         "Assertion failed: `(left == right)`: {}
-  left: `{:?}`,
- right: `{:?}`",
+  left: `{left_val:?}`,
+ right: `{right_val:?}`"
                         format!($($arg)+),
-                        left_val,
-                        right_val
                     ))
                 }
             }
@@ -75,10 +71,8 @@ macro_rules! assert_ne_prop {
                 } else {
                     Err(anyhow::anyhow!(
                         "Assertion failed: `(left != right)`
-  left: `{:?}`,
- right: `{:?}`",
-                        left_val,
-                        right_val
+  left: `{left_val:?}`,
+ right: `{right_val:?}`"
                     ))
                 }
             }
@@ -92,11 +86,9 @@ macro_rules! assert_ne_prop {
                 } else {
                     Err(anyhow::anyhow!(
                         "Assertion failed: `(left != right)`: {}
-  left: `{:?}`,
- right: `{:?}`",
+  left: `{left_val:?}`,
+ right: `{right_val:?}`",
                         format!($($arg)+),
-                        left_val,
-                        right_val
                     ))
                 }
             }
@@ -104,7 +96,7 @@ macro_rules! assert_ne_prop {
     };
 }
 
-/// Asserts that an expression is greater than or equal to the other, propagating an `Err` if they are not.
+/// Asserts that an expression is greater than or equal to the other, propagating an `Err` if not.
 #[macro_export]
 macro_rules! assert_gte_prop {
     ($left:expr, $right:expr) => {
@@ -115,10 +107,8 @@ macro_rules! assert_gte_prop {
                 } else {
                     Err(anyhow::anyhow!(
                         "Assertion failed: `(left >= right)`
-  left: `{:?}`,
- right: `{:?}`",
-                        left_val,
-                        right_val
+  left: `{left_val:?}`,
+ right: `{right_val:?}`"
                     ))
                 }
             }
@@ -132,11 +122,9 @@ macro_rules! assert_gte_prop {
                 } else {
                     Err(anyhow::anyhow!(
                         "Assertion failed: `(left >= right)`: {}
-  left: `{:?}`,
- right: `{:?}`",
+  left: `{left_val:?}`,
+ right: `{right_val:?}`",
                         format!($($arg)+),
-                        left_val,
-                        right_val
                     ))
                 }
             }
@@ -144,7 +132,7 @@ macro_rules! assert_gte_prop {
     };
 }
 
-/// Asserts that an expression is less than or equal to the other, propagating an `Err` if they are not.
+/// Asserts that an expression is less than or equal to the other, propagating an `Err` if not.
 #[macro_export]
 macro_rules! assert_lte_prop {
     ($left:expr, $right:expr) => {
@@ -155,10 +143,8 @@ macro_rules! assert_lte_prop {
                 } else {
                     Err(anyhow::anyhow!(
                         "Assertion failed: `(left <= right)`
-  left: `{:?}`,
- right: `{:?}`",
-                        left_val,
-                        right_val
+  left: `{left_val:?}`,
+ right: `{right_val:?}`"
                     ))
                 }
             }
@@ -172,11 +158,9 @@ macro_rules! assert_lte_prop {
                 } else {
                     Err(anyhow::anyhow!(
                         "Assertion failed: `(left <= right)`: {}
-  left: `{:?}`,
- right: `{:?}`",
+  left: `{left_val:?}`,
+ right: `{right_val:?}`",
                         format!($($arg)+),
-                        left_val,
-                        right_val
                     ))
                 }
             }

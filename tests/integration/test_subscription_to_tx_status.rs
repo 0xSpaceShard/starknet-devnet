@@ -48,8 +48,7 @@ fn assert_mint_notification_succeeded(
             "subscription_id": subscription_id,
         }
     });
-    assert_eq_prop!(notification, expected_resp)?;
-    Ok(())
+    assert_eq_prop!(notification, expected_resp)
 }
 
 #[tokio::test]

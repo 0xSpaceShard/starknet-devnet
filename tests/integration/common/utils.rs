@@ -1,4 +1,3 @@
-use crate::{assert_eq_prop, assert_ne_prop};
 use std::fmt::{Debug, LowerHex};
 use std::fs;
 use std::path::Path;
@@ -36,6 +35,7 @@ use super::constants::{
     CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH, UDC_LEGACY_CONTRACT_ADDRESS,
 };
 use super::safe_child::SafeChild;
+use crate::{assert_eq_prop, assert_ne_prop};
 
 pub enum ImpersonationAction {
     ImpersonateAccount(Felt),
@@ -120,8 +120,12 @@ pub async fn assert_tx_succeeded_accepted<T: Provider>(
     }
 }
 
-pub async fn assert_tx_succeeded_pre_confirmed<T: Provider>(_tx_hash: &Felt, _client: &T) {
+pub async fn assert_tx_succeeded_pre_confirmed<T: Provider>(
+    _tx_hash: &Felt,
+    _client: &T,
+) -> Result<(), anyhow::Error> {
     eprintln!("TODO: Currently suppressed; undo when starknet-rs updated to 0.17");
+    Ok(())
     // let receipt = client.get_transaction_receipt(tx_hash).await.unwrap().receipt;
     // match receipt.execution_result() {
     //     ExecutionResult::Succeeded => (),
@@ -240,9 +244,7 @@ pub fn assert_cairo1_classes_equal(
     let abi_b = take_abi_from_json(&mut class_b_jsonified)?;
 
     assert_eq_prop!(class_a_jsonified, class_b_jsonified)?;
-    assert_eq_prop!(abi_a, abi_b)?;
-
-    Ok(())
+    assert_eq_prop!(abi_a, abi_b)
 }
 
 /// Wrapper of file name which attempts to delete the file when the variable is dropped.
@@ -449,9 +451,9 @@ where
     T: PartialEq + Debug,
 {
     assert_eq_prop!(iterable1.len(), iterable2.len())?;
-    for e in iterable1 {
-        if !iterable2.contains(e) {
-            anyhow::bail!("Element {:?} from left not found in right", e);
+    for el in iterable1 {
+        if !iterable2.contains(el) {
+            anyhow::bail!("Element {el:?} from left not found in right");
         }
     }
     Ok(())
@@ -489,8 +491,7 @@ pub fn assert_json_rpc_errors_equal(
     e1: JsonRpcError,
     e2: JsonRpcError,
 ) -> Result<(), anyhow::Error> {
-    assert_eq_prop!((e1.code, &e1.message, &e1.data), (e2.code, &e2.message, &e2.data))?;
-    Ok(())
+    assert_eq_prop!((e1.code, &e1.message, &e1.data), (e2.code, &e2.message, &e2.data))
 }
 
 /// Extract the message that is encapsulated inside the provided error.
@@ -601,7 +602,7 @@ pub async fn assert_no_notifications(
 ) -> Result<(), anyhow::Error> {
     match receive_rpc_via_ws(ws).await {
         Ok(resp) => anyhow::bail!("Expected no notifications; found: {resp}"),
-        Err(e) if e.to_string().contains("deadline has elapsed") => Ok(()), /* expected */
+        Err(e) if e.to_string().contains("deadline has elapsed") => Ok(()), // expected
         Err(e) => anyhow::bail!("Expected to error out due to empty channel; found: {e}"),
     }
 }

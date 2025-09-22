@@ -34,8 +34,7 @@ async fn assert_block_aborted(
         .await
         .unwrap_err();
 
-    assert_eq_prop!(err, RpcError { code: 24, message: "Block not found".into(), data: None })?;
-    Ok(())
+    assert_eq_prop!(err, RpcError { code: 24, message: "Block not found".into(), data: None })
 }
 
 async fn assert_txs_aborted(

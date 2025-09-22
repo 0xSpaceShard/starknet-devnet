@@ -185,8 +185,7 @@ fn assert_accepted_l1_handler_trace(trace: &TransactionTrace) -> Result<(), anyh
                 MESSAGING_L2_CONTRACT_ADDRESS
             )?;
             assert_eq_prop!(invocation.entry_point_selector.to_hex_string(), L1_HANDLER_SELECTOR)?;
-            assert_eq_prop!(invocation.calldata[0].to_hex_string(), MESSAGING_L1_CONTRACT_ADDRESS)?;
-            Ok(())
+            assert_eq_prop!(invocation.calldata[0].to_hex_string(), MESSAGING_L1_CONTRACT_ADDRESS)
         }
         other => anyhow::bail!("Invalid trace: {other:?}"),
     }
@@ -218,9 +217,7 @@ async fn assert_withdrawn(
         "generated_l2_transactions": [],
         "l1_provider": "dry run"
     });
-    assert_eq_prop!(resp_body, expected_resp)?;
-
-    Ok(())
+    assert_eq_prop!(resp_body, expected_resp)
 }
 
 #[tokio::test]
@@ -979,11 +976,8 @@ async fn test_getting_status_of_real_message() {
     anvil.deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, 1.into()).await.unwrap();
 
     // Flush to trigger L2 transaction generation.
-    let generated_l2_txs_raw = &devnet
-        .send_custom_rpc("devnet_postmanFlush", json!({}))
-        .await
-        .unwrap()["generated_l2_transactions"];
-    let generated_l2_txs = generated_l2_txs_raw.as_array().unwrap();
+    let flush_resp = devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
+    let generated_l2_txs = &flush_resp["generated_l2_transactions"].as_array().unwrap();
     assert_eq!(generated_l2_txs.len(), 1);
     let generated_l2_tx = &generated_l2_txs[0];
 
