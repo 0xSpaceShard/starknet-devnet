@@ -88,7 +88,8 @@ async fn storage_proof_request_should_always_return_error() {
         Err(e) => assert_json_rpc_errors_equal(
             extract_json_rpc_error(e).unwrap(),
             JsonRpcError { code: 42, message: devnet_storage_proof_msg.into(), data: None },
-        ),
+        )
+        .unwrap(),
         other => panic!("Unexpected result: {other:?}"),
     }
 }

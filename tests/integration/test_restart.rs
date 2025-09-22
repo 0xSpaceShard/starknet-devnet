@@ -93,7 +93,10 @@ async fn assert_account_deployment_reverted() {
     let deployment_tx = deployment.send().await.unwrap();
 
     // assert deployment successful and class associated with deployment address is present
-    assert_tx_succeeded_accepted(&deployment_tx.transaction_hash, &devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&deployment_tx.transaction_hash, &devnet.json_rpc_client)
+        .await
+        .unwrap();
+
     devnet
         .json_rpc_client
         .get_class_at(BlockId::Tag(BlockTag::Latest), deployment_address)

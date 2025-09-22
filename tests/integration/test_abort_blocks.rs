@@ -2,6 +2,7 @@ use serde_json::json;
 use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
 use starknet_rs_providers::{Provider, ProviderError};
 
+use crate::assert_eq_prop;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::errors::RpcError;
 use crate::common::utils::{FeeUnit, assert_contains, to_hex_felt};
@@ -13,15 +14,18 @@ async fn abort_blocks_error(
     devnet: &BackgroundDevnet,
     starting_block_id: &BlockId,
     expected_message_substring: &str,
-) {
-    let aborted_blocks_error = devnet
+) -> Result<(), anyhow::Error> {
+    let aborted_blocks_error: RpcError = devnet
         .send_custom_rpc("devnet_abortBlocks", json!({ "starting_block_id" : starting_block_id }))
         .await
         .unwrap_err();
-    assert_contains(&aborted_blocks_error.message, expected_message_substring);
+    assert_contains(&aborted_blocks_error.message, expected_message_substring)
 }
 
-async fn assert_block_aborted(devnet: &BackgroundDevnet, block_hash: &Felt) {
+async fn assert_block_aborted(
+    devnet: &BackgroundDevnet,
+    block_hash: &Felt,
+) -> Result<(), anyhow::Error> {
     let err = devnet
         .send_custom_rpc(
             "starknet_getBlockWithTxHashes",
@@ -30,16 +34,21 @@ async fn assert_block_aborted(devnet: &BackgroundDevnet, block_hash: &Felt) {
         .await
         .unwrap_err();
 
-    assert_eq!(err, RpcError { code: 24, message: "Block not found".into(), data: None })
+    assert_eq_prop!(err, RpcError { code: 24, message: "Block not found".into(), data: None })?;
+    Ok(())
 }
 
-async fn assert_txs_aborted(devnet: &BackgroundDevnet, tx_hashes: &[Felt]) {
+async fn assert_txs_aborted(
+    devnet: &BackgroundDevnet,
+    tx_hashes: &[Felt],
+) -> Result<(), anyhow::Error> {
     for tx_hash in tx_hashes {
         match devnet.json_rpc_client.get_transaction_by_hash(tx_hash).await {
             Err(ProviderError::StarknetError(StarknetError::TransactionHashNotFound)) => (),
-            other => panic!("Unexpected tx response: {other:?}"),
+            other => anyhow::bail!("Unexpected tx response for {tx_hash:#x}: {other:?}"),
         }
     }
+    Ok(())
 }
 
 #[tokio::test]
@@ -65,14 +74,15 @@ async fn abort_latest_block_with_hash() {
         .unwrap();
     assert_eq!(genesis_block_after_abort["status"], "ACCEPTED_ON_L2".to_string());
 
-    assert_block_aborted(&devnet, &new_block_hash).await;
+    assert_block_aborted(&devnet, &new_block_hash).await.unwrap();
 
     abort_blocks_error(
         &devnet,
         &BlockId::Hash(genesis_block_hash),
         "Genesis block can't be aborted",
     )
-    .await;
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -88,8 +98,8 @@ async fn abort_two_blocks() {
     let aborted_blocks = devnet.abort_blocks(&BlockId::Hash(first_block_hash)).await.unwrap();
     assert_eq!(json!(aborted_blocks), json!([second_block_hash, first_block_hash]));
 
-    assert_block_aborted(&devnet, &first_block_hash).await;
-    assert_block_aborted(&devnet, &second_block_hash).await;
+    assert_block_aborted(&devnet, &first_block_hash).await.unwrap();
+    assert_block_aborted(&devnet, &second_block_hash).await.unwrap();
 }
 
 #[tokio::test]
@@ -107,8 +117,8 @@ async fn abort_block_with_transaction() {
         devnet.abort_blocks(&BlockId::Hash(latest_block.block_hash)).await.unwrap();
     assert_eq!(aborted_blocks, vec![latest_block.block_hash]);
 
-    assert_block_aborted(&devnet, &latest_block.block_hash).await;
-    assert_txs_aborted(&devnet, &[mint_hash]).await;
+    assert_block_aborted(&devnet, &latest_block.block_hash).await.unwrap();
+    assert_txs_aborted(&devnet, &[mint_hash]).await.unwrap();
 }
 
 #[tokio::test]
@@ -121,7 +131,7 @@ async fn query_aborted_block_by_number_should_fail() {
     let new_block_hash = devnet.create_block().await.unwrap();
     let aborted_blocks = devnet.abort_blocks(&BlockId::Hash(new_block_hash)).await.unwrap();
     assert_eq!(aborted_blocks, vec![new_block_hash]);
-    assert_block_aborted(&devnet, &new_block_hash).await;
+    assert_block_aborted(&devnet, &new_block_hash).await.unwrap();
 
     let rpc_error = devnet
         .send_custom_rpc(
@@ -225,7 +235,8 @@ async fn abort_blocks_without_state_archive_capacity() {
         &BlockId::Hash(new_block_hash),
         "The abort blocks feature requires state-archive-capacity set to full",
     )
-    .await;
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -241,8 +252,8 @@ async fn abort_same_block_twice() {
     let aborted_blocks = devnet.abort_blocks(&BlockId::Hash(first_block_hash)).await.unwrap();
     assert_eq!(aborted_blocks, vec![second_block_hash, first_block_hash]);
 
-    abort_blocks_error(&devnet, &BlockId::Hash(first_block_hash), "No block found").await;
-    abort_blocks_error(&devnet, &BlockId::Hash(second_block_hash), "No block found").await;
+    abort_blocks_error(&devnet, &BlockId::Hash(first_block_hash), "No block found").await.unwrap();
+    abort_blocks_error(&devnet, &BlockId::Hash(second_block_hash), "No block found").await.unwrap();
 }
 
 #[tokio::test]
@@ -265,8 +276,8 @@ async fn abort_same_block_twice_if_blocks_aborted_on_two_occasions() {
         devnet.abort_blocks(&BlockId::Hash(first_block_hash)).await.unwrap();
     assert_eq!(second_aborted_blocks, vec![first_block_hash]);
 
-    abort_blocks_error(&devnet, &BlockId::Hash(first_block_hash), "No block found").await;
-    abort_blocks_error(&devnet, &BlockId::Hash(second_block_hash), "No block found").await;
+    abort_blocks_error(&devnet, &BlockId::Hash(first_block_hash), "No block found").await.unwrap();
+    abort_blocks_error(&devnet, &BlockId::Hash(second_block_hash), "No block found").await.unwrap();
 }
 
 #[tokio::test]
@@ -283,7 +294,9 @@ async fn abort_block_after_fork() {
     let aborted_blocks = fork_devnet.abort_blocks(&BlockId::Hash(fork_block_hash)).await.unwrap();
     assert_eq!(aborted_blocks, vec![fork_block_hash]);
 
-    abort_blocks_error(&fork_devnet, &BlockId::Hash(fork_block_hash), "No block found").await;
+    abort_blocks_error(&fork_devnet, &BlockId::Hash(fork_block_hash), "No block found")
+        .await
+        .unwrap();
 }
 
 #[tokio::test]
@@ -300,7 +313,8 @@ async fn abort_latest_blocks() {
         devnet.abort_blocks(&BlockId::Tag(BlockTag::Latest)).await.unwrap();
     }
     abort_blocks_error(&devnet, &BlockId::Tag(BlockTag::Latest), "Genesis block can't be aborted")
-        .await;
+        .await
+        .unwrap();
 }
 
 #[tokio::test]

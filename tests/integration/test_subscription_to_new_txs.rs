@@ -24,7 +24,7 @@ async fn should_not_notify_in_block_on_demand_mode_if_default_subscription_param
     // No notifications because default finality_status is ACCEPTED_ON_L2
     subscribe_new_txs(&mut ws, json!({})).await.unwrap();
     send_dummy_mint_tx(&devnet).await;
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -44,7 +44,7 @@ async fn should_notify_of_pre_confirmed_txs_with_block_generation_on_demand() {
     let extracted_tx: Transaction = serde_json::from_value(notification_tx).unwrap();
     assert_eq!(extracted_tx.transaction_hash(), &tx_hash);
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -71,7 +71,7 @@ async fn should_notify_of_accepted_on_l2_with_block_generation_on_tx() {
         assert_eq!(notification_tx["finality_status"].take(), json!(finality_status));
         let extracted_tx: Transaction = serde_json::from_value(notification_tx).unwrap();
         assert_eq!(extracted_tx.transaction_hash(), &tx_hash);
-        assert_no_notifications(&mut ws).await;
+        assert_no_notifications(&mut ws).await.unwrap();
     }
 }
 
@@ -95,7 +95,7 @@ async fn should_notify_for_multiple_subscribers_with_default_params() {
         let extracted_tx: Transaction = serde_json::from_value(notification_tx).unwrap();
         assert_eq!(extracted_tx.transaction_hash(), &tx_hash);
 
-        assert_no_notifications(&mut ws).await;
+        assert_no_notifications(&mut ws).await.unwrap();
     }
 }
 
@@ -120,7 +120,7 @@ async fn should_stop_notifying_after_unsubscription() {
     send_dummy_mint_tx(&devnet).await;
 
     for (mut ws, _) in subscribers {
-        assert_no_notifications(&mut ws).await;
+        assert_no_notifications(&mut ws).await.unwrap();
     }
 }
 
@@ -158,7 +158,7 @@ async fn should_notify_for_filtered_address() {
         serde_json::from_value(deployment_notification).unwrap();
     assert_eq!(deployment_tx.nonce, Felt::ONE);
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -172,7 +172,7 @@ async fn should_not_notify_if_filtered_address_not_matched() {
     send_dummy_mint_tx(&devnet).await;
 
     // nothing matched since minting is done via the Chargeable account
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -191,7 +191,7 @@ async fn should_not_notify_if_tx_by_filtered_address_already_in_pre_confirmed_bl
     ] {
         let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
         subscribe_new_txs(&mut ws, subscription_params).await.unwrap();
-        assert_no_notifications(&mut ws).await;
+        assert_no_notifications(&mut ws).await.unwrap();
     }
 }
 
@@ -213,7 +213,7 @@ async fn should_not_notify_if_tx_by_filtered_address_in_latest_block_in_on_deman
     .await
     .unwrap();
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -234,7 +234,7 @@ async fn should_not_notify_if_tx_by_filtered_address_in_latest_block_in_on_tx_mo
     .await
     .unwrap();
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -249,7 +249,7 @@ async fn should_not_notify_if_tx_already_in_latest_block_in_on_demand_mode() {
     // Subscribe AFTER the tx and block creation.
     let finality_status = TransactionFinalityStatus::PreConfirmed;
     subscribe_new_txs(&mut ws, json!({ "finality_status": [finality_status] })).await.unwrap();
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -265,7 +265,7 @@ async fn should_not_notify_if_tx_already_in_latest_block_in_on_tx_mode() {
         [TransactionFinalityStatus::PreConfirmed, TransactionFinalityStatus::AcceptedOnL2]
     {
         subscribe_new_txs(&mut ws, json!({ "finality_status": [finality_status] })).await.unwrap();
-        assert_no_notifications(&mut ws).await;
+        assert_no_notifications(&mut ws).await.unwrap();
     }
 }
 
@@ -286,7 +286,7 @@ async fn should_not_notify_on_read_request_if_txs_in_pre_confirmed_block() {
     let dummy_address = Felt::ONE;
     devnet.get_balance_latest(&dummy_address, FeeUnit::Wei).await.unwrap();
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -308,11 +308,11 @@ async fn should_notify_twice_if_subscribed_to_both_finality_statuses() {
         let extracted_tx: Transaction = serde_json::from_value(notification_tx).unwrap();
         assert_eq!(extracted_tx.transaction_hash(), &tx_hash);
 
-        assert_no_notifications(&mut ws).await;
+        assert_no_notifications(&mut ws).await.unwrap();
         devnet.create_block().await.unwrap(); // On first loop iteration, this changes tx status
     }
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -331,5 +331,5 @@ async fn test_deploy_account_tx_notification() {
     // assert_eq!(tx.transaction_hash, deployment_result.transaction_hash);
     assert_eq!(notification["transaction_hash"], json!(deployment_result.transaction_hash));
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }

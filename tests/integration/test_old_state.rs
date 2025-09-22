@@ -213,7 +213,7 @@ async fn fee_estimation_and_simulation_of_deployment_at_old_block_should_not_yie
         ProviderError::StarknetError(StarknetError::TransactionExecutionError(
             TransactionExecutionErrorData { execution_error, .. },
         )) => {
-            let account_error = extract_nested_error(&execution_error);
+            let account_error = extract_nested_error(&execution_error).unwrap();
 
             assert_eq!(account_error.selector, get_selector_from_name("__execute__").unwrap());
             assert_eq!(account_error.contract_address, account.address());
@@ -225,16 +225,16 @@ async fn fee_estimation_and_simulation_of_deployment_at_old_block_should_not_yie
                 .unwrap();
             assert_eq!(account_error.class_hash, account_class_hash);
 
-            let udc_error = extract_nested_error(&account_error.error);
+            let udc_error = extract_nested_error(&account_error.error).unwrap();
             assert_eq!(udc_error.contract_address, UDC_LEGACY_CONTRACT_ADDRESS);
             assert_eq!(udc_error.selector, udc_selector);
             assert_eq!(udc_error.class_hash, UDC_LEGACY_CONTRACT_CLASS_HASH);
 
-            let error_at_to_be_deployed_address = extract_nested_error(&udc_error.error);
+            let error_at_to_be_deployed_address = extract_nested_error(&udc_error.error).unwrap();
             assert_eq!(error_at_to_be_deployed_address.class_hash, class_hash);
             assert_eq!(error_at_to_be_deployed_address.selector, Felt::ZERO);
 
-            let error_msg = extract_message_error(&error_at_to_be_deployed_address.error);
+            let error_msg = extract_message_error(&error_at_to_be_deployed_address.error).unwrap();
             assert_eq!(error_msg.trim(), &expected_error_msg)
         }
         other => panic!("Unexpected error: {other:?}"),

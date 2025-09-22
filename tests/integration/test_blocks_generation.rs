@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::time;
 
+use anyhow::anyhow;
 use serde_json::json;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
@@ -21,185 +22,218 @@ use crate::common::utils::{
     assert_tx_succeeded_pre_confirmed, get_contract_balance, get_contract_balance_by_block_id,
     get_events_contract_artifacts, get_simple_contract_artifacts, send_ctrl_c_signal_and_wait,
 };
+use crate::{assert_eq_prop, assert_prop};
 
 static DUMMY_ADDRESS: u128 = 1;
 static DUMMY_AMOUNT: u128 = 1;
 
-async fn assert_pre_confirmed_state_update(devnet: &BackgroundDevnet) {
-    let pre_confirmed_state_update = &devnet
-        .json_rpc_client
-        .get_state_update(BlockId::Tag(BlockTag::PreConfirmed))
-        .await
-        .unwrap();
+async fn assert_pre_confirmed_state_update(devnet: &BackgroundDevnet) -> Result<(), anyhow::Error> {
+    let pre_confirmed_state_update =
+        &devnet.json_rpc_client.get_state_update(BlockId::Tag(BlockTag::PreConfirmed)).await?;
 
-    assert!(matches!(
-        pre_confirmed_state_update,
-        MaybePreConfirmedStateUpdate::PreConfirmedUpdate(_)
-    ));
+    assert_prop!(
+        matches!(pre_confirmed_state_update, MaybePreConfirmedStateUpdate::PreConfirmedUpdate(_)),
+        "Expected a pre-confirmed state update, but found: "
+    )?;
+    Ok(())
 }
 
-async fn assert_latest_state_update(devnet: &BackgroundDevnet) {
+async fn assert_latest_state_update(devnet: &BackgroundDevnet) -> Result<(), anyhow::Error> {
     let latest_state_update =
-        &devnet.json_rpc_client.get_state_update(BlockId::Tag(BlockTag::Latest)).await.unwrap();
+        &devnet.json_rpc_client.get_state_update(BlockId::Tag(BlockTag::Latest)).await?;
 
-    assert!(matches!(latest_state_update, MaybePreConfirmedStateUpdate::Update(_)));
+    assert_prop!(
+        matches!(latest_state_update, MaybePreConfirmedStateUpdate::Update(_)),
+        "Expected an update state update, but found: "
+    )?;
+    Ok(())
 }
 
 async fn assert_latest_block_with_tx_hashes(
     devnet: &BackgroundDevnet,
     block_number: u64,
     transactions: Vec<Felt>,
-) {
-    let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+) -> Result<(), anyhow::Error> {
+    let latest_block = devnet.get_latest_block_with_tx_hashes().await?;
 
-    assert_eq!(latest_block.block_number, block_number);
-    assert_eq!(transactions, latest_block.transactions);
-    assert_eq!(latest_block.status, BlockStatus::AcceptedOnL2);
+    assert_eq_prop!(latest_block.block_number, block_number)?;
+    assert_eq_prop!(transactions, latest_block.transactions)?;
+    assert_eq_prop!(latest_block.status, BlockStatus::AcceptedOnL2)?;
 
     for tx_hash in latest_block.transactions {
-        assert_tx_succeeded_accepted(&tx_hash, &devnet.json_rpc_client).await;
+        assert_tx_succeeded_accepted(&tx_hash, &devnet.json_rpc_client).await?;
     }
+    Ok(())
 }
 
-async fn assert_pre_confirmed_block_with_tx_hashes(devnet: &BackgroundDevnet, tx_count: usize) {
-    let pre_confirmed_block = devnet.get_pre_confirmed_block_with_tx_hashes().await.unwrap();
-
-    assert_eq!(pre_confirmed_block.transactions.len(), tx_count);
+async fn assert_pre_confirmed_block_with_tx_hashes(
+    devnet: &BackgroundDevnet,
+    tx_count: usize,
+) -> Result<(), anyhow::Error> {
+    let pre_confirmed_block = devnet.get_pre_confirmed_block_with_tx_hashes().await?;
+    assert_eq_prop!(pre_confirmed_block.transactions.len(), tx_count)?;
 
     for tx_hash in pre_confirmed_block.transactions {
         assert_tx_succeeded_pre_confirmed(&tx_hash, &devnet.json_rpc_client).await;
     }
+
+    Ok(())
 }
 
 async fn assert_latest_block_with_txs(
     devnet: &BackgroundDevnet,
     block_number: u64,
     tx_count: usize,
-) {
-    let latest_block = devnet.get_latest_block_with_txs().await.unwrap();
+) -> Result<(), anyhow::Error> {
+    let latest_block = devnet.get_latest_block_with_txs().await?;
 
-    assert_eq!(latest_block.block_number, block_number);
-    assert_eq!(latest_block.status, BlockStatus::AcceptedOnL2);
-    assert_eq!(latest_block.transactions.len(), tx_count);
+    assert_eq_prop!(latest_block.block_number, block_number)?;
+    assert_eq_prop!(latest_block.status, BlockStatus::AcceptedOnL2)?;
+    assert_eq_prop!(latest_block.transactions.len(), tx_count)?;
 
     for tx in latest_block.transactions {
-        assert_tx_succeeded_accepted(tx.transaction_hash(), &devnet.json_rpc_client).await;
+        assert_tx_succeeded_accepted(tx.transaction_hash(), &devnet.json_rpc_client).await?;
     }
+
+    Ok(())
 }
 
-async fn assert_pre_confirmed_block_with_txs(devnet: &BackgroundDevnet, tx_count: usize) {
-    let pre_confirmed_block = devnet.get_pre_confirmed_block_with_txs().await.unwrap();
+async fn assert_pre_confirmed_block_with_txs(
+    devnet: &BackgroundDevnet,
+    tx_count: usize,
+) -> Result<(), anyhow::Error> {
+    let pre_confirmed_block = devnet.get_pre_confirmed_block_with_txs().await?;
 
-    assert_eq!(pre_confirmed_block.transactions.len(), tx_count);
+    assert_eq_prop!(pre_confirmed_block.transactions.len(), tx_count)?;
 
     for tx in pre_confirmed_block.transactions {
         assert_tx_succeeded_pre_confirmed(tx.transaction_hash(), &devnet.json_rpc_client).await;
     }
+
+    Ok(())
 }
 
 async fn assert_latest_block_with_receipts(
     devnet: &BackgroundDevnet,
     block_number: u64,
     tx_count: usize,
-) {
+) -> Result<(), anyhow::Error> {
     let latest_block = &devnet
         .send_custom_rpc("starknet_getBlockWithReceipts", json!({ "block_id": "latest" }))
-        .await
-        .unwrap();
+        .await?;
 
-    assert_eq!(latest_block["transactions"].as_array().unwrap().len(), tx_count);
-    assert_eq!(latest_block["block_number"], block_number);
-    assert_eq!(latest_block["status"], "ACCEPTED_ON_L2");
+    let latest_block_tx_count = latest_block["transactions"]
+        .as_array()
+        .ok_or(anyhow!("cannot convert block txs to array"))?
+        .len();
+    assert_eq_prop!(latest_block_tx_count, tx_count)?;
+    assert_eq_prop!(latest_block["block_number"], block_number)?;
+    assert_eq_prop!(latest_block["status"], "ACCEPTED_ON_L2")?;
 
     for tx in latest_block["transactions"].as_array().unwrap() {
         assert_tx_succeeded_accepted(
-            &Felt::from_hex_unchecked(tx["receipt"]["transaction_hash"].as_str().unwrap()),
+            &Felt::from_hex_unchecked(
+                tx["receipt"]["transaction_hash"]
+                    .as_str()
+                    .ok_or(anyhow!("failed to parse transaction hash"))?,
+            ),
             &devnet.json_rpc_client,
         )
-        .await;
+        .await?;
     }
+
+    Ok(())
 }
 
-async fn assert_pre_confirmed_block_with_receipts(devnet: &BackgroundDevnet, tx_count: usize) {
+async fn assert_pre_confirmed_block_with_receipts(
+    devnet: &BackgroundDevnet,
+    tx_count: usize,
+) -> Result<(), anyhow::Error> {
     let pre_confirmed_block = &devnet
         .send_custom_rpc("starknet_getBlockWithReceipts", json!({ "block_id": "pre_confirmed" }))
-        .await
-        .unwrap();
+        .await?;
 
-    assert!(pre_confirmed_block["status"].is_null());
-    assert_eq!(pre_confirmed_block["transactions"].as_array().unwrap().len(), tx_count);
+    assert_prop!(
+        pre_confirmed_block["status"].is_null(),
+        "expected preconfirmed block status to be null, got: "
+    )?;
+    let pre_confirmed_block_tx_count = pre_confirmed_block["transactions"]
+        .as_array()
+        .ok_or(anyhow!("failed to convert block transactions to array"))?
+        .len();
+    assert_eq_prop!(pre_confirmed_block_tx_count, tx_count)?;
 
     for tx in pre_confirmed_block["transactions"].as_array().unwrap() {
-        let tx_hash = Felt::from_hex_unchecked(tx["receipt"]["transaction_hash"].as_str().unwrap());
+        let tx_hash = Felt::from_hex_unchecked(
+            tx["receipt"]["transaction_hash"]
+                .as_str()
+                .ok_or(anyhow!("failed to parse transaction hash"))?,
+        );
         assert_tx_succeeded_pre_confirmed(&tx_hash, &devnet.json_rpc_client).await;
     }
+
+    Ok(())
 }
 
-async fn assert_balance(devnet: &BackgroundDevnet, expected: Felt, tag: BlockTag) {
-    let balance =
-        devnet.get_balance_by_tag(&Felt::from(DUMMY_ADDRESS), FeeUnit::Fri, tag).await.unwrap();
-    assert_eq!(balance, expected);
+async fn assert_balance(
+    devnet: &BackgroundDevnet,
+    expected: Felt,
+    tag: BlockTag,
+) -> Result<(), anyhow::Error> {
+    let balance = devnet.get_balance_by_tag(&Felt::from(DUMMY_ADDRESS), FeeUnit::Fri, tag).await?;
+    assert_eq_prop!(balance, expected)?;
+    Ok(())
 }
 
-async fn assert_get_nonce(devnet: &BackgroundDevnet) {
+async fn assert_get_nonce(devnet: &BackgroundDevnet) -> Result<(), anyhow::Error> {
     let (_, account_address) = devnet.get_first_predeployed_account().await;
 
     let pre_confirmed_block_nonce = devnet
         .json_rpc_client
         .get_nonce(BlockId::Tag(BlockTag::PreConfirmed), account_address)
-        .await
-        .unwrap();
-    assert_eq!(pre_confirmed_block_nonce, Felt::ZERO);
+        .await?;
+    assert_eq_prop!(pre_confirmed_block_nonce, Felt::ZERO)?;
 
-    let latest_block_nonce = devnet
-        .json_rpc_client
-        .get_nonce(BlockId::Tag(BlockTag::Latest), account_address)
-        .await
-        .unwrap();
-    assert_eq!(latest_block_nonce, Felt::ZERO);
+    let latest_block_nonce =
+        devnet.json_rpc_client.get_nonce(BlockId::Tag(BlockTag::Latest), account_address).await?;
+    assert_eq_prop!(latest_block_nonce, Felt::ZERO)?;
+    Ok(())
 }
 
-async fn assert_get_storage_at(devnet: &BackgroundDevnet) {
+async fn assert_get_storage_at(devnet: &BackgroundDevnet) -> Result<(), anyhow::Error> {
     let (_, account_address) = devnet.get_first_predeployed_account().await;
     let key = Felt::ZERO;
 
     let pre_confirmed_block_storage = devnet
         .json_rpc_client
         .get_storage_at(account_address, key, BlockId::Tag(BlockTag::PreConfirmed))
-        .await
-        .unwrap();
-    assert_eq!(pre_confirmed_block_storage, Felt::ZERO);
+        .await?;
+    assert_eq_prop!(pre_confirmed_block_storage, Felt::ZERO)?;
 
     let latest_block_storage = devnet
         .json_rpc_client
         .get_storage_at(account_address, key, BlockId::Tag(BlockTag::Latest))
-        .await
-        .unwrap();
-    assert_eq!(latest_block_storage, Felt::ZERO);
+        .await?;
+    assert_eq_prop!(latest_block_storage, Felt::ZERO)?;
+    Ok(())
 }
 
-async fn assert_get_class_hash_at(devnet: &BackgroundDevnet) {
+async fn assert_get_class_hash_at(devnet: &BackgroundDevnet) -> Result<(), anyhow::Error> {
     let (_, account_address) = devnet.get_first_predeployed_account().await;
 
     let pre_confirmed_block_class_hash = devnet
         .json_rpc_client
         .get_class_hash_at(BlockId::Tag(BlockTag::PreConfirmed), account_address)
-        .await
-        .unwrap();
-    assert_eq!(
-        pre_confirmed_block_class_hash,
-        Felt::from_hex_unchecked(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH)
-    );
+        .await?;
+    let sierra_hash = Felt::from_hex_unchecked(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH);
+    assert_eq_prop!(pre_confirmed_block_class_hash, sierra_hash)?;
 
     let latest_block_class_hash = devnet
         .json_rpc_client
         .get_class_hash_at(BlockId::Tag(BlockTag::Latest), account_address)
-        .await
-        .unwrap();
-    assert_eq!(
-        latest_block_class_hash,
-        Felt::from_hex_unchecked(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH)
-    );
+        .await?;
+    assert_eq_prop!(latest_block_class_hash, sierra_hash)?;
+    Ok(())
 }
 
 #[tokio::test]
@@ -213,18 +247,22 @@ async fn normal_mode_states_and_blocks() {
         tx_hashes.push(mint_hash);
     }
 
-    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::PreConfirmed).await;
-    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest).await;
+    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::PreConfirmed)
+        .await
+        .unwrap();
+    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT), BlockTag::Latest).await.unwrap();
 
-    assert_pre_confirmed_block_with_tx_hashes(&devnet, 0).await;
-    assert_pre_confirmed_block_with_txs(&devnet, 0).await;
-    assert_pre_confirmed_block_with_receipts(&devnet, 0).await;
-    assert_latest_block_with_tx_hashes(&devnet, 5, vec![tx_hashes.last().copied().unwrap()]).await;
-    assert_latest_block_with_txs(&devnet, 5, 1).await;
-    assert_latest_block_with_receipts(&devnet, 5, 1).await;
+    assert_pre_confirmed_block_with_tx_hashes(&devnet, 0).await.unwrap();
+    assert_pre_confirmed_block_with_txs(&devnet, 0).await.unwrap();
+    assert_pre_confirmed_block_with_receipts(&devnet, 0).await.unwrap();
+    assert_latest_block_with_tx_hashes(&devnet, 5, vec![tx_hashes.last().copied().unwrap()])
+        .await
+        .unwrap();
+    assert_latest_block_with_txs(&devnet, 5, 1).await.unwrap();
+    assert_latest_block_with_receipts(&devnet, 5, 1).await.unwrap();
 
-    assert_pre_confirmed_state_update(&devnet).await;
-    assert_latest_state_update(&devnet).await;
+    assert_pre_confirmed_state_update(&devnet).await.unwrap();
+    assert_latest_state_update(&devnet).await.unwrap();
 }
 
 #[tokio::test]
@@ -241,34 +279,38 @@ async fn blocks_on_demand_states_and_blocks() {
     }
 
     assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::PreConfirmed)
-        .await;
-    assert_balance(&devnet, Felt::ZERO, BlockTag::Latest).await;
+        .await
+        .unwrap();
+    assert_balance(&devnet, Felt::ZERO, BlockTag::Latest).await.unwrap();
 
-    assert_pre_confirmed_block_with_tx_hashes(&devnet, tx_count).await;
-    assert_pre_confirmed_block_with_txs(&devnet, tx_count).await;
-    assert_pre_confirmed_block_with_receipts(&devnet, tx_count).await;
+    assert_pre_confirmed_block_with_tx_hashes(&devnet, tx_count).await.unwrap();
+    assert_pre_confirmed_block_with_txs(&devnet, tx_count).await.unwrap();
+    assert_pre_confirmed_block_with_receipts(&devnet, tx_count).await.unwrap();
 
-    assert_latest_block_with_tx_hashes(&devnet, 0, vec![]).await;
-    assert_latest_block_with_txs(&devnet, 0, 0).await;
-    assert_latest_block_with_receipts(&devnet, 0, 0).await;
+    assert_latest_block_with_tx_hashes(&devnet, 0, vec![]).await.unwrap();
+    assert_latest_block_with_txs(&devnet, 0, 0).await.unwrap();
+    assert_latest_block_with_receipts(&devnet, 0, 0).await.unwrap();
 
     // create new block from pre_confirmed block
     devnet.create_block().await.unwrap();
 
     assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::PreConfirmed)
-        .await;
-    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Latest).await;
+        .await
+        .unwrap();
+    assert_balance(&devnet, Felt::from(tx_count * DUMMY_AMOUNT as usize), BlockTag::Latest)
+        .await
+        .unwrap();
 
-    assert_pre_confirmed_block_with_tx_hashes(&devnet, 0).await;
-    assert_pre_confirmed_block_with_txs(&devnet, 0).await;
-    assert_pre_confirmed_block_with_receipts(&devnet, 0).await;
+    assert_pre_confirmed_block_with_tx_hashes(&devnet, 0).await.unwrap();
+    assert_pre_confirmed_block_with_txs(&devnet, 0).await.unwrap();
+    assert_pre_confirmed_block_with_receipts(&devnet, 0).await.unwrap();
 
-    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await;
-    assert_latest_block_with_txs(&devnet, 1, tx_count).await;
-    assert_latest_block_with_receipts(&devnet, 1, tx_count).await;
+    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await.unwrap();
+    assert_latest_block_with_txs(&devnet, 1, tx_count).await.unwrap();
+    assert_latest_block_with_receipts(&devnet, 1, tx_count).await.unwrap();
 
-    assert_pre_confirmed_state_update(&devnet).await;
-    assert_latest_state_update(&devnet).await;
+    assert_pre_confirmed_state_update(&devnet).await.unwrap();
+    assert_latest_state_update(&devnet).await.unwrap();
 }
 
 #[tokio::test]
@@ -345,8 +387,9 @@ async fn blocks_on_demand_declarations() {
     for block_id in [BlockId::Tag(BlockTag::Latest), BlockId::Hash(declaration_block_hash)] {
         match devnet.json_rpc_client.get_state_update(block_id).await {
             Ok(MaybePreConfirmedStateUpdate::Update(StateUpdate { state_diff, .. })) => {
-                assert_equal_elements(&state_diff.declared_classes, &expected_block_declarations);
-                assert_equal_elements(&state_diff.nonces, &expected_block_nonce_update)
+                assert_equal_elements(&state_diff.declared_classes, &expected_block_declarations)
+                    .unwrap();
+                assert_equal_elements(&state_diff.nonces, &expected_block_nonce_update).unwrap()
             }
             other => panic!("Unexpected response: {other:?}"),
         }
@@ -427,16 +470,14 @@ async fn blocks_on_demand_invoke_and_call() {
     }
 
     let expected_balance = initial_value + (increment * Felt::from(increment_count));
-
-    assert_eq!(
-        get_contract_balance_by_block_id(
-            &devnet,
-            contract_address,
-            BlockId::Tag(BlockTag::PreConfirmed)
-        )
-        .await,
-        expected_balance
-    );
+    let contract_balance = get_contract_balance_by_block_id(
+        &devnet,
+        contract_address,
+        BlockId::Tag(BlockTag::PreConfirmed),
+    )
+    .await
+    .unwrap();
+    assert_eq!(contract_balance, expected_balance);
 
     let contract_call = FunctionCall {
         contract_address,
@@ -449,17 +490,17 @@ async fn blocks_on_demand_invoke_and_call() {
 
     devnet.create_block().await.unwrap();
 
-    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await;
-    assert_eq!(
-        get_contract_balance_by_block_id(
-            &devnet,
-            contract_address,
-            BlockId::Tag(BlockTag::PreConfirmed)
-        )
-        .await,
-        expected_balance
-    );
-    assert_eq!(get_contract_balance(&devnet, contract_address).await, expected_balance);
+    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await.unwrap();
+    let contract_balance = get_contract_balance_by_block_id(
+        &devnet,
+        contract_address,
+        BlockId::Tag(BlockTag::PreConfirmed),
+    )
+    .await
+    .unwrap();
+    assert_eq!(contract_balance, expected_balance);
+    let contract_balance = get_contract_balance(&devnet, contract_address).await.unwrap();
+    assert_eq!(contract_balance, expected_balance);
 }
 
 #[tokio::test]
@@ -498,7 +539,7 @@ async fn blocks_on_interval_transactions() {
     tokio::time::sleep(time::Duration::from_secs(period * 3 / 2)).await;
 
     // first is genesis block, second block is generated after transactions
-    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await;
+    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await.unwrap();
 }
 
 #[tokio::test]
@@ -543,7 +584,7 @@ async fn blocks_on_interval_dump_and_load() {
 async fn get_nonce_of_first_predeployed_account_normal_mode() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
 
-    assert_get_nonce(&devnet).await;
+    assert_get_nonce(&devnet).await.unwrap();
 }
 
 #[tokio::test]
@@ -552,14 +593,14 @@ async fn get_nonce_of_first_predeployed_account_block_on_demand() {
         .await
         .unwrap();
 
-    assert_get_nonce(&devnet).await;
+    assert_get_nonce(&devnet).await.unwrap();
 }
 
 #[tokio::test]
 async fn get_storage_at_normal_mode() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
 
-    assert_get_storage_at(&devnet).await;
+    assert_get_storage_at(&devnet).await.unwrap();
 }
 
 #[tokio::test]
@@ -568,14 +609,14 @@ async fn get_storage_at_block_on_demand() {
         .await
         .unwrap();
 
-    assert_get_storage_at(&devnet).await;
+    assert_get_storage_at(&devnet).await.unwrap();
 }
 
 #[tokio::test]
 async fn get_class_hash_at_normal_mode() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
 
-    assert_get_class_hash_at(&devnet).await;
+    assert_get_class_hash_at(&devnet).await.unwrap();
 }
 
 #[tokio::test]
@@ -584,7 +625,7 @@ async fn get_class_hash_at_block_on_demand() {
         .await
         .unwrap();
 
-    assert_get_class_hash_at(&devnet).await;
+    assert_get_class_hash_at(&devnet).await.unwrap();
 }
 
 #[tokio::test]

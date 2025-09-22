@@ -68,17 +68,17 @@ async fn double_deployment_not_allowed() {
             );
             assert_eq!(top_error.selector, get_selector_from_name("__execute__").unwrap());
 
-            let udc_error = extract_nested_error(&top_error.error);
+            let udc_error = extract_nested_error(&top_error.error).unwrap();
             assert_eq!(udc_error.contract_address, UDC_LEGACY_CONTRACT_ADDRESS);
             assert_eq!(udc_error.class_hash, UDC_LEGACY_CONTRACT_CLASS_HASH);
             assert_eq!(udc_error.selector, get_selector_from_name("deployContract").unwrap());
 
-            let undeployed_contract_error = extract_nested_error(&udc_error.error);
+            let undeployed_contract_error = extract_nested_error(&udc_error.error).unwrap();
             assert_eq!(undeployed_contract_error.class_hash, declaration_result.class_hash);
             assert_eq!(undeployed_contract_error.selector, Felt::ZERO); // constructor
 
-            let msg_error = extract_message_error(&undeployed_contract_error.error);
-            assert_contains(msg_error, "contract already deployed");
+            let msg_error = extract_message_error(&undeployed_contract_error.error).unwrap();
+            assert_contains(msg_error, "contract already deployed").unwrap();
         }
         other => panic!("Unexpected result: {other:?}"),
     };
@@ -108,7 +108,7 @@ async fn cannot_deploy_undeclared_class() {
 
     // deployment should fail
     match contract_factory.deploy_v3(ctor_args, salt, unique).send().await {
-        Err(e) => assert_contains(&format!("{e:?}"), "not declared"),
+        Err(e) => assert_contains(&format!("{e:?}"), "not declared").unwrap(),
         other => panic!("Unexpected result: {other:?}"),
     };
 }
@@ -137,7 +137,8 @@ async fn test_all_udc_deployment_methods_supported() {
         .await
         .unwrap();
     assert_tx_succeeded_accepted(&declaration_result.transaction_hash, &devnet.json_rpc_client)
-        .await;
+        .await
+        .unwrap();
 
     let mut salt = Felt::ONE;
     let legacy_deployment_method = "deployContract";
@@ -162,6 +163,7 @@ async fn test_all_udc_deployment_methods_supported() {
 
         let invoke_result = account.execute_v3(contract_invoke.clone()).send().await.unwrap();
         assert_tx_succeeded_accepted(&invoke_result.transaction_hash, &devnet.json_rpc_client)
-            .await;
+            .await
+            .unwrap();
     }
 }

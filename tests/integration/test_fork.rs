@@ -260,11 +260,12 @@ async fn test_origin_declare_deploy_fork_invoke() {
     );
 
     // assert correctly deployed
-    assert_eq!(get_contract_balance(&origin_devnet, contract_address).await, initial_value);
+    let origin_balance = get_contract_balance(&origin_devnet, contract_address).await.unwrap();
+    assert_eq!(origin_balance, initial_value);
 
     let fork_devnet = origin_devnet.fork().await.unwrap();
-
-    assert_eq!(get_contract_balance(&fork_devnet, contract_address).await, initial_value);
+    let fork_balance = get_contract_balance(&fork_devnet, contract_address).await.unwrap();
+    assert_eq!(fork_balance, initial_value);
 
     let fork_predeployed_account = SingleOwnerAccount::new(
         fork_devnet.clone_provider(),
@@ -292,14 +293,14 @@ async fn test_origin_declare_deploy_fork_invoke() {
         .unwrap();
 
     assert_tx_succeeded_accepted(&invoke_result.transaction_hash, &fork_devnet.json_rpc_client)
-        .await;
+        .await
+        .unwrap();
 
     // assert origin intact and fork changed
-    assert_eq!(get_contract_balance(&origin_devnet, contract_address).await, initial_value);
-    assert_eq!(
-        get_contract_balance(&fork_devnet, contract_address).await,
-        initial_value + increment
-    );
+    let origin_balance = get_contract_balance(&origin_devnet, contract_address).await.unwrap();
+    assert_eq!(origin_balance, initial_value);
+    let fork_balance = get_contract_balance(&fork_devnet, contract_address).await.unwrap();
+    assert_eq!(fork_balance, initial_value + increment);
 }
 
 #[tokio::test]
@@ -520,7 +521,9 @@ async fn changes_in_origin_after_forking_block_should_not_affect_fork_state() {
         .unwrap();
 
     assert_tx_succeeded_accepted(&invoke_result.transaction_hash, &origin_devnet.json_rpc_client)
-        .await;
+        .await
+        .unwrap();
+
     let latest_origin_block_number = origin_devnet.json_rpc_client.block_number().await.unwrap();
     assert_eq!(latest_origin_block_number, 3); // declare, deploy, invoke
 
@@ -535,11 +538,11 @@ async fn changes_in_origin_after_forking_block_should_not_affect_fork_state() {
     .unwrap();
 
     // Assert fork intact and origin changed
-    assert_eq!(get_contract_balance(&fork_devnet, contract_address).await, initial_value);
-    assert_eq!(
-        get_contract_balance(&origin_devnet, contract_address).await,
-        initial_value + increment_value
-    );
+    let fork_balance = get_contract_balance(&fork_devnet, contract_address).await.unwrap();
+    assert_eq!(fork_balance, initial_value);
+
+    let origin_balance = get_contract_balance(&origin_devnet, contract_address).await.unwrap();
+    assert_eq!(origin_balance, initial_value + increment_value);
 }
 
 #[tokio::test]
@@ -570,9 +573,11 @@ async fn test_fork_if_origin_dies() {
             assert_contains(
                 &received_error.message,
                 "Failed to read from state: Error in communication with forking origin",
-            );
-            assert_contains(&received_error.message, "Connection refused");
-            assert_contains(&received_error.message, &format!("url: \"{}/\"", origin_devnet.url));
+            )
+            .unwrap();
+            assert_contains(&received_error.message, "Connection refused").unwrap();
+            assert_contains(&received_error.message, &format!("url: \"{}/\"", origin_devnet.url))
+                .unwrap();
             assert_eq!(received_error.data, None);
         }
         unexpected => panic!("Got unexpected resp: {unexpected:?}"),

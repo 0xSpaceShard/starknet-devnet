@@ -139,18 +139,18 @@ async fn call_panicking_method() {
         ProviderError::StarknetError(StarknetError::ContractError(ContractErrorData {
             revert_error,
         })) => {
-            let root = extract_nested_error(&revert_error);
+            let root = extract_nested_error(&revert_error).unwrap();
             assert_eq!(root.contract_address, contract_address);
             assert_eq!(root.class_hash, class_hash);
             assert_eq!(root.selector, top_selector);
 
-            let inner = extract_nested_error(&root.error);
+            let inner = extract_nested_error(&root.error).unwrap();
             assert_eq!(inner.contract_address, other_contract_address);
             assert_eq!(inner.selector, get_selector_from_name("create_panic").unwrap());
             assert_eq!(inner.class_hash, class_hash);
 
-            let error_msg = extract_message_error(&inner.error);
-            assert_contains(error_msg, &panic_message.to_hex_string());
+            let error_msg = extract_message_error(&inner.error).unwrap();
+            assert_contains(error_msg, &panic_message.to_hex_string()).unwrap();
         }
         _ => panic!("Invalid error received {err:?}"),
     }

@@ -103,12 +103,12 @@ async fn event_subscription_with_no_params_until_unsubscription() {
     );
 
     receive_rpc_via_ws(&mut ws).await.unwrap(); // erc20 - fee charge
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 
     unsubscribe(&mut ws, subscription_id).await.unwrap();
 
     emit_static_event(&account, contract_address).await.unwrap();
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -139,7 +139,7 @@ async fn should_notify_only_from_filtered_address() {
         })
     );
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -170,7 +170,7 @@ async fn should_notify_of_new_events_only_from_filtered_key() {
         })
     );
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -200,7 +200,7 @@ async fn should_notify_if_already_in_latest_block_in_on_tx_mode() {
         })
     );
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -245,8 +245,8 @@ async fn should_notify_only_once_for_pre_confirmed_in_on_demand_mode() {
 
     // Should not re-notify on pre_confirmed->latest
     devnet.create_block().await.unwrap();
-    assert_no_notifications(&mut ws_before).await;
-    assert_no_notifications(&mut ws_after).await;
+    assert_no_notifications(&mut ws_before).await.unwrap();
+    assert_no_notifications(&mut ws_after).await.unwrap();
 }
 
 #[tokio::test]
@@ -311,8 +311,8 @@ async fn should_notify_only_once_for_accepted_on_l2_in_on_demand_mode(
         subscribe_events(&mut ws_after, subscription_request).await.unwrap();
 
     // No notifications before block creation and conversion from pre-confirmed to accepted_on_l2
-    assert_no_notifications(&mut ws_before).await;
-    assert_no_notifications(&mut ws_after).await;
+    assert_no_notifications(&mut ws_before).await.unwrap();
+    assert_no_notifications(&mut ws_after).await.unwrap();
     let created_block_hash = devnet.create_block().await.unwrap();
 
     for (ws, subscription_id) in
@@ -335,8 +335,8 @@ async fn should_notify_only_once_for_accepted_on_l2_in_on_demand_mode(
 
     // Should not re-notify on next block
     devnet.create_block().await.unwrap();
-    assert_no_notifications(&mut ws_before).await;
-    assert_no_notifications(&mut ws_after).await;
+    assert_no_notifications(&mut ws_before).await.unwrap();
+    assert_no_notifications(&mut ws_after).await.unwrap();
 }
 
 #[tokio::test]
@@ -389,7 +389,7 @@ async fn should_notify_of_events_in_old_blocks_with_no_filters() {
     assert_eq!(invocation_fee_event["block_number"], latest_block.block_number);
     assert_eq!(invocation_fee_event["from_address"], json!(STRK_ERC20_CONTRACT_ADDRESS));
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -422,7 +422,7 @@ async fn should_notify_of_old_and_new_events_with_address_filter() {
             "finality_status": TransactionFinalityStatus::AcceptedOnL2,
         })
     );
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 
     // new event (after subscription)
     let new_invocation = emit_static_event(&account, contract_address).await.unwrap();
@@ -440,7 +440,7 @@ async fn should_notify_of_old_and_new_events_with_address_filter() {
             "finality_status": TransactionFinalityStatus::AcceptedOnL2,
         })
     );
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -473,7 +473,7 @@ async fn should_notify_of_old_and_new_events_with_key_filter() {
             "finality_status": TransactionFinalityStatus::AcceptedOnL2,
         })
     );
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 
     // new event (after subscription)
     let new_invocation = emit_static_event(&account, contract_address).await.unwrap();
@@ -491,7 +491,7 @@ async fn should_notify_of_old_and_new_events_with_key_filter() {
             "finality_status": TransactionFinalityStatus::AcceptedOnL2,
         })
     );
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -507,7 +507,7 @@ async fn should_not_notify_of_events_in_too_old_blocks() {
 
     subscribe_events(&mut ws, json!({ "block_id": BlockId::Hash(last_block_hash) })).await.unwrap();
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
@@ -550,5 +550,5 @@ async fn should_notify_of_events_in_old_blocks() {
 
     assert_eq!(received_tx_hashes_from_events, txs_with_invocation_events);
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }

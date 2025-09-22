@@ -99,7 +99,8 @@ async fn estimate_fee_of_deploy_account() {
         .await
         .expect("Should deploy with sufficient fee");
     assert_tx_succeeded_accepted(&successful_deployment.transaction_hash, &devnet.json_rpc_client)
-        .await;
+        .await
+        .unwrap();
 }
 
 #[tokio::test]
@@ -129,7 +130,8 @@ async fn estimate_fee_of_invalid_deploy_account() {
                     "Class with hash {} is not declared.",
                     invalid_class_hash.to_fixed_hex_string()
                 ),
-            );
+            )
+            .unwrap();
         }
         other => panic!("Unexpected response: {other:?}"),
     }
@@ -200,7 +202,8 @@ async fn estimate_fee_of_declare_v3() {
         .await
         .unwrap();
     assert_tx_succeeded_accepted(&successful_declare_tx.transaction_hash, &devnet.json_rpc_client)
-        .await;
+        .await
+        .unwrap();
 }
 
 #[tokio::test]
@@ -278,7 +281,8 @@ async fn estimate_fee_of_invoke() {
         &devnet.json_rpc_client,
         &["Insufficient max L2Gas"],
     )
-    .await;
+    .await
+    .unwrap();
 
     // invoke with sufficient resource bounds
     let fee = LocalFee::from(fee_estimation);
@@ -357,11 +361,11 @@ async fn message_available_if_estimation_reverts() {
                 ..
             }),
         )) => {
-            let account_error = extract_nested_error(&execution_error);
-            let contract_error = extract_nested_error(&account_error.error);
-            let inner_error = extract_nested_error(&contract_error.error);
-            let error_msg = extract_message_error(&inner_error.error);
-            assert_contains(error_msg, &panic_reason.to_hex_string());
+            let account_error = extract_nested_error(&execution_error).unwrap();
+            let contract_error = extract_nested_error(&account_error.error).unwrap();
+            let inner_error = extract_nested_error(&contract_error.error).unwrap();
+            let error_msg = extract_message_error(&inner_error.error).unwrap();
+            assert_contains(error_msg, &panic_reason.to_hex_string()).unwrap();
         }
         other => panic!("Invalid err: {other:?}"),
     };
@@ -631,7 +635,8 @@ async fn estimate_fee_of_multiple_txs_with_second_failing() {
             assert_contains(
                 &format!("{:?}", execution_error),
                 &ENTRYPOINT_NOT_FOUND_ERROR_ENCODED.to_hex_string(),
-            );
+            )
+            .unwrap();
         }
         _ => panic!("Unexpected error: {err}"),
     };
@@ -725,7 +730,7 @@ async fn estimate_fee_of_multiple_failing_txs_should_return_index_of_the_first_f
             TransactionExecutionErrorData { transaction_index, execution_error },
         )) => {
             assert_eq!(transaction_index, 0);
-            assert_contains(&format!("{:?}", execution_error), "invalid signature");
+            assert_contains(&format!("{:?}", execution_error), "invalid signature").unwrap();
         }
         other => panic!("Unexpected error: {:?}", other),
     }

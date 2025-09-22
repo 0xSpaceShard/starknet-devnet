@@ -242,7 +242,7 @@ async fn reverted_invoke_transaction_receipt() {
         TransactionReceipt::Invoke(receipt) => {
             match receipt.execution_result {
                 starknet_rs_core::types::ExecutionResult::Reverted { reason } => {
-                    assert_contains(&reason, "Insufficient max L2Gas");
+                    assert_contains(&reason, "Insufficient max L2Gas").unwrap();
                 }
                 _ => panic!("Invalid receipt {:?}", receipt),
             }

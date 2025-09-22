@@ -8,6 +8,7 @@ use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::Provider;
 use starknet_rs_signers::LocalWallet;
 
+use crate::assert_eq_prop;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     ARGENT_ACCOUNT_CLASS_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
@@ -42,33 +43,39 @@ async fn spawnable_with_custom_account_cairo_1() {
 }
 
 /// Common body for tests defined below
-async fn correct_artifact_test_body(devnet_args: &[&str], expected_hash_hex: &str) {
-    let devnet = BackgroundDevnet::spawn_with_additional_args(devnet_args).await.unwrap();
+async fn correct_artifact_test_body(
+    devnet_args: &[&str],
+    expected_hash_hex: &str,
+) -> Result<(), anyhow::Error> {
+    let devnet = BackgroundDevnet::spawn_with_additional_args(devnet_args).await?;
 
     let (_, account_address) = devnet.get_first_predeployed_account().await;
     let retrieved_class_hash = devnet
         .json_rpc_client
         .get_class_hash_at(BlockId::Tag(BlockTag::Latest), account_address)
-        .await
-        .unwrap();
+        .await?;
     let expected_hash = Felt::from_hex_unchecked(expected_hash_hex);
-    assert_eq!(retrieved_class_hash, expected_hash);
+    assert_eq_prop!(retrieved_class_hash, expected_hash)?;
 
     let config = devnet.get_config().await;
-    let config_class_hash_hex = config["account_contract_class_hash"].as_str().unwrap();
-    assert_eq!(Felt::from_hex_unchecked(config_class_hash_hex), expected_hash);
+    let config_class_hash_hex = config["account_contract_class_hash"]
+        .as_str()
+        .ok_or(anyhow::anyhow!("contract class hash not found"))?;
+    let config_class_hash = Felt::from_hex_unchecked(config_class_hash_hex);
+    assert_eq_prop!(config_class_hash, expected_hash)?;
+    Ok(())
 }
 
 #[tokio::test]
 async fn correct_cairo1_artifact() {
     let cli_args = ["--account-class", "cairo1"];
-    correct_artifact_test_body(&cli_args, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).await;
+    correct_artifact_test_body(&cli_args, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).await.unwrap();
 }
 
 #[tokio::test]
 async fn correct_custom_artifact() {
     let cli_args = ["--account-class-custom", CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH];
-    correct_artifact_test_body(&cli_args, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).await;
+    correct_artifact_test_body(&cli_args, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).await.unwrap();
 }
 
 #[tokio::test]
@@ -78,7 +85,8 @@ async fn can_deploy_new_cairo1_oz_account() {
 
     let (account_deployment, signer) = deploy_oz_account(&devnet).await.unwrap();
     assert_tx_succeeded_accepted(&account_deployment.transaction_hash, &devnet.json_rpc_client)
-        .await;
+        .await
+        .unwrap();
 
     let account_address = account_deployment.contract_address;
     can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
@@ -91,7 +99,8 @@ async fn can_deploy_new_cairo1_oz_account_when_cairo0_selected() {
 
     let (account_deployment, signer) = deploy_oz_account(&devnet).await.unwrap();
     assert_tx_succeeded_accepted(&account_deployment.transaction_hash, &devnet.json_rpc_client)
-        .await;
+        .await
+        .unwrap();
 
     let account_address = account_deployment.contract_address;
     can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
@@ -104,7 +113,8 @@ async fn can_deploy_new_custom_oz_account() {
 
     let (account_deployment, signer) = deploy_oz_account(&devnet).await.unwrap();
     assert_tx_succeeded_accepted(&account_deployment.transaction_hash, &devnet.json_rpc_client)
-        .await;
+        .await
+        .unwrap();
 
     let account_address = account_deployment.contract_address;
     can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
@@ -119,7 +129,8 @@ async fn argent_account_undeployable_by_default() {
     assert_contains(
         &error.to_string(),
         &format!("Class with hash {ARGENT_ACCOUNT_CLASS_HASH} is not declared"),
-    );
+    )
+    .unwrap();
 }
 
 #[tokio::test]
@@ -131,7 +142,8 @@ async fn can_deploy_instance_of_argent_account_via_fork() {
     let account_hash = Felt::from_hex_unchecked(ARGENT_ACCOUNT_CLASS_HASH);
     let (account_deployment, signer) = deploy_argent_account(&devnet, account_hash).await.unwrap();
     assert_tx_succeeded_accepted(&account_deployment.transaction_hash, &devnet.json_rpc_client)
-        .await;
+        .await
+        .unwrap();
 
     let account_address = account_deployment.contract_address;
     can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
@@ -145,7 +157,8 @@ async fn can_deploy_new_argent_account_from_predeclared_class() {
     let account_hash = Felt::from_hex_unchecked(ARGENT_ACCOUNT_CLASS_HASH);
     let (account_deployment, signer) = deploy_argent_account(&devnet, account_hash).await.unwrap();
     assert_tx_succeeded_accepted(&account_deployment.transaction_hash, &devnet.json_rpc_client)
-        .await;
+        .await
+        .unwrap();
 
     let account_address = account_deployment.contract_address;
     can_declare_deploy_invoke_cairo1_using_account(&devnet, &signer, account_address).await;
@@ -199,7 +212,9 @@ async fn can_declare_deploy_invoke_cairo1_using_account(
 
     let invoke_result = account.execute_v3(contract_invoke.clone()).send().await.unwrap();
 
-    assert_tx_succeeded_accepted(&invoke_result.transaction_hash, &devnet.json_rpc_client).await;
+    assert_tx_succeeded_accepted(&invoke_result.transaction_hash, &devnet.json_rpc_client)
+        .await
+        .unwrap();
 }
 
 #[tokio::test]

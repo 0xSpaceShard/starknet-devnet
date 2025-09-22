@@ -107,7 +107,7 @@ async fn restarting_should_forget_all_websocket_subscriptions() {
 
     devnet.restart().await;
 
-    assert_no_notifications(&mut ws).await;
+    assert_no_notifications(&mut ws).await.unwrap();
 }
 
 #[tokio::test]
