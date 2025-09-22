@@ -6,7 +6,7 @@ To read about PR expectations, check out the [Pull requests](#pull-requests) sec
 
 > :warning: IMPORTANT NOTE :warning:
 >
-> All contributions are expected to be of the highest possible quality! That means the PR is thoroughly tested and documented, and without blindly generated ChatGPT code and documentation! PRs that do not comply with these rules stated here shall not be considered!
+> All contributions are expected to be of the highest possible quality! That means the PR is thoroughly tested and documented, and without blindly generated ChatGPT code and documentation! PRs not complying with these rules shall not be considered!
 
 ### Should you create a PR?
 
@@ -145,7 +145,7 @@ Starknet adaptation also requires updating the `STARKNET_VERSION` constant and t
 
 Updating the RPC requires following the specification files in the [starknet-specs repository](https://github.com/starkware-libs/starknet-specs). The spec_reader testing utility requires these files to be copied into the Devnet repository. The `RPC_SPEC_VERSION` constant needs to be updated accordingly.
 
-Integration tests highly depend on starknet-rs supporting the same JSON-RPC API version as Devnet. Until an adapted starknet-rs version is released, Devnet maintainers can rely on replacing the starknet-rs dependencies in tests/integration/Cargo.toml with links to SpaceShard's fork of starknet-rs. A full Devnet can be released on crates.io even with such git dependencies because the integration crate is not released. An example of such an adapted branch on SpaceShard's fork is [this](https://github.com/0xSpaceShard/starknet-rs/tree/rpc-0.9).
+Integration tests highly depend on [starknet-rs](https://github.com/xJonathanLEI/starknet-rs) supporting the same JSON-RPC API version as Devnet. Until an adapted starknet-rs version is released, Devnet maintainers can rely on replacing the starknet-rs dependencies in tests/integration/Cargo.toml with links to SpaceShard's fork of starknet-rs. A full Devnet can be released on crates.io even with such git dependencies because the integration crate is not released. An example of such an adapted branch on SpaceShard's fork is [this](https://github.com/0xSpaceShard/starknet-rs/tree/rpc-0.9).
 
 ### Adding new dependencies
 
