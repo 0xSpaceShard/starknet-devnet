@@ -120,8 +120,12 @@ pub async fn assert_tx_succeeded_accepted<T: Provider>(
     }
 }
 
-pub async fn assert_tx_succeeded_pre_confirmed<T: Provider>(_tx_hash: &Felt, _client: &T) {
+pub async fn assert_tx_succeeded_pre_confirmed<T: Provider>(
+    _tx_hash: &Felt,
+    _client: &T,
+) -> Result<(), anyhow::Error> {
     eprintln!("TODO: Currently suppressed; undo when starknet-rs updated to 0.17");
+    Ok(())
     // let receipt = client.get_transaction_receipt(tx_hash).await.unwrap().receipt;
     // match receipt.execution_result() {
     //     ExecutionResult::Succeeded => (),

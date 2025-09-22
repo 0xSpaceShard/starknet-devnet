@@ -73,7 +73,7 @@ async fn assert_pre_confirmed_block_with_tx_hashes(
     assert_eq_prop!(pre_confirmed_block.transactions.len(), tx_count)?;
 
     for tx_hash in pre_confirmed_block.transactions {
-        assert_tx_succeeded_pre_confirmed(&tx_hash, &devnet.json_rpc_client).await;
+        assert_tx_succeeded_pre_confirmed(&tx_hash, &devnet.json_rpc_client).await?;
     }
 
     Ok(())
@@ -106,7 +106,7 @@ async fn assert_pre_confirmed_block_with_txs(
     assert_eq_prop!(pre_confirmed_block.transactions.len(), tx_count)?;
 
     for tx in pre_confirmed_block.transactions {
-        assert_tx_succeeded_pre_confirmed(tx.transaction_hash(), &devnet.json_rpc_client).await;
+        assert_tx_succeeded_pre_confirmed(tx.transaction_hash(), &devnet.json_rpc_client).await?;
     }
 
     Ok(())
@@ -168,7 +168,7 @@ async fn assert_pre_confirmed_block_with_receipts(
                 .as_str()
                 .ok_or(anyhow!("failed to parse transaction hash"))?,
         );
-        assert_tx_succeeded_pre_confirmed(&tx_hash, &devnet.json_rpc_client).await;
+        assert_tx_succeeded_pre_confirmed(&tx_hash, &devnet.json_rpc_client).await?;
     }
 
     Ok(())
@@ -334,11 +334,14 @@ async fn blocks_on_demand_declarations() {
             .send()
             .await
             .unwrap();
+
         assert_tx_succeeded_pre_confirmed(
             &declaration_result.transaction_hash,
             &devnet.json_rpc_client,
         )
-        .await;
+        .await
+        .unwrap();
+
         declaration_results.push(declaration_result);
     }
 
@@ -459,7 +462,8 @@ async fn blocks_on_demand_invoke_and_call() {
             .unwrap();
 
         assert_tx_succeeded_pre_confirmed(&invoke_result.transaction_hash, &devnet.json_rpc_client)
-            .await;
+            .await
+            .unwrap();
 
         tx_hashes.push(invoke_result.transaction_hash);
     }
