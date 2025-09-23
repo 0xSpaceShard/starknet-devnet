@@ -61,11 +61,7 @@ There is no HTTP request size limit, but take care when declaring large classes!
 
 ## API
 
-Retrieve the server config by sending a `GET` request to `/config` or `JSON-RPC` request with method name `devnet_getConfig` and extracting its `server_config` property.
-
-```
-$ curl localhost:5050/config | jq .server_config
-```
+Retrieve the server config by sending a `JSON-RPC` request with method name `devnet_getConfig` and extracting its `server_config` property.
 
 ```
 JSON-RPC
