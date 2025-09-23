@@ -48,11 +48,7 @@ In case of a reverted minting request, an error is returned containing the strin
 
 ## Check balance
 
-Check the balance of an address by sending a `GET` request to `/account_balance`. The address should be a 0x-prefixed hex string; `unit` defaults to `FRI` (the unit of `STRK`) and `block_id` to `latest`.
-
-```
-GET /account_balance?address=<ADDRESS>[&unit=<FRI|WEI>][&block_id=<BLOCK_ID>]
-```
+Check the balance of an address by sending a `JSON-RPC` request. The address should be a 0x-prefixed hex string; `unit` defaults to `FRI` (the unit of `STRK`) and `block_id` to `latest`.
 
 ```
 JSON-RPC
