@@ -310,7 +310,7 @@ impl JsonRpcHandler {
     pub async fn mint(&self, request: MintTokensRequest) -> StrictRpcResult {
         let mut starknet = self.api.starknet.lock().await;
         let unit = request.unit.unwrap_or(FeeUnit::FRI);
-        let erc20_address = get_erc20_fee_unit_address(unit);
+        let erc20_address = get_erc20_fee_unit_address(&unit);
 
         // increase balance
         let tx_hash = starknet.mint(request.address, request.amount, erc20_address).await?;

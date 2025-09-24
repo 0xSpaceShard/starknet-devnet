@@ -57,7 +57,7 @@ pub fn get_balance(
     }
 }
 
-pub fn get_erc20_fee_unit_address(unit: FeeUnit) -> ContractAddress {
+pub fn get_erc20_fee_unit_address(unit: &FeeUnit) -> ContractAddress {
     match unit {
         FeeUnit::WEI => ContractAddress::new_unchecked(ETH_ERC20_CONTRACT_ADDRESS),
         FeeUnit::FRI => ContractAddress::new_unchecked(STRK_ERC20_CONTRACT_ADDRESS),
@@ -69,7 +69,7 @@ pub fn get_balance_unit(
     address: ContractAddress,
     unit: FeeUnit,
 ) -> Result<AccountBalanceResponse, ApiError> {
-    let erc20_address = get_erc20_fee_unit_address(unit);
+    let erc20_address = get_erc20_fee_unit_address(&unit);
 
     let amount =
         get_balance(starknet, address, erc20_address, BlockId::Tag(BlockTag::PreConfirmed))?;
