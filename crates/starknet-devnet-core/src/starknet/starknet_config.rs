@@ -13,7 +13,8 @@ use crate::constants::{
     CAIRO_1_ACCOUNT_CONTRACT_SIERRA, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE,
     DEVNET_DEFAULT_L1_DATA_GAS_PRICE, DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE,
     DEVNET_DEFAULT_TEST_SEED, DEVNET_DEFAULT_TOTAL_ACCOUNTS, ETH_ERC20_CONTRACT_CLASS,
-    ETH_ERC20_CONTRACT_CLASS_HASH, STRK_ERC20_CONTRACT_CLASS, STRK_ERC20_CONTRACT_CLASS_HASH,
+    ETH_ERC20_CONTRACT_CLASS_HASH, MAXIMUM_CONTRACT_BYTECODE_SIZE, MAXIMUM_CONTRACT_CLASS_SIZE,
+    MAXIMUM_SIERRA_LENGTH, STRK_ERC20_CONTRACT_CLASS, STRK_ERC20_CONTRACT_CLASS_HASH,
 };
 
 #[derive(Copy, Clone, Debug, clap::ValueEnum, Serialize)]
@@ -39,6 +40,23 @@ pub enum BlockGenerationOn {
     Transaction,
     Demand,
     Interval(u64),
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ClassSizeConfig {
+    pub maximum_contract_class_size: u64,
+    pub maximum_contract_bytecode_size: u64,
+    pub maximum_sierra_length: u64,
+}
+
+impl Default for ClassSizeConfig {
+    fn default() -> Self {
+        Self {
+            maximum_contract_class_size: MAXIMUM_CONTRACT_CLASS_SIZE,
+            maximum_contract_bytecode_size: MAXIMUM_CONTRACT_BYTECODE_SIZE,
+            maximum_sierra_length: MAXIMUM_SIERRA_LENGTH,
+        }
+    }
 }
 
 impl std::str::FromStr for BlockGenerationOn {
@@ -128,6 +146,7 @@ pub struct StarknetConfig {
     pub strk_erc20_contract_class: String,
     #[serde(skip_serializing)]
     pub predeclare_argent: bool,
+    pub class_size_config: ClassSizeConfig,
 }
 
 impl StarknetConfig {
@@ -173,6 +192,7 @@ impl Default for StarknetConfig {
             eth_erc20_contract_class: ETH_ERC20_CONTRACT_CLASS.to_string(),
             strk_erc20_contract_class: STRK_ERC20_CONTRACT_CLASS.to_string(),
             predeclare_argent: false,
+            class_size_config: ClassSizeConfig::default(),
         }
     }
 }

@@ -7,12 +7,13 @@ use server::restrictive_mode::DEFAULT_RESTRICTED_JSON_RPC_METHODS;
 use starknet_core::constants::{
     ARGENT_CONTRACT_VERSION, ARGENT_MULTISIG_CONTRACT_VERSION, DEVNET_DEFAULT_L1_DATA_GAS_PRICE,
     DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE, DEVNET_DEFAULT_PORT,
-    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS, chargeable_account_initial_balance,
+    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS, MAXIMUM_CONTRACT_BYTECODE_SIZE,
+    MAXIMUM_CONTRACT_CLASS_SIZE, MAXIMUM_SIERRA_LENGTH, chargeable_account_initial_balance,
 };
 use starknet_core::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use starknet_core::random_number_generator::generate_u32_random_number;
 use starknet_core::starknet::starknet_config::{
-    BlockGenerationOn, DumpOn, ForkConfig, StarknetConfig, StateArchiveCapacity,
+    BlockGenerationOn, ClassSizeConfig, DumpOn, ForkConfig, StarknetConfig, StateArchiveCapacity,
 };
 use starknet_types::chain_id::ChainId;
 use starknet_types::num_bigint::BigUint;
@@ -228,6 +229,21 @@ Calling devnet_createBlock JSON-RPC method is also an option in modes other than
                   forbidden with whitespace-separated values (https://0xspaceshard.github.io/starknet-devnet/docs/restrictive#with-a-list-of-methods). If nothing is specified for this \
                   argument, then default restricted methods are used (https://0xspaceshard.github.io/starknet-devnet/docs/restrictive#default-restricted-methods).")]
     restricted_methods: Option<Vec<String>>,
+
+    #[arg(long = "maximum-contract-class-size")]
+    #[arg(env = "MAXIMUM_CONTRACT_CLASS_SIZE")]
+    #[arg(default_value = MAXIMUM_CONTRACT_CLASS_SIZE.to_string())]
+    maximum_contract_class_size: u64,
+
+    #[arg(long = "maximum-contract-bytecode-size")]
+    #[arg(env = "MAXIMUM_CONTRACT_BYTECODE_SIZE")]
+    #[arg(default_value = MAXIMUM_CONTRACT_BYTECODE_SIZE.to_string())]
+    maximum_contract_bytecode_size: u64,
+
+    #[arg(long = "maximum-sierra-length")]
+    #[arg(env = "MAXIMUM_SIERRA_LENGTH")]
+    #[arg(default_value = MAXIMUM_SIERRA_LENGTH.to_string())]
+    maximum_sierra_length: u64,
 }
 
 impl Args {
@@ -266,6 +282,11 @@ impl Args {
                 block_hash: None,
             },
             predeclare_argent: self.predeclare_argent,
+            class_size_config: ClassSizeConfig {
+                maximum_contract_class_size: self.maximum_contract_class_size,
+                maximum_contract_bytecode_size: self.maximum_contract_bytecode_size,
+                maximum_sierra_length: self.maximum_sierra_length,
+            },
             ..Default::default()
         };
 

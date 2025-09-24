@@ -118,6 +118,6 @@ pub fn chargeable_account_initial_balance() -> BigUint {
 pub const ENTRYPOINT_NOT_FOUND_ERROR_ENCODED: Felt =
     Felt::from_hex_unchecked("0x454e545259504f494e545f4e4f545f464f554e44");
 
-pub const MAXIMUM_CONTRACT_CLASS_SIZE: usize = 4_089_446;
-pub const MAXIMUM_CONTRACT_BYTECODE_SIZE: usize = 81_920;
-pub const MAXIMUM_SIERRA_LENGTH: usize = 81_920;
+pub const MAXIMUM_CONTRACT_CLASS_SIZE: u64 = 4_089_446;
+pub const MAXIMUM_CONTRACT_BYTECODE_SIZE: u64 = 81_920;
+pub const MAXIMUM_SIERRA_LENGTH: u64 = 81_920;

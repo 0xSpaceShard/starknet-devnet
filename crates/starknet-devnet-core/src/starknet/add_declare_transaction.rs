@@ -8,15 +8,14 @@ use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, DeclareTransaction, Transaction, TransactionWithHash,
 };
 
-use crate::constants::{
-    MAXIMUM_CONTRACT_BYTECODE_SIZE, MAXIMUM_CONTRACT_CLASS_SIZE, MAXIMUM_SIERRA_LENGTH,
-};
+use super::starknet_config::ClassSizeConfig;
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::starknet::Starknet;
 use crate::state::CustomState;
 
 fn check_class_size(
     executable_tx: &starknet_api::executable_transaction::DeclareTransaction,
+    config: &ClassSizeConfig,
 ) -> DevnetResult<()> {
     let serialized_class = serde_json::to_vec(&executable_tx.contract_class()).map_err(|e| {
         Error::UnexpectedInternalError {
@@ -33,9 +32,9 @@ fn check_class_size(
         casm_length,
     );
 
-    if serialized_class.len() > MAXIMUM_CONTRACT_CLASS_SIZE
-        || sierra_length > MAXIMUM_SIERRA_LENGTH
-        || casm_length > MAXIMUM_CONTRACT_BYTECODE_SIZE
+    if serialized_class.len() > config.maximum_contract_class_size as usize
+        || sierra_length > config.maximum_sierra_length as usize
+        || casm_length > config.maximum_contract_bytecode_size as usize
     {
         return Err(Error::ContractClassSizeIsTooLarge);
     }
@@ -60,7 +59,7 @@ pub fn add_declare_transaction(
     let executable_tx =
         broadcasted_declare_transaction.create_sn_api_declare(&starknet.chain_id().to_felt())?;
 
-    check_class_size(&executable_tx)?;
+    check_class_size(&executable_tx, &starknet.config.class_size_config)?;
 
     let transaction_hash = executable_tx.tx_hash.0;
     let class_hash = executable_tx.class_hash().0;
