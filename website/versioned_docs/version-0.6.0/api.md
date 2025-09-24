@@ -22,7 +22,7 @@ Devnet has many additional features available via JSON-RPC. The RPC methods are 
 
 #### Healthcheck
 
-To check if a Devnet instance is alive, send an HTTP request `GET /is_alive`. If alive, Devnet will reply with a `200 OK` and an appropriate message. This is the only special functionality not served as part of JSON-RPC API.
+To check if a Devnet instance is alive, send an HTTP request `GET /is_alive`. If alive, Devnet will reply with a `200 OK` and an appropriate message. This is the only special functionality not provided as part of the JSON-RPC API.
 
 ### WebSocket
 
