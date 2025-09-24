@@ -17,6 +17,10 @@ impl ContractAddress {
         Ok(Self(PatriciaKey::new(felt)?))
     }
 
+    pub fn new_unchecked(felt: Felt) -> Self {
+        Self(PatriciaKey::new_unchecked(felt))
+    }
+
     /// Constructs a zero address
     pub fn zero() -> Self {
         Self(PATRICIA_KEY_ZERO)

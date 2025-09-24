@@ -27,21 +27,21 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
 
 pub const ETH_ERC20_CONTRACT_CLASS_HASH: Felt =
     Felt::from_hex_unchecked("0x9524a94b41c4440a16fd96d7c1ef6ad6f44c1c013e96662734502cd4ee9b1f");
-pub const ETH_ERC20_CONTRACT_ADDRESS: Felt =
-    Felt::from_hex_unchecked("0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7");
 pub const ETH_ERC20_CONTRACT_CLASS: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/contracts/system_artifacts/erc20_eth.sierra"
 ));
+pub const ETH_ERC20_CONTRACT_ADDRESS: Felt =
+    Felt::from_hex_unchecked("0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7");
 
-pub const STRK_ERC20_CONTRACT_ADDRESS: Felt =
-    Felt::from_hex_unchecked("0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d");
 pub const STRK_ERC20_CONTRACT_CLASS_HASH: Felt =
     Felt::from_hex_unchecked("0x76791ef97c042f81fbf352ad95f39a22554ee8d7927b2ce3c681f3418b5206a");
 pub const STRK_ERC20_CONTRACT_CLASS: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/contracts/system_artifacts/erc20_strk.sierra"
 ));
+pub const STRK_ERC20_CONTRACT_ADDRESS: Felt =
+    Felt::from_hex_unchecked("0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d");
 
 // ERC20 contracts storage variables; available in source at https://github.com/starknet-io/starkgate-contracts
 pub const ETH_ERC20_NAME: &str = "Ether";

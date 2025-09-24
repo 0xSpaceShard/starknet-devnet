@@ -19,7 +19,11 @@ impl PatriciaKey {
                 string: format!("[0x0, {PATRICIA_KEY_UPPER_BOUND})"),
             }));
         }
-        Ok(PatriciaKey(felt))
+        Ok(Self(felt))
+    }
+
+    pub(crate) fn new_unchecked(felt: Felt) -> Self {
+        Self(felt)
     }
 
     pub fn to_felt(&self) -> Felt {

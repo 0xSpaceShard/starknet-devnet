@@ -13,8 +13,6 @@ use crate::rpc_core::error::RpcError;
 #[allow(unused)]
 #[derive(Error, Debug)]
 pub enum ApiError {
-    #[error("{0}")]
-    GeneralError(String),
     #[error(transparent)]
     StarknetDevnetError(#[from] starknet_core::error::Error),
     #[error("Types error")]
@@ -86,19 +84,14 @@ pub enum ApiError {
     DumpError { msg: String },
     #[error("Messaging error: {msg}")]
     MessagingError { msg: String },
-    #[error("Invalid value: {msg}")]
-    InvalidValueError { msg: String },
+    #[error("Invalid address: {msg}")]
+    InvalidAddress { msg: String },
 }
 
 impl ApiError {
     pub fn api_error_to_rpc_error(self) -> RpcError {
         let error_message = self.to_string();
         match self {
-            ApiError::GeneralError(err) => RpcError {
-                code: crate::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
-                message: err.into(),
-                data: None,
-            },
             ApiError::RpcError(rpc_error) => rpc_error,
             ApiError::BlockNotFound => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(24),
@@ -291,7 +284,7 @@ impl ApiError {
                 message: msg.into(),
                 data: None,
             },
-            ApiError::InvalidValueError { msg } => RpcError {
+            ApiError::InvalidAddress { msg } => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
                 message: msg.into(),
                 data: None,
@@ -306,8 +299,7 @@ impl ApiError {
             | Self::TransactionNotFound
             | Self::NoStateAtBlock { .. }
             | Self::ClassHashNotFound => true,
-            Self::GeneralError {..}
-            | Self::StarknetDevnetError(_)
+            Self::StarknetDevnetError(_)
             | Self::NoTraceAvailable
             | Self::TypesError(_)
             | Self::RpcError(_)
@@ -335,7 +327,7 @@ impl ApiError {
             | Self::CompiledClassHashMismatch
             | Self::DumpError { .. }
             | Self::MessagingError { .. }
-            | Self::InvalidValueError { .. } => false,
+            | Self::InvalidAddress { .. } => false,
         }
     }
 }
