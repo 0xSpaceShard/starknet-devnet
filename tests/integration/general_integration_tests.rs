@@ -61,6 +61,11 @@ async fn test_config() {
         "lite_mode": false,
         "eth_erc20_class_hash": to_hex_felt(&ETH_ERC20_CONTRACT_CLASS_HASH),
         "strk_erc20_class_hash": to_hex_felt(&STRK_ERC20_CONTRACT_CLASS_HASH),
+        "class_size_config": {
+            "maximum_contract_class_size": 1_000_000,
+            "maximum_contract_bytecode_size": 200_000,
+            "maximum_sierra_length": 300_000,
+        }
     });
 
     let devnet = BackgroundDevnet::spawn_with_additional_args(&[
@@ -98,6 +103,12 @@ async fn test_config() {
         expected_config["server_config"]["host"].as_str().unwrap(),
         "--timeout",
         &serde_json::to_string(&expected_config["server_config"]["timeout"]).unwrap(),
+        "--maximum-contract-class-size",
+        &expected_config["class_size_config"]["maximum_contract_class_size"].to_string(),
+        "--maximum-contract-bytecode-size",
+        &expected_config["class_size_config"]["maximum_contract_bytecode_size"].to_string(),
+        "--maximum-sierra-length",
+        &expected_config["class_size_config"]["maximum_sierra_length"].to_string(),
     ])
     .await
     .unwrap();
