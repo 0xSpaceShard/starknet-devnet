@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
@@ -56,15 +57,49 @@ pub fn get_balance(
     }
 }
 
+pub fn get_erc20_fee_unit_address(unit: FeeUnit) -> ContractAddress {
+    match unit {
+        FeeUnit::WEI => ContractAddress::new_unchecked(ETH_ERC20_CONTRACT_ADDRESS),
+        FeeUnit::FRI => ContractAddress::new_unchecked(STRK_ERC20_CONTRACT_ADDRESS),
+    }
+}
+
 pub fn get_balance_unit(
     starknet: &mut Starknet,
     address: ContractAddress,
     unit: FeeUnit,
 ) -> Result<AccountBalanceResponse, ApiError> {
-    let erc20_address = ContractAddress::from_feeunit(&unit);
+    let erc20_address = get_erc20_fee_unit_address(unit);
 
     let amount =
         get_balance(starknet, address, erc20_address, BlockId::Tag(BlockTag::PreConfirmed))?;
 
     Ok(AccountBalanceResponse { amount: amount.to_string(), unit })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_unchecked_vs_new_for_fee_addresses() {
+        // For ETH address
+        let contract_address_checked = ContractAddress::new(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
+        let contract_address_unchecked = ContractAddress::new_unchecked(ETH_ERC20_CONTRACT_ADDRESS);
+        assert_eq!(
+            contract_address_checked, contract_address_unchecked,
+            "ContractAddress::new and ContractAddress::new_unchecked should produce the same \
+             result for valid ETH address"
+        );
+
+        // For STRK address
+        let contract_address_checked = ContractAddress::new(STRK_ERC20_CONTRACT_ADDRESS).unwrap();
+        let contract_address_unchecked =
+            ContractAddress::new_unchecked(STRK_ERC20_CONTRACT_ADDRESS);
+        assert_eq!(
+            contract_address_checked, contract_address_unchecked,
+            "ContractAddress::new and ContractAddress::new_unchecked should produce the same \
+             result for valid STRK address"
+        );
+    }
 }

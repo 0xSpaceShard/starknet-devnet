@@ -20,6 +20,7 @@ use super::models::{
 };
 use crate::api::account_helpers::{
     BalanceQuery, PredeployedAccountsQuery, get_balance, get_balance_unit,
+    get_erc20_fee_unit_address,
 };
 use crate::api::models::{
     AccountBalanceResponse, AccountBalancesResponse, DevnetResponse, SerializableAccount,
@@ -679,7 +680,7 @@ impl JsonRpcHandler {
         let account_address = ContractAddress::new(params.address)
             .map_err(|e| ApiError::InvalidAddress { msg: e.to_string() })?;
         let unit = params.unit.unwrap_or(FeeUnit::FRI);
-        let erc20_address = ContractAddress::from_feeunit(&unit);
+        let erc20_address = get_erc20_fee_unit_address(unit);
 
         let mut starknet = self.api.starknet.lock().await;
 

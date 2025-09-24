@@ -17,7 +17,7 @@ use super::models::{
     StarknetResponse, TransactionHashOutput,
 };
 use crate::api::JsonRpcHandler;
-use crate::api::account_helpers::get_balance;
+use crate::api::account_helpers::{get_balance, get_erc20_fee_unit_address};
 use crate::api::models::{
     AbortedBlocks, AbortingBlocks, AcceptOnL1Request, AcceptedOnL1Blocks, CreatedBlock, DumpPath,
     FlushParameters, FlushedMessages, IncreaseTime, IncreaseTimeResponse, MessageHash,
@@ -310,7 +310,7 @@ impl JsonRpcHandler {
     pub async fn mint(&self, request: MintTokensRequest) -> StrictRpcResult {
         let mut starknet = self.api.starknet.lock().await;
         let unit = request.unit.unwrap_or(FeeUnit::FRI);
-        let erc20_address = ContractAddress::from_feeunit(&unit);
+        let erc20_address = get_erc20_fee_unit_address(unit);
 
         // increase balance
         let tx_hash = starknet.mint(request.address, request.amount, erc20_address).await?;
