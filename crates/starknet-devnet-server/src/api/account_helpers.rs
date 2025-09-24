@@ -1,6 +1,4 @@
 use serde::Deserialize;
-use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
-use starknet_core::error::DevnetResult;
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
@@ -58,26 +56,15 @@ pub fn get_balance(
     }
 }
 
-/// Returns the address of the ERC20 (fee token) contract associated with the unit.
-pub fn get_erc20_address(unit: &FeeUnit) -> DevnetResult<ContractAddress> {
-    let erc20_contract_address = match unit {
-        FeeUnit::WEI => ETH_ERC20_CONTRACT_ADDRESS,
-        FeeUnit::FRI => STRK_ERC20_CONTRACT_ADDRESS,
-    };
-
-    Ok(ContractAddress::new(erc20_contract_address)?)
-}
-
 pub fn get_balance_unit(
     starknet: &mut Starknet,
     address: ContractAddress,
     unit: FeeUnit,
 ) -> Result<AccountBalanceResponse, ApiError> {
-    let erc20_address =
-        get_erc20_address(&unit).map_err(|e| ApiError::InvalidValueError { msg: e.to_string() })?;
+    let erc20_address = ContractAddress::from_feeunit(&unit);
+
     let amount =
-        get_balance(starknet, address, erc20_address, BlockId::Tag(BlockTag::PreConfirmed))
-            .map_err(|e| ApiError::GeneralError(e.to_string()))?;
+        get_balance(starknet, address, erc20_address, BlockId::Tag(BlockTag::PreConfirmed))?;
 
     Ok(AccountBalanceResponse { amount: amount.to_string(), unit })
 }

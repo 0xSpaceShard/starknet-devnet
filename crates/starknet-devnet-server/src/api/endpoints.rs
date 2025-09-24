@@ -19,7 +19,7 @@ use super::models::{
     BlockHashAndNumberOutput, GetStorageProofInput, L1TransactionHashInput, SyncingOutput,
 };
 use crate::api::account_helpers::{
-    BalanceQuery, PredeployedAccountsQuery, get_balance, get_balance_unit, get_erc20_address,
+    BalanceQuery, PredeployedAccountsQuery, get_balance, get_balance_unit,
 };
 use crate::api::models::{
     AccountBalanceResponse, AccountBalancesResponse, DevnetResponse, SerializableAccount,
@@ -677,10 +677,9 @@ impl JsonRpcHandler {
     /// devnet_getAccountBalance
     pub async fn get_account_balance(&self, params: BalanceQuery) -> StrictRpcResult {
         let account_address = ContractAddress::new(params.address)
-            .map_err(|e| ApiError::InvalidValueError { msg: e.to_string() })?;
+            .map_err(|e| ApiError::InvalidAddress { msg: e.to_string() })?;
         let unit = params.unit.unwrap_or(FeeUnit::FRI);
-        let erc20_address = get_erc20_address(&unit)
-            .map_err(|e| ApiError::InvalidValueError { msg: e.to_string() })?;
+        let erc20_address = ContractAddress::from_feeunit(&unit);
 
         let mut starknet = self.api.starknet.lock().await;
 
@@ -689,8 +688,7 @@ impl JsonRpcHandler {
             account_address,
             erc20_address,
             params.block_id.unwrap_or(BlockId::Tag(BlockTag::Latest)),
-        )
-        .map_err(|e| ApiError::GeneralError(e.to_string()))?;
+        )?;
         Ok(DevnetResponse::AccountBalance(AccountBalanceResponse {
             amount: amount.to_string(),
             unit,
