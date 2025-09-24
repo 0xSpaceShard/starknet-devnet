@@ -53,11 +53,7 @@ $ starknet-devnet --timeout <SECONDS>
 
 ## Request size limit
 
-There is no HTTP request size limit, but take care when declaring large classes! Devnet is supposed to follow the limits specified in [Starknet Chain Info](https://docs.starknet.io/resources/chain-info/#current_limits). So the current upper limits configured in Devnet are:
-
-- contract class size: 4089446 bytes
-- contract bytecode size: 81920 felts
-- Sierra length: 80000 felts
+There is no HTTP request size limit, but take care when declaring large classes! Devnet is supposed to follow the limits specified in [Starknet chain Info](https://docs.starknet.io/resources/chain-info/#current_limits). So the current upper limits configured in Devnet can be found [among constants](https://github.com/0xSpaceShard/starknet-devnet/blob/main/crates/starknet-devnet-core/src/constants.rs#L121).
 
 ## API
 
