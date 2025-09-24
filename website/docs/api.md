@@ -18,17 +18,11 @@ Since JSON-RPC v0.6.0, to find out which JSON-RPC version is supported by which 
 
 ### Devnet API
 
-Devnet has many additional features which are available via their own endpoints and JSON-RPC. The RPC methods are documented throughout the documentation in their corresponding pages, but are also aggregated [here](https://github.com/0xSpaceShard/starknet-devnet/blob/main/website/static/devnet_api.json).
-
-:::warning Deprecation notice
-
-New features are only supported as part of the JSON-RPC API. Older non-RPC requests are still supported, but considered deprecated - they will be removed in the future, except the [healthcheck endpoint](#healthcheck).
-
-:::
+Devnet has many additional features available via JSON-RPC. The RPC methods are documented throughout the documentation in their corresponding pages, but are also aggregated [here](https://github.com/0xSpaceShard/starknet-devnet/blob/main/website/static/devnet_api.json).
 
 #### Healthcheck
 
-To check if a Devnet instance is alive, send an HTTP request `GET /is_alive`. If alive, Devnet will reply with a `200 OK` and an appropriate message.
+To check if a Devnet instance is alive, send an HTTP request `GET /is_alive`. If alive, Devnet will reply with a `200 OK` and an appropriate message. This is the only special functionality not served as part of JSON-RPC API.
 
 ### WebSocket
 
