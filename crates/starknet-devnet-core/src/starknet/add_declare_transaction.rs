@@ -8,15 +8,14 @@ use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, DeclareTransaction, Transaction, TransactionWithHash,
 };
 
-use crate::constants::{
-    MAXIMUM_CONTRACT_BYTECODE_SIZE, MAXIMUM_CONTRACT_CLASS_SIZE, MAXIMUM_SIERRA_LENGTH,
-};
+use super::starknet_config::ClassSizeConfig;
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::starknet::Starknet;
 use crate::state::CustomState;
 
 fn check_class_size(
     executable_tx: &starknet_api::executable_transaction::DeclareTransaction,
+    config: &ClassSizeConfig,
 ) -> DevnetResult<()> {
     let serialized_class = serde_json::to_vec(&executable_tx.contract_class()).map_err(|e| {
         Error::UnexpectedInternalError {
@@ -24,18 +23,19 @@ fn check_class_size(
         }
     })?;
 
-    let sierra_length = executable_tx.class_info.sierra_program_length();
-    let casm_length = executable_tx.class_info.bytecode_length();
+    let contract_class_size = serialized_class.len() as u64;
+    let sierra_length = executable_tx.class_info.sierra_program_length() as u64;
+    let casm_length = executable_tx.class_info.bytecode_length() as u64;
     tracing::info!(
         "Declaring class: serialized size: {} bytes, sierra: {} felts, casm: {} felts",
-        serialized_class.len(),
+        contract_class_size,
         sierra_length,
         casm_length,
     );
 
-    if serialized_class.len() > MAXIMUM_CONTRACT_CLASS_SIZE
-        || sierra_length > MAXIMUM_SIERRA_LENGTH
-        || casm_length > MAXIMUM_CONTRACT_BYTECODE_SIZE
+    if contract_class_size > config.maximum_contract_class_size
+        || sierra_length > config.maximum_sierra_length
+        || casm_length > config.maximum_contract_bytecode_size
     {
         return Err(Error::ContractClassSizeIsTooLarge);
     }
@@ -60,7 +60,7 @@ pub fn add_declare_transaction(
     let executable_tx =
         broadcasted_declare_transaction.create_sn_api_declare(&starknet.chain_id().to_felt())?;
 
-    check_class_size(&executable_tx)?;
+    check_class_size(&executable_tx, &starknet.config.class_size_config)?;
 
     let transaction_hash = executable_tx.tx_hash.0;
     let class_hash = executable_tx.class_hash().0;
@@ -303,6 +303,85 @@ mod tests {
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         // check if contract is declared
+        assert!(starknet.pending_state.is_contract_declared(class_hash));
+    }
+
+    #[test]
+    fn declaration_success_should_depend_on_class_size_limit() {
+        let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1e18 as u128);
+
+        let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
+            sender.account_address,
+            Felt::ZERO,
+            resource_bounds_with_price_1(0, 1000, 1e9 as u64),
+        );
+
+        let old_limit = starknet.config.class_size_config.maximum_contract_class_size;
+
+        // Should fail
+        // Ideally would be set to (size - 1), but serialization is not the same for the class used
+        // here and the one in `add_declare_transaction`.
+        starknet.config.class_size_config.maximum_contract_class_size = 1;
+        match starknet.add_declare_transaction(declare_tx.clone().into()) {
+            Err(Error::ContractClassSizeIsTooLarge) => (),
+            other => panic!("Unexpected declaration result: {other:?}"),
+        };
+
+        // Should pass
+        starknet.config.class_size_config.maximum_contract_class_size = old_limit;
+        let (_tx_hash, class_hash) = starknet.add_declare_transaction(declare_tx.into()).unwrap();
+        assert!(starknet.pending_state.is_contract_declared(class_hash));
+    }
+
+    #[test]
+    fn declaration_success_should_depend_on_bytecode_size_limit() {
+        let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1e18 as u128);
+
+        let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
+            sender.account_address,
+            Felt::ZERO,
+            resource_bounds_with_price_1(0, 1000, 1e9 as u64),
+        );
+
+        let old_limit = starknet.config.class_size_config.maximum_contract_bytecode_size;
+
+        // Should fail
+        // Ideally would be set to (size - 1), but serialization is not the same for the class used
+        // here and the one in `add_declare_transaction`.
+        starknet.config.class_size_config.maximum_contract_bytecode_size = 1;
+        match starknet.add_declare_transaction(declare_tx.clone().into()) {
+            Err(Error::ContractClassSizeIsTooLarge) => (),
+            other => panic!("Unexpected declaration result: {other:?}"),
+        };
+
+        // Should pass
+        starknet.config.class_size_config.maximum_contract_bytecode_size = old_limit;
+        let (_tx_hash, class_hash) = starknet.add_declare_transaction(declare_tx.into()).unwrap();
+        assert!(starknet.pending_state.is_contract_declared(class_hash));
+    }
+
+    #[test]
+    fn declaration_success_should_depend_on_sierra_length_limit() {
+        let (mut starknet, sender) = setup_starknet_with_no_signature_check_account(1e18 as u128);
+
+        let declare_tx = broadcasted_declare_tx_v3_of_dummy_class(
+            sender.account_address,
+            Felt::ZERO,
+            resource_bounds_with_price_1(0, 1000, 1e9 as u64),
+        );
+
+        let sierra_length = declare_tx.contract_class.sierra_program.len() as u64;
+
+        // Should fail
+        starknet.config.class_size_config.maximum_sierra_length = sierra_length - 1;
+        match starknet.add_declare_transaction(declare_tx.clone().into()) {
+            Err(Error::ContractClassSizeIsTooLarge) => (),
+            other => panic!("Unexpected declaration result: {other:?}"),
+        };
+
+        // Should pass
+        starknet.config.class_size_config.maximum_sierra_length = sierra_length;
+        let (_tx_hash, class_hash) = starknet.add_declare_transaction(declare_tx.into()).unwrap();
         assert!(starknet.pending_state.is_contract_declared(class_hash));
     }
 }

@@ -581,7 +581,7 @@ mod tests {
         assert_block_id_tag_correctness(true, BlockTag::Pending, r#"{"block_id": "pending"}"#);
 
         // Incorrect tag
-        assert_block_id_tag_correctness(false, BlockTag::Latest, r#"{"block_id": "latests"}"#);
+        assert_block_id_tag_correctness(false, BlockTag::Latest, r#"{"block_id": "latestx"}"#);
         assert_block_id_tag_correctness(false, BlockTag::Pending, r#"{"block_id": "pendingg"}"#);
 
         // Incorrect key
