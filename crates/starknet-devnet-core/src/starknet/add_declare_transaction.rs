@@ -380,6 +380,8 @@ mod tests {
         let old_limit = starknet.config.class_size_config.maximum_contract_class_size;
 
         // Should fail
+        // Ideally would be set to (size - 1), but serialization is not the same for the class used
+        // here and the one in `add_declare_transaction`.
         starknet.config.class_size_config.maximum_contract_class_size = 1;
         match starknet.add_declare_transaction(declare_tx.clone().into()) {
             Err(Error::ContractClassSizeIsTooLarge) => (),
@@ -432,8 +434,6 @@ mod tests {
         let sierra_length = declare_tx.contract_class.sierra_program.len() as u64;
 
         // Should fail
-        // Ideally would be set to (size - 1), but serialization is not the same for the class used
-        // here and the one in `add_declare_transaction`.
         starknet.config.class_size_config.maximum_sierra_length = sierra_length - 1;
         match starknet.add_declare_transaction(declare_tx.clone().into()) {
             Err(Error::ContractClassSizeIsTooLarge) => (),
