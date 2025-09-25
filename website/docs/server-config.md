@@ -57,9 +57,9 @@ There is no HTTP request size limit, but take care when declaring large classes!
 
 If, however, you need to customize the limits, you may rely on the following CLI parameters on Devnet startup:
 
-- `--maximum-contract-class-size <VALUE>`
-- `--maximum-contract-bytecode-size <VALUE>`
-- `--maximum-sierra-length <VALUE>`
+- `--maximum-contract-class-size <BYTES>`
+- `--maximum-contract-bytecode-size <FELTS>`
+- `--maximum-sierra-length <FELTS>`
 
 The default upper limits configured in Devnet can be found [among constants](https://github.com/0xSpaceShard/starknet-devnet/blob/main/crates/starknet-devnet-core/src/constants.rs#L121).
 
