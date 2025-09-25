@@ -51,13 +51,17 @@ Specify the maximum amount of time an HTTP request can be served. This makes it 
 $ starknet-devnet --timeout <SECONDS>
 ```
 
-## Request size limit
+## Size limits
 
-There is no HTTP request size limit, but take care when declaring large classes! Devnet is supposed to follow the limits specified in [Starknet Chain Info](https://docs.starknet.io/resources/chain-info/#current_limits). So the current upper limits configured in Devnet are:
+There is no HTTP request size limit, but take care when declaring large classes! Devnet is supposed to follow the limits specified in [Starknet chain Info](https://docs.starknet.io/resources/chain-info/#current_limits).
 
-- contract class size: 4089446 bytes
-- contract bytecode size: 81920 felts
-- Sierra length: 80000 felts
+If, however, you need to customize the limits, you may rely on the following CLI parameters on Devnet startup:
+
+- `--maximum-contract-class-size <BYTES>`
+- `--maximum-contract-bytecode-size <FELTS>`
+- `--maximum-sierra-length <FELTS>`
+
+The default upper limits configured in Devnet can be found [among constants](https://github.com/0xSpaceShard/starknet-devnet/blob/main/crates/starknet-devnet-core/src/constants.rs#L121).
 
 ## API
 
