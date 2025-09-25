@@ -23,18 +23,19 @@ fn check_class_size(
         }
     })?;
 
-    let sierra_length = executable_tx.class_info.sierra_program_length();
-    let casm_length = executable_tx.class_info.bytecode_length();
+    let contract_class_size = serialized_class.len() as u64;
+    let sierra_length = executable_tx.class_info.sierra_program_length() as u64;
+    let casm_length = executable_tx.class_info.bytecode_length() as u64;
     tracing::info!(
         "Declaring class: serialized size: {} bytes, sierra: {} felts, casm: {} felts",
-        serialized_class.len(),
+        contract_class_size,
         sierra_length,
         casm_length,
     );
 
-    if serialized_class.len() > config.maximum_contract_class_size as usize
-        || sierra_length > config.maximum_sierra_length as usize
-        || casm_length > config.maximum_contract_bytecode_size as usize
+    if contract_class_size > config.maximum_contract_class_size
+        || sierra_length > config.maximum_sierra_length
+        || casm_length > config.maximum_contract_bytecode_size
     {
         return Err(Error::ContractClassSizeIsTooLarge);
     }
