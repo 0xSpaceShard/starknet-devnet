@@ -233,19 +233,19 @@ Calling devnet_createBlock JSON-RPC method is also an option in modes other than
     #[arg(long = "maximum-contract-class-size")]
     #[arg(env = "MAXIMUM_CONTRACT_CLASS_SIZE")]
     #[arg(value_name = "BYTES")]
-    #[arg(default_value = MAXIMUM_CONTRACT_CLASS_SIZE.to_string())]
+    #[arg(default_value_t = MAXIMUM_CONTRACT_CLASS_SIZE)]
     maximum_contract_class_size: u64,
 
     #[arg(long = "maximum-contract-bytecode-size")]
     #[arg(env = "MAXIMUM_CONTRACT_BYTECODE_SIZE")]
     #[arg(value_name = "FELTS")]
-    #[arg(default_value = MAXIMUM_CONTRACT_BYTECODE_SIZE.to_string())]
+    #[arg(default_value_t = MAXIMUM_CONTRACT_BYTECODE_SIZE)]
     maximum_contract_bytecode_size: u64,
 
     #[arg(long = "maximum-sierra-length")]
     #[arg(env = "MAXIMUM_SIERRA_LENGTH")]
     #[arg(value_name = "FELTS")]
-    #[arg(default_value = MAXIMUM_SIERRA_LENGTH.to_string())]
+    #[arg(default_value_t = MAXIMUM_SIERRA_LENGTH)]
     maximum_sierra_length: u64,
 }
 
