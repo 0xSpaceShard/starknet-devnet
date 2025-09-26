@@ -326,14 +326,24 @@ impl Starknet {
 
         // Pre_confirmed block header gas data needs to be set
         let header = &mut self.blocks.pre_confirmed_block.header.block_header_without_hash;
-        header.l1_gas_price.price_in_wei = GasPrice(self.next_block_gas.gas_price_wei.get());
-        header.l1_data_gas_price.price_in_wei =
-            GasPrice(self.next_block_gas.data_gas_price_wei.get());
-        header.l2_gas_price.price_in_wei = GasPrice(self.next_block_gas.l2_gas_price_wei.get());
-        header.l1_gas_price.price_in_fri = GasPrice(self.next_block_gas.gas_price_fri.get());
-        header.l1_data_gas_price.price_in_fri =
-            GasPrice(self.next_block_gas.data_gas_price_fri.get());
-        header.l2_gas_price.price_in_fri = GasPrice(self.next_block_gas.l2_gas_price_fri.get());
+
+        // Set L1 gas prices
+        header.l1_gas_price = GasPricePerToken {
+            price_in_wei: GasPrice(self.next_block_gas.gas_price_wei.get()),
+            price_in_fri: GasPrice(self.next_block_gas.gas_price_fri.get()),
+        };
+
+        // Set L1 data gas prices
+        header.l1_data_gas_price = GasPricePerToken {
+            price_in_wei: GasPrice(self.next_block_gas.data_gas_price_wei.get()),
+            price_in_fri: GasPrice(self.next_block_gas.data_gas_price_fri.get()),
+        };
+
+        // Set L2 gas prices
+        header.l2_gas_price = GasPricePerToken {
+            price_in_wei: GasPrice(self.next_block_gas.l2_gas_price_wei.get()),
+            price_in_fri: GasPrice(self.next_block_gas.l2_gas_price_fri.get()),
+        };
 
         self.restart_pre_confirmed_block()?;
 
@@ -359,19 +369,26 @@ impl Starknet {
         let mut new_block = self.pre_confirmed_block().clone();
 
         // Set new block header
-        // TODO why not store the whole next block header instead of storing separate properties?
-        new_block.header.block_header_without_hash.l1_gas_price.price_in_fri =
-            GasPrice(self.next_block_gas.gas_price_fri.get());
-        new_block.header.block_header_without_hash.l1_gas_price.price_in_wei =
-            GasPrice(self.next_block_gas.gas_price_wei.get());
-        new_block.header.block_header_without_hash.l1_data_gas_price.price_in_fri =
-            GasPrice(self.next_block_gas.data_gas_price_fri.get());
-        new_block.header.block_header_without_hash.l1_data_gas_price.price_in_wei =
-            GasPrice(self.next_block_gas.data_gas_price_wei.get());
-        new_block.header.block_header_without_hash.l2_gas_price.price_in_fri =
-            GasPrice(self.next_block_gas.l2_gas_price_fri.get());
-        new_block.header.block_header_without_hash.l2_gas_price.price_in_wei =
-            GasPrice(self.next_block_gas.l2_gas_price_wei.get());
+        // Update gas prices in the block header
+        let header = &mut new_block.header.block_header_without_hash;
+
+        // Set L1 gas prices
+        header.l1_gas_price = GasPricePerToken {
+            price_in_fri: GasPrice(self.next_block_gas.gas_price_fri.get()),
+            price_in_wei: GasPrice(self.next_block_gas.gas_price_wei.get()),
+        };
+
+        // Set L1 data gas prices
+        header.l1_data_gas_price = GasPricePerToken {
+            price_in_fri: GasPrice(self.next_block_gas.data_gas_price_fri.get()),
+            price_in_wei: GasPrice(self.next_block_gas.data_gas_price_wei.get()),
+        };
+
+        // Set L2 gas prices
+        header.l2_gas_price = GasPricePerToken {
+            price_in_fri: GasPrice(self.next_block_gas.l2_gas_price_fri.get()),
+            price_in_wei: GasPrice(self.next_block_gas.l2_gas_price_wei.get()),
+        };
 
         let new_block_number = self.blocks.next_latest_block_number();
         new_block.set_block_hash(if self.config.lite_mode {
@@ -601,25 +618,26 @@ impl Starknet {
     /// Restarts pre-confirmed block with information from block_context
     pub(crate) fn restart_pre_confirmed_block(&mut self) -> DevnetResult<()> {
         let mut block = StarknetBlock::create_pre_confirmed_block();
+        let header = &mut block.header.block_header_without_hash;
 
-        block.header.block_header_without_hash.block_number =
-            self.block_context.block_info().block_number;
+        header.block_number = self.block_context.block_info().block_number;
 
         let gas_prices = &self.block_context.block_info().gas_prices;
-        block.header.block_header_without_hash.l1_gas_price = GasPricePerToken {
+
+        header.l1_gas_price = GasPricePerToken {
             price_in_fri: gas_prices.l1_gas_price(&FeeType::Strk).get(),
             price_in_wei: gas_prices.l1_gas_price(&FeeType::Eth).get(),
         };
-        block.header.block_header_without_hash.l1_data_gas_price = GasPricePerToken {
+        header.l1_data_gas_price = GasPricePerToken {
             price_in_fri: gas_prices.l1_data_gas_price(&FeeType::Strk).get(),
             price_in_wei: gas_prices.l1_data_gas_price(&FeeType::Eth).get(),
         };
-        block.header.block_header_without_hash.l2_gas_price = GasPricePerToken {
+        header.l2_gas_price = GasPricePerToken {
             price_in_fri: gas_prices.l2_gas_price(&FeeType::Strk).get(),
             price_in_wei: gas_prices.l2_gas_price(&FeeType::Eth).get(),
         };
 
-        block.header.block_header_without_hash.sequencer =
+        header.sequencer =
             SequencerContractAddress(self.block_context.block_info().sequencer_address);
 
         block.set_timestamp(self.block_context.block_info().block_timestamp);

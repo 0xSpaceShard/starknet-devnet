@@ -17,6 +17,8 @@ impl ContractAddress {
         Ok(Self(PatriciaKey::new(felt)?))
     }
 
+    /// Constructs a ContractAddress without range checks.
+    /// Safety: `felt` must satisfy PatriciaKey bounds.
     pub fn new_unchecked(felt: Felt) -> Self {
         Self(PatriciaKey::new_unchecked(felt))
     }
