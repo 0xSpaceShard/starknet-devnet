@@ -22,7 +22,13 @@ impl PatriciaKey {
         Ok(Self(felt))
     }
 
+    /// Constructs without range checks.
+    /// Safety: `felt` must be in [0x0, PATRICIA_KEY_UPPER_BOUND).
     pub(crate) fn new_unchecked(felt: Felt) -> Self {
+        debug_assert!(
+            Felt::from_hex_unchecked(PATRICIA_KEY_UPPER_BOUND) >= felt,
+            "PatriciaKey out of range"
+        );
         Self(felt)
     }
 

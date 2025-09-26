@@ -3,7 +3,6 @@ use std::sync::Arc;
 use axum::extract::ws::{Message, WebSocket};
 use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
-use serde_json::json;
 use starknet_core::StarknetBlock;
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_types::emitted_event::SubscriptionEmittedEvent;
@@ -530,13 +529,14 @@ impl JsonRpcHandler {
         let error_serialized = match serde_json::from_slice(bytes) {
             Ok(rpc_call) => match self.on_websocket_rpc_call(&rpc_call, socket_id).await {
                 Ok(_) => return,
-                Err(e) => json!(RpcResponse::from_rpc_error(e, rpc_call.id)).to_string(),
+                Err(e) => serde_json::to_string(&RpcResponse::from_rpc_error(e, rpc_call.id))
+                    .unwrap_or_default(),
             },
-            Err(e) => json!(RpcResponse::from_rpc_error(
+            Err(e) => serde_json::to_string(&RpcResponse::from_rpc_error(
                 RpcError::parse_error(e.to_string()),
-                rpc_core::request::Id::Null
+                rpc_core::request::Id::Null,
             ))
-            .to_string(),
+            .unwrap_or_default(),
         };
 
         if let Err(e) = ws.lock().await.send(Message::Text(error_serialized)).await {
