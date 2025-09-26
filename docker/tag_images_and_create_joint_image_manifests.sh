@@ -62,7 +62,8 @@ for seed_suffix in "" "-seed0"; do
         echo "manifest: ($image_manifest_with_version) does not exist"
         create_and_push_manifest "$bin_crate_version" "$seed_suffix"
 
-        echo "Creating and pushing the joint manifest with the latest tag"
-        create_and_push_manifest "latest" "$seed_suffix"
+        echo "Skipping Docker tag 'latest'"
+        # echo "Creating and pushing the joint manifest with the latest tag"
+        # create_and_push_manifest "latest" "$seed_suffix"
     fi
 done

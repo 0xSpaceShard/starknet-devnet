@@ -9,6 +9,12 @@ aliases:
       branches:
         only:
           - main
+  - &on_side
+    context: spaceshard
+    filters:
+      branches:
+        only:
+          - backport-size-limit-v0.4.4
 
   - &on_main_after_test_and_build
     <<: *on_main
@@ -170,7 +176,7 @@ workflows:
     jobs:
       - build-and-test
       - binary-build:
-          <<: *on_main
+          <<: *on_side
           matrix:
             parameters:
               arch: [x86_64, aarch64]
@@ -182,8 +188,8 @@ workflows:
           target_triplet: << matrix.arch >>-<< matrix.platform >>
           archive_path: starknet-devnet-<< matrix.arch >>-<< matrix.platform >>.tar.gz
       - image-build-amd:
-          <<: *on_main
+          <<: *on_side
       - image-build-arm:
-          <<: *on_main
+          <<: *on_side
       - publish:
           <<: *on_main_after_test_and_build
