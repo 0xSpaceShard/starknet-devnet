@@ -5000,7 +5000,11 @@
     "0x280e098434038060984340377d01c5440280700bdf00700700a0b002f7b",
     "0x78001c03808005efe0380300506a017bf007"
   ],
-  "sierra_program_debug_info": null,
+  "sierra_program_debug_info": {
+    "type_names": [],
+    "libfunc_names": [],
+    "user_func_names": []
+  },
   "contract_class_version": "0.1.0",
   "entry_points_by_type": {
     "EXTERNAL": [
