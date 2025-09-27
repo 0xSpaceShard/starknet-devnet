@@ -21,6 +21,7 @@ use starknet_rs_core::types::{
 };
 use starknet_types_core::felt::Felt;
 
+use crate::canonical::canonical_sha256_hex;
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 use crate::traits::HashProducer;
@@ -28,6 +29,11 @@ use crate::utils::compile_sierra_contract;
 
 pub mod deprecated;
 pub use deprecated::Cairo0ContractClass;
+
+mod usc_fastpath {
+    #![allow(dead_code)]
+    include!(concat!(env!("OUT_DIR"), "/usc_fastpath.rs"));
+}
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "testing", derive(Eq, PartialEq))]
@@ -309,11 +315,21 @@ fn jsonified_sierra_to_runnable_casm(
     jsonified_sierra: serde_json::Value,
     sierra_version: &str,
 ) -> Result<RunnableCompiledClass, Error> {
-    let casm_json = usc::compile_contract(jsonified_sierra)
-        .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+    let hash = canonical_sha256_hex(&jsonified_sierra).unwrap_or("invalid".to_string()); // "invalid" won't match hash
+    // For debugging purposes, write the sierra contract that is being compiled to a file
+    // let filename = format!("sierra_{}.json", &hash[0..8]);
+    // let _ = std::fs::write(&filename, jsonified_sierra.to_string());
 
-    let casm = serde_json::from_value::<CasmContractClass>(casm_json)
-        .map_err(|err| Error::JsonError(JsonError::Custom { msg: err.to_string() }))?;
+    let casm = match usc_fastpath::lookup(&hash) {
+        Some(bytes) => serde_json::from_slice::<CasmContractClass>(bytes)
+            .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err))),
+        None => {
+            let casm_json_value = usc::compile_contract(jsonified_sierra)
+                .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+            serde_json::from_value::<CasmContractClass>(casm_json_value)
+                .map_err(|err| Error::JsonError(JsonError::Custom { msg: err.to_string() }))
+        }
+    }?;
 
     let versioned_casm = (casm, SierraVersion::from_str(sierra_version)?);
     let compiled = versioned_casm.try_into().map_err(|e: ProgramError| {

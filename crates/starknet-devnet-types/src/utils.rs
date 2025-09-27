@@ -5,7 +5,13 @@ use cairo_lang_starknet_classes::contract_class::ContractClass;
 use serde_json::ser::Formatter;
 use serde_json::{Map, Value};
 
+use crate::canonical::canonical_sha256_hex;
 use crate::error::{DevnetResult, Error, JsonError};
+
+mod usc_fastpath {
+    #![allow(dead_code)]
+    include!(concat!(env!("OUT_DIR"), "/usc_fastpath.rs"));
+}
 
 /// The preserve_order feature enabled in the serde_json crate
 /// removing a key from the object changes the order of the keys
@@ -95,8 +101,19 @@ pub fn compile_sierra_contract(sierra_contract: &ContractClass) -> DevnetResult<
 }
 
 pub fn compile_sierra_contract_json(
-    sierra_contract_json: serde_json::Value,
+    sierra_contract_json: Value,
 ) -> DevnetResult<CasmContractClass> {
+    let hash = canonical_sha256_hex(&sierra_contract_json).unwrap_or("invalid".to_string()); // "invalid" won't match hash
+
+    // For debugging purposes, write the sierra contract that is being compiled to a file
+    // let filename = format!("sierra_{}.json", &hash[0..8]);
+    // let _ = std::fs::write(&filename, jsonified_sierra.to_string());
+
+    if let Some(bytes) = usc_fastpath::lookup(&hash) {
+        return serde_json::from_slice::<CasmContractClass>(bytes)
+            .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err)));
+    }
+
     let casm_json = usc::compile_contract(sierra_contract_json)
         .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
 

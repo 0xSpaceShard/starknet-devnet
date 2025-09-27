@@ -10,11 +10,14 @@ license-file.workspace = true
 
 [features]
 testing = []
+fastpath = [] 
 
 [lints]
 workspace = true
 
 [dependencies]
+sha2 = "0.10"
+hex = "0.4"
 base64 = { workspace = true }
 blockifier = { workspace = true }
 cairo-lang-starknet-classes = { workspace = true }
@@ -69,3 +72,9 @@ ignored = [
     "parity-scale-codec",
     "parity-scale-codec-derive",
 ]
+[build-dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = "0.10"
+hex = "0.4"
+usc = { workspace = true }
