@@ -107,7 +107,7 @@ pub fn compile_sierra_contract_json(
 
     // For debugging purposes, write the sierra contract that is being compiled to a file
     // let filename = format!("sierra_{}.json", &hash[0..8]);
-    // let _ = std::fs::write(&filename, jsonified_sierra.to_string());
+    // let _ = std::fs::write(&filename, sierra_contract_json.to_string());
 
     if let Some(bytes) = usc_fastpath::lookup(&hash) {
         return serde_json::from_slice::<CasmContractClass>(bytes)

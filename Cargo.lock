@@ -5888,6 +5888,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ea1a2d0a644769cc99faa24c3ad26b379b786fe7c36fd3c546254801650e6dd"
 
 [[package]]
+name = "ryu-js"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd29631678d6fb0903b69223673e122c32e9ae559d0960a38d574695ebc0ea15"
+
+[[package]]
 name = "salsa"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6135,6 +6141,17 @@ dependencies = [
  "memchr",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "serde_json_canonicalizer"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f777f77aeef456e47e75c2a4b16804b15395be5b344e2094a54965143ef1c31"
+dependencies = [
+ "ryu-js",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -6659,6 +6676,7 @@ dependencies = [
  "parity-scale-codec-derive",
  "serde",
  "serde_json",
+ "serde_json_canonicalizer",
  "sha2",
  "starknet-core",
  "starknet-types-core",
