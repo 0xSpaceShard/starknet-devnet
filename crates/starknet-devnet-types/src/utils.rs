@@ -6,7 +6,7 @@ use serde_json::ser::Formatter;
 use serde_json::{Map, Value};
 
 use crate::error::{DevnetResult, Error, JsonError};
-
+#[cfg(not(clippy))]
 mod usc_fastpath {
     #![allow(dead_code)]
     include!(concat!(env!("OUT_DIR"), "/usc_fastpath.rs"));
@@ -112,12 +112,13 @@ pub fn compile_sierra_contract(sierra_contract: &ContractClass) -> DevnetResult<
 pub fn compile_sierra_contract_json(
     sierra_contract_json: Value,
 ) -> DevnetResult<CasmContractClass> {
+    #[cfg(not(clippy))]
     let hash = canonical_hash(&sierra_contract_json).unwrap_or("invalid".to_string()); // "invalid" won't match hash
 
     // For debugging purposes, write the sierra contract that is being compiled to a file
     // let filename = format!("sierra_{}.json", &hash[0..8]);
     // let _ = std::fs::write(&filename, sierra_contract_json.to_string());
-
+    #[cfg(not(clippy))]
     if let Some(bytes) = usc_fastpath::lookup(&hash) {
         return serde_json::from_slice::<CasmContractClass>(bytes)
             .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err)));
