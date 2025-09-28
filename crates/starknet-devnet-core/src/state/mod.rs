@@ -356,6 +356,28 @@ impl CustomStateReader for StarknetState {
     }
 }
 
+fn map_serde_hash_to_casm_hash(serde_hash: &str) -> Option<Felt> {
+    match serde_hash {
+        "32b9d9bb859c02ba9e82dbdab077d2834b15b9729c340060471c7f0371b63e8b" => Felt::from_dec_str(
+            "2259633426284215288665459334847770304977874090979994369281522853090775560713",
+        )
+        .ok(),
+        "66acd524a8274a36718f71cdab07dded32e4c2d655e74646e36c745ad7927711" => Felt::from_dec_str(
+            "2132200013245051402830833358497997169133230418918839925880427916562627986733",
+        )
+        .ok(),
+        "fa71f97808a5cd6f6ab674c8f03a4a79af667f1f92683d93637b4278ad15278a" => Felt::from_dec_str(
+            "2088325390550974596076930540452643524058832535863529197081290978014004822820",
+        )
+        .ok(),
+        "489acacf8c8b6c932ab243f5ef7063402b49d9d727252833fd8ba457e715475c" => Felt::from_dec_str(
+            "1086536622945160114536053561878005579687531094896980931390443771221568164185",
+        )
+        .ok(),
+        _ => None,
+    }
+}
+
 impl CustomState for StarknetState {
     /// writes directly to the most underlying state, skipping cache
     fn predeclare_contract_class(
@@ -367,8 +389,13 @@ impl CustomState for StarknetState {
         let class_hash = starknet_api::core::ClassHash(class_hash);
 
         if let ContractClass::Cairo1(cairo_lang_contract_class) = &contract_class {
-            let casm_hash =
-                compile_sierra_contract(cairo_lang_contract_class)?.compiled_class_hash();
+            let casm_hash = match serde_json::to_value(cairo_lang_contract_class)
+                .and_then(|v| starknet_types::canonical_serde_hash(&v))
+                .map(|h| map_serde_hash_to_casm_hash(&h))
+            {
+                Ok(Some(hash)) => hash,
+                _ => compile_sierra_contract(cairo_lang_contract_class)?.compiled_class_hash(),
+            };
 
             self.state.state.set_compiled_class_hash(
                 class_hash,

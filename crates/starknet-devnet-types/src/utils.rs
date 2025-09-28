@@ -92,7 +92,7 @@ impl Formatter for StarknetFormatter {
     }
 }
 
-pub(crate) fn canonical_hash(v: &serde_json::Value) -> Result<String, serde_json::Error> {
+pub fn canonical_serde_hash(v: &serde_json::Value) -> Result<String, serde_json::Error> {
     let bytes = match serde_json_canonicalizer::to_vec(v) {
         Ok(bytes) => bytes,
         Err(_) => serde_json::to_vec(v)?,
@@ -113,7 +113,7 @@ pub fn compile_sierra_contract_json(
     sierra_contract_json: Value,
 ) -> DevnetResult<CasmContractClass> {
     #[cfg(not(clippy))]
-    let hash = canonical_hash(&sierra_contract_json).unwrap_or("invalid".to_string()); // "invalid" won't match hash
+    let hash = canonical_serde_hash(&sierra_contract_json).unwrap_or("invalid".to_string()); // "invalid" won't match hash
 
     // For debugging purposes, write the sierra contract that is being compiled to a file
     // let filename = format!("sierra_{}.json", &hash[0..8]);

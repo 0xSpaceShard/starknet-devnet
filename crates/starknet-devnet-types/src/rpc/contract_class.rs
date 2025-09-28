@@ -24,7 +24,7 @@ use starknet_types_core::felt::Felt;
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 use crate::traits::HashProducer;
-use crate::utils::{canonical_hash, compile_sierra_contract};
+use crate::utils::{canonical_serde_hash, compile_sierra_contract};
 
 pub mod deprecated;
 pub use deprecated::Cairo0ContractClass;
@@ -314,7 +314,7 @@ fn jsonified_sierra_to_runnable_casm(
     jsonified_sierra: serde_json::Value,
     sierra_version: &str,
 ) -> Result<RunnableCompiledClass, Error> {
-    let hash = canonical_hash(&jsonified_sierra).unwrap_or("invalid".to_string()); // "invalid" won't match hash
+    let hash = canonical_serde_hash(&jsonified_sierra).unwrap_or("invalid".to_string()); // "invalid" won't match hash
     // For debugging purposes, write the sierra contract that is being compiled to a file
     // let filename = format!("sierra_{}.json", &hash[0..8]);
     // let _ = std::fs::write(&filename, jsonified_sierra.to_string());
