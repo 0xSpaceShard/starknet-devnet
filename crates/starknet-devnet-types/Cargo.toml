@@ -15,9 +15,15 @@ fastpath = []
 [lints]
 workspace = true
 
+[build-dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+blake3 = "1.5"
+usc = { workspace = true }
+serde_json_canonicalizer = "0.3.1"
+
 [dependencies]
-sha2 = "0.10"
-hex = "0.4"
+blake3 = "1.5"
 base64 = { workspace = true }
 blockifier = { workspace = true }
 cairo-lang-starknet-classes = { workspace = true }
@@ -73,9 +79,3 @@ ignored = [
     "parity-scale-codec",
     "parity-scale-codec-derive",
 ]
-[build-dependencies]
-serde = { workspace = true }
-serde_json = { workspace = true }
-sha2 = "0.10"
-hex = "0.4"
-usc = { workspace = true }

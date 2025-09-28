@@ -1,4 +1,3 @@
-mod canonical;
 pub mod chain_id;
 pub mod constants;
 pub mod contract_storage_key;
