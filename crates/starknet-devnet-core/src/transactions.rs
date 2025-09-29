@@ -213,7 +213,7 @@ impl StarknetTransaction {
                 OrderedMessageToL1 {
                     order: m.order,
                     message: MessageToL1 {
-                        to_address: m.message.to_address.into(),
+                        to_address: m.message.to_address.try_into().expect("TODO"),
                         from_address: from_address.into(),
                         payload: m.message.payload.0.clone(),
                     },

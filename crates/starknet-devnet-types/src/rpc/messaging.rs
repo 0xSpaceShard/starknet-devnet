@@ -82,14 +82,14 @@ impl OrderedMessageToL1 {
     pub fn new(
         msg: &blockifier::execution::call_info::OrderedL2ToL1Message,
         from_address: ContractAddress,
-    ) -> Self {
-        Self {
+    ) -> DevnetResult<Self> {
+        Ok(Self {
             order: msg.order,
             message: MessageToL1 {
                 from_address,
-                to_address: msg.message.to_address.into(),
+                to_address: msg.message.to_address.try_into()?,
                 payload: msg.message.payload.0.clone(),
             },
-        }
+        })
     }
 }

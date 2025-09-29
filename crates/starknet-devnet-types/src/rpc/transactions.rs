@@ -956,12 +956,10 @@ impl FunctionInvocation {
             )?);
         }
 
-        let mut messages: Vec<OrderedMessageToL1> = call_info
-            .execution
-            .l2_to_l1_messages
-            .iter()
-            .map(|msg| OrderedMessageToL1::new(msg, call_info.call.caller_address.into()))
-            .collect();
+        let mut messages: Vec<OrderedMessageToL1> = vec![];
+        for msg in call_info.execution.l2_to_l1_messages.iter() {
+            messages.push(OrderedMessageToL1::new(msg, call_info.call.caller_address.into())?);
+        }
         messages.sort_by_key(|msg| msg.order);
 
         let mut events: Vec<OrderedEvent> =

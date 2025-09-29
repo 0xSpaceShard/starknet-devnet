@@ -61,6 +61,7 @@ pub(crate) fn custom_bouncer_config() -> BouncerConfig {
             ..BouncerWeights::max()
         },
         builtin_weights: BuiltinWeights::default(),
+        blake_weight: 5263, // from BouncerConfig::default
     }
 }
 
