@@ -314,15 +314,15 @@ fn jsonified_sierra_to_runnable_casm(
     jsonified_sierra: serde_json::Value,
     sierra_version: &str,
 ) -> Result<RunnableCompiledClass, Error> {
-    let hash = canonical_serde_hash(&jsonified_sierra).unwrap_or("invalid".to_string()); // "invalid" won't match hash
-    // For debugging purposes, write the sierra contract that is being compiled to a file
+    let hash = canonical_serde_hash(&jsonified_sierra);
+
     // let filename = format!("sierra_{}.json", &hash[0..8]);
     // let _ = std::fs::write(&filename, jsonified_sierra.to_string());
 
-    let casm = match usc_fastpath::lookup(&hash) {
-        Some(bytes) => serde_json::from_slice::<CasmContractClass>(bytes)
+    let casm = match hash.map(|h| usc_fastpath::lookup(&h)) {
+        Ok(Some(bytes)) => serde_json::from_slice::<CasmContractClass>(bytes)
             .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err))),
-        None => {
+        _ => {
             let casm_json_value = usc::compile_contract(jsonified_sierra)
                 .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
             serde_json::from_value::<CasmContractClass>(casm_json_value)
