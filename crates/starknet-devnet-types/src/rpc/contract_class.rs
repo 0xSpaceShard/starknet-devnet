@@ -316,9 +316,6 @@ fn jsonified_sierra_to_runnable_casm(
 ) -> Result<RunnableCompiledClass, Error> {
     let hash = canonical_serde_hash(&jsonified_sierra);
 
-    // let filename = format!("sierra_{}.json", &hash[0..8]);
-    // let _ = std::fs::write(&filename, jsonified_sierra.to_string());
-
     let casm = match hash.map(|h| usc_fastpath::lookup(&h)) {
         Ok(Some(bytes)) => serde_json::from_slice::<CasmContractClass>(bytes)
             .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err))),
