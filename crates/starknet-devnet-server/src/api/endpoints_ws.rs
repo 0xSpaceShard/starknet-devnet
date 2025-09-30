@@ -132,7 +132,7 @@ impl JsonRpcHandler {
             BlockId::Number(n) => n,
             block_id => match self.get_local_block_header_by_id(&block_id).await {
                 Ok(block) => block.block_number.0,
-                Err(ApiError::BlockNotFound) => {
+                Err(ApiError::BlockNotFound) if self.origin_caller.is_some() => {
                     self.get_origin_block_header_by_id(block_id).await?.block_number.0
                 }
                 Err(other) => return Err(other),
