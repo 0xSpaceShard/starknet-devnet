@@ -101,8 +101,8 @@ impl JsonRpcHandler {
         }
     }
 
-    fn get_local_block_header_by_id(&self, id: &BlockId) -> Result<BlockHeader, ApiError> {
-        let starknet = self.api.starknet.blocking_lock();
+    async fn get_local_block_header_by_id(&self, id: &BlockId) -> Result<BlockHeader, ApiError> {
+        let starknet = self.api.starknet.lock().await;
 
         let block = match starknet.get_block(id) {
             Ok(block) => match block.status() {
@@ -122,8 +122,6 @@ impl JsonRpcHandler {
         &self,
         mut starting_block_id: BlockId,
     ) -> Result<(u64, u64, Option<(u64, u64)>), ApiError> {
-        let starknet = self.api.starknet.lock().await;
-
         // Convert pre-confirmed to latest to prevent getting block_number = 0
         starting_block_id = match starting_block_id {
             BlockId::Tag(BlockTag::PreConfirmed) => BlockId::Tag(BlockTag::Latest),
@@ -132,7 +130,7 @@ impl JsonRpcHandler {
 
         let query_block_number = match starting_block_id {
             BlockId::Number(n) => n,
-            block_id => match self.get_local_block_header_by_id(&block_id) {
+            block_id => match self.get_local_block_header_by_id(&block_id).await {
                 Ok(block) => block.block_number.0,
                 Err(ApiError::BlockNotFound) => {
                     self.get_origin_block_header_by_id(block_id).await?.block_number.0
@@ -141,8 +139,12 @@ impl JsonRpcHandler {
             },
         };
 
+        let starknet = self.api.starknet.lock().await;
         let latest_block_number =
             starknet.get_block(&BlockId::Tag(BlockTag::Latest))?.block_number().0;
+        let (fork_url, fork_block_number) =
+            (starknet.config.fork_config.url.clone(), starknet.config.fork_config.block_number);
+        drop(starknet);
 
         if query_block_number > latest_block_number {
             return Err(ApiError::BlockNotFound);
@@ -152,10 +154,7 @@ impl JsonRpcHandler {
         }
 
         // Check if forking is configured and return the block range from the forking origin
-        let origin_block_range = match (
-            starknet.config.fork_config.url.as_ref(),
-            starknet.config.fork_config.block_number,
-        ) {
+        let origin_block_range = match (fork_url, fork_block_number) {
             (Some(_url), Some(fork_block_number)) => {
                 // If the query block number is less than or equal to the fork block number,
                 // we need to fetch blocks from the origin
