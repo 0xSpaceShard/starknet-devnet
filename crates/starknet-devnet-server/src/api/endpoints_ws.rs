@@ -1,5 +1,8 @@
 use starknet_core::error::Error;
-use starknet_rs_core::types::{BlockId as ImportedBlockId, Felt};
+use starknet_rs_core::types::{
+    BlockId as ImportedBlockId, Felt, L1DataAvailabilityMode as ImportedL1DataAvailabilityMode,
+    MaybePreConfirmedBlockWithTxHashes,
+};
 use starknet_rs_providers::{Provider, ProviderError};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{EmittedEvent, SubscriptionEmittedEvent};
@@ -127,11 +130,9 @@ impl JsonRpcHandler {
         })?;
         let mut headers = Vec::new();
         for block_n in start_block..=end_block {
-            let tag = ImportedBlockId::Number(block_n);
-            match origin_caller.starknet_client.get_block_with_tx_hashes(tag).await {
-                Ok(starknet_rs_core::types::MaybePreConfirmedBlockWithTxHashes::Block(
-                    origin_block,
-                )) => {
+            let block_id = ImportedBlockId::Number(block_n);
+            match origin_caller.starknet_client.get_block_with_tx_hashes(block_id).await {
+                Ok(MaybePreConfirmedBlockWithTxHashes::Block(origin_block)) => {
                     let origin_header = BlockHeader {
                         block_hash: origin_block.block_hash,
                         parent_hash: origin_block.parent_hash,
@@ -146,12 +147,10 @@ impl JsonRpcHandler {
                         starknet_version: origin_block.starknet_version,
                         l1_data_gas_price: origin_block.l1_data_gas_price.into(),
                         l1_da_mode: match origin_block.l1_da_mode {
-                            starknet_rs_core::types::L1DataAvailabilityMode::Calldata => {
+                            ImportedL1DataAvailabilityMode::Calldata => {
                                 L1DataAvailabilityMode::Calldata
                             }
-                            starknet_rs_core::types::L1DataAvailabilityMode::Blob => {
-                                L1DataAvailabilityMode::Blob
-                            }
+                            ImportedL1DataAvailabilityMode::Blob => L1DataAvailabilityMode::Blob,
                         },
                     };
                     headers.push(origin_header);

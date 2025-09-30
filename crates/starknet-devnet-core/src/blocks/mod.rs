@@ -9,7 +9,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, TransactionHash};
 use starknet_types::rpc::block::{BlockId, BlockStatus, BlockTag, ResourcePrice};
 use starknet_types::traits::HashProducer;
-use starknet_types_core::hash::{Pedersen, StarkHash};
+use starknet_types_core::hash::{Poseidon, StarkHash};
 
 use crate::constants::{DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, STARKNET_VERSION};
 use crate::error::{DevnetResult, Error};
@@ -408,7 +408,7 @@ impl StarknetBlock {
 impl HashProducer for StarknetBlock {
     type Error = Error;
     fn generate_hash(&self) -> DevnetResult<BlockHash> {
-        let hash = Pedersen::hash_array(&[
+        let hash = Poseidon::hash_array(&[
             felt!(self.header.block_header_without_hash.block_number.0), // block number
             self.header.block_header_without_hash.state_root.0,          // global_state_root
             *self.header.block_header_without_hash.sequencer.0.key(),    // sequencer_address
