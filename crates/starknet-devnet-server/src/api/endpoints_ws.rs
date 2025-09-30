@@ -56,6 +56,66 @@ impl JsonRpcHandler {
         }
     }
 
+    async fn get_origin_block_header_by_id(&self, id: BlockId) -> Result<BlockHeader, ApiError> {
+        let origin_caller = self.origin_caller.as_ref().ok_or_else(|| {
+            ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
+                msg: "No origin caller available".into(),
+            })
+        })?;
+        match origin_caller
+            .starknet_client
+            .get_block_with_tx_hashes(ImportedBlockId::from(id))
+            .await
+        {
+            Ok(MaybePreConfirmedBlockWithTxHashes::Block(origin_block)) => {
+                let origin_header = BlockHeader {
+                    block_hash: origin_block.block_hash,
+                    parent_hash: origin_block.parent_hash,
+                    block_number: BlockNumber(origin_block.block_number),
+                    l1_gas_price: origin_block.l1_gas_price.into(),
+                    l2_gas_price: origin_block.l2_gas_price.into(),
+                    new_root: origin_block.new_root,
+                    sequencer_address: ContractAddress::new_unchecked(
+                        origin_block.sequencer_address,
+                    ),
+                    timestamp: BlockTimestamp(origin_block.timestamp),
+                    starknet_version: origin_block.starknet_version,
+                    l1_data_gas_price: origin_block.l1_data_gas_price.into(),
+                    l1_da_mode: match origin_block.l1_da_mode {
+                        ImportedL1DataAvailabilityMode::Calldata => {
+                            L1DataAvailabilityMode::Calldata
+                        }
+                        ImportedL1DataAvailabilityMode::Blob => L1DataAvailabilityMode::Blob,
+                    },
+                };
+                Ok(origin_header)
+            }
+            Err(ProviderError::StarknetError(
+                starknet_rs_core::types::StarknetError::BlockNotFound,
+            )) => Err(ApiError::BlockNotFound),
+            other => Err(ApiError::StarknetDevnetError(
+                starknet_core::error::Error::UnexpectedInternalError {
+                    msg: format!("Failed retrieval of block from forking origin. Got: {other:?}"),
+                },
+            )),
+        }
+    }
+
+    fn get_local_block_header_by_id(&self, id: &BlockId) -> Result<BlockHeader, ApiError> {
+        let starknet = self.api.starknet.blocking_lock();
+
+        let block = match starknet.get_block(id) {
+            Ok(block) => match block.status() {
+                BlockStatus::Rejected => return Err(ApiError::BlockNotFound),
+                _ => Ok::<_, ApiError>(block),
+            },
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(other) => Err(ApiError::StarknetDevnetError(other)),
+        }?;
+
+        Ok(block.into())
+    }
+
     /// Returns (starting block number, latest block number). Returns an error in case the starting
     /// block does not exist or there are too many blocks.
     async fn get_validated_block_number_range(
@@ -72,17 +132,13 @@ impl JsonRpcHandler {
 
         let query_block_number = match starting_block_id {
             BlockId::Number(n) => n,
-            block_id => {
-                let block = match starknet.get_block(&block_id) {
-                    Ok(block) => match block.status() {
-                        BlockStatus::Rejected => return Err(ApiError::BlockNotFound),
-                        _ => Ok::<_, ApiError>(block),
-                    },
-                    Err(Error::NoBlock) => return Err(ApiError::BlockNotFound),
-                    Err(other) => return Err(ApiError::StarknetDevnetError(other)),
-                }?;
-                block.block_number().0
-            }
+            block_id => match self.get_local_block_header_by_id(&block_id) {
+                Ok(block) => block.block_number.0,
+                Err(ApiError::BlockNotFound) => {
+                    self.get_origin_block_header_by_id(block_id).await?.block_number.0
+                }
+                Err(other) => return Err(other),
+            },
         };
 
         let latest_block_number =
@@ -123,53 +179,10 @@ impl JsonRpcHandler {
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<BlockHeader>, ApiError> {
-        let origin_caller = self.origin_caller.as_ref().ok_or_else(|| {
-            ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
-                msg: "No origin caller available".into(),
-            })
-        })?;
         let mut headers = Vec::new();
         for block_n in start_block..=end_block {
-            let block_id = ImportedBlockId::Number(block_n);
-            match origin_caller.starknet_client.get_block_with_tx_hashes(block_id).await {
-                Ok(MaybePreConfirmedBlockWithTxHashes::Block(origin_block)) => {
-                    let origin_header = BlockHeader {
-                        block_hash: origin_block.block_hash,
-                        parent_hash: origin_block.parent_hash,
-                        block_number: BlockNumber(origin_block.block_number),
-                        l1_gas_price: origin_block.l1_gas_price.into(),
-                        l2_gas_price: origin_block.l2_gas_price.into(),
-                        new_root: origin_block.new_root,
-                        sequencer_address: ContractAddress::new_unchecked(
-                            origin_block.sequencer_address,
-                        ),
-                        timestamp: BlockTimestamp(origin_block.timestamp),
-                        starknet_version: origin_block.starknet_version,
-                        l1_data_gas_price: origin_block.l1_data_gas_price.into(),
-                        l1_da_mode: match origin_block.l1_da_mode {
-                            ImportedL1DataAvailabilityMode::Calldata => {
-                                L1DataAvailabilityMode::Calldata
-                            }
-                            ImportedL1DataAvailabilityMode::Blob => L1DataAvailabilityMode::Blob,
-                        },
-                    };
-                    headers.push(origin_header);
-                }
-                Err(ProviderError::StarknetError(
-                    starknet_rs_core::types::StarknetError::BlockNotFound,
-                )) => {
-                    return Err(ApiError::BlockNotFound);
-                }
-                other => {
-                    return Err(ApiError::StarknetDevnetError(
-                        starknet_core::error::Error::UnexpectedInternalError {
-                            msg: format!(
-                                "Failed retrieval of block from forking origin. Got: {other:?}"
-                            ),
-                        },
-                    ));
-                }
-            }
+            let block_id = BlockId::Number(block_n);
+            headers.push(self.get_origin_block_header_by_id(block_id).await?);
         }
         Ok(headers)
     }
