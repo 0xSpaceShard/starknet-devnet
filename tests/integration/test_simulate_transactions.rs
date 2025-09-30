@@ -63,6 +63,7 @@ async fn simulate_declare_v3() {
         .l1_data_gas(fee.l1_data_gas)
         .l1_data_gas_price(fee.l1_data_gas_price)
         .nonce(nonce)
+        .tip(0)
         .prepared()
         .unwrap();
 
@@ -139,6 +140,7 @@ async fn simulate_deploy_account() {
         .l2_gas(fee.l2_gas)
         .l1_data_gas(fee.l1_data_gas)
         .l1_data_gas_price(fee.l1_data_gas_price)
+        .tip(0)
         .prepared()
         .unwrap();
 
@@ -286,6 +288,7 @@ async fn simulate_invoke_v3() {
         .l2_gas(fee.l2_gas)
         .l2_gas_price(fee.l2_gas_price)
         .nonce(nonce)
+        .tip(0)
         .prepared()
         .unwrap();
 
@@ -397,6 +400,7 @@ async fn using_query_version_if_simulating() {
         .l2_gas(fee.l2_gas)
         .l2_gas_price(fee.l2_gas_price)
         .nonce(nonce)
+        .tip(0)
         .prepared()
         .unwrap();
 
@@ -764,7 +768,8 @@ async fn simulate_v3_with_skip_fee_charge_deploy_account_declare_deploy_via_invo
         .l2_gas(0)
         .l1_data_gas_price(0)
         .l2_gas_price(0)
-        .l1_gas_price(0);
+        .l1_gas_price(0)
+        .tip(0);
 
     let account_address = account_deployment.address();
     let txn_hash = account_deployment.prepared().unwrap().transaction_hash(is_query);
@@ -806,6 +811,7 @@ async fn simulate_v3_with_skip_fee_charge_deploy_account_declare_deploy_via_invo
         .l1_data_gas_price(0)
         .l2_gas_price(0)
         .l1_gas_price(0)
+        .tip(0)
         .prepared()
         .unwrap()
         .transaction_hash(is_query);
@@ -850,6 +856,7 @@ async fn simulate_v3_with_skip_fee_charge_deploy_account_declare_deploy_via_invo
         .l2_gas_price(0)
         .l1_gas_price(0)
         .nonce(nonce)
+        .tip(0)
         .prepared()
         .unwrap()
         .transaction_hash(is_query);

@@ -84,6 +84,7 @@ async fn set_gas_scenario(
         .l2_gas(0)
         .l2_gas_price(0)
         .nonce(nonce)
+        .tip(0)
         .prepared()?;
     let signature = signer.sign_hash(&declaration.transaction_hash(false)).await?;
 

@@ -452,6 +452,7 @@ async fn broadcasted_invoke_v3_for_estimation(
         .l1_gas_price(l1_gas_price)
         .l1_data_gas_price(l1_data_gas_price)
         .l2_gas_price(l2_gas_price)
+        .tip(0)
         .prepared()?;
 
     let is_query = false;
@@ -520,6 +521,7 @@ async fn estimate_fee_of_multiple_txs() {
         .l1_data_gas(0)
         .l1_data_gas_price(0)
         .nonce(declaration_nonce)
+        .tip(0)
         .prepared()
         .unwrap();
 
