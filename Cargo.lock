@@ -6699,6 +6699,7 @@ dependencies = [
  "num-bigint",
  "parity-scale-codec",
  "parity-scale-codec-derive",
+ "parking_lot 0.12.3",
  "serde",
  "serde_json",
  "serde_json_canonicalizer",

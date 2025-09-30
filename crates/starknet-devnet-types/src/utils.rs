@@ -1,7 +1,9 @@
+use std::collections::HashMap;
 use std::io;
 
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use cairo_lang_starknet_classes::contract_class::ContractClass;
+use parking_lot::RwLock;
 use serde_json::ser::Formatter;
 use serde_json::{Map, Value};
 
@@ -108,23 +110,71 @@ pub fn compile_sierra_contract(sierra_contract: &ContractClass) -> DevnetResult<
 
     compile_sierra_contract_json(sierra_contract_json)
 }
+// Global cache for compiled contracts
+// Maximum number of cached contracts
+const CONTRACT_CACHE_MAX_SIZE: usize = 100;
+
+struct LimitedCache {
+    map: HashMap<String, CasmContractClass>,
+    order: std::collections::VecDeque<String>,
+}
+
+impl LimitedCache {
+    fn new() -> Self {
+        Self {
+            map: HashMap::new(),
+            order: std::collections::VecDeque::new(), // bit wasteful in memory but simple
+        }
+    }
+
+    fn get(&self, key: &str) -> Option<&CasmContractClass> {
+        self.map.get(key)
+    }
+    fn insert(&mut self, key: String, value: CasmContractClass) {
+        if !self.map.contains_key(&key) {
+            if self.map.len() >= CONTRACT_CACHE_MAX_SIZE {
+                if let Some(oldest) = self.order.pop_front() {
+                    self.map.remove(&oldest);
+                }
+            }
+            self.order.push_back(key.clone());
+        }
+        self.map.insert(key, value);
+    }
+}
+
+static CONTRACT_CACHE: std::sync::LazyLock<RwLock<LimitedCache>> =
+    std::sync::LazyLock::new(|| RwLock::new(LimitedCache::new()));
 
 pub fn compile_sierra_contract_json(
     sierra_contract_json: Value,
 ) -> DevnetResult<CasmContractClass> {
-    #[cfg(not(clippy))]
-    if let Ok(Some(bytes)) =
-        canonical_serde_hash(&sierra_contract_json).map(|h| usc_fastpath::lookup(&h))
-    {
-        return serde_json::from_slice::<CasmContractClass>(bytes)
-            .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err)));
+    let hash = canonical_serde_hash(&sierra_contract_json);
+    if let Ok(hash) = hash.as_ref() {
+        // First do a lookup for precompiled contracts
+        #[cfg(not(clippy))]
+        if let Some(bytes) = usc_fastpath::lookup(&hash) {
+            return serde_json::from_slice::<CasmContractClass>(bytes)
+                .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err)));
+        }
+        // Then check the in memory cache
+        let cache = CONTRACT_CACHE.read();
+        if let Some(casm) = cache.get(hash) {
+            return Ok(casm.clone());
+        }
     }
 
     let casm_json = usc::compile_contract(sierra_contract_json)
         .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
 
-    serde_json::from_value::<CasmContractClass>(casm_json)
-        .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err)))
+    let casm = serde_json::from_value::<CasmContractClass>(casm_json)
+        .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err)));
+
+    if let (Ok(hash), Ok(casm)) = (hash, &casm) {
+        let mut cache = CONTRACT_CACHE.write();
+        cache.insert(hash, casm.clone());
+    }
+    casm
 }
 
 #[cfg(test)]

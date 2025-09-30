@@ -277,6 +277,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // parse arguments
     let args = Args::parse();
     let (mut starknet_config, server_config) = args.to_config()?;
+    let timestamp = std::time::Instant::now();
 
     // If fork url is provided, then set fork config and chain_id from forked network
     if let Some(url) = starknet_config.fork_config.url.as_ref() {
@@ -344,6 +345,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let server_handle =
         task::spawn(server.with_graceful_shutdown(shutdown_signal(api)).into_future());
     tasks.push(server_handle);
+
+    tracing::info!("Startup time: {:?}", timestamp.elapsed());
 
     // join all tasks
     let results = join_all(tasks).await;
