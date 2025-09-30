@@ -12,7 +12,7 @@ use serde_json::json;
 use starknet_rs_accounts::{
     Account, AccountFactory, ArgentAccountFactory, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rs_contract::ContractFactory;
+use starknet_rs_contract::{ContractFactory, UdcSelector};
 use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
 use starknet_rs_core::types::{
     BlockId, BlockTag, ContractClass, ContractExecutionError, DeployAccountTransactionResult,
@@ -32,7 +32,7 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use super::background_devnet::BackgroundDevnet;
 use super::constants::{
-    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH, UDC_LEGACY_CONTRACT_ADDRESS,
+    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH, UDC_CONTRACT_ADDRESS,
 };
 use super::safe_child::SafeChild;
 use crate::{assert_eq_prop, assert_ne_prop};
@@ -281,7 +281,7 @@ pub async fn deploy_v3(
     class_hash: Felt,
     ctor_args: &[Felt],
 ) -> Result<Felt, anyhow::Error> {
-    let contract_factory = ContractFactory::new(class_hash, account);
+    let contract_factory = new_contract_factory(class_hash, account);
     contract_factory.deploy_v3(ctor_args.to_vec(), Felt::ZERO, true).send().await?;
 
     // generate the address of the newly deployed contract
@@ -290,7 +290,7 @@ pub async fn deploy_v3(
         class_hash,
         &starknet_rs_core::utils::UdcUniqueness::Unique(UdcUniqueSettings {
             deployer_address: account.address(),
-            udc_contract_address: UDC_LEGACY_CONTRACT_ADDRESS,
+            udc_contract_address: UDC_CONTRACT_ADDRESS,
         }),
         ctor_args,
     );
@@ -309,7 +309,7 @@ pub async fn declare_v3_deploy_v3(
     let declaration_result = account.declare_v3(Arc::new(contract_class), casm_hash).send().await?;
 
     // deploy the contract
-    let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
+    let contract_factory = new_contract_factory(declaration_result.class_hash, account);
     contract_factory.deploy_v3(ctor_args.to_vec(), salt, false).send().await?;
 
     // generate the address of the newly deployed contract
@@ -339,7 +339,7 @@ pub async fn declare_deploy_simple_contract(
     // deploy the contract
     let salt = Felt::ZERO;
     let ctor_args = [Felt::ONE];
-    let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
+    let contract_factory = new_contract_factory(declaration_result.class_hash, account);
     contract_factory
         .deploy_v3(ctor_args.to_vec(), salt, false)
         .l1_gas(0)
@@ -376,7 +376,7 @@ pub async fn declare_deploy_events_contract(
     // deploy the contract
     let salt = Felt::ZERO;
     let ctor_args = [];
-    let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
+    let contract_factory = new_contract_factory(declaration_result.class_hash, account);
     contract_factory
         .deploy_v3(ctor_args.to_vec(), salt, false)
         .l1_gas(0)
@@ -638,6 +638,10 @@ pub async fn unsubscribe(
 
 pub async fn send_dummy_mint_tx(devnet: &BackgroundDevnet) -> Felt {
     devnet.mint(Felt::ONE, 123).await
+}
+
+pub const fn new_contract_factory<A: Account>(class_hash: Felt, account: A) -> ContractFactory<A> {
+    ContractFactory::new_with_udc(class_hash, account, UdcSelector::New)
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, serde::Serialize, serde::Deserialize)]

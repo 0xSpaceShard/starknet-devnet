@@ -78,30 +78,30 @@ bigdecimal = { version = "0.4.5" }
 enum-helper-macros = "0.0.1"
 
 # Starknet dependencies
-starknet-types-core = "0.1.5"
-starknet_api = { version = "0.15.0-rc.2", features = ["testing"] }
-blockifier = { version = "0.15.0-rc.2" }
+starknet-types-core = "=0.2.1"
+starknet_api = { version = "0.16.0-rc.0", features = ["testing"] }
+blockifier = { version = "0.16.0-rc.0" }
 starknet-rs-signers = { version = "0.14.0", package = "starknet-signers" }
 starknet-rs-core = { version = "0.16.0", package = "starknet-core" }
 starknet-rs-providers = { version = "0.16.0", package = "starknet-providers" }
 starknet-rs-accounts = { version = "0.16.0", package = "starknet-accounts" }
 starknet-rs-contract = { version = "0.16.0", package = "starknet-contract" }
-cairo-vm = "=2.2.0"
+cairo-vm = "=2.5.0"
 
 # Cairo-lang dependencies
-cairo-lang-starknet-classes = "=2.12.0-dev.1"
-cairo-lang-compiler = "=2.12.0-dev.1"
-cairo-lang-casm = "=2.12.0-dev.1"
-cairo-lang-defs = "=2.12.0-dev.1"
-cairo-lang-diagnostics = "=2.12.0-dev.1"
-cairo-lang-filesystem = "=2.12.0-dev.1"
-cairo-lang-lowering = "=2.12.0-dev.1"
-cairo-lang-semantic = "=2.12.0-dev.1"
-cairo-lang-sierra = "=2.12.0-dev.1"
-cairo-lang-sierra-generator = "=2.12.0-dev.1"
-cairo-lang-sierra-to-casm = "=2.12.0-dev.1"
-cairo-lang-syntax = "=2.12.0-dev.1"
-cairo-lang-utils = "=2.12.0-dev.1"
+cairo-lang-starknet-classes = "=2.12.3"
+cairo-lang-compiler = "=2.12.3"
+cairo-lang-casm = "=2.12.3"
+cairo-lang-defs = "=2.12.3"
+cairo-lang-diagnostics = "=2.12.3"
+cairo-lang-filesystem = "=2.12.3"
+cairo-lang-lowering = "=2.12.3"
+cairo-lang-semantic = "=2.12.3"
+cairo-lang-sierra = "=2.12.3"
+cairo-lang-sierra-generator = "=2.12.3"
+cairo-lang-sierra-to-casm = "=2.12.3"
+cairo-lang-syntax = "=2.12.3"
+cairo-lang-utils = "=2.12.3"
 
 # Inner dependencies
 starknet-types = { version = "0.6.0", path = "crates/starknet-devnet-types", package = "starknet-devnet-types" }

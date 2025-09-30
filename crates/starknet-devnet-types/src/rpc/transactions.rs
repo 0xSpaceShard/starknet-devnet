@@ -854,7 +854,6 @@ pub struct InnerExecutionResources {
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "SCREAMING_SNAKE_CASE")]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize))]
-
 pub enum TransactionTrace {
     Invoke(InvokeTransactionTrace),
     Declare(DeclareTransactionTrace),

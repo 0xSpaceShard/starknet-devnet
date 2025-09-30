@@ -16,7 +16,7 @@ use starknet_rs_signers::LocalWallet;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     self, CAIRO_0_ACCOUNT_CONTRACT_HASH, STRK_ERC20_CONTRACT_ADDRESS, TOO_BIG_CONTRACT_SIERRA_PATH,
-    UDC_LEGACY_CONTRACT_ADDRESS,
+    UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
     FeeUnit, LocalFee, assert_contains, assert_tx_succeeded_accepted,
@@ -83,7 +83,7 @@ async fn declare_deploy_happy_path() {
     let salt = Felt::from_hex_unchecked("0x123");
     let constructor_arg = Felt::from(10);
     let deploy_call = vec![Call {
-        to: UDC_LEGACY_CONTRACT_ADDRESS,
+        to: UDC_CONTRACT_ADDRESS,
         selector: get_selector_from_name("deployContract").unwrap(),
         calldata: vec![
             declare_transaction.class_hash,

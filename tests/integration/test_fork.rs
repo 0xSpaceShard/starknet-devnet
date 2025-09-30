@@ -5,7 +5,6 @@ use starknet_rs_accounts::{
     Account, AccountFactory, AccountFactoryError, ExecutionEncoding, OpenZeppelinAccountFactory,
     SingleOwnerAccount,
 };
-use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
     BlockId, BlockTag, Call, ContractClass, DeclareTransaction, Felt, FunctionCall,
     MaybePreConfirmedBlockWithTxHashes, StarknetError, Transaction,
@@ -25,7 +24,8 @@ use crate::common::constants::{
 use crate::common::utils::{
     FeeUnit, assert_cairo1_classes_equal, assert_contains, assert_tx_succeeded_accepted,
     declare_v3_deploy_v3, extract_json_rpc_error, get_block_reader_contract_artifacts,
-    get_contract_balance, get_simple_contract_artifacts, send_ctrl_c_signal_and_wait,
+    get_contract_balance, get_simple_contract_artifacts, new_contract_factory,
+    send_ctrl_c_signal_and_wait,
 };
 
 #[tokio::test]
@@ -239,7 +239,7 @@ async fn test_origin_declare_deploy_fork_invoke() {
 
     // deploy the contract
     let contract_factory =
-        ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
+        new_contract_factory(declaration_result.class_hash, predeployed_account.clone());
     let initial_value = Felt::from(10_u32);
     let ctor_args = vec![initial_value];
     contract_factory

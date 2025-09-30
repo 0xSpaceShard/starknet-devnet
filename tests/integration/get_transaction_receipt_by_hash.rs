@@ -3,7 +3,6 @@ use std::sync::Arc;
 use starknet_rs_accounts::{
     Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
     Call, ExecutionResult, Felt, StarknetError, TransactionFinalityStatus, TransactionReceipt,
 };
@@ -13,10 +12,11 @@ use starknet_rs_providers::{Provider, ProviderError};
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     self, CAIRO_0_ACCOUNT_CONTRACT_HASH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS,
-    STRK_ERC20_CONTRACT_ADDRESS, UDC_LEGACY_CONTRACT_ADDRESS,
+    STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
     assert_contains, get_deployable_account_signer, get_events_contract_artifacts,
+    new_contract_factory,
 };
 
 #[tokio::test]
@@ -80,7 +80,7 @@ async fn deploy_transaction_receipt() {
 
     // deploy the contract
     let contract_factory =
-        ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
+        new_contract_factory(declaration_result.class_hash, predeployed_account.clone());
 
     let salt = Felt::ZERO;
     let constructor_args = Vec::<Felt>::new();
@@ -108,11 +108,8 @@ async fn deploy_transaction_receipt() {
             assert_eq!(receipt.events.len(), 2); // UDC and STRK events
 
             // Assert UDC event
-            let deployment_event = receipt
-                .events
-                .iter()
-                .find(|e| e.from_address == UDC_LEGACY_CONTRACT_ADDRESS)
-                .unwrap();
+            let deployment_event =
+                receipt.events.iter().find(|e| e.from_address == UDC_CONTRACT_ADDRESS).unwrap();
             assert_eq!(
                 deployment_event.keys,
                 vec![get_selector_from_name("ContractDeployed").unwrap()]
@@ -157,7 +154,7 @@ async fn invalid_deploy_transaction_receipt() {
 
     // try deploying with invalid constructor args - none are expected, we are providing [1]
     let contract_factory =
-        ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
+        new_contract_factory(declaration_result.class_hash, predeployed_account.clone());
 
     let salt = Felt::ZERO;
     let invalid_constructor_args = vec![Felt::ONE];

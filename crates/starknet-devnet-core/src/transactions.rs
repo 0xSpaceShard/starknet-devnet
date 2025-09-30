@@ -212,6 +212,7 @@ impl StarknetTransaction {
             messages.extend(call_info.execution.l2_to_l1_messages.iter().map(|m| {
                 OrderedMessageToL1 {
                     order: m.order,
+                    #[allow(clippy::expect_used)] // TODO
                     message: MessageToL1 {
                         to_address: m.message.to_address.try_into().expect("TODO"),
                         from_address: from_address.into(),

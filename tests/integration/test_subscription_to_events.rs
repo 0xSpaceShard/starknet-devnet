@@ -13,7 +13,7 @@ use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 
 use crate::common::background_devnet::BackgroundDevnet;
-use crate::common::constants::{self, STRK_ERC20_CONTRACT_ADDRESS, UDC_LEGACY_CONTRACT_ADDRESS};
+use crate::common::constants::{self, STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS};
 use crate::common::utils::{
     SubscriptionId, assert_no_notifications, declare_deploy_events_contract, receive_notification,
     receive_rpc_via_ws, subscribe, unsubscribe,
@@ -362,7 +362,7 @@ async fn should_notify_of_events_in_old_blocks_with_no_filters() {
     // deployment of events contract: udc invocation
     let deployment_udc_event = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
     assert_eq!(deployment_udc_event["block_number"], 2);
-    assert_eq!(deployment_udc_event["from_address"], json!(UDC_LEGACY_CONTRACT_ADDRESS));
+    assert_eq!(deployment_udc_event["from_address"], json!(UDC_CONTRACT_ADDRESS));
 
     // deployment of events contract: fee charge
     let deployment_fee_event = receive_event(&mut ws, subscription_id.clone()).await.unwrap();

@@ -6,7 +6,6 @@ use starknet_rs_accounts::{
     Account, AccountError, AccountFactory, ConnectedAccount, ExecutionEncoder, ExecutionEncoding,
     OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
     BlockId, BlockTag, BroadcastedDeclareTransactionV3, BroadcastedDeployAccountTransactionV3,
     BroadcastedInvokeTransactionV3, BroadcastedTransaction, Call, ContractExecutionError,
@@ -25,13 +24,13 @@ use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH,
     CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH, CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID,
-    ETH_ERC20_CONTRACT_ADDRESS, QUERY_VERSION_OFFSET, UDC_LEGACY_CONTRACT_ADDRESS,
+    ETH_ERC20_CONTRACT_ADDRESS, QUERY_VERSION_OFFSET, UDC_CONTRACT_ADDRESS,
 };
 use crate::common::fees::{assert_difference_if_validation, assert_fee_in_resp_at_least_equal};
 use crate::common::utils::{
     LocalFee, assert_contains, declare_v3_deploy_v3, get_deployable_account_signer,
     get_flattened_sierra_contract_and_casm_hash, get_simple_contract_artifacts, iter_to_hex_felt,
-    to_hex_felt, to_num_as_hex,
+    new_contract_factory, to_hex_felt, to_num_as_hex,
 };
 
 #[tokio::test]
@@ -257,7 +256,7 @@ async fn simulate_invoke_v3() {
     assert_eq!(declaration_result.class_hash, class_hash);
 
     // deploy instance of class
-    let contract_factory = ContractFactory::new(class_hash, account.clone());
+    let contract_factory = new_contract_factory(class_hash, account.clone());
     let salt = Felt::from_hex_unchecked("0x123");
     let constructor_calldata = vec![Felt::ZERO];
     let contract_address = get_udc_deployed_address(
@@ -519,7 +518,7 @@ async fn simulate_of_multiple_txs_shouldnt_return_an_error_if_invoke_transaction
 
     // call non existent method in UDC
     let calls = vec![Call {
-        to: UDC_LEGACY_CONTRACT_ADDRESS,
+        to: UDC_CONTRACT_ADDRESS,
         selector: get_selector_from_name("no_such_method").unwrap(),
         calldata: vec![
             class_hash,
@@ -610,7 +609,7 @@ async fn simulate_of_multiple_txs_should_return_index_of_first_failing_transacti
 
     // call non existent method in UDC
     let calls = vec![Call {
-        to: UDC_LEGACY_CONTRACT_ADDRESS,
+        to: UDC_CONTRACT_ADDRESS,
         selector: get_selector_from_name("no_such_method").unwrap(),
         calldata: vec![
             class_hash,
@@ -830,7 +829,7 @@ async fn simulate_v3_with_skip_fee_charge_deploy_account_declare_deploy_via_invo
 
     // call non existent method in UDC
     let calls = vec![Call {
-        to: UDC_LEGACY_CONTRACT_ADDRESS,
+        to: UDC_CONTRACT_ADDRESS,
         selector: get_selector_from_name("deployContract").unwrap(),
         calldata: vec![
             contract_class_hash,
@@ -909,7 +908,7 @@ async fn simulate_invoke_v3_with_fee_just_below_estimated_should_return_a_trace_
 
     let salt = Felt::from_hex_unchecked("0x123");
     let execution = account.execute_v3(vec![Call {
-        to: UDC_LEGACY_CONTRACT_ADDRESS,
+        to: UDC_CONTRACT_ADDRESS,
         selector: get_selector_from_name("deployContract").unwrap(),
         calldata: vec![
             declare_result.class_hash,
