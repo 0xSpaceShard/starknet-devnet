@@ -354,7 +354,7 @@ impl JsonRpcHandler {
         // Fetch all events with pagination
         loop {
             let events_chunk = self
-                .get_origin_events(
+                .fetch_origin_events_chunk(
                     from_block,
                     to_block,
                     continuation_token,
@@ -416,7 +416,7 @@ impl JsonRpcHandler {
         // If we're in a fork and need events from the origin
         if let Some((origin_start, origin_end)) = origin_range {
             let origin_events = self
-                .fetch_origin_events(origin_start, origin_end - 1, address, keys_filter.clone())
+                .fetch_origin_events(origin_start, origin_end, address, keys_filter.clone())
                 .await?;
 
             for event in origin_events {
