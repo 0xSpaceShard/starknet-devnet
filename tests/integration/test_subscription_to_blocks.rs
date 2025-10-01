@@ -257,3 +257,136 @@ async fn test_notifications_on_periodic_block_generation() {
     // this assertion is skipped due to CI instability
     // assert_no_notifications(&mut ws).await;
 }
+
+#[tokio::test]
+async fn test_fork_subscription_to_blocks_starting_from_origin() {
+    // Setup original devnet with some blocks
+    let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
+
+    // Create some blocks in origin
+    let n_origin_blocks = 3;
+    let mut origin_block_hashes = Vec::new();
+    for _ in 0..n_origin_blocks {
+        origin_block_hashes.push(origin_devnet.create_block().await.unwrap());
+    }
+
+    // Fork the devnet
+    let fork_devnet = origin_devnet.fork().await.unwrap();
+
+    // Create some blocks in the forked devnet before subscribing
+    let n_fork_blocks_before_subscription = 2;
+    let mut fork_block_hashes_before_subscription = Vec::new();
+    for _ in 0..n_fork_blocks_before_subscription {
+        let block_hash = fork_devnet.create_block().await.unwrap();
+        fork_block_hashes_before_subscription.push(block_hash);
+    }
+
+    // Subscribe to blocks starting from genesis (block 0)
+    let (mut ws, _) = connect_async(fork_devnet.ws_url()).await.unwrap();
+    let subscription_id =
+        subscribe_new_heads(&mut ws, json!({ "block_id": BlockId::Number(0) })).await.unwrap();
+
+    // We should receive notifications for all blocks from origin (0 to n_origin_blocks)
+    for block_i in 0..=n_origin_blocks {
+        let notification_block = receive_block(&mut ws, subscription_id.clone()).await.unwrap();
+        assert_eq!(notification_block["block_number"], json!(block_i));
+
+        // Check if the block hash matches for non-genesis blocks
+        if block_i > 0 {
+            let expected_hash = origin_block_hashes[block_i - 1];
+            assert_eq!(notification_block["block_hash"], json!(expected_hash));
+        }
+    }
+
+    // Devnet creates an empty block after forking, so we receive one more block notification
+    let empty_block = receive_block(&mut ws, subscription_id.clone()).await.unwrap();
+    let empty_block_number = n_origin_blocks + 1;
+    assert_eq!(empty_block["block_number"], json!(empty_block_number));
+
+    // We should also receive notifications for blocks created in the forked devnet before
+    // subscription
+    for (i, expected_hash) in fork_block_hashes_before_subscription.iter().enumerate() {
+        let notification_block = receive_block(&mut ws, subscription_id.clone()).await.unwrap();
+        let expected_block_number = n_origin_blocks + i + 2; // +1 for genesis, +1 for empty block
+        assert_eq!(notification_block["block_number"], json!(expected_block_number));
+        assert_eq!(notification_block["block_hash"], json!(expected_hash));
+    }
+
+    // Create additional blocks in the forked devnet after subscription and verify notifications
+    let n_fork_blocks_after_subscription = 2;
+    for i in 0..n_fork_blocks_after_subscription {
+        let created_block_hash = fork_devnet.create_block().await.unwrap();
+
+        let notification_block = receive_block(&mut ws, subscription_id.clone()).await.unwrap();
+        // Verify the new block notification
+        assert_eq!(notification_block["block_hash"], json!(created_block_hash));
+        // Block number calculation: origin blocks + empty block + pre-subscription blocks + new
+        // blocks
+        let expected_block_number = n_origin_blocks + 1 + n_fork_blocks_before_subscription + i + 1;
+        assert_eq!(notification_block["block_number"], json!(expected_block_number));
+    }
+
+    assert_no_notifications(&mut ws).await.unwrap();
+}
+
+#[tokio::test]
+async fn test_fork_subscription_to_blocks_by_hash() {
+    // Setup original devnet with some blocks
+    let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
+
+    // Create some blocks in origin
+    let n_origin_blocks = 3;
+    let mut origin_blocks = Vec::new();
+
+    // Get genesis block
+    let genesis_block = origin_devnet.get_latest_block_with_tx_hashes().await.unwrap();
+    origin_blocks.push(genesis_block.clone());
+
+    // Create blocks and store their info
+    for _ in 0..n_origin_blocks {
+        let block_hash = origin_devnet.create_block().await.unwrap();
+        let block = origin_devnet
+            .get_confirmed_block_with_tx_hashes(&BlockId::Hash(block_hash))
+            .await
+            .unwrap();
+        origin_blocks.push(block);
+    }
+
+    // Fork the devnet
+    let fork_devnet = origin_devnet.fork().await.unwrap();
+
+    // Pick a block in the middle to start subscription from
+    let start_block_idx = 1; // Start from the first non-genesis block
+    let start_block = &origin_blocks[start_block_idx];
+
+    // Subscribe to blocks starting from this specific block
+    let (mut ws, _) = connect_async(fork_devnet.ws_url()).await.unwrap();
+    let subscription_id =
+        subscribe_new_heads(&mut ws, json!({ "block_id": BlockId::Hash(start_block.block_hash) }))
+            .await
+            .unwrap();
+
+    // We should receive notifications for all blocks from start_block to latest
+    for (i, block) in origin_blocks.iter().enumerate().skip(start_block_idx) {
+        let notification_block = receive_block(&mut ws, subscription_id.clone()).await.unwrap();
+        assert_eq!(notification_block["block_number"], json!(i));
+        assert_eq!(notification_block["block_hash"], json!(block.block_hash));
+    }
+
+    // Devnet creates an empty block after forking, so we receive one more block notification
+    let empty_block = receive_block(&mut ws, subscription_id.clone()).await.unwrap();
+    let empty_block_number = n_origin_blocks + 1;
+    assert_eq!(empty_block["block_number"], json!(empty_block_number));
+
+    // Create additional blocks in the forked devnet and verify notifications
+    let n_fork_blocks = 2;
+    for i in 0..n_fork_blocks {
+        let created_block_hash = fork_devnet.create_block().await.unwrap();
+
+        let notification_block = receive_block(&mut ws, subscription_id.clone()).await.unwrap();
+        assert_eq!(notification_block["block_hash"], json!(created_block_hash));
+        assert_eq!(notification_block["block_number"], json!(n_origin_blocks + i + 2)); // +1 for empty block
+    }
+
+    assert_no_notifications(&mut ws).await.unwrap();
+}

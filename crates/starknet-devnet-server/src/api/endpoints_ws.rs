@@ -219,6 +219,8 @@ impl JsonRpcHandler {
         }
 
         if let Some((origin_start, origin_end)) = origin_range {
+            // It's better to fetch all origin headers first, in case fetching some fetching fails
+            // halfway through notifying the socket
             let origin_headers = self.fetch_origin_heads(origin_start, origin_end).await?;
             for header in origin_headers {
                 let notification = NotificationData::NewHeads(header);
@@ -367,6 +369,7 @@ impl JsonRpcHandler {
 
             // Update continuation token or break if done
             match events_chunk.continuation_token {
+                Some(token) if token == "0" => break,
                 Some(token) => continuation_token = Some(token),
                 None => break,
             }
@@ -390,7 +393,8 @@ impl JsonRpcHandler {
             .and_then(|subscription_input| subscription_input.block_id.as_ref().map(BlockId::from))
             .unwrap_or(BlockId::Tag(BlockTag::Latest));
 
-        let (_, _, origin_range) = self.get_validated_block_number_range(starting_block_id).await?;
+        let (validated_start_block_number, _, origin_range) =
+            self.get_validated_block_number_range(starting_block_id).await?;
 
         let keys_filter = maybe_subscription_input
             .as_ref()
@@ -412,7 +416,7 @@ impl JsonRpcHandler {
         // If we're in a fork and need events from the origin
         if let Some((origin_start, origin_end)) = origin_range {
             let origin_events = self
-                .fetch_origin_events(origin_start, origin_end, address, keys_filter.clone())
+                .fetch_origin_events(origin_start, origin_end - 1, address, keys_filter.clone())
                 .await?;
 
             for event in origin_events {
@@ -426,7 +430,7 @@ impl JsonRpcHandler {
 
         // Get events from local chain
         let events = self.api.starknet.lock().await.get_unlimited_events(
-            Some(starting_block_id),
+            Some(BlockId::Number(validated_start_block_number)),
             Some(BlockId::Tag(BlockTag::PreConfirmed)), // Last block; filtering by status
             address,
             keys_filter,

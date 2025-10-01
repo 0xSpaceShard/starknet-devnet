@@ -552,3 +552,78 @@ async fn should_notify_of_events_in_old_blocks() {
 
     assert_no_notifications(&mut ws).await.unwrap();
 }
+
+#[tokio::test]
+async fn test_fork_subscription_to_events() {
+    // Setup original devnet
+    let origin_devnet = BackgroundDevnet::spawn_forkable_devnet().await.unwrap();
+
+    // Deploy event contract on origin
+    let account = get_single_owner_account(&origin_devnet).await;
+    let event_contract_address = declare_deploy_events_contract(&account).await.unwrap();
+
+    // Emit static events on origin
+    let n_origin_events = 3;
+    let mut origin_tx_hashes = Vec::new();
+    for _ in 0..n_origin_events {
+        let invocation = emit_static_event(&account, event_contract_address).await.unwrap();
+        origin_tx_hashes.push(invocation.transaction_hash);
+        origin_devnet.create_block().await.unwrap();
+    }
+
+    // Fork the devnet
+    let fork_devnet = origin_devnet.fork().await.unwrap();
+
+    // Create some blocks on fork devnet before subscribing (to test empty block handling)
+    fork_devnet.create_block().await.unwrap();
+
+    // Subscribe to events on the forked devnet
+    let (mut ws, _) = connect_async(fork_devnet.ws_url()).await.unwrap();
+    let subscription_id = subscribe_events(
+        &mut ws,
+        json!({
+            "block_id": BlockId::Number(0),
+            "from_address": event_contract_address.to_hex_string()
+        }),
+    )
+    .await
+    .unwrap();
+
+    // We should receive notifications for all events from origin
+    for hash in origin_tx_hashes.iter() {
+        let event = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
+
+        // Verify event data
+        assert_eq!(event["from_address"], json!(event_contract_address));
+        assert_eq!(event["keys"][0], json!(static_event_key()));
+        assert_eq!(event["data"], json!([]));
+        assert_eq!(event["transaction_hash"], json!(hash));
+    }
+
+    // Emit additional events on the forked devnet
+
+    let (wallet, address) = origin_devnet.get_first_predeployed_account().await; // to avoid nonce clash
+    let original_account_on_fork = SingleOwnerAccount::new(
+        &fork_devnet.json_rpc_client,
+        wallet,
+        address,
+        constants::CHAIN_ID,
+        ExecutionEncoding::New,
+    );
+
+    let n_fork_events = 2;
+    for _ in 0..n_fork_events {
+        let invocation =
+            emit_static_event(&original_account_on_fork, event_contract_address).await.unwrap();
+        // Verify we get notification for the new event
+        let event = receive_event(&mut ws, subscription_id.clone()).await;
+
+        let event = event.unwrap();
+        assert_eq!(event["from_address"], json!(event_contract_address));
+        assert_eq!(event["keys"][0], json!(static_event_key()));
+        assert_eq!(event["data"], json!([]));
+        assert_eq!(event["transaction_hash"], json!(invocation.transaction_hash));
+    }
+
+    assert_no_notifications(&mut ws).await.unwrap();
+}
