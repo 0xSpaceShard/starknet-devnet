@@ -218,14 +218,12 @@ impl JsonRpcHandler {
             return Ok(());
         }
 
+        let mut headers = Vec::new();
         if let Some((origin_start, origin_end)) = origin_range {
             // It's better to fetch all origin headers first, in case fetching some fetching fails
             // halfway through notifying the socket
             let origin_headers = self.fetch_origin_heads(origin_start, origin_end).await?;
-            for header in origin_headers {
-                let notification = NotificationData::NewHeads(header);
-                socket_context.notify(subscription_id, notification).await;
-            }
+            headers.extend(origin_headers.iter().cloned());
         }
 
         // Notifying of old blocks. latest_block_number inclusive?
@@ -236,8 +234,11 @@ impl JsonRpcHandler {
                 .get_block(&BlockId::Number(block_n))
                 .map_err(ApiError::StarknetDevnetError)?;
 
-            let old_header = old_block.into();
-            let notification = NotificationData::NewHeads(old_header);
+            headers.push(old_block.into());
+        }
+
+        for header in headers {
+            let notification = NotificationData::NewHeads(header);
             socket_context.notify(subscription_id, notification).await;
         }
 
@@ -413,12 +414,27 @@ impl JsonRpcHandler {
         };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
-        // If we're in a fork and need events from the origin
-        if let Some((origin_start, origin_end)) = origin_range {
-            let origin_events = self
-                .fetch_origin_events(origin_start, origin_end, address, keys_filter.clone())
-                .await?;
+        // Fetch events from origin chain if we're in a fork and need historical data
+        let origin_events = if let Some((origin_start, origin_end)) = origin_range {
+            Some(
+                self.fetch_origin_events(origin_start, origin_end, address, keys_filter.clone())
+                    .await?,
+            )
+        } else {
+            None
+        };
 
+        // Get events from local chain
+        let local_events = self.api.starknet.lock().await.get_unlimited_events(
+            Some(BlockId::Number(validated_start_block_number)),
+            Some(BlockId::Tag(BlockTag::PreConfirmed)), // Last block; filtering by status
+            address,
+            keys_filter,
+            Some(finality_status),
+        )?;
+
+        // Process origin events first (chronological order)
+        if let Some(origin_events) = origin_events {
             for event in origin_events {
                 let notification_data = NotificationData::Event(SubscriptionEmittedEvent {
                     emitted_event: event,
@@ -428,16 +444,8 @@ impl JsonRpcHandler {
             }
         }
 
-        // Get events from local chain
-        let events = self.api.starknet.lock().await.get_unlimited_events(
-            Some(BlockId::Number(validated_start_block_number)),
-            Some(BlockId::Tag(BlockTag::PreConfirmed)), // Last block; filtering by status
-            address,
-            keys_filter,
-            Some(finality_status),
-        )?;
-
-        for event in events {
+        // Process local events after origin events
+        for event in local_events {
             let notification_data = NotificationData::Event(SubscriptionEmittedEvent {
                 emitted_event: event,
                 finality_status,
