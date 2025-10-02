@@ -9,11 +9,13 @@ use ethers::types::U256;
 use futures::{SinkExt, StreamExt, TryStreamExt};
 use rand::{Rng, thread_rng};
 use serde_json::json;
+use starknet_api::contract_class::compiled_class_hash::{HashVersion, HashableCompiledClass};
+use starknet_core::CasmContractClass;
 use starknet_rs_accounts::{
     Account, AccountFactory, ArgentAccountFactory, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
 use starknet_rs_contract::{ContractFactory, UdcSelector};
-use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
+use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{
     BlockId, BlockTag, ContractClass, ContractExecutionError, DeployAccountTransactionResult,
     ExecutionResult, FeeEstimate, Felt, FlattenedSierraClass, FunctionCall,
@@ -65,8 +67,9 @@ pub fn get_flattened_sierra_contract_and_casm_hash(sierra_path: &str) -> SierraW
     let sierra_string = std::fs::read_to_string(sierra_path).unwrap();
     let sierra_class: SierraClass = serde_json::from_str(&sierra_string).unwrap();
     let casm_json = usc::compile_contract(serde_json::from_str(&sierra_string).unwrap()).unwrap();
+
     let casm_hash =
-        serde_json::from_value::<CompiledClass>(casm_json).unwrap().class_hash().unwrap();
+        serde_json::from_value::<CasmContractClass>(casm_json).unwrap().hash(&HashVersion::V1).0;
     (sierra_class.flatten().unwrap(), casm_hash)
 }
 
