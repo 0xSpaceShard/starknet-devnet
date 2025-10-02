@@ -6,7 +6,7 @@ use starknet_core::constants::{
 };
 use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::chain_id::SEPOLIA;
-use starknet_rs_core::types::{Felt, ResourcePrice, StarknetError};
+use starknet_rs_core::types::{Felt, ResourcePrice};
 use starknet_rs_core::utils::cairo_short_string_to_felt;
 use starknet_rs_providers::{Provider, ProviderError};
 use starknet_rs_signers::Signer;
@@ -374,9 +374,9 @@ async fn unsuccessful_declare_set_gas_successful_declare() {
         .await;
 
     match unsuccessful_declare_tx {
-        Err(AccountError::Provider(ProviderError::StarknetError(
-            StarknetError::InsufficientAccountBalance,
-        ))) => (),
+        Err(AccountError::Provider(ProviderError::Other(err)))
+            if err.to_string().contains("Resources bounds")
+                && err.to_string().contains("exceed balance") => {}
         other => panic!("Unexpected result: {other:?}"),
     };
 

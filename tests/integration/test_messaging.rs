@@ -299,15 +299,20 @@ async fn mock_message_to_l2_creates_a_tx_with_desired_effect() {
     // Use postman to send a message to l2 without l1 - the message increments user balance
     let increment_amount = Felt::from_hex_unchecked("0xff");
 
-    let body: serde_json::Value = devnet.send_custom_rpc("devnet_postmanSendMessageToL2", json!({
-            "l1_contract_address": MESSAGING_L1_ADDRESS,
-            "l2_contract_address": format!("0x{:64x}", l1l2_contract_address),
-            "entry_point_selector": format!("0x{:64x}", get_selector_from_name("deposit").unwrap()),
-            "payload": [user, increment_amount],
-            "paid_fee_on_l1": "0x1234",
-            "nonce": "0x1"
-        }))
-        .await.unwrap();
+    let body: serde_json::Value = devnet
+        .send_custom_rpc(
+            "devnet_postmanSendMessageToL2",
+            json!({
+                "l1_contract_address": MESSAGING_L1_ADDRESS,
+                "l2_contract_address": l1l2_contract_address,
+                "entry_point_selector": get_selector_from_name("deposit").unwrap(),
+                "payload": [user, increment_amount],
+                "paid_fee_on_l1": "0x1234",
+                "nonce": "0x1"
+            }),
+        )
+        .await
+        .unwrap();
     let tx_hash_hex = body.get("transaction_hash").unwrap().as_str().unwrap();
     let tx_hash = Felt::from_hex_unchecked(tx_hash_hex);
     assert_tx_succeeded_accepted(&tx_hash, &devnet.json_rpc_client).await.unwrap();
@@ -510,7 +515,7 @@ async fn can_consume_from_l2() {
         .send_custom_rpc(
             "devnet_postmanConsumeMessageFromL2",
             json!({
-                "from_address": format!("0x{:64x}", l1l2_contract_address),
+                "from_address": l1l2_contract_address,
                 "to_address": l1_address,
                 "payload": ["0x0","0x1","0x1"],
             }),

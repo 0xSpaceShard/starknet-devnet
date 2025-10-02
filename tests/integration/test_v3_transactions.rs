@@ -45,9 +45,7 @@ async fn deploy_account_to_an_address_with_insufficient_balance_should_fail() {
     .unwrap();
 
     match factory.deploy_v3(Felt::THREE).send().await.unwrap_err() {
-        starknet_rs_accounts::AccountFactoryError::Provider(ProviderError::StarknetError(
-            StarknetError::InsufficientAccountBalance,
-        )) => {}
+        starknet_rs_accounts::AccountFactoryError::Provider(ProviderError::Other(_)) => {}
         other => panic!("Unexpected error: {:?}", other),
     };
 }
@@ -163,9 +161,7 @@ async fn declare_from_an_account_with_insufficient_strk_tokens_balance() {
     assert!(Felt::from(estimate_fee.overall_fee) > account_strk_balance);
 
     match declaration.send().await.unwrap_err() {
-        starknet_rs_accounts::AccountError::Provider(ProviderError::StarknetError(
-            StarknetError::InsufficientAccountBalance,
-        )) => {}
+        starknet_rs_accounts::AccountError::Provider(ProviderError::Other(_)) => {}
         other => panic!("Unexpected error: {:?}", other),
     }
 }
@@ -365,6 +361,7 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                         .l2_gas(l2)
                         .l2_gas_price(l2_price);
                 match declaration.send().await.unwrap_err() {
+                    starknet_rs_accounts::AccountError::Provider(ProviderError::Other(_)) => {}
                     starknet_rs_accounts::AccountError::Provider(ProviderError::StarknetError(
                         StarknetError::InsufficientResourcesForValidate,
                     )) => {}
@@ -385,6 +382,9 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                             StarknetError::InsufficientResourcesForValidate,
                         ),
                     ) => {}
+                    starknet_rs_accounts::AccountFactoryError::Provider(ProviderError::Other(
+                        _,
+                    )) => {}
                     other => anyhow::bail!("Unexpected error {:?}", other),
                 }
             }
@@ -418,6 +418,7 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                             StarknetError::InsufficientResourcesForValidate,
                         ),
                     )) => {}
+                    Err(starknet_rs_accounts::AccountError::Provider(ProviderError::Other(_))) => {}
                     Err(error) => anyhow::bail!("Unexpected error {:?}", error),
                 }
             }

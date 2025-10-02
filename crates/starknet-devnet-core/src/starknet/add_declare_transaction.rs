@@ -138,6 +138,7 @@ fn assert_casm_hash_is_valid(
 
 #[cfg(test)]
 mod tests {
+    use blockifier::transaction::errors::TransactionFeeError;
     use starknet_api::data_availability::DataAvailabilityMode;
     use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
     use starknet_types::constants::QUERY_VERSION_OFFSET;
@@ -261,9 +262,9 @@ mod tests {
         );
 
         match starknet.add_declare_transaction(declare_tx.into()) {
-            Err(Error::TransactionValidationError(
-                TransactionValidationError::InsufficientResourcesForValidate,
-            )) => {}
+            Err(Error::TransactionFeeError(TransactionFeeError::InsufficientResourceBounds {
+                ..
+            })) => {}
             other => panic!("Unexpected result: {other:?}"),
         }
     }
@@ -279,9 +280,9 @@ mod tests {
         );
 
         match starknet.add_declare_transaction(declare_tx.into()).unwrap_err() {
-            Error::TransactionValidationError(
-                TransactionValidationError::InsufficientAccountBalance,
-            ) => {}
+            Error::TransactionFeeError(TransactionFeeError::ResourcesBoundsExceedBalance {
+                ..
+            }) => {}
             err => panic!("Wrong error type received {:?}", err),
         }
     }
