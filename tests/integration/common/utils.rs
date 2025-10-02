@@ -124,21 +124,20 @@ pub async fn assert_tx_succeeded_accepted<T: Provider>(
 }
 
 pub async fn assert_tx_succeeded_pre_confirmed<T: Provider>(
-    _tx_hash: &Felt,
-    _client: &T,
+    tx_hash: &Felt,
+    client: &T,
 ) -> Result<(), anyhow::Error> {
-    eprintln!("TODO: Currently suppressed; undo when starknet-rs updated to 0.17");
-    Ok(())
-    // let receipt = client.get_transaction_receipt(tx_hash).await.unwrap().receipt;
-    // match receipt.execution_result() {
-    //     ExecutionResult::Succeeded => (),
-    //     other => panic!("Should have succeeded; got: {other:?}"),
-    // }
+    let receipt = client.get_transaction_receipt(tx_hash).await.unwrap().receipt;
+    match receipt.execution_result() {
+        ExecutionResult::Succeeded => (),
+        other => panic!("Should have succeeded; got: {other:?}"),
+    }
 
-    // match receipt.finality_status() {
-    //     starknet_rs_core::types::TransactionFinalityStatus::PreConfirmed => (),
-    //     other => panic!("Should have been pre-confirmed; got: {other:?}"),
-    // }
+    match receipt.finality_status() {
+        starknet_rs_core::types::TransactionFinalityStatus::PreConfirmed => (),
+        other => panic!("Should have been pre-confirmed; got: {other:?}"),
+    }
+    Ok(())
 }
 
 pub async fn get_contract_balance(
