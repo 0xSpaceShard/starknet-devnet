@@ -1,5 +1,6 @@
 use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::transactions::ExecutableTransaction;
+use starknet_api::contract_class::compiled_class_hash::{HashVersion, HashableCompiledClass};
 use starknet_types::compile_sierra_contract;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, CompiledClassHash, TransactionHash};
@@ -123,7 +124,7 @@ fn assert_casm_hash_is_valid(
         (ContractClass::Cairo1(cairo_lang_contract_class), Some(received_casm_hash)) => {
             let casm = compile_sierra_contract(cairo_lang_contract_class)?;
 
-            let calculated_casm_hash = casm.compiled_class_hash();
+            let calculated_casm_hash = casm.hash(&HashVersion::V1).0;
             if calculated_casm_hash == received_casm_hash {
                 Ok(())
             } else {

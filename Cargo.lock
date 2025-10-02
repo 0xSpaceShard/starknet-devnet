@@ -4094,6 +4094,7 @@ dependencies = [
  "starknet-devnet-core",
  "starknet-providers",
  "starknet-signers",
+ "starknet_api",
  "thiserror 1.0.69",
  "tokio",
  "tokio-tungstenite 0.21.0",

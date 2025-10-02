@@ -517,6 +517,7 @@ impl JsonRpcHandler {
                 .clone()
                 .is_none_or(|token| token.starts_with(CONTINUATION_TOKEN_ORIGIN_PREFIX))
         {
+            #[allow(clippy::unnecessary_unwrap)]
             #[allow(clippy::expect_used)]
             let (from_origin, to_origin) =
                 origin_range.expect("Continuation token implies there are more origin events");
