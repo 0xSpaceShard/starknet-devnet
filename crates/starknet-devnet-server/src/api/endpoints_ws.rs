@@ -1,8 +1,16 @@
 use starknet_core::error::Error;
-use starknet_types::emitted_event::SubscriptionEmittedEvent;
+use starknet_rs_core::types::{
+    BlockId as ImportedBlockId, Felt, L1DataAvailabilityMode as ImportedL1DataAvailabilityMode,
+    MaybePreConfirmedBlockWithTxHashes,
+};
+use starknet_rs_providers::{Provider, ProviderError};
+use starknet_types::contract_address::ContractAddress;
+use starknet_types::emitted_event::{EmittedEvent, SubscriptionEmittedEvent};
 use starknet_types::felt::TransactionHash;
-use starknet_types::rpc::block::{BlockId, BlockStatus, BlockTag};
+use starknet_types::rpc::block::{BlockHeader, BlockId, BlockStatus, BlockTag};
 use starknet_types::rpc::transactions::TransactionFinalityStatus;
+use starknet_types::starknet_api::block::{BlockNumber, BlockTimestamp};
+use starknet_types::starknet_api::data_availability::L1DataAvailabilityMode;
 
 use super::JsonRpcHandler;
 use super::error::ApiError;
@@ -48,41 +56,134 @@ impl JsonRpcHandler {
         }
     }
 
+    async fn get_origin_block_header_by_id(&self, id: BlockId) -> Result<BlockHeader, ApiError> {
+        let origin_caller = self.origin_caller.as_ref().ok_or_else(|| {
+            ApiError::StarknetDevnetError(Error::UnexpectedInternalError {
+                msg: "No origin caller available".into(),
+            })
+        })?;
+        match origin_caller
+            .starknet_client
+            .get_block_with_tx_hashes(ImportedBlockId::from(id))
+            .await
+        {
+            Ok(MaybePreConfirmedBlockWithTxHashes::Block(origin_block)) => {
+                let origin_header = BlockHeader {
+                    block_hash: origin_block.block_hash,
+                    parent_hash: origin_block.parent_hash,
+                    block_number: BlockNumber(origin_block.block_number),
+                    l1_gas_price: origin_block.l1_gas_price.into(),
+                    l2_gas_price: origin_block.l2_gas_price.into(),
+                    new_root: origin_block.new_root,
+                    sequencer_address: ContractAddress::new_unchecked(
+                        origin_block.sequencer_address,
+                    ),
+                    timestamp: BlockTimestamp(origin_block.timestamp),
+                    starknet_version: origin_block.starknet_version,
+                    l1_data_gas_price: origin_block.l1_data_gas_price.into(),
+                    l1_da_mode: match origin_block.l1_da_mode {
+                        ImportedL1DataAvailabilityMode::Calldata => {
+                            L1DataAvailabilityMode::Calldata
+                        }
+                        ImportedL1DataAvailabilityMode::Blob => L1DataAvailabilityMode::Blob,
+                    },
+                };
+                Ok(origin_header)
+            }
+            Err(ProviderError::StarknetError(
+                starknet_rs_core::types::StarknetError::BlockNotFound,
+            )) => Err(ApiError::BlockNotFound),
+            other => Err(ApiError::StarknetDevnetError(
+                starknet_core::error::Error::UnexpectedInternalError {
+                    msg: format!("Failed retrieval of block from forking origin. Got: {other:?}"),
+                },
+            )),
+        }
+    }
+
+    async fn get_local_block_header_by_id(&self, id: &BlockId) -> Result<BlockHeader, ApiError> {
+        let starknet = self.api.starknet.lock().await;
+
+        let block = match starknet.get_block(id) {
+            Ok(block) => match block.status() {
+                BlockStatus::Rejected => return Err(ApiError::BlockNotFound),
+                _ => Ok::<_, ApiError>(block),
+            },
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(other) => Err(ApiError::StarknetDevnetError(other)),
+        }?;
+
+        Ok(block.into())
+    }
+
     /// Returns (starting block number, latest block number). Returns an error in case the starting
     /// block does not exist or there are too many blocks.
     async fn get_validated_block_number_range(
         &self,
         mut starting_block_id: BlockId,
-    ) -> Result<(u64, u64), ApiError> {
-        let starknet = self.api.starknet.lock().await;
-
+    ) -> Result<(u64, u64, Option<(u64, u64)>), ApiError> {
         // Convert pre-confirmed to latest to prevent getting block_number = 0
         starting_block_id = match starting_block_id {
             BlockId::Tag(BlockTag::PreConfirmed) => BlockId::Tag(BlockTag::Latest),
             other => other,
         };
 
-        // checking the block's existence; aborted blocks treated as not found
-        let query_block = match starknet.get_block(&starting_block_id) {
-            Ok(block) => match block.status() {
-                BlockStatus::Rejected => Err(ApiError::BlockNotFound),
-                _ => Ok(block),
+        let query_block_number = match starting_block_id {
+            BlockId::Number(n) => n,
+            block_id => match self.get_local_block_header_by_id(&block_id).await {
+                Ok(block) => block.block_number.0,
+                Err(ApiError::BlockNotFound) if self.origin_caller.is_some() => {
+                    self.get_origin_block_header_by_id(block_id).await?.block_number.0
+                }
+                Err(other) => return Err(other),
             },
-            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
-            Err(other) => Err(ApiError::StarknetDevnetError(other)),
-        }?;
+        };
 
-        let latest_block = starknet.get_block(&BlockId::Tag(BlockTag::Latest))?;
+        let starknet = self.api.starknet.lock().await;
+        let latest_block_number =
+            starknet.get_block(&BlockId::Tag(BlockTag::Latest))?.block_number().0;
+        let (fork_url, fork_block_number) =
+            (starknet.config.fork_config.url.clone(), starknet.config.fork_config.block_number);
+        drop(starknet);
 
-        let query_block_number = query_block.block_number().0;
-        let latest_block_number = latest_block.block_number().0;
-
-        // safe to subtract, ensured by previous checks
+        if query_block_number > latest_block_number {
+            return Err(ApiError::BlockNotFound);
+        }
         if latest_block_number - query_block_number > 1024 {
             return Err(ApiError::TooManyBlocksBack);
         }
 
-        Ok((query_block_number, latest_block_number))
+        // Check if forking is configured and return the block range from the forking origin
+        let origin_block_range = match (fork_url, fork_block_number) {
+            (Some(_url), Some(fork_block_number)) => {
+                // If the query block number is less than or equal to the fork block number,
+                // we need to fetch blocks from the origin
+                if query_block_number <= fork_block_number {
+                    Some((query_block_number, fork_block_number))
+                } else {
+                    None
+                }
+            }
+            _ => None, // No fork configuration or block number
+        };
+
+        let validated_start_block_number =
+            if let Some(origin) = origin_block_range { origin.1 + 1 } else { query_block_number };
+
+        Ok((validated_start_block_number, latest_block_number, origin_block_range))
+    }
+
+    async fn fetch_origin_heads(
+        &self,
+        start_block: u64,
+        end_block: u64,
+    ) -> Result<Vec<BlockHeader>, ApiError> {
+        let mut headers = Vec::new();
+        for block_n in start_block..=end_block {
+            let block_id = BlockId::Number(block_n);
+            headers.push(self.get_origin_block_header_by_id(block_id).await?);
+        }
+        Ok(headers)
     }
 
     /// starknet_subscribeNewHeads
@@ -103,7 +204,7 @@ impl JsonRpcHandler {
             BlockId::Tag(BlockTag::Latest)
         };
 
-        let (query_block_number, latest_block_number) =
+        let (query_block_number, latest_block_number, origin_range) =
             self.get_validated_block_number_range(block_id).await?;
 
         // perform the actual subscription
@@ -117,6 +218,14 @@ impl JsonRpcHandler {
             return Ok(());
         }
 
+        let mut headers = Vec::new();
+        if let Some((origin_start, origin_end)) = origin_range {
+            // It's better to fetch all origin headers first, in case fetching some fetching fails
+            // halfway through notifying the socket
+            let origin_headers = self.fetch_origin_heads(origin_start, origin_end).await?;
+            headers.extend(origin_headers.iter().cloned());
+        }
+
         // Notifying of old blocks. latest_block_number inclusive?
         // Yes, only if block_id != latest/pre-confirmed (handled above)
         let starknet = self.api.starknet.lock().await;
@@ -125,8 +234,11 @@ impl JsonRpcHandler {
                 .get_block(&BlockId::Number(block_n))
                 .map_err(ApiError::StarknetDevnetError)?;
 
-            let old_header = old_block.into();
-            let notification = NotificationData::NewHeads(old_header);
+            headers.push(old_block.into());
+        }
+
+        for header in headers {
+            let notification = NotificationData::NewHeads(header);
             socket_context.notify(subscription_id, notification).await;
         }
 
@@ -229,6 +341,44 @@ impl JsonRpcHandler {
         Ok(())
     }
 
+    async fn fetch_origin_events(
+        &self,
+        from_block: u64,
+        to_block: u64,
+        address: Option<ContractAddress>,
+        keys_filter: Option<Vec<Vec<Felt>>>,
+    ) -> Result<Vec<EmittedEvent>, ApiError> {
+        const DEFAULT_CHUNK_SIZE: u64 = 1000;
+        let mut continuation_token: Option<String> = None;
+        let mut all_events = Vec::new();
+
+        // Fetch all events with pagination
+        loop {
+            let events_chunk = self
+                .fetch_origin_events_chunk(
+                    from_block,
+                    to_block,
+                    continuation_token,
+                    address,
+                    keys_filter.clone(),
+                    DEFAULT_CHUNK_SIZE,
+                )
+                .await?;
+
+            // Extend our collection with events from this chunk
+            all_events.extend(events_chunk.events);
+
+            // Update continuation token or break if done
+            match events_chunk.continuation_token {
+                Some(token) if token == "0" => break,
+                Some(token) => continuation_token = Some(token),
+                None => break,
+            }
+        }
+
+        Ok(all_events)
+    }
+
     async fn subscribe_events(
         &self,
         maybe_subscription_input: Option<EventsSubscriptionInput>,
@@ -244,7 +394,8 @@ impl JsonRpcHandler {
             .and_then(|subscription_input| subscription_input.block_id.as_ref().map(BlockId::from))
             .unwrap_or(BlockId::Tag(BlockTag::Latest));
 
-        self.get_validated_block_number_range(starting_block_id).await?;
+        let (validated_start_block_number, _, origin_range) =
+            self.get_validated_block_number_range(starting_block_id).await?;
 
         let keys_filter = maybe_subscription_input
             .as_ref()
@@ -263,15 +414,38 @@ impl JsonRpcHandler {
         };
         let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
 
-        let events = self.api.starknet.lock().await.get_unlimited_events(
-            Some(starting_block_id),
+        // Fetch events from origin chain if we're in a fork and need historical data
+        let origin_events = if let Some((origin_start, origin_end)) = origin_range {
+            Some(
+                self.fetch_origin_events(origin_start, origin_end, address, keys_filter.clone())
+                    .await?,
+            )
+        } else {
+            None
+        };
+
+        // Get events from local chain
+        let local_events = self.api.starknet.lock().await.get_unlimited_events(
+            Some(BlockId::Number(validated_start_block_number)),
             Some(BlockId::Tag(BlockTag::PreConfirmed)), // Last block; filtering by status
             address,
             keys_filter,
             Some(finality_status),
         )?;
 
-        for event in events {
+        // Process origin events first (chronological order)
+        if let Some(origin_events) = origin_events {
+            for event in origin_events {
+                let notification_data = NotificationData::Event(SubscriptionEmittedEvent {
+                    emitted_event: event,
+                    finality_status,
+                });
+                socket_context.notify(subscription_id, notification_data).await;
+            }
+        }
+
+        // Process local events after origin events
+        for event in local_events {
             let notification_data = NotificationData::Event(SubscriptionEmittedEvent {
                 emitted_event: event,
                 finality_status,

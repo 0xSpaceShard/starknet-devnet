@@ -458,7 +458,7 @@ impl JsonRpcHandler {
     /// Fetches events from forking origin. The continuation token should be the same as received by
     /// Devnet (not yet adapted for origin). If more events can be fetched from the origin, this is
     /// noted in the `continuation_token` of the returned `EventsChunk`.
-    async fn get_origin_events(
+    pub(crate) async fn fetch_origin_events_chunk(
         &self,
         from_origin: u64,
         to_origin: u64,
@@ -521,7 +521,7 @@ impl JsonRpcHandler {
             let (from_origin, to_origin) =
                 origin_range.expect("Continuation token implies there are more origin events");
 
-            self.get_origin_events(
+            self.fetch_origin_events_chunk(
                 from_origin,
                 to_origin,
                 filter.continuation_token,

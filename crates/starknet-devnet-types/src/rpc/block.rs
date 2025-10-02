@@ -131,6 +131,12 @@ pub struct ResourcePrice {
     pub price_in_wei: Felt,
 }
 
+impl From<starknet_rs_core::types::ResourcePrice> for ResourcePrice {
+    fn from(value: starknet_rs_core::types::ResourcePrice) -> Self {
+        Self { price_in_fri: value.price_in_fri, price_in_wei: value.price_in_wei }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 /// Data about reorganized blocks, starting and ending block number and hash
