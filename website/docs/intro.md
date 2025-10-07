@@ -15,6 +15,7 @@ sidebar_position: 1
   - This can be modified by directing all new transactions into a pre-confirmed block, and at some point triggering block creation.
   - Transactions in a pre-confirmed block cannot be replaced by sending a transaction with a higher free from the same account.
   - Read more about transitioning a transaction [from `PRE_CONFIRMED` to `ACCEPTED_ON_L2`](./blocks#creating-blocks-on-demand).
+- Block hashes on devnet differ from mainnet because some mainnet block fields are unavailable to devnet, resulting in different hash outputs despite using the same hashing algorithm.
 - Transactions are never automatically `ACCEPTED_ON_L1`, unless the user performs an action.
   - Read more about transitioning a transaction [from `ACCEPTED_ON_L2` to `ACCEPTED_ON_L1`](./blocks#accepting-blocks-on-l1).
 - `RECEIVED` and `CANDIDATE` statuses are not used in Devnet.
