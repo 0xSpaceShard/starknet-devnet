@@ -718,9 +718,7 @@ impl Starknet {
         let mut initial_gas =
             block_context.versioned_constants().sierra_gas_limit(&ExecutionMode::Execute);
         let call = blockifier::execution::entry_point::CallEntryPoint {
-            calldata: starknet_api::transaction::fields::Calldata(std::sync::Arc::new(
-                calldata.clone(),
-            )),
+            calldata: starknet_api::transaction::fields::Calldata(Arc::new(calldata.clone())),
             storage_address: contract_address.try_into()?,
             entry_point_selector: starknet_api::core::EntryPointSelector(entrypoint_selector),
             initial_gas: initial_gas.0,
