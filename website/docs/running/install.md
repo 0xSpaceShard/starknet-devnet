@@ -61,9 +61,21 @@ $ asdf install starknet-devnet 0.2.0
 
 Check [asdf guide](https://asdf-vm.com/guide/getting-started.html) for more instructions on how to install & manage versions.
 
+### Install with starkup
+
+[Starkup](https://github.com/software-mansion/starkup) is a tool for installing and managing Starknet-related tools, including starknet-devnet. To install starkup itself:
+
+```
+$ curl --proto '=https' --tlsv1.2 -sSf https://sh.starkup.sh | sh
+```
+
+Starkup uses `asdf` underneath to manage tool versions. After installation, you can use standard ASDF commands to manage starknet-devnet.
+
+Make sure to restart your terminal or source your shell configuration file after installation to have starknet-devnet available in your PATH.
+
 ### Run the installed executable
 
-When `cargo install` finishes, follow the output in your terminal. If properly configured, you should be able to run Devnet with:
+When `cargo install` or another installation method finishes, follow the output in your terminal. If properly configured, you should be able to run Devnet with:
 
 ```
 $ starknet-devnet
