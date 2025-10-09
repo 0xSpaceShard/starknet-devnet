@@ -123,7 +123,7 @@ impl JsonRpcHandler {
             .or_else(|| self.api.config.dump_path.clone())
             .unwrap_or_default();
 
-        let dumpable_events = self.api.dumpable_events.lock().await;
+        let dumpable_events = { self.api.dumpable_events.lock().await.clone() };
 
         if !path.is_empty() {
             dump_events(&dumpable_events, &path)
@@ -131,7 +131,7 @@ impl JsonRpcHandler {
             return Ok(DevnetResponse::DevnetDump(None).into());
         }
 
-        Ok(DevnetResponse::DevnetDump(Some(dumpable_events.clone())).into())
+        Ok(DevnetResponse::DevnetDump(Some(dumpable_events)).into())
     }
 
     /// devnet_load

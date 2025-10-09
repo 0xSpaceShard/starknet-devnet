@@ -402,7 +402,7 @@ pub async fn shutdown_signal(api: Api) {
 
     // dump on exit scenario
     if let (Some(DumpOn::Exit), Some(dump_path)) = (api.config.dump_on, &api.config.dump_path) {
-        let events = api.dumpable_events.lock().await;
+        let events = { api.dumpable_events.lock().await.clone() };
         dump_events(&events, dump_path).expect("Failed to dump.");
     }
 }
