@@ -142,9 +142,10 @@ impl JsonRpcHandler {
         let starknet = self.api.starknet.lock().await;
         let latest_block_number =
             starknet.get_block(&BlockId::Tag(BlockTag::Latest))?.block_number().0;
-        let (fork_url, fork_block_number) =
-            (starknet.config.fork_config.url.clone(), starknet.config.fork_config.block_number);
         drop(starknet);
+
+        let (fork_url, fork_block_number) =
+            (self.api.config.fork_config.url.clone(), self.api.config.fork_config.block_number);
 
         if query_block_number > latest_block_number {
             return Err(ApiError::BlockNotFound);
