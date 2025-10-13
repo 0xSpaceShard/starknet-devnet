@@ -63,7 +63,7 @@ Check [asdf guide](https://asdf-vm.com/guide/getting-started.html) for more inst
 
 ### Install with starkup
 
-[Starkup](https://github.com/software-mansion/starkup) is a tool for installing and managing Starknet-related tools, including starknet-devnet. To install starkup itself:
+[Starkup](https://github.com/software-mansion/starkup) is a tool for installing and managing Starknet-related tools, including starknet-devnet. To run starkup itself:
 
 ```
 $ curl --proto '=https' --tlsv1.2 -sSf https://sh.starkup.sh | sh
