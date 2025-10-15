@@ -296,6 +296,7 @@ async fn should_declare_via_ws() {
         .l1_data_gas(fee.l1_data_gas)
         .l1_data_gas_price(fee.l1_data_gas_price)
         .nonce(nonce)
+        .tip(0)
         .prepared()
         .unwrap();
 

@@ -17,6 +17,7 @@ pub fn state_update_by_block_id(
 
 #[cfg(test)]
 mod tests {
+    use starknet_api::contract_class::compiled_class_hash::{HashVersion, HashableCompiledClass};
     use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
     use starknet_types::compile_sierra_contract;
     use starknet_types::contract_class::ContractClass;
@@ -39,7 +40,7 @@ mod tests {
         let (mut starknet, acc) = setup_starknet_with_no_signature_check_account(1e18 as u128);
         let contract_class = dummy_cairo_1_contract_class();
         let compiled_class_hash =
-            compile_sierra_contract(&contract_class).unwrap().compiled_class_hash();
+            compile_sierra_contract(&contract_class).unwrap().hash(&HashVersion::V1).0;
 
         let declare_txn = broadcasted_declare_tx_v3(
             acc.account_address,

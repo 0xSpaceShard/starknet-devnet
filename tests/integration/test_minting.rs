@@ -1,10 +1,13 @@
 use anyhow::anyhow;
 use serde_json::json;
+use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::Felt;
 
 use crate::common::background_devnet::BackgroundDevnet;
-use crate::common::constants::{PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE};
-use crate::common::utils::FeeUnit;
+use crate::common::constants::{
+    CHAIN_ID, PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
+};
+use crate::common::utils::{FeeUnit, get_simple_contract_artifacts};
 use crate::{assert_eq_prop, assert_prop};
 
 static DUMMY_ADDRESS: &str = "0x42";
@@ -108,13 +111,38 @@ async fn increase_balance_of_predeployed_account_u256() {
 }
 
 #[tokio::test]
-#[ignore = "Currently, starknet_rs_core::types::BroadcastedDeclareTransaction::V3 is not \
-            implemented so once it is available we could add test like this"]
 async fn execute_v3_transaction_with_strk_token() {
-    // 1. run BackgroundDevnet
-    // 2. try sending declare v3 tx - expect failure
-    // 3. mint some STRK to the account (keeping WEI at 0)
-    // 4. now tx succeeds
+    let devnet = BackgroundDevnet::spawn_with_additional_args(&["--initial-balance", "0"])
+        .await
+        .expect("Could not start Devnet");
+
+    let (signer, account_address) = devnet.get_first_predeployed_account().await;
+    let predeployed_account = SingleOwnerAccount::new(
+        &devnet.json_rpc_client,
+        signer,
+        account_address,
+        CHAIN_ID,
+        ExecutionEncoding::New,
+    );
+
+    let (contract_class, casm_hash) = get_simple_contract_artifacts();
+    let declare_result = predeployed_account
+        .declare_v3(std::sync::Arc::new(contract_class.clone()), casm_hash)
+        .send()
+        .await;
+
+    assert!(declare_result.is_err());
+    // 3. mint some FRI to the account
+    // Note: FeeUnit::Fri should be used for STRK tokens in this implementation
+    devnet.mint_unit(account_address, 1_000_000_000_000_000_000_000, FeeUnit::Fri).await;
+
+    let fri_balance = devnet.get_balance_latest(&account_address, FeeUnit::Fri).await.unwrap();
+    assert!(fri_balance > Felt::ZERO, "FRI balance should be positive after minting");
+
+    let declare_result =
+        predeployed_account.declare_v3(std::sync::Arc::new(contract_class), casm_hash).send().await;
+
+    assert!(declare_result.is_ok(), "Declare transaction should succeed after minting FRI tokens");
 }
 
 async fn reject_bad_minting_request(json_body: serde_json::Value) {

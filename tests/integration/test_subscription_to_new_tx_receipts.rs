@@ -18,8 +18,6 @@ use crate::common::utils::{
     send_dummy_mint_tx, subscribe, subscribe_new_txs, unsubscribe,
 };
 
-// TODO add more deserialization to TransactionReceiptWithBlockInfo when starknet-rs updated to 0.17
-
 async fn subscribe_new_tx_receipts(
     ws: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
     params: serde_json::Value,
@@ -400,5 +398,152 @@ async fn test_deploy_account_receipt_notification() {
         &deployment_result.transaction_hash
     );
 
+    // Verify block info is present and valid
+    let block = &deployment_receipt_with_block.block;
+    assert!(block.block_number() > 0, "Block number should be positive");
+    let block_hash = block.block_hash().expect("Block hash should be present");
+    assert_ne!(block_hash, Felt::ZERO, "Block hash should not be zero");
+
+    assert_no_notifications(&mut ws).await.unwrap();
+}
+
+#[tokio::test]
+async fn test_declare_transaction_receipt_deserialization() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+    let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+    let subscription_id = subscribe_new_tx_receipts(&mut ws, json!({})).await.unwrap();
+
+    // Get a predeployed account to use for declaration
+    let (signer, account_address) = devnet.get_first_predeployed_account().await;
+    let predeployed_account = SingleOwnerAccount::new(
+        &devnet.json_rpc_client,
+        signer,
+        account_address,
+        constants::CHAIN_ID,
+        ExecutionEncoding::New,
+    );
+
+    // Declare and deploy a contract (this will generate multiple transactions)
+    let (_declare_tx_hash, _) = declare_deploy_simple_contract(&predeployed_account).await.unwrap();
+
+    // Collect all receipt notifications (there should be at least one declare and one deploy)
+    let mut found_declare_receipt = false;
+
+    // Process all notifications that arrive (we expect multiple notifications)
+    for _ in 0..5 {
+        // Limit iterations to avoid infinite loop
+        match receive_new_tx_receipt(&mut ws, subscription_id.clone()).await {
+            Ok(notification) => {
+                let receipt_with_block: TransactionReceiptWithBlockInfo =
+                    serde_json::from_value(notification).unwrap();
+
+                // If we find a declare transaction receipt, test it
+                if let TransactionReceipt::Declare(declare_receipt) = &receipt_with_block.receipt {
+                    found_declare_receipt = true;
+
+                    // Verify finality status
+                    assert_eq!(
+                        declare_receipt.finality_status,
+                        TransactionFinalityStatus::AcceptedOnL2
+                    );
+
+                    // Verify fee structure
+                    assert!(
+                        declare_receipt.actual_fee.amount > Felt::ZERO,
+                        "Fee amount should be positive"
+                    );
+
+                    // Check execution status and resources
+                    assert_eq!(
+                        declare_receipt.execution_result.status(),
+                        starknet_rs_core::types::TransactionExecutionStatus::Succeeded
+                    );
+                    assert!(
+                        declare_receipt.execution_resources.l2_gas > 0,
+                        "L2 gas should be positive"
+                    );
+
+                    // Verify block info is present and valid
+                    let block = &receipt_with_block.block;
+                    assert!(block.block_number() > 0, "Block number should be positive");
+                    let block_hash = block.block_hash().expect("Block hash should be present");
+                    assert_ne!(block_hash, Felt::ZERO, "Block hash should not be zero");
+                }
+            }
+            Err(_) => break, // No more notifications
+        }
+    }
+
+    // Make sure we found and tested at least one declare receipt
+    assert!(found_declare_receipt, "Did not find any declare transaction receipt");
+
+    // Ensure we've consumed all notifications
+    while receive_new_tx_receipt(&mut ws, subscription_id.clone()).await.is_ok() {}
+}
+
+#[tokio::test]
+async fn test_transaction_receipt_with_block_info_deserialization() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+    let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+    let subscription_id = subscribe_new_tx_receipts(&mut ws, json!({})).await.unwrap();
+
+    // Send a transaction to get a receipt
+    let tx_hash = send_dummy_mint_tx(&devnet).await;
+
+    // Get the receipt notification
+    let receipt_notification = receive_new_tx_receipt(&mut ws, subscription_id).await.unwrap();
+
+    // Deserialize and verify the TransactionReceiptWithBlockInfo structure
+    let receipt_with_block: TransactionReceiptWithBlockInfo =
+        serde_json::from_value(receipt_notification).unwrap();
+
+    // Verify TransactionReceiptWithBlockInfo structure
+    // 1. Check receipt part
+    assert_eq!(receipt_with_block.receipt.transaction_hash(), &tx_hash);
+    assert_eq!(
+        receipt_with_block.receipt.finality_status(),
+        &TransactionFinalityStatus::AcceptedOnL2
+    );
+
+    // 2. Check block part
+    let block = &receipt_with_block.block;
+    assert!(block.block_number() > 0, "Block number should be positive");
+    let block_hash = block.block_hash().expect("Block hash should be present");
+    assert_ne!(block_hash, Felt::ZERO, "Block hash should not be zero");
+
+    // 3. Verify detailed receipt structure
+    match &receipt_with_block.receipt {
+        TransactionReceipt::Invoke(invoke_receipt) => {
+            // Verify transaction hash and finality status
+            assert_eq!(invoke_receipt.transaction_hash, tx_hash);
+            assert_eq!(invoke_receipt.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+
+            // Verify fee structure
+            assert!(invoke_receipt.actual_fee.amount > Felt::ZERO, "Fee amount should be positive");
+
+            // Verify events
+            assert!(!invoke_receipt.events.is_empty(), "There should be at least one event");
+
+            // Check execution status and resources
+            assert_eq!(
+                invoke_receipt.execution_result.status(),
+                starknet_rs_core::types::TransactionExecutionStatus::Succeeded
+            );
+            assert!(invoke_receipt.execution_resources.l2_gas > 0, "L2 gas should be positive");
+        }
+        _ => panic!("Expected an invoke transaction receipt"),
+    }
+
+    // 4. Verify that block hash in receipt matches a real block in the chain
+    use starknet_rs_core::types::BlockId;
+    use starknet_rs_providers::Provider;
+
+    if let Some(block_hash) = block.block_hash() {
+        let block_status =
+            devnet.json_rpc_client.get_block_with_txs(BlockId::Hash(block_hash)).await;
+        assert!(block_status.is_ok(), "Block with hash {:?} should exist", block_hash);
+    }
+
+    // 5. Clean up test
     assert_no_notifications(&mut ws).await.unwrap();
 }

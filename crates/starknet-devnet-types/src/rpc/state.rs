@@ -4,10 +4,9 @@ use starknet_types_core::felt::Felt;
 
 use super::block::BlockRoot;
 use crate::contract_address::ContractAddress;
-use crate::felt::{BlockHash, ClassHash, Nonce};
+use crate::felt::{BlockHash, ClassHash, CompiledClassHash, Nonce};
 use crate::patricia_key::PatriciaKey;
 
-pub type CompiledClassHashHex = Felt;
 pub type Balance = BigUint;
 
 #[derive(Debug, Clone, Serialize)]
@@ -105,7 +104,7 @@ pub struct StorageEntry {
 #[cfg_attr(feature = "testing", derive(PartialEq, Eq, serde::Deserialize))]
 pub struct ClassHashPair {
     pub class_hash: ClassHash,
-    pub compiled_class_hash: CompiledClassHashHex,
+    pub compiled_class_hash: CompiledClassHash,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]

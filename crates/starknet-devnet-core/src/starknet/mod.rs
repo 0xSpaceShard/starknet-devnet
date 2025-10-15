@@ -529,6 +529,7 @@ impl Starknet {
                     strk_fee_token_address.to_hex_string().as_str()
                 ),
             },
+            is_l3: false,
         };
 
         BlockContext::new(
@@ -745,7 +746,7 @@ impl Starknet {
             .map_err(|error| {
                 Error::ContractExecutionError(
                     TransactionExecutionError::ExecutionError {
-                        error,
+                        error: Box::new(error),
                         class_hash,
                         storage_address,
                         selector: starknet_api::core::EntryPointSelector(entrypoint_selector),

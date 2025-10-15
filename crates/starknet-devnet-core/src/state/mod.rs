@@ -4,7 +4,7 @@ use std::sync::Arc;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::{State, StateReader};
 use parking_lot::RwLock;
-use starknet_api::core::CompiledClassHash;
+use starknet_api::contract_class::compiled_class_hash::{HashVersion, HashableCompiledClass};
 use starknet_rs_core::types::Felt;
 use starknet_types::compile_sierra_contract;
 use starknet_types::contract_address::ContractAddress;
@@ -340,7 +340,7 @@ impl CustomStateReader for StarknetState {
         // get_compiled_class is important if forking; checking hash is impossible via JSON-RPC
         let class_hash = starknet_api::core::ClassHash(class_hash);
         self.get_compiled_class_hash(class_hash)
-            .is_ok_and(|CompiledClassHash(class_hash)| class_hash != Felt::ZERO)
+            .is_ok_and(|starknet_api::core::CompiledClassHash(class_hash)| class_hash != Felt::ZERO)
             || self.get_compiled_class(class_hash).is_ok()
     }
 
@@ -365,7 +365,7 @@ impl CustomState for StarknetState {
 
         if let ContractClass::Cairo1(cairo_lang_contract_class) = &contract_class {
             let casm_hash =
-                compile_sierra_contract(cairo_lang_contract_class)?.compiled_class_hash();
+                compile_sierra_contract(cairo_lang_contract_class)?.hash(&HashVersion::V1).0;
 
             self.state.state.set_compiled_class_hash(
                 class_hash,

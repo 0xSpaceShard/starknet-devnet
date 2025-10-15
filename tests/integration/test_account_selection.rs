@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use serde_json::json;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, FunctionCall};
 use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::Provider;
@@ -16,7 +15,7 @@ use crate::common::constants::{
 };
 use crate::common::utils::{
     FeeUnit, assert_contains, assert_tx_succeeded_accepted, deploy_argent_account,
-    deploy_oz_account, get_simple_contract_artifacts,
+    deploy_oz_account, get_simple_contract_artifacts, new_contract_factory,
 };
 
 pub async fn get_predeployed_accounts(
@@ -188,7 +187,7 @@ async fn can_declare_deploy_invoke_cairo1_using_account(
         .unwrap();
 
     // deploy the contract
-    let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
+    let contract_factory = new_contract_factory(declaration_result.class_hash, account.clone());
     let initial_value = Felt::from(10_u32);
     let ctor_args = vec![initial_value];
     contract_factory.deploy_v3(ctor_args.clone(), Felt::ZERO, false).send().await.unwrap();

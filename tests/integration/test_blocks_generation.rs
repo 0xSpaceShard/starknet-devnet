@@ -4,7 +4,6 @@ use std::time;
 use anyhow::anyhow;
 use serde_json::json;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
     BlockId, BlockStatus, BlockTag, Call, DeclaredClassItem, Felt, FunctionCall,
     MaybePreConfirmedStateUpdate, NonceUpdate, StateUpdate, TransactionTrace,
@@ -20,7 +19,8 @@ use crate::common::constants::{self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH};
 use crate::common::utils::{
     FeeUnit, UniqueAutoDeletableFile, assert_equal_elements, assert_tx_succeeded_accepted,
     assert_tx_succeeded_pre_confirmed, get_contract_balance, get_contract_balance_by_block_id,
-    get_events_contract_artifacts, get_simple_contract_artifacts, send_ctrl_c_signal_and_wait,
+    get_events_contract_artifacts, get_simple_contract_artifacts, new_contract_factory,
+    send_ctrl_c_signal_and_wait,
 };
 use crate::{assert_eq_prop, assert_prop};
 
@@ -426,7 +426,7 @@ async fn blocks_on_demand_invoke_and_call() {
 
     // deploy the contract
     let contract_factory =
-        ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
+        new_contract_factory(declaration_result.class_hash, predeployed_account.clone());
     let initial_value = Felt::from(10_u32);
     let ctor_args = vec![initial_value];
     let deploy_result = contract_factory

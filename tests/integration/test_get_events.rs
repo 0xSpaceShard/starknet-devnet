@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use starknet_rs_accounts::{Account, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
     BlockId, BlockStatus, BlockTag, Call, EmittedEvent, EventFilter, Felt, StarknetError,
 };
@@ -10,7 +9,7 @@ use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{self, MAINNET_URL, STRK_ERC20_CONTRACT_ADDRESS};
-use crate::common::utils::get_events_contract_artifacts;
+use crate::common::utils::{get_events_contract_artifacts, new_contract_factory};
 
 async fn get_events_follow_continuation_token(
     devnet: &BackgroundDevnet,
@@ -69,7 +68,7 @@ async fn get_events_correct_chunking(devnet: &BackgroundDevnet, block_on_demand:
 
     // deploy the contract
     let contract_factory =
-        ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
+        new_contract_factory(declaration_result.class_hash, predeployed_account.clone());
     contract_factory.deploy_v3(vec![], Felt::ZERO, false).send().await.unwrap();
 
     if block_on_demand {

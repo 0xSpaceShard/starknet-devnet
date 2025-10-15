@@ -4,7 +4,8 @@ use serde_json::json;
 use starknet_core::constants::CHARGEABLE_ACCOUNT_ADDRESS;
 use starknet_rs_accounts::{ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{
-    DeclareTransactionV3, Felt, InvokeTransactionV3, Transaction, TransactionFinalityStatus,
+    DeclareTransactionV3, DeployAccountTransaction, Felt, InvokeTransactionV3, Transaction,
+    TransactionFinalityStatus,
 };
 use tokio_tungstenite::connect_async;
 
@@ -326,9 +327,9 @@ async fn test_deploy_account_tx_notification() {
     let _minting_notification = receive_new_tx(&mut ws, subscription_id.clone()).await.unwrap();
 
     let notification = receive_new_tx(&mut ws, subscription_id).await.unwrap();
-    // TODO: uncomment when starknet-rs updated to 0.17
-    // let tx: DeployAccountTransaction = serde_json::from_value(notification).unwrap();
-    // assert_eq!(tx.transaction_hash, deployment_result.transaction_hash);
+
+    let tx: DeployAccountTransaction = serde_json::from_value(notification.clone()).unwrap();
+    assert_eq!(*tx.transaction_hash(), deployment_result.transaction_hash);
     assert_eq!(notification["transaction_hash"], json!(deployment_result.transaction_hash));
 
     assert_no_notifications(&mut ws).await.unwrap();

@@ -121,23 +121,27 @@ pub enum TransactionValidationError {
 impl From<TransactionExecutionError> for Error {
     fn from(value: TransactionExecutionError) -> Self {
         match value {
-            TransactionExecutionError::TransactionPreValidationError(
+            TransactionExecutionError::TransactionPreValidationError(err) => match *err {
                 TransactionPreValidationError::InvalidNonce {
                     address,
                     account_nonce,
                     incoming_tx_nonce,
-                },
-            ) => TransactionValidationError::InvalidTransactionNonce {
-                address: address.into(),
-                account_nonce,
-                incoming_tx_nonce,
-            }
-            .into(),
+                } => Self::TransactionValidationError(
+                    TransactionValidationError::InvalidTransactionNonce {
+                        address: address.into(),
+                        account_nonce,
+                        incoming_tx_nonce,
+                    },
+                ),
+                TransactionPreValidationError::StateError(err) => {
+                    Self::ContractExecutionError(err.to_string().into())
+                }
+                TransactionPreValidationError::TransactionFeeError(tx_fee_err) => {
+                    Self::TransactionFeeError(*tx_fee_err)
+                }
+            },
             TransactionExecutionError::FeeCheckError(err) => err.into(),
-            TransactionExecutionError::TransactionPreValidationError(
-                TransactionPreValidationError::TransactionFeeError(err),
-            ) => err.into(),
-            TransactionExecutionError::TransactionFeeError(err) => err.into(),
+            TransactionExecutionError::TransactionFeeError(err) => (*err).into(),
             TransactionExecutionError::ValidateTransactionError { .. } => {
                 TransactionValidationError::ValidationFailure { reason: value.to_string() }.into()
             }

@@ -7,7 +7,9 @@ use starknet_rs_providers::Provider;
 use crate::assert_eq_prop;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
-use crate::common::utils::{FeeUnit, UniqueAutoDeletableFile, send_ctrl_c_signal_and_wait};
+use crate::common::utils::{
+    FeeUnit, UniqueAutoDeletableFile, new_contract_factory, send_ctrl_c_signal_and_wait,
+};
 
 static DUMMY_ADDRESS: u128 = 1;
 static DUMMY_AMOUNT: u128 = 1;
@@ -15,7 +17,6 @@ static DUMMY_AMOUNT: u128 = 1;
 use std::sync::Arc;
 
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{DeclareTransaction, Felt, InvokeTransaction, Transaction};
 
 use crate::common::utils::get_events_contract_artifacts;
@@ -253,7 +254,7 @@ async fn declare_deploy() {
 
     // deploy the contract
     let contract_factory =
-        ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
+        new_contract_factory(declaration_result.class_hash, predeployed_account.clone());
     let deploy_result = contract_factory
         .deploy_v3(vec![], Felt::ZERO, false)
         .l1_gas(0)
