@@ -65,11 +65,19 @@ jobs:
           TAGS+=("$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:sha-$SHORT_SHA")
           SEED0_TAGS+=("$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:sha-$SHORT_SHA-seed0")
           
-          git fetch --depth=2
-          VERSION=$(grep "^version" crates/starknet-devnet/Cargo.toml | sed -E 's/.*"(.*)"/\1/')
-          PREVIOUS_VERSION=$(git show HEAD~1:crates/starknet-devnet/Cargo.toml | grep "^version" | sed -E 's/.*"(.*)"/\1/' || echo "")
+          git fetch --depth=2 || true
+          git fetch origin main --depth=2 || true
           
-          if [ "$VERSION" != "$PREVIOUS_VERSION" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          VERSION=$(grep "^version" crates/starknet-devnet/Cargo.toml | sed -E 's/.*"(.*)"/\1/')
+          
+          PREVIOUS_VERSION=""
+          if git rev-parse HEAD~1 &>/dev/null; then
+            PREVIOUS_VERSION=$(git show HEAD~1:crates/starknet-devnet/Cargo.toml | grep "^version" | sed -E 's/.*"(.*)"/\1/' || echo "")
+          else
+            echo "Cannot determine previous version, will not add version tags"
+          fi
+          
+          if [[ -n "$PREVIOUS_VERSION" && "$VERSION" != "$PREVIOUS_VERSION" ]] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TAGS+=("$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:$VERSION")
             SEED0_TAGS+=("$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:$VERSION-seed0")
             
