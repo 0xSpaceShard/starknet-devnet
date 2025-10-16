@@ -13,12 +13,12 @@ COPY crates/starknet-devnet-server/Cargo.toml ./crates/starknet-devnet-server/
 COPY crates/starknet-devnet-types/Cargo.toml ./crates/starknet-devnet-types/
 COPY tests/integration/Cargo.toml ./tests/integration/
 
-RUN mkdir -p src && echo 'fn main() {}' > src/main.rs
-
-RUN for crate in starknet-devnet starknet-devnet-core starknet-devnet-server starknet-devnet-types; do \
+RUN for crate in starknet-devnet-core starknet-devnet-server starknet-devnet-types; do \
       mkdir -p crates/$crate/src; \
       echo 'pub fn dummy() {}' > crates/$crate/src/lib.rs; \
     done
+
+RUN mkdir -p crates/starknet-devnet/src && echo 'fn main() {}' > crates/starknet-devnet/src/main.rs
 
 RUN mkdir -p tests/integration/src && echo 'pub fn dummy() {}' > tests/integration/src/lib.rs
 
