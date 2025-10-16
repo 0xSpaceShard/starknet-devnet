@@ -110,6 +110,6 @@ jobs:
           push: true
           tags: ${{ steps.prep.outputs.seed0_tags }}
           build-args: |
-            BASE_IMAGE=${{ steps.config.outputs.docker_registry }}/${{ steps.config.outputs.docker_namespace }}/${{ steps.config.outputs.image_name }}:sha-${{ github.sha }}
+            BASE_IMAGE=${{ steps.config.outputs.docker_registry }}/${{ steps.config.outputs.docker_namespace }}/${{ steps.config.outputs.image_name }}:sha-${{ steps.get_sha.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
