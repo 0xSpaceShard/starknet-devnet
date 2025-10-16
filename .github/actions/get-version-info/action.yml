@@ -1,0 +1,74 @@
+name: 'Get Version Info'
+description: 'Extracts version information from Cargo.toml and compares with previous commit'
+
+inputs:
+  cargo_toml_path:
+    description: 'Path to the Cargo.toml file to extract version from'
+    required: false
+    default: 'crates/starknet-devnet/Cargo.toml'
+  force_version_tags:
+    description: 'Force version tags regardless of version change'
+    required: false
+    default: 'false'
+
+outputs:
+  version:
+    description: 'The current version from Cargo.toml'
+    value: ${{ steps.get_version.outputs.version }}
+  is_rc:
+    description: 'Whether the version is a release candidate'
+    value: ${{ steps.check_rc.outputs.is_rc }}
+  version_changed:
+    description: 'Whether the version has changed from the previous commit'
+    value: ${{ steps.compare_versions.outputs.version_changed }}
+  previous_version:
+    description: 'The previous version from the last commit (empty if not available)'
+    value: ${{ steps.get_previous_version.outputs.previous_version }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Get current version
+      id: get_version
+      shell: bash
+      run: |
+        VERSION=$(grep -E '^version = "[0-9]+\.[0-9]+\.[0-9]+"$' ${{ inputs.cargo_toml_path }} | head -n 1 | cut -d'"' -f2)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Check if version is a release candidate
+      id: check_rc
+      shell: bash
+      run: |
+        VERSION="${{ steps.get_version.outputs.version }}"
+        if [[ "$VERSION" == *"rc"* ]]; then
+          echo "is_rc=true" >> $GITHUB_OUTPUT
+        else
+          echo "is_rc=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Get previous version
+      id: get_previous_version
+      shell: bash
+      run: |
+        git fetch --depth=2 || true
+        
+        PREVIOUS_VERSION=""
+        if git rev-parse HEAD~1 &>/dev/null; then
+          PREVIOUS_VERSION=$(git show HEAD~1:${{ inputs.cargo_toml_path }} 2>/dev/null | grep "^version" | sed -E 's/.*"(.*)"/\1/' || echo "")
+        fi
+        
+        echo "previous_version=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Compare versions
+      id: compare_versions
+      shell: bash
+      run: |
+        CURRENT_VERSION="${{ steps.get_version.outputs.version }}"
+        PREVIOUS_VERSION="${{ steps.get_previous_version.outputs.previous_version }}"
+        FORCE_TAGS="${{ inputs.force_version_tags }}"
+        
+        if [[ -n "$PREVIOUS_VERSION" && "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]] || [[ "$FORCE_TAGS" == "true" ]]; then
+          echo "version_changed=true" >> $GITHUB_OUTPUT
+        else
+          echo "version_changed=false" >> $GITHUB_OUTPUT
+        fi

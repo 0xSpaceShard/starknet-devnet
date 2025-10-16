@@ -30,6 +30,10 @@ jobs:
     name: Publish artifacts
     if: ${{ (github.event.workflow_run.conclusion == 'success' && !contains(github.event.workflow_run.name, 'Test')) || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-22.04
+    outputs:
+      version_changed: ${{ steps.check_publish.outputs.continue }}
+      version: ${{ steps.version_info.outputs.version }}
+      is_rc: ${{ steps.version_info.outputs.is_rc }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -55,41 +59,35 @@ jobs:
         with:
           path: artifacts
 
-      - name: Get version
-        id: get_version
+      - name: Get version information
+        id: version_info
+        uses: ./.github/actions/get-version-info
+      
+      - name: Check if publishing needed
+        id: check_publish
         run: |
-          VERSION=$(grep -E '^version = "[0-9]+\.[0-9]+\.[0-9]+"$' crates/starknet-devnet/Cargo.toml | head -n 1 | cut -d'"' -f2)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          if [[ "${{ steps.version_info.outputs.version_changed }}" == "false" && "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            echo "Version hasn't changed and workflow wasn't manually triggered. Skipping publishing steps."
+            exit 0
+          fi
+          echo "continue=true" >> $GITHUB_OUTPUT
           
-      # Verify Docker images are available
       - name: Login to Docker Hub
+        if: ${{ steps.check_publish.outputs.continue == 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Get the SHA of the Docker images to verify
       - name: Get SHA
         id: get_sha
+        if: ${{ steps.check_publish.outputs.continue == 'true' }}
         run: |
           SHA_SHORT=$(git rev-parse --short HEAD)
           echo "sha=$SHA_SHORT" >> $GITHUB_OUTPUT
           
-      # Get version and check if it's a release candidate
-      - name: Get version and check release candidate status
-        id: version_info
-        run: |
-          VERSION=$(grep -E '^version = "[0-9]+\.[0-9]+\.[0-9]+"$' crates/starknet-devnet/Cargo.toml | head -n 1 | cut -d'"' -f2)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          
-          # Check if this is a release candidate
-          if [[ "$VERSION" == *"rc"* ]]; then
-            echo "is_rc=true" >> $GITHUB_OUTPUT
-          else
-            echo "is_rc=false" >> $GITHUB_OUTPUT
-          fi
-          
       - name: Check Docker images existence
+        if: ${{ steps.check_publish.outputs.continue == 'true' }}
         run: |
           echo "Verifying Docker images were built successfully..."
           
@@ -134,7 +132,7 @@ jobs:
           echo "All Docker images verified successfully!"
       
       - name: Set up cargo credentials
-        if: ${{ !inputs.skip_crates_io }}
+        if: ${{ !inputs.skip_crates_io && steps.check_publish.outputs.continue == 'true' }}
         run: |
           mkdir -p ~/.cargo
           echo "[registry]" > ~/.cargo/credentials
@@ -142,12 +140,11 @@ jobs:
           chmod 0600 ~/.cargo/credentials
 
       - name: Publish to crates.io
-        if: ${{ !inputs.skip_crates_io }}
+        if: ${{ !inputs.skip_crates_io && steps.check_publish.outputs.continue == 'true' }}
         run: ./scripts/publish_cratesio_new_versions.sh
 
-      # Publishing documentation
       - name: Publish docs
-        if: ${{ !inputs.skip_docs }}
+        if: ${{ !inputs.skip_docs && steps.check_publish.outputs.continue == 'true' }}
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "GitHub Actions"
@@ -156,6 +153,7 @@ jobs:
   release:
     name: Create GitHub Release
     needs: publish
+    if: ${{ !failure() && !cancelled() && needs.publish.outputs.version_changed == 'true' }}
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout repository
@@ -165,12 +163,6 @@ jobs:
         id: config
         uses: ./.github/actions/load-config
 
-      - name: Get version
-        id: get_version
-        run: |
-          VERSION=$(grep -E '^version = "[0-9]+\.[0-9]+\.[0-9]+"$' crates/starknet-devnet/Cargo.toml | head -n 1 | cut -d'"' -f2)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -179,10 +171,10 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: v${{ steps.get_version.outputs.version }}
-          tag_name: v${{ steps.get_version.outputs.version }}
+          name: v${{ needs.publish.outputs.version }}
+          tag_name: v${{ needs.publish.outputs.version }}
           draft: false
-          prerelease: false
+          prerelease: ${{ needs.publish.outputs.is_rc }}
           files: |
             artifacts/starknet-devnet-x86_64-unknown-linux-gnu/starknet-devnet-x86_64-unknown-linux-gnu.tar.gz
             artifacts/starknet-devnet-aarch64-unknown-linux-gnu/starknet-devnet-aarch64-unknown-linux-gnu.tar.gz
@@ -190,7 +182,7 @@ jobs:
             artifacts/starknet-devnet-x86_64-apple-darwin/starknet-devnet-x86_64-apple-darwin.tar.gz
             artifacts/starknet-devnet-aarch64-apple-darwin/starknet-devnet-aarch64-apple-darwin.tar.gz
           body: |
-            # Starknet Devnet v${{ steps.version_info.outputs.version }}
+            # Starknet Devnet v${{ needs.publish.outputs.version }}
             
             ## Installation
             

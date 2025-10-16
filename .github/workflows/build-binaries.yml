@@ -7,7 +7,6 @@ on:
     types:
       - completed
   workflow_dispatch:
-  push:
 
 permissions:
   contents: read
@@ -20,7 +19,7 @@ concurrency:
 jobs:
   binary-build:
     name: Binary - ${{ matrix.target }}
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'push' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
