@@ -109,5 +109,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.prep.outputs.seed0_tags }}
+          build-args: |
+            BASE_IMAGE=${{ steps.config.outputs.docker_registry }}/${{ steps.config.outputs.docker_namespace }}/${{ steps.config.outputs.image_name }}:sha-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
