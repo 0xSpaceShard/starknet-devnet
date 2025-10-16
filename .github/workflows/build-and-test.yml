@@ -62,13 +62,20 @@ jobs:
         run: cargo check --workspace --all-targets
 
       - name: Run clippy check
-        run: ./scripts/clippy_check.sh
+        run: |
+          cargo clippy --workspace -- -Dwarnings
+          cargo clippy --workspace --all-features -- -Dwarnings
+          cargo clippy --workspace --tests -- -Dwarnings
 
       - name: Check code formatting
-        run: ./scripts/format_check.sh
+        run: |
+          cargo +${{ steps.config.outputs.rust_nightly_version }} fmt --all --check
+          npm --prefix website run format-check
 
       - name: Check spelling
-        run: ./scripts/check_spelling.sh
+        run: |
+          cargo +${{ steps.config.outputs.rust_nightly_version }} install typos-cli --version 1.36.2 --locked
+          typos && echo "No spelling errors!"
 
       - name: Build in release mode
         run: cargo build --release
