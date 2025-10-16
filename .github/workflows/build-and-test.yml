@@ -70,7 +70,7 @@ jobs:
       - name: Check code formatting
         run: |
           cargo +${{ steps.config.outputs.rust_nightly_version }} fmt --all --check
-          npm --prefix website run format-check
+          cd website && npm ci && npm run format-check
 
       - name: Check spelling
         run: |

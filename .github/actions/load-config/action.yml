@@ -13,10 +13,10 @@ outputs:
     value: 'docker.io'
   docker_namespace:
     description: 'Docker namespace to use'
-    value: '0xspaceshard'
+    value: 'shardlabs'
   image_name:
     description: 'Docker image name to use'
-    value: 'starknet-devnet'
+    value: 'starknet-devnet-rs'
 
 runs:
   using: 'composite'
