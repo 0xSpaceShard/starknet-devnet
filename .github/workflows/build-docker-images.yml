@@ -1,0 +1,104 @@
+name: Build Docker Images
+
+on:
+  workflow_run:
+    workflows: ["Build and Test"]
+    branches: [main]
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  docker-build:
+    name: Multi-architecture Docker Images
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Load common configuration
+        id: config
+        uses: ./.github/actions/load-config
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64,amd64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Get SHA
+        id: get_sha
+        run: |
+          SHORT_SHA=${GITHUB_SHA::7}
+          echo "sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+
+      - name: Prepare tags
+        id: prep
+        run: |
+          SHORT_SHA=${GITHUB_SHA::7}
+          declare -a TAGS=()
+          declare -a SEED0_TAGS=()
+          
+          DOCKER_REGISTRY="${{ steps.config.outputs.docker_registry }}"
+          DOCKER_NAMESPACE="${{ steps.config.outputs.docker_namespace }}"
+          IMAGE_NAME="${{ steps.config.outputs.image_name }}"
+          
+          TAGS+=("$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:sha-$SHORT_SHA")
+          SEED0_TAGS+=("$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:sha-$SHORT_SHA-seed0")
+          
+          git fetch --depth=2
+          VERSION=$(grep "^version" crates/starknet-devnet/Cargo.toml | sed -E 's/.*"(.*)"/\1/')
+          PREVIOUS_VERSION=$(git show HEAD~1:crates/starknet-devnet/Cargo.toml | grep "^version" | sed -E 's/.*"(.*)"/\1/' || echo "")
+          
+          if [ "$VERSION" != "$PREVIOUS_VERSION" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAGS+=("$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:$VERSION")
+            SEED0_TAGS+=("$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:$VERSION-seed0")
+            
+            if [[ ! "$VERSION" =~ "rc" ]]; then
+              TAGS+=("$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:latest")
+              SEED0_TAGS+=("$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:latest-seed0")
+            fi
+          fi
+          
+          echo "tags=$(IFS=,; echo "${TAGS[*]}")" >> $GITHUB_OUTPUT
+          echo "seed0_tags=$(IFS=,; echo "${SEED0_TAGS[*]}")" >> $GITHUB_OUTPUT
+
+      - name: Build and push multi-platform Docker images
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.prep.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push seed0 Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/seed0.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.prep.outputs.seed0_tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

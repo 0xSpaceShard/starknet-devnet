@@ -1,0 +1,226 @@
+name: Publish
+
+on:
+  workflow_run:
+    workflows: ["Build Binaries", "Build Docker Images"]
+    branches: [main]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      skip_crates_io:
+        description: 'Skip publishing to crates.io'
+        type: boolean
+        default: false
+      skip_docs:
+        description: 'Skip publishing documentation'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish artifacts
+    if: ${{ (github.event.workflow_run.conclusion == 'success' && !contains(github.event.workflow_run.name, 'Test')) || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+          
+      - name: Load common configuration
+        id: config
+        uses: ./.github/actions/load-config
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.config.outputs.rust_stable_version }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Get version
+        id: get_version
+        run: |
+          VERSION=$(grep -E '^version = "[0-9]+\.[0-9]+\.[0-9]+"$' crates/starknet-devnet/Cargo.toml | head -n 1 | cut -d'"' -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+      # Verify Docker images are available
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Get the SHA of the Docker images to verify
+      - name: Get SHA
+        id: get_sha
+        run: |
+          SHA_SHORT=$(git rev-parse --short HEAD)
+          echo "sha=$SHA_SHORT" >> $GITHUB_OUTPUT
+          
+      # Get version and check if it's a release candidate
+      - name: Get version and check release candidate status
+        id: version_info
+        run: |
+          VERSION=$(grep -E '^version = "[0-9]+\.[0-9]+\.[0-9]+"$' crates/starknet-devnet/Cargo.toml | head -n 1 | cut -d'"' -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+          # Check if this is a release candidate
+          if [[ "$VERSION" == *"rc"* ]]; then
+            echo "is_rc=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_rc=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Check Docker images existence
+        run: |
+          echo "Verifying Docker images were built successfully..."
+          
+          DOCKER_REGISTRY="${{ steps.config.outputs.docker_registry }}"
+          DOCKER_NAMESPACE="${{ steps.config.outputs.docker_namespace }}"
+          IMAGE_NAME="${{ steps.config.outputs.image_name }}"
+          
+          docker pull $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:${{ steps.get_sha.outputs.sha }} || {
+            echo "ERROR: SHA-tagged standard image not found!"
+            exit 1
+          }
+          
+          docker pull $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:${{ steps.get_sha.outputs.sha }}-seed0 || {
+            echo "ERROR: SHA-tagged seed0 image not found!"
+            exit 1
+          }
+          
+          docker pull $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:${{ steps.version_info.outputs.version }} || {
+            echo "ERROR: Version-tagged standard image not found!"
+            exit 1
+          }
+          
+          docker pull $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:${{ steps.version_info.outputs.version }}-seed0 || {
+            echo "ERROR: Version-tagged seed0 image not found!"
+            exit 1
+          }
+          
+          if [[ "${{ steps.version_info.outputs.is_rc }}" == "false" ]]; then
+            docker pull $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:latest || {
+              echo "ERROR: Latest standard image not found!"
+              exit 1
+            }
+            
+            docker pull $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:latest-seed0 || {
+              echo "ERROR: Latest-seed0 image not found!"
+              exit 1
+            }
+          else
+            echo "Skipping latest tag verification as this is a release candidate (version: ${{ steps.version_info.outputs.version }})"
+          fi
+          
+          echo "All Docker images verified successfully!"
+      
+      - name: Set up cargo credentials
+        if: ${{ !inputs.skip_crates_io }}
+        run: |
+          mkdir -p ~/.cargo
+          echo "[registry]" > ~/.cargo/credentials
+          echo "token = \"${{ secrets.CARGO_REGISTRY_TOKEN }}\"" >> ~/.cargo/credentials
+          chmod 0600 ~/.cargo/credentials
+
+      - name: Publish to crates.io
+        if: ${{ !inputs.skip_crates_io }}
+        run: ./scripts/publish_cratesio_new_versions.sh
+
+      # Publishing documentation
+      - name: Publish docs
+        if: ${{ !inputs.skip_docs }}
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "GitHub Actions"
+          ./scripts/publish_docs.sh
+
+  release:
+    name: Create GitHub Release
+    needs: publish
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Load common configuration
+        id: config
+        uses: ./.github/actions/load-config
+
+      - name: Get version
+        id: get_version
+        run: |
+          VERSION=$(grep -E '^version = "[0-9]+\.[0-9]+\.[0-9]+"$' crates/starknet-devnet/Cargo.toml | head -n 1 | cut -d'"' -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ steps.get_version.outputs.version }}
+          tag_name: v${{ steps.get_version.outputs.version }}
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/starknet-devnet-x86_64-unknown-linux-gnu/starknet-devnet-x86_64-unknown-linux-gnu.tar.gz
+            artifacts/starknet-devnet-aarch64-unknown-linux-gnu/starknet-devnet-aarch64-unknown-linux-gnu.tar.gz
+            artifacts/starknet-devnet-x86_64-unknown-linux-musl/starknet-devnet-x86_64-unknown-linux-musl.tar.gz
+            artifacts/starknet-devnet-x86_64-apple-darwin/starknet-devnet-x86_64-apple-darwin.tar.gz
+            artifacts/starknet-devnet-aarch64-apple-darwin/starknet-devnet-aarch64-apple-darwin.tar.gz
+          body: |
+            # Starknet Devnet v${{ steps.version_info.outputs.version }}
+            
+            ## Installation
+            
+            ### Binary
+            Download the appropriate binary for your platform from the assets below.
+            
+            ### Docker
+            ```bash
+            # Set environment variables for following Docker commands
+            DOCKER_REGISTRY="${{ steps.config.outputs.docker_registry }}"
+            DOCKER_NAMESPACE="${{ steps.config.outputs.docker_namespace }}"
+            IMAGE_NAME="${{ steps.config.outputs.image_name }}"
+            
+            # Pull by version
+            docker pull $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:${{ steps.version_info.outputs.version }}
+            docker pull $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:${{ steps.version_info.outputs.version }}-seed0
+            
+            # Pull by SHA
+            docker pull $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:${{ steps.get_sha.outputs.sha }}
+            docker pull $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:${{ steps.get_sha.outputs.sha }}-seed0
+            
+            ${{ steps.version_info.outputs.is_rc != 'true' && '# Pull latest versions\ndocker pull '}}$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:latest
+            ${{ steps.version_info.outputs.is_rc != 'true' && 'docker pull '}}$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:latest-seed0
+            ```
+            ${{ steps.version_info.outputs.is_rc == 'true' && '### Note\nLatest tags are not available for release candidates.' || '' }}
+            
+            ### Cargo
+            ```bash
+            cargo install starknet-devnet
+            ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
