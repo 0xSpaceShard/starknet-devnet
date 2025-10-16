@@ -7,7 +7,6 @@ on:
     types:
       - completed
   workflow_dispatch:
-  push:
 
 permissions:
   contents: read
