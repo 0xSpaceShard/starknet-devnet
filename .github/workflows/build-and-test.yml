@@ -15,7 +15,7 @@ concurrency:
 jobs:
   build-and-test:
     name: Build and Test
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     outputs:
       version: ${{ steps.get_version.outputs.version }}
     steps:
@@ -45,7 +45,7 @@ jobs:
           components: rustfmt
 
       - name: Setup Rust cache
-        uses: Swatinem/rust-cache@v2.5.0
+        uses: Swatinem/rust-cache@v2.8.1
         with:
           cache-on-failure: true
           shared-key: "main-build"
