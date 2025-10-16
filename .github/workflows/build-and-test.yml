@@ -44,12 +44,6 @@ jobs:
           toolchain: ${{ steps.config.outputs.rust_nightly_version }}
           components: rustfmt
 
-      - name: Setup Rust cache
-        uses: Swatinem/rust-cache@v2.8.1
-        with:
-          cache-on-failure: true
-          shared-key: "main-build"
-
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1.1.0
         with:

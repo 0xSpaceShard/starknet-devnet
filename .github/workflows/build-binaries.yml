@@ -77,8 +77,16 @@ jobs:
             sudo apt-get install -y gcc-aarch64-linux-gnu
           fi
 
-      - name: Compile binary
-        run: ./scripts/compile_binary.sh ${{ matrix.target }}
+      - name: Setup for AArch64 Linux target
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          echo '[target.aarch64-unknown-linux-gnu]' >> ~/.cargo/config.toml
+          echo 'linker = "aarch64-linux-gnu-gcc"' >> ~/.cargo/config.toml
+          
+      - name: Add target and compile binary
+        run: |
+          rustup target add ${{ matrix.target }}
+          cargo build --release --target=${{ matrix.target }} --bin starknet-devnet
 
       - name: Archive binary
         run: tar -czvf ${{ matrix.artifact-name }}.tar.gz --directory target/${{ matrix.target }}/release starknet-devnet
