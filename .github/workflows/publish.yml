@@ -2,7 +2,7 @@ name: Publish
 
 on:
   workflow_run:
-    workflows: ["Build Binaries", "Build Docker Images"]
+    workflows: ["Build Docker Images"]
     branches: [main]
     types:
       - completed
@@ -28,7 +28,7 @@ concurrency:
 jobs:
   publish:
     name: Publish artifacts
-    if: ${{ (github.event.workflow_run.conclusion == 'success' && !contains(github.event.workflow_run.name, 'Test')) || github.event_name == 'workflow_dispatch' }}
+    if: ${{ (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.name == 'Build Docker Images') || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-22.04
     outputs:
       version_changed: ${{ steps.check_publish.outputs.continue }}
@@ -86,14 +86,27 @@ jobs:
           SHA_SHORT=$(git rev-parse --short HEAD)
           echo "sha=$SHA_SHORT" >> $GITHUB_OUTPUT
           
-      - name: Check Docker images existence
+      - name: Check prerequisites
         if: ${{ steps.check_publish.outputs.continue == 'true' }}
         run: |
-          echo "Verifying Docker images were built successfully..."
+          echo "Verifying Docker images and binaries were built successfully..."
           
           DOCKER_REGISTRY="${{ steps.config.outputs.docker_registry }}"
           DOCKER_NAMESPACE="${{ steps.config.outputs.docker_namespace }}"
           IMAGE_NAME="${{ steps.config.outputs.image_name }}"
+          
+          # Check if binary artifacts exist
+          if [ ! -f "artifacts/starknet-devnet-x86_64-unknown-linux-gnu/starknet-devnet-x86_64-unknown-linux-gnu.tar.gz" ] || \
+             [ ! -f "artifacts/starknet-devnet-aarch64-unknown-linux-gnu/starknet-devnet-aarch64-unknown-linux-gnu.tar.gz" ] || \
+             [ ! -f "artifacts/starknet-devnet-x86_64-unknown-linux-musl/starknet-devnet-x86_64-unknown-linux-musl.tar.gz" ] || \
+             [ ! -f "artifacts/starknet-devnet-x86_64-apple-darwin/starknet-devnet-x86_64-apple-darwin.tar.gz" ] || \
+             [ ! -f "artifacts/starknet-devnet-aarch64-apple-darwin/starknet-devnet-aarch64-apple-darwin.tar.gz" ]; then
+            echo "ERROR: Required binary artifacts are missing!"
+            exit 1
+          fi
+          
+          echo "All binary artifacts found."
+          echo "Verifying Docker images..."
           
           docker pull $DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:${{ steps.get_sha.outputs.sha }} || {
             echo "ERROR: SHA-tagged standard image not found!"
