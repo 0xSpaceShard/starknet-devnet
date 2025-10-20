@@ -258,7 +258,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/Dockerfile
+          file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.combined_tags.outputs.tags }}
@@ -270,7 +270,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/seed0.Dockerfile
+          file: ./seed0.Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.combined_seed0_tags.outputs.tags }}
@@ -346,7 +346,7 @@ jobs:
         if: ${{ !inputs.skip_docs }}
         env:
           GIT_USER: ${{ github.actor }}
-          GIT_PASS: ${{ secrets.GITHUB_TOKEN }}  # <-- use GIT_PASS, not GIT_TOKEN
+          GIT_PASS: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd website
           npm ci
