@@ -386,7 +386,8 @@ jobs:
             docker pull ${{ steps.config.outputs.docker_registry }}/${{ steps.config.outputs.docker_namespace }}/${{ steps.config.outputs.image_name }}:sha-${{ needs.prepare.outputs.sha }}
             docker pull ${{ steps.config.outputs.docker_registry }}/${{ steps.config.outputs.docker_namespace }}/${{ steps.config.outputs.image_name }}:sha-${{ needs.prepare.outputs.sha }}-seed0
             
-            ${{ needs.prepare.outputs.is_rc != 'true' && '# Pull latest versions\ndocker pull '}}${{ steps.config.outputs.docker_registry }}/${{ steps.config.outputs.docker_namespace }}/${{ steps.config.outputs.image_name }}:latest
+            ${{ needs.prepare.outputs.is_rc != 'true' && '# Pull latest versions' }}
+            ${{ needs.prepare.outputs.is_rc != 'true' && 'docker pull '}}${{ steps.config.outputs.docker_registry }}/${{ steps.config.outputs.docker_namespace }}/${{ steps.config.outputs.image_name }}:latest
             ${{ needs.prepare.outputs.is_rc != 'true' && 'docker pull '}}${{ steps.config.outputs.docker_registry }}/${{ steps.config.outputs.docker_namespace }}/${{ steps.config.outputs.image_name }}:latest-seed0
             ```
             ${{ needs.prepare.outputs.is_rc == 'true' && '### Note\nLatest tags are not available for release candidates.' || '' }}
