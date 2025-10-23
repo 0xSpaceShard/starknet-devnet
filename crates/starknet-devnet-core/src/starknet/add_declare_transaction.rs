@@ -124,7 +124,7 @@ fn assert_casm_hash_is_valid(
         (ContractClass::Cairo1(cairo_lang_contract_class), Some(received_casm_hash)) => {
             let casm = compile_sierra_contract(cairo_lang_contract_class)?;
 
-            let calculated_casm_hash = casm.hash(&HashVersion::V1).0;
+            let calculated_casm_hash = casm.hash(&HashVersion::V2).0;
             if calculated_casm_hash == received_casm_hash {
                 Ok(())
             } else {
