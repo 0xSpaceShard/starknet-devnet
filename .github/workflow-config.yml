@@ -1,0 +1,21 @@
+# This file contains reusable configurations for GitHub Actions workflows
+# It defines common environments, permissions, concurrency settings, etc.
+
+name: Common Config
+
+# Environment variables used across workflows
+env:
+  RUST_STABLE_VERSION: 1.86.0
+  RUST_NIGHTLY_VERSION: nightly-2025-02-20
+  DOCKER_REGISTRY: docker.io
+  DOCKER_NAMESPACE: 0xspaceshard
+  IMAGE_NAME: starknet-devnet
+  
+# Default permissions required for workflows
+permissions:
+  contents: read
+  
+# Define concurrency groups to avoid running redundant workflows
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true

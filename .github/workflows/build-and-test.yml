@@ -1,0 +1,69 @@
+name: Build and Test
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Load common configuration
+        id: config
+        uses: ./.github/actions/load-config
+
+      - name: Set up Rust stable
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.config.outputs.rust_stable_version }}
+          components: clippy, rustfmt
+
+      - name: Set up Rust nightly
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.config.outputs.rust_nightly_version }}
+          components: rustfmt
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1.1.0
+        with:
+          version: nightly-5b7e4cb3c882b28f3c32ba580de27ce7381f415a
+
+      - name: Verify lockfile
+        run: cargo update -w --locked
+
+      - name: Run cargo check
+        run: cargo check --workspace --all-targets
+
+      - name: Run clippy check
+        run: |
+          cargo clippy --workspace -- -Dwarnings
+          cargo clippy --workspace --all-features -- -Dwarnings
+          cargo clippy --workspace --tests -- -Dwarnings
+
+      - name: Check code formatting
+        run: |
+          cargo +${{ steps.config.outputs.rust_nightly_version }} fmt --all --check
+          cd website && npm ci && npm run format-check
+
+      - name: Check spelling
+        run: |
+          cargo +${{ steps.config.outputs.rust_nightly_version }} install typos-cli --version 1.36.2 --locked
+          typos && echo "No spelling errors!"
+
+      - name: Build in release mode
+        run: cargo build --release
+
+      - name: Run tests
+        run: RUST_BACKTRACE=full cargo test --no-fail-fast

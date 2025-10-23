@@ -701,8 +701,8 @@ impl JsonRpcHandler {
     /// devnet_getConfig
     pub async fn get_devnet_config(&self) -> StrictRpcResult {
         Ok(DevnetResponse::DevnetConfig(DevnetConfig {
-            starknet_config: self.api.starknet.lock().await.config.clone(),
-            server_config: self.server_config.clone(),
+            starknet_config: (*self.api.config).clone(),
+            server_config: (*self.api.server_config).clone(),
         })
         .into())
     }

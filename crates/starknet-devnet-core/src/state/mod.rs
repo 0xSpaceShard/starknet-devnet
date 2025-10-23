@@ -193,10 +193,7 @@ impl StarknetState {
         Ok(diff)
     }
 
-    pub fn assert_contract_deployed(
-        &mut self,
-        contract_address: ContractAddress,
-    ) -> DevnetResult<()> {
+    pub fn assert_contract_deployed(&self, contract_address: ContractAddress) -> DevnetResult<()> {
         if !self.is_contract_deployed(contract_address)? {
             return Err(Error::ContractNotFound);
         }

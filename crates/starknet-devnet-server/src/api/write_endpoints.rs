@@ -111,8 +111,7 @@ impl JsonRpcHandler {
 
     /// devnet_dump
     pub async fn dump(&self, path: Option<DumpPath>) -> StrictRpcResult {
-        let starknet = self.api.starknet.lock().await;
-        if starknet.config.dump_on.is_none() {
+        if self.api.config.dump_on.is_none() {
             return Err(ApiError::DumpError {
                 msg: "Please provide --dump-on mode on startup.".to_string(),
             });
@@ -121,11 +120,10 @@ impl JsonRpcHandler {
         let path = path
             .as_ref()
             .map(|DumpPath { path }| path.clone())
-            .or_else(|| starknet.config.dump_path.clone())
+            .or_else(|| self.api.config.dump_path.clone())
             .unwrap_or_default();
 
-        drop(starknet);
-        let dumpable_events = self.api.dumpable_events.lock().await;
+        let dumpable_events = { self.api.dumpable_events.lock().await.clone() };
 
         if !path.is_empty() {
             dump_events(&dumpable_events, &path)
@@ -133,12 +131,12 @@ impl JsonRpcHandler {
             return Ok(DevnetResponse::DevnetDump(None).into());
         }
 
-        Ok(DevnetResponse::DevnetDump(Some(dumpable_events.clone())).into())
+        Ok(DevnetResponse::DevnetDump(Some(dumpable_events)).into())
     }
 
     /// devnet_load
     pub async fn load(&self, path: String) -> StrictRpcResult {
-        let events = load_events(self.starknet_config.dump_on, &path)?;
+        let events = load_events(self.api.config.dump_on, &path)?;
         // Necessary to restart before loading; restarting messaging to allow re-execution
         self.restart(Some(RestartParameters { restart_l1_to_l2_messaging: true })).await?;
         self.re_execute(&events).await.map_err(ApiError::RpcError)?;
