@@ -37,7 +37,7 @@ pub(crate) fn get_events(
     // iterate over each block and get the transactions for each one
     // then iterate over each transaction events and filter them
     for block in blocks {
-        for transaction_hash in block.get_transactions() {
+        for (transaction_index, transaction_hash) in block.get_transactions().iter().enumerate() {
             let transaction =
                 starknet.transactions.get_by_hash(*transaction_hash).ok_or(Error::NoTransaction)?;
 
@@ -51,7 +51,8 @@ pub(crate) fn get_events(
             let filtered_transaction_events = transaction
                 .get_events()
                 .into_iter()
-                .filter(|event| {
+                .enumerate()
+                .filter(|(_, event)| {
                     check_if_filter_applies_for_event(&contract_address, &keys_filter, event)
                 })
                 .skip_while(|_| {
@@ -64,7 +65,7 @@ pub(crate) fn get_events(
                 });
 
             // produce an emitted event for each filtered transaction event
-            for transaction_event in filtered_transaction_events {
+            for (event_index, transaction_event) in filtered_transaction_events {
                 // check if there are more elements to fetch
                 if let Some(limit) = limit {
                     if elements_added == limit {
@@ -79,6 +80,8 @@ pub(crate) fn get_events(
 
                 let emitted_event = EmittedEvent {
                     transaction_hash: *transaction_hash,
+                    transaction_index: Some(transaction_index as u64),
+                    event_index: Some(event_index as u64),
                     block_hash,
                     block_number,
                     keys: transaction_event.keys,
