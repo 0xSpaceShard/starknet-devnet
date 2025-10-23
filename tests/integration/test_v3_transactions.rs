@@ -19,7 +19,7 @@ use crate::common::constants::{
     UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    FeeUnit, LocalFee, assert_contains, assert_tx_succeeded_accepted,
+    FeeUnit, LocalFee, assert_contains, assert_tx_succeeded_accepted, extract_json_rpc_error,
     get_deployable_account_signer, get_flattened_sierra_contract_and_casm_hash,
     get_simple_contract_artifacts,
 };
@@ -45,7 +45,16 @@ async fn deploy_account_to_an_address_with_insufficient_balance_should_fail() {
     .unwrap();
 
     match factory.deploy_v3(Felt::THREE).send().await.unwrap_err() {
-        starknet_rs_accounts::AccountFactoryError::Provider(ProviderError::Other(_)) => {}
+        starknet_rs_accounts::AccountFactoryError::Provider(provider_error) => {
+            if let Ok(json_rpc_error) = extract_json_rpc_error(provider_error) {
+                if json_rpc_error.message.contains("Resources bounds")
+                    || json_rpc_error.message.contains("Fee check failed")
+                {
+                    return;
+                }
+            }
+            panic!("Unexpected provider error")
+        }
         other => panic!("Unexpected error: {:?}", other),
     };
 }
@@ -161,7 +170,16 @@ async fn declare_from_an_account_with_insufficient_strk_tokens_balance() {
     assert!(Felt::from(estimate_fee.overall_fee) > account_strk_balance);
 
     match declaration.send().await.unwrap_err() {
-        starknet_rs_accounts::AccountError::Provider(ProviderError::Other(_)) => {}
+        starknet_rs_accounts::AccountError::Provider(provider_error) => {
+            if let Ok(json_rpc_error) = extract_json_rpc_error(provider_error) {
+                if json_rpc_error.message.contains("Resources bounds")
+                    || json_rpc_error.message.contains("Fee check failed")
+                {
+                    return;
+                }
+            }
+            panic!("Unexpected provider error")
+        }
         other => panic!("Unexpected error: {:?}", other),
     }
 }
@@ -361,10 +379,18 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                         .l2_gas(l2)
                         .l2_gas_price(l2_price);
                 match declaration.send().await.unwrap_err() {
-                    starknet_rs_accounts::AccountError::Provider(ProviderError::Other(_)) => {}
                     starknet_rs_accounts::AccountError::Provider(ProviderError::StarknetError(
                         StarknetError::InsufficientResourcesForValidate,
                     )) => {}
+                    starknet_rs_accounts::AccountError::Provider(provider_error) => {
+                        if let Ok(json_rpc_error) = extract_json_rpc_error(provider_error) {
+                            if json_rpc_error.message.contains("Resource bounds were not satisfied")
+                            {
+                                return Ok(());
+                            }
+                        }
+                        anyhow::bail!("Unexpected provider error")
+                    }
                     other => anyhow::bail!("Unexpected error {:?}", other),
                 }
             }
@@ -382,9 +408,17 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                             StarknetError::InsufficientResourcesForValidate,
                         ),
                     ) => {}
-                    starknet_rs_accounts::AccountFactoryError::Provider(ProviderError::Other(
-                        _,
-                    )) => {}
+                    starknet_rs_accounts::AccountFactoryError::Provider(provider_error) => {
+                        println!("Provider error: {:?}", provider_error);
+                        if let Ok(json_rpc_error) = extract_json_rpc_error(provider_error) {
+                            println!("JSON RPC Error: {:?}", json_rpc_error);
+                            if json_rpc_error.message.contains("Resource bounds were not satisfied")
+                            {
+                                return Ok(());
+                            }
+                        }
+                        anyhow::bail!("Unexpected provider error")
+                    }
                     other => anyhow::bail!("Unexpected error {:?}", other),
                 }
             }
@@ -413,12 +447,15 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                             other => anyhow::bail!("Unexpected result: {:?}", other),
                         }
                     }
-                    Err(starknet_rs_accounts::AccountError::Provider(
-                        ProviderError::StarknetError(
-                            StarknetError::InsufficientResourcesForValidate,
-                        ),
-                    )) => {}
-                    Err(starknet_rs_accounts::AccountError::Provider(ProviderError::Other(_))) => {}
+                    Err(starknet_rs_accounts::AccountError::Provider(provider_error)) => {
+                        if let Ok(json_rpc_error) = extract_json_rpc_error(provider_error) {
+                            if json_rpc_error.message.contains("Resource bounds were not satisfied")
+                            {
+                                return Ok(());
+                            }
+                        }
+                        anyhow::bail!("Unexpected provider error")
+                    }
                     Err(error) => anyhow::bail!("Unexpected error {:?}", error),
                 }
             }

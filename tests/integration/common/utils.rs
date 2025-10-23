@@ -642,7 +642,7 @@ pub async fn send_dummy_mint_tx(devnet: &BackgroundDevnet) -> Felt {
     devnet.mint(Felt::ONE, 123).await
 }
 
-pub const fn new_contract_factory<A: Account>(class_hash: Felt, account: A) -> ContractFactory<A> {
+pub fn new_contract_factory<A: Account>(class_hash: Felt, account: A) -> ContractFactory<A> {
     ContractFactory::new_with_udc(class_hash, account, UdcSelector::New)
 }
 
