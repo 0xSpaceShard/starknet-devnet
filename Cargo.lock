@@ -159,9 +159,9 @@ checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
 
 [[package]]
 name = "apollo_compile_to_native_types"
-version = "0.16.0-rc.0"
+version = "0.16.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "022b0399a534fd0798eb213a992152327c7dd8282614facb9edc8a5f3b0c67ef"
+checksum = "c2e1832a7d46b878c9d79a4f8686423916f8a4edc35fbfce2ddb98f7ec5f2d8f"
 dependencies = [
  "apollo_config",
  "serde",
@@ -170,9 +170,9 @@ dependencies = [
 
 [[package]]
 name = "apollo_config"
-version = "0.16.0-rc.0"
+version = "0.16.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4e1c426a8939dd419ce4248862991750ac32c780a2c6f44eb63db72cf940447"
+checksum = "ada910d739cb2ac2ec59766ea956de736f87965b2de60799feedf0de46f7d57a"
 dependencies = [
  "apollo_infra_utils",
  "clap",
@@ -189,9 +189,9 @@ dependencies = [
 
 [[package]]
 name = "apollo_infra_utils"
-version = "0.16.0-rc.0"
+version = "0.16.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa9fbb54e37e5b99eba30b69b622d210a5dbd9ddf51d59a86c3c23031bae225a"
+checksum = "780c31485db92467019b1ba6cb0a4596c883030238f36ee1e6205fd65b6415e0"
 dependencies = [
  "apollo_proc_macros",
  "num_enum",
@@ -204,9 +204,9 @@ dependencies = [
 
 [[package]]
 name = "apollo_metrics"
-version = "0.16.0-rc.0"
+version = "0.16.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25e17a29314ce063473f3d6c5f5f1dbe950f5aeb51e4e95717834ba796f56d1a"
+checksum = "9e403e211be2ef8f5af561ee982c4d99291af022d93a63c3b5e983cdcdf4c33a"
 dependencies = [
  "indexmap 2.7.1",
  "metrics",
@@ -217,9 +217,9 @@ dependencies = [
 
 [[package]]
 name = "apollo_proc_macros"
-version = "0.16.0-rc.0"
+version = "0.16.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a201f6fda68b6c98ebf785f6afbb06ee22edae3949613af9b6444707a6aafb45"
+checksum = "dde929210d699f0fce6c8e4068881a48304c5ff1f09e6607962725d1d7bd015d"
 dependencies = [
  "lazy_static",
  "proc-macro2",
@@ -808,9 +808,9 @@ dependencies = [
 
 [[package]]
 name = "blockifier"
-version = "0.16.0-rc.0"
+version = "0.16.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b495315c09937c73a592692b3e607efb838e3a4e3e5a25dc3c77280874d077a0"
+checksum = "1b33eff1e4bb8d60cc248781b3aeb87e61c0707f3fd3f483b78ce72bbc29e15c"
 dependencies = [
  "anyhow",
  "apollo_compile_to_native_types",
@@ -6370,19 +6370,35 @@ name = "size-of"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4e36eca171fddeda53901b0a436573b3f2391eaa9189d439b2bd8ea8cebd7e3"
+
+[[package]]
+name = "sizeof"
+version = "0.16.0-rc.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29dcfb1a76f2e5486a3c2d4e66d939813ce9be7500b2169e059a627ed13436cd"
 dependencies = [
- "size-of-derive",
+ "sizeof_internal",
+ "sizeof_macro",
 ]
 
 [[package]]
-name = "size-of-derive"
-version = "0.1.2"
+name = "sizeof_internal"
+version = "0.16.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eefff4890f5308d477f3da563af8bdb8fbb6fabaec4c974bd211896fa7945e68"
+checksum = "2361e1b34f9c2b742419e30e99e2f3094a846dd93fb5edc23ee0f714feb4e43d"
+dependencies = [
+ "starknet-types-core",
+]
+
+[[package]]
+name = "sizeof_macro"
+version = "0.16.0-rc.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6503474d48a3ff40a3da73f2e277e33e958245d78fc77e2386c5e521d38b16d"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.98",
 ]
 
 [[package]]
@@ -6760,9 +6776,9 @@ dependencies = [
 
 [[package]]
 name = "starknet_api"
-version = "0.16.0-rc.0"
+version = "0.16.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cc70fb375bf29c1d621a00852898ce64f4dcc846fc6ff67b0053dca74618b33"
+checksum = "9893be10768a72f91012e34ad3fbf66d4e058d3b1886195ebcd05815d3969e00"
 dependencies = [
  "apollo_infra_utils",
  "base64 0.13.1",
@@ -6785,7 +6801,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha3",
- "size-of",
+ "sizeof",
  "starknet-crypto",
  "starknet-types-core",
  "strum 0.25.0",
