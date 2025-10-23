@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
+use starknet_core::constants::UDC_CONTRACT_CLASS_HASH;
 use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
     Call, ContractExecutionError, Felt, StarknetError, TransactionExecutionErrorData,
 };
@@ -11,11 +11,10 @@ use starknet_rs_providers::ProviderError;
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, UDC_CONTRACT_ADDRESS, UDC_LEGACY_CONTRACT_ADDRESS,
-    UDC_LEGACY_CONTRACT_CLASS_HASH,
 };
 use crate::common::utils::{
     assert_contains, assert_tx_succeeded_accepted, extract_message_error, extract_nested_error,
-    get_simple_contract_artifacts,
+    get_simple_contract_artifacts, new_contract_factory,
 };
 
 // Testing of account deployment can be found in test_account_selection.rs
@@ -45,7 +44,7 @@ async fn double_deployment_not_allowed() {
         .unwrap();
 
     // prepare deployment
-    let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
+    let contract_factory = new_contract_factory(declaration_result.class_hash, account.clone());
     let ctor_args = vec![Felt::ZERO]; // initial value
     let salt = Felt::from(10);
     let unique = false;
@@ -69,8 +68,8 @@ async fn double_deployment_not_allowed() {
             assert_eq!(top_error.selector, get_selector_from_name("__execute__").unwrap());
 
             let udc_error = extract_nested_error(&top_error.error).unwrap();
-            assert_eq!(udc_error.contract_address, UDC_LEGACY_CONTRACT_ADDRESS);
-            assert_eq!(udc_error.class_hash, UDC_LEGACY_CONTRACT_CLASS_HASH);
+            assert_eq!(udc_error.contract_address, UDC_CONTRACT_ADDRESS);
+            assert_eq!(udc_error.class_hash, UDC_CONTRACT_CLASS_HASH);
             assert_eq!(udc_error.selector, get_selector_from_name("deployContract").unwrap());
 
             let undeployed_contract_error = extract_nested_error(&udc_error.error).unwrap();
@@ -101,7 +100,7 @@ async fn cannot_deploy_undeclared_class() {
     let (contract_class, _) = get_simple_contract_artifacts();
 
     // prepare deployment
-    let contract_factory = ContractFactory::new(contract_class.class_hash(), account.clone());
+    let contract_factory = new_contract_factory(contract_class.class_hash(), account.clone());
     let ctor_args = vec![Felt::ZERO]; // initial value
     let salt = Felt::from(10);
     let unique = false;

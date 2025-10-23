@@ -61,6 +61,7 @@ pub(crate) fn custom_bouncer_config() -> BouncerConfig {
             ..BouncerWeights::max()
         },
         builtin_weights: BuiltinWeights::default(),
+        blake_weight: 5263, // from BouncerConfig::default
     }
 }
 
@@ -113,6 +114,7 @@ pub(crate) mod test_utils {
     }
 
     /// casm hash of dummy_cairo_1_contract_class
+    /// BLAKE HASH: 0x586026f886dd7ee74f6b32b12c9678f0bc090260c881a41d192103a17c110e8
     pub static DUMMY_CAIRO_1_COMPILED_CLASS_HASH: Felt = Felt::from_hex_unchecked(
         "0x3faafcc98742a29a5ca809bda3c827b2d2c73759c64f695e33106009e7e9fef",
     );

@@ -6,7 +6,6 @@ use starknet_core::constants::{
 use starknet_rs_accounts::{
     Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
     ConfirmedBlockId, DeployedContractItem, ExecuteInvocation, Felt, InvokeTransactionTrace,
     StarknetError, TransactionTrace,
@@ -16,7 +15,9 @@ use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
-use crate::common::utils::{get_deployable_account_signer, get_events_contract_artifacts};
+use crate::common::utils::{
+    get_deployable_account_signer, get_events_contract_artifacts, new_contract_factory,
+};
 use crate::{assert_eq_prop, assert_gte_prop};
 
 static DUMMY_ADDRESS: Felt = Felt::from_hex_unchecked("0x7b");
@@ -176,7 +177,7 @@ async fn test_contract_deployment_trace() {
         .unwrap();
 
     // deploy twice - should result in only 1 instance in deployed_contracts and no declares
-    let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
+    let contract_factory = new_contract_factory(declaration_result.class_hash, account.clone());
     for salt in (0_u32..2).map(Felt::from) {
         let ctor_data = vec![];
         let deployment_tx = contract_factory
