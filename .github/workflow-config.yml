@@ -5,7 +5,7 @@ name: Common Config
 
 # Environment variables used across workflows
 env:
-  RUST_STABLE_VERSION: 1.86.0
+  RUST_STABLE_VERSION: 1.89.0
   RUST_NIGHTLY_VERSION: nightly-2025-02-20
   DOCKER_REGISTRY: docker.io
   DOCKER_NAMESPACE: 0xspaceshard
