@@ -172,6 +172,7 @@ impl From<StateDiff> for ThinStateDiff {
                 })
                 .collect(),
             replaced_classes: value.replaced_classes,
+            migrated_compiled_classes: None,
         }
     }
 }

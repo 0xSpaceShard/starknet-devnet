@@ -909,7 +909,7 @@ impl Starknet {
         // StateUpdate needs to be mapped to PreConfirmedStateUpdate when block_id is pre_confirmed
         if let CustomBlockId::Tag(CustomBlockTag::PreConfirmed) = block_id {
             Ok(StateUpdateResult::PreConfirmedStateUpdate(PreConfirmedStateUpdate {
-                old_root: state_update.old_root,
+                old_root: Some(state_update.old_root),
                 state_diff: state_update.state_diff,
             }))
         } else {
