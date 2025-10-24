@@ -9,6 +9,8 @@ use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 
 use crate::common::background_devnet::BackgroundDevnet;
+use crate::common::constants::MAINNET_HTTPS_URL;
+use crate::common::errors::RpcError;
 use crate::common::utils::{
     SubscriptionId, assert_no_notifications, receive_notification, subscribe_new_heads, unsubscribe,
 };
@@ -389,4 +391,32 @@ async fn test_fork_subscription_to_blocks_by_hash() {
     }
 
     assert_no_notifications(&mut ws).await.unwrap();
+}
+
+#[tokio::test]
+async fn test_fork_subscription_to_old_blocks_should_fail() {
+    // Setup original devnet with some blocks
+    let origin_url = MAINNET_HTTPS_URL;
+    let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&["--fork-network", origin_url])
+        .await
+        .unwrap();
+
+    let latest_block_number =
+        fork_devnet.get_latest_block_with_tx_hashes().await.unwrap().block_number;
+
+    let (mut ws, _) = connect_async(fork_devnet.ws_url()).await.unwrap();
+
+    // Pick a block outside range
+    let subscription_error = subscribe_new_heads(
+        &mut ws,
+        json!({ "block_id": BlockId::Number(latest_block_number - 1025) }),
+    )
+    .await
+    .unwrap_err();
+
+    let rpc_error = subscription_error.downcast::<RpcError>().unwrap();
+    assert_eq!(
+        rpc_error,
+        RpcError { code: 68, message: "Cannot go back more than 1024 blocks".into(), data: None }
+    );
 }
