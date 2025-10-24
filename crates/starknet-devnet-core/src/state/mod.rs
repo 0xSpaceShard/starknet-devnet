@@ -365,7 +365,7 @@ impl CustomState for StarknetState {
 
         if let ContractClass::Cairo1(cairo_lang_contract_class) = &contract_class {
             let casm_hash =
-                compile_sierra_contract(cairo_lang_contract_class)?.hash(&HashVersion::V1).0;
+                compile_sierra_contract(cairo_lang_contract_class)?.hash(&HashVersion::V2).0;
 
             self.state.state.set_compiled_class_hash(
                 class_hash,

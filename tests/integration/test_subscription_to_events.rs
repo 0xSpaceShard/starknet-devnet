@@ -88,11 +88,19 @@ async fn event_subscription_with_no_params_until_unsubscription() {
     let invocation = emit_static_event(&account, contract_address).await.unwrap();
     let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
 
+    let tx_index = latest_block
+        .transactions
+        .iter()
+        .position(|tx_hash| *tx_hash == invocation.transaction_hash)
+        .unwrap();
+
     let event = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
     assert_eq!(
         event,
         json!({
             "transaction_hash": invocation.transaction_hash,
+            "transaction_index": tx_index,
+            "event_index": 0, // only event in the transaction
             "block_hash": latest_block.block_hash,
             "block_number": latest_block.block_number,
             "from_address": contract_address,
@@ -124,6 +132,11 @@ async fn should_notify_only_from_filtered_address() {
 
     let invocation = emit_static_event(&account, contract_address).await.unwrap();
     let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+    let tx_index = latest_block
+        .transactions
+        .iter()
+        .position(|tx_hash| *tx_hash == invocation.transaction_hash)
+        .unwrap();
 
     let event = receive_event(&mut ws, subscription_id).await.unwrap();
     assert_eq!(
@@ -131,6 +144,8 @@ async fn should_notify_only_from_filtered_address() {
         json!({
             "transaction_hash": invocation.transaction_hash,
             "block_hash": latest_block.block_hash,
+            "transaction_index": tx_index,
+            "event_index": 0,
             "block_number": latest_block.block_number,
             "from_address": contract_address,
             "keys": [static_event_key()],
@@ -155,12 +170,19 @@ async fn should_notify_of_new_events_only_from_filtered_key() {
 
     let invocation = emit_static_event(&account, contract_address).await.unwrap();
     let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+    let tx_index = latest_block
+        .transactions
+        .iter()
+        .position(|tx_hash| *tx_hash == invocation.transaction_hash)
+        .unwrap();
 
     let event = receive_event(&mut ws, subscription_id).await.unwrap();
     assert_eq!(
         event,
         json!({
             "transaction_hash": invocation.transaction_hash,
+            "transaction_index": tx_index,
+            "event_index": 0,
             "block_hash": latest_block.block_hash,
             "block_number": latest_block.block_number,
             "from_address": contract_address,
@@ -182,6 +204,11 @@ async fn should_notify_if_already_in_latest_block_in_on_tx_mode() {
     let contract_address = declare_deploy_events_contract(&account).await.unwrap();
     let invocation = emit_static_event(&account, contract_address).await.unwrap();
     let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+    let tx_index = latest_block
+        .transactions
+        .iter()
+        .position(|tx_hash| *tx_hash == invocation.transaction_hash)
+        .unwrap();
 
     let subscription_id =
         subscribe_events(&mut ws, json!({ "from_address": contract_address })).await.unwrap();
@@ -191,6 +218,8 @@ async fn should_notify_if_already_in_latest_block_in_on_tx_mode() {
         event,
         json!({
             "transaction_hash": invocation.transaction_hash,
+            "transaction_index": tx_index,
+            "event_index": 0,
             "block_hash": latest_block.block_hash,
             "block_number": latest_block.block_number,
             "from_address": contract_address,
@@ -227,6 +256,17 @@ async fn should_notify_only_once_for_pre_confirmed_in_on_demand_mode() {
     let subscription_id_after =
         subscribe_events(&mut ws_after, subscription_request).await.unwrap();
 
+    let tx_index = devnet
+        .get_pre_confirmed_block_with_tx_hashes()
+        .await
+        .unwrap()
+        .transactions
+        .iter()
+        .position(|tx_hash| *tx_hash == invocation.transaction_hash)
+        .unwrap();
+
+    println!("Block: {:?}", devnet.get_pre_confirmed_block_with_txs().await.unwrap());
+
     for (ws, subscription_id) in
         [(&mut ws_before, subscription_id_before), (&mut ws_after, subscription_id_after)]
     {
@@ -235,6 +275,8 @@ async fn should_notify_only_once_for_pre_confirmed_in_on_demand_mode() {
             event,
             json!({
                 "transaction_hash": invocation.transaction_hash,
+                "transaction_index": tx_index,
+                "event_index": 0,
                 "from_address": contract_address,
                 "keys": [static_event_key()],
                 "data": [],
@@ -315,6 +357,15 @@ async fn should_notify_only_once_for_accepted_on_l2_in_on_demand_mode(
     assert_no_notifications(&mut ws_after).await.unwrap();
     let created_block_hash = devnet.create_block().await.unwrap();
 
+    let tx_index = devnet
+        .get_latest_block_with_tx_hashes()
+        .await
+        .unwrap()
+        .transactions
+        .iter()
+        .position(|tx_hash| *tx_hash == invocation.transaction_hash)
+        .unwrap();
+
     for (ws, subscription_id) in
         [(&mut ws_before, subscription_id_before), (&mut ws_after, subscription_id_after)]
     {
@@ -323,6 +374,8 @@ async fn should_notify_only_once_for_accepted_on_l2_in_on_demand_mode(
             event,
             json!({
                 "block_hash": created_block_hash,
+                "transaction_index": tx_index,
+                "event_index": 0,
                 "block_number": 1, // the only created block
                 "transaction_hash": invocation.transaction_hash,
                 "from_address": contract_address,
@@ -349,6 +402,11 @@ async fn should_notify_of_events_in_old_blocks_with_no_filters() {
 
     let invocation = emit_static_event(&account, contract_address).await.unwrap();
     let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+    let tx_index = latest_block
+        .transactions
+        .iter()
+        .position(|tx_hash| *tx_hash == invocation.transaction_hash)
+        .unwrap();
 
     // The declaration happens at block_number=1 so we query from there to latest
     let subscription_params = json!({ "block_id": BlockId::Number(1) });
@@ -375,6 +433,8 @@ async fn should_notify_of_events_in_old_blocks_with_no_filters() {
         invocation_event,
         json!({
             "transaction_hash": invocation.transaction_hash,
+            "transaction_index": tx_index,
+            "event_index": 0,
             "block_hash": latest_block.block_hash,
             "block_number": latest_block.block_number,
             "from_address": contract_address,
@@ -402,6 +462,11 @@ async fn should_notify_of_old_and_new_events_with_address_filter() {
 
     let old_invocation = emit_static_event(&account, contract_address).await.unwrap();
     let block_before_subscription = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+    let tx_index = block_before_subscription
+        .transactions
+        .iter()
+        .position(|tx_hash| *tx_hash == old_invocation.transaction_hash)
+        .unwrap();
 
     // The declaration happens at block_number=1, but only invocation should be notified of
     let subscription_params =
@@ -415,6 +480,8 @@ async fn should_notify_of_old_and_new_events_with_address_filter() {
         json!({
             "transaction_hash": old_invocation.transaction_hash,
             "block_hash": block_before_subscription.block_hash,
+            "transaction_index": tx_index,
+            "event_index": 0,
             "block_number": block_before_subscription.block_number,
             "from_address": contract_address,
             "keys": [static_event_key()],
@@ -427,11 +494,18 @@ async fn should_notify_of_old_and_new_events_with_address_filter() {
     // new event (after subscription)
     let new_invocation = emit_static_event(&account, contract_address).await.unwrap();
     let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+    let tx_index = latest_block
+        .transactions
+        .iter()
+        .position(|tx_hash| *tx_hash == new_invocation.transaction_hash)
+        .unwrap();
     let new_invocation_event = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
     assert_eq!(
         new_invocation_event,
         json!({
             "transaction_hash": new_invocation.transaction_hash,
+            "transaction_index": tx_index,
+            "event_index": 0,
             "block_hash": latest_block.block_hash,
             "block_number": latest_block.block_number,
             "from_address": contract_address,
@@ -453,6 +527,11 @@ async fn should_notify_of_old_and_new_events_with_key_filter() {
 
     let old_invocation = emit_static_event(&account, contract_address).await.unwrap();
     let block_before_subscription = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+    let tx_index = block_before_subscription
+        .transactions
+        .iter()
+        .position(|tx_hash| *tx_hash == old_invocation.transaction_hash)
+        .unwrap();
 
     // The declaration happens at block_number=1, but only invocation should be notified of
     let subscription_params =
@@ -465,6 +544,8 @@ async fn should_notify_of_old_and_new_events_with_key_filter() {
         invocation_event,
         json!({
             "transaction_hash": old_invocation.transaction_hash,
+            "transaction_index": tx_index,
+            "event_index": 0,
             "block_hash": block_before_subscription.block_hash,
             "block_number": block_before_subscription.block_number,
             "from_address": contract_address,
@@ -478,11 +559,18 @@ async fn should_notify_of_old_and_new_events_with_key_filter() {
     // new event (after subscription)
     let new_invocation = emit_static_event(&account, contract_address).await.unwrap();
     let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+    let tx_index = latest_block
+        .transactions
+        .iter()
+        .position(|tx_hash| *tx_hash == new_invocation.transaction_hash)
+        .unwrap();
     let invocation_event = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
     assert_eq!(
         invocation_event,
         json!({
             "transaction_hash": new_invocation.transaction_hash,
+            "transaction_index": tx_index,
+            "event_index": 0,
             "block_hash": latest_block.block_hash,
             "block_number": latest_block.block_number,
             "from_address": contract_address,

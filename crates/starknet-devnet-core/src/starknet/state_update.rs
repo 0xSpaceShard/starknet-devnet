@@ -40,7 +40,7 @@ mod tests {
         let (mut starknet, acc) = setup_starknet_with_no_signature_check_account(1e18 as u128);
         let contract_class = dummy_cairo_1_contract_class();
         let compiled_class_hash =
-            compile_sierra_contract(&contract_class).unwrap().hash(&HashVersion::V1).0;
+            compile_sierra_contract(&contract_class).unwrap().hash(&HashVersion::V2).0;
 
         let declare_txn = broadcasted_declare_tx_v3(
             acc.account_address,

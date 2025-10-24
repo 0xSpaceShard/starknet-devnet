@@ -19,6 +19,9 @@ sidebar_position: 1
 - Transactions are never automatically `ACCEPTED_ON_L1`, unless the user performs an action.
   - Read more about transitioning a transaction [from `ACCEPTED_ON_L2` to `ACCEPTED_ON_L1`](./blocks#accepting-blocks-on-l1).
 - `RECEIVED` and `CANDIDATE` statuses are not used in Devnet.
+- In Starknet 0.14.1, field `migrated_compiled_classes` was introduced to the `state_diff`. In devnet, this field will be always empty:
+  - When starting devnet without forking there is nothing to migrate
+  - In forking mode, there is no RPC support to fetch compiled class hashes from origin, so it is impossible for devnet to determine which classes have to be migrated
 
 :::
 
