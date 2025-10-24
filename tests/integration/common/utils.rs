@@ -37,6 +37,7 @@ use super::constants::{
     CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH, UDC_CONTRACT_ADDRESS,
 };
 use super::safe_child::SafeChild;
+use crate::common::errors::RpcError;
 use crate::{assert_eq_prop, assert_ne_prop};
 
 pub enum ImpersonationAction {
@@ -564,6 +565,15 @@ pub async fn subscribe(
     params: serde_json::Value,
 ) -> Result<SubscriptionId, anyhow::Error> {
     let subscription_confirmation = send_text_rpc_via_ws(ws, subscription_method, params).await?;
+
+    if let Some(error) = subscription_confirmation.get("error") {
+        let err_msg = error.to_string();
+        if let Ok(rpc_error) = serde_json::from_str::<RpcError>(&err_msg) {
+            return Err(anyhow::Error::new(rpc_error));
+        }
+        return Err(anyhow::Error::msg(err_msg));
+    }
+
     Ok(subscription_confirmation["result"]
         .as_str()
         .ok_or(anyhow::Error::msg(format!(
