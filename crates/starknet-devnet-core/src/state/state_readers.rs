@@ -71,6 +71,17 @@ impl StateReader for DictState {
             self.class_hash_to_compiled_class_hash.get(&class_hash).copied().unwrap_or_default();
         Ok(compiled_class_hash)
     }
+
+    fn get_compiled_class_hash_v2(
+        &self,
+        class_hash: ClassHash,
+        _contract_class: &RunnableCompiledClass,
+    ) -> StateResult<CompiledClassHash> {
+        // can't ask origin for this - insufficient API - probably not important
+        let compiled_class_hash =
+            self.class_hash_to_compiled_class_hash.get(&class_hash).copied().unwrap_or_default();
+        Ok(compiled_class_hash)
+    }
 }
 
 // Basing the methods on blockifier's `State` interface, without those that would never be used

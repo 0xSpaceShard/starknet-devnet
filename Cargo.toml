@@ -79,7 +79,7 @@ enum-helper-macros = "0.0.1"
 
 # Starknet dependencies
 starknet-types-core = "=0.2.3"
-starknet_api = { version = "0.16.0-rc.0", features = ["testing"] }
+starknet_api = { version = "0.16.0-rc.1", features = ["testing"] }
 blockifier = { version = "0.16.0-rc.1" }
 starknet-rs-signers = { version = "0.14.0", package = "starknet-signers" }
 starknet-rs-core = { version = "0.16.0", package = "starknet-core" }

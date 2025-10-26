@@ -327,6 +327,14 @@ impl blockifier::state::state_api::StateReader for StarknetState {
     ) -> blockifier::state::state_api::StateResult<starknet_api::core::CompiledClassHash> {
         self.state.get_compiled_class_hash(class_hash)
     }
+
+    fn get_compiled_class_hash_v2(
+        &self,
+        class_hash: starknet_api::core::ClassHash,
+        compiled_class: &blockifier::execution::contract_class::RunnableCompiledClass,
+    ) -> blockifier::state::state_api::StateResult<starknet_api::core::CompiledClassHash> {
+        self.state.get_compiled_class_hash_v2(class_hash, compiled_class)
+    }
 }
 
 impl CustomStateReader for StarknetState {
