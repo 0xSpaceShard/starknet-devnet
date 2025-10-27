@@ -567,11 +567,10 @@ pub async fn subscribe(
     let subscription_confirmation = send_text_rpc_via_ws(ws, subscription_method, params).await?;
 
     if let Some(error) = subscription_confirmation.get("error") {
-        let err_msg = error.to_string();
-        if let Ok(rpc_error) = serde_json::from_str::<RpcError>(&err_msg) {
-            return Err(anyhow::Error::new(rpc_error));
+        match serde_json::from_value::<RpcError>(error.clone()) {
+            Ok(rpc_error) => return Err(anyhow::Error::new(rpc_error)),
+            Err(_) => return Err(anyhow::Error::msg(error.to_string())),
         }
-        return Err(anyhow::Error::msg(err_msg));
     }
 
     Ok(subscription_confirmation["result"]

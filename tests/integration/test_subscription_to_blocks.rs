@@ -404,9 +404,16 @@ async fn test_fork_subscription_to_old_blocks_should_fail() {
     let latest_block_number =
         fork_devnet.get_latest_block_with_tx_hashes().await.unwrap().block_number;
 
+    // Ensure we have enough blocks to properly test the out-of-range condition
+    assert!(
+        latest_block_number >= 1025,
+        "Test requires at least 1025 blocks to validate out-of-range behavior, but got {}",
+        latest_block_number
+    );
+
     let (mut ws, _) = connect_async(fork_devnet.ws_url()).await.unwrap();
 
-    // Pick a block outside range
+    // Pick a block outside range (1025 blocks back from latest)
     let subscription_error = subscribe_new_heads(
         &mut ws,
         json!({ "block_id": BlockId::Number(latest_block_number - 1025) }),
