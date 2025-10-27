@@ -23,7 +23,7 @@ mod spec_reader;
 mod write_endpoints;
 
 pub use json_rpc_handler::JsonRpcHandler;
-pub const RPC_SPEC_VERSION: &str = "0.9.0";
+pub const RPC_SPEC_VERSION: &str = "0.10.0";
 
 use error::ApiError;
 

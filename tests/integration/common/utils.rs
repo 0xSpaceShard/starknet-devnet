@@ -70,7 +70,7 @@ pub fn get_flattened_sierra_contract_and_casm_hash(sierra_path: &str) -> SierraW
     let casm_json = usc::compile_contract(serde_json::from_str(&sierra_string).unwrap()).unwrap();
 
     let casm_hash =
-        serde_json::from_value::<CasmContractClass>(casm_json).unwrap().hash(&HashVersion::V1).0;
+        serde_json::from_value::<CasmContractClass>(casm_json).unwrap().hash(&HashVersion::V2).0;
     (sierra_class.flatten().unwrap(), casm_hash)
 }
 

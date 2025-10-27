@@ -39,10 +39,10 @@ pub(crate) fn get_storage_var_address(
     Ok(PatriciaKey::new(storage_var_address)?)
 }
 
-/// This should be modified when updating to the version after 0.14.0
+/// This should be modified when updating to the version after 0.14.1
 pub(crate) fn get_versioned_constants() -> VersionedConstants {
     #[allow(clippy::unwrap_used)]
-    VersionedConstants::get(&StarknetVersion::V0_14_0).unwrap().clone()
+    VersionedConstants::get(&StarknetVersion::V0_14_1).unwrap().clone()
 }
 
 /// Values not present here: https://docs.starknet.io/tools/limits-and-triggers/
@@ -114,9 +114,8 @@ pub(crate) mod test_utils {
     }
 
     /// casm hash of dummy_cairo_1_contract_class
-    /// BLAKE HASH: 0x586026f886dd7ee74f6b32b12c9678f0bc090260c881a41d192103a17c110e8
     pub static DUMMY_CAIRO_1_COMPILED_CLASS_HASH: Felt = Felt::from_hex_unchecked(
-        "0x3faafcc98742a29a5ca809bda3c827b2d2c73759c64f695e33106009e7e9fef",
+        "0x586026f886dd7ee74f6b32b12c9678f0bc090260c881a41d192103a17c110e8",
     );
 
     pub(crate) fn dummy_contract_address() -> ContractAddress {
