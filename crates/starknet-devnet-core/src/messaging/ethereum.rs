@@ -117,6 +117,7 @@ impl EthereumMessaging {
         })?;
 
         let chain_id = provider.get_chainid().await?;
+        let last_fetched_block = provider.get_block_number().await?.as_u64();
 
         let private_key = match deployer_account_private_key {
             Some(private_key) => private_key,
@@ -132,7 +133,7 @@ impl EthereumMessaging {
             provider: Arc::new(provider.clone()),
             provider_signer: Arc::new(provider_signer),
             messaging_contract_address: Address::zero(),
-            last_fetched_block: 0,
+            last_fetched_block: last_fetched_block,
         };
 
         if let Some(address) = contract_address {
