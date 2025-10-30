@@ -133,7 +133,7 @@ impl EthereumMessaging {
             provider: Arc::new(provider.clone()),
             provider_signer: Arc::new(provider_signer),
             messaging_contract_address: Address::zero(),
-            last_fetched_block: last_fetched_block,
+            last_fetched_block,
         };
 
         if let Some(address) = contract_address {
