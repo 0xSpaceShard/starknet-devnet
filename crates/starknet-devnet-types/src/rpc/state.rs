@@ -44,7 +44,7 @@ impl StateUpdate {
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct PreConfirmedStateUpdate {
-    pub old_root: BlockRoot,
+    pub old_root: Option<BlockRoot>,
     pub state_diff: ThinStateDiff,
 }
 
@@ -61,6 +61,12 @@ pub struct ThinStateDiff {
     pub deprecated_declared_classes: Vec<ClassHash>,
     pub nonces: Vec<ContractNonce>,
     pub replaced_classes: Vec<ReplacedClasses>,
+    // In Devnet, this will always be None as:
+    // 1) There is no migration process when starting Devnet without forking as state is empty.
+    // 2) When forking, there is no RPC support for fetching compiled classes from origin (yet).
+    //    This is added for adherence to Starknet spec and/or future use.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub migrated_compiled_classes: Option<Vec<ClassHashPair>>,
 }
 
 /// A deployed contract in Starknet.

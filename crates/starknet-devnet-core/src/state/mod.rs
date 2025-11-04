@@ -327,6 +327,14 @@ impl blockifier::state::state_api::StateReader for StarknetState {
     ) -> blockifier::state::state_api::StateResult<starknet_api::core::CompiledClassHash> {
         self.state.get_compiled_class_hash(class_hash)
     }
+
+    fn get_compiled_class_hash_v2(
+        &self,
+        class_hash: starknet_api::core::ClassHash,
+        compiled_class: &blockifier::execution::contract_class::RunnableCompiledClass,
+    ) -> blockifier::state::state_api::StateResult<starknet_api::core::CompiledClassHash> {
+        self.state.get_compiled_class_hash_v2(class_hash, compiled_class)
+    }
 }
 
 impl CustomStateReader for StarknetState {
@@ -365,7 +373,7 @@ impl CustomState for StarknetState {
 
         if let ContractClass::Cairo1(cairo_lang_contract_class) = &contract_class {
             let casm_hash =
-                compile_sierra_contract(cairo_lang_contract_class)?.hash(&HashVersion::V1).0;
+                compile_sierra_contract(cairo_lang_contract_class)?.hash(&HashVersion::V2).0;
 
             self.state.state.set_compiled_class_hash(
                 class_hash,

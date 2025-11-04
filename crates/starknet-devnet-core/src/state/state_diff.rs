@@ -172,6 +172,7 @@ impl From<StateDiff> for ThinStateDiff {
                 })
                 .collect(),
             replaced_classes: value.replaced_classes,
+            migrated_compiled_classes: None,
         }
     }
 }
@@ -315,7 +316,7 @@ mod tests {
             [(replaceable_contract.clone(), 0), (replacing_contract.clone(), 1)]
         {
             let compiled_class_hash =
-                compile_sierra_contract(&contract_class).unwrap().hash(&HashVersion::V1).0;
+                compile_sierra_contract(&contract_class).unwrap().hash(&HashVersion::V2).0;
 
             starknet
                 .add_declare_transaction(BroadcastedDeclareTransaction::V3(Box::new(

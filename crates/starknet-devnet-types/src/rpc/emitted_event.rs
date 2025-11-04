@@ -11,6 +11,10 @@ use crate::felt::{BlockHash, TransactionHash};
 pub struct EmittedEvent {
     pub transaction_hash: TransactionHash,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub transaction_index: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub event_index: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub block_hash: Option<BlockHash>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub block_number: Option<BlockNumber>,
@@ -23,6 +27,10 @@ impl From<starknet_rs_core::types::EmittedEvent> for EmittedEvent {
     fn from(sn_rs_event: starknet_rs_core::types::EmittedEvent) -> Self {
         Self {
             transaction_hash: sn_rs_event.transaction_hash,
+            // TODO: When starknet-rs is updated to include these fields, we can set them here.
+            // Types should be changed to u64 instead of Option<u64> as well.
+            transaction_index: None,
+            event_index: None,
             block_hash: sn_rs_event.block_hash,
             block_number: sn_rs_event.block_number.map(BlockNumber),
             #[allow(clippy::expect_used)]
