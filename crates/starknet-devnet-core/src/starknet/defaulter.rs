@@ -130,6 +130,7 @@ impl BlockingOriginReader {
             "id": 0,
         });
 
+        // Forking is done at specified block, so responses should not change
         if let Ok(mut cache) = CACHE.lock() {
             if let Some(cached) = cache.get(&body.to_string()) {
                 debug!("Forking origin cache hit for {body:?}");
