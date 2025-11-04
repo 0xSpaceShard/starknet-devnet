@@ -1,6 +1,11 @@
+use std::num::NonZero;
+use std::sync::Mutex;
+
 use blockifier::execution::contract_class::RunnableCompiledClass;
 use blockifier::state::errors::StateError;
 use blockifier::state::state_api::StateResult;
+use lru::LruCache;
+use once_cell::sync::Lazy;
 use starknet_api::core::{ClassHash, ContractAddress, Nonce, PatriciaKey};
 use starknet_api::state::StorageKey;
 use starknet_rs_core::types::Felt;
@@ -9,6 +14,10 @@ use tokio::sync::oneshot;
 use tracing::debug;
 
 use super::starknet_config::ForkConfig;
+
+#[allow(clippy::unwrap_used)] // safe: 128 is non-zero
+static CACHE: Lazy<Mutex<LruCache<String, serde_json::Value>>> =
+    Lazy::new(|| Mutex::new(LruCache::new(NonZero::new(128).unwrap())));
 
 #[derive(thiserror::Error, Debug)]
 enum OriginError {
@@ -121,6 +130,13 @@ impl BlockingOriginReader {
             "id": 0,
         });
 
+        if let Ok(mut cache) = CACHE.lock() {
+            if let Some(cached) = cache.get(&body.to_string()) {
+                debug!("Forking origin cache hit for {body:?}");
+                return Ok(cached.clone());
+            }
+        }
+
         match self.blocking_post(body.clone()) {
             Ok(resp_json_value) => {
                 let result = &resp_json_value["result"];
@@ -131,6 +147,9 @@ impl BlockingOriginReader {
                     Err(OriginError::NoResult)
                 } else {
                     debug!("Forking origin received {body:?} and successfully returned: {result}");
+                    if let Ok(mut cache) = CACHE.lock() {
+                        cache.put(body.to_string(), result.clone());
+                    }
                     Ok(result.clone())
                 }
             }

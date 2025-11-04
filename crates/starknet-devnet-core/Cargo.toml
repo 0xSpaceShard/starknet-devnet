@@ -38,6 +38,8 @@ tokio = { workspace = true }
 openssl = { workspace = true }
 
 cargo-platform = { workspace = true }
+lru = "0.16.2"
+once_cell = "1.21.3"
 
 [dev-dependencies]
 hex = { workspace = true }
