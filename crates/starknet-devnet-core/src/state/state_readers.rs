@@ -67,6 +67,7 @@ impl StateReader for DictState {
         class_hash: ClassHash,
     ) -> StateResult<starknet_api::core::CompiledClassHash> {
         // can't ask origin for this - insufficient API - probably not important
+        // Starknet 0.14.1 update: became important, as it is needed for migration check
         let compiled_class_hash =
             self.class_hash_to_compiled_class_hash.get(&class_hash).copied().unwrap_or_default();
         Ok(compiled_class_hash)
@@ -77,7 +78,6 @@ impl StateReader for DictState {
         class_hash: ClassHash,
         _contract_class: &RunnableCompiledClass,
     ) -> StateResult<CompiledClassHash> {
-        // can't ask origin for this - insufficient API - probably not important
         let compiled_class_hash =
             self.class_hash_to_compiled_class_hash.get(&class_hash).copied().unwrap_or_default();
         Ok(compiled_class_hash)

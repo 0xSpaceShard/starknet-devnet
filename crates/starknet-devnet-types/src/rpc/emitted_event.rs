@@ -27,6 +27,8 @@ impl From<starknet_rs_core::types::EmittedEvent> for EmittedEvent {
     fn from(sn_rs_event: starknet_rs_core::types::EmittedEvent) -> Self {
         Self {
             transaction_hash: sn_rs_event.transaction_hash,
+            // TODO: When starknet-rs is updated to include these fields, we can set them here.
+            // Types should be changed to u64 instead of Option<u64> as well.
             transaction_index: None,
             event_index: None,
             block_hash: sn_rs_event.block_hash,
