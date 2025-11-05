@@ -140,7 +140,13 @@ impl Starknet {
             self.blocks.starting_block_number
         };
 
-        let to_block = self.blocks.pre_confirmed_block.block_number().0 - 1;
+        let pre_confirmed_block_number = self.blocks.pre_confirmed_block.block_number().0;
+        // if pre_confirmed_block_number is 0, there is no L2 confirmed block to process
+        if pre_confirmed_block_number == 0 {
+            return Ok(vec![]);
+        }
+
+        let to_block = pre_confirmed_block_number - 1;
 
         match self
             .blocks
