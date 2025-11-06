@@ -121,8 +121,8 @@ impl Starknet {
     }
 
     /// Sets the latest local block processed by messaging.
-    pub fn set_latest_local_block(&self) -> Option<String> {
-        self.messaging.ethereum_url()
+    pub fn set_latest_local_block(&mut self, latest_local_block: u64) {
+        self.messaging.last_local_block = latest_local_block;
     }
 
     /// Collects all messages found between
@@ -134,9 +134,24 @@ impl Starknet {
     ///
     /// Returns all the messages currently collected and not flushed.
     pub async fn collect_messages_to_l1(&mut self) -> DevnetResult<Vec<MessageToL1>> {
-        let from_block = self.messaging.last_local_block;
+        let from_block = if self.messaging.last_local_block != 0 {
+            self.messaging.last_local_block
+        } else {
+            self.blocks.starting_block_number
+        };
 
-        match self.blocks.get_blocks(Some(BlockId::Number(from_block)), None) {
+        let pre_confirmed_block_number = self.blocks.pre_confirmed_block.block_number().0;
+        // if pre_confirmed_block_number is 0, there is no L2 confirmed block to process
+        if pre_confirmed_block_number == 0 {
+            return Ok(vec![]);
+        }
+
+        let to_block = pre_confirmed_block_number - 1;
+
+        match self
+            .blocks
+            .get_blocks(Some(BlockId::Number(from_block)), Some(BlockId::Number(to_block)))
+        {
             Ok(blocks) => {
                 let mut messages = vec![];
 
