@@ -71,7 +71,7 @@ rand_chacha = "0.3.1"
 rand_mt = "4.2.2"
 regex_generate = "0.2.3"
 reqwest = { version = "0.12.15", features = ["json"] }
-url = "2.4"
+url = "2.5"
 usc = { version = "2.6.0-rc.0", package = "universal-sierra-compiler" }
 num-bigint = { version = "0.4" }
 bigdecimal = { version = "0.4.5" }
@@ -114,7 +114,9 @@ unsafe-libyaml = "0.2.10"
 h2 = "0.4"
 ring = "0.17.13"
 
-ethers = { version = "2.0.11" }
+
+alloy = { version = "1.1.0", features = ["full"] }
+eyre = "0.6"
 
 # Changed from 0.10 to 0.10.72 as suggested by Dependabot: https://github.com/0xSpaceShard/starknet-devnet/security/dependabot/53
 openssl = { version = "0.10.72", features = ["vendored"] }

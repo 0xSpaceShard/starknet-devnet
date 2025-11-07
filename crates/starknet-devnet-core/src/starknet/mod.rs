@@ -1,6 +1,7 @@
 use std::num::NonZeroU128;
 use std::sync::Arc;
 
+use alloy::primitives::B256;
 use blockifier::context::{BlockContext, ChainInfo, TransactionContext};
 use blockifier::execution::common_hints::ExecutionMode;
 use blockifier::state::cached_state::CachedState;
@@ -10,7 +11,6 @@ use blockifier::transaction::errors::TransactionExecutionError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
-use ethers::types::H256;
 use parking_lot::RwLock;
 use starknet_api::block::{
     BlockInfo, BlockNumber, BlockTimestamp, FeeType, GasPrice, GasPricePerToken, GasPriceVector,
@@ -1561,7 +1561,7 @@ impl Starknet {
         &self,
         l1_tx_hash: Hash256,
     ) -> Option<Vec<L1HandlerTransactionStatus>> {
-        match self.messaging.l1_to_l2_tx_hashes.get(&H256(*l1_tx_hash.as_bytes())) {
+        match self.messaging.l1_to_l2_tx_hashes.get(&B256::new(*l1_tx_hash.as_bytes())) {
             Some(l2_tx_hashes) => {
                 let mut statuses = vec![];
                 for l2_tx_hash in l2_tx_hashes {

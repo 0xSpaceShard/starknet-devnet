@@ -1,12 +1,16 @@
 use std::process::Command;
-use std::sync::Arc;
+use std::str::FromStr;
 use std::time;
 
-use ethers::prelude::*;
-use ethers::providers::{Http, Provider};
-use ethers::types::Address;
-use k256::ecdsa::SigningKey;
+use alloy::eips::BlockId;
+use alloy::primitives::{Address, U256};
+use alloy::providers::{Provider, ProviderBuilder};
+use alloy::rpc::types::Block;
+use alloy::signers::Signer;
+use alloy::signers::local::PrivateKeySigner;
+use alloy::sol;
 use reqwest::StatusCode;
+use url::Url;
 
 use super::background_server::get_acquired_port;
 use super::constants::{DEFAULT_ANVIL_MNEMONIC_PHRASE, DEFAULT_ETH_ACCOUNT_PRIVATE_KEY, HOST};
@@ -15,18 +19,15 @@ use super::safe_child::SafeChild;
 
 pub struct BackgroundAnvil {
     pub process: SafeChild,
-    pub url: String,
-    pub provider: Arc<Provider<Http>>,
-    pub provider_signer: Arc<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    pub url: Url,
+    pub provider_signer: PrivateKeySigner,
 }
 
-mod abigen {
-    use ethers::prelude::abigen;
-    abigen!(
+sol! {
+        #[derive(Debug)]
+        #[sol(rpc)]
         L1L2Example,
-        "../../contracts/l1-l2-artifacts/L1L2Example.json",
-        event_derives(serde::Serialize, serde::Deserialize)
-    );
+        "../../contracts/l1-l2-artifacts/L1L2Example.json"
 }
 
 impl BackgroundAnvil {
@@ -56,17 +57,21 @@ impl BackgroundAnvil {
             .await
             .map_err(|e| TestError::AnvilNotStartable(format!("Cannot determine port: {e:?}")))?;
 
-        let url = format!("http://{HOST}:{port}");
+        let url: Url = format!("http://{HOST}:{port}").parse()?;
         let client = reqwest::Client::new();
         for _ in 0..max_retries {
-            if let Ok(anvil_block_rsp) = send_dummy_request(&client, &url).await {
+            if let Ok(anvil_block_rsp) = send_dummy_request(&client, &url.as_str()).await {
                 assert_eq!(anvil_block_rsp.status(), StatusCode::OK);
                 println!("Spawned background anvil at {url}");
 
-                let (provider, provider_signer) =
-                    setup_ethereum_provider(&url, private_key).await?;
+                let chain_id =
+                    ProviderBuilder::new().connect_http(url.clone()).get_chain_id().await.map_err(
+                        |e| TestError::AlloyError(format!("Failed to get chain id: {e}")),
+                    )?;
 
-                return Ok(Self { process: safe_process, url, provider, provider_signer });
+                let provider_signer =
+                    PrivateKeySigner::from_str(private_key).unwrap().with_chain_id(chain_id.into());
+                return Ok(Self { process: safe_process, url, provider_signer });
             }
 
             tokio::time::sleep(sleep_time).await;
@@ -86,34 +91,44 @@ impl BackgroundAnvil {
         .await
     }
 
+    pub async fn get_block(self, block: BlockId) -> Result<Block, TestError> {
+        let provider = ProviderBuilder::new().connect_http(self.url.clone());
+
+        provider
+            .get_block(block)
+            .await
+            .map_err(|e| {
+                TestError::AlloyError(format!(
+                    "Error getting block from anvil at {}: {e}",
+                    self.url
+                ))
+            })?
+            .ok_or_else(|| TestError::AlloyError(format!("Block not found at {}", self.url)))
+    }
+
     pub async fn deploy_l1l2_contract(
         &self,
         messaging_address: Address,
     ) -> Result<Address, TestError> {
-        // Required by the new version of anvil, as default is no longer accepted.
-        // We use here the default value from anvil and hardhat multiplied by 2.
-        let gas_price = 2_000_000_000;
-        let contract = abigen::L1L2Example::deploy(self.provider_signer.clone(), messaging_address)
-            .map_err(|e| {
-                TestError::EthersError(format!(
-                    "Error formatting messaging contract deploy request: {e}"
-                ))
-            })?
-            .gas_price(gas_price)
-            .send()
-            .await
-            .map_err(|e| {
-                TestError::EthersError(format!("Error deploying messaging contract: {e}"))
-            })?;
+        let provider = ProviderBuilder::new()
+            .wallet(self.provider_signer.clone())
+            .connect_http(self.url.clone());
 
-        Ok(contract.address())
+        let contract = L1L2Example::deploy(provider, messaging_address).await.map_err(|e| {
+            TestError::AlloyError(format!("Error deploying l1l2 contract on ethereum: {e}"))
+        })?;
+
+        println!("Deployed L1L2Example at {:?}", contract.address());
+
+        Ok(*contract.address())
     }
 
     pub async fn get_balance_l1l2(&self, address: Address, user: U256) -> Result<U256, TestError> {
-        let l1l2_contract = abigen::L1L2Example::new(address, self.provider.clone());
+        let provider = ProviderBuilder::new().connect_http(self.url.clone());
+        let contract = L1L2Example::new(address, provider);
 
-        l1l2_contract.get_balance(user).call().await.map_err(|e| {
-            TestError::EthersError(format!("Error calling l1l2 contract on ethereum: {e}"))
+        contract.get_balance(user).call().await.map_err(|e| {
+            TestError::AlloyError(format!("Error calling l1l2 contract on ethereum: {e}"))
         })
     }
 
@@ -124,21 +139,25 @@ impl BackgroundAnvil {
         user: U256,
         amount: U256,
     ) -> Result<(), TestError> {
-        let l1l2_contract = abigen::L1L2Example::new(address, self.provider_signer.clone());
+        let provider = ProviderBuilder::new()
+            .wallet(self.provider_signer.clone())
+            .connect_http(self.url.clone());
+        let contract = L1L2Example::new(address, provider);
 
-        l1l2_contract
+        let _ = contract
             .withdraw(account_address, user, amount)
             .send()
             .await
             .map_err(|e| {
-                TestError::EthersError(format!(
+                TestError::AlloyError(format!(
                     "tx for withdrawing from l1-l2 contract on ethereum failed: {e}"
                 ))
             })?
+            .watch()
             .await
             .map_err(|e| {
-                TestError::EthersError(format!(
-                    "tx for withdrawing from l1-l2 contract on ethereum has no receipt: {e}"
+                TestError::AlloyError(format!(
+                    "Error confirming withdraw transaction from l1-l2 contract on ethereum: {e}"
                 ))
             })?;
 
@@ -152,54 +171,34 @@ impl BackgroundAnvil {
         user: U256,
         amount: U256,
     ) -> Result<(), TestError> {
-        let l1l2_contract = abigen::L1L2Example::new(address, self.provider_signer.clone());
+        let provider = ProviderBuilder::new()
+            .wallet(self.provider_signer.clone())
+            .connect_http(self.url.clone());
+        let contract = L1L2Example::new(address, provider);
 
         // The minimum value for messaging is 30k gwei,
         // we multiplied by 10 here.
-        let value: U256 = 300000000000000_u128.into();
+        let value = U256::from(300000000000000_u128);
 
-        l1l2_contract
+        let _ = contract
             .deposit(contract_address, user, amount)
             .value(value)
             .send()
             .await
             .map_err(|e| {
-                TestError::EthersError(format!(
-                    "tx for deposit l1l2 contract on ethereum failed: {e}"
-                ))
+            TestError::AlloyError(format!(
+                "tx for deposit l1l2 contract on ethereum failed: {e}"
+            ))
             })?
+            .watch()
             .await
             .map_err(|e| {
-                TestError::EthersError(format!(
-                    "tx for deposit l1l2 contract on ethereum has no receipt: {e}"
-                ))
+            TestError::AlloyError(format!(
+                "Error confirming deposit l1l2 contract on ethereum: {e}"
+            ))
             })?;
-
         Ok(())
     }
-}
-
-async fn setup_ethereum_provider(
-    rpc_url: &str,
-    private_key: &str,
-) -> Result<
-    (Arc<Provider<Http>>, Arc<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>),
-    TestError,
-> {
-    let provider = Provider::<Http>::try_from(rpc_url)
-        .map_err(|e| TestError::EthersError(format!("Can't parse L1 node URL: {rpc_url} ({e})")))?;
-
-    let chain_id =
-        provider.get_chainid().await.map_err(|e| TestError::EthersError(e.to_string()))?;
-
-    let wallet = private_key
-        .parse::<LocalWallet>()
-        .map_err(|e| TestError::EthersError(e.to_string()))?
-        .with_chain_id(chain_id.as_u32());
-
-    let provider_signer = SignerMiddleware::new(provider.clone(), wallet);
-
-    Ok((Arc::new(provider), Arc::new(provider_signer)))
 }
 
 /// Even if the RPC method is dummy (doesn't exist),
