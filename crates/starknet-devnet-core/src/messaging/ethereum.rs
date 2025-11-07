@@ -315,8 +315,7 @@ impl EthereumMessaging {
 ///
 /// * `log` - The log to be converted.
 pub fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
-    let l1_transaction_hash =
-        log.transaction_hash.map(|h| Hash256::from_bytes(*h));
+    let l1_transaction_hash = log.transaction_hash.map(|h| Hash256::from_bytes(*h));
 
     let decoded = LogMessageToL2::decode_log(&log.inner).map_err(|e| {
         Error::MessagingError(MessagingError::AlloyError(format!("Log parsing failed {e}")))
