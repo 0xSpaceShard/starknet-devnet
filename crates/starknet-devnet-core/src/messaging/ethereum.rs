@@ -118,8 +118,7 @@ impl EthereumMessaging {
         let provider = ProviderBuilder::new().connect_http(node_url.clone());
 
         let chain_id = provider.get_chain_id().await?;
-        let block_number = provider.get_block_number().await?;
-        let last_fetched_block = block_number.try_into().unwrap();
+        let last_fetched_block = provider.get_block_number().await?;
 
         let private_key = match deployer_account_private_key {
             Some(private_key) => private_key,
@@ -166,8 +165,8 @@ impl EthereumMessaging {
     pub async fn fetch_messages(&mut self) -> DevnetResult<Vec<MessageToL2>> {
         let provider =
             ProviderBuilder::new().wallet(self.wallet.clone()).connect_http(self.node_url.clone());
-        let latest_block = provider.get_block_number().await?;
-        let to_block = latest_block.try_into().unwrap();
+        let chain_latest_block = provider.get_block_number().await?;
+        let to_block = chain_latest_block;
 
         // +1 exclude the latest fetched block the last time this function was called.
         let from_block = self.last_fetched_block + 1;
@@ -270,8 +269,8 @@ impl EthereumMessaging {
                 })?;
 
         let filter = Filter::new()
-            .from_block(BlockNumberOrTag::Number(from_block.into()))
-            .to_block(BlockNumberOrTag::Number(to_block.into()))
+            .from_block(BlockNumberOrTag::Number(from_block))
+            .to_block(BlockNumberOrTag::Number(to_block))
             .address(self.messaging_contract_address)
             .event_signature(log_msg_to_l2_topic);
 
@@ -279,7 +278,6 @@ impl EthereumMessaging {
 
         for log in logs {
             if let Some(block_number) = log.block_number {
-                let block_number: u64 = block_number.try_into().unwrap();
                 block_to_logs.entry(block_number).or_default().push(log);
             }
         }
@@ -307,7 +305,7 @@ impl EthereumMessaging {
                 )))
             })?;
 
-        Ok(contract.address().clone())
+        Ok(*contract.address())
     }
 }
 
@@ -318,7 +316,7 @@ impl EthereumMessaging {
 /// * `log` - The log to be converted.
 pub fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
     let l1_transaction_hash =
-        log.transaction_hash.map(|h| Hash256::from_bytes(h.to_vec().try_into().unwrap()));
+        log.transaction_hash.map(|h| Hash256::from_bytes(*h));
 
     let decoded = LogMessageToL2::decode_log(&log.inner).map_err(|e| {
         Error::MessagingError(MessagingError::AlloyError(format!("Log parsing failed {e}")))
@@ -348,7 +346,7 @@ pub fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
 ///
 /// * `v` - The `U256` to be converted.
 fn u256_to_felt(v: &U256) -> DevnetResult<Felt> {
-    Ok(felt_from_prefixed_hex(&format!("0x{}", v.to_string()))?)
+    Ok(Felt::from_bytes_be(&v.to_be_bytes()))
 }
 
 /// Converts an `Felt` into a `U256`.
@@ -390,22 +388,20 @@ mod tests {
 
         let payload: Vec<Felt> = vec![1.into(), 2.into()];
 
-        let log = alloy::rpc::types::RawLog {
-            address: alloy::primitives::Address::from_str(
-                "0xde29d060D45901Fb19ED6C6e959EB22d8626708e",
-            )
-            .unwrap(),
-            topics: vec![
-                B256::from_str(
-                    "0xdb80dd488acf86d17c747445b0eabb5d57c541d3bd7b6b87af987858e5066b2b",
-                )
-                .unwrap(),
-                B256::from_str(from_address).unwrap(),
-                B256::from_str(to_address).unwrap(),
-                B256::from_str(selector).unwrap(),
-            ],
-            data: payload_buf.into(),
-            ..Default::default()
+        let inner = alloy::primitives::Log {
+            address: Address::from_str("0xde29d060D45901Fb19ED6C6e959EB22d8626708e").unwrap(),
+            data: alloy::primitives::LogData::new_unchecked(
+                vec![
+                    B256::from_str(
+                        "0xdb80dd488acf86d17c747445b0eabb5d57c541d3bd7b6b87af987858e5066b2b",
+                    )
+                    .unwrap(),
+                    B256::from_str(from_address).unwrap(),
+                    B256::from_str(to_address).unwrap(),
+                    B256::from_str(selector).unwrap(),
+                ],
+                payload_buf.clone().into(),
+            ),
         };
 
         let expected_message = MessageToL2 {
@@ -421,6 +417,7 @@ mod tests {
             nonce: nonce.into(),
             paid_fee_on_l1: fee.into(),
         };
+        let log = Log { inner, block_number: None, transaction_hash: None, ..Default::default() };
 
         let message = message_to_l2_from_log(log).unwrap();
 

@@ -60,7 +60,7 @@ impl BackgroundAnvil {
         let url: Url = format!("http://{HOST}:{port}").parse()?;
         let client = reqwest::Client::new();
         for _ in 0..max_retries {
-            if let Ok(anvil_block_rsp) = send_dummy_request(&client, &url.as_str()).await {
+            if let Ok(anvil_block_rsp) = send_dummy_request(&client, url.as_str()).await {
                 assert_eq!(anvil_block_rsp.status(), StatusCode::OK);
                 println!("Spawned background anvil at {url}");
 
@@ -117,8 +117,6 @@ impl BackgroundAnvil {
         let contract = L1L2Example::deploy(provider, messaging_address).await.map_err(|e| {
             TestError::AlloyError(format!("Error deploying l1l2 contract on ethereum: {e}"))
         })?;
-
-        println!("Deployed L1L2Example at {:?}", contract.address());
 
         Ok(*contract.address())
     }
@@ -186,16 +184,16 @@ impl BackgroundAnvil {
             .send()
             .await
             .map_err(|e| {
-            TestError::AlloyError(format!(
-                "tx for deposit l1l2 contract on ethereum failed: {e}"
-            ))
+                TestError::AlloyError(format!(
+                    "tx for deposit l1l2 contract on ethereum failed: {e}"
+                ))
             })?
             .watch()
             .await
             .map_err(|e| {
-            TestError::AlloyError(format!(
-                "Error confirming deposit l1l2 contract on ethereum: {e}"
-            ))
+                TestError::AlloyError(format!(
+                    "Error confirming deposit l1l2 contract on ethereum: {e}"
+                ))
             })?;
         Ok(())
     }
