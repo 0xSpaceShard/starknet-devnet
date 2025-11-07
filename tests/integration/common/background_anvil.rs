@@ -69,8 +69,9 @@ impl BackgroundAnvil {
                         |e| TestError::AlloyError(format!("Failed to get chain id: {e}")),
                     )?;
 
-                let provider_signer =
-                    PrivateKeySigner::from_str(private_key).unwrap().with_chain_id(chain_id.into());
+                let provider_signer = PrivateKeySigner::from_str(private_key)
+                    .map_err(|e| TestError::AlloyError(format!("Invalid private key: {e}")))?
+                    .with_chain_id(chain_id.into());
                 return Ok(Self { process: safe_process, url, provider_signer });
             }
 
