@@ -76,6 +76,8 @@ usc = { version = "2.6.0-rc.0", package = "universal-sierra-compiler" }
 num-bigint = { version = "0.4" }
 bigdecimal = { version = "0.4.5" }
 enum-helper-macros = "0.0.1"
+lru = "0.16.2"
+once_cell = "1.21.3"
 
 # Starknet dependencies
 starknet-types-core = "=0.2.3"
