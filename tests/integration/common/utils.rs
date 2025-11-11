@@ -5,7 +5,7 @@ use std::process::{Child, Command};
 use std::sync::Arc;
 use std::time::Duration;
 
-use ethers::types::U256;
+use alloy::primitives::U256;
 use futures::{SinkExt, StreamExt, TryStreamExt};
 use rand::{Rng, thread_rng};
 use serde_json::json;
@@ -463,7 +463,7 @@ where
 }
 
 pub fn felt_to_u256(f: Felt) -> U256 {
-    U256::from_big_endian(&f.to_bytes_be())
+    U256::from_be_bytes(f.to_bytes_be())
 }
 
 /// Unchecked conversion

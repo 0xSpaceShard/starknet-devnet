@@ -32,7 +32,7 @@
 //! contract (`mockSendMessageFromL2` entrypoint).
 use std::collections::HashMap;
 
-use ethers::types::H256;
+use alloy::primitives::B256;
 use starknet_rs_core::types::{ExecutionResult, Felt, Hash256};
 use starknet_types::rpc::block::BlockId;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
@@ -47,7 +47,7 @@ pub use ethereum::EthereumMessaging;
 
 #[derive(Default)]
 pub struct MessagingBroker {
-    /// The ethereum broker to send transaction / call contracts using ethers.
+    /// The ethereum broker to send transaction / call contracts using alloy.
     pub(crate) ethereum: Option<EthereumMessaging>,
     /// The last local (starknet) block for which messages have been collected
     /// and sent.
@@ -56,11 +56,11 @@ pub struct MessagingBroker {
     /// For each time a message is supposed to be sent to L1, it is stored in this
     /// queue. The user may consume those messages using `consume_message_from_l2`
     /// to actually test `MessageToL1` emitted without running L1 node.
-    pub l2_to_l1_messages_hashes: HashMap<H256, u64>,
+    pub l2_to_l1_messages_hashes: HashMap<B256, u64>,
     /// This list of messages that will be sent to L1 node at the next `postman/flush`.
     pub l2_to_l1_messages_to_flush: Vec<MessageToL1>,
     /// Mapping of L1 transaction hash to a chronological sequence of generated L2 transactions.
-    pub l1_to_l2_tx_hashes: HashMap<H256, Vec<Felt>>,
+    pub l1_to_l2_tx_hashes: HashMap<B256, Vec<Felt>>,
 }
 
 impl MessagingBroker {
@@ -162,7 +162,7 @@ impl Starknet {
                 }
 
                 for message in &messages {
-                    let hash = H256(*message.hash().as_bytes());
+                    let hash = B256::new(*message.hash().as_bytes());
                     let count = self.messaging.l2_to_l1_messages_hashes.entry(hash).or_insert(0);
                     *count += 1;
                 }
@@ -208,7 +208,7 @@ impl Starknet {
         // Ensure latest messages are collected before consuming the message.
         self.collect_messages_to_l1().await?;
 
-        let hash = H256(*message.hash().as_bytes());
+        let hash = B256::new(*message.hash().as_bytes());
         let count = self.messaging.l2_to_l1_messages_hashes.entry(hash).or_insert(0);
 
         if *count > 0 {

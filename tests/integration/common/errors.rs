@@ -18,8 +18,8 @@ pub enum TestError {
     #[error("Could not start Anvil: {0}")]
     AnvilNotStartable(String),
 
-    #[error("Ethers error: {0}")]
-    EthersError(String),
+    #[error("Alloy error: {0}")]
+    AlloyError(String),
 }
 
 #[derive(Error, Debug)]

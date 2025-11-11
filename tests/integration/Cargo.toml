@@ -16,7 +16,7 @@ starknet_api = { workspace = true, features = ["testing"] }
 async-trait = { workspace = true }
 axum = { workspace = true }
 anyhow = { workspace = true }
-ethers = { workspace = true }
+alloy = { workspace = true }
 futures = { workspace = true }
 lazy_static = { workspace = true }
 listeners = { workspace = true }
