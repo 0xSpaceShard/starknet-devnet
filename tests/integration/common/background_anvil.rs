@@ -49,7 +49,7 @@ impl BackgroundAnvil {
             .args(args)
             .spawn()
             .expect("Could not start background Anvil");
-        let mut safe_process = SafeChild { process };
+        let mut safe_process = SafeChild { process, port: None };
 
         let sleep_time = time::Duration::from_millis(500);
         let max_retries = 30;

@@ -36,12 +36,12 @@ dead-code = "warn"
 [workspace.dependencies]
 
 # axum
-axum = { version = "0.7", features = ["ws"] }
+axum = { version = "0.8", features = ["ws"] }
 http-body-util = { version = "0.1" }
-tower-http = { version = "0.5", features = ["full"] }
+tower-http = { version = "0.6", features = ["full"] }
 
 # async
-tokio = { version = "1.43.1", features = [
+tokio = { version = "1.48.0", features = [
 	"time",
 	"macros",
 	"rt-multi-thread",
@@ -57,24 +57,24 @@ tracing-subscriber = { version = "0.3.20", features = ["env-filter", "fmt"] }
 
 # misc
 base64 = { version = "0.22" }
-clap = { version = "4.3.2", features = ["derive", "env"] }
+clap = { version = "4.5", features = ["derive", "env"] }
 flate2 = { version = ">= 1.0.26, < 1.0.27" }
 nonzero_ext = "0.3.0"
-serde = { version = "1.0.197", features = ["derive"] }
-serde_json = { version = "1.0.114" }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = { version = "1.0.145" }
 serde_yaml = { version = "0.9.27" }
-thiserror = { version = "1.0.32" }
+thiserror = { version = "2.0.17" }
 anyhow = "1"
-indexmap = "2.0.0"
-rand = "0.8.5"
-rand_chacha = "0.3.1"
-rand_mt = "4.2.2"
-regex_generate = "0.2.3"
-reqwest = { version = "0.12.15", features = ["json"] }
+indexmap = "2.12.0"
+rand = "0.9.2"
+rand_chacha = "0.9.0"
+rand_mt = "5.0.0"
+rand_regex = "0.18.1"
+reqwest = { version = "0.12.24", features = ["json"] }
 url = "2.5"
 usc = { version = "2.6.0-rc.0", package = "universal-sierra-compiler" }
 num-bigint = { version = "0.4" }
-bigdecimal = { version = "0.4.5" }
+bigdecimal = { version = "0.4.9" }
 enum-helper-macros = "0.0.1"
 
 # Starknet dependencies
@@ -109,13 +109,13 @@ starknet-core = { version = "0.6.1", path = "crates/starknet-devnet-core", packa
 server = { version = "0.6.1", path = "crates/starknet-devnet-server", package = "starknet-devnet-server" }
 
 # Dependabot alerts
-zerocopy = "0.7.31"
-unsafe-libyaml = "0.2.10"
+zerocopy = "0.8.27"
+unsafe-libyaml = "0.2.11"
 h2 = "0.4"
-ring = "0.17.13"
+ring = "0.17.14"
 
 
-alloy = { version = "1.1.0" }
+alloy = { version = "1.1.1" }
 eyre = "0.6"
 
 # Changed from 0.10 to 0.10.72 as suggested by Dependabot: https://github.com/0xSpaceShard/starknet-devnet/security/dependabot/53
@@ -127,7 +127,7 @@ parking_lot = "0.12.3"
 serial_test = "3.1.1"
 hex = "0.4.3"
 lazy_static = { version = "1.4.0" }
-tokio-tungstenite = { version = "0.21.0" }
+tokio-tungstenite = { version = "0.28.0" }
 listeners = "0.2.1"
 
 # https://github.com/paritytech/parity-scale-codec/issues/656

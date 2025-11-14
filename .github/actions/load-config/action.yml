@@ -4,7 +4,7 @@ description: 'Loads common configuration values and sets them as outputs'
 outputs:
   rust_stable_version:
     description: 'Stable Rust version to use'
-    value: '1.86.0'
+    value: '1.89.0'
   rust_nightly_version:
     description: 'Nightly Rust version to use'
     value: 'nightly-2025-02-20'

@@ -29,7 +29,8 @@ use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
 use starknet_types::chain_id::ChainId;
 use starknet_types::rpc::state::Balance;
 use starknet_types::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
-use tokio::net::TcpListener;
+use tokio::io::AsyncWriteExt;
+use tokio::net::{TcpListener, UnixStream};
 #[cfg(unix)]
 use tokio::signal::unix::{SignalKind, signal};
 #[cfg(windows)]
@@ -330,8 +331,24 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     };
 
+    let acquired_port = listener.local_addr()?.port();
+
     let server = serve_http_json_rpc(listener, &api.server_config, json_rpc_handler).await;
     info!("Starknet Devnet listening on {}", address);
+
+    #[cfg(unix)]
+    if let Ok(socket_path) = std::env::var("UNIX_SOCKET") {
+        match UnixStream::connect(&socket_path).await {
+            Ok(mut stream) => {
+                stream.write_all(&acquired_port.to_be_bytes()).await?;
+                stream.shutdown().await?;
+                println!("Successfully wrote port to unix socket: {}", socket_path);
+            }
+            Err(e) => {
+                println!("Couldn't connect to unix socket: {socket_path}, reason: {e}");
+            }
+        }
+    }
 
     let mut tasks = vec![];
 

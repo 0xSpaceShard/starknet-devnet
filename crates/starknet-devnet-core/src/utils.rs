@@ -8,11 +8,11 @@ use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 use crate::error::DevnetResult;
 
 pub mod random_number_generator {
-    use rand::{Rng, SeedableRng, thread_rng};
+    use rand::{Rng, SeedableRng, rng};
     use rand_mt::Mt64;
 
     pub fn generate_u32_random_number() -> u32 {
-        thread_rng().gen()
+        rng().random()
     }
 
     pub(crate) fn generate_u128_random_numbers(seed: u32, random_numbers_count: u8) -> Vec<u128> {
@@ -20,7 +20,7 @@ pub mod random_number_generator {
         let mut rng: Mt64 = SeedableRng::seed_from_u64(seed as u64);
 
         for _ in 0..random_numbers_count {
-            result.push(rng.gen());
+            result.push(rng.random());
         }
 
         result

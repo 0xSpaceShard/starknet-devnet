@@ -17,7 +17,7 @@ use tower_http::trace::TraceLayer;
 use crate::api::JsonRpcHandler;
 use crate::rpc_handler::RpcHandler;
 use crate::{ServerConfig, rpc_handler};
-pub type StarknetDevnetServer = axum::serve::Serve<IntoMakeService<Router>, Router>;
+pub type StarknetDevnetServer = axum::serve::Serve<TcpListener, IntoMakeService<Router>, Router>;
 
 fn json_rpc_routes<TJsonRpcHandler: RpcHandler>(json_rpc_handler: TJsonRpcHandler) -> Router {
     Router::new()

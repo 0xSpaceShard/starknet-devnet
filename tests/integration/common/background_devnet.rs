@@ -16,6 +16,8 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::{LocalWallet, SigningKey};
+use tokio::io::AsyncReadExt;
+use tokio::net::UnixListener;
 use url::Url;
 
 use super::constants::{
@@ -29,6 +31,7 @@ use crate::common::constants::{
     DEVNET_EXECUTABLE_BINARY_PATH, DEVNET_MANIFEST_PATH, STRK_ERC20_CONTRACT_ADDRESS,
 };
 use crate::common::safe_child::SafeChild;
+use crate::common::utils::UniqueAutoDeletableFile;
 
 #[derive(Debug)]
 pub struct BackgroundDevnet {
@@ -113,7 +116,7 @@ impl BackgroundDevnet {
         final_args
     }
 
-    fn start_safe_process(args: &[&str]) -> Result<SafeChild, TestError> {
+    async fn start_safe_process(args: &[&str]) -> Result<SafeChild, TestError> {
         // If not on CircleCI, first build the workspace with cargo. Then rely on the built binary.
         if std::env::var("CIRCLECI").is_err() {
             let Output { status, stderr, .. } = Command::new("cargo")
@@ -131,23 +134,58 @@ impl BackgroundDevnet {
             }
         }
 
+        let socket = UniqueAutoDeletableFile::new("socket");
+        #[cfg(unix)]
+        let listener = UnixListener::bind(&socket.path).map_err(|e| {
+            TestError::DevnetNotStartable(format!("Failed to bind to unix socket: {e:?}"))
+        })?;
+
         let process = Command::new(DEVNET_EXECUTABLE_BINARY_PATH)
             .args(Self::add_default_args(args))
-            .stdout(Stdio::piped()) // comment this out for complete devnet stdout
+            .env("UNIX_SOCKET", &socket.path)
+            .stdout(Stdio::null()) // comment this out for complete devnet stdout
             .spawn()
             .map_err(|e| TestError::DevnetNotStartable(format!("Spawning error: {e:?}")))?;
 
-        Ok(SafeChild { process })
+        #[cfg(unix)]
+        {
+            let port =
+                match tokio::time::timeout(tokio::time::Duration::from_secs(10), listener.accept())
+                    .await
+                {
+                    Ok(Ok((mut stream, _))) => {
+                        let mut buffer = [0; 2];
+                        stream.read_exact(&mut buffer).await.map_err(|e| {
+                            TestError::DevnetNotStartable(format!(
+                                "Failed to read from socket: {e:?}"
+                            ))
+                        })?;
+                        Some(u16::from_be_bytes(buffer))
+                    }
+                    Ok(Err(_e)) => None,
+                    Err(_) => {
+                        println!("Timeout reading from unix socket: {:?}", listener);
+                        None
+                    }
+                };
+            Ok(SafeChild { process, port })
+        }
+        #[cfg(not(unix))]
+        Ok(SafeChild { process, port: None })
     }
 
     pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
-        let mut safe_process = Self::start_safe_process(args)?;
+        let mut safe_process = Self::start_safe_process(args).await?;
 
         let sleep_time = time::Duration::from_millis(500);
         let max_retries = 60;
-        let port = get_acquired_port(&mut safe_process, sleep_time, max_retries)
-            .await
-            .map_err(|e| TestError::DevnetNotStartable(format!("Cannot determine port: {e:?}")))?;
+        let port = if let Some(port) = safe_process.port {
+            port
+        } else {
+            get_acquired_port(&mut safe_process, sleep_time, max_retries).await.map_err(|e| {
+                TestError::DevnetNotStartable(format!("Cannot determine port: {e:?}"))
+            })?
+        };
 
         // now we know the port; check if it can be used to poll Devnet's endpoint
         let client = Client::new();
