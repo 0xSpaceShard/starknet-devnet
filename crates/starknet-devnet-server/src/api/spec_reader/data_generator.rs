@@ -70,11 +70,17 @@ impl Visitor for RandDataGenerator<'_> {
         }
 
         // If pattern is not set, then generate a string from the default pattern
-        let regex_pattern = element.pattern.as_deref().unwrap_or(DEFAULT_STRING_REGEX);
+        let regex_pattern: String = element
+            .pattern
+            .as_deref()
+            .unwrap_or(DEFAULT_STRING_REGEX)
+            .chars()
+            .filter(|c| *c != '^' && *c != '$')
+            .collect();
         let seed = rand::rng().random();
 
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
-        let rgx = rand_regex::Regex::compile(regex_pattern, 100).unwrap();
+        let rgx = rand_regex::Regex::compile(regex_pattern.as_str(), 100).unwrap();
 
         let random_string =
             (&mut rng).sample_iter(&rgx).take(1).collect::<Vec<String>>().first().unwrap().clone();
