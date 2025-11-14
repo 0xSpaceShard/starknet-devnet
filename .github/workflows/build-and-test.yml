@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   format-check:
-    name: Format Check
+    name: Format and Spelling Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -33,9 +33,14 @@ jobs:
         run: |
           cargo +${{ steps.config.outputs.rust_nightly_version }} fmt --all --check
           cd website && npm ci && npm run format-check
+      
+      - name: Check spelling
+        run: |
+          cargo +${{ steps.config.outputs.rust_nightly_version }} install typos-cli --version 1.36.2 --locked
+          typos && echo "No spelling errors!"
 
-  code-check:
-    name: Clippy and Spelling Check
+  clippy-and-unit-tests:
+    name: Clippy and Unit Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -62,13 +67,12 @@ jobs:
           cargo clippy --workspace -- -Dwarnings
           cargo clippy --workspace --all-features -- -Dwarnings
           cargo clippy --workspace --tests -- -Dwarnings
+      
+      - name: Run tests
+        run: RUST_BACKTRACE=full cargo test --workspace --exclude integration --no-fail-fast
 
-      - name: Check spelling
-        run: |
-          cargo +${{ steps.config.outputs.rust_nightly_version }} install typos-cli --version 1.36.2 --locked
-          typos && echo "No spelling errors!"
-  test:
-    name: Build and Test
+  integration-test:
+    name: Integration Test
     runs-on: self-hosted
     steps:
       - name: Checkout repository
@@ -92,4 +96,4 @@ jobs:
         run: cargo build --release
 
       - name: Run tests
-        run: RUST_BACKTRACE=full cargo test --no-fail-fast
+        run: RUST_BACKTRACE=full cargo test --package integration --no-fail-fast
