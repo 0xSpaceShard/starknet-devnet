@@ -332,7 +332,7 @@ impl SocketContext {
     }
 
     async fn send_serialized(&self, resp: String) {
-        if let Err(e) = self.sender.lock().await.send(Message::Text(resp)).await {
+        if let Err(e) = self.sender.lock().await.send(Message::Text(resp.into())).await {
             tracing::error!("Failed writing to socket: {}", e.to_string());
         }
     }

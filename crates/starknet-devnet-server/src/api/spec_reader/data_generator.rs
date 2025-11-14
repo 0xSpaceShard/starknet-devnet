@@ -57,7 +57,7 @@ impl<'a> RandDataGenerator<'a> {
 
 impl Visitor for RandDataGenerator<'_> {
     fn do_for_boolean_primitive(&self) -> Result<serde_json::Value, String> {
-        Ok(serde_json::Value::Bool(rand::thread_rng().gen_bool(0.5)))
+        Ok(serde_json::Value::Bool(rand::rng().random_bool(0.5)))
     }
 
     fn do_for_string_primitive(
@@ -65,25 +65,19 @@ impl Visitor for RandDataGenerator<'_> {
         element: &StringPrimitive,
     ) -> Result<serde_json::Value, String> {
         if let Some(enums) = element.possible_enums.clone() {
-            let random_number = rand::thread_rng().gen_range(0..enums.len());
+            let random_number = rand::rng().random_range(0..enums.len());
             return Ok(serde_json::Value::String(enums[random_number].clone()));
         }
 
         // If pattern is not set, then generate a string from the default pattern
         let regex_pattern = element.pattern.as_deref().unwrap_or(DEFAULT_STRING_REGEX);
-        let mut buffer: Vec<u8> = vec![];
-        let seed = rand::thread_rng().gen();
+        let seed = rand::rng().random();
 
-        regex_generate::Generator::new(
-            regex_pattern,
-            rand_chacha::ChaCha8Rng::seed_from_u64(seed),
-            100,
-        )
-        .unwrap()
-        .generate(&mut buffer)
-        .unwrap();
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
+        let rgx = rand_regex::Regex::compile(regex_pattern, 100).unwrap();
 
-        let random_string = String::from_utf8(buffer).unwrap();
+        let random_string =
+            (&mut rng).sample_iter(&rgx).take(1).collect::<Vec<String>>().first().unwrap().clone();
 
         Ok(serde_json::Value::String(random_string))
     }
@@ -92,8 +86,8 @@ impl Visitor for RandDataGenerator<'_> {
         &self,
         element: &IntegerPrimitive,
     ) -> Result<serde_json::Value, String> {
-        let num = rand::thread_rng()
-            .gen_range(element.minimum.unwrap_or_default()..element.maximum.unwrap_or(i32::MAX));
+        let num = rand::rng()
+            .random_range(element.minimum.unwrap_or_default()..element.maximum.unwrap_or(i32::MAX));
 
         Ok(serde_json::Value::Number(serde_json::Number::from(num)))
     }
@@ -110,7 +104,7 @@ impl Visitor for RandDataGenerator<'_> {
         let min_items = element.min_items.unwrap_or(1);
         let max_items = element.max_items.unwrap_or(3);
 
-        let number_of_elements = rand::thread_rng().gen_range(min_items..=max_items);
+        let number_of_elements = rand::rng().random_range(min_items..=max_items);
 
         for _ in 0..number_of_elements {
             let generated_value =
@@ -142,7 +136,7 @@ impl Visitor for RandDataGenerator<'_> {
     }
 
     fn do_for_one_of(&self, element: &OneOf) -> Result<serde_json::Value, String> {
-        let idx = rand::thread_rng().gen_range(0..element.one_of.len());
+        let idx = rand::rng().random_range(0..element.one_of.len());
         let schema =
             element.one_of.get(idx).ok_or("OneOf schema doesn't have entry".to_string())?;
 
@@ -203,13 +197,13 @@ impl Visitor for RandDataGenerator<'_> {
         } else {
             // decide the number of optional fields to remove
             let mut optional_fields_left_to_remove =
-                rand::thread_rng().gen_range(0..=optional_fields.len());
+                rand::rng().random_range(0..=optional_fields.len());
 
             // remove the optional fields 1 by 1
             while optional_fields_left_to_remove > 0 {
                 optional_fields_left_to_remove -= 1;
 
-                let idx_to_remove = rand::thread_rng().gen_range(0..optional_fields.len());
+                let idx_to_remove = rand::rng().random_range(0..optional_fields.len());
                 optional_fields.swap_remove(idx_to_remove);
             }
 

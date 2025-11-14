@@ -118,7 +118,7 @@ async fn test_json_syntax_error_handling() {
                 "code": -32700,
                 "message": "Parse error",
                 "data": {
-                    "reason": "Failed to parse the request body as JSON"
+                    "reason": "Failed to parse the request body as JSON: key must be a string at line 1 column 3"
                 }
             },
             "id": null

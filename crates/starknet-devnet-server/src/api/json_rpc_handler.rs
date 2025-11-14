@@ -528,7 +528,7 @@ impl JsonRpcHandler {
             .unwrap_or_default(),
         };
 
-        if let Err(e) = ws.lock().await.send(Message::Text(error_serialized)).await {
+        if let Err(e) = ws.lock().await.send(Message::Text(error_serialized.into())).await {
             tracing::error!("Error sending websocket message: {e}");
         }
     }
