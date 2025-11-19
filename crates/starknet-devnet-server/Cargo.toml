@@ -46,7 +46,7 @@ starknet-types = { workspace = true }
 
 [dev-dependencies]
 rand_chacha = { workspace = true }
-regex_generate = { workspace = true }
+rand_regex = { workspace = true }
 serde_yaml = { workspace = true }
 starknet-types = { workspace = true, features = ["testing"] }
 
