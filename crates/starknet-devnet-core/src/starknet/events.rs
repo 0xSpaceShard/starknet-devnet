@@ -80,8 +80,8 @@ pub(crate) fn get_events(
 
                 let emitted_event = EmittedEvent {
                     transaction_hash: *transaction_hash,
-                    transaction_index: Some(transaction_index as u64),
-                    event_index: Some(event_index as u64),
+                    transaction_index: transaction_index as u64,
+                    event_index: event_index as u64,
                     block_hash,
                     block_number,
                     keys: transaction_event.keys,
