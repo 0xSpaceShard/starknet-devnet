@@ -267,13 +267,6 @@ impl From<&StarknetBlock> for starknet_types::rpc::block::PreConfirmedBlockHeade
                     .0
                     .into(),
             },
-            n_transactions: value.header.n_transactions as u64,
-            n_events: value.header.n_events as u64,
-            state_diff_length: value.header.state_diff_length.map(|v| v as u64),
-            state_diff_commitment: value.header.state_diff_commitment,
-            transaction_commitment: value.header.transaction_commitment,
-            event_commitment: value.header.event_commitment,
-            receipt_commitment: value.header.receipt_commitment,
         }
     }
 }
@@ -339,11 +332,11 @@ impl From<&StarknetBlock> for starknet_types::rpc::block::BlockHeader {
             },
             n_transactions: value.header.n_transactions as u64,
             n_events: value.header.n_events as u64,
-            state_diff_length: value.header.state_diff_length.map(|v| v as u64),
-            state_diff_commitment: value.header.state_diff_commitment,
-            transaction_commitment: value.header.transaction_commitment,
-            event_commitment: value.header.event_commitment,
-            receipt_commitment: value.header.receipt_commitment,
+            state_diff_length: value.header.state_diff_length.map(|v| v as u64).unwrap_or(0),
+            state_diff_commitment: value.header.state_diff_commitment.unwrap_or_default(),
+            transaction_commitment: value.header.transaction_commitment.unwrap_or_default(),
+            event_commitment: value.header.event_commitment.unwrap_or_default(),
+            receipt_commitment: value.header.receipt_commitment.unwrap_or_default(),
         }
     }
 }

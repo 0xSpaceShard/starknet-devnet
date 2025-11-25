@@ -427,6 +427,7 @@ impl Starknet {
             .get_transactions()
             .iter()
             // filter map is used here, although in normal conditions unwrap should be safe. Every transaction hash that has been added to preconfirmed block should be present in transactions collection
+            // changes should be done later so this is not even possible
             .filter_map(|tx_hash| self.transactions.get_by_hash(*tx_hash))
             .map(|tx| tx.into())
             .collect();

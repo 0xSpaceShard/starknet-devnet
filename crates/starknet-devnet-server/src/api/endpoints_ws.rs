@@ -90,11 +90,11 @@ impl JsonRpcHandler {
                     // TODO: fill in real commitments and counts when starknet-rs supports it
                     n_transactions: 0,
                     n_events: 0,
-                    state_diff_length: None,
-                    state_diff_commitment: None,
-                    transaction_commitment: None,
-                    event_commitment: None,
-                    receipt_commitment: None,
+                    state_diff_length: 0,
+                    state_diff_commitment: Default::default(),
+                    transaction_commitment: Default::default(),
+                    event_commitment: Default::default(),
+                    receipt_commitment: Default::default(),
                 };
                 Ok(origin_header)
             }

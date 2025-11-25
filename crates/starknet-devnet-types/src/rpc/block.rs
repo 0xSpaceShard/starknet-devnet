@@ -111,18 +111,15 @@ pub struct BlockHeader {
     pub l2_gas_price: ResourcePrice,
     pub l1_data_gas_price: ResourcePrice,
     pub l1_da_mode: L1DataAvailabilityMode,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub state_diff_commitment: Option<StateDiffCommitment>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub state_diff_length: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub transaction_commitment: Option<TransactionCommitment>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub event_commitment: Option<EventCommitment>,
+    pub state_diff_commitment: StateDiffCommitment,
+    pub state_diff_length: u64,
+    pub transaction_commitment: TransactionCommitment,
+    pub event_commitment: EventCommitment,
+    #[serde(rename = "transaction_count")]
     pub n_transactions: u64,
+    #[serde(rename = "event_count")]
     pub n_events: u64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub receipt_commitment: Option<ReceiptCommitment>,
+    pub receipt_commitment: ReceiptCommitment,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -136,18 +133,6 @@ pub struct PreConfirmedBlockHeader {
     pub l2_gas_price: ResourcePrice,
     pub l1_data_gas_price: ResourcePrice,
     pub l1_da_mode: L1DataAvailabilityMode,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub state_diff_commitment: Option<StateDiffCommitment>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub state_diff_length: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub transaction_commitment: Option<TransactionCommitment>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub event_commitment: Option<EventCommitment>,
-    pub n_transactions: u64,
-    pub n_events: u64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub receipt_commitment: Option<ReceiptCommitment>,
 }
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(Deserialize), serde(deny_unknown_fields))]
