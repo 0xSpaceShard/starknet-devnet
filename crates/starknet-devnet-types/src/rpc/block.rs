@@ -62,6 +62,7 @@ impl<'de> Deserialize<'de> for BlockId {
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)] // Block is most dominant variant, doesn't matter if it is larger
 pub enum BlockResult {
     Block(Block),
     PreConfirmedBlock(PreConfirmedBlock),
