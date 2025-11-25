@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
 use starknet_api::transaction::fields::Fee;
-use starknet_rs_core::types::{ExecutionResult, Hash256};
+use starknet_rust::core::types::{ExecutionResult, Hash256};
 
 use super::felt::BlockHash;
 use super::transactions::TransactionFinalityStatus;

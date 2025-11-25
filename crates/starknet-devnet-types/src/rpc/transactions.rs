@@ -14,11 +14,11 @@ use starknet_api::transaction::fields::{
     AllResourceBounds, GasVectorComputationMode, Tip, ValidResourceBounds,
 };
 use starknet_api::transaction::{TransactionHasher, TransactionOptions, signed_tx_version};
-use starknet_rs_core::types::{
+use starknet_rust::core::types::{
     EventsPage, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
     TransactionExecutionStatus,
 };
-use starknet_rs_core::utils::parse_cairo_short_string;
+use starknet_rust::core::utils::parse_cairo_short_string;
 
 use self::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use self::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
@@ -138,6 +138,15 @@ impl TransactionWithHash {
             Transaction::Deploy(_) => TransactionType::Deploy,
             Transaction::Invoke(_) => TransactionType::Invoke,
             Transaction::L1Handler(_) => TransactionType::L1Handler,
+        }
+    }
+
+    pub fn get_signature(&self) -> TransactionSignature {
+        match &self.transaction {
+            Transaction::Declare(DeclareTransaction::V3(tx)) => tx.signature.clone(),
+            Transaction::DeployAccount(DeployAccountTransaction::V3(tx)) => tx.signature.clone(),
+            Transaction::Invoke(InvokeTransaction::V3(tx)) => tx.signature.clone(),
+            _ => TransactionSignature::default(),
         }
     }
 
@@ -360,7 +369,7 @@ impl ResourceBoundsWrapper {
     }
 }
 
-fn convert_resource_bounds_from_starknet_rs_to_starknet_api(
+fn convert_resource_bounds_from_starknet_rust_to_starknet_api(
     bounds: ResourceBounds,
 ) -> starknet_api::transaction::fields::ResourceBounds {
     starknet_api::transaction::fields::ResourceBounds {
@@ -380,19 +389,19 @@ impl From<&ResourceBoundsWrapper> for starknet_api::transaction::fields::ValidRe
             // estimate fee
             (0, 0, 0) => ValidResourceBounds::AllResources(AllResourceBounds::default()),
             (_, 0, 0) => starknet_api::transaction::fields::ValidResourceBounds::L1Gas(
-                convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                convert_resource_bounds_from_starknet_rust_to_starknet_api(
                     value.inner.l1_gas.clone(),
                 ),
             ),
             _ => starknet_api::transaction::fields::ValidResourceBounds::AllResources(
                 AllResourceBounds {
-                    l1_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                    l1_gas: convert_resource_bounds_from_starknet_rust_to_starknet_api(
                         value.inner.l1_gas.clone(),
                     ),
-                    l2_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                    l2_gas: convert_resource_bounds_from_starknet_rust_to_starknet_api(
                         value.inner.l2_gas.clone(),
                     ),
-                    l1_data_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
+                    l1_data_gas: convert_resource_bounds_from_starknet_rust_to_starknet_api(
                         value.inner.l1_data_gas.clone(),
                     ),
                 },

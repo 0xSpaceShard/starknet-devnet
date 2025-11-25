@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rs_core::types::{BlockId, BlockTag, EthAddress, Felt, MsgFromL1, StarknetError};
-use starknet_rs_core::utils::{UdcUniqueness, get_udc_deployed_address};
-use starknet_rs_providers::{Provider, ProviderError};
+use starknet_rust::accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+use starknet_rust::core::types::{BlockId, BlockTag, EthAddress, Felt, MsgFromL1, StarknetError};
+use starknet_rust::core::utils::{UdcUniqueness, get_udc_deployed_address};
+use starknet_rust::providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{CHAIN_ID, L1_HANDLER_SELECTOR, MESSAGING_WHITELISTED_L1_CONTRACT};

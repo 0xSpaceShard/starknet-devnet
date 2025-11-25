@@ -6,7 +6,7 @@ use futures::SinkExt;
 use futures::stream::SplitSink;
 use serde::{self, Deserialize, Serialize};
 use starknet_core::starknet::events::check_if_filter_applies_for_event;
-use starknet_rs_core::types::Felt;
+use starknet_rust::core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::SubscriptionEmittedEvent;
 use starknet_types::felt::TransactionHash;

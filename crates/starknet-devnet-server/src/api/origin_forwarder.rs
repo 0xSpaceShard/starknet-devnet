@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use starknet_rs_core::types::{
+use starknet_rust::core::types::{
     BlockId as ImportedBlockId, BlockTag as ImportedBlockTag, BlockWithTxHashes,
     MaybePreConfirmedBlockWithTxHashes,
 };
-use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_providers::{JsonRpcClient, Provider};
+use starknet_rust::providers::jsonrpc::HttpTransport;
+use starknet_rust::providers::{JsonRpcClient, Provider};
 use starknet_types::rpc::block::{BlockId, BlockTag};
 
 use super::error::ApiError;

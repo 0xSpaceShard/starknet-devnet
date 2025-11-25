@@ -33,7 +33,7 @@
 use std::collections::HashMap;
 
 use alloy::primitives::B256;
-use starknet_rs_core::types::{ExecutionResult, Felt, Hash256};
+use starknet_rust::core::types::{ExecutionResult, Felt, Hash256};
 use starknet_types::rpc::block::BlockId;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 

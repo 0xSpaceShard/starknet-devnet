@@ -46,8 +46,8 @@ mod tests {
     const WHITELISTED_L1_ADDRESS: &str = "0x8359E4B0152ed5A731162D3c7B0D8D56edB165A0";
 
     use nonzero_ext::nonzero;
-    use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
-    use starknet_rs_core::utils::get_selector_from_name;
+    use starknet_rust::core::types::{Felt, TransactionExecutionStatus};
+    use starknet_rust::core::utils::get_selector_from_name;
     use starknet_types::chain_id::ChainId;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;

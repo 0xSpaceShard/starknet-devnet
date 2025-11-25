@@ -22,7 +22,7 @@ flate2 = { workspace = true }
 starknet_api = { workspace = true }
 starknet-types-core = { workspace = true }
 thiserror = { workspace = true }
-starknet-rs-core = { workspace = true }
+starknet-rust = { workspace = true }
 cairo-vm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true, features = [

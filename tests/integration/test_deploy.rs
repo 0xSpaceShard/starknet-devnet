@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use starknet_core::constants::UDC_CONTRACT_CLASS_HASH;
-use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rs_core::types::{
+use starknet_rust::accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
+use starknet_rust::core::types::{
     Call, ContractExecutionError, Felt, StarknetError, TransactionExecutionErrorData,
 };
-use starknet_rs_core::utils::get_selector_from_name;
-use starknet_rs_providers::ProviderError;
+use starknet_rust::core::utils::get_selector_from_name;
+use starknet_rust::providers::ProviderError;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{

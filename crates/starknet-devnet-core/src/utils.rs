@@ -2,7 +2,7 @@ use blockifier::blockifier_versioned_constants::VersionedConstants;
 use blockifier::bouncer::{BouncerConfig, BouncerWeights, BuiltinWeights};
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use starknet_api::block::StarknetVersion;
-use starknet_rs_core::types::Felt;
+use starknet_rust::core::types::Felt;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
 use crate::error::DevnetResult;
@@ -33,7 +33,7 @@ pub(crate) fn get_storage_var_address(
     args: &[Felt],
 ) -> DevnetResult<StorageKey> {
     let storage_var_address =
-        starknet_rs_core::utils::get_storage_var_address(storage_var_name, args)
+        starknet_rust::core::utils::get_storage_var_address(storage_var_name, args)
             .map_err(|err| crate::error::Error::UnexpectedInternalError { msg: err.to_string() })?;
 
     Ok(PatriciaKey::new(storage_var_address)?)
@@ -84,7 +84,7 @@ pub(crate) mod test_utils {
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use starknet_api::data_availability::DataAvailabilityMode;
     use starknet_api::transaction::fields::Tip;
-    use starknet_rs_core::types::Felt;
+    use starknet_rust::core::types::Felt;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};

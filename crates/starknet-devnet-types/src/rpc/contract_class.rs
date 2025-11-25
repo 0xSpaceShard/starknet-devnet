@@ -14,8 +14,8 @@ use serde::de::IntoDeserializer;
 use serde::{Serialize, Serializer};
 use starknet_api::contract_class::{ClassInfo, EntryPointType, SierraVersion};
 use starknet_api::deprecated_contract_class::{EntryPointOffset, EntryPointV0};
-use starknet_rs_core::types::contract::{SierraClass, SierraClassDebugInfo};
-use starknet_rs_core::types::{
+use starknet_rust::core::types::contract::{SierraClass, SierraClassDebugInfo};
+use starknet_rust::core::types::{
     ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContractClass,
     LegacyContractEntryPoint,
 };
@@ -374,7 +374,7 @@ mod tests {
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use serde::Deserialize;
     use serde_json::Deserializer;
-    use starknet_rs_core::types::LegacyEntryPointsByType;
+    use starknet_rust::core::types::LegacyEntryPointsByType;
 
     use crate::contract_class::deprecated::json_contract_class::Cairo0Json;
     use crate::contract_class::deprecated::rpc_contract_class::{

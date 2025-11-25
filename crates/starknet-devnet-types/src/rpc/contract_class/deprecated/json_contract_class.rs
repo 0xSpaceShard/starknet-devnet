@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Serializer as JsonSerializer, Value, json};
 use starknet_api::contract_class::EntryPointType;
 use starknet_api::deprecated_contract_class::EntryPointV0;
-use starknet_rs_core::types::{CompressedLegacyContractClass, Felt};
+use starknet_rust::core::types::{CompressedLegacyContractClass, Felt};
 use starknet_types_core::hash::{Pedersen, StarkHash};
 
 use crate::contract_class::deprecated::rpc_contract_class::DeprecatedContractClass;
@@ -88,7 +88,7 @@ impl Cairo0Json {
         let mut serializer = JsonSerializer::with_formatter(&mut buffer, StarknetFormatter);
         modified_abi_program_json.serialize(&mut serializer).map_err(JsonError::SerdeJsonError)?;
 
-        Ok(starknet_rs_core::utils::starknet_keccak(&buffer))
+        Ok(starknet_rust::core::utils::starknet_keccak(&buffer))
     }
 
     fn compute_cairo_0_contract_class_hash(json_class: &Value) -> crate::error::DevnetResult<Felt> {
@@ -252,7 +252,7 @@ pub fn json_into_raw_program(json_data: &Value) -> DevnetResult<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
-    use starknet_rs_core::types::CompressedLegacyContractClass;
+    use starknet_rust::core::types::CompressedLegacyContractClass;
 
     use crate::contract_class::deprecated::Cairo0Json;
     use crate::utils::test_utils::CAIRO_0_ACCOUNT_CONTRACT_PATH;

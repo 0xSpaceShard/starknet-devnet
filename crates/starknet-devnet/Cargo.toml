@@ -22,7 +22,7 @@ workspace = true
 server = { workspace = true }
 starknet-core = { workspace = true }
 starknet-types = { workspace = true }
-starknet-rs-core = { workspace = true }
+starknet-rust = { workspace = true }
 url = { workspace = true }
 
 # async
@@ -38,7 +38,6 @@ clap = { workspace = true }
 serde_json = { workspace = true }
 serde = { workspace = true }
 anyhow = { workspace = true }
-starknet-rs-providers = { workspace = true }
 reqwest = { workspace = true }
 
 [dev-dependencies]

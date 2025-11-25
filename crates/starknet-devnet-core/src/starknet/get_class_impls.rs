@@ -75,7 +75,7 @@ pub fn get_compiled_casm_impl(
 
 #[cfg(test)]
 mod tests {
-    use starknet_rs_core::types::Felt;
+    use starknet_rust::core::types::Felt;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::rpc::block::BlockId;
     use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;

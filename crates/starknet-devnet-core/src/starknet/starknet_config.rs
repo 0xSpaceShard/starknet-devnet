@@ -2,7 +2,7 @@ use std::num::NonZeroU128;
 
 use clap::Error;
 use serde::{Serialize, Serializer};
-use starknet_rs_core::types::Felt;
+use starknet_rust::core::types::Felt;
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::rpc::state::Balance;

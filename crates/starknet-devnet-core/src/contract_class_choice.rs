@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
-use starknet_rs_core::types::Felt;
-use starknet_rs_core::utils::get_selector_from_name;
+use starknet_rust::core::types::Felt;
+use starknet_rust::core::utils::get_selector_from_name;
 use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
 use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
 use starknet_types::traits::HashProducer;

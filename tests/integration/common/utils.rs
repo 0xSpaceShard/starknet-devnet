@@ -11,24 +11,24 @@ use rand::{Rng, rng};
 use serde_json::json;
 use starknet_api::contract_class::compiled_class_hash::{HashVersion, HashableCompiledClass};
 use starknet_core::CasmContractClass;
-use starknet_rs_accounts::{
+use starknet_rust::accounts::{
     Account, AccountFactory, ArgentAccountFactory, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rs_contract::{ContractFactory, UdcSelector};
-use starknet_rs_core::types::contract::SierraClass;
-use starknet_rs_core::types::{
+use starknet_rust::contract::{ContractFactory, UdcSelector};
+use starknet_rust::core::types::contract::SierraClass;
+use starknet_rust::core::types::{
     BlockId, BlockTag, ContractClass, ContractExecutionError, DeployAccountTransactionResult,
     ExecutionResult, FeeEstimate, Felt, FlattenedSierraClass, FunctionCall,
     InnerContractExecutionError, ResourceBounds, ResourceBoundsMapping, TransactionReceipt,
 };
-use starknet_rs_core::utils::{
+use starknet_rust::core::utils::{
     UdcUniqueSettings, get_selector_from_name, get_udc_deployed_address,
 };
-use starknet_rs_providers::jsonrpc::{
+use starknet_rust::providers::jsonrpc::{
     HttpTransport, HttpTransportError, JsonRpcClientError, JsonRpcError,
 };
-use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
-use starknet_rs_signers::LocalWallet;
+use starknet_rust::providers::{JsonRpcClient, Provider, ProviderError};
+use starknet_rust::signers::LocalWallet;
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
@@ -50,7 +50,7 @@ pub enum ImpersonationAction {
 /// dummy testing value
 pub fn get_deployable_account_signer() -> LocalWallet {
     let new_account_private_key = "0xc248668388dbe9acdfa3bc734cc2d57a";
-    starknet_rs_signers::LocalWallet::from(starknet_rs_signers::SigningKey::from_secret_scalar(
+    starknet_rust::signers::LocalWallet::from(starknet_rust::signers::SigningKey::from_secret_scalar(
         Felt::from_hex_unchecked(new_account_private_key),
     ))
 }
@@ -119,7 +119,7 @@ pub async fn assert_tx_succeeded_accepted<T: Provider>(
     }
 
     match receipt.finality_status() {
-        starknet_rs_core::types::TransactionFinalityStatus::AcceptedOnL2 => Ok(()),
+        starknet_rust::core::types::TransactionFinalityStatus::AcceptedOnL2 => Ok(()),
         other => anyhow::bail!("Tx {tx_hash:#x} should have been accepted on L2; got: {other:?}"),
     }
 }
@@ -135,7 +135,7 @@ pub async fn assert_tx_succeeded_pre_confirmed<T: Provider>(
     }
 
     match receipt.finality_status() {
-        starknet_rs_core::types::TransactionFinalityStatus::PreConfirmed => (),
+        starknet_rust::core::types::TransactionFinalityStatus::PreConfirmed => (),
         other => panic!("Should have been pre-confirmed; got: {other:?}"),
     }
     Ok(())
@@ -291,7 +291,7 @@ pub async fn deploy_v3(
     let contract_address = get_udc_deployed_address(
         Felt::ZERO,
         class_hash,
-        &starknet_rs_core::utils::UdcUniqueness::Unique(UdcUniqueSettings {
+        &starknet_rust::core::utils::UdcUniqueness::Unique(UdcUniqueSettings {
             deployer_address: account.address(),
             udc_contract_address: UDC_CONTRACT_ADDRESS,
         }),
@@ -319,7 +319,7 @@ pub async fn declare_v3_deploy_v3(
     let contract_address = get_udc_deployed_address(
         salt,
         declaration_result.class_hash,
-        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        &starknet_rust::core::utils::UdcUniqueness::NotUnique,
         ctor_args,
     );
 
@@ -355,7 +355,7 @@ pub async fn declare_deploy_simple_contract(
     let contract_address = get_udc_deployed_address(
         salt,
         declaration_result.class_hash,
-        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        &starknet_rust::core::utils::UdcUniqueness::NotUnique,
         &ctor_args,
     );
 
@@ -392,7 +392,7 @@ pub async fn declare_deploy_events_contract(
     let contract_address = get_udc_deployed_address(
         salt,
         declaration_result.class_hash,
-        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        &starknet_rust::core::utils::UdcUniqueness::NotUnique,
         &ctor_args,
     );
 

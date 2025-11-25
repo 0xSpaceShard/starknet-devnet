@@ -73,8 +73,8 @@ mod tests {
     use nonzero_ext::nonzero;
     use starknet_api::block::BlockNumber;
     use starknet_api::core::Nonce;
-    use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
-    use starknet_rs_core::utils::get_selector_from_name;
+    use starknet_rust::core::types::{Felt, TransactionExecutionStatus};
+    use starknet_rust::core::utils::get_selector_from_name;
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;

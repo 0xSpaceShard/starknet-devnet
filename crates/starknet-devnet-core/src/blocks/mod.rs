@@ -2,9 +2,10 @@ use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use starknet_api::block::{BlockHeader, BlockHeaderWithoutHash, BlockNumber, BlockTimestamp};
+use starknet_api::block_hash::block_hash_calculator::BlockHeaderCommitments;
 use starknet_api::data_availability::L1DataAvailabilityMode;
 use starknet_api::felt;
-use starknet_rs_core::types::Felt;
+use starknet_rust::core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, TransactionHash};
 use starknet_types::rpc::block::{BlockId, BlockStatus, BlockTag, ResourcePrice};
@@ -266,6 +267,13 @@ impl From<&StarknetBlock> for starknet_types::rpc::block::PreConfirmedBlockHeade
                     .0
                     .into(),
             },
+            n_transactions: value.header.n_transactions as u64,
+            n_events: value.header.n_events as u64,
+            state_diff_length: value.header.state_diff_length.map(|v| v as u64),
+            state_diff_commitment: value.header.state_diff_commitment,
+            transaction_commitment: value.header.transaction_commitment,
+            event_commitment: value.header.event_commitment,
+            receipt_commitment: value.header.receipt_commitment,
         }
     }
 }
@@ -329,6 +337,13 @@ impl From<&StarknetBlock> for starknet_types::rpc::block::BlockHeader {
                     .0
                     .into(),
             },
+            n_transactions: value.header.n_transactions as u64,
+            n_events: value.header.n_events as u64,
+            state_diff_length: value.header.state_diff_length.map(|v| v as u64),
+            state_diff_commitment: value.header.state_diff_commitment,
+            transaction_commitment: value.header.transaction_commitment,
+            event_commitment: value.header.event_commitment,
+            receipt_commitment: value.header.receipt_commitment,
         }
     }
 }
@@ -403,6 +418,18 @@ impl StarknetBlock {
     pub(crate) fn set_timestamp(&mut self, timestamp: BlockTimestamp) {
         self.header.block_header_without_hash.timestamp = timestamp;
     }
+
+    pub(crate) fn set_counts(&mut self, n_transactions: usize, n_events: usize) {
+        self.header.n_transactions = n_transactions;
+        self.header.n_events = n_events;
+    }
+
+    pub(crate) fn set_commitments(&mut self, commitments: BlockHeaderCommitments) {
+        self.header.transaction_commitment = Some(commitments.transaction_commitment);
+        self.header.event_commitment = Some(commitments.event_commitment);
+        self.header.receipt_commitment = Some(commitments.receipt_commitment);
+        self.header.state_diff_commitment = Some(commitments.state_diff_commitment);
+    }
 }
 
 impl HashProducer for StarknetBlock {
@@ -436,7 +463,7 @@ impl HashProducer for StarknetBlock {
 mod tests {
     use starknet_api::block::{BlockHash, BlockHeader, BlockHeaderWithoutHash, BlockNumber};
     use starknet_api::data_availability::L1DataAvailabilityMode;
-    use starknet_rs_core::types::Felt;
+    use starknet_rust::core::types::Felt;
     use starknet_types::rpc::block::{BlockId, BlockStatus, BlockTag};
     use starknet_types::traits::HashProducer;
 

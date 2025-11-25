@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use serde_json::json;
-use starknet_rs_core::types::BlockId;
+use starknet_rust::core::types::BlockId;
 use tokio_tungstenite::connect_async;
 
 use crate::common::background_devnet::BackgroundDevnet;

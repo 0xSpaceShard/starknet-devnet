@@ -3,8 +3,8 @@ use std::time::Duration;
 
 use serde_json::json;
 use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
-use starknet_rs_core::types::{BlockId, BlockTag};
-use starknet_rs_providers::Provider;
+use starknet_rust::core::types::{BlockId, BlockTag};
+use starknet_rust::providers::Provider;
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 

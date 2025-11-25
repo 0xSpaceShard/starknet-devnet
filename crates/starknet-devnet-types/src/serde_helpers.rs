@@ -59,7 +59,7 @@ pub mod rpc_sierra_contract_class_to_sierra_contract_class {
 }
 pub mod hex_string {
     use serde::{Deserialize, Deserializer, Serializer};
-    use starknet_rs_core::types::Felt;
+    use starknet_rust::core::types::Felt;
 
     use crate::contract_address::ContractAddress;
     use crate::felt::felt_from_prefixed_hex;
@@ -119,7 +119,7 @@ pub mod hex_string {
     #[cfg(test)]
     mod tests {
         use serde::{Deserialize, Serialize};
-        use starknet_rs_core::types::Felt;
+        use starknet_rust::core::types::Felt;
 
         use crate::contract_address::ContractAddress;
         use crate::felt::felt_from_prefixed_hex;
@@ -257,8 +257,8 @@ pub mod base_64_gzipped_json_string {
     use flate2::write::GzEncoder;
     use serde::{Deserialize, Deserializer, Serializer};
     use serde_json::Value;
-    use starknet_rs_core::serde::byte_array::base64 as base64Sir;
-    use starknet_rs_core::types::contract::legacy::LegacyProgram;
+    use starknet_rust::core::serde::byte_array::base64 as base64Sir;
+    use starknet_rust::core::types::contract::legacy::LegacyProgram;
 
     pub fn deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order<'de, D>(
         deserializer: D,
@@ -271,7 +271,7 @@ pub mod base_64_gzipped_json_string {
             return Ok(serde_json::Value::Null);
         }
 
-        // TODO: change on starknet_rs_core::serde::byte_array::base64
+        // TODO: change on starknet_rust::core::serde::byte_array::base64
         let bytes = base64::engine::general_purpose::STANDARD
             .decode(buf)
             .map_err(|_| serde::de::Error::custom("program: Unable to decode base64 string"))?;

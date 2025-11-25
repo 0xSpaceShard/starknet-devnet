@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use serde_json::json;
-use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rs_core::types::Felt;
+use starknet_rust::accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+use starknet_rust::core::types::Felt;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{

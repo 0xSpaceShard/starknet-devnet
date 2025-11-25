@@ -1,6 +1,6 @@
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::Deserialize;
-use starknet_rs_core::types::Felt;
+use starknet_rust::core::types::Felt;
 
 use super::{BroadcastedDeclareTransaction, BroadcastedTransactionCommonV3};
 use crate::contract_address::ContractAddress;

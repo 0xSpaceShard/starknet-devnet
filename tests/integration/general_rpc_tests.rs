@@ -1,7 +1,7 @@
 use serde_json::json;
-use starknet_rs_core::types::{ConfirmedBlockId, SyncStatusType};
-use starknet_rs_providers::Provider;
-use starknet_rs_providers::jsonrpc::JsonRpcError;
+use starknet_rust::core::types::{ConfirmedBlockId, SyncStatusType};
+use starknet_rust::providers::Provider;
+use starknet_rust::providers::jsonrpc::JsonRpcError;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::RPC_PATH;

@@ -6,7 +6,7 @@ use blockifier::transaction::objects::HasRelatedFeeType;
 use blockifier::transaction::transaction_execution::Transaction;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_api::transaction::fields::{GasVectorComputationMode, Tip};
-use starknet_rs_core::types::{Felt, MsgFromL1, PriceUnit};
+use starknet_rust::core::types::{Felt, MsgFromL1, PriceUnit};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::block::BlockId as CustomBlockId;
 use starknet_types::rpc::estimate_message_fee::{EstimateMessageFeeRequest, FeeEstimateWrapper};

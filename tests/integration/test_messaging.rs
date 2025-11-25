@@ -12,19 +12,19 @@ use std::sync::Arc;
 use alloy::hex::FromHex;
 use alloy::primitives::{Address, U256};
 use serde_json::{Value, json};
-use starknet_rs_accounts::{
+use starknet_rust::accounts::{
     Account, AccountError, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
 };
-use starknet_rs_core::types::{
+use starknet_rust::core::types::{
     BlockId, BlockTag, Call, ExecuteInvocation, ExecutionResult, Felt, FunctionCall,
     InvokeTransactionReceipt, InvokeTransactionResult, L1HandlerTransactionTrace,
     TransactionExecutionStatus, TransactionReceipt, TransactionReceiptWithBlockInfo,
     TransactionTrace,
 };
-use starknet_rs_core::utils::{UdcUniqueness, get_selector_from_name, get_udc_deployed_address};
-use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_providers::{JsonRpcClient, Provider};
-use starknet_rs_signers::LocalWallet;
+use starknet_rust::core::utils::{UdcUniqueness, get_selector_from_name, get_udc_deployed_address};
+use starknet_rust::providers::jsonrpc::HttpTransport;
+use starknet_rust::providers::{JsonRpcClient, Provider};
+use starknet_rust::signers::LocalWallet;
 
 use crate::assert_eq_prop;
 use crate::common::background_anvil::BackgroundAnvil;
@@ -327,7 +327,7 @@ async fn mock_message_to_l2_creates_a_tx_with_desired_effect() {
     let expected_calldata =
         vec![Felt::from_hex_unchecked(MESSAGING_L1_ADDRESS), user, increment_amount];
     match devnet.json_rpc_client.get_transaction_by_hash(tx_hash).await {
-        Ok(starknet_rs_core::types::Transaction::L1Handler(tx)) => {
+        Ok(starknet_rust::core::types::Transaction::L1Handler(tx)) => {
             assert_eq!(tx.transaction_hash, tx_hash);
             assert_eq!(tx.calldata, expected_calldata);
         }

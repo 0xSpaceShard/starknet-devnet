@@ -1,6 +1,6 @@
 use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
-use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
-use starknet_rs_providers::{Provider, ProviderError};
+use starknet_rust::core::types::{BlockId, BlockTag, Felt, StarknetError};
+use starknet_rust::providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;

@@ -7,15 +7,15 @@ use anyhow::anyhow;
 use lazy_static::lazy_static;
 use reqwest::{Client, StatusCode};
 use serde_json::json;
-use starknet_rs_core::types::{
+use starknet_rust::core::types::{
     BlockId, BlockTag, BlockWithTxHashes, BlockWithTxs, Felt, FunctionCall,
     MaybePreConfirmedBlockWithTxHashes, MaybePreConfirmedBlockWithTxs,
     PreConfirmedBlockWithTxHashes, PreConfirmedBlockWithTxs,
 };
-use starknet_rs_core::utils::get_selector_from_name;
-use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_providers::{JsonRpcClient, Provider};
-use starknet_rs_signers::{LocalWallet, SigningKey};
+use starknet_rust::core::utils::get_selector_from_name;
+use starknet_rust::providers::jsonrpc::HttpTransport;
+use starknet_rust::providers::{JsonRpcClient, Provider};
+use starknet_rust::signers::{LocalWallet, SigningKey};
 use tokio::io::AsyncReadExt;
 use tokio::net::UnixListener;
 use url::Url;

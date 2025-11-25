@@ -16,13 +16,14 @@ use starknet_api::block::{
     BlockInfo, BlockNumber, BlockTimestamp, FeeType, GasPrice, GasPricePerToken, GasPriceVector,
     GasPrices,
 };
+use starknet_api::block_hash::block_hash_calculator::calculate_block_commitments;
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::transaction::fields::{GasVectorComputationMode, Tip};
 use starknet_api::transaction::{TransactionHasher, TransactionVersion};
-use starknet_rs_core::types::{Felt, Hash256, MsgFromL1};
-use starknet_rs_core::utils::get_selector_from_name;
-use starknet_rs_signers::{LocalWallet, Signer, SigningKey};
+use starknet_rust::core::types::{Felt, Hash256, MsgFromL1};
+use starknet_rust::core::utils::get_selector_from_name;
+use starknet_rust::signers::{LocalWallet, Signer, SigningKey};
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
@@ -372,6 +373,9 @@ impl Starknet {
         // Update gas prices in the block header
         let header = &mut new_block.header.block_header_without_hash;
 
+        let starknet_version = header.starknet_version;
+        let l1_da_mode = header.l1_da_mode;
+
         // Set L1 gas prices
         header.l1_gas_price = GasPricePerToken {
             price_in_fri: GasPrice(self.next_block_gas.gas_price_fri.get()),
@@ -416,6 +420,29 @@ impl Starknet {
                 error!("Transaction is not present in the transactions collection");
             }
         });
+
+        let transaction_data: Vec<
+            starknet_api::block_hash::block_hash_calculator::TransactionHashingData,
+        > = new_block
+            .get_transactions()
+            .iter()
+            // filter map is used here, although in normal conditions unwrap should be safe. Every transaction hash that has been added to preconfirmed block should be present in transactions collection
+            .filter_map(|tx_hash| self.transactions.get_by_hash(*tx_hash))
+            .map(|tx| tx.into())
+            .collect();
+
+        let commitments = calculate_block_commitments(
+            &transaction_data,
+            &self.pre_confirmed_state_diff.clone().into(),
+            l1_da_mode,
+            &starknet_version,
+        );
+
+        new_block.set_counts(
+            transaction_data.len(),
+            transaction_data.iter().map(|tx| tx.transaction_output.events.len()).sum(),
+        );
+        new_block.set_commitments(commitments);
 
         // insert pre_confirmed block in the blocks collection and connect it to the state diff
         self.blocks.insert(new_block, self.pre_confirmed_state_diff.clone());
@@ -1591,8 +1618,8 @@ mod tests {
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
     use starknet_api::block::{BlockHash, BlockNumber, BlockTimestamp, FeeType};
-    use starknet_rs_core::types::Felt;
-    use starknet_rs_core::utils::get_selector_from_name;
+    use starknet_rust::core::types::Felt;
+    use starknet_rust::core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::block::{
@@ -1990,29 +2017,6 @@ mod tests {
         let block_number2 = starknet.get_latest_block().unwrap().block_number();
 
         assert_eq!(block_number2.0, added_block2.header.block_header_without_hash.block_number.0);
-    }
-
-    #[test]
-    fn gets_block_txs_count() {
-        let config = StarknetConfig::default();
-        let mut starknet = Starknet::new(&config).unwrap();
-
-        starknet.generate_new_block_and_state().unwrap();
-
-        let num_no_transactions = starknet.get_block_txs_count(&CustomBlockId::Number(1));
-
-        assert_eq!(num_no_transactions.unwrap(), 0);
-
-        let tx = dummy_declare_tx_v3_with_hash();
-
-        // add transaction hash to pre_confirmed block
-        starknet.blocks.pre_confirmed_block.add_transaction(*tx.get_transaction_hash());
-
-        starknet.generate_new_block_and_state().unwrap();
-
-        let num_one_transaction = starknet.get_block_txs_count(&CustomBlockId::Number(2));
-
-        assert_eq!(num_one_transaction.unwrap(), 1);
     }
 
     #[test]

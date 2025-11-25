@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use starknet_api::core::EntryPointSelector;
 use starknet_api::executable_transaction::L1HandlerTransaction;
 use starknet_api::transaction::fields::Calldata;
-use starknet_rs_core::types::{Felt, MsgFromL1 as SrMsgFromL1, MsgFromL1, PriceUnit};
+use starknet_rust::core::types::{Felt, MsgFromL1 as SrMsgFromL1, MsgFromL1, PriceUnit};
 
 use super::block::BlockId;
 use crate::error::DevnetResult;

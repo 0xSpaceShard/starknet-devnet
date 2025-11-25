@@ -1,5 +1,5 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use starknet_rs_core::types::{CompressedLegacyContractClass, Felt};
+use starknet_rust::core::types::{CompressedLegacyContractClass, Felt};
 
 use crate::contract_class::deprecated::json_contract_class::Cairo0Json;
 use crate::contract_class::deprecated::rpc_contract_class::DeprecatedContractClass;

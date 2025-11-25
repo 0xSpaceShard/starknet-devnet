@@ -11,7 +11,7 @@ use alloy::signers::local::{LocalSignerError, PrivateKeySigner};
 use alloy::sol;
 use alloy::sol_types::SolEvent;
 use alloy::transports::RpcError;
-use starknet_rs_core::types::{Felt, Hash256};
+use starknet_rust::core::types::{Felt, Hash256};
 use starknet_types::felt::felt_from_prefixed_hex;
 use starknet_types::rpc::contract_address::ContractAddress;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};

@@ -1,9 +1,9 @@
-use starknet_rs_core::types::Felt;
+use starknet_rust::core::types::Felt;
 
 pub const HOST: &str = "127.0.0.1";
 pub const SEED: usize = 42;
 pub const ACCOUNTS: usize = 3;
-pub const CHAIN_ID: Felt = starknet_rs_core::chain_id::SEPOLIA;
+pub const CHAIN_ID: Felt = starknet_rust::core::chain_id::SEPOLIA;
 
 // Devnet executable info
 pub const DEVNET_EXECUTABLE_BINARY_PATH: &str =
@@ -91,10 +91,10 @@ pub const ARGENT_ACCOUNT_CLASS_HASH: &str =
 
 // Forking
 pub const INTEGRATION_SEPOLIA_HTTP_URL: &str =
-    "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_8";
+    "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_10";
 
-pub const MAINNET_URL: &str = "http://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_8";
-pub const MAINNET_HTTPS_URL: &str = "https://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_8";
+pub const MAINNET_URL: &str = "http://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_10";
+pub const MAINNET_HTTPS_URL: &str = "https://rpc.pathfinder.equilibrium.co/mainnet/rpc/v0_10";
 pub const INTEGRATION_GENESIS_BLOCK_HASH: &str =
     "0x19f675d3fb226821493a6ab9a1955e384bba80f130de625621a418e9a7c0ca3";
 /// The number of the last block at which forking can be done; prior to v0.13.4.

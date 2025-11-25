@@ -1,19 +1,19 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use starknet_rs_accounts::{
+use starknet_rust::accounts::{
     Account, AccountFactory, AccountFactoryError, ExecutionEncoding, OpenZeppelinAccountFactory,
     SingleOwnerAccount,
 };
-use starknet_rs_core::types::{
+use starknet_rust::core::types::{
     BlockId, BlockTag, Call, ContractClass, DeclareTransaction, Felt, FunctionCall,
     MaybePreConfirmedBlockWithTxHashes, StarknetError, Transaction,
 };
-use starknet_rs_core::utils::{
+use starknet_rust::core::utils::{
     get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
 };
-use starknet_rs_providers::{Provider, ProviderError};
-use starknet_rs_signers::Signer;
+use starknet_rust::providers::{Provider, ProviderError};
+use starknet_rust::signers::Signer;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
@@ -255,7 +255,7 @@ async fn test_origin_declare_deploy_fork_invoke() {
     let contract_address = get_udc_deployed_address(
         Felt::ZERO,
         declaration_result.class_hash,
-        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        &starknet_rust::core::utils::UdcUniqueness::NotUnique,
         &ctor_args,
     );
 

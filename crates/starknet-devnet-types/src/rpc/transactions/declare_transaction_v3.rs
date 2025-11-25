@@ -16,7 +16,7 @@ use crate::felt::{ClassHash, CompiledClassHash, Nonce, TransactionSignature, Tra
 )]
 pub struct DeclareTransactionV3 {
     version: TransactionVersion,
-    signature: TransactionSignature,
+    pub(crate) signature: TransactionSignature,
     nonce: Nonce,
     resource_bounds: ResourceBoundsWrapper,
     tip: Tip,

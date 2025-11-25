@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use starknet_rs_accounts::{
+use starknet_rust::accounts::{
     Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, StarknetError};
-use starknet_rs_core::utils::get_selector_from_name;
-use starknet_rs_providers::{Provider, ProviderError};
+use starknet_rust::core::types::{BlockId, BlockTag, Call, Felt, StarknetError};
+use starknet_rust::core::utils::get_selector_from_name;
+use starknet_rust::providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{

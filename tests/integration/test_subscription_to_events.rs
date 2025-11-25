@@ -1,14 +1,14 @@
 use std::collections::HashSet;
 
 use serde_json::json;
-use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rs_core::types::{
+use starknet_rust::accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+use starknet_rust::core::types::{
     BlockId, BlockTag, Call, Felt, InvokeTransactionResult, TransactionFinalityStatus,
 };
-use starknet_rs_core::utils::get_selector_from_name;
-use starknet_rs_providers::JsonRpcClient;
-use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_signers::LocalWallet;
+use starknet_rust::core::utils::get_selector_from_name;
+use starknet_rust::providers::JsonRpcClient;
+use starknet_rust::providers::jsonrpc::HttpTransport;
+use starknet_rust::signers::LocalWallet;
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 

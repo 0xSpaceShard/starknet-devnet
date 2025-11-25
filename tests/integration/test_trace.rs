@@ -3,15 +3,15 @@ use std::sync::Arc;
 use starknet_core::constants::{
     CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CHARGEABLE_ACCOUNT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
 };
-use starknet_rs_accounts::{
+use starknet_rust::accounts::{
     Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rs_core::types::{
+use starknet_rust::core::types::{
     ConfirmedBlockId, DeployedContractItem, ExecuteInvocation, Felt, InvokeTransactionTrace,
     StarknetError, TransactionTrace,
 };
-use starknet_rs_core::utils::{UdcUniqueness, get_selector_from_name, get_udc_deployed_address};
-use starknet_rs_providers::{Provider, ProviderError};
+use starknet_rust::core::utils::{UdcUniqueness, get_selector_from_name, get_udc_deployed_address};
+use starknet_rust::providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
@@ -245,7 +245,7 @@ async fn get_deploy_account_trace() {
     let deployment_hash = deployment_result.transaction_hash;
     let deployment_trace = devnet.json_rpc_client.trace_transaction(deployment_hash).await.unwrap();
 
-    if let starknet_rs_core::types::TransactionTrace::DeployAccount(deployment_trace) =
+    if let starknet_rust::core::types::TransactionTrace::DeployAccount(deployment_trace) =
         deployment_trace
     {
         let validate_invocation = deployment_trace.validate_invocation.unwrap();

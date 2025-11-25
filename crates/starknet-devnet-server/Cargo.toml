@@ -34,10 +34,9 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 enum-helper-macros = { workspace = true }
 rand = { workspace = true }
-starknet-rs-core = { workspace = true }
+starknet-rust = { workspace = true }
 
 # forking
-starknet-rs-providers = { workspace = true }
 url = { workspace = true }
 
 # devnet

@@ -16,7 +16,7 @@ use crate::felt::{Calldata, Nonce, TransactionSignature, TransactionVersion};
 )]
 pub struct InvokeTransactionV3 {
     version: TransactionVersion,
-    signature: TransactionSignature,
+    pub(crate) signature: TransactionSignature,
     nonce: Nonce,
     resource_bounds: ResourceBoundsWrapper,
     tip: Tip,

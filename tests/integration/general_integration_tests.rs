@@ -1,9 +1,9 @@
 use serde_json::json;
-use starknet_rs_core::types::{BlockId, BlockTag, Felt, FunctionCall};
-use starknet_rs_core::utils::{
+use starknet_rust::core::types::{BlockId, BlockTag, Felt, FunctionCall};
+use starknet_rust::core::utils::{
     get_selector_from_name, get_storage_var_address, parse_cairo_short_string,
 };
-use starknet_rs_providers::Provider;
+use starknet_rust::providers::Provider;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{

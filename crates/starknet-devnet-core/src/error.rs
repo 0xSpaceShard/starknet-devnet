@@ -6,7 +6,7 @@ use blockifier::transaction::errors::{
     TransactionExecutionError, TransactionFeeError, TransactionPreValidationError,
 };
 use starknet_api::core::Nonce;
-use starknet_rs_core::types::Felt;
+use starknet_rust::core::types::Felt;
 use starknet_types;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_storage_key::ContractStorageKey;
@@ -39,7 +39,7 @@ pub enum Error {
     #[error("Contract not found")]
     ContractNotFound,
     #[error(transparent)]
-    SignError(#[from] starknet_rs_signers::local_wallet::SignError),
+    SignError(#[from] starknet_rust::signers::local_wallet::SignError),
     #[error("No block found")]
     NoBlock,
     #[error("No state at block {block_id:?}; consider running with --state-archive-capacity full")]

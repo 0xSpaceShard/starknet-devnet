@@ -141,7 +141,7 @@ fn assert_casm_hash_is_valid(
 mod tests {
     use blockifier::transaction::errors::TransactionFeeError;
     use starknet_api::data_availability::DataAvailabilityMode;
-    use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
+    use starknet_rust::core::types::{Felt, TransactionExecutionStatus};
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;

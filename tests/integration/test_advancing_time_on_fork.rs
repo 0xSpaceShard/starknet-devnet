@@ -1,10 +1,10 @@
-use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rs_core::types::{
+use starknet_rust::accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
+use starknet_rust::core::types::{
     Call, Felt, StarknetError, TransactionExecutionStatus, TransactionStatus,
 };
-use starknet_rs_core::utils::get_selector_from_name;
-use starknet_rs_providers::{Provider, ProviderError};
-use starknet_rs_signers::{LocalWallet, SigningKey};
+use starknet_rust::core::utils::get_selector_from_name;
+use starknet_rust::providers::{Provider, ProviderError};
+use starknet_rust::signers::{LocalWallet, SigningKey};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants;
