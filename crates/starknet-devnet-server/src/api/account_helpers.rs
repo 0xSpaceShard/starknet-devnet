@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
 use starknet_core::starknet::Starknet;
-use starknet_rust::core::types::Felt;
+use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::join_felts;
 use starknet_types::num_bigint::BigUint;
@@ -31,7 +31,7 @@ pub fn get_balance(
     erc20_address: ContractAddress,
     block_id: BlockId,
 ) -> Result<BigUint, ApiError> {
-    let balance_selector = starknet_rust::core::utils::get_selector_from_name("balanceOf")
+    let balance_selector = starknet_rs_core::utils::get_selector_from_name("balanceOf")
         .map_err(|err| starknet_core::error::Error::UnexpectedInternalError {
             msg: err.to_string(),
         })?;

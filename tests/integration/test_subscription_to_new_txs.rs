@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use serde_json::json;
 use starknet_core::constants::CHARGEABLE_ACCOUNT_ADDRESS;
-use starknet_rust::accounts::{ExecutionEncoding, SingleOwnerAccount};
-use starknet_rust::core::types::{
+use starknet_rs_accounts::{ExecutionEncoding, SingleOwnerAccount};
+use starknet_rs_core::types::{
     DeclareTransactionV3, DeployAccountTransaction, Felt, InvokeTransactionV3, Transaction,
     TransactionFinalityStatus,
 };

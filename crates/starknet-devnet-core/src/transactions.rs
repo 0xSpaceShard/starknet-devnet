@@ -3,7 +3,7 @@ use blockifier::execution::stack_trace::ErrorStack;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use indexmap::IndexMap;
 use starknet_api::block::BlockNumber;
-use starknet_rust::core::types::ExecutionResult;
+use starknet_rs_core::types::ExecutionResult;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{Event, OrderedEvent};
 use starknet_types::felt::{BlockHash, TransactionHash};
@@ -270,10 +270,10 @@ impl From<&StarknetTransaction>
                         })
                         .collect(),
                     execution_status: match &tx.execution_result {
-                        starknet_rust::core::types::ExecutionResult::Succeeded => {
+                        starknet_rs_core::types::ExecutionResult::Succeeded => {
                             starknet_api::transaction::TransactionExecutionStatus::Succeeded
                         }
-                        starknet_rust::core::types::ExecutionResult::Reverted { reason } => {
+                        starknet_rs_core::types::ExecutionResult::Reverted { reason } => {
                             starknet_api::transaction::TransactionExecutionStatus::Reverted(
                                 starknet_api::transaction::RevertedTransactionExecutionStatus {
                                     revert_reason: reason.to_string(),
@@ -286,7 +286,7 @@ impl From<&StarknetTransaction>
                         .get_l2_to_l1_messages()
                         .into_iter()
                         .map(|msg| {
-                            let to_address_felt: starknet_rust::core::types::Felt =
+                            let to_address_felt: starknet_rs_core::types::Felt =
                                 msg.to_address.into();
                             starknet_api::transaction::MessageToL1 {
                                 to_address: starknet_api::core::EthAddress::try_from(
@@ -314,7 +314,7 @@ mod tests {
     use blockifier::transaction::objects::TransactionExecutionInfo;
     use starknet_api::block::BlockNumber;
     use starknet_api::transaction::fields::GasVectorComputationMode;
-    use starknet_rust::core::types::TransactionExecutionStatus;
+    use starknet_rs_core::types::TransactionExecutionStatus;
     use starknet_types::rpc::transactions::{
         TransactionFinalityStatus, TransactionTrace, TransactionWithHash,
     };

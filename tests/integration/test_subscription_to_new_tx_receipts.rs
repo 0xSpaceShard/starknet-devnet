@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use serde_json::json;
 use starknet_core::constants::CHARGEABLE_ACCOUNT_ADDRESS;
-use starknet_rust::accounts::{ExecutionEncoding, SingleOwnerAccount};
-use starknet_rust::core::types::{
+use starknet_rs_accounts::{ExecutionEncoding, SingleOwnerAccount};
+use starknet_rs_core::types::{
     DeclareTransactionReceipt, Felt, InvokeTransactionReceipt, Transaction,
     TransactionFinalityStatus, TransactionReceipt, TransactionReceiptWithBlockInfo,
 };
@@ -456,7 +456,7 @@ async fn test_declare_transaction_receipt_deserialization() {
                     // Check execution status and resources
                     assert_eq!(
                         declare_receipt.execution_result.status(),
-                        starknet_rust::core::types::TransactionExecutionStatus::Succeeded
+                        starknet_rs_core::types::TransactionExecutionStatus::Succeeded
                     );
                     assert!(
                         declare_receipt.execution_resources.l2_gas > 0,
@@ -527,7 +527,7 @@ async fn test_transaction_receipt_with_block_info_deserialization() {
             // Check execution status and resources
             assert_eq!(
                 invoke_receipt.execution_result.status(),
-                starknet_rust::core::types::TransactionExecutionStatus::Succeeded
+                starknet_rs_core::types::TransactionExecutionStatus::Succeeded
             );
             assert!(invoke_receipt.execution_resources.l2_gas > 0, "L2 gas should be positive");
         }
@@ -535,8 +535,8 @@ async fn test_transaction_receipt_with_block_info_deserialization() {
     }
 
     // 4. Verify that block hash in receipt matches a real block in the chain
-    use starknet_rust::core::types::BlockId;
-    use starknet_rust::providers::Provider;
+    use starknet_rs_core::types::BlockId;
+    use starknet_rs_providers::Provider;
 
     if let Some(block_hash) = block.block_hash() {
         let block_status =

@@ -1,4 +1,4 @@
-use starknet_rust::core::types::TransactionExecutionStatus;
+use starknet_rs_core::types::TransactionExecutionStatus;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{TransactionHash, felt_from_prefixed_hex};
 use starknet_types::messaging::{MessageToL1, MessageToL2};

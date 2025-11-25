@@ -1,9 +1,9 @@
-use starknet_rust::accounts::SingleOwnerAccount;
-use starknet_rust::core::types::{
+use starknet_rs_accounts::SingleOwnerAccount;
+use starknet_rs_core::types::{
     BlockId, BlockTag, ContractErrorData, Felt, FunctionCall, StarknetError,
 };
-use starknet_rust::core::utils::{cairo_short_string_to_felt, get_selector_from_name};
-use starknet_rust::providers::{Provider, ProviderError};
+use starknet_rs_core::utils::{cairo_short_string_to_felt, get_selector_from_name};
+use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
@@ -47,7 +47,7 @@ async fn calling_nonexistent_cairo0_contract_method() {
     let devnet = BackgroundDevnet::spawn_with_additional_args(&devnet_args).await.unwrap();
     let contract_address = Felt::from_hex_unchecked(PREDEPLOYED_ACCOUNT_ADDRESS);
     let entry_point_selector =
-        starknet_rust::core::utils::get_selector_from_name("nonExistentMethod").unwrap();
+        starknet_rs_core::utils::get_selector_from_name("nonExistentMethod").unwrap();
 
     let err = devnet
         .json_rpc_client
@@ -108,7 +108,7 @@ async fn call_panicking_method() {
         signer,
         account_address,
         devnet.json_rpc_client.chain_id().await.unwrap(),
-        starknet_rust::accounts::ExecutionEncoding::New,
+        starknet_rs_accounts::ExecutionEncoding::New,
     );
 
     let (contract_class, casm_hash) =

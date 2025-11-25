@@ -2,7 +2,7 @@
 use serde::Deserialize;
 use serde::Serialize;
 use starknet_core::CasmContractClass;
-use starknet_rust::core::types::{ContractClass as CodegenContractClass, Felt};
+use starknet_rs_core::types::{ContractClass as CodegenContractClass, Felt};
 use starknet_types::rpc::block::{Block, PreConfirmedBlock};
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
 use starknet_types::rpc::gas_modification::GasModification;

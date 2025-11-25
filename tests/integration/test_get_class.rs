@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 use starknet_api::contract_class::compiled_class_hash::{HashVersion, HashableCompiledClass};
 use starknet_core::CasmContractClass;
-use starknet_rust::accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rust::core::chain_id;
-use starknet_rust::core::types::{BlockId, BlockTag, ContractClass, Felt, StarknetError};
-use starknet_rust::providers::jsonrpc::JsonRpcError;
-use starknet_rust::providers::{Provider, ProviderError};
+use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+use starknet_rs_core::chain_id;
+use starknet_rs_core::types::{BlockId, BlockTag, ContractClass, Felt, StarknetError};
+use starknet_rs_providers::jsonrpc::JsonRpcError;
+use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, PREDEPLOYED_ACCOUNT_ADDRESS};

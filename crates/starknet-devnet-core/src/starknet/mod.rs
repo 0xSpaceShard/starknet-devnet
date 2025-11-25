@@ -21,9 +21,9 @@ use starknet_api::core::SequencerContractAddress;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::transaction::fields::{GasVectorComputationMode, Tip};
 use starknet_api::transaction::{TransactionHasher, TransactionVersion};
-use starknet_rust::core::types::{Felt, Hash256, MsgFromL1};
-use starknet_rust::core::utils::get_selector_from_name;
-use starknet_rust::signers::{LocalWallet, Signer, SigningKey};
+use starknet_rs_core::types::{Felt, Hash256, MsgFromL1};
+use starknet_rs_core::utils::get_selector_from_name;
+use starknet_rs_signers::{LocalWallet, Signer, SigningKey};
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
@@ -1619,8 +1619,8 @@ mod tests {
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
     use starknet_api::block::{BlockHash, BlockNumber, BlockTimestamp, FeeType};
-    use starknet_rust::core::types::Felt;
-    use starknet_rust::core::utils::get_selector_from_name;
+    use starknet_rs_core::types::Felt;
+    use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::block::{

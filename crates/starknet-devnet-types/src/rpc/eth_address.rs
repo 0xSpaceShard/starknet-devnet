@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use starknet_api::core::{EthAddress as ApiEthAddress, L1Address};
-use starknet_rust::core::types::{EthAddress, Felt};
+use starknet_rs_core::types::{EthAddress, Felt};
 
 use crate::error::{ConversionError, DevnetResult, Error};
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};

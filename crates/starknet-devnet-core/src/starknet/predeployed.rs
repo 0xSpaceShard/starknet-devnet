@@ -1,6 +1,6 @@
 use blockifier::state::state_api::State;
-use starknet_rust::core::types::Felt;
-use starknet_rust::core::utils::cairo_short_string_to_felt;
+use starknet_rs_core::types::Felt;
+use starknet_rs_core::utils::cairo_short_string_to_felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::felt_from_prefixed_hex;
 
@@ -72,7 +72,7 @@ pub(crate) fn create_legacy_udc() -> DevnetResult<SystemContract> {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use starknet_rust::core::types::Felt;
+    use starknet_rs_core::types::Felt;
 
     use crate::constants::{STRK_ERC20_CONTRACT_CLASS, STRK_ERC20_CONTRACT_CLASS_HASH};
     use crate::error::DevnetResult;

@@ -4246,7 +4246,11 @@ dependencies = [
  "serde",
  "serde_json",
  "starknet-devnet-core",
- "starknet-rust",
+ "starknet-rust-accounts",
+ "starknet-rust-contract",
+ "starknet-rust-core",
+ "starknet-rust-providers",
+ "starknet-rust-signers",
  "starknet_api",
  "thiserror 2.0.17",
  "tokio",
@@ -6607,7 +6611,8 @@ dependencies = [
  "starknet-devnet-core",
  "starknet-devnet-server",
  "starknet-devnet-types",
- "starknet-rust",
+ "starknet-rust-core",
+ "starknet-rust-providers",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -6634,7 +6639,8 @@ dependencies = [
  "serde",
  "serde_json",
  "starknet-devnet-types",
- "starknet-rust",
+ "starknet-rust-core",
+ "starknet-rust-signers",
  "starknet-types-core",
  "starknet_api",
  "thiserror 2.0.17",
@@ -6662,7 +6668,8 @@ dependencies = [
  "serde_yaml",
  "starknet-devnet-core",
  "starknet-devnet-types",
- "starknet-rust",
+ "starknet-rust-core",
+ "starknet-rust-providers",
  "thiserror 2.0.17",
  "tokio",
  "tower-http",
@@ -6697,27 +6704,12 @@ dependencies = [
  "parity-scale-codec-derive",
  "serde",
  "serde_json",
- "starknet-rust",
+ "starknet-rust-core",
  "starknet-types-core",
  "starknet_api",
  "thiserror 2.0.17",
  "tracing",
  "universal-sierra-compiler",
-]
-
-[[package]]
-name = "starknet-rust"
-version = "0.18.0-rc.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7013ecc4f5e4ea0f84660bb2bab4f19c3685329e92c14f637203d21f6dfd355b"
-dependencies = [
- "starknet-rust-accounts",
- "starknet-rust-contract",
- "starknet-rust-core",
- "starknet-rust-core-derive",
- "starknet-rust-macros",
- "starknet-rust-providers",
- "starknet-rust-signers",
 ]
 
 [[package]]
@@ -6813,16 +6805,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1977caca63a4e6439968abe0c9d8c0d2074df7641f1153e8a551f8200470d8da"
 dependencies = [
  "starknet-types-core",
-]
-
-[[package]]
-name = "starknet-rust-macros"
-version = "0.2.6-rc.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1580c3ab3fd51da2b2b6398574958c038a7b7acf4d5d7940237fee3723e26226"
-dependencies = [
- "starknet-rust-core",
- "syn 2.0.110",
 ]
 
 [[package]]

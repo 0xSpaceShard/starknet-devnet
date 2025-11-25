@@ -1,4 +1,4 @@
-use starknet_rust::core::types::Felt;
+use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{EmittedEvent, Event};
 use starknet_types::rpc::block::{BlockId, BlockStatus};
@@ -143,7 +143,7 @@ where
 #[cfg(test)]
 mod tests {
     use blockifier::execution::call_info::CallInfo;
-    use starknet_rust::core::types::Felt;
+    use starknet_rs_core::types::Felt;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::emitted_event::Event;
     use starknet_types::rpc::block::{BlockId, BlockTag};

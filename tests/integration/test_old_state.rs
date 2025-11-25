@@ -4,16 +4,16 @@ use starknet_core::constants::{
     DEVNET_DEFAULT_L1_DATA_GAS_PRICE, DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE,
     UDC_CONTRACT_CLASS_HASH,
 };
-use starknet_rust::accounts::{Account, ExecutionEncoder, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rust::core::chain_id::SEPOLIA;
-use starknet_rust::core::types::{
+use starknet_rs_accounts::{Account, ExecutionEncoder, ExecutionEncoding, SingleOwnerAccount};
+use starknet_rs_core::chain_id::SEPOLIA;
+use starknet_rs_core::types::{
     BlockHashAndNumber, BlockId, BlockTag, BroadcastedInvokeTransactionV3, BroadcastedTransaction,
     Call, ContractClass, DataAvailabilityMode, ExecuteInvocation, Felt, InvokeTransactionTrace,
     ResourceBounds, ResourceBoundsMapping, SimulatedTransaction, SimulationFlag,
     SimulationFlagForEstimateFee, StarknetError, TransactionExecutionErrorData, TransactionTrace,
 };
-use starknet_rust::core::utils::{get_selector_from_name, get_storage_var_address};
-use starknet_rust::providers::{Provider, ProviderError};
+use starknet_rs_core::utils::{get_selector_from_name, get_storage_var_address};
+use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
@@ -68,7 +68,7 @@ async fn get_storage_from_an_old_state() {
         .get_storage_at(
             ETH_ERC20_CONTRACT_ADDRESS,
             storage_address,
-            BlockId::Tag(starknet_rust::core::types::BlockTag::Latest),
+            BlockId::Tag(starknet_rs_core::types::BlockTag::Latest),
         )
         .await
         .unwrap();

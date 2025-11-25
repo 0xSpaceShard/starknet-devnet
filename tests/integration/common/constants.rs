@@ -1,9 +1,9 @@
-use starknet_rust::core::types::Felt;
+use starknet_rs_core::types::Felt;
 
 pub const HOST: &str = "127.0.0.1";
 pub const SEED: usize = 42;
 pub const ACCOUNTS: usize = 3;
-pub const CHAIN_ID: Felt = starknet_rust::core::chain_id::SEPOLIA;
+pub const CHAIN_ID: Felt = starknet_rs_core::chain_id::SEPOLIA;
 
 // Devnet executable info
 pub const DEVNET_EXECUTABLE_BINARY_PATH: &str =

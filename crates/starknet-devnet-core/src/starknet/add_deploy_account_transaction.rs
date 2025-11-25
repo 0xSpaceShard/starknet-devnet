@@ -73,7 +73,7 @@ mod tests {
     use blockifier::transaction::errors::TransactionFeeError;
     use nonzero_ext::nonzero;
     use starknet_api::transaction::fields::Tip;
-    use starknet_rust::core::types::{Felt, TransactionExecutionStatus};
+    use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
     use starknet_types::constants::QUERY_VERSION_OFFSET;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::ClassHash;

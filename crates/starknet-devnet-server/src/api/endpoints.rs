@@ -1,6 +1,6 @@
 use starknet_core::error::{ContractExecutionError, Error, StateError};
-use starknet_rust::core::types::{BlockId as ImportedBlockId, Felt, MsgFromL1};
-use starknet_rust::providers::Provider;
+use starknet_rs_core::types::{BlockId as ImportedBlockId, Felt, MsgFromL1};
+use starknet_rs_providers::Provider;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
@@ -477,7 +477,7 @@ impl JsonRpcHandler {
         let mut origin_events_chunk: EventsChunk = origin_caller
             .starknet_client
             .get_events(
-                starknet_rust::core::types::EventFilter {
+                starknet_rs_core::types::EventFilter {
                     from_block: Some(ImportedBlockId::Number(from_origin)),
                     to_block: Some(ImportedBlockId::Number(to_origin)),
                     address: address.map(|address| address.into()),

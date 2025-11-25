@@ -2,7 +2,7 @@ use std::net::{IpAddr, Ipv4Addr};
 use std::num::NonZeroU128;
 
 use nonzero_ext::nonzero;
-use starknet_rust::core::types::Felt;
+use starknet_rs_core::types::Felt;
 use starknet_types::chain_id::ChainId;
 use starknet_types::num_bigint::BigUint;
 

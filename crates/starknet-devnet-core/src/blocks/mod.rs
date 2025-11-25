@@ -5,7 +5,7 @@ use starknet_api::block::{BlockHeader, BlockHeaderWithoutHash, BlockNumber, Bloc
 use starknet_api::block_hash::block_hash_calculator::BlockHeaderCommitments;
 use starknet_api::data_availability::L1DataAvailabilityMode;
 use starknet_api::felt;
-use starknet_rust::core::types::Felt;
+use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, TransactionHash};
 use starknet_types::rpc::block::{BlockId, BlockStatus, BlockTag, ResourcePrice};
@@ -332,7 +332,7 @@ impl From<&StarknetBlock> for starknet_types::rpc::block::BlockHeader {
             },
             n_transactions: value.header.n_transactions as u64,
             n_events: value.header.n_events as u64,
-            state_diff_length: value.header.state_diff_length.map(|v| v as u64).unwrap_or(0),
+            state_diff_length: value.header.state_diff_length.unwrap_or(0) as u64,
             state_diff_commitment: value.header.state_diff_commitment.unwrap_or_default(),
             transaction_commitment: value.header.transaction_commitment.unwrap_or_default(),
             event_commitment: value.header.event_commitment.unwrap_or_default(),
@@ -456,7 +456,7 @@ impl HashProducer for StarknetBlock {
 mod tests {
     use starknet_api::block::{BlockHash, BlockHeader, BlockHeaderWithoutHash, BlockNumber};
     use starknet_api::data_availability::L1DataAvailabilityMode;
-    use starknet_rust::core::types::Felt;
+    use starknet_rs_core::types::Felt;
     use starknet_types::rpc::block::{BlockId, BlockStatus, BlockTag};
     use starknet_types::traits::HashProducer;
 

@@ -1,6 +1,6 @@
 use serde_json::json;
-use starknet_rust::core::types::{BlockId, BlockTag, Felt, StarknetError};
-use starknet_rust::providers::{Provider, ProviderError};
+use starknet_rs_core::types::{BlockId, BlockTag, Felt, StarknetError};
+use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::assert_eq_prop;
 use crate::common::background_devnet::BackgroundDevnet;

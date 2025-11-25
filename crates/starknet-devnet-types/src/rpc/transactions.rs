@@ -14,11 +14,11 @@ use starknet_api::transaction::fields::{
     AllResourceBounds, GasVectorComputationMode, Tip, ValidResourceBounds,
 };
 use starknet_api::transaction::{TransactionHasher, TransactionOptions, signed_tx_version};
-use starknet_rust::core::types::{
+use starknet_rs_core::types::{
     EventsPage, ExecutionResult, Felt, ResourceBounds, ResourceBoundsMapping,
     TransactionExecutionStatus,
 };
-use starknet_rust::core::utils::parse_cairo_short_string;
+use starknet_rs_core::utils::parse_cairo_short_string;
 
 use self::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use self::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;

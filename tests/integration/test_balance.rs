@@ -1,5 +1,5 @@
 use serde_json::json;
-use starknet_rust::core::types::Felt;
+use starknet_rs_core::types::Felt;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE};

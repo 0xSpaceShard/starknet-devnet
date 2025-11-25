@@ -4,12 +4,12 @@ use serde_json::json;
 use starknet_core::constants::{
     DEVNET_DEFAULT_L1_DATA_GAS_PRICE, DEVNET_DEFAULT_L1_GAS_PRICE, DEVNET_DEFAULT_L2_GAS_PRICE,
 };
-use starknet_rust::accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rust::core::chain_id::SEPOLIA;
-use starknet_rust::core::types::{Felt, ResourcePrice};
-use starknet_rust::core::utils::cairo_short_string_to_felt;
-use starknet_rust::providers::{Provider, ProviderError};
-use starknet_rust::signers::Signer;
+use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
+use starknet_rs_core::chain_id::SEPOLIA;
+use starknet_rs_core::types::{Felt, ResourcePrice};
+use starknet_rs_core::utils::cairo_short_string_to_felt;
+use starknet_rs_providers::{Provider, ProviderError};
+use starknet_rs_signers::Signer;
 
 use crate::assert_eq_prop;
 use crate::common::background_devnet::BackgroundDevnet;

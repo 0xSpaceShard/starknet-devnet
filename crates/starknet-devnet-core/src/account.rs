@@ -4,7 +4,7 @@ use blockifier::state::state_api::StateReader;
 use starknet_api::core::calculate_contract_address;
 use starknet_api::transaction::fields::{Calldata, ContractAddressSalt};
 use starknet_api::{felt, patricia_key};
-use starknet_rust::core::types::Felt;
+use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::error::Error;
@@ -210,7 +210,7 @@ impl Accounted for Account {
 
 #[cfg(test)]
 mod tests {
-    use starknet_rust::core::types::Felt;
+    use starknet_rs_core::types::Felt;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::rpc::state::Balance;

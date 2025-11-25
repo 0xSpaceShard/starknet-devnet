@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use starknet_rust::accounts::{
+use starknet_rs_accounts::{
     Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rust::core::types::{
+use starknet_rs_core::types::{
     Call, ExecutionResult, Felt, StarknetError, TransactionFinalityStatus, TransactionReceipt,
 };
-use starknet_rust::core::utils::{get_selector_from_name, get_udc_deployed_address};
-use starknet_rust::providers::{Provider, ProviderError};
+use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
+use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
@@ -101,7 +101,7 @@ async fn deploy_transaction_receipt() {
             let expected_contract_address = get_udc_deployed_address(
                 salt,
                 declaration_result.class_hash,
-                &starknet_rust::core::utils::UdcUniqueness::NotUnique,
+                &starknet_rs_core::utils::UdcUniqueness::NotUnique,
                 &constructor_args,
             );
 
@@ -238,7 +238,7 @@ async fn reverted_invoke_transaction_receipt() {
     match transfer_receipt {
         TransactionReceipt::Invoke(receipt) => {
             match receipt.execution_result {
-                starknet_rust::core::types::ExecutionResult::Reverted { reason } => {
+                starknet_rs_core::types::ExecutionResult::Reverted { reason } => {
                     assert_contains(&reason, "Insufficient max L2Gas").unwrap();
                 }
                 _ => panic!("Invalid receipt {:?}", receipt),

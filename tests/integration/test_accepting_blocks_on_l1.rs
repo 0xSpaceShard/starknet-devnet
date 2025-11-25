@@ -1,8 +1,8 @@
-use starknet_rust::core::types::{
+use starknet_rs_core::types::{
     BlockId, BlockStatus, BlockTag, Felt, MaybePreConfirmedBlockWithTxHashes,
     SequencerTransactionStatus, StarknetError,
 };
-use starknet_rust::providers::{Provider, ProviderError};
+use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::assert_eq_prop;
 use crate::common::background_devnet::BackgroundDevnet;

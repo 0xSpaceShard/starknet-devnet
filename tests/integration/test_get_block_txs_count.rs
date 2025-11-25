@@ -1,5 +1,5 @@
-use starknet_rust::core::types::{BlockId, BlockTag, StarknetError};
-use starknet_rust::providers::{Provider, ProviderError};
+use starknet_rs_core::types::{BlockId, BlockTag, StarknetError};
+use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 

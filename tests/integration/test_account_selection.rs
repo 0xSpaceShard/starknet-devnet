@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use starknet_rust::accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rust::core::types::{BlockId, BlockTag, Call, Felt, FunctionCall};
-use starknet_rust::core::utils::{get_selector_from_name, get_udc_deployed_address};
-use starknet_rust::providers::Provider;
-use starknet_rust::signers::LocalWallet;
+use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, FunctionCall};
+use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
+use starknet_rs_providers::Provider;
+use starknet_rs_signers::LocalWallet;
 
 use crate::assert_eq_prop;
 use crate::common::background_devnet::BackgroundDevnet;
@@ -196,7 +196,7 @@ async fn can_declare_deploy_invoke_cairo1_using_account(
     let contract_address = get_udc_deployed_address(
         Felt::ZERO,
         declaration_result.class_hash,
-        &starknet_rust::core::utils::UdcUniqueness::NotUnique,
+        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
         &ctor_args,
     );
 

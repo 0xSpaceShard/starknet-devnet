@@ -1,6 +1,6 @@
 use serde_json::json;
 use starknet_core::error::{ContractExecutionError, TransactionValidationError};
-use starknet_rust::core::types::Felt;
+use starknet_rs_core::types::Felt;
 use starknet_types;
 use starknet_types::felt::Nonce;
 use starknet_types::starknet_api::core::ContractAddress;
@@ -338,7 +338,7 @@ pub type StrictRpcResult = Result<JsonRpcResponse, ApiError>;
 mod tests {
     use serde_json::json;
     use starknet_core::error::ContractExecutionError;
-    use starknet_rust::core::types::Felt;
+    use starknet_rs_core::types::Felt;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::starknet_api::core::Nonce;
 

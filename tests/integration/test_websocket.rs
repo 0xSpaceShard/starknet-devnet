@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 use futures::{SinkExt, StreamExt};
 use serde_json::json;
-use starknet_rust::accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rust::core::types::{
+use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+use starknet_rs_core::types::{
     BroadcastedDeclareTransactionV3, DataAvailabilityMode, Felt, Transaction,
 };
-use starknet_rust::signers::Signer;
+use starknet_rs_signers::Signer;
 use tokio_tungstenite::connect_async;
 
 use crate::common::background_devnet::BackgroundDevnet;

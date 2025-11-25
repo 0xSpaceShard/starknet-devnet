@@ -1,21 +1,21 @@
 use std::sync::Arc;
 
 use starknet_core::constants::ENTRYPOINT_NOT_FOUND_ERROR_ENCODED;
-use starknet_rust::accounts::{
+use starknet_rs_accounts::{
     Account, AccountError, AccountFactory, AccountFactoryError, ConnectedAccount, ExecutionEncoder,
     ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rust::core::types::{
+use starknet_rs_core::types::{
     BlockId, BlockTag, BroadcastedDeclareTransactionV3, BroadcastedInvokeTransactionV3,
     BroadcastedTransaction, Call, DataAvailabilityMode, FeeEstimate, Felt, FunctionCall,
     ResourceBounds, ResourceBoundsMapping, StarknetError, TransactionExecutionErrorData,
 };
-use starknet_rust::core::utils::{
+use starknet_rs_core::utils::{
     UdcUniqueness, cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address,
 };
-use starknet_rust::providers::jsonrpc::HttpTransport;
-use starknet_rust::providers::{JsonRpcClient, Provider, ProviderError};
-use starknet_rust::signers::{LocalWallet, Signer};
+use starknet_rs_providers::jsonrpc::HttpTransport;
+use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
+use starknet_rs_signers::{LocalWallet, Signer};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{

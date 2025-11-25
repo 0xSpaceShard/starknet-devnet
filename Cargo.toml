@@ -82,7 +82,11 @@ starknet-types-core = "=0.2.3"
 starknet_api = { version = "0.16.0-rc.1", features = ["testing"] }
 blockifier = { version = "0.16.0-rc.1" }
 
-starknet-rust = { version = "0.18.0-rc.0" }
+starknet-rs-signers = { version = "0.15.0-rc.0", package = "starknet-rust-signers" }
+starknet-rs-core = { version = "0.17.0-rc.0", package = "starknet-rust-core" }
+starknet-rs-providers = { version = "0.17.0-rc.0", package = "starknet-rust-providers" }
+starknet-rs-accounts = { version = "0.17.0-rc.0", package = "starknet-rust-accounts" }
+starknet-rs-contract = { version = "0.17.0-rc.0", package = "starknet-rust-contract" }
 
 cairo-vm = "=2.5.0"
 

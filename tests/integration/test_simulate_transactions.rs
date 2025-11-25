@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 use serde_json::json;
 use starknet_core::constants::STRK_ERC20_CONTRACT_ADDRESS;
-use starknet_rust::accounts::{
+use starknet_rs_accounts::{
     Account, AccountError, AccountFactory, ConnectedAccount, ExecutionEncoder, ExecutionEncoding,
     OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rust::core::types::{
+use starknet_rs_core::types::{
     BlockId, BlockTag, BroadcastedDeclareTransactionV3, BroadcastedDeployAccountTransactionV3,
     BroadcastedInvokeTransactionV3, BroadcastedTransaction, Call, ContractExecutionError,
     DataAvailabilityMode, ExecuteInvocation, Felt, FunctionCall, InvokeTransactionTrace,
@@ -14,11 +14,11 @@ use starknet_rust::core::types::{
     SimulatedTransaction, SimulationFlag, StarknetError, TransactionExecutionErrorData,
     TransactionTrace,
 };
-use starknet_rust::core::utils::{
+use starknet_rs_core::utils::{
     UdcUniqueness, cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address,
 };
-use starknet_rust::providers::{Provider, ProviderError};
-use starknet_rust::signers::{LocalWallet, Signer, SigningKey};
+use starknet_rs_providers::{Provider, ProviderError};
+use starknet_rs_signers::{LocalWallet, Signer, SigningKey};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
@@ -439,7 +439,7 @@ async fn test_simulation_of_panicking_invoke() {
         signer.clone(),
         account_address,
         devnet.json_rpc_client.chain_id().await.unwrap(),
-        starknet_rust::accounts::ExecutionEncoding::New,
+        starknet_rs_accounts::ExecutionEncoding::New,
     );
 
     let (contract_class, casm_hash) =
@@ -461,7 +461,7 @@ async fn test_simulation_of_panicking_invoke() {
         .unwrap();
 
     let gas_price = match block {
-        starknet_rust::core::types::MaybePreConfirmedBlockWithTxHashes::Block(latest) => {
+        starknet_rs_core::types::MaybePreConfirmedBlockWithTxHashes::Block(latest) => {
             latest.l2_gas_price.price_in_fri
         }
         MaybePreConfirmedBlockWithTxHashes::PreConfirmedBlock(pre_confirmed) => {

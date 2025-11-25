@@ -1,5 +1,5 @@
 use serde_json::json;
-use starknet_rust::core::types::{BlockId, Felt};
+use starknet_rs_core::types::{BlockId, Felt};
 use tokio_tungstenite::connect_async;
 
 use crate::common::background_devnet::BackgroundDevnet;

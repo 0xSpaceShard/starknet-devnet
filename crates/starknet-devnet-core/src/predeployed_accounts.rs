@@ -1,4 +1,4 @@
-use starknet_rust::signers::SigningKey;
+use starknet_rs_signers::SigningKey;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Key};

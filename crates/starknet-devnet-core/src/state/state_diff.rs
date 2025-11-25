@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
-use starknet_rust::core::types::Felt;
+use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, CompiledClassHash};
@@ -241,8 +241,8 @@ mod tests {
     use nonzero_ext::nonzero;
     use starknet_api::contract_class::compiled_class_hash::{HashVersion, HashableCompiledClass};
     use starknet_api::core::ClassHash;
-    use starknet_rust::core::types::Felt;
-    use starknet_rust::core::utils::get_selector_from_name;
+    use starknet_rs_core::types::Felt;
+    use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::compile_sierra_contract;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;

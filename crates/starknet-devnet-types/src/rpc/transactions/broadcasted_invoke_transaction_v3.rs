@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use serde::Deserialize;
-use starknet_rust::core::types::Felt;
+use starknet_rs_core::types::Felt;
 
 use super::BroadcastedTransactionCommonV3;
 use crate::contract_address::ContractAddress;

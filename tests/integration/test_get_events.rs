@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use starknet_rust::accounts::{Account, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rust::core::types::{
+use starknet_rs_accounts::{Account, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount};
+use starknet_rs_core::types::{
     BlockId, BlockStatus, BlockTag, Call, EmittedEvent, EventFilter, Felt, StarknetError,
 };
-use starknet_rust::core::utils::{get_selector_from_name, get_udc_deployed_address};
-use starknet_rust::providers::{Provider, ProviderError};
+use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
+use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{self, MAINNET_URL, STRK_ERC20_CONTRACT_ADDRESS};
@@ -54,7 +54,7 @@ async fn get_events_correct_chunking(devnet: &BackgroundDevnet, block_on_demand:
     let (cairo_1_contract, casm_class_hash) = get_events_contract_artifacts();
 
     // declare the contract
-    let declaration_result: starknet_rust::core::types::DeclareTransactionResult =
+    let declaration_result: starknet_rs_core::types::DeclareTransactionResult =
         predeployed_account
             .declare_v3(Arc::new(cairo_1_contract), casm_class_hash)
             .send()
@@ -80,7 +80,7 @@ async fn get_events_correct_chunking(devnet: &BackgroundDevnet, block_on_demand:
     let new_contract_address = get_udc_deployed_address(
         Felt::ZERO,
         declaration_result.class_hash,
-        &starknet_rust::core::utils::UdcUniqueness::NotUnique,
+        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
         &[],
     );
 

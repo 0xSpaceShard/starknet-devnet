@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
-use starknet_rust::accounts::{
+use starknet_rs_accounts::{
     Account, AccountDeploymentV3, AccountError, AccountFactory, ConnectedAccount, DeclarationV3,
     ExecutionEncoding, ExecutionV3, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rust::core::types::{
+use starknet_rs_core::types::{
     BlockId, BlockTag, Call, ExecutionResult, Felt, FlattenedSierraClass, InvokeTransactionResult,
     StarknetError, U256,
 };
-use starknet_rust::core::utils::{get_selector_from_name, get_udc_deployed_address};
-use starknet_rust::providers::jsonrpc::HttpTransport;
-use starknet_rust::providers::{JsonRpcClient, Provider, ProviderError};
-use starknet_rust::signers::LocalWallet;
+use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
+use starknet_rs_providers::jsonrpc::HttpTransport;
+use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
+use starknet_rs_signers::LocalWallet;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
@@ -45,7 +45,7 @@ async fn deploy_account_to_an_address_with_insufficient_balance_should_fail() {
     .unwrap();
 
     match factory.deploy_v3(Felt::THREE).send().await.unwrap_err() {
-        starknet_rust::accounts::AccountFactoryError::Provider(provider_error) => {
+        starknet_rs_accounts::AccountFactoryError::Provider(provider_error) => {
             if let Ok(json_rpc_error) = extract_json_rpc_error(provider_error) {
                 if json_rpc_error.message.contains("Resources bounds")
                     || json_rpc_error.message.contains("Fee check failed")
@@ -104,7 +104,7 @@ async fn declare_deploy_happy_path() {
     let contract_address = get_udc_deployed_address(
         salt,
         declare_transaction.class_hash,
-        &starknet_rust::core::utils::UdcUniqueness::NotUnique,
+        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
         &[constructor_arg],
     );
     let deploy_transaction = account.execute_v3(deploy_call).send().await.unwrap();
@@ -170,7 +170,7 @@ async fn declare_from_an_account_with_insufficient_strk_tokens_balance() {
     assert!(Felt::from(estimate_fee.overall_fee) > account_strk_balance);
 
     match declaration.send().await.unwrap_err() {
-        starknet_rust::accounts::AccountError::Provider(provider_error) => {
+        starknet_rs_accounts::AccountError::Provider(provider_error) => {
             if let Ok(json_rpc_error) = extract_json_rpc_error(provider_error) {
                 if json_rpc_error.message.contains("Resources bounds")
                     || json_rpc_error.message.contains("Fee check failed")
@@ -379,12 +379,12 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                         .l2_gas(l2)
                         .l2_gas_price(l2_price);
                 match declaration.send().await.unwrap_err() {
-                    starknet_rust::accounts::AccountError::Provider(
+                    starknet_rs_accounts::AccountError::Provider(
                         ProviderError::StarknetError(
                             StarknetError::InsufficientResourcesForValidate,
                         ),
                     ) => {}
-                    starknet_rust::accounts::AccountError::Provider(provider_error) => {
+                    starknet_rs_accounts::AccountError::Provider(provider_error) => {
                         if let Ok(json_rpc_error) = extract_json_rpc_error(provider_error) {
                             if json_rpc_error.message.contains("Resource bounds were not satisfied")
                             {
@@ -405,12 +405,12 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                     .l2_gas(l2)
                     .l2_gas_price(l2_price);
                 match account_deployment.send().await.unwrap_err() {
-                    starknet_rust::accounts::AccountFactoryError::Provider(
+                    starknet_rs_accounts::AccountFactoryError::Provider(
                         ProviderError::StarknetError(
                             StarknetError::InsufficientResourcesForValidate,
                         ),
                     ) => {}
-                    starknet_rust::accounts::AccountFactoryError::Provider(provider_error) => {
+                    starknet_rs_accounts::AccountFactoryError::Provider(provider_error) => {
                         println!("Provider error: {:?}", provider_error);
                         if let Ok(json_rpc_error) = extract_json_rpc_error(provider_error) {
                             println!("JSON RPC Error: {:?}", json_rpc_error);
@@ -449,7 +449,7 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                             other => anyhow::bail!("Unexpected result: {:?}", other),
                         }
                     }
-                    Err(starknet_rust::accounts::AccountError::Provider(provider_error)) => {
+                    Err(starknet_rs_accounts::AccountError::Provider(provider_error)) => {
                         if let Ok(json_rpc_error) = extract_json_rpc_error(provider_error) {
                             if json_rpc_error.message.contains("Resource bounds were not satisfied")
                             {

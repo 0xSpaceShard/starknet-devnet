@@ -3,16 +3,16 @@ use std::time;
 
 use anyhow::anyhow;
 use serde_json::json;
-use starknet_rust::accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rust::core::types::{
+use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+use starknet_rs_core::types::{
     BlockId, BlockStatus, BlockTag, Call, DeclaredClassItem, Felt, FunctionCall,
     MaybePreConfirmedStateUpdate, NonceUpdate, StateUpdate, TransactionTrace,
 };
-use starknet_rust::core::utils::{
+use starknet_rs_core::utils::{
     get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
 };
-use starknet_rust::providers::Provider;
-use starknet_rust::signers::Signer;
+use starknet_rs_providers::Provider;
+use starknet_rs_signers::Signer;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH};
@@ -442,7 +442,7 @@ async fn blocks_on_demand_invoke_and_call() {
     let contract_address = get_udc_deployed_address(
         Felt::ZERO,
         declaration_result.class_hash,
-        &starknet_rust::core::utils::UdcUniqueness::NotUnique,
+        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
         &ctor_args,
     );
 

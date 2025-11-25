@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use starknet_rust::accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rust::core::types::{
+use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
+use starknet_rs_core::types::{
     Call, Felt, InvokeTransactionResult, StarknetError, TransactionExecutionErrorData,
 };
-use starknet_rust::core::utils::get_selector_from_name;
-use starknet_rust::providers::ProviderError;
+use starknet_rs_core::utils::get_selector_from_name;
+use starknet_rs_providers::ProviderError;
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{

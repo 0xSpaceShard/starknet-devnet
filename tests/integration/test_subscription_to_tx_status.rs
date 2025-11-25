@@ -1,5 +1,5 @@
 use serde_json::json;
-use starknet_rust::core::types::{BlockId, Felt};
+use starknet_rs_core::types::{BlockId, Felt};
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 

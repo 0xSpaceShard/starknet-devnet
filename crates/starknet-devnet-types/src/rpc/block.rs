@@ -4,7 +4,7 @@ use starknet_api::core::{
     EventCommitment, ReceiptCommitment, StateDiffCommitment, TransactionCommitment,
 };
 use starknet_api::data_availability::L1DataAvailabilityMode;
-use starknet_rust::core::types::Felt;
+use starknet_rs_core::types::Felt;
 
 use crate::contract_address::ContractAddress;
 use crate::felt::BlockHash;
@@ -21,7 +21,7 @@ pub enum BlockId {
     Tag(BlockTag),
 }
 
-impl From<BlockId> for starknet_rust::core::types::BlockId {
+impl From<BlockId> for starknet_rs_core::types::BlockId {
     fn from(block_id: BlockId) -> Self {
         match block_id {
             BlockId::Hash(felt) => Self::Hash(felt),
@@ -144,8 +144,8 @@ pub struct ResourcePrice {
     pub price_in_wei: Felt,
 }
 
-impl From<starknet_rust::core::types::ResourcePrice> for ResourcePrice {
-    fn from(value: starknet_rust::core::types::ResourcePrice) -> Self {
+impl From<starknet_rs_core::types::ResourcePrice> for ResourcePrice {
+    fn from(value: starknet_rs_core::types::ResourcePrice) -> Self {
         Self { price_in_fri: value.price_in_fri, price_in_wei: value.price_in_wei }
     }
 }
@@ -217,7 +217,7 @@ pub enum BlockTag {
     L1Accepted,
 }
 
-impl From<BlockTag> for starknet_rust::core::types::BlockTag {
+impl From<BlockTag> for starknet_rs_core::types::BlockTag {
     fn from(tag: BlockTag) -> Self {
         match tag {
             BlockTag::PreConfirmed => Self::PreConfirmed,
@@ -230,7 +230,7 @@ impl From<BlockTag> for starknet_rust::core::types::BlockTag {
 #[cfg(test)]
 mod test_block_id {
     use serde_json::json;
-    use starknet_rust::core::types::Felt;
+    use starknet_rs_core::types::Felt;
 
     use super::BlockTag;
     use crate::rpc::block::BlockId;

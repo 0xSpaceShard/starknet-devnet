@@ -18,7 +18,7 @@ pub fn state_update_by_block_id(
 #[cfg(test)]
 mod tests {
     use starknet_api::contract_class::compiled_class_hash::{HashVersion, HashableCompiledClass};
-    use starknet_rust::core::types::{Felt, TransactionExecutionStatus};
+    use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
     use starknet_types::compile_sierra_contract;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::rpc::block::{BlockId, BlockTag};

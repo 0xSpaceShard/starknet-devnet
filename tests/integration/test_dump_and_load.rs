@@ -2,7 +2,7 @@ use std::path::Path;
 use std::time;
 
 use serde_json::json;
-use starknet_rust::providers::Provider;
+use starknet_rs_providers::Provider;
 
 use crate::assert_eq_prop;
 use crate::common::background_devnet::BackgroundDevnet;
@@ -16,8 +16,8 @@ static DUMMY_AMOUNT: u128 = 1;
 
 use std::sync::Arc;
 
-use starknet_rust::accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rust::core::types::{DeclareTransaction, Felt, InvokeTransaction, Transaction};
+use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+use starknet_rs_core::types::{DeclareTransaction, Felt, InvokeTransaction, Transaction};
 
 use crate::common::utils::get_events_contract_artifacts;
 

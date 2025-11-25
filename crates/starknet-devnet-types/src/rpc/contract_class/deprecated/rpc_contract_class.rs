@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use starknet_rust::core::types::{CompressedLegacyContractClass, Felt, LegacyEntryPointsByType};
+use starknet_rs_core::types::{CompressedLegacyContractClass, Felt, LegacyEntryPointsByType};
 
 use crate::contract_class::deprecated::Cairo0Json;
 use crate::contract_class::deprecated::abi_entry::{AbiEntry, AbiEntryType};
@@ -95,7 +95,7 @@ impl TryFrom<DeprecatedContractClass> for starknet_api::deprecated_contract_clas
 
 #[cfg(test)]
 mod tests {
-    use starknet_rust::core::types::CompressedLegacyContractClass;
+    use starknet_rs_core::types::CompressedLegacyContractClass;
 
     use crate::contract_class::deprecated::DeprecatedContractClass;
     use crate::utils::test_utils::CAIRO_0_RPC_CONTRACT_PATH;

@@ -7,7 +7,7 @@ pub use json_rpc_request::{
 };
 pub use json_rpc_response::{DevnetResponse, JsonRpcResponse, StarknetResponse};
 use serde::{Deserialize, Serialize};
-use starknet_rust::core::types::{Felt, Hash256, TransactionExecutionStatus};
+use starknet_rs_core::types::{Felt, Hash256, TransactionExecutionStatus};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
 use starknet_types::num_bigint::BigUint;
@@ -452,7 +452,7 @@ pub struct RestartParameters {
 }
 #[cfg(test)]
 mod tests {
-    use starknet_rust::core::types::Felt;
+    use starknet_rs_core::types::Felt;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::felt_from_prefixed_hex;
     use starknet_types::patricia_key::PatriciaKey;

@@ -24,8 +24,11 @@ rand = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-starknet-rust = { workspace = true }
-
+starknet-rs-accounts = { workspace = true }
+starknet-rs-contract = { workspace = true }
+starknet-rs-core = { workspace = true }
+starknet-rs-providers = { workspace = true }
+starknet-rs-signers = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["signal"] }
 tokio-tungstenite = { workspace = true }

@@ -1,9 +1,9 @@
 use starknet_core::error::Error;
-use starknet_rust::core::types::{
+use starknet_rs_core::types::{
     BlockId as ImportedBlockId, Felt, L1DataAvailabilityMode as ImportedL1DataAvailabilityMode,
     MaybePreConfirmedBlockWithTxHashes,
 };
-use starknet_rust::providers::{Provider, ProviderError};
+use starknet_rs_providers::{Provider, ProviderError};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{EmittedEvent, SubscriptionEmittedEvent};
 use starknet_types::felt::TransactionHash;
@@ -99,7 +99,7 @@ impl JsonRpcHandler {
                 Ok(origin_header)
             }
             Err(ProviderError::StarknetError(
-                starknet_rust::core::types::StarknetError::BlockNotFound,
+                starknet_rs_core::types::StarknetError::BlockNotFound,
             )) => Err(ApiError::BlockNotFound),
             other => Err(ApiError::StarknetDevnetError(
                 starknet_core::error::Error::UnexpectedInternalError {

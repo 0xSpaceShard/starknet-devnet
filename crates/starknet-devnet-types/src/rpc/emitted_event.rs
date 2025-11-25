@@ -21,8 +21,8 @@ pub struct EmittedEvent {
     pub data: Vec<Felt>,
 }
 
-impl From<starknet_rust::core::types::EmittedEvent> for EmittedEvent {
-    fn from(sn_rs_event: starknet_rust::core::types::EmittedEvent) -> Self {
+impl From<starknet_rs_core::types::EmittedEvent> for EmittedEvent {
+    fn from(sn_rs_event: starknet_rs_core::types::EmittedEvent) -> Self {
         Self {
             transaction_hash: sn_rs_event.transaction_hash,
             transaction_index: sn_rs_event.transaction_index,

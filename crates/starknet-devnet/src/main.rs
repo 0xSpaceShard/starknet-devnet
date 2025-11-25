@@ -20,12 +20,12 @@ use starknet_core::starknet::Starknet;
 use starknet_core::starknet::starknet_config::{
     BlockGenerationOn, DumpOn, ForkConfig, StarknetConfig,
 };
-use starknet_rust::core::types::ContractClass::{Legacy, Sierra};
-use starknet_rust::core::types::{
+use starknet_rs_core::types::ContractClass::{Legacy, Sierra};
+use starknet_rs_core::types::{
     BlockId, BlockTag, Felt, MaybePreConfirmedBlockWithTxHashes, StarknetError,
 };
-use starknet_rust::providers::jsonrpc::HttpTransport;
-use starknet_rust::providers::{JsonRpcClient, Provider, ProviderError};
+use starknet_rs_providers::jsonrpc::HttpTransport;
+use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
 use starknet_types::chain_id::ChainId;
 use starknet_types::rpc::state::Balance;
 use starknet_types::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
@@ -239,8 +239,8 @@ pub async fn set_and_log_fork_config(
 
     let block = json_rpc_client.get_block_with_tx_hashes(block_id).await.map_err(|e| {
         anyhow::Error::msg(match e {
-            starknet_rust::providers::ProviderError::StarknetError(
-                starknet_rust::core::types::StarknetError::BlockNotFound,
+            starknet_rs_providers::ProviderError::StarknetError(
+                starknet_rs_core::types::StarknetError::BlockNotFound,
             ) => format!("Forking from block {block_id:?}: block not found"),
             _ => format!("Forking from block {block_id:?}: {e}; Check the URL"),
         })
