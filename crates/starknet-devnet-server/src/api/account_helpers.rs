@@ -31,9 +31,9 @@ pub fn get_balance(
     erc20_address: ContractAddress,
     block_id: BlockId,
 ) -> Result<BigUint, ApiError> {
-    let balance_selector = starknet_rs_core::utils::get_selector_from_name("balanceOf")
-        .map_err(|err| starknet_core::error::Error::UnexpectedInternalError {
-            msg: err.to_string(),
+    let balance_selector =
+        starknet_rs_core::utils::get_selector_from_name("balanceOf").map_err(|err| {
+            starknet_core::error::Error::UnexpectedInternalError { msg: err.to_string() }
         })?;
     let new_balance_raw = starknet.call(
         &block_id,

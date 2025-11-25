@@ -54,12 +54,11 @@ async fn get_events_correct_chunking(devnet: &BackgroundDevnet, block_on_demand:
     let (cairo_1_contract, casm_class_hash) = get_events_contract_artifacts();
 
     // declare the contract
-    let declaration_result: starknet_rs_core::types::DeclareTransactionResult =
-        predeployed_account
-            .declare_v3(Arc::new(cairo_1_contract), casm_class_hash)
-            .send()
-            .await
-            .unwrap();
+    let declaration_result: starknet_rs_core::types::DeclareTransactionResult = predeployed_account
+        .declare_v3(Arc::new(cairo_1_contract), casm_class_hash)
+        .send()
+        .await
+        .unwrap();
 
     let predeployed_account = Arc::new(predeployed_account);
 
