@@ -50,9 +50,11 @@ pub enum ImpersonationAction {
 /// dummy testing value
 pub fn get_deployable_account_signer() -> LocalWallet {
     let new_account_private_key = "0xc248668388dbe9acdfa3bc734cc2d57a";
-    starknet_rust::signers::LocalWallet::from(starknet_rust::signers::SigningKey::from_secret_scalar(
-        Felt::from_hex_unchecked(new_account_private_key),
-    ))
+    starknet_rust::signers::LocalWallet::from(
+        starknet_rust::signers::SigningKey::from_secret_scalar(Felt::from_hex_unchecked(
+            new_account_private_key,
+        )),
+    )
 }
 
 pub fn remove_file(path: &str) {

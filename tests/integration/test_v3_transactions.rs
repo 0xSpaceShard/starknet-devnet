@@ -379,9 +379,11 @@ async fn transaction_with_less_gas_units_and_or_less_gas_price_should_return_err
                         .l2_gas(l2)
                         .l2_gas_price(l2_price);
                 match declaration.send().await.unwrap_err() {
-                    starknet_rust::accounts::AccountError::Provider(ProviderError::StarknetError(
-                        StarknetError::InsufficientResourcesForValidate,
-                    )) => {}
+                    starknet_rust::accounts::AccountError::Provider(
+                        ProviderError::StarknetError(
+                            StarknetError::InsufficientResourcesForValidate,
+                        ),
+                    ) => {}
                     starknet_rust::accounts::AccountError::Provider(provider_error) => {
                         if let Ok(json_rpc_error) = extract_json_rpc_error(provider_error) {
                             if json_rpc_error.message.contains("Resource bounds were not satisfied")

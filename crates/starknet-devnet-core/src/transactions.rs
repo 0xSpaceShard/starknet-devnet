@@ -265,9 +265,7 @@ impl From<&StarknetTransaction>
                                     .iter()
                                     .map(|k| starknet_api::transaction::EventKey(*k))
                                     .collect(),
-                                data: starknet_api::transaction::EventData(
-                                    f.data.to_vec(),
-                                ),
+                                data: starknet_api::transaction::EventData(f.data.to_vec()),
                             },
                         })
                         .collect(),
@@ -294,7 +292,9 @@ impl From<&StarknetTransaction>
                                 to_address: starknet_api::core::EthAddress::try_from(
                                     to_address_felt,
                                 )
-                                .unwrap_or_default(), // Default should never happen, felt is used just as a helper for type conversions
+                                .unwrap_or_default(), /* Default should never happen, felt is
+                                                       * used just as a helper for type
+                                                       * conversions */
                                 payload: starknet_api::transaction::L2ToL1Payload(
                                     msg.payload.to_vec(),
                                 ),
