@@ -369,7 +369,7 @@ impl ResourceBoundsWrapper {
     }
 }
 
-fn convert_resource_bounds_from_starknet_rust_to_starknet_api(
+fn convert_resource_bounds_from_starknet_rs_to_starknet_api(
     bounds: ResourceBounds,
 ) -> starknet_api::transaction::fields::ResourceBounds {
     starknet_api::transaction::fields::ResourceBounds {
@@ -389,19 +389,19 @@ impl From<&ResourceBoundsWrapper> for starknet_api::transaction::fields::ValidRe
             // estimate fee
             (0, 0, 0) => ValidResourceBounds::AllResources(AllResourceBounds::default()),
             (_, 0, 0) => starknet_api::transaction::fields::ValidResourceBounds::L1Gas(
-                convert_resource_bounds_from_starknet_rust_to_starknet_api(
+                convert_resource_bounds_from_starknet_rs_to_starknet_api(
                     value.inner.l1_gas.clone(),
                 ),
             ),
             _ => starknet_api::transaction::fields::ValidResourceBounds::AllResources(
                 AllResourceBounds {
-                    l1_gas: convert_resource_bounds_from_starknet_rust_to_starknet_api(
+                    l1_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
                         value.inner.l1_gas.clone(),
                     ),
-                    l2_gas: convert_resource_bounds_from_starknet_rust_to_starknet_api(
+                    l2_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
                         value.inner.l2_gas.clone(),
                     ),
-                    l1_data_gas: convert_resource_bounds_from_starknet_rust_to_starknet_api(
+                    l1_data_gas: convert_resource_bounds_from_starknet_rs_to_starknet_api(
                         value.inner.l1_data_gas.clone(),
                     ),
                 },
