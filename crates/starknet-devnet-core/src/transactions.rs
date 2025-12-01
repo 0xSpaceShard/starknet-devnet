@@ -314,6 +314,7 @@ mod tests {
     use blockifier::transaction::objects::TransactionExecutionInfo;
     use starknet_api::block::BlockNumber;
     use starknet_api::transaction::fields::GasVectorComputationMode;
+    use starknet_api::versioned_constants_logic::VersionedConstantsTrait;
     use starknet_rs_core::types::TransactionExecutionStatus;
     use starknet_types::rpc::transactions::{
         TransactionFinalityStatus, TransactionTrace, TransactionWithHash,
