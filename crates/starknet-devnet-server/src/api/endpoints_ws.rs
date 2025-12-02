@@ -10,7 +10,9 @@ use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::block::{BlockHeader, BlockId, BlockStatus, BlockTag};
 use starknet_types::rpc::transactions::TransactionFinalityStatus;
 use starknet_types::starknet_api::block::{BlockNumber, BlockTimestamp};
+use starknet_types::starknet_api::core::{EventCommitment, ReceiptCommitment, StateDiffCommitment, TransactionCommitment};
 use starknet_types::starknet_api::data_availability::L1DataAvailabilityMode;
+use starknet_types::starknet_api::hash::PoseidonHash;
 
 use super::JsonRpcHandler;
 use super::error::ApiError;
@@ -87,14 +89,13 @@ impl JsonRpcHandler {
                         }
                         ImportedL1DataAvailabilityMode::Blob => L1DataAvailabilityMode::Blob,
                     },
-                    // TODO: fill in real commitments and counts when starknet-rs supports it
-                    n_transactions: 0,
-                    n_events: 0,
-                    state_diff_length: 0,
-                    state_diff_commitment: Default::default(),
-                    transaction_commitment: Default::default(),
-                    event_commitment: Default::default(),
-                    receipt_commitment: Default::default(),
+                    n_transactions: origin_block.transaction_count,
+                    n_events: origin_block.event_count,
+                    state_diff_length: origin_block.state_diff_length,
+                    state_diff_commitment: StateDiffCommitment(PoseidonHash(origin_block.state_diff_commitment)),
+                    transaction_commitment: TransactionCommitment(origin_block.transaction_commitment),
+                    event_commitment: EventCommitment(origin_block.event_commitment),
+                    receipt_commitment: ReceiptCommitment(origin_block.receipt_commitment),
                 };
                 Ok(origin_header)
             }

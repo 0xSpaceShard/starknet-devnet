@@ -412,9 +412,10 @@ impl StarknetBlock {
         self.header.block_header_without_hash.timestamp = timestamp;
     }
 
-    pub(crate) fn set_counts(&mut self, n_transactions: usize, n_events: usize) {
+    pub(crate) fn set_counts(&mut self, n_transactions: usize, n_events: usize, state_diff_length: usize) {
         self.header.n_transactions = n_transactions;
         self.header.n_events = n_events;
+        self.header.state_diff_length = Some(state_diff_length);
     }
 
     pub(crate) fn set_commitments(&mut self, commitments: BlockHeaderCommitments) {

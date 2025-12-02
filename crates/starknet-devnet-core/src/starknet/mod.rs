@@ -19,6 +19,7 @@ use starknet_api::block::{
 use starknet_api::block_hash::block_hash_calculator::calculate_block_commitments;
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::data_availability::DataAvailabilityMode;
+use starknet_api::state::ThinStateDiff as ThinStateDiffImported;
 use starknet_api::transaction::fields::{GasVectorComputationMode, Tip};
 use starknet_api::transaction::{TransactionHasher, TransactionVersion};
 use starknet_rs_core::types::{Felt, Hash256, MsgFromL1};
@@ -432,9 +433,11 @@ impl Starknet {
             .map(|tx| tx.into())
             .collect();
 
+        let thin_state_diff: ThinStateDiffImported = self.pre_confirmed_state_diff.clone().into();
+
         let commitments = calculate_block_commitments(
             &transaction_data,
-            &self.pre_confirmed_state_diff.clone().into(),
+            &thin_state_diff,
             l1_da_mode,
             &starknet_version,
         );
@@ -442,6 +445,7 @@ impl Starknet {
         new_block.set_counts(
             transaction_data.len(),
             transaction_data.iter().map(|tx| tx.transaction_output.events.len()).sum(),
+            thin_state_diff.len()
         );
         new_block.set_commitments(commitments);
 
