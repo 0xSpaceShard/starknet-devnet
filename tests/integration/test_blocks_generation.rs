@@ -58,7 +58,7 @@ async fn assert_latest_block_with_tx_hashes(
     assert_eq_prop!(latest_block.block_number, block_number)?;
     assert_eq_prop!(transactions, latest_block.transactions)?;
     assert_eq_prop!(transactions.len(), latest_block.transaction_count as usize)?;
-    assert_eq_prop!(n_events, latest_block.event_count as u64)?;
+    assert_eq_prop!(n_events, latest_block.event_count)?;
     assert_eq_prop!(latest_block.status, BlockStatus::AcceptedOnL2)?;
 
     for tx_hash in latest_block.transactions {
