@@ -445,7 +445,7 @@ impl Starknet {
         new_block.set_counts(
             transaction_data.len(),
             transaction_data.iter().map(|tx| tx.transaction_output.events.len()).sum(),
-            thin_state_diff.len()
+            thin_state_diff.len(),
         );
         new_block.set_commitments(commitments);
 

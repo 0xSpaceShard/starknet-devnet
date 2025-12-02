@@ -51,7 +51,7 @@ async fn assert_latest_block_with_tx_hashes(
     devnet: &BackgroundDevnet,
     block_number: u64,
     transactions: Vec<Felt>,
-    n_events: u64
+    n_events: u64,
 ) -> Result<(), anyhow::Error> {
     let latest_block = devnet.get_latest_block_with_tx_hashes().await?;
 
