@@ -176,6 +176,63 @@ impl From<StateDiff> for ThinStateDiff {
         }
     }
 }
+
+impl From<StateDiff> for starknet_api::state::ThinStateDiff {
+    fn from(value: StateDiff) -> Self {
+        let deployed_contracts: Vec<(ContractAddress, Felt)> =
+            value.address_to_class_hash.into_iter().collect();
+        let nonces: Vec<(ContractAddress, Felt)> = value.address_to_nonce.into_iter().collect();
+
+        starknet_api::state::ThinStateDiff {
+            deployed_contracts: deployed_contracts
+                .into_iter()
+                .map(|(address, class_hash)| {
+                    (
+                        starknet_api::core::ContractAddress::from(address),
+                        starknet_api::core::ClassHash(class_hash),
+                    )
+                })
+                .collect(),
+            storage_diffs: value
+                .storage_updates
+                .into_iter()
+                .map(|(contract_address, updates)| {
+                    (
+                        starknet_api::core::ContractAddress::from(contract_address),
+                        updates
+                            .into_iter()
+                            .map(|(key, value)| (starknet_api::state::StorageKey::from(key), value))
+                            .collect(),
+                    )
+                })
+                .collect(),
+            class_hash_to_compiled_class_hash: value
+                .class_hash_to_compiled_class_hash
+                .into_iter()
+                .map(|(class_hash, compiled_class_hash)| {
+                    (
+                        starknet_api::core::ClassHash(class_hash),
+                        starknet_api::core::CompiledClassHash(compiled_class_hash),
+                    )
+                })
+                .collect(),
+            deprecated_declared_classes: value
+                .cairo_0_declared_contracts
+                .iter()
+                .map(|f| starknet_api::core::ClassHash(*f))
+                .collect(),
+            nonces: nonces
+                .into_iter()
+                .map(|(address, nonce)| {
+                    (
+                        starknet_api::core::ContractAddress::from(address),
+                        starknet_api::core::Nonce(nonce),
+                    )
+                })
+                .collect(),
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;

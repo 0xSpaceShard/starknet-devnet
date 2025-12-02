@@ -43,7 +43,10 @@ pub async fn serve_http_json_rpc(
     };
 
     routes = routes
-        .layer(TimeoutLayer::new(Duration::from_secs(server_config.timeout.into())))
+        .layer(TimeoutLayer::with_status_code(
+            StatusCode::REQUEST_TIMEOUT,
+            Duration::from_secs(server_config.timeout.into()),
+        ))
         .layer(DefaultBodyLimit::disable())
         .layer(
             // More details: https://docs.rs/tower-http/latest/tower_http/cors/index.html

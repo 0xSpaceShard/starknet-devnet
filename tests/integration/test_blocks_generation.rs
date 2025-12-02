@@ -51,11 +51,14 @@ async fn assert_latest_block_with_tx_hashes(
     devnet: &BackgroundDevnet,
     block_number: u64,
     transactions: Vec<Felt>,
+    n_events: u64,
 ) -> Result<(), anyhow::Error> {
     let latest_block = devnet.get_latest_block_with_tx_hashes().await?;
 
     assert_eq_prop!(latest_block.block_number, block_number)?;
     assert_eq_prop!(transactions, latest_block.transactions)?;
+    assert_eq_prop!(transactions.len(), latest_block.transaction_count as usize)?;
+    assert_eq_prop!(n_events, latest_block.event_count)?;
     assert_eq_prop!(latest_block.status, BlockStatus::AcceptedOnL2)?;
 
     for tx_hash in latest_block.transactions {
@@ -250,7 +253,7 @@ async fn normal_mode_states_and_blocks() {
     assert_pre_confirmed_block_with_tx_hashes(&devnet, 0).await.unwrap();
     assert_pre_confirmed_block_with_txs(&devnet, 0).await.unwrap();
     assert_pre_confirmed_block_with_receipts(&devnet, 0).await.unwrap();
-    assert_latest_block_with_tx_hashes(&devnet, 5, vec![tx_hashes.last().copied().unwrap()])
+    assert_latest_block_with_tx_hashes(&devnet, 5, vec![tx_hashes.last().copied().unwrap()], 2)
         .await
         .unwrap();
     assert_latest_block_with_txs(&devnet, 5, 1).await.unwrap();
@@ -282,7 +285,7 @@ async fn blocks_on_demand_states_and_blocks() {
     assert_pre_confirmed_block_with_txs(&devnet, tx_count).await.unwrap();
     assert_pre_confirmed_block_with_receipts(&devnet, tx_count).await.unwrap();
 
-    assert_latest_block_with_tx_hashes(&devnet, 0, vec![]).await.unwrap();
+    assert_latest_block_with_tx_hashes(&devnet, 0, vec![], 0).await.unwrap();
     assert_latest_block_with_txs(&devnet, 0, 0).await.unwrap();
     assert_latest_block_with_receipts(&devnet, 0, 0).await.unwrap();
 
@@ -300,7 +303,7 @@ async fn blocks_on_demand_states_and_blocks() {
     assert_pre_confirmed_block_with_txs(&devnet, 0).await.unwrap();
     assert_pre_confirmed_block_with_receipts(&devnet, 0).await.unwrap();
 
-    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await.unwrap();
+    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes, 10).await.unwrap();
     assert_latest_block_with_txs(&devnet, 1, tx_count).await.unwrap();
     assert_latest_block_with_receipts(&devnet, 1, tx_count).await.unwrap();
 
@@ -489,7 +492,7 @@ async fn blocks_on_demand_invoke_and_call() {
 
     devnet.create_block().await.unwrap();
 
-    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await.unwrap();
+    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes, 5).await.unwrap();
     let contract_balance = get_contract_balance_by_block_id(
         &devnet,
         contract_address,
@@ -538,7 +541,7 @@ async fn blocks_on_interval_transactions() {
     tokio::time::sleep(time::Duration::from_secs(period * 3 / 2)).await;
 
     // first is genesis block, second block is generated after transactions
-    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await.unwrap();
+    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes, 6).await.unwrap();
 }
 
 #[tokio::test]
