@@ -13,7 +13,7 @@ panic = "unwind"
 
 [workspace.package]
 authors = ["0xSpaceShard"]
-edition = "2021"
+edition = "2024"
 repository = "https://github.com/0xSpaceShard/starknet-devnet"
 license-file = "LICENSE"
 homepage = "https://0xspaceshard.github.io/starknet-devnet"
