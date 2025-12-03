@@ -212,8 +212,9 @@ impl StarknetTransaction {
             messages.extend(call_info.execution.l2_to_l1_messages.iter().map(|m| {
                 OrderedMessageToL1 {
                     order: m.order,
+                    #[allow(clippy::expect_used)] // TODO
                     message: MessageToL1 {
-                        to_address: m.message.to_address.into(),
+                        to_address: m.message.to_address.try_into().expect("TODO"),
                         from_address: from_address.into(),
                         payload: m.message.payload.0.clone(),
                     },
@@ -239,6 +240,73 @@ impl StarknetTransaction {
     }
 }
 
+impl From<&StarknetTransaction>
+    for starknet_api::block_hash::block_hash_calculator::TransactionHashingData
+{
+    fn from(tx: &StarknetTransaction) -> Self {
+        Self {
+            transaction_signature: starknet_api::transaction::fields::TransactionSignature(
+                tx.inner.get_signature().into(),
+            ),
+            transaction_hash: starknet_api::transaction::TransactionHash(
+                *tx.inner.get_transaction_hash(),
+            ),
+            transaction_output:
+                starknet_api::block_hash::block_hash_calculator::TransactionOutputForHash {
+                    actual_fee: tx.execution_info.receipt.fee,
+                    events: tx
+                        .get_events()
+                        .iter()
+                        .map(|f| starknet_api::transaction::Event {
+                            from_address: f.from_address.into(),
+                            content: starknet_api::transaction::EventContent {
+                                keys: f
+                                    .keys
+                                    .iter()
+                                    .map(|k| starknet_api::transaction::EventKey(*k))
+                                    .collect(),
+                                data: starknet_api::transaction::EventData(f.data.to_vec()),
+                            },
+                        })
+                        .collect(),
+                    execution_status: match &tx.execution_result {
+                        starknet_rs_core::types::ExecutionResult::Succeeded => {
+                            starknet_api::transaction::TransactionExecutionStatus::Succeeded
+                        }
+                        starknet_rs_core::types::ExecutionResult::Reverted { reason } => {
+                            starknet_api::transaction::TransactionExecutionStatus::Reverted(
+                                starknet_api::transaction::RevertedTransactionExecutionStatus {
+                                    revert_reason: reason.to_string(),
+                                },
+                            )
+                        }
+                    },
+                    gas_consumed: tx.execution_info.receipt.gas,
+                    messages_sent: tx
+                        .get_l2_to_l1_messages()
+                        .into_iter()
+                        .map(|msg| {
+                            let to_address_felt: starknet_rs_core::types::Felt =
+                                msg.to_address.into();
+                            starknet_api::transaction::MessageToL1 {
+                                to_address: starknet_api::core::EthAddress::try_from(
+                                    to_address_felt,
+                                )
+                                .unwrap_or_default(), /* Default should never happen, felt is
+                                                       * used just as a helper for type
+                                                       * conversions */
+                                payload: starknet_api::transaction::L2ToL1Payload(
+                                    msg.payload.to_vec(),
+                                ),
+                                from_address: msg.from_address.into(),
+                            }
+                        })
+                        .collect(),
+                },
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use blockifier::blockifier_versioned_constants::VersionedConstants;
@@ -246,6 +314,7 @@ mod tests {
     use blockifier::transaction::objects::TransactionExecutionInfo;
     use starknet_api::block::BlockNumber;
     use starknet_api::transaction::fields::GasVectorComputationMode;
+    use starknet_api::versioned_constants_logic::VersionedConstantsTrait;
     use starknet_rs_core::types::TransactionExecutionStatus;
     use starknet_types::rpc::transactions::{
         TransactionFinalityStatus, TransactionTrace, TransactionWithHash,

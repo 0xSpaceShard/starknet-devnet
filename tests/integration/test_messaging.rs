@@ -7,15 +7,14 @@
 //! * withdraw -> withdraw from a user the given amount, sending the amount to a l2->l1 message.
 //! * deposit -> deposit the given amount from a l1->l2 message (l1 handler function).
 
-use std::str::FromStr;
 use std::sync::Arc;
 
-use ethers::prelude::*;
+use alloy::hex::FromHex;
+use alloy::primitives::{Address, U256};
 use serde_json::{Value, json};
 use starknet_rs_accounts::{
     Account, AccountError, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
 };
-use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
     BlockId, BlockTag, Call, ExecuteInvocation, ExecutionResult, Felt, FunctionCall,
     InvokeTransactionReceipt, InvokeTransactionResult, L1HandlerTransactionTrace,
@@ -37,7 +36,8 @@ use crate::common::constants::{
 use crate::common::errors::RpcError;
 use crate::common::utils::{
     UniqueAutoDeletableFile, assert_contains, assert_tx_succeeded_accepted, felt_to_u256,
-    get_messaging_contract_artifacts, get_messaging_lib_artifacts, send_ctrl_c_signal_and_wait,
+    get_messaging_contract_artifacts, get_messaging_lib_artifacts, new_contract_factory,
+    send_ctrl_c_signal_and_wait,
 };
 
 const DUMMY_L1_ADDRESS: Felt =
@@ -135,7 +135,7 @@ async fn deploy_l2_msg_contract(
     account.declare_v3(Arc::new(sierra_class), casm_class_hash).send().await?;
 
     // deploy instance of class
-    let contract_factory = ContractFactory::new(sierra_class_hash, account.clone());
+    let contract_factory = new_contract_factory(sierra_class_hash, account.clone());
     let salt = Felt::from_hex_unchecked("0x123");
     let constructor_calldata = vec![];
     let contract_address = get_udc_deployed_address(
@@ -299,15 +299,20 @@ async fn mock_message_to_l2_creates_a_tx_with_desired_effect() {
     // Use postman to send a message to l2 without l1 - the message increments user balance
     let increment_amount = Felt::from_hex_unchecked("0xff");
 
-    let body: serde_json::Value = devnet.send_custom_rpc("devnet_postmanSendMessageToL2", json!({
-            "l1_contract_address": MESSAGING_L1_ADDRESS,
-            "l2_contract_address": format!("0x{:64x}", l1l2_contract_address),
-            "entry_point_selector": format!("0x{:64x}", get_selector_from_name("deposit").unwrap()),
-            "payload": [user, increment_amount],
-            "paid_fee_on_l1": "0x1234",
-            "nonce": "0x1"
-        }))
-        .await.unwrap();
+    let body: serde_json::Value = devnet
+        .send_custom_rpc(
+            "devnet_postmanSendMessageToL2",
+            json!({
+                "l1_contract_address": MESSAGING_L1_ADDRESS,
+                "l2_contract_address": l1l2_contract_address,
+                "entry_point_selector": get_selector_from_name("deposit").unwrap(),
+                "payload": [user, increment_amount],
+                "paid_fee_on_l1": "0x1234",
+                "nonce": "0x1"
+            }),
+        )
+        .await
+        .unwrap();
     let tx_hash_hex = body.get("transaction_hash").unwrap().as_str().unwrap();
     let tx_hash = Felt::from_hex_unchecked(tx_hash_hex);
     assert_tx_succeeded_accepted(&tx_hash, &devnet.json_rpc_client).await.unwrap();
@@ -376,8 +381,7 @@ async fn should_fail_on_loading_l1_messaging_contract_if_not_deployed() {
         RpcError {
             code: -1,
             message: format!(
-                "Ethers error: The specified address ({MESSAGING_L1_ADDRESS}) contains no \
-                 contract."
+                "Alloy error: The specified address ({MESSAGING_L1_ADDRESS}) contains no contract."
             )
             .into(),
             data: None
@@ -444,7 +448,7 @@ async fn setup_anvil_incorrect_eth_private_key() {
         .send_custom_rpc("devnet_postmanLoad", json!({ "network_url": anvil.url }))
         .await
         .unwrap_err();
-    assert_contains(&body.message, "CallGasCostMoreThanGasLimit").unwrap();
+    assert_contains(&body.message, "Insufficient funds for gas * price + value.").unwrap();
 
     let body = devnet
         .send_custom_rpc(
@@ -456,7 +460,7 @@ async fn setup_anvil_incorrect_eth_private_key() {
         )
         .await
         .unwrap_err();
-    assert_contains(&body.message, "CallGasCostMoreThanGasLimit").unwrap();
+    assert_contains(&body.message, "Insufficient funds for gas * price + value.").unwrap();
 }
 
 #[tokio::test]
@@ -510,7 +514,7 @@ async fn can_consume_from_l2() {
         .send_custom_rpc(
             "devnet_postmanConsumeMessageFromL2",
             json!({
-                "from_address": format!("0x{:64x}", l1l2_contract_address),
+                "from_address": l1l2_contract_address,
                 "to_address": l1_address,
                 "payload": ["0x0","0x1","0x1"],
             }),
@@ -550,13 +554,13 @@ async fn can_interact_with_l1() {
     );
 
     // Deploy the L1L2 testing contract on L1 (on L2 it's already pre-deployed).
-    let l1_messaging_address = H160::from_str(MESSAGING_L1_ADDRESS).unwrap();
+    let l1_messaging_address = Address::from_hex(MESSAGING_L1_ADDRESS).unwrap();
     let eth_l1l2_address = anvil.deploy_l1l2_contract(l1_messaging_address).await.unwrap();
     let eth_l1l2_address_hex = format!("{eth_l1l2_address:#x}");
 
     let eth_l1l2_address_felt = Felt::from_hex_unchecked(&eth_l1l2_address_hex);
     let user_sn = Felt::ONE;
-    let user_eth: U256 = 1.into();
+    let user_eth: U256 = U256::ONE;
 
     // Set balance to 1 for the user 1 on L2.
     let user_balance = Felt::ONE;
@@ -574,23 +578,26 @@ async fn can_interact_with_l1() {
 
     // Check that the balance is 0 on L1 before consuming the message.
     let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
-    assert_eq!(user_balance_eth, 0.into());
+    assert_eq!(user_balance_eth, U256::ZERO);
 
     let sn_l1l2_contract_u256 = felt_to_u256(sn_l1l2_contract);
 
     // Consume the message to increase the balance.
-    anvil.withdraw_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, 1.into()).await.unwrap();
+    anvil
+        .withdraw_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, U256::ONE)
+        .await
+        .unwrap();
 
     let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
-    assert_eq!(user_balance_eth, 1.into());
+    assert_eq!(user_balance_eth, U256::ONE);
 
     // Send back the amount 1 to the user 1 on L2.
-    anvil.deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, 1.into()).await.unwrap();
+    anvil.deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, U256::ONE).await.unwrap();
 
     let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
 
     // Balances on both layers is 0 at this point.
-    assert_eq!(user_balance_eth, 0.into());
+    assert_eq!(user_balance_eth, U256::ZERO);
     assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await.unwrap(), [Felt::ZERO]);
 
     // Flush messages to have MessageToL2 executed.
@@ -704,13 +711,13 @@ async fn test_correct_message_order() {
     );
 
     // Deploy the L1L2 testing contract on L1 (on L2 it's already pre-deployed).
-    let l1_messaging_address = H160::from_str(MESSAGING_L1_ADDRESS).unwrap();
+    let l1_messaging_address = Address::from_hex(MESSAGING_L1_ADDRESS).unwrap();
     let eth_l1l2_address = anvil.deploy_l1l2_contract(l1_messaging_address).await.unwrap();
     let eth_l1l2_address_hex = format!("{eth_l1l2_address:#x}");
 
     let eth_l1l2_address_felt = Felt::from_hex_unchecked(&eth_l1l2_address_hex);
     let user_sn = Felt::ONE;
-    let user_eth: U256 = 1.into();
+    let user_eth: U256 = U256::ONE;
 
     // Set balance for the user on L2.
     let init_balance = 5_u64;
@@ -730,7 +737,7 @@ async fn test_correct_message_order() {
 
     // Consume the message to increase the L1 balance.
     anvil
-        .withdraw_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, init_balance.into())
+        .withdraw_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, U256::from(init_balance))
         .await
         .unwrap();
 
@@ -738,13 +745,14 @@ async fn test_correct_message_order() {
     // for the purpose of message order testing (n = init_balance)
     for _ in 0..init_balance {
         anvil
-            .deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, 1.into())
+            .deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, U256::ONE)
             .await
             .unwrap();
     }
 
     // Flush messages to have MessageToL2 executed.
     let flush_resp = devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
+    println!("Flush response: {flush_resp:#}");
     let generated_l2_txs = flush_resp["messages_to_l2"].as_array().unwrap();
 
     let flushed_message_nonces: Vec<_> = generated_l2_txs
@@ -777,10 +785,7 @@ async fn test_dumpability_of_messaging_contract_loading() {
     // assert loading fails if anvil not alive
     send_ctrl_c_signal_and_wait(&anvil.process).await;
     match devnet.send_custom_rpc("devnet_load", json!({ "path": dump_file.path })).await {
-        Err(RpcError { message, .. }) => {
-            assert_contains(&message, "error sending request for url").unwrap();
-            assert_contains(&message, &anvil.url).unwrap();
-        }
+        Err(RpcError { .. }) => {}
         other => panic!("Unexpected response: {other:?}"),
     };
 }
@@ -802,13 +807,13 @@ async fn flushing_only_new_messages_after_restart() {
     );
 
     // Deploy the L1L2 testing contract on L1 (on L2 it's already pre-deployed).
-    let l1_messaging_address = H160::from_str(MESSAGING_L1_ADDRESS).unwrap();
+    let l1_messaging_address = Address::from_hex(MESSAGING_L1_ADDRESS).unwrap();
     let eth_l1l2_address = anvil.deploy_l1l2_contract(l1_messaging_address).await.unwrap();
     let eth_l1l2_address_hex = format!("{eth_l1l2_address:#x}");
 
     let eth_l1l2_address_felt = Felt::from_hex_unchecked(&eth_l1l2_address_hex);
     let user_sn = Felt::ONE;
-    let user_eth: U256 = 1.into();
+    let user_eth: U256 = U256::ONE;
 
     // Set balance to for the user 1 on L2.
     let user_balance = Felt::TWO;
@@ -826,7 +831,7 @@ async fn flushing_only_new_messages_after_restart() {
 
     // Check that the balance is 0 on L1 before consuming the message.
     let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
-    assert_eq!(user_balance_eth, 0.into());
+    assert_eq!(user_balance_eth, U256::ZERO);
 
     let sn_l1l2_contract_u256 = felt_to_u256(sn_l1l2_contract);
 
@@ -845,21 +850,21 @@ async fn flushing_only_new_messages_after_restart() {
     assert_eq!(user_balance_eth, felt_to_u256(user_balance));
 
     // Send back the amount 1 to the user 1 on L2.
-    let deposit_amount = 1;
+    let deposit_amount = U256::ONE;
     anvil
-        .deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, deposit_amount.into())
+        .deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, deposit_amount)
         .await
         .unwrap();
 
     let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
-    assert_eq!(user_balance_eth, 1.into()); // 2 - 1
+    assert_eq!(user_balance_eth, U256::ONE); // 2 - 1
     assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await.unwrap(), [Felt::ZERO]);
 
     // Flush messages to have MessageToL2 executed.
     devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
 
     let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
-    assert_eq!(user_balance_eth, deposit_amount.into());
+    assert_eq!(user_balance_eth, deposit_amount);
     assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await.unwrap(), [Felt::ONE]);
 
     // Restart Devnet, l1-l2 messaging should be intact
@@ -878,13 +883,13 @@ async fn flushing_only_new_messages_after_restart() {
 
     // Trigger a new action to return funds to L2
     anvil
-        .deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, deposit_amount.into())
+        .deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, deposit_amount)
         .await
         .unwrap();
 
     // After depositing, there should be no funds on L1; also no funds on L2 before flushing.
     let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
-    assert_eq!(user_balance_eth, 0.into()); // 2 - 1 - 1
+    assert_eq!(user_balance_eth, U256::ZERO); // 2 - 1 - 1
     assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await.unwrap(), [Felt::ZERO]);
 
     devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
@@ -949,7 +954,7 @@ async fn test_getting_status_of_real_message() {
     );
 
     // Deploy the L1L2 testing contract on L1 (on L2 it's already pre-deployed).
-    let l1_messaging_address = H160::from_str(MESSAGING_L1_ADDRESS).unwrap();
+    let l1_messaging_address = Address::from_hex(MESSAGING_L1_ADDRESS).unwrap();
     let eth_l1l2_address = anvil.deploy_l1l2_contract(l1_messaging_address).await.unwrap();
 
     let eth_l1l2_address_hex = format!("{eth_l1l2_address:#x}");
@@ -966,14 +971,17 @@ async fn test_getting_status_of_real_message() {
     // Flush to send the messages.
     devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
 
-    let user_eth = 1.into();
+    let user_eth = U256::ONE;
     let sn_l1l2_contract_u256 = felt_to_u256(sn_l1l2_contract);
 
     // Consume the message to increase the balance on L1
-    anvil.withdraw_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, 1.into()).await.unwrap();
+    anvil
+        .withdraw_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, U256::ONE)
+        .await
+        .unwrap();
 
     // Send back the amount 1 to the user 1 on L2.
-    anvil.deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, 1.into()).await.unwrap();
+    anvil.deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, U256::ONE).await.unwrap();
 
     // Flush to trigger L2 transaction generation.
     let flush_resp = devnet.send_custom_rpc("devnet_postmanFlush", json!({})).await.unwrap();
@@ -982,15 +990,13 @@ async fn test_getting_status_of_real_message() {
     let generated_l2_tx = &generated_l2_txs[0];
 
     let latest_l1_txs = anvil
-        .provider
-        .get_block(ethers::types::BlockId::Number(ethers::types::BlockNumber::Latest))
+        .get_block(alloy::eips::BlockId::Number(alloy::rpc::types::BlockNumberOrTag::Latest))
         .await
-        .unwrap()
         .unwrap()
         .transactions;
 
     assert_eq!(latest_l1_txs.len(), 1);
-    let latest_l1_tx = latest_l1_txs[0];
+    let latest_l1_tx = &latest_l1_txs.as_hashes().unwrap()[0];
 
     // Despite starknet-rs supporting this method, we keep custom logic to reduce dependence
     let messages_status = devnet

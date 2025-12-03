@@ -141,6 +141,15 @@ impl TransactionWithHash {
         }
     }
 
+    pub fn get_signature(&self) -> TransactionSignature {
+        match &self.transaction {
+            Transaction::Declare(DeclareTransaction::V3(tx)) => tx.signature.clone(),
+            Transaction::DeployAccount(DeployAccountTransaction::V3(tx)) => tx.signature.clone(),
+            Transaction::Invoke(InvokeTransaction::V3(tx)) => tx.signature.clone(),
+            _ => TransactionSignature::default(),
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn create_common_receipt(
         &self,
@@ -854,7 +863,6 @@ pub struct InnerExecutionResources {
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "SCREAMING_SNAKE_CASE")]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize))]
-
 pub enum TransactionTrace {
     Invoke(InvokeTransactionTrace),
     Declare(DeclareTransactionTrace),
@@ -956,12 +964,10 @@ impl FunctionInvocation {
             )?);
         }
 
-        let mut messages: Vec<OrderedMessageToL1> = call_info
-            .execution
-            .l2_to_l1_messages
-            .iter()
-            .map(|msg| OrderedMessageToL1::new(msg, call_info.call.caller_address.into()))
-            .collect();
+        let mut messages: Vec<OrderedMessageToL1> = vec![];
+        for msg in call_info.execution.l2_to_l1_messages.iter() {
+            messages.push(OrderedMessageToL1::new(msg, call_info.call.caller_address.into())?);
+        }
         messages.sort_by_key(|msg| msg.order);
 
         let mut events: Vec<OrderedEvent> =

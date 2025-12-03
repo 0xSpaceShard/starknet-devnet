@@ -4,7 +4,6 @@ use std::time;
 use anyhow::anyhow;
 use serde_json::json;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
     BlockId, BlockStatus, BlockTag, Call, DeclaredClassItem, Felt, FunctionCall,
     MaybePreConfirmedStateUpdate, NonceUpdate, StateUpdate, TransactionTrace,
@@ -20,7 +19,8 @@ use crate::common::constants::{self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH};
 use crate::common::utils::{
     FeeUnit, UniqueAutoDeletableFile, assert_equal_elements, assert_tx_succeeded_accepted,
     assert_tx_succeeded_pre_confirmed, get_contract_balance, get_contract_balance_by_block_id,
-    get_events_contract_artifacts, get_simple_contract_artifacts, send_ctrl_c_signal_and_wait,
+    get_events_contract_artifacts, get_simple_contract_artifacts, new_contract_factory,
+    send_ctrl_c_signal_and_wait,
 };
 use crate::{assert_eq_prop, assert_prop};
 
@@ -51,11 +51,14 @@ async fn assert_latest_block_with_tx_hashes(
     devnet: &BackgroundDevnet,
     block_number: u64,
     transactions: Vec<Felt>,
+    n_events: u64,
 ) -> Result<(), anyhow::Error> {
     let latest_block = devnet.get_latest_block_with_tx_hashes().await?;
 
     assert_eq_prop!(latest_block.block_number, block_number)?;
     assert_eq_prop!(transactions, latest_block.transactions)?;
+    assert_eq_prop!(transactions.len(), latest_block.transaction_count as usize)?;
+    assert_eq_prop!(n_events, latest_block.event_count)?;
     assert_eq_prop!(latest_block.status, BlockStatus::AcceptedOnL2)?;
 
     for tx_hash in latest_block.transactions {
@@ -250,7 +253,7 @@ async fn normal_mode_states_and_blocks() {
     assert_pre_confirmed_block_with_tx_hashes(&devnet, 0).await.unwrap();
     assert_pre_confirmed_block_with_txs(&devnet, 0).await.unwrap();
     assert_pre_confirmed_block_with_receipts(&devnet, 0).await.unwrap();
-    assert_latest_block_with_tx_hashes(&devnet, 5, vec![tx_hashes.last().copied().unwrap()])
+    assert_latest_block_with_tx_hashes(&devnet, 5, vec![tx_hashes.last().copied().unwrap()], 2)
         .await
         .unwrap();
     assert_latest_block_with_txs(&devnet, 5, 1).await.unwrap();
@@ -282,7 +285,7 @@ async fn blocks_on_demand_states_and_blocks() {
     assert_pre_confirmed_block_with_txs(&devnet, tx_count).await.unwrap();
     assert_pre_confirmed_block_with_receipts(&devnet, tx_count).await.unwrap();
 
-    assert_latest_block_with_tx_hashes(&devnet, 0, vec![]).await.unwrap();
+    assert_latest_block_with_tx_hashes(&devnet, 0, vec![], 0).await.unwrap();
     assert_latest_block_with_txs(&devnet, 0, 0).await.unwrap();
     assert_latest_block_with_receipts(&devnet, 0, 0).await.unwrap();
 
@@ -300,7 +303,7 @@ async fn blocks_on_demand_states_and_blocks() {
     assert_pre_confirmed_block_with_txs(&devnet, 0).await.unwrap();
     assert_pre_confirmed_block_with_receipts(&devnet, 0).await.unwrap();
 
-    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await.unwrap();
+    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes, 10).await.unwrap();
     assert_latest_block_with_txs(&devnet, 1, tx_count).await.unwrap();
     assert_latest_block_with_receipts(&devnet, 1, tx_count).await.unwrap();
 
@@ -426,7 +429,7 @@ async fn blocks_on_demand_invoke_and_call() {
 
     // deploy the contract
     let contract_factory =
-        ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
+        new_contract_factory(declaration_result.class_hash, predeployed_account.clone());
     let initial_value = Felt::from(10_u32);
     let ctor_args = vec![initial_value];
     let deploy_result = contract_factory
@@ -489,7 +492,7 @@ async fn blocks_on_demand_invoke_and_call() {
 
     devnet.create_block().await.unwrap();
 
-    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await.unwrap();
+    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes, 5).await.unwrap();
     let contract_balance = get_contract_balance_by_block_id(
         &devnet,
         contract_address,
@@ -538,7 +541,7 @@ async fn blocks_on_interval_transactions() {
     tokio::time::sleep(time::Duration::from_secs(period * 3 / 2)).await;
 
     // first is genesis block, second block is generated after transactions
-    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes).await.unwrap();
+    assert_latest_block_with_tx_hashes(&devnet, 1, tx_hashes, 6).await.unwrap();
 }
 
 #[tokio::test]

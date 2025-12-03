@@ -2,17 +2,18 @@ use blockifier::blockifier_versioned_constants::VersionedConstants;
 use blockifier::bouncer::{BouncerConfig, BouncerWeights, BuiltinWeights};
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use starknet_api::block::StarknetVersion;
+use starknet_api::versioned_constants_logic::VersionedConstantsTrait;
 use starknet_rs_core::types::Felt;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
 use crate::error::DevnetResult;
 
 pub mod random_number_generator {
-    use rand::{Rng, SeedableRng, thread_rng};
+    use rand::{Rng, SeedableRng, rng};
     use rand_mt::Mt64;
 
     pub fn generate_u32_random_number() -> u32 {
-        thread_rng().gen()
+        rng().random()
     }
 
     pub(crate) fn generate_u128_random_numbers(seed: u32, random_numbers_count: u8) -> Vec<u128> {
@@ -20,7 +21,7 @@ pub mod random_number_generator {
         let mut rng: Mt64 = SeedableRng::seed_from_u64(seed as u64);
 
         for _ in 0..random_numbers_count {
-            result.push(rng.gen());
+            result.push(rng.random());
         }
 
         result
@@ -39,10 +40,10 @@ pub(crate) fn get_storage_var_address(
     Ok(PatriciaKey::new(storage_var_address)?)
 }
 
-/// This should be modified when updating to the version after 0.14.0
+/// This should be modified when updating to the version after 0.14.1
 pub(crate) fn get_versioned_constants() -> VersionedConstants {
     #[allow(clippy::unwrap_used)]
-    VersionedConstants::get(&StarknetVersion::V0_14_0).unwrap().clone()
+    VersionedConstants::get(&StarknetVersion::V0_14_1).unwrap().clone()
 }
 
 /// Values not present here: https://docs.starknet.io/tools/limits-and-triggers/
@@ -61,6 +62,7 @@ pub(crate) fn custom_bouncer_config() -> BouncerConfig {
             ..BouncerWeights::max()
         },
         builtin_weights: BuiltinWeights::default(),
+        blake_weight: 5263, // from BouncerConfig::default
     }
 }
 
@@ -114,7 +116,7 @@ pub(crate) mod test_utils {
 
     /// casm hash of dummy_cairo_1_contract_class
     pub static DUMMY_CAIRO_1_COMPILED_CLASS_HASH: Felt = Felt::from_hex_unchecked(
-        "0x3faafcc98742a29a5ca809bda3c827b2d2c73759c64f695e33106009e7e9fef",
+        "0x586026f886dd7ee74f6b32b12c9678f0bc090260c881a41d192103a17c110e8",
     );
 
     pub(crate) fn dummy_contract_address() -> ContractAddress {

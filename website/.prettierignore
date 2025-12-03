@@ -1,2 +1,4 @@
 # to avoid conflicts between prettier and docusaurus
 versions.json
+versioned_docs/**
+versioned_sidebars/**

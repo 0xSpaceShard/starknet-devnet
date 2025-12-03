@@ -4,7 +4,7 @@ use std::sync::Arc;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::{State, StateReader};
 use parking_lot::RwLock;
-use starknet_api::core::CompiledClassHash;
+use starknet_api::contract_class::compiled_class_hash::{HashVersion, HashableCompiledClass};
 use starknet_rs_core::types::Felt;
 use starknet_types::compile_sierra_contract;
 use starknet_types::contract_address::ContractAddress;
@@ -193,10 +193,7 @@ impl StarknetState {
         Ok(diff)
     }
 
-    pub fn assert_contract_deployed(
-        &mut self,
-        contract_address: ContractAddress,
-    ) -> DevnetResult<()> {
+    pub fn assert_contract_deployed(&self, contract_address: ContractAddress) -> DevnetResult<()> {
         if !self.is_contract_deployed(contract_address)? {
             return Err(Error::ContractNotFound);
         }
@@ -330,6 +327,14 @@ impl blockifier::state::state_api::StateReader for StarknetState {
     ) -> blockifier::state::state_api::StateResult<starknet_api::core::CompiledClassHash> {
         self.state.get_compiled_class_hash(class_hash)
     }
+
+    fn get_compiled_class_hash_v2(
+        &self,
+        class_hash: starknet_api::core::ClassHash,
+        compiled_class: &blockifier::execution::contract_class::RunnableCompiledClass,
+    ) -> blockifier::state::state_api::StateResult<starknet_api::core::CompiledClassHash> {
+        self.state.get_compiled_class_hash_v2(class_hash, compiled_class)
+    }
 }
 
 impl CustomStateReader for StarknetState {
@@ -343,7 +348,7 @@ impl CustomStateReader for StarknetState {
         // get_compiled_class is important if forking; checking hash is impossible via JSON-RPC
         let class_hash = starknet_api::core::ClassHash(class_hash);
         self.get_compiled_class_hash(class_hash)
-            .is_ok_and(|CompiledClassHash(class_hash)| class_hash != Felt::ZERO)
+            .is_ok_and(|starknet_api::core::CompiledClassHash(class_hash)| class_hash != Felt::ZERO)
             || self.get_compiled_class(class_hash).is_ok()
     }
 

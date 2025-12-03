@@ -3,9 +3,11 @@ pub mod serde_helpers;
 use std::sync::Arc;
 
 use starknet_core::starknet::Starknet;
+use starknet_core::starknet::starknet_config::StarknetConfig;
 use tokio::sync::Mutex;
 use tracing::error;
 
+use crate::ServerConfig;
 use crate::dump_util::DumpEvent;
 use crate::subscribe::SocketCollection;
 
@@ -21,7 +23,7 @@ mod spec_reader;
 mod write_endpoints;
 
 pub use json_rpc_handler::JsonRpcHandler;
-pub const RPC_SPEC_VERSION: &str = "0.9.0";
+pub const RPC_SPEC_VERSION: &str = "0.10.0";
 
 use error::ApiError;
 
@@ -29,15 +31,18 @@ use error::ApiError;
 /// Whatever needs to be accessed as information outside of Starknet could be added to this struct
 #[derive(Clone)]
 pub struct Api {
-    // maybe the config should be added here next to the starknet instance
+    pub config: Arc<StarknetConfig>,
+    pub server_config: Arc<ServerConfig>,
     pub starknet: Arc<Mutex<Starknet>>,
     pub dumpable_events: Arc<Mutex<Vec<DumpEvent>>>,
     pub sockets: Arc<Mutex<SocketCollection>>,
 }
 
 impl Api {
-    pub fn new(starknet: Starknet) -> Self {
+    pub fn new(starknet: Starknet, server_config: ServerConfig) -> Self {
         Self {
+            config: Arc::new(starknet.config.clone()),
+            server_config: Arc::new(server_config),
             starknet: Arc::new(Mutex::new(starknet)),
             dumpable_events: Default::default(),
             sockets: Arc::new(Mutex::new(SocketCollection::default())),

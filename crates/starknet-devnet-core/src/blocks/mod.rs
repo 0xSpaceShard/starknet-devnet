@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use starknet_api::block::{BlockHeader, BlockHeaderWithoutHash, BlockNumber, BlockTimestamp};
+use starknet_api::block_hash::block_hash_calculator::BlockHeaderCommitments;
 use starknet_api::data_availability::L1DataAvailabilityMode;
 use starknet_api::felt;
 use starknet_rs_core::types::Felt;
@@ -9,7 +10,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, TransactionHash};
 use starknet_types::rpc::block::{BlockId, BlockStatus, BlockTag, ResourcePrice};
 use starknet_types::traits::HashProducer;
-use starknet_types_core::hash::{Pedersen, StarkHash};
+use starknet_types_core::hash::{Poseidon, StarkHash};
 
 use crate::constants::{DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, STARKNET_VERSION};
 use crate::error::{DevnetResult, Error};
@@ -329,6 +330,13 @@ impl From<&StarknetBlock> for starknet_types::rpc::block::BlockHeader {
                     .0
                     .into(),
             },
+            n_transactions: value.header.n_transactions as u64,
+            n_events: value.header.n_events as u64,
+            state_diff_length: value.header.state_diff_length.unwrap_or(0) as u64,
+            state_diff_commitment: value.header.state_diff_commitment.unwrap_or_default(),
+            transaction_commitment: value.header.transaction_commitment.unwrap_or_default(),
+            event_commitment: value.header.event_commitment.unwrap_or_default(),
+            receipt_commitment: value.header.receipt_commitment.unwrap_or_default(),
         }
     }
 }
@@ -403,12 +411,30 @@ impl StarknetBlock {
     pub(crate) fn set_timestamp(&mut self, timestamp: BlockTimestamp) {
         self.header.block_header_without_hash.timestamp = timestamp;
     }
+
+    pub(crate) fn set_counts(
+        &mut self,
+        n_transactions: usize,
+        n_events: usize,
+        state_diff_length: usize,
+    ) {
+        self.header.n_transactions = n_transactions;
+        self.header.n_events = n_events;
+        self.header.state_diff_length = Some(state_diff_length);
+    }
+
+    pub(crate) fn set_commitments(&mut self, commitments: BlockHeaderCommitments) {
+        self.header.transaction_commitment = Some(commitments.transaction_commitment);
+        self.header.event_commitment = Some(commitments.event_commitment);
+        self.header.receipt_commitment = Some(commitments.receipt_commitment);
+        self.header.state_diff_commitment = Some(commitments.state_diff_commitment);
+    }
 }
 
 impl HashProducer for StarknetBlock {
     type Error = Error;
     fn generate_hash(&self) -> DevnetResult<BlockHash> {
-        let hash = Pedersen::hash_array(&[
+        let hash = Poseidon::hash_array(&[
             felt!(self.header.block_header_without_hash.block_number.0), // block number
             self.header.block_header_without_hash.state_root.0,          // global_state_root
             *self.header.block_header_without_hash.sequencer.0.key(),    // sequencer_address

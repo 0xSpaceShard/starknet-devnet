@@ -5,7 +5,6 @@ use starknet_rs_accounts::{
     Account, AccountError, AccountFactory, AccountFactoryError, ConnectedAccount, ExecutionEncoder,
     ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
     BlockId, BlockTag, BroadcastedDeclareTransactionV3, BroadcastedInvokeTransactionV3,
     BroadcastedTransaction, Call, DataAvailabilityMode, FeeEstimate, Felt, FunctionCall,
@@ -22,12 +21,13 @@ use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_CONTRACT_PATH, CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH,
     CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS,
-    QUERY_VERSION_OFFSET, UDC_LEGACY_CONTRACT_ADDRESS,
+    QUERY_VERSION_OFFSET, UDC_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
     LocalFee, assert_contains, assert_tx_reverted, assert_tx_succeeded_accepted,
     extract_message_error, extract_nested_error, get_deployable_account_signer,
     get_flattened_sierra_contract_and_casm_hash, get_simple_contract_artifacts,
+    new_contract_factory,
 };
 
 fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
@@ -231,7 +231,7 @@ async fn estimate_fee_of_invoke() {
     assert_eq!(declaration_result.class_hash, class_hash);
 
     // deploy instance of class
-    let contract_factory = ContractFactory::new(class_hash, account.clone());
+    let contract_factory = new_contract_factory(class_hash, account.clone());
     let salt = Felt::from_hex_unchecked("0x123");
     let constructor_calldata = vec![Felt::ZERO];
     let contract_address = get_udc_deployed_address(
@@ -324,7 +324,7 @@ async fn message_available_if_estimation_reverts() {
     assert_eq!(declaration_result.class_hash, class_hash);
 
     // deploy instance of class
-    let contract_factory = ContractFactory::new(class_hash, account.clone());
+    let contract_factory = new_contract_factory(class_hash, account.clone());
     let salt = Felt::from_hex_unchecked("0x123");
     let constructor_calldata = vec![];
     let contract_address = get_udc_deployed_address(
@@ -396,7 +396,7 @@ async fn using_query_version_if_estimating() {
     assert_eq!(declaration_result.class_hash, class_hash);
 
     // deploy instance of class
-    let contract_factory = ContractFactory::new(class_hash, account.clone());
+    let contract_factory = new_contract_factory(class_hash, account.clone());
     let salt = Felt::from_hex_unchecked("0x123");
     let constructor_calldata = vec![];
     let contract_address = get_udc_deployed_address(
@@ -452,6 +452,7 @@ async fn broadcasted_invoke_v3_for_estimation(
         .l1_gas_price(l1_gas_price)
         .l1_data_gas_price(l1_data_gas_price)
         .l2_gas_price(l2_gas_price)
+        .tip(0)
         .prepared()?;
 
     let is_query = false;
@@ -520,6 +521,7 @@ async fn estimate_fee_of_multiple_txs() {
         .l1_data_gas(0)
         .l1_data_gas_price(0)
         .nonce(declaration_nonce)
+        .tip(0)
         .prepared()
         .unwrap();
 
@@ -555,8 +557,8 @@ async fn estimate_fee_of_multiple_txs() {
                 broadcasted_invoke_v3_for_estimation(
                     &account,
                     &signer,
-                    UDC_LEGACY_CONTRACT_ADDRESS,
-                    get_selector_from_name("deployContract").unwrap(),
+                    UDC_CONTRACT_ADDRESS,
+                    get_selector_from_name("deploy_contract").unwrap(),
                     &[
                         class_hash,
                         Felt::from_hex_unchecked("0x123"), // salt
@@ -671,7 +673,7 @@ async fn estimate_fee_of_multiple_failing_txs_should_return_index_of_the_first_f
 
     // call non existent method in UDC
     let calls = vec![Call {
-        to: UDC_LEGACY_CONTRACT_ADDRESS,
+        to: UDC_CONTRACT_ADDRESS,
         selector: get_selector_from_name("no_such_method").unwrap(),
         calldata: vec![
             class_hash,

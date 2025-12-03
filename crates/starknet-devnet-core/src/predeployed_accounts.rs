@@ -80,7 +80,7 @@ impl AccountGenerator for PredeployedAccounts {
 
 #[cfg(test)]
 mod tests {
-    use rand::{Rng, thread_rng};
+    use rand::{Rng, rng};
     use starknet_types::rpc::state::Balance;
 
     use crate::predeployed_accounts::PredeployedAccounts;
@@ -89,7 +89,7 @@ mod tests {
     #[test]
     fn private_key_from_equal_seeds_have_to_be_equal() {
         for _ in 0..1000 {
-            let seed = thread_rng().gen::<u32>();
+            let seed: u32 = rng().random();
 
             let private_key1 = PredeployedAccounts::new(
                 seed,
@@ -113,7 +113,7 @@ mod tests {
 
     #[test]
     fn private_key_from_different_seeds_have_to_be_different() {
-        let mut rng = thread_rng();
+        let mut rng = rng();
 
         for _ in 0..1000 {
             let mut seed1;
@@ -121,8 +121,8 @@ mod tests {
 
             // get two different seeds
             loop {
-                seed1 = rng.gen::<u32>();
-                seed2 = rng.gen::<u32>();
+                seed1 = rng.random::<u32>();
+                seed2 = rng.random::<u32>();
                 if seed1 != seed2 {
                     break;
                 }

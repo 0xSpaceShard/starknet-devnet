@@ -5,15 +5,17 @@ use std::process::{Child, Command};
 use std::sync::Arc;
 use std::time::Duration;
 
-use ethers::types::U256;
+use alloy::primitives::U256;
 use futures::{SinkExt, StreamExt, TryStreamExt};
-use rand::{Rng, thread_rng};
+use rand::{Rng, rng};
 use serde_json::json;
+use starknet_api::contract_class::compiled_class_hash::{HashVersion, HashableCompiledClass};
+use starknet_core::CasmContractClass;
 use starknet_rs_accounts::{
     Account, AccountFactory, ArgentAccountFactory, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
+use starknet_rs_contract::{ContractFactory, UdcSelector};
+use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{
     BlockId, BlockTag, ContractClass, ContractExecutionError, DeployAccountTransactionResult,
     ExecutionResult, FeeEstimate, Felt, FlattenedSierraClass, FunctionCall,
@@ -32,9 +34,10 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use super::background_devnet::BackgroundDevnet;
 use super::constants::{
-    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH, UDC_LEGACY_CONTRACT_ADDRESS,
+    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH, UDC_CONTRACT_ADDRESS,
 };
 use super::safe_child::SafeChild;
+use crate::common::errors::RpcError;
 use crate::{assert_eq_prop, assert_ne_prop};
 
 pub enum ImpersonationAction {
@@ -65,8 +68,9 @@ pub fn get_flattened_sierra_contract_and_casm_hash(sierra_path: &str) -> SierraW
     let sierra_string = std::fs::read_to_string(sierra_path).unwrap();
     let sierra_class: SierraClass = serde_json::from_str(&sierra_string).unwrap();
     let casm_json = usc::compile_contract(serde_json::from_str(&sierra_string).unwrap()).unwrap();
+
     let casm_hash =
-        serde_json::from_value::<CompiledClass>(casm_json).unwrap().class_hash().unwrap();
+        serde_json::from_value::<CasmContractClass>(casm_json).unwrap().hash(&HashVersion::V2).0;
     (sierra_class.flatten().unwrap(), casm_hash)
 }
 
@@ -121,21 +125,20 @@ pub async fn assert_tx_succeeded_accepted<T: Provider>(
 }
 
 pub async fn assert_tx_succeeded_pre_confirmed<T: Provider>(
-    _tx_hash: &Felt,
-    _client: &T,
+    tx_hash: &Felt,
+    client: &T,
 ) -> Result<(), anyhow::Error> {
-    eprintln!("TODO: Currently suppressed; undo when starknet-rs updated to 0.17");
-    Ok(())
-    // let receipt = client.get_transaction_receipt(tx_hash).await.unwrap().receipt;
-    // match receipt.execution_result() {
-    //     ExecutionResult::Succeeded => (),
-    //     other => panic!("Should have succeeded; got: {other:?}"),
-    // }
+    let receipt = client.get_transaction_receipt(tx_hash).await.unwrap().receipt;
+    match receipt.execution_result() {
+        ExecutionResult::Succeeded => (),
+        other => panic!("Should have succeeded; got: {other:?}"),
+    }
 
-    // match receipt.finality_status() {
-    //     starknet_rs_core::types::TransactionFinalityStatus::PreConfirmed => (),
-    //     other => panic!("Should have been pre-confirmed; got: {other:?}"),
-    // }
+    match receipt.finality_status() {
+        starknet_rs_core::types::TransactionFinalityStatus::PreConfirmed => (),
+        other => panic!("Should have been pre-confirmed; got: {other:?}"),
+    }
+    Ok(())
 }
 
 pub async fn get_contract_balance(
@@ -262,8 +265,8 @@ impl UniqueAutoDeletableFile {
     /// it doesn't create the file.
     pub fn new(name_base: &str) -> Self {
         // generate two random numbers to increase uniqueness
-        let mut rand_gen = thread_rng();
-        let rand = format!("{}{}", rand_gen.gen::<u32>(), rand_gen.gen::<u32>());
+        let mut rand_gen = rng();
+        let rand = format!("{}{}", rand_gen.random::<u32>(), rand_gen.random::<u32>());
         Self { path: format!("{name_base}-{}", rand) }
     }
 }
@@ -281,7 +284,7 @@ pub async fn deploy_v3(
     class_hash: Felt,
     ctor_args: &[Felt],
 ) -> Result<Felt, anyhow::Error> {
-    let contract_factory = ContractFactory::new(class_hash, account);
+    let contract_factory = new_contract_factory(class_hash, account);
     contract_factory.deploy_v3(ctor_args.to_vec(), Felt::ZERO, true).send().await?;
 
     // generate the address of the newly deployed contract
@@ -290,7 +293,7 @@ pub async fn deploy_v3(
         class_hash,
         &starknet_rs_core::utils::UdcUniqueness::Unique(UdcUniqueSettings {
             deployer_address: account.address(),
-            udc_contract_address: UDC_LEGACY_CONTRACT_ADDRESS,
+            udc_contract_address: UDC_CONTRACT_ADDRESS,
         }),
         ctor_args,
     );
@@ -309,7 +312,7 @@ pub async fn declare_v3_deploy_v3(
     let declaration_result = account.declare_v3(Arc::new(contract_class), casm_hash).send().await?;
 
     // deploy the contract
-    let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
+    let contract_factory = new_contract_factory(declaration_result.class_hash, account);
     contract_factory.deploy_v3(ctor_args.to_vec(), salt, false).send().await?;
 
     // generate the address of the newly deployed contract
@@ -339,7 +342,7 @@ pub async fn declare_deploy_simple_contract(
     // deploy the contract
     let salt = Felt::ZERO;
     let ctor_args = [Felt::ONE];
-    let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
+    let contract_factory = new_contract_factory(declaration_result.class_hash, account);
     contract_factory
         .deploy_v3(ctor_args.to_vec(), salt, false)
         .l1_gas(0)
@@ -376,7 +379,7 @@ pub async fn declare_deploy_events_contract(
     // deploy the contract
     let salt = Felt::ZERO;
     let ctor_args = [];
-    let contract_factory = ContractFactory::new(declaration_result.class_hash, account);
+    let contract_factory = new_contract_factory(declaration_result.class_hash, account);
     contract_factory
         .deploy_v3(ctor_args.to_vec(), salt, false)
         .l1_gas(0)
@@ -460,7 +463,7 @@ where
 }
 
 pub fn felt_to_u256(f: Felt) -> U256 {
-    U256::from_big_endian(&f.to_bytes_be())
+    U256::from_be_bytes(f.to_bytes_be())
 }
 
 /// Unchecked conversion
@@ -524,7 +527,7 @@ pub async fn send_text_rpc_via_ws(
         "params": params,
     })
     .to_string();
-    ws.send(tokio_tungstenite::tungstenite::Message::Text(text_body)).await?;
+    ws.send(tokio_tungstenite::tungstenite::Message::Text(text_body.into())).await?;
 
     let resp_raw =
         ws.next().await.ok_or(anyhow::Error::msg("No response in websocket stream"))??;
@@ -545,7 +548,7 @@ pub async fn send_binary_rpc_via_ws(
         "params": params,
     });
     let binary_body = serde_json::to_vec(&body)?;
-    ws.send(tokio_tungstenite::tungstenite::Message::Binary(binary_body)).await?;
+    ws.send(tokio_tungstenite::tungstenite::Message::Binary(binary_body.into())).await?;
 
     let resp_raw =
         ws.next().await.ok_or(anyhow::Error::msg("No response in websocket stream"))??;
@@ -562,6 +565,14 @@ pub async fn subscribe(
     params: serde_json::Value,
 ) -> Result<SubscriptionId, anyhow::Error> {
     let subscription_confirmation = send_text_rpc_via_ws(ws, subscription_method, params).await?;
+
+    if let Some(error) = subscription_confirmation.get("error") {
+        match serde_json::from_value::<RpcError>(error.clone()) {
+            Ok(rpc_error) => return Err(anyhow::Error::new(rpc_error)),
+            Err(_) => return Err(anyhow::Error::msg(error.to_string())),
+        }
+    }
+
     Ok(subscription_confirmation["result"]
         .as_str()
         .ok_or(anyhow::Error::msg(format!(
@@ -638,6 +649,10 @@ pub async fn unsubscribe(
 
 pub async fn send_dummy_mint_tx(devnet: &BackgroundDevnet) -> Felt {
     devnet.mint(Felt::ONE, 123).await
+}
+
+pub fn new_contract_factory<A: Account>(class_hash: Felt, account: A) -> ContractFactory<A> {
+    ContractFactory::new_with_udc(class_hash, account, UdcSelector::New)
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, serde::Serialize, serde::Deserialize)]

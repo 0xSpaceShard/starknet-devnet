@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use starknet_rs_accounts::{Account, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
     BlockId, BlockStatus, BlockTag, Call, EmittedEvent, EventFilter, Felt, StarknetError,
 };
@@ -10,7 +9,7 @@ use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{self, MAINNET_URL, STRK_ERC20_CONTRACT_ADDRESS};
-use crate::common::utils::get_events_contract_artifacts;
+use crate::common::utils::{get_events_contract_artifacts, new_contract_factory};
 
 async fn get_events_follow_continuation_token(
     devnet: &BackgroundDevnet,
@@ -69,7 +68,7 @@ async fn get_events_correct_chunking(devnet: &BackgroundDevnet, block_on_demand:
 
     // deploy the contract
     let contract_factory =
-        ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
+        new_contract_factory(declaration_result.class_hash, predeployed_account.clone());
     contract_factory.deploy_v3(vec![], Felt::ZERO, false).send().await.unwrap();
 
     if block_on_demand {
@@ -212,6 +211,7 @@ const FORK_BLOCK_NUMBER: u64 = 1374700;
 const EVENTS_IN_FORK_BLOCK: usize = 330;
 
 #[tokio::test]
+#[ignore] // TODO: Remove ignore after mainnet upgrades to RPC v0.10.0
 async fn get_events_from_forked_devnet_when_last_queried_block_on_origin() {
     let fork_devnet = fork_mainnet_at(FORK_BLOCK_NUMBER).await.unwrap();
 
@@ -238,6 +238,7 @@ async fn get_events_from_forked_devnet_when_last_queried_block_on_origin() {
 }
 
 #[tokio::test]
+#[ignore] // TODO: Remove ignore after mainnet upgrades to RPC v0.10.0
 async fn get_events_from_forked_devnet_when_first_queried_block_on_devnet() {
     let fork_devnet = fork_mainnet_at(FORK_BLOCK_NUMBER).await.unwrap();
 
@@ -273,6 +274,7 @@ async fn get_events_from_forked_devnet_when_first_queried_block_on_devnet() {
 }
 
 #[tokio::test]
+#[ignore] // TODO: Remove ignore after mainnet upgrades to RPC v0.10.0
 async fn get_events_from_forked_devnet_when_first_queried_block_on_origin_and_last_on_devnet() {
     let fork_devnet = fork_mainnet_at(FORK_BLOCK_NUMBER).await.unwrap();
 
@@ -307,6 +309,7 @@ async fn get_events_from_forked_devnet_when_first_queried_block_on_origin_and_la
 }
 
 #[tokio::test]
+#[ignore]
 async fn get_events_since_accepted_on_l1_on_origin() {
     let fork_devnet = fork_mainnet_at(FORK_BLOCK_NUMBER).await.unwrap();
 
@@ -339,6 +342,7 @@ async fn get_events_since_accepted_on_l1_on_origin() {
 }
 
 #[tokio::test]
+#[ignore] // TODO: Remove ignore after mainnet upgrades to RPC v0.10.0
 async fn get_events_from_forked_devnet_since_locally_present_accepted_on_l1() {
     let fork_devnet = fork_mainnet_at(FORK_BLOCK_NUMBER).await.unwrap();
 
@@ -366,6 +370,7 @@ async fn get_events_from_forked_devnet_since_locally_present_accepted_on_l1() {
 }
 
 #[tokio::test]
+#[ignore] // TODO: Remove ignore after mainnet upgrades to RPC v0.10.0
 /// This is to prevent a bug which appeared specifically if block_id is block hash
 async fn get_events_from_forked_devnet_by_block_hash_with_all_events_present_locally() {
     let fork_devnet = fork_mainnet_at(FORK_BLOCK_NUMBER).await.unwrap();

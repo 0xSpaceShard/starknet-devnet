@@ -29,7 +29,8 @@ use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
 use starknet_types::chain_id::ChainId;
 use starknet_types::rpc::state::Balance;
 use starknet_types::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
-use tokio::net::TcpListener;
+use tokio::io::AsyncWriteExt;
+use tokio::net::{TcpListener, UnixStream};
 #[cfg(unix)]
 use tokio::signal::unix::{SignalKind, signal};
 #[cfg(windows)]
@@ -292,6 +293,9 @@ async fn main() -> Result<(), anyhow::Error> {
         starknet_config.chain_id = json_rpc_client.chain_id().await?.into();
     }
 
+    // shadow mutability of starknet_config
+    let starknet_config = starknet_config;
+
     let mut starknet = Starknet::new(&starknet_config)?;
 
     let (address, listener) = bind_port(server_config.host, server_config.port).await?;
@@ -312,8 +316,8 @@ async fn main() -> Result<(), anyhow::Error> {
         starknet_config.predeployed_accounts_initial_balance.clone(),
     );
 
-    let api = Api::new(starknet);
-    let json_rpc_handler = JsonRpcHandler::new(api.clone(), &starknet_config, &server_config);
+    let api = Api::new(starknet, server_config);
+    let json_rpc_handler = JsonRpcHandler::new(api.clone());
     if let Some(dump_path) = &starknet_config.dump_path {
         // Try to load events from the path. Since the same CLI parameter is used for dump and load
         // path, it may be the case that there is no file at the path. This means that the file will
@@ -328,8 +332,24 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     };
 
-    let server = serve_http_json_rpc(listener, &server_config, json_rpc_handler).await;
+    let acquired_port = listener.local_addr()?.port();
+
+    let server = serve_http_json_rpc(listener, &api.server_config, json_rpc_handler).await;
     info!("Starknet Devnet listening on {}", address);
+
+    #[cfg(unix)]
+    if let Ok(socket_path) = std::env::var("UNIX_SOCKET") {
+        match UnixStream::connect(&socket_path).await {
+            Ok(mut stream) => {
+                stream.write_all(&acquired_port.to_be_bytes()).await?;
+                stream.shutdown().await?;
+                println!("Successfully wrote port to unix socket: {}", socket_path);
+            }
+            Err(e) => {
+                println!("Couldn't connect to unix socket: {socket_path}, reason: {e}");
+            }
+        }
+    }
 
     let mut tasks = vec![];
 
@@ -401,11 +421,8 @@ pub async fn shutdown_signal(api: Api) {
     tokio::signal::ctrl_c().await.expect("Failed to install CTRL+C signal handler");
 
     // dump on exit scenario
-    let starknet = api.starknet.lock().await;
-    if let (Some(DumpOn::Exit), Some(dump_path)) =
-        (starknet.config.dump_on, &starknet.config.dump_path)
-    {
-        let events = api.dumpable_events.lock().await;
+    if let (Some(DumpOn::Exit), Some(dump_path)) = (api.config.dump_on, &api.config.dump_path) {
+        let events = { api.dumpable_events.lock().await.clone() };
         dump_events(&events, dump_path).expect("Failed to dump.");
     }
 }

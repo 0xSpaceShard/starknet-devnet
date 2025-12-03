@@ -1,0 +1,25 @@
+name: 'Load Common Configuration'
+description: 'Loads common configuration values and sets them as outputs'
+
+outputs:
+  rust_stable_version:
+    description: 'Stable Rust version to use'
+    value: '1.89.0'
+  rust_nightly_version:
+    description: 'Nightly Rust version to use'
+    value: 'nightly-2025-02-20'
+  docker_registry:
+    description: 'Docker registry to use'
+    value: 'docker.io'
+  docker_namespace:
+    description: 'Docker namespace to use'
+    value: 'shardlabs'
+  image_name:
+    description: 'Docker image name to use'
+    value: 'starknet-devnet-rs'
+
+runs:
+  using: 'composite'
+  steps:
+    - run: echo "Configuration loaded"
+      shell: bash

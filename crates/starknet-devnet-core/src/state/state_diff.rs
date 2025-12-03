@@ -5,7 +5,7 @@ use blockifier::state::state_api::StateReader;
 use starknet_rs_core::types::Felt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
-use starknet_types::felt::ClassHash;
+use starknet_types::felt::{ClassHash, CompiledClassHash};
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 use starknet_types::rpc::state::{
     ClassHashPair, ContractNonce, DeployedContract, ReplacedClasses, StorageDiff, StorageEntry,
@@ -23,7 +23,7 @@ pub struct StateDiff {
     pub(crate) address_to_class_hash: HashMap<ContractAddress, ClassHash>,
     // class hash to compiled_class_hash difference, used when declaring contracts
     // that are different from cairo 0
-    pub(crate) class_hash_to_compiled_class_hash: HashMap<ClassHash, ClassHash>,
+    pub(crate) class_hash_to_compiled_class_hash: HashMap<ClassHash, CompiledClassHash>,
     // declare contracts that are not cairo 0
     pub(crate) declared_contracts: Vec<ClassHash>,
     // cairo 0 declared contracts
@@ -124,7 +124,7 @@ impl StateDiff {
 
 impl From<StateDiff> for ThinStateDiff {
     fn from(value: StateDiff) -> Self {
-        let declared_classes: Vec<(Felt, Felt)> =
+        let declared_classes: Vec<(ClassHash, CompiledClassHash)> =
             value.class_hash_to_compiled_class_hash.into_iter().collect();
 
         // cairo 0 declarations
@@ -172,6 +172,64 @@ impl From<StateDiff> for ThinStateDiff {
                 })
                 .collect(),
             replaced_classes: value.replaced_classes,
+            migrated_compiled_classes: None,
+        }
+    }
+}
+
+impl From<StateDiff> for starknet_api::state::ThinStateDiff {
+    fn from(value: StateDiff) -> Self {
+        let deployed_contracts: Vec<(ContractAddress, Felt)> =
+            value.address_to_class_hash.into_iter().collect();
+        let nonces: Vec<(ContractAddress, Felt)> = value.address_to_nonce.into_iter().collect();
+
+        starknet_api::state::ThinStateDiff {
+            deployed_contracts: deployed_contracts
+                .into_iter()
+                .map(|(address, class_hash)| {
+                    (
+                        starknet_api::core::ContractAddress::from(address),
+                        starknet_api::core::ClassHash(class_hash),
+                    )
+                })
+                .collect(),
+            storage_diffs: value
+                .storage_updates
+                .into_iter()
+                .map(|(contract_address, updates)| {
+                    (
+                        starknet_api::core::ContractAddress::from(contract_address),
+                        updates
+                            .into_iter()
+                            .map(|(key, value)| (starknet_api::state::StorageKey::from(key), value))
+                            .collect(),
+                    )
+                })
+                .collect(),
+            class_hash_to_compiled_class_hash: value
+                .class_hash_to_compiled_class_hash
+                .into_iter()
+                .map(|(class_hash, compiled_class_hash)| {
+                    (
+                        starknet_api::core::ClassHash(class_hash),
+                        starknet_api::core::CompiledClassHash(compiled_class_hash),
+                    )
+                })
+                .collect(),
+            deprecated_declared_classes: value
+                .cairo_0_declared_contracts
+                .iter()
+                .map(|f| starknet_api::core::ClassHash(*f))
+                .collect(),
+            nonces: nonces
+                .into_iter()
+                .map(|(address, nonce)| {
+                    (
+                        starknet_api::core::ContractAddress::from(address),
+                        starknet_api::core::Nonce(nonce),
+                    )
+                })
+                .collect(),
         }
     }
 }
@@ -181,6 +239,7 @@ mod tests {
 
     use blockifier::state::state_api::{State, StateReader};
     use nonzero_ext::nonzero;
+    use starknet_api::contract_class::compiled_class_hash::{HashVersion, HashableCompiledClass};
     use starknet_api::core::ClassHash;
     use starknet_rs_core::types::Felt;
     use starknet_rs_core::utils::get_selector_from_name;
@@ -314,7 +373,7 @@ mod tests {
             [(replaceable_contract.clone(), 0), (replacing_contract.clone(), 1)]
         {
             let compiled_class_hash =
-                compile_sierra_contract(&contract_class).unwrap().compiled_class_hash();
+                compile_sierra_contract(&contract_class).unwrap().hash(&HashVersion::V2).0;
 
             starknet
                 .add_declare_transaction(BroadcastedDeclareTransaction::V3(Box::new(

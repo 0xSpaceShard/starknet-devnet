@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rs_core::types::{Call, Felt, InvokeTransactionResult, StarknetError};
+use starknet_rs_core::types::{
+    Call, Felt, InvokeTransactionResult, StarknetError, TransactionExecutionErrorData,
+};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::ProviderError;
 
@@ -75,8 +77,16 @@ async fn test_declaration_rejected_if_casm_hash_not_matching() {
 
     match declaration_result {
         Err(AccountError::Provider(ProviderError::StarknetError(
-            StarknetError::CompiledClassHashMismatch,
-        ))) => (),
+            StarknetError::TransactionExecutionError(TransactionExecutionErrorData {
+                transaction_index: 0,
+                execution_error,
+            }),
+        ))) => {
+            assert!(
+                format!("{execution_error:?}").contains("Mismatch compiled class hash"),
+                "Unexpected error: {execution_error:?}"
+            );
+        }
         other => panic!("Unexpected response: {other:?}"),
     }
 }

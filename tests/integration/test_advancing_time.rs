@@ -3,7 +3,6 @@ use std::time;
 
 use serde_json::json;
 use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::{
     BlockId, BlockTag, Call, Felt, FunctionCall, StarknetError, TransactionExecutionStatus,
     TransactionStatus,
@@ -17,7 +16,7 @@ use crate::common::utils::{
     UniqueAutoDeletableFile, assert_contains, declare_v3_deploy_v3, extract_message_error,
     extract_nested_error, get_block_reader_contract_artifacts,
     get_timestamp_asserter_contract_artifacts, get_unix_timestamp_as_seconds, increase_time,
-    send_ctrl_c_signal_and_wait, set_time,
+    new_contract_factory, send_ctrl_c_signal_and_wait, set_time,
 };
 use crate::{assert_gte_prop, assert_lte_prop};
 
@@ -71,7 +70,7 @@ pub async fn setup_timestamp_contract(devnet: &BackgroundDevnet) -> Felt {
 
     // deploy
     let contract_factory =
-        ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
+        new_contract_factory(declaration_result.class_hash, predeployed_account.clone());
     contract_factory.deploy_v3(vec![], Felt::ZERO, false).send().await.unwrap();
 
     get_udc_deployed_address(

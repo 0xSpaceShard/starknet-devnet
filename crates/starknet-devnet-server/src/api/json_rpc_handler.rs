@@ -4,7 +4,7 @@ use axum::extract::ws::{Message, WebSocket};
 use futures::stream::SplitSink;
 use futures::{SinkExt, StreamExt};
 use starknet_core::StarknetBlock;
-use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
+use starknet_core::starknet::starknet_config::DumpOn;
 use starknet_types::emitted_event::SubscriptionEmittedEvent;
 use starknet_types::rpc::block::{BlockId, BlockTag, ReorgData};
 use starknet_types::rpc::transactions::TransactionFinalityStatus;
@@ -24,6 +24,7 @@ use crate::api::origin_forwarder::OriginForwarder;
 use crate::api::{Api, ApiError, error};
 use crate::dump_util::dump_event;
 use crate::restrictive_mode::is_json_rpc_method_restricted;
+use crate::rpc_core;
 use crate::rpc_core::error::{ErrorCode, RpcError};
 use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::{ResponseResult, RpcResponse};
@@ -32,7 +33,6 @@ use crate::subscribe::{
     NewTransactionNotification, NewTransactionReceiptNotification, NewTransactionStatus,
     NotificationData, SocketId,
 };
-use crate::{ServerConfig, rpc_core};
 
 /// This object will be used as a shared state between HTTP calls.
 /// Is similar to the HttpApiHandler but is with extended functionality and is used for JSON-RPC
@@ -41,8 +41,6 @@ use crate::{ServerConfig, rpc_core};
 pub struct JsonRpcHandler {
     pub api: Api,
     pub origin_caller: Option<OriginForwarder>,
-    pub starknet_config: StarknetConfig,
-    pub server_config: ServerConfig,
 }
 
 #[async_trait::async_trait]
@@ -71,7 +69,7 @@ impl RpcHandler for JsonRpcHandler {
         };
 
         let old_pre_confirmed_block =
-            if request.requires_notifying() && self.starknet_config.uses_pre_confirmed_block() {
+            if request.requires_notifying() && self.api.config.uses_pre_confirmed_block() {
                 Some(self.get_block_by_tag(BlockTag::PreConfirmed).await)
             } else {
                 None
@@ -150,25 +148,16 @@ impl RpcHandler for JsonRpcHandler {
 }
 
 impl JsonRpcHandler {
-    pub fn new(
-        api: Api,
-        starknet_config: &StarknetConfig,
-        server_config: &ServerConfig,
-    ) -> JsonRpcHandler {
+    pub fn new(api: Api) -> JsonRpcHandler {
         let origin_caller = if let (Some(url), Some(block_number)) =
-            (&starknet_config.fork_config.url, starknet_config.fork_config.block_number)
+            (&api.config.fork_config.url, api.config.fork_config.block_number)
         {
             Some(OriginForwarder::new(url.clone(), block_number))
         } else {
             None
         };
 
-        JsonRpcHandler {
-            api,
-            origin_caller,
-            starknet_config: starknet_config.clone(),
-            server_config: server_config.clone(),
-        }
+        JsonRpcHandler { api, origin_caller }
     }
 
     /// The latest and pre_confirmed block are always defined, so to avoid having to deal with
@@ -539,13 +528,13 @@ impl JsonRpcHandler {
             .unwrap_or_default(),
         };
 
-        if let Err(e) = ws.lock().await.send(Message::Text(error_serialized)).await {
+        if let Err(e) = ws.lock().await.send(Message::Text(error_serialized.into())).await {
             tracing::error!("Error sending websocket message: {e}");
         }
     }
 
     fn allows_method(&self, method: &str) -> bool {
-        if let Some(restricted_methods) = &self.server_config.restricted_methods {
+        if let Some(restricted_methods) = &self.api.server_config.restricted_methods {
             if is_json_rpc_method_restricted(method, restricted_methods) {
                 return false;
             }
@@ -590,10 +579,11 @@ impl JsonRpcHandler {
     }
 
     async fn update_dump(&self, event: &RpcMethodCall) -> Result<(), RpcError> {
-        match self.starknet_config.dump_on {
+        match self.api.config.dump_on {
             Some(DumpOn::Block) => {
                 let dump_path = self
-                    .starknet_config
+                    .api
+                    .config
                     .dump_path
                     .as_deref()
                     .ok_or(RpcError::internal_error_with("Undefined dump_path"))?;

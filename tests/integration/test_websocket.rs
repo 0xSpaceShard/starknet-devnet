@@ -115,9 +115,7 @@ async fn test_deserialization_error_via_ws() {
     let devnet = BackgroundDevnet::spawn().await.unwrap();
     let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
 
-    ws.send(tokio_tungstenite::tungstenite::Message::Text("garbage_string".to_string()))
-        .await
-        .unwrap();
+    ws.send(tokio_tungstenite::tungstenite::Message::Text("garbage_string".into())).await.unwrap();
 
     let resp_raw = ws.next().await.unwrap().unwrap();
     let resp: serde_json::Value = serde_json::from_slice(&resp_raw.into_data()).unwrap();
@@ -296,6 +294,7 @@ async fn should_declare_via_ws() {
         .l1_data_gas(fee.l1_data_gas)
         .l1_data_gas_price(fee.l1_data_gas_price)
         .nonce(nonce)
+        .tip(0)
         .prepared()
         .unwrap();
 

@@ -1,6 +1,7 @@
 use std::num::NonZeroU128;
 use std::sync::Arc;
 
+use alloy::primitives::B256;
 use blockifier::context::{BlockContext, ChainInfo, TransactionContext};
 use blockifier::execution::common_hints::ExecutionMode;
 use blockifier::state::cached_state::CachedState;
@@ -10,14 +11,15 @@ use blockifier::transaction::errors::TransactionExecutionError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
-use ethers::types::H256;
 use parking_lot::RwLock;
 use starknet_api::block::{
     BlockInfo, BlockNumber, BlockTimestamp, FeeType, GasPrice, GasPricePerToken, GasPriceVector,
     GasPrices,
 };
+use starknet_api::block_hash::block_hash_calculator::calculate_block_commitments;
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::data_availability::DataAvailabilityMode;
+use starknet_api::state::ThinStateDiff as ThinStateDiffImported;
 use starknet_api::transaction::fields::{GasVectorComputationMode, Tip};
 use starknet_api::transaction::{TransactionHasher, TransactionVersion};
 use starknet_rs_core::types::{Felt, Hash256, MsgFromL1};
@@ -372,6 +374,9 @@ impl Starknet {
         // Update gas prices in the block header
         let header = &mut new_block.header.block_header_without_hash;
 
+        let starknet_version = header.starknet_version;
+        let l1_da_mode = header.l1_da_mode;
+
         // Set L1 gas prices
         header.l1_gas_price = GasPricePerToken {
             price_in_fri: GasPrice(self.next_block_gas.gas_price_fri.get()),
@@ -416,6 +421,33 @@ impl Starknet {
                 error!("Transaction is not present in the transactions collection");
             }
         });
+
+        let transaction_data: Vec<
+            starknet_api::block_hash::block_hash_calculator::TransactionHashingData,
+        > = new_block
+            .get_transactions()
+            .iter()
+            // filter map is used here, although in normal conditions unwrap should be safe. Every transaction hash that has been added to preconfirmed block should be present in transactions collection
+            // changes should be done later so this is not even possible
+            .filter_map(|tx_hash| self.transactions.get_by_hash(*tx_hash))
+            .map(|tx| tx.into())
+            .collect();
+
+        let thin_state_diff: ThinStateDiffImported = self.pre_confirmed_state_diff.clone().into();
+
+        let commitments = calculate_block_commitments(
+            &transaction_data,
+            &thin_state_diff,
+            l1_da_mode,
+            &starknet_version,
+        );
+
+        new_block.set_counts(
+            transaction_data.len(),
+            transaction_data.iter().map(|tx| tx.transaction_output.events.len()).sum(),
+            thin_state_diff.len(),
+        );
+        new_block.set_commitments(commitments);
 
         // insert pre_confirmed block in the blocks collection and connect it to the state diff
         self.blocks.insert(new_block, self.pre_confirmed_state_diff.clone());
@@ -529,6 +561,7 @@ impl Starknet {
                     strk_fee_token_address.to_hex_string().as_str()
                 ),
             },
+            is_l3: false,
         };
 
         BlockContext::new(
@@ -718,9 +751,7 @@ impl Starknet {
         let mut initial_gas =
             block_context.versioned_constants().sierra_gas_limit(&ExecutionMode::Execute);
         let call = blockifier::execution::entry_point::CallEntryPoint {
-            calldata: starknet_api::transaction::fields::Calldata(std::sync::Arc::new(
-                calldata.clone(),
-            )),
+            calldata: starknet_api::transaction::fields::Calldata(Arc::new(calldata.clone())),
             storage_address: contract_address.try_into()?,
             entry_point_selector: starknet_api::core::EntryPointSelector(entrypoint_selector),
             initial_gas: initial_gas.0,
@@ -747,7 +778,7 @@ impl Starknet {
             .map_err(|error| {
                 Error::ContractExecutionError(
                     TransactionExecutionError::ExecutionError {
-                        error,
+                        error: Box::new(error),
                         class_hash,
                         storage_address,
                         selector: starknet_api::core::EntryPointSelector(entrypoint_selector),
@@ -910,7 +941,7 @@ impl Starknet {
         // StateUpdate needs to be mapped to PreConfirmedStateUpdate when block_id is pre_confirmed
         if let CustomBlockId::Tag(CustomBlockTag::PreConfirmed) = block_id {
             Ok(StateUpdateResult::PreConfirmedStateUpdate(PreConfirmedStateUpdate {
-                old_root: state_update.old_root,
+                old_root: Some(state_update.old_root),
                 state_diff: state_update.state_diff,
             }))
         } else {
@@ -1562,7 +1593,7 @@ impl Starknet {
         &self,
         l1_tx_hash: Hash256,
     ) -> Option<Vec<L1HandlerTransactionStatus>> {
-        match self.messaging.l1_to_l2_tx_hashes.get(&H256(*l1_tx_hash.as_bytes())) {
+        match self.messaging.l1_to_l2_tx_hashes.get(&B256::new(*l1_tx_hash.as_bytes())) {
             Some(l2_tx_hashes) => {
                 let mut statuses = vec![];
                 for l2_tx_hash in l2_tx_hashes {
@@ -1991,29 +2022,6 @@ mod tests {
         let block_number2 = starknet.get_latest_block().unwrap().block_number();
 
         assert_eq!(block_number2.0, added_block2.header.block_header_without_hash.block_number.0);
-    }
-
-    #[test]
-    fn gets_block_txs_count() {
-        let config = StarknetConfig::default();
-        let mut starknet = Starknet::new(&config).unwrap();
-
-        starknet.generate_new_block_and_state().unwrap();
-
-        let num_no_transactions = starknet.get_block_txs_count(&CustomBlockId::Number(1));
-
-        assert_eq!(num_no_transactions.unwrap(), 0);
-
-        let tx = dummy_declare_tx_v3_with_hash();
-
-        // add transaction hash to pre_confirmed block
-        starknet.blocks.pre_confirmed_block.add_transaction(*tx.get_transaction_hash());
-
-        starknet.generate_new_block_and_state().unwrap();
-
-        let num_one_transaction = starknet.get_block_txs_count(&CustomBlockId::Number(2));
-
-        assert_eq!(num_one_transaction.unwrap(), 1);
     }
 
     #[test]

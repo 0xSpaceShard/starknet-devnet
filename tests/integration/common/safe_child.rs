@@ -3,6 +3,7 @@ use std::process::Child;
 #[derive(Debug)]
 pub struct SafeChild {
     pub process: Child,
+    pub port: Option<u16>,
 }
 
 impl SafeChild {
