@@ -4,7 +4,6 @@ use std::sync::Arc;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::{State, StateReader};
 use parking_lot::RwLock;
-use starknet_api::contract_class::compiled_class_hash::{HashVersion, HashableCompiledClass};
 use starknet_rs_core::types::Felt;
 use starknet_types::compile_sierra_contract;
 use starknet_types::contract_address::ContractAddress;
