@@ -235,12 +235,11 @@ impl BackgroundDevnet {
                     return rpc_error;
                 };
 
-                if let Ok(err_val) = serde_json::from_str::<serde_json::Value>(&err_msg) {
-                    if let Some(err_prop) = err_val.get("error").cloned() {
-                        if let Ok(rpc_error) = serde_json::from_value::<RpcError>(err_prop) {
-                            return rpc_error;
-                        }
-                    }
+                if let Ok(err_val) = serde_json::from_str::<serde_json::Value>(&err_msg)
+                    && let Some(err_prop) = err_val.get("error").cloned()
+                    && let Ok(rpc_error) = serde_json::from_value::<RpcError>(err_prop)
+                {
+                    return rpc_error;
                 }
 
                 panic!("Cannot extract RPC error from: {err_msg}")

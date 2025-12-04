@@ -41,10 +41,10 @@ pub(crate) fn get_events(
             let transaction =
                 starknet.transactions.get_by_hash(*transaction_hash).ok_or(Error::NoTransaction)?;
 
-            if let Some(finality_status_filter) = finality_status_filter {
-                if transaction.finality_status < finality_status_filter {
-                    continue;
-                }
+            if let Some(finality_status_filter) = finality_status_filter
+                && transaction.finality_status < finality_status_filter
+            {
+                continue;
             }
 
             // filter the events from the transaction
@@ -67,11 +67,12 @@ pub(crate) fn get_events(
             // produce an emitted event for each filtered transaction event
             for (event_index, transaction_event) in filtered_transaction_events {
                 // check if there are more elements to fetch
-                if let Some(limit) = limit {
-                    if elements_added == limit {
-                        return Ok((events, true));
-                    }
+                if let Some(limit) = limit
+                    && elements_added == limit
+                {
+                    return Ok((events, true));
                 }
+
                 let (block_hash, block_number) = if block.status() == &BlockStatus::PreConfirmed {
                     (None, None)
                 } else {
