@@ -235,7 +235,6 @@ pub async fn set_and_log_fork_config(
     fork_config: &mut ForkConfig,
     json_rpc_client: &JsonRpcClient<HttpTransport>,
 ) -> Result<(), anyhow::Error> {
-
     check_forking_spec_version(json_rpc_client).await?;
 
     let block_id = fork_config.block_number.map_or(BlockId::Tag(BlockTag::Latest), BlockId::Number);
@@ -256,7 +255,10 @@ pub async fn set_and_log_fork_config(
             info!("Forking from block: number={}, hash={:#x}", b.block_number, b.block_hash);
         }
         MaybePreConfirmedBlockWithTxHashes::PreConfirmedBlock(_) => {
-            error!("Block from origin deserialized as pre-confirmed. Most likely RPC version incompatibility.");
+            error!(
+                "Block from origin deserialized as pre-confirmed. Most likely RPC version \
+                 incompatibility."
+            );
             std::process::exit(1);
         }
     };
@@ -370,10 +372,7 @@ async fn main() -> Result<(), anyhow::Error> {
         task::spawn(server.with_graceful_shutdown(shutdown_signal(api)).into_future());
     tasks.push(server_handle);
 
-    tracing::debug!(
-        "Starknet Devnet started in {:.2?} seconds",
-        timestamp.elapsed()
-    );
+    tracing::debug!("Starknet Devnet started in {:.2?} seconds", timestamp.elapsed());
 
     // join all tasks
     let results = join_all(tasks).await;
