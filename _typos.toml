@@ -2,7 +2,8 @@
 extend-exclude = [
     # exclude submodule
     "contracts/l1-l2-messaging/solidity",
-    "crates/**/test_data"
+    "crates/**/test_data",
+    "crates/starknet-devnet-types/precompiled/inputs"
 ]
 ignore-vcs = true
 
