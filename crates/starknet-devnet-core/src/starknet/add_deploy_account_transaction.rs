@@ -70,7 +70,6 @@ pub fn add_deploy_account_transaction(
 #[cfg(test)]
 mod tests {
     use blockifier::state::state_api::{State, StateReader};
-    use blockifier::transaction::errors::TransactionFeeError;
     use nonzero_ext::nonzero;
     use starknet_api::transaction::fields::Tip;
     use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
@@ -168,9 +167,9 @@ mod tests {
         let tx = test_deploy_account_transaction_v3(account_class_hash, 0, 4000, 0, 0);
 
         match starknet.add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(tx)) {
-            Err(Error::TransactionFeeError(TransactionFeeError::GasBoundsExceedBalance {
-                ..
-            })) => {}
+            Err(Error::TransactionValidationError(
+                TransactionValidationError::InsufficientAccountBalance,
+            )) => {}
             other => panic!("Unexpected result: {other:?}"),
         }
     }
@@ -204,9 +203,9 @@ mod tests {
         let (mut starknet, account_class_hash) = setup();
         let tx = test_deploy_account_transaction_v3(account_class_hash, 0, 1, 0, 0);
         match starknet.add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(tx)) {
-            Err(Error::TransactionFeeError(TransactionFeeError::InsufficientResourceBounds {
-                ..
-            })) => {}
+            Err(Error::TransactionValidationError(
+                TransactionValidationError::InsufficientResourcesForValidate,
+            )) => {}
             other => panic!("Unexpected result: {other:?}"),
         }
     }
@@ -228,9 +227,9 @@ mod tests {
         let (mut starknet, account_class_hash) = setup();
         let tx = test_deploy_account_transaction_v3(account_class_hash, 0, 1000, 1000, 1);
         match starknet.add_deploy_account_transaction(BroadcastedDeployAccountTransaction::V3(tx)) {
-            Err(Error::TransactionFeeError(TransactionFeeError::InsufficientResourceBounds {
-                ..
-            })) => {}
+            Err(Error::TransactionValidationError(
+                TransactionValidationError::InsufficientResourcesForValidate,
+            )) => {}
             other => panic!("Unexpected result: {other:?}"),
         }
     }
