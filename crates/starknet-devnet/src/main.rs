@@ -372,7 +372,7 @@ async fn main() -> Result<(), anyhow::Error> {
         task::spawn(server.with_graceful_shutdown(shutdown_signal(api)).into_future());
     tasks.push(server_handle);
 
-    tracing::debug!("Starknet Devnet started in {:.2?} seconds", timestamp.elapsed());
+    tracing::debug!("Starknet Devnet started in {:.2?}", timestamp.elapsed());
 
     // join all tasks
     let results = join_all(tasks).await;
