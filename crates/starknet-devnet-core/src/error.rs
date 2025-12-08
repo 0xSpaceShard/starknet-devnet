@@ -137,7 +137,7 @@ impl From<TransactionExecutionError> for Error {
                     Self::ContractExecutionError(err.to_string().into())
                 }
                 TransactionPreValidationError::TransactionFeeError(tx_fee_err) => {
-                    Self::TransactionFeeError(*tx_fee_err)
+                    Self::from(*tx_fee_err)
                 }
             },
             TransactionExecutionError::FeeCheckError(err) => err.into(),
