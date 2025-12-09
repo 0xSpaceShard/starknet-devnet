@@ -449,7 +449,9 @@ mod tests {
         env_var: &str,
         expected_level: LevelFilter,
     ) {
-        std::env::set_var(EnvFilter::DEFAULT_ENV, env_var);
+        unsafe {
+            std::env::set_var(EnvFilter::DEFAULT_ENV, env_var);
+        }
         configure_tracing();
 
         assert_eq!(LevelFilter::current(), expected_level);
