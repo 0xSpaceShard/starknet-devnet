@@ -8,7 +8,7 @@ use starknet_api::core::{ClassHash, CompiledClassHash, ContractAddress, Nonce};
 use starknet_api::state::StorageKey;
 use starknet_rs_core::types::Felt;
 
-use crate::starknet::defaulter::StarknetDefaulter;
+use crate::starknet::defaulter::{OriginReader, StarknetDefaulter};
 
 /// A simple implementation of `StateReader` using `HashMap`s as storage.
 /// Copied from blockifier test_utils, added `impl State`
