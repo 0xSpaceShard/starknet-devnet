@@ -4,6 +4,7 @@ pub mod constants;
 pub mod contract_class_choice;
 pub mod error;
 pub mod messaging;
+pub mod metrics;
 mod predeployed_accounts;
 pub mod starknet;
 mod state;

@@ -368,6 +368,8 @@ impl Starknet {
     /// Transfer data from pre_confirmed block into new block and save it to blocks collection.
     /// Generates new pre_confirmed block. Same for pre_confirmed state. Returns the new block hash.
     pub(crate) fn generate_new_block_and_state(&mut self) -> DevnetResult<Felt> {
+        let timer = std::time::Instant::now();
+
         let mut new_block = self.pre_confirmed_block().clone();
 
         // Set new block header
@@ -464,6 +466,11 @@ impl Starknet {
         // for every new block we need to clone pre_confirmed state into state
         self.latest_state = self.pre_confirmed_state.clone_historic();
 
+        // Record metrics
+        let duration = timer.elapsed().as_secs_f64();
+        crate::metrics::BLOCK_CREATION_DURATION.observe(duration);
+        crate::metrics::BLOCK_COUNT.inc();
+
         Ok(new_block_hash)
     }
 
@@ -509,6 +516,9 @@ impl Starknet {
         self.blocks.pre_confirmed_block.add_transaction(*transaction_hash);
 
         self.transactions.insert(transaction_hash, transaction_to_add);
+
+        // Update transaction count metric
+        crate::metrics::TRANSACTION_COUNT.inc();
 
         // create new block from pre_confirmed one, only in block-generation-on-transaction mode
         if !self.config.uses_pre_confirmed_block() {
@@ -1007,6 +1017,7 @@ impl Starknet {
         let mut rpc_contract_classes = self.rpc_contract_classes.write();
 
         // Abort blocks from latest to starting (iterating backwards) and revert transactions.
+        let mut reverted_tx = 0;
         while !reached_starting_block {
             reached_starting_block = next_block_to_abort_hash == starting_block_hash;
 
@@ -1021,6 +1032,7 @@ impl Starknet {
                 self.transactions.remove(tx_hash).ok_or(Error::UnexpectedInternalError {
                     msg: format!("No tx of abortable block: {tx_hash:#x}"),
                 })?;
+                reverted_tx += 1;
             }
 
             rpc_contract_classes.remove_classes_at(aborted_block.block_number().0);
@@ -1056,6 +1068,15 @@ impl Starknet {
         let new_pre_confirmed_block_number = old_pre_confirmed_block_number - aborted.len() as u64;
 
         self.set_block_number(new_pre_confirmed_block_number);
+
+        // Reset metrics
+        let old_tx_count = crate::metrics::TRANSACTION_COUNT.get();
+        crate::metrics::TRANSACTION_COUNT.reset();
+        crate::metrics::TRANSACTION_COUNT.inc_by(old_tx_count - reverted_tx);
+
+        let old_block_count = crate::metrics::BLOCK_COUNT.get();
+        crate::metrics::BLOCK_COUNT.reset();
+        crate::metrics::BLOCK_COUNT.inc_by(old_block_count - aborted.len() as u64);
 
         Ok(aborted)
     }

@@ -111,6 +111,8 @@ impl BlockingOriginReader {
         method: &str,
         mut params: serde_json::Value,
     ) -> Result<serde_json::Value, OriginError> {
+        let start = std::time::Instant::now();
+
         params["block_id"] = serde_json::json!({
             "block_number": self.block_number
         });
@@ -121,7 +123,7 @@ impl BlockingOriginReader {
             "id": 0,
         });
 
-        match self.blocking_post(body.clone()) {
+        let result = match self.blocking_post(body.clone()) {
             Ok(resp_json_value) => {
                 let result = &resp_json_value["result"];
                 if result.is_null() {
@@ -138,7 +140,16 @@ impl BlockingOriginReader {
                 debug!("Forking origin received {body:?} and returned error: {other_err:?}");
                 Err(other_err)
             }
-        }
+        };
+
+        let duration = start.elapsed().as_secs_f64();
+        let status = if result.is_ok() { "success" } else { "error" };
+        crate::metrics::UPSTREAM_CALL_DURATION
+            .with_label_values(&[method, status])
+            .observe(duration);
+        crate::metrics::UPSTREAM_CALL_COUNT.with_label_values(&[method, status]).inc();
+
+        result
     }
 }
 
