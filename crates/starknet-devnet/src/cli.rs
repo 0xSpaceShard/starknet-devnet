@@ -587,7 +587,9 @@ mod tests {
             ("REQUEST", true, false),
             ("RESPONSE", false, true),
         ] {
-            std::env::set_var(EnvFilter::DEFAULT_ENV, environment_variable);
+            unsafe {
+                std::env::set_var(EnvFilter::DEFAULT_ENV, environment_variable);
+            }
             let RequestResponseLogging { log_request, log_response } =
                 RequestResponseLogging::from_rust_log_environment_variable();
 
@@ -628,7 +630,9 @@ mod tests {
         let config_via_cli = Args::parse_from(cli_args).to_config().unwrap();
 
         for (_, var_name, value) in config_source {
-            std::env::set_var(var_name, value);
+            unsafe {
+                std::env::set_var(var_name, value);
+            }
         }
         let config_via_env = Args::parse_from(["--"]).to_config().unwrap();
 
@@ -639,7 +643,9 @@ mod tests {
 
         // remove var to avoid collision with other tests
         for (_, var_name, _) in config_source {
-            std::env::remove_var(var_name);
+            unsafe {
+                std::env::remove_var(var_name);
+            }
         }
     }
 
@@ -658,7 +664,9 @@ mod tests {
             serde_json::to_value(Args::parse_from(cli_args).to_config().unwrap()).unwrap();
 
         for (_, var_name) in config_source {
-            std::env::set_var(var_name, "true");
+            unsafe {
+                std::env::set_var(var_name, "true");
+            }
         }
         let mut config_via_env =
             serde_json::to_value(Args::parse_from(["--"]).to_config().unwrap()).unwrap();
@@ -672,7 +680,9 @@ mod tests {
 
         // remove var to avoid collision with other tests
         for (var_name, _) in config_source {
-            std::env::remove_var(var_name);
+            unsafe {
+                std::env::remove_var(var_name);
+            }
         }
     }
 
