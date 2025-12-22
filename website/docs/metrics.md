@@ -55,6 +55,7 @@ The metrics are exposed in Prometheus text format, which can be scraped by Prome
 **Description:** Duration of RPC calls in seconds
 
 **Labels:**
+
 - `method`: The RPC method name (e.g., `starknet_getBlockWithTxs`, `starknet_call`)
 
 **Buckets:** 0.00005, 0.0001, 0.00025, 0.0005, 0.001, 0.0025, 0.005, 0.01, 0.015, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0 seconds
@@ -66,6 +67,7 @@ The metrics are exposed in Prometheus text format, which can be scraped by Prome
 **Description:** Total number of RPC calls
 
 **Labels:**
+
 - `method`: The RPC method name
 - `status`: Either `success` or `error`
 
@@ -108,6 +110,7 @@ These metrics are only relevant when running Devnet in [forking mode](./forking.
 **Description:** Duration of upstream forking origin calls in seconds
 
 **Labels:**
+
 - `method`: The RPC method called on the upstream network
 - `status`: Either `success` or `error`
 
@@ -120,6 +123,7 @@ These metrics are only relevant when running Devnet in [forking mode](./forking.
 **Description:** Total number of upstream forking origin calls
 
 **Labels:**
+
 - `method`: The RPC method called on the upstream network
 - `status`: Either `success` or `error`
 
