@@ -43,6 +43,7 @@ use tracing_subscriber::EnvFilter;
 mod cli;
 mod initial_balance_wrapper;
 mod ip_addr_wrapper;
+mod metrics;
 
 const REQUEST_LOG_ENV_VAR: &str = "request";
 const RESPONSE_LOG_ENV_VAR: &str = "response";
@@ -358,6 +359,12 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     let mut tasks = vec![];
+
+    // Start metrics server if configured
+    if let Some(metrics_addr) = args.get_metrics_addr() {
+        let metrics_handle = task::spawn(metrics::start_metrics_server(metrics_addr));
+        tasks.push(metrics_handle);
+    }
 
     if let BlockGenerationOn::Interval(seconds) = starknet_config.block_generation_on {
         // use JoinHandle to run block interval creation as a task

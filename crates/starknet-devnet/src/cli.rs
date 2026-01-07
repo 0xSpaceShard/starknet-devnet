@@ -247,9 +247,29 @@ Calling devnet_createBlock JSON-RPC method is also an option in modes other than
     #[arg(value_name = "FELTS")]
     #[arg(default_value_t = MAXIMUM_SIERRA_LENGTH)]
     maximum_sierra_length: u64,
+
+    #[arg(long = "metrics-host")]
+    #[arg(env = "METRICS_HOST")]
+    #[arg(value_name = "METRICS_HOST")]
+    #[arg(help = "Specify the address for the metrics server to listen at; If not provided, \
+                  metrics server is not started;")]
+    metrics_host: Option<IpAddrWrapper>,
+
+    #[arg(long = "metrics-port")]
+    #[arg(env = "METRICS_PORT")]
+    #[arg(value_name = "METRICS_PORT")]
+    #[arg(default_value_t = 9090)]
+    #[arg(help = "Specify the port for the metrics server to listen at;")]
+    metrics_port: u16,
 }
 
 impl Args {
+    pub(crate) fn get_metrics_addr(&self) -> Option<std::net::SocketAddr> {
+        self.metrics_host
+            .as_ref()
+            .map(|host| std::net::SocketAddr::new(host.inner, self.metrics_port))
+    }
+
     pub(crate) fn to_config(&self) -> Result<(StarknetConfig, ServerConfig), anyhow::Error> {
         // use account-class-custom if specified; otherwise default to predefined account-class
         let account_class_wrapper = match &self.account_class_custom {

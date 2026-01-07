@@ -125,6 +125,9 @@ openssl = { version = "0.10.72", features = ["vendored"] }
 
 parking_lot = "0.12.3"
 
+# Metrics
+prometheus = "0.13"
+
 # Dev dependencies
 serial_test = "3.1.1"
 hex = "0.4.3"

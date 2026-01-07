@@ -41,5 +41,10 @@ anyhow = { workspace = true }
 starknet-rs-providers = { workspace = true }
 reqwest = { workspace = true }
 
+# metrics
+prometheus = { workspace = true }
+lazy_static = { workspace = true }
+axum = { workspace = true }
+
 [dev-dependencies]
 serial_test = { workspace = true }
