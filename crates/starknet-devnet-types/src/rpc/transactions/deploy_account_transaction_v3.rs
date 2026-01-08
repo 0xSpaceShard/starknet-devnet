@@ -18,7 +18,7 @@ use crate::felt::{
 )]
 pub struct DeployAccountTransactionV3 {
     version: TransactionVersion,
-    signature: TransactionSignature,
+    pub(crate) signature: TransactionSignature,
     nonce: Nonce,
     resource_bounds: ResourceBoundsWrapper,
     tip: Tip,

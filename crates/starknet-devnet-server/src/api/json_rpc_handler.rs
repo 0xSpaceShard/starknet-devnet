@@ -101,15 +101,30 @@ impl RpcHandler for JsonRpcHandler {
 
     async fn on_call(&self, call: RpcMethodCall) -> RpcResponse {
         let id = call.id.clone();
-        trace!(target: "rpc",  id = ?id, method = ?call.method, "received method call");
+        let method = call.method.clone();
+        trace!(target: "rpc",  id = ?id, method = ?method, "received method call");
 
-        match to_json_rpc_request(&call) {
+        let timer = std::time::Instant::now();
+
+        let response = match to_json_rpc_request(&call) {
             Ok(req) => {
                 let result = self.on_request(req, call).await;
                 RpcResponse::new(id, result)
             }
             Err(e) => RpcResponse::from_rpc_error(e, id),
-        }
+        };
+
+        // Record metrics
+        let duration = timer.elapsed().as_secs_f64();
+        let status = match &response.result {
+            crate::rpc_core::response::ResponseResult::Success(_) => "success",
+            crate::rpc_core::response::ResponseResult::Error(_) => "error",
+        };
+
+        crate::metrics::RPC_CALL_DURATION.with_label_values(&[&method]).observe(duration);
+        crate::metrics::RPC_CALL_COUNT.with_label_values(&[&method, status]).inc();
+
+        response
     }
 
     async fn on_websocket(&self, socket: WebSocket) {
@@ -528,7 +543,7 @@ impl JsonRpcHandler {
             .unwrap_or_default(),
         };
 
-        if let Err(e) = ws.lock().await.send(Message::Text(error_serialized)).await {
+        if let Err(e) = ws.lock().await.send(Message::Text(error_serialized.into())).await {
             tracing::error!("Error sending websocket message: {e}");
         }
     }
@@ -554,8 +569,11 @@ impl JsonRpcHandler {
     ) -> Result<(), RpcError> {
         trace!(target: "rpc",  id = ?call.id, method = ?call.method, "received websocket call");
 
+        let timer = std::time::Instant::now();
+        let method = call.method.clone();
+
         let req: JsonRpcWsRequest = to_json_rpc_request(call)?;
-        match req {
+        let result = match req {
             JsonRpcWsRequest::OneTimeRequest(req) => {
                 let resp_result = self.on_request(*req, call.clone()).await;
                 let mut sockets = self.api.sockets.lock().await;
@@ -575,7 +593,15 @@ impl JsonRpcHandler {
                 .execute_ws_subscription(req, call.id.clone(), socket_id)
                 .await
                 .map_err(|e| e.api_error_to_rpc_error()),
-        }
+        };
+
+        // Record metrics
+        let duration = timer.elapsed().as_secs_f64();
+        let status = if result.is_ok() { "success" } else { "error" };
+        crate::metrics::RPC_CALL_DURATION.with_label_values(&[&method]).observe(duration);
+        crate::metrics::RPC_CALL_COUNT.with_label_values(&[&method, status]).inc();
+
+        result
     }
 
     async fn update_dump(&self, event: &RpcMethodCall) -> Result<(), RpcError> {

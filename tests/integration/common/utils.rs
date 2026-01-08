@@ -5,9 +5,9 @@ use std::process::{Child, Command};
 use std::sync::Arc;
 use std::time::Duration;
 
-use ethers::types::U256;
+use alloy::primitives::U256;
 use futures::{SinkExt, StreamExt, TryStreamExt};
-use rand::{Rng, thread_rng};
+use rand::{Rng, rng};
 use serde_json::json;
 use starknet_api::contract_class::compiled_class_hash::{HashVersion, HashableCompiledClass};
 use starknet_core::CasmContractClass;
@@ -70,7 +70,7 @@ pub fn get_flattened_sierra_contract_and_casm_hash(sierra_path: &str) -> SierraW
     let casm_json = usc::compile_contract(serde_json::from_str(&sierra_string).unwrap()).unwrap();
 
     let casm_hash =
-        serde_json::from_value::<CasmContractClass>(casm_json).unwrap().hash(&HashVersion::V1).0;
+        serde_json::from_value::<CasmContractClass>(casm_json).unwrap().hash(&HashVersion::V2).0;
     (sierra_class.flatten().unwrap(), casm_hash)
 }
 
@@ -265,8 +265,8 @@ impl UniqueAutoDeletableFile {
     /// it doesn't create the file.
     pub fn new(name_base: &str) -> Self {
         // generate two random numbers to increase uniqueness
-        let mut rand_gen = thread_rng();
-        let rand = format!("{}{}", rand_gen.gen::<u32>(), rand_gen.gen::<u32>());
+        let mut rand_gen = rng();
+        let rand = format!("{}{}", rand_gen.random::<u32>(), rand_gen.random::<u32>());
         Self { path: format!("{name_base}-{}", rand) }
     }
 }
@@ -463,7 +463,7 @@ where
 }
 
 pub fn felt_to_u256(f: Felt) -> U256 {
-    U256::from_big_endian(&f.to_bytes_be())
+    U256::from_be_bytes(f.to_bytes_be())
 }
 
 /// Unchecked conversion
@@ -527,7 +527,7 @@ pub async fn send_text_rpc_via_ws(
         "params": params,
     })
     .to_string();
-    ws.send(tokio_tungstenite::tungstenite::Message::Text(text_body)).await?;
+    ws.send(tokio_tungstenite::tungstenite::Message::Text(text_body.into())).await?;
 
     let resp_raw =
         ws.next().await.ok_or(anyhow::Error::msg("No response in websocket stream"))??;
@@ -548,7 +548,7 @@ pub async fn send_binary_rpc_via_ws(
         "params": params,
     });
     let binary_body = serde_json::to_vec(&body)?;
-    ws.send(tokio_tungstenite::tungstenite::Message::Binary(binary_body)).await?;
+    ws.send(tokio_tungstenite::tungstenite::Message::Binary(binary_body.into())).await?;
 
     let resp_raw =
         ws.next().await.ok_or(anyhow::Error::msg("No response in websocket stream"))??;

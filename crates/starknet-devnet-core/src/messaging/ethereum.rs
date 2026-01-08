@@ -1,17 +1,22 @@
 #![allow(clippy::expect_used)]
 use std::collections::BTreeMap;
 use std::str::FromStr;
-use std::sync::Arc;
 
-use ethers::prelude::*;
-use ethers::providers::{Http, Provider, ProviderError};
-use ethers::types::{Address, BlockNumber, Log};
-use k256::ecdsa::SigningKey;
+use alloy::hex::ToHexExt;
+use alloy::primitives::{Address, B256, U256};
+use alloy::providers::{Provider, ProviderBuilder};
+use alloy::rpc::types::{BlockNumberOrTag, Filter, Log};
+use alloy::signers::Signer;
+use alloy::signers::local::{LocalSignerError, PrivateKeySigner};
+use alloy::sol;
+use alloy::sol_types::SolEvent;
+use alloy::transports::RpcError;
 use starknet_rs_core::types::{Felt, Hash256};
 use starknet_types::felt::felt_from_prefixed_hex;
 use starknet_types::rpc::contract_address::ContractAddress;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use tracing::{trace, warn};
+use url::Url;
 
 use crate::error::{DevnetResult, Error, MessagingError};
 
@@ -28,55 +33,50 @@ pub const ETH_ACCOUNT_DEFAULT: EthDevnetAccount = EthDevnetAccount {
     private_key: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
 };
 
-// The provided artifact must contain "abi" and "bytecode" objects.
-// The config check is required as the macro expects a literal string,
-// and the path of the file is relative to the $CARGO_MANIFEST_DIR.
-mod abigen {
-    use ethers::prelude::abigen;
-    abigen!(
-        MockStarknetMessaging,
-        "$CARGO_MANIFEST_DIR/contracts/l1-l2-artifacts/MockStarknetMessaging.json",
-        event_derives(serde::Serialize, serde::Deserialize)
+impl<T> From<RpcError<T>> for Error {
+    fn from(e: RpcError<T>) -> Self {
+        Error::MessagingError(MessagingError::AlloyError(format!(
+            "RpcError: {:?}",
+            e.as_error_resp()
+        )))
+    }
+}
+
+impl From<LocalSignerError> for Error {
+    fn from(e: LocalSignerError) -> Self {
+        Error::MessagingError(MessagingError::AlloyError(format!("LocalSignerError: {e}")))
+    }
+}
+
+sol! {
+    #[sol(rpc)]
+    event LogMessageToL2(
+        address indexed from_address,
+        uint256 indexed to_address,
+        uint256 indexed selector,
+        uint256[] payload,
+        uint256 nonce,
+        uint256 fee
     );
 }
-
-#[derive(Debug, EthEvent)]
-pub struct LogMessageToL2 {
-    #[ethevent(indexed)]
-    from_address: Address,
-    #[ethevent(indexed)]
-    to_address: U256,
-    #[ethevent(indexed)]
-    selector: U256,
-    payload: Vec<U256>,
-    nonce: U256,
-    fee: U256,
-}
-
-impl From<ProviderError> for Error {
-    fn from(e: ProviderError) -> Self {
-        Error::MessagingError(MessagingError::EthersError(format!("ProviderError: {e}")))
-    }
-}
-
-impl From<WalletError> for Error {
-    fn from(e: WalletError) -> Self {
-        Error::MessagingError(MessagingError::EthersError(format!("WalletError: {e}")))
-    }
+sol! {
+    #[sol(rpc)]
+    MockStarknetMessaging,
+    "contracts/l1-l2-artifacts/MockStarknetMessaging.json",
 }
 
 async fn assert_address_contains_any_code(
-    provider: &Provider<Http>,
+    provider: &dyn Provider,
     address: Address,
 ) -> DevnetResult<()> {
-    let messaging_contract_code = provider.get_code(address, None).await.map_err(|e| {
-        Error::MessagingError(MessagingError::EthersError(format!(
+    let messaging_contract_code = provider.get_code_at(address).await.map_err(|e| {
+        Error::MessagingError(MessagingError::AlloyError(format!(
             "Failed retrieving contract code at address {address}: {e}"
         )))
     })?;
 
     if messaging_contract_code.is_empty() {
-        return Err(Error::MessagingError(MessagingError::EthersError(format!(
+        return Err(Error::MessagingError(MessagingError::AlloyError(format!(
             "The specified address ({address:#x}) contains no contract"
         ))));
     }
@@ -87,9 +87,9 @@ async fn assert_address_contains_any_code(
 #[derive(Clone)]
 /// Ethereum related configuration and types.
 pub struct EthereumMessaging {
-    provider: Arc<Provider<Http>>,
-    provider_signer: Arc<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
+    wallet: PrivateKeySigner,
     messaging_contract_address: Address,
+    node_url: Url,
     /// This value must be dumped to avoid re-fetching already processed messages.
     pub(crate) last_fetched_block: u64,
     // A nonce verification may be added, with a nonce counter here.
@@ -104,40 +104,39 @@ impl EthereumMessaging {
     /// * `rpc_url` - The L1 node RPC URL.
     /// * `contract_address` - The messaging contract address deployed on L1 node.
     /// * `deployer_account_private_key` - The private key of the funded account on L1 node to
-    ///   perform the role of signer.
     pub async fn new(
         rpc_url: &str,
         contract_address: Option<&str>,
         deployer_account_private_key: Option<&str>,
     ) -> DevnetResult<EthereumMessaging> {
-        let provider = Provider::<Http>::try_from(rpc_url).map_err(|e| {
-            Error::MessagingError(MessagingError::EthersError(format!(
-                "Can't parse L1 node URL: {rpc_url} ({e})"
+        let node_url: Url = rpc_url.parse().map_err(|e| {
+            Error::MessagingError(MessagingError::AlloyError(format!(
+                "Failed to parse RPC URL '{rpc_url}': {e}"
             )))
         })?;
 
-        let chain_id = provider.get_chainid().await?;
+        let provider = ProviderBuilder::new().connect_http(node_url.clone());
+
+        let chain_id = provider.get_chain_id().await?;
+        let last_fetched_block = provider.get_block_number().await?;
 
         let private_key = match deployer_account_private_key {
             Some(private_key) => private_key,
             None => ETH_ACCOUNT_DEFAULT.private_key,
         };
 
-        let wallet: LocalWallet =
-            private_key.parse::<LocalWallet>()?.with_chain_id(chain_id.as_u32());
-
-        let provider_signer = SignerMiddleware::new(provider.clone(), wallet);
+        let wallet = PrivateKeySigner::from_str(private_key)?.with_chain_id(chain_id.into());
 
         let mut ethereum = EthereumMessaging {
-            provider: Arc::new(provider.clone()),
-            provider_signer: Arc::new(provider_signer),
-            messaging_contract_address: Address::zero(),
-            last_fetched_block: 0,
+            wallet,
+            messaging_contract_address: Address::ZERO,
+            node_url,
+            last_fetched_block,
         };
 
         if let Some(address) = contract_address {
             ethereum.messaging_contract_address = Address::from_str(address).map_err(|e| {
-                Error::MessagingError(MessagingError::EthersError(format!(
+                Error::MessagingError(MessagingError::AlloyError(format!(
                     "Address {address} can't be parsed from string: {e}",
                 )))
             })?;
@@ -145,17 +144,16 @@ impl EthereumMessaging {
             assert_address_contains_any_code(&provider, ethereum.messaging_contract_address)
                 .await?;
         } else {
-            let cancellation_delay_seconds: U256 = (60 * 60 * 24).into();
+            let cancellation_delay_seconds = U256::from(60 * 60 * 24);
             ethereum.messaging_contract_address =
                 ethereum.deploy_messaging_contract(cancellation_delay_seconds).await?;
         }
 
         Ok(ethereum)
     }
-
     /// Returns the url of the ethereum node currently in used.
     pub fn node_url(&self) -> String {
-        self.provider.url().to_string()
+        self.node_url.to_string()
     }
 
     /// Returns address of the messaging contract on L1 node.
@@ -165,10 +163,9 @@ impl EthereumMessaging {
 
     /// Fetches all the messages that were not already fetched from the L1 node.
     pub async fn fetch_messages(&mut self) -> DevnetResult<Vec<MessageToL2>> {
-        let chain_latest_block = self.provider.get_block_number().await?.as_u64();
-
-        // For now we fetch all the blocks, without attempting to limit
-        // the number of block as the RPC of dev nodes are more permissive.
+        let provider =
+            ProviderBuilder::new().wallet(self.wallet.clone()).connect_http(self.node_url.clone());
+        let chain_latest_block = provider.get_block_number().await?;
         let to_block = chain_latest_block;
 
         // +1 exclude the latest fetched block the last time this function was called.
@@ -204,38 +201,39 @@ impl EthereumMessaging {
             return Ok(());
         }
 
-        let starknet_messaging = abigen::MockStarknetMessaging::new(
-            self.messaging_contract_address,
-            self.provider_signer.clone(),
-        );
+        let provider =
+            ProviderBuilder::new().wallet(self.wallet.clone()).connect_http(self.node_url.clone());
+        let contract = MockStarknetMessaging::new(self.messaging_contract_address, provider);
 
         for message in messages {
-            let message_hash = U256::from_big_endian(message.hash().as_bytes());
+            let message_hash = U256::from_be_bytes(*message.hash().as_bytes());
             trace!("Sending message to L1: [{:064x}]", message_hash);
 
             let from_address = felt_to_u256(message.from_address.into());
             let to_address = felt_to_u256(message.to_address.clone().into());
-            let payload = message.payload.iter().map(|f| felt_to_u256(*f)).collect();
+            let payload = message.payload.iter().map(|f| felt_to_u256(*f)).collect::<Vec<_>>();
 
-            match starknet_messaging
-                .mock_send_message_from_l2(from_address, to_address, payload)
+            let tx = contract
+                .mockSendMessageFromL2(from_address, to_address, payload)
                 .send()
                 .await
-                .map_err(|e| Error::MessagingError(MessagingError::EthersError(
-                    format!("Error sending transaction on ethereum: {e}")
-                )))?
-                .await? // wait for the tx to be mined
-            {
-                Some(receipt) => trace!(
+                .map_err(|e| {
+                    Error::MessagingError(MessagingError::AlloyError(format!(
+                        "Failed to send mock message from L2: {e}"
+                    )))
+                })?;
+            // Wait for transaction receipt
+            match tx.get_receipt().await {
+                Ok(receipt) => trace!(
                     "Message {message_hash:064x} sent on L1 with transaction hash {:#x}",
-                    receipt.transaction_hash,
+                    receipt.transaction_hash
                 ),
-                None => {
-                    return Err(Error::MessagingError(MessagingError::EthersError(format!(
+                Err(_) => {
+                    return Err(Error::MessagingError(MessagingError::AlloyError(format!(
                         "No receipt found for the tx of message hash: {message_hash:064x}",
                     ))));
                 }
-            };
+            }
         }
 
         Ok(())
@@ -261,25 +259,25 @@ impl EthereumMessaging {
 
         let mut block_to_logs = BTreeMap::<u64, Vec<Log>>::new();
 
+        let provider = ProviderBuilder::new().connect_http(self.node_url.clone());
+
         // `sendMessageToL2` topic.
         let log_msg_to_l2_topic =
-            H256::from_str("0xdb80dd488acf86d17c747445b0eabb5d57c541d3bd7b6b87af987858e5066b2b")
+            B256::from_str("0xdb80dd488acf86d17c747445b0eabb5d57c541d3bd7b6b87af987858e5066b2b")
                 .map_err(|err| {
                     Error::MessagingError(MessagingError::ConversionError(err.to_string()))
                 })?;
 
-        let filters = Filter {
-            block_option: FilterBlockOption::Range {
-                from_block: Some(BlockNumber::Number(from_block.into())),
-                to_block: Some(BlockNumber::Number(to_block.into())),
-            },
-            address: Some(ValueOrArray::Value(self.messaging_contract_address)),
-            topics: [Some(ValueOrArray::Value(Some(log_msg_to_l2_topic))), None, None, None],
-        };
+        let filter = Filter::new()
+            .from_block(BlockNumberOrTag::Number(from_block))
+            .to_block(BlockNumberOrTag::Number(to_block))
+            .address(self.messaging_contract_address)
+            .event_signature(log_msg_to_l2_topic);
 
-        for log in self.provider.get_logs(&filters).await?.into_iter() {
+        let logs = provider.get_logs(&filter).await?;
+
+        for log in logs {
             if let Some(block_number) = log.block_number {
-                let block_number = block_number.as_u64();
                 block_to_logs.entry(block_number).or_default().push(log);
             }
         }
@@ -297,30 +295,17 @@ impl EthereumMessaging {
         &self,
         cancellation_delay_seconds: U256,
     ) -> DevnetResult<Address> {
-        // Default value from anvil and hardhat multiplied by 20.
-        let gas_price: U256 = 20000000000_u128.into();
+        let provider =
+            ProviderBuilder::new().wallet(self.wallet.clone()).connect_http(self.node_url.clone());
+        let contract = MockStarknetMessaging::deploy(provider, cancellation_delay_seconds)
+            .await
+            .map_err(|e| {
+                Error::MessagingError(MessagingError::AlloyError(format!(
+                    "Failed deploying MockStarknetMessaging contract: {e}"
+                )))
+            })?;
 
-        let contract = abigen::MockStarknetMessaging::deploy(
-            self.provider_signer.clone(),
-            cancellation_delay_seconds,
-        )
-        .map_err(|e| {
-            Error::MessagingError(MessagingError::EthersError(format!(
-                "Error formatting messaging contract deploy request: {}",
-                e
-            )))
-        })?
-        .gas_price(gas_price)
-        .send()
-        .await
-        .map_err(|e| {
-            Error::MessagingError(MessagingError::EthersError(format!(
-                "Error deploying messaging contract: {}",
-                e
-            )))
-        })?;
-
-        Ok(contract.address())
+        Ok(*contract.address())
     }
 }
 
@@ -330,17 +315,18 @@ impl EthereumMessaging {
 ///
 /// * `log` - The log to be converted.
 pub fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
-    let l1_transaction_hash = log.transaction_hash.map(|h| Hash256::from_bytes(h.to_fixed_bytes()));
-    let parsed_log = <LogMessageToL2 as EthLogDecode>::decode_log(&log.into()).map_err(|e| {
-        Error::MessagingError(MessagingError::EthersError(format!("Log parsing failed {e}")))
+    let l1_transaction_hash = log.transaction_hash.map(|h| Hash256::from_bytes(*h));
+
+    let decoded = LogMessageToL2::decode_log(&log.inner).map_err(|e| {
+        Error::MessagingError(MessagingError::AlloyError(format!("Log parsing failed {e}")))
     })?;
 
-    let from_address = address_to_felt(&parsed_log.from_address)?;
-    let contract_address = ContractAddress::new(u256_to_felt(&parsed_log.to_address)?)?;
-    let entry_point_selector = u256_to_felt(&parsed_log.selector)?;
-    let nonce = u256_to_felt(&parsed_log.nonce)?;
-    let paid_fee_on_l1 = u256_to_felt(&parsed_log.fee)?;
-    let payload = parsed_log.payload.iter().map(u256_to_felt).collect::<Result<_, _>>()?;
+    let from_address = address_to_felt(&decoded.from_address)?;
+    let contract_address = ContractAddress::new(u256_to_felt(&decoded.to_address)?)?;
+    let entry_point_selector = u256_to_felt(&decoded.selector)?;
+    let nonce = u256_to_felt(&decoded.nonce)?;
+    let paid_fee_on_l1 = u256_to_felt(&decoded.fee)?;
+    let payload = decoded.payload.iter().map(u256_to_felt).collect::<Result<_, _>>()?;
 
     Ok(MessageToL2 {
         l1_transaction_hash,
@@ -359,7 +345,7 @@ pub fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
 ///
 /// * `v` - The `U256` to be converted.
 fn u256_to_felt(v: &U256) -> DevnetResult<Felt> {
-    Ok(felt_from_prefixed_hex(format!("0x{:064x}", v).as_str())?)
+    Ok(Felt::from_bytes_be(&v.to_be_bytes()))
 }
 
 /// Converts an `Felt` into a `U256`.
@@ -368,7 +354,7 @@ fn u256_to_felt(v: &U256) -> DevnetResult<Felt> {
 ///
 /// * `f` - The `Felt` to be converted.
 fn felt_to_u256(f: Felt) -> U256 {
-    U256::from_big_endian(&f.to_bytes_be())
+    U256::from_be_bytes(f.to_bytes_be())
 }
 
 /// Converts an `Address` into a `Felt`.
@@ -377,11 +363,12 @@ fn felt_to_u256(f: Felt) -> U256 {
 ///
 /// * `address` - The `Address` to be converted.
 fn address_to_felt(address: &Address) -> DevnetResult<Felt> {
-    Ok(felt_from_prefixed_hex(format!("0x{:064x}", address).as_str())?)
+    Ok(felt_from_prefixed_hex(&format!("0x{}", address.encode_hex()))?)
 }
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
@@ -400,19 +387,20 @@ mod tests {
 
         let payload: Vec<Felt> = vec![1.into(), 2.into()];
 
-        let log = Log {
-            address: H160::from_str("0xde29d060D45901Fb19ED6C6e959EB22d8626708e").unwrap(),
-            topics: vec![
-                H256::from_str(
-                    "0xdb80dd488acf86d17c747445b0eabb5d57c541d3bd7b6b87af987858e5066b2b",
-                )
-                .unwrap(),
-                H256::from_str(from_address).unwrap(),
-                H256::from_str(to_address).unwrap(),
-                H256::from_str(selector).unwrap(),
-            ],
-            data: payload_buf.into(),
-            ..Default::default()
+        let inner = alloy::primitives::Log {
+            address: Address::from_str("0xde29d060D45901Fb19ED6C6e959EB22d8626708e").unwrap(),
+            data: alloy::primitives::LogData::new_unchecked(
+                vec![
+                    B256::from_str(
+                        "0xdb80dd488acf86d17c747445b0eabb5d57c541d3bd7b6b87af987858e5066b2b",
+                    )
+                    .unwrap(),
+                    B256::from_str(from_address).unwrap(),
+                    B256::from_str(to_address).unwrap(),
+                    B256::from_str(selector).unwrap(),
+                ],
+                payload_buf.clone().into(),
+            ),
         };
 
         let expected_message = MessageToL2 {
@@ -428,6 +416,7 @@ mod tests {
             nonce: nonce.into(),
             paid_fee_on_l1: fee.into(),
         };
+        let log = Log { inner, block_number: None, transaction_hash: None, ..Default::default() };
 
         let message = message_to_l2_from_log(log).unwrap();
 

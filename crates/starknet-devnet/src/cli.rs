@@ -247,9 +247,29 @@ Calling devnet_createBlock JSON-RPC method is also an option in modes other than
     #[arg(value_name = "FELTS")]
     #[arg(default_value_t = MAXIMUM_SIERRA_LENGTH)]
     maximum_sierra_length: u64,
+
+    #[arg(long = "metrics-host")]
+    #[arg(env = "METRICS_HOST")]
+    #[arg(value_name = "METRICS_HOST")]
+    #[arg(help = "Specify the address for the metrics server to listen at; If not provided, \
+                  metrics server is not started;")]
+    metrics_host: Option<IpAddrWrapper>,
+
+    #[arg(long = "metrics-port")]
+    #[arg(env = "METRICS_PORT")]
+    #[arg(value_name = "METRICS_PORT")]
+    #[arg(default_value_t = 9090)]
+    #[arg(help = "Specify the port for the metrics server to listen at;")]
+    metrics_port: u16,
 }
 
 impl Args {
+    pub(crate) fn get_metrics_addr(&self) -> Option<std::net::SocketAddr> {
+        self.metrics_host
+            .as_ref()
+            .map(|host| std::net::SocketAddr::new(host.inner, self.metrics_port))
+    }
+
     pub(crate) fn to_config(&self) -> Result<(StarknetConfig, ServerConfig), anyhow::Error> {
         // use account-class-custom if specified; otherwise default to predefined account-class
         let account_class_wrapper = match &self.account_class_custom {
@@ -587,7 +607,9 @@ mod tests {
             ("REQUEST", true, false),
             ("RESPONSE", false, true),
         ] {
-            std::env::set_var(EnvFilter::DEFAULT_ENV, environment_variable);
+            unsafe {
+                std::env::set_var(EnvFilter::DEFAULT_ENV, environment_variable);
+            }
             let RequestResponseLogging { log_request, log_response } =
                 RequestResponseLogging::from_rust_log_environment_variable();
 
@@ -628,7 +650,9 @@ mod tests {
         let config_via_cli = Args::parse_from(cli_args).to_config().unwrap();
 
         for (_, var_name, value) in config_source {
-            std::env::set_var(var_name, value);
+            unsafe {
+                std::env::set_var(var_name, value);
+            }
         }
         let config_via_env = Args::parse_from(["--"]).to_config().unwrap();
 
@@ -639,7 +663,9 @@ mod tests {
 
         // remove var to avoid collision with other tests
         for (_, var_name, _) in config_source {
-            std::env::remove_var(var_name);
+            unsafe {
+                std::env::remove_var(var_name);
+            }
         }
     }
 
@@ -658,7 +684,9 @@ mod tests {
             serde_json::to_value(Args::parse_from(cli_args).to_config().unwrap()).unwrap();
 
         for (_, var_name) in config_source {
-            std::env::set_var(var_name, "true");
+            unsafe {
+                std::env::set_var(var_name, "true");
+            }
         }
         let mut config_via_env =
             serde_json::to_value(Args::parse_from(["--"]).to_config().unwrap()).unwrap();
@@ -672,7 +700,9 @@ mod tests {
 
         // remove var to avoid collision with other tests
         for (var_name, _) in config_source {
-            std::env::remove_var(var_name);
+            unsafe {
+                std::env::remove_var(var_name);
+            }
         }
     }
 

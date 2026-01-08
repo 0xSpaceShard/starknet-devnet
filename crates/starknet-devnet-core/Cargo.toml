@@ -1,6 +1,6 @@
 [package]
 name = "starknet-devnet-core"
-version = "0.6.1"
+version = "0.7.1"
 edition.workspace = true
 repository.workspace = true
 license-file.workspace = true
@@ -15,7 +15,7 @@ workspace = true
 blockifier = { workspace = true, features = ["transaction_serde"] }
 cairo-lang-starknet-classes = { workspace = true }
 clap = { workspace = true }
-ethers = { workspace = true }
+alloy = { workspace = true }
 starknet_api = { workspace = true }
 thiserror = { workspace = true }
 reqwest = { workspace = true }
@@ -33,6 +33,8 @@ url = { workspace = true }
 nonzero_ext = { workspace = true }
 parking_lot = { workspace = true }
 tokio = { workspace = true }
+prometheus = { workspace = true }
+lazy_static = { workspace = true }
 
 # necessary for installing reqwest in Docker
 openssl = { workspace = true }

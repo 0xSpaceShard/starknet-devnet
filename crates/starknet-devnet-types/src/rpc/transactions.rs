@@ -141,6 +141,15 @@ impl TransactionWithHash {
         }
     }
 
+    pub fn get_signature(&self) -> TransactionSignature {
+        match &self.transaction {
+            Transaction::Declare(DeclareTransaction::V3(tx)) => tx.signature.clone(),
+            Transaction::DeployAccount(DeployAccountTransaction::V3(tx)) => tx.signature.clone(),
+            Transaction::Invoke(InvokeTransaction::V3(tx)) => tx.signature.clone(),
+            _ => TransactionSignature::default(),
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn create_common_receipt(
         &self,

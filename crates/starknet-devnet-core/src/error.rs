@@ -137,7 +137,7 @@ impl From<TransactionExecutionError> for Error {
                     Self::ContractExecutionError(err.to_string().into())
                 }
                 TransactionPreValidationError::TransactionFeeError(tx_fee_err) => {
-                    Self::TransactionFeeError(*tx_fee_err)
+                    Self::from(*tx_fee_err)
                 }
             },
             TransactionExecutionError::FeeCheckError(err) => err.into(),
@@ -202,8 +202,8 @@ pub enum MessagingError {
     NotConfigured,
     #[error("An error has occurred during messages conversion: {0}.")]
     ConversionError(String),
-    #[error("Ethers error: {0}.")]
-    EthersError(String),
+    #[error("Alloy error: {0}.")]
+    AlloyError(String),
     #[error("Message to L1 with hash {0} is not present (never received OR already consumed).")]
     MessageToL1NotPresent(String),
     #[error("L1 not compatible: {0}")]

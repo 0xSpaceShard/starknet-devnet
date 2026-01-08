@@ -1,5 +1,8 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use starknet_api::block::{BlockNumber, BlockTimestamp};
+use starknet_api::core::{
+    EventCommitment, ReceiptCommitment, StateDiffCommitment, TransactionCommitment,
+};
 use starknet_api::data_availability::L1DataAvailabilityMode;
 use starknet_rs_core::types::Felt;
 
@@ -59,6 +62,7 @@ impl<'de> Deserialize<'de> for BlockId {
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)] // Block is most dominant variant, doesn't matter if it is larger
 pub enum BlockResult {
     Block(Block),
     PreConfirmedBlock(PreConfirmedBlock),
@@ -108,6 +112,15 @@ pub struct BlockHeader {
     pub l2_gas_price: ResourcePrice,
     pub l1_data_gas_price: ResourcePrice,
     pub l1_da_mode: L1DataAvailabilityMode,
+    pub state_diff_commitment: StateDiffCommitment,
+    pub state_diff_length: u64,
+    pub transaction_commitment: TransactionCommitment,
+    pub event_commitment: EventCommitment,
+    #[serde(rename = "transaction_count")]
+    pub n_transactions: u64,
+    #[serde(rename = "event_count")]
+    pub n_events: u64,
+    pub receipt_commitment: ReceiptCommitment,
 }
 
 #[derive(Debug, Clone, Serialize)]

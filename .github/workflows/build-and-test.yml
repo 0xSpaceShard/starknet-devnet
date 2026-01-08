@@ -12,9 +12,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
-    name: Build and Test
-    runs-on: self-hosted
+  format-check:
+    name: Format and Spelling Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Load common configuration
+        id: config
+        uses: ./.github/actions/load-config
+
+      - name: Set up Rust nightly
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ steps.config.outputs.rust_nightly_version }}
+          components: rustfmt
+
+      - name: Check code formatting
+        run: |
+          cargo +${{ steps.config.outputs.rust_nightly_version }} fmt --all --check
+          cd website && npm ci && npm run format-check
+      
+      - name: Check spelling
+        run: |
+          cargo +${{ steps.config.outputs.rust_nightly_version }} install typos-cli --version 1.36.2 --locked
+          typos && echo "No spelling errors!"
+
+  clippy-and-unit-tests:
+    name: Clippy and Unit Test
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,21 +51,10 @@ jobs:
         uses: ./.github/actions/load-config
 
       - name: Set up Rust stable
-        uses: dtolnay/rust-toolchain@master
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: ${{ steps.config.outputs.rust_stable_version }}
-          components: clippy, rustfmt
-
-      - name: Set up Rust nightly
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ steps.config.outputs.rust_nightly_version }}
-          components: rustfmt
-
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1.1.0
-        with:
-          version: nightly-5b7e4cb3c882b28f3c32ba580de27ce7381f415a
+          components: clippy
 
       - name: Verify lockfile
         run: cargo update -w --locked
@@ -51,19 +67,33 @@ jobs:
           cargo clippy --workspace -- -Dwarnings
           cargo clippy --workspace --all-features -- -Dwarnings
           cargo clippy --workspace --tests -- -Dwarnings
+      
+      - name: Run tests
+        run: RUST_BACKTRACE=full cargo test --workspace --exclude integration --no-fail-fast
 
-      - name: Check code formatting
-        run: |
-          cargo +${{ steps.config.outputs.rust_nightly_version }} fmt --all --check
-          cd website && npm ci && npm run format-check
+  integration-test:
+    name: Integration Test
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Check spelling
-        run: |
-          cargo +${{ steps.config.outputs.rust_nightly_version }} install typos-cli --version 1.36.2 --locked
-          typos && echo "No spelling errors!"
+      - name: Load common configuration
+        id: config
+        uses: ./.github/actions/load-config
+
+      - name: Set up Rust stable
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ steps.config.outputs.rust_stable_version }}
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1.1.0
+        with:
+          version: nightly-5b7e4cb3c882b28f3c32ba580de27ce7381f415a
 
       - name: Build in release mode
         run: cargo build --release
 
       - name: Run tests
-        run: RUST_BACKTRACE=full cargo test --no-fail-fast
+        run: RUST_BACKTRACE=full cargo test --package integration --no-fail-fast

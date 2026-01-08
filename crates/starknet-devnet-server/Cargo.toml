@@ -1,6 +1,6 @@
 [package]
 name = "starknet-devnet-server"
-version = "0.6.1"
+version = "0.7.1"
 edition = "2021"
 repository.workspace = true
 license-file.workspace = true
@@ -44,9 +44,13 @@ url = { workspace = true }
 starknet-core = { workspace = true }
 starknet-types = { workspace = true }
 
+# metrics
+prometheus = { workspace = true }
+lazy_static = { workspace = true }
+
 [dev-dependencies]
 rand_chacha = { workspace = true }
-regex_generate = { workspace = true }
+rand_regex = { workspace = true }
 serde_yaml = { workspace = true }
 starknet-types = { workspace = true, features = ["testing"] }
 

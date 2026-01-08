@@ -29,7 +29,8 @@ use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
 use starknet_types::chain_id::ChainId;
 use starknet_types::rpc::state::Balance;
 use starknet_types::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
-use tokio::net::TcpListener;
+use tokio::io::AsyncWriteExt;
+use tokio::net::{TcpListener, UnixStream};
 #[cfg(unix)]
 use tokio::signal::unix::{SignalKind, signal};
 #[cfg(windows)]
@@ -42,6 +43,7 @@ use tracing_subscriber::EnvFilter;
 mod cli;
 mod initial_balance_wrapper;
 mod ip_addr_wrapper;
+mod metrics;
 
 const REQUEST_LOG_ENV_VAR: &str = "request";
 const RESPONSE_LOG_ENV_VAR: &str = "response";
@@ -234,6 +236,8 @@ pub async fn set_and_log_fork_config(
     fork_config: &mut ForkConfig,
     json_rpc_client: &JsonRpcClient<HttpTransport>,
 ) -> Result<(), anyhow::Error> {
+    check_forking_spec_version(json_rpc_client).await?;
+
     let block_id = fork_config.block_number.map_or(BlockId::Tag(BlockTag::Latest), BlockId::Number);
 
     let block = json_rpc_client.get_block_with_tx_hashes(block_id).await.map_err(|e| {
@@ -249,12 +253,16 @@ pub async fn set_and_log_fork_config(
         MaybePreConfirmedBlockWithTxHashes::Block(b) => {
             fork_config.block_number = Some(b.block_number);
             fork_config.block_hash = Some(b.block_hash);
-            println!("Forking from block: number={}, hash={:#x}", b.block_number, b.block_hash);
+            info!("Forking from block: number={}, hash={:#x}", b.block_number, b.block_hash);
         }
-        _ => panic!("Unreachable"),
+        MaybePreConfirmedBlockWithTxHashes::PreConfirmedBlock(_) => {
+            error!(
+                "Block from origin deserialized as pre-confirmed. Most likely RPC version \
+                 incompatibility."
+            );
+            std::process::exit(1);
+        }
     };
-
-    check_forking_spec_version(json_rpc_client).await?;
 
     Ok(())
 }
@@ -272,6 +280,7 @@ async fn bind_port(
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
+    let timestamp = std::time::Instant::now();
     configure_tracing();
 
     // parse arguments
@@ -330,10 +339,32 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     };
 
+    let acquired_port = listener.local_addr()?.port();
+
     let server = serve_http_json_rpc(listener, &api.server_config, json_rpc_handler).await;
     info!("Starknet Devnet listening on {}", address);
 
+    #[cfg(unix)]
+    if let Ok(socket_path) = std::env::var("UNIX_SOCKET") {
+        match UnixStream::connect(&socket_path).await {
+            Ok(mut stream) => {
+                stream.write_all(&acquired_port.to_be_bytes()).await?;
+                stream.shutdown().await?;
+                println!("Successfully wrote port to unix socket: {}", socket_path);
+            }
+            Err(e) => {
+                println!("Couldn't connect to unix socket: {socket_path}, reason: {e}");
+            }
+        }
+    }
+
     let mut tasks = vec![];
+
+    // Start metrics server if configured
+    if let Some(metrics_addr) = args.get_metrics_addr() {
+        let metrics_handle = task::spawn(metrics::start_metrics_server(metrics_addr));
+        tasks.push(metrics_handle);
+    }
 
     if let BlockGenerationOn::Interval(seconds) = starknet_config.block_generation_on {
         // use JoinHandle to run block interval creation as a task
@@ -347,6 +378,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let server_handle =
         task::spawn(server.with_graceful_shutdown(shutdown_signal(api)).into_future());
     tasks.push(server_handle);
+
+    tracing::debug!("Starknet Devnet started in {:.2?}", timestamp.elapsed());
 
     // join all tasks
     let results = join_all(tasks).await;
@@ -423,7 +456,9 @@ mod tests {
         env_var: &str,
         expected_level: LevelFilter,
     ) {
-        std::env::set_var(EnvFilter::DEFAULT_ENV, env_var);
+        unsafe {
+            std::env::set_var(EnvFilter::DEFAULT_ENV, env_var);
+        }
         configure_tracing();
 
         assert_eq!(LevelFilter::current(), expected_level);

@@ -10,6 +10,8 @@ use crate::felt::{BlockHash, TransactionHash};
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct EmittedEvent {
     pub transaction_hash: TransactionHash,
+    pub transaction_index: u64,
+    pub event_index: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub block_hash: Option<BlockHash>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -23,6 +25,8 @@ impl From<starknet_rs_core::types::EmittedEvent> for EmittedEvent {
     fn from(sn_rs_event: starknet_rs_core::types::EmittedEvent) -> Self {
         Self {
             transaction_hash: sn_rs_event.transaction_hash,
+            transaction_index: sn_rs_event.transaction_index,
+            event_index: sn_rs_event.event_index,
             block_hash: sn_rs_event.block_hash,
             block_number: sn_rs_event.block_number.map(BlockNumber),
             #[allow(clippy::expect_used)]

@@ -17,7 +17,7 @@ use tower_http::trace::TraceLayer;
 use crate::api::JsonRpcHandler;
 use crate::rpc_handler::RpcHandler;
 use crate::{ServerConfig, rpc_handler};
-pub type StarknetDevnetServer = axum::serve::Serve<IntoMakeService<Router>, Router>;
+pub type StarknetDevnetServer = axum::serve::Serve<TcpListener, IntoMakeService<Router>, Router>;
 
 fn json_rpc_routes<TJsonRpcHandler: RpcHandler>(json_rpc_handler: TJsonRpcHandler) -> Router {
     Router::new()
@@ -43,7 +43,10 @@ pub async fn serve_http_json_rpc(
     };
 
     routes = routes
-        .layer(TimeoutLayer::new(Duration::from_secs(server_config.timeout.into())))
+        .layer(TimeoutLayer::with_status_code(
+            StatusCode::REQUEST_TIMEOUT,
+            Duration::from_secs(server_config.timeout.into()),
+        ))
         .layer(DefaultBodyLimit::disable())
         .layer(
             // More details: https://docs.rs/tower-http/latest/tower_http/cors/index.html

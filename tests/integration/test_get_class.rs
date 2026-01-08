@@ -265,7 +265,7 @@ async fn getting_compiled_casm_for_cairo_1_should_succeed() {
         devnet.json_rpc_client.get_class_hash_at(block_id, account_address).await.unwrap();
 
     let casm = get_compiled_casm(&devnet, class_hash).await.unwrap();
-    assert_eq!(casm.hash(&HashVersion::V1).0, expected_casm_hash);
+    assert_eq!(casm.hash(&HashVersion::V2).0, expected_casm_hash);
 }
 
 async fn get_compiled_casm(

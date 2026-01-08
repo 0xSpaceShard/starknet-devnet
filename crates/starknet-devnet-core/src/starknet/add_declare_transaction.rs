@@ -124,7 +124,7 @@ fn assert_casm_hash_is_valid(
         (ContractClass::Cairo1(cairo_lang_contract_class), Some(received_casm_hash)) => {
             let casm = compile_sierra_contract(cairo_lang_contract_class)?;
 
-            let calculated_casm_hash = casm.hash(&HashVersion::V1).0;
+            let calculated_casm_hash = casm.hash(&HashVersion::V2).0;
             if calculated_casm_hash == received_casm_hash {
                 Ok(())
             } else {
@@ -139,7 +139,6 @@ fn assert_casm_hash_is_valid(
 
 #[cfg(test)]
 mod tests {
-    use blockifier::transaction::errors::TransactionFeeError;
     use starknet_api::data_availability::DataAvailabilityMode;
     use starknet_rs_core::types::{Felt, TransactionExecutionStatus};
     use starknet_types::constants::QUERY_VERSION_OFFSET;
@@ -263,9 +262,9 @@ mod tests {
         );
 
         match starknet.add_declare_transaction(declare_tx.into()) {
-            Err(Error::TransactionFeeError(TransactionFeeError::InsufficientResourceBounds {
-                ..
-            })) => {}
+            Err(Error::TransactionValidationError(
+                TransactionValidationError::InsufficientResourcesForValidate,
+            )) => {}
             other => panic!("Unexpected result: {other:?}"),
         }
     }
@@ -281,9 +280,9 @@ mod tests {
         );
 
         match starknet.add_declare_transaction(declare_tx.into()).unwrap_err() {
-            Error::TransactionFeeError(TransactionFeeError::ResourcesBoundsExceedBalance {
-                ..
-            }) => {}
+            Error::TransactionValidationError(
+                TransactionValidationError::InsufficientAccountBalance,
+            ) => {}
             err => panic!("Wrong error type received {:?}", err),
         }
     }
