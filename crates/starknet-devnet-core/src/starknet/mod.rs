@@ -19,7 +19,6 @@ use starknet_api::block::{
 use starknet_api::block_hash::block_hash_calculator::calculate_block_commitments;
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::data_availability::DataAvailabilityMode;
-use starknet_api::state::ThinStateDiff as ThinStateDiffImported;
 use starknet_api::transaction::fields::{GasVectorComputationMode, Tip};
 use starknet_api::transaction::{TransactionHasher, TransactionVersion};
 use starknet_rs_core::types::{Felt, Hash256, MsgFromL1};
@@ -435,21 +434,23 @@ impl Starknet {
             .map(|tx| tx.into())
             .collect();
 
-        let thin_state_diff: ThinStateDiffImported = self.pre_confirmed_state_diff.clone().into();
+        let thin_state_diff = self.pre_confirmed_state_diff.clone().into();
 
-        let commitments = calculate_block_commitments(
-            &transaction_data,
-            &thin_state_diff,
-            l1_da_mode,
-            &starknet_version,
-        );
+        if !self.config.lite_mode {
+            let commitments = calculate_block_commitments(
+                &transaction_data,
+                &thin_state_diff,
+                l1_da_mode,
+                &starknet_version,
+            );
+            new_block.set_commitments(commitments);
+        }
 
         new_block.set_counts(
             transaction_data.len(),
             transaction_data.iter().map(|tx| tx.transaction_output.events.len()).sum(),
             thin_state_diff.len(),
         );
-        new_block.set_commitments(commitments);
 
         // insert pre_confirmed block in the blocks collection and connect it to the state diff
         self.blocks.insert(new_block, self.pre_confirmed_state_diff.clone());
