@@ -87,7 +87,7 @@ mod add_deploy_account_transaction;
 mod add_invoke_transaction;
 mod add_l1_handler_transaction;
 mod cheats;
-pub(crate) mod defaulter;
+pub mod defaulter;
 mod estimations;
 pub mod events;
 mod get_class_impls;
@@ -158,6 +158,7 @@ impl Default for Starknet {
 impl Starknet {
     pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
         let defaulter = StarknetDefaulter::new(config.fork_config.clone());
+
         let rpc_contract_classes = Arc::new(RwLock::new(CommittedClassStorage::default()));
         let mut state = StarknetState::new(defaulter, rpc_contract_classes.clone());
 
