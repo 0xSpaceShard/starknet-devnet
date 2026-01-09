@@ -1,7 +1,7 @@
 #![allow(clippy::expect_used)]
 
 use lazy_static::lazy_static;
-use prometheus::{Histogram, HistogramVec, IntCounter, IntCounterVec, Opts};
+use prometheus::{Histogram, HistogramVec, IntCounter, IntCounterVec, IntGauge, Opts};
 
 lazy_static! {
     /// Counter tracking total number of transactions in Starknet
@@ -49,6 +49,27 @@ lazy_static! {
         &["method", "status"]
     )
     .expect("Failed to create UPSTREAM_CALL_COUNT counter");
+
+    /// Counter tracking upstream forking origin cache hits
+    pub static ref UPSTREAM_CACHE_HIT_COUNT: IntCounterVec = IntCounterVec::new(
+        Opts::new("starknet_upstream_cache_hit_count", "Total number of upstream forking origin cache hits"),
+        &["method"]
+    )
+    .expect("Failed to create UPSTREAM_CACHE_HIT_COUNT counter");
+
+    /// Counter tracking upstream forking origin cache misses
+    pub static ref UPSTREAM_CACHE_MISS_COUNT: IntCounterVec = IntCounterVec::new(
+        Opts::new("starknet_upstream_cache_miss_count", "Total number of upstream forking origin cache misses"),
+        &["method"]
+    )
+    .expect("Failed to create UPSTREAM_CACHE_MISS_COUNT counter");
+
+    /// Gauge tracking current size of upstream forking origin cache
+    pub static ref UPSTREAM_CACHE_SIZE: IntGauge = IntGauge::new(
+        "starknet_upstream_cache_size",
+        "Current number of items in the upstream forking origin cache"
+    )
+    .expect("Failed to create UPSTREAM_CACHE_SIZE gauge");
 }
 
 /// Register all core metrics with the provided registry
@@ -58,5 +79,8 @@ pub fn register_metrics(registry: &prometheus::Registry) -> Result<(), prometheu
     registry.register(Box::new(BLOCK_CREATION_DURATION.clone()))?;
     registry.register(Box::new(UPSTREAM_CALL_DURATION.clone()))?;
     registry.register(Box::new(UPSTREAM_CALL_COUNT.clone()))?;
+    registry.register(Box::new(UPSTREAM_CACHE_HIT_COUNT.clone()))?;
+    registry.register(Box::new(UPSTREAM_CACHE_MISS_COUNT.clone()))?;
+    registry.register(Box::new(UPSTREAM_CACHE_SIZE.clone()))?;
     Ok(())
 }

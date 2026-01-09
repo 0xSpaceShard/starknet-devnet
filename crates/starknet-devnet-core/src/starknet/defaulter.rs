@@ -136,7 +136,10 @@ impl BlockingOriginReader {
         if let Ok(mut cache) = CACHE.lock() {
             if let Some(cached) = cache.get(&body.to_string()) {
                 debug!("Forking origin cache hit for {body:?}");
+                crate::metrics::UPSTREAM_CACHE_HIT_COUNT.with_label_values(&[method]).inc();
                 return Ok(cached.clone());
+            } else {
+                crate::metrics::UPSTREAM_CACHE_MISS_COUNT.with_label_values(&[method]).inc();
             }
         }
 
@@ -152,6 +155,8 @@ impl BlockingOriginReader {
                     debug!("Forking origin received {body:?} and successfully returned: {result}");
                     if let Ok(mut cache) = CACHE.lock() {
                         cache.put(body.to_string(), result.clone());
+                        // Update cache size
+                        crate::metrics::UPSTREAM_CACHE_SIZE.set(cache.len() as i64);
                     }
                     Ok(result.clone())
                 }
