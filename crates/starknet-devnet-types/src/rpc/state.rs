@@ -69,6 +69,27 @@ pub struct ThinStateDiff {
     pub migrated_compiled_classes: Option<Vec<ClassHashPair>>,
 }
 
+impl ThinStateDiff {
+    pub fn len(&self) -> usize {
+        let mut result = 0usize;
+        result += self.deployed_contracts.len();
+        result += self.declared_classes.len();
+        result += self.deprecated_declared_classes.len();
+        result += self.nonces.len();
+        for diff in &self.storage_diffs {
+            result += diff.storage_entries.len();
+        }
+        result
+    }
+    pub fn is_empty(&self) -> bool {
+        self.deployed_contracts.is_empty()
+            && self.declared_classes.is_empty()
+            && self.deprecated_declared_classes.is_empty()
+            && self.nonces.is_empty()
+            && self.storage_diffs.iter().all(|s| s.storage_entries.is_empty())
+    }
+}
+
 /// A deployed contract in Starknet.
 #[derive(Debug, Default, Clone, Serialize)]
 #[cfg_attr(
