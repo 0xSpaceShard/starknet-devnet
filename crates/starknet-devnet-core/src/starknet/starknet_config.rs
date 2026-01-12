@@ -81,13 +81,20 @@ impl std::str::FromStr for BlockGenerationOn {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ForkConfig {
     #[serde(serialize_with = "serialize_config_url")]
     pub url: Option<Url>,
     pub block_number: Option<u64>,
     #[serde(skip)]
     pub block_hash: Option<Felt>,
+    pub caching_enabled: bool,
+}
+
+impl Default for ForkConfig {
+    fn default() -> Self {
+        Self { url: None, block_number: None, block_hash: None, caching_enabled: true }
+    }
 }
 
 pub fn serialize_config_url<S>(url: &Option<Url>, serializer: S) -> Result<S::Ok, S::Error>

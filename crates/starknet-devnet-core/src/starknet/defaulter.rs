@@ -54,11 +54,12 @@ struct BlockingOriginReader {
     url: url::Url,
     block_number: u64,
     client: reqwest::Client,
+    caching_enabled: bool,
 }
 
 impl BlockingOriginReader {
-    fn new(url: url::Url, block_number: u64) -> Self {
-        Self { url, block_number, client: reqwest::Client::new() }
+    fn new(url: url::Url, block_number: u64, caching_enabled: bool) -> Self {
+        Self { url, block_number, client: reqwest::Client::new(), caching_enabled }
     }
 
     /// Sends the `body` as JSON payload of a POST request. Expects JSON in response and returns it.
@@ -133,13 +134,15 @@ impl BlockingOriginReader {
         });
 
         // Forking is done at specified block, so responses should not change
-        if let Ok(mut cache) = CACHE.lock() {
-            if let Some(cached) = cache.get(&body.to_string()) {
-                debug!("Forking origin cache hit for {body:?}");
-                crate::metrics::UPSTREAM_CACHE_HIT_COUNT.with_label_values(&[method]).inc();
-                return Ok(cached.clone());
-            } else {
-                crate::metrics::UPSTREAM_CACHE_MISS_COUNT.with_label_values(&[method]).inc();
+        if self.caching_enabled {
+            if let Ok(mut cache) = CACHE.lock() {
+                if let Some(cached) = cache.get(&body.to_string()) {
+                    debug!("Forking origin cache hit for {body:?}");
+                    crate::metrics::UPSTREAM_CACHE_HIT_COUNT.with_label_values(&[method]).inc();
+                    return Ok(cached.clone());
+                } else {
+                    crate::metrics::UPSTREAM_CACHE_MISS_COUNT.with_label_values(&[method]).inc();
+                }
             }
         }
 
@@ -153,10 +156,12 @@ impl BlockingOriginReader {
                     Err(OriginError::NoResult)
                 } else {
                     debug!("Forking origin received {body:?} and successfully returned: {result}");
-                    if let Ok(mut cache) = CACHE.lock() {
-                        cache.put(body.to_string(), result.clone());
-                        // Update cache size
-                        crate::metrics::UPSTREAM_CACHE_SIZE.set(cache.len() as i64);
+                    if self.caching_enabled {
+                        if let Ok(mut cache) = CACHE.lock() {
+                            cache.put(body.to_string(), result.clone());
+                            // Update cache size
+                            crate::metrics::UPSTREAM_CACHE_SIZE.set(cache.len() as i64);
+                        }
                     }
                     Ok(result.clone())
                 }
@@ -189,7 +194,7 @@ impl StarknetDefaulter {
     pub fn new(fork_config: ForkConfig) -> Self {
         let origin_reader =
             if let (Some(fork_url), Some(block)) = (fork_config.url, fork_config.block_number) {
-                Some(BlockingOriginReader::new(fork_url, block))
+                Some(BlockingOriginReader::new(fork_url, block, fork_config.caching_enabled))
             } else {
                 None
             };
