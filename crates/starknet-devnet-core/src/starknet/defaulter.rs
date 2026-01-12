@@ -1,6 +1,11 @@
+use std::num::NonZero;
+use std::sync::Mutex;
+
 use blockifier::execution::contract_class::RunnableCompiledClass;
 use blockifier::state::errors::StateError;
 use blockifier::state::state_api::StateResult;
+use lru::LruCache;
+use once_cell::sync::Lazy;
 use starknet_api::core::{ClassHash, ContractAddress, Nonce, PatriciaKey};
 use starknet_api::state::StorageKey;
 use starknet_rs_core::types::Felt;
@@ -9,6 +14,10 @@ use tokio::sync::oneshot;
 use tracing::debug;
 
 use super::starknet_config::ForkConfig;
+
+#[allow(clippy::unwrap_used)] // safe: 128 is non-zero
+static CACHE: Lazy<Mutex<LruCache<String, serde_json::Value>>> =
+    Lazy::new(|| Mutex::new(LruCache::new(NonZero::new(128).unwrap())));
 
 #[derive(thiserror::Error, Debug)]
 enum OriginError {
@@ -45,11 +54,12 @@ struct BlockingOriginReader {
     url: url::Url,
     block_number: u64,
     client: reqwest::Client,
+    caching_enabled: bool,
 }
 
 impl BlockingOriginReader {
-    fn new(url: url::Url, block_number: u64) -> Self {
-        Self { url, block_number, client: reqwest::Client::new() }
+    fn new(url: url::Url, block_number: u64, caching_enabled: bool) -> Self {
+        Self { url, block_number, client: reqwest::Client::new(), caching_enabled }
     }
 
     /// Sends the `body` as JSON payload of a POST request. Expects JSON in response and returns it.
@@ -123,6 +133,19 @@ impl BlockingOriginReader {
             "id": 0,
         });
 
+        // Forking is done at specified block, so responses should not change
+        if self.caching_enabled {
+            if let Ok(mut cache) = CACHE.lock() {
+                if let Some(cached) = cache.get(&body.to_string()) {
+                    debug!("Forking origin cache hit for {body:?}");
+                    crate::metrics::UPSTREAM_CACHE_HIT_COUNT.with_label_values(&[method]).inc();
+                    return Ok(cached.clone());
+                } else {
+                    crate::metrics::UPSTREAM_CACHE_MISS_COUNT.with_label_values(&[method]).inc();
+                }
+            }
+        }
+
         let result = match self.blocking_post(body.clone()) {
             Ok(resp_json_value) => {
                 let result = &resp_json_value["result"];
@@ -133,6 +156,13 @@ impl BlockingOriginReader {
                     Err(OriginError::NoResult)
                 } else {
                     debug!("Forking origin received {body:?} and successfully returned: {result}");
+                    if self.caching_enabled {
+                        if let Ok(mut cache) = CACHE.lock() {
+                            cache.put(body.to_string(), result.clone());
+                            // Update cache size
+                            crate::metrics::UPSTREAM_CACHE_SIZE.set(cache.len() as i64);
+                        }
+                    }
                     Ok(result.clone())
                 }
             }
@@ -164,7 +194,11 @@ impl StarknetDefaulter {
     pub fn new(fork_config: ForkConfig) -> Self {
         let origin_reader =
             if let (Some(fork_url), Some(block)) = (fork_config.url, fork_config.block_number) {
-                Some(BlockingOriginReader::new(fork_url, block))
+                Some(BlockingOriginReader::new(
+                    fork_url,
+                    block,
+                    fork_config.caching_enabled.unwrap_or(false),
+                ))
             } else {
                 None
             };

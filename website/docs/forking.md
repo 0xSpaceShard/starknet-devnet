@@ -14,6 +14,20 @@ When you send a request to a forked Devnet instance, it first queries Devnet's l
 
 :::
 
+## Upstream caching
+
+By default, Devnet does not cache responses from the fork upstream network. However, you can enable caching to improve performance and reduce the number of requests sent to the origin by using the `--fork-upstream-caching` flag:
+
+```
+$ starknet-devnet --fork-network <URL> --fork-upstream-caching
+```
+
+:::tip Performance improvement
+
+Enabling upstream caching can significantly improve performance by reducing redundant requests to the fork origin.
+
+:::
+
 ## Forking and ACCEPTED_ON_L1
 
 Assume you have run Devnet as a fork from an origin at a block that is not yet `ACCEPTED_ON_L1`, but only `ACCEPTED_ON_L2`. If in your state queries you specify `block_id: "l1_accepted"`, and there are no local blocks marked as `ACCEPTED_ON_L1`, Devnet will assume the forking block has become `ACCEPTED_ON_L1`.

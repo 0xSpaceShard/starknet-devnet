@@ -222,6 +222,12 @@ Calling devnet_createBlock JSON-RPC method is also an option in modes other than
     #[arg(requires = "fork_network")]
     fork_block: Option<u64>,
 
+    #[arg(long = "fork-upstream-caching")]
+    #[arg(env = "FORK_UPSTREAM_CACHING")]
+    #[arg(help = "Enable caching of fork upstream data;")]
+    #[arg(requires = "fork_network")]
+    fork_upstream_caching: Option<bool>,
+
     #[arg(long = "restrictive-mode")]
     #[arg(env = "RESTRICTIVE_MODE")]
     #[arg(num_args = 0..)]
@@ -303,6 +309,7 @@ impl Args {
                 url: self.fork_network.clone(),
                 block_number: self.fork_block,
                 block_hash: None,
+                caching_enabled: self.fork_upstream_caching,
             },
             predeclare_argent: self.predeclare_argent,
             class_size_config: ClassSizeConfig {

@@ -35,7 +35,7 @@ async fn test_fork_status() {
     let origin_devnet_config = origin_devnet.get_config().await;
     assert_eq!(
         origin_devnet_config["fork_config"],
-        serde_json::json!({ "url": null, "block_number": null })
+        serde_json::json!({ "url": null, "block_number": null, "caching_enabled": null})
     );
 
     let fork_devnet = origin_devnet.fork().await.unwrap();
