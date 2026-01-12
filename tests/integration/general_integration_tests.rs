@@ -50,6 +50,7 @@ async fn test_config() {
         "fork_config": {
             "url": null,
             "block_number": null,
+            "caching_enabled": null
         },
         "server_config": {
             "host": "0.0.0.0",
