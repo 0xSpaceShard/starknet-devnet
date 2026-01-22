@@ -249,7 +249,7 @@ mod tests {
     use starknet_types::rpc::block::{BlockId, BlockTag};
     use starknet_types::rpc::state::{Balance, ReplacedClasses};
     use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
-    use starknet_types::traits::HashProducer;
+    use starknet_types::traits::TryHashProducer;
 
     use super::StateDiff;
     use crate::account::Account;
@@ -339,7 +339,7 @@ mod tests {
 
         let account_without_validations_contract_class = cairo_0_account_without_validations();
         let account_without_validations_class_hash =
-            account_without_validations_contract_class.generate_hash().unwrap();
+            account_without_validations_contract_class.try_generate_hash().unwrap();
 
         let account = Account::new(
             Balance::from(u128::MAX),
@@ -355,8 +355,8 @@ mod tests {
         account.deploy(&mut starknet.pre_confirmed_state).unwrap();
 
         starknet.commit_diff().unwrap();
-        starknet.generate_new_block_and_state().unwrap();
-        starknet.restart_pre_confirmed_block().unwrap();
+        starknet.generate_new_block_and_state();
+        starknet.restart_pre_confirmed_block();
 
         // dummy contract
         let replaceable_contract = dummy_cairo_1_contract_class();
@@ -389,17 +389,17 @@ mod tests {
         }
 
         let replaceable_contract_address = ContractAddress::new(Felt::ONE).unwrap();
-        let old_class_hash = ContractClass::Cairo1(replaceable_contract).generate_hash().unwrap();
+        let old_class_hash = ContractClass::Cairo1(replaceable_contract).try_generate_hash().unwrap();
         starknet
             .pre_confirmed_state
             .predeploy_contract(replaceable_contract_address, old_class_hash)
             .unwrap();
 
         starknet.commit_diff().unwrap();
-        starknet.generate_new_block_and_state().unwrap();
-        starknet.restart_pre_confirmed_block().unwrap();
+        starknet.generate_new_block_and_state();
+        starknet.restart_pre_confirmed_block();
 
-        let new_class_hash = ContractClass::Cairo1(replacing_contract).generate_hash().unwrap();
+        let new_class_hash = ContractClass::Cairo1(replacing_contract).try_generate_hash().unwrap();
 
         let invoke_txn = test_invoke_transaction_v3(
             account.account_address,

@@ -23,7 +23,7 @@ use starknet_types_core::felt::Felt;
 
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
-use crate::traits::HashProducer;
+use crate::traits::TryHashProducer;
 use crate::utils::compile_sierra_contract;
 
 pub mod deprecated;
@@ -167,11 +167,11 @@ impl TryFrom<ContractClass> for ClassInfo {
     }
 }
 
-impl HashProducer for ContractClass {
+impl TryHashProducer for ContractClass {
     type Error = Error;
-    fn generate_hash(&self) -> DevnetResult<Felt> {
+    fn try_generate_hash(&self) -> DevnetResult<Felt> {
         match self {
-            ContractClass::Cairo0(contract) => Ok(contract.generate_hash()?),
+            ContractClass::Cairo0(contract) => Ok(contract.try_generate_hash()?),
             ContractClass::Cairo1(sierra) => {
                 let sierra_felt252_hash = compute_sierra_class_hash(sierra)?;
                 Ok(sierra_felt252_hash)
@@ -383,7 +383,7 @@ mod tests {
     use crate::contract_class::{ContractClass, convert_sierra_to_codegen};
     use crate::felt::felt_from_prefixed_hex;
     use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
-    use crate::traits::HashProducer;
+    use crate::traits::TryHashProducer;
     use crate::utils::test_utils::{
         CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH, CAIRO_1_CONTRACT_SIERRA_HASH,
         CAIRO_1_EVENTS_CONTRACT_PATH,
@@ -399,7 +399,7 @@ mod tests {
         );
         assert_eq!(
             felt_from_prefixed_hex(CAIRO_1_CONTRACT_SIERRA_HASH).unwrap(),
-            cairo_1_contract_sierra.generate_hash().unwrap()
+            cairo_1_contract_sierra.try_generate_hash().unwrap()
         );
     }
 
@@ -421,7 +421,7 @@ mod tests {
     fn cairo_0_contract_class_hash_generated_successfully() {
         let json_str = std::fs::read_to_string(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
         let contract_class = Cairo0Json::raw_json_from_json_str(&json_str).unwrap();
-        let class_hash = contract_class.generate_hash().unwrap();
+        let class_hash = contract_class.try_generate_hash().unwrap();
         let expected_class_hash = felt_from_prefixed_hex(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap();
         assert_eq!(class_hash, expected_class_hash);
     }
@@ -441,7 +441,7 @@ mod tests {
             "../../contracts/test_artifacts/cairo0/ERC20_starknet_js.json",
         )
         .unwrap();
-        let class_hash = contract_class.generate_hash().unwrap();
+        let class_hash = contract_class.try_generate_hash().unwrap();
 
         // data taken from https://github.com/0xs34n/starknet.js/blob/ce57fdcaba61a8ef2382acc9233a9aac2ac8589a/__tests__/fixtures.ts#L126
         let expected_class_hash = felt_from_prefixed_hex(
@@ -472,7 +472,7 @@ mod tests {
         let deprecated_contract_class =
             DeprecatedContractClass { program: program.clone(), abi, entry_points_by_type };
 
-        assert_eq!(deprecated_contract_class.generate_hash().unwrap(), expected_class_hash);
+        assert_eq!(deprecated_contract_class.try_generate_hash().unwrap(), expected_class_hash);
 
         // check if generated class hash is the same when deserializing to `DeprecatedContractClass`
         let serialized_deprecated_contract_class =
@@ -480,7 +480,7 @@ mod tests {
         assert_eq!(
             DeprecatedContractClass::rpc_from_json_str(&serialized_deprecated_contract_class)
                 .unwrap()
-                .generate_hash()
+                .try_generate_hash()
                 .unwrap(),
             expected_class_hash
         );

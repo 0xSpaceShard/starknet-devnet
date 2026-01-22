@@ -97,7 +97,7 @@ pub(crate) mod test_utils {
         BroadcastedTransactionCommonV3, DeclareTransaction, ResourceBoundsWrapper, Transaction,
         TransactionWithHash,
     };
-    use starknet_types::traits::HashProducer;
+    use starknet_types::traits::TryHashProducer;
 
     use crate::account::KeyPair;
     use crate::constants::DEVNET_DEFAULT_CHAIN_ID;
@@ -186,7 +186,7 @@ pub(crate) mod test_utils {
             ),
         );
         let sierra_hash =
-            ContractClass::Cairo1(declare_txn.contract_class.clone()).generate_hash().unwrap();
+            ContractClass::Cairo1(declare_txn.contract_class.clone()).try_generate_hash().unwrap();
 
         let tx_hash = BroadcastedDeclareTransaction::V3(Box::new(declare_txn.clone()))
             .create_sn_api_declare(&DEVNET_DEFAULT_CHAIN_ID.to_felt())

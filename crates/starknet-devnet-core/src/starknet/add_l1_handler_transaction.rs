@@ -57,7 +57,7 @@ mod tests {
     use starknet_types::rpc::transactions::{
         ExecutionInvocation, TransactionFinalityStatus, TransactionTrace,
     };
-    use starknet_types::traits::HashProducer;
+    use starknet_types::traits::TryHashProducer;
 
     use crate::account::Account;
     use crate::constants::{
@@ -194,7 +194,7 @@ mod tests {
         // deploy account contract
         let account_without_validations_contract_class = cairo_0_account_without_validations();
         let account_without_validations_class_hash =
-            account_without_validations_contract_class.generate_hash().unwrap();
+            account_without_validations_contract_class.try_generate_hash().unwrap();
 
         let account = Account::new(
             Balance::from(10000_u32),
@@ -236,7 +236,7 @@ mod tests {
             .unwrap();
 
         let dummy_contract_address = ContractAddress::new(Felt::from(5)).unwrap();
-        let dummy_contract_class_hash = dummy_contract.generate_hash().unwrap();
+        let dummy_contract_class_hash = dummy_contract.try_generate_hash().unwrap();
 
         // declare dummy contract
         starknet
@@ -262,7 +262,7 @@ mod tests {
             DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
 
-        starknet.restart_pre_confirmed_block().unwrap();
+        starknet.restart_pre_confirmed_block();
 
         (
             starknet,
