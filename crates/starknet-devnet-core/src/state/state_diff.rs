@@ -389,7 +389,8 @@ mod tests {
         }
 
         let replaceable_contract_address = ContractAddress::new(Felt::ONE).unwrap();
-        let old_class_hash = ContractClass::Cairo1(replaceable_contract).try_generate_hash().unwrap();
+        let old_class_hash =
+            ContractClass::Cairo1(replaceable_contract).try_generate_hash().unwrap();
         starknet
             .pre_confirmed_state
             .predeploy_contract(replaceable_contract_address, old_class_hash)

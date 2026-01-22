@@ -347,7 +347,6 @@ impl Starknet {
         };
 
         self.restart_pre_confirmed_block();
-
     }
 
     fn next_block_timestamp(&mut self) -> BlockTimestamp {
@@ -686,7 +685,6 @@ impl Starknet {
         block.set_timestamp(self.block_context.block_info().block_timestamp);
 
         self.blocks.pre_confirmed_block = block;
-
     }
 
     fn get_mut_state_at(&mut self, block_id: &CustomBlockId) -> DevnetResult<&mut StarknetState> {
@@ -1486,7 +1484,6 @@ impl Starknet {
         if create_block {
             self.create_block();
         }
-
     }
 
     // Set timestamp shift and create empty block
