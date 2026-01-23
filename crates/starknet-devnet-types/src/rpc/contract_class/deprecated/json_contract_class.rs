@@ -13,7 +13,7 @@ use starknet_types_core::hash::{Pedersen, StarkHash};
 use crate::contract_class::deprecated::rpc_contract_class::DeprecatedContractClass;
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::felt::felt_from_prefixed_hex;
-use crate::traits::HashProducer;
+use crate::traits::TryHashProducer;
 use crate::utils::StarknetFormatter;
 
 #[derive(Clone, Eq, PartialEq, Debug, Default, Serialize, Deserialize)]
@@ -209,9 +209,9 @@ impl TryInto<CompressedLegacyContractClass> for Cairo0Json {
     }
 }
 
-impl HashProducer for Cairo0Json {
+impl TryHashProducer for Cairo0Json {
     type Error = Error;
-    fn generate_hash(&self) -> DevnetResult<Felt> {
+    fn try_generate_hash(&self) -> DevnetResult<Felt> {
         Cairo0Json::compute_cairo_0_contract_class_hash(&self.inner)
     }
 }

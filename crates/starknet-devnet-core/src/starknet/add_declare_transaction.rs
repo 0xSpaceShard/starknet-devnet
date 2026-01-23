@@ -148,7 +148,7 @@ mod tests {
         BroadcastedDeclareTransaction, BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
         TransactionFinalityStatus,
     };
-    use starknet_types::traits::HashProducer;
+    use starknet_types::traits::TryHashProducer;
 
     use crate::error::{Error, TransactionValidationError};
     use crate::starknet::Starknet;
@@ -239,7 +239,7 @@ mod tests {
         // check if generated class hash is expected one
         assert_eq!(
             class_hash,
-            ContractClass::Cairo1(declare_tx.contract_class).generate_hash().unwrap()
+            ContractClass::Cairo1(declare_tx.contract_class).try_generate_hash().unwrap()
         );
         // check if txn is with status accepted
         assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
@@ -299,7 +299,7 @@ mod tests {
 
         // check if contract is not declared
         let expected_class_hash =
-            ContractClass::Cairo1(declare_tx.contract_class.clone()).generate_hash().unwrap();
+            ContractClass::Cairo1(declare_tx.contract_class.clone()).try_generate_hash().unwrap();
         assert!(!starknet.pre_confirmed_state.is_contract_declared(expected_class_hash));
 
         let (tx_hash, class_hash) = starknet.add_declare_transaction(declare_tx.into()).unwrap();
@@ -327,7 +327,7 @@ mod tests {
 
         // check if contract is not declared
         let expected_class_hash =
-            ContractClass::Cairo1(declare_tx.contract_class.clone()).generate_hash().unwrap();
+            ContractClass::Cairo1(declare_tx.contract_class.clone()).try_generate_hash().unwrap();
         assert!(!starknet.pre_confirmed_state.is_contract_declared(expected_class_hash));
 
         let (tx_hash, class_hash) =
@@ -463,7 +463,7 @@ mod tests {
 
         // check if contract is not declared
         let expected_class_hash =
-            ContractClass::Cairo1(declare_tx.contract_class.clone()).generate_hash().unwrap();
+            ContractClass::Cairo1(declare_tx.contract_class.clone()).try_generate_hash().unwrap();
         assert!(!starknet.pre_confirmed_state.is_contract_declared(expected_class_hash));
 
         match starknet.add_declare_transaction(declare_tx.into()) {

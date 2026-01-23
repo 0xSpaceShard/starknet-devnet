@@ -84,7 +84,7 @@
       "result": {},
       "errors": [
         {
-          "$ref": "#/components/errors/WILDCARD_ERROR"
+          "$ref": "#/components/errors/DUMP_ERROR"
         }
       ]
     },
@@ -105,7 +105,7 @@
       "result": {},
       "errors": [
         {
-          "$ref": "#/components/errors/WILDCARD_ERROR"
+          "$ref": "#/components/errors/DUMP_ERROR"
         }
       ]
     },
@@ -159,7 +159,10 @@
       },
       "errors": [
         {
-          "$ref": "#/components/errors/WILDCARD_ERROR"
+          "$ref": "#/components/errors/MESSAGING_ERROR"
+        },
+        {
+          "$ref": "#/components/errors/INVALID_ADDRESS"
         }
       ]
     },
@@ -220,7 +223,7 @@
       },
       "errors": [
         {
-          "$ref": "#/components/errors/WILDCARD_ERROR"
+          "$ref": "#/components/errors/MESSAGING_ERROR"
         }
       ]
     },
@@ -276,7 +279,7 @@
       },
       "errors": [
         {
-          "$ref": "#/components/errors/WILDCARD_ERROR"
+          "$ref": "#/components/errors/MESSAGING_ERROR"
         }
       ]
     },
@@ -322,7 +325,7 @@
       },
       "errors": [
         {
-          "$ref": "#/components/errors/WILDCARD_ERROR"
+          "$ref": "#/components/errors/MESSAGING_ERROR"
         }
       ]
     },
@@ -420,7 +423,7 @@
       },
       "errors": [
         {
-          "$ref": "#/components/errors/WILDCARD_ERROR"
+          "$ref": "#/components/errors/MESSAGING_ERROR"
         }
       ]
     },
@@ -752,7 +755,7 @@
       },
       "errors": [
         {
-          "$ref": "#/components/errors/WILDCARD_ERROR"
+          "$ref": "#/components/errors/MINTING_REVERTED"
         }
       ]
     },
@@ -1131,6 +1134,30 @@
       "WILDCARD_ERROR": {
         "code": -1,
         "message": "An error occurred"
+      },
+      "TYPES_ERROR": {
+        "code": -2,
+        "message": "Types error: failed to parse or validate types used in the request or response."
+      },
+      "NO_STATE_AT_BLOCK": {
+        "code": -3,
+        "message": "No state at block: the requested state is unavailable for the provided block identifier."
+      },
+      "MINTING_REVERTED": {
+        "code": -4,
+        "message": "Minting reverted: the token mint operation failed and was reverted."
+      },
+      "DUMP_ERROR": {
+        "code": -5,
+        "message": "Dump error: failed to write or serialize the current devnet state to the specified path."
+      },
+      "MESSAGING_ERROR": {
+        "code": -6,
+        "message": "Messaging error: L1/L2 messaging operation failed."
+      },
+      "INVALID_ADDRESS": {
+        "code": -7,
+        "message": "Invalid address: the provided address is malformed or unsupported."
       }
     }
   }

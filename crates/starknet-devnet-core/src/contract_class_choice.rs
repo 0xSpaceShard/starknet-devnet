@@ -4,7 +4,7 @@ use starknet_rs_core::types::Felt;
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_class::deprecated::json_contract_class::Cairo0Json;
 use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
-use starknet_types::traits::HashProducer;
+use starknet_types::traits::TryHashProducer;
 
 use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT, CAIRO_1_ACCOUNT_CONTRACT_SIERRA};
 use crate::error::DevnetResult;
@@ -23,7 +23,7 @@ impl AccountContractClassChoice {
                 let contract_class = Cairo0ContractClass::RawJson(contract_json);
 
                 AccountClassWrapper {
-                    class_hash: contract_class.generate_hash()?,
+                    class_hash: contract_class.try_generate_hash()?,
                     contract_class: ContractClass::Cairo0(contract_class),
                     class_metadata: "OpenZeppelin 0.5.1",
                 }
@@ -33,7 +33,7 @@ impl AccountContractClassChoice {
                     ContractClass::cairo_1_from_sierra_json_str(CAIRO_1_ACCOUNT_CONTRACT_SIERRA)?,
                 );
                 AccountClassWrapper {
-                    class_hash: contract_class.generate_hash()?,
+                    class_hash: contract_class.try_generate_hash()?,
                     contract_class,
                     class_metadata: "OpenZeppelin 1.0.0",
                 }
@@ -80,7 +80,7 @@ impl FromStr for AccountClassWrapper {
 
         // generate the hash and return
         let contract_class = ContractClass::Cairo1(contract_class);
-        let class_hash = contract_class.generate_hash()?;
+        let class_hash = contract_class.try_generate_hash()?;
         Ok(Self { contract_class, class_hash, class_metadata: "Custom" })
     }
 }
@@ -91,7 +91,7 @@ mod tests {
 
     use clap::ValueEnum;
     use starknet_types::felt::felt_from_prefixed_hex;
-    use starknet_types::traits::HashProducer;
+    use starknet_types::traits::TryHashProducer;
 
     use super::AccountContractClassChoice;
     use crate::constants::{
@@ -105,7 +105,7 @@ mod tests {
         for implementation in AccountContractClassChoice::value_variants().iter() {
             let AccountClassWrapper { contract_class, class_hash, class_metadata } =
                 implementation.get_class_wrapper().unwrap();
-            let generated_hash = contract_class.generate_hash().unwrap();
+            let generated_hash = contract_class.try_generate_hash().unwrap();
             assert_eq!(generated_hash, class_hash);
             assert!(class_metadata.starts_with("OpenZeppelin"));
         }

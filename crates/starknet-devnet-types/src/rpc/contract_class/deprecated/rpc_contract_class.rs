@@ -9,7 +9,7 @@ use crate::serde_helpers::base_64_gzipped_json_string::{
     deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order,
     serialize_program_to_base64,
 };
-use crate::traits::HashProducer;
+use crate::traits::TryHashProducer;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct ContractClassAbiEntryWithType {
@@ -67,11 +67,11 @@ impl Default for DeprecatedContractClass {
     }
 }
 
-impl HashProducer for DeprecatedContractClass {
+impl TryHashProducer for DeprecatedContractClass {
     type Error = Error;
-    fn generate_hash(&self) -> DevnetResult<Felt> {
+    fn try_generate_hash(&self) -> DevnetResult<Felt> {
         let json_value: Cairo0Json = self.clone().try_into()?;
-        json_value.generate_hash()
+        json_value.try_generate_hash()
     }
 }
 

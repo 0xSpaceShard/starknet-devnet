@@ -85,7 +85,7 @@ mod tests {
     use starknet_types::rpc::transactions::{
         BroadcastedInvokeTransaction, TransactionFinalityStatus,
     };
-    use starknet_types::traits::HashProducer;
+    use starknet_types::traits::TryHashProducer;
 
     use crate::account::{Account, FeeToken};
     use crate::constants::{
@@ -503,7 +503,7 @@ mod tests {
         // deploy account contract
         let account_without_validations_contract_class = cairo_0_account_without_validations();
         let account_without_validations_class_hash =
-            account_without_validations_contract_class.generate_hash().unwrap();
+            account_without_validations_contract_class.try_generate_hash().unwrap();
 
         let account = Account::new(
             Balance::from(1000000000_u32),
@@ -534,7 +534,7 @@ mod tests {
             .unwrap();
 
         let dummy_contract_address = ContractAddress::new(Felt::from(5)).unwrap();
-        let dummy_contract_class_hash = dummy_contract.generate_hash().unwrap();
+        let dummy_contract_class_hash = dummy_contract.try_generate_hash().unwrap();
         let storage_key = get_storage_var_address("balance", &[]).unwrap();
         let contract_storage_key = ContractStorageKey::new(dummy_contract_address, storage_key);
 
@@ -572,7 +572,7 @@ mod tests {
             l2_gas_price_fri: nonzero!(1u128),
         };
 
-        starknet.restart_pre_confirmed_block().unwrap();
+        starknet.restart_pre_confirmed_block();
 
         (starknet, account, dummy_contract_address, increase_balance_selector, contract_storage_key)
     }

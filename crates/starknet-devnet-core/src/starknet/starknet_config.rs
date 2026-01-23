@@ -6,7 +6,7 @@ use starknet_rs_core::types::Felt;
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::rpc::state::Balance;
-use starknet_types::traits::HashProducer;
+use starknet_types::traits::TryHashProducer;
 use url::Url;
 
 use crate::constants::{
@@ -171,7 +171,7 @@ impl Default for StarknetConfig {
             seed: DEVNET_DEFAULT_TEST_SEED,
             total_accounts: DEVNET_DEFAULT_TOTAL_ACCOUNTS,
             // same here
-            account_contract_class_hash: account_contract_class.generate_hash().unwrap(),
+            account_contract_class_hash: account_contract_class.try_generate_hash().unwrap(),
             account_contract_class,
             predeployed_accounts_initial_balance: DEVNET_DEFAULT_INITIAL_BALANCE.into(),
             start_time: None,

@@ -82,7 +82,7 @@ mod tests {
         BroadcastedDeployAccountTransaction, BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
         TransactionFinalityStatus,
     };
-    use starknet_types::traits::HashProducer;
+    use starknet_types::traits::TryHashProducer;
 
     use crate::constants::{
         DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, ETH_ERC20_CONTRACT_ADDRESS,
@@ -286,7 +286,7 @@ mod tests {
         }
 
         let contract_class = cairo_0_account_without_validations(); // TODO use cairo1
-        let class_hash = contract_class.generate_hash().unwrap();
+        let class_hash = contract_class.try_generate_hash().unwrap();
 
         starknet
             .pre_confirmed_state
@@ -305,7 +305,7 @@ mod tests {
             DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
 
-        starknet.restart_pre_confirmed_block().unwrap();
+        starknet.restart_pre_confirmed_block();
 
         (starknet, class_hash)
     }

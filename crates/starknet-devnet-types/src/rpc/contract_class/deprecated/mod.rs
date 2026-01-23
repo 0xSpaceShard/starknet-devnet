@@ -4,7 +4,7 @@ use starknet_rs_core::types::{CompressedLegacyContractClass, Felt};
 use crate::contract_class::deprecated::json_contract_class::Cairo0Json;
 use crate::contract_class::deprecated::rpc_contract_class::DeprecatedContractClass;
 use crate::error::{DevnetResult, Error};
-use crate::traits::HashProducer;
+use crate::traits::TryHashProducer;
 
 pub mod abi_entry;
 pub mod json_contract_class;
@@ -50,12 +50,12 @@ impl From<DeprecatedContractClass> for Cairo0ContractClass {
     }
 }
 
-impl HashProducer for Cairo0ContractClass {
+impl TryHashProducer for Cairo0ContractClass {
     type Error = Error;
-    fn generate_hash(&self) -> DevnetResult<Felt> {
+    fn try_generate_hash(&self) -> DevnetResult<Felt> {
         match self {
-            Cairo0ContractClass::RawJson(contract_json) => Ok(contract_json.generate_hash()?),
-            Cairo0ContractClass::Rpc(contract) => Ok(contract.generate_hash()?),
+            Cairo0ContractClass::RawJson(contract_json) => Ok(contract_json.try_generate_hash()?),
+            Cairo0ContractClass::Rpc(contract) => Ok(contract.try_generate_hash()?),
         }
     }
 }

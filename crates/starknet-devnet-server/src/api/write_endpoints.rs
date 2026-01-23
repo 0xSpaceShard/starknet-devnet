@@ -237,7 +237,7 @@ impl JsonRpcHandler {
     pub async fn create_block(&self) -> StrictRpcResult {
         let mut starknet = self.api.starknet.lock().await;
 
-        starknet.create_block()?;
+        starknet.create_block();
         let block = starknet.get_latest_block()?;
 
         Ok(DevnetResponse::CreatedBlock(CreatedBlock { block_hash: block.block_hash() }).into())
@@ -279,7 +279,7 @@ impl JsonRpcHandler {
     pub async fn set_time(&self, data: SetTime) -> StrictRpcResult {
         let mut starknet = self.api.starknet.lock().await;
         let generate_block = data.generate_block.unwrap_or(true);
-        starknet.set_time(data.time, generate_block)?;
+        starknet.set_time(data.time, generate_block);
         let block_hash = if generate_block {
             let last_block = starknet.get_latest_block()?;
             Some(last_block.block_hash())
@@ -293,7 +293,7 @@ impl JsonRpcHandler {
     /// devnet_increaseTime
     pub async fn increase_time(&self, data: IncreaseTime) -> StrictRpcResult {
         let mut starknet = self.api.starknet.lock().await;
-        starknet.increase_time(data.time)?;
+        starknet.increase_time(data.time);
 
         let last_block = starknet.get_latest_block()?;
 

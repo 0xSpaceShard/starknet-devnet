@@ -26,7 +26,7 @@ mod tests {
     use starknet_types::rpc::transactions::{
         BroadcastedDeclareTransaction, TransactionFinalityStatus,
     };
-    use starknet_types::traits::HashProducer;
+    use starknet_types::traits::TryHashProducer;
 
     use crate::starknet::tests::setup_starknet_with_no_signature_check_account;
     use crate::traits::HashIdentifiedMut;
@@ -62,7 +62,7 @@ mod tests {
         let mut state_diff = state_update.get_state_diff().clone();
         state_diff.storage_diffs.clear(); // too complicated to compare
 
-        let sierra_class_hash = ContractClass::Cairo1(contract_class).generate_hash().unwrap();
+        let sierra_class_hash = ContractClass::Cairo1(contract_class).try_generate_hash().unwrap();
         let expected_state_diff = ThinStateDiff {
             declared_classes: vec![ClassHashPair {
                 class_hash: sierra_class_hash,
