@@ -432,9 +432,8 @@ impl StarknetBlock {
 }
 
 impl HashProducer for StarknetBlock {
-    type Error = Error;
-    fn generate_hash(&self) -> DevnetResult<BlockHash> {
-        let hash = Poseidon::hash_array(&[
+    fn generate_hash(&self) -> BlockHash {
+        Poseidon::hash_array(&[
             felt!(self.header.block_header_without_hash.block_number.0), // block number
             self.header.block_header_without_hash.state_root.0,          // global_state_root
             *self.header.block_header_without_hash.sequencer.0.key(),    // sequencer_address
@@ -452,9 +451,7 @@ impl HashProducer for StarknetBlock {
             Felt::ZERO,                                  // protocol_version
             Felt::ZERO,                                  // extra_data
             self.header.block_header_without_hash.parent_hash.0, // parent_block_hash
-        ]);
-
-        Ok(hash)
+        ])
     }
 }
 
@@ -520,7 +517,7 @@ mod tests {
         // pre-confirmed block returns some
         assert!(blocks.block_number_from_block_id(&BlockId::Tag(BlockTag::PreConfirmed)).is_some());
 
-        let block_hash = block_to_insert.generate_hash().unwrap();
+        let block_hash = block_to_insert.generate_hash();
         block_to_insert.header.block_header_without_hash.block_number = BlockNumber(10);
         block_to_insert.header.block_hash = starknet_api::block::BlockHash(block_hash);
 
@@ -801,7 +798,7 @@ mod tests {
         let mut blocks = StarknetBlocks::default();
         let mut block_to_insert = StarknetBlock::create_pre_confirmed_block();
         block_to_insert.header.block_hash =
-            starknet_api::block::BlockHash(block_to_insert.generate_hash().unwrap());
+            starknet_api::block::BlockHash(block_to_insert.generate_hash());
         block_to_insert.header.block_header_without_hash.block_number = BlockNumber(10);
         blocks.pre_confirmed_block = block_to_insert.clone();
 
@@ -836,7 +833,7 @@ mod tests {
 
             block.status = BlockStatus::AcceptedOnL2;
             block.header.block_header_without_hash.block_number = BlockNumber(block_number);
-            block.set_block_hash(block.generate_hash().unwrap());
+            block.set_block_hash(block.generate_hash());
 
             blocks.insert(block, StateDiff::default());
         }
@@ -889,7 +886,7 @@ mod tests {
         let mut blocks = StarknetBlocks::default();
         let mut block_to_insert = StarknetBlock::create_pre_confirmed_block();
         block_to_insert.header.block_hash =
-            starknet_api::block::BlockHash(block_to_insert.generate_hash().unwrap());
+            starknet_api::block::BlockHash(block_to_insert.generate_hash());
         block_to_insert.header.block_header_without_hash.block_number = BlockNumber(1);
 
         blocks.insert(block_to_insert.clone(), StateDiff::default());
