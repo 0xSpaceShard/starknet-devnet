@@ -42,9 +42,21 @@ jobs:
   clippy-and-unit-tests:
     name: Clippy and Unit Test
     runs-on: ubuntu-latest
+    env:
+      MLIR_SYS_190_PREFIX: /usr/lib/llvm-19
+      LLVM_SYS_191_PREFIX: /usr/lib/llvm-19
+      TABLEGEN_190_PREFIX: /usr/lib/llvm-19
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Install LLVM 19 (required for cairo_native)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            llvm-19 llvm-19-dev llvm-19-runtime \
+            clang-19 clang-tools-19 lld-19 \
+            libpolly-19-dev libmlir-19-dev mlir-19-tools
 
       - name: Load common configuration
         id: config
