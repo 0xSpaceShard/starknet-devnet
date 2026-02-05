@@ -10,6 +10,7 @@ license-file.workspace = true
 
 [features]
 testing = []
+cairo_native = ["blockifier/cairo_native"]
 
 [lints]
 workspace = true

@@ -49,6 +49,10 @@ starknet-types = { workspace = true, features = ["testing"] }
 
 [features]
 test_utils = []
+cairo_native = [
+    "blockifier/cairo_native",
+    "starknet-types/cairo_native",
+]
 
 [package.metadata.cargo-machete]
 ignored = [

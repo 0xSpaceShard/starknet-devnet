@@ -56,3 +56,4 @@ starknet-types = { workspace = true, features = ["testing"] }
 
 [features]
 test_utils = []
+cairo_native = ["starknet-core/cairo_native", "starknet-types/cairo_native"]

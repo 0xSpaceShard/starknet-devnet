@@ -97,3 +97,5 @@ For a more optimized performance (though with a longer compilation time), run:
 ```
 $ cargo run --release
 ```
+
+You can enable blockifier's native execution via the Cargo feature `cairo_native`.

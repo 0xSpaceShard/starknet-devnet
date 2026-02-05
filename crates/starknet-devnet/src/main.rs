@@ -283,6 +283,9 @@ async fn main() -> Result<(), anyhow::Error> {
     let timestamp = std::time::Instant::now();
     configure_tracing();
 
+    #[cfg(feature = "cairo_native")]
+    info!("cairo_native enabled: blockifier will use native execution");
+
     // parse arguments
     let args = Args::parse();
     let (mut starknet_config, server_config) = args.to_config()?;
