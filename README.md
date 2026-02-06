@@ -34,6 +34,15 @@ A local testnet for Starknet... in Rust!
 
 Find the official documentation [here](https://0xspaceshard.github.io/starknet-devnet/).
 
+## cairo_native execution (feature flag)
+
+Devnet can run blockifier with native execution via the `cairo_native` Cargo feature. Enable it when building or running:
+
+- Build: `cargo build --features cairo_native`
+- Run: `cargo run --features cairo_native -- <args>`
+
+When enabled, startup logs include `cairo_native enabled: blockifier will use native execution`.
+
 ## starknet-devnet-js
 
 Simplify the installation, spawning and usage of Devnet in your tests by relying on the official JavaScript wrapper. Read more [here](https://github.com/0xspaceShard/starknet-devnet-js).

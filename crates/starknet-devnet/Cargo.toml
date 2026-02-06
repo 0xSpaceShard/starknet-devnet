@@ -48,3 +48,10 @@ axum = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
+
+[features]
+cairo_native = [
+	"server/cairo_native",
+	"starknet-core/cairo_native",
+	"starknet-types/cairo_native",
+]
