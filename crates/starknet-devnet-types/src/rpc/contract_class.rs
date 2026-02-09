@@ -20,11 +20,10 @@ use starknet_rs_core::types::{
 };
 use starknet_types_core::felt::Felt;
 
-use crate::compile_sierra_contract_json;
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 use crate::traits::TryHashProducer;
-use crate::utils::compile_sierra_contract;
+use crate::utils::{compile_sierra_contract, compile_sierra_contract_json};
 
 pub mod deprecated;
 pub use deprecated::Cairo0ContractClass;

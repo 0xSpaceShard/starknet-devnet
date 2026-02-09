@@ -112,9 +112,8 @@ pub fn compile_sierra_contract_json(
 ) -> DevnetResult<CasmContractClass> {
     // Compute a hash of the input JSON for cache lookup (using fast ahash)
     let cache_key = {
-        let json_str = sierra_contract_json.to_string();
         let mut hasher = AHasher::default();
-        json_str.hash(&mut hasher);
+        sierra_contract_json.hash(&mut hasher);
         hasher.finish()
     };
 
