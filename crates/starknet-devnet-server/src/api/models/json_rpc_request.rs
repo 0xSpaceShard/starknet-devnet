@@ -928,7 +928,7 @@ mod requests_tests {
     }
 
     #[test]
-    fn deseralize_chain_id_request() {
+    fn deserialize_chain_id_request() {
         for body in [
             json!({
                 "method": "starknet_chainId",
