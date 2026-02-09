@@ -15,9 +15,10 @@ use crate::error::{DevnetResult, Error, JsonError};
 
 /// LRU cache for compiled CASM contracts (max 10 entries).
 #[allow(clippy::expect_used)]
-static CASM_CACHE: LazyLock<Mutex<LruCache<u64, CasmContractClass>>> = LazyLock::new(|| {
-    Mutex::new(LruCache::new(NonZeroUsize::new(10).expect("cache size must be > 0")))
-});
+static CASM_CACHE: LazyLock<Mutex<LruCache<u64, (serde_json::Value, CasmContractClass)>>> =
+    LazyLock::new(|| {
+        Mutex::new(LruCache::new(NonZeroUsize::new(10).expect("cache size must be > 0")))
+    });
 
 /// The preserve_order feature enabled in the serde_json crate
 /// removing a key from the object changes the order of the keys
@@ -117,16 +118,17 @@ pub fn compile_sierra_contract_json(
         hasher.finish()
     };
 
-    // Check cache first
     {
         let mut cache = CASM_CACHE.lock();
-        if let Some(cached) = cache.get(&cache_key) {
-            return Ok(cached.clone());
+        if let Some((cached_input, cached_output)) = cache.get(&cache_key) {
+            if cached_input == &sierra_contract_json {
+                return Ok(cached_output.clone());
+            }
         }
     }
 
     // Compile and cache
-    let casm_json = usc::compile_contract(sierra_contract_json)
+    let casm_json = usc::compile_contract(sierra_contract_json.clone())
         .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
 
     let casm = serde_json::from_value::<CasmContractClass>(casm_json)
@@ -134,7 +136,7 @@ pub fn compile_sierra_contract_json(
 
     {
         let mut cache = CASM_CACHE.lock();
-        cache.put(cache_key, casm.clone());
+        cache.put(cache_key, (sierra_contract_json, casm.clone()));
     }
 
     Ok(casm)
