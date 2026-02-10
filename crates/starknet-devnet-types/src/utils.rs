@@ -1,11 +1,24 @@
+use std::hash::{Hash, Hasher};
 use std::io;
+use std::num::NonZeroUsize;
+use std::sync::LazyLock;
 
+use ahash::AHasher;
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use cairo_lang_starknet_classes::contract_class::ContractClass;
+use lru::LruCache;
+use parking_lot::Mutex;
 use serde_json::ser::Formatter;
 use serde_json::{Map, Value};
 
 use crate::error::{DevnetResult, Error, JsonError};
+
+/// LRU cache for compiled CASM contracts (max 10 entries).
+#[allow(clippy::expect_used)]
+static CASM_CACHE: LazyLock<Mutex<LruCache<u64, (serde_json::Value, CasmContractClass)>>> =
+    LazyLock::new(|| {
+        Mutex::new(LruCache::new(NonZeroUsize::new(10).expect("cache size must be > 0")))
+    });
 
 /// The preserve_order feature enabled in the serde_json crate
 /// removing a key from the object changes the order of the keys
@@ -97,11 +110,35 @@ pub fn compile_sierra_contract(sierra_contract: &ContractClass) -> DevnetResult<
 pub fn compile_sierra_contract_json(
     sierra_contract_json: serde_json::Value,
 ) -> DevnetResult<CasmContractClass> {
-    let casm_json = usc::compile_contract(sierra_contract_json)
+    // Compute a hash of the input JSON for cache lookup (using fast ahash)
+    let cache_key = {
+        let mut hasher = AHasher::default();
+        sierra_contract_json.hash(&mut hasher);
+        hasher.finish()
+    };
+
+    {
+        let mut cache = CASM_CACHE.lock();
+        if let Some((cached_input, cached_output)) = cache.get(&cache_key) {
+            if cached_input == &sierra_contract_json {
+                return Ok(cached_output.clone());
+            }
+        }
+    }
+
+    // Compile and cache
+    let casm_json = usc::compile_contract(sierra_contract_json.clone())
         .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
 
-    serde_json::from_value::<CasmContractClass>(casm_json)
-        .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err)))
+    let casm = serde_json::from_value::<CasmContractClass>(casm_json)
+        .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err)))?;
+
+    {
+        let mut cache = CASM_CACHE.lock();
+        cache.put(cache_key, (sierra_contract_json, casm.clone()));
+    }
+
+    Ok(casm)
 }
 
 #[cfg(test)]

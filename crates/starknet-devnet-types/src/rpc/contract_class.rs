@@ -6,7 +6,6 @@ use std::sync::Arc;
 use blockifier::execution::contract_class::{
     CompiledClassV0, CompiledClassV0Inner, RunnableCompiledClass, deserialize_program,
 };
-use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use cairo_vm::types::errors::program_errors::ProgramError;
 use deprecated::json_contract_class::Cairo0Json;
@@ -24,7 +23,7 @@ use starknet_types_core::felt::Felt;
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 use crate::traits::TryHashProducer;
-use crate::utils::compile_sierra_contract;
+use crate::utils::{compile_sierra_contract, compile_sierra_contract_json};
 
 pub mod deprecated;
 pub use deprecated::Cairo0ContractClass;
@@ -309,11 +308,7 @@ fn jsonified_sierra_to_runnable_casm(
     jsonified_sierra: serde_json::Value,
     sierra_version: &str,
 ) -> Result<RunnableCompiledClass, Error> {
-    let casm_json = usc::compile_contract(jsonified_sierra)
-        .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
-
-    let casm = serde_json::from_value::<CasmContractClass>(casm_json)
-        .map_err(|err| Error::JsonError(JsonError::Custom { msg: err.to_string() }))?;
+    let casm = compile_sierra_contract_json(jsonified_sierra)?;
 
     let versioned_casm = (casm, SierraVersion::from_str(sierra_version)?);
     let compiled = versioned_casm.try_into().map_err(|e: ProgramError| {

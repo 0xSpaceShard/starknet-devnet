@@ -26,6 +26,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a15f179cd60c4584b8a8c596927aadc462e27f2ca70c04e0071964a73ba7a75"
 dependencies = [
  "cfg-if",
+ "getrandom 0.3.4",
  "once_cell",
  "version_check",
  "zerocopy",
@@ -7177,6 +7178,7 @@ dependencies = [
 name = "starknet-devnet-types"
 version = "0.7.2"
 dependencies = [
+ "ahash",
  "base64 0.22.1",
  "bigdecimal",
  "blockifier",
@@ -7195,9 +7197,11 @@ dependencies = [
  "cairo-lang-utils 2.12.3",
  "cairo-vm",
  "flate2",
+ "lru 0.16.3",
  "num-bigint",
  "parity-scale-codec",
  "parity-scale-codec-derive",
+ "parking_lot 0.12.5",
  "serde",
  "serde_json",
  "starknet-rust-core",
