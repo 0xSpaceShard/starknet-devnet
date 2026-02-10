@@ -304,11 +304,11 @@ impl Starknet {
     }
 
     pub fn restart(&mut self, restart_l1_to_l2_messaging: bool) -> DevnetResult<()> {
-        let new_messsaging_ethereum =
+        let new_messaging_ethereum =
             if restart_l1_to_l2_messaging { None } else { self.messaging.ethereum.clone() };
 
         *self = Starknet::new(&self.config)?;
-        self.messaging.ethereum = new_messsaging_ethereum;
+        self.messaging.ethereum = new_messaging_ethereum;
 
         info!("Starknet Devnet restarted");
         Ok(())

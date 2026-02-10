@@ -36,7 +36,7 @@ jobs:
       
       - name: Check spelling
         run: |
-          cargo +${{ steps.config.outputs.rust_nightly_version }} install typos-cli --version 1.36.2 --locked
+          cargo +${{ steps.config.outputs.rust_nightly_version }} install typos-cli --version 1.43.4 --locked
           typos && echo "No spelling errors!"
 
   clippy-and-unit-tests:

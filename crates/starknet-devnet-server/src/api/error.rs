@@ -5,7 +5,6 @@ use starknet_types;
 use starknet_types::felt::Nonce;
 use starknet_types::starknet_api::core::ContractAddress;
 use thiserror::Error;
-use tracing::error;
 
 use crate::api::models::{JsonRpcResponse, WILDCARD_RPC_ERROR_CODE};
 use crate::rpc_core::error::RpcError;

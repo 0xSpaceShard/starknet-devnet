@@ -2,7 +2,7 @@
 
 set -eu
 
-cargo +nightly-2025-02-20 fmt --all
+cargo +nightly-2025-10-25 fmt --all
 
 # Format documentation
 npm --prefix website run format

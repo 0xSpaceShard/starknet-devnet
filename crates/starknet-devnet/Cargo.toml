@@ -1,12 +1,12 @@
 [package]
 name = "starknet-devnet"
 version = "0.7.2"
-edition = "2021"
-repository.workspace = true
-license-file.workspace = true
-readme.workspace = true
-documentation.workspace = true
-description.workspace = true
+edition = { workspace = true }
+repository = { workspace = true }
+license-file = { workspace = true }
+readme = { workspace = true }
+documentation = { workspace = true }
+description = { workspace = true }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

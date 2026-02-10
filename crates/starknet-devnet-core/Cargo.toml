@@ -1,9 +1,9 @@
 [package]
 name = "starknet-devnet-core"
 version = "0.7.2"
-edition.workspace = true
-repository.workspace = true
-license-file.workspace = true
+edition = { workspace = true }
+repository = { workspace = true }
+license-file = { workspace = true }
 description = "Starknet core logic for devnet"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
