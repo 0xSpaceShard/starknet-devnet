@@ -29,7 +29,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{
-    BlockHash, ClassHash, TransactionHash, felt_from_prefixed_hex, split_biguint,
+    BlockHash, ClassHash, Proof, ProofFacts, TransactionHash, felt_from_prefixed_hex, split_biguint,
 };
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
@@ -53,6 +53,8 @@ use starknet_types::rpc::transactions::{
     TransactionWithHash, TransactionWithReceipt, Transactions,
 };
 use starknet_types::traits::HashProducer;
+use tokio::runtime::Handle;
+use tokio::task;
 use tracing::{error, info};
 
 use self::cheats::Cheats;
@@ -68,13 +70,15 @@ use crate::constants::{
     DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_L1_DATA_GAS_PRICE, DEVNET_DEFAULT_L1_GAS_PRICE,
     DEVNET_DEFAULT_L2_GAS_PRICE, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
     ENTRYPOINT_NOT_FOUND_ERROR_ENCODED, ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME,
-    ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
+    ETH_ERC20_SYMBOL, STARKNET_VERSION, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME,
+    STRK_ERC20_SYMBOL, USE_KZG_DA,
 };
 use crate::contract_class_choice::AccountContractClassChoice;
 use crate::error::{ContractExecutionError, DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
 use crate::nonzero_gas_price;
 use crate::predeployed_accounts::PredeployedAccounts;
+use crate::starknet::starknet_config::ProofMode;
 use crate::state::state_diff::StateDiff;
 use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
@@ -91,6 +95,7 @@ mod estimations;
 pub mod events;
 mod get_class_impls;
 mod predeployed;
+pub mod proofs;
 pub mod starknet_config;
 mod state_update;
 pub(crate) mod transaction_trace;
@@ -432,22 +437,35 @@ impl Starknet {
             .map(|tx| tx.into())
             .collect();
 
-        let thin_state_diff = self.pre_confirmed_state_diff.clone().into();
+        let thin_state_diff: starknet_api::state::ThinStateDiff =
+            self.pre_confirmed_state_diff.clone().into();
+        let state_diff_len = thin_state_diff.len();
 
         if !self.config.lite_mode {
-            let commitments = calculate_block_commitments(
+            let commitments_future = calculate_block_commitments(
                 &transaction_data,
-                &thin_state_diff,
+                thin_state_diff,
                 l1_da_mode,
                 &starknet_version,
             );
+            let commitments = if let Ok(handle) = Handle::try_current() {
+                task::block_in_place(|| handle.block_on(commitments_future))
+            } else {
+                tokio::runtime::Runtime::new()
+                    .map_err(|e| {
+                        error!("Failed to create tokio runtime: {e}");
+                    })
+                    .ok()
+                    .map(|rt| rt.block_on(commitments_future))
+                    .unwrap_or_default()
+            };
             new_block.set_commitments(commitments);
         }
 
         new_block.set_counts(
             transaction_data.len(),
             transaction_data.iter().map(|tx| tx.transaction_output.events.len()).sum(),
-            thin_state_diff.len(),
+            state_diff_len,
         );
 
         // insert pre_confirmed block in the blocks collection and connect it to the state diff
@@ -558,6 +576,7 @@ impl Starknet {
                 },
             },
             use_kzg_da: USE_KZG_DA,
+            starknet_version: STARKNET_VERSION,
         };
 
         let chain_info = ChainInfo {
@@ -857,6 +876,20 @@ impl Starknet {
         add_invoke_transaction::add_invoke_transaction(self, invoke_transaction)
     }
 
+    pub fn prove_transaction(
+        &self,
+        block_id: CustomBlockId,
+        invoke_transaction: BroadcastedInvokeTransaction,
+    ) -> DevnetResult<(Proof, ProofFacts)> {
+        match self.config.proof_mode {
+            ProofMode::Devnet => proofs::prove_transaction(self, block_id, invoke_transaction),
+            ProofMode::Full => todo!("Yet to implement real prover"),
+            ProofMode::None => Err(Error::UnsupportedAction {
+                msg: "Proving disabled in this proving mode".to_string(),
+            }),
+        }
+    }
+
     pub fn add_l1_handler_transaction(
         &mut self,
         l1_handler_transaction: L1HandlerTransaction,
@@ -921,6 +954,8 @@ impl Starknet {
                 fee_data_availability_mode: DataAvailabilityMode::L1,
             },
             account_deployment_data: vec![],
+            proof: None,
+            proof_facts: None,
         };
 
         // generate signature by signing the tx hash
@@ -928,7 +963,7 @@ impl Starknet {
             CHARGEABLE_ACCOUNT_PRIVATE_KEY,
         )?));
         let tx_hash = unsigned_tx
-            .create_sn_api_invoke()?
+            .create_sn_api_invoke(false)?
             .calculate_transaction_hash(&self.config.chain_id.into(), &TransactionVersion::THREE)?;
         let signature = signer.sign_hash(&tx_hash).await?;
 

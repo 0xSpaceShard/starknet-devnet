@@ -25,6 +25,14 @@ pub enum DumpOn {
     Request,
 }
 
+#[derive(Copy, Clone, Debug, clap::ValueEnum, Serialize, Eq, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum ProofMode {
+    Full,
+    Devnet,
+    None,
+}
+
 #[derive(Default, Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum, Serialize)]
 #[serde(rename_all = "snake_case")]
 #[clap(rename_all = "snake_case")]
@@ -137,6 +145,7 @@ pub struct StarknetConfig {
     pub dump_path: Option<String>,
     pub block_generation_on: BlockGenerationOn,
     pub lite_mode: bool,
+    pub proof_mode: ProofMode,
     pub state_archive: StateArchiveCapacity,
     pub fork_config: ForkConfig,
     pub eth_erc20_class_hash: Felt,
@@ -186,6 +195,7 @@ impl Default for StarknetConfig {
             dump_path: None,
             block_generation_on: BlockGenerationOn::Transaction,
             lite_mode: false,
+            proof_mode: ProofMode::Devnet,
             state_archive: StateArchiveCapacity::default(),
             fork_config: ForkConfig::default(),
             eth_erc20_class_hash: ETH_ERC20_CONTRACT_CLASS_HASH,

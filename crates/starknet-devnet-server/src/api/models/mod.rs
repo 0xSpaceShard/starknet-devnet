@@ -3,16 +3,19 @@ mod json_rpc_response;
 
 pub use json_rpc_request::{
     DevnetSpecRequest, JsonRpcRequest, JsonRpcSubscriptionRequest, JsonRpcWsRequest,
-    StarknetSpecRequest, ToRpcResponseResult, WILDCARD_RPC_ERROR_CODE, to_json_rpc_request,
+    StarknetSpecExtRequest, StarknetSpecRequest, ToRpcResponseResult, WILDCARD_RPC_ERROR_CODE,
+    to_json_rpc_request,
 };
-pub use json_rpc_response::{DevnetResponse, JsonRpcResponse, StarknetResponse};
+pub use json_rpc_response::{
+    DevnetResponse, JsonRpcResponse, StarknetExtResponse, StarknetResponse,
+};
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::{Felt, Hash256, TransactionExecutionStatus};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
+use starknet_types::felt::{BlockHash, ClassHash, Proof, ProofFacts, TransactionHash};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::block::{BlockId, SubscriptionBlockId};
+use starknet_types::rpc::block::{BlockId, SubscriptionBlockId, TransactionResponseFlag};
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 use starknet_types::rpc::transactions::{
@@ -34,8 +37,22 @@ pub struct BlockIdInput {
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
+pub struct BlockIdAndFlagsInput {
+    pub block_id: BlockId,
+    pub response_flags: Option<Vec<TransactionResponseFlag>>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct TransactionHashInput {
     pub transaction_hash: TransactionHash,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct TransactionHashAndFlagsInput {
+    pub transaction_hash: TransactionHash,
+    pub response_flags: Option<Vec<TransactionResponseFlag>>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -73,6 +90,7 @@ pub struct GetStorageProofInput {
 pub struct BlockAndIndexInput {
     pub block_id: BlockId,
     pub index: u64,
+    pub response_flags: Option<Vec<TransactionResponseFlag>>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -208,6 +226,20 @@ pub struct TransactionStatusOutput {
     pub execution_status: TransactionExecutionStatus,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProveTransactionInput {
+    pub block_id: BlockId,
+    pub transaction: BroadcastedInvokeTransaction,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProveTransactionResponse {
+    pub proof: Proof,
+    pub proof_facts: ProofFacts,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct L1TransactionHashInput {
@@ -268,11 +300,18 @@ pub struct EventsSubscriptionInput {
     pub finality_status: Option<TransactionFinalityStatus>,
 }
 
+#[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub enum SubscriptionTag {
+    IncludeProofFacts,
+}
+
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct TransactionSubscriptionInput {
     pub sender_address: Option<Vec<ContractAddress>>,
     pub finality_status: Option<Vec<TransactionStatusWithoutL1>>,
+    pub tags: Option<Vec<SubscriptionTag>>,
 }
 
 #[derive(Deserialize, Clone, Debug)]

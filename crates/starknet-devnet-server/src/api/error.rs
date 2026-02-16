@@ -224,6 +224,12 @@ impl ApiError {
                     TransactionValidationError::ValidationFailure { reason } => {
                         ApiError::ValidationFailure { reason }
                     }
+                    TransactionValidationError::InvalidProofFacts { message } => {
+                        ApiError::ValidationFailure { reason: message }
+                    }
+                    TransactionValidationError::ProofVerificationFailed => {
+                        ApiError::ValidationFailure { reason: "Invalid proof".to_string() }
+                    }
                 };
 
                 api_err.api_error_to_rpc_error()

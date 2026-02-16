@@ -227,6 +227,12 @@ impl From<BlockTag> for starknet_rs_core::types::BlockTag {
     }
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum TransactionResponseFlag {
+    IncludeProofFacts,
+}
+
 #[cfg(test)]
 mod test_block_id {
     use serde_json::json;

@@ -39,7 +39,8 @@ use crate::contract_class::{ContractClass, compute_sierra_class_hash};
 use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult};
 use crate::felt::{
-    Calldata, EntryPointSelector, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
+    Calldata, EntryPointSelector, Nonce, Proof, ProofFacts, TransactionHash, TransactionSignature,
+    TransactionVersion,
 };
 use crate::rpc::transaction_receipt::CommonTransactionReceipt;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
@@ -62,6 +63,18 @@ pub enum Transactions {
     Hashes(Vec<TransactionHash>),
     Full(Vec<TransactionWithHash>),
     FullWithReceipts(Vec<TransactionWithReceipt>),
+}
+
+impl Transactions {
+    pub fn without_proof_facts(&self) -> Self {
+        match &self {
+            Self::Hashes(hashes) => Self::Hashes(hashes.clone()),
+            Self::FullWithReceipts(txs) => {
+                Self::FullWithReceipts(txs.iter().map(|tx| tx.without_proof_facts()).collect())
+            }
+            Self::Full(txs) => Self::Full(txs.iter().map(|tx| tx.without_proof_facts()).collect()),
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Default)]
@@ -150,6 +163,16 @@ impl TransactionWithHash {
         }
     }
 
+    pub fn without_proof_facts(&self) -> Self {
+        match &self.transaction {
+            Transaction::Invoke(InvokeTransaction::V3(tx)) => Self {
+                transaction: Transaction::Invoke(InvokeTransaction::V3(tx.without_proof_facts())),
+                transaction_hash: self.transaction_hash,
+            },
+            _ => self.clone(),
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn create_common_receipt(
         &self,
@@ -189,6 +212,18 @@ impl TransactionWithHash {
 pub struct TransactionWithReceipt {
     pub receipt: TransactionReceipt,
     pub transaction: Transaction,
+}
+
+impl TransactionWithReceipt {
+    pub fn without_proof_facts(&self) -> Self {
+        match &self.transaction {
+            Transaction::Invoke(InvokeTransaction::V3(tx)) => Self {
+                transaction: Transaction::Invoke(InvokeTransaction::V3(tx.without_proof_facts())),
+                receipt: self.receipt.clone(),
+            },
+            _ => self.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -474,7 +509,7 @@ impl BroadcastedTransaction {
         let sn_api_tx = match self {
             BroadcastedTransaction::Invoke(invoke_txn) => {
                 starknet_api::executable_transaction::AccountTransaction::Invoke(
-                    invoke_txn.create_sn_api_invoke(chain_id)?,
+                    invoke_txn.create_sn_api_invoke(chain_id, false)?,
                 )
             }
             BroadcastedTransaction::Declare(declare_txn) => {
@@ -733,9 +768,10 @@ impl BroadcastedInvokeTransaction {
     pub fn create_sn_api_invoke(
         &self,
         chain_id: &Felt,
+        drop_proof_facts: bool,
     ) -> DevnetResult<starknet_api::executable_transaction::InvokeTransaction> {
         let sn_api_transaction = match self {
-            BroadcastedInvokeTransaction::V3(v3) => v3.create_sn_api_invoke()?,
+            BroadcastedInvokeTransaction::V3(v3) => v3.create_sn_api_invoke(drop_proof_facts)?,
         };
 
         let chain_id = felt_to_sn_api_chain_id(chain_id)?;
@@ -749,6 +785,18 @@ impl BroadcastedInvokeTransaction {
             tx: sn_api_transaction,
             tx_hash,
         })
+    }
+
+    pub fn get_proof(&self) -> Option<Proof> {
+        match self {
+            BroadcastedInvokeTransaction::V3(v3) => v3.proof,
+        }
+    }
+
+    pub fn get_proof_facts(&self) -> Option<ProofFacts> {
+        match self {
+            BroadcastedInvokeTransaction::V3(v3) => v3.proof_facts.clone(),
+        }
     }
 }
 

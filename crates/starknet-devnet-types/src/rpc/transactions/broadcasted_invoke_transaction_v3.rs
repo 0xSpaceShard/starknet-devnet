@@ -6,7 +6,7 @@ use starknet_rs_core::types::Felt;
 use super::BroadcastedTransactionCommonV3;
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
-use crate::felt::Calldata;
+use crate::felt::{Calldata, Proof, ProofFacts};
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -16,11 +16,16 @@ pub struct BroadcastedInvokeTransactionV3 {
     pub sender_address: ContractAddress,
     pub calldata: Calldata,
     pub account_deployment_data: Vec<Felt>,
+    #[serde(default)]
+    pub proof: Option<Proof>,
+    #[serde(default)]
+    pub proof_facts: Option<ProofFacts>,
 }
 
 impl BroadcastedInvokeTransactionV3 {
     pub fn create_sn_api_invoke(
         &self,
+        drop_proof_facts: bool,
     ) -> DevnetResult<starknet_api::transaction::InvokeTransaction> {
         let sn_api_transaction = starknet_api::transaction::InvokeTransactionV3 {
             resource_bounds: (&self.common.resource_bounds).into(),
@@ -39,6 +44,12 @@ impl BroadcastedInvokeTransactionV3 {
             account_deployment_data: starknet_api::transaction::fields::AccountDeploymentData(
                 self.account_deployment_data.clone(),
             ),
+            proof_facts: if drop_proof_facts {
+                Vec::new()
+            } else {
+                self.proof_facts.clone().unwrap_or_default()
+            }
+            .into(),
         };
 
         Ok(starknet_api::transaction::InvokeTransaction::V3(sn_api_transaction))

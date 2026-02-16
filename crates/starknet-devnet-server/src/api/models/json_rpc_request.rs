@@ -11,14 +11,15 @@ use crate::api::account_helpers::{BalanceQuery, PredeployedAccountsQuery};
 use crate::api::error::StrictRpcResult;
 use crate::api::models::{
     AbortingBlocks, AcceptOnL1Request, AccountAddressInput, BlockAndClassHashInput,
-    BlockAndContractAddressInput, BlockAndIndexInput, BlockIdInput,
+    BlockAndContractAddressInput, BlockAndIndexInput, BlockIdAndFlagsInput, BlockIdInput,
     BroadcastedDeclareTransactionInput, BroadcastedDeployAccountTransactionInput,
     BroadcastedInvokeTransactionInput, CallInput, ClassHashInput, DumpPath, EstimateFeeInput,
     EventsInput, EventsSubscriptionInput, FlushParameters, GetStorageInput, GetStorageProofInput,
     IncreaseTime, JsonRpcResponse, L1TransactionHashInput, LoadPath, MintTokensRequest,
-    PostmanLoadL1MessagingContract, RestartParameters, SetTime, SimulateTransactionsInput,
-    SubscriptionBlockIdInput, SubscriptionIdInput, TransactionHashInput,
-    TransactionReceiptSubscriptionInput, TransactionSubscriptionInput,
+    PostmanLoadL1MessagingContract, ProveTransactionInput, RestartParameters, SetTime,
+    SimulateTransactionsInput, SubscriptionBlockIdInput, SubscriptionIdInput,
+    TransactionHashAndFlagsInput, TransactionHashInput, TransactionReceiptSubscriptionInput,
+    TransactionSubscriptionInput,
 };
 use crate::api::serde_helpers::{empty_params, optional_params};
 use crate::rpc_core::error::RpcError;
@@ -50,6 +51,7 @@ impl ToRpcResponseResult for StrictRpcResult {
             Ok(JsonRpcResponse::Empty) => to_rpc_result(json!({})),
             Ok(JsonRpcResponse::Devnet(data)) => to_rpc_result(data),
             Ok(JsonRpcResponse::Starknet(data)) => to_rpc_result(data),
+            Ok(JsonRpcResponse::StarknetExt(data)) => to_rpc_result(data),
             Err(err) => err.api_error_to_rpc_error().into(),
         }
     }
@@ -64,9 +66,9 @@ pub enum StarknetSpecRequest {
     #[serde(rename = "starknet_getBlockWithTxHashes")]
     BlockWithTransactionHashes(BlockIdInput),
     #[serde(rename = "starknet_getBlockWithTxs")]
-    BlockWithFullTransactions(BlockIdInput),
+    BlockWithFullTransactions(BlockIdAndFlagsInput),
     #[serde(rename = "starknet_getBlockWithReceipts")]
-    BlockWithReceipts(BlockIdInput),
+    BlockWithReceipts(BlockIdAndFlagsInput),
     #[serde(rename = "starknet_getStateUpdate")]
     StateUpdate(BlockIdInput),
     #[serde(rename = "starknet_getStorageAt")]
@@ -74,7 +76,7 @@ pub enum StarknetSpecRequest {
     #[serde(rename = "starknet_getStorageProof")]
     StorageProof(GetStorageProofInput),
     #[serde(rename = "starknet_getTransactionByHash")]
-    TransactionByHash(TransactionHashInput),
+    TransactionByHash(TransactionHashAndFlagsInput),
     #[serde(rename = "starknet_getTransactionByBlockIdAndIndex")]
     TransactionByBlockAndIndex(BlockAndIndexInput),
     #[serde(rename = "starknet_getTransactionReceipt")]
@@ -123,6 +125,14 @@ pub enum StarknetSpecRequest {
     TraceTransaction(TransactionHashInput),
     #[serde(rename = "starknet_traceBlockTransactions")]
     BlockTransactionTraces(BlockIdInput),
+}
+
+#[derive(Deserialize, AllVariantsSerdeRenames, VariantName)]
+#[cfg_attr(test, derive(Debug))]
+#[serde(tag = "method", content = "params")]
+pub enum StarknetSpecExtRequest {
+    #[serde(rename = "starknet_proveTransaction")]
+    ProveTransaction(ProveTransactionInput),
 }
 
 #[derive(Deserialize, AllVariantsSerdeRenames, VariantName)]
@@ -177,7 +187,9 @@ pub enum DevnetSpecRequest {
 pub enum JsonRpcRequest {
     StarknetSpecRequest(StarknetSpecRequest),
     DevnetSpecRequest(DevnetSpecRequest),
-    // If adding a new variant, expand `fn deserialize` and `fn all_variants_serde_renames`
+    StarknetSpecExtRequest(StarknetSpecExtRequest), /* If adding a new variant, expand `fn
+                                                     * deserialize` and `fn
+                                                     * all_variants_serde_renames` */
 }
 
 impl<'de> Deserialize<'de> for JsonRpcRequest {
@@ -317,6 +329,27 @@ impl StarknetSpecRequest {
     }
 }
 
+impl StarknetSpecExtRequest {
+    pub fn requires_notifying(&self) -> bool {
+        #![warn(clippy::wildcard_enum_match_arm)]
+        match self {
+            Self::ProveTransaction(_) => false,
+        }
+    }
+    pub fn is_forwardable_to_origin(&self) -> bool {
+        #![warn(clippy::wildcard_enum_match_arm)]
+        match self {
+            Self::ProveTransaction(_) => false,
+        }
+    }
+    pub fn is_dumpable(&self) -> bool {
+        #![warn(clippy::wildcard_enum_match_arm)]
+        match self {
+            Self::ProveTransaction(_) => false,
+        }
+    }
+}
+
 impl DevnetSpecRequest {
     pub fn requires_notifying(&self) -> bool {
         #![warn(clippy::wildcard_enum_match_arm)]
@@ -379,6 +412,7 @@ impl JsonRpcRequest {
         #![warn(clippy::wildcard_enum_match_arm)]
         match self {
             Self::StarknetSpecRequest(req) => req.requires_notifying(),
+            Self::StarknetSpecExtRequest(req) => req.requires_notifying(),
             Self::DevnetSpecRequest(req) => req.requires_notifying(),
         }
     }
@@ -388,6 +422,7 @@ impl JsonRpcRequest {
         #[warn(clippy::wildcard_enum_match_arm)]
         match self {
             Self::StarknetSpecRequest(req) => req.is_forwardable_to_origin(),
+            Self::StarknetSpecExtRequest(req) => req.is_forwardable_to_origin(),
             Self::DevnetSpecRequest(_) => false,
         }
     }
@@ -396,6 +431,7 @@ impl JsonRpcRequest {
         #[warn(clippy::wildcard_enum_match_arm)]
         match self {
             Self::StarknetSpecRequest(req) => req.is_dumpable(),
+            Self::StarknetSpecExtRequest(req) => req.is_dumpable(),
             Self::DevnetSpecRequest(req) => req.is_dumpable(),
         }
     }
@@ -404,6 +440,7 @@ impl JsonRpcRequest {
         let mut all_variants = vec![];
         for variants in [
             StarknetSpecRequest::all_variants_serde_renames(),
+            StarknetSpecExtRequest::all_variants_serde_renames(),
             DevnetSpecRequest::all_variants_serde_renames(),
         ] {
             all_variants.extend(variants);
@@ -484,6 +521,7 @@ impl std::fmt::Display for JsonRpcRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let variant_name = match self {
             Self::StarknetSpecRequest(req) => req.variant_name(),
+            Self::StarknetSpecExtRequest(req) => req.variant_name(),
             Self::DevnetSpecRequest(req) => req.variant_name(),
         };
         write!(f, "{}", variant_name)

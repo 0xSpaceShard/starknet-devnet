@@ -6,7 +6,7 @@ use starknet_types_core::felt::Felt;
 use super::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use super::{BroadcastedTransactionCommonV3, ResourceBoundsWrapper};
 use crate::contract_address::ContractAddress;
-use crate::felt::{Calldata, Nonce, TransactionSignature, TransactionVersion};
+use crate::felt::{Calldata, Nonce, ProofFacts, TransactionSignature, TransactionVersion};
 
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(
@@ -26,6 +26,8 @@ pub struct InvokeTransactionV3 {
     account_deployment_data: Vec<Felt>,
     pub(crate) sender_address: ContractAddress,
     calldata: Calldata,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    proof_facts: Option<ProofFacts>,
 }
 
 impl InvokeTransactionV3 {
@@ -42,6 +44,24 @@ impl InvokeTransactionV3 {
             sender_address: broadcasted_txn.sender_address,
             calldata: broadcasted_txn.calldata.clone(),
             account_deployment_data: broadcasted_txn.account_deployment_data.clone(),
+            proof_facts: broadcasted_txn.proof_facts.clone(),
+        }
+    }
+
+    pub fn without_proof_facts(&self) -> Self {
+        Self {
+            version: self.version,
+            signature: self.signature.clone(),
+            nonce: self.nonce,
+            resource_bounds: self.resource_bounds.clone(),
+            tip: self.tip,
+            paymaster_data: self.paymaster_data.clone(),
+            nonce_data_availability_mode: self.nonce_data_availability_mode,
+            fee_data_availability_mode: self.fee_data_availability_mode,
+            sender_address: self.sender_address,
+            calldata: self.calldata.clone(),
+            account_deployment_data: self.account_deployment_data.clone(),
+            proof_facts: None,
         }
     }
 
@@ -66,6 +86,8 @@ impl From<InvokeTransactionV3> for BroadcastedInvokeTransactionV3 {
             sender_address: value.sender_address,
             calldata: value.calldata,
             account_deployment_data: value.account_deployment_data,
+            proof_facts: value.proof_facts,
+            proof: None,
         }
     }
 }

@@ -9,6 +9,8 @@ use starknet_types::rpc::transactions::{
 
 use super::Starknet;
 use crate::error::{DevnetResult, Error, TransactionValidationError};
+use crate::starknet::proofs::verify_proof;
+use crate::starknet::starknet_config::ProofMode;
 
 pub fn add_invoke_transaction(
     starknet: &mut Starknet,
@@ -24,8 +26,10 @@ pub fn add_invoke_transaction(
         });
     }
 
-    let sn_api_transaction =
-        broadcasted_invoke_transaction.create_sn_api_invoke(&starknet.chain_id().to_felt())?;
+    let sn_api_transaction = broadcasted_invoke_transaction.create_sn_api_invoke(
+        &starknet.chain_id().to_felt(),
+        starknet.config.proof_mode == ProofMode::None,
+    )?;
 
     let transaction_hash = sn_api_transaction.tx_hash.0;
 
@@ -34,6 +38,28 @@ pub fn add_invoke_transaction(
             Transaction::Invoke(InvokeTransaction::V3(InvokeTransactionV3::new(v3)))
         }
     };
+
+    let can_continue = match starknet.config.proof_mode {
+        ProofMode::Devnet => {
+            match (
+                broadcasted_invoke_transaction.get_proof(),
+                broadcasted_invoke_transaction.get_proof_facts(),
+            ) {
+                (Some(proof), Some(proof_facts)) => verify_proof(proof, proof_facts),
+                (Some(_), None) | (None, Some(_)) => {
+                    // Probably not possible
+                    return Err(TransactionValidationError::ProofVerificationFailed.into());
+                }
+                (_, _) => true,
+            }
+        }
+        ProofMode::None => true,
+        ProofMode::Full => todo!("Yet to implement proof verification using blockifier API"),
+    };
+
+    if !can_continue {
+        return Err(TransactionValidationError::ProofVerificationFailed.into());
+    }
 
     let validate = !(Starknet::is_account_impersonated(
         &mut starknet.pre_confirmed_state,

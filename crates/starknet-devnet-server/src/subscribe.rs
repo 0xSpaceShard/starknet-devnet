@@ -18,7 +18,7 @@ use starknet_types::rpc::transactions::{
 use tokio::sync::Mutex;
 
 use crate::api::error::ApiError;
-use crate::api::models::SubscriptionId;
+use crate::api::models::{SubscriptionId, SubscriptionTag};
 use crate::rpc_core::request::Id;
 
 pub type SocketId = u64;
@@ -64,7 +64,7 @@ impl SocketCollection {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AddressFilter {
     address_container: Vec<ContractAddress>,
 }
@@ -93,7 +93,7 @@ impl StatusFilter {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Subscription {
     NewHeads,
     TransactionStatus {
@@ -102,6 +102,7 @@ pub enum Subscription {
     NewTransactions {
         address_filter: AddressFilter,
         status_filter: StatusFilter,
+        tags: Vec<SubscriptionTag>,
     },
     NewTransactionReceipts {
         address_filter: AddressFilter,
@@ -127,6 +128,13 @@ impl Subscription {
         }
     }
 
+    pub fn has_tag(&self, tag: SubscriptionTag) -> bool {
+        match self {
+            Subscription::NewTransactions { tags, .. } => tags.contains(&tag),
+            _ => false,
+        }
+    }
+
     pub fn matches(&self, notification: &NotificationData) -> bool {
         match (self, notification) {
             (Subscription::NewHeads, NotificationData::NewHeads(_)) => true,
@@ -135,7 +143,7 @@ impl Subscription {
                 NotificationData::TransactionStatus(notification),
             ) => subscription_hash == &notification.transaction_hash,
             (
-                Subscription::NewTransactions { address_filter, status_filter },
+                Subscription::NewTransactions { address_filter, status_filter, .. },
                 NotificationData::NewTransaction(NewTransactionNotification {
                     tx,
                     finality_status,
@@ -394,7 +402,12 @@ impl SocketContext {
         Ok(())
     }
 
-    pub async fn notify(&self, subscription_id: SubscriptionId, data: NotificationData) {
+    pub async fn notify(
+        &self,
+        subscription_id: SubscriptionId,
+        subscription: &Subscription,
+        data: NotificationData,
+    ) {
         let notification_data = match data {
             NotificationData::NewHeads(block_header) => {
                 SubscriptionNotification::NewHeads { subscription_id, result: block_header }
@@ -408,9 +421,17 @@ impl SocketContext {
             }
 
             NotificationData::NewTransaction(tx_notification) => {
+                let tx = if subscription.has_tag(SubscriptionTag::IncludeProofFacts) {
+                    tx_notification.tx
+                } else {
+                    tx_notification.tx.without_proof_facts()
+                };
                 SubscriptionNotification::NewTransaction {
                     subscription_id,
-                    result: tx_notification,
+                    result: NewTransactionNotification {
+                        tx,
+                        finality_status: tx_notification.finality_status,
+                    },
                 }
             }
 
@@ -439,7 +460,7 @@ impl SocketContext {
     pub async fn notify_subscribers(&self, notification: &NotificationData) {
         for (subscription_id, subscription) in self.subscriptions.iter() {
             if subscription.matches(notification) {
-                self.notify(*subscription_id, notification.clone()).await;
+                self.notify(*subscription_id, subscription, notification.clone()).await;
             }
         }
     }

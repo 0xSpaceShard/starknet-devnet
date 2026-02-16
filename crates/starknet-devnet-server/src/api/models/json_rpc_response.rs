@@ -18,7 +18,8 @@ use crate::api::models::{
     AbortedBlocks, AcceptedOnL1Blocks, AccountBalanceResponse, BlockHashAndNumberOutput,
     CreatedBlock, DeclareTransactionOutput, DeployAccountTransactionOutput, DumpResponseBody,
     FlushedMessages, IncreaseTimeResponse, MessageHash, MessagingLoadAddress, MintTokensResponse,
-    SerializableAccount, SetTimeResponse, SyncingOutput, TransactionHashOutput,
+    ProveTransactionResponse, SerializableAccount, SetTimeResponse, SyncingOutput,
+    TransactionHashOutput,
 };
 use crate::config::DevnetConfig;
 
@@ -27,6 +28,7 @@ use crate::config::DevnetConfig;
 #[allow(clippy::large_enum_variant)]
 pub enum JsonRpcResponse {
     Starknet(StarknetResponse),
+    StarknetExt(StarknetExtResponse),
     Devnet(DevnetResponse),
     Empty,
 }
@@ -34,6 +36,12 @@ pub enum JsonRpcResponse {
 impl From<StarknetResponse> for JsonRpcResponse {
     fn from(resp: StarknetResponse) -> Self {
         JsonRpcResponse::Starknet(resp)
+    }
+}
+
+impl From<StarknetExtResponse> for JsonRpcResponse {
+    fn from(resp: StarknetExtResponse) -> Self {
+        JsonRpcResponse::StarknetExt(resp)
     }
 }
 
@@ -74,6 +82,14 @@ pub enum StarknetResponse {
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
     MessagesStatusByL1Hash(Vec<L1HandlerTransactionStatus>),
+}
+
+#[derive(Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
+#[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
+pub enum StarknetExtResponse {
+    Proof(ProveTransactionResponse),
 }
 
 #[derive(Serialize)]
