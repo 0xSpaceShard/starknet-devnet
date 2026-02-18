@@ -328,6 +328,28 @@ impl Starknet {
     pub(crate) fn generate_pre_confirmed_block(&mut self) {
         Self::advance_block_context_block_number(&mut self.block_context);
 
+        let next_block_number = self.block_context.block_info().block_number;
+        let old_block_number_and_hash = next_block_number
+            .0
+            .checked_sub(blockifier::abi::constants::STORED_BLOCK_HASH_BUFFER)
+            .and_then(|old_num| {
+                let old_block_number = BlockNumber(old_num);
+                let old_block_hash = self.blocks.num_to_hash.get(&old_block_number)?;
+                Some(starknet_api::block::BlockHashAndNumber {
+                    number: old_block_number,
+                    hash: starknet_api::block::BlockHash(*old_block_hash),
+                })
+            });
+
+        if let Err(e) = blockifier::blockifier::block::pre_process_block(
+            &mut self.pre_confirmed_state.state,
+            old_block_number_and_hash,
+            next_block_number,
+            &get_versioned_constants().os_constants,
+        ) {
+            tracing::error!("Failed to pre-process block: {e}");
+        }
+
         Self::set_block_context_gas(&mut self.block_context, &self.next_block_gas);
 
         // Pre_confirmed block header gas data needs to be set
