@@ -809,7 +809,7 @@ impl BroadcastedInvokeTransaction {
 
     pub fn get_proof(&self) -> Option<Proof> {
         match self {
-            BroadcastedInvokeTransaction::V3(v3) => v3.proof,
+            BroadcastedInvokeTransaction::V3(v3) => v3.proof.clone(),
         }
     }
 

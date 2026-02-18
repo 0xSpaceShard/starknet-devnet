@@ -11,6 +11,36 @@ use crate::starknet::Starknet;
 
 static DEVNET_PROOF_MAGIC: u64 = 0xFAFAFAFA;
 
+/// Convert a Felt to Vec<u32> by splitting its byte representation
+fn felt_to_proof(felt: Felt) -> Proof {
+    let bytes = felt.to_bytes_be();
+    let mut proof = Vec::with_capacity(8);
+
+    // Split 32 bytes into 8 u32 values (4 bytes each)
+    for chunk in bytes.chunks(4) {
+        let mut arr = [0u8; 4];
+        arr[..chunk.len()].copy_from_slice(chunk);
+        proof.push(u32::from_be_bytes(arr));
+    }
+
+    proof
+}
+
+/// Convert a Vec<u32> back to Felt for verification
+fn proof_to_felt(proof: &Proof) -> Option<Felt> {
+    if proof.len() != 8 {
+        return None;
+    }
+
+    let mut bytes = [0u8; 32];
+    for (i, &value) in proof.iter().enumerate() {
+        let chunk = value.to_be_bytes();
+        bytes[i * 4..(i + 1) * 4].copy_from_slice(&chunk);
+    }
+
+    Some(Felt::from_bytes_be(&bytes))
+}
+
 pub fn prove_transaction(
     starknet: &Starknet,
     block_id: BlockId,
@@ -40,7 +70,8 @@ pub fn prove_transaction(
         .tx_hash
         .0;
 
-    let proof = Pedersen::hash_array(&[tx_hash, DEVNET_PROOF_MAGIC.into()]);
+    let proof_felt = Pedersen::hash_array(&[tx_hash, DEVNET_PROOF_MAGIC.into()]);
+    let proof = felt_to_proof(proof_felt);
 
     let last_field = Pedersen::hash_array(&[
         proof_version,
@@ -50,7 +81,7 @@ pub fn prove_transaction(
         block_number_felt,
         block_hash,
         config_hash,
-        proof,
+        proof_felt,
     ]);
 
     let proof_facts = vec![
@@ -77,7 +108,15 @@ pub fn verify_proof(proof: Proof, proof_facts: ProofFacts) -> bool {
     } else {
         return false;
     };
-    input.push(proof);
+
+    // Convert proof from Vec<i64> back to Felt
+    let proof_felt = if let Some(felt) = proof_to_felt(&proof) {
+        felt
+    } else {
+        return false;
+    };
+
+    input.push(proof_felt);
     Pedersen::hash_array(&input) == last_field
 }
 
@@ -135,8 +174,8 @@ mod tests {
         // Verify proof facts has correct length
         assert_eq!(proof_facts.len(), 8, "proof_facts should have 8 elements");
 
-        // Verify proof is not zero
-        assert_ne!(proof, Felt::ZERO, "proof should not be zero");
+        // Verify proof has correct length (8 u32 values)
+        assert_eq!(proof.len(), 8, "proof should have 8 u32 values");
     }
 
     #[test]
@@ -165,7 +204,7 @@ mod tests {
             tx,
         )
         .unwrap();
-        let wrong_proof = Felt::from(0xDEADBEEFu64);
+        let wrong_proof = vec![0xDEADBEEFu32, 0, 0, 0, 0, 0, 0, 0];
 
         assert!(!verify_proof(wrong_proof, proof_facts), "wrong proof should be rejected");
     }
@@ -192,11 +231,14 @@ mod tests {
 
     #[test]
     fn test_verify_proof_rejects_wrong_length_proof_facts() {
-        let proof = Felt::from(0x123u64);
+        let proof = vec![0x123u32, 0, 0, 0, 0, 0, 0, 0];
 
         // Too few elements
         let short_proof_facts = vec![Felt::ONE, Felt::TWO, Felt::THREE];
-        assert!(!verify_proof(proof, short_proof_facts), "short proof_facts should be rejected");
+        assert!(
+            !verify_proof(proof.clone(), short_proof_facts),
+            "short proof_facts should be rejected"
+        );
 
         // Too many elements
         let long_proof_facts = vec![Felt::ONE; 10];
@@ -205,10 +247,31 @@ mod tests {
 
     #[test]
     fn test_verify_proof_rejects_empty_proof_facts() {
-        let proof = Felt::from(0x123u64);
+        let proof = vec![0x123u32, 0, 0, 0, 0, 0, 0, 0];
         let empty_proof_facts = vec![];
 
         assert!(!verify_proof(proof, empty_proof_facts), "empty proof_facts should be rejected");
+    }
+
+    #[test]
+    fn test_verify_proof_rejects_wrong_length_proof() {
+        let starknet = create_test_starknet();
+        let tx = create_test_invoke_transaction();
+
+        let (_proof, proof_facts) = prove_transaction(
+            &starknet,
+            BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
+            tx,
+        )
+        .unwrap();
+
+        // Proof with wrong length (too few elements)
+        let short_proof = vec![0x123u32, 0];
+        assert!(!verify_proof(short_proof, proof_facts.clone()), "short proof should be rejected");
+
+        // Proof with wrong length (too many elements)
+        let long_proof = vec![0x123u32; 10];
+        assert!(!verify_proof(long_proof, proof_facts), "long proof should be rejected");
     }
 
     #[test]
@@ -278,9 +341,10 @@ mod tests {
         assert_eq!(proof_facts[0], PROOF_VERSION.into(), "first field should be proof_version");
         assert_eq!(proof_facts[1], VIRTUAL_SNOS.into(), "second field should be variant_marker");
 
-        // Last field should be hash of all previous fields plus proof
+        // Last field should be hash of all previous fields plus proof_felt
+        let proof_felt = proof_to_felt(&proof).expect("proof should convert to felt");
         let mut input = proof_facts[0..7].to_vec();
-        input.push(proof);
+        input.push(proof_felt);
         let expected_last_field = Pedersen::hash_array(&input);
         assert_eq!(
             proof_facts[7], expected_last_field,

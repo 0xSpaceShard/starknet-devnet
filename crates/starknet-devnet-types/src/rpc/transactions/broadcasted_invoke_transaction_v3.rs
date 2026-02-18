@@ -1,12 +1,45 @@
 use std::sync::Arc;
 
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use starknet_rs_core::types::Felt;
 
 use super::BroadcastedTransactionCommonV3;
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
 use crate::felt::{Calldata, Proof, ProofFacts};
+
+fn deserialize_proof<'de, D>(deserializer: D) -> Result<Option<Proof>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<String>::deserialize(deserializer)?;
+
+    match value {
+        None => Ok(None),
+        Some(base64_str) => {
+            // Decode base64 string to bytes
+            let bytes = base64::Engine::decode(
+                &base64::engine::general_purpose::STANDARD,
+                base64_str.as_bytes(),
+            )
+            .map_err(serde::de::Error::custom)?;
+
+            // Convert bytes to Vec<u32>
+            if bytes.len() % 4 != 0 {
+                return Err(serde::de::Error::custom("Proof bytes length must be a multiple of 4"));
+            }
+
+            let mut proof = Vec::with_capacity(bytes.len() / 4);
+            for chunk in bytes.chunks(4) {
+                let mut arr = [0u8; 4];
+                arr.copy_from_slice(chunk);
+                proof.push(u32::from_be_bytes(arr));
+            }
+
+            Ok(Some(proof))
+        }
+    }
+}
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -16,7 +49,7 @@ pub struct BroadcastedInvokeTransactionV3 {
     pub sender_address: ContractAddress,
     pub calldata: Calldata,
     pub account_deployment_data: Vec<Felt>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_proof")]
     pub proof: Option<Proof>,
     #[serde(default)]
     pub proof_facts: Option<ProofFacts>,
