@@ -10,7 +10,8 @@ use starknet_types::rpc::state::{PreConfirmedStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, EventsChunk, L1HandlerTransactionStatus, SimulatedTransaction,
-    TransactionStatus, TransactionTrace, TransactionWithHash,
+    SimulatedTransactionsWithInitialReads, TransactionStatus, TransactionTrace,
+    TransactionWithHash,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 
@@ -79,6 +80,7 @@ pub enum StarknetResponse {
     TransactionHash(TransactionHashOutput),
     EstimateMessageFee(FeeEstimateWrapper),
     SimulateTransactions(Vec<SimulatedTransaction>),
+    SimulateTransactionsInitialReads(SimulatedTransactionsWithInitialReads),
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
     MessagesStatusByL1Hash(Vec<L1HandlerTransactionStatus>),

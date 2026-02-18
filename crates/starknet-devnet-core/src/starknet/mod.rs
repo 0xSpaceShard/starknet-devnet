@@ -49,8 +49,8 @@ use starknet_types::rpc::transactions::{
     BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionCommonV3,
     L1HandlerTransactionStatus, ResourceBoundsWrapper, SimulatedTransaction, SimulationFlag,
-    TransactionFinalityStatus, TransactionStatus, TransactionTrace, TransactionType,
-    TransactionWithHash, TransactionWithReceipt, Transactions,
+    SimulationResult, TransactionFinalityStatus, TransactionStatus, TransactionTrace,
+    TransactionType, TransactionWithHash, TransactionWithReceipt, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tokio::runtime::Handle;
@@ -1387,20 +1387,13 @@ impl Starknet {
         block_id: &CustomBlockId,
         transactions: &[BroadcastedTransaction],
         simulation_flags: Vec<SimulationFlag>,
-    ) -> DevnetResult<Vec<SimulatedTransaction>> {
+    ) -> DevnetResult<SimulationResult> {
         let chain_id = self.chain_id().to_felt();
         let block_context = self.block_context.clone();
 
-        let mut skip_validate = false;
-        let mut skip_fee_charge = false;
-        for flag in simulation_flags.iter() {
-            match flag {
-                SimulationFlag::SkipValidate => {
-                    skip_validate = true;
-                }
-                SimulationFlag::SkipFeeCharge => skip_fee_charge = true,
-            }
-        }
+        let skip_validate = simulation_flags.contains(&SimulationFlag::SkipValidate);
+        let skip_fee_charge = simulation_flags.contains(&SimulationFlag::SkipFeeCharge);
+        let return_initial_reads = simulation_flags.contains(&SimulationFlag::InitialReads);
         let using_pre_confirmed_block = self.config.uses_pre_confirmed_block();
 
         let mut transactions_traces: Vec<TransactionTrace> = vec![];
@@ -1473,6 +1466,12 @@ impl Starknet {
             transactions_traces.push(trace);
         }
 
+        let initial_reads = if return_initial_reads {
+            Some(transactional_state.get_initial_reads()?)
+        } else {
+            None
+        };
+
         let estimated = estimations::estimate_fee(
             self,
             block_id,
@@ -1494,7 +1493,7 @@ impl Starknet {
             });
         }
 
-        let simulation_results = transactions_traces
+        let simulation_results: Vec<SimulatedTransaction> = transactions_traces
             .into_iter()
             .zip(estimated)
             .map(|(trace, fee_estimation)| SimulatedTransaction {
@@ -1503,7 +1502,17 @@ impl Starknet {
             })
             .collect();
 
-        Ok(simulation_results)
+        if return_initial_reads {
+            Ok(SimulationResult::SimulatedTransactionsWithInitialReads(Box::new(
+                starknet_types::rpc::transactions::SimulatedTransactionsWithInitialReads {
+                    simulated_transactions: simulation_results,
+                    #[allow(clippy::unwrap_used)] // same if condition as before, structure like this because of borrow checker
+                    initial_reads: initial_reads.unwrap(),
+                },
+            )))
+        } else {
+            Ok(SimulationResult::SimulatedTransactions(simulation_results))
+        }
     }
 
     /// create new block from pre_confirmed one

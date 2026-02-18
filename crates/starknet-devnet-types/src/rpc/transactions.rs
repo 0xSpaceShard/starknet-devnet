@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use blockifier::blockifier_versioned_constants::VersionedConstants;
+use blockifier::state::cached_state::StateMaps;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::objects::TransactionExecutionInfo;
@@ -872,6 +873,7 @@ impl<'de> Deserialize<'de> for BroadcastedInvokeTransaction {
 pub enum SimulationFlag {
     SkipValidate,
     SkipFeeCharge,
+    InitialReads,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -993,6 +995,19 @@ pub struct L1HandlerTransactionTrace {
 pub struct SimulatedTransaction {
     pub transaction_trace: TransactionTrace,
     pub fee_estimation: FeeEstimateWrapper,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+pub struct SimulatedTransactionsWithInitialReads {
+    pub simulated_transactions: Vec<SimulatedTransaction>,
+    pub initial_reads: StateMaps,
+}
+
+#[derive(Debug, Clone)]
+pub enum SimulationResult {
+    SimulatedTransactions(Vec<SimulatedTransaction>),
+    SimulatedTransactionsWithInitialReads(Box<SimulatedTransactionsWithInitialReads>),
 }
 
 impl FunctionInvocation {

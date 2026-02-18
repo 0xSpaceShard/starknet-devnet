@@ -12,7 +12,7 @@ use starknet_types::rpc::state::StateUpdateResult;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 use starknet_types::rpc::transactions::{
     BroadcastedInvokeTransaction, BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall,
-    SimulationFlag, Transactions,
+    SimulationFlag, SimulationResult, Transactions,
 };
 
 use super::error::{ApiError, StrictRpcResult};
@@ -654,7 +654,12 @@ impl JsonRpcHandler {
         let mut starknet = self.api.starknet.lock().await;
 
         match starknet.simulate_transactions(&block_id, &transactions, simulation_flags) {
-            Ok(result) => Ok(StarknetResponse::SimulateTransactions(result).into()),
+            Ok(SimulationResult::SimulatedTransactions(result)) => {
+                Ok(StarknetResponse::SimulateTransactions(result).into())
+            }
+            Ok(SimulationResult::SimulatedTransactionsWithInitialReads(result)) => {
+                Ok(StarknetResponse::SimulateTransactionsInitialReads(*result).into())
+            }
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(e @ Error::NoStateAtBlock { .. }) => {
