@@ -883,9 +883,11 @@ impl Starknet {
     ) -> DevnetResult<(Proof, ProofFacts)> {
         match self.config.proof_mode {
             ProofMode::Devnet => proofs::prove_transaction(self, block_id, invoke_transaction),
-            ProofMode::Full => todo!("Yet to implement real prover"),
-            ProofMode::None => Err(Error::UnsupportedAction {
-                msg: "Proving disabled in this proving mode".to_string(),
+            _ => Err(Error::UnsupportedAction {
+                msg: "Devnet cannot provide real transaction proofs. However, running devnet with \
+                      \"--proof-mode devnet\" enables this endpoint which provides mock proofs \
+                      which are later validated."
+                    .to_string(),
             }),
         }
     }
@@ -965,7 +967,7 @@ impl Starknet {
         let tx_hash = unsigned_tx
             .create_sn_api_invoke(false)?
             .calculate_transaction_hash(&self.config.chain_id.into(), &TransactionVersion::THREE)?;
-        let signature = signer.sign_hash(&tx_hash).await?;
+        let signature = signer.sign_hash(&tx_hash.0).await?;
 
         let mut invoke_tx = unsigned_tx;
         invoke_tx.common.signature = vec![signature.r, signature.s];

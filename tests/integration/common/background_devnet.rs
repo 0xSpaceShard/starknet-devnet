@@ -117,8 +117,8 @@ impl BackgroundDevnet {
     }
 
     async fn start_safe_process(args: &[&str]) -> Result<SafeChild, TestError> {
-        // If not on CircleCI, first build the workspace with cargo. Then rely on the built binary.
-        if std::env::var("CIRCLECI").is_err() {
+        // If not on CI, first build the workspace with cargo. Then rely on the built binary.
+        if std::env::var("CI").is_err() {
             let Output { status, stderr, .. } = Command::new("cargo")
                 .args(["build", "--release", "--manifest-path", DEVNET_MANIFEST_PATH])
                 .stdout(Stdio::null())
