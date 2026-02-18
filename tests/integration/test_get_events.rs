@@ -201,6 +201,220 @@ async fn get_events_errors() {
     }
 }
 
+#[tokio::test]
+async fn get_events_with_multiple_addresses() {
+    let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+    let (signer, address) = devnet.get_first_predeployed_account().await;
+    let mut predeployed_account = SingleOwnerAccount::new(
+        devnet.clone_provider(),
+        signer,
+        address,
+        constants::CHAIN_ID,
+        ExecutionEncoding::New,
+    );
+
+    predeployed_account.set_block_id(BlockId::Tag(BlockTag::PreConfirmed));
+
+    let (cairo_1_contract, casm_class_hash) = get_events_contract_artifacts();
+
+    // declare the contract
+    let declaration_result = predeployed_account
+        .declare_v3(Arc::new(cairo_1_contract), casm_class_hash)
+        .send()
+        .await
+        .unwrap();
+
+    let predeployed_account = Arc::new(predeployed_account);
+
+    // deploy three instances of the contract
+    let contract_factory =
+        new_contract_factory(declaration_result.class_hash, predeployed_account.clone());
+
+    let mut contract_addresses = vec![];
+    for i in 0..3 {
+        contract_factory.deploy_v3(vec![], Felt::from(i), false).send().await.unwrap();
+
+        let contract_address = get_udc_deployed_address(
+            Felt::from(i),
+            declaration_result.class_hash,
+            &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+            &[],
+        );
+        contract_addresses.push(contract_address);
+    }
+
+    // emit events from each contract (different amounts to verify filtering)
+    let nonce = predeployed_account.get_nonce().await.unwrap();
+    let mut nonce_offset = 0;
+
+    // Contract 0: emit 3 events
+    for _ in 0..3 {
+        predeployed_account
+            .execute_v3(vec![Call {
+                to: contract_addresses[0],
+                selector: get_selector_from_name("emit_event").unwrap(),
+                calldata: vec![Felt::ONE],
+            }])
+            .nonce(nonce + Felt::from(nonce_offset))
+            .send()
+            .await
+            .unwrap();
+        nonce_offset += 1;
+    }
+
+    // Contract 1: emit 5 events
+    for _ in 0..5 {
+        predeployed_account
+            .execute_v3(vec![Call {
+                to: contract_addresses[1],
+                selector: get_selector_from_name("emit_event").unwrap(),
+                calldata: vec![Felt::TWO],
+            }])
+            .nonce(nonce + Felt::from(nonce_offset))
+            .send()
+            .await
+            .unwrap();
+        nonce_offset += 1;
+    }
+
+    // Contract 2: emit 2 events
+    for _ in 0..2 {
+        predeployed_account
+            .execute_v3(vec![Call {
+                to: contract_addresses[2],
+                selector: get_selector_from_name("emit_event").unwrap(),
+                calldata: vec![Felt::THREE],
+            }])
+            .nonce(nonce + Felt::from(nonce_offset))
+            .send()
+            .await
+            .unwrap();
+        nonce_offset += 1;
+    }
+
+    // Test 1: Filter by single address (should get 3 events from contract 0)
+    let events_single = devnet
+        .json_rpc_client
+        .get_events(
+            EventFilter {
+                from_block: None,
+                to_block: Some(BlockId::Tag(BlockTag::Latest)),
+                address: Some(contract_addresses[0]),
+                keys: None,
+            },
+            None,
+            100,
+        )
+        .await
+        .unwrap();
+    assert_eq!(events_single.events.len(), 3);
+    for event in &events_single.events {
+        assert_eq!(event.from_address, contract_addresses[0]);
+    }
+
+    // Test 2: Filter by multiple addresses using raw JSON-RPC call
+    // (since starknet-rs EventFilter only supports single address)
+    let client = reqwest::Client::new();
+    let response = client
+        .post(format!("{}/rpc", devnet.url))
+        .json(&serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "starknet_getEvents",
+            "params": {
+                "filter": {
+                    "from_block": {"block_number": 0},
+                    "to_block": "latest",
+                    "address": [
+                        format!("{:#x}", contract_addresses[0]),
+                        format!("{:#x}", contract_addresses[1])
+                    ],
+                    "keys": [],
+                    "chunk_size": 100
+                }
+            },
+            "id": 1
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    let result: serde_json::Value = response.json().await.unwrap();
+    let events = result["result"]["events"].as_array().unwrap();
+
+    // Should get 3 + 5 = 8 events from contracts 0 and 1
+    assert_eq!(events.len(), 8);
+
+    // Verify all events are from the specified addresses
+    for event in events {
+        let from_address = event["from_address"].as_str().unwrap();
+        let addr0_str = format!("{:#x}", contract_addresses[0]);
+        let addr1_str = format!("{:#x}", contract_addresses[1]);
+        assert!(from_address == addr0_str || from_address == addr1_str);
+    }
+
+    // Test 3: Filter by all three addresses
+    let response = client
+        .post(format!("{}/rpc", devnet.url))
+        .json(&serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "starknet_getEvents",
+            "params": {
+                "filter": {
+                    "from_block": {"block_number": 0},
+                    "to_block": "latest",
+                    "address": [
+                        format!("{:#x}", contract_addresses[0]),
+                        format!("{:#x}", contract_addresses[1]),
+                        format!("{:#x}", contract_addresses[2])
+                    ],
+                    "keys": [],
+                    "chunk_size": 100
+                }
+            },
+            "id": 1
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    let result: serde_json::Value = response.json().await.unwrap();
+    let events = result["result"]["events"].as_array().unwrap();
+
+    // Should get 3 + 5 + 2 = 10 events from all three contracts
+    assert_eq!(events.len(), 10);
+
+    // Test 4: Verify single address as non-array also works (backward compatibility)
+    let response = client
+        .post(format!("{}/rpc", devnet.url))
+        .json(&serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "starknet_getEvents",
+            "params": {
+                "filter": {
+                    "from_block": {"block_number": 0},
+                    "to_block": "latest",
+                    "address": format!("{:#x}", contract_addresses[2]),
+                    "keys": [],
+                    "chunk_size": 100
+                }
+            },
+            "id": 1
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    let result: serde_json::Value = response.json().await.unwrap();
+    let events = result["result"]["events"].as_array().unwrap();
+
+    // Should get 2 events from contract 2
+    assert_eq!(events.len(), 2);
+    for event in events {
+        let from_address = event["from_address"].as_str().unwrap();
+        assert_eq!(from_address, format!("{:#x}", contract_addresses[2]));
+    }
+}
+
 /// Spawns Devnet which forks mainnet at block number `block`.
 async fn fork_mainnet_at(block: u64) -> Result<BackgroundDevnet, anyhow::Error> {
     let cli_args = ["--fork-network", MAINNET_URL, "--fork-block", &block.to_string()];

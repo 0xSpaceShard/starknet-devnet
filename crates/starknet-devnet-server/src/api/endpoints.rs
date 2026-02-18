@@ -522,7 +522,7 @@ impl JsonRpcHandler {
         from_origin: u64,
         to_origin: u64,
         continuation_token: Option<String>,
-        address: Option<ContractAddress>,
+        addresses: Option<Vec<ContractAddress>>,
         keys: Option<Vec<Vec<Felt>>>,
         chunk_size: u64,
     ) -> Result<EventsChunk, ApiError> {
@@ -533,13 +533,17 @@ impl JsonRpcHandler {
         let origin_continuation_token = continuation_token
             .map(|token| token.trim_start_matches(CONTINUATION_TOKEN_ORIGIN_PREFIX).to_string());
 
+        // NOTE: starknet-rs only supports a single address filter, so we take the first one so code
+        // compiles TODO: Fix after starknet-rs bump
+        let origin_address = addresses.as_ref().and_then(|addrs| addrs.first().copied());
+
         let mut origin_events_chunk: EventsChunk = origin_caller
             .starknet_client
             .get_events(
                 starknet_rs_core::types::EventFilter {
                     from_block: Some(ImportedBlockId::Number(from_origin)),
                     to_block: Some(ImportedBlockId::Number(to_origin)),
-                    address: address.map(|address| address.into()),
+                    address: origin_address.map(|address| address.into()),
                     keys,
                 },
                 origin_continuation_token,

@@ -300,11 +300,30 @@ where
     s.serialize_str(&format!("{paid_fee_on_l1:#x}"))
 }
 
+fn deserialize_address<'de, D>(deserializer: D) -> Result<Option<Vec<ContractAddress>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum AddressOrVec {
+        Single(ContractAddress),
+        Multiple(Vec<ContractAddress>),
+    }
+
+    let value = Option::<AddressOrVec>::deserialize(deserializer)?;
+    Ok(value.map(|v| match v {
+        AddressOrVec::Single(addr) => vec![addr],
+        AddressOrVec::Multiple(addrs) => addrs,
+    }))
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct EventFilter {
     pub from_block: Option<BlockId>,
     pub to_block: Option<BlockId>,
-    pub address: Option<ContractAddress>,
+    #[serde(default, deserialize_with = "deserialize_address")]
+    pub address: Option<Vec<ContractAddress>>,
     pub keys: Option<Vec<Vec<Felt>>>,
     pub continuation_token: Option<String>,
     pub chunk_size: u64,

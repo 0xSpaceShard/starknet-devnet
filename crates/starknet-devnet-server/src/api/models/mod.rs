@@ -295,7 +295,7 @@ pub struct SubscriptionBlockIdInput {
 #[serde(deny_unknown_fields)]
 pub struct EventsSubscriptionInput {
     pub block_id: Option<SubscriptionBlockId>,
-    pub from_address: Option<ContractAddress>,
+    pub from_addresses: Option<Vec<ContractAddress>>,
     pub keys: Option<Vec<Vec<Felt>>>,
     pub finality_status: Option<TransactionFinalityStatus>,
 }
