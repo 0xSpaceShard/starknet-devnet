@@ -29,6 +29,24 @@ use starknet_types::starknet_api::block::BlockNumber;
 use crate::rpc_core::request::RpcMethodCall;
 use crate::subscribe::{TransactionFinalityStatusWithoutL1, TransactionStatusWithoutL1};
 
+fn deserialize_address<'de, D>(deserializer: D) -> Result<Option<Vec<ContractAddress>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum AddressOrVec {
+        Single(ContractAddress),
+        Multiple(Vec<ContractAddress>),
+    }
+
+    let value = Option::<AddressOrVec>::deserialize(deserializer)?;
+    Ok(value.map(|v| match v {
+        AddressOrVec::Single(addr) => vec![addr],
+        AddressOrVec::Multiple(addrs) => addrs,
+    }))
+}
+
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockIdInput {
@@ -295,6 +313,7 @@ pub struct SubscriptionBlockIdInput {
 #[serde(deny_unknown_fields)]
 pub struct EventsSubscriptionInput {
     pub block_id: Option<SubscriptionBlockId>,
+    #[serde(default, deserialize_with = "deserialize_address")]
     pub from_address: Option<Vec<ContractAddress>>,
     pub keys: Option<Vec<Vec<Felt>>>,
     pub finality_status: Option<TransactionFinalityStatus>,
