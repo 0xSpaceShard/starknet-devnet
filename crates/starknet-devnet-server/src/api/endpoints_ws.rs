@@ -408,7 +408,7 @@ impl JsonRpcHandler {
     ) -> Result<(), ApiError> {
         let addresses = maybe_subscription_input
             .as_ref()
-            .and_then(|subscription_input| subscription_input.from_addresses.clone());
+            .and_then(|subscription_input| subscription_input.from_address.clone());
 
         let starting_block_id = maybe_subscription_input
             .as_ref()
