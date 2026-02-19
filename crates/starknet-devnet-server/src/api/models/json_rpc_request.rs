@@ -202,9 +202,20 @@ impl<'de> Deserialize<'de> for JsonRpcRequest {
         let method = raw_req.get("method").and_then(|m| m.as_str()).unwrap_or("<missing>");
 
         match method {
-            method if method.starts_with("starknet_") => Ok(Self::StarknetSpecRequest(
-                serde_json::from_value(raw_req).map_err(serde::de::Error::custom)?,
-            )),
+            method if method.starts_with("starknet_") => {
+                // Check if this method belongs to StarknetSpecExtRequest
+                let ext_methods = StarknetSpecExtRequest::all_variants_serde_renames();
+                if ext_methods.contains(&method.to_string()) {
+                    Ok(Self::StarknetSpecExtRequest(
+                        serde_json::from_value(raw_req).map_err(serde::de::Error::custom)?,
+                    ))
+                } else {
+                    // Otherwise, it's a StarknetSpecRequest
+                    Ok(Self::StarknetSpecRequest(
+                        serde_json::from_value(raw_req).map_err(serde::de::Error::custom)?,
+                    ))
+                }
+            }
             method if method.starts_with("devnet_") => Ok(Self::DevnetSpecRequest(
                 serde_json::from_value(raw_req).map_err(serde::de::Error::custom)?,
             )),
@@ -1057,6 +1068,63 @@ mod requests_tests {
 
             assert_deserialization_succeeds(deserializable_call.to_string().as_str())
         }
+    }
+
+    #[test]
+    fn deserialize_prove_transaction_request() {
+        let json_str = r#"{
+            "method":"starknet_proveTransaction",
+            "params":{
+                "block_id":"latest",
+                "transaction":{
+                    "version":"0x3",
+                    "signature":[],
+                    "nonce":"0x0",
+                    "sender_address":"0x1234",
+                    "calldata":["0x1","0x2"],
+                    "account_deployment_data":[],
+                    "resource_bounds":{
+                        "l1_gas":{"max_amount":"0x0","max_price_per_unit":"0x0"},
+                        "l1_data_gas":{"max_amount":"0x0","max_price_per_unit":"0x0"},
+                        "l2_gas":{"max_amount":"0x0","max_price_per_unit":"0x0"}
+                    },
+                    "tip":"0x0",
+                    "paymaster_data":[],
+                    "nonce_data_availability_mode":"L1",
+                    "fee_data_availability_mode":"L1"
+                }
+            }
+        }"#;
+
+        assert_deserialization_succeeds(json_str);
+
+        // Test with block hash instead of tag
+        assert_deserialization_succeeds(
+            &json_str.replace(r#""block_id":"latest""#, r#""block_id":{"block_hash":"0x123abc"}"#),
+        );
+
+        // Test with block number
+        assert_deserialization_succeeds(
+            &json_str.replace(r#""block_id":"latest""#, r#""block_id":{"block_number":123}"#),
+        );
+
+        // Missing block_id should fail
+        assert_deserialization_fails(
+            &json_str.replace(r#""block_id":"latest","#, ""),
+            "missing field `block_id`",
+        );
+
+        // Invalid version should fail
+        assert_deserialization_fails(
+            &json_str.replace(r#""version":"0x3""#, r#""version":"0x999""#),
+            "Invalid version of invoke transaction",
+        );
+
+        // Missing version should fail
+        assert_deserialization_fails(
+            &json_str.replace(r#""version":"0x3","#, ""),
+            "missing field `version`",
+        );
     }
 
     fn assert_deserialization_succeeds(json_str: &str) {
