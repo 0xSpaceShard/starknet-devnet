@@ -12,9 +12,10 @@ pub use json_rpc_response::{
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::{Felt, Hash256, TransactionExecutionStatus};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{BlockHash, ClassHash, Proof, ProofFacts, TransactionHash};
+use starknet_types::felt::{BlockHash, ClassHash, ProofFacts, TransactionHash};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
+use starknet_types::proof::Proof;
 use starknet_types::rpc::block::{BlockId, SubscriptionBlockId, TransactionResponseFlag};
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transaction_receipt::FeeUnit;

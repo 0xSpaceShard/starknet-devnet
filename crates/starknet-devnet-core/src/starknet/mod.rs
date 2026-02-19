@@ -29,10 +29,11 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{
-    BlockHash, ClassHash, Proof, ProofFacts, TransactionHash, felt_from_prefixed_hex, split_biguint,
+    BlockHash, ClassHash, ProofFacts, TransactionHash, felt_from_prefixed_hex, split_biguint,
 };
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
+use starknet_types::proof::Proof;
 use starknet_types::rpc::block::{
     Block, BlockHeader, BlockId as CustomBlockId, BlockResult, BlockStatus,
     BlockTag as CustomBlockTag, PreConfirmedBlock, PreConfirmedBlockHeader,

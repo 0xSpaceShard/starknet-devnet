@@ -40,9 +40,10 @@ use crate::contract_class::{ContractClass, compute_sierra_class_hash};
 use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult};
 use crate::felt::{
-    Calldata, EntryPointSelector, Nonce, Proof, ProofFacts, TransactionHash, TransactionSignature,
+    Calldata, EntryPointSelector, Nonce, ProofFacts, TransactionHash, TransactionSignature,
     TransactionVersion,
 };
+use crate::proof::Proof;
 use crate::rpc::transaction_receipt::CommonTransactionReceipt;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 

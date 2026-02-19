@@ -1,7 +1,8 @@
 use starknet_api::core::OsChainInfo;
 use starknet_api::transaction::fields::{PROOF_VERSION, VIRTUAL_OS_OUTPUT_VERSION, VIRTUAL_SNOS};
 use starknet_rs_core::types::Felt;
-use starknet_types::felt::{Proof, ProofFacts};
+use starknet_types::felt::ProofFacts;
+use starknet_types::proof::Proof;
 use starknet_types::rpc::block::BlockId;
 use starknet_types::rpc::transactions::BroadcastedInvokeTransaction;
 use starknet_types_core::hash::{Pedersen, StarkHash};
@@ -11,29 +12,30 @@ use crate::starknet::Starknet;
 
 static DEVNET_PROOF_MAGIC: u64 = 0xFAFAFAFA;
 
-/// Convert a Felt to Vec<u32> by splitting its byte representation
+/// Convert a Felt to Proof by splitting its byte representation
 fn felt_to_proof(felt: Felt) -> Proof {
     let bytes = felt.to_bytes_be();
-    let mut proof = Vec::with_capacity(8);
+    let mut proof_data = Vec::with_capacity(8);
 
     // Split 32 bytes into 8 u32 values (4 bytes each)
     for chunk in bytes.chunks(4) {
         let mut arr = [0u8; 4];
         arr[..chunk.len()].copy_from_slice(chunk);
-        proof.push(u32::from_be_bytes(arr));
+        proof_data.push(u32::from_be_bytes(arr));
     }
 
-    proof
+    Proof::new(proof_data)
 }
 
-/// Convert a Vec<u32> back to Felt for verification
+/// Convert a Proof back to Felt for verification
 fn proof_to_felt(proof: &Proof) -> Option<Felt> {
-    if proof.len() != 8 {
+    let proof_data = proof.inner();
+    if proof_data.len() != 8 {
         return None;
     }
 
     let mut bytes = [0u8; 32];
-    for (i, &value) in proof.iter().enumerate() {
+    for (i, &value) in proof_data.iter().enumerate() {
         let chunk = value.to_be_bytes();
         bytes[i * 4..(i + 1) * 4].copy_from_slice(&chunk);
     }
@@ -206,7 +208,7 @@ mod tests {
         .unwrap();
         let wrong_proof = vec![0xDEADBEEFu32, 0, 0, 0, 0, 0, 0, 0];
 
-        assert!(!verify_proof(wrong_proof, proof_facts), "wrong proof should be rejected");
+        assert!(!verify_proof(wrong_proof.into(), proof_facts), "wrong proof should be rejected");
     }
 
     #[test]
@@ -236,13 +238,16 @@ mod tests {
         // Too few elements
         let short_proof_facts = vec![Felt::ONE, Felt::TWO, Felt::THREE];
         assert!(
-            !verify_proof(proof.clone(), short_proof_facts),
+            !verify_proof(proof.clone().into(), short_proof_facts),
             "short proof_facts should be rejected"
         );
 
         // Too many elements
         let long_proof_facts = vec![Felt::ONE; 10];
-        assert!(!verify_proof(proof, long_proof_facts), "long proof_facts should be rejected");
+        assert!(
+            !verify_proof(proof.into(), long_proof_facts),
+            "long proof_facts should be rejected"
+        );
     }
 
     #[test]
@@ -250,7 +255,10 @@ mod tests {
         let proof = vec![0x123u32, 0, 0, 0, 0, 0, 0, 0];
         let empty_proof_facts = vec![];
 
-        assert!(!verify_proof(proof, empty_proof_facts), "empty proof_facts should be rejected");
+        assert!(
+            !verify_proof(proof.into(), empty_proof_facts),
+            "empty proof_facts should be rejected"
+        );
     }
 
     #[test]
@@ -267,11 +275,14 @@ mod tests {
 
         // Proof with wrong length (too few elements)
         let short_proof = vec![0x123u32, 0];
-        assert!(!verify_proof(short_proof, proof_facts.clone()), "short proof should be rejected");
+        assert!(
+            !verify_proof(short_proof.into(), proof_facts.clone()),
+            "short proof should be rejected"
+        );
 
         // Proof with wrong length (too many elements)
         let long_proof = vec![0x123u32; 10];
-        assert!(!verify_proof(long_proof, proof_facts), "long proof should be rejected");
+        assert!(!verify_proof(long_proof.into(), proof_facts), "long proof should be rejected");
     }
 
     #[test]
