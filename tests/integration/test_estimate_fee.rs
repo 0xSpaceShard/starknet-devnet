@@ -6,9 +6,10 @@ use starknet_rs_accounts::{
     ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
 use starknet_rs_core::types::{
-    BlockId, BlockTag, BroadcastedDeclareTransactionV3, BroadcastedInvokeTransactionV3,
-    BroadcastedTransaction, Call, DataAvailabilityMode, FeeEstimate, Felt, FunctionCall,
-    ResourceBounds, ResourceBoundsMapping, StarknetError, TransactionExecutionErrorData,
+    BlockId, BlockTag, BroadcastedDeclareTransactionV3, BroadcastedInvokeTransaction,
+    BroadcastedInvokeTransactionV3, BroadcastedTransaction, Call, DataAvailabilityMode,
+    FeeEstimate, Felt, FunctionCall, ResourceBounds, ResourceBoundsMapping, StarknetError,
+    TransactionExecutionErrorData,
 };
 use starknet_rs_core::utils::{
     UdcUniqueness, cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address,
@@ -458,31 +459,35 @@ async fn broadcasted_invoke_v3_for_estimation(
     let is_query = false;
     let signature = signer.sign_hash(&prepared_invoke.transaction_hash(is_query)).await?;
 
-    Ok(BroadcastedTransaction::Invoke(BroadcastedInvokeTransactionV3 {
-        resource_bounds: ResourceBoundsMapping {
-            l1_gas: ResourceBounds {
-                max_amount: l1_gas_consumed,
-                max_price_per_unit: l1_gas_price,
+    Ok(BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction {
+        broadcasted_invoke_txn_v3: BroadcastedInvokeTransactionV3 {
+            resource_bounds: ResourceBoundsMapping {
+                l1_gas: ResourceBounds {
+                    max_amount: l1_gas_consumed,
+                    max_price_per_unit: l1_gas_price,
+                },
+                l1_data_gas: ResourceBounds {
+                    max_amount: l1_data_gas_consumed,
+                    max_price_per_unit: l1_data_gas_price,
+                },
+                l2_gas: ResourceBounds {
+                    max_amount: l2_gas_consumed,
+                    max_price_per_unit: l2_gas_price,
+                },
             },
-            l1_data_gas: ResourceBounds {
-                max_amount: l1_data_gas_consumed,
-                max_price_per_unit: l1_data_gas_price,
-            },
-            l2_gas: ResourceBounds {
-                max_amount: l2_gas_consumed,
-                max_price_per_unit: l2_gas_price,
-            },
+            signature: vec![signature.r, signature.s],
+            nonce,
+            sender_address: account.address(),
+            calldata,
+            is_query,
+            tip: 0,
+            paymaster_data: vec![],
+            account_deployment_data: vec![],
+            nonce_data_availability_mode: DataAvailabilityMode::L1,
+            fee_data_availability_mode: DataAvailabilityMode::L1,
+            proof_facts: None,
         },
-        signature: vec![signature.r, signature.s],
-        nonce,
-        sender_address: account.address(),
-        calldata,
-        is_query,
-        tip: 0,
-        paymaster_data: vec![],
-        account_deployment_data: vec![],
-        nonce_data_availability_mode: DataAvailabilityMode::L1,
-        fee_data_availability_mode: DataAvailabilityMode::L1,
+        proof: None,
     }))
 }
 
@@ -707,18 +712,22 @@ async fn estimate_fee_of_multiple_failing_txs_should_return_index_of_the_first_f
                     fee_data_availability_mode,
                     is_query,
                 }),
-                BroadcastedTransaction::Invoke(BroadcastedInvokeTransactionV3 {
-                    sender_address: account_address,
-                    calldata,
-                    signature: vec![],
-                    nonce: Felt::ONE,
-                    resource_bounds: estimate_fee_resource_bounds.clone(),
-                    tip: 0,
-                    paymaster_data: vec![],
-                    account_deployment_data: vec![],
-                    nonce_data_availability_mode,
-                    fee_data_availability_mode,
-                    is_query,
+                BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction {
+                    broadcasted_invoke_txn_v3: BroadcastedInvokeTransactionV3 {
+                        sender_address: account_address,
+                        calldata,
+                        signature: vec![],
+                        nonce: Felt::ONE,
+                        resource_bounds: estimate_fee_resource_bounds.clone(),
+                        tip: 0,
+                        paymaster_data: vec![],
+                        account_deployment_data: vec![],
+                        nonce_data_availability_mode,
+                        fee_data_availability_mode,
+                        is_query,
+                        proof_facts: None,
+                    },
+                    proof: None,
                 }),
             ],
             [],

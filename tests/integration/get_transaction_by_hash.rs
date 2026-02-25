@@ -108,7 +108,8 @@ async fn get_invoke_v3_transaction_by_hash_happy_path() {
 #[tokio::test]
 async fn get_non_existing_transaction() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-    let result = devnet.json_rpc_client.get_transaction_by_hash(Felt::ZERO).await.unwrap_err();
+    let result =
+        devnet.json_rpc_client.get_transaction_by_hash(Felt::ZERO, None).await.unwrap_err();
 
     match result {
         ProviderError::StarknetError(StarknetError::TransactionHashNotFound) => (),

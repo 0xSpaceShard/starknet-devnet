@@ -533,9 +533,11 @@ impl JsonRpcHandler {
         let origin_continuation_token = continuation_token
             .map(|token| token.trim_start_matches(CONTINUATION_TOKEN_ORIGIN_PREFIX).to_string());
 
-        // NOTE: starknet-rs only supports a single address filter, so we take the first one so code
-        // compiles TODO: Fix after starknet-rs bump
-        let origin_address = addresses.as_ref().and_then(|addrs| addrs.first().copied());
+        let address_filter = addresses.map(|a| {
+            starknet_rs_core::types::AddressFilter::Multiple(
+                a.iter().map(|addr| (*addr).into()).collect(),
+            )
+        });
 
         let mut origin_events_chunk: EventsChunk = origin_caller
             .starknet_client
@@ -543,7 +545,7 @@ impl JsonRpcHandler {
                 starknet_rs_core::types::EventFilter {
                     from_block: Some(ImportedBlockId::Number(from_origin)),
                     to_block: Some(ImportedBlockId::Number(to_origin)),
-                    address: origin_address.map(|address| address.into()),
+                    address: address_filter,
                     keys,
                 },
                 origin_continuation_token,

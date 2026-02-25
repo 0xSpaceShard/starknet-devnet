@@ -29,16 +29,16 @@ async fn assert_tx_and_block_not_present_after_restart() {
 
     // generate dummy tx
     let mint_hash = devnet.mint(Felt::ONE, 100).await;
-    assert!(devnet.json_rpc_client.get_transaction_by_hash(mint_hash).await.is_ok());
+    assert!(devnet.json_rpc_client.get_transaction_by_hash(mint_hash, None).await.is_ok());
 
     devnet.restart().await;
 
-    match devnet.json_rpc_client.get_transaction_by_hash(mint_hash).await {
+    match devnet.json_rpc_client.get_transaction_by_hash(mint_hash, None).await {
         Err(ProviderError::StarknetError(StarknetError::TransactionHashNotFound)) => (),
         other => panic!("Unexpected result: {other:?}"),
     }
 
-    match devnet.json_rpc_client.get_block_with_txs(BlockId::Number(1)).await {
+    match devnet.json_rpc_client.get_block_with_txs(BlockId::Number(1), None).await {
         Err(ProviderError::StarknetError(StarknetError::BlockNotFound)) => (),
         other => panic!("Unexpected result: {other:?}"),
     }
@@ -246,7 +246,7 @@ async fn assert_load_not_affecting_restart() {
     loaded_devnet.restart().await;
 
     // asserting that restarting really clears the state, without re-executing txs from dump
-    match loaded_devnet.json_rpc_client.get_transaction_by_hash(tx_hash).await {
+    match loaded_devnet.json_rpc_client.get_transaction_by_hash(tx_hash, None).await {
         Err(ProviderError::StarknetError(StarknetError::TransactionHashNotFound)) => (),
         other => panic!("Unexpected result: {other:?}"),
     }

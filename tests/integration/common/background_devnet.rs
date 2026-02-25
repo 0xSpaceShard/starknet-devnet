@@ -418,7 +418,7 @@ impl BackgroundDevnet {
     }
 
     pub async fn get_latest_block_with_txs(&self) -> Result<BlockWithTxs, anyhow::Error> {
-        match self.json_rpc_client.get_block_with_txs(BlockId::Tag(BlockTag::Latest)).await {
+        match self.json_rpc_client.get_block_with_txs(BlockId::Tag(BlockTag::Latest), None).await {
             Ok(MaybePreConfirmedBlockWithTxs::Block(b)) => Ok(b),
             other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
         }
@@ -437,7 +437,11 @@ impl BackgroundDevnet {
     pub async fn get_pre_confirmed_block_with_txs(
         &self,
     ) -> Result<PreConfirmedBlockWithTxs, anyhow::Error> {
-        match self.json_rpc_client.get_block_with_txs(BlockId::Tag(BlockTag::PreConfirmed)).await {
+        match self
+            .json_rpc_client
+            .get_block_with_txs(BlockId::Tag(BlockTag::PreConfirmed), None)
+            .await
+        {
             Ok(MaybePreConfirmedBlockWithTxs::PreConfirmedBlock(b)) => Ok(b),
             other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
         }

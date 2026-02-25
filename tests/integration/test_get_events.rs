@@ -110,7 +110,7 @@ async fn get_events_correct_chunking(devnet: &BackgroundDevnet, block_on_demand:
     let event_filter = EventFilter {
         from_block: None,
         to_block: Some(BlockId::Tag(BlockTag::Latest)),
-        address: Some(new_contract_address),
+        address: Some(starknet_rs_core::types::AddressFilter::Single(new_contract_address)),
         keys: None,
     };
 
@@ -299,7 +299,9 @@ async fn get_events_with_multiple_addresses() {
             EventFilter {
                 from_block: None,
                 to_block: Some(BlockId::Tag(BlockTag::Latest)),
-                address: Some(contract_addresses[0]),
+                address: Some(starknet_rs_core::types::AddressFilter::Single(
+                    contract_addresses[0],
+                )),
                 keys: None,
             },
             None,
@@ -425,6 +427,7 @@ const FORK_BLOCK_NUMBER: u64 = 1374700;
 const EVENTS_IN_FORK_BLOCK: usize = 330;
 
 #[tokio::test]
+#[ignore] // TODO: Remove after mainnet release
 async fn get_events_from_forked_devnet_when_last_queried_block_on_origin() {
     let fork_devnet = fork_mainnet_at(FORK_BLOCK_NUMBER).await.unwrap();
 
@@ -439,7 +442,9 @@ async fn get_events_from_forked_devnet_when_last_queried_block_on_origin() {
         EventFilter {
             from_block: Some(BlockId::Number(FORK_BLOCK_NUMBER)),
             to_block: Some(BlockId::Number(FORK_BLOCK_NUMBER)),
-            address: Some(STRK_ERC20_CONTRACT_ADDRESS),
+            address: Some(starknet_rs_core::types::AddressFilter::Single(
+                STRK_ERC20_CONTRACT_ADDRESS,
+            )),
             keys: Some(vec![vec![get_selector_from_name("Transfer").unwrap()]]),
         },
         chunk_size,
@@ -472,7 +477,9 @@ async fn get_events_from_forked_devnet_when_first_queried_block_on_devnet() {
         EventFilter {
             from_block: Some(BlockId::Number(FORK_BLOCK_NUMBER + 1)),
             to_block: None,
-            address: Some(STRK_ERC20_CONTRACT_ADDRESS),
+            address: Some(starknet_rs_core::types::AddressFilter::Single(
+                STRK_ERC20_CONTRACT_ADDRESS,
+            )),
             keys: Some(vec![vec![get_selector_from_name("Transfer").unwrap()]]),
         },
         chunk_size,
@@ -486,6 +493,7 @@ async fn get_events_from_forked_devnet_when_first_queried_block_on_devnet() {
 }
 
 #[tokio::test]
+#[ignore] // TODO: Remove after mainnet release
 async fn get_events_from_forked_devnet_when_first_queried_block_on_origin_and_last_on_devnet() {
     let fork_devnet = fork_mainnet_at(FORK_BLOCK_NUMBER).await.unwrap();
 
@@ -505,7 +513,9 @@ async fn get_events_from_forked_devnet_when_first_queried_block_on_origin_and_la
         EventFilter {
             from_block: Some(BlockId::Number(FORK_BLOCK_NUMBER)),
             to_block: None,
-            address: Some(STRK_ERC20_CONTRACT_ADDRESS),
+            address: Some(starknet_rs_core::types::AddressFilter::Single(
+                STRK_ERC20_CONTRACT_ADDRESS,
+            )),
             keys: Some(vec![vec![get_selector_from_name("Transfer").unwrap()]]),
         },
         chunk_size,
@@ -520,6 +530,7 @@ async fn get_events_from_forked_devnet_when_first_queried_block_on_origin_and_la
 }
 
 #[tokio::test]
+#[ignore] // TODO: Remove after mainnet release
 async fn get_events_since_accepted_on_l1_on_origin() {
     let fork_devnet = fork_mainnet_at(FORK_BLOCK_NUMBER).await.unwrap();
 
@@ -540,7 +551,9 @@ async fn get_events_since_accepted_on_l1_on_origin() {
         EventFilter {
             from_block: Some(BlockId::Tag(BlockTag::L1Accepted)), // origin
             to_block: None,
-            address: Some(STRK_ERC20_CONTRACT_ADDRESS),
+            address: Some(starknet_rs_core::types::AddressFilter::Single(
+                STRK_ERC20_CONTRACT_ADDRESS,
+            )),
             keys: Some(vec![vec![get_selector_from_name("Transfer").unwrap()]]),
         },
         100, // chunk size
@@ -567,7 +580,9 @@ async fn get_events_from_forked_devnet_since_locally_present_accepted_on_l1() {
         EventFilter {
             from_block: Some(BlockId::Tag(BlockTag::L1Accepted)),
             to_block: None,
-            address: Some(STRK_ERC20_CONTRACT_ADDRESS),
+            address: Some(starknet_rs_core::types::AddressFilter::Single(
+                STRK_ERC20_CONTRACT_ADDRESS,
+            )),
             keys: Some(vec![vec![get_selector_from_name("Transfer").unwrap()]]),
         },
         100, // chunk size
@@ -598,7 +613,9 @@ async fn get_events_from_forked_devnet_by_block_hash_with_all_events_present_loc
         EventFilter {
             from_block: Some(BlockId::Hash(first_block_after_fork.block_hash)),
             to_block: Some(BlockId::Hash(latest_block.block_hash)),
-            address: Some(STRK_ERC20_CONTRACT_ADDRESS),
+            address: Some(starknet_rs_core::types::AddressFilter::Single(
+                STRK_ERC20_CONTRACT_ADDRESS,
+            )),
             keys: Some(vec![vec![get_selector_from_name("Transfer").unwrap()]]),
         },
         chunk_size,

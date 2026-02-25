@@ -42,7 +42,7 @@ async fn assert_txs_aborted(
     tx_hashes: &[Felt],
 ) -> Result<(), anyhow::Error> {
     for tx_hash in tx_hashes {
-        match devnet.json_rpc_client.get_transaction_by_hash(tx_hash).await {
+        match devnet.json_rpc_client.get_transaction_by_hash(tx_hash, None).await {
             Err(ProviderError::StarknetError(StarknetError::TransactionHashNotFound)) => (),
             other => anyhow::bail!("Unexpected tx response for {tx_hash:#x}: {other:?}"),
         }

@@ -58,7 +58,7 @@ tracing-subscriber = { version = "0.3.20", features = ["env-filter", "fmt"] }
 # misc
 base64 = { version = "0.22" }
 clap = { version = "4.5", features = ["derive", "env"] }
-flate2 = { version = ">= 1.0.26, < 1.0.27" }
+flate2 = { version = "^1.1.5" }
 nonzero_ext = "0.3.0"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.145" }
@@ -85,11 +85,11 @@ starknet-types-core = "=0.2.4"
 starknet_api = { version = "0.18.0-dev.0", features = ["testing"] }
 blockifier = { version = "0.18.0-dev.0" }
 
-starknet-rs-signers = { version = "0.15.0", package = "starknet-rust-signers" }
-starknet-rs-core = { version = "0.17.0", package = "starknet-rust-core" }
-starknet-rs-providers = { version = "0.17.0", package = "starknet-rust-providers" }
-starknet-rs-accounts = { version = "0.17.0", package = "starknet-rust-accounts" }
-starknet-rs-contract = { version = "0.17.0", package = "starknet-rust-contract" }
+starknet-rs-signers = { version = "0.19.0-rc.0", package = "starknet-rust-signers" }
+starknet-rs-core = { version = "0.19.0-rc.0", package = "starknet-rust-core" }
+starknet-rs-providers = { version = "0.19.0-rc.0", package = "starknet-rust-providers" }
+starknet-rs-accounts = { version = "0.19.0-rc.0", package = "starknet-rust-accounts" }
+starknet-rs-contract = { version = "0.19.0-rc.0", package = "starknet-rust-contract" }
 
 cairo-vm = "=3.1.0"
 

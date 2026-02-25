@@ -12,7 +12,7 @@ async fn get_transaction_by_block_id_and_index_happy_path() {
 
     let result = devnet
         .json_rpc_client
-        .get_transaction_by_block_id_and_index(BlockId::Tag(BlockTag::Latest), 0)
+        .get_transaction_by_block_id_and_index(BlockId::Tag(BlockTag::Latest), 0, None)
         .await
         .unwrap();
 
@@ -31,7 +31,7 @@ async fn get_transaction_by_block_id_and_index_wrong_index() {
 
     let result = devnet
         .json_rpc_client
-        .get_transaction_by_block_id_and_index(BlockId::Tag(BlockTag::Latest), 1)
+        .get_transaction_by_block_id_and_index(BlockId::Tag(BlockTag::Latest), 1, None)
         .await
         .unwrap_err();
 
@@ -46,7 +46,7 @@ async fn get_transaction_by_block_id_and_index_wrong_block() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
     let result = devnet
         .json_rpc_client
-        .get_transaction_by_block_id_and_index(BlockId::Number(1), 1)
+        .get_transaction_by_block_id_and_index(BlockId::Number(1), 1, None)
         .await
         .unwrap_err();
 

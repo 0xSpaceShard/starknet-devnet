@@ -278,8 +278,15 @@ async fn get_traces_from_block() {
 
     let mint_tx_hash: Felt = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
-    let traces =
-        devnet.json_rpc_client.trace_block_transactions(ConfirmedBlockId::Latest).await.unwrap();
+    let traces = match devnet
+        .json_rpc_client
+        .trace_block_transactions(ConfirmedBlockId::Latest, None)
+        .await
+        .unwrap()
+    {
+        starknet_rs_core::types::TraceBlockTransactionsResult::Traces(traces) => traces,
+        _ => unreachable!("expected TraceBlockTransactionsResult::Traces"),
+    };
     assert_eq!(traces.len(), 1);
     let trace = &traces[0];
     assert_eq!(trace.transaction_hash, mint_tx_hash);
