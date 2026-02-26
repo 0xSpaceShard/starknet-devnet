@@ -29,6 +29,7 @@ mod test_get_events;
 mod test_messaging;
 mod test_minting;
 mod test_old_state;
+mod test_prove_transaction;
 mod test_restart;
 mod test_restrictive_mode;
 mod test_simulate_transactions;

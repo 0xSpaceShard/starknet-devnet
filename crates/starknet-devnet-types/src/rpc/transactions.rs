@@ -530,7 +530,7 @@ impl BroadcastedTransaction {
         let sn_api_tx = match self {
             BroadcastedTransaction::Invoke(invoke_txn) => {
                 starknet_api::executable_transaction::AccountTransaction::Invoke(
-                    invoke_txn.create_sn_api_invoke(chain_id, false)?,
+                    invoke_txn.create_sn_api_invoke(chain_id)?,
                 )
             }
             BroadcastedTransaction::Declare(declare_txn) => {
@@ -789,10 +789,9 @@ impl BroadcastedInvokeTransaction {
     pub fn create_sn_api_invoke(
         &self,
         chain_id: &Felt,
-        drop_proof_facts: bool,
     ) -> DevnetResult<starknet_api::executable_transaction::InvokeTransaction> {
         let sn_api_transaction = match self {
-            BroadcastedInvokeTransaction::V3(v3) => v3.create_sn_api_invoke(drop_proof_facts)?,
+            BroadcastedInvokeTransaction::V3(v3) => v3.create_sn_api_invoke()?,
         };
 
         let chain_id = felt_to_sn_api_chain_id(chain_id)?;

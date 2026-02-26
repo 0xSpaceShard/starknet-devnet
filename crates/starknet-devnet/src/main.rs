@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::future::IntoFuture;
 use std::net::IpAddr;
 use std::result::Result::Ok;
@@ -230,6 +231,25 @@ async fn set_erc20_contract_class_and_class_hash_if_different_than_default(
     Ok(())
 }
 
+async fn get_block_hash(
+    block_id: BlockId,
+    json_rpc_client: &JsonRpcClient<HttpTransport>,
+) -> Result<(u64, Felt), anyhow::Error> {
+    let block = json_rpc_client.get_block_with_tx_hashes(block_id).await?;
+
+    match block {
+        MaybePreConfirmedBlockWithTxHashes::Block(b) => Ok((b.block_number, b.block_hash)),
+        MaybePreConfirmedBlockWithTxHashes::PreConfirmedBlock(_) => Err(anyhow::Error::msg(
+            "Block deserialized as pre-confirmed, no hash available. Most likely RPC version \
+             incompatibility.",
+        )),
+    }
+}
+
+// Originally defined in blockifier, but not worth importing module just for this constant. Probably
+// won't change
+pub const STORED_BLOCK_HASH_BUFFER: u64 = 10;
+
 /// Logs forking info if forking specified. If block_number is not specified, it is set to the
 /// latest block number.
 pub async fn set_and_log_fork_config(
@@ -240,29 +260,24 @@ pub async fn set_and_log_fork_config(
 
     let block_id = fork_config.block_number.map_or(BlockId::Tag(BlockTag::Latest), BlockId::Number);
 
-    let block = json_rpc_client.get_block_with_tx_hashes(block_id).await.map_err(|e| {
-        anyhow::Error::msg(match e {
-            starknet_rs_providers::ProviderError::StarknetError(
-                starknet_rs_core::types::StarknetError::BlockNotFound,
-            ) => format!("Forking from block {block_id:?}: block not found"),
-            _ => format!("Forking from block {block_id:?}: {e}; Check the URL"),
-        })
-    })?;
+    let (fork_block_number, fork_block_hash) = get_block_hash(block_id, json_rpc_client).await?;
 
-    match block {
-        MaybePreConfirmedBlockWithTxHashes::Block(b) => {
-            fork_config.block_number = Some(b.block_number);
-            fork_config.block_hash = Some(b.block_hash);
-            info!("Forking from block: number={}, hash={:#x}", b.block_number, b.block_hash);
-        }
-        MaybePreConfirmedBlockWithTxHashes::PreConfirmedBlock(_) => {
-            error!(
-                "Block from origin deserialized as pre-confirmed. Most likely RPC version \
-                 incompatibility."
-            );
-            std::process::exit(1);
-        }
-    };
+    fork_config.block_number = Some(fork_block_number);
+    fork_config.block_hash = Some(fork_block_hash);
+
+    let start = fork_block_number.saturating_sub(STORED_BLOCK_HASH_BUFFER);
+    let end = fork_block_number.saturating_sub(1);
+
+    let mut blocks = HashMap::new();
+
+    for i in start..end {
+        tracing::info!("Fetching block {:?} into forking struct", i);
+        let (num, hash) = get_block_hash(BlockId::Number(i), json_rpc_client).await?;
+        blocks.insert(num, hash);
+    }
+    blocks.insert(fork_block_number, fork_block_hash);
+
+    fork_config.recent_blocks = Some(blocks);
 
     Ok(())
 }

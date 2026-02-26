@@ -335,12 +335,24 @@ impl Starknet {
             .checked_sub(blockifier::abi::constants::STORED_BLOCK_HASH_BUFFER)
             .and_then(|old_num| {
                 let old_block_number = BlockNumber(old_num);
-                let old_block_hash = self.blocks.num_to_hash.get(&old_block_number)?;
+                // num_to_hash mapping has only devnet blocks, across fork we must have this
+                let old_block_hash = self.blocks.num_to_hash.get(&old_block_number).or(self
+                    .config
+                    .fork_config
+                    .recent_blocks
+                    .as_ref()
+                    .and_then(|blocks| blocks.get(&old_block_number)))?;
                 Some(starknet_api::block::BlockHashAndNumber {
                     number: old_block_number,
                     hash: starknet_api::block::BlockHash(*old_block_hash),
                 })
             });
+
+        tracing::trace!(
+            "Preprocessing block: old {:?}, and next: {:?}",
+            old_block_number_and_hash,
+            next_block_number
+        );
 
         if let Err(e) = blockifier::blockifier::block::pre_process_block(
             &mut self.pre_confirmed_state.state,
@@ -988,7 +1000,7 @@ impl Starknet {
             CHARGEABLE_ACCOUNT_PRIVATE_KEY,
         )?));
         let tx_hash = unsigned_tx
-            .create_sn_api_invoke(false)?
+            .create_sn_api_invoke()?
             .calculate_transaction_hash(&self.config.chain_id.into(), &TransactionVersion::THREE)?;
         let signature = signer.sign_hash(&tx_hash.0).await?;
 

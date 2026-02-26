@@ -6,6 +6,7 @@ use starknet_types::proof::Proof;
 use starknet_types::rpc::block::BlockId;
 use starknet_types::rpc::transactions::BroadcastedInvokeTransaction;
 use starknet_types_core::hash::{Pedersen, StarkHash};
+use tracing::debug;
 
 use crate::error::{DevnetResult, ProvingError};
 use crate::starknet::Starknet;
@@ -48,6 +49,8 @@ pub fn prove_transaction(
     block_id: BlockId,
     broadcasted_invoke_transaction: BroadcastedInvokeTransaction,
 ) -> DevnetResult<(Proof, ProofFacts)> {
+    debug!("Generating devnet proof for invoke transaction at block_id: {block_id:?}");
+
     let block_context = starknet.block_context.clone();
     let proof_version = PROOF_VERSION.into();
     let variant_marker = VIRTUAL_SNOS.into();
@@ -67,10 +70,12 @@ pub fn prove_transaction(
         .map_err(|e| ProvingError::Other(e.to_string()))?;
 
     let tx_hash = broadcasted_invoke_transaction
-        .create_sn_api_invoke(&starknet.chain_id().to_felt(), false)
+        .create_sn_api_invoke(&starknet.chain_id().to_felt())
         .map_err(|e| ProvingError::Other(e.to_string()))?
         .tx_hash
         .0;
+
+    debug!("Computed invoke transaction hash for proof generation: {tx_hash:#x}");
 
     let proof_felt = Pedersen::hash_array(&[tx_hash, DEVNET_PROOF_MAGIC.into()]);
     let proof = felt_to_proof(proof_felt);
@@ -97,12 +102,20 @@ pub fn prove_transaction(
         last_field,
     ];
 
+    debug!(
+        "Generated proof successfully (block_number: {block_number}, proof_len: {}, \
+         proof_facts_len: {})",
+        proof.len(),
+        proof_facts.len()
+    );
+
     Ok((proof, proof_facts))
 }
 
 pub fn verify_proof(proof: Proof, proof_facts: ProofFacts) -> bool {
     let mut input = proof_facts.clone();
     if input.len() != 8 {
+        debug!("Proof verification failed: invalid proof_facts length: {}", input.len());
         return false;
     }
     let last_field = if let Some(v) = input.pop() {
@@ -115,11 +128,21 @@ pub fn verify_proof(proof: Proof, proof_facts: ProofFacts) -> bool {
     let proof_felt = if let Some(felt) = proof_to_felt(&proof) {
         felt
     } else {
+        debug!(
+            "Proof verification failed: could not convert proof to felt (proof_len: {})",
+            proof.len()
+        );
         return false;
     };
 
     input.push(proof_felt);
-    Pedersen::hash_array(&input) == last_field
+    let is_valid = Pedersen::hash_array(&input) == last_field;
+    if is_valid {
+        debug!("Proof verification succeded ");
+    } else {
+        debug!("Proof verification failed: commitment mismatch");
+    }
+    is_valid
 }
 
 #[cfg(test)]

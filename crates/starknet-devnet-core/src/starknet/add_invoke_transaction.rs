@@ -26,10 +26,15 @@ pub fn add_invoke_transaction(
         });
     }
 
-    let sn_api_transaction = broadcasted_invoke_transaction.create_sn_api_invoke(
-        &starknet.chain_id().to_felt(),
-        starknet.config.proof_mode == ProofMode::None,
-    )?;
+    let mut sn_api_transaction =
+        broadcasted_invoke_transaction.create_sn_api_invoke(&starknet.chain_id().to_felt())?;
+
+    if starknet.config.proof_mode == ProofMode::None {
+        if let starknet_api::transaction::InvokeTransaction::V3(tx_v3) = &mut sn_api_transaction.tx
+        {
+            tx_v3.proof_facts = Default::default();
+        }
+    }
 
     let transaction_hash = sn_api_transaction.tx_hash.0;
 

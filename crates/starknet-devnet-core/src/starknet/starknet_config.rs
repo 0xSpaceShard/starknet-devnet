@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::num::NonZeroU128;
 
 use clap::Error;
@@ -96,6 +97,8 @@ pub struct ForkConfig {
     pub block_number: Option<u64>,
     #[serde(skip)]
     pub block_hash: Option<Felt>,
+    #[serde(skip)]
+    pub recent_blocks: Option<HashMap<u64, Felt>>,
     pub caching_enabled: Option<bool>,
 }
 

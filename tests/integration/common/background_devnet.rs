@@ -4,12 +4,13 @@ use std::process::{Command, Output, Stdio};
 use std::time;
 
 use anyhow::anyhow;
+use base64::Engine;
 use lazy_static::lazy_static;
 use reqwest::{Client, StatusCode};
 use serde_json::json;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, BlockWithTxHashes, BlockWithTxs, Felt, FunctionCall,
-    MaybePreConfirmedBlockWithTxHashes, MaybePreConfirmedBlockWithTxs,
+    BlockId, BlockTag, BlockWithTxHashes, BlockWithTxs, BroadcastedInvokeTransaction, Felt,
+    FunctionCall, MaybePreConfirmedBlockWithTxHashes, MaybePreConfirmedBlockWithTxs,
     PreConfirmedBlockWithTxHashes, PreConfirmedBlockWithTxs,
 };
 use starknet_rs_core::utils::get_selector_from_name;
@@ -41,6 +42,14 @@ pub struct BackgroundDevnet {
     pub process: SafeChild,
     pub url: String,
     rpc_url: Url,
+}
+
+#[derive(Debug, Clone)]
+pub struct ProveTransactionResult {
+    pub proof_base64: String,
+    pub proof_facts_hex: Vec<String>,
+    pub proof: Vec<u64>,
+    pub proof_facts: Vec<Felt>,
 }
 
 lazy_static! {
@@ -257,6 +266,71 @@ impl BackgroundDevnet {
                 data: None,
             })
         }
+    }
+
+    pub async fn prove_transaction(
+        &self,
+        transaction: BroadcastedInvokeTransaction,
+    ) -> ProveTransactionResult {
+        let mut transaction = serde_json::to_value(transaction)
+            .expect("Failed to serialize transaction for proveTransaction");
+
+        if let Some(transaction_object) = transaction.as_object_mut() {
+            transaction_object.remove("type");
+            transaction_object.remove("proof");
+            transaction_object.remove("proof_facts");
+        }
+
+        let result = self
+            .send_custom_rpc(
+                "starknet_proveTransaction",
+                json!({
+                    "block_id": "latest",
+                    "transaction": transaction
+                }),
+            )
+            .await
+            .expect("starknet_proveTransaction RPC failed");
+
+        let proof_base64 = result
+            .get("proof")
+            .and_then(|value| value.as_str())
+            .expect("Missing or invalid `proof` in proveTransaction response")
+            .to_string();
+
+        let proof_bytes = base64::engine::general_purpose::STANDARD
+            .decode(&proof_base64)
+            .expect("Invalid base64 proof in proveTransaction response");
+
+        assert_eq!(proof_bytes.len() % 4, 0, "Invalid proof length in proveTransaction response");
+
+        let proof = proof_bytes
+            .chunks_exact(4)
+            .map(|chunk| u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]) as u64)
+            .collect::<Vec<_>>();
+
+        let proof_facts_values = result
+            .get("proof_facts")
+            .and_then(|value| value.as_array())
+            .expect("Missing or invalid `proof_facts` in proveTransaction response");
+
+        let proof_facts_hex = proof_facts_values
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .expect("Invalid proof_facts element in proveTransaction response")
+                    .to_string()
+            })
+            .collect::<Vec<_>>();
+
+        let proof_facts = proof_facts_hex
+            .iter()
+            .map(|hex| Felt::from_hex(hex))
+            .collect::<Result<Vec<_>, _>>()
+            .expect("Invalid felt in proof_facts response");
+
+        ProveTransactionResult { proof_base64, proof_facts_hex, proof, proof_facts }
     }
 
     pub fn clone_provider(&self) -> JsonRpcClient<HttpTransport> {
