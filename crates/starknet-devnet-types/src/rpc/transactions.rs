@@ -68,13 +68,15 @@ pub enum Transactions {
 }
 
 impl Transactions {
-    pub fn without_proof_facts(&self) -> Self {
+    pub fn clone_without_proof_facts(&self) -> Self {
         match &self {
             Self::Hashes(hashes) => Self::Hashes(hashes.clone()),
-            Self::FullWithReceipts(txs) => {
-                Self::FullWithReceipts(txs.iter().map(|tx| tx.without_proof_facts()).collect())
+            Self::FullWithReceipts(txs) => Self::FullWithReceipts(
+                txs.iter().map(|tx| tx.clone_without_proof_facts()).collect(),
+            ),
+            Self::Full(txs) => {
+                Self::Full(txs.iter().map(|tx| tx.clone_without_proof_facts()).collect())
             }
-            Self::Full(txs) => Self::Full(txs.iter().map(|tx| tx.without_proof_facts()).collect()),
         }
     }
 }
@@ -165,10 +167,12 @@ impl TransactionWithHash {
         }
     }
 
-    pub fn without_proof_facts(&self) -> Self {
+    pub fn clone_without_proof_facts(&self) -> Self {
         match &self.transaction {
             Transaction::Invoke(InvokeTransaction::V3(tx)) => Self {
-                transaction: Transaction::Invoke(InvokeTransaction::V3(tx.without_proof_facts())),
+                transaction: Transaction::Invoke(InvokeTransaction::V3(
+                    tx.clone_without_proof_facts(),
+                )),
                 transaction_hash: self.transaction_hash,
             },
             _ => self.clone(),
@@ -217,10 +221,12 @@ pub struct TransactionWithReceipt {
 }
 
 impl TransactionWithReceipt {
-    pub fn without_proof_facts(&self) -> Self {
+    pub fn clone_without_proof_facts(&self) -> Self {
         match &self.transaction {
             Transaction::Invoke(InvokeTransaction::V3(tx)) => Self {
-                transaction: Transaction::Invoke(InvokeTransaction::V3(tx.without_proof_facts())),
+                transaction: Transaction::Invoke(InvokeTransaction::V3(
+                    tx.clone_without_proof_facts(),
+                )),
                 receipt: self.receipt.clone(),
             },
             _ => self.clone(),

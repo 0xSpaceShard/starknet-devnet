@@ -77,31 +77,35 @@ impl JsonRpcHandler {
         block_id: BlockId,
         response_flags: Option<Vec<TransactionResponseFlag>>,
     ) -> StrictRpcResult {
-        let block = self.api.starknet.lock().await.get_block_with_transactions(&block_id).map_err(
-            |err| match err {
-                Error::NoBlock => ApiError::BlockNotFound,
-                Error::NoTransaction => ApiError::TransactionNotFound,
-                unknown_error => ApiError::StarknetDevnetError(unknown_error),
-            },
-        )?;
+        let block_result =
+            self.api.starknet.lock().await.get_block_with_transactions(&block_id).map_err(
+                |err| match err {
+                    Error::NoBlock => ApiError::BlockNotFound,
+                    Error::NoTransaction => ApiError::TransactionNotFound,
+                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
+                },
+            )?;
 
         let include = Self::include_proof_facts(response_flags);
-        match block {
-            BlockResult::Block(b) => {
-                let b = if include {
-                    b
+        match block_result {
+            BlockResult::Block(block) => {
+                let block = if include {
+                    block
                 } else {
-                    Block { transactions: b.transactions.without_proof_facts(), ..b }
+                    Block { transactions: block.transactions.clone_without_proof_facts(), ..block }
                 };
-                Ok(StarknetResponse::Block(b).into())
+                Ok(StarknetResponse::Block(block).into())
             }
-            BlockResult::PreConfirmedBlock(b) => {
-                let b = if include {
-                    b
+            BlockResult::PreConfirmedBlock(block) => {
+                let block = if include {
+                    block
                 } else {
-                    PreConfirmedBlock { transactions: b.transactions.without_proof_facts(), ..b }
+                    PreConfirmedBlock {
+                        transactions: block.transactions.clone_without_proof_facts(),
+                        ..block
+                    }
                 };
-                Ok(StarknetResponse::PreConfirmedBlock(b).into())
+                Ok(StarknetResponse::PreConfirmedBlock(block).into())
             }
         }
     }
@@ -111,30 +115,35 @@ impl JsonRpcHandler {
         block_id: BlockId,
         response_flags: Option<Vec<TransactionResponseFlag>>,
     ) -> StrictRpcResult {
-        let block = self.api.starknet.lock().await.get_block_with_receipts(&block_id).map_err(
-            |e| match e {
-                Error::NoBlock => ApiError::BlockNotFound,
-                Error::NoTransaction => ApiError::TransactionNotFound,
-                unknown_error => ApiError::StarknetDevnetError(unknown_error),
-            },
-        )?;
+        let block_result =
+            self.api.starknet.lock().await.get_block_with_receipts(&block_id).map_err(
+                |e| match e {
+                    Error::NoBlock => ApiError::BlockNotFound,
+                    Error::NoTransaction => ApiError::TransactionNotFound,
+                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
+                },
+            )?;
         let include = Self::include_proof_facts(response_flags);
-        match block {
-            BlockResult::Block(b) => {
-                let b = if include {
-                    b
+
+        match block_result {
+            BlockResult::Block(block) => {
+                let block = if include {
+                    block
                 } else {
-                    Block { transactions: b.transactions.without_proof_facts(), ..b }
+                    Block { transactions: block.transactions.clone_without_proof_facts(), ..block }
                 };
-                Ok(StarknetResponse::Block(b).into())
+                Ok(StarknetResponse::Block(block).into())
             }
-            BlockResult::PreConfirmedBlock(b) => {
-                let b = if include {
-                    b
+            BlockResult::PreConfirmedBlock(block) => {
+                let block = if include {
+                    block
                 } else {
-                    PreConfirmedBlock { transactions: b.transactions.without_proof_facts(), ..b }
+                    PreConfirmedBlock {
+                        transactions: block.transactions.clone_without_proof_facts(),
+                        ..block
+                    }
                 };
-                Ok(StarknetResponse::PreConfirmedBlock(b).into())
+                Ok(StarknetResponse::PreConfirmedBlock(block).into())
             }
         }
     }
@@ -198,12 +207,13 @@ impl JsonRpcHandler {
     ) -> StrictRpcResult {
         match self.api.starknet.lock().await.get_transaction_by_hash(transaction_hash) {
             Ok(transaction) => {
-                if Self::include_proof_facts(response_flags) {
-                    Ok(StarknetResponse::Transaction(transaction.clone()).into())
+                let transaction = if Self::include_proof_facts(response_flags) {
+                    transaction.clone()
                 } else {
-                    Ok(StarknetResponse::Transaction(transaction.without_proof_facts().clone())
-                        .into())
-                }
+                    transaction.clone_without_proof_facts()
+                };
+
+                Ok(StarknetResponse::Transaction(transaction).into())
             }
             Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
             Err(err) => Err(err.into()),
@@ -238,12 +248,13 @@ impl JsonRpcHandler {
         match self.api.starknet.lock().await.get_transaction_by_block_id_and_index(&block_id, index)
         {
             Ok(transaction) => {
-                if Self::include_proof_facts(response_flags) {
-                    Ok(StarknetResponse::Transaction(transaction.clone()).into())
+                let transaction = if Self::include_proof_facts(response_flags) {
+                    transaction.clone()
                 } else {
-                    Ok(StarknetResponse::Transaction(transaction.without_proof_facts().clone())
-                        .into())
-                }
+                    transaction.clone_without_proof_facts()
+                };
+
+                Ok(StarknetResponse::Transaction(transaction).into())
             }
             Err(Error::InvalidTransactionIndexInBlock) => {
                 Err(ApiError::InvalidTransactionIndexInBlock)

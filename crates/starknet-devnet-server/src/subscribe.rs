@@ -424,7 +424,7 @@ impl SocketContext {
                 let tx = if subscription.has_tag(SubscriptionTag::IncludeProofFacts) {
                     tx_notification.tx
                 } else {
-                    tx_notification.tx.without_proof_facts()
+                    tx_notification.tx.clone_without_proof_facts()
                 };
                 SubscriptionNotification::NewTransaction {
                     subscription_id,

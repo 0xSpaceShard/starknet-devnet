@@ -48,21 +48,8 @@ impl InvokeTransactionV3 {
         }
     }
 
-    pub fn without_proof_facts(&self) -> Self {
-        Self {
-            version: self.version,
-            signature: self.signature.clone(),
-            nonce: self.nonce,
-            resource_bounds: self.resource_bounds.clone(),
-            tip: self.tip,
-            paymaster_data: self.paymaster_data.clone(),
-            nonce_data_availability_mode: self.nonce_data_availability_mode,
-            fee_data_availability_mode: self.fee_data_availability_mode,
-            sender_address: self.sender_address,
-            calldata: self.calldata.clone(),
-            account_deployment_data: self.account_deployment_data.clone(),
-            proof_facts: None,
-        }
+    pub fn clone_without_proof_facts(&self) -> Self {
+        Self { proof_facts: None, ..self.clone() }
     }
 
     pub(crate) fn get_resource_bounds(&self) -> &ResourceBoundsWrapper {
