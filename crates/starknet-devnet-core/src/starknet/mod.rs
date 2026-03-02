@@ -363,6 +363,10 @@ impl Starknet {
             tracing::error!("Failed to pre-process block: {e}");
         }
 
+        if let Err(e) = self.commit_diff() {
+            tracing::error!("Failed to commit pre-processed block hashes to state: {e}");
+        }
+
         Self::set_block_context_gas(&mut self.block_context, &self.next_block_gas);
 
         // Pre_confirmed block header gas data needs to be set

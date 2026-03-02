@@ -91,18 +91,15 @@ async fn invoke_with_valid_proof_is_accepted() {
     let tx_l1_gas = 5_000_000;
     let tx_l1_data_gas = 1_000_000;
     let tx_l2_gas = 2_500_000_000;
-    let tx_l1_gas_price = felt_to_u128(block.l1_gas_price().price_in_fri);
-    let tx_l1_data_gas_price = felt_to_u128(block.l1_data_gas_price().price_in_fri);
-    let tx_l2_gas_price = felt_to_u128(block.l2_gas_price().price_in_fri);
 
     let prepared_for_prove = account
         .execute_v3(tx_calls.clone())
         .l1_gas(tx_l1_gas)
         .l1_data_gas(tx_l1_data_gas)
         .l2_gas(tx_l2_gas)
-        .l1_gas_price(tx_l1_gas_price)
-        .l1_data_gas_price(tx_l1_data_gas_price)
-        .l2_gas_price(tx_l2_gas_price)
+        .l1_gas_price(0)
+        .l1_data_gas_price(0)
+        .l2_gas_price(0)
         .nonce(tx_nonce)
         .tip(0)
         .prepared()
@@ -117,11 +114,24 @@ async fn invoke_with_valid_proof_is_accepted() {
         devnet.create_block().await.unwrap();
     }
 
+    let fees = account
+        .execute_v3(tx_calls.clone())
+        .nonce(tx_nonce)
+        .tip(0)
+        .proof(proof.clone())
+        .proof_facts(proof_facts.clone())
+        .estimate_fee()
+        .await
+        .unwrap();
+    let tx_l1_gas_price = felt_to_u128(block.l1_gas_price().price_in_fri);
+    let tx_l1_data_gas_price = felt_to_u128(block.l1_data_gas_price().price_in_fri);
+    let tx_l2_gas_price = felt_to_u128(block.l2_gas_price().price_in_fri);
+
     let send_result = account
         .execute_v3(tx_calls)
-        .l1_gas(tx_l1_gas)
-        .l1_data_gas(tx_l1_data_gas)
-        .l2_gas(tx_l2_gas)
+        .l1_gas(fees.l1_gas_consumed)
+        .l1_data_gas(fees.l1_data_gas_consumed)
+        .l2_gas(fees.l2_gas_consumed)
         .l1_gas_price(tx_l1_gas_price)
         .l1_data_gas_price(tx_l1_data_gas_price)
         .l2_gas_price(tx_l2_gas_price)
@@ -176,9 +186,9 @@ async fn invoke_with_wrong_proof_is_rejected() {
         .l1_gas(tx_l1_gas)
         .l1_data_gas(tx_l1_data_gas)
         .l2_gas(tx_l2_gas)
-        .l1_gas_price(tx_l1_gas_price)
-        .l1_data_gas_price(tx_l1_data_gas_price)
-        .l2_gas_price(tx_l2_gas_price)
+        .l1_gas_price(0)
+        .l1_data_gas_price(0)
+        .l2_gas_price(0)
         .nonce(tx_nonce)
         .tip(0)
         .prepared()
@@ -193,12 +203,21 @@ async fn invoke_with_wrong_proof_is_rejected() {
 
     let wrong_proof = vec![0u64; 8];
     let proof_facts = prove_result.proof_facts;
+    let fees = account
+        .execute_v3(tx_calls.clone())
+        .nonce(tx_nonce)
+        .tip(0)
+        .proof(prove_result.proof)
+        .proof_facts(proof_facts.clone())
+        .estimate_fee()
+        .await
+        .unwrap();
 
     let error = account
         .execute_v3(tx_calls)
-        .l1_gas(tx_l1_gas)
-        .l1_data_gas(tx_l1_data_gas)
-        .l2_gas(tx_l2_gas)
+        .l1_gas(fees.l1_gas_consumed)
+        .l1_data_gas(fees.l1_data_gas_consumed)
+        .l2_gas(fees.l2_gas_consumed)
         .l1_gas_price(tx_l1_gas_price)
         .l1_data_gas_price(tx_l1_data_gas_price)
         .l2_gas_price(tx_l2_gas_price)
@@ -280,9 +299,9 @@ async fn invoke_with_proof_only_and_no_proof_facts_is_rejected() {
         .l1_gas(tx_l1_gas)
         .l1_data_gas(tx_l1_data_gas)
         .l2_gas(tx_l2_gas)
-        .l1_gas_price(tx_l1_gas_price)
-        .l1_data_gas_price(tx_l1_data_gas_price)
-        .l2_gas_price(tx_l2_gas_price)
+        .l1_gas_price(0)
+        .l1_data_gas_price(0)
+        .l2_gas_price(0)
         .nonce(tx_nonce)
         .tip(0)
         .prepared()
@@ -296,12 +315,21 @@ async fn invoke_with_proof_only_and_no_proof_facts_is_rejected() {
     }
 
     let proof_only = prove_result.proof;
+    let fees = account
+        .execute_v3(tx_calls.clone())
+        .nonce(tx_nonce)
+        .tip(0)
+        .proof(proof_only.clone())
+        .proof_facts(prove_result.proof_facts)
+        .estimate_fee()
+        .await
+        .unwrap();
 
     let error = account
         .execute_v3(tx_calls)
-        .l1_gas(tx_l1_gas)
-        .l1_data_gas(tx_l1_data_gas)
-        .l2_gas(tx_l2_gas)
+        .l1_gas(fees.l1_gas_consumed)
+        .l1_data_gas(fees.l1_data_gas_consumed)
+        .l2_gas(fees.l2_gas_consumed)
         .l1_gas_price(tx_l1_gas_price)
         .l1_data_gas_price(tx_l1_data_gas_price)
         .l2_gas_price(tx_l2_gas_price)
@@ -411,11 +439,18 @@ async fn invoke_in_proof_mode_none_accepts_with_or_without_any_proofs() {
         .get_nonce(BlockId::Tag(BlockTag::Latest), none_account_address)
         .await
         .unwrap();
+    let fees_without_proof = none_account
+        .execute_v3(tx_calls.clone())
+        .nonce(nonce_without_proof)
+        .tip(0)
+        .estimate_fee()
+        .await
+        .unwrap();
     let result_without_proof = none_account
         .execute_v3(tx_calls.clone())
-        .l1_gas(tx_l1_gas)
-        .l1_data_gas(tx_l1_data_gas)
-        .l2_gas(tx_l2_gas)
+        .l1_gas(fees_without_proof.l1_gas_consumed)
+        .l1_data_gas(fees_without_proof.l1_data_gas_consumed)
+        .l2_gas(fees_without_proof.l2_gas_consumed)
         .l1_gas_price(tx_l1_gas_price)
         .l1_data_gas_price(tx_l1_data_gas_price)
         .l2_gas_price(tx_l2_gas_price)
@@ -448,19 +483,14 @@ async fn invoke_in_proof_mode_none_accepts_with_or_without_any_proofs() {
         .get_nonce(BlockId::Tag(BlockTag::Latest), proof_account_address)
         .await
         .unwrap();
-    let proof_block = devnet_with_proofs
-        .json_rpc_client
-        .get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest))
-        .await
-        .unwrap();
     let prepared_for_prove = proof_account
         .execute_v3(tx_calls.clone())
         .l1_gas(tx_l1_gas)
         .l1_data_gas(tx_l1_data_gas)
         .l2_gas(tx_l2_gas)
-        .l1_gas_price(felt_to_u128(proof_block.l1_gas_price().price_in_fri))
-        .l1_data_gas_price(felt_to_u128(proof_block.l1_data_gas_price().price_in_fri))
-        .l2_gas_price(felt_to_u128(proof_block.l2_gas_price().price_in_fri))
+        .l1_gas_price(0)
+        .l1_data_gas_price(0)
+        .l2_gas_price(0)
         .nonce(proof_nonce)
         .tip(0)
         .prepared()
@@ -473,11 +503,18 @@ async fn invoke_in_proof_mode_none_accepts_with_or_without_any_proofs() {
         .get_nonce(BlockId::Tag(BlockTag::Latest), none_account_address)
         .await
         .unwrap();
+    let fees_with_valid_proof = none_account
+        .execute_v3(tx_calls.clone())
+        .nonce(nonce_with_valid_proof)
+        .tip(0)
+        .estimate_fee()
+        .await
+        .unwrap();
     let result_with_valid_proof = none_account
         .execute_v3(tx_calls.clone())
-        .l1_gas(tx_l1_gas)
-        .l1_data_gas(tx_l1_data_gas)
-        .l2_gas(tx_l2_gas)
+        .l1_gas(fees_with_valid_proof.l1_gas_consumed)
+        .l1_data_gas(fees_with_valid_proof.l1_data_gas_consumed)
+        .l2_gas(fees_with_valid_proof.l2_gas_consumed)
         .l1_gas_price(tx_l1_gas_price)
         .l1_data_gas_price(tx_l1_data_gas_price)
         .l2_gas_price(tx_l2_gas_price)
@@ -500,11 +537,18 @@ async fn invoke_in_proof_mode_none_accepts_with_or_without_any_proofs() {
         .get_nonce(BlockId::Tag(BlockTag::Latest), none_account_address)
         .await
         .unwrap();
+    let fees_with_wrong_proof = none_account
+        .execute_v3(tx_calls.clone())
+        .nonce(nonce_with_wrong_proof)
+        .tip(0)
+        .estimate_fee()
+        .await
+        .unwrap();
     let result_with_wrong_proof = none_account
         .execute_v3(tx_calls)
-        .l1_gas(tx_l1_gas)
-        .l1_data_gas(tx_l1_data_gas)
-        .l2_gas(tx_l2_gas)
+        .l1_gas(fees_with_wrong_proof.l1_gas_consumed)
+        .l1_data_gas(fees_with_wrong_proof.l1_data_gas_consumed)
+        .l2_gas(fees_with_wrong_proof.l2_gas_consumed)
         .l1_gas_price(tx_l1_gas_price)
         .l1_data_gas_price(tx_l1_data_gas_price)
         .l2_gas_price(tx_l2_gas_price)

@@ -138,7 +138,7 @@ pub fn verify_proof(proof: Proof, proof_facts: ProofFacts) -> bool {
     input.push(proof_felt);
     let is_valid = Pedersen::hash_array(&input) == last_field;
     if is_valid {
-        debug!("Proof verification succeded ");
+        debug!("Proof verification succeeded ");
     } else {
         debug!("Proof verification failed: commitment mismatch");
     }
