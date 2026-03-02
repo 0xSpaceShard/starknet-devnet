@@ -228,7 +228,7 @@ impl From<BlockTag> for starknet_rs_core::types::BlockTag {
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransactionResponseFlag {
     IncludeProofFacts,
 }
