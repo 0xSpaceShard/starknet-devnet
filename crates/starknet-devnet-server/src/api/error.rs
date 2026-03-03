@@ -85,6 +85,8 @@ pub enum ApiError {
     MessagingError { msg: String },
     #[error("Invalid address: {msg}")]
     InvalidAddress { msg: String },
+    #[error("Invalid proof provided")]
+    InvalidProof,
     #[error("Proving error: {msg}")]
     ProvingError { msg: String },
 }
@@ -229,9 +231,7 @@ impl ApiError {
                     TransactionValidationError::InvalidProofFacts { message } => {
                         ApiError::ValidationFailure { reason: message }
                     }
-                    TransactionValidationError::ProofVerificationFailed => {
-                        ApiError::ValidationFailure { reason: "Invalid proof".to_string() }
-                    }
+                    TransactionValidationError::ProofVerificationFailed => ApiError::InvalidProof,
                 };
 
                 api_err.api_error_to_rpc_error()
@@ -273,6 +273,11 @@ impl ApiError {
             },
             ApiError::ContractClassSizeIsTooLarge => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(57),
+                message: error_message.into(),
+                data: None,
+            },
+            ApiError::InvalidProof => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(69),
                 message: error_message.into(),
                 data: None,
             },
@@ -340,7 +345,8 @@ impl ApiError {
             | Self::CompiledClassHashMismatch
             | Self::DumpError { .. }
             | Self::MessagingError { .. }
-            | Self::InvalidAddress { .. } => false,
+            | Self::InvalidAddress { .. }
+            | Self::InvalidProof => false,
         }
     }
 }
