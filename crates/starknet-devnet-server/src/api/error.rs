@@ -85,6 +85,8 @@ pub enum ApiError {
     MessagingError { msg: String },
     #[error("Invalid address: {msg}")]
     InvalidAddress { msg: String },
+    #[error("Proving error: {msg}")]
+    ProvingError { msg: String },
 }
 
 impl ApiError {
@@ -294,6 +296,11 @@ impl ApiError {
                 message: msg.into(),
                 data: None,
             },
+            ApiError::ProvingError { msg } => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
+                message: msg.into(),
+                data: None,
+            },
         }
     }
 
@@ -329,6 +336,7 @@ impl ApiError {
             | Self::StorageProofNotSupported
             | Self::ContractClassSizeIsTooLarge
             | Self::MintingReverted { .. }
+            | Self::ProvingError { .. }
             | Self::CompiledClassHashMismatch
             | Self::DumpError { .. }
             | Self::MessagingError { .. }

@@ -1432,7 +1432,7 @@ impl Starknet {
 
         let skip_validate = simulation_flags.contains(&SimulationFlag::SkipValidate);
         let skip_fee_charge = simulation_flags.contains(&SimulationFlag::SkipFeeCharge);
-        let return_initial_reads = simulation_flags.contains(&SimulationFlag::InitialReads);
+        let return_initial_reads = simulation_flags.contains(&SimulationFlag::ReturnInitialReads);
         let using_pre_confirmed_block = self.config.uses_pre_confirmed_block();
 
         let mut transactions_traces: Vec<TransactionTrace> = vec![];
@@ -1541,12 +1541,11 @@ impl Starknet {
             })
             .collect();
 
-        if return_initial_reads {
+        if let Some(initial_reads) = initial_reads {
             Ok(SimulationResult::SimulatedTransactionsWithInitialReads(Box::new(
                 starknet_types::rpc::transactions::SimulatedTransactionsWithInitialReads {
                     simulated_transactions: simulation_results,
-                    #[allow(clippy::unwrap_used)] // same if condition as before, structure like this because of borrow checker
-                    initial_reads: initial_reads.unwrap(),
+                    initial_reads: initial_reads.into(),
                 },
             )))
         } else {

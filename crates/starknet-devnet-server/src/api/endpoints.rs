@@ -737,7 +737,7 @@ impl JsonRpcHandler {
                 Ok(StarknetExtResponse::Proof(ProveTransactionResponse { proof, proof_facts })
                     .into())
             }
-            Err(_) => Err(ApiError::ValidationFailure { reason: "trla".to_string() }),
+            Err(e) => Err(ApiError::ProvingError { msg: e.to_string() }),
         }
     }
 

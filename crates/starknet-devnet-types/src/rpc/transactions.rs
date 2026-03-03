@@ -40,9 +40,10 @@ use crate::contract_class::{ContractClass, compute_sierra_class_hash};
 use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult};
 use crate::felt::{
-    Calldata, EntryPointSelector, Nonce, ProofFacts, TransactionHash, TransactionSignature,
-    TransactionVersion,
+    Calldata, ClassHash, EntryPointSelector, Nonce, ProofFacts, TransactionHash,
+    TransactionSignature, TransactionVersion,
 };
+use crate::patricia_key::StorageKey;
 use crate::proof::Proof;
 use crate::rpc::transaction_receipt::CommonTransactionReceipt;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
@@ -898,7 +899,7 @@ impl<'de> Deserialize<'de> for BroadcastedInvokeTransaction {
 pub enum SimulationFlag {
     SkipValidate,
     SkipFeeCharge,
-    InitialReads,
+    ReturnInitialReads,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -1026,13 +1027,88 @@ pub struct SimulatedTransaction {
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct SimulatedTransactionsWithInitialReads {
     pub simulated_transactions: Vec<SimulatedTransaction>,
-    pub initial_reads: StateMaps,
+    pub initial_reads: InitialReads,
 }
 
 #[derive(Debug, Clone)]
 pub enum SimulationResult {
     SimulatedTransactions(Vec<SimulatedTransaction>),
     SimulatedTransactionsWithInitialReads(Box<SimulatedTransactionsWithInitialReads>),
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+pub struct InitialReadsStorageEntry {
+    pub contract_address: ContractAddress,
+    pub key: StorageKey,
+    pub value: Felt,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+pub struct InitialReadsNonceEntry {
+    pub contract_address: ContractAddress,
+    pub nonce: Felt,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+pub struct InitialReadsClassHashEntry {
+    pub contract_address: ContractAddress,
+    pub class_hash: ClassHash,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+pub struct InitialReadsDeclaredContractsEntry {
+    pub class_hash: ClassHash,
+    pub is_declared: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+pub struct InitialReads {
+    pub storage: Vec<InitialReadsStorageEntry>,
+    pub nonces: Vec<InitialReadsNonceEntry>,
+    pub class_hashes: Vec<InitialReadsClassHashEntry>,
+    pub declared_contracts: Vec<InitialReadsDeclaredContractsEntry>,
+}
+
+impl From<StateMaps> for InitialReads {
+    fn from(value: StateMaps) -> Self {
+        InitialReads {
+            storage: value
+                .storage
+                .iter()
+                .map(|s| InitialReadsStorageEntry {
+                    contract_address: s.0.0.into(),
+                    key: (*s.0.1).into(),
+                    value: *s.1,
+                })
+                .collect(),
+            nonces: value
+                .nonces
+                .iter()
+                .map(|n| InitialReadsNonceEntry { contract_address: (*n.0).into(), nonce: n.1.0 })
+                .collect(),
+            class_hashes: value
+                .class_hashes
+                .iter()
+                .map(|c| InitialReadsClassHashEntry {
+                    contract_address: (*c.0).into(),
+                    class_hash: (*c.1).into(),
+                })
+                .collect(),
+            declared_contracts: value
+                .declared_contracts
+                .iter()
+                .map(|c| InitialReadsDeclaredContractsEntry {
+                    class_hash: (*c.0).into(),
+                    is_declared: *c.1,
+                })
+                .collect(),
+        }
+    }
 }
 
 impl FunctionInvocation {

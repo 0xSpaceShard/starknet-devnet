@@ -59,7 +59,11 @@ pub fn add_invoke_transaction(
             }
         }
         ProofMode::None => true,
-        ProofMode::Full => todo!("Yet to implement proof verification using blockifier API"),
+        ProofMode::Full => {
+            return Err(Error::UnsupportedAction {
+                msg: "Proof verification in full mode not yet implemented".to_string(),
+            });
+        }
     };
 
     if !can_continue {

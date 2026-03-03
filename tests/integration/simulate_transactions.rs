@@ -595,6 +595,108 @@ async fn simulate_of_multiple_txs_shouldnt_return_an_error_if_invoke_transaction
 }
 
 #[tokio::test]
+async fn simulate_of_multiple_txs_should_return_initial_reads_when_flag_present() {
+    let devnet = BackgroundDevnet::spawn().await.expect("Could not start devnet");
+
+    let (signer, account_address) = devnet.get_first_predeployed_account().await;
+    let mut account = SingleOwnerAccount::new(
+        &devnet.json_rpc_client,
+        signer.clone(),
+        account_address,
+        devnet.json_rpc_client.chain_id().await.unwrap(),
+        ExecutionEncoding::New,
+    );
+
+    account.set_block_id(BlockId::Tag(BlockTag::Latest));
+
+    let (flattened_contract_artifact, casm_hash) =
+        get_flattened_sierra_contract_and_casm_hash(CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH);
+    let class_hash = flattened_contract_artifact.class_hash();
+
+    let estimate_fee_resource_bounds = ResourceBoundsMapping {
+        l1_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
+        l2_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
+        l1_data_gas: ResourceBounds { max_amount: 0, max_price_per_unit: 0 },
+    };
+
+    let calls = vec![Call {
+        to: UDC_CONTRACT_ADDRESS,
+        selector: get_selector_from_name("no_such_method").unwrap(),
+        calldata: vec![class_hash, Felt::from_hex_unchecked("0x123"), Felt::ZERO, Felt::ZERO],
+    }];
+
+    let calldata = account.encode_calls(&calls);
+
+    let is_query = true;
+    let nonce_data_availability_mode = DataAvailabilityMode::L1;
+    let fee_data_availability_mode = DataAvailabilityMode::L1;
+
+    let transactions = [
+        BroadcastedTransaction::Declare(BroadcastedDeclareTransactionV3 {
+            sender_address: account_address,
+            compiled_class_hash: casm_hash,
+            signature: vec![],
+            nonce: Felt::ZERO,
+            contract_class: Arc::new(flattened_contract_artifact.clone()),
+            resource_bounds: estimate_fee_resource_bounds.clone(),
+            tip: 0,
+            paymaster_data: vec![],
+            account_deployment_data: vec![],
+            nonce_data_availability_mode,
+            fee_data_availability_mode,
+            is_query,
+        }),
+        BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction {
+            broadcasted_invoke_txn_v3: BroadcastedInvokeTransactionV3 {
+                sender_address: account_address,
+                calldata,
+                signature: vec![],
+                nonce: Felt::ONE,
+                resource_bounds: estimate_fee_resource_bounds,
+                tip: 0,
+                paymaster_data: vec![],
+                account_deployment_data: vec![],
+                nonce_data_availability_mode,
+                fee_data_availability_mode,
+                is_query,
+                proof_facts: None,
+            },
+            proof: None,
+        }),
+    ];
+
+    let simulation_result = devnet
+        .json_rpc_client
+        .simulate_transactions(
+            account.block_id(),
+            transactions,
+            [
+                SimulationFlag::SkipValidate,
+                SimulationFlag::SkipFeeCharge,
+                SimulationFlag::ReturnInitialReads,
+            ],
+        )
+        .await
+        .unwrap();
+
+    let transactions = match simulation_result {
+        SimulateTransactionsResult::TransactionsWithInitialReads {
+            simulated_transactions,
+            initial_reads: _,
+        } => simulated_transactions,
+        _ => unreachable!("With return initial reads flag"),
+    };
+
+    match &transactions[1].transaction_trace {
+        TransactionTrace::Invoke(InvokeTransactionTrace {
+            execute_invocation: ExecuteInvocation::Reverted(reverted_invocation),
+            ..
+        }) => assert_contains(&reverted_invocation.revert_reason, "ENTRYPOINT_NOT_FOUND").unwrap(),
+        other_trace => panic!("Unexpected trace {:?}", other_trace),
+    }
+}
+
+#[tokio::test]
 async fn simulate_of_multiple_txs_should_return_index_of_first_failing_transaction() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start devnet");
 
