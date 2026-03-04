@@ -90,7 +90,7 @@ impl JsonRpcHandler {
         match block_result {
             BlockResult::Block(block) => {
                 let block = if include {
-                    block
+                    Block { transactions: block.transactions.clone_with_proof_facts(), ..block }
                 } else {
                     Block { transactions: block.transactions.clone_without_proof_facts(), ..block }
                 };
@@ -98,7 +98,10 @@ impl JsonRpcHandler {
             }
             BlockResult::PreConfirmedBlock(block) => {
                 let block = if include {
-                    block
+                    PreConfirmedBlock {
+                        transactions: block.transactions.clone_with_proof_facts(),
+                        ..block
+                    }
                 } else {
                     PreConfirmedBlock {
                         transactions: block.transactions.clone_without_proof_facts(),
@@ -128,7 +131,7 @@ impl JsonRpcHandler {
         match block_result {
             BlockResult::Block(block) => {
                 let block = if include {
-                    block
+                    Block { transactions: block.transactions.clone_with_proof_facts(), ..block }
                 } else {
                     Block { transactions: block.transactions.clone_without_proof_facts(), ..block }
                 };
@@ -136,7 +139,10 @@ impl JsonRpcHandler {
             }
             BlockResult::PreConfirmedBlock(block) => {
                 let block = if include {
-                    block
+                    PreConfirmedBlock {
+                        transactions: block.transactions.clone_with_proof_facts(),
+                        ..block
+                    }
                 } else {
                     PreConfirmedBlock {
                         transactions: block.transactions.clone_without_proof_facts(),
@@ -208,7 +214,7 @@ impl JsonRpcHandler {
         match self.api.starknet.lock().await.get_transaction_by_hash(transaction_hash) {
             Ok(transaction) => {
                 let transaction = if Self::include_proof_facts(response_flags) {
-                    transaction.clone()
+                    transaction.clone_with_proof_facts()
                 } else {
                     transaction.clone_without_proof_facts()
                 };
@@ -249,7 +255,7 @@ impl JsonRpcHandler {
         {
             Ok(transaction) => {
                 let transaction = if Self::include_proof_facts(response_flags) {
-                    transaction.clone()
+                    transaction.clone_with_proof_facts()
                 } else {
                     transaction.clone_without_proof_facts()
                 };

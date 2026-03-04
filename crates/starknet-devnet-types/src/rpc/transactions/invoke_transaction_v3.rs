@@ -52,6 +52,10 @@ impl InvokeTransactionV3 {
         Self { proof_facts: None, ..self.clone() }
     }
 
+    pub fn clone_with_proof_facts(&self) -> Self {
+        Self { proof_facts: Some(self.proof_facts.clone().unwrap_or_default()), ..self.clone() }
+    }
+
     pub(crate) fn get_resource_bounds(&self) -> &ResourceBoundsWrapper {
         &self.resource_bounds
     }

@@ -51,10 +51,8 @@ pub fn add_invoke_transaction(
                 broadcasted_invoke_transaction.get_proof_facts(),
             ) {
                 (Some(proof), Some(proof_facts)) => verify_proof(proof, proof_facts),
-                (Some(_), None) | (None, Some(_)) => {
-                    // Probably not possible
-                    return Err(TransactionValidationError::ProofVerificationFailed.into());
-                }
+                (None, Some(pf)) => pf.is_empty(),
+                (Some(_), None) => false, // Probably not possible
                 (_, _) => true,
             }
         }

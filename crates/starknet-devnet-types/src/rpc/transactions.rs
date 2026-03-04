@@ -80,6 +80,18 @@ impl Transactions {
             }
         }
     }
+
+    pub fn clone_with_proof_facts(&self) -> Self {
+        match &self {
+            Self::Hashes(hashes) => Self::Hashes(hashes.clone()),
+            Self::FullWithReceipts(txs) => {
+                Self::FullWithReceipts(txs.iter().map(|tx| tx.clone_with_proof_facts()).collect())
+            }
+            Self::Full(txs) => {
+                Self::Full(txs.iter().map(|tx| tx.clone_with_proof_facts()).collect())
+            }
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Default)]
@@ -180,6 +192,18 @@ impl TransactionWithHash {
         }
     }
 
+    pub fn clone_with_proof_facts(&self) -> Self {
+        match &self.transaction {
+            Transaction::Invoke(InvokeTransaction::V3(tx)) => Self {
+                transaction: Transaction::Invoke(InvokeTransaction::V3(
+                    tx.clone_with_proof_facts(),
+                )),
+                transaction_hash: self.transaction_hash,
+            },
+            _ => self.clone(),
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn create_common_receipt(
         &self,
@@ -227,6 +251,18 @@ impl TransactionWithReceipt {
             Transaction::Invoke(InvokeTransaction::V3(tx)) => Self {
                 transaction: Transaction::Invoke(InvokeTransaction::V3(
                     tx.clone_without_proof_facts(),
+                )),
+                receipt: self.receipt.clone(),
+            },
+            _ => self.clone(),
+        }
+    }
+
+    pub fn clone_with_proof_facts(&self) -> Self {
+        match &self.transaction {
+            Transaction::Invoke(InvokeTransaction::V3(tx)) => Self {
+                transaction: Transaction::Invoke(InvokeTransaction::V3(
+                    tx.clone_with_proof_facts(),
                 )),
                 receipt: self.receipt.clone(),
             },

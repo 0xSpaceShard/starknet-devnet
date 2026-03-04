@@ -108,3 +108,34 @@ async fn get_transaction_by_block_id_and_index_response_flags_control_proof_fact
         _ => panic!("Expected invoke v3 transaction with IncludeProofFacts flag"),
     }
 }
+
+#[tokio::test]
+async fn get_transaction_by_block_id_and_index_include_proof_facts_on_non_proof_bearing_tx_returns_empty_array()
+ {
+    let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+    let _minting_hash = devnet.mint(Felt::ONE, 1).await;
+
+    let response_flags = [TransactionResponseFlag::IncludeProofFacts];
+    let tx_with_proof_facts_flag = devnet
+        .json_rpc_client
+        .get_transaction_by_block_id_and_index(
+            BlockId::Tag(BlockTag::Latest),
+            0,
+            Some(&response_flags),
+        )
+        .await
+        .unwrap();
+
+    match tx_with_proof_facts_flag {
+        Transaction::Invoke(InvokeTransaction::V3(tx)) => {
+            let returned_proof_facts = tx
+                .proof_facts
+                .expect("proof_facts should be present when IncludeProofFacts is requested");
+            assert!(
+                returned_proof_facts.is_empty(),
+                "proof_facts should be an empty array for non-proof-bearing transactions"
+            );
+        }
+        _ => panic!("Expected invoke v3 transaction with IncludeProofFacts flag"),
+    }
+}

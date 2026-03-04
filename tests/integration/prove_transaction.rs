@@ -342,8 +342,6 @@ async fn invoke_with_proof_only_and_no_proof_facts_is_rejected() {
 
     let error_message = error.to_string();
 
-    println!("{}", error_message);
-
     assert!(
         error_message.contains("Invalid proof")
             || error_message.contains("Account validation failed")
