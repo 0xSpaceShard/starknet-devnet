@@ -233,6 +233,12 @@ pub enum TransactionResponseFlag {
     IncludeProofFacts,
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum StorageResponseFlag {
+    IncludeLastUpdateBlock,
+}
+
 #[cfg(test)]
 mod test_block_id {
     use serde_json::json;

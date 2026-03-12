@@ -609,4 +609,124 @@ mod tests {
 
         (starknet, account, dummy_contract_address, increase_balance_selector, contract_storage_key)
     }
+
+    #[test]
+    fn storage_at_block_returns_value_and_block_number_after_invoke() {
+        let (
+            mut starknet,
+            account,
+            contract_address,
+            increase_balance_selector,
+            balance_var_storage_address,
+        ) = setup();
+        let storage_key = *balance_var_storage_address.get_storage_key();
+        let account_address = account.get_address();
+
+        let invoke_transaction = test_invoke_transaction_v3(
+            account_address,
+            contract_address,
+            increase_balance_selector,
+            &[Felt::from(42)],
+            0,
+            resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+        );
+
+        starknet.add_invoke_transaction(invoke_transaction).unwrap();
+
+        // Query via contract_storage_at_block on the latest block
+        let block_id =
+            starknet_types::rpc::block::BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest);
+        let (value, last_update_block) =
+            starknet.contract_storage_at_block(&block_id, contract_address, storage_key).unwrap();
+
+        assert_eq!(value, Felt::from(42), "Storage value should reflect the invoke");
+        assert!(
+            last_update_block.is_some(),
+            "last_update_block should be present after a storage write"
+        );
+    }
+
+    #[test]
+    fn storage_at_block_returns_none_block_number_for_unmodified_key() {
+        let (mut starknet, account, contract_address, increase_balance_selector, _balance_key) =
+            setup();
+
+        // Send a transaction so that at least one block is produced
+        let tx = test_invoke_transaction_v3(
+            account.get_address(),
+            contract_address,
+            increase_balance_selector,
+            &[Felt::from(1u64)],
+            0,
+            resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+        );
+        starknet.add_invoke_transaction(tx).unwrap();
+
+        // Use an arbitrary key that was never written to
+        let unmodified_key =
+            starknet_types::patricia_key::PatriciaKey::new(Felt::from(0x999999u64)).unwrap();
+
+        let block_id =
+            starknet_types::rpc::block::BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest);
+        let (value, last_update_block) = starknet
+            .contract_storage_at_block(&block_id, contract_address, unmodified_key)
+            .unwrap();
+
+        assert_eq!(value, Felt::ZERO, "Unmodified storage should be zero");
+        assert!(
+            last_update_block.is_none(),
+            "last_update_block should be None for a key that was never written"
+        );
+    }
+
+    #[test]
+    fn storage_at_block_tracks_most_recent_update_block() {
+        let (
+            mut starknet,
+            account,
+            contract_address,
+            increase_balance_selector,
+            balance_var_storage_address,
+        ) = setup();
+        let storage_key = *balance_var_storage_address.get_storage_key();
+        let account_address = account.get_address();
+        let block_id =
+            starknet_types::rpc::block::BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest);
+
+        // First invoke — creates block N
+        let invoke_transaction = test_invoke_transaction_v3(
+            account_address,
+            contract_address,
+            increase_balance_selector,
+            &[Felt::from(10)],
+            0,
+            resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+        );
+        starknet.add_invoke_transaction(invoke_transaction).unwrap();
+
+        let (value1, block1) =
+            starknet.contract_storage_at_block(&block_id, contract_address, storage_key).unwrap();
+        assert_eq!(value1, Felt::from(10));
+        let first_block = block1.expect("Should have block number after first write");
+
+        // Second invoke — creates block N+1
+        let invoke_transaction = test_invoke_transaction_v3(
+            account_address,
+            contract_address,
+            increase_balance_selector,
+            &[Felt::from(5)],
+            1,
+            resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+        );
+        starknet.add_invoke_transaction(invoke_transaction).unwrap();
+
+        let (value2, block2) =
+            starknet.contract_storage_at_block(&block_id, contract_address, storage_key).unwrap();
+        assert_eq!(value2, Felt::from(15), "Storage value should accumulate: 10 + 5");
+        let second_block = block2.expect("Should have block number after second write");
+        assert!(
+            second_block > first_block,
+            "Second write should record a higher block number than the first"
+        );
+    }
 }

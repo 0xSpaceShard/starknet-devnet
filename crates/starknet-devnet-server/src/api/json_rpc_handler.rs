@@ -19,8 +19,8 @@ use crate::api::models::{
     BroadcastedInvokeTransactionInput, CallInput, ClassHashInput, DevnetSpecRequest,
     EstimateFeeInput, EventsInput, GetStorageInput, JsonRpcRequest, JsonRpcResponse,
     JsonRpcWsRequest, LoadPath, ProveTransactionInput, SimulateTransactionsInput,
-    StarknetSpecExtRequest, StarknetSpecRequest, ToRpcResponseResult, TransactionHashAndFlagsInput,
-    TransactionHashInput, to_json_rpc_request,
+    StarknetSpecExtRequest, StarknetSpecRequest, StateUpdateInput, ToRpcResponseResult,
+    TransactionHashAndFlagsInput, TransactionHashInput, to_json_rpc_request,
 };
 use crate::api::origin_forwarder::OriginForwarder;
 use crate::api::{Api, ApiError, error};
@@ -394,10 +394,15 @@ impl JsonRpcHandler {
                 block_id,
                 response_flags,
             }) => self.get_block_with_receipts(block_id, response_flags).await,
-            StarknetSpecRequest::StateUpdate(block) => self.get_state_update(block.block_id).await,
-            StarknetSpecRequest::StorageAt(GetStorageInput { contract_address, key, block_id }) => {
-                self.get_storage_at(contract_address, key, block_id).await
+            StarknetSpecRequest::StateUpdate(StateUpdateInput { block_id, contract_address }) => {
+                self.get_state_update(block_id, contract_address).await
             }
+            StarknetSpecRequest::StorageAt(GetStorageInput {
+                contract_address,
+                key,
+                block_id,
+                response_flags,
+            }) => self.get_storage_at(contract_address, key, block_id, response_flags).await,
             StarknetSpecRequest::TransactionStatusByHash(TransactionHashInput {
                 transaction_hash,
             }) => self.get_transaction_status_by_hash(transaction_hash).await,

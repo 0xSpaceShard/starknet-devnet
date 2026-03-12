@@ -10,6 +10,7 @@ use starknet_types::compile_sierra_contract;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
+use starknet_types::patricia_key::StorageKey;
 
 use self::state_diff::StateDiff;
 use self::state_readers::DictState;
@@ -154,6 +155,8 @@ pub struct StarknetState {
     rpc_contract_classes: Arc<RwLock<CommittedClassStorage>>,
     /// Used for old state preservation purposes.
     historic_state: DictState,
+    /// Maps each (contract_address, storage_key) to the block number of its most recent update.
+    storage_metadata: HashMap<(ContractAddress, StorageKey), u64>,
 }
 
 impl Default for StarknetState {
@@ -162,6 +165,7 @@ impl Default for StarknetState {
             state: CachedState::new(Default::default()),
             rpc_contract_classes: Default::default(),
             historic_state: Default::default(),
+            storage_metadata: Default::default(),
         }
     }
 }
@@ -175,6 +179,7 @@ impl StarknetState {
             state: CachedState::new(DictState::new(defaulter)),
             rpc_contract_classes,
             historic_state: Default::default(),
+            storage_metadata: Default::default(),
         }
     }
 
@@ -182,11 +187,28 @@ impl StarknetState {
         self.rpc_contract_classes.read().clone()
     }
 
+    /// Returns the block number of the most recent update for the given storage slot, if any.
+    pub fn get_storage_last_update_block(
+        &self,
+        contract_address: ContractAddress,
+        storage_key: StorageKey,
+    ) -> Option<u64> {
+        self.storage_metadata.get(&(contract_address, storage_key)).copied()
+    }
+
     /// Commits and returns the state difference accumulated since the previous (historic) state.
     pub(crate) fn commit_diff(&mut self, block_number: u64) -> DevnetResult<StateDiff> {
         let new_classes = self.rpc_contract_classes.write().commit(block_number);
 
         let diff = StateDiff::generate(&mut self.state, new_classes)?;
+
+        // Record the most recent block number for each updated storage slot.
+        for (address, slots) in &diff.storage_updates {
+            for key in slots.keys() {
+                self.storage_metadata.insert((*address, *key), block_number);
+            }
+        }
+
         let new_historic = self.expand_historic(diff.clone())?;
         self.state = CachedState::new(new_historic.clone());
 
@@ -243,6 +265,7 @@ impl StarknetState {
             state: CachedState::new(self.historic_state.clone()),
             rpc_contract_classes: self.rpc_contract_classes.clone(),
             historic_state: self.historic_state.clone(),
+            storage_metadata: self.storage_metadata.clone(),
         }
     }
 }

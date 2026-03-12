@@ -6,7 +6,7 @@ use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{
     Block, BlockHeader, BlockId, BlockResult, BlockStatus, BlockTag, PreConfirmedBlock,
-    PreConfirmedBlockHeader, TransactionResponseFlag,
+    PreConfirmedBlockHeader, StorageResponseFlag, TransactionResponseFlag,
 };
 use starknet_types::rpc::state::StateUpdateResult;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
@@ -25,7 +25,7 @@ use crate::api::account_helpers::{
 };
 use crate::api::models::{
     AccountBalanceResponse, AccountBalancesResponse, DevnetResponse, ProveTransactionResponse,
-    SerializableAccount, StarknetExtResponse, StarknetResponse,
+    SerializableAccount, StarknetExtResponse, StarknetResponse, StorageResult,
 };
 use crate::api::{JsonRpcHandler, RPC_SPEC_VERSION};
 use crate::config::DevnetConfig;
@@ -155,9 +155,18 @@ impl JsonRpcHandler {
     }
 
     /// starknet_getStateUpdate
-    pub async fn get_state_update(&self, block_id: BlockId) -> StrictRpcResult {
-        let state_update =
-            self.api.starknet.lock().await.block_state_update(&block_id).map_err(|e| match e {
+    pub async fn get_state_update(
+        &self,
+        block_id: BlockId,
+        contract_address: Option<ContractAddress>,
+    ) -> StrictRpcResult {
+        let state_update = self
+            .api
+            .starknet
+            .lock()
+            .await
+            .block_state_update(&block_id, contract_address)
+            .map_err(|e| match e {
                 Error::NoBlock => ApiError::BlockNotFound,
                 unknown_error => ApiError::StarknetDevnetError(unknown_error),
             })?;
@@ -176,8 +185,13 @@ impl JsonRpcHandler {
         contract_address: ContractAddress,
         key: PatriciaKey,
         block_id: BlockId,
+        response_flags: Option<Vec<StorageResponseFlag>>,
     ) -> StrictRpcResult {
-        let felt = self
+        let include_last_update = response_flags
+            .as_ref()
+            .is_some_and(|flags| flags.contains(&StorageResponseFlag::IncludeLastUpdateBlock));
+
+        let (value, last_update_block) = self
             .api
             .starknet
             .lock()
@@ -192,7 +206,11 @@ impl JsonRpcHandler {
                 unknown_error => ApiError::StarknetDevnetError(unknown_error),
             })?;
 
-        Ok(StarknetResponse::Felt(felt).into())
+        if include_last_update {
+            Ok(StarknetResponse::StorageResult(StorageResult { value, last_update_block }).into())
+        } else {
+            Ok(StarknetResponse::Felt(value).into())
+        }
     }
 
     /// starknet_getStorageProof

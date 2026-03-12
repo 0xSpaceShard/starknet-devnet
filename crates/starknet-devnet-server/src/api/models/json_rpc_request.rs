@@ -17,7 +17,7 @@ use crate::api::models::{
     EventsInput, EventsSubscriptionInput, FlushParameters, GetStorageInput, GetStorageProofInput,
     IncreaseTime, JsonRpcResponse, L1TransactionHashInput, LoadPath, MintTokensRequest,
     PostmanLoadL1MessagingContract, ProveTransactionInput, RestartParameters, SetTime,
-    SimulateTransactionsInput, SubscriptionBlockIdInput, SubscriptionIdInput,
+    SimulateTransactionsInput, StateUpdateInput, SubscriptionBlockIdInput, SubscriptionIdInput,
     TransactionHashAndFlagsInput, TransactionHashInput, TransactionReceiptSubscriptionInput,
     TransactionSubscriptionInput,
 };
@@ -70,7 +70,7 @@ pub enum StarknetSpecRequest {
     #[serde(rename = "starknet_getBlockWithReceipts")]
     BlockWithReceipts(BlockIdAndFlagsInput),
     #[serde(rename = "starknet_getStateUpdate")]
-    StateUpdate(BlockIdInput),
+    StateUpdate(StateUpdateInput),
     #[serde(rename = "starknet_getStorageAt")]
     StorageAt(GetStorageInput),
     #[serde(rename = "starknet_getStorageProof")]

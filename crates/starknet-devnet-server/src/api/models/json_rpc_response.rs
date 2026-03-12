@@ -19,7 +19,7 @@ use crate::api::models::{
     AbortedBlocks, AcceptedOnL1Blocks, AccountBalanceResponse, BlockHashAndNumberOutput,
     CreatedBlock, DeclareTransactionOutput, DeployAccountTransactionOutput, DumpResponseBody,
     FlushedMessages, IncreaseTimeResponse, MessageHash, MessagingLoadAddress, MintTokensResponse,
-    ProveTransactionResponse, SerializableAccount, SetTimeResponse, SyncingOutput,
+    ProveTransactionResponse, SerializableAccount, SetTimeResponse, StorageResult, SyncingOutput,
     TransactionHashOutput,
 };
 use crate::config::DevnetConfig;
@@ -84,6 +84,7 @@ pub enum StarknetResponse {
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
     MessagesStatusByL1Hash(Vec<L1HandlerTransactionStatus>),
+    StorageResult(StorageResult),
 }
 
 #[derive(Serialize)]

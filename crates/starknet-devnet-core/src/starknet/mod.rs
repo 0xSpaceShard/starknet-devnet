@@ -1018,21 +1018,33 @@ impl Starknet {
         )
     }
 
-    pub fn block_state_update(&self, block_id: &CustomBlockId) -> DevnetResult<StateUpdateResult> {
+    pub fn block_state_update(
+        &self,
+        block_id: &CustomBlockId,
+        contract_address: Option<ContractAddress>,
+    ) -> DevnetResult<StateUpdateResult> {
         let state_update = state_update::state_update_by_block_id(self, block_id)?;
 
         // StateUpdate needs to be mapped to PreConfirmedStateUpdate when block_id is pre_confirmed
         if let CustomBlockId::Tag(CustomBlockTag::PreConfirmed) = block_id {
             Ok(StateUpdateResult::PreConfirmedStateUpdate(PreConfirmedStateUpdate {
                 old_root: Some(state_update.old_root),
-                state_diff: state_update.state_diff,
+                state_diff: if let Some(addr) = contract_address {
+                    state_update.state_diff.filter_by_address(addr)
+                } else {
+                    state_update.state_diff
+                },
             }))
         } else {
             Ok(StateUpdateResult::StateUpdate(StateUpdate {
                 block_hash: state_update.block_hash,
                 new_root: state_update.new_root,
                 old_root: state_update.old_root,
-                state_diff: state_update.state_diff,
+                state_diff: if let Some(addr) = contract_address {
+                    state_update.state_diff.filter_by_address(addr)
+                } else {
+                    state_update.state_diff
+                },
             }))
         }
     }
@@ -1224,10 +1236,12 @@ impl Starknet {
         block_id: &CustomBlockId,
         contract_address: ContractAddress,
         storage_key: PatriciaKey,
-    ) -> DevnetResult<Felt> {
+    ) -> DevnetResult<(Felt, Option<u64>)> {
         let state = self.get_mut_state_at(block_id)?;
         state.assert_contract_deployed(contract_address)?;
-        Ok(state.get_storage_at(contract_address.into(), storage_key.into())?)
+        let value = state.get_storage_at(contract_address.into(), storage_key.into())?;
+        let last_update_block = state.get_storage_last_update_block(contract_address, storage_key);
+        Ok((value, last_update_block))
     }
 
     pub fn get_block(&self, block_id: &CustomBlockId) -> DevnetResult<&StarknetBlock> {

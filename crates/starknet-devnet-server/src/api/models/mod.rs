@@ -16,7 +16,9 @@ use starknet_types::felt::{BlockHash, ClassHash, ProofFacts, TransactionHash};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::proof::Proof;
-use starknet_types::rpc::block::{BlockId, SubscriptionBlockId, TransactionResponseFlag};
+use starknet_types::rpc::block::{
+    BlockId, StorageResponseFlag, SubscriptionBlockId, TransactionResponseFlag,
+};
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 use starknet_types::rpc::transactions::{
@@ -63,6 +65,13 @@ pub struct BlockIdAndFlagsInput {
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
+pub struct StateUpdateInput {
+    pub block_id: BlockId,
+    pub contract_address: Option<ContractAddress>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct TransactionHashInput {
     pub transaction_hash: TransactionHash,
 }
@@ -87,6 +96,14 @@ pub struct GetStorageInput {
     pub contract_address: ContractAddress,
     pub key: PatriciaKey,
     pub block_id: BlockId,
+    pub response_flags: Option<Vec<StorageResponseFlag>>,
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[cfg_attr(test, derive(Deserialize))]
+pub struct StorageResult {
+    pub value: Felt,
+    pub last_update_block: Option<u64>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -787,6 +804,7 @@ mod tests {
             block_id: BlockId::Hash(Felt::ONE),
             contract_address: ContractAddress::new(Felt::TWO).unwrap(),
             key: PatriciaKey::new(Felt::THREE).unwrap(),
+            response_flags: None,
         };
 
         assert_get_storage_input_correctness(
