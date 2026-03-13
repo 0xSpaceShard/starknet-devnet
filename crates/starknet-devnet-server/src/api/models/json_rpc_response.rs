@@ -9,9 +9,9 @@ use starknet_types::rpc::gas_modification::GasModification;
 use starknet_types::rpc::state::{PreConfirmedStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
-    BlockTransactionTrace, EventsChunk, L1HandlerTransactionStatus, SimulatedTransaction,
-    SimulatedTransactionsWithInitialReads, TransactionStatus, TransactionTrace,
-    TransactionWithHash,
+    BlockTransactionTrace, BlockTransactionTracesWithInitialReads, EventsChunk,
+    L1HandlerTransactionStatus, SimulatedTransaction, SimulatedTransactionsWithInitialReads,
+    TransactionStatus, TransactionTrace, TransactionWithHash,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 
@@ -83,6 +83,7 @@ pub enum StarknetResponse {
     SimulateTransactionsInitialReads(SimulatedTransactionsWithInitialReads),
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
+    BlockTransactionTracesInitialReads(BlockTransactionTracesWithInitialReads),
     MessagesStatusByL1Hash(Vec<L1HandlerTransactionStatus>),
     StorageResult(StorageResult),
 }

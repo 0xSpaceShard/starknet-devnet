@@ -47,7 +47,8 @@ use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 use starknet_types::rpc::transactions::{
-    BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
+    BlockTraceResult, BlockTransactionTrace, BlockTransactionTracesWithInitialReads,
+    BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionCommonV3,
     L1HandlerTransactionStatus, ResourceBoundsWrapper, SimulatedTransaction, SimulationFlag,
     SimulationResult, TransactionFinalityStatus, TransactionStatus, TransactionTrace,
@@ -771,6 +772,32 @@ impl Starknet {
         }
     }
 
+    fn get_state_at(&self, block_id: &CustomBlockId) -> DevnetResult<&StarknetState> {
+        match block_id {
+            CustomBlockId::Tag(CustomBlockTag::Latest) => Ok(&self.latest_state),
+            CustomBlockId::Tag(CustomBlockTag::PreConfirmed) => Ok(&self.pre_confirmed_state),
+            _ => {
+                let block = self.get_block(block_id)?;
+                let block_hash = block.block_hash();
+
+                if self.blocks.last_block_hash == Some(block_hash) {
+                    return Ok(&self.latest_state);
+                }
+
+                if self.config.state_archive == StateArchiveCapacity::None {
+                    return Err(Error::NoStateAtBlock { block_id: *block_id });
+                }
+
+                let state = self
+                    .blocks
+                    .hash_to_state
+                    .get(&block_hash)
+                    .ok_or(Error::NoStateAtBlock { block_id: *block_id })?;
+                Ok(state)
+            }
+        }
+    }
+
     pub fn get_class_hash_at(
         &mut self,
         block_id: &CustomBlockId,
@@ -1021,7 +1048,7 @@ impl Starknet {
     pub fn block_state_update(
         &self,
         block_id: &CustomBlockId,
-        contract_address: Option<ContractAddress>,
+        contract_addresses: Option<Vec<ContractAddress>>,
     ) -> DevnetResult<StateUpdateResult> {
         let state_update = state_update::state_update_by_block_id(self, block_id)?;
 
@@ -1029,7 +1056,7 @@ impl Starknet {
         if let CustomBlockId::Tag(CustomBlockTag::PreConfirmed) = block_id {
             Ok(StateUpdateResult::PreConfirmedStateUpdate(PreConfirmedStateUpdate {
                 old_root: Some(state_update.old_root),
-                state_diff: if let Some(addr) = contract_address {
+                state_diff: if let Some(addr) = contract_addresses {
                     state_update.state_diff.filter_by_address(addr)
                 } else {
                     state_update.state_diff
@@ -1040,7 +1067,7 @@ impl Starknet {
                 block_hash: state_update.block_hash,
                 new_root: state_update.new_root,
                 old_root: state_update.old_root,
-                state_diff: if let Some(addr) = contract_address {
+                state_diff: if let Some(addr) = contract_addresses {
                     state_update.state_diff.filter_by_address(addr)
                 } else {
                     state_update.state_diff
@@ -1406,7 +1433,8 @@ impl Starknet {
     pub fn get_transaction_traces_from_block(
         &self,
         block_id: &CustomBlockId,
-    ) -> DevnetResult<Vec<BlockTransactionTrace>> {
+        return_initial_reads: bool,
+    ) -> DevnetResult<BlockTraceResult> {
         let transactions = match self.get_block_with_transactions(block_id)? {
             BlockResult::Block(b) => b.transactions,
             BlockResult::PreConfirmedBlock(b) => b.transactions,
@@ -1424,7 +1452,14 @@ impl Starknet {
             }
         }
 
-        Ok(traces)
+        if return_initial_reads {
+            let initial_reads = self.get_state_at(block_id)?.state.get_initial_reads()?.into();
+            Ok(BlockTraceResult::TracesWithInitialReads(Box::new(
+                BlockTransactionTracesWithInitialReads { traces, initial_reads },
+            )))
+        } else {
+            Ok(BlockTraceResult::Traces(traces))
+        }
     }
 
     pub fn get_transaction_execution_and_finality_status(

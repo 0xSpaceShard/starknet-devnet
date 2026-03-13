@@ -938,6 +938,13 @@ pub enum SimulationFlag {
     ReturnInitialReads,
 }
 
+/// Flags that indicate what additional information should be included in the trace.
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TraceFlag {
+    ReturnInitialReads,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(Deserialize))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -1074,6 +1081,19 @@ pub enum SimulationResult {
 
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+pub struct BlockTransactionTracesWithInitialReads {
+    pub traces: Vec<BlockTransactionTrace>,
+    pub initial_reads: InitialReads,
+}
+
+#[derive(Debug, Clone)]
+pub enum BlockTraceResult {
+    Traces(Vec<BlockTransactionTrace>),
+    TracesWithInitialReads(Box<BlockTransactionTracesWithInitialReads>),
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct InitialReadsStorageEntry {
     pub contract_address: ContractAddress,
     pub key: StorageKey,
@@ -1101,7 +1121,7 @@ pub struct InitialReadsDeclaredContractsEntry {
     pub is_declared: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Default, Serialize)]
 #[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
 pub struct InitialReads {
     pub storage: Vec<InitialReadsStorageEntry>,

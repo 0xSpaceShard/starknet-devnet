@@ -12,14 +12,14 @@ use crate::api::error::StrictRpcResult;
 use crate::api::models::{
     AbortingBlocks, AcceptOnL1Request, AccountAddressInput, BlockAndClassHashInput,
     BlockAndContractAddressInput, BlockAndIndexInput, BlockIdAndFlagsInput, BlockIdInput,
-    BroadcastedDeclareTransactionInput, BroadcastedDeployAccountTransactionInput,
-    BroadcastedInvokeTransactionInput, CallInput, ClassHashInput, DumpPath, EstimateFeeInput,
-    EventsInput, EventsSubscriptionInput, FlushParameters, GetStorageInput, GetStorageProofInput,
-    IncreaseTime, JsonRpcResponse, L1TransactionHashInput, LoadPath, MintTokensRequest,
-    PostmanLoadL1MessagingContract, ProveTransactionInput, RestartParameters, SetTime,
-    SimulateTransactionsInput, StateUpdateInput, SubscriptionBlockIdInput, SubscriptionIdInput,
-    TransactionHashAndFlagsInput, TransactionHashInput, TransactionReceiptSubscriptionInput,
-    TransactionSubscriptionInput,
+    BlockTransactionTracesInput, BroadcastedDeclareTransactionInput,
+    BroadcastedDeployAccountTransactionInput, BroadcastedInvokeTransactionInput, CallInput,
+    ClassHashInput, DumpPath, EstimateFeeInput, EventsInput, EventsSubscriptionInput,
+    FlushParameters, GetStorageInput, GetStorageProofInput, IncreaseTime, JsonRpcResponse,
+    L1TransactionHashInput, LoadPath, MintTokensRequest, PostmanLoadL1MessagingContract,
+    ProveTransactionInput, RestartParameters, SetTime, SimulateTransactionsInput, StateUpdateInput,
+    SubscriptionBlockIdInput, SubscriptionIdInput, TransactionHashAndFlagsInput,
+    TransactionHashInput, TransactionReceiptSubscriptionInput, TransactionSubscriptionInput,
 };
 use crate::api::serde_helpers::{empty_params, optional_params};
 use crate::rpc_core::error::RpcError;
@@ -124,7 +124,7 @@ pub enum StarknetSpecRequest {
     #[serde(rename = "starknet_traceTransaction")]
     TraceTransaction(TransactionHashInput),
     #[serde(rename = "starknet_traceBlockTransactions")]
-    BlockTransactionTraces(BlockIdInput),
+    BlockTransactionTraces(BlockTransactionTracesInput),
 }
 
 #[derive(Deserialize, AllVariantsSerdeRenames, VariantName)]

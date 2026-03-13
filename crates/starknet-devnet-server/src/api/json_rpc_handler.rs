@@ -13,7 +13,7 @@ use tracing::{info, trace};
 
 use crate::api::models::{
     AccountAddressInput, BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput,
-    BlockIdAndFlagsInput, BlockIdInput, BroadcastedDeclareTransactionEnumWrapper,
+    BlockIdAndFlagsInput, BlockTransactionTracesInput, BroadcastedDeclareTransactionEnumWrapper,
     BroadcastedDeclareTransactionInput, BroadcastedDeployAccountTransactionEnumWrapper,
     BroadcastedDeployAccountTransactionInput, BroadcastedInvokeTransactionEnumWrapper,
     BroadcastedInvokeTransactionInput, CallInput, ClassHashInput, DevnetSpecRequest,
@@ -394,8 +394,8 @@ impl JsonRpcHandler {
                 block_id,
                 response_flags,
             }) => self.get_block_with_receipts(block_id, response_flags).await,
-            StarknetSpecRequest::StateUpdate(StateUpdateInput { block_id, contract_address }) => {
-                self.get_state_update(block_id, contract_address).await
+            StarknetSpecRequest::StateUpdate(StateUpdateInput { block_id, contract_addresses }) => {
+                self.get_state_update(block_id, contract_addresses).await
             }
             StarknetSpecRequest::StorageAt(GetStorageInput {
                 contract_address,
@@ -486,9 +486,10 @@ impl JsonRpcHandler {
             StarknetSpecRequest::TraceTransaction(TransactionHashInput { transaction_hash }) => {
                 self.get_trace_transaction(transaction_hash).await
             }
-            StarknetSpecRequest::BlockTransactionTraces(BlockIdInput { block_id }) => {
-                self.get_trace_block_transactions(block_id).await
-            }
+            StarknetSpecRequest::BlockTransactionTraces(BlockTransactionTracesInput {
+                block_id,
+                trace_flags,
+            }) => self.get_trace_block_transactions(block_id, trace_flags).await,
             StarknetSpecRequest::MessagesStatusByL1Hash(data) => {
                 self.get_messages_status(data).await
             }

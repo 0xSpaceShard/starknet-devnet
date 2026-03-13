@@ -109,7 +109,7 @@ mod tests {
 
         // Filter by the sender address: should keep the account's nonce
         let filtered_by_sender = starknet
-            .block_state_update(&BlockId::Tag(BlockTag::Latest), Some(acc.account_address))
+            .block_state_update(&BlockId::Tag(BlockTag::Latest), Some(vec![acc.account_address]))
             .unwrap();
         let sender_diff = filtered_by_sender.get_state_diff();
         assert!(
@@ -123,7 +123,8 @@ mod tests {
 
         // Filter by an unrelated address: nonces, deployed_contracts, replaced_classes should be
         // empty
-        let unrelated_address = ContractAddress::new(Felt::from_hex_unchecked("0xDEAD")).unwrap();
+        let unrelated_address =
+            vec![ContractAddress::new(Felt::from_hex_unchecked("0xDEAD")).unwrap()];
         let filtered_by_other = starknet
             .block_state_update(&BlockId::Tag(BlockTag::Latest), Some(unrelated_address))
             .unwrap();

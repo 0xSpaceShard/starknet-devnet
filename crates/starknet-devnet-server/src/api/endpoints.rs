@@ -11,8 +11,8 @@ use starknet_types::rpc::block::{
 use starknet_types::rpc::state::StateUpdateResult;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 use starknet_types::rpc::transactions::{
-    BroadcastedInvokeTransaction, BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall,
-    SimulationFlag, SimulationResult, Transactions,
+    BlockTraceResult, BroadcastedInvokeTransaction, BroadcastedTransaction, EventFilter,
+    EventsChunk, FunctionCall, SimulationFlag, SimulationResult, TraceFlag, Transactions,
 };
 
 use super::error::{ApiError, StrictRpcResult};
@@ -158,14 +158,14 @@ impl JsonRpcHandler {
     pub async fn get_state_update(
         &self,
         block_id: BlockId,
-        contract_address: Option<ContractAddress>,
+        contract_addresses: Option<Vec<ContractAddress>>,
     ) -> StrictRpcResult {
         let state_update = self
             .api
             .starknet
             .lock()
             .await
-            .block_state_update(&block_id, contract_address)
+            .block_state_update(&block_id, contract_addresses)
             .map_err(|e| match e {
                 Error::NoBlock => ApiError::BlockNotFound,
                 unknown_error => ApiError::StarknetDevnetError(unknown_error),
@@ -728,10 +728,23 @@ impl JsonRpcHandler {
     }
 
     /// starknet_traceBlockTransactions
-    pub async fn get_trace_block_transactions(&self, block_id: BlockId) -> StrictRpcResult {
+    pub async fn get_trace_block_transactions(
+        &self,
+        block_id: BlockId,
+        trace_flags: Option<Vec<TraceFlag>>,
+    ) -> StrictRpcResult {
+        let return_initial_reads = trace_flags
+            .as_ref()
+            .is_some_and(|flags| flags.contains(&TraceFlag::ReturnInitialReads));
+
         let starknet = self.api.starknet.lock().await;
-        match starknet.get_transaction_traces_from_block(&block_id) {
-            Ok(result) => Ok(StarknetResponse::BlockTransactionTraces(result).into()),
+        match starknet.get_transaction_traces_from_block(&block_id, return_initial_reads) {
+            Ok(BlockTraceResult::Traces(traces)) => {
+                Ok(StarknetResponse::BlockTransactionTraces(traces).into())
+            }
+            Ok(BlockTraceResult::TracesWithInitialReads(result)) => {
+                Ok(StarknetResponse::BlockTransactionTracesInitialReads(*result).into())
+            }
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(err) => Err(err.into()),
         }

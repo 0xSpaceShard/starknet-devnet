@@ -89,12 +89,12 @@ impl ThinStateDiff {
             && self.storage_diffs.iter().all(|s| s.storage_entries.is_empty())
     }
 
-    pub fn filter_by_address(&self, contract_address: ContractAddress) -> Self {
+    pub fn filter_by_address(&self, contract_addresses: Vec<ContractAddress>) -> Self {
         let mut result = self.clone();
-        result.deployed_contracts.retain(|c| c.address == contract_address);
-        result.storage_diffs.retain(|s| s.address == contract_address);
-        result.nonces.retain(|n| n.contract_address == contract_address);
-        result.replaced_classes.retain(|r| r.contract_address == contract_address);
+        result.deployed_contracts.retain(|c| contract_addresses.contains(&c.address));
+        result.storage_diffs.retain(|s| contract_addresses.contains(&s.address));
+        result.nonces.retain(|n| contract_addresses.contains(&n.contract_address));
+        result.replaced_classes.retain(|r| contract_addresses.contains(&r.contract_address));
         result
     }
 }

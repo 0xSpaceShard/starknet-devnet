@@ -24,7 +24,7 @@ use starknet_types::rpc::transaction_receipt::FeeUnit;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, EventFilter, FunctionCall,
-    SimulationFlag, TransactionFinalityStatus,
+    SimulationFlag, TraceFlag, TransactionFinalityStatus,
 };
 use starknet_types::serde_helpers::dec_string::deserialize_biguint;
 use starknet_types::starknet_api::block::BlockNumber;
@@ -67,7 +67,7 @@ pub struct BlockIdAndFlagsInput {
 #[serde(deny_unknown_fields)]
 pub struct StateUpdateInput {
     pub block_id: BlockId,
-    pub contract_address: Option<ContractAddress>,
+    pub contract_addresses: Option<Vec<ContractAddress>>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -254,6 +254,14 @@ pub struct SimulateTransactionsInput {
     pub simulation_flags: Vec<SimulationFlag>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BlockTransactionTracesInput {
+    pub block_id: BlockId,
+    #[serde(default)]
+    pub trace_flags: Option<Vec<TraceFlag>>,
+}
+
 #[derive(Debug, Serialize)]
 #[cfg_attr(test, derive(Deserialize))]
 #[serde(deny_unknown_fields)]
@@ -338,7 +346,7 @@ pub struct EventsSubscriptionInput {
 }
 
 #[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SubscriptionTag {
     IncludeProofFacts,
 }

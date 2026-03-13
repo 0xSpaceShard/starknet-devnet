@@ -345,7 +345,11 @@ mod tests {
                     assert!(matches!(sn_response, StarknetResponse::Events(_)));
                 }
                 StarknetSpecRequest::SimulateTransactions(_) => {
-                    assert!(matches!(sn_response, StarknetResponse::SimulateTransactions(_)));
+                    assert!(matches!(
+                        sn_response,
+                        StarknetResponse::SimulateTransactions(_)
+                            | StarknetResponse::SimulateTransactionsInitialReads(_)
+                    ));
                 }
                 StarknetSpecRequest::StateUpdate(_) => {
                     assert!(matches!(
@@ -383,13 +387,20 @@ mod tests {
                 | StarknetSpecRequest::ChainId
                 | StarknetSpecRequest::ClassHashAtContractAddress(_)
                 | StarknetSpecRequest::StorageAt(_) => {
-                    assert!(matches!(sn_response, StarknetResponse::Felt(_)));
+                    assert!(matches!(
+                        sn_response,
+                        StarknetResponse::Felt(_) | StarknetResponse::StorageResult(_)
+                    ));
                 }
                 StarknetSpecRequest::TraceTransaction(_) => {
                     assert!(matches!(sn_response, StarknetResponse::TraceTransaction(_)));
                 }
                 StarknetSpecRequest::BlockTransactionTraces(_) => {
-                    assert!(matches!(sn_response, StarknetResponse::BlockTransactionTraces(_)));
+                    assert!(matches!(
+                        sn_response,
+                        StarknetResponse::BlockTransactionTraces(_)
+                            | StarknetResponse::BlockTransactionTracesInitialReads(_)
+                    ));
                 }
                 StarknetSpecRequest::MessagesStatusByL1Hash(_) => {
                     assert!(matches!(sn_response, StarknetResponse::MessagesStatusByL1Hash(_)));
