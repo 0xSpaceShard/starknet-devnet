@@ -202,7 +202,7 @@ async fn invoke_with_wrong_proof_is_rejected() {
     }
 
     let wrong_proof =
-        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &vec![0u8; 8]);
+        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, vec![0u8; 8]);
     let proof_facts = prove_result.proof_facts;
     let fees = account
         .execute_v3(tx_calls.clone())
@@ -544,7 +544,7 @@ async fn invoke_in_proof_mode_none_accepts_with_or_without_any_proofs() {
         .await
         .unwrap();
     let wrong_proof =
-        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &vec![0u8; 8]);
+        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, vec![0u8; 8]);
     let result_with_wrong_proof = none_account
         .execute_v3(tx_calls)
         .l1_gas(fees_with_wrong_proof.l1_gas_consumed)

@@ -48,6 +48,7 @@ pub struct BackgroundDevnet {
 pub struct ProveTransactionResult {
     pub proof_base64: String,
     pub proof_facts_hex: Vec<String>,
+    #[allow(unused)]
     pub proof: Vec<u64>,
     pub proof_facts: Vec<Felt>,
 }

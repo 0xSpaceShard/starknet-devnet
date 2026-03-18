@@ -85,7 +85,7 @@ pub enum ApiError {
     MessagingError { msg: String },
     #[error("Invalid address: {msg}")]
     InvalidAddress { msg: String },
-    #[error("Invalid proof provided")]
+    #[error("The proof field in the invoke v3 transaction is invalid")]
     InvalidProof,
     #[error("Proving error: {msg}")]
     ProvingError { msg: String },
