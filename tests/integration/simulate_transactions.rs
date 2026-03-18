@@ -679,13 +679,15 @@ async fn simulate_of_multiple_txs_should_return_initial_reads_when_flag_present(
         .await
         .unwrap();
 
-    let transactions = match simulation_result {
+    let (initial_reads, transactions) = match simulation_result {
         SimulateTransactionsResult::TransactionsWithInitialReads {
             simulated_transactions,
-            initial_reads: _,
-        } => simulated_transactions,
+            initial_reads,
+        } => (initial_reads, simulated_transactions),
         _ => unreachable!("With return initial reads flag"),
     };
+
+    assert_eq!(initial_reads.storage, Some([].into()));
 
     match &transactions[1].transaction_trace {
         TransactionTrace::Invoke(InvokeTransactionTrace {

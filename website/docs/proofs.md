@@ -18,7 +18,7 @@ Proof behavior is controlled by `--proof-mode` (or env var `PROOF_MODE`).
 
 ### Mode summary
 
-| Mode   | CLI value          | What `starknet_proveTransaction` does            | How `addInvokeTransaction` treats `proof` and `proof_facts`                                                              |
+| Mode   | CLI value          | What `starknet_proveTransaction` does            | How `starknet_addInvokeTransaction` treats `proof` and `proof_facts`                                                     |
 | ------ | ------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
 | Full   | `full`             | Not implemented yet                              | Rejects with unsupported action                                                                                          |
 | Devnet | `devnet` (default) | Returns a deterministic mock proof + proof facts | If both fields are present, verifies them; if one is missing or verification fails, rejects; if both are absent, accepts |
