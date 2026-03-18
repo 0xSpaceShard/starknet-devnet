@@ -60,15 +60,16 @@ async fn assert_storage_restarted() {
             STRK_ERC20_CONTRACT_ADDRESS,
             storage_key,
             BlockId::Tag(BlockTag::Latest),
+            None,
         )
     };
 
-    let storage_value_before = get_storage().await.unwrap();
+    let storage_value_before = get_storage().await.unwrap().value();
     assert_eq!(storage_value_before, Felt::from(mint_amount));
 
     devnet.restart().await;
 
-    let storage_value_after = get_storage().await.unwrap();
+    let storage_value_after = get_storage().await.unwrap().value();
     assert_eq!(storage_value_after, Felt::ZERO);
 }
 

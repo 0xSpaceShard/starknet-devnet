@@ -194,6 +194,10 @@ pub async fn create_proof_bearing_transaction(
     let invoke_for_prove = prepared_for_prove.get_invoke_request(false, true).await.unwrap();
     let prove_result = devnet.prove_transaction(invoke_for_prove).await;
     let proof = prove_result.proof;
+
+    let bytes: Vec<u8> = proof.iter().flat_map(|&val| val.to_le_bytes()).collect();
+    let proof_string = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes);
+
     let sent_proof_facts = prove_result.proof_facts;
 
     for _ in 0..11 {
@@ -204,7 +208,7 @@ pub async fn create_proof_bearing_transaction(
         .execute_v3(tx_calls.clone())
         .nonce(tx_nonce)
         .tip(0)
-        .proof(proof.clone())
+        .proof(proof_string.clone())
         .proof_facts(sent_proof_facts.clone())
         .estimate_fee()
         .await
@@ -225,7 +229,7 @@ pub async fn create_proof_bearing_transaction(
         .l1_data_gas_price(felt_to_u128(block.l1_data_gas_price().price_in_fri))
         .l2_gas_price(felt_to_u128(block.l2_gas_price().price_in_fri))
         .nonce(tx_nonce)
-        .proof(proof)
+        .proof(proof_string)
         .proof_facts(sent_proof_facts.clone())
         .tip(0)
         .send()

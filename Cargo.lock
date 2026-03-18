@@ -6212,7 +6212,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7049,9 +7049,9 @@ dependencies = [
 
 [[package]]
 name = "starknet-rust-accounts"
-version = "0.19.0-rc.0"
+version = "0.19.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a793de3c0134c9e147df862cd2b017c74b4fd2d364343f69e27bdafb6e2abaac"
+checksum = "b728140807b83cda484480906c90a922cacff8a4b6189ecef5b18a5433e5b006"
 dependencies = [
  "async-trait",
  "auto_impl",
@@ -7064,9 +7064,9 @@ dependencies = [
 
 [[package]]
 name = "starknet-rust-contract"
-version = "0.19.0-rc.0"
+version = "0.19.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ad31aecc56de51e003aad882f3aa2501a17453b279463249e768bc86d06bfde"
+checksum = "5260fc26659d9c15b7a91c2b4c1f86327c1395d19a3c8b8ebf4999519a95a258"
 dependencies = [
  "serde_json",
  "starknet-rust-accounts",
@@ -7076,9 +7076,9 @@ dependencies = [
 
 [[package]]
 name = "starknet-rust-core"
-version = "0.19.0-rc.0"
+version = "0.19.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44ba61a356615d39757ba4f3b6a9a5241749217fdd9df04bd1de0360dbffa265"
+checksum = "d2c5016899f4a8c4226a9809b7d07c67c4f228216280bc61c513cee2cd2d9745"
 dependencies = [
  "base64 0.22.1",
  "crypto-bigint 0.6.1",
@@ -7100,9 +7100,9 @@ dependencies = [
 
 [[package]]
 name = "starknet-rust-core-derive"
-version = "0.19.0-rc.0"
+version = "0.19.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "374b7a7fa99023953175a0f61e87b400c3b99539029f91e7528eeadd9e232d96"
+checksum = "6f28dbf679cc60aefd07eaad2930fe0af2f4c7e6ef482357dcb9e1b477f4274d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7111,9 +7111,9 @@ dependencies = [
 
 [[package]]
 name = "starknet-rust-crypto"
-version = "0.19.0-rc.0"
+version = "0.19.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52999f936aeadeb400f5730b74654210ea032fb2136bcc7c2cf47d42bf157572"
+checksum = "2c277eb69eaaedb43be37c8c248c420e6c75bb53bb038c887209df0898dbfd96"
 dependencies = [
  "blake2",
  "crypto-bigint 0.6.1",
@@ -7132,18 +7132,18 @@ dependencies = [
 
 [[package]]
 name = "starknet-rust-curve"
-version = "0.19.0-rc.0"
+version = "0.19.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d184675564c3e04a1bbf9898f163b6378866d89ba33ab06227738a4c8ead6d17"
+checksum = "0ca543e90598c4958e703e7db98aeab400ab4189b662425c78fd9539db923862"
 dependencies = [
  "starknet-types-core",
 ]
 
 [[package]]
 name = "starknet-rust-providers"
-version = "0.19.0-rc.0"
+version = "0.19.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e8edfa0c6aed290b4c652623e34261732cb06ad38c372a3ad9ff178372fa2e4"
+checksum = "c3e3d22ac5e6272bc20c80abaa040ee268ad4a92cf451eda8c5dabad9e115a3e"
 dependencies = [
  "async-trait",
  "auto_impl",
@@ -7162,9 +7162,9 @@ dependencies = [
 
 [[package]]
 name = "starknet-rust-signers"
-version = "0.19.0-rc.0"
+version = "0.19.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5f93a28e6a28c517d49740e28634acb754e90d8f483f19b92e7698d68c4ed52"
+checksum = "bfb8bf0741d1da9cfa7739de72672c318f663798a445725587423b6a0d17831f"
 dependencies = [
  "async-trait",
  "auto_impl",

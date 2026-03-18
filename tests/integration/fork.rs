@@ -413,7 +413,7 @@ async fn test_get_storage_if_contract_not_deployed() {
     let dummy_key = Felt::ONE;
     match fork_devnet
         .json_rpc_client
-        .get_storage_at(dummy_address, dummy_key, BlockId::Tag(BlockTag::Latest))
+        .get_storage_at(dummy_address, dummy_key, BlockId::Tag(BlockTag::Latest), None)
         .await
     {
         Err(ProviderError::StarknetError(StarknetError::ContractNotFound)) => (),
@@ -431,17 +431,19 @@ async fn test_get_storage_if_contract_deployed_on_origin() {
     let dummy_key = Felt::ONE;
     let dummy_value = fork_devnet
         .json_rpc_client
-        .get_storage_at(account_address, dummy_key, BlockId::Tag(BlockTag::Latest))
+        .get_storage_at(account_address, dummy_key, BlockId::Tag(BlockTag::Latest), None)
         .await
-        .unwrap();
+        .unwrap()
+        .value();
     assert_eq!(dummy_value, Felt::ZERO);
 
     let real_key = get_storage_var_address("Account_public_key", &[]).unwrap();
     let real_value = fork_devnet
         .json_rpc_client
-        .get_storage_at(account_address, real_key, BlockId::Tag(BlockTag::Latest))
+        .get_storage_at(account_address, real_key, BlockId::Tag(BlockTag::Latest), None)
         .await
-        .unwrap();
+        .unwrap()
+        .value();
     assert_eq!(real_value, signer.get_public_key().await.unwrap().scalar());
 }
 

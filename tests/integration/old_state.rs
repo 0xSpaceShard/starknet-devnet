@@ -70,14 +70,22 @@ async fn get_storage_from_an_old_state() {
             ETH_ERC20_CONTRACT_ADDRESS,
             storage_address,
             BlockId::Tag(starknet_rs_core::types::BlockTag::Latest),
+            None,
         )
         .await
-        .unwrap();
+        .unwrap()
+        .value();
     let previous_balance = devnet
         .json_rpc_client
-        .get_storage_at(ETH_ERC20_CONTRACT_ADDRESS, storage_address, BlockId::Hash(block_hash))
+        .get_storage_at(
+            ETH_ERC20_CONTRACT_ADDRESS,
+            storage_address,
+            BlockId::Hash(block_hash),
+            None,
+        )
         .await
-        .unwrap();
+        .unwrap()
+        .value();
 
     assert!(latest_balance + amount <= previous_balance); // due to fee
 }

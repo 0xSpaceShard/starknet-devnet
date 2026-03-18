@@ -107,7 +107,7 @@ async fn invoke_with_valid_proof_is_accepted() {
 
     let invoke_for_prove = prepared_for_prove.get_invoke_request(false, true).await.unwrap();
     let prove_result = devnet.prove_transaction(invoke_for_prove).await;
-    let proof = prove_result.proof;
+    let proof = prove_result.proof_base64;
     let proof_facts = prove_result.proof_facts;
 
     for _ in 0..11 {
@@ -201,13 +201,14 @@ async fn invoke_with_wrong_proof_is_rejected() {
         devnet.create_block().await.unwrap();
     }
 
-    let wrong_proof = vec![0u64; 8];
+    let wrong_proof =
+        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &vec![0u8; 8]);
     let proof_facts = prove_result.proof_facts;
     let fees = account
         .execute_v3(tx_calls.clone())
         .nonce(tx_nonce)
         .tip(0)
-        .proof(prove_result.proof)
+        .proof(prove_result.proof_base64)
         .proof_facts(proof_facts.clone())
         .estimate_fee()
         .await
@@ -314,7 +315,7 @@ async fn invoke_with_proof_only_and_no_proof_facts_is_rejected() {
         devnet.create_block().await.unwrap();
     }
 
-    let proof_only = prove_result.proof;
+    let proof_only = prove_result.proof_base64;
     let fees = account
         .execute_v3(tx_calls.clone())
         .nonce(tx_nonce)
@@ -517,7 +518,7 @@ async fn invoke_in_proof_mode_none_accepts_with_or_without_any_proofs() {
         .l1_data_gas_price(tx_l1_data_gas_price)
         .l2_gas_price(tx_l2_gas_price)
         .nonce(nonce_with_valid_proof)
-        .proof(prove_result.proof.clone())
+        .proof(prove_result.proof_base64.clone())
         .proof_facts(prove_result.proof_facts.clone())
         .tip(0)
         .send()
@@ -542,6 +543,8 @@ async fn invoke_in_proof_mode_none_accepts_with_or_without_any_proofs() {
         .estimate_fee()
         .await
         .unwrap();
+    let wrong_proof =
+        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &vec![0u8; 8]);
     let result_with_wrong_proof = none_account
         .execute_v3(tx_calls)
         .l1_gas(fees_with_wrong_proof.l1_gas_consumed)
@@ -551,7 +554,7 @@ async fn invoke_in_proof_mode_none_accepts_with_or_without_any_proofs() {
         .l1_data_gas_price(tx_l1_data_gas_price)
         .l2_gas_price(tx_l2_gas_price)
         .nonce(nonce_with_wrong_proof)
-        .proof(vec![0u64; 8])
+        .proof(wrong_proof)
         .proof_facts(vec![Felt::ONE; 8])
         .tip(0)
         .send()

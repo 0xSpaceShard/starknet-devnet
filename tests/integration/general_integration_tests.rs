@@ -134,9 +134,11 @@ async fn predeployed_erc20_tokens_have_expected_storage() {
                 token_address,
                 get_storage_var_address(var_name, &[]).unwrap(),
                 BlockId::Tag(BlockTag::Latest),
+                None,
             )
             .await
-            .unwrap();
+            .unwrap()
+            .value();
 
         assert_eq!(parse_cairo_short_string(&actual_value).unwrap().as_str(), expected_value);
     }
