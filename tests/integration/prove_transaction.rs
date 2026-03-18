@@ -233,9 +233,7 @@ async fn invoke_with_wrong_proof_is_rejected() {
     let error_message = error.to_string();
 
     assert!(
-        error_message.contains("Invalid proof")
-            || error_message.contains("Account validation failed")
-            || error_message.contains("Transaction execution error"),
+        error_message.contains("The proof field in the invoke v3 transaction is invalid"),
         "Expected proof rejection, got: {}",
         error_message
     );
@@ -344,10 +342,7 @@ async fn invoke_with_proof_only_and_no_proof_facts_is_rejected() {
     let error_message = error.to_string();
 
     assert!(
-        error_message.contains("Invalid proof")
-            || error_message.contains("Account validation failed")
-            || error_message.contains("proof_facts")
-            || error_message.contains("Transaction execution error"),
+        error_message.contains("The proof field in the invoke v3 transaction is invalid"),
         "Expected proof rejection, got: {}",
         error_message
     );
