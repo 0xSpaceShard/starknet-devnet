@@ -3,8 +3,8 @@
 
 It validates two directions:
 1) Generate random strings that match the regex pattern, then decode to bytes and
-   verify they can be interpreted as big-endian packed u32 values.
-2) Generate random u32 arrays, encode to base64, and verify the encoded string
+   verify they are valid base64-encoded u8 arrays.
+2) Generate random u8 arrays, encode to base64, and verify the encoded string
    matches the regex pattern.
 
 Usage examples:
@@ -18,7 +18,6 @@ import argparse
 import base64
 import random
 import re
-import struct
 import sys
 from dataclasses import dataclass
 
@@ -29,7 +28,7 @@ except ImportError as exc:  # pragma: no cover - runtime dependency check
         "Missing dependency 'exrex'. Install it with: pip install exrex"
     ) from exc
 
-PATTERN_STR = r"^(?:[A-Za-z0-9+/]{16})*(?:[A-Za-z0-9+/]{5}[AQgw]==|[A-Za-z0-9+/]{10}[AEIMQUYcgkosw048]=)?$"
+PATTERN_STR = r"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/][AQgw]==|[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=)?$"
 PATTERN = re.compile(PATTERN_STR)
 
 
@@ -48,19 +47,14 @@ def random_string_from_pattern(max_16_char_blocks: int) -> str:
     return candidate
 
 
-def decode_as_u32_array(b64_text: str) -> tuple[bool, str]:
+def decode_as_u8_array(b64_text: str) -> tuple[bool, str]:
     """Return (ok, reason_if_not_ok)."""
     try:
         raw = base64.b64decode(b64_text, validate=True)
     except Exception as exc:  # noqa: BLE001
         return False, f"base64 decode failed: {exc}"
 
-    if len(raw) % 4 != 0:
-        return False, f"decoded length is {len(raw)} bytes (not divisible by 4)"
-
-    # Ensure unpack is possible; this should always succeed if length % 4 == 0.
-    if raw:
-        _ = struct.unpack(f">{len(raw) // 4}I", raw)
+    # Any decoded bytes are a valid u8 array, no length constraint needed.
 
     # Optional canonical check: if re-encoding differs, input is non-canonical.
     reencoded = base64.b64encode(raw).decode("ascii")
@@ -70,15 +64,15 @@ def decode_as_u32_array(b64_text: str) -> tuple[bool, str]:
     return True, ""
 
 
-def random_u32_array(rng: random.Random, max_u32_len: int) -> list[int]:
-    length = rng.randint(0, max_u32_len)
-    return [rng.getrandbits(32) for _ in range(length)]
+def random_u8_array(rng: random.Random, max_u8_len: int) -> list[int]:
+    length = rng.randint(0, max_u8_len)
+    return [rng.getrandbits(8) for _ in range(length)]
 
 
-def encode_u32_array(values: list[int]) -> str:
+def encode_u8_array(values: list[int]) -> str:
     if not values:
         return ""
-    raw = struct.pack(f">{len(values)}I", *values)
+    raw = bytes(values)
     return base64.b64encode(raw).decode("ascii")
 
 
@@ -90,22 +84,22 @@ def test_pattern_to_decode(
     failures: list[Failure] = []
     for i in range(iterations):
         s = random_string_from_pattern(max_16_char_blocks=max_16_char_blocks)
-        ok, reason = decode_as_u32_array(s)
+        ok, reason = decode_as_u8_array(s)
         if not ok and len(failures) < max_fail_examples:
             failures.append(Failure(index=i, value=s, reason=reason))
     return failures
 
 
-def test_u32_to_pattern(
+def test_u8_to_pattern(
     rng: random.Random,
     iterations: int,
-    max_u32_len: int,
+    max_u8_len: int,
     max_fail_examples: int,
 ) -> list[Failure]:
     failures: list[Failure] = []
     for i in range(iterations):
-        arr = random_u32_array(rng, max_u32_len=max_u32_len)
-        b64 = encode_u32_array(arr)
+        arr = random_u8_array(rng, max_u8_len=max_u8_len)
+        b64 = encode_u8_array(arr)
         if not PATTERN.fullmatch(b64) and len(failures) < max_fail_examples:
             failures.append(Failure(index=i, value=b64, reason="encoded value does not match regex"))
     return failures
@@ -131,10 +125,10 @@ def main() -> int:
         help="max number of 16-char regex blocks for exrex pattern generation",
     )
     parser.add_argument(
-        "--max-u32-len",
+        "--max-u8-len",
         type=int,
-        default=128,
-        help="max u32 array length when generating random arrays",
+        default=512,
+        help="max u8 array length when generating random arrays",
     )
     parser.add_argument("--seed", type=int, default=None, help="random seed for reproducibility")
     parser.add_argument(
@@ -159,17 +153,17 @@ def main() -> int:
         max_fail_examples=args.max_fail_examples,
     )
 
-    failures_u32_to_pattern = test_u32_to_pattern(
+    failures_u8_to_pattern = test_u8_to_pattern(
         rng=rng,
         iterations=args.iterations,
-        max_u32_len=args.max_u32_len,
+        max_u8_len=args.max_u8_len,
         max_fail_examples=args.max_fail_examples,
     )
 
-    print_failures("Direction 1: pattern -> decode -> u32[]", failures_pattern_to_decode)
-    print_failures("Direction 2: random u32[] -> base64 -> pattern", failures_u32_to_pattern)
+    print_failures("Direction 1: pattern -> decode -> u8[]", failures_pattern_to_decode)
+    print_failures("Direction 2: random u8[] -> base64 -> pattern", failures_u8_to_pattern)
 
-    has_failures = bool(failures_pattern_to_decode or failures_u32_to_pattern)
+    has_failures = bool(failures_pattern_to_decode or failures_u8_to_pattern)
     if has_failures:
         print("\nResult: FAIL (counterexamples found)")
         return 1

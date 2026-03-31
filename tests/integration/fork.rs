@@ -372,7 +372,7 @@ async fn test_deploying_account_with_class_present_on_origin() {
 
     let salt = Felt::from_hex_unchecked("0x123");
     let deployment =
-        factory.deploy_v3(salt).l1_gas(1e6 as u64).l1_data_gas(1e6 as u64).l2_gas(1e6 as u64);
+        factory.deploy_v3(salt).l1_gas(1e6 as u64).l1_data_gas(1e6 as u64).l2_gas(2e6 as u64);
     let deployment_address = deployment.address();
     fork_devnet.mint(deployment_address, 1e18 as u128).await;
     deployment.send().await.unwrap();

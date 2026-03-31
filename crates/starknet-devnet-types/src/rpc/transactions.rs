@@ -1207,7 +1207,7 @@ impl FunctionInvocation {
             })?
         };
 
-        let gas_vector = blockifier::fee::fee_utils::get_vm_resources_cost(
+        let gas_vector = blockifier::fee::fee_utils::get_extended_vm_resources_cost(
             versioned_constants,
             &call_info.resources,
             0,

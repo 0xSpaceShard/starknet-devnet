@@ -499,7 +499,7 @@ impl Starknet {
                     .map(|rt| rt.block_on(commitments_future))
                     .unwrap_or_default()
             };
-            new_block.set_commitments(commitments);
+            new_block.set_commitments(commitments.0);
         }
 
         new_block.set_counts(

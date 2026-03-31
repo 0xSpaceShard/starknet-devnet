@@ -10,7 +10,7 @@ license-file.workspace = true
 
 [features]
 testing = []
-cairo_native = []
+cairo_native = ["blockifier/cairo_native", "dep:apollo_compilation_utils"]
 
 [lints]
 workspace = true
@@ -53,6 +53,9 @@ cairo-lang-sierra-generator = { workspace = true }
 cairo-lang-sierra-to-casm = { workspace = true }
 cairo-lang-syntax = { workspace = true }
 cairo-lang-utils = { workspace = true }
+
+apollo_compilation_utils = { workspace = true, optional = true }
+
 
 [dev-dependencies]
 

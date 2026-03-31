@@ -1,7 +1,7 @@
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt};
+use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, StarknetError};
 use starknet_rs_core::utils::get_selector_from_name;
-use starknet_rs_providers::Provider;
+use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{self, STRK_ERC20_CONTRACT_ADDRESS};
@@ -230,13 +230,12 @@ async fn invoke_with_wrong_proof_is_rejected() {
         .await
         .unwrap_err();
 
-    let error_message = error.to_string();
-
-    assert!(
-        error_message.contains("The proof field in the invoke v3 transaction is invalid"),
-        "Expected proof rejection, got: {}",
-        error_message
-    );
+    match error {
+        starknet_rs_accounts::AccountError::Provider(ProviderError::StarknetError(
+            StarknetError::InvalidProof,
+        )) => (),
+        _ => panic!("Invalid error: {error:?}"),
+    }
 }
 
 #[tokio::test]
@@ -339,13 +338,12 @@ async fn invoke_with_proof_only_and_no_proof_facts_is_rejected() {
         .await
         .unwrap_err();
 
-    let error_message = error.to_string();
-
-    assert!(
-        error_message.contains("The proof field in the invoke v3 transaction is invalid"),
-        "Expected proof rejection, got: {}",
-        error_message
-    );
+    match error {
+        starknet_rs_accounts::AccountError::Provider(ProviderError::StarknetError(
+            StarknetError::InvalidProof,
+        )) => (),
+        _ => panic!("Invalid error: {error:?}"),
+    }
 }
 
 #[tokio::test]

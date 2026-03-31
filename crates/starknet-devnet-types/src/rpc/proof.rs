@@ -1,22 +1,22 @@
 use base64::Engine;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-/// Proof represented as a vector of u32 values.
+/// Proof represented as a vector of u8 values.
 /// When serialized, it's encoded as a base64 string for compact representation.
-/// When deserialized, it accepts both base64 strings and arrays of u32 values.
+/// When deserialized, it accepts both base64 strings and arrays of u8 values.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Proof(pub Vec<u32>);
+pub struct Proof(pub Vec<u8>);
 
 impl Proof {
-    pub fn new(data: Vec<u32>) -> Self {
+    pub fn new(data: Vec<u8>) -> Self {
         Self(data)
     }
 
-    pub fn inner(&self) -> &Vec<u32> {
+    pub fn inner(&self) -> &Vec<u8> {
         &self.0
     }
 
-    pub fn into_inner(self) -> Vec<u32> {
+    pub fn into_inner(self) -> Vec<u8> {
         self.0
     }
 
@@ -29,20 +29,20 @@ impl Proof {
     }
 }
 
-impl From<Vec<u32>> for Proof {
-    fn from(data: Vec<u32>) -> Self {
+impl From<Vec<u8>> for Proof {
+    fn from(data: Vec<u8>) -> Self {
         Self(data)
     }
 }
 
-impl From<Proof> for Vec<u32> {
+impl From<Proof> for Vec<u8> {
     fn from(proof: Proof) -> Self {
         proof.0
     }
 }
 
-impl AsRef<[u32]> for Proof {
-    fn as_ref(&self) -> &[u32] {
+impl AsRef<[u8]> for Proof {
+    fn as_ref(&self) -> &[u8] {
         &self.0
     }
 }
@@ -52,9 +52,7 @@ impl Serialize for Proof {
     where
         S: Serializer,
     {
-        // Convert Vec<u32> to bytes (little-endian)
-        let bytes: Vec<u8> = self.0.iter().flat_map(|&val| val.to_le_bytes()).collect();
-        let base64_string = base64::engine::general_purpose::STANDARD.encode(&bytes);
+        let base64_string = base64::engine::general_purpose::STANDARD.encode(&self.0);
         serializer.serialize_str(&base64_string)
     }
 }
@@ -70,30 +68,16 @@ impl<'de> Deserialize<'de> for Proof {
         #[serde(untagged)]
         enum ProofFormat {
             Base64(String),
-            Array(Vec<u32>),
+            Array(Vec<u8>),
         }
 
         match ProofFormat::deserialize(deserializer)? {
             ProofFormat::Base64(s) => {
-                // Decode base64 string to bytes
                 let bytes = base64::engine::general_purpose::STANDARD
                     .decode(&s)
                     .map_err(|e| D::Error::custom(format!("Invalid base64: {}", e)))?;
 
-                // Convert bytes back to Vec<u32> (little-endian)
-                if bytes.len() % 4 != 0 {
-                    return Err(D::Error::custom(format!(
-                        "Invalid proof length: {} bytes (must be multiple of 4)",
-                        bytes.len()
-                    )));
-                }
-
-                let u32_vec = bytes
-                    .chunks_exact(4)
-                    .map(|chunk| u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
-                    .collect();
-
-                Ok(Proof(u32_vec))
+                Ok(Proof(bytes))
             }
             ProofFormat::Array(vec) => Ok(Proof(vec)),
         }
@@ -108,7 +92,7 @@ mod tests {
 
     #[test]
     fn test_serialize_proof_as_base64() {
-        let proof = Proof(vec![0x12345678, 0xABCDEF00, 0x11223344, 0x55667788]);
+        let proof = Proof(vec![0x12, 0xAB, 0x44, 0x88]);
         let serialized = serde_json::to_string(&proof).unwrap();
 
         // Should be a base64 string, not an array
@@ -119,7 +103,7 @@ mod tests {
 
     #[test]
     fn test_deserialize_proof_from_base64() {
-        let original = Proof(vec![0x12345678, 0xABCDEF00, 0x11223344, 0x55667788]);
+        let original = Proof(vec![0x12, 0xAB, 0x44, 0x88]);
         let serialized = serde_json::to_string(&original).unwrap();
         let deserialized: Proof = serde_json::from_str(&serialized).unwrap();
 
@@ -128,10 +112,10 @@ mod tests {
 
     #[test]
     fn test_deserialize_proof_from_array() {
-        let json = "[305419896,2882400000,287454020,1432778632]";
+        let json = "[18,171,68,136]";
         let proof: Proof = serde_json::from_str(json).unwrap();
 
-        assert_eq!(proof.0, vec![0x12345678, 0xABCDEF00, 0x11223344, 0x55667788]);
+        assert_eq!(proof.0, vec![0x12, 0xAB, 0x44, 0x88]);
     }
 
     #[test]
@@ -162,13 +146,13 @@ mod tests {
     }
 
     #[test]
-    fn test_invalid_length() {
-        // Create a base64 string with length not divisible by 4
-        let bytes = vec![1, 2, 3, 4, 5]; // 5 bytes, not divisible by 4
+    fn test_any_length_base64_is_valid() {
+        // Any byte length is valid for Vec<u8>
+        let bytes = vec![1, 2, 3, 4, 5];
         let base64_string = base64::engine::general_purpose::STANDARD.encode(&bytes);
         let json = format!("\"{}\"", base64_string);
-        let result = serde_json::from_str::<Proof>(&json);
+        let result: Proof = serde_json::from_str(&json).unwrap();
 
-        assert!(result.is_err());
+        assert_eq!(result.0, bytes);
     }
 }
