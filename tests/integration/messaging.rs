@@ -326,7 +326,7 @@ async fn mock_message_to_l2_creates_a_tx_with_desired_effect() {
     // assert tx and receipt retrievable and correct
     let expected_calldata =
         vec![Felt::from_hex_unchecked(MESSAGING_L1_ADDRESS), user, increment_amount];
-    match devnet.json_rpc_client.get_transaction_by_hash(tx_hash).await {
+    match devnet.json_rpc_client.get_transaction_by_hash(tx_hash, None).await {
         Ok(starknet_rs_core::types::Transaction::L1Handler(tx)) => {
             assert_eq!(tx.transaction_hash, tx_hash);
             assert_eq!(tx.calldata, expected_calldata);

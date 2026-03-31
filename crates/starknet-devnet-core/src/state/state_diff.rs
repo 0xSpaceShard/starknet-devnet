@@ -413,7 +413,8 @@ mod tests {
 
         starknet.add_invoke_transaction(invoke_txn).unwrap();
 
-        let state_update = starknet.block_state_update(&BlockId::Tag(BlockTag::Latest)).unwrap();
+        let state_update =
+            starknet.block_state_update(&BlockId::Tag(BlockTag::Latest), None).unwrap();
 
         assert_eq!(
             state_update.get_state_diff().replaced_classes,

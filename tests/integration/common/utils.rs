@@ -12,12 +12,13 @@ use serde_json::json;
 use starknet_api::contract_class::compiled_class_hash::{HashVersion, HashableCompiledClass};
 use starknet_core::CasmContractClass;
 use starknet_rs_accounts::{
-    Account, AccountFactory, ArgentAccountFactory, OpenZeppelinAccountFactory, SingleOwnerAccount,
+    Account, AccountFactory, ArgentAccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory,
+    SingleOwnerAccount,
 };
 use starknet_rs_contract::{ContractFactory, UdcSelector};
 use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{
-    BlockId, BlockTag, ContractClass, ContractExecutionError, DeployAccountTransactionResult,
+    BlockId, BlockTag, Call, ContractClass, ContractExecutionError, DeployAccountTransactionResult,
     ExecutionResult, FeeEstimate, Felt, FlattenedSierraClass, FunctionCall,
     InnerContractExecutionError, ResourceBounds, ResourceBoundsMapping, TransactionReceipt,
 };
@@ -34,7 +35,8 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 use super::background_devnet::BackgroundDevnet;
 use super::constants::{
-    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH, UDC_CONTRACT_ADDRESS,
+    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_CONTRACT_PATH, CHAIN_ID,
+    ETH_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS,
 };
 use super::safe_child::SafeChild;
 use crate::common::errors::RpcError;
@@ -138,6 +140,116 @@ pub async fn assert_tx_succeeded_pre_confirmed<T: Provider>(
         other => panic!("Should have been pre-confirmed; got: {other:?}"),
     }
     Ok(())
+}
+
+pub struct ProofBearingTransactionDetails {
+    pub transaction_hash: Felt,
+    pub containing_block_hash: Felt,
+    pub transaction_index: u64,
+    pub submitted_proof_facts: Vec<Felt>,
+}
+
+pub async fn create_proof_bearing_transaction(
+    devnet: &BackgroundDevnet,
+) -> ProofBearingTransactionDetails {
+    let (signer, account_address) = devnet.get_first_predeployed_account().await;
+    let mut account = SingleOwnerAccount::new(
+        &devnet.json_rpc_client,
+        signer,
+        account_address,
+        CHAIN_ID,
+        ExecutionEncoding::New,
+    );
+    account.set_block_id(BlockId::Tag(BlockTag::Latest));
+
+    let tx_calls = vec![Call {
+        to: ETH_ERC20_CONTRACT_ADDRESS,
+        selector: get_selector_from_name("transfer").unwrap(),
+        calldata: vec![Felt::ONE, Felt::from(1_000_000_000u64), Felt::ZERO],
+    }];
+
+    let tx_nonce = devnet
+        .json_rpc_client
+        .get_nonce(BlockId::Tag(BlockTag::Latest), account_address)
+        .await
+        .unwrap();
+
+    let tx_l1_gas = 5_000_000;
+    let tx_l1_data_gas = 1_000_000;
+    let tx_l2_gas = 2_500_000_000;
+
+    let prepared_for_prove = account
+        .execute_v3(tx_calls.clone())
+        .l1_gas(tx_l1_gas)
+        .l1_data_gas(tx_l1_data_gas)
+        .l2_gas(tx_l2_gas)
+        .l1_gas_price(0)
+        .l1_data_gas_price(0)
+        .l2_gas_price(0)
+        .nonce(tx_nonce)
+        .tip(0)
+        .prepared()
+        .unwrap();
+
+    let invoke_for_prove = prepared_for_prove.get_invoke_request(false, true).await.unwrap();
+    let prove_result = devnet.prove_transaction(invoke_for_prove).await;
+    let proof = prove_result.proof_base64;
+
+    let sent_proof_facts = prove_result.proof_facts;
+
+    for _ in 0..11 {
+        devnet.create_block().await.unwrap();
+    }
+
+    let fees = account
+        .execute_v3(tx_calls.clone())
+        .nonce(tx_nonce)
+        .tip(0)
+        .proof(proof.clone())
+        .proof_facts(sent_proof_facts.clone())
+        .estimate_fee()
+        .await
+        .unwrap();
+
+    let block = devnet
+        .json_rpc_client
+        .get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest))
+        .await
+        .unwrap();
+
+    let send_result = account
+        .execute_v3(tx_calls)
+        .l1_gas(fees.l1_gas_consumed)
+        .l1_data_gas(fees.l1_data_gas_consumed)
+        .l2_gas(fees.l2_gas_consumed)
+        .l1_gas_price(felt_to_u128(block.l1_gas_price().price_in_fri))
+        .l1_data_gas_price(felt_to_u128(block.l1_data_gas_price().price_in_fri))
+        .l2_gas_price(felt_to_u128(block.l2_gas_price().price_in_fri))
+        .nonce(tx_nonce)
+        .proof(proof)
+        .proof_facts(sent_proof_facts.clone())
+        .tip(0)
+        .send()
+        .await
+        .unwrap();
+
+    assert_tx_succeeded_accepted(&send_result.transaction_hash, &devnet.json_rpc_client)
+        .await
+        .unwrap();
+
+    let latest_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+    let tx_index = latest_block
+        .transactions
+        .iter()
+        .position(|tx_hash| *tx_hash == send_result.transaction_hash)
+        .expect("sent transaction should exist in latest block") as u64;
+
+    ProofBearingTransactionDetails {
+        transaction_hash: send_result.transaction_hash,
+        containing_block_hash: latest_block.block_hash,
+        transaction_index: tx_index,
+        submitted_proof_facts: sent_proof_facts,
+    }
 }
 
 pub async fn get_contract_balance(

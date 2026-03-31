@@ -11,14 +11,15 @@ use crate::api::account_helpers::{BalanceQuery, PredeployedAccountsQuery};
 use crate::api::error::StrictRpcResult;
 use crate::api::models::{
     AbortingBlocks, AcceptOnL1Request, AccountAddressInput, BlockAndClassHashInput,
-    BlockAndContractAddressInput, BlockAndIndexInput, BlockIdInput,
-    BroadcastedDeclareTransactionInput, BroadcastedDeployAccountTransactionInput,
-    BroadcastedInvokeTransactionInput, CallInput, ClassHashInput, DumpPath, EstimateFeeInput,
-    EventsInput, EventsSubscriptionInput, FlushParameters, GetStorageInput, GetStorageProofInput,
-    IncreaseTime, JsonRpcResponse, L1TransactionHashInput, LoadPath, MintTokensRequest,
-    PostmanLoadL1MessagingContract, RestartParameters, SetTime, SimulateTransactionsInput,
-    SubscriptionBlockIdInput, SubscriptionIdInput, TransactionHashInput,
-    TransactionReceiptSubscriptionInput, TransactionSubscriptionInput,
+    BlockAndContractAddressInput, BlockAndIndexInput, BlockIdAndFlagsInput, BlockIdInput,
+    BlockTransactionTracesInput, BroadcastedDeclareTransactionInput,
+    BroadcastedDeployAccountTransactionInput, BroadcastedInvokeTransactionInput, CallInput,
+    ClassHashInput, DumpPath, EstimateFeeInput, EventsInput, EventsSubscriptionInput,
+    FlushParameters, GetStorageInput, GetStorageProofInput, IncreaseTime, JsonRpcResponse,
+    L1TransactionHashInput, LoadPath, MintTokensRequest, PostmanLoadL1MessagingContract,
+    ProveTransactionInput, RestartParameters, SetTime, SimulateTransactionsInput, StateUpdateInput,
+    SubscriptionBlockIdInput, SubscriptionIdInput, TransactionHashAndFlagsInput,
+    TransactionHashInput, TransactionReceiptSubscriptionInput, TransactionSubscriptionInput,
 };
 use crate::api::serde_helpers::{empty_params, optional_params};
 use crate::rpc_core::error::RpcError;
@@ -50,6 +51,7 @@ impl ToRpcResponseResult for StrictRpcResult {
             Ok(JsonRpcResponse::Empty) => to_rpc_result(json!({})),
             Ok(JsonRpcResponse::Devnet(data)) => to_rpc_result(data),
             Ok(JsonRpcResponse::Starknet(data)) => to_rpc_result(data),
+            Ok(JsonRpcResponse::StarknetExt(data)) => to_rpc_result(data),
             Err(err) => err.api_error_to_rpc_error().into(),
         }
     }
@@ -64,17 +66,17 @@ pub enum StarknetSpecRequest {
     #[serde(rename = "starknet_getBlockWithTxHashes")]
     BlockWithTransactionHashes(BlockIdInput),
     #[serde(rename = "starknet_getBlockWithTxs")]
-    BlockWithFullTransactions(BlockIdInput),
+    BlockWithFullTransactions(BlockIdAndFlagsInput),
     #[serde(rename = "starknet_getBlockWithReceipts")]
-    BlockWithReceipts(BlockIdInput),
+    BlockWithReceipts(BlockIdAndFlagsInput),
     #[serde(rename = "starknet_getStateUpdate")]
-    StateUpdate(BlockIdInput),
+    StateUpdate(StateUpdateInput),
     #[serde(rename = "starknet_getStorageAt")]
     StorageAt(GetStorageInput),
     #[serde(rename = "starknet_getStorageProof")]
     StorageProof(GetStorageProofInput),
     #[serde(rename = "starknet_getTransactionByHash")]
-    TransactionByHash(TransactionHashInput),
+    TransactionByHash(TransactionHashAndFlagsInput),
     #[serde(rename = "starknet_getTransactionByBlockIdAndIndex")]
     TransactionByBlockAndIndex(BlockAndIndexInput),
     #[serde(rename = "starknet_getTransactionReceipt")]
@@ -122,7 +124,15 @@ pub enum StarknetSpecRequest {
     #[serde(rename = "starknet_traceTransaction")]
     TraceTransaction(TransactionHashInput),
     #[serde(rename = "starknet_traceBlockTransactions")]
-    BlockTransactionTraces(BlockIdInput),
+    BlockTransactionTraces(BlockTransactionTracesInput),
+}
+
+#[derive(Deserialize, AllVariantsSerdeRenames, VariantName)]
+#[cfg_attr(test, derive(Debug))]
+#[serde(tag = "method", content = "params")]
+pub enum StarknetSpecExtRequest {
+    #[serde(rename = "starknet_proveTransaction")]
+    ProveTransaction(ProveTransactionInput),
 }
 
 #[derive(Deserialize, AllVariantsSerdeRenames, VariantName)]
@@ -177,7 +187,9 @@ pub enum DevnetSpecRequest {
 pub enum JsonRpcRequest {
     StarknetSpecRequest(StarknetSpecRequest),
     DevnetSpecRequest(DevnetSpecRequest),
-    // If adding a new variant, expand `fn deserialize` and `fn all_variants_serde_renames`
+    StarknetSpecExtRequest(StarknetSpecExtRequest), /* If adding a new variant, expand `fn
+                                                     * deserialize` and `fn
+                                                     * all_variants_serde_renames` */
 }
 
 impl<'de> Deserialize<'de> for JsonRpcRequest {
@@ -190,9 +202,20 @@ impl<'de> Deserialize<'de> for JsonRpcRequest {
         let method = raw_req.get("method").and_then(|m| m.as_str()).unwrap_or("<missing>");
 
         match method {
-            method if method.starts_with("starknet_") => Ok(Self::StarknetSpecRequest(
-                serde_json::from_value(raw_req).map_err(serde::de::Error::custom)?,
-            )),
+            method if method.starts_with("starknet_") => {
+                // Check if this method belongs to StarknetSpecExtRequest
+                let ext_methods = StarknetSpecExtRequest::all_variants_serde_renames();
+                if ext_methods.contains(&method.to_string()) {
+                    Ok(Self::StarknetSpecExtRequest(
+                        serde_json::from_value(raw_req).map_err(serde::de::Error::custom)?,
+                    ))
+                } else {
+                    // Otherwise, it's a StarknetSpecRequest
+                    Ok(Self::StarknetSpecRequest(
+                        serde_json::from_value(raw_req).map_err(serde::de::Error::custom)?,
+                    ))
+                }
+            }
             method if method.starts_with("devnet_") => Ok(Self::DevnetSpecRequest(
                 serde_json::from_value(raw_req).map_err(serde::de::Error::custom)?,
             )),
@@ -317,6 +340,27 @@ impl StarknetSpecRequest {
     }
 }
 
+impl StarknetSpecExtRequest {
+    pub fn requires_notifying(&self) -> bool {
+        #![warn(clippy::wildcard_enum_match_arm)]
+        match self {
+            Self::ProveTransaction(_) => false,
+        }
+    }
+    pub fn is_forwardable_to_origin(&self) -> bool {
+        #![warn(clippy::wildcard_enum_match_arm)]
+        match self {
+            Self::ProveTransaction(_) => false,
+        }
+    }
+    pub fn is_dumpable(&self) -> bool {
+        #![warn(clippy::wildcard_enum_match_arm)]
+        match self {
+            Self::ProveTransaction(_) => false,
+        }
+    }
+}
+
 impl DevnetSpecRequest {
     pub fn requires_notifying(&self) -> bool {
         #![warn(clippy::wildcard_enum_match_arm)]
@@ -379,6 +423,7 @@ impl JsonRpcRequest {
         #![warn(clippy::wildcard_enum_match_arm)]
         match self {
             Self::StarknetSpecRequest(req) => req.requires_notifying(),
+            Self::StarknetSpecExtRequest(req) => req.requires_notifying(),
             Self::DevnetSpecRequest(req) => req.requires_notifying(),
         }
     }
@@ -388,6 +433,7 @@ impl JsonRpcRequest {
         #[warn(clippy::wildcard_enum_match_arm)]
         match self {
             Self::StarknetSpecRequest(req) => req.is_forwardable_to_origin(),
+            Self::StarknetSpecExtRequest(req) => req.is_forwardable_to_origin(),
             Self::DevnetSpecRequest(_) => false,
         }
     }
@@ -396,6 +442,7 @@ impl JsonRpcRequest {
         #[warn(clippy::wildcard_enum_match_arm)]
         match self {
             Self::StarknetSpecRequest(req) => req.is_dumpable(),
+            Self::StarknetSpecExtRequest(req) => req.is_dumpable(),
             Self::DevnetSpecRequest(req) => req.is_dumpable(),
         }
     }
@@ -404,6 +451,7 @@ impl JsonRpcRequest {
         let mut all_variants = vec![];
         for variants in [
             StarknetSpecRequest::all_variants_serde_renames(),
+            StarknetSpecExtRequest::all_variants_serde_renames(),
             DevnetSpecRequest::all_variants_serde_renames(),
         ] {
             all_variants.extend(variants);
@@ -484,6 +532,7 @@ impl std::fmt::Display for JsonRpcRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let variant_name = match self {
             Self::StarknetSpecRequest(req) => req.variant_name(),
+            Self::StarknetSpecExtRequest(req) => req.variant_name(),
             Self::DevnetSpecRequest(req) => req.variant_name(),
         };
         write!(f, "{}", variant_name)
@@ -1019,6 +1068,63 @@ mod requests_tests {
 
             assert_deserialization_succeeds(deserializable_call.to_string().as_str())
         }
+    }
+
+    #[test]
+    fn deserialize_prove_transaction_request() {
+        let json_str = r#"{
+            "method":"starknet_proveTransaction",
+            "params":{
+                "block_id":"latest",
+                "transaction":{
+                    "version":"0x3",
+                    "signature":[],
+                    "nonce":"0x0",
+                    "sender_address":"0x1234",
+                    "calldata":["0x1","0x2"],
+                    "account_deployment_data":[],
+                    "resource_bounds":{
+                        "l1_gas":{"max_amount":"0x0","max_price_per_unit":"0x0"},
+                        "l1_data_gas":{"max_amount":"0x0","max_price_per_unit":"0x0"},
+                        "l2_gas":{"max_amount":"0x0","max_price_per_unit":"0x0"}
+                    },
+                    "tip":"0x0",
+                    "paymaster_data":[],
+                    "nonce_data_availability_mode":"L1",
+                    "fee_data_availability_mode":"L1"
+                }
+            }
+        }"#;
+
+        assert_deserialization_succeeds(json_str);
+
+        // Test with block hash instead of tag
+        assert_deserialization_succeeds(
+            &json_str.replace(r#""block_id":"latest""#, r#""block_id":{"block_hash":"0x123abc"}"#),
+        );
+
+        // Test with block number
+        assert_deserialization_succeeds(
+            &json_str.replace(r#""block_id":"latest""#, r#""block_id":{"block_number":123}"#),
+        );
+
+        // Missing block_id should fail
+        assert_deserialization_fails(
+            &json_str.replace(r#""block_id":"latest","#, ""),
+            "missing field `block_id`",
+        );
+
+        // Invalid version should fail
+        assert_deserialization_fails(
+            &json_str.replace(r#""version":"0x3""#, r#""version":"0x999""#),
+            "Invalid version of invoke transaction",
+        );
+
+        // Missing version should fail
+        assert_deserialization_fails(
+            &json_str.replace(r#""version":"0x3","#, ""),
+            "missing field `version`",
+        );
     }
 
     fn assert_deserialization_succeeds(json_str: &str) {

@@ -255,7 +255,7 @@ impl JsonRpcHandler {
 
         for header in headers {
             let notification = NotificationData::NewHeads(header);
-            socket_context.notify(subscription_id, notification).await;
+            socket_context.notify(subscription_id, &Subscription::NewHeads, notification).await;
         }
 
         Ok(())
@@ -282,14 +282,19 @@ impl JsonRpcHandler {
 
         let address_filter = AddressFilter::new(
             maybe_subscription_input
-                .and_then(|subscription_input| subscription_input.sender_address)
+                .as_ref()
+                .and_then(|subscription_input| subscription_input.sender_address.clone())
                 .unwrap_or_default(),
         );
+
+        let tags = maybe_subscription_input
+            .and_then(|subscription_input| subscription_input.tags)
+            .unwrap_or_default();
 
         let mut sockets = self.api.sockets.lock().await;
         let socket_context = sockets.get_mut(&socket_id)?;
 
-        let subscription = Subscription::NewTransactions { address_filter, status_filter };
+        let subscription = Subscription::NewTransactions { address_filter, status_filter, tags };
         socket_context.subscribe(rpc_request_id, subscription).await;
 
         Ok(())
@@ -340,7 +345,7 @@ impl JsonRpcHandler {
         let socket_context = sockets.get_mut(&socket_id)?;
 
         let subscription = Subscription::TransactionStatus { transaction_hash };
-        let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
+        let subscription_id = socket_context.subscribe(rpc_request_id, subscription.clone()).await;
 
         let starknet = self.api.starknet.lock().await;
 
@@ -349,7 +354,7 @@ impl JsonRpcHandler {
                 transaction_hash,
                 status: tx.get_status(),
             });
-            socket_context.notify(subscription_id, notification).await;
+            socket_context.notify(subscription_id, &subscription, notification).await;
         } else {
             tracing::debug!("Tx status subscription: tx not yet received")
         }
@@ -361,7 +366,7 @@ impl JsonRpcHandler {
         &self,
         from_block: u64,
         to_block: u64,
-        address: Option<ContractAddress>,
+        addresses: Option<Vec<ContractAddress>>,
         keys_filter: Option<Vec<Vec<Felt>>>,
     ) -> Result<Vec<EmittedEvent>, ApiError> {
         const DEFAULT_CHUNK_SIZE: u64 = 1000;
@@ -375,7 +380,7 @@ impl JsonRpcHandler {
                     from_block,
                     to_block,
                     continuation_token,
-                    address,
+                    addresses.clone(),
                     keys_filter.clone(),
                     DEFAULT_CHUNK_SIZE,
                 )
@@ -401,9 +406,9 @@ impl JsonRpcHandler {
         rpc_request_id: Id,
         socket_id: SocketId,
     ) -> Result<(), ApiError> {
-        let address = maybe_subscription_input
+        let addresses = maybe_subscription_input
             .as_ref()
-            .and_then(|subscription_input| subscription_input.from_address);
+            .and_then(|subscription_input| subscription_input.from_address.clone());
 
         let starting_block_id = maybe_subscription_input
             .as_ref()
@@ -424,17 +429,22 @@ impl JsonRpcHandler {
         let mut sockets = self.api.sockets.lock().await;
         let socket_context = sockets.get_mut(&socket_id)?;
         let subscription = Subscription::Events {
-            address,
+            addresses: addresses.clone(),
             keys_filter: keys_filter.clone(),
             status_filter: StatusFilter::new(vec![finality_status]),
         };
-        let subscription_id = socket_context.subscribe(rpc_request_id, subscription).await;
+        let subscription_id = socket_context.subscribe(rpc_request_id, subscription.clone()).await;
 
         // Fetch events from origin chain if we're in a fork and need historical data
         let origin_events = if let Some((origin_start, origin_end)) = origin_range {
             Some(
-                self.fetch_origin_events(origin_start, origin_end, address, keys_filter.clone())
-                    .await?,
+                self.fetch_origin_events(
+                    origin_start,
+                    origin_end,
+                    addresses.clone(),
+                    keys_filter.clone(),
+                )
+                .await?,
             )
         } else {
             None
@@ -444,7 +454,7 @@ impl JsonRpcHandler {
         let local_events = self.api.starknet.lock().await.get_unlimited_events(
             Some(BlockId::Number(validated_start_block_number)),
             Some(BlockId::Tag(BlockTag::PreConfirmed)), // Last block; filtering by status
-            address,
+            addresses,
             keys_filter,
             Some(finality_status),
         )?;
@@ -456,7 +466,7 @@ impl JsonRpcHandler {
                     emitted_event: event,
                     finality_status,
                 });
-                socket_context.notify(subscription_id, notification_data).await;
+                socket_context.notify(subscription_id, &subscription, notification_data).await;
             }
         }
 
@@ -466,7 +476,7 @@ impl JsonRpcHandler {
                 emitted_event: event,
                 finality_status,
             });
-            socket_context.notify(subscription_id, notification_data).await;
+            socket_context.notify(subscription_id, &subscription, notification_data).await;
         }
 
         Ok(())

@@ -3,7 +3,10 @@ use std::sync::Arc;
 use starknet_rs_accounts::{
     Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
 };
-use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, StarknetError};
+use starknet_rs_core::types::{
+    BlockId, BlockTag, Call, Felt, InvokeTransaction, StarknetError, Transaction,
+    TransactionResponseFlag,
+};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::{Provider, ProviderError};
 
@@ -12,7 +15,8 @@ use crate::common::constants::{
     self, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, ETH_ERC20_CONTRACT_ADDRESS,
 };
 use crate::common::utils::{
-    assert_tx_succeeded_accepted, get_deployable_account_signer, get_simple_contract_artifacts,
+    assert_tx_succeeded_accepted, create_proof_bearing_transaction, get_deployable_account_signer,
+    get_simple_contract_artifacts,
 };
 
 #[tokio::test]
@@ -108,10 +112,85 @@ async fn get_invoke_v3_transaction_by_hash_happy_path() {
 #[tokio::test]
 async fn get_non_existing_transaction() {
     let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-    let result = devnet.json_rpc_client.get_transaction_by_hash(Felt::ZERO).await.unwrap_err();
+    let result =
+        devnet.json_rpc_client.get_transaction_by_hash(Felt::ZERO, None).await.unwrap_err();
 
     match result {
         ProviderError::StarknetError(StarknetError::TransactionHashNotFound) => (),
         _ => panic!("Invalid error: {result:?}"),
+    }
+}
+
+#[tokio::test]
+async fn get_transaction_by_hash_response_flags_control_proof_facts() {
+    let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+    let proof_bearing_tx = create_proof_bearing_transaction(&devnet).await;
+    let submitted_proof_facts = proof_bearing_tx.submitted_proof_facts.clone();
+
+    let tx_without_flags = devnet
+        .json_rpc_client
+        .get_transaction_by_hash(proof_bearing_tx.transaction_hash, None)
+        .await
+        .unwrap();
+
+    let response_flags = [TransactionResponseFlag::IncludeProofFacts];
+    let tx_with_proof_facts_flag = devnet
+        .json_rpc_client
+        .get_transaction_by_hash(proof_bearing_tx.transaction_hash, Some(&response_flags))
+        .await
+        .unwrap();
+
+    match tx_without_flags {
+        Transaction::Invoke(InvokeTransaction::V3(tx)) => {
+            assert!(
+                tx.proof_facts.is_none(),
+                "proof_facts should not be returned when response_flags are not provided"
+            );
+        }
+        _ => panic!("Expected invoke v3 transaction without flags"),
+    }
+
+    match tx_with_proof_facts_flag {
+        Transaction::Invoke(InvokeTransaction::V3(tx)) => {
+            let returned_proof_facts = tx
+                .proof_facts
+                .expect("proof_facts should be returned when IncludeProofFacts is requested");
+            assert_eq!(
+                returned_proof_facts.len(),
+                8,
+                "proof_facts should contain expected 8 elements"
+            );
+            assert_eq!(
+                returned_proof_facts, submitted_proof_facts,
+                "proof_facts returned by get_transaction_by_hash should match sent proof_facts"
+            );
+        }
+        _ => panic!("Expected invoke v3 transaction with IncludeProofFacts flag"),
+    }
+}
+
+#[tokio::test]
+async fn get_transaction_by_hash_include_proof_facts_on_non_proof_bearing_tx_returns_empty_array() {
+    let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+    let minting_hash = devnet.mint(Felt::ONE, 1).await;
+
+    let response_flags = [TransactionResponseFlag::IncludeProofFacts];
+    let tx_with_proof_facts_flag = devnet
+        .json_rpc_client
+        .get_transaction_by_hash(minting_hash, Some(&response_flags))
+        .await
+        .unwrap();
+
+    match tx_with_proof_facts_flag {
+        Transaction::Invoke(InvokeTransaction::V3(tx)) => {
+            let returned_proof_facts = tx
+                .proof_facts
+                .expect("proof_facts should be present when IncludeProofFacts is requested");
+            assert!(
+                returned_proof_facts.is_empty(),
+                "proof_facts should be an empty array for non-proof-bearing transactions"
+            );
+        }
+        _ => panic!("Expected invoke v3 transaction with IncludeProofFacts flag"),
     }
 }

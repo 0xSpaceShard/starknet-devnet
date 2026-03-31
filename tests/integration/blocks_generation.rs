@@ -206,14 +206,16 @@ async fn assert_get_storage_at(devnet: &BackgroundDevnet) -> Result<(), anyhow::
 
     let pre_confirmed_block_storage = devnet
         .json_rpc_client
-        .get_storage_at(account_address, key, BlockId::Tag(BlockTag::PreConfirmed))
-        .await?;
+        .get_storage_at(account_address, key, BlockId::Tag(BlockTag::PreConfirmed), None)
+        .await?
+        .value();
     assert_eq_prop!(pre_confirmed_block_storage, Felt::ZERO)?;
 
     let latest_block_storage = devnet
         .json_rpc_client
-        .get_storage_at(account_address, key, BlockId::Tag(BlockTag::Latest))
-        .await?;
+        .get_storage_at(account_address, key, BlockId::Tag(BlockTag::Latest), None)
+        .await?
+        .value();
     assert_eq_prop!(latest_block_storage, Felt::ZERO)
 }
 
@@ -647,8 +649,12 @@ async fn get_data_by_specifying_latest_block_hash_and_number() {
         assert_eq!(class_hash, Felt::from_hex_unchecked(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH));
 
         let key = get_storage_var_address("Account_public_key", &[]).unwrap();
-        let storage =
-            devnet.json_rpc_client.get_storage_at(account_address, key, block_id).await.unwrap();
+        let storage = devnet
+            .json_rpc_client
+            .get_storage_at(account_address, key, block_id, None)
+            .await
+            .unwrap()
+            .value();
         assert_eq!(storage, signer.get_public_key().await.unwrap().scalar());
     }
 }

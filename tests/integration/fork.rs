@@ -413,7 +413,7 @@ async fn test_get_storage_if_contract_not_deployed() {
     let dummy_key = Felt::ONE;
     match fork_devnet
         .json_rpc_client
-        .get_storage_at(dummy_address, dummy_key, BlockId::Tag(BlockTag::Latest))
+        .get_storage_at(dummy_address, dummy_key, BlockId::Tag(BlockTag::Latest), None)
         .await
     {
         Err(ProviderError::StarknetError(StarknetError::ContractNotFound)) => (),
@@ -431,17 +431,19 @@ async fn test_get_storage_if_contract_deployed_on_origin() {
     let dummy_key = Felt::ONE;
     let dummy_value = fork_devnet
         .json_rpc_client
-        .get_storage_at(account_address, dummy_key, BlockId::Tag(BlockTag::Latest))
+        .get_storage_at(account_address, dummy_key, BlockId::Tag(BlockTag::Latest), None)
         .await
-        .unwrap();
+        .unwrap()
+        .value();
     assert_eq!(dummy_value, Felt::ZERO);
 
     let real_key = get_storage_var_address("Account_public_key", &[]).unwrap();
     let real_value = fork_devnet
         .json_rpc_client
-        .get_storage_at(account_address, real_key, BlockId::Tag(BlockTag::Latest))
+        .get_storage_at(account_address, real_key, BlockId::Tag(BlockTag::Latest), None)
         .await
-        .unwrap();
+        .unwrap()
+        .value();
     assert_eq!(real_value, signer.get_public_key().await.unwrap().scalar());
 }
 
@@ -743,7 +745,7 @@ async fn test_tx_info_available_from_origin() {
 
     let forked_devnet = origin_devnet.fork().await.unwrap();
 
-    forked_devnet.json_rpc_client.get_transaction_by_hash(mint_tx_hash).await.unwrap();
+    forked_devnet.json_rpc_client.get_transaction_by_hash(mint_tx_hash, None).await.unwrap();
     forked_devnet.json_rpc_client.get_transaction_status(mint_tx_hash).await.unwrap();
     forked_devnet.json_rpc_client.get_transaction_receipt(mint_tx_hash).await.unwrap();
     forked_devnet.json_rpc_client.trace_transaction(mint_tx_hash).await.unwrap();
@@ -754,7 +756,7 @@ async fn test_tx_info_available_from_origin() {
     ] {
         forked_devnet
             .json_rpc_client
-            .get_transaction_by_block_id_and_index(block_id, 0)
+            .get_transaction_by_block_id_and_index(block_id, 0, None)
             .await
             .unwrap();
     }
@@ -772,7 +774,7 @@ async fn test_fetching_declare_tx_v1_from_origin() {
         "0xd1085f209ddfe060c0f6d544942473e0eaed4c5292b413af8e197b6b7270c0",
     );
 
-    match forked_devnet.json_rpc_client.get_transaction_by_hash(tx_hash).await {
+    match forked_devnet.json_rpc_client.get_transaction_by_hash(tx_hash, None).await {
         Ok(Transaction::Declare(DeclareTransaction::V1(_))) => (),
         other => panic!("Invalid tx resp: {other:?}"),
     };

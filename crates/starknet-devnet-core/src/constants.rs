@@ -2,6 +2,7 @@ use std::net::{IpAddr, Ipv4Addr};
 use std::num::NonZeroU128;
 
 use nonzero_ext::nonzero;
+use starknet_api::block::StarknetVersion;
 use starknet_rs_core::types::Felt;
 use starknet_types::chain_id::ChainId;
 use starknet_types::num_bigint::BigUint;
@@ -86,7 +87,7 @@ pub const ARGENT_MULTISIG_CONTRACT_CLASS_HASH: Felt =
 /// https://github.com/OpenZeppelin/cairo-contracts/blob/89a450a88628ec3b86273f261b2d8d1ca9b1522b/src/account/interface.cairo#L7
 pub const ISRC6_ID_HEX: &str = "0x2ceccef7f994940b3962a6c67e0ba4fcd37df7d131417c604f91e03caecc1cd";
 
-pub const STARKNET_VERSION: &str = "0.14.1";
+pub const STARKNET_VERSION: StarknetVersion = StarknetVersion::V0_14_2;
 
 pub const DEVNET_DEFAULT_SEED: u32 = 123;
 pub const DEVNET_DEFAULT_TEST_SEED: u32 = 123;

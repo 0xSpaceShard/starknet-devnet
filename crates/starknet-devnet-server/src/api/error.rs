@@ -85,6 +85,10 @@ pub enum ApiError {
     MessagingError { msg: String },
     #[error("Invalid address: {msg}")]
     InvalidAddress { msg: String },
+    #[error("The proof field in the invoke v3 transaction is invalid")]
+    InvalidProof,
+    #[error("Proving error: {msg}")]
+    ProvingError { msg: String },
 }
 
 impl ApiError {
@@ -224,6 +228,10 @@ impl ApiError {
                     TransactionValidationError::ValidationFailure { reason } => {
                         ApiError::ValidationFailure { reason }
                     }
+                    TransactionValidationError::InvalidProofFacts { message } => {
+                        ApiError::ValidationFailure { reason: message }
+                    }
+                    TransactionValidationError::ProofVerificationFailed => ApiError::InvalidProof,
                 };
 
                 api_err.api_error_to_rpc_error()
@@ -268,6 +276,11 @@ impl ApiError {
                 message: error_message.into(),
                 data: None,
             },
+            ApiError::InvalidProof => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(69),
+                message: error_message.into(),
+                data: None,
+            },
             ApiError::MintingReverted { tx_hash, revert_reason: reason } => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
                 message: error_message.into(),
@@ -284,6 +297,11 @@ impl ApiError {
                 data: None,
             },
             ApiError::InvalidAddress { msg } => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
+                message: msg.into(),
+                data: None,
+            },
+            ApiError::ProvingError { msg } => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
                 message: msg.into(),
                 data: None,
@@ -323,10 +341,12 @@ impl ApiError {
             | Self::StorageProofNotSupported
             | Self::ContractClassSizeIsTooLarge
             | Self::MintingReverted { .. }
+            | Self::ProvingError { .. }
             | Self::CompiledClassHashMismatch
             | Self::DumpError { .. }
             | Self::MessagingError { .. }
-            | Self::InvalidAddress { .. } => false,
+            | Self::InvalidAddress { .. }
+            | Self::InvalidProof => false,
         }
     }
 }

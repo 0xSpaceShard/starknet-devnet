@@ -13,12 +13,14 @@ use tracing::{info, trace};
 
 use crate::api::models::{
     AccountAddressInput, BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput,
-    BlockIdInput, BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeclareTransactionInput,
-    BroadcastedDeployAccountTransactionEnumWrapper, BroadcastedDeployAccountTransactionInput,
-    BroadcastedInvokeTransactionEnumWrapper, BroadcastedInvokeTransactionInput, CallInput,
-    ClassHashInput, DevnetSpecRequest, EstimateFeeInput, EventsInput, GetStorageInput,
-    JsonRpcRequest, JsonRpcResponse, JsonRpcWsRequest, LoadPath, SimulateTransactionsInput,
-    StarknetSpecRequest, ToRpcResponseResult, TransactionHashInput, to_json_rpc_request,
+    BlockIdAndFlagsInput, BlockTransactionTracesInput, BroadcastedDeclareTransactionEnumWrapper,
+    BroadcastedDeclareTransactionInput, BroadcastedDeployAccountTransactionEnumWrapper,
+    BroadcastedDeployAccountTransactionInput, BroadcastedInvokeTransactionEnumWrapper,
+    BroadcastedInvokeTransactionInput, CallInput, ClassHashInput, DevnetSpecRequest,
+    EstimateFeeInput, EventsInput, GetStorageInput, JsonRpcRequest, JsonRpcResponse,
+    JsonRpcWsRequest, LoadPath, ProveTransactionInput, SimulateTransactionsInput,
+    StarknetSpecExtRequest, StarknetSpecRequest, StateUpdateInput, ToRpcResponseResult,
+    TransactionHashAndFlagsInput, TransactionHashInput, to_json_rpc_request,
 };
 use crate::api::origin_forwarder::OriginForwarder;
 use crate::api::{Api, ApiError, error};
@@ -368,6 +370,9 @@ impl JsonRpcHandler {
         trace!(target: "JsonRpcHandler::execute", "executing request");
         match req {
             JsonRpcRequest::StarknetSpecRequest(req) => self.execute_starknet_spec(req).await,
+            JsonRpcRequest::StarknetSpecExtRequest(req) => {
+                self.execute_starknet_spec_ext(req).await
+            }
             JsonRpcRequest::DevnetSpecRequest(req) => self.execute_devnet_spec(req).await,
         }
     }
@@ -381,26 +386,35 @@ impl JsonRpcHandler {
             StarknetSpecRequest::BlockWithTransactionHashes(block) => {
                 self.get_block_with_tx_hashes(block.block_id).await
             }
-            StarknetSpecRequest::BlockWithFullTransactions(block) => {
-                self.get_block_with_txs(block.block_id).await
+            StarknetSpecRequest::BlockWithFullTransactions(BlockIdAndFlagsInput {
+                block_id,
+                response_flags,
+            }) => self.get_block_with_txs(block_id, response_flags).await,
+            StarknetSpecRequest::BlockWithReceipts(BlockIdAndFlagsInput {
+                block_id,
+                response_flags,
+            }) => self.get_block_with_receipts(block_id, response_flags).await,
+            StarknetSpecRequest::StateUpdate(StateUpdateInput { block_id, contract_addresses }) => {
+                self.get_state_update(block_id, contract_addresses).await
             }
-            StarknetSpecRequest::BlockWithReceipts(block) => {
-                self.get_block_with_receipts(block.block_id).await
-            }
-            StarknetSpecRequest::StateUpdate(block) => self.get_state_update(block.block_id).await,
-            StarknetSpecRequest::StorageAt(GetStorageInput { contract_address, key, block_id }) => {
-                self.get_storage_at(contract_address, key, block_id).await
-            }
+            StarknetSpecRequest::StorageAt(GetStorageInput {
+                contract_address,
+                key,
+                block_id,
+                response_flags,
+            }) => self.get_storage_at(contract_address, key, block_id, response_flags).await,
             StarknetSpecRequest::TransactionStatusByHash(TransactionHashInput {
                 transaction_hash,
             }) => self.get_transaction_status_by_hash(transaction_hash).await,
-            StarknetSpecRequest::TransactionByHash(TransactionHashInput { transaction_hash }) => {
-                self.get_transaction_by_hash(transaction_hash).await
-            }
+            StarknetSpecRequest::TransactionByHash(TransactionHashAndFlagsInput {
+                transaction_hash,
+                response_flags,
+            }) => self.get_transaction_by_hash(transaction_hash, response_flags).await,
             StarknetSpecRequest::TransactionByBlockAndIndex(BlockAndIndexInput {
                 block_id,
                 index,
-            }) => self.get_transaction_by_block_id_and_index(block_id, index).await,
+                response_flags,
+            }) => self.get_transaction_by_block_id_and_index(block_id, index, response_flags).await,
             StarknetSpecRequest::TransactionReceiptByTransactionHash(TransactionHashInput {
                 transaction_hash,
             }) => self.get_transaction_receipt_by_hash(transaction_hash).await,
@@ -472,13 +486,26 @@ impl JsonRpcHandler {
             StarknetSpecRequest::TraceTransaction(TransactionHashInput { transaction_hash }) => {
                 self.get_trace_transaction(transaction_hash).await
             }
-            StarknetSpecRequest::BlockTransactionTraces(BlockIdInput { block_id }) => {
-                self.get_trace_block_transactions(block_id).await
-            }
+            StarknetSpecRequest::BlockTransactionTraces(BlockTransactionTracesInput {
+                block_id,
+                trace_flags,
+            }) => self.get_trace_block_transactions(block_id, trace_flags).await,
             StarknetSpecRequest::MessagesStatusByL1Hash(data) => {
                 self.get_messages_status(data).await
             }
             StarknetSpecRequest::StorageProof(data) => self.get_storage_proof(data).await,
+        }
+    }
+
+    async fn execute_starknet_spec_ext(
+        &self,
+        req: StarknetSpecExtRequest,
+    ) -> Result<JsonRpcResponse, error::ApiError> {
+        match req {
+            StarknetSpecExtRequest::ProveTransaction(ProveTransactionInput {
+                block_id,
+                transaction,
+            }) => self.prove_transaction(block_id, transaction).await,
         }
     }
 

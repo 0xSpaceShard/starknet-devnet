@@ -1,11 +1,12 @@
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use serde_json::json;
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::types::{
     BlockId, BlockTag, Call, Felt, InvokeTransactionResult, TransactionFinalityStatus,
 };
-use starknet_rs_core::utils::get_selector_from_name;
+use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
 use starknet_rs_providers::JsonRpcClient;
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_signers::LocalWallet;
@@ -15,8 +16,9 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 use crate::common::background_devnet::BackgroundDevnet;
 use crate::common::constants::{self, STRK_ERC20_CONTRACT_ADDRESS, UDC_CONTRACT_ADDRESS};
 use crate::common::utils::{
-    SubscriptionId, assert_no_notifications, declare_deploy_events_contract, receive_notification,
-    receive_rpc_via_ws, subscribe, unsubscribe,
+    SubscriptionId, assert_no_notifications, declare_deploy_events_contract,
+    get_events_contract_artifacts, new_contract_factory, receive_notification, receive_rpc_via_ws,
+    subscribe, unsubscribe,
 };
 
 fn get_tx_index_in_block(block_transactions: &[Felt], transaction_hash: Felt) -> usize {
@@ -152,6 +154,107 @@ async fn should_notify_only_from_filtered_address() {
         })
     );
 
+    assert_no_notifications(&mut ws).await.unwrap();
+}
+
+#[tokio::test]
+async fn should_notify_only_from_multiple_filtered_addresses() {
+    let devnet = BackgroundDevnet::spawn().await.unwrap();
+    let (mut ws, _) = connect_async(devnet.ws_url()).await.unwrap();
+
+    let account = get_single_owner_account(&devnet).await;
+
+    // Declare the contract once
+    let (cairo_1_contract, casm_class_hash) = get_events_contract_artifacts();
+    let declaration_result = account
+        .declare_v3(Arc::new(cairo_1_contract), casm_class_hash)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(1e8 as u64)
+        .send()
+        .await
+        .unwrap();
+
+    let contract_factory = new_contract_factory(declaration_result.class_hash, &account);
+
+    // Deploy two instances with different salts
+    contract_factory
+        .deploy_v3(vec![], Felt::ZERO, false)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(1e8 as u64)
+        .send()
+        .await
+        .unwrap();
+    let contract_address_1 = get_udc_deployed_address(
+        Felt::ZERO,
+        declaration_result.class_hash,
+        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        &[],
+    );
+
+    contract_factory
+        .deploy_v3(vec![], Felt::ONE, false)
+        .l1_gas(0)
+        .l1_data_gas(1000)
+        .l2_gas(1e8 as u64)
+        .send()
+        .await
+        .unwrap();
+    let contract_address_2 = get_udc_deployed_address(
+        Felt::ONE,
+        declaration_result.class_hash,
+        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        &[],
+    );
+
+    // Subscribe with a vector of addresses
+    let subscription_params = json!({ "from_address": [contract_address_1, contract_address_2] });
+    let subscription_id = subscribe_events(&mut ws, subscription_params).await.unwrap();
+
+    // Emit event from first contract
+    let invocation_1 = emit_static_event(&account, contract_address_1).await.unwrap();
+    let block_1 = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+    let tx_index_1 = get_tx_index_in_block(&block_1.transactions, invocation_1.transaction_hash);
+
+    let event_1 = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
+    assert_eq!(
+        event_1,
+        json!({
+            "transaction_hash": invocation_1.transaction_hash,
+            "block_hash": block_1.block_hash,
+            "transaction_index": tx_index_1,
+            "event_index": 0,
+            "block_number": block_1.block_number,
+            "from_address": contract_address_1,
+            "keys": [static_event_key()],
+            "data": [],
+            "finality_status": TransactionFinalityStatus::AcceptedOnL2,
+        })
+    );
+
+    // Emit event from second contract
+    let invocation_2 = emit_static_event(&account, contract_address_2).await.unwrap();
+    let block_2 = devnet.get_latest_block_with_tx_hashes().await.unwrap();
+    let tx_index_2 = get_tx_index_in_block(&block_2.transactions, invocation_2.transaction_hash);
+
+    let event_2 = receive_event(&mut ws, subscription_id.clone()).await.unwrap();
+    assert_eq!(
+        event_2,
+        json!({
+            "transaction_hash": invocation_2.transaction_hash,
+            "block_hash": block_2.block_hash,
+            "transaction_index": tx_index_2,
+            "event_index": 0,
+            "block_number": block_2.block_number,
+            "from_address": contract_address_2,
+            "keys": [static_event_key()],
+            "data": [],
+            "finality_status": TransactionFinalityStatus::AcceptedOnL2,
+        })
+    );
+
+    // Check that no additional notifications arrive
     assert_no_notifications(&mut ws).await.unwrap();
 }
 

@@ -168,7 +168,7 @@ async fn mint_dump_on_transaction_and_load() {
             .await
             .expect("Could not start Devnet");
     let loaded_tx_1 =
-        devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash_1).await.unwrap();
+        devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash_1, None).await.unwrap();
     if let Transaction::Invoke(InvokeTransaction::V3(tx)) = loaded_tx_1 {
         assert_eq!(tx.transaction_hash, mint_tx_hash_1);
     } else {
@@ -176,7 +176,7 @@ async fn mint_dump_on_transaction_and_load() {
     }
 
     let loaded_tx_2 =
-        devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash_2).await.unwrap();
+        devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash_2, None).await.unwrap();
     if let Transaction::Invoke(InvokeTransaction::V3(tx)) = loaded_tx_2 {
         assert_eq!(tx.transaction_hash, mint_tx_hash_2);
     } else {
@@ -209,7 +209,7 @@ async fn mint_dump_on_exit_and_load() {
     let devnet_load_pid = devnet_load.process.id();
     assert_ne!(devnet_dump_pid, devnet_load_pid); // if PID's are different SIGINT signal worked
     let loaded_transaction =
-        devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash).await.unwrap();
+        devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash, None).await.unwrap();
     if let Transaction::Invoke(InvokeTransaction::V3(tx)) = loaded_transaction {
         assert_eq!(tx.transaction_hash, mint_tx_hash);
     } else {
@@ -273,7 +273,7 @@ async fn declare_deploy() {
     // check declare transaction
     let loaded_declare = devnet_load
         .json_rpc_client
-        .get_transaction_by_hash(declaration_result.transaction_hash)
+        .get_transaction_by_hash(declaration_result.transaction_hash, None)
         .await
         .unwrap();
     if let Transaction::Declare(DeclareTransaction::V3(tx)) = loaded_declare {
@@ -285,7 +285,7 @@ async fn declare_deploy() {
     // check deploy transaction
     let loaded_deploy = devnet_load
         .json_rpc_client
-        .get_transaction_by_hash(deploy_result.transaction_hash)
+        .get_transaction_by_hash(deploy_result.transaction_hash, None)
         .await
         .unwrap();
     if let Transaction::Invoke(InvokeTransaction::V3(tx)) = loaded_deploy {
@@ -403,7 +403,7 @@ async fn dump_load_endpoints_transaction_and_state_after_load_is_valid() {
     assert_eq!(balance_result, Felt::from(DUMMY_AMOUNT));
 
     let loaded_transaction =
-        devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash).await.unwrap();
+        devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash, None).await.unwrap();
     if let Transaction::Invoke(InvokeTransaction::V3(tx)) = loaded_transaction {
         assert_eq!(tx.transaction_hash, mint_tx_hash);
     } else {

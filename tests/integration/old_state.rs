@@ -7,10 +7,11 @@ use starknet_core::constants::{
 use starknet_rs_accounts::{Account, ExecutionEncoder, ExecutionEncoding, SingleOwnerAccount};
 use starknet_rs_core::chain_id::SEPOLIA;
 use starknet_rs_core::types::{
-    BlockHashAndNumber, BlockId, BlockTag, BroadcastedInvokeTransactionV3, BroadcastedTransaction,
-    Call, ContractClass, DataAvailabilityMode, ExecuteInvocation, Felt, InvokeTransactionTrace,
-    ResourceBounds, ResourceBoundsMapping, SimulatedTransaction, SimulationFlag,
-    SimulationFlagForEstimateFee, StarknetError, TransactionExecutionErrorData, TransactionTrace,
+    BlockHashAndNumber, BlockId, BlockTag, BroadcastedInvokeTransaction,
+    BroadcastedInvokeTransactionV3, BroadcastedTransaction, Call, ContractClass,
+    DataAvailabilityMode, ExecuteInvocation, Felt, InvokeTransactionTrace, ResourceBounds,
+    ResourceBoundsMapping, SimulatedTransaction, SimulationFlag, SimulationFlagForEstimateFee,
+    StarknetError, TransactionExecutionErrorData, TransactionTrace,
 };
 use starknet_rs_core::utils::{get_selector_from_name, get_storage_var_address};
 use starknet_rs_providers::{Provider, ProviderError};
@@ -69,14 +70,22 @@ async fn get_storage_from_an_old_state() {
             ETH_ERC20_CONTRACT_ADDRESS,
             storage_address,
             BlockId::Tag(starknet_rs_core::types::BlockTag::Latest),
+            None,
         )
         .await
-        .unwrap();
+        .unwrap()
+        .value();
     let previous_balance = devnet
         .json_rpc_client
-        .get_storage_at(ETH_ERC20_CONTRACT_ADDRESS, storage_address, BlockId::Hash(block_hash))
+        .get_storage_at(
+            ETH_ERC20_CONTRACT_ADDRESS,
+            storage_address,
+            BlockId::Hash(block_hash),
+            None,
+        )
         .await
-        .unwrap();
+        .unwrap()
+        .value();
 
     assert!(latest_balance + amount <= previous_balance); // due to fee
 }
@@ -152,18 +161,22 @@ async fn fee_estimation_and_simulation_of_deployment_at_old_block_should_not_yie
     }];
 
     let create_query_call = |resource_bounds: ResourceBoundsMapping| -> BroadcastedTransaction {
-        BroadcastedTransaction::Invoke(BroadcastedInvokeTransactionV3 {
-            signature: vec![],
-            nonce: Felt::ZERO,
-            sender_address: account_address,
-            calldata: account.encode_calls(&calls),
-            is_query: true,
-            resource_bounds,
-            tip: 0,
-            paymaster_data: vec![],
-            account_deployment_data: vec![],
-            nonce_data_availability_mode: DataAvailabilityMode::L1,
-            fee_data_availability_mode: DataAvailabilityMode::L1,
+        BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction {
+            broadcasted_invoke_txn_v3: BroadcastedInvokeTransactionV3 {
+                signature: vec![],
+                nonce: Felt::ZERO,
+                sender_address: account_address,
+                calldata: account.encode_calls(&calls),
+                is_query: true,
+                resource_bounds,
+                tip: 0,
+                paymaster_data: vec![],
+                account_deployment_data: vec![],
+                nonce_data_availability_mode: DataAvailabilityMode::L1,
+                fee_data_availability_mode: DataAvailabilityMode::L1,
+                proof_facts: None,
+            },
+            proof: None,
         })
     };
 

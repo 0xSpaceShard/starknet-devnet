@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use blockifier::blockifier_versioned_constants::VersionedConstants;
+use blockifier::state::cached_state::StateMaps;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::ExecutionFlags;
 use blockifier::transaction::objects::TransactionExecutionInfo;
@@ -39,8 +40,11 @@ use crate::contract_class::{ContractClass, compute_sierra_class_hash};
 use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult};
 use crate::felt::{
-    Calldata, EntryPointSelector, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
+    Calldata, ClassHash, EntryPointSelector, Nonce, ProofFacts, TransactionHash,
+    TransactionSignature, TransactionVersion,
 };
+use crate::patricia_key::StorageKey;
+use crate::proof::Proof;
 use crate::rpc::transaction_receipt::CommonTransactionReceipt;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
@@ -62,6 +66,32 @@ pub enum Transactions {
     Hashes(Vec<TransactionHash>),
     Full(Vec<TransactionWithHash>),
     FullWithReceipts(Vec<TransactionWithReceipt>),
+}
+
+impl Transactions {
+    pub fn clone_without_proof_facts(&self) -> Self {
+        match &self {
+            Self::Hashes(hashes) => Self::Hashes(hashes.clone()),
+            Self::FullWithReceipts(txs) => Self::FullWithReceipts(
+                txs.iter().map(|tx| tx.clone_without_proof_facts()).collect(),
+            ),
+            Self::Full(txs) => {
+                Self::Full(txs.iter().map(|tx| tx.clone_without_proof_facts()).collect())
+            }
+        }
+    }
+
+    pub fn clone_with_proof_facts(&self) -> Self {
+        match &self {
+            Self::Hashes(hashes) => Self::Hashes(hashes.clone()),
+            Self::FullWithReceipts(txs) => {
+                Self::FullWithReceipts(txs.iter().map(|tx| tx.clone_with_proof_facts()).collect())
+            }
+            Self::Full(txs) => {
+                Self::Full(txs.iter().map(|tx| tx.clone_with_proof_facts()).collect())
+            }
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Default)]
@@ -150,6 +180,30 @@ impl TransactionWithHash {
         }
     }
 
+    pub fn clone_without_proof_facts(&self) -> Self {
+        match &self.transaction {
+            Transaction::Invoke(InvokeTransaction::V3(tx)) => Self {
+                transaction: Transaction::Invoke(InvokeTransaction::V3(
+                    tx.clone_without_proof_facts(),
+                )),
+                transaction_hash: self.transaction_hash,
+            },
+            _ => self.clone(),
+        }
+    }
+
+    pub fn clone_with_proof_facts(&self) -> Self {
+        match &self.transaction {
+            Transaction::Invoke(InvokeTransaction::V3(tx)) => Self {
+                transaction: Transaction::Invoke(InvokeTransaction::V3(
+                    tx.clone_with_proof_facts(),
+                )),
+                transaction_hash: self.transaction_hash,
+            },
+            _ => self.clone(),
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn create_common_receipt(
         &self,
@@ -189,6 +243,32 @@ impl TransactionWithHash {
 pub struct TransactionWithReceipt {
     pub receipt: TransactionReceipt,
     pub transaction: Transaction,
+}
+
+impl TransactionWithReceipt {
+    pub fn clone_without_proof_facts(&self) -> Self {
+        match &self.transaction {
+            Transaction::Invoke(InvokeTransaction::V3(tx)) => Self {
+                transaction: Transaction::Invoke(InvokeTransaction::V3(
+                    tx.clone_without_proof_facts(),
+                )),
+                receipt: self.receipt.clone(),
+            },
+            _ => self.clone(),
+        }
+    }
+
+    pub fn clone_with_proof_facts(&self) -> Self {
+        match &self.transaction {
+            Transaction::Invoke(InvokeTransaction::V3(tx)) => Self {
+                transaction: Transaction::Invoke(InvokeTransaction::V3(
+                    tx.clone_with_proof_facts(),
+                )),
+                receipt: self.receipt.clone(),
+            },
+            _ => self.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -264,11 +344,30 @@ where
     s.serialize_str(&format!("{paid_fee_on_l1:#x}"))
 }
 
+fn deserialize_address<'de, D>(deserializer: D) -> Result<Option<Vec<ContractAddress>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum AddressOrVec {
+        Single(ContractAddress),
+        Multiple(Vec<ContractAddress>),
+    }
+
+    let value = Option::<AddressOrVec>::deserialize(deserializer)?;
+    Ok(value.map(|v| match v {
+        AddressOrVec::Single(addr) => vec![addr],
+        AddressOrVec::Multiple(addrs) => addrs,
+    }))
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct EventFilter {
     pub from_block: Option<BlockId>,
     pub to_block: Option<BlockId>,
-    pub address: Option<ContractAddress>,
+    #[serde(default, deserialize_with = "deserialize_address")]
+    pub address: Option<Vec<ContractAddress>>,
     pub keys: Option<Vec<Vec<Felt>>>,
     pub continuation_token: Option<String>,
     pub chunk_size: u64,
@@ -750,6 +849,18 @@ impl BroadcastedInvokeTransaction {
             tx_hash,
         })
     }
+
+    pub fn get_proof(&self) -> Option<Proof> {
+        match self {
+            BroadcastedInvokeTransaction::V3(v3) => v3.proof.clone(),
+        }
+    }
+
+    pub fn get_proof_facts(&self) -> Option<ProofFacts> {
+        match self {
+            BroadcastedInvokeTransaction::V3(v3) => v3.proof_facts.clone(),
+        }
+    }
 }
 
 impl<'de> Deserialize<'de> for BroadcastedDeclareTransaction {
@@ -824,6 +935,14 @@ impl<'de> Deserialize<'de> for BroadcastedInvokeTransaction {
 pub enum SimulationFlag {
     SkipValidate,
     SkipFeeCharge,
+    ReturnInitialReads,
+}
+
+/// Flags that indicate what additional information should be included in the trace.
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TraceFlag {
+    ReturnInitialReads,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -945,6 +1064,107 @@ pub struct L1HandlerTransactionTrace {
 pub struct SimulatedTransaction {
     pub transaction_trace: TransactionTrace,
     pub fee_estimation: FeeEstimateWrapper,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+pub struct SimulatedTransactionsWithInitialReads {
+    pub simulated_transactions: Vec<SimulatedTransaction>,
+    pub initial_reads: InitialReads,
+}
+
+#[derive(Debug, Clone)]
+pub enum SimulationResult {
+    SimulatedTransactions(Vec<SimulatedTransaction>),
+    SimulatedTransactionsWithInitialReads(Box<SimulatedTransactionsWithInitialReads>),
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+pub struct BlockTransactionTracesWithInitialReads {
+    pub traces: Vec<BlockTransactionTrace>,
+    pub initial_reads: InitialReads,
+}
+
+#[derive(Debug, Clone)]
+pub enum BlockTraceResult {
+    Traces(Vec<BlockTransactionTrace>),
+    TracesWithInitialReads(Box<BlockTransactionTracesWithInitialReads>),
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+pub struct InitialReadsStorageEntry {
+    pub contract_address: ContractAddress,
+    pub key: StorageKey,
+    pub value: Felt,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+pub struct InitialReadsNonceEntry {
+    pub contract_address: ContractAddress,
+    pub nonce: Felt,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+pub struct InitialReadsClassHashEntry {
+    pub contract_address: ContractAddress,
+    pub class_hash: ClassHash,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+pub struct InitialReadsDeclaredContractsEntry {
+    pub class_hash: ClassHash,
+    pub is_declared: bool,
+}
+
+#[derive(Debug, Clone, Default, Serialize)]
+#[cfg_attr(feature = "testing", derive(serde::Deserialize), serde(deny_unknown_fields))]
+pub struct InitialReads {
+    pub storage: Vec<InitialReadsStorageEntry>,
+    pub nonces: Vec<InitialReadsNonceEntry>,
+    pub class_hashes: Vec<InitialReadsClassHashEntry>,
+    pub declared_contracts: Vec<InitialReadsDeclaredContractsEntry>,
+}
+
+impl From<StateMaps> for InitialReads {
+    fn from(value: StateMaps) -> Self {
+        InitialReads {
+            storage: value
+                .storage
+                .iter()
+                .map(|s| InitialReadsStorageEntry {
+                    contract_address: s.0.0.into(),
+                    key: (*s.0.1).into(),
+                    value: *s.1,
+                })
+                .collect(),
+            nonces: value
+                .nonces
+                .iter()
+                .map(|n| InitialReadsNonceEntry { contract_address: (*n.0).into(), nonce: n.1.0 })
+                .collect(),
+            class_hashes: value
+                .class_hashes
+                .iter()
+                .map(|c| InitialReadsClassHashEntry {
+                    contract_address: (*c.0).into(),
+                    class_hash: (*c.1).into(),
+                })
+                .collect(),
+            declared_contracts: value
+                .declared_contracts
+                .iter()
+                .map(|c| InitialReadsDeclaredContractsEntry {
+                    class_hash: (*c.0).into(),
+                    is_declared: *c.1,
+                })
+                .collect(),
+        }
+    }
 }
 
 impl FunctionInvocation {

@@ -29,10 +29,11 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{
-    BlockHash, ClassHash, TransactionHash, felt_from_prefixed_hex, split_biguint,
+    BlockHash, ClassHash, ProofFacts, TransactionHash, felt_from_prefixed_hex, split_biguint,
 };
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
+use starknet_types::proof::Proof;
 use starknet_types::rpc::block::{
     Block, BlockHeader, BlockId as CustomBlockId, BlockResult, BlockStatus,
     BlockTag as CustomBlockTag, PreConfirmedBlock, PreConfirmedBlockHeader,
@@ -46,13 +47,16 @@ use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::l1_handler_transaction::L1HandlerTransaction;
 use starknet_types::rpc::transactions::{
-    BlockTransactionTrace, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
+    BlockTraceResult, BlockTransactionTrace, BlockTransactionTracesWithInitialReads,
+    BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionCommonV3,
     L1HandlerTransactionStatus, ResourceBoundsWrapper, SimulatedTransaction, SimulationFlag,
-    TransactionFinalityStatus, TransactionStatus, TransactionTrace, TransactionType,
-    TransactionWithHash, TransactionWithReceipt, Transactions,
+    SimulationResult, TransactionFinalityStatus, TransactionStatus, TransactionTrace,
+    TransactionType, TransactionWithHash, TransactionWithReceipt, Transactions,
 };
 use starknet_types::traits::HashProducer;
+use tokio::runtime::Handle;
+use tokio::task;
 use tracing::{error, info};
 
 use self::cheats::Cheats;
@@ -68,13 +72,15 @@ use crate::constants::{
     DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_L1_DATA_GAS_PRICE, DEVNET_DEFAULT_L1_GAS_PRICE,
     DEVNET_DEFAULT_L2_GAS_PRICE, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
     ENTRYPOINT_NOT_FOUND_ERROR_ENCODED, ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME,
-    ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME, STRK_ERC20_SYMBOL, USE_KZG_DA,
+    ETH_ERC20_SYMBOL, STARKNET_VERSION, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME,
+    STRK_ERC20_SYMBOL, USE_KZG_DA,
 };
 use crate::contract_class_choice::AccountContractClassChoice;
 use crate::error::{ContractExecutionError, DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
 use crate::nonzero_gas_price;
 use crate::predeployed_accounts::PredeployedAccounts;
+use crate::starknet::starknet_config::ProofMode;
 use crate::state::state_diff::StateDiff;
 use crate::state::{CommittedClassStorage, CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
@@ -91,6 +97,7 @@ mod estimations;
 pub mod events;
 mod get_class_impls;
 mod predeployed;
+pub mod proofs;
 pub mod starknet_config;
 mod state_update;
 pub(crate) mod transaction_trace;
@@ -323,6 +330,44 @@ impl Starknet {
     pub(crate) fn generate_pre_confirmed_block(&mut self) {
         Self::advance_block_context_block_number(&mut self.block_context);
 
+        let next_block_number = self.block_context.block_info().block_number;
+        let old_block_number_and_hash = next_block_number
+            .0
+            .checked_sub(blockifier::abi::constants::STORED_BLOCK_HASH_BUFFER)
+            .and_then(|old_num| {
+                let old_block_number = BlockNumber(old_num);
+                // num_to_hash mapping has only devnet blocks, across fork we must have this
+                let old_block_hash = self.blocks.num_to_hash.get(&old_block_number).or(self
+                    .config
+                    .fork_config
+                    .recent_blocks
+                    .as_ref()
+                    .and_then(|blocks| blocks.get(&old_block_number)))?;
+                Some(starknet_api::block::BlockHashAndNumber {
+                    number: old_block_number,
+                    hash: starknet_api::block::BlockHash(*old_block_hash),
+                })
+            });
+
+        tracing::trace!(
+            "Preprocessing block: old {:?}, and next: {:?}",
+            old_block_number_and_hash,
+            next_block_number
+        );
+
+        if let Err(e) = blockifier::blockifier::block::pre_process_block(
+            &mut self.pre_confirmed_state.state,
+            old_block_number_and_hash,
+            next_block_number,
+            &get_versioned_constants().os_constants,
+        ) {
+            tracing::error!("Failed to pre-process block: {e}");
+        }
+
+        if let Err(e) = self.commit_diff() {
+            tracing::error!("Failed to commit pre-processed block hashes to state: {e}");
+        }
+
         Self::set_block_context_gas(&mut self.block_context, &self.next_block_gas);
 
         // Pre_confirmed block header gas data needs to be set
@@ -432,22 +477,35 @@ impl Starknet {
             .map(|tx| tx.into())
             .collect();
 
-        let thin_state_diff = self.pre_confirmed_state_diff.clone().into();
+        let thin_state_diff: starknet_api::state::ThinStateDiff =
+            self.pre_confirmed_state_diff.clone().into();
+        let state_diff_len = thin_state_diff.len();
 
         if !self.config.lite_mode {
-            let commitments = calculate_block_commitments(
+            let commitments_future = calculate_block_commitments(
                 &transaction_data,
-                &thin_state_diff,
+                thin_state_diff,
                 l1_da_mode,
                 &starknet_version,
             );
+            let commitments = if let Ok(handle) = Handle::try_current() {
+                task::block_in_place(|| handle.block_on(commitments_future))
+            } else {
+                tokio::runtime::Runtime::new()
+                    .map_err(|e| {
+                        error!("Failed to create tokio runtime: {e}");
+                    })
+                    .ok()
+                    .map(|rt| rt.block_on(commitments_future))
+                    .unwrap_or_default()
+            };
             new_block.set_commitments(commitments);
         }
 
         new_block.set_counts(
             transaction_data.len(),
             transaction_data.iter().map(|tx| tx.transaction_output.events.len()).sum(),
-            thin_state_diff.len(),
+            state_diff_len,
         );
 
         // insert pre_confirmed block in the blocks collection and connect it to the state diff
@@ -558,6 +616,7 @@ impl Starknet {
                 },
             },
             use_kzg_da: USE_KZG_DA,
+            starknet_version: STARKNET_VERSION,
         };
 
         let chain_info = ChainInfo {
@@ -713,6 +772,32 @@ impl Starknet {
         }
     }
 
+    fn get_state_at(&self, block_id: &CustomBlockId) -> DevnetResult<&StarknetState> {
+        match block_id {
+            CustomBlockId::Tag(CustomBlockTag::Latest) => Ok(&self.latest_state),
+            CustomBlockId::Tag(CustomBlockTag::PreConfirmed) => Ok(&self.pre_confirmed_state),
+            _ => {
+                let block = self.get_block(block_id)?;
+                let block_hash = block.block_hash();
+
+                if self.blocks.last_block_hash == Some(block_hash) {
+                    return Ok(&self.latest_state);
+                }
+
+                if self.config.state_archive == StateArchiveCapacity::None {
+                    return Err(Error::NoStateAtBlock { block_id: *block_id });
+                }
+
+                let state = self
+                    .blocks
+                    .hash_to_state
+                    .get(&block_hash)
+                    .ok_or(Error::NoStateAtBlock { block_id: *block_id })?;
+                Ok(state)
+            }
+        }
+    }
+
     pub fn get_class_hash_at(
         &mut self,
         block_id: &CustomBlockId,
@@ -857,6 +942,22 @@ impl Starknet {
         add_invoke_transaction::add_invoke_transaction(self, invoke_transaction)
     }
 
+    pub fn prove_transaction(
+        &self,
+        block_id: CustomBlockId,
+        invoke_transaction: BroadcastedInvokeTransaction,
+    ) -> DevnetResult<(Proof, ProofFacts)> {
+        match self.config.proof_mode {
+            ProofMode::Devnet => proofs::prove_transaction(self, block_id, invoke_transaction),
+            _ => Err(Error::UnsupportedAction {
+                msg: "Devnet cannot provide real transaction proofs. However, running devnet with \
+                      \"--proof-mode devnet\" enables this endpoint which provides mock proofs \
+                      which are later validated."
+                    .to_string(),
+            }),
+        }
+    }
+
     pub fn add_l1_handler_transaction(
         &mut self,
         l1_handler_transaction: L1HandlerTransaction,
@@ -921,6 +1022,8 @@ impl Starknet {
                 fee_data_availability_mode: DataAvailabilityMode::L1,
             },
             account_deployment_data: vec![],
+            proof: None,
+            proof_facts: None,
         };
 
         // generate signature by signing the tx hash
@@ -930,7 +1033,7 @@ impl Starknet {
         let tx_hash = unsigned_tx
             .create_sn_api_invoke()?
             .calculate_transaction_hash(&self.config.chain_id.into(), &TransactionVersion::THREE)?;
-        let signature = signer.sign_hash(&tx_hash).await?;
+        let signature = signer.sign_hash(&tx_hash.0).await?;
 
         let mut invoke_tx = unsigned_tx;
         invoke_tx.common.signature = vec![signature.r, signature.s];
@@ -942,21 +1045,33 @@ impl Starknet {
         )
     }
 
-    pub fn block_state_update(&self, block_id: &CustomBlockId) -> DevnetResult<StateUpdateResult> {
+    pub fn block_state_update(
+        &self,
+        block_id: &CustomBlockId,
+        contract_addresses: Option<Vec<ContractAddress>>,
+    ) -> DevnetResult<StateUpdateResult> {
         let state_update = state_update::state_update_by_block_id(self, block_id)?;
 
         // StateUpdate needs to be mapped to PreConfirmedStateUpdate when block_id is pre_confirmed
         if let CustomBlockId::Tag(CustomBlockTag::PreConfirmed) = block_id {
             Ok(StateUpdateResult::PreConfirmedStateUpdate(PreConfirmedStateUpdate {
                 old_root: Some(state_update.old_root),
-                state_diff: state_update.state_diff,
+                state_diff: if let Some(addr) = contract_addresses {
+                    state_update.state_diff.filter_by_address(addr)
+                } else {
+                    state_update.state_diff
+                },
             }))
         } else {
             Ok(StateUpdateResult::StateUpdate(StateUpdate {
                 block_hash: state_update.block_hash,
                 new_root: state_update.new_root,
                 old_root: state_update.old_root,
-                state_diff: state_update.state_diff,
+                state_diff: if let Some(addr) = contract_addresses {
+                    state_update.state_diff.filter_by_address(addr)
+                } else {
+                    state_update.state_diff
+                },
             }))
         }
     }
@@ -1148,10 +1263,12 @@ impl Starknet {
         block_id: &CustomBlockId,
         contract_address: ContractAddress,
         storage_key: PatriciaKey,
-    ) -> DevnetResult<Felt> {
+    ) -> DevnetResult<(Felt, Option<u64>)> {
         let state = self.get_mut_state_at(block_id)?;
         state.assert_contract_deployed(contract_address)?;
-        Ok(state.get_storage_at(contract_address.into(), storage_key.into())?)
+        let value = state.get_storage_at(contract_address.into(), storage_key.into())?;
+        let last_update_block = state.get_storage_last_update_block(contract_address, storage_key);
+        Ok((value, last_update_block))
     }
 
     pub fn get_block(&self, block_id: &CustomBlockId) -> DevnetResult<&StarknetBlock> {
@@ -1255,7 +1372,7 @@ impl Starknet {
         &self,
         from_block: Option<CustomBlockId>,
         to_block: Option<CustomBlockId>,
-        address: Option<ContractAddress>,
+        addresses: Option<Vec<ContractAddress>>,
         keys: Option<Vec<Vec<Felt>>>,
         finality_status_filter: Option<TransactionFinalityStatus>,
     ) -> DevnetResult<Vec<EmittedEvent>> {
@@ -1263,7 +1380,7 @@ impl Starknet {
             self,
             from_block,
             to_block,
-            address,
+            addresses,
             keys,
             finality_status_filter,
             0,
@@ -1277,7 +1394,7 @@ impl Starknet {
         &self,
         from_block: Option<CustomBlockId>,
         to_block: Option<CustomBlockId>,
-        address: Option<ContractAddress>,
+        addresses: Option<Vec<ContractAddress>>,
         keys: Option<Vec<Vec<Felt>>>,
         finality_status_filter: Option<TransactionFinalityStatus>,
         skip: u64,
@@ -1287,7 +1404,7 @@ impl Starknet {
             self,
             from_block,
             to_block,
-            address,
+            addresses,
             keys,
             finality_status_filter,
             skip,
@@ -1316,7 +1433,8 @@ impl Starknet {
     pub fn get_transaction_traces_from_block(
         &self,
         block_id: &CustomBlockId,
-    ) -> DevnetResult<Vec<BlockTransactionTrace>> {
+        return_initial_reads: bool,
+    ) -> DevnetResult<BlockTraceResult> {
         let transactions = match self.get_block_with_transactions(block_id)? {
             BlockResult::Block(b) => b.transactions,
             BlockResult::PreConfirmedBlock(b) => b.transactions,
@@ -1334,7 +1452,14 @@ impl Starknet {
             }
         }
 
-        Ok(traces)
+        if return_initial_reads {
+            let initial_reads = self.get_state_at(block_id)?.state.get_initial_reads()?.into();
+            Ok(BlockTraceResult::TracesWithInitialReads(Box::new(
+                BlockTransactionTracesWithInitialReads { traces, initial_reads },
+            )))
+        } else {
+            Ok(BlockTraceResult::Traces(traces))
+        }
     }
 
     pub fn get_transaction_execution_and_finality_status(
@@ -1350,20 +1475,13 @@ impl Starknet {
         block_id: &CustomBlockId,
         transactions: &[BroadcastedTransaction],
         simulation_flags: Vec<SimulationFlag>,
-    ) -> DevnetResult<Vec<SimulatedTransaction>> {
+    ) -> DevnetResult<SimulationResult> {
         let chain_id = self.chain_id().to_felt();
         let block_context = self.block_context.clone();
 
-        let mut skip_validate = false;
-        let mut skip_fee_charge = false;
-        for flag in simulation_flags.iter() {
-            match flag {
-                SimulationFlag::SkipValidate => {
-                    skip_validate = true;
-                }
-                SimulationFlag::SkipFeeCharge => skip_fee_charge = true,
-            }
-        }
+        let skip_validate = simulation_flags.contains(&SimulationFlag::SkipValidate);
+        let skip_fee_charge = simulation_flags.contains(&SimulationFlag::SkipFeeCharge);
+        let return_initial_reads = simulation_flags.contains(&SimulationFlag::ReturnInitialReads);
         let using_pre_confirmed_block = self.config.uses_pre_confirmed_block();
 
         let mut transactions_traces: Vec<TransactionTrace> = vec![];
@@ -1436,6 +1554,12 @@ impl Starknet {
             transactions_traces.push(trace);
         }
 
+        let initial_reads = if return_initial_reads {
+            Some(transactional_state.get_initial_reads()?)
+        } else {
+            None
+        };
+
         let estimated = estimations::estimate_fee(
             self,
             block_id,
@@ -1457,7 +1581,7 @@ impl Starknet {
             });
         }
 
-        let simulation_results = transactions_traces
+        let simulation_results: Vec<SimulatedTransaction> = transactions_traces
             .into_iter()
             .zip(estimated)
             .map(|(trace, fee_estimation)| SimulatedTransaction {
@@ -1466,7 +1590,16 @@ impl Starknet {
             })
             .collect();
 
-        Ok(simulation_results)
+        if let Some(initial_reads) = initial_reads {
+            Ok(SimulationResult::SimulatedTransactionsWithInitialReads(Box::new(
+                starknet_types::rpc::transactions::SimulatedTransactionsWithInitialReads {
+                    simulated_transactions: simulation_results,
+                    initial_reads: initial_reads.into(),
+                },
+            )))
+        } else {
+            Ok(SimulationResult::SimulatedTransactions(simulation_results))
+        }
     }
 
     /// create new block from pre_confirmed one

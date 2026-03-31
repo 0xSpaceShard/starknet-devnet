@@ -12,7 +12,7 @@ description = "Starknet core logic for devnet"
 workspace = true
 
 [dependencies]
-blockifier = { workspace = true, features = ["transaction_serde"] }
+blockifier = { workspace = true, features = ["transaction_serde", "reexecution"] }
 cairo-lang-starknet-classes = { workspace = true }
 clap = { workspace = true }
 alloy = { workspace = true }
@@ -50,7 +50,6 @@ starknet-types = { workspace = true, features = ["testing"] }
 [features]
 test_utils = []
 cairo_native = [
-    "blockifier/cairo_native",
     "starknet-types/cairo_native",
 ]
 

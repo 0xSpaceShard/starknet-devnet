@@ -87,3 +87,25 @@ Then run:
 ```
 $ docker run --env-file .my-env-file shardlabs/starknet-devnet-rs
 ```
+
+## Proof-related configuration
+
+Devnet exposes a dedicated proof-mode switch:
+
+```bash
+starknet-devnet --proof-mode <full|devnet|none>
+```
+
+Equivalent environment variable:
+
+```bash
+PROOF_MODE=<full|devnet|none>
+```
+
+Mode behavior summary:
+
+- `devnet` (default): mock proof generation + verification flow is enabled.
+- `none`: proof fields are ignored on invoke transactions.
+- `full`: reserved for fully verified proofs (currently not implemented).
+
+For complete examples and RPC payloads, see [Transaction proofs and proof modes](../proofs).

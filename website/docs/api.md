@@ -14,6 +14,8 @@ Unlike Pythonic Devnet, which also supported Starknet's gateway and feeder gatew
 
 Due to how Devnet internally works, the method `starknet_getStorageProof` is not applicable, and thus not supported.
 
+Devnet also provides a proof-related extension method `starknet_proveTransaction`. For supported modes, behavior, and usage examples, check [Transaction proofs and proof modes](./proofs).
+
 Since JSON-RPC v0.6.0, to find out which JSON-RPC version is supported by which Devnet version, check out the [releases page](https://github.com/0xspaceshard/starknet-devnet/releases).
 
 ### Devnet API

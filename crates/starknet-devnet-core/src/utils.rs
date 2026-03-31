@@ -40,10 +40,10 @@ pub(crate) fn get_storage_var_address(
     Ok(PatriciaKey::new(storage_var_address)?)
 }
 
-/// This should be modified when updating to the version after 0.14.1
+/// This should be modified when updating to the version after 0.14.2
 pub(crate) fn get_versioned_constants() -> VersionedConstants {
     #[allow(clippy::unwrap_used)]
-    VersionedConstants::get(&StarknetVersion::V0_14_1).unwrap().clone()
+    VersionedConstants::get(&StarknetVersion::V0_14_2).unwrap().clone()
 }
 
 /// Values not present here: https://docs.starknet.io/tools/limits-and-triggers/
@@ -242,6 +242,8 @@ pub(crate) mod test_utils {
             sender_address: account_address,
             calldata,
             account_deployment_data: vec![],
+            proof: None,
+            proof_facts: None,
         })
     }
 }

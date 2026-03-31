@@ -6,7 +6,7 @@ use starknet_types_core::felt::Felt;
 use super::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use super::{BroadcastedTransactionCommonV3, ResourceBoundsWrapper};
 use crate::contract_address::ContractAddress;
-use crate::felt::{Calldata, Nonce, TransactionSignature, TransactionVersion};
+use crate::felt::{Calldata, Nonce, ProofFacts, TransactionSignature, TransactionVersion};
 
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(
@@ -26,6 +26,8 @@ pub struct InvokeTransactionV3 {
     account_deployment_data: Vec<Felt>,
     pub(crate) sender_address: ContractAddress,
     calldata: Calldata,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    proof_facts: Option<ProofFacts>,
 }
 
 impl InvokeTransactionV3 {
@@ -42,7 +44,16 @@ impl InvokeTransactionV3 {
             sender_address: broadcasted_txn.sender_address,
             calldata: broadcasted_txn.calldata.clone(),
             account_deployment_data: broadcasted_txn.account_deployment_data.clone(),
+            proof_facts: broadcasted_txn.proof_facts.clone(),
         }
+    }
+
+    pub fn clone_without_proof_facts(&self) -> Self {
+        Self { proof_facts: None, ..self.clone() }
+    }
+
+    pub fn clone_with_proof_facts(&self) -> Self {
+        Self { proof_facts: Some(self.proof_facts.clone().unwrap_or_default()), ..self.clone() }
     }
 
     pub(crate) fn get_resource_bounds(&self) -> &ResourceBoundsWrapper {
@@ -66,6 +77,8 @@ impl From<InvokeTransactionV3> for BroadcastedInvokeTransactionV3 {
             sender_address: value.sender_address,
             calldata: value.calldata,
             account_deployment_data: value.account_deployment_data,
+            proof_facts: value.proof_facts,
+            proof: None,
         }
     }
 }

@@ -70,6 +70,8 @@ pub enum Error {
     TransactionFeeError(blockifier::transaction::errors::TransactionFeeError),
     #[error(transparent)]
     MessagingError(#[from] MessagingError),
+    #[error(transparent)]
+    ProvingError(#[from] ProvingError),
     #[error("Transaction has no trace")]
     NoTransactionTrace,
     #[error("the compiled class hash did not match the one supplied in the transaction")]
@@ -116,6 +118,10 @@ pub enum TransactionValidationError {
     InsufficientAccountBalance,
     #[error("Account validation failed: {reason}")]
     ValidationFailure { reason: String },
+    #[error("Invalid proof facts: {message}")]
+    InvalidProofFacts { message: String },
+    #[error("Invalid proof provided")]
+    ProofVerificationFailed,
 }
 
 impl From<TransactionExecutionError> for Error {
@@ -138,6 +144,11 @@ impl From<TransactionExecutionError> for Error {
                 }
                 TransactionPreValidationError::TransactionFeeError(tx_fee_err) => {
                     Self::from(*tx_fee_err)
+                }
+                TransactionPreValidationError::InvalidProofFacts(message) => {
+                    Self::TransactionValidationError(
+                        TransactionValidationError::InvalidProofFacts { message },
+                    )
                 }
             },
             TransactionExecutionError::FeeCheckError(err) => err.into(),
@@ -208,6 +219,16 @@ pub enum MessagingError {
     MessageToL1NotPresent(String),
     #[error("L1 not compatible: {0}")]
     IncompatibleL1(String),
+}
+
+#[derive(Debug, Error)]
+pub enum ProvingError {
+    #[error("No virtual program hashes allowed")]
+    NoVirtualProgramHashesAllowed,
+    #[error("Block Id provided doesn't match existing block")]
+    InvalidBlockId,
+    #[error("Error: {0}")]
+    Other(String),
 }
 
 pub type DevnetResult<T, E = Error> = Result<T, E>;

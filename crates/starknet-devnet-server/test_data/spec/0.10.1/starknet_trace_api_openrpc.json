@@ -1,7 +1,7 @@
 {
   "openrpc": "1.0.0-rc1",
   "info": {
-    "version": "0.10.0",
+    "version": "0.10.1",
     "title": "StarkNet Trace API",
     "license": {}
   },
@@ -75,22 +75,56 @@
       ],
       "result": {
         "name": "simulated_transactions",
-        "description": "The execution trace and consumed resources of the required transactions",
+        "description": "The execution trace and consumed resources of the required transactions. When RETURN_INITIAL_READS is not present in simulation_flags, returns an array. When RETURN_INITIAL_READS is present in simulation_flags, returns an object with simulated_transactions and initial_reads fields.",
         "schema": {
-          "type": "array",
-          "items": {
-              "type": "object",
-              "properties": {
-                "transaction_trace": {
-                  "title": "the transaction's trace",
-                  "$ref": "#/components/schemas/TRANSACTION_TRACE"
-                },
-                "fee_estimation": {
-                  "title": "the transaction's resources and fee",
-                  "$ref": "#/components/schemas/FEE_ESTIMATE"
+          "oneOf": [
+            {
+              "type": "array",
+              "description": "The execution trace and consumed resources of the required transactions. This format is returned when RETURN_INITIAL_READS is not present in simulation_flags, maintaining compatibility with JSON-RPC 0.10.0.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "transaction_trace": {
+                    "title": "the transaction's trace",
+                    "$ref": "#/components/schemas/TRANSACTION_TRACE"
+                  },
+                  "fee_estimation": {
+                    "title": "the transaction's resources and fee",
+                    "$ref": "#/components/schemas/FEE_ESTIMATE"
+                  }
                 }
               }
-          }
+            },
+            {
+              "type": "object",
+              "description": "The execution trace and consumed resources of the required transactions, along with initial reads when RETURN_INITIAL_READS is present in simulation_flags.",
+              "properties": {
+                "simulated_transactions": {
+                  "type": "array",
+                  "description": "The execution trace and consumed resources of the required transactions",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "transaction_trace": {
+                        "title": "the transaction's trace",
+                        "$ref": "#/components/schemas/TRANSACTION_TRACE"
+                      },
+                      "fee_estimation": {
+                        "title": "the transaction's resources and fee",
+                        "$ref": "#/components/schemas/FEE_ESTIMATE"
+                      }
+                    }
+                  }
+                },
+                "initial_reads": {
+                  "title": "Initial reads",
+                  "description": "The set of state values fetched from the underlying state reader during execution for all transactions in the simulation. Required when RETURN_INITIAL_READS is present in simulation_flags.",
+                  "$ref": "#/components/schemas/INITIAL_READS"
+                }
+              },
+              "required": ["simulated_transactions", "initial_reads"]
+            }
+          ]
         }
       },
       "errors": [
@@ -114,25 +148,69 @@
           "schema": {
             "$ref": "#/components/schemas/BLOCK_ID"
           }
+        },
+        {
+          "name": "trace_flags",
+          "description": "Flags that indicate what additional information should be included in the trace",
+          "required": false,
+          "schema": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TRACE_FLAG"
+            }
+          }
         }
       ],
       "result": {
         "name": "traces",
-        "description": "The traces of all transactions in the block",
+        "description": "The traces of all transactions in the block. When RETURN_INITIAL_READS is not present in trace_flags (or trace_flags is not provided), returns an array. When RETURN_INITIAL_READS is present in trace_flags, returns an object with traces and initial_reads fields.",
         "schema": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "description": "A single pair of transaction hash and corresponding trace",
-            "properties": {
-              "transaction_hash": {
-                "$ref": "#/components/schemas/FELT"
-              },
-              "trace_root": {
-                "$ref": "#/components/schemas/TRANSACTION_TRACE"
+          "oneOf": [
+            {
+              "type": "array",
+              "description": "The traces of all transactions in the block. This format is returned when RETURN_INITIAL_READS is not present in trace_flags (or trace_flags is not provided), maintaining compatibility with JSON-RPC 0.10.0.",
+              "items": {
+                "type": "object",
+                "description": "A single pair of transaction hash and corresponding trace",
+                "properties": {
+                  "transaction_hash": {
+                    "$ref": "#/components/schemas/FELT"
+                  },
+                  "trace_root": {
+                    "$ref": "#/components/schemas/TRANSACTION_TRACE"
+                  }
+                }
               }
+            },
+            {
+              "type": "object",
+              "description": "The traces of all transactions in the block, along with initial reads when RETURN_INITIAL_READS is present in trace_flags.",
+              "properties": {
+                "traces": {
+                  "type": "array",
+                  "description": "The traces of all transactions in the block",
+                  "items": {
+                    "type": "object",
+                    "description": "A single pair of transaction hash and corresponding trace",
+                    "properties": {
+                      "transaction_hash": {
+                        "$ref": "#/components/schemas/FELT"
+                      },
+                      "trace_root": {
+                        "$ref": "#/components/schemas/TRANSACTION_TRACE"
+                      }
+                    }
+                  }
+                },
+                "initial_reads": {
+                  "title": "Initial reads",
+                  "description": "The set of state values fetched from the underlying state reader during execution for all transactions in the block. Required when RETURN_INITIAL_READS is present in trace_flags. Returns an empty object instead of INITIAL_READS when the execution trace for the referenced block is inconsistent with the canonical block trace.",
+                  "$ref": "#/components/schemas/INITIAL_READS"
+                }
+              },
+              "required": ["traces", "initial_reads"]
             }
-          }
+          ]
         }
       },
       "errors": [
@@ -277,8 +355,91 @@
       },
       "SIMULATION_FLAG": {
         "type": "string",
-        "enum": ["SKIP_VALIDATE", "SKIP_FEE_CHARGE"],
-        "description": "Flags that indicate how to simulate a given transaction. By default, the sequencer behavior is replicated locally (enough funds are expected to be in the account, and fee will be deducted from the balance before the simulation of the next transaction). To skip the fee charge, use the SKIP_FEE_CHARGE flag."
+        "enum": ["SKIP_VALIDATE", "SKIP_FEE_CHARGE", "RETURN_INITIAL_READS"],
+        "description": "Flags that indicate how to simulate a given transaction. By default, the sequencer behavior is replicated locally (enough funds are expected to be in the account, and fee will be deducted from the balance before the simulation of the next transaction). To skip the fee charge, use the SKIP_FEE_CHARGE flag. When RETURN_INITIAL_READS is present, the node returns the minimal set of concrete state values fetched from the underlying state reader during execution for all transactions in the simulation."
+      },
+      "TRACE_FLAG": {
+        "type": "string",
+        "enum": ["RETURN_INITIAL_READS"],
+        "description": "Flags that indicate what additional information should be included in the trace. When RETURN_INITIAL_READS is present, the node returns the minimal set of concrete state values fetched from the underlying state reader during execution for all transactions in the block. Returns an empty object instead of INITIAL_READS when the execution trace for the referenced block is inconsistent with the canonical block trace."
+      },
+      "INITIAL_READS": {
+        "title": "Initial reads",
+        "description": "The set of state values fetched from the underlying state reader during execution. This is a complete witness sufficient to reconstruct the cached state needed for re-execution.",
+        "type": "object",
+        "properties": {
+          "storage": {
+            "title": "Storage",
+            "description": "Storage entries that were read during simulation: (contract_address, storage_key) -> value",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "contract_address": {
+                  "$ref": "./api/starknet_api_openrpc.json#/components/schemas/ADDRESS"
+                },
+                "key": {
+                  "$ref": "./api/starknet_api_openrpc.json#/components/schemas/STORAGE_KEY"
+                },
+                "value": {
+                  "$ref": "#/components/schemas/FELT"
+                }
+              },
+              "required": ["contract_address", "key", "value"]
+            }
+          },
+          "nonces": {
+            "title": "Nonces",
+            "description": "Contract nonces that were read during simulation: contract_address -> nonce",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "contract_address": {
+                  "$ref": "./api/starknet_api_openrpc.json#/components/schemas/ADDRESS"
+                },
+                "nonce": {
+                  "$ref": "#/components/schemas/FELT"
+                }
+              },
+              "required": ["contract_address", "nonce"]
+            }
+          },
+          "class_hashes": {
+            "title": "Class hashes",
+            "description": "Contract class hashes that were read during simulation: contract_address -> class_hash",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "contract_address": {
+                  "$ref": "./api/starknet_api_openrpc.json#/components/schemas/ADDRESS"
+                },
+                "class_hash": {
+                  "$ref": "#/components/schemas/FELT"
+                }
+              },
+              "required": ["contract_address", "class_hash"]
+            }
+          },
+          "declared_contracts": {
+            "title": "Declared contracts",
+            "description": "Class declaration status that was read during simulation: class_hash -> is_declared",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "class_hash": {
+                  "$ref": "#/components/schemas/FELT"
+                },
+                "is_declared": {
+                  "type": "boolean"
+                }
+              },
+              "required": ["class_hash", "is_declared"]
+            }
+          }
+        }
       },
       "NESTED_CALL": {
         "$ref": "#/components/schemas/FUNCTION_INVOCATION"

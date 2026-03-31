@@ -3,28 +3,52 @@ mod json_rpc_response;
 
 pub use json_rpc_request::{
     DevnetSpecRequest, JsonRpcRequest, JsonRpcSubscriptionRequest, JsonRpcWsRequest,
-    StarknetSpecRequest, ToRpcResponseResult, WILDCARD_RPC_ERROR_CODE, to_json_rpc_request,
+    StarknetSpecExtRequest, StarknetSpecRequest, ToRpcResponseResult, WILDCARD_RPC_ERROR_CODE,
+    to_json_rpc_request,
 };
-pub use json_rpc_response::{DevnetResponse, JsonRpcResponse, StarknetResponse};
+pub use json_rpc_response::{
+    DevnetResponse, JsonRpcResponse, StarknetExtResponse, StarknetResponse,
+};
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::{Felt, Hash256, TransactionExecutionStatus};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
+use starknet_types::felt::{BlockHash, ClassHash, ProofFacts, TransactionHash};
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::block::{BlockId, SubscriptionBlockId};
+use starknet_types::proof::Proof;
+use starknet_types::rpc::block::{
+    BlockId, StorageResponseFlag, SubscriptionBlockId, TransactionResponseFlag,
+};
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, EventFilter, FunctionCall,
-    SimulationFlag, TransactionFinalityStatus,
+    SimulationFlag, TraceFlag, TransactionFinalityStatus,
 };
 use starknet_types::serde_helpers::dec_string::deserialize_biguint;
 use starknet_types::starknet_api::block::BlockNumber;
 
 use crate::rpc_core::request::RpcMethodCall;
 use crate::subscribe::{TransactionFinalityStatusWithoutL1, TransactionStatusWithoutL1};
+
+fn deserialize_address<'de, D>(deserializer: D) -> Result<Option<Vec<ContractAddress>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum AddressOrVec {
+        Single(ContractAddress),
+        Multiple(Vec<ContractAddress>),
+    }
+
+    let value = Option::<AddressOrVec>::deserialize(deserializer)?;
+    Ok(value.map(|v| match v {
+        AddressOrVec::Single(addr) => vec![addr],
+        AddressOrVec::Multiple(addrs) => addrs,
+    }))
+}
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
@@ -34,8 +58,29 @@ pub struct BlockIdInput {
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
+pub struct BlockIdAndFlagsInput {
+    pub block_id: BlockId,
+    pub response_flags: Option<Vec<TransactionResponseFlag>>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct StateUpdateInput {
+    pub block_id: BlockId,
+    pub contract_addresses: Option<Vec<ContractAddress>>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct TransactionHashInput {
     pub transaction_hash: TransactionHash,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct TransactionHashAndFlagsInput {
+    pub transaction_hash: TransactionHash,
+    pub response_flags: Option<Vec<TransactionResponseFlag>>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -51,6 +96,14 @@ pub struct GetStorageInput {
     pub contract_address: ContractAddress,
     pub key: PatriciaKey,
     pub block_id: BlockId,
+    pub response_flags: Option<Vec<StorageResponseFlag>>,
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[cfg_attr(test, derive(Deserialize))]
+pub struct StorageResult {
+    pub value: Felt,
+    pub last_update_block: Option<u64>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -73,6 +126,7 @@ pub struct GetStorageProofInput {
 pub struct BlockAndIndexInput {
     pub block_id: BlockId,
     pub index: u64,
+    pub response_flags: Option<Vec<TransactionResponseFlag>>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -200,12 +254,34 @@ pub struct SimulateTransactionsInput {
     pub simulation_flags: Vec<SimulationFlag>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BlockTransactionTracesInput {
+    pub block_id: BlockId,
+    #[serde(default)]
+    pub trace_flags: Option<Vec<TraceFlag>>,
+}
+
 #[derive(Debug, Serialize)]
 #[cfg_attr(test, derive(Deserialize))]
 #[serde(deny_unknown_fields)]
 pub struct TransactionStatusOutput {
     pub finality_status: TransactionFinalityStatus,
     pub execution_status: TransactionExecutionStatus,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProveTransactionInput {
+    pub block_id: BlockId,
+    pub transaction: BroadcastedInvokeTransaction,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProveTransactionResponse {
+    pub proof: Proof,
+    pub proof_facts: ProofFacts,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -263,9 +339,16 @@ pub struct SubscriptionBlockIdInput {
 #[serde(deny_unknown_fields)]
 pub struct EventsSubscriptionInput {
     pub block_id: Option<SubscriptionBlockId>,
-    pub from_address: Option<ContractAddress>,
+    #[serde(default, deserialize_with = "deserialize_address")]
+    pub from_address: Option<Vec<ContractAddress>>,
     pub keys: Option<Vec<Vec<Felt>>>,
     pub finality_status: Option<TransactionFinalityStatus>,
+}
+
+#[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(deny_unknown_fields, rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum SubscriptionTag {
+    IncludeProofFacts,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -273,6 +356,7 @@ pub struct EventsSubscriptionInput {
 pub struct TransactionSubscriptionInput {
     pub sender_address: Option<Vec<ContractAddress>>,
     pub finality_status: Option<Vec<TransactionStatusWithoutL1>>,
+    pub tags: Option<Vec<SubscriptionTag>>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -728,6 +812,7 @@ mod tests {
             block_id: BlockId::Hash(Felt::ONE),
             contract_address: ContractAddress::new(Felt::TWO).unwrap(),
             key: PatriciaKey::new(Felt::THREE).unwrap(),
+            response_flags: None,
         };
 
         assert_get_storage_input_correctness(

@@ -60,6 +60,7 @@ async fn test_config() {
         },
         "block_generation_on": "demand",
         "lite_mode": false,
+        "proof_mode": "devnet",
         "eth_erc20_class_hash": to_hex_felt(&ETH_ERC20_CONTRACT_CLASS_HASH),
         "strk_erc20_class_hash": to_hex_felt(&STRK_ERC20_CONTRACT_CLASS_HASH),
         "class_size_config": {
@@ -133,9 +134,11 @@ async fn predeployed_erc20_tokens_have_expected_storage() {
                 token_address,
                 get_storage_var_address(var_name, &[]).unwrap(),
                 BlockId::Tag(BlockTag::Latest),
+                None,
             )
             .await
-            .unwrap();
+            .unwrap()
+            .value();
 
         assert_eq!(parse_cairo_short_string(&actual_value).unwrap().as_str(), expected_value);
     }

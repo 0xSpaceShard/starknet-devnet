@@ -540,7 +540,7 @@ async fn test_transaction_receipt_with_block_info_deserialization() {
 
     if let Some(block_hash) = block.block_hash() {
         let block_status =
-            devnet.json_rpc_client.get_block_with_txs(BlockId::Hash(block_hash)).await;
+            devnet.json_rpc_client.get_block_with_txs(BlockId::Hash(block_hash), None).await;
         assert!(block_status.is_ok(), "Block with hash {:?} should exist", block_hash);
     }
 

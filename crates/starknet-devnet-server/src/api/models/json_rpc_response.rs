@@ -9,7 +9,8 @@ use starknet_types::rpc::gas_modification::GasModification;
 use starknet_types::rpc::state::{PreConfirmedStateUpdate, StateUpdate};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
-    BlockTransactionTrace, EventsChunk, L1HandlerTransactionStatus, SimulatedTransaction,
+    BlockTransactionTrace, BlockTransactionTracesWithInitialReads, EventsChunk,
+    L1HandlerTransactionStatus, SimulatedTransaction, SimulatedTransactionsWithInitialReads,
     TransactionStatus, TransactionTrace, TransactionWithHash,
 };
 use starknet_types::starknet_api::block::BlockNumber;
@@ -18,7 +19,8 @@ use crate::api::models::{
     AbortedBlocks, AcceptedOnL1Blocks, AccountBalanceResponse, BlockHashAndNumberOutput,
     CreatedBlock, DeclareTransactionOutput, DeployAccountTransactionOutput, DumpResponseBody,
     FlushedMessages, IncreaseTimeResponse, MessageHash, MessagingLoadAddress, MintTokensResponse,
-    SerializableAccount, SetTimeResponse, SyncingOutput, TransactionHashOutput,
+    ProveTransactionResponse, SerializableAccount, SetTimeResponse, StorageResult, SyncingOutput,
+    TransactionHashOutput,
 };
 use crate::config::DevnetConfig;
 
@@ -27,6 +29,7 @@ use crate::config::DevnetConfig;
 #[allow(clippy::large_enum_variant)]
 pub enum JsonRpcResponse {
     Starknet(StarknetResponse),
+    StarknetExt(StarknetExtResponse),
     Devnet(DevnetResponse),
     Empty,
 }
@@ -34,6 +37,12 @@ pub enum JsonRpcResponse {
 impl From<StarknetResponse> for JsonRpcResponse {
     fn from(resp: StarknetResponse) -> Self {
         JsonRpcResponse::Starknet(resp)
+    }
+}
+
+impl From<StarknetExtResponse> for JsonRpcResponse {
+    fn from(resp: StarknetExtResponse) -> Self {
+        JsonRpcResponse::StarknetExt(resp)
     }
 }
 
@@ -71,9 +80,20 @@ pub enum StarknetResponse {
     TransactionHash(TransactionHashOutput),
     EstimateMessageFee(FeeEstimateWrapper),
     SimulateTransactions(Vec<SimulatedTransaction>),
+    SimulateTransactionsInitialReads(SimulatedTransactionsWithInitialReads),
     TraceTransaction(TransactionTrace),
     BlockTransactionTraces(Vec<BlockTransactionTrace>),
+    BlockTransactionTracesInitialReads(BlockTransactionTracesWithInitialReads),
     MessagesStatusByL1Hash(Vec<L1HandlerTransactionStatus>),
+    StorageResult(StorageResult),
+}
+
+#[derive(Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
+#[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
+pub enum StarknetExtResponse {
+    Proof(ProveTransactionResponse),
 }
 
 #[derive(Serialize)]

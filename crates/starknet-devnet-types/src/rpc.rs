@@ -8,6 +8,7 @@ pub mod felt;
 pub mod gas_modification;
 mod macro_utils;
 pub mod messaging;
+pub mod proof;
 pub mod state;
 pub mod transaction_receipt;
 pub mod transactions;
