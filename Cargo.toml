@@ -85,6 +85,8 @@ starknet-types-core = "=0.2.4"
 starknet_api = { version = "0.18.0-rc.0", features = ["testing"] }
 blockifier = { version = "0.18.0-rc.0" }
 
+apollo_compilation_utils = { version = "0.18.0-rc.0"}
+
 starknet-rs-signers = { version = "0.19.0-rc.2", package = "starknet-rust-signers" }
 starknet-rs-core = { version = "0.19.0-rc.2", package = "starknet-rust-core" }
 starknet-rs-providers = { version = "0.19.0-rc.2", package = "starknet-rust-providers" }
