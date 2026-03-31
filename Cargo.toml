@@ -72,7 +72,7 @@ rand_mt = "5.0.0"
 rand_regex = "0.18.1"
 reqwest = { version = "0.13.2", features = ["json"] }
 url = "2.5"
-usc = { version = "2.7.0", package = "universal-sierra-compiler" }
+usc = { version = "2.8.0-rc.0", package = "universal-sierra-compiler" }
 num-bigint = { version = "0.4" }
 bigdecimal = { version = "0.4.9" }
 enum-helper-macros = "0.0.1"
@@ -82,31 +82,31 @@ ahash = "0.8"
 
 # Starknet dependencies
 starknet-types-core = "=0.2.4"
-starknet_api = { version = "0.18.0-dev.0", features = ["testing"] }
-blockifier = { version = "0.18.0-dev.0" }
+starknet_api = { version = "0.18.0-rc.0", features = ["testing"] }
+blockifier = { version = "0.18.0-rc.0" }
 
-starknet-rs-signers = { version = "0.19.0-1", package = "starknet-rust-signers" }
-starknet-rs-core = { version = "0.19.0-rc.1", package = "starknet-rust-core" }
-starknet-rs-providers = { version = "0.19.0-rc.1", package = "starknet-rust-providers" }
-starknet-rs-accounts = { version = "0.19.0-rc.1", package = "starknet-rust-accounts" }
-starknet-rs-contract = { version = "0.19.0-rc.1", package = "starknet-rust-contract" }
+starknet-rs-signers = { version = "0.19.0-rc.2", package = "starknet-rust-signers" }
+starknet-rs-core = { version = "0.19.0-rc.2", package = "starknet-rust-core" }
+starknet-rs-providers = { version = "0.19.0-rc.2", package = "starknet-rust-providers" }
+starknet-rs-accounts = { version = "0.19.0-rc.2", package = "starknet-rust-accounts" }
+starknet-rs-contract = { version = "0.19.0-rc.2", package = "starknet-rust-contract" }
 
-cairo-vm = "=3.1.0"
+cairo-vm = "=3.2.0"
 
 # Cairo-lang dependencies
-cairo-lang-starknet-classes = "=2.15.0"
-cairo-lang-compiler = "=2.15.0"
-cairo-lang-casm = "=2.15.0"
-cairo-lang-defs = "=2.15.0"
-cairo-lang-diagnostics = "=2.15.0"
-cairo-lang-filesystem = "=2.15.0"
-cairo-lang-lowering = "=2.15.0"
-cairo-lang-semantic = "=2.15.0"
-cairo-lang-sierra = "=2.15.0"
-cairo-lang-sierra-generator = "=2.15.0"
-cairo-lang-sierra-to-casm = "=2.15.0"
-cairo-lang-syntax = "=2.15.0"
-cairo-lang-utils = "=2.15.0"
+cairo-lang-starknet-classes = "=2.17.0-rc.4"
+cairo-lang-compiler = "=2.17.0-rc.4"
+cairo-lang-casm = "=2.17.0-rc.4"
+cairo-lang-defs = "=2.17.0-rc.4"
+cairo-lang-diagnostics = "=2.17.0-rc.4"
+cairo-lang-filesystem = "=2.17.0-rc.4"
+cairo-lang-lowering = "=2.17.0-rc.4"
+cairo-lang-semantic = "=2.17.0-rc.4"
+cairo-lang-sierra = "=2.17.0-rc.4"
+cairo-lang-sierra-generator = "=2.17.0-rc.4"
+cairo-lang-sierra-to-casm = "=2.17.0-rc.4"
+cairo-lang-syntax = "=2.17.0-rc.4"
+cairo-lang-utils = "=2.17.0-rc.4"
 
 # Inner dependencies
 starknet-types = { version = "0.7.2", path = "crates/starknet-devnet-types", package = "starknet-devnet-types" }

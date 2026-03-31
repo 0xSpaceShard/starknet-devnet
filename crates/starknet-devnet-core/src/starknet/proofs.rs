@@ -13,34 +13,19 @@ use crate::starknet::Starknet;
 
 static DEVNET_PROOF_MAGIC: u64 = 0xFAFAFAFA;
 
-/// Convert a Felt to Proof by splitting its byte representation
+/// Convert a Felt to Proof using its byte representation
 fn felt_to_proof(felt: Felt) -> Proof {
-    let bytes = felt.to_bytes_be();
-    let mut proof_data = Vec::with_capacity(8);
-
-    // Split 32 bytes into 8 u32 values (4 bytes each)
-    for chunk in bytes.chunks(4) {
-        let mut arr = [0u8; 4];
-        arr[..chunk.len()].copy_from_slice(chunk);
-        proof_data.push(u32::from_be_bytes(arr));
-    }
-
-    Proof::new(proof_data)
+    Proof::new(felt.to_bytes_be().to_vec())
 }
 
 /// Convert a Proof back to Felt for verification
 fn proof_to_felt(proof: &Proof) -> Option<Felt> {
     let proof_data = proof.inner();
-    if proof_data.len() != 8 {
+    if proof_data.len() != 32 {
         return None;
     }
 
-    let mut bytes = [0u8; 32];
-    for (i, &value) in proof_data.iter().enumerate() {
-        let chunk = value.to_be_bytes();
-        bytes[i * 4..(i + 1) * 4].copy_from_slice(&chunk);
-    }
-
+    let bytes: [u8; 32] = proof_data.as_slice().try_into().ok()?;
     Some(Felt::from_bytes_be(&bytes))
 }
 
@@ -52,19 +37,14 @@ pub fn prove_transaction(
     debug!("Generating devnet proof for invoke transaction at block_id: {block_id:?}");
 
     let block_context = starknet.block_context.clone();
-    let proof_version = PROOF_VERSION.into();
-    let variant_marker = VIRTUAL_SNOS.into();
     let program_hash = block_context
         .versioned_constants()
         .os_constants
         .allowed_virtual_os_program_hashes
         .first()
         .ok_or(ProvingError::NoVirtualProgramHashesAllowed)?;
-    let output_version = VIRTUAL_OS_OUTPUT_VERSION.into();
     let block = starknet.get_block(&block_id).map_err(|_| ProvingError::InvalidBlockId)?;
-    let block_number = block.block_number().0;
-    let block_number_felt = Felt::from(block_number);
-    let block_hash = block.block_hash();
+    let block_number_felt = Felt::from(block.block_number().0);
     let config_hash = OsChainInfo::from(block_context.chain_info())
         .compute_virtual_os_config_hash()
         .map_err(|e| ProvingError::Other(e.to_string()))?;
@@ -81,30 +61,30 @@ pub fn prove_transaction(
     let proof = felt_to_proof(proof_felt);
 
     let last_field = Pedersen::hash_array(&[
-        proof_version,
-        variant_marker,
+        PROOF_VERSION,
+        VIRTUAL_SNOS,
         *program_hash,
-        output_version,
+        VIRTUAL_OS_OUTPUT_VERSION,
         block_number_felt,
-        block_hash,
+        block.block_hash(),
         config_hash,
         proof_felt,
     ]);
 
     let proof_facts = vec![
-        proof_version,
-        variant_marker,
+        PROOF_VERSION,
+        VIRTUAL_SNOS,
         *program_hash,
-        output_version,
+        VIRTUAL_OS_OUTPUT_VERSION,
         block_number_felt,
-        block_hash,
+        block.block_hash(),
         config_hash,
         last_field,
     ];
 
     debug!(
-        "Generated proof successfully (block_number: {block_number}, proof_len: {}, \
-         proof_facts_len: {})",
+        "Generated proof successfully (block_number: {}, proof_len: {}, proof_facts_len: {})",
+        block.block_number().0,
         proof.len(),
         proof_facts.len()
     );
@@ -199,8 +179,8 @@ mod tests {
         // Verify proof facts has correct length
         assert_eq!(proof_facts.len(), 8, "proof_facts should have 8 elements");
 
-        // Verify proof has correct length (8 u32 values)
-        assert_eq!(proof.len(), 8, "proof should have 8 u32 values");
+        // Verify proof has correct length (32 u8 values)
+        assert_eq!(proof.len(), 32, "proof should have 32 u8 values");
     }
 
     #[test]
@@ -229,7 +209,7 @@ mod tests {
             tx,
         )
         .unwrap();
-        let wrong_proof = vec![0xDEADBEEFu32, 0, 0, 0, 0, 0, 0, 0];
+        let wrong_proof = vec![0xDEu8; 32];
 
         assert!(!verify_proof(wrong_proof.into(), proof_facts), "wrong proof should be rejected");
     }
@@ -256,7 +236,7 @@ mod tests {
 
     #[test]
     fn test_verify_proof_rejects_wrong_length_proof_facts() {
-        let proof = vec![0x123u32, 0, 0, 0, 0, 0, 0, 0];
+        let proof = vec![0x12u8; 32];
 
         // Too few elements
         let short_proof_facts = vec![Felt::ONE, Felt::TWO, Felt::THREE];
@@ -275,7 +255,7 @@ mod tests {
 
     #[test]
     fn test_verify_proof_rejects_empty_proof_facts() {
-        let proof = vec![0x123u32, 0, 0, 0, 0, 0, 0, 0];
+        let proof = vec![0x12u8; 32];
         let empty_proof_facts = vec![];
 
         assert!(
@@ -297,14 +277,14 @@ mod tests {
         .unwrap();
 
         // Proof with wrong length (too few elements)
-        let short_proof = vec![0x123u32, 0];
+        let short_proof = vec![0x12u8; 2];
         assert!(
             !verify_proof(short_proof.into(), proof_facts.clone()),
             "short proof should be rejected"
         );
 
         // Proof with wrong length (too many elements)
-        let long_proof = vec![0x123u32; 10];
+        let long_proof = vec![0x12u8; 40];
         assert!(!verify_proof(long_proof.into(), proof_facts), "long proof should be rejected");
     }
 
@@ -372,8 +352,8 @@ mod tests {
         .unwrap();
 
         // Verify proof_facts contains expected fields
-        assert_eq!(proof_facts[0], PROOF_VERSION.into(), "first field should be proof_version");
-        assert_eq!(proof_facts[1], VIRTUAL_SNOS.into(), "second field should be variant_marker");
+        assert_eq!(proof_facts[0], PROOF_VERSION, "first field should be proof_version");
+        assert_eq!(proof_facts[1], VIRTUAL_SNOS, "second field should be variant_marker");
 
         // Last field should be hash of all previous fields plus proof_felt
         let proof_felt = proof_to_felt(&proof).expect("proof should convert to felt");

@@ -275,7 +275,7 @@ mod tests {
         let storage_key = (*balance_var_storage_address.get_storage_key()).into();
 
         let account_address = account.get_address();
-        let resource_bounds = resource_bounds_with_price_1(0, 1000, 1e6 as u64);
+        let resource_bounds = resource_bounds_with_price_1(0, 1000, 2e6 as u64);
 
         let invoke_transaction = test_invoke_transaction_v3(
             account_address,
@@ -365,7 +365,7 @@ mod tests {
         let account_address = account.get_address();
 
         let tx_nonce = 0;
-        let l2_gas = 1e6 as u64;
+        let l2_gas = 2e6 as u64;
         let tx = test_invoke_transaction_v3(
             account_address,
             contract_address,
@@ -452,7 +452,7 @@ mod tests {
             increase_balance_selector,
             &[dummy_felt()],
             tx_nonce,
-            resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+            resource_bounds_with_price_1(0, 1000, 2e6 as u64),
         );
 
         match starknet.add_invoke_transaction(tx) {
@@ -482,7 +482,7 @@ mod tests {
             increase_balance_selector,
             &[dummy_felt()],
             nonce,
-            resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+            resource_bounds_with_price_1(0, 1000, 2e6 as u64),
         );
 
         let tx_hash = starknet.add_invoke_transaction(tx).unwrap();
@@ -504,7 +504,7 @@ mod tests {
                 increase_balance_selector,
                 &[dummy_felt()],
                 nonce,
-                resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+                resource_bounds_with_price_1(0, 1000, 2e6 as u64),
             );
 
             let tx_hash = starknet.add_invoke_transaction(tx).unwrap();
@@ -628,7 +628,7 @@ mod tests {
             increase_balance_selector,
             &[Felt::from(42)],
             0,
-            resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+            resource_bounds_with_price_1(0, 1000, 2e6 as u64),
         );
 
         starknet.add_invoke_transaction(invoke_transaction).unwrap();
@@ -658,7 +658,7 @@ mod tests {
             increase_balance_selector,
             &[Felt::from(1u64)],
             0,
-            resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+            resource_bounds_with_price_1(0, 1000, 2e6 as u64),
         );
         starknet.add_invoke_transaction(tx).unwrap();
 
@@ -700,7 +700,7 @@ mod tests {
             increase_balance_selector,
             &[Felt::from(10)],
             0,
-            resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+            resource_bounds_with_price_1(0, 1000, 2e6 as u64),
         );
         starknet.add_invoke_transaction(invoke_transaction).unwrap();
 
@@ -716,7 +716,7 @@ mod tests {
             increase_balance_selector,
             &[Felt::from(5)],
             1,
-            resource_bounds_with_price_1(0, 1000, 1e6 as u64),
+            resource_bounds_with_price_1(0, 1000, 2e6 as u64),
         );
         starknet.add_invoke_transaction(invoke_transaction).unwrap();
 

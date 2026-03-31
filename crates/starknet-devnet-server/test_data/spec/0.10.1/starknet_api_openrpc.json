@@ -2225,9 +2225,9 @@
             "properties": {
               "proof": {
                 "title": "Proof",
-                "description": "Optional proof for the transaction, encoded as a base64 string of big-endian packed u32 values",
+                "description": "Optional proof for the transaction, encoded as a base64 string of u8 values",
                 "type": "string",
-                "pattern": "^(?:[A-Za-z0-9+/]{16})*(?:[A-Za-z0-9+/]{5}[AQgw]==|[A-Za-z0-9+/]{10}[AEIMQUYcgkosw048]=)?$"
+                "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/][AQgw]==|[A-Za-z0-9+/]{2}[AEIMQUYcgkosw048]=)?$"
               }
             }
           }

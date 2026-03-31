@@ -62,8 +62,8 @@ async fn estimate_message_fee() {
         .await
         .unwrap();
 
-    assert_eq!(res.l1_gas_consumed, 16030);
-    assert_eq!(res.l2_gas_consumed, 0);
+    assert_eq!(res.l1_gas_consumed, 16031);
+    assert_eq!(res.l2_gas_consumed, 402000);
 }
 
 #[tokio::test]
