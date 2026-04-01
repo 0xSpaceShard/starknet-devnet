@@ -1,7 +1,3 @@
----
-sidebar_position: 7
----
-
 # Transaction proofs and proof modes
 
 This page describes the Devnet-specific transaction proof flow introduced in Starknet v0.14.2 and the `--proof-mode` configuration.
