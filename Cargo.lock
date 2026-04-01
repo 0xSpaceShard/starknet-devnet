@@ -747,9 +747,9 @@ checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
 
 [[package]]
 name = "apollo_compilation_utils"
-version = "0.18.0-rc.0"
+version = "0.18.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e861223c0c2c52d3deafc9f7732ea818a4e9e1991e8452b2d01e574e7624ab2"
+checksum = "a67f3331354ca1f12d0e020ca49f4e7186b7608de0839e47c721282fd5729dd8"
 dependencies = [
  "apollo_infra_utils",
  "cairo-lang-sierra 2.17.0-rc.4",
@@ -766,9 +766,9 @@ dependencies = [
 
 [[package]]
 name = "apollo_compile_to_native"
-version = "0.18.0-rc.0"
+version = "0.18.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "839fdeba9422cb9f2b82132b5fb4420237782a2040c7ab4f30fa380c071cb2ef"
+checksum = "aa476e7f3f471ac5097214a8e5ca79947762bbafb0bb9303359705524c20c70e"
 dependencies = [
  "apollo_compilation_utils",
  "apollo_compile_to_native_types",
@@ -780,9 +780,9 @@ dependencies = [
 
 [[package]]
 name = "apollo_compile_to_native_types"
-version = "0.18.0-rc.0"
+version = "0.18.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad24b61b402b3705e0573cbbe50824a722f0382e31dbc1d39703fc7a3e327e4f"
+checksum = "2166124835b4bcea3d494e4e9e3fbde72d28e1e2c9b67cde6d950337f7e1cc12"
 dependencies = [
  "apollo_config",
  "serde",
@@ -791,9 +791,9 @@ dependencies = [
 
 [[package]]
 name = "apollo_config"
-version = "0.18.0-rc.0"
+version = "0.18.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8547c9785be0e583732481baee8c6ec01371999ce611c20bc05c5c1666208ae0"
+checksum = "adcc050ef9fa92477c3543998d4208bd948afb42b859044e3fbbc2e432e28402"
 dependencies = [
  "apollo_infra_utils",
  "clap",
@@ -810,9 +810,9 @@ dependencies = [
 
 [[package]]
 name = "apollo_infra_utils"
-version = "0.18.0-rc.0"
+version = "0.18.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00c0e9b292dec1a54efda1161b81139e6fecc087bbb425e9550cb79cbe78e1d7"
+checksum = "ccac84e014c1f56323caa62db9d69555433fa0cce29abf59c6add18ddc2448de"
 dependencies = [
  "apollo_proc_macros",
  "assert-json-diff",
@@ -833,9 +833,9 @@ dependencies = [
 
 [[package]]
 name = "apollo_metrics"
-version = "0.18.0-rc.0"
+version = "0.18.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e425f633a3e716bf7d573182c14287c5404139f035f48b590877624084e955b4"
+checksum = "779a12979955eae309c494d9736f38cb64c723ed24aa457fb9b045fb89ef1026"
 dependencies = [
  "apollo_time",
  "indexmap 2.13.0",
@@ -848,9 +848,9 @@ dependencies = [
 
 [[package]]
 name = "apollo_proc_macros"
-version = "0.18.0-rc.0"
+version = "0.18.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2611af84f6d49c02d9a4fd90262a1b1b4fcc3fc1ed8ca1f646096ddea287f461"
+checksum = "d3f4078d3e701d15584fabbe3573b302a56e28eeec24ae6c5e7362d9bb5b1d81"
 dependencies = [
  "lazy_static",
  "proc-macro2",
@@ -860,9 +860,9 @@ dependencies = [
 
 [[package]]
 name = "apollo_sizeof"
-version = "0.18.0-rc.0"
+version = "0.18.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4adc99d3c2558030a32b7c74f0c38529d2e2475b61060d2bb2dc36e80bf25bf1"
+checksum = "96b3080899396e91925dd0eff941108e2880cd6983d748573f9de1d725b5163b"
 dependencies = [
  "apollo_sizeof_macros",
  "starknet-types-core",
@@ -870,9 +870,9 @@ dependencies = [
 
 [[package]]
 name = "apollo_sizeof_macros"
-version = "0.18.0-rc.0"
+version = "0.18.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a4c9535f8e5b33684696d0705afd266c2261faa5ce59fe302fd366775e1a556"
+checksum = "a62c16ee6e9dda1fe74aabd406e2e46e467940e6884db18602c6edb6cf48699a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -881,9 +881,9 @@ dependencies = [
 
 [[package]]
 name = "apollo_time"
-version = "0.18.0-rc.0"
+version = "0.18.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fab12f4c4cc1f1c5e257410e53a5b6056f1273bd9598dd6481a946b13ac71fd5"
+checksum = "fade79dc45af880ec43aefc347cb3c276a802bc9a15e34fe94ecfdba2dd14538"
 dependencies = [
  "chrono",
 ]
@@ -1519,9 +1519,9 @@ dependencies = [
 
 [[package]]
 name = "blockifier"
-version = "0.18.0-rc.0"
+version = "0.18.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07088ed11ed6de6d7372f3d09833bdac2681905eb1ab441df5fe70b6d8d35c44"
+checksum = "d17e91934e751261cb3cfaf8fe3efe80cc431d8c386be67d3e701cda3c814552"
 dependencies = [
  "anyhow",
  "apollo_compilation_utils",
@@ -1568,9 +1568,9 @@ dependencies = [
 
 [[package]]
 name = "blockifier_test_utils"
-version = "0.18.0-rc.0"
+version = "0.18.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b6e1109de31645bcefaa124e5bd5071fe336f1dcbf3f1c8c92aa3bcc849dc41"
+checksum = "fa7077372e5e198c7976bfda59443f68521040c05337b6f4e6f034d8f9f0b361"
 dependencies = [
  "apollo_infra_utils",
  "cairo-lang-starknet-classes",
@@ -4332,9 +4332,9 @@ dependencies = [
 
 [[package]]
 name = "hyper"
-version = "1.8.1"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ab2d4f250c3d7b1c9fcdff1cece94ea4e2dfbec68614f7b87cb205f24ca9d11"
+checksum = "6299f016b246a94207e63da54dbe807655bf9e00044f73ded42c3ac5305fbcca"
 dependencies = [
  "atomic-waker",
  "bytes",
@@ -4347,7 +4347,6 @@ dependencies = [
  "httpdate",
  "itoa",
  "pin-project-lite",
- "pin-utils",
  "smallvec",
  "tokio",
  "want",
@@ -4858,9 +4857,9 @@ dependencies = [
 
 [[package]]
 name = "js-sys"
-version = "0.3.93"
+version = "0.3.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "797146bb2677299a1eb6b7b50a890f4c361b29ef967addf5b2fa45dae1bb6d7d"
+checksum = "2e04e2ef80ce82e13552136fabeef8a5ed1f985a96805761cbb9a2c34e7664d9"
 dependencies = [
  "cfg-if",
  "futures-util",
@@ -6966,9 +6965,9 @@ dependencies = [
 
 [[package]]
 name = "serde_spanned"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "876ac351060d4f882bb1032b6369eb0aef79ad9df1ea8bc404874d8cc3d0cd98"
+checksum = "6662b5879511e06e8999a8a235d848113e942c9124f211511b16466ee2995f26"
 dependencies = [
  "serde_core",
 ]
@@ -7319,7 +7318,7 @@ dependencies = [
 
 [[package]]
 name = "starknet-devnet"
-version = "0.7.2"
+version = "0.8.0-rc.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -7344,7 +7343,7 @@ dependencies = [
 
 [[package]]
 name = "starknet-devnet-core"
-version = "0.7.2"
+version = "0.8.0-rc.0"
 dependencies = [
  "alloy",
  "blockifier",
@@ -7378,7 +7377,7 @@ dependencies = [
 
 [[package]]
 name = "starknet-devnet-server"
-version = "0.7.2"
+version = "0.8.0-rc.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7408,7 +7407,7 @@ dependencies = [
 
 [[package]]
 name = "starknet-devnet-types"
-version = "0.7.2"
+version = "0.8.0-rc.0"
 dependencies = [
  "ahash",
  "apollo_compilation_utils",
@@ -7598,9 +7597,9 @@ dependencies = [
 
 [[package]]
 name = "starknet_api"
-version = "0.18.0-rc.0"
+version = "0.18.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e400ec62d83b0ad6576faae76b1f5d42738ec86ad7502735fe8bb1c642f8443d"
+checksum = "94f3991e6f1afe218357fa16e3ed9a72cdbb1d9b6ccc472d37851b5cf268bd39"
 dependencies = [
  "apollo_infra_utils",
  "apollo_sizeof",
@@ -8074,39 +8073,39 @@ dependencies = [
 
 [[package]]
 name = "toml_datetime"
-version = "1.1.0+spec-1.1.0"
+version = "1.1.1+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97251a7c317e03ad83774a8752a7e81fb6067740609f75ea2b585b569a59198f"
+checksum = "3165f65f62e28e0115a00b2ebdd37eb6f3b641855f9d636d3cd4103767159ad7"
 dependencies = [
  "serde_core",
 ]
 
 [[package]]
 name = "toml_edit"
-version = "0.25.8+spec-1.1.0"
+version = "0.25.9+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16bff38f1d86c47f9ff0647e6838d7bb362522bdf44006c7068c2b1e606f1f3c"
+checksum = "da053d28fe57e2c9d21b48261e14e7b4c8b670b54d2c684847b91feaf4c7dac5"
 dependencies = [
  "indexmap 2.13.0",
- "toml_datetime 1.1.0+spec-1.1.0",
+ "toml_datetime 1.1.1+spec-1.1.0",
  "toml_parser",
  "winnow 1.0.1",
 ]
 
 [[package]]
 name = "toml_parser"
-version = "1.1.0+spec-1.1.0"
+version = "1.1.1+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2334f11ee363607eb04df9b8fc8a13ca1715a72ba8662a26ac285c98aabb4011"
+checksum = "39ca317ebc49f06bd748bfba29533eac9485569dc9bf80b849024b025e814fb9"
 dependencies = [
  "winnow 1.0.1",
 ]
 
 [[package]]
 name = "toml_writer"
-version = "1.1.0+spec-1.1.0"
+version = "1.1.1+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d282ade6016312faf3e41e57ebbba0c073e4056dab1232ab1cb624199648f8ed"
+checksum = "756daf9b1013ebe47a8776667b466417e2d4c5679d441c26230efd9ef78692db"
 
 [[package]]
 name = "tower"
@@ -8604,9 +8603,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen"
-version = "0.2.116"
+version = "0.2.117"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dc0882f7b5bb01ae8c5215a1230832694481c1a4be062fd410e12ea3da5b631"
+checksum = "0551fc1bb415591e3372d0bc4780db7e587d84e2a7e79da121051c5c4b89d0b0"
 dependencies = [
  "cfg-if",
  "once_cell",
@@ -8617,9 +8616,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-futures"
-version = "0.4.66"
+version = "0.4.67"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19280959e2844181895ef62f065c63e0ca07ece4771b53d89bfdb967d97cbf05"
+checksum = "03623de6905b7206edd0a75f69f747f134b7f0a2323392d664448bf2d3c5d87e"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
@@ -8627,9 +8626,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro"
-version = "0.2.116"
+version = "0.2.117"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75973d3066e01d035dbedaad2864c398df42f8dd7b1ea057c35b8407c015b537"
+checksum = "7fbdf9a35adf44786aecd5ff89b4563a90325f9da0923236f6104e603c7e86be"
 dependencies = [
  "quote",
  "wasm-bindgen-macro-support",
@@ -8637,9 +8636,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro-support"
-version = "0.2.116"
+version = "0.2.117"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91af5e4be765819e0bcfee7322c14374dc821e35e72fa663a830bbc7dc199eac"
+checksum = "dca9693ef2bab6d4e6707234500350d8dad079eb508dca05530c85dc3a529ff2"
 dependencies = [
  "bumpalo",
  "proc-macro2",
@@ -8650,9 +8649,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-shared"
-version = "0.2.116"
+version = "0.2.117"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9bf0406a78f02f336bf1e451799cca198e8acde4ffa278f0fb20487b150a633"
+checksum = "39129a682a6d2d841b6c429d0c51e5cb0ed1a03829d8b3d1e69a011e62cb3d3b"
 dependencies = [
  "unicode-ident",
 ]
@@ -8707,9 +8706,9 @@ dependencies = [
 
 [[package]]
 name = "web-sys"
-version = "0.3.93"
+version = "0.3.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "749466a37ee189057f54748b200186b59a03417a117267baf3fd89cecc9fb837"
+checksum = "cd70027e39b12f0849461e08ffc50b9cd7688d942c1c8e3c7b22273236b4dd0a"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
