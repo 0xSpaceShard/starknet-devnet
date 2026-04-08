@@ -277,7 +277,6 @@ impl BackgroundDevnet {
             .expect("Failed to serialize transaction for proveTransaction");
 
         if let Some(transaction_object) = transaction.as_object_mut() {
-            transaction_object.remove("type");
             transaction_object.remove("proof");
             transaction_object.remove("proof_facts");
         }
