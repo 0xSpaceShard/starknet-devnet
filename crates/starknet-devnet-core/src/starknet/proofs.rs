@@ -4,9 +4,13 @@ use starknet_rs_core::types::Felt;
 use starknet_types::felt::ProofFacts;
 use starknet_types::proof::Proof;
 use starknet_types::rpc::block::BlockId;
-use starknet_types::rpc::transactions::BroadcastedInvokeTransaction;
+use starknet_types::rpc::messaging::OrderedMessageToL1;
+use starknet_types::rpc::transactions::{
+    BroadcastedInvokeTransaction, BroadcastedTransaction, ExecutionInvocation, SimulationFlag,
+    SimulationResult, TransactionTrace,
+};
 use starknet_types_core::hash::{Pedersen, StarkHash};
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::error::{DevnetResult, ProvingError};
 use crate::starknet::Starknet;
@@ -30,10 +34,10 @@ fn proof_to_felt(proof: &Proof) -> Option<Felt> {
 }
 
 pub fn prove_transaction(
-    starknet: &Starknet,
+    starknet: &mut Starknet,
     block_id: BlockId,
     broadcasted_invoke_transaction: BroadcastedInvokeTransaction,
-) -> DevnetResult<(Proof, ProofFacts)> {
+) -> DevnetResult<(Proof, ProofFacts, Vec<OrderedMessageToL1>)> {
     debug!("Generating devnet proof for invoke transaction at block_id: {block_id:?}");
 
     let block_context = starknet.block_context.clone();
@@ -89,7 +93,54 @@ pub fn prove_transaction(
         proof_facts.len()
     );
 
-    Ok((proof, proof_facts))
+    // Simulate the transaction to extract L2→L1 messages
+    let l2_to_l1_messages =
+        extract_l2_to_l1_messages(starknet, &block_id, broadcasted_invoke_transaction);
+
+    Ok((proof, proof_facts, l2_to_l1_messages))
+}
+
+/// Simulates the transaction and extracts L2→L1 messages from the trace.
+/// Simulation failure is non-fatal: returns an empty vec and logs a warning.
+fn extract_l2_to_l1_messages(
+    starknet: &mut Starknet,
+    block_id: &BlockId,
+    invoke_transaction: BroadcastedInvokeTransaction,
+) -> Vec<OrderedMessageToL1> {
+    let tx = BroadcastedTransaction::Invoke(invoke_transaction);
+    let simulation_result = starknet.simulate_transactions(
+        block_id,
+        &[tx],
+        vec![SimulationFlag::SkipFeeCharge, SimulationFlag::SkipValidate],
+    );
+
+    match simulation_result {
+        Ok(result) => {
+            let simulated = match result {
+                SimulationResult::SimulatedTransactions(txs) => txs.into_iter().next(),
+                SimulationResult::SimulatedTransactionsWithInitialReads(r) => {
+                    r.simulated_transactions.into_iter().next()
+                }
+            };
+
+            simulated
+                .and_then(|sim| {
+                    if let TransactionTrace::Invoke(invoke_trace) = sim.transaction_trace {
+                        if let ExecutionInvocation::Succeeded(func) =
+                            invoke_trace.execute_invocation
+                        {
+                            return Some(func.all_messages());
+                        }
+                    }
+                    None
+                })
+                .unwrap_or_default()
+        }
+        Err(e) => {
+            warn!("Simulation failed during prove_transaction (messages will be empty): {e}");
+            vec![]
+        }
+    }
 }
 
 pub fn verify_proof(proof: Proof, proof_facts: ProofFacts) -> bool {
@@ -166,11 +217,11 @@ mod tests {
 
     #[test]
     fn test_prove_transaction_generates_valid_proof() {
-        let starknet = create_test_starknet();
+        let mut starknet = create_test_starknet();
         let tx = create_test_invoke_transaction();
 
-        let (proof, proof_facts) = prove_transaction(
-            &starknet,
+        let (proof, proof_facts, _) = prove_transaction(
+            &mut starknet,
             BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
             tx,
         )
@@ -185,11 +236,11 @@ mod tests {
 
     #[test]
     fn test_verify_proof_accepts_valid_proof() {
-        let starknet = create_test_starknet();
+        let mut starknet = create_test_starknet();
         let tx = create_test_invoke_transaction();
 
-        let (proof, proof_facts) = prove_transaction(
-            &starknet,
+        let (proof, proof_facts, _) = prove_transaction(
+            &mut starknet,
             BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
             tx,
         )
@@ -200,11 +251,11 @@ mod tests {
 
     #[test]
     fn test_verify_proof_rejects_wrong_proof() {
-        let starknet = create_test_starknet();
+        let mut starknet = create_test_starknet();
         let tx = create_test_invoke_transaction();
 
-        let (_proof, proof_facts) = prove_transaction(
-            &starknet,
+        let (_proof, proof_facts, _) = prove_transaction(
+            &mut starknet,
             BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
             tx,
         )
@@ -216,11 +267,11 @@ mod tests {
 
     #[test]
     fn test_verify_proof_rejects_modified_proof_facts() {
-        let starknet = create_test_starknet();
+        let mut starknet = create_test_starknet();
         let tx = create_test_invoke_transaction();
 
-        let (proof, mut proof_facts) = prove_transaction(
-            &starknet,
+        let (proof, mut proof_facts, _) = prove_transaction(
+            &mut starknet,
             BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
             tx,
         )
@@ -266,11 +317,11 @@ mod tests {
 
     #[test]
     fn test_verify_proof_rejects_wrong_length_proof() {
-        let starknet = create_test_starknet();
+        let mut starknet = create_test_starknet();
         let tx = create_test_invoke_transaction();
 
-        let (_proof, proof_facts) = prove_transaction(
-            &starknet,
+        let (_proof, proof_facts, _) = prove_transaction(
+            &mut starknet,
             BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
             tx,
         )
@@ -290,18 +341,18 @@ mod tests {
 
     #[test]
     fn test_prove_transaction_deterministic() {
-        let starknet = create_test_starknet();
+        let mut starknet = create_test_starknet();
         let tx1 = create_test_invoke_transaction();
         let tx2 = create_test_invoke_transaction();
 
-        let (proof1, proof_facts1) = prove_transaction(
-            &starknet,
+        let (proof1, proof_facts1, _) = prove_transaction(
+            &mut starknet,
             BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
             tx1,
         )
         .unwrap();
-        let (proof2, proof_facts2) = prove_transaction(
-            &starknet,
+        let (proof2, proof_facts2, _) = prove_transaction(
+            &mut starknet,
             BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
             tx2,
         )
@@ -314,7 +365,7 @@ mod tests {
 
     #[test]
     fn test_prove_transaction_different_for_different_transactions() {
-        let starknet = create_test_starknet();
+        let mut starknet = create_test_starknet();
         let tx1 = create_test_invoke_transaction();
         let mut tx2 = create_test_invoke_transaction();
 
@@ -322,14 +373,14 @@ mod tests {
         let BroadcastedInvokeTransaction::V3(ref mut v3) = tx2;
         v3.common.nonce = Felt::ONE;
 
-        let (proof1, _) = prove_transaction(
-            &starknet,
+        let (proof1, _, _) = prove_transaction(
+            &mut starknet,
             BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
             tx1,
         )
         .unwrap();
-        let (proof2, _) = prove_transaction(
-            &starknet,
+        let (proof2, _, _) = prove_transaction(
+            &mut starknet,
             BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
             tx2,
         )
@@ -341,11 +392,11 @@ mod tests {
 
     #[test]
     fn test_proof_facts_structure() {
-        let starknet = create_test_starknet();
+        let mut starknet = create_test_starknet();
         let tx = create_test_invoke_transaction();
 
-        let (proof, proof_facts) = prove_transaction(
-            &starknet,
+        let (proof, proof_facts, _) = prove_transaction(
+            &mut starknet,
             BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
             tx,
         )

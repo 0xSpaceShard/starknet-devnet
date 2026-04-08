@@ -18,7 +18,7 @@ Proof behavior is controlled by `--proof-mode` (or env var `PROOF_MODE`).
 | ------ | ------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
 | Full   | `full`             | Not implemented yet                              | Rejects with unsupported action                                                                                          |
 | Devnet | `devnet` (default) | Returns a deterministic mock proof + proof facts | If both fields are present, verifies them; if one is missing or verification fails, rejects; if both are absent, accepts |
-| None   | `none`             | Disabled / unsupported                           | Ignores incoming `proof` and `proof_facts` for invoke txs                                                                |
+| None   | `none`             | Disabled / unsupported                           | Ignores incoming `proof` for invoke txs                                                                                  |
 
 ### Why this exists
 
@@ -115,12 +115,22 @@ Example:
       "0x...",
       "0x...",
       "0x..."
+    ],
+    "l2_to_l1_messages": [
+      {
+        "order": 0,
+        "from_address": "0x...",
+        "to_address": "0x...",
+        "payload": ["0x...", "0x..."]
+      }
     ]
   }
 }
 ```
 
 `proof_facts` length is expected to be 8 in devnet mode.
+
+`l2_to_l1_messages` contains L2→L1 messages extracted by simulating the transaction. If the simulation fails (e.g. insufficient balance), this array will be empty and the proof is still returned.
 
 ## Mode-specific behavior details
 
@@ -135,7 +145,7 @@ Example:
 
 ### `none` mode
 
-- Proof fields on invoke transactions are ignored.
+- Proof field on invoke transactions is ignored; `proof_facts` are checked.
 
 ### `full` mode
 

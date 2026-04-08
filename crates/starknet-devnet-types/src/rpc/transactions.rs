@@ -1236,6 +1236,21 @@ impl FunctionInvocation {
             is_reverted: call_info.execution.failed,
         })
     }
+
+    /// Returns the direct L2→L1 messages from this invocation.
+    pub fn messages(&self) -> &[OrderedMessageToL1] {
+        &self.messages
+    }
+
+    /// Recursively collects all L2→L1 messages from this invocation and nested calls.
+    pub fn all_messages(&self) -> Vec<OrderedMessageToL1> {
+        let mut result = self.messages.clone();
+        for call in &self.calls {
+            result.extend(call.all_messages());
+        }
+        result.sort_by_key(|msg| msg.order);
+        result
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
