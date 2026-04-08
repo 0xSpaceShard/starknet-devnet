@@ -1077,6 +1077,7 @@ mod requests_tests {
             "params":{
                 "block_id":"latest",
                 "transaction":{
+                    "type":"INVOKE",
                     "version":"0x3",
                     "signature":[],
                     "nonce":"0x0",

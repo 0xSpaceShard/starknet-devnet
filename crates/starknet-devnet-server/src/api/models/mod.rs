@@ -274,7 +274,7 @@ pub struct TransactionStatusOutput {
 #[serde(deny_unknown_fields)]
 pub struct ProveTransactionInput {
     pub block_id: BlockId,
-    pub transaction: BroadcastedInvokeTransaction,
+    pub transaction: BroadcastedTransaction,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

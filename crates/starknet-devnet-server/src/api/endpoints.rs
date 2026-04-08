@@ -11,8 +11,8 @@ use starknet_types::rpc::block::{
 use starknet_types::rpc::state::StateUpdateResult;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 use starknet_types::rpc::transactions::{
-    BlockTraceResult, BroadcastedInvokeTransaction, BroadcastedTransaction, EventFilter,
-    EventsChunk, FunctionCall, SimulationFlag, SimulationResult, TraceFlag, Transactions,
+    BlockTraceResult, BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall,
+    SimulationFlag, SimulationResult, TraceFlag, Transactions,
 };
 
 use super::error::{ApiError, StrictRpcResult};
@@ -766,10 +766,18 @@ impl JsonRpcHandler {
     pub async fn prove_transaction(
         &self,
         block_id: BlockId,
-        transaction: BroadcastedInvokeTransaction,
+        transaction: BroadcastedTransaction,
     ) -> StrictRpcResult {
+        let invoke_transaction = match transaction {
+            BroadcastedTransaction::Invoke(invoke) => invoke,
+            _ => {
+                return Err(ApiError::ProvingError {
+                    msg: "Only invoke transactions are supported for proving".to_string(),
+                });
+            }
+        };
         let starknet = self.api.starknet.lock().await;
-        match starknet.prove_transaction(block_id, transaction) {
+        match starknet.prove_transaction(block_id, invoke_transaction) {
             Ok((proof, proof_facts)) => {
                 Ok(StarknetExtResponse::Proof(ProveTransactionResponse { proof, proof_facts })
                     .into())
