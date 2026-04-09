@@ -776,11 +776,15 @@ impl JsonRpcHandler {
                 });
             }
         };
-        let starknet = self.api.starknet.lock().await;
+        let mut starknet = self.api.starknet.lock().await;
         match starknet.prove_transaction(block_id, invoke_transaction) {
-            Ok((proof, proof_facts)) => {
-                Ok(StarknetExtResponse::Proof(ProveTransactionResponse { proof, proof_facts })
-                    .into())
+            Ok((proof, proof_facts, l2_to_l1_messages)) => {
+                Ok(StarknetExtResponse::Proof(ProveTransactionResponse {
+                    proof,
+                    proof_facts,
+                    l2_to_l1_messages,
+                })
+                .into())
             }
             Err(e) => Err(ApiError::ProvingError { msg: e.to_string() }),
         }

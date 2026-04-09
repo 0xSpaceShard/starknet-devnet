@@ -4,7 +4,11 @@ use starknet_rs_core::types::Felt;
 use starknet_types::felt::ProofFacts;
 use starknet_types::proof::Proof;
 use starknet_types::rpc::block::BlockId;
-use starknet_types::rpc::transactions::BroadcastedInvokeTransaction;
+use starknet_types::rpc::messaging::OrderedMessageToL1;
+use starknet_types::rpc::transactions::{
+    BroadcastedInvokeTransaction, BroadcastedTransaction, ExecutionInvocation, SimulationFlag,
+    SimulationResult, TransactionTrace,
+};
 use starknet_types_core::hash::{Pedersen, StarkHash};
 use tracing::debug;
 
@@ -29,10 +33,26 @@ fn proof_to_felt(proof: &Proof) -> Option<Felt> {
     Some(Felt::from_bytes_be(&bytes))
 }
 
-pub fn prove_transaction(
+/// Compute a hash over the L2→L1 messages to bind them into the proof.
+fn compute_messages_hash(messages: &[OrderedMessageToL1]) -> Felt {
+    if messages.is_empty() {
+        return Felt::ZERO;
+    }
+    let message_hashes: Vec<Felt> = messages
+        .iter()
+        .map(|m| {
+            let h = m.message.hash();
+            Felt::from_bytes_be_slice(h.as_bytes())
+        })
+        .collect();
+    Pedersen::hash_array(&message_hashes)
+}
+
+pub fn generate_proof(
     starknet: &Starknet,
-    block_id: BlockId,
-    broadcasted_invoke_transaction: BroadcastedInvokeTransaction,
+    block_id: &BlockId,
+    broadcasted_invoke_transaction: &BroadcastedInvokeTransaction,
+    messages_hash: Felt,
 ) -> DevnetResult<(Proof, ProofFacts)> {
     debug!("Generating devnet proof for invoke transaction at block_id: {block_id:?}");
 
@@ -43,7 +63,7 @@ pub fn prove_transaction(
         .allowed_virtual_os_program_hashes
         .first()
         .ok_or(ProvingError::NoVirtualProgramHashesAllowed)?;
-    let block = starknet.get_block(&block_id).map_err(|_| ProvingError::InvalidBlockId)?;
+    let block = starknet.get_block(block_id).map_err(|_| ProvingError::InvalidBlockId)?;
     let block_number_felt = Felt::from(block.block_number().0);
     let config_hash = OsChainInfo::from(block_context.chain_info())
         .compute_virtual_os_config_hash()
@@ -57,7 +77,12 @@ pub fn prove_transaction(
 
     debug!("Computed invoke transaction hash for proof generation: {tx_hash:#x}");
 
-    let proof_felt = Pedersen::hash_array(&[tx_hash, DEVNET_PROOF_MAGIC.into()]);
+    let proof_felt = Pedersen::hash_array(&[
+        block.block_hash(),
+        tx_hash,
+        DEVNET_PROOF_MAGIC.into(),
+        messages_hash,
+    ]);
     let proof = felt_to_proof(proof_felt);
 
     let last_field = Pedersen::hash_array(&[
@@ -68,6 +93,7 @@ pub fn prove_transaction(
         block_number_felt,
         block.block_hash(),
         config_hash,
+        messages_hash,
         proof_felt,
     ]);
 
@@ -79,6 +105,7 @@ pub fn prove_transaction(
         block_number_felt,
         block.block_hash(),
         config_hash,
+        messages_hash,
         last_field,
     ];
 
@@ -92,9 +119,61 @@ pub fn prove_transaction(
     Ok((proof, proof_facts))
 }
 
+pub fn prove_transaction(
+    starknet: &mut Starknet,
+    block_id: BlockId,
+    broadcasted_invoke_transaction: BroadcastedInvokeTransaction,
+) -> DevnetResult<(Proof, ProofFacts, Vec<OrderedMessageToL1>)> {
+    // Execute the transaction first to extract L2→L1 messages
+    let l2_to_l1_messages =
+        extract_l2_to_l1_messages(starknet, &block_id, broadcasted_invoke_transaction.clone())?;
+
+    let messages_hash = compute_messages_hash(&l2_to_l1_messages);
+
+    let (proof, proof_facts) =
+        generate_proof(starknet, &block_id, &broadcasted_invoke_transaction, messages_hash)?;
+
+    Ok((proof, proof_facts, l2_to_l1_messages))
+}
+
+/// Executes the transaction and extracts L2→L1 messages from the trace.
+fn extract_l2_to_l1_messages(
+    starknet: &mut Starknet,
+    block_id: &BlockId,
+    invoke_transaction: BroadcastedInvokeTransaction,
+) -> DevnetResult<Vec<OrderedMessageToL1>> {
+    let tx = BroadcastedTransaction::Invoke(invoke_transaction);
+    let simulation_result = starknet
+        .simulate_transactions(block_id, &[tx], vec![SimulationFlag::SkipFeeCharge])
+        .map_err(|e| ProvingError::TransactionExecutionFailed(e.to_string()))?;
+
+    let simulated = match simulation_result {
+        SimulationResult::SimulatedTransactions(txs) => txs.into_iter().next(),
+        SimulationResult::SimulatedTransactionsWithInitialReads(r) => {
+            r.simulated_transactions.into_iter().next()
+        }
+    }
+    .ok_or_else(|| {
+        ProvingError::TransactionExecutionFailed("no transaction result returned".to_string())
+    })?;
+
+    if let TransactionTrace::Invoke(invoke_trace) = simulated.transaction_trace {
+        if let ExecutionInvocation::Succeeded(func) = invoke_trace.execute_invocation {
+            return Ok(func.all_messages());
+        }
+        return Err(ProvingError::TransactionExecutionFailed(
+            "invoke execution did not succeed".to_string(),
+        )
+        .into());
+    }
+
+    Err(ProvingError::TransactionExecutionFailed("unexpected transaction trace type".to_string())
+        .into())
+}
+
 pub fn verify_proof(proof: Proof, proof_facts: ProofFacts) -> bool {
     let mut input = proof_facts.clone();
-    if input.len() != 8 {
+    if input.len() != 9 {
         debug!("Proof verification failed: invalid proof_facts length: {}", input.len());
         return false;
     }
@@ -118,7 +197,7 @@ pub fn verify_proof(proof: Proof, proof_facts: ProofFacts) -> bool {
     input.push(proof_felt);
     let is_valid = Pedersen::hash_array(&input) == last_field;
     if is_valid {
-        debug!("Proof verification succeeded ");
+        debug!("Proof verification succeeded");
     } else {
         debug!("Proof verification failed: commitment mismatch");
     }
@@ -165,19 +244,20 @@ mod tests {
     }
 
     #[test]
-    fn test_prove_transaction_generates_valid_proof() {
+    fn test_generate_proof_produces_valid_output() {
         let starknet = create_test_starknet();
         let tx = create_test_invoke_transaction();
 
-        let (proof, proof_facts) = prove_transaction(
+        let (proof, proof_facts) = generate_proof(
             &starknet,
-            BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
-            tx,
+            &BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
+            &tx,
+            Felt::ZERO,
         )
         .unwrap();
 
         // Verify proof facts has correct length
-        assert_eq!(proof_facts.len(), 8, "proof_facts should have 8 elements");
+        assert_eq!(proof_facts.len(), 9, "proof_facts should have 9 elements");
 
         // Verify proof has correct length (32 u8 values)
         assert_eq!(proof.len(), 32, "proof should have 32 u8 values");
@@ -188,10 +268,11 @@ mod tests {
         let starknet = create_test_starknet();
         let tx = create_test_invoke_transaction();
 
-        let (proof, proof_facts) = prove_transaction(
+        let (proof, proof_facts) = generate_proof(
             &starknet,
-            BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
-            tx,
+            &BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
+            &tx,
+            Felt::ZERO,
         )
         .unwrap();
 
@@ -203,10 +284,11 @@ mod tests {
         let starknet = create_test_starknet();
         let tx = create_test_invoke_transaction();
 
-        let (_proof, proof_facts) = prove_transaction(
+        let (_proof, proof_facts) = generate_proof(
             &starknet,
-            BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
-            tx,
+            &BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
+            &tx,
+            Felt::ZERO,
         )
         .unwrap();
         let wrong_proof = vec![0xDEu8; 32];
@@ -219,10 +301,11 @@ mod tests {
         let starknet = create_test_starknet();
         let tx = create_test_invoke_transaction();
 
-        let (proof, mut proof_facts) = prove_transaction(
+        let (proof, mut proof_facts) = generate_proof(
             &starknet,
-            BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
-            tx,
+            &BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
+            &tx,
+            Felt::ZERO,
         )
         .unwrap();
 
@@ -269,10 +352,11 @@ mod tests {
         let starknet = create_test_starknet();
         let tx = create_test_invoke_transaction();
 
-        let (_proof, proof_facts) = prove_transaction(
+        let (_proof, proof_facts) = generate_proof(
             &starknet,
-            BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
-            tx,
+            &BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
+            &tx,
+            Felt::ZERO,
         )
         .unwrap();
 
@@ -289,21 +373,23 @@ mod tests {
     }
 
     #[test]
-    fn test_prove_transaction_deterministic() {
+    fn test_generate_proof_deterministic() {
         let starknet = create_test_starknet();
         let tx1 = create_test_invoke_transaction();
         let tx2 = create_test_invoke_transaction();
 
-        let (proof1, proof_facts1) = prove_transaction(
+        let (proof1, proof_facts1) = generate_proof(
             &starknet,
-            BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
-            tx1,
+            &BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
+            &tx1,
+            Felt::ZERO,
         )
         .unwrap();
-        let (proof2, proof_facts2) = prove_transaction(
+        let (proof2, proof_facts2) = generate_proof(
             &starknet,
-            BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
-            tx2,
+            &BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
+            &tx2,
+            Felt::ZERO,
         )
         .unwrap();
 
@@ -313,7 +399,7 @@ mod tests {
     }
 
     #[test]
-    fn test_prove_transaction_different_for_different_transactions() {
+    fn test_generate_proof_different_for_different_transactions() {
         let starknet = create_test_starknet();
         let tx1 = create_test_invoke_transaction();
         let mut tx2 = create_test_invoke_transaction();
@@ -322,16 +408,18 @@ mod tests {
         let BroadcastedInvokeTransaction::V3(ref mut v3) = tx2;
         v3.common.nonce = Felt::ONE;
 
-        let (proof1, _) = prove_transaction(
+        let (proof1, _) = generate_proof(
             &starknet,
-            BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
-            tx1,
+            &BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
+            &tx1,
+            Felt::ZERO,
         )
         .unwrap();
-        let (proof2, _) = prove_transaction(
+        let (proof2, _) = generate_proof(
             &starknet,
-            BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
-            tx2,
+            &BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
+            &tx2,
+            Felt::ZERO,
         )
         .unwrap();
 
@@ -340,28 +428,44 @@ mod tests {
     }
 
     #[test]
+    fn test_prove_transaction_fails_on_non_executable_tx() {
+        let mut starknet = create_test_starknet();
+        let tx = create_test_invoke_transaction();
+
+        let result = prove_transaction(
+            &mut starknet,
+            BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
+            tx,
+        );
+
+        assert!(result.is_err(), "prove_transaction should fail for non-executable transactions");
+    }
+
+    #[test]
     fn test_proof_facts_structure() {
         let starknet = create_test_starknet();
         let tx = create_test_invoke_transaction();
 
-        let (proof, proof_facts) = prove_transaction(
+        let (proof, proof_facts) = generate_proof(
             &starknet,
-            BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
-            tx,
+            &BlockId::Tag(starknet_types::rpc::block::BlockTag::Latest),
+            &tx,
+            Felt::ZERO,
         )
         .unwrap();
 
         // Verify proof_facts contains expected fields
         assert_eq!(proof_facts[0], PROOF_VERSION, "first field should be proof_version");
         assert_eq!(proof_facts[1], VIRTUAL_SNOS, "second field should be variant_marker");
+        assert_eq!(proof_facts[7], Felt::ZERO, "eighth field should be messages_hash");
 
         // Last field should be hash of all previous fields plus proof_felt
         let proof_felt = proof_to_felt(&proof).expect("proof should convert to felt");
-        let mut input = proof_facts[0..7].to_vec();
+        let mut input = proof_facts[0..8].to_vec();
         input.push(proof_felt);
         let expected_last_field = Pedersen::hash_array(&input);
         assert_eq!(
-            proof_facts[7], expected_last_field,
+            proof_facts[8], expected_last_field,
             "last field should be hash of previous fields plus proof"
         );
     }

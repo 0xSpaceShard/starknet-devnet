@@ -40,7 +40,7 @@ use crate::common::utils::{
     send_ctrl_c_signal_and_wait,
 };
 
-const DUMMY_L1_ADDRESS: Felt =
+pub(crate) const DUMMY_L1_ADDRESS: Felt =
     Felt::from_hex_unchecked("0xc662c410c0ecf747543f5ba90660f6abebd9c8c4");
 const MESSAGE_WITHDRAW_OPCODE: Felt = Felt::ZERO;
 
@@ -66,7 +66,7 @@ async fn withdraw<A: ConnectedAccount + Send + Sync + 'static>(
 }
 
 /// Increases the balance for the given user.
-async fn increase_balance<A: ConnectedAccount + Send + Sync + 'static>(
+pub(crate) async fn increase_balance<A: ConnectedAccount + Send + Sync + 'static>(
     account: A,
     contract_address: Felt,
     user: Felt,
@@ -151,7 +151,7 @@ async fn deploy_l2_msg_contract(
 
 /// Sets up a `BackgroundDevnet` with the message l1-l2 contract deployed.
 /// Returns (devnet instance, account used for deployment, l1-l2 contract address).
-async fn setup_devnet(
+pub(crate) async fn setup_devnet(
     devnet_args: &[&str],
 ) -> Result<
     (BackgroundDevnet, Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>, Felt),

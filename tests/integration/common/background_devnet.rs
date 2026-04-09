@@ -11,7 +11,7 @@ use serde_json::json;
 use starknet_rs_core::types::{
     BlockId, BlockTag, BlockWithTxHashes, BlockWithTxs, BroadcastedInvokeTransaction, Felt,
     FunctionCall, MaybePreConfirmedBlockWithTxHashes, MaybePreConfirmedBlockWithTxs,
-    PreConfirmedBlockWithTxHashes, PreConfirmedBlockWithTxs,
+    OrderedMessage, PreConfirmedBlockWithTxHashes, PreConfirmedBlockWithTxs,
 };
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -51,6 +51,7 @@ pub struct ProveTransactionResult {
     #[allow(unused)]
     pub proof: Vec<u64>,
     pub proof_facts: Vec<Felt>,
+    pub l2_to_l1_messages: Vec<OrderedMessage>,
 }
 
 lazy_static! {
@@ -269,9 +270,10 @@ impl BackgroundDevnet {
         }
     }
 
-    pub async fn prove_transaction(
+    pub async fn prove_transaction_at_block(
         &self,
         transaction: BroadcastedInvokeTransaction,
+        block_id: BlockId,
     ) -> ProveTransactionResult {
         let mut transaction = serde_json::to_value(transaction)
             .expect("Failed to serialize transaction for proveTransaction");
@@ -285,7 +287,7 @@ impl BackgroundDevnet {
             .send_custom_rpc(
                 "starknet_proveTransaction",
                 json!({
-                    "block_id": "latest",
+                    "block_id": serde_json::to_value(block_id).expect("Failed to serialize block_id"),
                     "transaction": transaction
                 }),
             )
@@ -330,7 +332,25 @@ impl BackgroundDevnet {
             .collect::<Result<Vec<_>, _>>()
             .expect("Invalid felt in proof_facts response");
 
-        ProveTransactionResult { proof_base64, proof_facts_hex, proof, proof_facts }
+        let l2_to_l1_messages = result
+            .get("l2_to_l1_messages")
+            .map(|value| serde_json::from_value(value.clone()).expect("Invalid l2_to_l1_messages"))
+            .unwrap_or_default();
+
+        ProveTransactionResult {
+            proof_base64,
+            proof_facts_hex,
+            proof,
+            proof_facts,
+            l2_to_l1_messages,
+        }
+    }
+
+    pub async fn prove_transaction(
+        &self,
+        transaction: BroadcastedInvokeTransaction,
+    ) -> ProveTransactionResult {
+        self.prove_transaction_at_block(transaction, BlockId::Tag(BlockTag::Latest)).await
     }
 
     pub fn clone_provider(&self) -> JsonRpcClient<HttpTransport> {

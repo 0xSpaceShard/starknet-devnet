@@ -19,7 +19,7 @@ use starknet_types::proof::Proof;
 use starknet_types::rpc::block::{
     BlockId, StorageResponseFlag, SubscriptionBlockId, TransactionResponseFlag,
 };
-use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
+use starknet_types::rpc::messaging::{MessageToL1, MessageToL2, OrderedMessageToL1};
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
@@ -282,6 +282,7 @@ pub struct ProveTransactionInput {
 pub struct ProveTransactionResponse {
     pub proof: Proof,
     pub proof_facts: ProofFacts,
+    pub l2_to_l1_messages: Vec<OrderedMessageToL1>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

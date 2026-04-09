@@ -31,6 +31,7 @@ use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{
     BlockHash, ClassHash, ProofFacts, TransactionHash, felt_from_prefixed_hex, split_biguint,
 };
+use starknet_types::messaging::OrderedMessageToL1;
 use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::proof::Proof;
@@ -943,10 +944,10 @@ impl Starknet {
     }
 
     pub fn prove_transaction(
-        &self,
+        &mut self,
         block_id: CustomBlockId,
         invoke_transaction: BroadcastedInvokeTransaction,
-    ) -> DevnetResult<(Proof, ProofFacts)> {
+    ) -> DevnetResult<(Proof, ProofFacts, Vec<OrderedMessageToL1>)> {
         match self.config.proof_mode {
             ProofMode::Devnet => proofs::prove_transaction(self, block_id, invoke_transaction),
             _ => Err(Error::UnsupportedAction {

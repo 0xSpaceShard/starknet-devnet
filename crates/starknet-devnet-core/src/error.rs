@@ -227,6 +227,8 @@ pub enum ProvingError {
     NoVirtualProgramHashesAllowed,
     #[error("Block Id provided doesn't match existing block")]
     InvalidBlockId,
+    #[error("Transaction execution failed: {0}")]
+    TransactionExecutionFailed(String),
     #[error("Error: {0}")]
     Other(String),
 }

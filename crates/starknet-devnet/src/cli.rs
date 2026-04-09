@@ -190,7 +190,7 @@ pub(crate) struct Args {
     #[arg(help = "Specify how to calculate and verify transaction proofs. Possible values are:
 - \"full\" - proofs are generated and verified fully
 - \"devnet\" - devnet creates fake proof that it later verifies
-- \"none\" - proof and proof_facts fields of transactions are ignored
+- \"none\" - proof field of transactions is ignored
 ")]
     proof_mode: ProofMode,
 
