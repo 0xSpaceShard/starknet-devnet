@@ -9,9 +9,10 @@ use starknet_rs_core::chain_id::SEPOLIA;
 use starknet_rs_core::types::{
     BlockHashAndNumber, BlockId, BlockTag, BroadcastedInvokeTransaction,
     BroadcastedInvokeTransactionV3, BroadcastedTransaction, Call, ContractClass,
-    DataAvailabilityMode, ExecuteInvocation, Felt, InvokeTransactionTrace, ResourceBounds,
-    ResourceBoundsMapping, SimulatedTransaction, SimulationFlag, SimulationFlagForEstimateFee,
-    StarknetError, TransactionExecutionErrorData, TransactionTrace,
+    DataAvailabilityMode, ExecuteInvocation, Felt, GetStorageAtResult, InvokeTransactionTrace,
+    ResourceBounds, ResourceBoundsMapping, SimulatedTransaction, SimulationFlag,
+    SimulationFlagForEstimateFee, StarknetError, StorageResponseFlag,
+    TransactionExecutionErrorData, TransactionTrace,
 };
 use starknet_rs_core::utils::{get_selector_from_name, get_storage_var_address};
 use starknet_rs_providers::{Provider, ProviderError};
@@ -375,4 +376,117 @@ async fn test_nonce_retrieval_for_an_old_state() {
         .unwrap();
 
     assert_eq!(initial_nonce, nonce_at_old_state);
+}
+
+#[tokio::test]
+async fn get_storage_with_response_flags() {
+    let devnet =
+        BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+            .await
+            .expect("Could not start Devnet");
+    let (signer, account_address) = devnet.get_first_predeployed_account().await;
+
+    let account = SingleOwnerAccount::new(
+        &devnet.json_rpc_client,
+        signer,
+        account_address,
+        constants::CHAIN_ID,
+        ExecutionEncoding::New,
+    );
+
+    let recipient = Felt::ONE;
+    let flags: Option<&[StorageResponseFlag]> =
+        Some(&[StorageResponseFlag::IncludeLastUpdateBlock]);
+
+    let balance_key = get_storage_var_address("ERC20_balances", &[recipient]).unwrap();
+
+    let get_storage_at = |block_id: BlockId| {
+        devnet.json_rpc_client.get_storage_at(
+            ETH_ERC20_CONTRACT_ADDRESS,
+            balance_key,
+            block_id,
+            flags,
+        )
+    };
+
+    devnet.create_block().await.unwrap();
+    let block_before_first_update =
+        devnet.json_rpc_client.block_hash_and_number().await.unwrap().block_number;
+
+    devnet.create_block().await.unwrap();
+
+    // storage update #1
+    account
+        .execute_v3(vec![Call {
+            to: ETH_ERC20_CONTRACT_ADDRESS,
+            selector: get_selector_from_name("transfer").unwrap(),
+            calldata: vec![recipient, Felt::from(1_000u128), Felt::ZERO],
+        }])
+        .send()
+        .await
+        .unwrap();
+    let block_of_first_update =
+        devnet.json_rpc_client.block_hash_and_number().await.unwrap().block_number;
+
+    devnet.create_block().await.unwrap();
+    let block_between_updates =
+        devnet.json_rpc_client.block_hash_and_number().await.unwrap().block_number;
+
+    devnet.create_block().await.unwrap();
+
+    // storage update #2
+    account
+        .execute_v3(vec![Call {
+            to: ETH_ERC20_CONTRACT_ADDRESS,
+            selector: get_selector_from_name("transfer").unwrap(),
+            calldata: vec![recipient, Felt::from(2_000u128), Felt::ZERO],
+        }])
+        .send()
+        .await
+        .unwrap();
+    let block_of_second_update =
+        devnet.json_rpc_client.block_hash_and_number().await.unwrap().block_number;
+
+    devnet.create_block().await.unwrap();
+
+    // Before first update: slot was untouched, last_update_block = 0
+    let before = get_storage_at(BlockId::Number(block_before_first_update)).await.unwrap();
+    assert!(matches!(before, GetStorageAtResult::ValueWithMetadata(_)));
+    assert_eq!(before.value(), Felt::ZERO);
+    assert_eq!(before.last_update_block().unwrap(), 0);
+
+    // At block of first update: last_update_block points to that block
+    let at_first = get_storage_at(BlockId::Number(block_of_first_update)).await.unwrap();
+    assert_eq!(at_first.last_update_block().unwrap(), block_of_first_update);
+    assert!(at_first.value() != Felt::ZERO);
+
+    // Between updates: still points to first update block
+    let between = get_storage_at(BlockId::Number(block_between_updates)).await.unwrap();
+    assert_eq!(between.last_update_block().unwrap(), block_of_first_update);
+    assert_eq!(between.value(), at_first.value());
+
+    // At block of second update: last_update_block advances
+    let at_second = get_storage_at(BlockId::Number(block_of_second_update)).await.unwrap();
+    assert_eq!(at_second.last_update_block().unwrap(), block_of_second_update);
+    assert!(at_second.value() != at_first.value());
+
+    // Latest (one block after second update): still points to second update
+    let latest = get_storage_at(BlockId::Tag(BlockTag::Latest)).await.unwrap();
+    assert_eq!(latest.last_update_block().unwrap(), block_of_second_update);
+    assert_eq!(latest.value(), at_second.value());
+
+    // Without flags: returns plain Value, same underlying value
+    let no_flags = devnet
+        .json_rpc_client
+        .get_storage_at(
+            ETH_ERC20_CONTRACT_ADDRESS,
+            balance_key,
+            BlockId::Tag(BlockTag::Latest),
+            None,
+        )
+        .await
+        .unwrap();
+    assert!(matches!(no_flags, GetStorageAtResult::Value(_)));
+    assert!(no_flags.last_update_block().is_none());
+    assert_eq!(no_flags.value(), latest.value());
 }
