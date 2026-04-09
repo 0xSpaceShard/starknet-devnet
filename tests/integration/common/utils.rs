@@ -191,7 +191,7 @@ pub async fn create_proof_bearing_transaction(
         .prepared()
         .unwrap();
 
-    let invoke_for_prove = prepared_for_prove.get_invoke_request(false, true).await.unwrap();
+    let invoke_for_prove = prepared_for_prove.get_invoke_request(false, false).await.unwrap();
     let prove_result = devnet.prove_transaction(invoke_for_prove).await;
     let proof = prove_result.proof_base64;
 
