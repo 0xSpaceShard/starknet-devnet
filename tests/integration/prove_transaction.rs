@@ -1,18 +1,12 @@
-use std::sync::Arc;
-
 use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
-use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, StarknetError};
-use starknet_rs_core::utils::{UdcUniqueness, get_selector_from_name, get_udc_deployed_address};
-use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
-use starknet_rs_signers::LocalWallet;
+use starknet_rs_core::types::{BlockId, BlockTag, Call, Felt, StarknetError, TransactionReceipt};
+use starknet_rs_core::utils::get_selector_from_name;
+use starknet_rs_providers::{Provider, ProviderError};
 
 use crate::common::background_devnet::BackgroundDevnet;
-use crate::common::constants::{self, CHAIN_ID, STRK_ERC20_CONTRACT_ADDRESS};
-use crate::common::utils::{
-    assert_tx_succeeded_accepted, felt_to_u128, get_messaging_contract_artifacts,
-    new_contract_factory,
-};
+use crate::common::constants::{self, STRK_ERC20_CONTRACT_ADDRESS};
+use crate::common::utils::{assert_tx_succeeded_accepted, felt_to_u128};
+use crate::messaging::{DUMMY_L1_ADDRESS, increase_balance, setup_devnet};
 
 /// Helper: build a simple transfer call
 fn transfer_call(recipient: Felt, amount: Felt) -> Call {
@@ -62,7 +56,7 @@ async fn prove_transaction_endpoint_returns_proof_and_proof_facts() {
         .prepared()
         .unwrap();
 
-    let invoke_for_prove = prepared.get_invoke_request(false, true).await.unwrap();
+    let invoke_for_prove = prepared.get_invoke_request(false, false).await.unwrap();
     let result = devnet.prove_transaction(invoke_for_prove).await;
 
     assert!(!result.proof_base64.is_empty(), "proof should be a non-empty base64 string");
@@ -112,7 +106,7 @@ async fn invoke_with_valid_proof_is_accepted() {
         .prepared()
         .unwrap();
 
-    let invoke_for_prove = prepared_for_prove.get_invoke_request(false, true).await.unwrap();
+    let invoke_for_prove = prepared_for_prove.get_invoke_request(false, false).await.unwrap();
     let prove_result = devnet.prove_transaction(invoke_for_prove).await;
     let proof = prove_result.proof_base64;
     let proof_facts = prove_result.proof_facts;
@@ -201,7 +195,7 @@ async fn invoke_with_wrong_proof_is_rejected() {
         .prepared()
         .unwrap();
 
-    let invoke_for_prove = prepared_for_prove.get_invoke_request(false, true).await.unwrap();
+    let invoke_for_prove = prepared_for_prove.get_invoke_request(false, false).await.unwrap();
     let prove_result = devnet.prove_transaction(invoke_for_prove).await;
 
     for _ in 0..11 {
@@ -312,7 +306,7 @@ async fn invoke_with_proof_only_and_no_proof_facts_is_rejected() {
         .prepared()
         .unwrap();
 
-    let invoke_for_prove = prepared_for_prove.get_invoke_request(false, true).await.unwrap();
+    let invoke_for_prove = prepared_for_prove.get_invoke_request(false, false).await.unwrap();
     let prove_result = devnet.prove_transaction(invoke_for_prove).await;
 
     for _ in 0..11 {
@@ -392,7 +386,7 @@ async fn prove_transaction_is_deterministic() {
         .prepared()
         .unwrap();
 
-    let invoke_for_prove = prepared.get_invoke_request(false, true).await.unwrap();
+    let invoke_for_prove = prepared.get_invoke_request(false, false).await.unwrap();
     let result1 = devnet.prove_transaction(invoke_for_prove.clone()).await;
     let result2 = devnet.prove_transaction(invoke_for_prove).await;
 
@@ -494,7 +488,7 @@ async fn invoke_in_proof_mode_none_accepts_without_proof_or_with_wrong_proof() {
         .tip(0)
         .prepared()
         .unwrap();
-    let invoke_for_prove = prepared_for_prove.get_invoke_request(false, true).await.unwrap();
+    let invoke_for_prove = prepared_for_prove.get_invoke_request(false, false).await.unwrap();
     let prove_result = devnet_with_proofs.prove_transaction(invoke_for_prove).await;
 
     // Ensure devnet_none has enough blocks for the block-hash retention buffer
@@ -652,76 +646,24 @@ async fn invoke_in_proof_mode_none_rejects_wrong_proof_facts() {
     }
 }
 
-/// Deploy the L1-L2 messaging contract and return its address.
-async fn deploy_l2_msg_contract(
-    account: &Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>,
-) -> Felt {
-    let (sierra_class, casm_class_hash) = get_messaging_contract_artifacts();
-    let sierra_class_hash = sierra_class.class_hash();
-    account
-        .declare_v3(Arc::new(sierra_class), casm_class_hash)
-        .send()
-        .await
-        .expect("Failed to declare messaging contract");
-
-    let contract_factory = new_contract_factory(sierra_class_hash, account.clone());
-    let salt = Felt::from_hex_unchecked("0x123");
-    let constructor_calldata = vec![];
-    let contract_address = get_udc_deployed_address(
-        salt,
-        sierra_class_hash,
-        &UdcUniqueness::NotUnique,
-        &constructor_calldata,
-    );
-    contract_factory
-        .deploy_v3(constructor_calldata, salt, false)
-        .nonce(Felt::ONE)
-        .send()
-        .await
-        .expect("Failed to deploy messaging contract");
-
-    contract_address
-}
-
 #[tokio::test]
 async fn prove_transaction_returns_l2_to_l1_messages_for_withdraw() {
-    let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo1"])
-        .await
-        .expect("Could not start Devnet");
-    let (signer, account_address) = devnet.get_first_predeployed_account().await;
-    let account = Arc::new(SingleOwnerAccount::new(
-        devnet.clone_provider(),
-        signer,
-        account_address,
-        CHAIN_ID,
-        ExecutionEncoding::New,
-    ));
-
-    let contract_address = deploy_l2_msg_contract(&account).await;
+    let (devnet, account, contract_address) =
+        setup_devnet(&["--account-class", "cairo1"]).await.unwrap();
+    let account_address = account.address();
 
     // increase_balance for user before withdraw
     let user = Felt::ONE;
     let amount = Felt::ONE;
-    let increase_calls = vec![Call {
-        to: contract_address,
-        selector: get_selector_from_name("increase_balance").unwrap(),
-        calldata: vec![user, amount],
-    }];
-    account
-        .execute_v3(increase_calls)
-        .l1_gas(0)
-        .l1_data_gas(1000)
-        .l2_gas(5e7 as u64)
-        .send()
+    increase_balance(account.clone(), contract_address, user, amount)
         .await
         .expect("increase_balance failed");
 
     // Build a withdraw transaction (produces L2→L1 message) for prove_transaction
-    let dummy_l1_address = Felt::from_hex_unchecked("0xc662c410c0ecf747543f5ba90660f6abebd9c8c4");
     let withdraw_calls = vec![Call {
         to: contract_address,
         selector: get_selector_from_name("withdraw").unwrap(),
-        calldata: vec![user, amount, dummy_l1_address],
+        calldata: vec![user, amount, DUMMY_L1_ADDRESS],
     }];
 
     let nonce = devnet
@@ -737,7 +679,7 @@ async fn prove_transaction_returns_l2_to_l1_messages_for_withdraw() {
         .unwrap();
 
     let prepared = account
-        .execute_v3(withdraw_calls)
+        .execute_v3(withdraw_calls.clone())
         .l1_gas(5_000_000)
         .l1_data_gas(1_000_000)
         .l2_gas(2_500_000_000)
@@ -749,7 +691,7 @@ async fn prove_transaction_returns_l2_to_l1_messages_for_withdraw() {
         .prepared()
         .unwrap();
 
-    let invoke_for_prove = prepared.get_invoke_request(false, true).await.unwrap();
+    let invoke_for_prove = prepared.get_invoke_request(false, false).await.unwrap();
     let result = devnet.prove_transaction(invoke_for_prove).await;
 
     // Proof should still be valid
@@ -763,9 +705,75 @@ async fn prove_transaction_returns_l2_to_l1_messages_for_withdraw() {
     );
 
     let msg = &result.l2_to_l1_messages[0];
-    assert_eq!(msg.from_address, account.address(), "message should be from the sender account");
-    assert_eq!(msg.to_address, dummy_l1_address, "message should be sent to the L1 address");
+    assert_eq!(msg.from_address, contract_address, "message should be from the contract address");
+    assert_eq!(msg.to_address, DUMMY_L1_ADDRESS, "message should be sent to the L1 address");
     assert!(!msg.payload.is_empty(), "message should have a payload");
+
+    // Execute the same transaction and ensure emitted message matches prove_transaction output.
+    let proof = result.proof_base64.clone();
+    let proof_facts = result.proof_facts.clone();
+
+    for _ in 0..11 {
+        devnet.create_block().await.unwrap();
+    }
+
+    let latest_block = devnet
+        .json_rpc_client
+        .get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest))
+        .await
+        .unwrap();
+    let tx_l1_gas_price = felt_to_u128(latest_block.l1_gas_price().price_in_fri);
+    let tx_l1_data_gas_price = felt_to_u128(latest_block.l1_data_gas_price().price_in_fri);
+    let tx_l2_gas_price = felt_to_u128(latest_block.l2_gas_price().price_in_fri);
+
+    let fees = account
+        .execute_v3(withdraw_calls.clone())
+        .nonce(nonce)
+        .tip(0)
+        .proof(proof.clone())
+        .proof_facts(proof_facts.clone())
+        .estimate_fee()
+        .await
+        .unwrap();
+
+    let send_result = account
+        .execute_v3(withdraw_calls)
+        .l1_gas(fees.l1_gas_consumed)
+        .l1_data_gas(fees.l1_data_gas_consumed)
+        .l2_gas(fees.l2_gas_consumed)
+        .l1_gas_price(tx_l1_gas_price)
+        .l1_data_gas_price(tx_l1_data_gas_price)
+        .l2_gas_price(tx_l2_gas_price)
+        .nonce(nonce)
+        .proof(proof)
+        .proof_facts(proof_facts)
+        .tip(0)
+        .send()
+        .await
+        .unwrap();
+
+    assert_tx_succeeded_accepted(&send_result.transaction_hash, &devnet.json_rpc_client)
+        .await
+        .unwrap();
+
+    let receipt = devnet
+        .json_rpc_client
+        .get_transaction_receipt(send_result.transaction_hash)
+        .await
+        .unwrap()
+        .receipt;
+
+    match receipt {
+        TransactionReceipt::Invoke(invoke_receipt) => {
+            assert_eq!(invoke_receipt.messages_sent.len(), result.l2_to_l1_messages.len());
+
+            let executed_msg = &invoke_receipt.messages_sent[0];
+            assert_eq!(executed_msg.from_address, msg.from_address);
+            assert_eq!(executed_msg.to_address, msg.to_address);
+            assert_eq!(executed_msg.payload, msg.payload);
+        }
+        other => panic!("Expected invoke receipt, got: {other:?}"),
+    }
 }
 
 #[tokio::test]
@@ -807,7 +815,7 @@ async fn prove_transaction_returns_empty_messages_for_simple_transfer() {
         .prepared()
         .unwrap();
 
-    let invoke_for_prove = prepared.get_invoke_request(false, true).await.unwrap();
+    let invoke_for_prove = prepared.get_invoke_request(false, false).await.unwrap();
     let result = devnet.prove_transaction(invoke_for_prove).await;
 
     assert!(!result.proof_base64.is_empty(), "proof should be non-empty");
@@ -866,7 +874,7 @@ async fn prove_transaction_returns_error_on_execution_failure() {
         .prepared()
         .unwrap();
 
-    let invoke_for_prove = prepared.get_invoke_request(false, true).await.unwrap();
+    let invoke_for_prove = prepared.get_invoke_request(false, false).await.unwrap();
 
     let mut transaction =
         serde_json::to_value(invoke_for_prove).expect("Failed to serialize transaction");

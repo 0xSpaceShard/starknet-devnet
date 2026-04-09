@@ -1186,7 +1186,10 @@ impl FunctionInvocation {
 
         let mut messages: Vec<OrderedMessageToL1> = vec![];
         for msg in call_info.execution.l2_to_l1_messages.iter() {
-            messages.push(OrderedMessageToL1::new(msg, call_info.call.caller_address.into())?);
+            // Keep sender semantics aligned with transaction receipts.
+            // `storage_address` identifies the contract that emitted the message,
+            // including delegate/library syscall flows.
+            messages.push(OrderedMessageToL1::new(msg, call_info.call.storage_address.into())?);
         }
         messages.sort_by_key(|msg| msg.order);
 
