@@ -270,9 +270,10 @@ impl BackgroundDevnet {
         }
     }
 
-    pub async fn prove_transaction(
+    pub async fn prove_transaction_at_block(
         &self,
         transaction: BroadcastedInvokeTransaction,
+        block_id: BlockId,
     ) -> ProveTransactionResult {
         let mut transaction = serde_json::to_value(transaction)
             .expect("Failed to serialize transaction for proveTransaction");
@@ -286,7 +287,7 @@ impl BackgroundDevnet {
             .send_custom_rpc(
                 "starknet_proveTransaction",
                 json!({
-                    "block_id": "latest",
+                    "block_id": serde_json::to_value(block_id).expect("Failed to serialize block_id"),
                     "transaction": transaction
                 }),
             )
@@ -343,6 +344,13 @@ impl BackgroundDevnet {
             proof_facts,
             l2_to_l1_messages,
         }
+    }
+
+    pub async fn prove_transaction(
+        &self,
+        transaction: BroadcastedInvokeTransaction,
+    ) -> ProveTransactionResult {
+        self.prove_transaction_at_block(transaction, BlockId::Tag(BlockTag::Latest)).await
     }
 
     pub fn clone_provider(&self) -> JsonRpcClient<HttpTransport> {

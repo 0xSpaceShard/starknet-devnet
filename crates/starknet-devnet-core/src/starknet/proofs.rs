@@ -77,7 +77,12 @@ pub fn generate_proof(
 
     debug!("Computed invoke transaction hash for proof generation: {tx_hash:#x}");
 
-    let proof_felt = Pedersen::hash_array(&[tx_hash, DEVNET_PROOF_MAGIC.into(), messages_hash]);
+    let proof_felt = Pedersen::hash_array(&[
+        block.block_hash(),
+        tx_hash,
+        DEVNET_PROOF_MAGIC.into(),
+        messages_hash,
+    ]);
     let proof = felt_to_proof(proof_felt);
 
     let last_field = Pedersen::hash_array(&[

@@ -398,6 +398,75 @@ async fn prove_transaction_is_deterministic() {
 }
 
 #[tokio::test]
+async fn prove_transaction_differs_on_different_block_ids() {
+    let devnet = BackgroundDevnet::spawn_forkable_devnet()
+        .await
+        .expect("Could not start Devnet with full state archive");
+
+    // First, create at least 15 blocks to ensure we have sufficient chain history
+    for _ in 0..15 {
+        devnet.create_block().await.unwrap();
+    }
+
+    let (signer, account_address) = devnet.get_first_predeployed_account().await;
+    let mut account = SingleOwnerAccount::new(
+        &devnet.json_rpc_client,
+        signer,
+        account_address,
+        constants::CHAIN_ID,
+        ExecutionEncoding::New,
+    );
+    account.set_block_id(BlockId::Tag(BlockTag::Latest));
+
+    let calls = vec![transfer_call(Felt::ONE, Felt::from(1000u64))];
+    let nonce = devnet
+        .json_rpc_client
+        .get_nonce(BlockId::Tag(BlockTag::Latest), account_address)
+        .await
+        .unwrap();
+
+    let block = devnet
+        .json_rpc_client
+        .get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest))
+        .await
+        .unwrap();
+
+    let prepared = account
+        .execute_v3(calls)
+        .l1_gas(5_000_000)
+        .l1_data_gas(1_000_000)
+        .l2_gas(2_500_000_000)
+        .l1_gas_price(felt_to_u128(block.l1_gas_price().price_in_fri))
+        .l1_data_gas_price(felt_to_u128(block.l1_data_gas_price().price_in_fri))
+        .l2_gas_price(felt_to_u128(block.l2_gas_price().price_in_fri))
+        .nonce(nonce)
+        .tip(0)
+        .prepared()
+        .unwrap();
+
+    let invoke_for_prove = prepared.get_invoke_request(false, false).await.unwrap();
+
+    // Prove at block 10
+    let block_id_10 = BlockId::Number(10u64);
+    let result_at_block_10 =
+        devnet.prove_transaction_at_block(invoke_for_prove.clone(), block_id_10).await;
+
+    // Prove the same transaction at block 15 (no blocks created between)
+    let block_id_15 = BlockId::Number(15u64);
+    let result_at_block_15 = devnet.prove_transaction_at_block(invoke_for_prove, block_id_15).await;
+
+    // Proofs should differ because they include different block numbers and hashes
+    assert_ne!(
+        result_at_block_10.proof_base64, result_at_block_15.proof_base64,
+        "Proofs should differ for different block numbers (10 vs 15)"
+    );
+    assert_ne!(
+        result_at_block_10.proof_facts_hex, result_at_block_15.proof_facts_hex,
+        "Proof facts should differ for different block numbers"
+    );
+}
+
+#[tokio::test]
 async fn invoke_in_proof_mode_none_accepts_without_proof_or_with_wrong_proof() {
     let devnet_none = BackgroundDevnet::spawn_with_additional_args(&["--proof-mode", "none"])
         .await
