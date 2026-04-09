@@ -139,11 +139,7 @@ fn extract_l2_to_l1_messages(
 ) -> DevnetResult<Vec<OrderedMessageToL1>> {
     let tx = BroadcastedTransaction::Invoke(invoke_transaction);
     let simulation_result = starknet
-        .simulate_transactions(
-            block_id,
-            &[tx],
-            vec![SimulationFlag::SkipFeeCharge, SimulationFlag::SkipValidate],
-        )
+        .simulate_transactions(block_id, &[tx], vec![SimulationFlag::SkipFeeCharge])
         .map_err(|e| ProvingError::TransactionExecutionFailed(e.to_string()))?;
 
     let simulated = match simulation_result {
