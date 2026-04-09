@@ -66,7 +66,7 @@ async fn prove_transaction_endpoint_returns_proof_and_proof_facts() {
     let result = devnet.prove_transaction(invoke_for_prove).await;
 
     assert!(!result.proof_base64.is_empty(), "proof should be a non-empty base64 string");
-    assert_eq!(result.proof_facts_hex.len(), 8, "proof_facts should have 8 elements");
+    assert_eq!(result.proof_facts_hex.len(), 9, "proof_facts should have 9 elements");
 }
 
 #[tokio::test]
@@ -623,7 +623,7 @@ async fn invoke_in_proof_mode_none_rejects_wrong_proof_facts() {
         .await
         .unwrap();
 
-    let wrong_proof_facts = vec![Felt::ONE; 8];
+    let wrong_proof_facts = vec![Felt::ONE; 9];
     let error = none_account
         .execute_v3(tx_calls)
         .l1_gas(5_000_000)
@@ -754,7 +754,7 @@ async fn prove_transaction_returns_l2_to_l1_messages_for_withdraw() {
 
     // Proof should still be valid
     assert!(!result.proof_base64.is_empty(), "proof should be non-empty");
-    assert_eq!(result.proof_facts_hex.len(), 8, "proof_facts should have 8 elements");
+    assert_eq!(result.proof_facts_hex.len(), 9, "proof_facts should have 9 elements");
 
     // l2_to_l1_messages should contain the withdraw message
     assert!(
@@ -811,12 +811,83 @@ async fn prove_transaction_returns_empty_messages_for_simple_transfer() {
     let result = devnet.prove_transaction(invoke_for_prove).await;
 
     assert!(!result.proof_base64.is_empty(), "proof should be non-empty");
-    assert_eq!(result.proof_facts_hex.len(), 8, "proof_facts should have 8 elements");
+    assert_eq!(result.proof_facts_hex.len(), 9, "proof_facts should have 9 elements");
 
     // A simple transfer produces no L2→L1 messages
     assert!(
         result.l2_to_l1_messages.is_empty(),
         "l2_to_l1_messages should be empty for a simple transfer, got: {:?}",
         result.l2_to_l1_messages
+    );
+}
+
+#[tokio::test]
+async fn prove_transaction_returns_error_on_execution_failure() {
+    let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+    let (signer, account_address) = devnet.get_first_predeployed_account().await;
+    let mut account = SingleOwnerAccount::new(
+        &devnet.json_rpc_client,
+        signer,
+        account_address,
+        constants::CHAIN_ID,
+        ExecutionEncoding::New,
+    );
+    account.set_block_id(BlockId::Tag(BlockTag::Latest));
+
+    // Call a non-existent contract to trigger execution failure
+    let calls = vec![Call {
+        to: Felt::from_hex_unchecked("0xdeadbeef"),
+        selector: get_selector_from_name("nonexistent_function").unwrap(),
+        calldata: vec![],
+    }];
+
+    let nonce = devnet
+        .json_rpc_client
+        .get_nonce(BlockId::Tag(BlockTag::Latest), account_address)
+        .await
+        .unwrap();
+
+    let block = devnet
+        .json_rpc_client
+        .get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest))
+        .await
+        .unwrap();
+
+    let prepared = account
+        .execute_v3(calls)
+        .l1_gas(5_000_000)
+        .l1_data_gas(1_000_000)
+        .l2_gas(2_500_000_000)
+        .l1_gas_price(felt_to_u128(block.l1_gas_price().price_in_fri))
+        .l1_data_gas_price(felt_to_u128(block.l1_data_gas_price().price_in_fri))
+        .l2_gas_price(felt_to_u128(block.l2_gas_price().price_in_fri))
+        .nonce(nonce)
+        .tip(0)
+        .prepared()
+        .unwrap();
+
+    let invoke_for_prove = prepared.get_invoke_request(false, true).await.unwrap();
+
+    let mut transaction =
+        serde_json::to_value(invoke_for_prove).expect("Failed to serialize transaction");
+    if let Some(obj) = transaction.as_object_mut() {
+        obj.remove("proof");
+        obj.remove("proof_facts");
+    }
+
+    let error = devnet
+        .send_custom_rpc(
+            "starknet_proveTransaction",
+            serde_json::json!({
+                "block_id": "latest",
+                "transaction": transaction
+            }),
+        )
+        .await
+        .expect_err("prove_transaction should fail for non-executable transaction");
+
+    assert!(
+        error.message.contains("Transaction execution failed"),
+        "Error should mention transaction execution failure, got: {error}"
     );
 }
