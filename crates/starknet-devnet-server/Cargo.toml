@@ -1,6 +1,6 @@
 [package]
 name = "starknet-devnet-server"
-version = "0.8.0-rc.1"
+version = "0.8.0-rc.2"
 edition = { workspace = true }
 repository = { workspace = true }
 license-file = { workspace = true }
