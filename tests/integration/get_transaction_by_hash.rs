@@ -157,8 +157,8 @@ async fn get_transaction_by_hash_response_flags_control_proof_facts() {
                 .expect("proof_facts should be returned when IncludeProofFacts is requested");
             assert_eq!(
                 returned_proof_facts.len(),
-                8,
-                "proof_facts should contain expected 8 elements"
+                9,
+                "proof_facts should contain expected 9 elements"
             );
             assert_eq!(
                 returned_proof_facts, submitted_proof_facts,
