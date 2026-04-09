@@ -207,7 +207,11 @@ impl JsonRpcHandler {
             })?;
 
         if include_last_update {
-            Ok(StarknetResponse::StorageResult(StorageResult { value, last_update_block }).into())
+            Ok(StarknetResponse::StorageResult(StorageResult {
+                value,
+                last_update_block: last_update_block.unwrap_or(0),
+            })
+            .into())
         } else {
             Ok(StarknetResponse::Felt(value).into())
         }

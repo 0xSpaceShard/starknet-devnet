@@ -103,7 +103,7 @@ pub struct GetStorageInput {
 #[cfg_attr(test, derive(Deserialize))]
 pub struct StorageResult {
     pub value: Felt,
-    pub last_update_block: Option<u64>,
+    pub last_update_block: u64,
 }
 
 #[derive(Deserialize, Clone, Debug)]
