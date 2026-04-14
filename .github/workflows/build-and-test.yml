@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Load common configuration
         id: config
@@ -48,7 +48,7 @@ jobs:
       TABLEGEN_190_PREFIX: /usr/lib/llvm-19
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install LLVM 19 (required for cairo_native)
         run: |
@@ -88,7 +88,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Load common configuration
         id: config
