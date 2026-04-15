@@ -2,11 +2,11 @@
 
 This page describes the Devnet-specific transaction proof flow introduced in Starknet v0.14.2 and the `--proof-mode` configuration.
 
-## Important distinction: storage proofs vs transaction proofs
+:::caution Not about storage proofs
 
-- `starknet_getStorageProof` is still not supported in Devnet.
-- `starknet_proveTransaction` is a separate Devnet extension for proving/validating `INVOKE v3` transaction payloads in a Devnet-oriented way.
-- If you are looking for Merkle-Patricia storage proofs, this page is **not** about that feature.
+`starknet_getStorageProof` (Merkle-Patricia storage proofs) is **not supported** in Devnet. This page covers `starknet_proveTransaction`, a separate Devnet extension for proving/validating `INVOKE v3` transaction payloads.
+
+:::
 
 ## Proof modes
 
@@ -114,6 +114,7 @@ Example:
       "0x...",
       "0x...",
       "0x...",
+      "0x...",
       "0x..."
     ],
     "l2_to_l1_messages": [
@@ -128,9 +129,9 @@ Example:
 }
 ```
 
-`proof_facts` length is expected to be 8 in devnet mode.
+`proof_facts` length is expected to be 9 in devnet mode (includes a `messages_hash` element derived from L2→L1 messages).
 
-`l2_to_l1_messages` contains L2→L1 messages extracted by simulating the transaction. If the simulation fails (e.g. insufficient balance), this array will be empty and the proof is still returned.
+`l2_to_l1_messages` contains L2→L1 messages extracted by simulating the transaction. If the simulation fails (e.g. execution reverts), `starknet_proveTransaction` returns an error instead of a proof.
 
 ## Mode-specific behavior details
 
