@@ -123,8 +123,14 @@ async fn deploy_transaction_receipt() {
                 .iter()
                 .find(|e| e.from_address == STRK_ERC20_CONTRACT_ADDRESS)
                 .unwrap();
-            assert_eq!(fee_charge_event.keys, vec![get_selector_from_name("Transfer").unwrap()]);
-            assert_eq!(fee_charge_event.data[0], account_address);
+            assert_eq!(
+                fee_charge_event.keys,
+                vec![
+                    get_selector_from_name("Transfer").unwrap(),
+                    account_address,
+                    Felt::from_hex_unchecked("0x1000") // this is sequencer address
+                ]
+            );
         }
         _ => panic!("Invalid receipt {:?}", deployment_receipt),
     };
