@@ -69,9 +69,13 @@ fn configure_tracing() {
         .collect::<Vec<&str>>()
         .join(",");
 
-    let level_filter_layer = EnvFilter::builder()
+    let mut level_filter_layer = EnvFilter::builder()
         .with_default_directive(tracing::Level::INFO.into())
         .parse_lossy(log_env_var);
+
+    if let Ok(cairo_runner_directive) = "cairo_vm::vm::runners::cairo_runner=off".parse() {
+        level_filter_layer = level_filter_layer.add_directive(cairo_runner_directive);
+    }
 
     tracing_subscriber::fmt().with_env_filter(level_filter_layer).init();
 }
