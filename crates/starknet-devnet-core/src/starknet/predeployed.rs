@@ -1,8 +1,10 @@
 use blockifier::state::state_api::State;
 use starknet_rs_core::types::Felt;
-use starknet_rs_core::utils::cairo_short_string_to_felt;
+use starknet_rs_core::utils::{cairo_short_string_to_felt, normalize_address};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::felt_from_prefixed_hex;
+use starknet_types::patricia_key::PatriciaKey;
+use starknet_types_core::hash::Poseidon;
 
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, UDC_CONTRACT, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
@@ -23,7 +25,6 @@ pub(crate) fn create_erc20_at_address_extended(
     Ok(erc20_fee_contract)
 }
 
-/// Set initial values of ERC20 contract storage
 pub(crate) fn initialize_erc20_at_address(
     state: &mut StarknetState,
     contract_address: Felt,
@@ -32,22 +33,38 @@ pub(crate) fn initialize_erc20_at_address(
 ) -> DevnetResult<()> {
     let contract_address = ContractAddress::new(contract_address)?;
 
+    for (storage_var_name, s) in [("ERC20_name", erc20_name), ("ERC20_symbol", erc20_symbol)] {
+        assert!(s.len() <= 30, "ByteArray short-string init only supports <= 30 bytes");
+
+        let base: Felt = get_storage_var_address(storage_var_name, &[])?.to_felt();
+        let pending_word = cairo_short_string_to_felt(s)
+            .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?;
+
+        state.set_storage_at(
+            contract_address.into(),
+            PatriciaKey::new(base)?.into(),
+            Felt::from(s.len() as u64),
+        )?;
+
+        let byte_array_marker = cairo_short_string_to_felt("ByteArray")
+            .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?;
+        let mut state_arr = [base, Felt::ZERO, byte_array_marker];
+        Poseidon::hades_permutation(&mut state_arr);
+        let chunk_base = normalize_address(state_arr[0]);
+
+        state.set_storage_at(
+            contract_address.into(),
+            PatriciaKey::new(chunk_base)?.into(),
+            pending_word,
+        )?;
+    }
+
     for (storage_var_name, storage_value) in [
-        (
-            "ERC20_name",
-            cairo_short_string_to_felt(erc20_name)
-                .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?,
-        ),
-        (
-            "ERC20_symbol",
-            cairo_short_string_to_felt(erc20_symbol)
-                .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?,
-        ),
-        ("ERC20_decimals", 18.into()),
+        ("ERC20_decimals", 18u64.into()),
         ("permitted_minter", felt_from_prefixed_hex(CHARGEABLE_ACCOUNT_ADDRESS)?),
     ] {
-        let storage_var_address = get_storage_var_address(storage_var_name, &[])?.into();
-        state.set_storage_at(contract_address.into(), storage_var_address, storage_value)?;
+        let key = get_storage_var_address(storage_var_name, &[])?;
+        state.set_storage_at(contract_address.into(), key.into(), storage_value)?;
     }
 
     Ok(())

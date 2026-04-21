@@ -44,9 +44,9 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_0_8_0_SIERRA_PATH: &str = concat!(
 pub const ETH_ERC20_CONTRACT_ADDRESS: Felt =
     Felt::from_hex_unchecked("0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7");
 pub const ETH_ERC20_CONTRACT_CLASS_HASH: Felt =
-    Felt::from_hex_unchecked("0x9524a94b41c4440a16fd96d7c1ef6ad6f44c1c013e96662734502cd4ee9b1f");
+    Felt::from_hex_unchecked("0x00b45dbc3714180381c5680e41931172d67194d77d504413465390e0bef194ec");
 pub const STRK_ERC20_CONTRACT_CLASS_HASH: Felt =
-    Felt::from_hex_unchecked("0x76791ef97c042f81fbf352ad95f39a22554ee8d7927b2ce3c681f3418b5206a");
+    Felt::from_hex_unchecked("0x02e77ee61d4df3d988ee1f42ea5442e913862cc82c2584d212ecda76666498fc");
 pub const STRK_ERC20_CONTRACT_ADDRESS: Felt =
     Felt::from_hex_unchecked("0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d");
 pub const UDC_LEGACY_CONTRACT_ADDRESS: Felt =

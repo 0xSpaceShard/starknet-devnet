@@ -140,7 +140,7 @@ async fn predeployed_erc20_tokens_have_expected_storage() {
             .unwrap()
             .value();
 
-        assert_eq!(parse_cairo_short_string(&actual_value).unwrap().as_str(), expected_value);
+        assert_eq!(actual_value, expected_value.len().into());
     }
 }
 
@@ -165,8 +165,7 @@ async fn predeployed_erc20_tokens_return_expected_values_from_property_getters()
             )
             .await
             .unwrap();
-
-        assert_eq!(actual_felts.len(), 1);
-        assert_eq!(parse_cairo_short_string(&actual_felts[0]).unwrap(), expected_value);
+        assert_eq!(actual_felts.len(), 3);
+        assert_eq!(parse_cairo_short_string(&actual_felts[1]).unwrap(), expected_value);
     }
 }

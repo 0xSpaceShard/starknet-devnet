@@ -27,7 +27,7 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
     "0x05b4b537eaa2399e3aa99c4e2e0208ebd6c71bc1467938cd52c798c601e43564";
 
 pub const ETH_ERC20_CONTRACT_CLASS_HASH: Felt =
-    Felt::from_hex_unchecked("0x9524a94b41c4440a16fd96d7c1ef6ad6f44c1c013e96662734502cd4ee9b1f");
+    Felt::from_hex_unchecked("0x00b45dbc3714180381c5680e41931172d67194d77d504413465390e0bef194ec");
 pub const ETH_ERC20_CONTRACT_CLASS: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/contracts/system_artifacts/erc20_eth.sierra"
@@ -36,7 +36,7 @@ pub const ETH_ERC20_CONTRACT_ADDRESS: Felt =
     Felt::from_hex_unchecked("0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7");
 
 pub const STRK_ERC20_CONTRACT_CLASS_HASH: Felt =
-    Felt::from_hex_unchecked("0x76791ef97c042f81fbf352ad95f39a22554ee8d7927b2ce3c681f3418b5206a");
+    Felt::from_hex_unchecked("0x02e77ee61d4df3d988ee1f42ea5442e913862cc82c2584d212ecda76666498fc");
 pub const STRK_ERC20_CONTRACT_CLASS: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/contracts/system_artifacts/erc20_strk.sierra"
