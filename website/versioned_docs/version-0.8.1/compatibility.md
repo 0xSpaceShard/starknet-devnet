@@ -12,10 +12,11 @@ Each Devnet release targets a specific Starknet protocol version and JSON-RPC sp
   </thead>
   <tbody>
     <tr>
-      <td>v0.8.0</td>
-      <td>0.14.2</td>
-      <td>0.10.2</td>
+      <td>v0.8.1</td>
+      <td rowspan={2}>0.14.2</td>
+      <td rowspan={2}>0.10.2</td>
     </tr>
+    <tr><td>v0.8.0</td></tr>
     <tr>
       <td>v0.7.2</td>
       <td rowspan={3}>0.14.1</td>
